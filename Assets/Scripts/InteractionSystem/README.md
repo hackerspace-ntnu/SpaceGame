@@ -29,5 +29,7 @@ Implements the `IInteractable.cs` interface and applies logic to the transform o
 
 # Basic use
 
+The `Interactor.cs` sends out a raycast from the player when they press a key mapped to an action. If the raycast hits an interactable object i.e. an object with a script - such as `DoorInteraction.cs` implementing the `IInteractable.cs` interface, check if it can be interacted with and if so, run the interaction logic of the object.
+
 1) Attach the `Interactor.cs` script to the player prefab in the scene
 2) Attach an `...Interaction.cs` script to a game object and implement the `IInteractable.cs` interface and its corresponding logic methods as described above. For instance, attach `DoorInteraction.cs` to the `prefab 99_Environment_Doors` (Assets/Models/Environment) and implement its logic. Finally, add a collider for this object.

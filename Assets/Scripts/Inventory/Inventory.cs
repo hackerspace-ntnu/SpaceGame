@@ -11,6 +11,7 @@ public class Inventory
     public int InventorySize;
     public Inventory(int size)
     {
+        InventorySize = size;
         InventorySlots = new InventorySlot[InventorySize];
 
         for (int i = 0; i<InventorySize; i++)

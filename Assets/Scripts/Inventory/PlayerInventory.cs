@@ -1,23 +1,35 @@
 
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements.Experimental;
 
-public class PlayerInventory : MonoBehaviour, IInventoryComponent
+public class PlayerInventory  : InventoryComponent
 
 {
     private InputAction hotkeyAction;
-    public Inventory Inventory{ get; set; }
+    
+    public List<InventoryItem> startingItems;
     private void Awake()
     {
-        Inventory inventory = new Inventory(4);
+        Inventory = new Inventory(4);
+        hotkeyAction = InputSystem.actions.FindAction("Hotkey");
+    }
+
+    private void Start()
+    {
+        foreach (var item in startingItems)
+        {
+            TryAddItem(item);
+        }
     }
     private void Update()
     {
         if (hotkeyAction.WasPressedThisFrame()) { 
-            int value = hotkeyAction.ReadValue<int>();
-            string itemName = Inventory.GetSlot(value-1).Item.itemName;
+            float value = hotkeyAction.ReadValue<float>();
+            string itemName = Inventory.GetSlot((int)value-1).Item.itemName;
             Debug.Log(itemName);
         }
     }
+    
 }

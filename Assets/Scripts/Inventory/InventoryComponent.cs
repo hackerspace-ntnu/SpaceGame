@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem.Interactions;
 
-public interface IInventoryComponent 
+public class InventoryComponent : MonoBehaviour
 {
     public Inventory Inventory { get; set; }
     public bool TryAddItem(InventoryItem item)

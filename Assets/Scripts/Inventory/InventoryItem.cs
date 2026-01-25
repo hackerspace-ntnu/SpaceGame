@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "Inventory/Item Definition")]
+[CreateAssetMenu(menuName = "Items/Item")]
 public class InventoryItem : ScriptableObject
 {
     [Tooltip("Unique identifier for the item. ")]

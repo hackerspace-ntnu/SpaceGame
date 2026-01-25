@@ -3,21 +3,22 @@ using UnityEngine.InputSystem.Interactions;
 
 public class InventoryComponent : MonoBehaviour
 {
-    public Inventory Inventory { get; set; }
+    protected Inventory inventory { get; set; }
+    
     public bool TryAddItem(InventoryItem item)
     {
-        int index = Inventory.FindEmptySlot();
+        int index = inventory.FindEmptySlot();
         if (index == -1) {return false;}
 
-        InventorySlot slot = Inventory.GetSlot(index);
+        InventorySlot slot = inventory.GetSlot(index);
         slot.Item = item;
         return true;
     }
 
     public bool TryRemoveItem(int index)
     {
-        if (index >= Inventory.InventorySize) {return false;}
-        InventorySlot slot = Inventory.GetSlot(index);
+        if (index >= inventory.InventorySize) {return false;}
+        InventorySlot slot = inventory.GetSlot(index);
         if (slot.Item == null) {return false;}
 
         slot.Item = null;
@@ -27,15 +28,18 @@ public class InventoryComponent : MonoBehaviour
     public bool TryMoveItem(int to, int from)
     {
         if (from == to) {return true;}
-        if (to >= Inventory.InventorySize || from >= Inventory.InventorySize) {return false;}
-        InventorySlot slotTo = Inventory.GetSlot(to);
-        InventorySlot slotFrom = Inventory.GetSlot(from);
+        if (to >= inventory.InventorySize || from >= inventory.InventorySize) {return false;}
+        InventorySlot slotTo = inventory.GetSlot(to);
+        InventorySlot slotFrom = inventory.GetSlot(from);
 
         if (slotTo.Item == null) {
             slotTo.Item = slotFrom.Item;
             slotFrom.Item = null;
             return true;
             }
-        return Inventory.SwapItems(to,from);
+        return inventory.SwapItems(to,from);
     }
+    
+    public int InventorySize => inventory.InventorySize;
+    public InventorySlot GetSlot(int index) => inventory.GetSlot(index);
 }

@@ -258,7 +258,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d1e1e035d1f142b7a7d61f6903146630, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InventoryUI
-  Inventory: {fileID: 1818102229}
+  inventory: {fileID: 1818102229}
   slotPrefab: {fileID: 1569991674121291883, guid: 3faaff34500f6634a939909348e04440, type: 3}
   inventoryGrid: {fileID: 560004499}
 --- !u!1 &1025981450
@@ -511,6 +511,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1139436794606665169, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1818102229}
+    - targetCorrespondingSourceObject: {fileID: 1139436794606665169, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1818102235}
   m_SourcePrefab: {fileID: 100100000, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
 --- !u!1 &1818102228 stripped
 GameObject:
@@ -529,8 +532,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d3c3ee9f96f4d8fa345def3372865d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInventory
+  hotbarController: {fileID: 1818102235}
   startingItems:
   - {fileID: 11400000, guid: f1f822ef1182eff41b9ca89ce0ea8cb5, type: 2}
+--- !u!114 &1818102235
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1818102228}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07ae79d65a784f59804b97fbf3c94045, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HotbarController
 --- !u!1 &1867727518
 GameObject:
   m_ObjectHideFlags: 0
@@ -778,7 +794,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8479862940107374900, guid: f628af38eb78b944b881e44a9928949a, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.06
+      value: -0.924
       objectReference: {fileID: 0}
     - target: {fileID: 8479862940107374900, guid: f628af38eb78b944b881e44a9928949a, type: 3}
       propertyPath: m_LocalPosition.z

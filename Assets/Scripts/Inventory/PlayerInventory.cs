@@ -1,19 +1,24 @@
 
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.UIElements.Experimental;
 
 public class PlayerInventory  : InventoryComponent
-
 {
+    
     private InputAction hotkeyAction;
+    public HotbarController hotbarController;
+    
+    public event Action<int> OnSlotSelected;
     
     public List<InventoryItem> startingItems;
     private void Awake()
     {
-        Inventory = new Inventory(4);
-        hotkeyAction = InputSystem.actions.FindAction("Hotkey");
+        inventory = new Inventory(4);
+        
+        if (hotbarController != null)
+            hotbarController.OnHotbarKeyPressed += HandleHotbarKey;
     }
 
     private void Start()
@@ -23,13 +28,16 @@ public class PlayerInventory  : InventoryComponent
             TryAddItem(item);
         }
     }
-    private void Update()
+    
+    private void OnDestroy()
     {
-        if (hotkeyAction.WasPressedThisFrame()) { 
-            float value = hotkeyAction.ReadValue<float>();
-            string itemName = Inventory.GetSlot((int)value-1).Item.itemName;
-            Debug.Log(itemName);
-        }
+        if (hotbarController != null)
+            hotbarController.OnHotbarKeyPressed -= HandleHotbarKey;
+    }
+    
+    private void HandleHotbarKey(int slotIndex)
+    {
+        OnSlotSelected?.Invoke(slotIndex);
     }
     
 }

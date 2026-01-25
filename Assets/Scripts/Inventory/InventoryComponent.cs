@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class InventoryComponent : MonoBehaviour
+public interface IInventoryComponent 
 {
-    
+    public Inventory Inventory { get; protected set; }
 }

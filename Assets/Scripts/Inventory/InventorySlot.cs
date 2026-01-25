@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class InventorySlot
 {
-    private int slotIndex;
-    private InventoryItem item { get; set; }
+    public int SlotIndex;
+    public InventoryItem Item { get; set; }
     
 }

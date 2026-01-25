@@ -26,10 +26,10 @@ public class InventorySlotUI : MonoBehaviour/*,*/
     {
         selected = isSelected;
         hovered = isHovered;
-    
         if (slot.Item)
         {
             icon.sprite = slot.Item.icon;
+            icon.enabled = true;
         }
         else
         {

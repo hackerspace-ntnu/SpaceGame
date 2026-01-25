@@ -14,8 +14,9 @@ public class InventoryUI : MonoBehaviour
     private void Awake()
     {
         inventory.OnSlotSelected += OnSlotSelected;
+        inventory.OnInventoryChanged += OnInventoryChanged;
     }
-    
+
 
     private void OnDestroy()
     {
@@ -48,6 +49,11 @@ public class InventoryUI : MonoBehaviour
     {
         bool isSameSlot = index == selectedIndex;
         selectedIndex = isSameSlot ? -1 : index;
+        RefreshAll();
+    }
+    
+    private void OnInventoryChanged()
+    {
         RefreshAll();
     }
     

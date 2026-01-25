@@ -1,9 +1,16 @@
+using System;
 using UnityEngine;
-using UnityEngine.InputSystem.Interactions;
 
 public class InventoryComponent : MonoBehaviour
 {
     protected Inventory inventory { get; set; }
+    
+    public event Action OnInventoryChanged;
+    
+    protected void NotifyInventoryChanged()
+    {
+        OnInventoryChanged?.Invoke();
+    }
     
     public bool TryAddItem(InventoryItem item)
     {
@@ -12,6 +19,7 @@ public class InventoryComponent : MonoBehaviour
 
         InventorySlot slot = inventory.GetSlot(index);
         slot.Item = item;
+        NotifyInventoryChanged();
         return true;
     }
 
@@ -22,6 +30,7 @@ public class InventoryComponent : MonoBehaviour
         if (slot.Item == null) {return false;}
 
         slot.Item = null;
+        NotifyInventoryChanged();
         return true;
     }
 
@@ -29,15 +38,28 @@ public class InventoryComponent : MonoBehaviour
     {
         if (from == to) {return true;}
         if (to >= inventory.InventorySize || from >= inventory.InventorySize) {return false;}
+
+        bool successfulMove;
+        
         InventorySlot slotTo = inventory.GetSlot(to);
         InventorySlot slotFrom = inventory.GetSlot(from);
 
         if (slotTo.Item == null) {
             slotTo.Item = slotFrom.Item;
             slotFrom.Item = null;
-            return true;
-            }
-        return inventory.SwapItems(to,from);
+            successfulMove = true;
+        }
+        else
+        {
+            successfulMove = inventory.SwapItems(to,from);;
+        }
+
+        if (successfulMove)
+        {
+            NotifyInventoryChanged();
+        }
+        
+        return successfulMove;
     }
     
     public int InventorySize => inventory.InventorySize;

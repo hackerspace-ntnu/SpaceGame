@@ -1,13 +1,13 @@
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "Inventory/Item Definition")]
-public class InventoryItemDefinition : ScriptableObject
+public class InventoryItem : ScriptableObject
 {
     [Tooltip("Unique identifier for the item. ")]
-    public string itemId = "NewItem";
+    public string itemName = "NewItem";
 
     [Tooltip("Prefab that will be instantiated and equipped when this item is selected.")]
-    public GameObject equipmentPrefab;
+    public GameObject itemPrefab;
 
     [Tooltip("Optional icon for UI display.")]
     public Sprite icon;

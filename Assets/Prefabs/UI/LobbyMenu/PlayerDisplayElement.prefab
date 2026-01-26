@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 813698248143288592}
   - component: {fileID: 648958061469995276}
   - component: {fileID: 4896400435657409919}
-  - component: {fileID: 6463004531888733138}
   m_Layer: 5
   m_Name: PlayerDisplayElement
   m_TagString: Untagged
@@ -115,22 +114,6 @@ MonoBehaviour:
   m_EffectColor: {r: 1, g: 1, b: 1, a: 1}
   m_EffectDistance: {x: 2, y: -2}
   m_UseGraphicAlpha: 1
---- !u!114 &6463004531888733138
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6255574423919189070}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 468796ae4ebccc54db3fba9abdd0d8ba, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LobbyElementController
-  lobbyNameUI: {fileID: 3303255899186867846}
-  lobbyIdUI: {fileID: 0}
-  maxPlayersUI: {fileID: 0}
-  lobbyCodeUI: {fileID: 0}
 --- !u!1 &7720875040999233375
 GameObject:
   m_ObjectHideFlags: 0

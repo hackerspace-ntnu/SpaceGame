@@ -51,7 +51,7 @@ public class LobbySystem : MonoBehaviour
             lobbyUpdateTimer -= Time.deltaTime;
             if (lobbyUpdateTimer <= 0f)
             {
-                float lobbyUpdateTimerMax = 1.1f;
+                float lobbyUpdateTimerMax = 2f;
                 lobbyUpdateTimer = lobbyUpdateTimerMax;
                 Lobby lobby = await LobbyService.Instance.GetLobbyAsync(joinedLobby.Id);
                 joinedLobby = lobby;
@@ -66,7 +66,7 @@ public class LobbySystem : MonoBehaviour
             refreshLobbyListTimer -= Time.deltaTime;
             if(refreshLobbyListTimer < 0f )
             {
-                float refreshLobbyListTimerMax = 3f;
+                float refreshLobbyListTimerMax = 5f;
                 refreshLobbyListTimer = refreshLobbyListTimerMax;
                 listLobbies();
             }

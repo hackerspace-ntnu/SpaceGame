@@ -47,8 +47,7 @@ public class InventoryUI : MonoBehaviour
     
     private void OnSlotSelected(int index)
     {
-        bool isSameSlot = index == selectedIndex;
-        selectedIndex = isSameSlot ? -1 : index;
+        selectedIndex = index;
         RefreshAll();
     }
     

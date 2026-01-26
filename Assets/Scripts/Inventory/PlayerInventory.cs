@@ -8,9 +8,11 @@ public class PlayerInventory  : InventoryComponent
 {
     
     private InputAction hotkeyAction;
-    public HotbarController hotbarController;
+    [SerializeField] private HotbarController hotbarController;
+    [SerializeField] private EquipmentController equipmentController;
     
     public event Action<int> OnSlotSelected;
+    private int selectedSlotIndex = -1;
     
     public List<InventoryItem> startingItems;
     private void Awake()
@@ -37,7 +39,28 @@ public class PlayerInventory  : InventoryComponent
     
     private void HandleHotbarKey(int slotIndex)
     {
-        OnSlotSelected?.Invoke(slotIndex);
+        if (slotIndex == selectedSlotIndex)
+            selectedSlotIndex = -1;
+        else
+            selectedSlotIndex = slotIndex;   
+        
+        OnSlotSelected?.Invoke(selectedSlotIndex);
+
+        if (selectedSlotIndex < 0)
+        {
+            equipmentController.Unequip();
+            return;
+        }
+        
+        InventorySlot slot = inventory.GetSlot(selectedSlotIndex);
+        if (slot == null || slot.Item == null)
+        {
+            equipmentController.Unequip();
+            return;
+        }
+        
+        
+        equipmentController.Equip(slot.Item);
     }
     
 }

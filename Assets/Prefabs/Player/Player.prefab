@@ -102,6 +102,10 @@ GameObject:
   - component: {fileID: 9063521607158921477}
   - component: {fileID: 2373467063951106400}
   - component: {fileID: 7560167703051224905}
+  - component: {fileID: 5824313762174812174}
+  - component: {fileID: 8861937888077706661}
+  - component: {fileID: 980568265328903961}
+  - component: {fileID: 1681600809652155392}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -301,6 +305,61 @@ MonoBehaviour:
   playerBody: {fileID: 7571235748023247877}
   sensitivity: 20
   verticalClamp: 80
+--- !u!114 &5824313762174812174
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1139436794606665169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d3c3ee9f96f4d8fa345def3372865d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerInventory
+  hotbarController: {fileID: 980568265328903961}
+  equipmentController: {fileID: 1681600809652155392}
+  startingItems:
+  - {fileID: 11400000, guid: f1f822ef1182eff41b9ca89ce0ea8cb5, type: 2}
+--- !u!114 &8861937888077706661
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1139436794606665169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c9c44c21aa4aa1438d79abad4ffd9e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Interactor
+  _castDistance: 5
+  _rayOffset: {x: 0, y: 0, z: 0}
+--- !u!114 &980568265328903961
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1139436794606665169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07ae79d65a784f59804b97fbf3c94045, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HotbarController
+--- !u!114 &1681600809652155392
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1139436794606665169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 439ac31860ab4e6589c9cb165f8af5ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EquipmentController
+  handSocket: {fileID: 7954253418651921130}
 --- !u!1 &1159096532428065929
 GameObject:
   m_ObjectHideFlags: 0

@@ -22,15 +22,14 @@ public class Interactor : MonoBehaviour
 
     private void Update()
     {
-        if (_interactAction.WasPressedThisFrame())
+        if (!DoInteractionTest(out IInteractable interactable)) return;
+        
+
+        if (!_interactAction.WasPressedThisFrame()) return;
+        
+        if (interactable.CanInteract())
         {
-            if (DoInteractionTest(out IInteractable interactable))
-            {
-                if (interactable.CanInteract())
-                {
-                    interactable.Interact(this);
-                }
-            }
+            interactable.Interact(this);
         }
     }
 
@@ -38,9 +37,11 @@ public class Interactor : MonoBehaviour
     {
         interactable = null;
         
-        Ray ray = new Ray(transform.position , lookTransform.forward);
+        Vector3 origin = lookTransform.position;
+        Vector3 direction = lookTransform.forward;
+        
         int layerMask = ~LayerMask.GetMask("Player");
-        if (Physics.Raycast(ray, out RaycastHit hitInfo, _castDistance, layerMask))
+        if (Physics.Raycast(origin, direction, out RaycastHit hitInfo, _castDistance, layerMask))
         {
             interactable = hitInfo.collider.GetComponentInParent<IInteractable>();
             if (interactable != null)

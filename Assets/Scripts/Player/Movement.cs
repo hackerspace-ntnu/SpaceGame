@@ -20,6 +20,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private GameObject camera;
 
     private Rigidbody rb;
+    private Animator animator;
     private Vector2 input;
     private float jumpCooldownTimer;
     private bool jumpOnCooldown;
@@ -28,6 +29,7 @@ public class PlayerMovement : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        animator = GetComponent<Animator>();
         rb.useGravity = true;
     }
 
@@ -62,6 +64,22 @@ public class PlayerMovement : MonoBehaviour
         velocity.x = newHorizontal.x;
         velocity.z = newHorizontal.z;
         rb.linearVelocity = velocity;
+
+        UpdateAnimatorParameters(velocity, grounded);
+    }
+
+    private void UpdateAnimatorParameters(Vector3 velocity, bool grounded)
+    {
+        if (!animator) return;
+
+        // Calculate local velocity for animation
+        Vector3 localVelocity = transform.worldToLocalMatrix.MultiplyVector(velocity);
+        
+        animator.SetFloat("SpeedX", localVelocity.x, .1f, Time.deltaTime);
+        animator.SetFloat("SpeedY", localVelocity.z, .1f, Time.deltaTime);
+        animator.SetFloat("FallSpeed", velocity.y, .1f, Time.deltaTime);
+        animator.SetBool("IsGrounded", grounded);
+        animator.SetBool("IsImmobalized", !groundSnapEnabled);
     }
 
     public void OnMove(InputValue value)

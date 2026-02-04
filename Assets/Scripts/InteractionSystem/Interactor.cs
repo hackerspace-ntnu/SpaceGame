@@ -42,7 +42,7 @@ public class Interactor : MonoBehaviour
         int layerMask = ~LayerMask.GetMask("Player");
         if (Physics.Raycast(ray, out RaycastHit hitInfo, _castDistance, layerMask))
         {
-            interactable = hitInfo.collider.GetComponent<IInteractable>();
+            interactable = hitInfo.collider.GetComponentInParent<IInteractable>();
             if (interactable != null)
             {
                 return true;

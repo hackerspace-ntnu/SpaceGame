@@ -14,14 +14,13 @@ class PickupableItem : MonoBehaviour, IInteractable
 
    public void Interact(Interactor interactor)
    {
-      InventoryComponent inventoryComponent = interactor.GetComponent<InventoryComponent>();
-      if (inventoryComponent != null)
+      InventoryComponent inventoryComponent = interactor.GetComponentInParent<InventoryComponent>();
+      if (!inventoryComponent) return;
+      
+      bool added = inventoryComponent.TryAddItem(item);
+      if (added)
       {
-         bool added = inventoryComponent.TryAddItem(item);
-         if (added)
-         {
-            Destroy(gameObject);
-         }
+         Destroy(gameObject);
       }
    }
 }

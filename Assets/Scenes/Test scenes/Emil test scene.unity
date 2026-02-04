@@ -501,6 +501,10 @@ PrefabInstance:
       propertyPath: 'startingItems.Array.data[1]'
       value: 
       objectReference: {fileID: 11400000, guid: ec5e14d2d262f2a47b547b9af33cc2f2, type: 2}
+    - target: {fileID: 7560167703051224905, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
+      propertyPath: sensitivity
+      value: 40
+      objectReference: {fileID: 0}
     - target: {fileID: 7571235748023247877, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -545,6 +549,14 @@ PrefabInstance:
       propertyPath: lookTransform
       value: 
       objectReference: {fileID: 898585105}
+    - target: {fileID: 9063521607158921477, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
+      propertyPath: m_Constraints
+      value: 112
+      objectReference: {fileID: 0}
+    - target: {fileID: 9063521607158921477, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
+      propertyPath: m_Interpolate
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

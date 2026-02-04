@@ -14,7 +14,7 @@ public class Inventory
         InventorySize = size;
         InventorySlots = new InventorySlot[InventorySize];
 
-        for (int i = 0; i<InventorySize; i++)
+        for (int i = 0; i < InventorySize; i++)
         {
             InventorySlots[i] = new InventorySlot
             {
@@ -25,26 +25,28 @@ public class Inventory
     }
     public InventorySlot GetSlot(int index)
     {
-        if (index >= InventorySize) {return null;}
-
-        return InventorySlots[index];
+        if (index < InventorySize)
+        {
+            return InventorySlots[index];
+        } 
+        
+        return null;
     }
-    
 
     public bool SwapItems(int indexA, int indexB)
     {
-    (InventorySlots[indexA].Item, InventorySlots[indexB].Item) = (InventorySlots[indexB].Item, InventorySlots[indexA].Item); 
-    return true;
+        (InventorySlots[indexA].Item, InventorySlots[indexB].Item) = (InventorySlots[indexB].Item, InventorySlots[indexA].Item); 
+        return true;
     }
 
     public int FindEmptySlot()
     {
-        for (int i = 0; i <= InventorySize; i++)
+        for (int i = 0; i < InventorySize; i++)
         {
-           if (InventorySlots[i].Item == null)
-            {
-                return i;
-            } 
+           if (!InventorySlots[i].Item)
+           { 
+               return i;
+           } 
         }
         return -1;
     }

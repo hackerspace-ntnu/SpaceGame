@@ -20,7 +20,7 @@ class PickupableItem : MonoBehaviour, IInteractable
       bool added = inventoryComponent.TryAddItem(item);
       if (added)
       {
-         Destroy(gameObject);
+         Destroy(transform.parent.gameObject);
       }
    }
 }

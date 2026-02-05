@@ -14,6 +14,12 @@ public class InventoryComponent : MonoBehaviour
     
     public bool TryAddItem(InventoryItem item)
     {
+        if (!item)
+        {
+            Debug.LogWarning("item is not defined for this gameObject");
+            return false;
+        }
+        
         int index = inventory.FindEmptySlot();
         if (index == -1) {return false;}
 

@@ -6,6 +6,8 @@ public class HotbarController : MonoBehaviour
     private InputControls controls;
     
     public event Action<int> OnHotbarKeyPressed;
+    
+    public event Action OnDropPressed;
 
     private void Awake()
     {
@@ -24,6 +26,8 @@ public class HotbarController : MonoBehaviour
         controls.Hotbar.Hotbar8.performed += ctx => OnHotbarKeyPressed?.Invoke(7);
         controls.Hotbar.Hotbar9.performed += ctx => OnHotbarKeyPressed?.Invoke(8);
         controls.Hotbar.Hotbar10.performed += ctx => OnHotbarKeyPressed?.Invoke(9);
+        
+        controls.Hotbar.Drop.performed += ctx => OnDropPressed?.Invoke();
         controls.Hotbar.Enable();
     }
 

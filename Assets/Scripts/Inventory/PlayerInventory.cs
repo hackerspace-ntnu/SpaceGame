@@ -19,8 +19,10 @@ public class PlayerInventory  : InventoryComponent
     {
         inventory = new Inventory(4);
         
-        if (hotbarController != null)
-            hotbarController.OnHotbarKeyPressed += HandleHotbarKey;
+        if (hotbarController == null) return;
+        
+        hotbarController.OnHotbarKeyPressed += HandleHotbarKey;
+        hotbarController.OnDropPressed += HandleDrop;
     }
 
     private void Start()
@@ -33,8 +35,9 @@ public class PlayerInventory  : InventoryComponent
     
     private void OnDestroy()
     {
-        if (hotbarController != null)
-            hotbarController.OnHotbarKeyPressed -= HandleHotbarKey;
+        if (hotbarController == null) return;
+        hotbarController.OnHotbarKeyPressed -= HandleHotbarKey;
+        hotbarController.OnDropPressed -= HandleDrop;
     }
     
     private void HandleHotbarKey(int slotIndex)
@@ -61,6 +64,47 @@ public class PlayerInventory  : InventoryComponent
         
         
         equipmentController.Equip(slot.Item);
+    }
+    
+    private void HandleDrop()
+    {
+        if (selectedSlotIndex < 0)
+            return;
+
+        InventorySlot slot = inventory.GetSlot(selectedSlotIndex);
+        if (slot == null || slot.Item == null)
+            return;
+
+        InventoryItem itemToDrop = slot.Item;
+
+        if (!itemToDrop.itemPrefab)
+        {
+            Debug.LogWarning("itemprefab is not defined");
+            return;
+        }
+
+        bool removed = TryRemoveItem(selectedSlotIndex);
+        
+        if (!removed) return;
+        
+        equipmentController.Unequip();
+        SpawnDroppedItem(itemToDrop);
+
+    }
+    
+    private void SpawnDroppedItem(InventoryItem item)
+    {
+        Vector3 dropPos = transform.position + transform.forward * 1.2f + Vector3.up * 0.5f;
+
+        GameObject obj = Instantiate(item.itemPrefab, dropPos, Quaternion.identity);
+
+        Rigidbody rb = obj.GetComponent<Rigidbody>();
+        rb.isKinematic = false;
+        if (rb != null)
+        {
+            Vector3 force = transform.forward * 1.5f + Vector3.up * 1.0f;
+            rb.AddForce(force, ForceMode.Impulse);
+        }
     }
     
 }

@@ -1290,6 +1290,15 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Drop"",
+                    ""type"": ""Button"",
+                    ""id"": ""e4a3dc19-9c52-4528-8988-cd02e9083651"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -1402,6 +1411,17 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""action"": ""Hotbar10"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""864c7689-5a5e-41fb-8ba9-27b9864e8fb0"",
+                    ""path"": ""<Keyboard>/g"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Drop"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -1505,6 +1525,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         m_Hotbar_Hotbar8 = m_Hotbar.FindAction("Hotbar8", throwIfNotFound: true);
         m_Hotbar_Hotbar9 = m_Hotbar.FindAction("Hotbar9", throwIfNotFound: true);
         m_Hotbar_Hotbar10 = m_Hotbar.FindAction("Hotbar10", throwIfNotFound: true);
+        m_Hotbar_Drop = m_Hotbar.FindAction("Drop", throwIfNotFound: true);
     }
 
     ~@InputControls()
@@ -1987,6 +2008,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_Hotbar_Hotbar8;
     private readonly InputAction m_Hotbar_Hotbar9;
     private readonly InputAction m_Hotbar_Hotbar10;
+    private readonly InputAction m_Hotbar_Drop;
     /// <summary>
     /// Provides access to input actions defined in input action map "Hotbar".
     /// </summary>
@@ -2038,6 +2060,10 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Hotbar/Hotbar10".
         /// </summary>
         public InputAction @Hotbar10 => m_Wrapper.m_Hotbar_Hotbar10;
+        /// <summary>
+        /// Provides access to the underlying input action "Hotbar/Drop".
+        /// </summary>
+        public InputAction @Drop => m_Wrapper.m_Hotbar_Drop;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -2094,6 +2120,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @Hotbar10.started += instance.OnHotbar10;
             @Hotbar10.performed += instance.OnHotbar10;
             @Hotbar10.canceled += instance.OnHotbar10;
+            @Drop.started += instance.OnDrop;
+            @Drop.performed += instance.OnDrop;
+            @Drop.canceled += instance.OnDrop;
         }
 
         /// <summary>
@@ -2135,6 +2164,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @Hotbar10.started -= instance.OnHotbar10;
             @Hotbar10.performed -= instance.OnHotbar10;
             @Hotbar10.canceled -= instance.OnHotbar10;
+            @Drop.started -= instance.OnDrop;
+            @Drop.performed -= instance.OnDrop;
+            @Drop.canceled -= instance.OnDrop;
         }
 
         /// <summary>
@@ -2466,5 +2498,12 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnHotbar10(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Drop" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnDrop(InputAction.CallbackContext context);
     }
 }

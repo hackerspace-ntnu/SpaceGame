@@ -9,8 +9,8 @@ public class Interactor : MonoBehaviour
 {
     [SerializeField]
     private float _castDistance = 5f;
-    [SerializeField]
-    private Vector3 _rayOffset = new Vector3(0, 1.5f, 0);
+
+    [SerializeField] private Transform lookTransform;
 
     private InputAction _interactAction;
 
@@ -22,25 +22,26 @@ public class Interactor : MonoBehaviour
 
     private void Update()
     {
-        if (_interactAction.WasPressedThisFrame())
+        if (!DoInteractionTest(out IInteractable interactable)) return;
+        
+
+        if (!_interactAction.WasPressedThisFrame()) return;
+        
+        if (interactable.CanInteract())
         {
-            if (DoInteractionTest(out IInteractable interactable))
-            {
-                if (interactable.CanInteract())
-                {
-                    interactable.Interact(this);
-                }
-            }
+            interactable.Interact(this);
         }
     }
 
     private bool DoInteractionTest(out IInteractable interactable)
     {
         interactable = null;
-
-        Ray ray = new Ray(transform.position + _rayOffset, transform.forward);
-
-        if (Physics.Raycast(ray, out RaycastHit hitInfo, _castDistance))
+        
+        Vector3 origin = lookTransform.position;
+        Vector3 direction = lookTransform.forward;
+        
+        int layerMask = ~LayerMask.GetMask("Player");
+        if (Physics.Raycast(origin, direction, out RaycastHit hitInfo, _castDistance, layerMask))
         {
             interactable = hitInfo.collider.GetComponent<IInteractable>();
             if (interactable != null)

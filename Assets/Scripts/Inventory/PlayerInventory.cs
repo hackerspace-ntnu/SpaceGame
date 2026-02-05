@@ -94,8 +94,17 @@ public class PlayerInventory  : InventoryComponent
     
     private void SpawnDroppedItem(InventoryItem item)
     {
-        Vector3 dropPos = transform.position + transform.forward * 1.2f;
-        Instantiate(item.itemPrefab, dropPos, Quaternion.identity);
+        Vector3 dropPos = transform.position + transform.forward * 1.2f + Vector3.up * 0.5f;
+
+        GameObject obj = Instantiate(item.itemPrefab, dropPos, Quaternion.identity);
+
+        Rigidbody rb = obj.GetComponent<Rigidbody>();
+        rb.isKinematic = false;
+        if (rb != null)
+        {
+            Vector3 force = transform.forward * 1.5f + Vector3.up * 1.0f;
+            rb.AddForce(force, ForceMode.Impulse);
+        }
     }
     
 }

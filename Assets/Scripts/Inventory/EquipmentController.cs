@@ -17,6 +17,20 @@ public class EquipmentController : MonoBehaviour
             handSocket.rotation,
             handSocket
         );
+        
+        Rigidbody rb = currentObject.GetComponent<Rigidbody>();
+        if (rb)
+        {
+            rb.isKinematic = true;
+            rb.useGravity = false;
+        }
+        
+        Collider itemCollider = currentObject.GetComponent<Collider>();
+        if (itemCollider)
+        {
+            itemCollider.enabled = false;
+        }
+        
     }
 
     public void Unequip()

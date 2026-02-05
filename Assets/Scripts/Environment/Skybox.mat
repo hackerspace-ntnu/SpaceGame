@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Skybox
+  m_Shader: {fileID: 4800000, guid: df283452ea02b5e4e9d3e284288d86ee, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _BandSmoothness: 0.16
+    - _Bands: 4.5
+    - _DustDensity: 0.52
+    - _DustHeight: -0.35
+    - _DustScale: 50
+    - _DustSpeed: 0.01
+    - _DustThickness: 0.64
+    - _DustWarpSpeed: 5
+    - _HeatWaveAmount: 0.1
+    - _HeatWaveSpeed: 2
+    - _HorizonBlend: 2
+    - _HorizonHeight: 0.15
+    - _MountainHeight: -0.05
+    - _MountainLightPatchScale: 10
+    - _MountainLightPatchSmoothness: 0.337
+    - _MountainLightPatchThreshold: 0.318
+    - _MountainScale: 3.6
+    - _MountainSharpness: 2
+    - _StarBrightness: 2
+    - _StarDensity: 2
+    - _StarSize: 2.43
+    - _SunFlickerAmount: 0.3
+    - _SunFlickerSpeed: 10
+    - _SunGlow: 0
+    - _SunIntensity: 3
+    - _SunNightIntensity: 0.5
+    - _SunOutlineWidth: 0.038
+    - _SunRayCount: 16
+    - _SunRayLength: 0.4
+    - _SunRayWidth: 0.035
+    - _SunSize: 0.01
+    - _SunSunsetIntensity: 8
+    - _SunsetIntensity: 0.8
+    m_Colors:
+    - _DustColor: {r: 0.85, g: 0.69803923, b: 0.5019608, a: 1}
+    - _DustNightColor: {r: 0.14999998, g: 0.14999998, b: 0.24999997, a: 1}
+    - _DustSunsetColor: {r: 0.85490197, g: 0.5019608, b: 0.34901962, a: 1}
+    - _MountainColor: {r: 0.29999998, g: 0.24999997, b: 0.19999996, a: 1}
+    - _MountainNightColor: {r: 0.09999997, g: 0.09999997, b: 0.14999998, a: 1}
+    - _MountainSunsetColor: {r: 0.5, g: 0.29999998, b: 0.19999996, a: 1}
+    - _NightColorHorizon: {r: 0.09999997, g: 0.09999997, b: 0.19999996, a: 1}
+    - _NightColorTop: {r: 0.049999982, g: 0.049999982, b: 0.14999998, a: 1}
+    - _SkyColorHorizon: {r: 0.9, g: 0.7490196, b: 0.6, a: 1}
+    - _SkyColorTop: {r: 0.40000004, g: 0.9019608, b: 0.7634441, a: 1}
+    - _SunColor: {r: 1, g: 0.95, b: 0.7, a: 1}
+    - _SunNightColor: {r: 0.8, g: 0.8, b: 0.9, a: 1}
+    - _SunOutlineColor: {r: 1, g: 0.9, b: 0.29999998, a: 1}
+    - _SunSunsetColor: {r: 1, g: 0.5, b: 0.19999996, a: 1}
+    - _SunsetColorHorizon: {r: 1, g: 0.5, b: 0.29999998, a: 1}
+    - _SunsetColorTop: {r: 0.39999998, g: 0.29999998, b: 0.5, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

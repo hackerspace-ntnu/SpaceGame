@@ -41,4 +41,6 @@ public class EquipmentController : MonoBehaviour
             currentObject = null;
         }
     }
+
+    public GameObject getCurrentObject() => currentObject;
 }

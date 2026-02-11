@@ -171,6 +171,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8861937888077706661, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
+      propertyPath: _castDistance
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8861937888077706661, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
+      propertyPath: lookTransform
+      value: 
+      objectReference: {fileID: 1728780588}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -431,7 +439,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Interactor
   _castDistance: 5
-  _rayOffset: {x: 0, y: 1.5, z: 0}
+  lookTransform: {fileID: 1728780588}
+--- !u!4 &1728780588 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7571235748023247877, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
+  m_PrefabInstance: {fileID: 140264930}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1897649763 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -2029792373924177038, guid: 1985a08bed2f0c94e9049f714473b13b, type: 3}

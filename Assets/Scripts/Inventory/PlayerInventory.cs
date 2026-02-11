@@ -12,7 +12,7 @@ public class PlayerInventory  : InventoryComponent
     [SerializeField] private EquipmentController equipmentController;
     
     public event Action<int> OnSlotSelected;
-    private int selectedSlotIndex = -1;
+    public int selectedSlotIndex { get; private set; } = -1;
     
     public List<InventoryItem> startingItems;
     private void Awake()

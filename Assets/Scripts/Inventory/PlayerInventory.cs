@@ -120,5 +120,12 @@ public class PlayerInventory  : InventoryComponent
         }
         return true;
     }
+    public InventorySlot GetSeletedSlot()
+    {
+        if (selectedSlotIndex < 0) {
+            return null;
+        }
+        return GetSlot(selectedSlotIndex);
+    }
     
 }

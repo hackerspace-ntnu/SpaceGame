@@ -5,6 +5,8 @@ public class ShipInteraction : MonoBehaviour, IInteractable
 {
     [SerializeField]
     private Transform ship;
+    [SerializeField]
+    private Ship ShipScript;
     private bool accepted;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -26,15 +28,21 @@ public class ShipInteraction : MonoBehaviour, IInteractable
         Debug.Log("interact");
         if (interactor.TryGetComponent<PlayerInventory>(out PlayerInventory playerInventory))
         {
-            InventorySlot inventorySlot = playerInventory.GetSlot(playerInventory.selectedSlotIndex);
+            InventorySlot inventorySlot = playerInventory.GetSeletedSlot();
             InventoryItem inventoryItem = inventorySlot.Item;
+            if (!inventoryItem)
+            {
+                Debug.Log("no item held");
+                return;
+            }
             if (inventoryItem.itemId == ItemId.scrap)
             {
-                bool accepted = playerInventory.TryRemoveItem(playerInventory.selectedSlotIndex);
+                accepted = playerInventory.TryRemoveItem(playerInventory.selectedSlotIndex);
             }
             if (accepted)
             {
-                Debug.Log("item added");
+                Debug.Log("item removed from inventory");
+                ShipScript.AddScrap();
             }
         }
     }

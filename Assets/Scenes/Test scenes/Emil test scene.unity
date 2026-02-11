@@ -829,13 +829,9 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 38957496933498220, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}
-      propertyPath: m_SizeDelta.y
-      value: 200
-      objectReference: {fileID: 0}
     - target: {fileID: 592117350481037601, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}
       propertyPath: m_Name
-      value: Canvas
+      value: PlayerCanvas
       objectReference: {fileID: 0}
     - target: {fileID: 7010042887717798015, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}
       propertyPath: m_Pivot.x

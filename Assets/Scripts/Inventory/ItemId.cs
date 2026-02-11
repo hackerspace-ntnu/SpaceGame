@@ -1,8 +1,8 @@
 
 public enum ItemId
 {
-    scrap = 0,
-    cube = 1,
-    sphere = 2
+    Scrap = 0,
+    Cube = 1,
+    Sphere = 2
 
 }

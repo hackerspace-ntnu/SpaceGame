@@ -108,12 +108,9 @@ public class PlayerInventory  : InventoryComponent
     }
     public override bool TryRemoveItem(int index)
     {
-        if (index >= inventory.InventorySize) {return false;}
-        InventorySlot slot = inventory.GetSlot(index);
-        if (slot.Item == null) {return false;}
-
-        slot.Item = null;
-        NotifyInventoryChanged();
+        bool removed = base.TryRemoveItem(index);
+        if(!removed) return false;
+        
         if (index == selectedSlotIndex)
         {
             equipmentController.Unequip();

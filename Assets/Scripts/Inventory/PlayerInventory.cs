@@ -106,5 +106,19 @@ public class PlayerInventory  : InventoryComponent
             rb.AddForce(force, ForceMode.Impulse);
         }
     }
+    public override bool TryRemoveItem(int index)
+    {
+        if (index >= inventory.InventorySize) {return false;}
+        InventorySlot slot = inventory.GetSlot(index);
+        if (slot.Item == null) {return false;}
+
+        slot.Item = null;
+        NotifyInventoryChanged();
+        if (index == selectedSlotIndex)
+        {
+            equipmentController.Unequip();
+        }
+        return true;
+    }
     
 }

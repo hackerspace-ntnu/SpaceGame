@@ -1,23 +1,24 @@
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class Ship : MonoBehaviour
 {
-    public int ScrapAmount = 0;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+    private int scrapAmount = 0;
+    private int scrapToWin = 3;
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
     public void AddScrap()
     {
-        ScrapAmount +=1;
+        scrapAmount +=1;
         Debug.Log("Scrap added");
+        CheckWin();
+    }
+
+    private void CheckWin()
+    {
+        if(scrapAmount < scrapToWin) return;
+        if(!GameManager.Instance) return;
+            
+        GameManager.Instance.WinGame();
     }
 
 }

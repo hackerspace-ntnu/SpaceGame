@@ -60,4 +60,10 @@ public class PlayerLook : MonoBehaviour
         
         GUI.Label(new Rect(x - size/2, y - size/2, size, size), "+"); 
     }
+
+    private void OnDestroy()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
 }

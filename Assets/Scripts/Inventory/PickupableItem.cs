@@ -14,6 +14,8 @@ class PickupableItem : MonoBehaviour, IInteractable
 
    public void Interact(Interactor interactor)
    {
+      Debug.Log("Item reference is: " + item);
+    Debug.Log("GameObject name: " + gameObject.name);
       InventoryComponent inventoryComponent = interactor.GetComponentInParent<InventoryComponent>();
       if (!inventoryComponent) return;
       

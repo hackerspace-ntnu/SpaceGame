@@ -1,14 +1,13 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class AntiGravityPotion : UsableItem
 {
     private bool isActive = false;
-    private float originalGravityScale;
-    private Rigidbody2D playerRigidbody;
+    private Rigidbody playerRigidbody;
 
     private float timer = 0f;
     private const float DURATION = 5f; // Duration in seconds
+    private const float FLOAT_FORCE = 9.81f; // Upwards force, adjust to taste
 
     protected override void Use()
     {
@@ -17,8 +16,7 @@ public class AntiGravityPotion : UsableItem
             GameObject player = GameObject.FindWithTag("Player");
             if (player != null)
             {
-                playerRigidbody = player.GetComponent<Rigidbody2D>();
-                originalGravityScale = playerRigidbody.gravityScale;
+                playerRigidbody = player.GetComponent<Rigidbody>();
             }
         }
 
@@ -26,31 +24,29 @@ public class AntiGravityPotion : UsableItem
         {
             isActive = true;
             timer = 0f;
-            playerRigidbody.gravityScale = 0f;
         }
     }
 
-    public void Update()
+    private void Update()
     {
-        if (isActive)
+        if (!isActive || playerRigidbody == null) return;
+
+        timer += Time.deltaTime;
+
+        // Apply upward force every frame to float
+        playerRigidbody.AddForce(Vector3.up * FLOAT_FORCE, ForceMode.Acceleration);
+
+        if (timer >= DURATION)
         {
-            timer += Time.deltaTime;
-            
-            if (timer >= DURATION)
-            {
-                stopEffect();
-            }
+            StopEffect();
         }
     }
 
-    public void stopEffect()
+    private void StopEffect()
     {
+        if (!isActive) return;
+
         isActive = false;
         timer = 0f;
-        
-        if (playerRigidbody != null)
-        {
-            playerRigidbody.gravityScale = originalGravityScale;
-        }
     }
 }

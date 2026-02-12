@@ -4,7 +4,6 @@ using UnityEngine.InputSystem;
 
 public class InputManager : MonoBehaviour
 {
-    public static InputManager Instance { get; private set; }
 
     public event Action OnUsePressed;
 
@@ -12,7 +11,6 @@ public class InputManager : MonoBehaviour
 
     private void Awake()
     {
-        Instance = this;
         useAction = InputSystem.actions.FindAction("Attack");
     }
 

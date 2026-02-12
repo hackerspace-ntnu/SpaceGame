@@ -141,7 +141,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b909b5e57742477f9632f4ce01099c2b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InteractableProxy
-  target: {fileID: 8162854640760311465}
+  target: {fileID: 902142534288597390}
 --- !u!54 &7024374343395886036
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -239,14 +239,3 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8061418575221146880, guid: 05b0b300348e0fa4c9059922515c39e1, type: 3}
   m_PrefabInstance: {fileID: 7159285939087352974}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &8162854640760311465 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1302294201935522343, guid: 05b0b300348e0fa4c9059922515c39e1, type: 3}
-  m_PrefabInstance: {fileID: 7159285939087352974}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 57947eec0c4941c9ada21a38d00cea7f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PickupableItem

@@ -12,7 +12,7 @@ public class PlayerInventory  : InventoryComponent
     [SerializeField] private EquipmentController equipmentController;
     
     public event Action<int> OnSlotSelected;
-    private int selectedSlotIndex = -1;
+    public int selectedSlotIndex { get; private set; } = -1;
     
     public List<InventoryItem> startingItems;
     private void Awake()
@@ -105,6 +105,24 @@ public class PlayerInventory  : InventoryComponent
             Vector3 force = transform.forward * 1.5f + Vector3.up * 1.0f;
             rb.AddForce(force, ForceMode.Impulse);
         }
+    }
+    public override bool TryRemoveItem(int index)
+    {
+        bool removed = base.TryRemoveItem(index);
+        if(!removed) return false;
+        
+        if (index == selectedSlotIndex)
+        {
+            equipmentController.Unequip();
+        }
+        return true;
+    }
+    public InventorySlot GetSeletedSlot()
+    {
+        if (selectedSlotIndex < 0) {
+            return null;
+        }
+        return GetSlot(selectedSlotIndex);
     }
     
 }

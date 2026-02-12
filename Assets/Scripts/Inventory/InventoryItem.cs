@@ -11,4 +11,6 @@ public class InventoryItem : ScriptableObject
 
     [Tooltip("Optional icon for UI display.")]
     public Sprite icon;
+    [SerializeField]
+    public ItemId itemId;
 }

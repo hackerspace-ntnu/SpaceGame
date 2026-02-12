@@ -29,7 +29,7 @@ public class InventoryComponent : MonoBehaviour
         return true;
     }
 
-    public bool TryRemoveItem(int index)
+    public virtual bool TryRemoveItem(int index)
     {
         if (index >= inventory.InventorySize) {return false;}
         InventorySlot slot = inventory.GetSlot(index);

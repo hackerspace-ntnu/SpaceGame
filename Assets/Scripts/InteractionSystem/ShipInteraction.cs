@@ -7,7 +7,6 @@ public class ShipInteraction : MonoBehaviour, IInteractable
     private Transform ship;
     [SerializeField]
     private Ship ShipScript;
-    private bool accepted;
     
     public bool CanInteract()
     {
@@ -15,16 +14,18 @@ public class ShipInteraction : MonoBehaviour, IInteractable
     }
     public void Interact(Interactor interactor)
     {
-        Debug.Log("interact");
         if (interactor.TryGetComponent<PlayerInventory>(out PlayerInventory playerInventory))
         {
             InventorySlot inventorySlot = playerInventory.GetSeletedSlot();
+            if(inventorySlot == null) return;
+            
             InventoryItem inventoryItem = inventorySlot.Item;
             if (!inventoryItem)
             {
                 Debug.Log("no item held");
                 return;
             }
+            bool accepted = false;
             if (inventoryItem.itemId == ItemId.Scrap)
             {
                 accepted = playerInventory.TryRemoveItem(playerInventory.selectedSlotIndex);

@@ -58,7 +58,9 @@ public class Interactor : MonoBehaviour
         int layerMask = ~LayerMask.GetMask("Player");
 
         Ray ray = new Ray(origin, direction);
-        rayCastHit = Physics.Raycast(ray, out hitInfo, _castDistance, layerMask);
+        rayCastHit = Physics.Raycast(ray, out var hit, _castDistance, layerMask);
+        hitInfo = hit;
+        
         if (rayCastHit)
         {
             interactable = hitInfo.collider.GetComponent<IInteractable>();
@@ -82,7 +84,7 @@ public class Interactor : MonoBehaviour
         
         Vector3 end = ray.origin + ray.direction * _castDistance;
 
-        if (rayCastHit)
+        if (rayCastHit && hitInfo.collider != null)
         {
             IInteractable interactable = hitInfo.collider.GetComponent<IInteractable>();
             if (interactable != null)

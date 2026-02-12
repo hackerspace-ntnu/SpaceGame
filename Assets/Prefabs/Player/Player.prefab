@@ -108,7 +108,7 @@ GameObject:
   - component: {fileID: 1681600809652155392}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -334,7 +334,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Interactor
   _castDistance: 20
-  lookTransform: {fileID: 7571235748023247877}
+  lookTransform: {fileID: 2157217508712347428}
+  _debugRay: 1
 --- !u!114 &980568265328903961
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -51,15 +51,7 @@ public class PlayerLook : MonoBehaviour
         pitch = Mathf.Clamp(pitch, -verticalClamp, verticalClamp);
         cameraRoot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
-    
-    void OnGUI()
-    {
-        float size = 40f; // size of the arrow
-        float x = Screen.width / 2;
-        float y = Screen.height / 2;
-        
-        GUI.Label(new Rect(x - size/2, y - size/2, size, size), "+"); 
-    }
+
 
     private void OnDestroy()
     {

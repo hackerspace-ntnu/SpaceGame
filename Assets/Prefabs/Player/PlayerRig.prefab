@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2320709747981916316}
   m_Layer: 0
-  m_Name: CompletePlayer
+  m_Name: PlayerRig
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -93,10 +93,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 8861937888077706661, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
-      propertyPath: lookTransform
-      value: 
-      objectReference: {fileID: 5432641611254021559}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -107,6 +103,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7571235748023247877, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
   m_PrefabInstance: {fileID: 2483436193390729650}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &6380788690718125079 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8861937888077706661, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
+  m_PrefabInstance: {fileID: 2483436193390729650}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c9c44c21aa4aa1438d79abad4ffd9e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Interactor
 --- !u!114 &8260426957917673916 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5824313762174812174, guid: f0aba510bfd5c9240ba08acf3d84f570, type: 3}
@@ -130,6 +137,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerCanvas
       objectReference: {fileID: 0}
+    - target: {fileID: 3954543622703053586, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}
+      propertyPath: interactor
+      value: 
+      objectReference: {fileID: 6380788690718125079}
     - target: {fileID: 7010042887717798015, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}
       propertyPath: m_Pivot.x
       value: 0

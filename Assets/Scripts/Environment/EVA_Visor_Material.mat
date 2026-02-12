@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: EVA_Visor_Material
+  m_Shader: {fileID: 4800000, guid: ba96dfbeb1150864fa4f3e032fa25404, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _BreathingRate: 0.43
+    - _DirtIntensity: 0.122
+    - _DirtScale: 15
+    - _FogHeight: 0
+    - _FogIntensity: 0.409
+    - _FogNoiseScale: 4.3
+    - _FogNoiseStrength: 0.502
+    - _FogRadius: 0.1
+    - _FogSoftness: 0.58
+    - _LensDirtIntensity: 0.043
+    - _LensDirtScale: 21
+    - _OverallIntensity: 0.336
+    - _ScratchDensity: 25
+    - _ScratchIntensity: 0.037
+    - _ScratchLength: 0.05
+    - _ScratchWidth: 0.001
+    - _SmudgeIntensity: 0.026
+    - _VignetteIntensity: 0.2
+    - _VignetteSoftness: 0.5
+    m_Colors:
+    - _DirtColor: {r: 0.29999998, g: 0.24999997, b: 0.19999996, a: 1}
+    - _FogColor: {r: 0.8, g: 0.85, b: 0.9, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

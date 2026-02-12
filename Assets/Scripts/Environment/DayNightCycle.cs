@@ -6,6 +6,7 @@ public class DayNightCycle : MonoBehaviour
     [Tooltip("Duration of a full day/night cycle in seconds")]
     public float cycleDuration = 120f;
     
+    
     [Tooltip("Starting time of day (0 = midnight, 0.5 = noon)")]
     [Range(0f, 1f)]
     public float startTimeOfDay = 0.25f;

@@ -1,3 +1,4 @@
+using Unity.Services.Lobbies.Models;
 using UnityEngine;
 
 public class AntiGravityPotion : UsableItem
@@ -7,7 +8,7 @@ public class AntiGravityPotion : UsableItem
 
     private float timer = 0f;
     private const float DURATION = 5f; // Duration in seconds
-    private const float FLOAT_FORCE = 9.81f; // Upwards force, adjust to taste
+    private const float FLOAT_FORCE = 0.5f; // Upwards force, adjust to taste
 
     protected override void Use()
     {
@@ -22,6 +23,7 @@ public class AntiGravityPotion : UsableItem
 
         if (playerRigidbody != null && !isActive)
         {
+            playerRigidbody.useGravity = false;
             isActive = true;
             timer = 0f;
         }
@@ -48,5 +50,9 @@ public class AntiGravityPotion : UsableItem
 
         isActive = false;
         timer = 0f;
+        if (playerRigidbody != null)
+        {
+            playerRigidbody.useGravity = true;         
+        }
     }
 }

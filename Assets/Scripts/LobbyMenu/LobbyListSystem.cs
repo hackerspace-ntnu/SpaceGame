@@ -36,9 +36,7 @@ public class LobbyListSystem : MonoBehaviour
     controller.setLobbyId(lobby.Id);
     controller.setMaxPlayers(lobby.MaxPlayers);
     newLobbyElement.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = lobby.Name;
-    newLobbyElement.transform.GetChild(1).GetComponent<TextMeshProUGUI>().text = lobby.Id;
-    newLobbyElement.transform.GetChild(2).GetComponent<TextMeshProUGUI>().text = lobby.LobbyCode;
-    newLobbyElement.transform.GetChild(3).GetComponent<TextMeshProUGUI>().text = lobby.MaxPlayers - lobby.AvailableSlots + "/" + lobby.MaxPlayers;
+    newLobbyElement.transform.GetChild(1).GetComponent<TextMeshProUGUI>().text = lobby.MaxPlayers - lobby.AvailableSlots + "/" + lobby.MaxPlayers;
     newLobbyElement.transform.SetParent(lobbyElementContainer.transform, false);
   }
 

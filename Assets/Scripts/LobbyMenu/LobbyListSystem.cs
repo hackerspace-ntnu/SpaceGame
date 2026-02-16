@@ -74,7 +74,7 @@ public class LobbyListSystem : MonoBehaviour
 
     public void showPlayerElements(string[] playerNames)
     {
-        Transform playerList = lobbyScreen.transform.GetChild(2).GetChild(0);
+        Transform playerList = lobbyScreen.transform.GetChild(2).GetChild(0).GetChild(0);
         for (int i = 0; i < playerList.childCount; i++)
         {
             Destroy(playerList.GetChild(i).gameObject);
@@ -83,7 +83,7 @@ public class LobbyListSystem : MonoBehaviour
         foreach (string pName in playerNames)
         {
             GameObject pNameInstance = Instantiate(playerDisplayElement, playerList);
-            pNameInstance.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = pName;
+            pNameInstance.transform.GetChild(1).GetComponent<TextMeshProUGUI>().text = pName;
         }
     }
 }

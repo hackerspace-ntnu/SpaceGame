@@ -32,6 +32,7 @@ public class LobbySystem : MonoBehaviour
         //HandleLobbyRefreshList();
         HandleLobbyHeartBeat();
         HandleLobbyPollForUpdates();
+        HandleHostCheck();
     }
 
     private async void HandleLobbyHeartBeat() {
@@ -72,6 +73,28 @@ public class LobbySystem : MonoBehaviour
             }
         }
     }
+
+    private async void HandleHostCheck()
+    {
+        if (joinedLobby != null)
+        {
+            lobbyUpdateTimer -= Time.deltaTime;
+            if (lobbyUpdateTimer <= 0f)
+            {
+                float lobbyUpdateTimerMax = 2f;
+                lobbyUpdateTimer = lobbyUpdateTimerMax;
+                Lobby lobby = await LobbyService.Instance.GetLobbyAsync(joinedLobby.Id);
+                joinedLobby = lobby;
+                if(isPlayerHost())
+                {
+                    lobbyList.ShowStartButton();
+                } else
+                {
+                    lobbyList.HideStartButton();
+                }
+            }
+        }
+    }
     public async void createLobbyWithGivenOptions()
     {
         try
@@ -105,6 +128,7 @@ public class LobbySystem : MonoBehaviour
         listLobbies();
         Debug.Log("Created Lobby! " + testLobby.Name + " " + testLobby.MaxPlayers + " " + testLobby.Id + " " + testLobby.LobbyCode);
         printPlayers(hostLobby);
+        lobbyList.ShowStartButton();
         }
         catch (LobbyServiceException e)
         {
@@ -239,6 +263,7 @@ public class LobbySystem : MonoBehaviour
         try {
             await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, AuthenticationService.Instance.PlayerId);
             joinedLobby = null;
+            lobbyList.HideStartButton();
         } catch (LobbyServiceException e) {
             Debug.Log(e);
         }

@@ -44,6 +44,10 @@ public class Interactor : MonoBehaviour
         if (Physics.Raycast(origin, direction, out RaycastHit hitInfo, _castDistance, layerMask))
         {
             interactable = hitInfo.collider.GetComponent<IInteractable>();
+            if (interactable == null)
+            {
+                interactable = hitInfo.collider.GetComponentInParent<IInteractable>();
+            }
             if (interactable != null)
             {
                 return true;

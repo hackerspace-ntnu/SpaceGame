@@ -1,6 +1,7 @@
 
 /// <summary>
-/// In
+/// Inventory holds an array of InventorySlots, which can hold InventoryItems.
+/// It provides methods to get a slot, swap items between slots, and find an empty slot.
 /// </summary>
 public class Inventory
 {
@@ -20,9 +21,7 @@ public class Inventory
             };
         }
     }
-    /**
-     * 
-     */
+
     public InventorySlot GetSlot(int index)
     {
         if (index < InventorySize)

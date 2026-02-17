@@ -1,5 +1,12 @@
 using UnityEngine;
 
+/// <summary>
+/// Controller responsible for equipping and unequipping items.
+/// It instantiates the item's prefab and attaches it to the player's hand socket when equipped,
+/// and destroys it when unequipped.
+///
+/// Physocs are disabled on equippped items. 
+/// </summary>
 public class EquipmentController : MonoBehaviour
 {
     [SerializeField] private Transform handSocket;

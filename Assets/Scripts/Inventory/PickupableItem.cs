@@ -2,6 +2,10 @@
 
 using UnityEngine;
 
+/// <summary>
+/// Script to be attached to pickupable items in the world.
+/// When interacted with, it will attempt to add the item to the player's inventory and destroy itself if successful.
+/// </summary>
 class PickupableItem : MonoBehaviour, IInteractable
 {
    [SerializeField] private InventoryItem item;
@@ -14,8 +18,6 @@ class PickupableItem : MonoBehaviour, IInteractable
 
    public void Interact(Interactor interactor)
    {
-      Debug.Log("Item reference is: " + item);
-    Debug.Log("GameObject name: " + gameObject.name);
       InventoryComponent inventoryComponent = interactor.GetComponentInParent<InventoryComponent>();
       if (!inventoryComponent) return;
       

@@ -108,6 +108,11 @@ public class AgentController : MonoBehaviour
             animatorDriver = GetComponent<AgentAnimatorDriver>();
         }
 
+        if (animatorDriver == null)
+        {
+            animatorDriver = GetComponentInChildren<AgentAnimatorDriver>(true);
+        }
+
         brain = brainComponent as IAgentBrain;
         motor = motorComponent as IMovementMotor;
 

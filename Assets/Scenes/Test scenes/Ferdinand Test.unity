@@ -190,15 +190,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 0.42072406, b: 0.7735849, a: 1}
+  m_Color: {r: 0.49803922, g: 0.49803922, b: 0.49803922, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
-  m_Type: 1
+  m_Sprite: {fileID: 0}
+  m_Type: 2
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -206,7 +206,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 1000
 --- !u!222 &116233969
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -828,7 +828,7 @@ PrefabInstance:
     - target: {fileID: 5866666021909216657, guid: 80bed14fee28d6444a92fec3bbf366ff, type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: 4c70d2a0c51a84648b6c62ea3aba7f0d, type: 2}
+      objectReference: {fileID: 0}
     - target: {fileID: 5866666021909216657, guid: 80bed14fee28d6444a92fec3bbf366ff, type: 3}
       propertyPath: m_AnimatePhysics
       value: 0
@@ -1725,7 +1725,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8066341551389775102, guid: 80bed14fee28d6444a92fec3bbf366ff, type: 3}
       propertyPath: m_CastShadows
-      value: 3
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8006009767450596044, guid: 80bed14fee28d6444a92fec3bbf366ff, type: 3}
       propertyPath: m_Layer
@@ -1809,7 +1809,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -4477608946179850914, guid: 80bed14fee28d6444a92fec3bbf366ff, type: 3}
       propertyPath: m_CastShadows
-      value: 3
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -4354615320167350303, guid: 80bed14fee28d6444a92fec3bbf366ff, type: 3}
       propertyPath: m_Layer
@@ -1969,7 +1969,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3195199979657952304, guid: 80bed14fee28d6444a92fec3bbf366ff, type: 3}
       propertyPath: m_CastShadows
-      value: 3
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3588849560313704984, guid: 80bed14fee28d6444a92fec3bbf366ff, type: 3}
       propertyPath: m_Layer
@@ -2022,7 +2022,7 @@ PrefabInstance:
     - target: {fileID: 5866666021909216657, guid: 80bed14fee28d6444a92fec3bbf366ff, type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: 4c70d2a0c51a84648b6c62ea3aba7f0d, type: 2}
+      objectReference: {fileID: 0}
     - target: {fileID: 5866666021909216657, guid: 80bed14fee28d6444a92fec3bbf366ff, type: 3}
       propertyPath: m_AnimatePhysics
       value: 0
@@ -2323,7 +2323,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AgentAnimatorDriver
   animator: {fileID: 942211898}
-  animationSpeedMultiplier: 1.5
+  animationSpeedMultiplier: 2.3
 --- !u!114 &942211900
 MonoBehaviour:
   m_ObjectHideFlags: 0

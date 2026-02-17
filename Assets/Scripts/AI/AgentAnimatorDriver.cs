@@ -11,6 +11,16 @@ public class AgentAnimatorDriver : MonoBehaviour
         {
             animator = GetComponent<Animator>();
         }
+
+        if (!animator)
+        {
+            animator = GetComponentInChildren<Animator>(true);
+        }
+
+        if (!animator)
+        {
+            Debug.LogWarning($"{name}: AgentAnimatorDriver could not find an Animator on this object or children.", this);
+        }
     }
 
     public void Tick(Vector3 worldVelocity, bool isImmobile)
@@ -20,7 +30,8 @@ public class AgentAnimatorDriver : MonoBehaviour
             return;
         }
 
-        Vector3 localVelocity = transform.worldToLocalMatrix.MultiplyVector(worldVelocity) * animationSpeedMultiplier;
+        // Convert velocity in the animator rig's local space (important when rig is on a child transform).
+        Vector3 localVelocity = animator.transform.worldToLocalMatrix.MultiplyVector(worldVelocity) * animationSpeedMultiplier;
 
         animator.SetFloat("SpeedX", localVelocity.x, 0.1f, Time.deltaTime);
         animator.SetFloat("SpeedY", localVelocity.z, 0.1f, Time.deltaTime);

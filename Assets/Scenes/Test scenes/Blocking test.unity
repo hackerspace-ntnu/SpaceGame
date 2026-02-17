@@ -300,11 +300,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &457920969 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6685679546757115654, guid: 0f9381787c2713d43939e1f903377fb5, type: 3}
-  m_PrefabInstance: {fileID: 8031763840307611039}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &686302481
 GameObject:
   m_ObjectHideFlags: 0
@@ -542,28 +537,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 81588ed703dd6e24ea08c454204dfc80, type: 3}
---- !u!1 &1169865301 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 2157679719599638160, guid: 0f9381787c2713d43939e1f903377fb5, type: 3}
-  m_PrefabInstance: {fileID: 8031763840307611039}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1169865306
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1169865301}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2ab8353b5ebd32545867da143199a814, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FirstGearGames.SmoothCameraShaker.CameraShaker
-  _shakeTechnique: 0
-  _makeDefaultOnEnable: 1
-  _limitMagnitude: 0
-  _positionalMagnitudeLimit: 10
-  _rotationalMagnitudeLimit: 3
 --- !u!1001 &1396499148
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1648,48 +1621,12 @@ PrefabInstance:
       propertyPath: m_AdditionalShaderChannelsFlag
       value: 25
       objectReference: {fileID: 0}
-    - target: {fileID: 7825121604207560408, guid: 0f9381787c2713d43939e1f903377fb5, type: 3}
-      propertyPath: health
-      value: 
-      objectReference: {fileID: 8031763840307611041}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 392366237908962778, guid: 0f9381787c2713d43939e1f903377fb5, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 6685679546757115654, guid: 0f9381787c2713d43939e1f903377fb5, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 8031763840307611052}
-    - targetCorrespondingSourceObject: {fileID: 2157679719599638160, guid: 0f9381787c2713d43939e1f903377fb5, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1169865306}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0f9381787c2713d43939e1f903377fb5, type: 3}
---- !u!114 &8031763840307611041 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4990710695106400592, guid: 0f9381787c2713d43939e1f903377fb5, type: 3}
-  m_PrefabInstance: {fileID: 8031763840307611039}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 457920969}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cc48a3302b6d69f41839c4004ccf08a8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
---- !u!114 &8031763840307611052
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 457920969}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4bfc76d6c2ec583478f03818046d2d22, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  health: {fileID: 8031763840307611041}
-  shakeData: {fileID: 11400000, guid: a523fbd6273bf7440b39814a82fdeb28, type: 2}
-  damageSound: {fileID: 8300000, guid: 21b538e3dc3125543ae14963bf2ae0b1, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -105,6 +105,7 @@ GameObject:
   - component: {fileID: 2750247493964292827}
   - component: {fileID: 5496312837281773235}
   - component: {fileID: -6402392480385526436}
+  - component: {fileID: 5495302955700144812}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Player
@@ -394,6 +395,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cc48a3302b6d69f41839c4004ccf08a8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  maxHealth: 100
+  currentHealth: 100
+--- !u!114 &5495302955700144812
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bfc76d6c2ec583478f03818046d2d22, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  health: {fileID: -6402392480385526436}
+  shakeData: {fileID: 11400000, guid: a523fbd6273bf7440b39814a82fdeb28, type: 2}
+  damageSound: {fileID: 8300000, guid: 21b538e3dc3125543ae14963bf2ae0b1, type: 3}
 --- !u!1001 &2677432995988726931
 PrefabInstance:
   m_ObjectHideFlags: 0

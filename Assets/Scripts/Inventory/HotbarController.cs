@@ -1,6 +1,9 @@
 using System;
 using UnityEngine;
 
+/// <summary>
+/// Handles hotbar input and raises events when hotbar keys are pressed. Also includes an event for dropping items. 
+/// </summary>
 public class HotbarController : MonoBehaviour
 {
     private InputControls controls;

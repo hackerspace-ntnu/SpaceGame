@@ -1,6 +1,10 @@
 using System;
 using UnityEngine;
 
+/// <summary>
+/// InventoryComponent is a base class for any component that has an inventory.
+/// It connects the Inventory data structure to the Unity component system and provides methods for interacting with the inventory.
+/// </summary>
 public class InventoryComponent : MonoBehaviour
 {
     protected Inventory inventory { get; set; }

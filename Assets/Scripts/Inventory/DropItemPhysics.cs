@@ -1,6 +1,9 @@
 using UnityEngine;
-using System.Collections;
 
+/// <summary>
+///  Handles the physics of dropped items, such as when an item is dropped from the inventory.
+/// It will disable physics when it collides with the ground to prevent it from being pushed around.
+/// </summary>
 public class DropItemPhysics : MonoBehaviour
 {
     [SerializeField] private Rigidbody rb;
@@ -21,15 +24,5 @@ public class DropItemPhysics : MonoBehaviour
         RaycastHit hit;
         if (Physics.Raycast(transform.position, Vector3.down, out hit, 0.5f, groundLayer))
             transform.position = hit.point;
-    }
-
-    private void DisablePhysics()
-    {
-        Debug.Log("Disabling Physics");
-        physicsEnabled = false;
-
-        rb.linearVelocity = Vector3.zero;
-        rb.angularVelocity = Vector3.zero;
-        rb.isKinematic = true;
     }
 }

@@ -1,5 +1,8 @@
 using UnityEngine;
 
+/// <summary>
+/// ScriptableObject representing an item that can be stored in the inventory. Contains data about the item such as its name, prefab, and icon.
+/// </summary>
 [CreateAssetMenu(menuName = "Items/Item")]
 public class InventoryItem : ScriptableObject
 {

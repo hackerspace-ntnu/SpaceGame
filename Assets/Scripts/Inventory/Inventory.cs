@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
-using NUnit.Framework.Constraints;
-using Unity.VisualScripting;
-using UnityEngine;
 
+/// <summary>
+/// In
+/// </summary>
 public class Inventory
 {
     private InventorySlot[] InventorySlots;
@@ -18,11 +16,13 @@ public class Inventory
         {
             InventorySlots[i] = new InventorySlot
             {
-                SlotIndex = i,
                 Item = null
             };
         }
     }
+    /**
+     * 
+     */
     public InventorySlot GetSlot(int index)
     {
         if (index < InventorySize)

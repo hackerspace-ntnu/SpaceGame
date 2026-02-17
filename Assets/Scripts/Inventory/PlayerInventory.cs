@@ -3,7 +3,12 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-
+/// <summary>
+/// Instance of InventoryComponent that represents the player's inventory.
+/// Handles hotkey input for selecting items and dropping them,
+/// and interacts with the EquipmentController to equip/unequip items based on selection.
+/// Also spawns dropped items in the world with physics applied.
+/// </summary>
 public class PlayerInventory  : InventoryComponent
 {
     
@@ -40,6 +45,10 @@ public class PlayerInventory  : InventoryComponent
         hotbarController.OnDropPressed -= HandleDrop;
     }
     
+    /// <summary>
+    /// Handles hotbar key input to select/deselect inventory slots and equip/unequip items.
+    /// </summary>
+    /// <param name="slotIndex"></param>
     private void HandleHotbarKey(int slotIndex)
     {
         if (slotIndex == selectedSlotIndex)
@@ -66,6 +75,10 @@ public class PlayerInventory  : InventoryComponent
         equipmentController.Equip(slot.Item);
     }
     
+    /// <summary>
+    /// Handles dropping the currently selected item from the inventory, unequipping it if necessary,
+    /// and spawning it in the world with physics applied.
+    /// </summary>
     private void HandleDrop()
     {
         if (selectedSlotIndex < 0)
@@ -106,6 +119,13 @@ public class PlayerInventory  : InventoryComponent
             rb.AddForce(force, ForceMode.Impulse);
         }
     }
+    
+    /// <summary>
+    /// Override of TryRemoveItem of InventoryComponent to also handle unequipping the item
+    /// if the removed item was currently selected.
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
     public override bool TryRemoveItem(int index)
     {
         bool removed = base.TryRemoveItem(index);

@@ -4,6 +4,7 @@ using UnityEngine.SceneManagement;
 public class MainMenuUI : MonoBehaviour
 {
     [SerializeField] private SceneReference gameScene;
+    [SerializeField] private SceneReference lobbyMenuScene;
 
     public void StartSinglePlayer()
     {
@@ -12,7 +13,7 @@ public class MainMenuUI : MonoBehaviour
     
     public void StartMultiPlayer()
     {
-        
+        SceneManager.LoadScene(lobbyMenuScene.SceneName);
     }
     
     public void OpenSettings()

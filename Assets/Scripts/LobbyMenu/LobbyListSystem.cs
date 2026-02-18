@@ -28,8 +28,8 @@ public class LobbyListSystem : MonoBehaviour
 
   [SerializeField]
   private GameObject playerDisplayElement;
-  [SerializeField]
-  private GameObject startGameButton;
+  //[SerializeField]
+  //private GameObject startGameButton;
 
   public void listNewLobby(Lobby lobby) {
     GameObject newLobbyElement = Instantiate(lobbyElement);
@@ -89,13 +89,13 @@ public class LobbyListSystem : MonoBehaviour
         }
     }
 
-    public void ShowStartButton()
-    {
-        startGameButton.SetActive(true);
-    }
+    //public void ShowStartButton()
+    //{
+    //    startGameButton.SetActive(true);
+    //}
 
-    public void HideStartButton()
-    {
-        startGameButton.SetActive(false);
-    }
+    //public void HideStartButton()
+    //{
+    //    startGameButton.SetActive(false);
+    //}
 }

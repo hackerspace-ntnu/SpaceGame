@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -50,7 +51,13 @@ public class NetworkPlayerController : NetworkBehaviour
             Debug.Log(randomNumber.Value);
 
             //Runs the method defined below on the server.
-            TestServerRpc(new ServerRpcParams());
+            //TestServerRpc(new ServerRpcParams());
+
+            //Runs the method defined below on all clients. (Only called from server)
+            //TestClientRpc();
+
+            //Runs the method defined below on the specific client(s) (Only called from server)
+            TestSendToSpecificClientClientRpc(new ClientRpcParams {Send = new ClientRpcSendParams {TargetClientIds = new List<ulong> {1} } } );
         }
 
         //Only performs movement if player owns this object
@@ -70,6 +77,29 @@ public class NetworkPlayerController : NetworkBehaviour
     [ServerRpc]
     private void TestServerRpc(ServerRpcParams serverRpcParams)
     {
-        Debug.Log("TestServerRpc " + OwnerClientId + "; " + serverRpcParams.Receive.SenderClientId);
+        Debug.Log("TestServerRpc " + OwnerClientId + "; " + "Sent by: " + serverRpcParams.Receive.SenderClientId);
+    }
+
+
+    //Example of a client RPC method. Note that method name MUST end with "ClientRpc".
+    //Client RPCs are run on all clients by default. Only the server can call a client rpc.
+    //Useful when the server wants to update all clients about a change.
+    //An example could be if the server detects an explosion.
+    //The server could then send a ClientRpc to all clients informing them about the position.
+    //It is then up to the clients to calculate the vfx and physics involved with the explosion.
+
+    //Using the ClientRpcSendParams, we can define specific clients to send the rpc towards.
+    //Example: Only send client rpc to clients that are alive.
+    [ClientRpc]
+    private void TestClientRpc()
+    {
+        Debug.Log("TestClientRpc " + OwnerClientId + ";");
+    }
+
+    //Example of a client RPC method, where we define a specific client to send the rpc to.
+    [ClientRpc]
+    private void TestSendToSpecificClientClientRpc(ClientRpcParams clientRpcParams)
+    {
+        Debug.Log("This is the specific client " + OwnerClientId + ";");
     }
 }

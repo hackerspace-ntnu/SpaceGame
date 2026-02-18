@@ -7,7 +7,7 @@ using Unity.Services.Lobbies;
 
 public class StartingGameManager : NetworkBehaviour {
 
-    public async void StartGame(Lobby lobby)
+    public static async void StartGame(Lobby lobby)
     {
         // 1. Safety Check: Only the Host should trigger the start
         // In Lobby Service, the Host is usually the one who created it.
@@ -28,7 +28,9 @@ public class StartingGameManager : NetworkBehaviour {
 
             // 3. Tell Netcode to switch scenes for EVERYONE
             // Make sure "Enable Scene Management" is checked in your NetworkManager!
-            NetworkManager.Singleton.SceneManager.LoadScene("InGameScene", UnityEngine.SceneManagement.LoadSceneMode.Single);
+            NetworkManager networkManager = NetworkManager.Singleton;
+            Debug.Log(networkManager.SceneManager);  
+            networkManager.SceneManager.LoadScene("Tommy test scene", UnityEngine.SceneManagement.LoadSceneMode.Single);
         }
         catch (LobbyServiceException e)
         {

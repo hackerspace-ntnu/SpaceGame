@@ -23,17 +23,6 @@ public class AntiGravityPotion : EffectItem
                 rb.useGravity = true;
             }
         );
-        // Remove from inventory
-        GameObject player = GameObject.FindWithTag("Player");
-        if (player != null)
-        {
-            PlayerInventory playerInventory = player.GetComponent<PlayerInventory>();
-            if (playerInventory != null)
-            {
-                playerInventory.TryRemoveItem(playerInventory.selectedSlotIndex);
-            }
-        }
-        
-        Destroy(this.gameObject);
+        // Removal from inventory and destruction is now handled by base class when maxUses is reached
     }
 }

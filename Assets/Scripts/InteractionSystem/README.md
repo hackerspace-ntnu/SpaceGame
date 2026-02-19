@@ -1,35 +1,68 @@
-# User manual
+# Interaction System
 
-To see an example, look at this scene: `Assets/Scenes/TestScenes/Marius test scene`
+This folder contains a generic interaction framework (`IInteractable`, `Interactor`) and interaction implementations such as `DoorInteraction` and `DialogInteraction`.
 
-## IInteractable.cs
+## Core Concepts
 
-A simple interface for objects that can be interacted with. Should be implemented by Interaction classes such as `DoorInteraction.cs` which handles the actual logic.
+### `IInteractable.cs`
 
-`CanInteract()`
-Should return a boolean of whether a gameobject can be interacted with or not
+Interface for all interactable targets.
 
-`Interact()`
-Should return void and implement the logic of the actual interaction, i.e. rotating a door, spawning a bullet, applying forces (by delegating to correct object), etc.
+- `CanInteract()`: returns whether interaction is currently allowed.
+- `Interact(Interactor interactor)`: executes interaction logic.
+
+### `Interactor.cs`
+
+Should be placed on the player (or any actor that can interact).
+
+- Performs a raycast to find objects with components implementing `IInteractable`.
+- Calls `CanInteract()`, then `Interact(...)` when the interact input is pressed.
+
+## Basic Setup
+
+1. Add `Interactor` to your player object.
+2. Add a collider to any object you want to interact with.
+3. Add an interaction component (`DoorInteraction`, `DialogInteraction`, etc.) to that object.
 
 
-## Interactor.cs
+## Dialogue Setup Guide (Developer)
 
-Class for detecting interactions. Should be added to objects that takes in player inputs, such as the player object itself.
+Use this when implementing NPC dialogue quickly.
 
-`DoInteractionTest(out IInteractable interactable)`
-Sends out a raycast and returns true if raycast detected an object with an Interactable object (object with a script implementing the IInteractable interface) or felse otherwise. If true is returned, it also outputs the Interactable object used in the Update method as described under.
+### 1. Add Dialogue Interactor Component
 
-`Update()`
-Runs every frame to detect user inputs, for now it checks if a user clicked the button linked to the "Interact" Action. If the player did, it runs `DoInteractionTest(out IInteractable interactable)`. If the test returned true, it also returned an interactable object which the Interactor calls the `Interact()` method on, as implemented through the IInteractable interface.
+On your object:
 
-## DoorInteraction.cs
+1. Add `DialogInteraction` (`Assets/Scripts/InteractionSystem/Interactions/DialogInteraction.cs`).
+2. Make sure the NPC has a collider so the player raycast can hit it.
+3. Optional: add `NpcBrain` if you want the NPC to stop and face the player during dialogue.
 
-Implements the `IInteractable.cs` interface and applies logic to the transform of the game object the script is attached to (and that has been interacted with, as detected by an interactor).
+### 2. Add Dialogue Panel Prefab
 
-# Basic use
+In your UI canvas:
 
-The `Interactor.cs` sends out a raycast from the player when they press a key mapped to an action. If the raycast hits an interactable object i.e. an object with a script - such as `DoorInteraction.cs` implementing the `IInteractable.cs` interface, check if it can be interacted with and if so, run the interaction logic of the object.
+1. Drag in `Assets/Prefabs/UI/dialoge/DialogePanel.prefab`.
+2. Ensure there is exactly one active `NpcDialogPopupUI` in the scene.
+3. In `NpcDialogPopupUI`, verify references:
+- `popupRoot`
+- `dialogText`
+- `choiceRoot` (for branching questions)
+- for branching dialoge: `optionAText`, `optionBText`, `yesButton`, `noButton`
 
-1) Attach the `Interactor.cs` script to the player prefab in the scene
-2) Attach an `...Interaction.cs` script to a game object and implement the `IInteractable.cs` interface and its corresponding logic methods as described above. For instance, attach `DoorInteraction.cs` to the `prefab 99_Environment_Doors` (Assets/Models/Environment) and implement its logic. Finally, add a collider for this object.
+### 3. Configure `DialogInteraction` in Inspector
+
+Set `Dialog Mode` depending on behavior:
+
+- `PredefinedSequence`: walks through `Dialog Lines` in order.
+- `RandomFromGlobalPool`: random line from `Global Dialog Pool` (`DialogPool` asset or built-in defaults).
+- `RandomFromPredefinedPool`: random line from this NPC's local `Predefined Random Pool` array.
+- `BranchingSequence`: uses `Branching Steps` with line/question nodes and Y/N branches.
+
+Common settings:
+
+- `Loop Dialog Lines`: repeat when reaching end.
+- `Allow Restart After End`: allow starting dialogue again after completion.
+- `Finish Current Line On Interact While Typing`: second interact key finishes typewriter line first.
+- `Popup Duration`: auto-hide timing for non-question lines.
+- `Restart From Beginning After Seconds`: inactivity timeout before sequence resets.
+- `Use Delay Between Dialogues` + `Dialogue Delay Seconds`: cooldown between full dialogue sessions.

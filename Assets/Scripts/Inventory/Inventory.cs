@@ -1,9 +1,8 @@
-using System;
-using System.Collections.Generic;
-using NUnit.Framework.Constraints;
-using Unity.VisualScripting;
-using UnityEngine;
 
+/// <summary>
+/// Inventory holds an array of InventorySlots, which can hold InventoryItems.
+/// It provides methods to get a slot, swap items between slots, and find an empty slot.
+/// </summary>
 public class Inventory
 {
     private InventorySlot[] InventorySlots;
@@ -18,11 +17,11 @@ public class Inventory
         {
             InventorySlots[i] = new InventorySlot
             {
-                SlotIndex = i,
                 Item = null
             };
         }
     }
+
     public InventorySlot GetSlot(int index)
     {
         if (index < InventorySize)

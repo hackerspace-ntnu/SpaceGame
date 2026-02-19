@@ -1,6 +1,9 @@
 using System.Runtime.InteropServices;
 using UnityEngine;
 
+/// <summary>
+/// Handle interaction with the ship, such as adding scrap to the ship.
+/// </summary>
 public class ShipInteraction : MonoBehaviour, IInteractable
 {
     [SerializeField]

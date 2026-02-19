@@ -3,7 +3,7 @@ using UnityEngine;
 public class AntiGravityPotion : EffectItem
 {
     private const float DURATION = 5f; // Duration in seconds
-    private const float FLOAT_FORCE = 0.5f; // Upwards force, adjust to taste
+    private const float FLOAT_FORCE = 1f; // Upwards force, adjust to taste
 
     protected override void Use()
     {
@@ -23,5 +23,17 @@ public class AntiGravityPotion : EffectItem
                 rb.useGravity = true;
             }
         );
+        // Remove from inventory
+        GameObject player = GameObject.FindWithTag("Player");
+        if (player != null)
+        {
+            PlayerInventory playerInventory = player.GetComponent<PlayerInventory>();
+            if (playerInventory != null)
+            {
+                playerInventory.TryRemoveItem(playerInventory.selectedSlotIndex);
+            }
+        }
+        
+        Destroy(this.gameObject);
     }
 }

@@ -106,6 +106,7 @@ GameObject:
   - component: {fileID: 8861937888077706661}
   - component: {fileID: 980568265328903961}
   - component: {fileID: 1681600809652155392}
+  - component: {fileID: 2565023486001716576}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -361,6 +362,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentController
   handSocket: {fileID: 7954253418651921130}
+--- !u!114 &2565023486001716576
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1139436794606665169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15922c1f9560ee048a4bf8e62d520b04, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EffectManager
 --- !u!1 &1159096532428065929
 GameObject:
   m_ObjectHideFlags: 0

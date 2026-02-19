@@ -25,12 +25,14 @@ Shader "Custom/EVA_Visor"
         [Header(Respiration Fog)]
         _FogIntensity("Fog Intensity", Range(0, 1)) = 0.4
         _FogColor("Fog Color", Color) = (0.8, 0.85, 0.9, 1)
-        _BreathingRate("Breathing Rate", Range(0.1, 5)) = 0.25
-        _FogRadius("Fog Radius", Range(0.1, 1)) = 0.35
-        _FogSoftness("Fog Softness", Range(0.1, 2)) = 0.6
-        _FogHeight("Fog Center Height", Range(0, 0.5)) = 0.15
+        _BreathingRate("Breathing Rate (breaths/sec)", Range(0.1, 1)) = 0.25
+        _FogAccumulationRate("Fog Accumulation Rate", Range(0.1, 5)) = 1.0
+        _FogDecayRate("Fog Decay Rate", Range(0.1, 3)) = 0.5
+        _FogCenterHeight("Fog Center Height", Range(0, 0.5)) = 0.2
+        _FogFalloffRadius("Fog Falloff Radius", Range(0.1, 1)) = 0.3
         _FogNoiseScale("Fog Noise Scale", Range(1, 20)) = 8
-        _FogNoiseStrength("Fog Noise Strength", Range(0, 1)) = 0.3
+        _FogNoiseStrength("Fog Noise Strength", Range(0, 0.5)) = 0.15
+        _BreathStrengthVariation("Breath Strength Variation", Range(0, 0.5)) = 0.2
         
         [Header(Vignette)]
         _VignetteIntensity("Vignette Intensity", Range(0, 1)) = 0.2
@@ -91,11 +93,13 @@ Shader "Custom/EVA_Visor"
                 float _FogIntensity;
                 half4 _FogColor;
                 float _BreathingRate;
-                float _FogRadius;
-                float _FogSoftness;
-                float _FogHeight;
+                float _FogAccumulationRate;
+                float _FogDecayRate;
+                float _FogCenterHeight;
+                float _FogFalloffRadius;
                 float _FogNoiseScale;
                 float _FogNoiseStrength;
+                float _BreathStrengthVariation;
                 float _VignetteIntensity;
                 float _VignetteSoftness;
             CBUFFER_END
@@ -294,55 +298,75 @@ Shader "Custom/EVA_Visor"
             }
 
             // ============================================
-            // RESPIRATION FOG
+            // RESPIRATION FOG - ACCUMULATION SYSTEM
             // ============================================
             
             float generateRespirationFog(float2 uv, float time)
             {
-                // Center point at bottom of screen
-                float2 fogCenter = float2(0.5, _FogHeight);
-                float2 toCenter = uv - fogCenter;
+                // Fog center at bottom-center of screen
+                float2 fogCenter = float2(0.5, _FogCenterHeight);
+                float2 toPixel = uv - fogCenter;
                 
-                // Breathing cycle (sine wave for smooth in/out)
-                float breathCycle = sin(time * _BreathingRate * 3.14159 * 2.0) * 0.5 + 0.5;
+                // Distance from fog center with elliptical falloff
+                float dist = length(toPixel / float2(1.0, 0.8));
                 
-                // Smooth breathing curve (exhale is faster than inhale)
-                float exhale = smoothstep(0.3, 0.7, breathCycle);
-                exhale = pow(exhale, 0.7);
+                // Smooth falloff from center (Gaussian-like)
+                float distanceFalloff = exp(-pow(dist / _FogFalloffRadius, 2.0) * 3.0);
                 
-                // Dynamic radius based on breathing
-                float dynamicRadius = _FogRadius * (0.3 + exhale * 0.7);
+                // Breathing cycle timing
+                float cycleTime = 1.0 / _BreathingRate;
                 
-                // Distance from fog center
-                float dist = length(toCenter / float2(1.0, 0.7)); // Elliptical shape
+                // Simulate accumulated fog using continuous integration
+                float totalFog = 0.0;
+                float maxLookback = 20.0; // Look back 20 seconds
+                int numSamples = 48; // More samples for smoother result
                 
-                // Base fog mask
-                float fogMask = smoothstep(dynamicRadius + _FogSoftness, dynamicRadius - _FogSoftness * 0.5, dist);
+                for (int i = 0; i < numSamples; i++)
+                {
+                    // Time point in the past (continuous)
+                    float lookbackTime = (float(i) / float(numSamples)) * maxLookback;
+                    float sampleTime = time - lookbackTime;
+                    
+                    // Continuous breath cycle phase (no floor!)
+                    float continuousCycleTime = sampleTime / cycleTime;
+                    float samplePhase = frac(continuousCycleTime);
+                    
+                    // Smoothly varying breath parameters using continuous time
+                    // Use slow-changing sine waves instead of discrete noise
+                    float breathVariationWave = sin(continuousCycleTime * 0.3) * 0.5 + 0.5;
+                    float breathVariation = breathVariationWave * _BreathStrengthVariation;
+                    float sampleBreathStrength = 1.0 + breathVariation;
+                    
+                    // Exhale parameters that vary smoothly
+                    float sampleExhaleDuration = 0.3 + breathVariation * 0.2;
+                    float sampleExhaleStart = 0.5 - sampleExhaleDuration * 0.5;
+                    float sampleExhaleEnd = 0.5 + sampleExhaleDuration * 0.5;
+                    
+                    // Smooth exhale detection
+                    float wasExhaling = smoothstep(sampleExhaleStart - 0.08, sampleExhaleStart + 0.02, samplePhase) * 
+                                        smoothstep(sampleExhaleEnd + 0.08, sampleExhaleEnd - 0.02, samplePhase);
+                    
+                    // Continuous fog accumulation at this time point
+                    float timeStep = maxLookback / float(numSamples);
+                    float fogAdded = wasExhaling * _FogAccumulationRate * distanceFalloff * sampleBreathStrength * timeStep * 0.1;
+                    
+                    // Smooth exponential decay - this naturally creates continuous fade
+                    float decayFactor = exp(-_FogDecayRate * lookbackTime);
+                    float fogRemaining = fogAdded * decayFactor;
+                    
+                    totalFog += fogRemaining;
+                }
                 
-                // Add noise for organic appearance
-                float2 noiseUV = uv * _FogNoiseScale;
-                float fogNoise = fbm(noiseUV + float2(time * 0.1, time * 0.05), 3);
+                // Add organic noise to fog shape (using continuous time-based noise)
+                float2 noiseUV = uv * _FogNoiseScale + float2(time * 0.05, time * 0.03);
+                float fogNoise = fbm(noiseUV, 3);
+                fogNoise = fogNoise * 0.5 + 0.5; // Remap to 0-1
                 
-                // Animate noise with breathing
-                fogNoise = fogNoise * 0.5 + 0.5;
-                float noiseOffset = (fogNoise - 0.5) * _FogNoiseStrength;
+                // Apply noise distortion smoothly
+                float noiseModulation = 1.0 - _FogNoiseStrength + fogNoise * _FogNoiseStrength;
+                totalFog *= noiseModulation;
                 
-                // Apply noise to fog
-                fogMask = saturate(fogMask + noiseOffset);
-                
-                // Modulate intensity with breathing
-                fogMask *= exhale;
-                
-                // Add subtle animation - fog disperses slightly over time
-                float dispersal = frac(time * _BreathingRate);
-                dispersal = smoothstep(0.7, 1.0, dispersal);
-                fogMask *= 1.0 - dispersal * 0.3;
-                
-                // Edge fade for more realism
-                float edgeFade = smoothstep(0.0, 0.1, uv.y); // Fade at very bottom
-                fogMask *= edgeFade;
-                
-                return fogMask;
+                return saturate(totalFog);
             }
 
             // ============================================

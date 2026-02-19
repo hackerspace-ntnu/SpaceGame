@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -8,7 +9,8 @@ public class MainMenuUI : MonoBehaviour
 
     public void StartSinglePlayer()
     {
-        SceneManager.LoadScene(gameScene.SceneName);
+        NetworkManager.Singleton.StartHost();
+        NetworkManager.Singleton.SceneManager.LoadScene(gameScene.SceneName, LoadSceneMode.Single);
     }
     
     public void StartMultiPlayer()

@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 /// <summary>
@@ -9,9 +10,10 @@ using UnityEngine.InputSystem;
 /// and interacts with the EquipmentController to equip/unequip items based on selection.
 /// Also spawns dropped items in the world with physics applied.
 /// </summary>
-public class PlayerInventory  : InventoryComponent
+public class PlayerInventory  : NetworkBehaviour
 {
     
+    private Inventory inventory;
     private InputAction hotkeyAction;
     [SerializeField] private HotbarController hotbarController;
     [SerializeField] private EquipmentController equipmentController;
@@ -20,26 +22,27 @@ public class PlayerInventory  : InventoryComponent
     public int selectedSlotIndex { get; private set; } = -1;
     
     public List<InventoryItem> startingItems;
-    private void Awake()
+    private void Start()
     {
-        inventory = new Inventory(4);
+        if(!IsOwner) return;
+        
+        inventory  = new Inventory(4);
+        
+        foreach (var item in startingItems)
+        {
+            inventory.TryAddItem(item);
+        }
         
         if (hotbarController == null) return;
         
         hotbarController.OnHotbarKeyPressed += HandleHotbarKey;
         hotbarController.OnDropPressed += HandleDrop;
     }
-
-    private void Start()
-    {
-        foreach (var item in startingItems)
-        {
-            TryAddItem(item);
-        }
-    }
+    
     
     private void OnDestroy()
     {
+        if(!IsOwner) return;
         if (hotbarController == null) return;
         hotbarController.OnHotbarKeyPressed -= HandleHotbarKey;
         hotbarController.OnDropPressed -= HandleDrop;
@@ -121,14 +124,14 @@ public class PlayerInventory  : InventoryComponent
     }
     
     /// <summary>
-    /// Override of TryRemoveItem of InventoryComponent to also handle unequipping the item
+    /// TryRemoveItem unequippis the item
     /// if the removed item was currently selected.
     /// </summary>
     /// <param name="index"></param>
     /// <returns></returns>
-    public override bool TryRemoveItem(int index)
+    public bool TryRemoveItem(int index)
     {
-        bool removed = base.TryRemoveItem(index);
+        bool removed = inventory.TryRemoveItem(index);
         if(!removed) return false;
         
         if (index == selectedSlotIndex)
@@ -142,7 +145,7 @@ public class PlayerInventory  : InventoryComponent
         if (selectedSlotIndex < 0) {
             return null;
         }
-        return GetSlot(selectedSlotIndex);
+        return inventory.GetSlot(selectedSlotIndex);
     }
     
 }

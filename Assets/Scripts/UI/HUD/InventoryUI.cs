@@ -3,29 +3,28 @@ using UnityEngine;
 public class InventoryUI : MonoBehaviour
 {
     private InventorySlotUI[] slotUIs;
-    [SerializeField] private PlayerInventory inventory;
+    
+    private PlayerInventory inventory;
     
     [SerializeField] private Transform slotPrefab;
     [SerializeField] private Transform inventoryGrid; 
     
     private int selectedIndex = -1;
     private int hoveredIndex = -1;
-    
-    private void Awake()
+
+    public void Bind(PlayerInventory playerInventory)
     {
+        inventory = playerInventory;
         inventory.OnSlotSelected += OnSlotSelected;
         inventory.OnInventoryChanged += OnInventoryChanged;
+        InitializeUI();
     }
 
 
     private void OnDestroy()
     {
+        if(!inventory) return;
         inventory.OnSlotSelected -= OnSlotSelected;
-    }
-
-    private void Start()
-    {
-        InitializeUI();
     }
 
     public void InitializeUI()

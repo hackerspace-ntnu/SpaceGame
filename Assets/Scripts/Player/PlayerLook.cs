@@ -7,7 +7,8 @@ public class PlayerLook : MonoBehaviour
     public InputActionReference lookAction; // Vector2
 
     [Header("References")]
-    public Transform cameraRoot;          
+    public Transform cameraRoot;    
+    public Transform playerHead; 
     public Transform playerBody;
     private Rigidbody rigidbody;
 
@@ -25,6 +26,10 @@ public class PlayerLook : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         rigidbody = playerBody.GetComponent<Rigidbody>();
+        
+        // Hide the player head mesh to prevent clipping with the camera
+        var headRenderer = playerHead.GetComponent<SkinnedMeshRenderer>();
+        headRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
     }
     
     private void OnEnable()

@@ -31,8 +31,12 @@ Shader "Custom/EVA_Visor"
         _FogCenterHeight("Fog Center Height", Range(0, 0.5)) = 0.2
         _FogFalloffRadius("Fog Falloff Radius", Range(0.1, 1)) = 0.3
         _FogNoiseScale("Fog Noise Scale", Range(1, 20)) = 8
-        _FogNoiseStrength("Fog Noise Strength", Range(0, 0.5)) = 0.15
+        _FogNoiseStrength("Fog Noise Strength", Range(0, 1)) = 0.35
         _BreathStrengthVariation("Breath Strength Variation", Range(0, 0.5)) = 0.2
+        _FogDetailScale("Fog Detail Scale", Range(10, 50)) = 25
+        _FogWispiness("Fog Wispiness", Range(0, 1)) = 0.4
+        _FogDropletDensity("Fog Droplet Density", Range(0, 1)) = 0.3
+        _FogVaporStreaks("Fog Vapor Streaks", Range(0, 1)) = 0.25
         
         [Header(Vignette)]
         _VignetteIntensity("Vignette Intensity", Range(0, 1)) = 0.2
@@ -100,6 +104,10 @@ Shader "Custom/EVA_Visor"
                 float _FogNoiseScale;
                 float _FogNoiseStrength;
                 float _BreathStrengthVariation;
+                float _FogDetailScale;
+                float _FogWispiness;
+                float _FogDropletDensity;
+                float _FogVaporStreaks;
                 float _VignetteIntensity;
                 float _VignetteSoftness;
             CBUFFER_END
@@ -357,14 +365,66 @@ Shader "Custom/EVA_Visor"
                     totalFog += fogRemaining;
                 }
                 
-                // Add organic noise to fog shape (using continuous time-based noise)
-                float2 noiseUV = uv * _FogNoiseScale + float2(time * 0.05, time * 0.03);
-                float fogNoise = fbm(noiseUV, 3);
-                fogNoise = fogNoise * 0.5 + 0.5; // Remap to 0-1
+                // ========================================
+                // ADVANCED FOG DETAILING
+                // ========================================
                 
-                // Apply noise distortion smoothly
-                float noiseModulation = 1.0 - _FogNoiseStrength + fogNoise * _FogNoiseStrength;
-                totalFog *= noiseModulation;
+                // Base organic noise (coarse layer)
+                float2 noiseUV = uv * _FogNoiseScale + float2(time * 0.05, time * 0.03);
+                float fogNoise = fbm(noiseUV, 4);
+                fogNoise = fogNoise * 0.5 + 0.5;
+                
+                // Fine detail noise (creates texture)
+                float2 detailUV = uv * _FogDetailScale + float2(time * 0.02, -time * 0.01);
+                float detailNoise = fbm(detailUV, 3);
+                detailNoise = detailNoise * 0.5 + 0.5;
+                
+                // Wispy vapor streaks (vertical flow)
+                float2 streakUV = float2(uv.x * 15.0, uv.y * 30.0) + float2(sin(time * 0.1 + uv.y * 10.0) * 0.1, time * 0.08);
+                float streaks = fbm(streakUV, 2);
+                streaks = pow(saturate(streaks), 3.0); // Sharp streaks
+                
+                // Horizontal vapor bands (breathing condensation)
+                float2 bandUV = float2(uv.x * 8.0, uv.y * 20.0 + time * 0.15);
+                float bands = sin(bandUV.y + noise(float2(bandUV.x, 0)) * 2.0) * 0.5 + 0.5;
+                bands = pow(bands, 4.0) * _FogWispiness;
+                
+                // Micro-droplets (small water droplets)
+                float2 dropletUV = uv * 40.0;
+                float droplets = voronoi(dropletUV + float2(sin(time * 0.05) * 0.2, time * 0.03));
+                droplets = 1.0 - droplets;
+                droplets = pow(saturate(droplets), 8.0) * _FogDropletDensity;
+                
+                // Larger condensation droplets (scattered)
+                float2 largeDropletUV = uv * 15.0;
+                float largeDroplets = voronoi(largeDropletUV + float2(time * 0.02, time * 0.01));
+                largeDroplets = 1.0 - largeDroplets;
+                largeDroplets = pow(saturate(largeDroplets), 12.0) * _FogDropletDensity * 0.5;
+                
+                // Edge crystallization effect (frost-like patterns)
+                float2 crystalUV = uv * 18.0 + float2(time * 0.01, 0);
+                float crystals = abs(noise(crystalUV) * noise(crystalUV * 1.7));
+                crystals = pow(crystals, 3.0) * 0.3;
+                
+                // Combine all noise layers
+                float combinedNoise = fogNoise * (1.0 - _FogNoiseStrength) + 
+                                      (fogNoise * detailNoise) * _FogNoiseStrength;
+                
+                // Add vapor effects
+                float vaporLayer = streaks * _FogVaporStreaks + bands;
+                combinedNoise = saturate(combinedNoise + vaporLayer * 0.3);
+                
+                // Add droplet details
+                float dropletLayer = droplets + largeDroplets;
+                
+                // Apply all effects to fog
+                totalFog *= combinedNoise;
+                totalFog += dropletLayer * totalFog * 0.5; // Droplets appear on fogged areas
+                totalFog += crystals * totalFog * 0.3; // Crystallization on fogged areas
+                
+                // Add subtle variation in fog opacity
+                float opacityVariation = noise(uv * 12.0 + float2(time * 0.03, time * 0.02)) * 0.5 + 0.5;
+                totalFog *= lerp(0.85, 1.0, opacityVariation);
                 
                 return saturate(totalFog);
             }

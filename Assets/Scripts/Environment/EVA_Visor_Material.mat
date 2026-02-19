@@ -30,16 +30,16 @@ Material:
     m_Ints: []
     m_Floats:
     - _BreathStrengthVariation: 0.2
-    - _BreathingRate: 0.153
+    - _BreathingRate: 0.259
     - _DirtIntensity: 0.136
     - _DirtScale: 15
     - _FogAccumulationRate: 5
-    - _FogCenterHeight: 0.021
-    - _FogDecayRate: 1.24
-    - _FogFalloffRadius: 0.458
+    - _FogCenterHeight: 0.087
+    - _FogDecayRate: 1
+    - _FogFalloffRadius: 0.508
     - _FogHeight: 0
     - _FogIntensity: 1
-    - _FogNoiseScale: 1
+    - _FogNoiseScale: 15
     - _FogNoiseStrength: 0.04
     - _FogRadius: 0.1
     - _FogSoftness: 0.58
@@ -47,11 +47,11 @@ Material:
     - _LensDirtScale: 21
     - _OverallIntensity: 0.336
     - _ScratchDensity: 25
-    - _ScratchIntensity: 0.282
+    - _ScratchIntensity: 0.524
     - _ScratchLength: 0.05
     - _ScratchWidth: 0.00056
     - _SmudgeIntensity: 0.099
-    - _VignetteIntensity: 0.2
+    - _VignetteIntensity: 0
     - _VignetteSoftness: 0.5
     m_Colors:
     - _DirtColor: {r: 0.16037738, g: 0.11825564, b: 0.07262372, a: 1}

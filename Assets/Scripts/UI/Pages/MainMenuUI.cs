@@ -15,7 +15,7 @@ public class MainMenuUI : MonoBehaviour
     
     public void StartMultiPlayer()
     {
-        SceneManager.LoadScene(lobbyScene.SceneName);
+        SceneManager.LoadScene(lobbyScene.SceneName, LoadSceneMode.Single);
     }
     
     public void OpenSettings()

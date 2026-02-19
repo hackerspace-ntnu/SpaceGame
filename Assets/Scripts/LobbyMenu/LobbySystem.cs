@@ -58,7 +58,6 @@ public class LobbySystem : NetworkBehaviour
         //HandleLobbyRefreshList();
         HandleLobbyHeartBeat();
         HandleLobbyPollForUpdates();
-        HandleHostCheck();
     }
 
     private async void HandleLobbyHeartBeat() {
@@ -83,6 +82,14 @@ public class LobbySystem : NetworkBehaviour
                 Lobby lobby = await LobbyService.Instance.GetLobbyAsync(joinedLobby.Id);
                 joinedLobby = lobby;
                 UpdatePlayerListInLobby();
+                if (isPlayerHost())
+                {
+                    lobbyList.setStartGameButtonState(true);
+                }
+                else
+                {
+                    lobbyList.setStartGameButtonState(false);
+                }
             }
         }
     }
@@ -96,28 +103,6 @@ public class LobbySystem : NetworkBehaviour
                 float refreshLobbyListTimerMax = 5f;
                 refreshLobbyListTimer = refreshLobbyListTimerMax;
                 listLobbies();
-            }
-        }
-    }
-
-    private async void HandleHostCheck()
-    {
-        if (joinedLobby != null)
-        {
-            lobbyUpdateTimer -= Time.deltaTime;
-            if (lobbyUpdateTimer <= 0f)
-            {
-                float lobbyUpdateTimerMax = 2f;
-                lobbyUpdateTimer = lobbyUpdateTimerMax;
-                Lobby lobby = await LobbyService.Instance.GetLobbyAsync(joinedLobby.Id);
-                joinedLobby = lobby;
-                //if(isPlayerHost())
-                //{
-                //    lobbyList.ShowStartButton();
-                //} else
-                //{
-                //    lobbyList.HideStartButton();
-                //}
             }
         }
     }
@@ -216,9 +201,7 @@ public class LobbySystem : NetworkBehaviour
             lobbyList.openLobbyScreen(joinedLobby.Name);
             lobbyList.showPlayerElements(playerNames.ToArray());
             listLobbies();
-            //Debug.Log("Created Lobby! " + testLobby.Name + " " + testLobby.MaxPlayers + " " + testLobby.Id + " " + testLobby.LobbyCode);
-            printPlayers(hostLobby);
-            //lobbyList.ShowStartButton();
+            lobbyList.setStartGameButtonState(true);
         }
         catch (LobbyServiceException e)
         {
@@ -313,8 +296,6 @@ public class LobbySystem : NetworkBehaviour
             RelayServerData relayData = new RelayServerData(joinAllocation.RelayServer.IpV4, (ushort)joinAllocation.RelayServer.Port,
             joinAllocation.AllocationIdBytes, joinAllocation.ConnectionData, joinAllocation.HostConnectionData, joinAllocation.Key, false);
 
-            //Debug.Log(relayData);
-
             NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayData);
             NetworkManager.Singleton.StartClient();
             JoinLobby(lobby);
@@ -330,7 +311,7 @@ public class LobbySystem : NetworkBehaviour
         joinedLobby = lobby;
         AuthenticationService.Instance.UpdatePlayerNameAsync("Player_" + (lobby.Players.Count + 1));
         lobbyList.openLobbyScreen(joinedLobby.Name);
-        
+        lobbyList.setStartGameButtonState(false);
         UpdatePlayerListInLobby();
 
     }
@@ -344,19 +325,6 @@ public class LobbySystem : NetworkBehaviour
         }
         lobbyList.showPlayerElements(playerNames.ToArray());
     }
-    private void printPlayers()
-    {
-        printPlayers(joinedLobby);
-    }
-    private void printPlayers(Lobby lobby)
-    {
-        //Debug.Log("Player in lobby:" + lobby.Name);
-        foreach(Player p in lobby.Players)
-        {
-            //Debug.Log(p.Id + " " + p.Data["PlayerName"].Value);
-        }
-    }
-
 
     private Player GetPlayer()
     {
@@ -372,8 +340,18 @@ public class LobbySystem : NetworkBehaviour
     public async void LeaveLobby() {
         try {
             await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, AuthenticationService.Instance.PlayerId);
+            
+            if(isPlayerHost())
+            {
+                NetworkManager.Singleton.Shutdown();
+                foreach (Player p in joinedLobby.Players)
+                {
+                    await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, p.Id);
+                }
+            }
             joinedLobby = null;
-            //lobbyList.HideStartButton();
+            NetworkManager.Singleton.DisconnectClient(NetworkManager.Singleton.LocalClientId);
+            lobbyList.setStartGameButtonState(false);
         } catch (LobbyServiceException e) {
             Debug.Log(e);
         }

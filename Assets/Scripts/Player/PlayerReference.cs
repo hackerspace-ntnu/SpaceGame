@@ -14,9 +14,8 @@ public class PlayerReference : NetworkBehaviour
       Interactor = GetComponent<Interactor>();
     }
 
-    public override void OnNetworkSpawn()
+    private void Start()
     {
-        base.OnNetworkSpawn();
         if(!IsOwner) return;
         
         PlayerUI.Instance.BindToPlayer(this);

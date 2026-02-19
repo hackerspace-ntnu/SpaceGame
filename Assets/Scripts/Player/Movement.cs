@@ -1,8 +1,9 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
-public class PlayerMovement : MonoBehaviour
+public class PlayerMovement : NetworkBehaviour
 {
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 6f;
@@ -11,7 +12,6 @@ public class PlayerMovement : MonoBehaviour
     [Header("Jumping")]
     [SerializeField] private float jumpForce = 7f;
     [SerializeField] private float jumpCooldown = 0.6f;
-    [SerializeField] private Transform groundCheck;
     [SerializeField] private float groundCheckDistance = 1.9f;
     [SerializeField] private LayerMask groundMask = ~0;
 
@@ -19,30 +19,16 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float dashSpeed = 10f;
     [SerializeField] private GameObject camera;
 
-    private Rigidbody rb;
-    private Animator animator;
+    [SerializeField] private Rigidbody rb;
+    [SerializeField] private Animator animator;
     private Vector2 input;
     private float jumpCooldownTimer;
     private bool jumpOnCooldown;
     private bool groundSnapEnabled = true;
 
-    private void Awake()
-    {
-        rb = GetComponent<Rigidbody>();
-        animator = GetComponent<Animator>();
-        rb.useGravity = true;
-    }
-
-    private void Start()
-    {
-        if (!groundCheck)
-        {
-            groundCheck = transform;
-        }
-    }
-
     private void FixedUpdate()
     {
+        if(!IsOwner) return;
         HandleJumpCooldown();
 
         if (!groundSnapEnabled)
@@ -129,7 +115,7 @@ public class PlayerMovement : MonoBehaviour
 
     private bool IsGrounded()
     {
-        Vector3 origin = groundCheck ? groundCheck.position : transform.position;
+        Vector3 origin = transform.position;
         return Physics.Raycast(origin, Vector3.down, groundCheckDistance, groundMask, QueryTriggerInteraction.Ignore);
     }
 

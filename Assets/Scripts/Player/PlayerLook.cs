@@ -1,13 +1,14 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerLook : MonoBehaviour
+public class PlayerLook : NetworkBehaviour
 {
     [Header("Input")]
     public InputActionReference lookAction; // Vector2
 
     [Header("References")]
-    public Transform cameraRoot;    
+    public GameObject camera;    
     public Transform playerHead; 
     public Transform playerBody;
     private Rigidbody rigidbody;
@@ -22,6 +23,8 @@ public class PlayerLook : MonoBehaviour
     
     private void Start()
     {
+        if(!IsOwner) return;
+        camera.SetActive(true);
         // Lock cursor to center
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -34,16 +37,19 @@ public class PlayerLook : MonoBehaviour
     
     private void OnEnable()
     {
+        if(!IsOwner) return;
         lookAction.action.Enable();
     }
 
     private void OnDisable()
     {
+        if(!IsOwner) return;
         lookAction.action.Disable();
     }
     
     void Update()
     {
+        if(!IsOwner) return;
         lookInput = lookAction.action.ReadValue<Vector2>();
 
         // body rotation (yaw)
@@ -54,12 +60,13 @@ public class PlayerLook : MonoBehaviour
         // camera rotation (pitch)
         pitch -= lookInput.y * sensitivity * Time.deltaTime;
         pitch = Mathf.Clamp(pitch, -verticalClamp, verticalClamp);
-        cameraRoot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+        camera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 
 
     private void OnDestroy()
     {
+        if(!IsOwner) return;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }

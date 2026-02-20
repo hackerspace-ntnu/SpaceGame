@@ -37,6 +37,25 @@ Shader "Custom/EVA_Visor"
         _FogWispiness("Fog Wispiness", Range(0, 1)) = 0.4
         _FogDropletDensity("Fog Droplet Density", Range(0, 1)) = 0.3
         _FogVaporStreaks("Fog Vapor Streaks", Range(0, 1)) = 0.25
+        _FogRefractionStrength("Fog Refraction Strength", Range(0, 1)) = 0.04
+        _FogBlurStrength("Fog Blur Strength", Range(0, 10)) = 3.0
+        _FogChromaticAberration("Fog Chromatic Aberration", Range(0, 0.05)) = 0.02
+        _FogContrast("Fog Area Contrast Boost", Range(0, 2)) = 0.5
+        _FogLightScatter("Fog Light Scattering", Range(0, 1)) = 0.4
+        
+        [Header(Blur Vignette)]
+        _VignetteBlurIntensity("Vignette Blur Intensity", Range(0, 15)) = 5.0
+        _VignetteBlurRadius("Vignette Blur Radius", Range(0.3, 1)) = 0.7
+        _VignetteBlurSoftness("Vignette Blur Softness", Range(0.1, 0.5)) = 0.3
+        
+        [Header(Light Effects)]
+        _BloomThreshold("Bloom Threshold", Range(0.5, 2)) = 0.8
+        _BloomIntensity("Bloom Intensity", Range(0, 5)) = 2.0
+        _BloomRadius("Bloom Radius", Range(0.001, 0.02)) = 0.008
+        _LensFlareIntensity("Lens Flare Intensity", Range(0, 5)) = 2.5
+        _LensFlareColor("Lens Flare Color", Color) = (1.4, 1.2, 1.0, 1)
+        _LensFlareMinBrightness("Min Brightness for Flare", Range(0, 1)) = 0.3
+        _LightSourcePosition("Light Source Position (Screen)", Vector) = (0.5, 0.5, 0, 0)
         
         [Header(Vignette)]
         _VignetteIntensity("Vignette Intensity", Range(0, 1)) = 0.2
@@ -108,6 +127,21 @@ Shader "Custom/EVA_Visor"
                 float _FogWispiness;
                 float _FogDropletDensity;
                 float _FogVaporStreaks;
+                float _FogRefractionStrength;
+                float _FogBlurStrength;
+                float _FogChromaticAberration;
+                float _FogContrast;
+                float _FogLightScatter;
+                float _VignetteBlurIntensity;
+                float _VignetteBlurRadius;
+                float _VignetteBlurSoftness;
+                float _BloomThreshold;
+                float _BloomIntensity;
+                float _BloomRadius;
+                float _LensFlareIntensity;
+                half4 _LensFlareColor;
+                float _LensFlareMinBrightness;
+                float4 _LightSourcePosition;
                 float _VignetteIntensity;
                 float _VignetteSoftness;
             CBUFFER_END
@@ -430,6 +464,204 @@ Shader "Custom/EVA_Visor"
             }
 
             // ============================================
+            // BLUR SAMPLING
+            // ============================================
+            
+            half3 sampleBlur(float2 uv, float blurAmount)
+            {
+                if (blurAmount < 0.01) return SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv).rgb;
+                
+                half3 color = half3(0, 0, 0);
+                float totalWeight = 0.0;
+                
+                // Gaussian blur with variable kernel size
+                int samples = 9;
+                float angleStep = 3.14159 * 2.0 / float(samples);
+                
+                for (int i = 0; i < samples; i++)
+                {
+                    float angle = float(i) * angleStep;
+                    float2 offset = float2(cos(angle), sin(angle)) * blurAmount * 0.003;
+                    
+                    half3 sample1 = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv + offset).rgb;
+                    half3 sample2 = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv + offset * 0.5).rgb;
+                    
+                    color += sample1 + sample2;
+                    totalWeight += 2.0;
+                }
+                
+                color += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv).rgb * 2.0;
+                totalWeight += 2.0;
+                
+                return color / totalWeight;
+            }
+
+            // ============================================
+            // FOG REFRACTION
+            // ============================================
+            
+            float2 calculateFogRefraction(float2 uv, float time, float fogAmount)
+            {
+                // Create refraction offset based on droplet positions and fog density
+                float2 refraction = float2(0, 0);
+                
+                // Droplet-based refraction (individual droplets bend light strongly)
+                float2 dropletUV = uv * 40.0;
+                float2 dropletCenter = floor(dropletUV) + 0.5;
+                float2 toDropletCenter = dropletUV - dropletCenter;
+                float dropletDist = length(toDropletCenter);
+                
+                // Each droplet creates a strong radial distortion
+                float dropletEffect = exp(-dropletDist * 3.0) * voronoi(dropletUV + float2(sin(time * 0.05) * 0.2, time * 0.03));
+                refraction += normalize(toDropletCenter) * dropletEffect * 1.2;
+                
+                // Larger droplets (much stronger refraction)
+                float2 largeDropletUV = uv * 15.0;
+                float2 largeDropletCenter = floor(largeDropletUV) + 0.5;
+                float2 toLargeCenter = largeDropletUV - largeDropletCenter;
+                float largeDist = length(toLargeCenter);
+                float largeEffect = exp(-largeDist * 2.0) * voronoi(largeDropletUV + float2(time * 0.02, time * 0.01));
+                refraction += normalize(toLargeCenter) * largeEffect * 1.8;
+                
+                // Vapor density gradient causes strong refraction
+                float2 gradientUV = uv * 12.0 + float2(time * 0.03, time * 0.02);
+                float2 gradient = float2(
+                    noise(gradientUV + float2(0.01, 0)) - noise(gradientUV - float2(0.01, 0)),
+                    noise(gradientUV + float2(0, 0.01)) - noise(gradientUV - float2(0, 0.01))
+                );
+                refraction += gradient * 1.5;
+                
+                // Wispy streaks create directional distortion
+                float2 streakUV = float2(uv.x * 15.0, uv.y * 30.0) + float2(sin(time * 0.1 + uv.y * 10.0) * 0.1, time * 0.08);
+                float streakGradient = fbm(streakUV + float2(0, 0.01), 2) - fbm(streakUV - float2(0, 0.01), 2);
+                refraction += float2(streakGradient * 0.8, streakGradient * 0.4);
+                
+                // Add turbulent flow patterns
+                float2 turbulenceUV = uv * 8.0 + float2(time * 0.05, time * 0.08);
+                float2 turbulence = float2(
+                    fbm(turbulenceUV, 2),
+                    fbm(turbulenceUV + float2(5.2, 1.3), 2)
+                ) - 0.5;
+                refraction += turbulence * 0.6;
+                
+                // Scale refraction by fog amount and strength
+                refraction *= fogAmount * _FogRefractionStrength;
+                
+                return refraction;
+            }
+
+            // ============================================
+            // ADVANCED LENS FLARE (Based on peterekepeter's algorithm)
+            // ============================================
+            
+            half3 generateLensFlare(float2 uv, float2 lightPos, half3 sceneColor)
+            {
+                // Calculate brightness at light position
+                half3 lightSample = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, lightPos).rgb;
+                float lightBrightness = dot(lightSample, float3(0.299, 0.587, 0.114));
+                
+                // Use configurable minimum brightness
+                if (lightBrightness < _LensFlareMinBrightness) return half3(0, 0, 0);
+                
+                // Calculate intensity multiplier (with minimum base intensity)
+                float intensityMult = max(lightBrightness, 1.0);
+                
+                // Main flare calculation
+                float2 main = uv - lightPos;
+                float2 uvd = uv * length(uv);
+                
+                float ang = atan2(main.x, main.y);
+                float dist = length(main);
+                dist = pow(dist, 0.1);
+                
+                // Use scene noise for variation
+                float n = noise(float2(ang * 16.0, dist * 32.0));
+                
+                // Central bright spot with noise modulation
+                float f0 = 1.0 / (length(uv - lightPos) * 16.0 + 1.0);
+                f0 = f0 + f0 * (sin(noise(sin(ang * 2.0 + lightPos.x) * 4.0 - cos(ang * 3.0 + lightPos.y)) * 16.0) * 0.1 + dist * 0.1 + 0.8);
+                
+                // First ghost (bright circular)
+                float f1 = max(0.01 - pow(length(uv + 1.2 * lightPos), 1.9), 0.0) * 7.0;
+                
+                // Multiple smaller ghosts with chromatic separation
+                float f2 = max(1.0 / (1.0 + 32.0 * pow(length(uvd + 0.8 * lightPos), 2.0)), 0.0) * 0.25;
+                float f22 = max(1.0 / (1.0 + 32.0 * pow(length(uvd + 0.85 * lightPos), 2.0)), 0.0) * 0.23;
+                float f23 = max(1.0 / (1.0 + 32.0 * pow(length(uvd + 0.9 * lightPos), 2.0)), 0.0) * 0.21;
+                
+                // Mixed UV for different ghost positions
+                float2 uvx = lerp(uv, uvd, -0.5);
+                
+                float f4 = max(0.01 - pow(length(uvx + 0.4 * lightPos), 2.4), 0.0) * 6.0;
+                float f42 = max(0.01 - pow(length(uvx + 0.45 * lightPos), 2.4), 0.0) * 5.0;
+                float f43 = max(0.01 - pow(length(uvx + 0.5 * lightPos), 2.4), 0.0) * 3.0;
+                
+                uvx = lerp(uv, uvd, -0.4);
+                
+                float f5 = max(0.01 - pow(length(uvx + 0.2 * lightPos), 5.5), 0.0) * 2.0;
+                float f52 = max(0.01 - pow(length(uvx + 0.4 * lightPos), 5.5), 0.0) * 2.0;
+                float f53 = max(0.01 - pow(length(uvx + 0.6 * lightPos), 5.5), 0.0) * 2.0;
+                
+                uvx = lerp(uv, uvd, -0.5);
+                
+                float f6 = max(0.01 - pow(length(uvx - 0.3 * lightPos), 1.6), 0.0) * 6.0;
+                float f62 = max(0.01 - pow(length(uvx - 0.325 * lightPos), 1.6), 0.0) * 3.0;
+                float f63 = max(0.01 - pow(length(uvx - 0.35 * lightPos), 1.6), 0.0) * 5.0;
+                
+                // Combine all components with chromatic separation
+                half3 flare = half3(0, 0, 0);
+                flare.r += f2 + f4 + f5 + f6;
+                flare.g += f22 + f42 + f52 + f62;
+                flare.b += f23 + f43 + f53 + f63;
+                
+                // Apply color modulation and intensity
+                flare = flare * 1.3 - half3(length(uvd) * 0.05, length(uvd) * 0.05, length(uvd) * 0.05);
+                flare += half3(f0, f0, f0);
+                
+                // Color tinting
+                flare *= _LensFlareColor.rgb;
+                
+                // Scale by light intensity and parameter
+                return flare * _LensFlareIntensity * intensityMult;
+            }
+
+            // ============================================
+            // BLOOM GENERATION
+            // ============================================
+            
+            half3 generateBloom(float2 uv, half3 sceneColor)
+            {
+                float brightness = dot(sceneColor, float3(0.299, 0.587, 0.114));
+                
+                // Threshold for bloom
+                if (brightness < _BloomThreshold) return half3(0, 0, 0);
+                
+                float excess = pow(brightness - _BloomThreshold, 2.0);
+                
+                // Sample bright areas with radial blur pattern
+                half3 bloom = half3(0, 0, 0);
+                int samples = 12;
+                
+                for (int i = 0; i < samples; i++)
+                {
+                    float angle = float(i) / float(samples) * 6.28318;
+                    float2 offset = float2(cos(angle), sin(angle)) * _BloomRadius;
+                    
+                    // Multiple rings for stronger bloom
+                    bloom += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv + offset * 0.5).rgb;
+                    bloom += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv + offset).rgb;
+                    bloom += SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv + offset * 1.5).rgb;
+                }
+                
+                bloom /= float(samples * 3);
+                
+                // Only keep the bright parts
+                bloom = max(bloom - _BloomThreshold, 0.0);
+                
+                return bloom * _BloomIntensity * excess;
+            }
+
+            // ============================================
             // VIGNETTE
             // ============================================
             
@@ -462,11 +694,95 @@ Shader "Custom/EVA_Visor"
                 float2 uv = IN.uv;
                 float time = _Time.y;
                 
-                // Sample the screen/base texture
-                half4 screenColor = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv);
+                // ============================================
+                // CALCULATE FOG AND VIGNETTE
+                // ============================================
+                
+                // Pre-calculate fog to determine all distortion effects
+                float fogAmount = generateRespirationFog(uv, time) * _FogIntensity;
+                
+                // Calculate vignette distance for blur
+                float2 centered = uv - 0.5;
+                float vignetteDist = length(centered);
+                float vignetteBlur = smoothstep(_VignetteBlurRadius, _VignetteBlurRadius - _VignetteBlurSoftness, vignetteDist);
+                vignetteBlur = (1.0 - vignetteBlur) * _VignetteBlurIntensity;
                 
                 // ============================================
-                // STATIC EFFECTS
+                // REFRACTION + CHROMATIC ABERRATION
+                // ============================================
+                
+                // Calculate refraction offset
+                float2 refractionOffset = calculateFogRefraction(uv, time, fogAmount);
+                
+                // Sample with chromatic aberration (water droplets split light into colors)
+                float chromaticAmount = fogAmount * _FogChromaticAberration;
+                float2 redUV = saturate(uv + refractionOffset * 1.0 + centered * chromaticAmount);
+                float2 greenUV = saturate(uv + refractionOffset);
+                float blurAmount = fogAmount * _FogBlurStrength + vignetteBlur;
+                
+                // Blue channel shifts opposite direction
+                float2 blueUV = saturate(uv + refractionOffset * 0.95 - centered * chromaticAmount * 0.5);
+                
+                // ============================================
+                // ADAPTIVE BLUR BASED ON FOG DENSITY
+                // ============================================
+                
+                half3 screenColor;
+                if (blurAmount > 0.5)
+                {
+                    // Heavy fog = chromatic aberration + blur per channel
+                    half3 redBlur = sampleBlur(redUV, blurAmount * 1.1);
+                    half3 greenBlur = sampleBlur(greenUV, blurAmount);
+                    half3 blueBlur = sampleBlur(blueUV, blurAmount * 0.9);
+                    
+                    screenColor = half3(redBlur.r, greenBlur.g, blueBlur.b);
+                }
+                else
+                {
+                    // Light fog = simple chromatic aberration
+                    half redChannel = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, redUV).r;
+                    half greenChannel = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, greenUV).g;
+                    half blueChannel = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, blueUV).b;
+                    
+                    screenColor = half3(redChannel, greenChannel, blueChannel);
+                }
+                
+                // ============================================
+                // BRIGHT LIGHT BLOOM & LENS FLARE
+                // ============================================
+                
+                // Generate bloom from bright areas (light "pops")
+                half3 bloom = generateBloom(uv, screenColor);
+                screenColor += bloom;
+                
+                // Generate lens flare from light source position
+                float2 lightPos = _LightSourcePosition.xy;
+                half3 lensFlare = generateLensFlare(uv, lightPos, screenColor);
+                screenColor += lensFlare;
+                
+                // ============================================
+                // FOG LIGHT SCATTERING
+                // ============================================
+                
+                // Fog scatters light, creating glow in bright areas
+                // FOG LIGHT SCATTERING
+                // ============================================
+                
+                // Fog scatters light, creating glow in bright areas
+                float brightness = dot(screenColor, float3(0.299, 0.587, 0.114));
+                float scatter = pow(brightness, 2.0) * fogAmount * _FogLightScatter;
+                screenColor += _FogColor.rgb * scatter * 0.5;
+                
+                // ============================================
+                // ADAPTIVE CONTRAST IN FOG
+                // ============================================
+                
+                // Boost contrast in foggy areas to maintain visibility
+                float contrastBoost = fogAmount * _FogContrast;
+                screenColor = lerp(screenColor, (screenColor - 0.5) * (1.0 + contrastBoost) + 0.5, fogAmount * 0.7);
+                
+                // ============================================
+                // STATIC EFFECTS (SCRATCHES, DIRT)
                 // ============================================
                 
                 // Generate scratches
@@ -487,9 +803,8 @@ Shader "Custom/EVA_Visor"
                 // DYNAMIC EFFECTS
                 // ============================================
                 
-                // Generate respiration fog
-                float fog = generateRespirationFog(uv, time);
-                fog *= _FogIntensity;
+                // Use pre-calculated fog (already generated for refraction)
+                float fog = fogAmount;
                 
                 // Generate vignette
                 float vignette = generateVignette(uv);

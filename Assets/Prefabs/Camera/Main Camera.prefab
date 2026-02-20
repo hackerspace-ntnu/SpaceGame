@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 8343380952934963301}
   - component: {fileID: 4805424008845710970}
   - component: {fileID: 9048075622600858705}
+  - component: {fileID: 8677202419445481981}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -137,3 +138,22 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!114 &8677202419445481981
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3745584353352685527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40daed59ba2660947bc03870e11e3f37, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GlassLensDistortion
+  distortionMaterial: {fileID: 2100000, guid: 7aff092fca931cb47b4d7ecfc5bc40d4, type: 2}
+  lensCenterX: 0.5
+  lensCenterY: 0.5
+  distortionStrength: 5000
+  roundedPower: 8
+  blurSize: 0.5
+  followMouse: 0

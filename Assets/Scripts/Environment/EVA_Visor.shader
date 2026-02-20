@@ -554,17 +554,17 @@ Shader "Custom/EVA_Visor"
             // ADVANCED LENS FLARE (Based on peterekepeter's algorithm)
             // ============================================
             
-            half3 generateLensFlare(float2 uv, float2 lightPos, half3 sceneColor)
+            half3 generateLensFlare(float2 uv, float2 lightPos, float visibilityIntensity, half3 sceneColor)
             {
+                // Early exit if no visibility from script
+                if (visibilityIntensity <= 0.0) return half3(0, 0, 0);
+                
                 // Calculate brightness at light position
                 half3 lightSample = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, lightPos).rgb;
                 float lightBrightness = dot(lightSample, float3(0.299, 0.587, 0.114));
                 
-                // Use configurable minimum brightness
-                if (lightBrightness < _LensFlareMinBrightness) return half3(0, 0, 0);
-                
-                // Calculate intensity multiplier (with minimum base intensity)
-                float intensityMult = max(lightBrightness, 1.0);
+                // Combine screen brightness with visibility intensity
+                float intensityMult = max(lightBrightness * 0.5 + visibilityIntensity, visibilityIntensity);
                 
                 // Main flare calculation
                 float2 main = uv - lightPos;
@@ -756,8 +756,10 @@ Shader "Custom/EVA_Visor"
                 screenColor += bloom;
                 
                 // Generate lens flare from light source position
+                // _LightSourcePosition.z contains visibility intensity from script
                 float2 lightPos = _LightSourcePosition.xy;
-                half3 lensFlare = generateLensFlare(uv, lightPos, screenColor);
+                float visibilityIntensity = _LightSourcePosition.z;
+                half3 lensFlare = generateLensFlare(uv, lightPos, visibilityIntensity, screenColor);
                 screenColor += lensFlare;
                 
                 // ============================================

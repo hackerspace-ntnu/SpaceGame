@@ -17,7 +17,7 @@ public class PlayerMovement : NetworkBehaviour
 
     [Header("Dash")]
     [SerializeField] private float dashSpeed = 10f;
-    [SerializeField] private GameObject camera;
+    [SerializeField] private GameObject playerCamera;
 
     [SerializeField] private Rigidbody rb;
     [SerializeField] private Animator animator;
@@ -88,9 +88,9 @@ public class PlayerMovement : NetworkBehaviour
     public void OnDash()
     {
         Vector3 dashDirection = transform.forward;
-        if (camera)
+        if (playerCamera)
         {
-            dashDirection = camera.transform.forward;
+            dashDirection = playerCamera.transform.forward;
         }
 
         dashDirection.y = 0f;

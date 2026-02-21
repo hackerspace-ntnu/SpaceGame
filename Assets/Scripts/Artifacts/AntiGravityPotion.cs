@@ -5,6 +5,7 @@ public class AntiGravityPotion : EffectItem
     private const float DURATION = 5f; // Duration in seconds
     private const float FLOAT_FORCE = 1f; // Upwards force, adjust to taste
 
+
     protected override void Use()
     {
         RegisterEffect(
@@ -23,6 +24,10 @@ public class AntiGravityPotion : EffectItem
                 rb.useGravity = true;
             }
         );
+        if (useSound == null) {
+            Debug.LogWarning("Use sound not assigned for AntiGravityPotion!");
+            return;
+        }
         // Removal from inventory and destruction is now handled by base class when maxUses is reached
     }
 }

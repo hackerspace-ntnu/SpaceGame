@@ -6,6 +6,8 @@ public abstract class UsableItem : MonoBehaviour
     protected InputManager inputManager;
     
     [SerializeField] private int maxUses = -1; // -1 means unlimited uses
+    [SerializeField] protected AudioClip useSound;
+
     private int currentUses = 0;
 
     protected virtual void Awake()
@@ -27,6 +29,11 @@ public abstract class UsableItem : MonoBehaviour
     {
         if (CanUse())
         {
+            if (useSound != null)
+            {
+                AudioManager.Instance.PlaySFX(useSound);
+            }
+
             Use();
             currentUses++;
             

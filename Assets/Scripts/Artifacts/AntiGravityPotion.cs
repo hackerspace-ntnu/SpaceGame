@@ -1,58 +1,33 @@
-using Unity.Services.Lobbies.Models;
 using UnityEngine;
 
-public class AntiGravityPotion : UsableItem
+public class AntiGravityPotion : EffectItem
 {
-    private bool isActive = false;
-    private Rigidbody playerRigidbody;
-
-    private float timer = 0f;
     private const float DURATION = 5f; // Duration in seconds
-    private const float FLOAT_FORCE = 0.5f; // Upwards force, adjust to taste
+    private const float FLOAT_FORCE = 1f; // Upwards force, adjust to taste
+
 
     protected override void Use()
     {
-        if (playerRigidbody == null)
-        {
-            GameObject player = GameObject.FindWithTag("Player");
-            if (player != null)
+        RegisterEffect(
+            duration: DURATION,
+            onApply: (rb) =>
             {
-                playerRigidbody = player.GetComponent<Rigidbody>();
+                rb.useGravity = false;
+            },
+            onTick: (rb) =>
+            {
+                // Apply upward force every frame to float
+                rb.AddForce(Vector3.up * FLOAT_FORCE, ForceMode.Acceleration);
+            },
+            onStop: (rb) =>
+            {
+                rb.useGravity = true;
             }
+        );
+        if (useSound == null) {
+            Debug.LogWarning("Use sound not assigned for AntiGravityPotion!");
+            return;
         }
-
-        if (playerRigidbody != null && !isActive)
-        {
-            playerRigidbody.useGravity = false;
-            isActive = true;
-            timer = 0f;
-        }
-    }
-
-    private void Update()
-    {
-        if (!isActive || playerRigidbody == null) return;
-
-        timer += Time.deltaTime;
-
-        // Apply upward force every frame to float
-        playerRigidbody.AddForce(Vector3.up * FLOAT_FORCE, ForceMode.Acceleration);
-
-        if (timer >= DURATION)
-        {
-            StopEffect();
-        }
-    }
-
-    private void StopEffect()
-    {
-        if (!isActive) return;
-
-        isActive = false;
-        timer = 0f;
-        if (playerRigidbody != null)
-        {
-            playerRigidbody.useGravity = true;         
-        }
+        // Removal from inventory and destruction is now handled by base class when maxUses is reached
     }
 }

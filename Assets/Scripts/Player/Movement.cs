@@ -1,9 +1,13 @@
+using System;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
-public class PlayerMovement : MonoBehaviour
+public class PlayerMovement : NetworkBehaviour
 {
+    private InputControls controls;
+    
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 6f;
     [SerializeField, Range(0f, 1f)] private float airControl = 0.3f;
@@ -11,16 +15,15 @@ public class PlayerMovement : MonoBehaviour
     [Header("Jumping")]
     [SerializeField] private float jumpForce = 7f;
     [SerializeField] private float jumpCooldown = 0.6f;
-    [SerializeField] private Transform groundCheck;
     [SerializeField] private float groundCheckDistance = 1.9f;
     [SerializeField] private LayerMask groundMask = ~0;
 
     [Header("Dash")]
     [SerializeField] private float dashSpeed = 10f;
-    [SerializeField] private GameObject camera;
+    [SerializeField] private GameObject playerCamera;
 
-    private Rigidbody rb;
-    private Animator animator;
+    [SerializeField] private Rigidbody rb;
+    [SerializeField] private Animator animator;
     private Vector2 input;
     private float jumpCooldownTimer;
     private bool jumpOnCooldown;
@@ -28,17 +31,17 @@ public class PlayerMovement : MonoBehaviour
 
     private void Awake()
     {
-        rb = GetComponent<Rigidbody>();
-        animator = GetComponent<Animator>();
-        rb.useGravity = true;
+        controls  = new InputControls();
     }
 
-    private void Start()
+    private void OnEnable()
     {
-        if (!groundCheck)
-        {
-            groundCheck = transform;
-        }
+        controls.Player.Move.performed += ctx => OnMove(ctx.ReadValue<Vector2>());
+        controls.Player.Move.canceled += ctx => OnMove(Vector2.zero);
+        controls.Player.Jump.performed += ctx => OnJump();
+        controls.Player.Dash.performed += ctx => OnDash();
+
+        controls.Enable();
     }
 
     private void FixedUpdate()
@@ -72,6 +75,12 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!animator) return;
 
+        UpdateAnimatorParametersServerRpc(velocity, grounded);
+    }
+    
+    [ServerRpc]
+    private void UpdateAnimatorParametersServerRpc(Vector3 velocity, bool grounded)
+    {
         // Calculate local velocity for animation
         Vector3 localVelocity = transform.worldToLocalMatrix.MultiplyVector(velocity);
         
@@ -82,9 +91,9 @@ public class PlayerMovement : MonoBehaviour
         animator.SetBool("IsImmobalized", !groundSnapEnabled);
     }
 
-    public void OnMove(InputValue value)
+    public void OnMove(Vector2 inputVector)
     {
-        input = value.Get<Vector2>();
+        input = inputVector;
     }
 
     public void OnJump()
@@ -102,9 +111,9 @@ public class PlayerMovement : MonoBehaviour
     public void OnDash()
     {
         Vector3 dashDirection = transform.forward;
-        if (camera)
+        if (playerCamera)
         {
-            dashDirection = camera.transform.forward;
+            dashDirection = playerCamera.transform.forward;
         }
 
         dashDirection.y = 0f;
@@ -129,7 +138,7 @@ public class PlayerMovement : MonoBehaviour
 
     private bool IsGrounded()
     {
-        Vector3 origin = groundCheck ? groundCheck.position : transform.position;
+        Vector3 origin = transform.position;
         return Physics.Raycast(origin, Vector3.down, groundCheckDistance, groundMask, QueryTriggerInteraction.Ignore);
     }
 

@@ -16,15 +16,24 @@ public class UIButton : MonoBehaviour,
     [SerializeField] private EventReference hoverSound;
     [SerializeField] private EventReference pressSound;
 
-    [Header("Animator Triggers")]
-    [SerializeField] private string normalTrigger = "Normal";
-    [SerializeField] private string hoverTrigger = "Highlighted";
-    [SerializeField] private string pressTrigger = "Pressed";
-    [SerializeField] private string disabledTrigger = "Disabled";
-
     [SerializeField] private Animator animator;
     
+    private static readonly int State = Animator.StringToHash("State");
+
+    private enum ButtonState
+    {
+        Normal = 0,
+        Highlighted = 1,
+        Pressed = 2,
+        Disabled = 3
+    }
+    
     private bool IsDisabled => button != null && !button.interactable;
+    
+    private void SetState(ButtonState state)
+    {
+        animator.SetInteger(State, (int)state);
+    }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
@@ -32,14 +41,14 @@ public class UIButton : MonoBehaviour,
         
         AudioManager.Instance.PlayEvent(hoverSound);
         
-        animator.SetTrigger(hoverTrigger);
+        SetState(ButtonState.Highlighted);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
         if (IsDisabled) return;
         
-        animator.SetTrigger(normalTrigger);
+        SetState(ButtonState.Normal);
     }
 
     public void OnPointerDown(PointerEventData eventData)
@@ -48,23 +57,24 @@ public class UIButton : MonoBehaviour,
         
         AudioManager.Instance.PlayEvent(pressSound);
         
-        animator.SetTrigger(pressTrigger);
+        SetState(ButtonState.Pressed);
     }
 
     public void OnPointerUp(PointerEventData eventData)
     {
         if (IsDisabled) return;
         
-        animator.SetTrigger(normalTrigger);
+        SetState(ButtonState.Highlighted);
     }
     
     /// <summary>
     /// Use this method to change button interactability.
+    /// Automatically triggers the correct animation.
     /// </summary>
     public void SetInteractable(bool value)
     {
         button.interactable = value;
-        animator.SetTrigger(value ? normalTrigger : disabledTrigger);
+        SetState(value ? ButtonState.Normal : ButtonState.Disabled);
     }
     
 }

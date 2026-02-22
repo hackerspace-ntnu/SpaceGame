@@ -248,7 +248,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 4508
+  m_VersionIndex: 4514
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -365,6 +365,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4287564649673207549}
   - component: {fileID: 7416604514995229937}
+  - component: {fileID: 6765072375231422700}
   - component: {fileID: 5443714000153548352}
   - component: {fileID: 3438586435870705323}
   m_Layer: 0
@@ -403,6 +404,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 700a6aa9639fbe640a4e5e0720bce95d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ship
+--- !u!114 &6765072375231422700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1250894034931270469}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 1992552308
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!114 &5443714000153548352
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -415,10 +441,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5595c3ab2594c534e9aeac70113d38f4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShipInteraction
+  ShowTopMostFoldoutHeaderGroup: 1
   ship: {fileID: 4287564649673207549}
   ShipScript: {fileID: 7416604514995229937}
---- !u!114 &3438586435870705323
-MonoBehaviour:
+  scrapItem: {fileID: 11400000, guid: ec5e14d2d262f2a47b547b9af33cc2f2, type: 2}
+--- !u!82 &447361767500385502
+AudioSource:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -34437,7 +34465,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 2099
+  m_VersionIndex: 2105
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []

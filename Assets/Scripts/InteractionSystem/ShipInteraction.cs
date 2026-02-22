@@ -1,15 +1,18 @@
 using System.Runtime.InteropServices;
+using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
 /// Handle interaction with the ship, such as adding scrap to the ship.
 /// </summary>
-public class ShipInteraction : MonoBehaviour, IInteractable
+public class ShipInteraction : NetworkBehaviour, IInteractable
 {
     [SerializeField]
     private Transform ship;
     [SerializeField]
     private Ship ShipScript;
+    
+    [SerializeField] private InventoryItem scrapItem;
     
     public bool CanInteract()
     {
@@ -19,7 +22,7 @@ public class ShipInteraction : MonoBehaviour, IInteractable
     {
         if (interactor.TryGetComponent<PlayerInventory>(out PlayerInventory playerInventory))
         {
-            InventorySlot inventorySlot = playerInventory.GetSeletedSlot();
+            InventorySlot inventorySlot = playerInventory.GetSelectedSlot();
             if(inventorySlot == null) return;
             
             InventoryItem inventoryItem = inventorySlot.Item;
@@ -29,15 +32,20 @@ public class ShipInteraction : MonoBehaviour, IInteractable
                 return;
             }
             bool accepted = false;
-            if (inventoryItem.itemId == ItemId.Scrap)
+            if (inventoryItem.ItemId == scrapItem.ItemId)
             {
                 accepted = playerInventory.TryRemoveItem(playerInventory.selectedSlotIndex);
             }
             if (accepted)
             {
-                Debug.Log("item removed from inventory");
-                ShipScript.AddScrap();
+                AddItemServerRpc(interactor.GetComponentInParent<NetworkObject>());
             }
         }
+    }
+
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    private void AddItemServerRpc(NetworkObjectReference playerNetworkObject)
+    {
+        ShipScript.AddScrap();
     }
 }

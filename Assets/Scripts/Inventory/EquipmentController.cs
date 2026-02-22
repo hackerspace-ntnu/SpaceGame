@@ -1,3 +1,5 @@
+using System;
+using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
@@ -7,16 +9,63 @@ using UnityEngine;
 ///
 /// Physocs are disabled on equippped items. 
 /// </summary>
-public class EquipmentController : MonoBehaviour
+public class EquipmentController : NetworkBehaviour
 {
+    [SerializeField] private PlayerInventory playerInventory;
     [SerializeField] private Transform handSocket;
     private GameObject currentObject;
 
+    private void Awake()
+    {
+        playerInventory.OnSlotSelected += OnSlotSelected;
+        playerInventory.OnInventoryChanged += OnInventoryChanged;
+    }
+    
+    public override void OnDestroy()
+    {
+        if (!playerInventory) return;
+        playerInventory.OnSlotSelected -= OnSlotSelected;
+        playerInventory.OnInventoryChanged -= OnInventoryChanged;
+    }
+    
+    private void OnSlotSelected(int index)
+    {
+        if(!IsOwner) return;
+        InventorySlot slot = playerInventory.GetSlot(index);
+        if (slot == null || !slot.Item)
+        {
+            Unequip();
+            return;
+        }
+        
+        Equip(slot.Item);
+    }
+    
+    private void OnInventoryChanged()
+    {
+        if(!IsOwner) return;
+        InventorySlot slot = playerInventory.GetSelectedSlot();
+        if (slot == null || !slot.Item)
+        {
+            Unequip();
+            return;
+        }
+        
+        Equip(slot.Item);
+    }
+
     public void Equip(InventoryItem item)
     {
+      EquipServerRpc(item.itemId);
+    }
+    
+    [ServerRpc]
+    private void EquipServerRpc(string itemId)
+    {
+        InventoryItem item = GameManager.Instance.GetItem(itemId);
         Unequip();
 
-        if (item.itemPrefab == null)
+        if (!item.itemPrefab)
             return;
         
         currentObject = Instantiate(item.itemPrefab,
@@ -24,6 +73,10 @@ public class EquipmentController : MonoBehaviour
             handSocket.rotation,
             handSocket
         );
+        
+        var networkObject = currentObject.GetComponent<NetworkObject>();
+        networkObject.Spawn(true);
+        networkObject.TrySetParent(NetworkObject);
         
         Rigidbody rb = currentObject.GetComponent<Rigidbody>();
         if (rb)
@@ -37,14 +90,20 @@ public class EquipmentController : MonoBehaviour
         {
             itemCollider.enabled = false;
         }
-        
     }
 
     public void Unequip()
     {
-        if (currentObject != null)
+        UnequipServerRpc();
+    }
+    
+    [ServerRpc]
+    private void UnequipServerRpc()
+    {
+        if (currentObject)
         {
-            Destroy(currentObject);
+            var objectNetworkObject = currentObject.GetComponent<NetworkObject>();
+            objectNetworkObject.Despawn();
             currentObject = null;
         }
     }

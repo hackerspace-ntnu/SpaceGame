@@ -7,7 +7,7 @@ public class ItemRepository : ScriptableObject
     
     public List<InventoryItem> items;
     
-    public InventoryItem GetItemById(string itemId)
+    public InventoryItem GetItemById(int itemId)
     {
         var item = items.Find(i => i.itemId == itemId);
         return item;

@@ -32,37 +32,42 @@ public class EquipmentController : NetworkBehaviour
     {
         if(!IsOwner) return;
         InventorySlot slot = playerInventory.GetSlot(index);
-        if (slot == null || !slot.Item)
+        if (slot.ItemId == -1)
         {
             Unequip();
             return;
         }
         
-        Equip(slot.Item);
+        Equip(slot.ItemId);
     }
     
     private void OnInventoryChanged()
     {
         if(!IsOwner) return;
-        InventorySlot slot = playerInventory.GetSelectedSlot();
-        if (slot == null || !slot.Item)
+        InventorySlot? slot = playerInventory.GetSelectedSlot();
+        if (slot == null || slot.Value.IsEmpty())
         {
             Unequip();
             return;
         }
         
-        Equip(slot.Item);
+        Equip(slot.Value.ItemId);
     }
 
-    public void Equip(InventoryItem item)
+    public void Equip(int itemId)
     {
-      EquipServerRpc(item.itemId);
+      EquipServerRpc(itemId);
     }
     
     [ServerRpc]
-    private void EquipServerRpc(string itemId)
+    private void EquipServerRpc(int itemId)
     {
         InventoryItem item = GameManager.Instance.GetItem(itemId);
+        if (!item)
+        {
+            Debug.LogWarning("Did not find item with id " + itemId);
+            return;
+        }
         Unequip();
 
         if (!item.itemPrefab)

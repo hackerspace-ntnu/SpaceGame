@@ -8,7 +8,7 @@ using UnityEngine;
 public class InventoryItem : ScriptableObject
 {
     [Tooltip("Unique identifier for the item. ")]
-    public string itemId;
+    public int itemId;
     
     [Tooltip("Display name of the item")]
     public string itemName = "NewItem";

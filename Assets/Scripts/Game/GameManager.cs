@@ -46,7 +46,7 @@ public class GameManager : MonoBehaviour
         SceneManager.LoadScene(onWinScene.SceneName);
     }
 
-    public InventoryItem GetItem(string itemId)
+    public InventoryItem GetItem(int itemId)
     {
         return itemRepository.GetItemById(itemId);
     }

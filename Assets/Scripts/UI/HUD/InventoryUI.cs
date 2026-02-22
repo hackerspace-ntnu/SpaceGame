@@ -51,6 +51,7 @@ public class InventoryUI : MonoBehaviour
     
     private void OnPlayerInventoryChanged()
     {
+        Debug.Log("Inventory changed, refreshing UI");
         RefreshAll();
     }
     

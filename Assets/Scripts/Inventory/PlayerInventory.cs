@@ -98,26 +98,12 @@ public class PlayerInventory  : NetworkBehaviour
         if (slotIndex < 0 || slotIndex >= inventory.GetSize()) return;
 
         InventorySlot slot = inventory.GetSlot(slotIndex);
-        if (slot == null || slot.Item == null) return;
+        if (slot.IsEmpty()) return;
 
-        InventoryItem item = slot.Item;
+        InventoryItem item = GameManager.Instance.GetItem(slot.ItemId);
         TryRemoveItem(selectedSlotIndex);
         
-        DropItemClientRpc(slotIndex);
-        
         SpawnDroppedItem(item);
-    }
-    
-    [ClientRpc]
-    private void DropItemClientRpc(int slotIndex)
-    {
-        if (slotIndex >= inventory.GetSize()) return;
-        
-        InventorySlot slot = inventory.GetSlot(slotIndex);
-        if (slot == null) return;
-        
-        slot.Item = null;
-        OnInventoryChanged?.Invoke();
     }
     
     private void SpawnDroppedItem(InventoryItem item)
@@ -146,15 +132,8 @@ public class PlayerInventory  : NetworkBehaviour
         if (!item) return false;
 
         inventory.TryAddItem(item);
-        AddItemClientRpc();
         return true;
     } 
-    
-    [ClientRpc]
-    private void AddItemClientRpc()
-    {
-        OnInventoryChanged?.Invoke();
-    }
 
     /// <summary>
     /// TryRemoveItem unequippis the item
@@ -165,23 +144,7 @@ public class PlayerInventory  : NetworkBehaviour
     public bool TryRemoveItem(int itemIndex)
     {
         bool removed = inventory.TryRemoveItem(itemIndex);
-        if (removed)
-        {
-            RemoveItemClientRpc(itemIndex);
-        }
         return removed;
-    }
-    
-    [ClientRpc]
-    private void RemoveItemClientRpc(int slotIndex)
-    {
-        if (slotIndex < 0 || slotIndex >= inventory.GetSize()) return;
-
-        InventorySlot slot = inventory.GetSlot(slotIndex);
-        if (slot == null) return;
-
-        slot.Item = null;
-        OnInventoryChanged?.Invoke();
     }
     
     public InventorySlot GetSlot(int index)
@@ -189,9 +152,10 @@ public class PlayerInventory  : NetworkBehaviour
         return inventory.GetSlot(index);
     }
     
-    public InventorySlot GetSelectedSlot()
+    public InventorySlot? GetSelectedSlot()
     {
-        if (selectedSlotIndex < 0) {
+        if (selectedSlotIndex < 0)
+        {
             return null;
         }
         return inventory.GetSlot(selectedSlotIndex);

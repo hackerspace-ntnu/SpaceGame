@@ -26,9 +26,11 @@ public class InventorySlotUI : MonoBehaviour/*,*/
     {
         selected = isSelected;
         hovered = isHovered;
-        if (slot.Item)
+        InventoryItem item = GameManager.Instance.GetItem(slot.ItemId);
+        Debug.Log("Refreshing slot " + slotIndex + " with itemId " + slot.ItemId + " (selected: " + selected + ", hovered: " + hovered + ")");
+        if (item)
         {
-            icon.sprite = slot.Item.icon;
+            icon.sprite = item.icon;
             icon.enabled = true;
         }
         else

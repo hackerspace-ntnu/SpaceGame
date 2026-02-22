@@ -9,6 +9,12 @@ public class DropItemPhysics : MonoBehaviour
     [SerializeField] private Rigidbody rb;
     [SerializeField] private Collider triggerCollider;
     [SerializeField] private LayerMask groundLayer;
+    
+    public void Throw()
+    {
+        triggerCollider.enabled = true;
+        rb.isKinematic = false;
+    }
 
     private void OnTriggerEnter(Collider other)
     {

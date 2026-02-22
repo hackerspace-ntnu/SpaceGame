@@ -108,6 +108,12 @@ public class EquipmentController : NetworkBehaviour
         {
             itemCollider.enabled = false;
         }
+        
+        DropItemPhysics dropItemPhysics = currentObject.GetComponent<DropItemPhysics>();
+        if (dropItemPhysics)
+        {
+            dropItemPhysics.Throw();
+        }
     }
 
     public void Unequip()

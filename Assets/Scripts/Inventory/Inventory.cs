@@ -37,7 +37,7 @@ public class Inventory
     public bool TryRemoveItem(int index)
     {
         if (index >= slots.Length) return false;
-        if (slots[index].Item == null) return false;
+        if (!slots[index].Item) return false;
 
         slots[index].Item = null;
         OnInventoryChanged?.Invoke();
@@ -71,9 +71,16 @@ public class Inventory
         
         return successfulMove;
     }
+    
+    public int GetSize()
+    {
+        return slots.Length;
+    }
 
     public InventorySlot GetSlot(int index)
     {
+        if(index < 0) return null;
+        
         if (index < slots.Length)
         {
             return slots[index];

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 /// <summary>
@@ -12,35 +13,53 @@ using UnityEngine.InputSystem;
 /// </summary>
 public class PlayerInventory  : NetworkBehaviour
 {
-    
     private Inventory inventory;
     private InputAction hotkeyAction;
     [SerializeField] private HotbarController hotbarController;
-    [SerializeField] private EquipmentController equipmentController;
     
     public event Action<int> OnSlotSelected;
+    public event Action OnInventoryChanged;
     public int selectedSlotIndex { get; private set; } = -1;
     
     public List<InventoryItem> startingItems;
-    private void Start()
+
+    private void Awake()
     {
-        if(!IsOwner) return;
-        
+        InitializeInventory();
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        InitializeInput();
+    }
+    
+    private void InitializeInventory()
+    {
         inventory  = new Inventory(4);
         
         foreach (var item in startingItems)
         {
             inventory.TryAddItem(item);
         }
+    }
+    
+    private void InitializeInput()
+    {
+        if (!IsOwner)
+        {
+            hotbarController.enabled = false;
+            return;
+        };
         
         if (hotbarController == null) return;
         
         hotbarController.OnHotbarKeyPressed += HandleHotbarKey;
         hotbarController.OnDropPressed += HandleDrop;
+        inventory.OnInventoryChanged += () => OnInventoryChanged?.Invoke();
     }
-    
-    
-    private void OnDestroy()
+
+
+    public override void OnDestroy()
     {
         if(!IsOwner) return;
         if (hotbarController == null) return;
@@ -60,23 +79,8 @@ public class PlayerInventory  : NetworkBehaviour
             selectedSlotIndex = slotIndex;   
         
         OnSlotSelected?.Invoke(selectedSlotIndex);
-
-        if (selectedSlotIndex < 0)
-        {
-            equipmentController.Unequip();
-            return;
-        }
-        
-        InventorySlot slot = inventory.GetSlot(selectedSlotIndex);
-        if (slot == null || slot.Item == null)
-        {
-            equipmentController.Unequip();
-            return;
-        }
-        
-        
-        equipmentController.Equip(slot.Item);
     }
+    
     
     /// <summary>
     /// Handles dropping the currently selected item from the inventory, unequipping it if necessary,
@@ -84,28 +88,36 @@ public class PlayerInventory  : NetworkBehaviour
     /// </summary>
     private void HandleDrop()
     {
-        if (selectedSlotIndex < 0)
-            return;
+        if (!IsOwner && selectedSlotIndex < 0) return;
+        DropItemServerRpc(selectedSlotIndex);
+    }
 
-        InventorySlot slot = inventory.GetSlot(selectedSlotIndex);
-        if (slot == null || slot.Item == null)
-            return;
+    [ServerRpc]
+    private void DropItemServerRpc(int slotIndex)
+    {
+        if (slotIndex < 0 || slotIndex >= inventory.GetSize()) return;
 
-        InventoryItem itemToDrop = slot.Item;
+        InventorySlot slot = inventory.GetSlot(slotIndex);
+        if (slot == null || slot.Item == null) return;
 
-        if (!itemToDrop.itemPrefab)
-        {
-            Debug.LogWarning("itemprefab is not defined");
-            return;
-        }
-
-        bool removed = TryRemoveItem(selectedSlotIndex);
+        InventoryItem item = slot.Item;
+        TryRemoveItem(selectedSlotIndex);
         
-        if (!removed) return;
+        DropItemClientRpc(slotIndex);
         
-        equipmentController.Unequip();
-        SpawnDroppedItem(itemToDrop);
-
+        SpawnDroppedItem(item);
+    }
+    
+    [ClientRpc]
+    private void DropItemClientRpc(int slotIndex)
+    {
+        if (slotIndex >= inventory.GetSize()) return;
+        
+        InventorySlot slot = inventory.GetSlot(slotIndex);
+        if (slot == null) return;
+        
+        slot.Item = null;
+        OnInventoryChanged?.Invoke();
     }
     
     private void SpawnDroppedItem(InventoryItem item)
@@ -113,6 +125,7 @@ public class PlayerInventory  : NetworkBehaviour
         Vector3 dropPos = transform.position + transform.forward * 1.2f + Vector3.up * 0.5f;
 
         GameObject obj = Instantiate(item.itemPrefab, dropPos, Quaternion.identity);
+        obj.GetComponent<NetworkObject>().Spawn();
 
         Rigidbody rb = obj.GetComponent<Rigidbody>();
         rb.isKinematic = false;
@@ -124,23 +137,59 @@ public class PlayerInventory  : NetworkBehaviour
     }
     
     /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="item"></param>
+    /// <returns></returns>
+    public bool TryAddItem(InventoryItem item)
+    {
+        if (!item) return false;
+
+        inventory.TryAddItem(item);
+        AddItemClientRpc();
+        return true;
+    } 
+    
+    [ClientRpc]
+    private void AddItemClientRpc()
+    {
+        OnInventoryChanged?.Invoke();
+    }
+
+    /// <summary>
     /// TryRemoveItem unequippis the item
     /// if the removed item was currently selected.
     /// </summary>
-    /// <param name="index"></param>
+    /// <param name="itemIndex"></param>
     /// <returns></returns>
-    public bool TryRemoveItem(int index)
+    public bool TryRemoveItem(int itemIndex)
     {
-        bool removed = inventory.TryRemoveItem(index);
-        if(!removed) return false;
-        
-        if (index == selectedSlotIndex)
+        bool removed = inventory.TryRemoveItem(itemIndex);
+        if (removed)
         {
-            equipmentController.Unequip();
+            RemoveItemClientRpc(itemIndex);
         }
-        return true;
+        return removed;
     }
-    public InventorySlot GetSeletedSlot()
+    
+    [ClientRpc]
+    private void RemoveItemClientRpc(int slotIndex)
+    {
+        if (slotIndex < 0 || slotIndex >= inventory.GetSize()) return;
+
+        InventorySlot slot = inventory.GetSlot(slotIndex);
+        if (slot == null) return;
+
+        slot.Item = null;
+        OnInventoryChanged?.Invoke();
+    }
+    
+    public InventorySlot GetSlot(int index)
+    {
+        return inventory.GetSlot(index);
+    }
+    
+    public InventorySlot GetSelectedSlot()
     {
         if (selectedSlotIndex < 0) {
             return null;
@@ -148,4 +197,8 @@ public class PlayerInventory  : NetworkBehaviour
         return inventory.GetSlot(selectedSlotIndex);
     }
     
+    public int GetInventorySize()
+    {
+        return inventory.GetSize();
+    }
 }

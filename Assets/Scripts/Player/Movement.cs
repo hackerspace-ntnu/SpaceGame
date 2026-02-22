@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
-public class PlayerMovement : MonoBehaviour
+public class PlayerMovement : NetworkBehaviour
 {
     private InputControls controls;
     
@@ -75,6 +75,12 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!animator) return;
 
+        UpdateAnimatorParametersServerRpc(velocity, grounded);
+    }
+    
+    [ServerRpc]
+    private void UpdateAnimatorParametersServerRpc(Vector3 velocity, bool grounded)
+    {
         // Calculate local velocity for animation
         Vector3 localVelocity = transform.worldToLocalMatrix.MultiplyVector(velocity);
         

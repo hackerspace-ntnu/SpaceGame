@@ -1,10 +1,13 @@
+using System;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
-public class PlayerMovement : NetworkBehaviour
+public class PlayerMovement : MonoBehaviour
 {
+    private InputControls controls;
+    
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 6f;
     [SerializeField, Range(0f, 1f)] private float airControl = 0.3f;
@@ -26,9 +29,23 @@ public class PlayerMovement : NetworkBehaviour
     private bool jumpOnCooldown;
     private bool groundSnapEnabled = true;
 
+    private void Awake()
+    {
+        controls  = new InputControls();
+    }
+
+    private void OnEnable()
+    {
+        controls.Player.Move.performed += ctx => OnMove(ctx.ReadValue<Vector2>());
+        controls.Player.Move.canceled += ctx => OnMove(Vector2.zero);
+        controls.Player.Jump.performed += ctx => OnJump();
+        controls.Player.Dash.performed += ctx => OnDash();
+
+        controls.Enable();
+    }
+
     private void FixedUpdate()
     {
-        if(!IsOwner) return;
         HandleJumpCooldown();
 
         if (!groundSnapEnabled)
@@ -68,9 +85,9 @@ public class PlayerMovement : NetworkBehaviour
         animator.SetBool("IsImmobalized", !groundSnapEnabled);
     }
 
-    public void OnMove(InputValue value)
+    public void OnMove(Vector2 inputVector)
     {
-        input = value.Get<Vector2>();
+        input = inputVector;
     }
 
     public void OnJump()

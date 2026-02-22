@@ -2,7 +2,7 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerLook : NetworkBehaviour
+public class PlayerLook : MonoBehaviour
 {
     [Header("Input")]
     public InputActionReference lookAction; // Vector2
@@ -23,8 +23,6 @@ public class PlayerLook : NetworkBehaviour
     
     private void Start()
     {
-        if(!IsOwner) return;
-        playerCamera.SetActive(true);
         // Lock cursor to center
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -37,19 +35,16 @@ public class PlayerLook : NetworkBehaviour
     
     private void OnEnable()
     {
-        if(!IsOwner) return;
         lookAction.action.Enable();
     }
 
     private void OnDisable()
     {
-        if(!IsOwner) return;
         lookAction.action.Disable();
     }
     
     void Update()
     {
-        if(!IsOwner) return;
         lookInput = lookAction.action.ReadValue<Vector2>();
 
         // body rotation (yaw)
@@ -64,9 +59,8 @@ public class PlayerLook : NetworkBehaviour
     }
 
 
-    public override void OnDestroy()
+    public void OnDestroy()
     {
-        if(!IsOwner) return;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }

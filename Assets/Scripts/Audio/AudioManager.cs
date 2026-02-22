@@ -1,3 +1,5 @@
+using FMOD.Studio;
+using FMODUnity;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -5,123 +7,70 @@ public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance;
     
-    public AudioMixer mixer;
-    
     [Header("Volume Settings")]
-    [SerializeField, Range(0f, 1f)]
-    private float musicVolume = 0.5f;
+    [SerializeField, Range(0f, 1f)] private float musicVolume =  1f;
+    [SerializeField, Range(0f, 1f)] private float sfxVolume =    1f;
+    [SerializeField, Range(0f, 1f)] private float reverbVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float uiVolume =     1f;
 
+    public float SfxVolume { get => sfxVolume; set => sfxVolume = value; }
+    public float MusicVolume { get => musicVolume; set => musicVolume = value; }
+    public float ReverbVolume { get => reverbVolume; set => reverbVolume = value; }
+    public float UIVolume { get => uiVolume; set => uiVolume = value; }
     
-    public float MusicVolume
+
+    [Header("Audio Busses")]
+    private Bus music;
+    private Bus sfx;
+    private Bus ui;
+    private Bus reverb;
+
+
+    private void Awake()
     {
-        get => musicVolume;
-        set
-        {
-            musicVolume = Mathf.Clamp01(value);
-            SetMusicVolume();
-        }
-    }
-
-    [SerializeField, Range(0f, 1f)]
-    private float sfxVolume = 0.5f;
-
-    public float SFXVolume
-    {
-        get => sfxVolume;
-        set
-        {
-            sfxVolume = Mathf.Clamp01(value);
-            SetSFXVolume();
-        }
-    }
-    
-    [SerializeField, Range(0f, 1f)]
-    private float uiVolume = 0.5f;
-
-    public float UIVolume
-    {
-        get => uiVolume;
-        set
-        {
-            uiVolume = Mathf.Clamp01(value);
-            SetUIVolume();
-        }
-    }
-    
-    [Header("Audio Sources")]
-    public AudioSource musicSource;
-    public AudioSource sfxSource;
-    public AudioSource uiSource;
-
-    [Header("Audio Clips")]
-    public AudioClip bgm;
-
-    void Awake()
-    {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
+        if (Instance != null)
         {
             Destroy(gameObject);
+            return;
         }
+        DontDestroyOnLoad(gameObject);
+
+        Instance = this;
+
+        music = RuntimeManager.GetBus("bus:/Music");
+        sfx = RuntimeManager.GetBus("bus:/SFX");
+        ui = RuntimeManager.GetBus("bus:/UI");
+        reverb = RuntimeManager.GetBus("bus:/Reverb");
+
+        return;
     }
+
+    public void PlayTestMusic()
+    {
+        RuntimeManager.PlayOneShot("event:/Music/TestSong");
+    } //Todo: Make more flexible
+
+    public void PlayEvent(EventReference myevent) {
+        RuntimeManager.PlayOneShot(myevent);
+    }
+
+    public void PlaySFX(string sound)
+    {
+        RuntimeManager.PlayOneShot(sound);
+    } //Todo: Find easy way to hear and assign sound effects:
     
-    private void Start()
+    public void PlaySFX3d(string sound, Vector3 worldPos)
     {
-        SetMusicVolume();
-        SetSFXVolume();
-        PlayMusic(bgm);
-    }
-
-    public void PlayMusic(AudioClip clip)
-    {
-        musicSource.clip = clip;
-        musicSource.loop = true;
-        musicSource.Play();
-    }
-
-    public void StopMusic()
-    {
-        musicSource.Stop();
-    }
-
-    public void PlaySFX(AudioClip clip)
-    {
-        sfxSource.PlayOneShot(clip);
-    }
-    
-    public void PlayUI(AudioClip clip)
-    {
-        uiSource.PlayOneShot(clip);
-    }
-    
-    private void SetMusicVolume()
-    {
-        float volume = musicVolume <= 0.0001f ? -80f : Mathf.Log10(musicVolume) * 20f;
-        mixer.SetFloat("BGMVol", volume);
-    }
-
-    private void SetSFXVolume()
-    {
-        float volume = sfxVolume <= 0.0001f ? -80f : Mathf.Log10(sfxVolume) * 20f;
-        mixer.SetFloat("SFXVol", volume);
-    }
-
-    private void SetUIVolume()
-    {
-        float volume = uiVolume <= 0.0001f ? -80f : Mathf.Log10(uiVolume) * 20f;
-        mixer.SetFloat("UIVol", volume);
+        RuntimeManager.PlayOneShot(sound, worldPos);
     }
     
     private void OnValidate()
     {
-        if (!Application.isPlaying) return;
-
-        SetMusicVolume();
-        SetSFXVolume();
-        SetUIVolume();
+        if (!Application.isPlaying) return; //Todo: Når spiller endrer på volume sliders, oppdater disse;
+        
+        music.setVolume(musicVolume);
+        sfx.setVolume(sfxVolume);
+        reverb.setVolume(reverbVolume);
+        ui.setVolume(uiVolume);
     }
 }

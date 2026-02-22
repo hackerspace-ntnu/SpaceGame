@@ -232,7 +232,7 @@ public class LobbySystem : NetworkBehaviour
             {
                 hostLobby.Players[0].Data["PlayerName"].Value,
             };
-            lobbyList.openLobbyScreen(joinedLobby.Name, joinedLobby.Id);
+            lobbyList.openLobbyScreen(joinedLobby.Name, joinedLobby.LobbyCode);
             lobbyList.showPlayerElements(playerNames.ToArray());
             listLobbies();
             lobbyList.setStartGameButtonState(true);
@@ -292,10 +292,13 @@ public class LobbySystem : NetworkBehaviour
 
     public async void JoinLobbyByCode(string lobbyCode)
     {
-        //Debug.Log("Joining lobby: " + lobbyCode);
+        var joinOptions = new JoinLobbyByCodeOptions
+        {
+            Player = GetPlayer()
+        };
         try
         {
-            LobbyJoinRelayLayer(await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode));
+            LobbyJoinRelayLayer(await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, joinOptions));
         }
         catch (LobbyServiceException e)
         {
@@ -344,7 +347,7 @@ public class LobbySystem : NetworkBehaviour
         Debug.Log("Succesfully joined Lobby!");
         joinedLobby = lobby;
         AuthenticationService.Instance.UpdatePlayerNameAsync("Player_" + (lobby.Players.Count + 1));
-        lobbyList.openLobbyScreen(joinedLobby.Name, joinedLobby.Id);
+        lobbyList.openLobbyScreen(joinedLobby.Name, joinedLobby.LobbyCode);
         lobbyList.setStartGameButtonState(false);
         UpdatePlayerListInLobby();
 
@@ -465,7 +468,7 @@ public class LobbySystem : NetworkBehaviour
             await LobbyService.Instance.UpdateLobbyAsync(joinedLobby.Id, options);
             joinedLobby = null;
             hostLobby = null;
-            NetworkManager.Singleton.SceneManager.LoadScene(gameScene.SceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
+            NetworkManager.Singleton.SceneManager.LoadScene(gameScene.SceneName, LoadSceneMode.Single);
         }
         catch (LobbyServiceException e)
         {

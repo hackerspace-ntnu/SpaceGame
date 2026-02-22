@@ -404,7 +404,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 24.65
+  m_fontSize: 59.8
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -2306,7 +2306,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1612971609}
         m_TargetAssemblyTypeName: LobbySystem, Assembly-CSharp
-        m_MethodName: JoinLobbyById
+        m_MethodName: JoinLobbyByCode
         m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2497,7 +2497,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 32.4
+  m_fontSize: 75.65
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -3138,7 +3138,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Write lobby id:'
+  m_text: 'Write lobby code:'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3165,7 +3165,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 44.8
+  m_fontSize: 41.55
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -4335,7 +4335,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Id: 6HJ21J'
+  m_text: 'Code: '
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -5047,7 +5047,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 46.75
+  m_fontSize: 72
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -5987,7 +5987,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 37.45
+  m_fontSize: 72
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -6477,7 +6477,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1430074510
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6569,7 +6569,7 @@ GameObject:
   - component: {fileID: 1469251383}
   - component: {fileID: 1469251382}
   - component: {fileID: 1469251381}
-  - component: {fileID: 1469251380}
+  - component: {fileID: 1469251384}
   m_Layer: 5
   m_Name: JoinPrivateLobbyButton
   m_TagString: Untagged
@@ -6597,19 +6597,6 @@ RectTransform:
   m_AnchoredPosition: {x: 4, y: 1.7499695}
   m_SizeDelta: {x: -5.1900024, y: -5.519989}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &1469251380
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1469251378}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b1909514ea16d0241ba47535ea3ca347, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  inputField: {fileID: 444739514}
 --- !u!114 &1469251381
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6692,6 +6679,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1469251378}
   m_CullTransparentMesh: 1
+--- !u!114 &1469251384
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1469251378}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed9ebb71d3a00a6488940c501c849ad1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JoinLobbyByCodeController
+  inputField: {fileID: 444739514}
 --- !u!1 &1492175406
 GameObject:
   m_ObjectHideFlags: 0
@@ -7912,7 +7912,7 @@ MonoBehaviour:
   lobbyElement: {fileID: 6255574423919189070, guid: 4d57b53498ee8b64e9cb0bc5db5bcc2e, type: 3}
   lobbyNameInputField: {fileID: 1645235292}
   lobbyPrivateToggle: {fileID: 1920199999}
-  lobbyPasswordInputField: {fileID: 787201380}
+  passwordInputField: {fileID: 1492175408}
   lobbyPasswordObject: {fileID: 1779291103}
   lobbyScreen: {fileID: 141944688}
   playerDisplayElement: {fileID: 6255574423919189070, guid: 0ab9f1221a19f6c4bb428a0851f304b1, type: 3}
@@ -9231,7 +9231,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.6115607, y: 0}
   m_AnchorMax: {x: 0.7068788, y: 1}
-  m_AnchoredPosition: {x: 205.50015, y: 0.14319992}
+  m_AnchoredPosition: {x: 205.50012, y: 0.14319992}
   m_SizeDelta: {x: 412.67426, y: -0.28559875}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1920199999
@@ -9406,7 +9406,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 33.3
+  m_fontSize: 72
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1

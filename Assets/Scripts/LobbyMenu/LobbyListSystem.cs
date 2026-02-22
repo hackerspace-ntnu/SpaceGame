@@ -18,8 +18,8 @@ public class LobbyListSystem : MonoBehaviour
     [SerializeField]
     private Toggle lobbyPrivateToggle;
 
-    [SerializeField]
-    private TextMeshProUGUI lobbyPasswordInputField;
+    [SerializeField] 
+    private TMP_InputField passwordInputField;
 
     [SerializeField]
     private GameObject lobbyPasswordObject;
@@ -65,16 +65,16 @@ public class LobbyListSystem : MonoBehaviour
 
     public string getLobbyPasswordInputText()
     {
-        return lobbyPasswordInputField.text;
+        return passwordInputField.text;
     }
 
-    public void openLobbyScreen(string lobbyName, string lobbyId)
+    public void openLobbyScreen(string lobbyName, string lobbyCode)
     {
         TextMeshProUGUI lobbyScreenTitle = lobbyScreen.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
         TextMeshProUGUI lobbyScreenId = lobbyScreen.transform.GetChild(1).GetComponent<TextMeshProUGUI>();
         lobbyScreen.SetActive(true);
         lobbyScreenTitle.text = lobbyName;
-        lobbyScreenId.text = "Id: " + lobbyId;
+        lobbyScreenId.text = "Code: " + lobbyCode;
     }
 
     public void showPlayerElements(string[] playerNames)

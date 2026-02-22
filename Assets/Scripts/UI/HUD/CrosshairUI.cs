@@ -4,7 +4,7 @@ using UnityEngine.UI;
 public class CrosshairUI : MonoBehaviour
 {
     [Header("References")]
-    private Interactor playerInteractor;
+    [SerializeField] private Interactor playerInteractor;
     [SerializeField] private RawImage crosshairImage;
 
     [Header("Alpha")]
@@ -30,8 +30,4 @@ public class CrosshairUI : MonoBehaviour
         crosshairImage.color = color;
     }
     
-    public void Bind(Interactor interactor)
-    {
-        playerInteractor = interactor;
-    }
 }

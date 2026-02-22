@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -5,10 +6,20 @@ using TMPro;
 public class HealthUI : MonoBehaviour
 {
     [Header("References")]
-    private HealthComponent health;
+    [SerializeField] private HealthComponent health;
     [SerializeField] private Image healthBar;
     [SerializeField] private TextMeshProUGUI healthText;
     [SerializeField] private TextMeshProUGUI maxHealthText;
+
+    private void OnEnable()
+    {
+        health.OnDamage += HandleHealthChanged;
+        health.OnHeal += HandleHealthChanged;
+        health.OnDeath += HandleHealthChanged;
+        health.OnRevive += HandleHealthChanged;
+
+        RefreshUI();
+    }
 
     private void OnDisable()
     {
@@ -44,15 +55,5 @@ public class HealthUI : MonoBehaviour
         if (maxHealthText != null)
             maxHealthText.text = $"{max}";
     }
-
-    public void Bind(HealthComponent healthComponent)
-    {
-        health = healthComponent;
-        health.OnDamage += HandleHealthChanged;
-        health.OnHeal += HandleHealthChanged;
-        health.OnDeath += HandleHealthChanged;
-        health.OnRevive += HandleHealthChanged;
-
-        RefreshUI();
-    }
+    
 }

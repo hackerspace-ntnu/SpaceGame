@@ -14,6 +14,8 @@ public class GameManager : MonoBehaviour
     public event Action<GameState> OnStateChanged;
     
     [SerializeField] private SceneReference onWinScene;
+    
+    [SerializeField] private ItemRepository itemRepository;
 
     private void Awake()
     {
@@ -42,5 +44,10 @@ public class GameManager : MonoBehaviour
     {
         SetState(GameState.Won);
         SceneManager.LoadScene(onWinScene.SceneName);
+    }
+
+    public InventoryItem GetItem(string itemId)
+    {
+        return itemRepository.GetItemById(itemId);
     }
 }

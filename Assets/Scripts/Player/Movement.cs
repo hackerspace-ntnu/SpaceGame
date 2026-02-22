@@ -82,6 +82,16 @@ public class PlayerMovement : MonoBehaviour
         animator.SetBool("IsImmobalized", !groundSnapEnabled);
     }
 
+    public void ForceIdleAnimation()
+    {
+        if (!animator) return;
+        animator.SetFloat("SpeedX", 0f);
+        animator.SetFloat("SpeedY", 0f);
+        animator.SetFloat("FallSpeed", 0f);
+        animator.SetBool("IsGrounded", true);
+        animator.SetBool("IsImmobalized", false);
+    }
+
     public void OnMove(InputValue value)
     {
         input = value.Get<Vector2>();
@@ -89,6 +99,11 @@ public class PlayerMovement : MonoBehaviour
 
     public void OnJump()
     {
+        if (rb == null || !isActiveAndEnabled || rb.isKinematic)
+        {
+            return;
+        }
+
         if (IsGrounded() && !jumpOnCooldown)
         {
             Vector3 v = rb.linearVelocity;
@@ -101,6 +116,11 @@ public class PlayerMovement : MonoBehaviour
 
     public void OnDash()
     {
+        if (rb == null || !isActiveAndEnabled || rb.isKinematic)
+        {
+            return;
+        }
+
         Vector3 dashDirection = transform.forward;
         if (camera)
         {

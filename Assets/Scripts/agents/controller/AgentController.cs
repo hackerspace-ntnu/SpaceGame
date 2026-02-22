@@ -57,25 +57,11 @@ public class AgentController : MonoBehaviour
 
         if (brainComponent == null)
         {
-            foreach (MonoBehaviour component in GetComponents<MonoBehaviour>())
-            {
-                if (component is IAgentBrain)
-                {
-                    brainComponent = component;
-                    break;
-                }
-            }
+            brainComponent = FindPreferredBrain(GetComponents<MonoBehaviour>());
 
             if (brainComponent == null)
             {
-                foreach (MonoBehaviour component in GetComponentsInChildren<MonoBehaviour>(true))
-                {
-                    if (component is IAgentBrain)
-                    {
-                        brainComponent = component;
-                        break;
-                    }
-                }
+                brainComponent = FindPreferredBrain(GetComponentsInChildren<MonoBehaviour>(true));
             }
         }
 
@@ -134,5 +120,31 @@ public class AgentController : MonoBehaviour
             message.Append(" Add NpcBrain or EnemyBrain + NavMeshAgentMotor (or equivalent) on this object or its children.");
             Debug.LogError(message.ToString(), this);
         }
+    }
+
+    private static MonoBehaviour FindPreferredBrain(MonoBehaviour[] components)
+    {
+        MonoBehaviour fallback = null;
+
+        foreach (MonoBehaviour component in components)
+        {
+            if (component is not IAgentBrain)
+            {
+                continue;
+            }
+
+            if (fallback == null)
+            {
+                fallback = component;
+            }
+
+            string typeName = component.GetType().Name;
+            if (typeName == nameof(MountedAgentBrain) || typeName.EndsWith("MountedBrain"))
+            {
+                return component;
+            }
+        }
+
+        return fallback;
     }
 }

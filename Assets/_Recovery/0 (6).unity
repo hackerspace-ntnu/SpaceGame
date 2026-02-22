@@ -144,7 +144,7 @@ Transform:
   m_GameObject: {fileID: 84307402}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.5201, y: 5.91, z: 0.291}
+  m_LocalPosition: {x: 0.5201, y: 2.042, z: 0.291}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -730,6 +730,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7a828a8103ff64901a4ddc8b98d05bee, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1503928319}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7a828a8103ff64901a4ddc8b98d05bee, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1503928320}
   m_SourcePrefab: {fileID: 100100000, guid: 7a828a8103ff64901a4ddc8b98d05bee, type: 3}
 --- !u!4 &799498904 stripped
 Transform:
@@ -1252,6 +1255,20 @@ MeshCollider:
   m_Convex: 1
   m_CookingOptions: 30
   m_Mesh: {fileID: -6427917474867546475, guid: 7a828a8103ff64901a4ddc8b98d05bee, type: 3}
+--- !u!114 &1503928320
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1503928314}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44fe0a904f4aebc468293445eea3dada, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Cactus
+  damagePerTick: 5
+  tickInterval: 1
 --- !u!1 &1517930068
 GameObject:
   m_ObjectHideFlags: 0
@@ -1418,14 +1435,14 @@ GameObject:
   - component: {fileID: 1693244537}
   - component: {fileID: 1693244536}
   - component: {fileID: 1693244535}
+  - component: {fileID: 1693244533}
+  - component: {fileID: 1693244532}
   - component: {fileID: 1693244541}
   - component: {fileID: 1693244542}
-  - component: {fileID: 1693244543}
   - component: {fileID: 1693244546}
   - component: {fileID: 1693244545}
   - component: {fileID: 1693244544}
-  - component: {fileID: 1693244548}
-  - component: {fileID: 1693244547}
+  - component: {fileID: 1693244543}
   m_Layer: 0
   m_Name: enemyAnt
   m_TagString: Untagged
@@ -1433,6 +1450,35 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &1693244532
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1693244531}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d2a08c77c5fa49c381df60f8d4a6908, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AgentController
+  brainComponent: {fileID: 0}
+  motorComponent: {fileID: 0}
+  animatorDriver: {fileID: 0}
+--- !u!114 &1693244533
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1693244531}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e06419d63461f4c9aa9fbb6305ff1358, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AgentAnimatorDriver
+  animator: {fileID: 0}
+  animationSpeedMultiplier: 1.5
 --- !u!114 &1693244535
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1470,15 +1516,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d2e4eaafab874210a82642d039de6af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NavMeshAgentMotor
-  agent: {fileID: 1693244537}
+  agent: {fileID: 0}
   navMeshSnapDistance: 6
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 15
   enableMountedJump: 1
-  mountedJumpHeight: 2
-  mountedJumpDuration: 0.6
-  mountedJumpCooldown: 0.8
+  mountedJumpHeight: 0.9
+  mountedJumpDuration: 0.35
+  mountedJumpCooldown: 0.45
 --- !u!195 &1693244537
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -1489,7 +1535,7 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.5
-  m_Speed: 4
+  m_Speed: 3.5
   m_Acceleration: 8
   avoidancePriority: 50
   m_AngularSpeed: 120
@@ -1593,14 +1639,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 1693244531}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 434b1cb41931349a580b035d41199472, type: 3}
+  m_Script: {fileID: 11500000, guid: e42a27191fd5643878e5803b41b05f41, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MountedAgentBrain
   fallbackBrain: {fileID: 1693244542}
   mountController: {fileID: 1693244546}
   mountedMoveDistance: 2
   mountedStopDistance: 0.15
-  mountedSpeedMultiplier: 2.4
+  mountedSpeedMultiplier: 1.5
   mountedNavMeshSampleDistance: 4
   faceMouseLookDirection: 1
   mountedAcceleration: 4
@@ -1614,11 +1660,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1693244531}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: acdc445562c6e420c8ef8cec6ec54ffb, type: 3}
+  m_Script: {fileID: 11500000, guid: 1d0e4769874ac49b39a0ffa33ea5c770, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MountInteractor
   mountController: {fileID: 1693244546}
-  mountTransform: {fileID: 1693244538}
+  mountTransform: {fileID: 84307403}
 --- !u!114 &1693244546
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1628,7 +1674,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1693244531}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b654f742c34a64a8ca2fc2612f3f20fe, type: 3}
+  m_Script: {fileID: 11500000, guid: e40cfaf9d72084e308290eacef609b56, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MountController
   seatPoint: {fileID: 84307403}
@@ -1639,7 +1685,7 @@ MonoBehaviour:
   disablePlayerInteractor: 1
   mountCooldown: 0.25
   fallbackDismountDistance: 1.6
-  lookSensitivity: 50
+  lookSensitivity: 130
   lookPitchClamp: 75
   steerSpeed: 120
   turnSmoothTime: 0.12
@@ -1651,38 +1697,9 @@ MonoBehaviour:
   defaultPerspective: 1
   thirdPersonCamera: {fileID: 0}
   thirdPersonPivot: {fileID: 0}
-  thirdPersonOffset: {x: 0, y: 2, z: -7}
+  thirdPersonOffset: {x: 0, y: 2.2, z: -3.8}
   thirdPersonFollowLerp: 14
   perspectiveToggleActionName: Next
---- !u!114 &1693244547
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1693244531}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f9f3daeabc7b5491097940d9275e8162, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AgentController
-  brainComponent: {fileID: 1693244536}
-  motorComponent: {fileID: 1693244536}
-  animatorDriver: {fileID: 1693244548}
---- !u!114 &1693244548
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1693244531}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 24920a13d998c44f1a8cbece6dab2abe, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AgentAnimatorDriver
-  animator: {fileID: 0}
-  animationSpeedMultiplier: 1.5
 --- !u!1001 &1851021417
 PrefabInstance:
   m_ObjectHideFlags: 0

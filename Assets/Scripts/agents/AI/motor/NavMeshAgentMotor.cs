@@ -1,8 +1,19 @@
 using UnityEngine;
 using UnityEngine.AI;
 
+/// <summary>
+/// A movement motor that drives a standard Unity NavMeshAgent.
+/// This component translates high-level MoveIntents (from an AI brain or controller)
+/// into NavMeshAgent commands (SetDestination, isStopped, etc.).
+///
+/// Key features:
+/// - Handles pathfinding movement to target positions.
+/// - Supports "Stop and Face" behavior for precise rotation.
+/// - Includes a "Stuck Recovery" mechanism to reset paths if the agent gets wedged.
+/// - Implements IMountJumpMotor to simulate jumping by animating the agent's baseOffset.
+/// </summary>
 [RequireComponent(typeof(NavMeshAgent))]
-public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor
+public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
 {
     [Header("Navigation")]
     [SerializeField] private NavMeshAgent agent;
@@ -15,20 +26,29 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor
     [Header("Facing")]
     [SerializeField] private float faceRotateSpeed = 8f;
 
+    [Header("Mounted Jump")]
+    [SerializeField] private bool enableMountedJump = true;
+    [SerializeField] private float mountedJumpHeight = 1.25f;
+    [SerializeField] private float mountedJumpDuration = 0.55f;
+    [SerializeField] private float mountedJumpCooldown = 0.45f;
+
     private float stuckTimer;
     private bool defaultUpdateRotation;
     private float defaultStoppingDistance;
     private float defaultSpeed;
+    private float defaultBaseOffset;
+    private float jumpElapsed = -1f;
+    private float jumpCooldownTimer;
 
-    public Vector3 Velocity => agent ? agent.velocity : Vector3.zero;
+    public Vector3 Velocity => IsAgentReady ? agent.velocity : Vector3.zero;
 
-    public bool IsImmobile => !agent || agent.isStopped;
+    public bool IsImmobile => !IsAgentReady || agent.isStopped;
 
     public bool HasReachedDestination
     {
         get
         {
-            if (!agent || !agent.isActiveAndEnabled || !agent.isOnNavMesh || agent.pathPending)
+            if (!IsAgentReady || agent.pathPending)
             {
                 return false;
             }
@@ -36,6 +56,8 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor
             return agent.remainingDistance <= agent.stoppingDistance + 0.1f;
         }
     }
+
+    private bool IsAgentReady => agent && agent.isActiveAndEnabled && agent.isOnNavMesh;
 
     private void Awake()
     {
@@ -47,15 +69,20 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor
         defaultUpdateRotation = agent.updateRotation;
         defaultStoppingDistance = agent.stoppingDistance;
         defaultSpeed = agent.speed;
+        defaultBaseOffset = agent.baseOffset;
     }
 
     private void OnEnable()
     {
         stuckTimer = 0f;
+        jumpCooldownTimer = 0f;
+        jumpElapsed = -1f;
     }
 
     public void Tick(in MoveIntent intent, float deltaTime)
     {
+        UpdateMountedJump(deltaTime);
+
         if (!agent)
         {
             return;
@@ -70,7 +97,7 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor
         switch (intent.Type)
         {
             case AgentIntentType.MoveToPosition:
-                ApplyMoveIntent(intent);
+                ApplyMoveIntent(intent, deltaTime);
                 HandleStuckRecovery(deltaTime);
                 break;
 
@@ -91,11 +118,38 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor
         StopAgentPath();
     }
 
-    private void ApplyMoveIntent(in MoveIntent intent)
+    public void RequestJump()
     {
-        agent.updateRotation = defaultUpdateRotation;
+        if (!enableMountedJump || !agent)
+        {
+            return;
+        }
+
+        if (jumpElapsed >= 0f || jumpCooldownTimer > 0f)
+        {
+            return;
+        }
+
+        jumpElapsed = 0f;
+        jumpCooldownTimer = mountedJumpCooldown;
+    }
+
+    private void ApplyMoveIntent(in MoveIntent intent, float deltaTime)
+    {
+        if (intent.OverrideFacingDirection)
+        {
+            // The brain is supplying an explicit facing direction — suppress NavMesh
+            // auto-rotation so an external system (e.g. MountController) can own it.
+            agent.updateRotation = false;
+        }
+        else
+        {
+            agent.updateRotation = defaultUpdateRotation;
+        }
+
         agent.stoppingDistance = Mathf.Max(0.01f, intent.StopDistance);
         agent.speed = defaultSpeed * Mathf.Max(0.01f, intent.SpeedMultiplier);
+
         agent.isStopped = false;
 
         if (!agent.hasPath || Vector3.Distance(agent.destination, intent.TargetPosition) > 0.2f)
@@ -111,6 +165,7 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor
 
     private void StopAgentPath()
     {
+        agent.updateRotation = defaultUpdateRotation;
         agent.stoppingDistance = defaultStoppingDistance;
         agent.speed = defaultSpeed;
         agent.isStopped = true;
@@ -179,11 +234,48 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor
         stuckTimer = 0f;
     }
 
+    private void UpdateMountedJump(float deltaTime)
+    {
+        if (!agent)
+        {
+            return;
+        }
+
+        jumpCooldownTimer = Mathf.Max(0f, jumpCooldownTimer - deltaTime);
+        if (jumpElapsed < 0f)
+        {
+            return;
+        }
+
+        jumpElapsed += deltaTime;
+        float t = Mathf.Clamp01(jumpElapsed / Mathf.Max(0.01f, mountedJumpDuration));
+        float arc = Mathf.Sin(t * Mathf.PI);
+        agent.baseOffset = defaultBaseOffset + arc * Mathf.Max(0.01f, mountedJumpHeight);
+
+        if (t >= 1f)
+        {
+            jumpElapsed = -1f;
+            agent.baseOffset = defaultBaseOffset;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (agent)
+        {
+            agent.baseOffset = defaultBaseOffset;
+            agent.updateRotation = defaultUpdateRotation;
+        }
+    }
+
     private void OnValidate()
     {
         navMeshSnapDistance = Mathf.Max(0.5f, navMeshSnapDistance);
         stuckVelocityThreshold = Mathf.Max(0.001f, stuckVelocityThreshold);
         stuckTime = Mathf.Max(0.1f, stuckTime);
         faceRotateSpeed = Mathf.Max(0.1f, faceRotateSpeed);
+        mountedJumpHeight = Mathf.Max(0.05f, mountedJumpHeight);
+        mountedJumpDuration = Mathf.Max(0.05f, mountedJumpDuration);
+        mountedJumpCooldown = Mathf.Max(0f, mountedJumpCooldown);
     }
 }

@@ -20,7 +20,6 @@ public class ShipInteraction : NetworkBehaviour, IInteractable
     }
     public void Interact(Interactor interactor)
     {
-        RemoveItemServerRpc(interactor.GetComponentInParent<NetworkObject>());
         if (interactor.TryGetComponent<PlayerInventory>(out PlayerInventory playerInventory))
         {
             InventorySlot inventorySlot = playerInventory.GetSelectedSlot();
@@ -39,39 +38,14 @@ public class ShipInteraction : NetworkBehaviour, IInteractable
             }
             if (accepted)
             {
-                Debug.Log("item removed from inventory");
-                ShipScript.AddScrap();
+                AddItemServerRpc(interactor.GetComponentInParent<NetworkObject>());
             }
         }
     }
 
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    private void RemoveItemServerRpc(NetworkObjectReference playerNetworkObject)
+    private void AddItemServerRpc(NetworkObjectReference playerNetworkObject)
     {
-        if(!playerNetworkObject.TryGet(out NetworkObject itemNetworkObject)) return;
-      
-        PlayerInventory playerInventory = itemNetworkObject.GetComponentInParent<PlayerInventory>();
-        if (!playerInventory) return;
-        
-        InventorySlot inventorySlot = playerInventory.GetSelectedSlot();
-        if(inventorySlot == null) return;
-        
-        InventoryItem inventoryItem = inventorySlot.Item;
-        if (!inventoryItem)
-        {
-            Debug.Log("no item held");
-            return;
-        }
-        bool accepted = false;
-        if (inventoryItem.itemId == scrapItem.itemId)
-        {
-            accepted = playerInventory.TryRemoveItem(playerInventory.selectedSlotIndex);
-        }
-        
-        if (accepted)
-        {
-            Debug.Log("item removed from inventory");
-            ShipScript.AddScrap();
-        }
+        ShipScript.AddScrap();
     }
 }

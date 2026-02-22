@@ -89,51 +89,47 @@ public class PlayerInventory  : NetworkBehaviour
     private void HandleDrop()
     {
         if (!IsOwner && selectedSlotIndex < 0) return;
-        DropItemServerRpc(selectedSlotIndex);
-    }
+        if (selectedSlotIndex < 0 || selectedSlotIndex >= inventory.GetSize()) return;
 
-    [ServerRpc]
-    private void DropItemServerRpc(int slotIndex)
-    {
-        if (slotIndex < 0 || slotIndex >= inventory.GetSize()) return;
-
-        InventorySlot slot = inventory.GetSlot(slotIndex);
+        InventorySlot slot = inventory.GetSlot(selectedSlotIndex);
         if (slot == null || slot.Item == null) return;
 
         InventoryItem item = slot.Item;
         TryRemoveItem(selectedSlotIndex);
-        
-        DropItemClientRpc(slotIndex);
-        
+        DropItemServerRpc(item.itemId);
+    }
+
+    [ServerRpc]
+    private void DropItemServerRpc(string itemId)
+    {
+        InventoryItem item = GameManager.Instance.GetItem(itemId);
         SpawnDroppedItem(item);
     }
     
-    [ClientRpc]
-    private void DropItemClientRpc(int slotIndex)
-    {
-        if (slotIndex >= inventory.GetSize()) return;
-        
-        InventorySlot slot = inventory.GetSlot(slotIndex);
-        if (slot == null) return;
-        
-        slot.Item = null;
-        OnInventoryChanged?.Invoke();
-    }
     
     private void SpawnDroppedItem(InventoryItem item)
     {
         Vector3 dropPos = transform.position + transform.forward * 1.2f + Vector3.up * 0.5f;
 
         GameObject obj = Instantiate(item.itemPrefab, dropPos, Quaternion.identity);
-        obj.GetComponent<NetworkObject>().Spawn();
+        var networkObject = obj.GetComponent<NetworkObject>();
+        networkObject.Spawn();
+        
+        ApplyForceToDroppedItemClientRpc(networkObject);
 
-        Rigidbody rb = obj.GetComponent<Rigidbody>();
+    }
+    
+    [ClientRpc]
+    private void ApplyForceToDroppedItemClientRpc(NetworkObjectReference droppedItem)
+    {
+       var droppedItemObject = droppedItem.TryGet(out NetworkObject networkObject) ? networkObject.gameObject : null;
+        Rigidbody rb = droppedItemObject?.GetComponent<Rigidbody>();
+
+        if (rb == null) return;
+        
         rb.isKinematic = false;
-        if (rb != null)
-        {
-            Vector3 force = transform.forward * 1.5f + Vector3.up * 1.0f;
-            rb.AddForce(force, ForceMode.Impulse);
-        }
+        Vector3 force = transform.forward * 1.5f + Vector3.up * 1.0f;
+        rb.AddForce(force, ForceMode.Impulse);
     }
     
     /// <summary>
@@ -145,16 +141,8 @@ public class PlayerInventory  : NetworkBehaviour
     {
         if (!item) return false;
 
-        inventory.TryAddItem(item);
-        AddItemClientRpc();
-        return true;
+        return inventory.TryAddItem(item);
     } 
-    
-    [ClientRpc]
-    private void AddItemClientRpc()
-    {
-        OnInventoryChanged?.Invoke();
-    }
 
     /// <summary>
     /// TryRemoveItem unequippis the item
@@ -164,25 +152,9 @@ public class PlayerInventory  : NetworkBehaviour
     /// <returns></returns>
     public bool TryRemoveItem(int itemIndex)
     {
-        bool removed = inventory.TryRemoveItem(itemIndex);
-        if (removed)
-        {
-            RemoveItemClientRpc(itemIndex);
-        }
-        return removed;
+        return inventory.TryRemoveItem(itemIndex);
     }
-    
-    [ClientRpc]
-    private void RemoveItemClientRpc(int slotIndex)
-    {
-        if (slotIndex < 0 || slotIndex >= inventory.GetSize()) return;
 
-        InventorySlot slot = inventory.GetSlot(slotIndex);
-        if (slot == null) return;
-
-        slot.Item = null;
-        OnInventoryChanged?.Invoke();
-    }
     
     public InventorySlot GetSlot(int index)
     {

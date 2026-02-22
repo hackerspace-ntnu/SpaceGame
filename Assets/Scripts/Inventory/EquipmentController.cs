@@ -14,16 +14,23 @@ public class EquipmentController : NetworkBehaviour
     [SerializeField] private PlayerInventory playerInventory;
     [SerializeField] private Transform handSocket;
     private GameObject currentObject;
-
-    private void Awake()
+    
+    
+    public override void OnNetworkSpawn()
     {
+        if (!IsOwner) return;
         playerInventory.OnSlotSelected += OnSlotSelected;
         playerInventory.OnInventoryChanged += OnInventoryChanged;
+        InventorySlot slot = playerInventory.GetSelectedSlot();
+        if (slot != null && slot.Item)
+        {
+            Equip(slot.Item);
+        }
     }
     
     public override void OnDestroy()
     {
-        if (!playerInventory) return;
+        if (!playerInventory && !IsOwner) return;
         playerInventory.OnSlotSelected -= OnSlotSelected;
         playerInventory.OnInventoryChanged -= OnInventoryChanged;
     }
@@ -56,7 +63,7 @@ public class EquipmentController : NetworkBehaviour
 
     public void Equip(InventoryItem item)
     {
-      EquipServerRpc(item.itemId);
+        EquipServerRpc(item.itemId);
     }
     
     [ServerRpc]
@@ -77,6 +84,17 @@ public class EquipmentController : NetworkBehaviour
         var networkObject = currentObject.GetComponent<NetworkObject>();
         networkObject.Spawn(true);
         networkObject.TrySetParent(NetworkObject);
+        
+        EquipClientRpc(networkObject);
+        
+    }
+
+    [Rpc(SendTo.Owner)]
+    private void EquipClientRpc(NetworkObjectReference itemReference)
+    {
+        var networkObject = itemReference.TryGet(out NetworkObject itemNetworkObject) ? itemNetworkObject.gameObject : null;
+        if (!networkObject) return;
+        currentObject = networkObject;
         
         Rigidbody rb = currentObject.GetComponent<Rigidbody>();
         if (rb)
@@ -104,6 +122,16 @@ public class EquipmentController : NetworkBehaviour
         {
             var objectNetworkObject = currentObject.GetComponent<NetworkObject>();
             objectNetworkObject.Despawn();
+            currentObject = null;
+            UnequipClientRpc();
+        }
+    }
+    
+    [Rpc(SendTo.Owner)]
+    private void UnequipClientRpc()
+    {
+        if (currentObject)
+        {
             currentObject = null;
         }
     }

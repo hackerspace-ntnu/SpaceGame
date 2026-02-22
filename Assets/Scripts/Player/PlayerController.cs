@@ -11,6 +11,7 @@ public class PlayerController : NetworkBehaviour
     
     [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private PlayerLook playerLook;
+    [SerializeField] private DamageFeedback damageFeedback;
 
     private void Awake()
     {
@@ -18,6 +19,7 @@ public class PlayerController : NetworkBehaviour
         playerHUD.gameObject.SetActive(false);
         playerMovement.enabled = false;
         playerLook.enabled = false;
+        damageFeedback.enabled = false;
     }
 
     public override void OnNetworkSpawn()
@@ -27,6 +29,7 @@ public class PlayerController : NetworkBehaviour
         playerHUD.gameObject.SetActive(true);
         playerMovement.enabled = true;
         playerLook.enabled = true;
+        damageFeedback.enabled = true;
     }
     
 }

@@ -19,21 +19,18 @@ class PickupableItem : NetworkBehaviour, IInteractable
 
    public void Interact(Interactor interactor)
    {
-      PickupServerRpc(interactor.GetComponentInParent<NetworkObject>());
+      PlayerInventory inventory = interactor.GetComponentInParent<PlayerInventory>();
+      if (!inventory) return;
+      bool added = inventory.TryAddItem(item);
+      if (added)
+      {
+         PickupServerRpc();
+      }
    }
 
    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-   private void PickupServerRpc(NetworkObjectReference playerNetworkObject)
+   private void PickupServerRpc()
    {
-      if(!playerNetworkObject.TryGet(out NetworkObject itemNetworkObject)) return;
-      
-      PlayerInventory inventory = itemNetworkObject.GetComponentInParent<PlayerInventory>();
-      if (!inventory) return;
-      
-      
-      bool added = inventory.TryAddItem(item);
-      if (!added) return;
-      
       NetworkObject.Despawn();
    }
 }

@@ -13,6 +13,8 @@ using Unity.Netcode.Transports.UTP;
 using Unity.Networking.Transport.Relay;
 using System;
 using UnityEngine.SceneManagement;
+using Unity.VisualScripting;
+using NUnit.Framework;
 
 public class LobbySystem : NetworkBehaviour
 {
@@ -26,6 +28,7 @@ public class LobbySystem : NetworkBehaviour
     private LobbyListSystem lobbyList;
     private string playerName;
 
+    private LobbyWarningSystem warningSystem;
 
     
     public async void Start()
@@ -33,6 +36,8 @@ public class LobbySystem : NetworkBehaviour
         playerName = "Player" + UnityEngine.Random.Range(10, 99);
         lobbyList = GetComponent<LobbyListSystem>();
         await UnityServices.InitializeAsync();
+        
+        warningSystem = GetComponent<LobbyWarningSystem>();
 
         AuthenticationService.Instance.SignedIn += () =>
         {
@@ -48,10 +53,36 @@ public class LobbySystem : NetworkBehaviour
 
         NetworkManager.Singleton.OnClientDisconnectCallback += (id) =>
         {
+            Debug.Log(id);
+            if(!NetworkManager.Singleton.IsHost && id == NetworkManager.Singleton.LocalClientId)
+            {
+                string dcReason = NetworkManager.Singleton.DisconnectReason;
+
+                if(dcReason == "Disconnected due to host shutting down.")
+                {
+                    LeaveLobby();
+                    warningSystem.warn("Host left! Leaving lobby...");
+                }
+
+                //Server disconnect (restart network)
+                //restartNetwork();
+            }
             // This is the most important debug line!
             Debug.Log($"[NETCODE] Disconnected. Reason: {NetworkManager.Singleton.DisconnectReason}");
         };
 
+    }
+
+    private void restartNetwork()
+    {
+        // Find new host (use Lobby service auto migration)
+        // Restart network with new host as host
+        // Connect all clients to same network
+        /*if(joinedLobby != null)
+        {
+            await LobbyService.Instance.
+        }
+        warningSystem.warn("Host left the game!");*/
     }
 
     private void Update() {
@@ -61,7 +92,7 @@ public class LobbySystem : NetworkBehaviour
     }
 
     private async void HandleLobbyHeartBeat() {
-        if(hostLobby != null) {
+        if(hostLobby != null && joinedLobby != null) {
             heartBeatTimer -= Time.deltaTime;
             if(heartBeatTimer <= 0f) {
                 float heartBeatTimerMax = 15f;
@@ -70,6 +101,7 @@ public class LobbySystem : NetworkBehaviour
             }
         }
     }
+
     private async void HandleLobbyPollForUpdates()
     {
         if (joinedLobby != null)
@@ -82,7 +114,7 @@ public class LobbySystem : NetworkBehaviour
                 Lobby lobby = await LobbyService.Instance.GetLobbyAsync(joinedLobby.Id);
                 joinedLobby = lobby;
                 UpdatePlayerListInLobby();
-                if (isPlayerHost())
+                if (isPlayerLobbyHost())
                 {
                     lobbyList.setStartGameButtonState(true);
                 }
@@ -115,7 +147,7 @@ public class LobbySystem : NetworkBehaviour
             return allocation;
         } catch (RelayServiceException e)
         {
-            Debug.Log(e);
+            warningSystem.warn(e.Message);
             return default;
         }
         
@@ -130,7 +162,7 @@ public class LobbySystem : NetworkBehaviour
             return joinCode;
         } catch (RelayServiceException e)
         {
-            Debug.Log(e);
+            warningSystem.warn(e.Message);
             return default;
         }
         
@@ -145,7 +177,7 @@ public class LobbySystem : NetworkBehaviour
             return joinAllocation;
         } catch (RelayServiceException e)
         {
-            Debug.Log(e);
+            warningSystem.warn(e.Message);
             return default;
         }
         
@@ -198,14 +230,14 @@ public class LobbySystem : NetworkBehaviour
             {
                 hostLobby.Players[0].Data["PlayerName"].Value,
             };
-            lobbyList.openLobbyScreen(joinedLobby.Name);
+            lobbyList.openLobbyScreen(joinedLobby.Name, joinedLobby.Id);
             lobbyList.showPlayerElements(playerNames.ToArray());
             listLobbies();
             lobbyList.setStartGameButtonState(true);
         }
         catch (LobbyServiceException e)
         {
-            Debug.Log(e);
+            warningSystem.warn(e.Message);
         }
     }
 
@@ -237,7 +269,7 @@ public class LobbySystem : NetworkBehaviour
             //Debug.Log(lobby.Name + " " + lobby.MaxPlayers);
         }
         } catch (LobbyServiceException e) {
-            Debug.Log(e);
+            warningSystem.warn(e.Message);
         }
     }
 
@@ -252,7 +284,7 @@ public class LobbySystem : NetworkBehaviour
         }
         catch (LobbyServiceException e)
         {
-        Debug.Log(e);
+            warningSystem.warn(e.Message);
         }
     }
 
@@ -265,7 +297,7 @@ public class LobbySystem : NetworkBehaviour
         }
         catch (LobbyServiceException e)
         {
-        Debug.Log(e);
+            warningSystem.warn(e.Message);
         }
     }
 
@@ -283,7 +315,7 @@ public class LobbySystem : NetworkBehaviour
         }
         catch (LobbyServiceException e)
         {
-            Debug.Log(e);
+            warningSystem.warn(e.Message);
         }
     }
 
@@ -301,7 +333,7 @@ public class LobbySystem : NetworkBehaviour
             JoinLobby(lobby);
         } catch(RelayServiceException e)
         {
-            Debug.Log(e);
+            warningSystem.warn(e.Message);
         }
 
     }
@@ -310,7 +342,7 @@ public class LobbySystem : NetworkBehaviour
         Debug.Log("Succesfully joined Lobby!");
         joinedLobby = lobby;
         AuthenticationService.Instance.UpdatePlayerNameAsync("Player_" + (lobby.Players.Count + 1));
-        lobbyList.openLobbyScreen(joinedLobby.Name);
+        lobbyList.openLobbyScreen(joinedLobby.Name, joinedLobby.Id);
         lobbyList.setStartGameButtonState(false);
         UpdatePlayerListInLobby();
 
@@ -318,12 +350,15 @@ public class LobbySystem : NetworkBehaviour
 
     private void UpdatePlayerListInLobby()
     {
-        List<string> playerNames = new List<string>();
-        foreach (Player p in joinedLobby.Players)
+        if(joinedLobby != null)
         {
-            playerNames.Add(p.Data["PlayerName"].Value);
+            List<string> playerNames = new List<string>();
+            foreach (Player p in joinedLobby.Players)
+            {
+                playerNames.Add(p.Data["PlayerName"].Value);
+            }
+            lobbyList.showPlayerElements(playerNames.ToArray());
         }
-        lobbyList.showPlayerElements(playerNames.ToArray());
     }
 
     private Player GetPlayer()
@@ -340,20 +375,34 @@ public class LobbySystem : NetworkBehaviour
     public async void LeaveLobby() {
         try {
             await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, AuthenticationService.Instance.PlayerId);
-            
-            if(isPlayerHost())
+            joinedLobby = null;
+            if (NetworkManager.Singleton.IsConnectedClient)
             {
                 NetworkManager.Singleton.Shutdown();
-                foreach (Player p in joinedLobby.Players)
+                /*
+                if (isPlayerLobbyHost())
                 {
-                    await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, p.Id);
+                    
+                    foreach (Player p in joinedLobby.Players)
+                    {
+                        if(p.Id != AuthenticationService.Instance.PlayerId)
+                        {
+                            await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, p.Id);
+                        }
+                    }
                 }
+                else
+                {
+                    NetworkManager.Singleton.DisconnectClient(NetworkManager.Singleton.LocalClientId);
+                }
+                */
             }
-            joinedLobby = null;
-            NetworkManager.Singleton.DisconnectClient(NetworkManager.Singleton.LocalClientId);
+            
+            lobbyList.hideLobbyScreen();
             lobbyList.setStartGameButtonState(false);
+            listLobbies();
         } catch (LobbyServiceException e) {
-            Debug.Log(e);
+            warningSystem.warn(e.Message);
         }
     }
 
@@ -366,7 +415,7 @@ public class LobbySystem : NetworkBehaviour
         }
         catch (LobbyServiceException e)
         {
-            Debug.Log(e);
+            warningSystem.warn(e.Message);
         }
     }
 
@@ -382,12 +431,13 @@ public class LobbySystem : NetworkBehaviour
         }
         catch (LobbyServiceException e)
         {
-            Debug.Log(e);
+            warningSystem.warn(e.Message);
         }
     }
 
-    private bool isPlayerHost()
+    private bool isPlayerLobbyHost()
     {
+        //Checks if the player is the host of the lobby.
         return joinedLobby.HostId == AuthenticationService.Instance.PlayerId;
     }
 
@@ -395,13 +445,13 @@ public class LobbySystem : NetworkBehaviour
     {
         if (joinedLobby.HostId != AuthenticationService.Instance.PlayerId)
         {
-            Debug.LogWarning("Only the host can start the game!");
+            warningSystem.warn("Only the host can start the game!");
             return;
         }
 
         if(NetworkManager.Singleton.ConnectedClientsIds.Count != joinedLobby.Players.Count)
         {
-            Debug.LogWarning("Amount of clients dont match amount of lobby members!" + " " + NetworkManager.Singleton.ConnectedClientsIds.Count + " client(s), but " + joinedLobby.Players.Count + " lobby member(s)!");
+            warningSystem.warn("Amount of clients dont match amount of lobby members!" + " " + NetworkManager.Singleton.ConnectedClientsIds.Count + " client(s), but " + joinedLobby.Players.Count + " lobby member(s)!");
             return;
         }
         try
@@ -417,7 +467,7 @@ public class LobbySystem : NetworkBehaviour
         }
         catch (LobbyServiceException e)
         {
-            Debug.LogError($"Failed to lock lobby: {e.Message}");
+            warningSystem.warn(e.Message);
         }
     }
 }

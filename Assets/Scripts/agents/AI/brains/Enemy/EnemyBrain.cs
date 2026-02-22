@@ -1,3 +1,6 @@
+// Enemy decision brain that switches between wandering and chasing a target.
+// Handles target acquisition/loss rules and close-range stop behavior.
+// Produces MoveIntent values consumed by the agent motor.
 using UnityEngine;
 
 public class EnemyBrain : MonoBehaviour, IAgentBrain

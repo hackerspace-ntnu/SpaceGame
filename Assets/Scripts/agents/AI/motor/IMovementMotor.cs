@@ -1,3 +1,5 @@
+// Motor interface for executing MoveIntent commands on an agent.
+// Exposes runtime velocity/state so controllers and animators can react.
 using UnityEngine;
 
 public interface IMovementMotor

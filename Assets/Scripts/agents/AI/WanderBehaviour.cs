@@ -1,3 +1,6 @@
+// Utility behaviour that generates wander/patrol destinations for agents.
+// Supports random roaming, patrol paths, and anchor/leash constraints.
+// Brains query this component to get next idle movement targets.
 using UnityEngine;
 using UnityEngine.AI;
 

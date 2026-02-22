@@ -1,3 +1,6 @@
+// NavMesh-backed implementation of IMovementMotor used by NPCs and mounts.
+// Applies MoveIntent navigation/facing commands to Unity's NavMeshAgent.
+// Includes optional mounted-jump simulation via baseOffset animation.
 using UnityEngine;
 using UnityEngine.AI;
 

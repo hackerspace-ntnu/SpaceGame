@@ -1,3 +1,6 @@
+// NPC decision brain for ambient movement and player-reactive behaviors.
+// Blends wander logic with configurable reaction modes (watch/approach/flee/etc).
+// Outputs MoveIntent commands for the active movement motor.
 using UnityEngine;
 using UnityEngine.AI;
 

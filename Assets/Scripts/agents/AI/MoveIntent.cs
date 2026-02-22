@@ -1,3 +1,6 @@
+// Defines command types that brains send to movement motors each tick.
+// Standardizes destination, facing, and speed-control data across AI and mounts.
+// Acts as the shared contract between decision logic and locomotion execution.
 using UnityEngine;
 
 public enum AgentIntentType

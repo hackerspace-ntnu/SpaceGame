@@ -1,3 +1,6 @@
+// Bridges motor output into animator parameters for agent characters.
+// Converts world velocity into local animation-space values each frame.
+// Keeps animation updates centralized and independent from brain logic.
 using UnityEngine;
 
 public class AgentAnimatorDriver : MonoBehaviour

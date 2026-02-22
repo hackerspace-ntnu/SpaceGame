@@ -1,3 +1,6 @@
+// Hybrid brain that uses NPC fallback AI when unmounted and rider input when mounted.
+// Converts mount controller input into navigation-friendly MoveIntent commands.
+// Also forwards mounted jump requests to motors that support mount jumping.
 using UnityEngine;
 using UnityEngine.AI;
 

@@ -1,3 +1,6 @@
+// Interaction entry-point that lets a player mount a target via MountController.
+// Validates mount availability and forwards the interactor + mount point override.
+// Keeps interaction system decoupled from mount implementation details.
 using UnityEngine;
 
 /// <summary>

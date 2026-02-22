@@ -1,3 +1,6 @@
+// Main runtime coordinator for agent entities.
+// Collects context, asks the selected brain for intent, then ticks the movement motor.
+// Optionally updates agent animation using the current motor state.
 using UnityEngine;
 using System.Text;
 

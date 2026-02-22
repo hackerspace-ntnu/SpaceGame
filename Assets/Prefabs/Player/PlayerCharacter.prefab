@@ -306,6 +306,7 @@ MonoBehaviour:
   playerHUD: {fileID: 5722297912467018950}
   playerMovement: {fileID: 1264622234854504379}
   playerLook: {fileID: 6455897939897930130}
+  damageFeedback: {fileID: 5495302955700144812}
 --- !u!114 &1264622234854504379
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -318,6 +319,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 751e366a69c1a8248b66ec18ac6986b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
+  ShowTopMostFoldoutHeaderGroup: 1
   moveSpeed: 6
   airControl: 0.3
   jumpForce: 7

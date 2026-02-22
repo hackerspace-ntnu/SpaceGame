@@ -63,7 +63,7 @@ public class EquipmentController : NetworkBehaviour
 
     public void Equip(InventoryItem item)
     {
-        EquipServerRpc(item.itemId);
+        EquipServerRpc(item.ItemId);
     }
     
     [ServerRpc]

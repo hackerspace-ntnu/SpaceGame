@@ -96,7 +96,7 @@ public class PlayerInventory  : NetworkBehaviour
 
         InventoryItem item = slot.Item;
         TryRemoveItem(selectedSlotIndex);
-        DropItemServerRpc(item.itemId);
+        DropItemServerRpc(item.ItemId);
     }
 
     [ServerRpc]

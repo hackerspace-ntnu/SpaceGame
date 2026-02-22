@@ -9,13 +9,13 @@ public class ItemRepository : ScriptableObject
     
     public InventoryItem GetItemById(string itemId)
     {
-        var item = items.Find(i => i.itemId == itemId);
+        var item = items.Find(i => i.ItemId == itemId);
         return item;
     }
 
     public void AddItem(InventoryItem item)
     {
-        var existingItem = items.Find(i => i.itemId == item.itemId);
+        var existingItem = items.Find(i => i.ItemId == item.ItemId);
         if(existingItem) return;
         items.Add(item);
     }

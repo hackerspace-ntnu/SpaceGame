@@ -3,34 +3,32 @@ using UnityEngine;
 public class InventoryUI : MonoBehaviour
 {
     private InventorySlotUI[] slotUIs;
-    [SerializeField] private PlayerInventory inventory;
+    
+    [SerializeField] private PlayerInventory playerInventory;
     
     [SerializeField] private Transform slotPrefab;
     [SerializeField] private Transform inventoryGrid; 
     
     private int selectedIndex = -1;
     private int hoveredIndex = -1;
-    
-    private void Awake()
+
+    public void OnEnable()
     {
-        inventory.OnSlotSelected += OnSlotSelected;
-        inventory.OnInventoryChanged += OnInventoryChanged;
+        playerInventory.OnSlotSelected += OnSlotSelected;
+        playerInventory.OnInventoryChanged += OnPlayerInventoryChanged;
+        InitializeUI();
     }
 
 
     private void OnDestroy()
     {
-        inventory.OnSlotSelected -= OnSlotSelected;
-    }
-
-    private void Start()
-    {
-        InitializeUI();
+        if(!playerInventory) return;
+        playerInventory.OnSlotSelected -= OnSlotSelected;
     }
 
     public void InitializeUI()
     {
-        int inventorySize = inventory.InventorySize;
+        int inventorySize = playerInventory.GetInventorySize();
         slotUIs = new InventorySlotUI[inventorySize];
         
         for (int i = 0; i < inventorySize; i++)
@@ -51,7 +49,7 @@ public class InventoryUI : MonoBehaviour
         RefreshAll();
     }
     
-    private void OnInventoryChanged()
+    private void OnPlayerInventoryChanged()
     {
         RefreshAll();
     }
@@ -61,7 +59,7 @@ public class InventoryUI : MonoBehaviour
     {
         for (int i = 0; i < slotUIs.Length; i++)
         {
-            slotUIs[i].Refresh(inventory.GetSlot(i),
+            slotUIs[i].Refresh(playerInventory.GetSlot(i),
                 i == selectedIndex,
                 i == hoveredIndex);
         }

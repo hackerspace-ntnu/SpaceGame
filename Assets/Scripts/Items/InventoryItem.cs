@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
@@ -7,6 +8,9 @@ using UnityEngine;
 public class InventoryItem : ScriptableObject
 {
     [Tooltip("Unique identifier for the item. ")]
+    public string itemId;
+    
+    [Tooltip("Display name of the item")]
     public string itemName = "NewItem";
 
     [Tooltip("Prefab that will be instantiated and equipped when this item is selected.")]
@@ -14,6 +18,4 @@ public class InventoryItem : ScriptableObject
 
     [Tooltip("Optional icon for UI display.")]
     public Sprite icon;
-    [SerializeField]
-    public ItemId itemId;
 }

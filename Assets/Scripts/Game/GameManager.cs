@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using Unity.Netcode;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
@@ -14,6 +15,8 @@ public class GameManager : MonoBehaviour
     public event Action<GameState> OnStateChanged;
     
     [SerializeField] private SceneReference onWinScene;
+    
+    [SerializeField] private ItemRepository itemRepository;
 
     private void Awake()
     {
@@ -41,6 +44,11 @@ public class GameManager : MonoBehaviour
     public void WinGame()
     {
         SetState(GameState.Won);
-        SceneManager.LoadScene(onWinScene.SceneName);
+        NetworkManager.Singleton.SceneManager.LoadScene(onWinScene.SceneName, LoadSceneMode.Single);
+    }
+
+    public InventoryItem GetItem(string itemId)
+    {
+        return itemRepository.GetItemById(itemId);
     }
 }

@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 8513147090107359023}
   - component: {fileID: 4459410343547710078}
   m_Layer: 5
-  m_Name: PlayerCanvas
+  m_Name: PlayerHUD
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -59,7 +59,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -400,7 +400,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b170f3e3dfc47ab4080e605bbb4f7dd1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  interactor: {fileID: 0}
   crosshairImage: {fileID: 5304271532457206036}
   idleAlpha: 0.25
   activeAlpha: 1
@@ -457,7 +456,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c5e156e0164b8e4ba01639ed29444f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  health: {fileID: 0}
   healthBar: {fileID: 6175919127754338934}
   healthText: {fileID: 5431290034454732934}
   maxHealthText: {fileID: 7340309857235678665}

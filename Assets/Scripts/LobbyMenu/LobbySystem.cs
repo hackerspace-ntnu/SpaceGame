@@ -16,6 +16,8 @@ using UnityEngine.SceneManagement;
 
 public class LobbySystem : NetworkBehaviour
 {
+    [SerializeField] SceneReference gameScene;
+    
     private const string KEY_RELAY_JOIN_CODE = "RelayJoinCode";
     private Lobby hostLobby;
     private Lobby joinedLobby;
@@ -413,7 +415,7 @@ public class LobbySystem : NetworkBehaviour
             await LobbyService.Instance.UpdateLobbyAsync(joinedLobby.Id, options);
             joinedLobby = null;
             hostLobby = null;
-            NetworkManager.Singleton.SceneManager.LoadScene("Tommy test scene", UnityEngine.SceneManagement.LoadSceneMode.Single);
+            NetworkManager.Singleton.SceneManager.LoadScene(gameScene.SceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
         }
         catch (LobbyServiceException e)
         {

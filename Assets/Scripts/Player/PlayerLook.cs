@@ -17,19 +17,28 @@ public class PlayerLook : MonoBehaviour
     public float verticalClamp = 80f;
 
     private float pitch = 0f;
-    
+
     private Vector2 lookInput;
-    
+    private SkinnedMeshRenderer headRenderer;
+
     private void Start()
     {
         // Lock cursor to center
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         rigidbody = playerBody.GetComponent<Rigidbody>();
-        
+
         // Hide the player head mesh to prevent clipping with the camera
-        var headRenderer = playerHead.GetComponent<SkinnedMeshRenderer>();
+        headRenderer = playerHead.GetComponent<SkinnedMeshRenderer>();
         headRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
+    }
+
+    public void SetHeadVisible(bool visible)
+    {
+        if (!headRenderer) return;
+        headRenderer.shadowCastingMode = visible
+            ? UnityEngine.Rendering.ShadowCastingMode.On
+            : UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
     }
     
     private void OnEnable()

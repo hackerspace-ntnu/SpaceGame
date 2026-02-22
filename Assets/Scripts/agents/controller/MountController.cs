@@ -53,6 +53,8 @@ public class MountController : MonoBehaviour
     [SerializeField] private Transform thirdPersonPivot;
     [SerializeField] private Vector3 thirdPersonOffset = new Vector3(0f, 2.2f, -3.8f);
     [SerializeField] private float thirdPersonFollowLerp = 14f;
+    [SerializeField] private float cameraAutoAlignSpeed = 90f;
+    [SerializeField] private float cameraAutoAlignDelay = 0.5f;
     [SerializeField] private string perspectiveToggleActionName = "Next";
 
     private Transform mountedPlayer;
@@ -83,6 +85,8 @@ public class MountController : MonoBehaviour
     private float moveInputVelocityY;
     private float currentLean;
     private float leanVelocity;
+    private float cameraYawOffset;
+    private float timeSinceLastLookInput;
 
     private Camera mountedFirstPersonCamera;
     private Transform mountedFirstPersonCameraRoot;
@@ -156,6 +160,11 @@ public class MountController : MonoBehaviour
 
         HandleMountedLook(Time.deltaTime);
 
+        if (disablePlayerMovement && mountedPlayerMovement)
+        {
+            mountedPlayerMovement.ForceIdleAnimation();
+        }
+
         if (togglePerspectiveAction != null && togglePerspectiveAction.WasPressedThisFrame())
         {
             TogglePerspective();
@@ -175,14 +184,18 @@ public class MountController : MonoBehaviour
         }
 
         Transform pivot = GetThirdPersonPivot();
-        // Camera orbits using cameraYaw (mouse-driven), independent of mount body yaw.
+        // Camera orbits around the pivot using pitch + yaw.
         Quaternion cameraRot = Quaternion.Euler(mountedPitch, cameraYaw, 0f);
         Vector3 targetPosition = pivot.position + cameraRot * thirdPersonOffset;
         thirdPersonCamera.transform.position = Vector3.Lerp(
             thirdPersonCamera.transform.position,
             targetPosition,
             Mathf.Clamp01(thirdPersonFollowLerp * Time.deltaTime));
-        thirdPersonCamera.transform.rotation = cameraRot;
+
+        // Horizontal centering: yaw toward the pivot's XZ position, keep mountedPitch for vertical.
+        Vector3 toPivot = pivot.position - thirdPersonCamera.transform.position;
+        float horizontalYaw = Mathf.Atan2(toPivot.x, toPivot.z) * Mathf.Rad2Deg;
+        thirdPersonCamera.transform.rotation = Quaternion.Euler(mountedPitch, horizontalYaw, 0f);
     }
 
     public bool CanMount(Interactor interactor)
@@ -270,6 +283,8 @@ public class MountController : MonoBehaviour
         Vector3 euler = transform.rotation.eulerAngles;
         mountedYaw = euler.y;
         cameraYaw = euler.y;
+        cameraYawOffset = 0f;
+        timeSinceLastLookInput = 0f;
         mountedPitch = mountedFirstPersonCameraRoot ? mountedFirstPersonCameraRoot.localEulerAngles.x : 0f;
         if (mountedPitch > 180f)
         {
@@ -319,6 +334,7 @@ public class MountController : MonoBehaviour
 
         if (disablePlayerLook && mountedPlayerLook)
         {
+            mountedPlayerLook.SetHeadVisible(false);
             mountedPlayerLook.enabled = true;
         }
 
@@ -357,9 +373,26 @@ public class MountController : MonoBehaviour
     {
         Vector2 lookInput = lookAction != null ? lookAction.ReadValue<Vector2>() : Vector2.zero;
 
-        // Mouse orbits the camera only — does not rotate the mount body.
-        cameraYaw += lookInput.x * lookSensitivity * deltaTime;
+        // Mouse X adds to the offset from mount forward; mouse Y controls pitch.
+        cameraYawOffset += lookInput.x * lookSensitivity * deltaTime;
         mountedPitch = Mathf.Clamp(mountedPitch - lookInput.y * lookSensitivity * deltaTime, -lookPitchClamp, lookPitchClamp);
+
+        // After a short idle period, drift the camera back behind the mount.
+        if (Mathf.Abs(lookInput.x) > 0.01f)
+        {
+            timeSinceLastLookInput = 0f;
+        }
+        else
+        {
+            timeSinceLastLookInput += deltaTime;
+        }
+
+        if (timeSinceLastLookInput >= cameraAutoAlignDelay)
+        {
+            cameraYawOffset = Mathf.MoveTowards(cameraYawOffset, 0f, cameraAutoAlignSpeed * deltaTime);
+        }
+
+        cameraYaw = mountedYaw + cameraYawOffset;
 
         // A/D (currentMoveInput.x, already smoothed) rotates the mount body — tank steering.
         float normalizedSpeed = GetMountedNormalizedSpeed();
@@ -418,11 +451,13 @@ public class MountController : MonoBehaviour
         {
             SetThirdPersonCameraEnabled(false);
             SetFirstPersonCameraEnabled(true);
+            mountedPlayerLook?.SetHeadVisible(false);
         }
         else
         {
             SetFirstPersonCameraEnabled(false);
             SetThirdPersonCameraEnabled(true);
+            mountedPlayerLook?.SetHeadVisible(true);
         }
 
         currentSteeringForward = GetSteeringForward();
@@ -514,6 +549,8 @@ public class MountController : MonoBehaviour
         momentumDamping = Mathf.Max(0.1f, momentumDamping);
         idleAlignFraction = Mathf.Clamp(idleAlignFraction, 0f, 1f);
         thirdPersonFollowLerp = Mathf.Max(0.01f, thirdPersonFollowLerp);
+        cameraAutoAlignSpeed = Mathf.Max(0f, cameraAutoAlignSpeed);
+        cameraAutoAlignDelay = Mathf.Max(0f, cameraAutoAlignDelay);
     }
 
     private float GetMountedNormalizedSpeed()

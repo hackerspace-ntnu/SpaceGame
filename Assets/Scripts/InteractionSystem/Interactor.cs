@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -5,7 +6,7 @@ using UnityEngine.InputSystem;
 /// Handles raycasting for object interactions
 /// Sends out a raycast when a button is pressed to detect interactable objects
 /// </summary>
-public class Interactor : MonoBehaviour
+public class Interactor : NetworkBehaviour
 {
     [SerializeField]
     private float _castDistance = 5f;
@@ -25,13 +26,15 @@ public class Interactor : MonoBehaviour
      private RaycastHit hitInfo;
     private bool rayCastHit;
 
-    private void Awake()
+    public override void OnNetworkSpawn()
     {
+        if(!IsOwner) return;
         _interactAction = InputSystem.actions.FindAction("Interact");
     }
 
     private void Update()
     {
+        if(!IsOwner) return;
         if (!DoInteractionTest(out IInteractable interactable))
         {
             IsHoveringInteractable = false;

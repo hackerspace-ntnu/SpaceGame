@@ -12,9 +12,8 @@ GameObject:
   - component: {fileID: 2473529640613750512}
   - component: {fileID: 8513147090107359023}
   - component: {fileID: 4459410343547710078}
-  - component: {fileID: 3357924630643460043}
   m_Layer: 5
-  m_Name: PlayerCanvas
+  m_Name: PlayerHUD
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -60,7 +59,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -105,21 +104,6 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!114 &3357924630643460043
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 592117350481037601}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bffe8ed3861aaa54e978aa5b8bbd2823, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  inventoryUI: {fileID: 7943841662556017417}
-  healthUI: {fileID: 106248169993899864}
-  crosshairUI: {fileID: 3954543622703053586}
 --- !u!1 &601619845428722824
 GameObject:
   m_ObjectHideFlags: 0
@@ -416,7 +400,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b170f3e3dfc47ab4080e605bbb4f7dd1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  interactor: {fileID: 0}
   crosshairImage: {fileID: 5304271532457206036}
   idleAlpha: 0.25
   activeAlpha: 1
@@ -473,7 +456,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c5e156e0164b8e4ba01639ed29444f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  health: {fileID: 0}
   healthBar: {fileID: 6175919127754338934}
   healthText: {fileID: 5431290034454732934}
   maxHealthText: {fileID: 7340309857235678665}
@@ -803,14 +785,3 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 1903191614256873752, guid: 204cf861e9af4e94aae524a1d65f0cc4, type: 3}
   m_PrefabInstance: {fileID: 1937419836733242484}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &7943841662556017417 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8420931910949023613, guid: 204cf861e9af4e94aae524a1d65f0cc4, type: 3}
-  m_PrefabInstance: {fileID: 1937419836733242484}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d1e1e035d1f142b7a7d61f6903146630, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::InventoryUI

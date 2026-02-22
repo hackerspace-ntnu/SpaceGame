@@ -156,7 +156,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AntiGravityPotion
   maxUses: 1
-  useSound: {fileID: 8300000, guid: a0082604e1ef8aa4984a8e551a291d0d, type: 3}
+  useSound:
+    Guid:
+      Data1: 125610606
+      Data2: 1097649424
+      Data3: 1756199559
+      Data4: -145066629
+    Path: event:/SFX/Takeoff
 --- !u!114 &159376228010695521
 MonoBehaviour:
   m_ObjectHideFlags: 0

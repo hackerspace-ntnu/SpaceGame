@@ -1,3 +1,4 @@
+using FMODUnity;
 using UnityEngine;
 
 public abstract class UsableItem : MonoBehaviour
@@ -6,7 +7,7 @@ public abstract class UsableItem : MonoBehaviour
     protected InputManager inputManager;
     
     [SerializeField] private int maxUses = -1; // -1 means unlimited uses
-    [SerializeField] protected AudioClip useSound;
+    [SerializeField] protected EventReference useSound;
 
     private int currentUses = 0;
 
@@ -29,10 +30,9 @@ public abstract class UsableItem : MonoBehaviour
     {
         if (CanUse())
         {
-            if (useSound != null)
-            {
-                AudioManager.Instance.PlaySFX(useSound);
-            }
+
+            AudioManager.Instance.PlayEvent(useSound);
+            
 
             Use();
             currentUses++;

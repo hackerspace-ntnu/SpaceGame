@@ -367,7 +367,7 @@ GameObject:
   - component: {fileID: 7416604514995229937}
   - component: {fileID: 6765072375231422700}
   - component: {fileID: 5443714000153548352}
-  - component: {fileID: 3438586435870705323}
+  - component: {fileID: 3634993154862894537}
   m_Layer: 0
   m_Name: Ship
   m_TagString: Untagged
@@ -445,8 +445,8 @@ MonoBehaviour:
   ship: {fileID: 4287564649673207549}
   ShipScript: {fileID: 7416604514995229937}
   scrapItem: {fileID: 11400000, guid: ec5e14d2d262f2a47b547b9af33cc2f2, type: 2}
---- !u!82 &447361767500385502
-AudioSource:
+--- !u!114 &3634993154862894537
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -473,9 +473,9 @@ AudioSource:
   Preload: 0
   NonRigidbodyVelocity: 0
   Params: []
-  OverrideAttenuation: 0
+  OverrideAttenuation: 1
   OverrideMinDistance: 1
-  OverrideMaxDistance: 20
+  OverrideMaxDistance: 24.26
 --- !u!1 &2876123993442434995
 GameObject:
   m_ObjectHideFlags: 0

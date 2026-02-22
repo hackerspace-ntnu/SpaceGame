@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class UIManager : MonoBehaviour
+public class LobbyUIManager : MonoBehaviour
 {
   private OpenCloseUIElement[] uiElements;
   void Start()

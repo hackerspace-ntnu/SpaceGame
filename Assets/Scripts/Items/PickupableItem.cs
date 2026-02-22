@@ -1,12 +1,13 @@
 
 
+using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
 /// Script to be attached to pickupable items in the world.
 /// When interacted with, it will attempt to add the item to the player's inventory and destroy itself if successful.
 /// </summary>
-class PickupableItem : MonoBehaviour, IInteractable
+class PickupableItem : NetworkBehaviour, IInteractable
 {
    [SerializeField] private InventoryItem item;
 
@@ -18,13 +19,18 @@ class PickupableItem : MonoBehaviour, IInteractable
 
    public void Interact(Interactor interactor)
    {
-      InventoryComponent inventoryComponent = interactor.GetComponentInParent<InventoryComponent>();
-      if (!inventoryComponent) return;
-      
-      bool added = inventoryComponent.TryAddItem(item);
+      PlayerInventory inventory = interactor.GetComponentInParent<PlayerInventory>();
+      if (!inventory) return;
+      bool added = inventory.TryAddItem(item);
       if (added)
       {
-         Destroy(transform.parent.gameObject);
+         PickupServerRpc();
       }
+   }
+
+   [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+   private void PickupServerRpc()
+   {
+      NetworkObject.Despawn();
    }
 }

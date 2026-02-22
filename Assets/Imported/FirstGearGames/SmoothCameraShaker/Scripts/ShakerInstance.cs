@@ -228,8 +228,7 @@ namespace FirstGearGames.SmoothCameraShaker
                 Mathf.PerlinNoise(0f, seed) - 0.5f
                 );
         }
-
-        private bool _first = true;
+        
         /// <summary>
         /// Returns a new offset for this instnace.
         /// </summary>

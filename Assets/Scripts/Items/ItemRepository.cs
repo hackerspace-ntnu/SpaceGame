@@ -12,4 +12,11 @@ public class ItemRepository : ScriptableObject
         var item = items.Find(i => i.itemId == itemId);
         return item;
     }
+
+    public void AddItem(InventoryItem item)
+    {
+        var existingItem = items.Find(i => i.itemId == item.itemId);
+        if(existingItem) return;
+        items.Add(item);
+    }
 }

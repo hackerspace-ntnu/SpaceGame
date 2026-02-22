@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Linq;
 using Unity.Netcode;
 using UnityEngine.SceneManagement;
 
@@ -27,6 +28,8 @@ public class GameManager : MonoBehaviour
         }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+        
+        FillItemRepository();
     }
 
     private void Update()
@@ -50,5 +53,15 @@ public class GameManager : MonoBehaviour
     public InventoryItem GetItem(string itemId)
     {
         return itemRepository.GetItemById(itemId);
+    }
+
+    private void FillItemRepository()
+    {
+        var items = Resources.LoadAll<InventoryItem>("Items").ToList();
+
+        foreach (var item in items)
+        {
+           itemRepository.AddItem(item);
+        }
     }
 }

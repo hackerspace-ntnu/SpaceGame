@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 4805424008845710970}
   - component: {fileID: 9048075622600858705}
   - component: {fileID: 8677202419445481981}
+  - component: {fileID: 3917420996436959913}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -145,7 +146,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3745584353352685527}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 40daed59ba2660947bc03870e11e3f37, type: 3}
   m_Name: 
@@ -157,3 +158,21 @@ MonoBehaviour:
   roundedPower: 8
   blurSize: 0.5
   followMouse: 0
+--- !u!114 &3917420996436959913
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3745584353352685527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9b7729b1376efa4ea9c4de0543330b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PostProcessVisor
+  glassDistortionMaterial: {fileID: 2100000, guid: 7aff092fca931cb47b4d7ecfc5bc40d4, type: 2}
+  lensCenterX: 0.5
+  lensCenterY: 0.5
+  distortionStrength: 5000
+  roundedPower: 8
+  blurSize: 0.5

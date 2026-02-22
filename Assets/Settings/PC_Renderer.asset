@@ -38,6 +38,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NewURPRenderFeature
   m_Active: 1
   settings: {}
+--- !u!114 &-2197434478218598147
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e29e162683637284c921be5bfd435e6b, type: 3}
+  m_Name: GlassDistortionRenderFeature
+  m_EditorClassIdentifier: Assembly-CSharp::GlassDistortionRenderFeature
+  m_Active: 1
+  settings:
+    renderPassEvent: 550
+    distortionMaterial: {fileID: 2100000, guid: 7aff092fca931cb47b4d7ecfc5bc40d4, type: 2}
+    lensCenterX: 0.5
+    lensCenterY: 0.5
+    distortionStrength: 5000
+    roundedPower: 8
+    blurSize: 0.5
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -64,7 +85,8 @@ MonoBehaviour:
     probeVolumeBlendStatesCS: {fileID: 7200000, guid: b9a23f869c4fd45f19c5ada54dd82176, type: 3}
   m_RendererFeatures:
   - {fileID: 7833122117494664109}
-  m_RendererFeatureMap: ad6b866f10d7b46c
+  - {fileID: -2197434478218598147}
+  m_RendererFeatureMap: ad6b866f10d7b46cfda8950cfc2481e1
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}

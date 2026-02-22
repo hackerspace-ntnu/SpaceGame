@@ -77,7 +77,7 @@ public class LobbyListSystem : MonoBehaviour
         lobbyScreenId.text = "Code: " + lobbyCode;
     }
 
-    public void showPlayerElements(string[] playerNames)
+    public void showPlayerElements(string[] playerNames, string[] playerColors)
     {
         if(SceneManager.GetActiveScene().name != "LobbyMenu")
         {
@@ -89,10 +89,25 @@ public class LobbyListSystem : MonoBehaviour
             Destroy(playerList.GetChild(i).gameObject);
         }
 
-        foreach (string pName in playerNames)
+        for(int i = 0; i < playerNames.Length; i++)
         {
             GameObject pNameInstance = Instantiate(playerDisplayElement, playerList);
-            pNameInstance.transform.GetChild(1).GetComponent<TextMeshProUGUI>().text = pName;
+            pNameInstance.transform.GetChild(1).GetComponent<TextMeshProUGUI>().text = playerNames[i];
+            
+
+            string htmlValue =  playerColors[i];
+            
+
+            if (!htmlValue.StartsWith("#"))
+            {
+                htmlValue = "#" + htmlValue;
+            }
+
+            Color newCol;
+            if (ColorUtility.TryParseHtmlString(htmlValue, out newCol))
+            {
+                pNameInstance.transform.GetChild(0).GetComponent<Image>().color = newCol;
+            }
         }
     }
 

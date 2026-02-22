@@ -230,10 +230,14 @@ public class LobbySystem : NetworkBehaviour
             NetworkManager.Singleton.StartHost();
             List<string> playerNames = new List<string>
             {
-                hostLobby.Players[0].Data["PlayerName"].Value,
+                hostLobby.Players[0].Data["PlayerName"].Value
+            };
+            List<string> playerColors = new List<string>
+            {
+                hostLobby.Players[0].Data["PlayerColor"].Value
             };
             lobbyList.openLobbyScreen(joinedLobby.Name, joinedLobby.LobbyCode);
-            lobbyList.showPlayerElements(playerNames.ToArray());
+            lobbyList.showPlayerElements(playerNames.ToArray(), playerColors.ToArray());
             listLobbies();
             lobbyList.setStartGameButtonState(true);
         }
@@ -276,7 +280,6 @@ public class LobbySystem : NetworkBehaviour
     }
 
     public async void JoinLobbyById(string id) {
-        Debug.Log("Joining lobby: " + id);
         var joinOptions = new JoinLobbyByIdOptions
         {
             Player = GetPlayer()
@@ -306,13 +309,14 @@ public class LobbySystem : NetworkBehaviour
         }
     }
 
+
+
     public async void JoinLobbyByPassword(string lobbyPassword)
     {
         var idOptions = new JoinLobbyByIdOptions{
             Password = lobbyPassword,
             Player = GetPlayer()
         };
-        //Debug.Log("Joining lobby: " + lobbyPassword);
 
         try
         {
@@ -358,11 +362,13 @@ public class LobbySystem : NetworkBehaviour
         if(joinedLobby != null)
         {
             List<string> playerNames = new List<string>();
+            List<string> playerColors = new List<string>();
             foreach (Player p in joinedLobby.Players)
             {
                 playerNames.Add(p.Data["PlayerName"].Value);
+                playerColors.Add(p.Data["PlayerColor"].Value);
             }
-            lobbyList.showPlayerElements(playerNames.ToArray());
+            lobbyList.showPlayerElements(playerNames.ToArray(), playerColors.ToArray());
         }
     }
 
@@ -372,9 +378,43 @@ public class LobbySystem : NetworkBehaviour
         {
             Data = new Dictionary<string, PlayerDataObject>
             {
-                {"PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName)}
+                {"PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName)},
+                {"PlayerColor", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, UnityEngine.ColorUtility.ToHtmlStringRGB(Color.grey))}
             }
         };
+    }
+
+    private void UpdatePlayer(Dictionary<string, PlayerDataObject> data)
+    {
+        UpdatePlayerData(joinedLobby.Id, AuthenticationService.Instance.PlayerId, data);
+    }
+
+    public void UpdatePlayerColor(Color color)
+    {
+        Dictionary<string, PlayerDataObject> playerInfo = new Dictionary<string, PlayerDataObject>
+            {
+                {"PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName)},
+                {"PlayerColor", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, UnityEngine.ColorUtility.ToHtmlStringRGB(color))}
+            };
+        UpdatePlayer(playerInfo);
+    }
+
+    public async void UpdatePlayerData(string lobbyId, string playerId, Dictionary<string, PlayerDataObject> updateData)
+    {
+        try
+        {
+            UpdatePlayerOptions options = new UpdatePlayerOptions
+            {
+                Data = updateData
+            };
+
+            // Update lobby with new player data.
+            var lobby = await LobbyService.Instance.UpdatePlayerAsync(lobbyId, playerId, options);
+        }
+        catch (LobbyServiceException e)
+        {
+            warningSystem.warn(e.Message);
+        }
     }
 
     public async void LeaveLobby() {
@@ -474,5 +514,10 @@ public class LobbySystem : NetworkBehaviour
         {
             warningSystem.warn(e.Message);
         }
+    }
+
+    public Lobby getJoinedLobby()
+    {
+        return joinedLobby;
     }
 }

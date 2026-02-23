@@ -15,9 +15,10 @@ public class GlassDistortionRenderFeature : ScriptableRendererFeature
         [Header("Lens Settings")]
         [Range(0f, 1f)] public float lensCenterX = 0.5f;
         [Range(0f, 1f)] public float lensCenterY = 0.5f;
-        [Range(0f, 10000f)] public float distortionStrength = 5000f;
-        [Range(2f, 16f)] public float roundedPower = 8f;
-        [Range(0f, 2f)] public float blurSize = 0.5f;
+        [Range(0f, 1.5f)] public float lensRadius = 0.35f;
+        [Range(0f, 1f)] public float distortionStrength = 0.7f;
+        [Range(0f, 1f)] public float chromaticAberration = 0.2f;
+        [Range(1f, 3f)] public float lensZoom = 1.5f;
     }
 
     public Settings settings = new Settings();
@@ -74,9 +75,10 @@ public class GlassDistortionRenderFeature : ScriptableRendererFeature
 
             // Update material properties
             material.SetVector("_LensCenter", new Vector2(settings.lensCenterX, settings.lensCenterY));
+            material.SetFloat("_LensRadius", settings.lensRadius);
             material.SetFloat("_DistortionStrength", settings.distortionStrength);
-            material.SetFloat("_RoundedPower", settings.roundedPower);
-            material.SetFloat("_BlurSize", settings.blurSize);
+            material.SetFloat("_ChromaticAberration", settings.chromaticAberration);
+            material.SetFloat("_LensZoom", settings.lensZoom);
 
             // Get descriptor from source and create destination with same settings
             var sourceDesc = renderGraph.GetTextureDesc(source);

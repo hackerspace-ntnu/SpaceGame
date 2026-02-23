@@ -56,9 +56,10 @@ MonoBehaviour:
     distortionMaterial: {fileID: 2100000, guid: 7aff092fca931cb47b4d7ecfc5bc40d4, type: 2}
     lensCenterX: 0.5
     lensCenterY: 0.5
-    distortionStrength: 5000
-    roundedPower: 8
-    blurSize: 0.5
+    lensRadius: 0.97
+    distortionStrength: 0.64
+    chromaticAberration: 1
+    lensZoom: 1.53
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

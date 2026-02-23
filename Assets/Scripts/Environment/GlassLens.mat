@@ -26,11 +26,14 @@ Material:
     - _MainTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
+        m_Offset: {x: 0, y: 1}
     m_Ints: []
     m_Floats:
     - _BlurSize: 0.5
-    - _DistortionStrength: 5000
+    - _ChromaticAberration: 1
+    - _DistortionStrength: 0.64
+    - _LensRadius: 0.97
+    - _LensZoom: 1.53
     - _RoundedPower: 8
     m_Colors:
     - _LensCenter: {r: 0.5, g: 0.5, b: 0, a: 0}

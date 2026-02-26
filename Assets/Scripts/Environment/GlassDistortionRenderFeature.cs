@@ -31,6 +31,12 @@ public class GlassDistortionRenderFeature : ScriptableRendererFeature
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
+        // Don't apply effect in edit mode
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+        
         if (settings.distortionMaterial == null)
         {
             Debug.LogWarning("GlassDistortionRenderFeature: Material not assigned!");

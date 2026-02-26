@@ -1,33 +1,89 @@
-using System;
-using System.Collections.Generic;
-using NUnit.Framework.Constraints;
-using Unity.VisualScripting;
-using UnityEngine;
 
+using System;
+
+/// <summary>
+/// Inventory holds an array of InventorySlots, which can hold InventoryItems.
+/// It provides methods to get a slot, swap items between slots, and find an empty slot.
+/// </summary>
 public class Inventory
 {
-    private InventorySlot[] InventorySlots;
+    private InventorySlot[] slots;
     
-    public int InventorySize;
+    public event Action OnInventoryChanged;
+    
     public Inventory(int size)
     {
-        InventorySize = size;
-        InventorySlots = new InventorySlot[InventorySize];
+        slots = new InventorySlot[size];
 
-        for (int i = 0; i < InventorySize; i++)
+        for (int i = 0; i < slots.Length; i++)
         {
-            InventorySlots[i] = new InventorySlot
+            slots[i] = new InventorySlot
             {
-                SlotIndex = i,
                 Item = null
             };
         }
     }
+    
+    public bool TryAddItem(InventoryItem item)
+    {
+        int index = FindEmptySlot();
+        if (index == -1) return false;
+
+        slots[index].Item = item;
+        OnInventoryChanged?.Invoke();
+        return true;
+    }
+    
+    public bool TryRemoveItem(int index)
+    {
+        if (index >= slots.Length) return false;
+        if (!slots[index].Item) return false;
+
+        slots[index].Item = null;
+        OnInventoryChanged?.Invoke();
+        return true;
+    }
+    
+    public bool TryMoveItem(int to, int from)
+    {
+        if (from == to) {return true;}
+        if (to >= slots.Length || from >= slots.Length) {return false;}
+
+        bool successfulMove;
+        
+        InventorySlot slotTo = GetSlot(to);
+        InventorySlot slotFrom = GetSlot(from);
+
+        if (slotTo.Item == null) {
+            slotTo.Item = slotFrom.Item;
+            slotFrom.Item = null;
+            successfulMove = true;
+        }
+        else
+        {
+            successfulMove = SwapItems(to,from);;
+        }
+
+        if (successfulMove)
+        {
+            OnInventoryChanged?.Invoke();
+        }
+        
+        return successfulMove;
+    }
+    
+    public int GetSize()
+    {
+        return slots.Length;
+    }
+
     public InventorySlot GetSlot(int index)
     {
-        if (index < InventorySize)
+        if(index < 0) return null;
+        
+        if (index < slots.Length)
         {
-            return InventorySlots[index];
+            return slots[index];
         } 
         
         return null;
@@ -35,15 +91,15 @@ public class Inventory
 
     public bool SwapItems(int indexA, int indexB)
     {
-        (InventorySlots[indexA].Item, InventorySlots[indexB].Item) = (InventorySlots[indexB].Item, InventorySlots[indexA].Item); 
+        (slots[indexA].Item, slots[indexB].Item) = (slots[indexB].Item, slots[indexA].Item); 
         return true;
     }
 
     public int FindEmptySlot()
     {
-        for (int i = 0; i < InventorySize; i++)
+        for (int i = 0; i < slots.Length; i++)
         {
-           if (!InventorySlots[i].Item)
+           if (!slots[i].Item)
            { 
                return i;
            } 

@@ -1,18 +1,21 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class MainMenuUI : MonoBehaviour
 {
     [SerializeField] private SceneReference gameScene;
+    [SerializeField] private SceneReference lobbyScene;
 
     public void StartSinglePlayer()
     {
-        SceneManager.LoadScene(gameScene.SceneName);
+        NetworkManager.Singleton.StartHost();
+        NetworkManager.Singleton.SceneManager.LoadScene(gameScene.SceneName, LoadSceneMode.Single);
     }
     
     public void StartMultiPlayer()
     {
-        
+        SceneManager.LoadScene(lobbyScene.SceneName, LoadSceneMode.Single);
     }
     
     public void OpenSettings()

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6249710595814470090}
   - component: {fileID: 1165541541572754599}
   - component: {fileID: 6423389300739737094}
+  - component: {fileID: 2539326445472032332}
   - component: {fileID: 2510619648773099837}
   - component: {fileID: 3555071757310854647}
   - component: {fileID: 159376228010695521}
@@ -94,6 +95,31 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &2539326445472032332
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7402587260625591437}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 3426736755
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!136 &2510619648773099837
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -129,6 +155,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4166341363dd0a4baf6c1076667c6fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AntiGravityPotion
+  maxUses: 1
+  useSound: {fileID: 8300000, guid: a0082604e1ef8aa4984a8e551a291d0d, type: 3}
 --- !u!114 &159376228010695521
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -141,7 +169,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b909b5e57742477f9632f4ce01099c2b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InteractableProxy
-  target: {fileID: 8162854640760311465}
+  target: {fileID: 902142534288597390}
 --- !u!54 &7024374343395886036
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -239,14 +267,3 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8061418575221146880, guid: 05b0b300348e0fa4c9059922515c39e1, type: 3}
   m_PrefabInstance: {fileID: 7159285939087352974}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &8162854640760311465 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1302294201935522343, guid: 05b0b300348e0fa4c9059922515c39e1, type: 3}
-  m_PrefabInstance: {fileID: 7159285939087352974}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 57947eec0c4941c9ada21a38d00cea7f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PickupableItem

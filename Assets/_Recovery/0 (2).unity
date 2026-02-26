@@ -713,6 +713,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: -1591368077576184226, guid: b709759e6e17d2b408aa8f06cce5f55c, type: 3}
+    - target: {fileID: -817925072480010518, guid: b709759e6e17d2b408aa8f06cce5f55c, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: b709759e6e17d2b408aa8f06cce5f55c, type: 3}
       propertyPath: m_Name
       value: DemoScene
@@ -734,6 +738,9 @@ PrefabInstance:
       insertIndex: 41
       addedObject: {fileID: 1522477955}
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b709759e6e17d2b408aa8f06cce5f55c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1076526363}
     - targetCorrespondingSourceObject: {fileID: -8391222552659086748, guid: b709759e6e17d2b408aa8f06cce5f55c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2108166244}

@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -5,7 +6,7 @@ using UnityEngine.InputSystem;
 /// Handles raycasting for object interactions
 /// Sends out a raycast when a button is pressed to detect interactable objects
 /// </summary>
-public class Interactor : MonoBehaviour
+public class Interactor : NetworkBehaviour
 {
     [SerializeField]
     private float _castDistance = 5f;
@@ -13,17 +14,34 @@ public class Interactor : MonoBehaviour
     [SerializeField] private Transform lookTransform;
 
     private InputAction _interactAction;
+    
+    public bool IsHoveringInteractable { get; private set; }
+    
+    [Header("Debug")]
+    [SerializeField] private bool _debugRay = true;
+    private Color hitNormalColor = Color.blue;
+     private Color hitInteractableColor = Color.green;
+     private Color missColor = Color.red;
 
-    private void Awake()
+     private RaycastHit hitInfo;
+    private bool rayCastHit;
+
+    public override void OnNetworkSpawn()
     {
-        // Get the actions from the current Input System
+        if(!IsOwner) return;
         _interactAction = InputSystem.actions.FindAction("Interact");
     }
 
     private void Update()
     {
-        if (!DoInteractionTest(out IInteractable interactable)) return;
+        if(!IsOwner) return;
+        if (!DoInteractionTest(out IInteractable interactable))
+        {
+            IsHoveringInteractable = false;
+            return;
+        }
         
+        IsHoveringInteractable = true;
 
         if (!_interactAction.WasPressedThisFrame()) return;
         
@@ -41,9 +59,18 @@ public class Interactor : MonoBehaviour
         Vector3 direction = lookTransform.forward;
         
         int layerMask = ~LayerMask.GetMask("Player");
-        if (Physics.Raycast(origin, direction, out RaycastHit hitInfo, _castDistance, layerMask))
+
+        Ray ray = new Ray(origin, direction);
+        rayCastHit = Physics.Raycast(ray, out var hit, _castDistance, layerMask);
+        hitInfo = hit;
+        
+        if (rayCastHit)
         {
             interactable = hitInfo.collider.GetComponent<IInteractable>();
+            if (interactable == null)
+            {
+                interactable = hitInfo.collider.GetComponentInParent<IInteractable>();
+            }
             if (interactable != null)
             {
                 return true;
@@ -52,4 +79,38 @@ public class Interactor : MonoBehaviour
         }
         return false;
     }
+    
+    private void OnDrawGizmos()
+    {
+        if (!_debugRay)
+            return;
+        
+        Vector3 origin = lookTransform.position;
+        Vector3 direction = lookTransform.forward;
+        Ray ray = new Ray(origin, direction);
+        
+        Vector3 end = ray.origin + ray.direction * _castDistance;
+
+        if (rayCastHit && hitInfo.collider != null)
+        {
+            IInteractable interactable = hitInfo.collider.GetComponent<IInteractable>();
+            if (interactable != null)
+            {
+                Gizmos.color = hitInteractableColor;
+            }
+            else
+            {
+                Gizmos.color = hitNormalColor;
+            }
+
+            Gizmos.DrawSphere(hitInfo.point, 0.03f);
+            Gizmos.DrawLine(origin, hitInfo.point);
+        }
+        else
+        {
+            Gizmos.color = missColor;
+            Gizmos.DrawLine(origin, end);
+        }
+    }
+
 }

@@ -6,7 +6,6 @@ public class LobbyElementController : MonoBehaviour
   private string lobbyId;
   private string lobbyName;
   private int maxPlayers;
-  private string lobbyCode;
 
   [SerializeField]
   private TextMeshProUGUI lobbyNameUI;
@@ -32,14 +31,8 @@ public class LobbyElementController : MonoBehaviour
   }
 
   public void setLobbyId(string newLobbyId) {
-    lobbyIdUI.text = newLobbyId;
+    //lobbyCodeUI.text = newLobbyId;
     lobbyId = newLobbyId;
-  }
-
-  public void setlobbyCode(string newLobbyCode)
-  {
-    lobbyCodeUI.text = newLobbyCode;
-    lobbyName = newLobbyCode;
   }
 
   public string getLobbyName() {

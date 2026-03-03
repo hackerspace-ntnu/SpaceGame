@@ -43,6 +43,11 @@ public class PlayerMovement : NetworkBehaviour
 
         controls.Enable();
     }
+    
+    private void OnDisable()
+    {
+        controls.Disable();
+    }
 
     private void FixedUpdate()
     {

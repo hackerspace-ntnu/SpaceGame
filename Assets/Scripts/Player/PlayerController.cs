@@ -12,6 +12,11 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private PlayerLook playerLook;
     [SerializeField] private DamageFeedback damageFeedback;
+    
+    [SerializeField] private HealthComponent playerHealth;
+    
+    public PlayerEvents PlayerEvents { get; private set; }
+    
 
     private void Awake()
     {
@@ -20,6 +25,8 @@ public class PlayerController : NetworkBehaviour
         playerMovement.enabled = false;
         playerLook.enabled = false;
         damageFeedback.enabled = false;
+        
+        PlayerEvents = new PlayerEvents();
     }
 
     public override void OnNetworkSpawn()
@@ -30,6 +37,26 @@ public class PlayerController : NetworkBehaviour
         playerMovement.enabled = true;
         playerLook.enabled = true;
         damageFeedback.enabled = true;
+        
+        playerHealth.OnDeath += OnPlayerDeath;
+    }
+
+    public override void OnDestroy()
+    {
+        base.OnDestroy();
+        
+        if(!IsOwner) return;
+        playerHealth.OnDeath -= OnPlayerDeath;
+    }
+    
+    
+    private void OnPlayerDeath()
+    {
+        PlayerEvents.OnPlayerDeath?.Invoke();
+        playerMovement.enabled = false;
+        
+        playerLook.enabled = false;
+        // Turn in to ragdoll
     }
     
 }

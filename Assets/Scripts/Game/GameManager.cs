@@ -47,7 +47,7 @@ public class GameManager : MonoBehaviour
     public void WinGame()
     {
         SetState(GameState.Won);
-        NetworkManager.Singleton.SceneManager.LoadScene(onWinScene.SceneName, LoadSceneMode.Single);
+        SceneManager.LoadScene(onWinScene.SceneName, LoadSceneMode.Single);
     }
 
     public InventoryItem GetItem(string itemId)

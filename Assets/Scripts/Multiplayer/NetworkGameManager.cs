@@ -27,4 +27,16 @@ public class NetworkGameManager : NetworkBehaviour
         // Spawn it specifically as the Player Object for that ID
         playerObj.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
     }
+
+    public void Respawn()
+    {
+        var clientId = NetworkManager.Singleton.LocalClientId;
+        RequestRespawnServerRpc(clientId);
+    }
+
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    private void RequestRespawnServerRpc(ulong clientId)
+    {
+        SpawnPlayerForClient(clientId);
+    }
 }

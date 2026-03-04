@@ -308,6 +308,7 @@ MonoBehaviour:
   playerMovement: {fileID: 1264622234854504379}
   playerLook: {fileID: 6455897939897930130}
   damageFeedback: {fileID: 5495302955700144812}
+  playerHealth: {fileID: -6402392480385526436}
 --- !u!114 &1264622234854504379
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -537,10 +538,26 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2081217750597334166, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}
+      propertyPath: m_Name
+      value: HealthUI
+      objectReference: {fileID: 0}
+    - target: {fileID: 2352148660129119755, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}
+      propertyPath: m_Name
+      value: DeathScreenUI
+      objectReference: {fileID: 0}
+    - target: {fileID: 3449328522178765998, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 5880097550361295370}
     - target: {fileID: 3954543622703053586, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}
       propertyPath: playerInteractor
       value: 
       objectReference: {fileID: 5442324233915425662}
+    - target: {fileID: 5445767004133317603, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 5880097550361295370}
     - target: {fileID: 7010042887717798015, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}
       propertyPath: m_Pivot.x
       value: 0

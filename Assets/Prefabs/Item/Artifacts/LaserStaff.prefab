@@ -1,5 +1,68 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5714951263197686422
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1341511626498563642}
+  - component: {fileID: 7520428007687702641}
+  - component: {fileID: 1709287346689529343}
+  m_Layer: 0
+  m_Name: InventoryItem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1341511626498563642
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5714951263197686422}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.0043632328, y: -0.0043632328, z: 0.00001903816, w: 0.999981}
+  m_LocalPosition: {x: 0.40742692, y: 8.515381, z: -1.7590076}
+  m_LocalScale: {x: 0.33335787, y: 10, z: 9.977964}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4367884902571959165}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7520428007687702641
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5714951263197686422}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57947eec0c4941c9ada21a38d00cea7f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickupableItem
+  item: {fileID: 11400000, guid: 76b49852b365e8a4cb26ee362d2fa87d, type: 2}
+--- !u!114 &1709287346689529343
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5714951263197686422}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 237d3ab58014498d88b389d980dd4b87, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DropItemPhysics
+  rb: {fileID: 6273560345629412132}
+  triggerCollider: {fileID: 8236998910178365487}
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!1 &6144692657685213878
 GameObject:
   m_ObjectHideFlags: 0
@@ -13,8 +76,7 @@ GameObject:
   - component: {fileID: 4824385742757504621}
   - component: {fileID: 8236998910178365487}
   - component: {fileID: 6273560345629412132}
-  - component: {fileID: 5287604737597693461}
-  - component: {fileID: 2821380736508039167}
+  - component: {fileID: 2886460723726913788}
   m_Layer: 0
   m_Name: LaserStaff
   m_TagString: Untagged
@@ -34,7 +96,8 @@ Transform:
   m_LocalPosition: {x: 190, y: 0.003, z: 260.246}
   m_LocalScale: {x: 3, y: 0.1, z: 0.1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1341511626498563642}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0.5, y: 0.5, z: 0}
 --- !u!33 &2494153754647807943
@@ -143,7 +206,7 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &5287604737597693461
+--- !u!114 &2886460723726913788
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -152,24 +215,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 6144692657685213878}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 57947eec0c4941c9ada21a38d00cea7f, type: 3}
+  m_Script: {fileID: 11500000, guid: b909b5e57742477f9632f4ce01099c2b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PickupableItem
-  item: {fileID: 11400000, guid: 76b49852b365e8a4cb26ee362d2fa87d, type: 2}
---- !u!114 &2821380736508039167
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6144692657685213878}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 237d3ab58014498d88b389d980dd4b87, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DropItemPhysics
-  rb: {fileID: 6273560345629412132}
-  triggerCollider: {fileID: 8236998910178365487}
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 0
+  m_EditorClassIdentifier: Assembly-CSharp::InteractableProxy
+  target: {fileID: 1341511626498563642}

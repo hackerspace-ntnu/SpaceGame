@@ -77,6 +77,7 @@ GameObject:
   - component: {fileID: 8236998910178365487}
   - component: {fileID: 6273560345629412132}
   - component: {fileID: 2886460723726913788}
+  - component: {fileID: 6570482996434967317}
   m_Layer: 0
   m_Name: LaserStaff
   m_TagString: Untagged
@@ -219,3 +220,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InteractableProxy
   target: {fileID: 1341511626498563642}
+--- !u!114 &6570482996434967317
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6144692657685213878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c901ffe1626c48a478b96eb7107d42e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StaffScript
+  maxUses: -1
+  useSound: {fileID: 0}

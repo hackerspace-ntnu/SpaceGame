@@ -107,6 +107,7 @@ GameObject:
   - component: {fileID: -6402392480385526436}
   - component: {fileID: 5495302955700144812}
   - component: {fileID: 5779681583284991743}
+  - component: {fileID: 9030159979122590365}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Player
@@ -425,6 +426,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15922c1f9560ee048a4bf8e62d520b04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EffectManager
+--- !u!114 &9030159979122590365
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 494650d4a46d4114fa8261576f24a550, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AimProvider
+  playerCamera: {fileID: 4586483584228166958}
 --- !u!1001 &2677432995988726931
 PrefabInstance:
   m_ObjectHideFlags: 0

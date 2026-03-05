@@ -2,14 +2,25 @@ using UnityEngine;
 
 public class LightningSpell : ToolItem
 {
+    [SerializeField] private GameObject lightningVFXPrefab;
+    [SerializeField] private float spawnHeightOffset = 10f;
+    [SerializeField] private float raycastDistance = 500f;
+    Vector3 spawnPoint;
+
+
+
     protected override void Use()
-    {
-        Debug.Log("LightningSpell used! Spawning lightning...");
-        // The actual spawning of the lightning is handled by the LightningSpawner component on the player
-        if (useSound == null) {
-            Debug.LogWarning("Use sound not assigned for LightningSpell!");
-            return;
+    {     
+        spawnPoint = aimProvider.getRayCast(raycastDistance)?.point + Vector3.up * spawnHeightOffset ?? Vector3.zero;
+
+        if (lightningVFXPrefab != null)
+        {
+            Instantiate(lightningVFXPrefab, spawnPoint, Quaternion.Euler(90f, 0f, 0f));
         }
-        // Removal from inventory and destruction is now handled by base class when maxUses is reached
+        else
+        {
+            Debug.LogWarning("LightningSpell: No Lightning VFX prefab assigned.");
+        }
+
     }
 }

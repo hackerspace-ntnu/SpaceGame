@@ -18,8 +18,8 @@ public class LobbyListSystem : MonoBehaviour
     [SerializeField]
     private Toggle lobbyPrivateToggle;
 
-    [SerializeField]
-    private TextMeshProUGUI lobbyPasswordInputField;
+    [SerializeField] 
+    private TMP_InputField passwordInputField;
 
     [SerializeField]
     private GameObject lobbyPasswordObject;
@@ -65,14 +65,16 @@ public class LobbyListSystem : MonoBehaviour
 
     public string getLobbyPasswordInputText()
     {
-        return lobbyPasswordInputField.text;
+        return passwordInputField.text;
     }
 
-    public void openLobbyScreen(string lobbyName)
+    public void openLobbyScreen(string lobbyName, string lobbyCode)
     {
         TextMeshProUGUI lobbyScreenTitle = lobbyScreen.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
+        TextMeshProUGUI lobbyScreenId = lobbyScreen.transform.GetChild(1).GetComponent<TextMeshProUGUI>();
         lobbyScreen.SetActive(true);
         lobbyScreenTitle.text = lobbyName;
+        lobbyScreenId.text = "Code: " + lobbyCode;
     }
 
     public void showPlayerElements(string[] playerNames)
@@ -81,7 +83,7 @@ public class LobbyListSystem : MonoBehaviour
         {
             return;
         }
-        Transform playerList = lobbyScreen.transform.GetChild(2).GetChild(0).GetChild(0);
+        Transform playerList = lobbyScreen.transform.GetChild(3).GetChild(0).GetChild(0);
         for (int i = 0; i < playerList.childCount; i++)
         {
             Destroy(playerList.GetChild(i).gameObject);
@@ -107,6 +109,15 @@ public class LobbyListSystem : MonoBehaviour
 
     public void setStartGameButtonState(bool state)
     {
+        if (SceneManager.GetActiveScene().name != "LobbyMenu")
+        {
+            return;
+        }
         startGameButton.SetActive(state);
+    }
+
+    public void hideLobbyScreen()
+    {
+        lobbyScreen.SetActive(false);
     }
 }

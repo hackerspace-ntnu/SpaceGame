@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -7,10 +8,10 @@ public class PlayerLook : MonoBehaviour
     public InputActionReference lookAction; // Vector2
 
     [Header("References")]
-    public Transform cameraRoot;    
+    public GameObject playerCamera;    
     public Transform playerHead; 
     public Transform playerBody;
-    private Rigidbody rigidbody;
+    private Rigidbody playerRigidbody;
 
     [Header("Settings")]
     public float sensitivity = 1f;
@@ -25,7 +26,7 @@ public class PlayerLook : MonoBehaviour
         // Lock cursor to center
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-        rigidbody = playerBody.GetComponent<Rigidbody>();
+        playerRigidbody = playerBody.GetComponent<Rigidbody>();
         
         // Hide the player head mesh to prevent clipping with the camera
         var headRenderer = playerHead.GetComponent<SkinnedMeshRenderer>();
@@ -49,16 +50,16 @@ public class PlayerLook : MonoBehaviour
         // body rotation (yaw)
         float yaw = lookInput.x * sensitivity * Time.deltaTime;
         Quaternion delta = Quaternion.Euler(0f, yaw, 0f);
-        rigidbody.MoveRotation(rigidbody.rotation * delta);
+        playerRigidbody.MoveRotation(playerRigidbody.rotation * delta);
 
         // camera rotation (pitch)
         pitch -= lookInput.y * sensitivity * Time.deltaTime;
         pitch = Mathf.Clamp(pitch, -verticalClamp, verticalClamp);
-        cameraRoot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+        playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 
 
-    private void OnDestroy()
+    public void OnDestroy()
     {
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;

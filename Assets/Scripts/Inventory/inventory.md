@@ -5,9 +5,6 @@
 ### `Inventory.cs`
 An array of inventory slots. Contains pure logic for adding and removing items to the slots of this array.
 
-### `InventoryComponent.cs`
-A component that can be attached to a gameObject to give it an inventory. Connects the inventory data class to the game environment. Meant to be inherited to allow more specialized inventories.
-
 ### `InventorySlot.cs`
 Contains the item. Can be empty or occupied.
 

@@ -8,7 +8,6 @@ public class DropItemPhysics : MonoBehaviour
 {
     [SerializeField] private Rigidbody rb;
     [SerializeField] private Collider triggerCollider;
-    private bool physicsEnabled = false;
     [SerializeField] private LayerMask groundLayer;
 
     private void OnTriggerEnter(Collider other)

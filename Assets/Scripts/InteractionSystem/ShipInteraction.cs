@@ -32,7 +32,7 @@ public class ShipInteraction : NetworkBehaviour, IInteractable
                 return;
             }
             bool accepted = false;
-            if (inventoryItem.ItemId == scrapItem.ItemId)
+            if (inventoryItem.ID == scrapItem.ID)
             {
                 accepted = playerInventory.TryRemoveItem(playerInventory.selectedSlotIndex);
             }

@@ -63,13 +63,13 @@ public class EquipmentController : NetworkBehaviour
 
     public void Equip(InventoryItem item)
     {
-        EquipServerRpc(item.ItemId);
+        EquipServerRpc(item.ID);
     }
     
     [ServerRpc]
     private void EquipServerRpc(string itemId)
     {
-        InventoryItem item = GameManager.Instance.GetItem(itemId);
+        InventoryItem item = Registry<InventoryItem>.Get(itemId);
         Unequip();
 
         if (!item.itemPrefab)

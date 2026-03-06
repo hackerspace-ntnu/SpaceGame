@@ -96,13 +96,13 @@ public class PlayerInventory  : NetworkBehaviour
 
         InventoryItem item = slot.Item;
         TryRemoveItem(selectedSlotIndex);
-        DropItemServerRpc(item.ItemId);
+        DropItemServerRpc(item.ID);
     }
 
     [ServerRpc]
     private void DropItemServerRpc(string itemId)
     {
-        InventoryItem item = GameManager.Instance.GetItem(itemId);
+        InventoryItem item = Registry<InventoryItem>.Get(itemId);
         SpawnDroppedItem(item);
     }
     

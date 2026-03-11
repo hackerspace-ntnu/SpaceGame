@@ -1,10 +1,12 @@
+using System;
 using UnityEngine;
 
-public class InventoryUI : MonoBehaviour
+public class InventoryUI: MonoBehaviour
 {
     private InventorySlotUI[] slotUIs;
-    
-    [SerializeField] private PlayerInventory playerInventory;
+
+    [SerializeField] private PlayerController player;
+    private IPlayerInventory playerInventory;
     
     [SerializeField] private Transform slotPrefab;
     [SerializeField] private Transform inventoryGrid; 
@@ -12,8 +14,13 @@ public class InventoryUI : MonoBehaviour
     private int selectedIndex = -1;
     private int hoveredIndex = -1;
 
-    public void OnEnable()
+    private void Start()
     {
+        playerInventory = player.PlayerInventory;
+        if (playerInventory == null)
+            Debug.LogError("Assigned inventoryComponent does not implement IPlayerInventory!");
+        
+        if(playerInventory == null) return;
         playerInventory.OnSlotSelected += OnSlotSelected;
         playerInventory.OnInventoryChanged += OnPlayerInventoryChanged;
         InitializeUI();
@@ -22,8 +29,8 @@ public class InventoryUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        if(!playerInventory) return;
-        playerInventory.OnSlotSelected -= OnSlotSelected;
+        if(playerInventory != null)
+            playerInventory.OnSlotSelected -= OnSlotSelected;
     }
 
     public void InitializeUI()
@@ -43,9 +50,16 @@ public class InventoryUI : MonoBehaviour
         RefreshAll();
     }
     
-    private void OnSlotSelected(int index)
+    private void OnSlotSelected(InventorySlot slot)
     {
-        selectedIndex = index;
+        if (slot == null)
+        {
+            selectedIndex = -1;
+        }
+        else
+        {
+            selectedIndex = slot.Index;
+        }
         RefreshAll();
     }
     

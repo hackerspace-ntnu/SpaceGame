@@ -10,19 +10,13 @@ public abstract class EffectItem : UsableItem
     protected EffectManager effectManager;
     protected Effect currentEffect;
 
-    protected override void Awake()
+    protected void Awake()
     {
-        base.Awake();
         GameObject player = GameObject.FindWithTag("Player");
         if (player != null)
         {
             effectManager = player.GetComponent<EffectManager>();
         }
-    }
-
-    protected override void OnDisable()
-    {
-        base.OnDisable();
     }
 
     /// <summary>

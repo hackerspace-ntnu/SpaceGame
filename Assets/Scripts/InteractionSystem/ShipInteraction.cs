@@ -34,7 +34,7 @@ public class ShipInteraction : NetworkBehaviour, IInteractable
             bool accepted = false;
             if (inventoryItem.ID == scrapItem.ID)
             {
-                accepted = playerInventory.TryRemoveItem(playerInventory.selectedSlotIndex);
+                accepted = playerInventory.TryRemoveItem(playerInventory.SelectedSlotIndex);
             }
             if (accepted)
             {

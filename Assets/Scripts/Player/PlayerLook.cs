@@ -4,9 +4,7 @@ using UnityEngine.InputSystem;
 
 public class PlayerLook : MonoBehaviour
 {
-    [Header("Input")]
-    public InputActionReference lookAction; // Vector2
-
+    private PlayerInputManager inputs;
     [Header("References")]
     public GameObject playerCamera;    
     public Transform playerHead; 
@@ -23,6 +21,7 @@ public class PlayerLook : MonoBehaviour
     
     private void Start()
     {
+        inputs = GetComponent<PlayerController>().Input;
         playerRigidbody = playerBody.GetComponent<Rigidbody>();
         
         // Hide the player head mesh to prevent clipping with the camera
@@ -35,19 +34,17 @@ public class PlayerLook : MonoBehaviour
         // Lock cursor to center
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-        lookAction.action.Enable();
     }
 
     private void OnDisable()
     {
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        lookAction.action.Disable();
     }
     
     void Update()
     {
-        lookInput = lookAction.action.ReadValue<Vector2>();
+        lookInput = inputs.LookInput;
 
         // body rotation (yaw)
         float yaw = lookInput.x * sensitivity * Time.deltaTime;

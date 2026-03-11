@@ -103,11 +103,11 @@ GameObject:
   - component: {fileID: -2656605091302044008}
   - component: {fileID: 2373467063951106400}
   - component: {fileID: 7560167703051224905}
-  - component: {fileID: 5824313762174812174}
   - component: {fileID: 8861937888077706661}
   - component: {fileID: 980568265328903961}
   - component: {fileID: 1681600809652155392}
   - component: {fileID: 2565023486001716576}
+  - component: {fileID: 4776161518062670517}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -304,7 +304,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 751e366a69c1a8248b66ec18ac6986b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  ShowTopMostFoldoutHeaderGroup: 1
   moveSpeed: 6
   airControl: 0.3
   jumpForce: 7
@@ -335,21 +334,6 @@ MonoBehaviour:
   playerBody: {fileID: 7571235748023247877}
   sensitivity: 20
   verticalClamp: 80
---- !u!114 &5824313762174812174
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1139436794606665169}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3d3c3ee9f96f4d8fa345def3372865d2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerInventory
-  ShowTopMostFoldoutHeaderGroup: 1
-  hotbarController: {fileID: 980568265328903961}
-  startingItems: []
 --- !u!114 &8861937888077706661
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -362,7 +346,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c9c44c21aa4aa1438d79abad4ffd9e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Interactor
-  ShowTopMostFoldoutHeaderGroup: 1
   _castDistance: 20
   lookTransform: {fileID: 2157217508712347428}
   _debugRay: 1
@@ -390,8 +373,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 439ac31860ab4e6589c9cb165f8af5ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentController
-  ShowTopMostFoldoutHeaderGroup: 1
-  playerInventory: {fileID: 0}
   handSocket: {fileID: 7954253418651921130}
 --- !u!114 &2565023486001716576
 MonoBehaviour:
@@ -405,6 +386,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15922c1f9560ee048a4bf8e62d520b04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EffectManager
+--- !u!114 &4776161518062670517
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1139436794606665169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75ed90fe11e642b39b59391638e18632, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerInventoryComponent
+  inventorySize: 4
+  startingItems: []
 --- !u!1 &1159096532428065929
 GameObject:
   m_ObjectHideFlags: 0

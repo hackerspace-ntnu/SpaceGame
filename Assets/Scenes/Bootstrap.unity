@@ -129,8 +129,9 @@ GameObject:
   m_Component:
   - component: {fileID: 286853065}
   - component: {fileID: 286853064}
+  - component: {fileID: 286853066}
   m_Layer: 0
-  m_Name: Registry
+  m_Name: Bootstrapper
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -163,6 +164,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &286853066
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 286853063}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5af489af23a4c568044ce54d55d8dec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameServiceLoader
 --- !u!1001 &576554536
 PrefabInstance:
   m_ObjectHideFlags: 0

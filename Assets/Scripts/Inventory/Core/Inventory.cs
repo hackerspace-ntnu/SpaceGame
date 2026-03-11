@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// Inventory holds an array of InventorySlots, which can hold InventoryItems.
@@ -17,19 +18,35 @@ public class Inventory
 
         for (int i = 0; i < slots.Length; i++)
         {
-            slots[i] = new InventorySlot
-            {
-                Item = null
-            };
+            slots[i] = new InventorySlot(i);
         }
+    }
+    
+    public List<string> GetItemIDs()
+    {
+        List<string> ids = new();
+
+        for (int i = 0; i < GetSize(); i++)
+        {
+            var slot = GetSlot(i);
+            ids.Add(slot.IsEmpty ? null : slot.Item.ID);
+        }
+
+        return ids;
+    }
+    
+    public void SetItem(int index, InventoryItem item)
+    {
+        var slot = GetSlot(index);
+        slot.Item = item;
     }
     
     public bool TryAddItem(InventoryItem item)
     {
         int index = FindEmptySlot();
         if (index == -1) return false;
-
-        slots[index].Item = item;
+        
+        SetItem(index, item);
         OnInventoryChanged?.Invoke();
         return true;
     }
@@ -38,8 +55,8 @@ public class Inventory
     {
         if (index >= slots.Length) return false;
         if (!slots[index].Item) return false;
-
-        slots[index].Item = null;
+        
+        SetItem(index, null);
         OnInventoryChanged?.Invoke();
         return true;
     }

@@ -19,8 +19,8 @@ class PickupableItem : NetworkBehaviour, IInteractable
 
    public void Interact(Interactor interactor)
    {
-      PlayerInventory inventory = interactor.GetComponent<PlayerInventory>();
-      if (!inventory) return;
+      IPlayerInventory inventory = interactor.GetComponent<IPlayerInventory>();
+      if (inventory == null) return;
       bool added = inventory.TryAddItem(item);
       if (added)
       {

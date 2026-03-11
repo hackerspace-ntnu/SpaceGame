@@ -5,17 +5,12 @@ public class DeathScreenUI : MonoBehaviour
     
     [SerializeField] private RectTransform deathScreen;
     [SerializeField] private PlayerController player;
-    
-    private void OnEnable()
-    {
-        deathScreen.gameObject.SetActive(false);
-        player.PlayerEvents.OnPlayerDeath += ShowDeathScreen;
-    }
 
-    private void OnDisable()
+
+    private void Start()
     {
         deathScreen.gameObject.SetActive(false);
-        player.PlayerEvents.OnPlayerDeath -= ShowDeathScreen;
+        player.OnPlayerDeath += ShowDeathScreen;
     }
     
     private void ShowDeathScreen()

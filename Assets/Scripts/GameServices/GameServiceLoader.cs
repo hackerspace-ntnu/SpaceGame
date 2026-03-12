@@ -1,12 +1,11 @@
 
-using System;
 using UnityEngine;
 
 public class GameServiceLoader : MonoBehaviour
 {
-    private void Awake()
+    void Awake()
     {
-        GameServices.ItemDropService = new PlayerDropService();
+        GameServices.Initialize();
     }
 }
 

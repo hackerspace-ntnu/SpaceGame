@@ -7,7 +7,7 @@ using UnityEngine;
 /// Script to be attached to pickupable items in the world.
 /// When interacted with, it will attempt to add the item to the player's inventory and destroy itself if successful.
 /// </summary>
-class PickupableItem : NetworkBehaviour, IInteractable
+class PickupableItem : MonoBehaviour, IInteractable
 {
    [SerializeField] private InventoryItem item;
 
@@ -24,13 +24,7 @@ class PickupableItem : NetworkBehaviour, IInteractable
       bool added = inventory.TryAddItem(item);
       if (added)
       {
-         PickupServerRpc();
+         GameServices.World.Despawn(gameObject);
       }
-   }
-
-   [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-   private void PickupServerRpc()
-   {
-      NetworkObject.Despawn();
    }
 }

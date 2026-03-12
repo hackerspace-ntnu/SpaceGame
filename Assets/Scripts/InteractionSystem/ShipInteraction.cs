@@ -20,7 +20,7 @@ public class ShipInteraction : NetworkBehaviour, IInteractable
     }
     public void Interact(Interactor interactor)
     {
-        if (interactor.TryGetComponent<PlayerInventory>(out PlayerInventory playerInventory))
+        if (interactor.TryGetComponent(out IPlayerInventory playerInventory))
         {
             InventorySlot inventorySlot = playerInventory.GetSelectedSlot();
             if(inventorySlot == null) return;

@@ -19,7 +19,11 @@ public class PlayerInventoryNetwork : NetworkBehaviour, IPlayerInventory
     public int SelectedSlotIndex => networkSelectedSlot.Value;
     
     public event Action<InventorySlot> OnSlotSelected;
-    public event Action OnInventoryChanged;
+    public event Action<int, InventorySlot> OnSlotChanged
+    {
+        add => inventory.OnSlotChanged += value; 
+        remove => inventory.OnSlotChanged -= value;
+    }
     
     public event Action<InventoryItem> OnItemDropped
     {
@@ -34,9 +38,10 @@ public class PlayerInventoryNetwork : NetworkBehaviour, IPlayerInventory
 
     public override void OnNetworkSpawn()
     {
+        inventory = new PlayerInventory(inventorySize, startingItems);
+        
         if (IsServer)
         {
-            inventory = new PlayerInventory(inventorySize, startingItems);
             SyncInventory();
         }
 
@@ -59,7 +64,15 @@ public class PlayerInventoryNetwork : NetworkBehaviour, IPlayerInventory
 
     private void HandleNetworkListChanged(NetworkListEvent<FixedString64Bytes> changeEvent)
     {
-        OnInventoryChanged?.Invoke();
+        int index = changeEvent.Index;
+
+        var id = networkItems[index];
+
+        InventoryItem item = string.IsNullOrEmpty(id.Value)
+            ? null
+            : Registry<InventoryItem>.Get(id.Value);
+
+        inventory.SetItem(index, item);
     }
 
     private void HandleSelectedSlotChanged(int oldValue, int newValue)
@@ -70,12 +83,12 @@ public class PlayerInventoryNetwork : NetworkBehaviour, IPlayerInventory
     
     private void SyncInventory()
     {
-        networkItems.Clear();
-
         var ids = inventory.GetItemIDs();
 
-        foreach (var id in ids)
-            networkItems.Add(id);
+        for (int i = 0; i < ids.Count; i++)
+        {
+            networkItems[i] = ids[i];
+        }
     }
 
     // --- Client requests selection ---
@@ -105,8 +118,8 @@ public class PlayerInventoryNetwork : NetworkBehaviour, IPlayerInventory
     {
         InventoryItem item = Registry<InventoryItem>.Get(itemId);
 
-        if (inventory.TryAddItem(item))
-            SyncInventory();
+        if (inventory.TryAddItem(item, out int index))
+            networkItems[index] = itemId;
     }
 
     // --- Client requests remove ---
@@ -122,7 +135,7 @@ public class PlayerInventoryNetwork : NetworkBehaviour, IPlayerInventory
     {
         if (inventory.TryRemoveItem(index))
         {
-            SyncInventory();
+            networkItems[index] = null;
         }
     }
 

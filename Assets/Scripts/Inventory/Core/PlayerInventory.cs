@@ -16,12 +16,11 @@ public class PlayerInventory
 
     public event Action<InventorySlot> OnSlotSelected;
     
-    public event Action OnInventoryChanged
+    public event Action<int, InventorySlot> OnSlotChanged
     {
-        add => inventory.OnInventoryChanged += value; 
-        remove => inventory.OnInventoryChanged -= value;
+        add => inventory.OnSlotChanged += value; 
+        remove => inventory.OnSlotChanged -= value;
     }
-
     
     public event Action<InventoryItem> OnItemDropped;
     
@@ -55,11 +54,17 @@ public class PlayerInventory
         var slot = GetSlot(SelectedSlotIndex);
         OnSlotSelected?.Invoke(slot);
     }
-
+    
     public bool TryAddItem(InventoryItem item)
     {
+        return TryAddItem(item, out _);
+    }
+
+    public bool TryAddItem(InventoryItem item, out int index)
+    {
+        index = -1;
         if (!item) return false;
-        bool result = inventory.TryAddItem(item);
+        bool result = inventory.TryAddItem(item, out index);
         return result;
     }
 

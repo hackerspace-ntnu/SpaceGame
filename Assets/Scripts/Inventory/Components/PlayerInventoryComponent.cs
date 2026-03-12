@@ -16,10 +16,10 @@ public class PlayerInventoryComponent: MonoBehaviour, IPlayerInventory
         add => playerInventory.OnSlotSelected += value; 
         remove => playerInventory.OnSlotSelected -= value;
     }
-    public event Action OnInventoryChanged
+    public event Action<int, InventorySlot> OnSlotChanged
     {
-        add => playerInventory.OnInventoryChanged += value; 
-        remove => playerInventory.OnInventoryChanged -= value;
+        add => playerInventory.OnSlotChanged += value; 
+        remove => playerInventory.OnSlotChanged -= value;
     }
     
     public event Action<InventoryItem> OnItemDropped

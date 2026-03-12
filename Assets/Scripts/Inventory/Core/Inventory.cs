@@ -10,7 +10,7 @@ public class Inventory
 {
     private InventorySlot[] slots;
     
-    public event Action OnInventoryChanged;
+    public event Action<int, InventorySlot> OnSlotChanged;
     
     public Inventory(int size)
     {
@@ -43,11 +43,16 @@ public class Inventory
     
     public bool TryAddItem(InventoryItem item)
     {
-        int index = FindEmptySlot();
+        return TryAddItem(item, out _);
+    }
+    
+    public bool TryAddItem(InventoryItem item, out int index)
+    {
+        index = FindEmptySlot();
         if (index == -1) return false;
         
         SetItem(index, item);
-        OnInventoryChanged?.Invoke();
+        OnSlotChanged?.Invoke(index, GetSlot(index));
         return true;
     }
     
@@ -57,7 +62,7 @@ public class Inventory
         if (!slots[index].Item) return false;
         
         SetItem(index, null);
-        OnInventoryChanged?.Invoke();
+        OnSlotChanged?.Invoke(index, GetSlot(index));
         return true;
     }
     
@@ -83,7 +88,8 @@ public class Inventory
 
         if (successfulMove)
         {
-            OnInventoryChanged?.Invoke();
+            OnSlotChanged?.Invoke(from, GetSlot(from));
+            OnSlotChanged?.Invoke(to, GetSlot(to));
         }
         
         return successfulMove;

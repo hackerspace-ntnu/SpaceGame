@@ -22,7 +22,7 @@ public class InventoryUI: MonoBehaviour
         
         if(playerInventory == null) return;
         playerInventory.OnSlotSelected += OnSlotSelected;
-        playerInventory.OnInventoryChanged += OnPlayerInventoryChanged;
+        playerInventory.OnSlotChanged += OnPlayerInventoryChanged;
         InitializeUI();
     }
 
@@ -63,7 +63,7 @@ public class InventoryUI: MonoBehaviour
         RefreshAll();
     }
     
-    private void OnPlayerInventoryChanged()
+    private void OnPlayerInventoryChanged(int index, InventorySlot slot)
     {
         RefreshAll();
     }

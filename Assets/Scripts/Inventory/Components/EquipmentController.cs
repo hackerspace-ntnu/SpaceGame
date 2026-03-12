@@ -28,10 +28,17 @@ public class EquipmentController : MonoBehaviour, IEquipHandler
     {
         inventory = GetComponent<PlayerController>().PlayerInventory;
         inventory.OnSlotSelected += Equip;
+        inventory.OnSlotChanged += OnSlotChanged;
         inventory.OnItemDropped += item => GameServices.ItemDropService.DropItem(handSocket, item);
         
         PlayerInputManager input = GetComponent<PlayerController>().Input;
         input.OnUsePressed += OnUse;
+    }
+
+    private void OnSlotChanged(int index, InventorySlot slot)
+    {
+        if(inventory.SelectedSlotIndex != index) return;
+        Equip(slot);
     }
 
     public void Equip(InventorySlot slot)

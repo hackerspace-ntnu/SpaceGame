@@ -5,7 +5,7 @@ public interface IPlayerInventory
 {
     int SelectedSlotIndex { get; }
     event Action<InventorySlot> OnSlotSelected;
-    event Action OnInventoryChanged;
+    event Action<int, InventorySlot> OnSlotChanged;
     event Action<InventoryItem> OnItemDropped;
 
     bool TryAddItem(InventoryItem item);

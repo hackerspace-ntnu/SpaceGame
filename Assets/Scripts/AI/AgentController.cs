@@ -45,13 +45,11 @@ public class AgentController : MonoBehaviour
     {
         if (brainComponent != null && brainComponent is not IAgentBrain)
         {
-            Debug.LogWarning($"{name}: Assigned brainComponent does not implement IAgentBrain. Auto-resolving instead.", this);
             brainComponent = null;
         }
 
         if (motorComponent != null && motorComponent is not IMovementMotor)
         {
-            Debug.LogWarning($"{name}: Assigned motorComponent does not implement IMovementMotor. Auto-resolving instead.", this);
             motorComponent = null;
         }
 

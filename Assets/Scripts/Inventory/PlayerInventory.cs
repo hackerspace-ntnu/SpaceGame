@@ -31,6 +31,7 @@ public class PlayerInventory  : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         InitializeInput();
+        SelectFirstOccupiedSlotIfNeeded();
     }
     
     private void InitializeInventory()
@@ -141,7 +142,13 @@ public class PlayerInventory  : NetworkBehaviour
     {
         if (!item) return false;
 
-        return inventory.TryAddItem(item);
+        bool added = inventory.TryAddItem(item);
+        if (added)
+        {
+            SelectFirstOccupiedSlotIfNeeded();
+        }
+
+        return added;
     } 
 
     /// <summary>
@@ -172,5 +179,26 @@ public class PlayerInventory  : NetworkBehaviour
     public int GetInventorySize()
     {
         return inventory.GetSize();
+    }
+
+    private void SelectFirstOccupiedSlotIfNeeded()
+    {
+        if (!IsOwner || selectedSlotIndex >= 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < inventory.GetSize(); i++)
+        {
+            InventorySlot slot = inventory.GetSlot(i);
+            if (slot == null || slot.Item == null)
+            {
+                continue;
+            }
+
+            selectedSlotIndex = i;
+            OnSlotSelected?.Invoke(selectedSlotIndex);
+            return;
+        }
     }
 }

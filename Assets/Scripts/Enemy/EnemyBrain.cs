@@ -18,6 +18,7 @@ public class EnemyBrain : MonoBehaviour, IAgentBrain
     [SerializeField] private float chaseSpeedMultiplier = 1.3f;
 
     private bool hasTarget;
+    private LassoTarget lassoTarget;
 
     private void Awake()
     {
@@ -25,6 +26,8 @@ public class EnemyBrain : MonoBehaviour, IAgentBrain
         {
             wanderBehaviour = GetComponent<WanderBehaviour>();
         }
+
+        lassoTarget = GetComponent<LassoTarget>();
     }
 
     private void OnEnable()
@@ -35,6 +38,11 @@ public class EnemyBrain : MonoBehaviour, IAgentBrain
 
     public MoveIntent Tick(in AgentContext context, float deltaTime)
     {
+        if (lassoTarget != null && lassoTarget.TryGetLeadIntent(context.Position, out MoveIntent lassoIntent))
+        {
+            return lassoIntent;
+        }
+
         TryResolveTarget();
 
         if (target)

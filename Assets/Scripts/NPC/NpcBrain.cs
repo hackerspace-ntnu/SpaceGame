@@ -17,6 +17,7 @@ public class NpcBrain : MonoBehaviour, IAgentBrain
     private float pauseTimer;
     private Transform interactionFocusTarget;
     private float interactionFocusTimer;
+    private LassoTarget lassoTarget;
 
     private void Awake()
     {
@@ -24,6 +25,8 @@ public class NpcBrain : MonoBehaviour, IAgentBrain
         {
             wanderBehaviour = GetComponent<WanderBehaviour>();
         }
+
+        lassoTarget = GetComponent<LassoTarget>();
     }
 
     private void OnEnable()
@@ -36,6 +39,11 @@ public class NpcBrain : MonoBehaviour, IAgentBrain
 
     public MoveIntent Tick(in AgentContext context, float deltaTime)
     {
+        if (lassoTarget != null && lassoTarget.TryGetLeadIntent(context.Position, out MoveIntent lassoIntent))
+        {
+            return lassoIntent;
+        }
+
         if (interactionFocusTimer > 0f && interactionFocusTarget)
         {
             interactionFocusTimer -= deltaTime;

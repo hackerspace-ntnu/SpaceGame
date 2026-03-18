@@ -32,10 +32,19 @@ public class PlayerMovement : NetworkBehaviour
     private void Awake()
     {
         controls  = new InputControls();
+
+        if (rb == null)
+            rb = GetComponent<Rigidbody>();
+
+        if (animator == null)
+            animator = GetComponent<Animator>();
     }
 
     private void OnEnable()
     {
+        if (controls == null)
+            controls = new InputControls();
+
         controls.Player.Move.performed += ctx => OnMove(ctx.ReadValue<Vector2>());
         controls.Player.Move.canceled += ctx => OnMove(Vector2.zero);
         controls.Player.Jump.performed += ctx => OnJump();
@@ -46,6 +55,8 @@ public class PlayerMovement : NetworkBehaviour
 
     private void FixedUpdate()
     {
+        if (!IsOwner) return;
+
         HandleJumpCooldown();
 
         if (!groundSnapEnabled)
@@ -93,11 +104,14 @@ public class PlayerMovement : NetworkBehaviour
 
     public void OnMove(Vector2 inputVector)
     {
+        if (!IsOwner) return;
         input = inputVector;
     }
 
     public void OnJump()
     {
+        if (!IsOwner) return;
+
         if (IsGrounded() && !jumpOnCooldown)
         {
             Vector3 v = rb.linearVelocity;
@@ -110,6 +124,8 @@ public class PlayerMovement : NetworkBehaviour
 
     public void OnDash()
     {
+        if (!IsOwner) return;
+
         Vector3 dashDirection = transform.forward;
         if (playerCamera)
         {

@@ -7,6 +7,16 @@ using UnityEngine;
 /// </summary>
 public abstract class ToolItem : UsableItem
 {
+    protected AimProvider aimProvider;
+
+    protected override void Awake()
+    {
+        base.Awake();
+        // Item is parented to the player's hand socket when equipped,
+        // so we can walk up the hierarchy to find the player's AimProvider.
+        aimProvider = GetComponentInParent<AimProvider>();
+    }
+
     // Tool items use the default UsableItem behavior
     // Just override Use() to implement your immediate effect
 }

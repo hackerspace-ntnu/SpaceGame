@@ -1,23 +1,16 @@
-
 using System;
 using UnityEngine;
 
-/// <summary>
-/// Controller responsible for equipping and unequipping items.
-/// It instantiates the item's prefab and attaches it to the player's hand socket when equipped,
-/// and destroys it when unequipped.
-///
-/// Physocs are disabled on equippped items. 
-/// </summary>
-public class EquipmentController : MonoBehaviour, IEquipHandler
+public class EquipmentController : MonoBehaviour
 {
     [SerializeField] private Transform handSocket;
 
     private EquipItemSocket equipmentSocket;
-    
     private IPlayerInventory inventory;
     
     private GameObject equippedItemObject;
+
+    public event Action<InventoryItem> OnEquipRequested;
 
     private void Awake()
     {
@@ -26,36 +19,59 @@ public class EquipmentController : MonoBehaviour, IEquipHandler
 
     private void Start()
     {
-        inventory = GetComponent<PlayerController>().PlayerInventory;
-        inventory.OnSlotSelected += Equip;
+        var player = GetComponent<PlayerController>();
+        inventory = player.PlayerInventory;
+
+        inventory.OnSlotSelected += HandleEquip;
         inventory.OnSlotChanged += OnSlotChanged;
-        inventory.OnItemDropped += item => GameServices.ItemDropService.DropItem(handSocket, item);
-        
-        PlayerInputManager input = GetComponent<PlayerController>().Input;
-        input.OnUsePressed += OnUse;
+        inventory.OnItemDropped += OnItemDropped;
+
+        player.Input.OnUsePressed += OnUse;
     }
 
     private void OnSlotChanged(int index, InventorySlot slot)
     {
-        if(inventory.SelectedSlotIndex != index) return;
-        Equip(slot);
+        if (inventory.SelectedSlotIndex != index) return;
+        HandleEquip(slot);
     }
 
-    public void Equip(InventorySlot slot)
+    private void HandleEquip(InventorySlot slot)
     {
         if (slot == null || slot.IsEmpty)
         {
-            Unequip(); 
+            Unequip();
             return;
         }
         
-        equippedItemObject = equipmentSocket.Equip(slot.Item.itemPrefab);
-        var useableItem = equippedItemObject.GetComponent<UsableItem>();
+        OnEquipRequested?.Invoke(slot.Item);
+        Equip(slot.Item);
+    }
 
-        if (useableItem)
+
+    public void Equip(InventoryItem item)
+    {
+        Unequip();
+
+        equippedItemObject = equipmentSocket.Equip(item.itemPrefab);
+
+        var usableItem = equippedItemObject.GetComponent<UsableItem>();
+        if (usableItem)
         {
-            useableItem.OnItemDepleted += ItemDepleted;
+            usableItem.OnItemDepleted += ItemDepleted;
         }
+    }
+
+    private void Unequip()
+    {
+        if (equippedItemObject)
+        {
+            var usable = equippedItemObject.GetComponent<UsableItem>();
+            if (usable)
+                usable.OnItemDepleted -= ItemDepleted;
+        }
+
+        equipmentSocket.Unequip();
+        equippedItemObject = null;
     }
 
     private void ItemDepleted(UsableItem item)
@@ -65,19 +81,18 @@ public class EquipmentController : MonoBehaviour, IEquipHandler
         Unequip();
     }
 
-    public void Unequip()
-    {
-        equipmentSocket.Unequip();
-        equippedItemObject = null;
-    }
-
     private void OnUse()
     {
-        if(!equippedItemObject) return;
-        UsableItem usable = equippedItemObject.GetComponent<UsableItem>();
-        
-        if(!usable) return;
-        
+        if (!equippedItemObject) return;
+
+        var usable = equippedItemObject.GetComponent<UsableItem>();
+        if (!usable) return;
+
         usable.TryUse();
+    }
+
+    private void OnItemDropped(InventoryItem item)
+    {
+        GameServices.ItemDropService.DropItem(handSocket, item);
     }
 }

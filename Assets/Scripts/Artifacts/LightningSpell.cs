@@ -11,7 +11,9 @@ public class LightningSpell : ToolItem
 
     protected override void Use()
     {     
-        spawnPoint = aimProvider.getRayCast(raycastDistance)?.point + Vector3.up * spawnHeightOffset ?? Vector3.zero;
+        base.Use();
+        
+        spawnPoint = aimProvider.GetRayCast(raycastDistance)?.point + Vector3.up * spawnHeightOffset ?? Vector3.zero;
 
         if (lightningVFXPrefab != null)
         {

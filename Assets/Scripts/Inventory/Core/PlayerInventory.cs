@@ -92,4 +92,6 @@ public class PlayerInventory
     public InventorySlot GetSlot(int index) => inventory.GetSlot(index);
     public InventorySlot GetSelectedSlot() => SelectedSlotIndex >= 0 ? inventory.GetSlot(SelectedSlotIndex) : null;
     public int GetInventorySize() => inventory.GetSize();
+    
+    public int FindEmptySlot() => inventory.FindEmptySlot();
 }

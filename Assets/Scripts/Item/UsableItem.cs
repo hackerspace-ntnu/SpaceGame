@@ -8,10 +8,13 @@ public abstract class UsableItem : MonoBehaviour
 
     private int currentUses = 0;
     
+    protected GameObject owner;
+    
     public event Action<UsableItem> OnItemDepleted;
 
-    public void TryUse()
+    public void TryUse(GameObject useOwner)
     {
+        owner = useOwner;
         if (CanUse())
         {
             if (useSound != null)

@@ -87,8 +87,10 @@ public class EquipmentController : MonoBehaviour
 
         var usable = equippedItemObject.GetComponent<UsableItem>();
         if (!usable) return;
-
-        usable.TryUse();
+        
+        var player = gameObject;
+        
+        usable.TryUse(player);
     }
 
     private void OnItemDropped(InventoryItem item)

@@ -7,17 +7,7 @@ using UnityEngine;
 /// </summary>
 public abstract class EffectItem : UsableItem
 {
-    protected EffectManager effectManager;
     protected Effect currentEffect;
-
-    protected void Awake()
-    {
-        GameObject player = GameObject.FindWithTag("Player");
-        if (player != null)
-        {
-            effectManager = player.GetComponent<EffectManager>();
-        }
-    }
 
     /// <summary>
     /// Create and register an effect with the EffectManager.
@@ -26,6 +16,7 @@ public abstract class EffectItem : UsableItem
     protected void RegisterEffect(float duration, System.Action<Rigidbody> onApply, 
         System.Action<Rigidbody> onTick, System.Action<Rigidbody> onStop)
     {
+        var effectManager = owner.GetComponent<EffectManager>();
         if (effectManager == null)
         {
             Debug.LogWarning("EffectManager not found on player!");

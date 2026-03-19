@@ -32,6 +32,7 @@ public class PlayerController : MonoBehaviour
     }
     public void EnablePlayer()
     {
+        Input.enabled = true;
         playerCamera.gameObject.SetActive(true);
         playerHUD.gameObject.SetActive(true);
         playerMovement.enabled = true;
@@ -43,6 +44,7 @@ public class PlayerController : MonoBehaviour
     
     public void DisablePlayer()
     {
+        Input.enabled = false;
         playerCamera.gameObject.SetActive(false);
         playerHUD.gameObject.SetActive(false);
         playerMovement.enabled = false;

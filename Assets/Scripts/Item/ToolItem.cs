@@ -9,9 +9,8 @@ public abstract class ToolItem : UsableItem
 {
     protected AimProvider aimProvider;
 
-    protected override void Awake()
+    protected void Awake()
     {
-        base.Awake();
         // Item is parented to the player's hand socket when equipped,
         // so we can walk up the hierarchy to find the player's AimProvider.
         aimProvider = GetComponentInParent<AimProvider>();

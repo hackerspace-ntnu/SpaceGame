@@ -110,6 +110,8 @@ GameObject:
   - component: {fileID: 2750247493964292827}
   - component: {fileID: -6402392480385526436}
   - component: {fileID: 5495302955700144812}
+  - component: {fileID: 5779681583284991743}
+  - component: {fileID: 9030159979122590365}
   - component: {fileID: 3989894493323827061}
   m_Layer: 0
   m_Name: PlayerCharacter
@@ -438,6 +440,7 @@ MonoBehaviour:
   health: {fileID: -6402392480385526436}
   shakeData: {fileID: 11400000, guid: a523fbd6273bf7440b39814a82fdeb28, type: 2}
   damageSound: {fileID: 8300000, guid: 21b538e3dc3125543ae14963bf2ae0b1, type: 3}
+--- !u!114 &5779681583284991743
 --- !u!114 &3989894493323827061
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -450,6 +453,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15922c1f9560ee048a4bf8e62d520b04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EffectManager
+--- !u!114 &9030159979122590365
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 494650d4a46d4114fa8261576f24a550, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AimProvider
+  playerCamera: {fileID: 4586483584228166958}
 --- !u!1001 &2677432995988726931
 PrefabInstance:
   m_ObjectHideFlags: 0

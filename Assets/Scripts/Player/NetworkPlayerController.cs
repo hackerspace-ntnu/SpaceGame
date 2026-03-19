@@ -1,23 +1,25 @@
 using Unity.Netcode;
 using UnityEngine;
 
+[RequireComponent(typeof(PlayerController))]
 public class NetworkPlayerController : NetworkBehaviour
 {
-    [SerializeField] private PlayerController baseController;
+    private PlayerController controller;
+
+    private void Awake()
+    {
+        controller = GetComponent<PlayerController>();
+    }
 
     public override void OnNetworkSpawn()
     {
-        if (!IsOwner) return;
-
-        baseController.EnablePlayer();
-    }
-
-    public override void OnDestroy()
-    {
-        base.OnDestroy();
-
-        if (!IsOwner) return;
-
-        baseController.DisablePlayer();
+        if (IsOwner)
+        {
+            controller.EnablePlayer();
+        }
+        else
+        {
+            controller.DisablePlayer();
+        }
     }
 }

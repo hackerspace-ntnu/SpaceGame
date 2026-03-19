@@ -1,8 +1,5 @@
 using System;
-using System.Collections;
-using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.LowLevel;
 
 public class PlayerController : MonoBehaviour
 {
@@ -18,8 +15,6 @@ public class PlayerController : MonoBehaviour
     
     [SerializeField] private HealthComponent playerHealth;
     
-    [SerializeField] bool isPlayerEnabled = true;
-    
     // High level player events
     public event Action OnPlayerDeath;
     
@@ -27,27 +22,15 @@ public class PlayerController : MonoBehaviour
     private void Awake()
     {
         Input = GetComponent<PlayerInputManager>(); 
-        
         PlayerInventory = GetComponent<IPlayerInventory>();
         
         DisablePlayer();
-        if (isPlayerEnabled)
+        if (!Network.IsNetworked)
         {
             EnablePlayer();
         }
     }
-     
-
-    public void OnDisablePlayer()
-    {
-        playerCamera.gameObject.SetActive(false);
-        playerHUD.gameObject.SetActive(false);
-        playerMovement.enabled = false;
-        playerLook.enabled = false;
-        damageFeedback.enabled = false;
-    }
-
-    public void OnEnablePlayer()
+    public void EnablePlayer()
     {
         playerCamera.gameObject.SetActive(true);
         playerHUD.gameObject.SetActive(true);
@@ -57,6 +40,18 @@ public class PlayerController : MonoBehaviour
         
         playerHealth.OnDeath += OnDeath;
     }
+    
+    public void DisablePlayer()
+    {
+        playerCamera.gameObject.SetActive(false);
+        playerHUD.gameObject.SetActive(false);
+        playerMovement.enabled = false;
+        playerLook.enabled = false;
+        damageFeedback.enabled = false;
+        
+        playerHealth.OnDeath -= OnDeath;
+    }
+
     private void OnDeath()
     {
         OnPlayerDeath?.Invoke();
@@ -65,8 +60,4 @@ public class PlayerController : MonoBehaviour
 
         // TODO: ragdoll
     }
-    
-    public void EnablePlayer() => OnEnablePlayer();
-    public void DisablePlayer() => OnDisablePlayer();
-    
 }

@@ -26,7 +26,10 @@ public class PlayerDropService : IItemDropService
             Quaternion.identity
         );
         
-        obj.GetComponent<NetworkObject>().Spawn();
+        if (Network.IsNetworked)
+        {
+            obj.GetComponent<NetworkObject>().Spawn();
+        }
 
         ApplyForce(direction, obj);
     }

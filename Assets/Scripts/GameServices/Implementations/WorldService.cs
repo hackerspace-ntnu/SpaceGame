@@ -7,7 +7,7 @@ public class WorldService : IWorldService
     public void Despawn(GameObject gameObject)
     {
         var networkObject = gameObject.GetComponent<NetworkObject>();
-        if (networkObject)
+        if (Network.IsNetworked && networkObject)
         {
             networkObject.Despawn();
             return;

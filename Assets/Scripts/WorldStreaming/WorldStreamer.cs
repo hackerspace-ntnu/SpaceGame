@@ -33,6 +33,7 @@ public class WorldStreamer : NetworkBehaviour
     public event Action OnInitialChunksReady;
 
     public bool InitialChunksLoaded => initialChunksLoaded;
+    public bool IsReady => isReady;
 
     private enum ChunkState { NotLoaded, Loading, Loaded, Unloading }
 
@@ -45,6 +46,7 @@ public class WorldStreamer : NetworkBehaviour
     private readonly Queue<SceneOperation> operationQueue = new();
     private bool operationInProgress;
 
+    private bool isReady;
     private bool initialChunksLoaded;
     private float updateInterval = 0.5f;
     private float nextUpdateTime;
@@ -74,7 +76,7 @@ public class WorldStreamer : NetworkBehaviour
 
         NetworkManager.Singleton.SceneManager.OnSceneEvent += HandleSceneEvent;
         InitializeChunkStates();
-        LoadInitialChunks();
+        isReady = true;
     }
 
     public override void OnNetworkDespawn()
@@ -87,6 +89,7 @@ public class WorldStreamer : NetworkBehaviour
         if (navMeshDataInstance.valid)
             navMeshDataInstance.Remove();
 
+        isReady = false;
         chunkStates.Clear();
         loadedScenes.Clear();
         loadedTerrains.Clear();
@@ -97,7 +100,7 @@ public class WorldStreamer : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsServer || !initialChunksLoaded) return;
+        if (!IsServer || !isReady) return;
 
         if (navMeshDirty && Time.time >= navMeshRebuildTime)
         {
@@ -121,36 +124,15 @@ public class WorldStreamer : NetworkBehaviour
         }
     }
 
-    private void LoadInitialChunks()
+    public void PreloadChunksAroundPosition(Vector3 worldPos, Action onComplete = null)
     {
-        var centerCoord = new Vector2Int(config.gridDimensions.x / 2, config.gridDimensions.y / 2);
-        var chunksToLoad = GetChunksInRadius(centerCoord, config.loadRadius);
-
-        if (chunksToLoad.Count == 0)
+        if (!isReady)
         {
-            Debug.LogWarning("[WorldStreamer] No chunks to load. Is the config set up?");
-            MarkInitialChunksLoaded();
+            Debug.LogError("[WorldStreamer] PreloadChunksAroundPosition called before OnNetworkSpawn. Ensure WorldStreamer spawns before callers.");
+            onComplete?.Invoke();
             return;
         }
 
-        int remaining = chunksToLoad.Count;
-
-        foreach (var coord in chunksToLoad)
-        {
-            EnqueueLoad(coord, () =>
-            {
-                remaining--;
-                if (remaining <= 0)
-                {
-                    Debug.Log("[WorldStreamer] Initial chunks loaded. Ready for player spawn.");
-                    MarkInitialChunksLoaded();
-                }
-            });
-        }
-    }
-
-    public void PreloadChunksAroundPosition(Vector3 worldPos, Action onComplete = null)
-    {
         var coord = config.WorldToChunkCoord(worldPos);
         var chunks = GetChunksInRadius(coord, config.loadRadius);
         var toLoad = chunks.Where(c => GetChunkState(c) == ChunkState.NotLoaded).ToList();
@@ -179,8 +161,10 @@ public class WorldStreamer : NetworkBehaviour
 
     public void PreloadChunksAroundPositions(IEnumerable<Vector3> worldPositions, Action onComplete = null)
     {
-        if (config == null)
+        if (!isReady || config == null)
         {
+            if (!isReady)
+                Debug.LogError("[WorldStreamer] PreloadChunksAroundPositions called before OnNetworkSpawn. Ensure WorldStreamer spawns before callers.");
             onComplete?.Invoke();
             return;
         }

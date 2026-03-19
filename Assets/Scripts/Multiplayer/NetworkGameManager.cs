@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
@@ -22,6 +23,28 @@ public class NetworkGameManager : NetworkBehaviour
             return;
         }
 
+        // WorldStreamer may not have had its OnNetworkSpawn called yet,
+        // so wait until it's ready before requesting chunk preloads.
+        if (worldStreamer.IsReady)
+        {
+            PreloadAndSpawn();
+        }
+        else
+        {
+            StartCoroutine(WaitForStreamerThenSpawn());
+        }
+    }
+
+    private IEnumerator WaitForStreamerThenSpawn()
+    {
+        while (!worldStreamer.IsReady)
+            yield return null;
+
+        PreloadAndSpawn();
+    }
+
+    private void PreloadAndSpawn()
+    {
         worldStreamer.PreloadChunksAroundPositions(GetSpawnPositionsForConnectedClients(), SpawnAllPlayers);
     }
 

@@ -8,6 +8,8 @@ public class BallLightningWeapon : MonoBehaviour
     [SerializeField] private Camera aimCamera;
     [SerializeField] private Transform firePoint;
     [SerializeField] private BallLightningProjectile projectilePrefab;
+    [Tooltip("Optional: Assign the gun barrel transform for projectile spawn position.")]
+    [SerializeField] private Transform barrelTransform;
 
     [Header("Shot Settings")]
     [SerializeField] private float fireRate = 6f;
@@ -83,7 +85,7 @@ public class BallLightningWeapon : MonoBehaviour
 
     private void Fire()
     {
-        Transform origin = firePoint != null ? firePoint : (aimCamera != null ? aimCamera.transform : transform);
+        Transform origin = barrelTransform != null ? barrelTransform : (firePoint != null ? firePoint : (aimCamera != null ? aimCamera.transform : transform));
 
         Vector3 spawnPosition = origin.position + origin.forward * spawnOffset;
         Vector3 shootDirection = origin.forward;
@@ -106,6 +108,6 @@ public class BallLightningWeapon : MonoBehaviour
         }
 
         BallLightningProjectile projectile = Instantiate(projectilePrefab, spawnPosition, Quaternion.LookRotation(shootDirection, Vector3.up));
-        projectile.Initialize(shootDirection, transform);
+        projectile.Initialize(shootDirection, transform, spawnPosition);
     }
 }

@@ -47,6 +47,7 @@ public class BallLightningBoltTargeting : MonoBehaviour
     private Vector3 lastHitPoint;
     private Vector3 lastHitNormal = Vector3.up;
     private bool hasLastHit;
+    private Light runtimeStrikeLight;
 
     private void Reset()
     {
@@ -79,11 +80,7 @@ public class BallLightningBoltTargeting : MonoBehaviour
         cooldownEndTime = 0f;
         jitterSeed = Random.Range(0f, 1000f);
         hasLastHit = false;
-
-        if (strikePointLight != null)
-        {
-            strikePointLight.intensity = 0f;
-        }
+        SetupRuntimeStrikeLight();
     }
 
     private void OnDisable()
@@ -93,9 +90,16 @@ public class BallLightningBoltTargeting : MonoBehaviour
             lightningController.ClearExternalDirectBolt();
         }
 
+        if (runtimeStrikeLight != null)
+        {
+            Destroy(runtimeStrikeLight.gameObject);
+            runtimeStrikeLight = null;
+        }
+
         if (strikePointLight != null)
         {
             strikePointLight.intensity = 0f;
+            strikePointLight.enabled = true;
         }
     }
 
@@ -153,19 +157,50 @@ public class BallLightningBoltTargeting : MonoBehaviour
 
     private void UpdateStrikePointLight(bool active)
     {
-        if (strikePointLight == null)
+        Light hitLight = runtimeStrikeLight != null ? runtimeStrikeLight : strikePointLight;
+        if (hitLight == null)
         {
             return;
         }
 
         if (active && hasLastHit)
         {
-            strikePointLight.transform.position = lastHitPoint + lastHitNormal * hitLightHoverOffset;
-            strikePointLight.intensity = hitLightIntensity;
+            hitLight.transform.position = lastHitPoint + lastHitNormal * hitLightHoverOffset;
+            hitLight.intensity = hitLightIntensity;
             return;
         }
 
+        hitLight.intensity = 0f;
+    }
+
+    private void SetupRuntimeStrikeLight()
+    {
+        if (strikePointLight == null)
+        {
+            return;
+        }
+
+        GameObject lightObject = new GameObject("BallLightningStrikePointLight");
+        runtimeStrikeLight = lightObject.AddComponent<Light>();
+        CopyLightSettings(strikePointLight, runtimeStrikeLight);
+        runtimeStrikeLight.intensity = 0f;
+        runtimeStrikeLight.enabled = true;
+
         strikePointLight.intensity = 0f;
+        strikePointLight.enabled = false;
+    }
+
+    private static void CopyLightSettings(Light source, Light destination)
+    {
+        destination.type = source.type;
+        destination.color = source.color;
+        destination.range = source.range;
+        destination.spotAngle = source.spotAngle;
+        destination.innerSpotAngle = source.innerSpotAngle;
+        destination.shadows = source.shadows;
+        destination.cullingMask = source.cullingMask;
+        destination.renderMode = source.renderMode;
+        destination.intensity = source.intensity;
     }
 
     private bool IsPulseActive()

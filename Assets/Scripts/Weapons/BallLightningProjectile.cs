@@ -53,7 +53,7 @@ public class BallLightningProjectile : MonoBehaviour
     private float bobPhase;
     private float lightNoiseSeed;
 
-    public void Initialize(Vector3 forwardDirection, Transform owner)
+    public void Initialize(Vector3 forwardDirection, Transform owner, Vector3 startPosition)
     {
         direction = forwardDirection.sqrMagnitude > 0.0001f ? forwardDirection.normalized : Vector3.forward;
         ownerRoot = owner ? owner.root : null;
@@ -63,6 +63,9 @@ public class BallLightningProjectile : MonoBehaviour
         bobPhase = Random.Range(0f, Mathf.PI * 2f);
         lightNoiseSeed = Random.Range(0f, 1000f);
 
+        // Set projectile start position
+        transform.position = startPosition;
+
         if (direction.sqrMagnitude > 0.0001f)
         {
             transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
@@ -70,6 +73,12 @@ public class BallLightningProjectile : MonoBehaviour
 
         CancelInvoke(nameof(DestroySelf));
         Invoke(nameof(DestroySelf), lifeTime);
+    }
+
+    // For backward compatibility, keep the old Initialize signature:
+    public void Initialize(Vector3 forwardDirection, Transform owner)
+    {
+        Initialize(forwardDirection, owner, transform.position);
     }
 
     private void OnEnable()

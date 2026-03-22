@@ -10,7 +10,7 @@ public class NetworkGameManager : NetworkBehaviour
     private PlayerColorSync playerColorSync;
     public override void OnNetworkSpawn()
     {
-        playerColorSync = GetComponent<PlayerColorSync>();
+        playerColorSync = FindAnyObjectByType<PlayerColorSync>();
 
         // Only the server should handle spawning logic
         if (!IsServer) return;
@@ -28,7 +28,9 @@ public class NetworkGameManager : NetworkBehaviour
         Transform spawnpoint = spawnPoints.GetSpawnPoint(clientId);
         Debug.Log("Color: " + color.ToString());
         GameObject playerObj = Instantiate(playerPrefab, spawnpoint.position, spawnpoint.rotation);
-        playerObj.GetComponent<MeshRenderer>().material.color = color;
+
+        // TODO: CHANGE PLAYER MESH / PART OF MESH TO GIVEN COLOR
+        //playerObj.GetComponent<MeshRenderer>().material.color = color;
 
 
         // Spawn it specifically as the Player Object for that ID

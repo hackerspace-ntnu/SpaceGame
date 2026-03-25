@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// Inventory holds an array of InventorySlots, which can hold InventoryItems.
@@ -9,7 +10,7 @@ public class Inventory
 {
     private InventorySlot[] slots;
     
-    public event Action OnInventoryChanged;
+    public event Action<int, InventorySlot> OnSlotChanged;
     
     public Inventory(int size)
     {
@@ -17,20 +18,41 @@ public class Inventory
 
         for (int i = 0; i < slots.Length; i++)
         {
-            slots[i] = new InventorySlot
-            {
-                Item = null
-            };
+            slots[i] = new InventorySlot(i);
         }
+    }
+    
+    public List<string> GetItemIDs()
+    {
+        List<string> ids = new();
+
+        for (int i = 0; i < GetSize(); i++)
+        {
+            var slot = GetSlot(i);
+            ids.Add(slot.IsEmpty ? null : slot.Item.ID);
+        }
+
+        return ids;
+    }
+    
+    public void SetItem(int index, InventoryItem item)
+    {
+        var slot = GetSlot(index);
+        slot.Item = item;
     }
     
     public bool TryAddItem(InventoryItem item)
     {
-        int index = FindEmptySlot();
+        return TryAddItem(item, out _);
+    }
+    
+    public bool TryAddItem(InventoryItem item, out int index)
+    {
+        index = FindEmptySlot();
         if (index == -1) return false;
-
-        slots[index].Item = item;
-        OnInventoryChanged?.Invoke();
+        
+        SetItem(index, item);
+        OnSlotChanged?.Invoke(index, GetSlot(index));
         return true;
     }
     
@@ -38,9 +60,9 @@ public class Inventory
     {
         if (index >= slots.Length) return false;
         if (!slots[index].Item) return false;
-
-        slots[index].Item = null;
-        OnInventoryChanged?.Invoke();
+        
+        SetItem(index, null);
+        OnSlotChanged?.Invoke(index, GetSlot(index));
         return true;
     }
     
@@ -66,7 +88,8 @@ public class Inventory
 
         if (successfulMove)
         {
-            OnInventoryChanged?.Invoke();
+            OnSlotChanged?.Invoke(from, GetSlot(from));
+            OnSlotChanged?.Invoke(to, GetSlot(to));
         }
         
         return successfulMove;

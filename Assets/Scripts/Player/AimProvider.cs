@@ -5,7 +5,7 @@ public class AimProvider : MonoBehaviour
 
     [SerializeField] private Camera playerCamera;
 
-    public RaycastHit? getRayCast(float maxDistance = 100f)
+    public RaycastHit? GetRayCast(float maxDistance = 100f)
     {
         if (Physics.Raycast(playerCamera.transform.position, playerCamera.transform.forward, out RaycastHit hit, maxDistance))
         {

@@ -29,7 +29,7 @@ public class VisorOverlayController : MonoBehaviour
             // Auto-detect primary light if not assigned
             if (primaryLight == null)
             {
-                Light[] lights = FindObjectsOfType<Light>();
+                Light[] lights = FindObjectsByType<Light>(FindObjectsSortMode.None);
                 float maxIntensity = 0;
                 foreach (Light light in lights)
                 {

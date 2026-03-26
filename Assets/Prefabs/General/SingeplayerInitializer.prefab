@@ -42,7 +42,6 @@ GameObject:
   - component: {fileID: 992589268006526704}
   - component: {fileID: 7382902620327829835}
   - component: {fileID: 2386101899684211332}
-  - component: {fileID: 7818516797826706936}
   m_Layer: 0
   m_Name: SingeplayerInitializer
   m_TagString: Untagged
@@ -106,17 +105,3 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   playerPrefab: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
   spawnPoint: {fileID: 602611542926559647}
---- !u!114 &7818516797826706936
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4895505228537061139}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f94fd9a8ea067447bd5cd1315d16578, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  onWinScene: {fileID: 0}
-  itemRepository: {fileID: 11400000, guid: 09c987ae2ba01724588c6b3e35de242e, type: 2}

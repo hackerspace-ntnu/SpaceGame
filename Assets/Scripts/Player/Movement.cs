@@ -4,9 +4,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
-public class PlayerMovement : NetworkBehaviour
+public class PlayerMovement : MonoBehaviour
 {
-    private InputControls controls;
+    private PlayerInputManager inputs; 
     
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 6f;
@@ -24,28 +24,21 @@ public class PlayerMovement : NetworkBehaviour
 
     [SerializeField] private Rigidbody rb;
     [SerializeField] private Animator animator;
-    private Vector2 input;
+    private Vector2 moveInput;
     private float jumpCooldownTimer;
     private bool jumpOnCooldown;
     private bool groundSnapEnabled = true;
 
-    private void Awake()
+    private void Start()
     {
-        controls  = new InputControls();
-    }
-
-    private void OnEnable()
-    {
-        controls.Player.Move.performed += ctx => OnMove(ctx.ReadValue<Vector2>());
-        controls.Player.Move.canceled += ctx => OnMove(Vector2.zero);
-        controls.Player.Jump.performed += ctx => OnJump();
-        controls.Player.Dash.performed += ctx => OnDash();
-
-        controls.Enable();
+        inputs = GetComponent<PlayerController>().Input;
+        inputs.OnJumpPressed += OnJump;
+        inputs.OnDashPressed += OnDash;
     }
 
     private void FixedUpdate()
     {
+        moveInput = inputs.MoveInput;
         HandleJumpCooldown();
 
         if (!groundSnapEnabled)
@@ -53,7 +46,7 @@ public class PlayerMovement : NetworkBehaviour
             return;
         }
 
-        Vector3 move = transform.right * input.x + transform.forward * input.y;
+        Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
         move = Vector3.ClampMagnitude(move, 1f);
         Vector3 desiredHorizontal = move * moveSpeed;
 
@@ -89,11 +82,6 @@ public class PlayerMovement : NetworkBehaviour
         animator.SetFloat("FallSpeed", velocity.y, .1f, Time.deltaTime);
         animator.SetBool("IsGrounded", grounded);
         animator.SetBool("IsImmobalized", !groundSnapEnabled);
-    }
-
-    public void OnMove(Vector2 inputVector)
-    {
-        input = inputVector;
     }
 
     public void OnJump()

@@ -7,14 +7,16 @@ using UnityEngine;
 public class DropItemPhysics : MonoBehaviour
 {
     [SerializeField] private Rigidbody rb;
-    [SerializeField] private Collider triggerCollider;
     [SerializeField] private LayerMask groundLayer;
+    
+    public void Throw()
+    {
+        rb.isKinematic = false;
+    }
 
-    private void OnTriggerEnter(Collider other)
+    private void OnCollisionEnter(Collision other)
     {
         if ((groundLayer.value & (1 << other.gameObject.layer)) == 0) return;
-        
-        triggerCollider.enabled = false;
         
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;

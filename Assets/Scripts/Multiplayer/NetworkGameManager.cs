@@ -5,9 +5,20 @@ using UnityEngine;
 
 public class NetworkGameManager : NetworkBehaviour
 {
+    public static NetworkGameManager Instance;
     [SerializeField] private GameObject playerPrefab;
 
     [SerializeField] SpawnPoints spawnPoints;
+    
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+    }
 
     [Header("World Streaming (optional)")]
     [SerializeField] private WorldStreamer worldStreamer;
@@ -64,6 +75,23 @@ public class NetworkGameManager : NetworkBehaviour
 
         // Spawn it specifically as the Player Object for that ID
         playerObj.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
+    }
+
+    public void Respawn()
+    {
+        var clientId = NetworkManager.Singleton.LocalClientId;
+        RequestRespawnServerRpc(clientId);
+    }
+
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    private void RequestRespawnServerRpc(ulong clientId)
+    {
+        var client = NetworkManager.Singleton.ConnectedClients[clientId];
+        if (client.PlayerObject != null)
+        {
+            client.PlayerObject.Despawn();
+        }
+        SpawnPlayerForClient(clientId);
     }
 
     private IEnumerable<Vector3> GetSpawnPositionsForConnectedClients()

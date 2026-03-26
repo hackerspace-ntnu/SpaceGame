@@ -6,8 +6,14 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/Bootstrap.unity
+    guid: 45b9d56fe4cbfdf45bc1ee3f9fa878ba
+  - enabled: 1
     path: Assets/Scenes/MainMenu.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/Scenes/Menu scenes/LobbyMenu.unity
+    guid: dc898f4f02a8c2d4aac02fc8021fd421
   - enabled: 1
     path: Assets/Scenes/Test scenes/Blocking test.unity
     guid: b0af87645ce5fb84fa6708705f514184
@@ -15,14 +21,14 @@ EditorBuildSettings:
     path: Assets/Scenes/Test scenes/Aleksander test scene.unity
     guid: 42efe770d49396546b900696f0679869
   - enabled: 1
-    path: Assets/Scenes/Menu scenes/LobbyMenu.unity
-    guid: dc898f4f02a8c2d4aac02fc8021fd421
-  - enabled: 1
     path: Assets/Scenes/Test scenes/Tommy test scene.unity
     guid: 3fff3e518724ac94480d5347bd42ebf9
   - enabled: 1
     path: Assets/Scenes/Test scenes/Emil test scene.unity
     guid: dcb1fb0352f5e2c4c99c21127e253c88
+  - enabled: 1
+    path: Assets/Scenes/Test scenes/Marius test scene.unity
+    guid: 25c7bddb067c9a148a714d5f9e696f48
   - enabled: 1
     path: Assets/Scenes/Chunks/Chunk_0_0.unity
     guid: 60aa24107e3824edf950a488415e2c1a

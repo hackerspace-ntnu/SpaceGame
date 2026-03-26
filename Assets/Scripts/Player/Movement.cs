@@ -4,9 +4,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
-public class PlayerMovement : NetworkBehaviour
+public class PlayerMovement : MonoBehaviour
 {
-    private InputControls controls;
+    private PlayerInputManager inputs; 
     
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 6f;
@@ -24,39 +24,21 @@ public class PlayerMovement : NetworkBehaviour
 
     [SerializeField] private Rigidbody rb;
     [SerializeField] private Animator animator;
-    private Vector2 input;
+    private Vector2 moveInput;
     private float jumpCooldownTimer;
     private bool jumpOnCooldown;
     private bool groundSnapEnabled = true;
 
-    private void Awake()
+    private void Start()
     {
-        controls  = new InputControls();
-
-        if (rb == null)
-            rb = GetComponent<Rigidbody>();
-
-        if (animator == null)
-            animator = GetComponent<Animator>();
-    }
-
-    private void OnEnable()
-    {
-        if (controls == null)
-            controls = new InputControls();
-
-        controls.Player.Move.performed += ctx => OnMove(ctx.ReadValue<Vector2>());
-        controls.Player.Move.canceled += ctx => OnMove(Vector2.zero);
-        controls.Player.Jump.performed += ctx => OnJump();
-        controls.Player.Dash.performed += ctx => OnDash();
-
-        controls.Enable();
+        inputs = GetComponent<PlayerController>().Input;
+        inputs.OnJumpPressed += OnJump;
+        inputs.OnDashPressed += OnDash;
     }
 
     private void FixedUpdate()
     {
-        if (!IsOwner) return;
-
+        moveInput = inputs.MoveInput;
         HandleJumpCooldown();
 
         if (!groundSnapEnabled)
@@ -64,7 +46,7 @@ public class PlayerMovement : NetworkBehaviour
             return;
         }
 
-        Vector3 move = transform.right * input.x + transform.forward * input.y;
+        Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
         move = Vector3.ClampMagnitude(move, 1f);
         Vector3 desiredHorizontal = move * moveSpeed;
 
@@ -102,16 +84,8 @@ public class PlayerMovement : NetworkBehaviour
         animator.SetBool("IsImmobalized", !groundSnapEnabled);
     }
 
-    public void OnMove(Vector2 inputVector)
-    {
-        if (!IsOwner) return;
-        input = inputVector;
-    }
-
     public void OnJump()
     {
-        if (!IsOwner) return;
-
         if (IsGrounded() && !jumpOnCooldown)
         {
             Vector3 v = rb.linearVelocity;
@@ -124,8 +98,6 @@ public class PlayerMovement : NetworkBehaviour
 
     public void OnDash()
     {
-        if (!IsOwner) return;
-
         Vector3 dashDirection = transform.forward;
         if (playerCamera)
         {

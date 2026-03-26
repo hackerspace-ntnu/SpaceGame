@@ -18,8 +18,9 @@ public abstract class UsableItem : MonoBehaviour
         owner = useOwner;
         if (CanUse())
         {
-
-            AudioManager.Instance.PlayEvent(useSound);
+            
+            // Uses world position
+            AudioManager.Instance.PlayEvent(useSound, transform.position);
             
 
             Use();

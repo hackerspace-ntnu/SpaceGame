@@ -49,9 +49,13 @@ public class AudioManager : MonoBehaviour
     {
         RuntimeManager.PlayOneShot("event:/Music/TestSong");
     } //Todo: Make more flexible
-
+    
     public void PlayEvent(EventReference myevent) {
         RuntimeManager.PlayOneShot(myevent);
+    }
+
+    public void PlayEvent(EventReference myevent, Vector3 position) {
+        RuntimeManager.PlayOneShot(myevent, position);
     }
 
     public void PlaySFX(string sound)

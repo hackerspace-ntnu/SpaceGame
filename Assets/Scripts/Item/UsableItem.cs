@@ -1,38 +1,27 @@
+using System;
+using FMODUnity;
 using UnityEngine;
 
 public abstract class UsableItem : MonoBehaviour
 {
-    protected EquipmentController equipmentController;
-    protected InputManager inputManager;
-    
     [SerializeField] private int maxUses = -1; // -1 means unlimited uses
-    [SerializeField] protected AudioClip useSound;
+    [SerializeField] protected EventReference useSound;
 
     private int currentUses = 0;
+    
+    protected GameObject owner;
+    
+    public event Action<UsableItem> OnItemDepleted;
 
-    protected virtual void Awake()
+    public void TryUse(GameObject useOwner)
     {
-        equipmentController = FindFirstObjectByType<EquipmentController>();
-        inputManager = FindFirstObjectByType<InputManager>();
-    }
-    protected virtual void OnEnable()
-    {
-        inputManager.OnUsePressed += TryUse;
-    }
-
-    protected virtual void OnDisable()
-    {
-        inputManager.OnUsePressed -= TryUse;
-    }
-
-    private void TryUse()
-    {
+        owner = useOwner;
         if (CanUse())
         {
-            if (useSound != null)
-            {
-                AudioManager.Instance.PlaySFX(useSound);
-            }
+            
+            // Uses world position
+            AudioManager.Instance.PlayEvent(useSound, transform.position);
+            
 
             Use();
             currentUses++;
@@ -53,8 +42,7 @@ public abstract class UsableItem : MonoBehaviour
             return false;
         }
         
-        return equipmentController != null &&
-               equipmentController.getCurrentObject() == this.gameObject;
+        return true;
     }
     
     /// <summary>
@@ -63,22 +51,7 @@ public abstract class UsableItem : MonoBehaviour
     /// </summary>
     protected virtual void OnMaxUsesReached()
     {
-        // Remove from inventory
-        GameObject player = GameObject.FindWithTag("Player");
-        if (player != null)
-        {
-            PlayerInventory playerInventory = player.GetComponent<PlayerInventory>();
-            if (playerInventory != null)
-            {
-                playerInventory.TryRemoveItem(playerInventory.selectedSlotIndex);
-            }
-        }
-        
-        // Unequip and destroy the item
-        if (equipmentController != null)
-        {
-            equipmentController.Unequip();
-        }
+        OnItemDepleted?.Invoke(this);
     }
 
     protected abstract void Use();

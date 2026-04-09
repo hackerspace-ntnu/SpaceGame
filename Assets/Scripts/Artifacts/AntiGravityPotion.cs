@@ -24,8 +24,8 @@ public class AntiGravityPotion : EffectItem
                 rb.useGravity = true;
             }
         );
-        if (useSound == null) {
-            Debug.LogWarning("Use sound not assigned for AntiGravityPotion!");
+        if (useSound.Guid == null) {
+            Debug.LogWarning("Use sound GUID not assigned for AntiGravityPotion!");
             return;
         }
         // Removal from inventory and destruction is now handled by base class when maxUses is reached

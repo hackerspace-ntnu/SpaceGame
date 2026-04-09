@@ -1,3 +1,5 @@
+using System;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -11,8 +13,7 @@ public class Interactor : MonoBehaviour
     private float _castDistance = 5f;
 
     [SerializeField] private Transform lookTransform;
-
-    private InputAction _interactAction;
+    
     
     public bool IsHoveringInteractable { get; private set; }
     
@@ -25,9 +26,10 @@ public class Interactor : MonoBehaviour
      private RaycastHit hitInfo;
     private bool rayCastHit;
 
-    private void Awake()
+    private void Start()
     {
-        _interactAction = InputSystem.actions.FindAction("Interact");
+        PlayerInputManager input = GetComponent<PlayerController>().Input;
+        input.OnInteractPressed += Interact;
     }
 
     private void Update()
@@ -39,13 +41,15 @@ public class Interactor : MonoBehaviour
         }
         
         IsHoveringInteractable = true;
+    }
 
-        if (!_interactAction.WasPressedThisFrame()) return;
+    private void Interact()
+    {
+        if (!DoInteractionTest(out IInteractable interactable)) return;
         
-        if (interactable.CanInteract())
-        {
-            interactable.Interact(this);
-        }
+        if (!interactable.CanInteract()) return;
+        interactable.Interact(this);
+        
     }
 
     private bool DoInteractionTest(out IInteractable interactable)

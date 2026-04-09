@@ -1,16 +1,15 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class PlayerLook : MonoBehaviour
 {
-    [Header("Input")]
-    public InputActionReference lookAction; // Vector2
-
+    private PlayerInputManager inputs;
     [Header("References")]
-    public Transform cameraRoot;    
+    public GameObject playerCamera;    
     public Transform playerHead; 
     public Transform playerBody;
-    private Rigidbody rigidbody;
+    private Rigidbody playerRigidbody;
 
     [Header("Settings")]
     public float sensitivity = 1f;
@@ -23,11 +22,9 @@ public class PlayerLook : MonoBehaviour
 
     private void Start()
     {
-        // Lock cursor to center
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-        rigidbody = playerBody.GetComponent<Rigidbody>();
-
+        inputs = GetComponent<PlayerController>().Input;
+        playerRigidbody = playerBody.GetComponent<Rigidbody>();
+        
         // Hide the player head mesh to prevent clipping with the camera
         headRenderer = playerHead.GetComponent<SkinnedMeshRenderer>();
         headRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
@@ -43,33 +40,29 @@ public class PlayerLook : MonoBehaviour
     
     private void OnEnable()
     {
-        lookAction.action.Enable();
+        // Lock cursor to center
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     private void OnDisable()
     {
-        lookAction.action.Disable();
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
     
     void Update()
     {
-        lookInput = lookAction.action.ReadValue<Vector2>();
+        lookInput = inputs.LookInput;
 
         // body rotation (yaw)
         float yaw = lookInput.x * sensitivity * Time.deltaTime;
         Quaternion delta = Quaternion.Euler(0f, yaw, 0f);
-        rigidbody.MoveRotation(rigidbody.rotation * delta);
+        playerRigidbody.MoveRotation(playerRigidbody.rotation * delta);
 
         // camera rotation (pitch)
         pitch -= lookInput.y * sensitivity * Time.deltaTime;
         pitch = Mathf.Clamp(pitch, -verticalClamp, verticalClamp);
-        cameraRoot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
-    }
-
-
-    private void OnDestroy()
-    {
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 }

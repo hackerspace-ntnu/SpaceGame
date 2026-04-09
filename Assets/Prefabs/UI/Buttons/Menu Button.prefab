@@ -294,10 +294,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIButton
   button: {fileID: 1615022664079634020}
-  hoverSound: {fileID: 8300000, guid: 21b538e3dc3125543ae14963bf2ae0b1, type: 3}
-  pressSound: {fileID: 8300000, guid: 35107b5dfe99dbe4cb64a21fb36c0ae2, type: 3}
-  normalTrigger: Normal
-  hoverTrigger: Highlighted
-  pressTrigger: Pressed
-  disabledTrigger: Disabled
+  hoverSound:
+    Guid:
+      Data1: -1233848556
+      Data2: 1129232570
+      Data3: 1179256455
+      Data4: 739468870
+    Path: event:/UI/No
+  pressSound:
+    Guid:
+      Data1: 1229374955
+      Data2: 1235063036
+      Data3: -1150132820
+      Data4: 1689648054
+    Path: event:/UI/Yes
   animator: {fileID: 470731945719654683}

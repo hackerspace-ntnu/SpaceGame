@@ -1,5 +1,7 @@
 using UnityEngine;
 using System;
+using System.Linq;
+using Unity.Netcode;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
@@ -41,6 +43,6 @@ public class GameManager : MonoBehaviour
     public void WinGame()
     {
         SetState(GameState.Won);
-        SceneManager.LoadScene(onWinScene.SceneName);
+        SceneManager.LoadScene(onWinScene.SceneName, LoadSceneMode.Single);
     }
 }

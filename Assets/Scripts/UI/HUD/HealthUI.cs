@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -10,16 +11,8 @@ public class HealthUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI healthText;
     [SerializeField] private TextMeshProUGUI maxHealthText;
 
-    private void Awake()
-    {
-        if (health == null)
-            health = GetComponentInParent<HealthComponent>();
-    }
-
     private void OnEnable()
     {
-        if (health == null) return;
-
         health.OnDamage += HandleHealthChanged;
         health.OnHeal += HandleHealthChanged;
         health.OnDeath += HandleHealthChanged;
@@ -62,4 +55,5 @@ public class HealthUI : MonoBehaviour
         if (maxHealthText != null)
             maxHealthText.text = $"{max}";
     }
+    
 }

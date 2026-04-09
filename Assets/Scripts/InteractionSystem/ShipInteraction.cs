@@ -1,43 +1,60 @@
+using System;
 using System.Runtime.InteropServices;
+using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
 /// Handle interaction with the ship, such as adding scrap to the ship.
 /// </summary>
-public class ShipInteraction : MonoBehaviour, IInteractable
+public class ShipInteraction : NetworkBehaviour, IInteractable
 {
-    [SerializeField]
-    private Transform ship;
-    [SerializeField]
-    private Ship ShipScript;
-    
+    [SerializeField] private Transform ship;
+    [SerializeField] private Ship ShipScript;
+
+    [SerializeField] private InventoryItem scrapItem;
+
     public bool CanInteract()
     {
         return true;
     }
+
     public void Interact(Interactor interactor)
     {
-        if (interactor.TryGetComponent<PlayerInventory>(out PlayerInventory playerInventory))
+        Network.Execute(
+            local: ()=> ExecuteInteraction(interactor),
+            client: () => InteractServerRpc(interactor.GetComponent<NetworkObject>()));
+    }
+
+    [Rpc(SendTo.Server)]
+    private void InteractServerRpc(NetworkObjectReference networkObjectReference)
+    {
+        networkObjectReference.TryGet(out NetworkObject networkObject);
+        ExecuteInteraction(networkObject.GetComponent<Interactor>());
+    }
+    
+    private void ExecuteInteraction(Interactor interactor)
+    {
+        IPlayerInventory playerInventory = interactor.GetComponent<IPlayerInventory>();
+        if (playerInventory == null) return;
+
+        InventorySlot inventorySlot = playerInventory.GetSelectedSlot();
+        if (inventorySlot == null) return;
+
+        InventoryItem inventoryItem = inventorySlot.Item;
+        if (!inventoryItem)
         {
-            InventorySlot inventorySlot = playerInventory.GetSeletedSlot();
-            if(inventorySlot == null) return;
-            
-            InventoryItem inventoryItem = inventorySlot.Item;
-            if (!inventoryItem)
-            {
-                Debug.Log("no item held");
-                return;
-            }
-            bool accepted = false;
-            if (inventoryItem.itemId == ItemId.Scrap)
-            {
-                accepted = playerInventory.TryRemoveItem(playerInventory.selectedSlotIndex);
-            }
-            if (accepted)
-            {
-                Debug.Log("item removed from inventory");
-                ShipScript.AddScrap();
-            }
+            return;
+        }
+
+        bool accepted = false;
+        if (inventoryItem.ID == scrapItem.ID)
+        {
+            accepted = playerInventory.TryRemoveItem(playerInventory.SelectedSlotIndex);
+        }
+
+        if (accepted)
+        {
+            ShipScript.AddScrap();
         }
     }
 }

@@ -1,9 +1,13 @@
+using System;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerMovement : MonoBehaviour
 {
+    private PlayerInputManager inputs; 
+    
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 6f;
     [SerializeField, Range(0f, 1f)] private float airControl = 0.3f;
@@ -11,38 +15,30 @@ public class PlayerMovement : MonoBehaviour
     [Header("Jumping")]
     [SerializeField] private float jumpForce = 7f;
     [SerializeField] private float jumpCooldown = 0.6f;
-    [SerializeField] private Transform groundCheck;
     [SerializeField] private float groundCheckDistance = 1.9f;
     [SerializeField] private LayerMask groundMask = ~0;
 
     [Header("Dash")]
     [SerializeField] private float dashSpeed = 10f;
-    [SerializeField] private GameObject camera;
+    [SerializeField] private GameObject playerCamera;
 
-    private Rigidbody rb;
-    private Animator animator;
-    private Vector2 input;
+    [SerializeField] private Rigidbody rb;
+    [SerializeField] private Animator animator;
+    private Vector2 moveInput;
     private float jumpCooldownTimer;
     private bool jumpOnCooldown;
     private bool groundSnapEnabled = true;
 
-    private void Awake()
-    {
-        rb = GetComponent<Rigidbody>();
-        animator = GetComponent<Animator>();
-        rb.useGravity = true;
-    }
-
     private void Start()
     {
-        if (!groundCheck)
-        {
-            groundCheck = transform;
-        }
+        inputs = GetComponent<PlayerController>().Input;
+        inputs.OnJumpPressed += OnJump;
+        inputs.OnDashPressed += OnDash;
     }
 
     private void FixedUpdate()
     {
+        moveInput = inputs.MoveInput;
         HandleJumpCooldown();
 
         if (!groundSnapEnabled)
@@ -50,7 +46,7 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        Vector3 move = transform.right * input.x + transform.forward * input.y;
+        Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
         move = Vector3.ClampMagnitude(move, 1f);
         Vector3 desiredHorizontal = move * moveSpeed;
 
@@ -72,6 +68,12 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!animator) return;
 
+        UpdateAnimatorParametersServerRpc(velocity, grounded);
+    }
+    
+    [ServerRpc]
+    private void UpdateAnimatorParametersServerRpc(Vector3 velocity, bool grounded)
+    {
         // Calculate local velocity for animation
         Vector3 localVelocity = transform.worldToLocalMatrix.MultiplyVector(velocity);
         
@@ -80,21 +82,6 @@ public class PlayerMovement : MonoBehaviour
         animator.SetFloat("FallSpeed", velocity.y, .1f, Time.deltaTime);
         animator.SetBool("IsGrounded", grounded);
         animator.SetBool("IsImmobalized", !groundSnapEnabled);
-    }
-
-    public void ForceIdleAnimation()
-    {
-        if (!animator) return;
-        animator.SetFloat("SpeedX", 0f);
-        animator.SetFloat("SpeedY", 0f);
-        animator.SetFloat("FallSpeed", 0f);
-        animator.SetBool("IsGrounded", true);
-        animator.SetBool("IsImmobalized", false);
-    }
-
-    public void OnMove(InputValue value)
-    {
-        input = value.Get<Vector2>();
     }
 
     public void OnJump()
@@ -122,9 +109,9 @@ public class PlayerMovement : MonoBehaviour
         }
 
         Vector3 dashDirection = transform.forward;
-        if (camera)
+        if (playerCamera)
         {
-            dashDirection = camera.transform.forward;
+            dashDirection = playerCamera.transform.forward;
         }
 
         dashDirection.y = 0f;
@@ -149,7 +136,7 @@ public class PlayerMovement : MonoBehaviour
 
     private bool IsGrounded()
     {
-        Vector3 origin = groundCheck ? groundCheck.position : transform.position;
+        Vector3 origin = transform.position;
         return Physics.Raycast(origin, Vector3.down, groundCheckDistance, groundMask, QueryTriggerInteraction.Ignore);
     }
 

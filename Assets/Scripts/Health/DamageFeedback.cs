@@ -1,4 +1,5 @@
 using FirstGearGames.SmoothCameraShaker;
+using FMODUnity;
 using UnityEngine;
 
 public class DamageFeedback : MonoBehaviour
@@ -8,7 +9,7 @@ public class DamageFeedback : MonoBehaviour
     [SerializeField] private ShakeData shakeData;
 
     [Header("Audio")]
-    [SerializeField] private AudioClip damageSound; 
+    [SerializeField] private EventReference damageSound; 
 
     private void Awake()
     {
@@ -33,7 +34,6 @@ public class DamageFeedback : MonoBehaviour
         CameraShakerHandler.Shake(shakeData);
 
         // Play sound through your AudioManager
-        if (AudioManager.Instance)
-            AudioManager.Instance.PlaySFX(damageSound);
+        AudioManager.Instance.PlayEvent(damageSound);
     }
 }

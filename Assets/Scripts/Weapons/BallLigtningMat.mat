@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BallLigtningMat
+  m_Shader: {fileID: 4800000, guid: 9a30216a1c58a674db2d1a6c51bbf5a5, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _CoreMaskRadius: 0.5
+    - _CoreMaskSoftness: 0.8
+    - _CorePunchFalloff: 50
+    - _CoreStrength: 1
+    - _HazeFalloff: 120
+    - _NoisyRadiusScale: 0.02
+    - _PlasmaStrength: 0.42
+    - _StreamRadius: 0.073
+    - _StreamStrength: 3.35
+    - _UvScale: 0.6
+    - iTime: 0
+    m_Colors:
+    - _BlowoutColor: {r: 0.06999998, g: 0.17999998, b: 0.9, a: 1}
+    - _CloudColor: {r: 0.04, g: 0.089999996, b: 0.45999992, a: 1}
+    - _CoreColor: {r: 0.079999976, g: 0.13999996, b: 0.62, a: 1}
+    - _CorePunchColor: {r: 0.17999998, g: 0.47999996, b: 1.15, a: 1}
+    - _HazeColor: {r: 0, g: 0, b: 0, a: 1}
+    - _HotCoreColor: {r: 1, g: 1, b: 1, a: 1}
+    - _StreamColor: {r: 0.65860033, g: 0, b: 1, a: 1}
+    - iMouse: {r: 0, g: 0, b: 0, a: 0}
+    - iResolution: {r: 512, g: 512, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

@@ -325,7 +325,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   health: {fileID: -6402392480385526436}
   shakeData: {fileID: 11400000, guid: a523fbd6273bf7440b39814a82fdeb28, type: 2}
-  damageSound: {fileID: 8300000, guid: 21b538e3dc3125543ae14963bf2ae0b1, type: 3}
+  damageSound:
+    Guid:
+      Data1: -1233848556
+      Data2: 1129232570
+      Data3: 1179256455
+      Data4: 739468870
+    Path: event:/UI/No
 --- !u!114 &9030159979122590365
 MonoBehaviour:
   m_ObjectHideFlags: 0

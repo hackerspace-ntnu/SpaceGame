@@ -6,6 +6,8 @@ using UnityEngine.LowLevel;
 
 public class PlayerController : NetworkBehaviour
 {
+
+    [SerializeField] private GameObject scarfObject;
     [SerializeField] private GameObject playerCamera;
     [SerializeField] private GameObject playerHUD;
     
@@ -32,4 +34,8 @@ public class PlayerController : NetworkBehaviour
         damageFeedback.enabled = true;
     }
     
+    public GameObject getScarfMesh()
+    {
+        return scarfObject;
+    }
 }

@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Custom_Wood
+  m_Shader: {fileID: 4800000, guid: 386994a191325d94f932a1b03cfd7c74, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _FBMLacunarity: 2
+    - _FBMOctaves: 5
+    - _FBMPersistence: 1.18
+    - _GrainAmount: 1.01
+    - _GrainScale: 25
+    - _Metallic: 0.105
+    - _NoiseScale: 6.76
+    - _RingWidth: 0.4
+    - _Roughness: 0
+    - _Scale: 8
+    m_Colors:
+    - _WoodColor1: {r: 0.4811321, g: 0.2517802, b: 0.11347456, a: 1}
+    - _WoodColor2: {r: 0.2264151, g: 0.11854753, b: 0.11854753, a: 1}
+    - _WoodColor3: {r: 0, g: 0, b: 0, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

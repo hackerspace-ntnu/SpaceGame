@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 using Unity.Netcode;
 using UnityEngine;
@@ -8,53 +7,45 @@ using UnityEngine;
 /// </summary>
 public class ShipInteraction : NetworkBehaviour, IInteractable
 {
-    [SerializeField] private Transform ship;
-    [SerializeField] private Ship ShipScript;
-
+    [SerializeField]
+    private Transform ship;
+    [SerializeField]
+    private Ship ShipScript;
+    
     [SerializeField] private InventoryItem scrapItem;
-
+    
     public bool CanInteract()
     {
         return true;
     }
-
     public void Interact(Interactor interactor)
     {
-        Network.Execute(
-            local: ()=> ExecuteInteraction(interactor),
-            client: () => InteractServerRpc(interactor.GetComponent<NetworkObject>()));
+        if (interactor.TryGetComponent<PlayerInventory>(out PlayerInventory playerInventory))
+        {
+            InventorySlot inventorySlot = playerInventory.GetSelectedSlot();
+            if(inventorySlot == null) return;
+            
+            InventoryItem inventoryItem = inventorySlot.Item;
+            if (!inventoryItem)
+            {
+                Debug.Log("no item held");
+                return;
+            }
+            bool accepted = false;
+            if (inventoryItem.ItemId == scrapItem.ItemId)
+            {
+                accepted = playerInventory.TryRemoveItem(playerInventory.selectedSlotIndex);
+            }
+            if (accepted)
+            {
+                AddItemServerRpc(interactor.GetComponentInParent<NetworkObject>());
+            }
+        }
     }
 
-    [Rpc(SendTo.Server)]
-    private void InteractServerRpc(NetworkObjectReference networkObjectReference)
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    private void AddItemServerRpc(NetworkObjectReference playerNetworkObject)
     {
-        networkObjectReference.TryGet(out NetworkObject networkObject);
-        ExecuteInteraction(networkObject.GetComponent<Interactor>());
-    }
-    
-    private void ExecuteInteraction(Interactor interactor)
-    {
-        IPlayerInventory playerInventory = interactor.GetComponent<IPlayerInventory>();
-        if (playerInventory == null) return;
-
-        InventorySlot inventorySlot = playerInventory.GetSelectedSlot();
-        if (inventorySlot == null) return;
-
-        InventoryItem inventoryItem = inventorySlot.Item;
-        if (!inventoryItem)
-        {
-            return;
-        }
-
-        bool accepted = false;
-        if (inventoryItem.ID == scrapItem.ID)
-        {
-            accepted = playerInventory.TryRemoveItem(playerInventory.SelectedSlotIndex);
-        }
-
-        if (accepted)
-        {
-            ShipScript.AddScrap();
-        }
+        ShipScript.AddScrap();
     }
 }

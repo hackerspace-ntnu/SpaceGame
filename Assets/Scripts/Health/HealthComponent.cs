@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-public class HealthComponent : MonoBehaviour, IDamageable
+public class HealthComponent : MonoBehaviour
 {
     public event Action<int> OnDamage;
     public event Action<int> OnHeal;

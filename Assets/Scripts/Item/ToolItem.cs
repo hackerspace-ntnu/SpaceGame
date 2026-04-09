@@ -7,13 +7,6 @@ using UnityEngine;
 /// </summary>
 public abstract class ToolItem : UsableItem
 {
-    protected AimProvider aimProvider;
-
-    protected override void Use()
-    {
-        aimProvider = owner.GetComponent<AimProvider>();
-    }
-
     // Tool items use the default UsableItem behavior
     // Just override Use() to implement your immediate effect
 }

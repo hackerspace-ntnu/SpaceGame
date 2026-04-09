@@ -9,31 +9,17 @@ public class SingleplayerInitializer : NetworkBehaviour
         
         private void Start()
         {
-            // Ensure NetworkManager exists
-            if (!NetworkManager.Singleton)
-            {
-                Debug.LogError("No NetworkManager in scene!");
-                return;
-            }
-
-            // Start host only if not already running
-            if (!NetworkManager.Singleton.IsListening)
+            if (NetworkManager.Singleton)
             {
                 NetworkManager.Singleton.StartHost();
             }
-            NetworkManager.Singleton.OnServerStarted += SpawnLocalPlayer;
         }
         
-        private void SpawnLocalPlayer()
+        public override void OnNetworkSpawn()
         {
-            if (!NetworkManager.Singleton.IsServer) return;
-            
-            var client = NetworkManager.Singleton.ConnectedClients[NetworkManager.Singleton.LocalClientId];
-            if (client.PlayerObject == null)
-            {
-                GameObject player = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
-                player.GetComponent<NetworkObject>().SpawnAsPlayerObject(NetworkManager.Singleton.LocalClientId);
-            }
+            if (!IsServer) return;
+            GameObject player = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
+            player.GetComponent<NetworkObject>().SpawnAsPlayerObject(NetworkManager.Singleton.LocalClientId);
         }
     
 }

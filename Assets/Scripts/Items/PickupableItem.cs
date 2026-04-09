@@ -1,7 +1,6 @@
 
 
 using Unity.Netcode;
-using Unity.VisualScripting;
 using UnityEngine;
 
 /// <summary>
@@ -11,7 +10,8 @@ using UnityEngine;
 class PickupableItem : NetworkBehaviour, IInteractable
 {
    [SerializeField] private InventoryItem item;
-   
+
+
    public bool CanInteract()
    {
       return true;
@@ -19,26 +19,18 @@ class PickupableItem : NetworkBehaviour, IInteractable
 
    public void Interact(Interactor interactor)
    {
-      Network.Execute(
-         local: () => Pickup(interactor),
-         client: () => RequestPickupServerRpc(interactor.GetComponent<NetworkObject>()));
-   }
-
-   [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-   private void RequestPickupServerRpc(NetworkObjectReference interactorRef)
-   {
-      if (!interactorRef.TryGet(out NetworkObject player)) return;
-      Pickup(player.GetComponent<Interactor>());
-   }
-
-   private void Pickup(Interactor interactor)
-   {
-      IPlayerInventory inventory = interactor.GetComponent<IPlayerInventory>();
-      if (inventory == null) return;
+      PlayerInventory inventory = interactor.GetComponentInParent<PlayerInventory>();
+      if (!inventory) return;
       bool added = inventory.TryAddItem(item);
       if (added)
       {
-         GameServices.World.Despawn(gameObject);
+         PickupServerRpc();
       }
+   }
+
+   [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+   private void PickupServerRpc()
+   {
+      NetworkObject.Despawn();
    }
 }

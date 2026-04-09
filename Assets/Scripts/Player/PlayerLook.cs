@@ -4,7 +4,9 @@ using UnityEngine.InputSystem;
 
 public class PlayerLook : MonoBehaviour
 {
-    private PlayerInputManager inputs;
+    [Header("Input")]
+    public InputActionReference lookAction; // Vector2
+
     [Header("References")]
     public GameObject playerCamera;    
     public Transform playerHead; 
@@ -21,7 +23,9 @@ public class PlayerLook : MonoBehaviour
     
     private void Start()
     {
-        inputs = GetComponent<PlayerController>().Input;
+        // Lock cursor to center
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
         playerRigidbody = playerBody.GetComponent<Rigidbody>();
         
         // Hide the player head mesh to prevent clipping with the camera
@@ -31,20 +35,17 @@ public class PlayerLook : MonoBehaviour
     
     private void OnEnable()
     {
-        // Lock cursor to center
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        lookAction.action.Enable();
     }
 
     private void OnDisable()
     {
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        lookAction.action.Disable();
     }
     
     void Update()
     {
-        lookInput = inputs.LookInput;
+        lookInput = lookAction.action.ReadValue<Vector2>();
 
         // body rotation (yaw)
         float yaw = lookInput.x * sensitivity * Time.deltaTime;
@@ -55,5 +56,12 @@ public class PlayerLook : MonoBehaviour
         pitch -= lookInput.y * sensitivity * Time.deltaTime;
         pitch = Mathf.Clamp(pitch, -verticalClamp, verticalClamp);
         playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+    }
+
+
+    public void OnDestroy()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 }

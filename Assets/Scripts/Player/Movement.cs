@@ -4,9 +4,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
-public class PlayerMovement : MonoBehaviour
+public class PlayerMovement : NetworkBehaviour
 {
-    private PlayerInputManager inputs; 
+    private InputControls controls;
     
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 6f;
@@ -24,21 +24,28 @@ public class PlayerMovement : MonoBehaviour
 
     [SerializeField] private Rigidbody rb;
     [SerializeField] private Animator animator;
-    private Vector2 moveInput;
+    private Vector2 input;
     private float jumpCooldownTimer;
     private bool jumpOnCooldown;
     private bool groundSnapEnabled = true;
 
-    private void Start()
+    private void Awake()
     {
-        inputs = GetComponent<PlayerController>().Input;
-        inputs.OnJumpPressed += OnJump;
-        inputs.OnDashPressed += OnDash;
+        controls  = new InputControls();
+    }
+
+    private void OnEnable()
+    {
+        controls.Player.Move.performed += ctx => OnMove(ctx.ReadValue<Vector2>());
+        controls.Player.Move.canceled += ctx => OnMove(Vector2.zero);
+        controls.Player.Jump.performed += ctx => OnJump();
+        controls.Player.Dash.performed += ctx => OnDash();
+
+        controls.Enable();
     }
 
     private void FixedUpdate()
     {
-        moveInput = inputs.MoveInput;
         HandleJumpCooldown();
 
         if (!groundSnapEnabled)
@@ -46,7 +53,7 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
+        Vector3 move = transform.right * input.x + transform.forward * input.y;
         move = Vector3.ClampMagnitude(move, 1f);
         Vector3 desiredHorizontal = move * moveSpeed;
 
@@ -82,6 +89,11 @@ public class PlayerMovement : MonoBehaviour
         animator.SetFloat("FallSpeed", velocity.y, .1f, Time.deltaTime);
         animator.SetBool("IsGrounded", grounded);
         animator.SetBool("IsImmobalized", !groundSnapEnabled);
+    }
+
+    public void OnMove(Vector2 inputVector)
+    {
+        input = inputVector;
     }
 
     public void OnJump()

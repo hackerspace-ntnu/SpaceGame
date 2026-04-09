@@ -1,20 +1,32 @@
-using System;
 using UnityEngine;
 
 public abstract class UsableItem : MonoBehaviour
 {
+    protected EquipmentController equipmentController;
+    protected InputManager inputManager;
+    
     [SerializeField] private int maxUses = -1; // -1 means unlimited uses
     [SerializeField] protected AudioClip useSound;
 
     private int currentUses = 0;
-    
-    protected GameObject owner;
-    
-    public event Action<UsableItem> OnItemDepleted;
 
-    public void TryUse(GameObject useOwner)
+    protected virtual void Awake()
     {
-        owner = useOwner;
+        equipmentController = FindFirstObjectByType<EquipmentController>();
+        inputManager = FindFirstObjectByType<InputManager>();
+    }
+    protected virtual void OnEnable()
+    {
+        inputManager.OnUsePressed += TryUse;
+    }
+
+    protected virtual void OnDisable()
+    {
+        inputManager.OnUsePressed -= TryUse;
+    }
+
+    private void TryUse()
+    {
         if (CanUse())
         {
             if (useSound != null)
@@ -41,7 +53,8 @@ public abstract class UsableItem : MonoBehaviour
             return false;
         }
         
-        return true;
+        return equipmentController != null &&
+               equipmentController.getCurrentObject() == this.gameObject;
     }
     
     /// <summary>
@@ -50,7 +63,22 @@ public abstract class UsableItem : MonoBehaviour
     /// </summary>
     protected virtual void OnMaxUsesReached()
     {
-        OnItemDepleted?.Invoke(this);
+        // Remove from inventory
+        GameObject player = GameObject.FindWithTag("Player");
+        if (player != null)
+        {
+            PlayerInventory playerInventory = player.GetComponent<PlayerInventory>();
+            if (playerInventory != null)
+            {
+                playerInventory.TryRemoveItem(playerInventory.selectedSlotIndex);
+            }
+        }
+        
+        // Unequip and destroy the item
+        if (equipmentController != null)
+        {
+            equipmentController.Unequip();
+        }
     }
 
     protected abstract void Use();

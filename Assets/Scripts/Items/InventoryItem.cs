@@ -8,9 +8,11 @@ using UnityEditor;
 /// ScriptableObject representing an item that can be stored in the inventory. Contains data about the item such as its name, prefab, and icon.
 /// </summary>
 [CreateAssetMenu(menuName = "Items/Item")]
-public class InventoryItem : ScriptableObject, IRegistryEntry
+public class InventoryItem : ScriptableObject
 {
-    public string ID { get; set; }
+    [Tooltip("Unique identifier for the item. ")]
+    [SerializeField, HideInInspector] private string itemId;
+    public string ItemId => itemId;
     
     [Tooltip("Display name of the item")]
     public string itemName = "NewItem";
@@ -24,12 +26,10 @@ public class InventoryItem : ScriptableObject, IRegistryEntry
 #if UNITY_EDITOR
     private void OnValidate()
     {
-        string path = AssetDatabase.GetAssetPath(this);
-        string guid = AssetDatabase.AssetPathToGUID(path);
-
-        if (ID != guid)
+        if (string.IsNullOrEmpty(itemId))
         {
-            ID = guid;
+            string path = AssetDatabase.GetAssetPath(this);
+            itemId = AssetDatabase.AssetPathToGUID(path);
             EditorUtility.SetDirty(this);
         }
     }

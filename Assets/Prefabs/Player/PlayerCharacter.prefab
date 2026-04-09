@@ -431,6 +431,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: WeaponRoot
       objectReference: {fileID: 0}
+    - target: {fileID: 1139436794606665169, guid: 8a4e19e52ae613a4697acac8b853b84d, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4904761287981192801, guid: 8a4e19e52ae613a4697acac8b853b84d, type: 3}
       propertyPath: aimCamera
       value: 
@@ -724,6 +728,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5172248701023293746}
     m_Modifications:
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: aimCamera
+      value: 
+      objectReference: {fileID: 4586483584228166958}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: firePoint
+      value: 
+      objectReference: {fileID: 6400345289391496217}
     - target: {fileID: 2490650498845839401, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: m_Name
       value: cixinGunFinal

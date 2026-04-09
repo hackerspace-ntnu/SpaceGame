@@ -678,11 +678,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!65 &989948488 stripped
-BoxCollider:
-  m_CorrespondingSourceObject: {fileID: 5486840425003117211, guid: f628af38eb78b944b881e44a9928949a, type: 3}
-  m_PrefabInstance: {fileID: 3002424311855264337}
-  m_PrefabAsset: {fileID: 0}
 --- !u!54 &990859976 stripped
 Rigidbody:
   m_CorrespondingSourceObject: {fileID: 1189639543078888743, guid: f628af38eb78b944b881e44a9928949a, type: 3}
@@ -930,6 +925,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1418105365
 MeshFilter:
@@ -1106,14 +1102,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1872618849}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 1
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
   m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 2
     m_Resolution: -1
@@ -1323,7 +1319,7 @@ PrefabInstance:
     - target: {fileID: 2210044763687188369, guid: f628af38eb78b944b881e44a9928949a, type: 3}
       propertyPath: triggerCollider
       value: 
-      objectReference: {fileID: 989948488}
+      objectReference: {fileID: 0}
     - target: {fileID: 2457283673393252409, guid: f628af38eb78b944b881e44a9928949a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

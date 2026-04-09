@@ -40,6 +40,7 @@ public class WorldStreamer : NetworkBehaviour
     private readonly Dictionary<Vector2Int, ChunkState> chunkStates = new();
     private readonly Dictionary<Vector2Int, Scene> loadedScenes = new();
     private readonly Dictionary<Vector2Int, Terrain> loadedTerrains = new();
+    private readonly Dictionary<Vector2Int, List<NavMeshAgent>> parkedAgentsByChunk = new();
     private readonly Dictionary<Vector2Int, float> unloadTimers = new();
 
     // Queue for sequential scene operations (Netcode only allows one at a time)
@@ -93,6 +94,7 @@ public class WorldStreamer : NetworkBehaviour
         chunkStates.Clear();
         loadedScenes.Clear();
         loadedTerrains.Clear();
+        parkedAgentsByChunk.Clear();
         unloadTimers.Clear();
         operationQueue.Clear();
         operationInProgress = false;
@@ -383,6 +385,7 @@ public class WorldStreamer : NetworkBehaviour
             chunkStates[pendingCoord] = ChunkState.Loaded;
             loadedScenes[pendingCoord] = SceneManager.GetSceneByName(pendingSceneName);
             CacheTerrainForChunk(pendingCoord);
+            ParkAgentsForChunk(pendingCoord);
             RefreshTerrainNeighborsAround(pendingCoord);
             ScheduleNavMeshRebuild();
             Debug.Log($"[WorldStreamer] Chunk {pendingCoord} loaded");
@@ -392,6 +395,7 @@ public class WorldStreamer : NetworkBehaviour
                  && pendingSceneName == null)
         {
             loadedTerrains.Remove(pendingCoord);
+            parkedAgentsByChunk.Remove(pendingCoord);
             chunkStates[pendingCoord] = ChunkState.NotLoaded;
             loadedScenes.Remove(pendingCoord);
             RefreshTerrainNeighborsAround(pendingCoord);
@@ -478,6 +482,14 @@ public class WorldStreamer : NetworkBehaviour
             bounds
         );
 
+        navMeshBuildOperation.completed += _ =>
+        {
+            if (!this || !isReady)
+                return;
+
+            ReleaseParkedAgents();
+        };
+
         Debug.Log($"[WorldStreamer] NavMesh async rebuild started ({sources.Count} sources)");
     }
 
@@ -537,6 +549,67 @@ public class WorldStreamer : NetworkBehaviour
         }
     }
 
+    private void ParkAgentsForChunk(Vector2Int coord)
+    {
+        parkedAgentsByChunk.Remove(coord);
+
+        if (!loadedScenes.TryGetValue(coord, out var scene) || !scene.IsValid() || !scene.isLoaded)
+            return;
+
+        var agents = new List<NavMeshAgent>();
+
+        foreach (var root in scene.GetRootGameObjects())
+        {
+            foreach (var agent in root.GetComponentsInChildren<NavMeshAgent>(true))
+            {
+                if (agent == null)
+                    continue;
+
+                agent.enabled = false;
+                agents.Add(agent);
+            }
+        }
+
+        if (agents.Count > 0)
+            parkedAgentsByChunk[coord] = agents;
+    }
+
+    private void ReleaseParkedAgents()
+    {
+        foreach (var kvp in parkedAgentsByChunk.ToList())
+        {
+            var remaining = new List<NavMeshAgent>();
+
+            foreach (var agent in kvp.Value)
+            {
+                if (agent == null)
+                    continue;
+
+                if (!TryActivateAgent(agent))
+                    remaining.Add(agent);
+            }
+
+            if (remaining.Count > 0)
+                parkedAgentsByChunk[kvp.Key] = remaining;
+            else
+                parkedAgentsByChunk.Remove(kvp.Key);
+        }
+    }
+
+    private bool TryActivateAgent(NavMeshAgent agent)
+    {
+        Vector3 sampleOrigin = agent.transform.position;
+        float sampleDistance = Mathf.Max(agent.radius * 4f, agent.height * 2f, 8f);
+
+        if (!NavMesh.SamplePosition(sampleOrigin, out var hit, sampleDistance, NavMesh.AllAreas))
+            return false;
+
+        agent.transform.position = hit.position;
+        agent.enabled = true;
+        agent.Warp(hit.position);
+        return agent.isOnNavMesh;
+    }
+
     private void RefreshTerrainNeighborsAround(Vector2Int centerCoord)
     {
         for (int x = centerCoord.x - 1; x <= centerCoord.x + 1; x++)
@@ -577,24 +650,6 @@ public class WorldStreamer : NetworkBehaviour
     private void OnDrawGizmos()
     {
         if (!showDebugGizmos || config == null || config.chunks == null) return;
-
-        foreach (var chunk in config.chunks)
-        {
-            bool isLoaded = chunkStates.TryGetValue(chunk.gridCoord, out var state)
-                         && state == ChunkState.Loaded;
-
-            Gizmos.color = isLoaded
-                ? new Color(0f, 1f, 0f, 0.15f)
-                : new Color(1f, 0f, 0f, 0.08f);
-
-            Gizmos.DrawCube(chunk.worldBounds.center, chunk.worldBounds.size);
-
-            Gizmos.color = isLoaded
-                ? new Color(0f, 1f, 0f, 0.6f)
-                : new Color(1f, 1f, 1f, 0.2f);
-
-            Gizmos.DrawWireCube(chunk.worldBounds.center, chunk.worldBounds.size);
-        }
     }
 #endif
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -238,7 +239,7 @@ public class WorldChunkerEditor : EditorWindow
             if (root.GetComponentInChildren<Terrain>() != null)
                 continue;
 
-            var coord = ClampCoord(WorldPosToChunkCoord(root.transform.position));
+            var coord = ClampCoord(WorldPosToChunkCoord(GetChunkAnchorPosition(root)));
             buckets[coord] = buckets.GetValueOrDefault(coord, 0) + 1;
         }
 
@@ -309,14 +310,18 @@ public class WorldChunkerEditor : EditorWindow
                 continue;
 
             // Collect terrains separately — they get split, not copied whole
-            var terrain = root.GetComponentInChildren<Terrain>();
-            if (terrain != null)
+            var terrainsInRoot = root.GetComponentsInChildren<Terrain>(true);
+            if (terrainsInRoot.Length > 0)
             {
-                terrainObjects.Add(terrain);
+                foreach (var terrain in terrainsInRoot)
+                {
+                    if (!terrainObjects.Contains(terrain))
+                        terrainObjects.Add(terrain);
+                }
                 continue;
             }
 
-            var coord = ClampCoord(WorldPosToChunkCoord(root.transform.position));
+            var coord = ClampCoord(WorldPosToChunkCoord(GetChunkAnchorPosition(root)));
             if (!buckets.ContainsKey(coord))
                 buckets[coord] = new List<GameObject>();
             buckets[coord].Add(root);
@@ -383,7 +388,7 @@ public class WorldChunkerEditor : EditorWindow
                 {
                     foreach (var original in buckets[coord])
                     {
-                        var copy = Object.Instantiate(original);
+                        var copy = UnityEngine.Object.Instantiate(original);
                         copy.name = original.name;
                         copy.transform.SetPositionAndRotation(original.transform.position, original.transform.rotation);
                         copy.transform.localScale = original.transform.localScale;
@@ -803,6 +808,44 @@ public class WorldChunkerEditor : EditorWindow
             || obj.GetComponentInChildren<Unity.Netcode.NetworkObject>() != null;
     }
 
+    private Vector3 GetChunkAnchorPosition(GameObject root)
+    {
+        var renderers = root.GetComponentsInChildren<Renderer>();
+        bool hasBounds = false;
+        Bounds bounds = default;
+
+        foreach (var renderer in renderers)
+        {
+            if (!hasBounds)
+            {
+                bounds = renderer.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+
+        foreach (var collider in root.GetComponentsInChildren<Collider>())
+        {
+            if (!hasBounds)
+            {
+                bounds = collider.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(collider.bounds);
+            }
+        }
+
+        if (hasBounds)
+            return bounds.center;
+
+        return root.transform.position;
+    }
+
     private Vector2Int WorldPosToChunkCoord(Vector3 worldPos)
     {
         float relX = worldPos.x - detectedOrigin.x;
@@ -823,13 +866,20 @@ public class WorldChunkerEditor : EditorWindow
 
     private void AddScenesToBuildSettings(List<string> scenePaths)
     {
-        var existingScenes = EditorBuildSettings.scenes.ToList();
+        var existingScenes = EditorBuildSettings.scenes
+            .Where(s => !s.path.StartsWith(outputFolder + "/", StringComparison.OrdinalIgnoreCase))
+            .ToList();
         var existingPaths = new HashSet<string>(existingScenes.Select(s => s.path));
+
         foreach (var path in scenePaths)
         {
             if (!existingPaths.Contains(path))
+            {
                 existingScenes.Add(new EditorBuildSettingsScene(path, true));
+                existingPaths.Add(path);
+            }
         }
+
         EditorBuildSettings.scenes = existingScenes.ToArray();
     }
 

@@ -20,16 +20,12 @@ public partial class MountController
         }
 
         CacheMountedPlayerReferences(playerMovement, mountPointOverride);
+        EnsureMountedThirdPersonCamera();
         DisableRiderComponentsForMount();
         EnterMountedRigidbodyState();
         ParentRiderToMount();
-        InitializeMountedViewState();
-
-        ResetMountedInputState();
-        currentSteeringForward = GetSteeringForward();
         lastMountChangeTime = Time.time;
-        ResetSteeringState();
-        ApplyPerspective(defaultPerspective);
+        Mounted?.Invoke(playerMovement);
         return true;
     }
 
@@ -48,16 +44,39 @@ public partial class MountController
             : transform.position + transform.right * fallbackDismountDistance;
         rider.position = dismountPosition;
 
-        SetThirdPersonCameraEnabled(false);
-        SetFirstPersonCameraEnabled(true);
         ExitMountedRigidbodyState();
         RestoreRiderComponentsAfterDismount();
+        Dismounted?.Invoke(mountedPlayerMovement);
+        ReleaseMountedThirdPersonCamera();
         ClearMountedReferences();
         activeSeatPoint = seatPoint;
-        ResetMountedInputState();
-        currentSteeringForward = GetSteeringForward();
-        ResetSteeringState();
-        SetVisualLean(0f);
         lastMountChangeTime = Time.time;
+    }
+
+    private void EnsureMountedThirdPersonCamera()
+    {
+        if (mountedThirdPersonCamera != null || thirdPersonCameraPrefab == null)
+        {
+            return;
+        }
+
+        GameObject cameraObject = Instantiate(thirdPersonCameraPrefab.gameObject);
+        cameraObject.name = $"{name}_MountedThirdPersonCamera";
+        mountedThirdPersonCamera = cameraObject.GetComponent<Camera>();
+        if (mountedThirdPersonCamera != null)
+        {
+            mountedThirdPersonCamera.enabled = false;
+        }
+    }
+
+    private void ReleaseMountedThirdPersonCamera()
+    {
+        if (mountedThirdPersonCamera == null)
+        {
+            return;
+        }
+
+        Destroy(mountedThirdPersonCamera.gameObject);
+        mountedThirdPersonCamera = null;
     }
 }

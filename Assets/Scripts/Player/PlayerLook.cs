@@ -9,6 +9,7 @@ public class PlayerLook : MonoBehaviour
     public GameObject playerCamera;    
     public Transform playerHead; 
     public Transform playerBody;
+    public Transform cameraRoot => playerCamera != null ? playerCamera.transform : null;
     private Rigidbody playerRigidbody;
 
     [Header("Settings")]

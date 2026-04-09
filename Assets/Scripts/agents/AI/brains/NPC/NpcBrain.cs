@@ -17,6 +17,7 @@ public class NpcBrain : MonoBehaviour, IAgentBrain
 {
     [Header("Behaviours")]
     [SerializeField] private WanderBehaviour wanderBehaviour;
+    [SerializeField] private MountController mountController;
 
     [Header("Player Target")]
     [SerializeField] private Transform playerTarget;
@@ -54,6 +55,11 @@ public class NpcBrain : MonoBehaviour, IAgentBrain
         if (!wanderBehaviour)
         {
             wanderBehaviour = GetComponent<WanderBehaviour>();
+        }
+
+        if (!mountController)
+        {
+            mountController = GetComponent<MountController>();
         }
     }
 
@@ -143,6 +149,11 @@ public class NpcBrain : MonoBehaviour, IAgentBrain
     private MoveIntent? TryGetPlayerReactionIntent(in AgentContext context)
     {
         if (playerReactionMode == NpcPlayerReactionMode.Ignore || !playerTarget)
+        {
+            return null;
+        }
+
+        if (ShouldIgnoreMountedRider(playerTarget))
         {
             return null;
         }
@@ -249,6 +260,22 @@ public class NpcBrain : MonoBehaviour, IAgentBrain
         }
 
         lookAroundTimer = Random.Range(lookAroundMinInterval, lookAroundMaxInterval);
+    }
+
+    private bool ShouldIgnoreMountedRider(Transform candidateTarget)
+    {
+        if (!mountController || !mountController.IsMounted || candidateTarget == null)
+        {
+            return false;
+        }
+
+        PlayerMovement rider = mountController.MountedPlayerMovement;
+        if (!rider)
+        {
+            return false;
+        }
+
+        return candidateTarget == rider.transform || candidateTarget.IsChildOf(rider.transform);
     }
 
     private void OnValidate()

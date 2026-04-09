@@ -1,40 +1,8 @@
-// MountController helper partial containing mount-state/input transition routines.
-// Keeps the main controller file smaller by isolating rider setup/teardown internals.
-// This file focuses on state management, not steering/camera math.
+// MountController helper partial containing rider state setup/teardown routines.
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public partial class MountController
 {
-    private void ResolveInputActions()
-    {
-        moveAction = InputSystem.actions.FindAction("Move");
-        lookAction = InputSystem.actions.FindAction("Look");
-        jumpAction = InputSystem.actions.FindAction("Jump");
-        togglePerspectiveAction = InputSystem.actions.FindAction(perspectiveToggleActionName);
-    }
-
-    private Vector2 ReadMountedMoveInput()
-    {
-        if (moveAction == null)
-        {
-            return Vector2.zero;
-        }
-
-        return Vector2.ClampMagnitude(moveAction.ReadValue<Vector2>(), 1f);
-    }
-
-    private void EnsureMountedLookActionEnabled()
-    {
-        if (lookAction == null || lookAction.enabled)
-        {
-            return;
-        }
-
-        lookAction.Enable();
-        forcedMountedLookActionEnabled = true;
-    }
-
     private void CacheMountedPlayerReferences(PlayerMovement playerMovement, Transform mountPointOverride)
     {
         mountedPlayer = playerMovement.transform;
@@ -60,8 +28,6 @@ public partial class MountController
             mountedPlayerLook.enabled = false;
         }
 
-        EnsureMountedLookActionEnabled();
-
         if (disablePlayerInteractor && mountedInteractor)
         {
             mountedInteractor.enabled = false;
@@ -79,11 +45,6 @@ public partial class MountController
         {
             mountedPlayerLook.SetHeadVisible(false);
             mountedPlayerLook.enabled = true;
-        }
-
-        if (forcedMountedLookActionEnabled && lookAction != null && disablePlayerLook && mountedPlayerLook == null)
-        {
-            lookAction.Disable();
         }
 
         if (disablePlayerInteractor && mountedInteractor)
@@ -128,28 +89,6 @@ public partial class MountController
         mountedPlayer.localRotation = Quaternion.identity;
     }
 
-    private void InitializeMountedViewState()
-    {
-        float yaw = transform.rotation.eulerAngles.y;
-        mountedYaw = yaw;
-        cameraYaw = yaw;
-        cameraYawOffset = 0f;
-        timeSinceLastLookInput = 0f;
-        mountedPitch = mountedFirstPersonCameraRoot ? mountedFirstPersonCameraRoot.localEulerAngles.x : 0f;
-        if (mountedPitch > 180f)
-        {
-            mountedPitch -= 360f;
-        }
-    }
-
-    private void ResetMountedInputState()
-    {
-        currentMoveInput = Vector2.zero;
-        moveInputVelocityX = 0f;
-        moveInputVelocityY = 0f;
-        jumpPressedThisFrame = false;
-    }
-
     private void ClearMountedReferences()
     {
         mountedPlayer = null;
@@ -159,6 +98,5 @@ public partial class MountController
         mountedPlayerRigidbody = null;
         mountedFirstPersonCamera = null;
         mountedFirstPersonCameraRoot = null;
-        forcedMountedLookActionEnabled = false;
     }
 }

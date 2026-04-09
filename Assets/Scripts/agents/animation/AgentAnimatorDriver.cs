@@ -33,6 +33,11 @@ public class AgentAnimatorDriver : MonoBehaviour
             return;
         }
 
+        if (animator.runtimeAnimatorController == null)
+        {
+            return;
+        }
+
         // Convert velocity in the animator rig's local space (important when rig is on a child transform).
         Vector3 localVelocity = animator.transform.worldToLocalMatrix.MultiplyVector(worldVelocity) * animationSpeedMultiplier;
 

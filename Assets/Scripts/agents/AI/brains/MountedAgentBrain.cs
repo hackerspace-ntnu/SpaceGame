@@ -12,6 +12,7 @@ public class MountedAgentBrain : MonoBehaviour, IAgentBrain
     [Header("References")]
     [SerializeField] private NpcBrain fallbackBrain;
     [SerializeField] private MountController mountController;
+    [SerializeField] private MountSteeringController steeringController;
 
     [Header("Mounted Control")]
     [SerializeField] private float mountedMoveDistance = 2f;
@@ -44,6 +45,16 @@ public class MountedAgentBrain : MonoBehaviour, IAgentBrain
             mountController = GetComponent<MountController>();
         }
 
+        if (!steeringController)
+        {
+            steeringController = GetComponent<MountSteeringController>();
+        }
+
+        if (!steeringController && mountController)
+        {
+            steeringController = gameObject.AddComponent<MountSteeringController>();
+        }
+
         jumpMotor = GetComponent<IMountJumpMotor>();
     }
 
@@ -51,12 +62,15 @@ public class MountedAgentBrain : MonoBehaviour, IAgentBrain
     {
         if (mountController && mountController.IsMounted)
         {
-            if (enableMountedJump && jumpMotor != null && mountController.ConsumeMountedJumpPressed())
+            if (enableMountedJump && jumpMotor != null && steeringController != null && steeringController.ConsumeMountedJumpPressed())
             {
                 jumpMotor.RequestJump();
             }
 
-            return ProcessMountedControl(context, mountController.CurrentMoveInput, mountController.CurrentSteeringForward, deltaTime);
+            if (steeringController != null && steeringController.HasSteeringOverride)
+            {
+                return ProcessMountedControl(context, steeringController.CurrentMoveInput, steeringController.CurrentSteeringForward, deltaTime);
+            }
         }
 
         if (fallbackBrain)

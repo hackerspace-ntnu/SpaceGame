@@ -1,7 +1,7 @@
 // Mounted steering, look-to-yaw integration, and visual lean behavior.
 using UnityEngine;
 
-public partial class MountController
+public partial class MountSteeringController
 {
     private void HandleMountedLook(float deltaTime)
     {
@@ -24,25 +24,34 @@ public partial class MountController
             cameraYawOffset = Mathf.MoveTowards(cameraYawOffset, 0f, cameraAutoAlignSpeed * deltaTime);
         }
 
-        cameraYaw = mountedYaw + cameraYawOffset;
-
         float normalizedSpeed = GetMountedNormalizedSpeed();
-        float speedSteerScale = Mathf.Lerp(1f, 0.75f, normalizedSpeed);
-        float steerInput = currentMoveInput.x;
-        float targetYawRate = steerInput * steerSpeed * speedSteerScale;
-        float momentumBlend = 1f - Mathf.Exp(-momentumDamping * deltaTime);
-        steeringMomentum = Mathf.Lerp(steeringMomentum, targetYawRate, momentumBlend);
-        if (Mathf.Abs(steerInput) <= 0.01f)
+        if (hasSteeringOverride)
         {
-            steeringMomentum = Mathf.Lerp(steeringMomentum, 0f, momentumBlend * 0.6f);
+            float speedSteerScale = Mathf.Lerp(1f, 0.75f, normalizedSpeed);
+            float steerInput = currentMoveInput.x;
+            float targetYawRate = steerInput * steerSpeed * speedSteerScale;
+            float momentumBlend = 1f - Mathf.Exp(-momentumDamping * deltaTime);
+            steeringMomentum = Mathf.Lerp(steeringMomentum, targetYawRate, momentumBlend);
+            if (Mathf.Abs(steerInput) <= 0.01f)
+            {
+                steeringMomentum = Mathf.Lerp(steeringMomentum, 0f, momentumBlend * 0.6f);
+            }
+
+            mountedYaw += steeringMomentum * deltaTime;
+            transform.rotation = Quaternion.Euler(0f, mountedYaw, 0f);
+        }
+        else
+        {
+            steeringMomentum = Mathf.Lerp(steeringMomentum, 0f, 1f - Mathf.Exp(-momentumDamping * deltaTime));
+            mountedYaw = transform.rotation.eulerAngles.y;
         }
 
-        mountedYaw += steeringMomentum * deltaTime;
-        transform.rotation = Quaternion.Euler(0f, mountedYaw, 0f);
+        cameraYaw = mountedYaw + cameraYawOffset;
 
-        if (mountedFirstPersonCameraRoot)
+        Transform firstPersonCameraRoot = mountController != null ? mountController.MountedFirstPersonCameraRoot : null;
+        if (firstPersonCameraRoot)
         {
-            mountedFirstPersonCameraRoot.localRotation = Quaternion.Euler(mountedPitch, 0f, 0f);
+            firstPersonCameraRoot.localRotation = Quaternion.Euler(mountedPitch, 0f, 0f);
         }
 
         UpdateVisualLean(normalizedSpeed, deltaTime);
@@ -51,9 +60,10 @@ public partial class MountController
 
     private Vector3 GetSteeringForward()
     {
-        if (activePerspective == CameraPerspective.FirstPerson && mountedFirstPersonCamera != null)
+        Camera firstPersonCamera = mountController != null ? mountController.MountedFirstPersonCamera : null;
+        if (activePerspective == CameraPerspective.FirstPerson && firstPersonCamera != null)
         {
-            return mountedFirstPersonCamera.transform.forward;
+            return firstPersonCamera.transform.forward;
         }
 
         return transform.forward;
@@ -83,7 +93,9 @@ public partial class MountController
         float normalizedMomentum = steerSpeed > 0.001f
             ? Mathf.Clamp(steeringMomentum / steerSpeed, -1f, 1f)
             : 0f;
-        float targetLean = -normalizedMomentum * leanAmount * Mathf.Lerp(0.35f, 1f, normalizedSpeed);
+        float targetLean = hasSteeringOverride
+            ? -normalizedMomentum * leanAmount * Mathf.Lerp(0.35f, 1f, normalizedSpeed)
+            : 0f;
         currentLean = Mathf.SmoothDamp(currentLean, targetLean, ref leanVelocity, leanSmoothTime);
         SetVisualLean(currentLean);
     }

@@ -1,16 +1,21 @@
 // Camera control for mounted first/third person perspectives.
 using UnityEngine;
 
-public partial class MountController
+public partial class MountSteeringController
 {
     private void LateUpdate()
     {
-        if (!IsMounted || activePerspective != CameraPerspective.ThirdPerson || thirdPersonCamera == null)
+        if (mountController == null || !mountController.IsMounted || activePerspective != CameraPerspective.ThirdPerson || thirdPersonCamera == null)
         {
             return;
         }
 
-        Transform pivot = thirdPersonPivot ? thirdPersonPivot : (activeSeatPoint ? activeSeatPoint : transform);
+        Transform pivot = thirdPersonPivot ? thirdPersonPivot : mountController.ActiveSeatPoint;
+        if (pivot == null)
+        {
+            pivot = transform;
+        }
+
         Quaternion cameraRot = Quaternion.Euler(mountedPitch, cameraYaw, 0f);
         Vector3 targetPosition = pivot.position + cameraRot * thirdPersonOffset;
         thirdPersonCamera.transform.position = Vector3.Lerp(
@@ -25,7 +30,7 @@ public partial class MountController
 
     private void TogglePerspective()
     {
-        if (!IsMounted)
+        if (mountController == null || !mountController.IsMounted)
         {
             return;
         }
@@ -43,13 +48,15 @@ public partial class MountController
         {
             SetThirdPersonCameraEnabled(false);
             SetFirstPersonCameraEnabled(true);
-            mountedPlayerLook?.SetHeadVisible(false);
+            SetMountedVisorEnabled(true);
+            mountController.MountedPlayerLook?.SetHeadVisible(false);
         }
         else
         {
             SetFirstPersonCameraEnabled(false);
             SetThirdPersonCameraEnabled(true);
-            mountedPlayerLook?.SetHeadVisible(true);
+            SetMountedVisorEnabled(false);
+            mountController.MountedPlayerLook?.SetHeadVisible(true);
         }
 
         currentSteeringForward = GetSteeringForward();
@@ -57,6 +64,12 @@ public partial class MountController
 
     private void EnsureThirdPersonCamera()
     {
+        if (mountController != null && mountController.MountedThirdPersonCamera != null)
+        {
+            thirdPersonCamera = mountController.MountedThirdPersonCamera;
+            return;
+        }
+
         if (thirdPersonCamera)
         {
             return;
@@ -72,10 +85,11 @@ public partial class MountController
 
     private void SetFirstPersonCameraEnabled(bool enabled)
     {
-        if (mountedFirstPersonCamera != null)
+        Camera firstPersonCamera = mountController != null ? mountController.MountedFirstPersonCamera : null;
+        if (firstPersonCamera != null)
         {
-            mountedFirstPersonCamera.enabled = enabled;
-            AudioListener listener = mountedFirstPersonCamera.GetComponent<AudioListener>();
+            firstPersonCamera.enabled = enabled;
+            AudioListener listener = firstPersonCamera.GetComponent<AudioListener>();
             if (listener)
             {
                 listener.enabled = enabled;
@@ -87,6 +101,11 @@ public partial class MountController
     {
         EnsureThirdPersonCamera();
 
+        if (mountController != null && mountController.MountedThirdPersonCamera != null)
+        {
+            thirdPersonCamera = mountController.MountedThirdPersonCamera;
+        }
+
         if (thirdPersonCamera != null)
         {
             thirdPersonCamera.enabled = enabled;
@@ -96,5 +115,10 @@ public partial class MountController
                 listener.enabled = enabled;
             }
         }
+    }
+
+    private void SetMountedVisorEnabled(bool enabled)
+    {
+        GlassDistortionRenderFeature.RuntimeEnabled = enabled;
     }
 }

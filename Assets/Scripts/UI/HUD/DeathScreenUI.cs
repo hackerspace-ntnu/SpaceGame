@@ -9,6 +9,12 @@ public class DeathScreenUI : MonoBehaviour
 
     private void Start()
     {
+        if (deathScreen == null || player == null)
+        {
+            Debug.LogWarning($"{name}: DeathScreenUI is missing required references.", this);
+            return;
+        }
+
         deathScreen.gameObject.SetActive(false);
         player.OnPlayerDeath += ShowDeathScreen;
     }
@@ -21,6 +27,11 @@ public class DeathScreenUI : MonoBehaviour
     
     public void Respawn()
     {
+        if (deathScreen == null)
+        {
+            return;
+        }
+
         NetworkGameManager.Instance.Respawn();  
         
         deathScreen.gameObject.SetActive(false);

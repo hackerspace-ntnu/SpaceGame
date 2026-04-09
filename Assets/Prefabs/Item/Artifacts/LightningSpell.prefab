@@ -119,6 +119,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!135 &2967065261333499345
 SphereCollider:
@@ -154,7 +155,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightningSpell
   maxUses: 3
-  useSound: {fileID: 0}
+  useSound:
+    Guid:
+      Data1: 1785186576
+      Data2: 1245510835
+      Data3: -1836278379
+      Data4: 1511765510
+    Path: event:/SFX/MetalPickup
   lightningVFXPrefab: {fileID: 5066555527250073763, guid: 28cb2c4920cfc224ea0501fbcc151e1f, type: 3}
   spawnHeightOffset: 10
   raycastDistance: 500

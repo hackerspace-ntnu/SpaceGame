@@ -76,7 +76,7 @@ NavMeshAgent:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5802214957463739635}
-  m_Enabled: 1
+  m_Enabled: 0
   m_AgentTypeID: 0
   m_Radius: 0.5
   m_Speed: 2
@@ -159,7 +159,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NavMeshAgentMotor
   agent: {fileID: 3876325014760975639}
-  navMeshSnapDistance: 6
+  navMeshSnapDistance: 20
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 8
@@ -211,8 +211,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d2a08c77c5fa49c381df60f8d4a6908, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AgentController
-  brainComponent: {fileID: 8587772570207951478}
-  motorComponent: {fileID: 8587772570207951478}
+  brainComponent: {fileID: 5168443937185367202}
+  motorComponent: {fileID: 1783219288637548597}
   animatorDriver: {fileID: 2416177895390522872}
 --- !u!114 &2416177895390522872
 MonoBehaviour:

@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -5,7 +7,7 @@ public class NetworkGameManager : NetworkBehaviour
 {
     public static NetworkGameManager Instance;
     [SerializeField] private GameObject playerPrefab;
-    
+
     [SerializeField] SpawnPoints spawnPoints;
     
     private void Awake()
@@ -17,14 +19,48 @@ public class NetworkGameManager : NetworkBehaviour
         }
         Instance = this;
     }
+
+    [Header("World Streaming (optional)")]
+    [SerializeField] private WorldStreamer worldStreamer;
+
     public override void OnNetworkSpawn()
     {
-        Debug.Log("OnNetworkSpawn");
         // Only the server should handle spawning logic
         if (!IsServer) return;
-        
-        Debug.Log("Spawning players");
-        // Iterate through all currently connected clients
+
+        if (worldStreamer == null)
+        {
+            SpawnAllPlayers();
+            return;
+        }
+
+        // WorldStreamer may not have had its OnNetworkSpawn called yet,
+        // so wait until it's ready before requesting chunk preloads.
+        if (worldStreamer.IsReady)
+        {
+            PreloadAndSpawn();
+        }
+        else
+        {
+            StartCoroutine(WaitForStreamerThenSpawn());
+        }
+    }
+
+    private IEnumerator WaitForStreamerThenSpawn()
+    {
+        while (!worldStreamer.IsReady)
+            yield return null;
+
+        PreloadAndSpawn();
+    }
+
+    private void PreloadAndSpawn()
+    {
+        worldStreamer.PreloadChunksAroundPositions(GetSpawnPositionsForConnectedClients(), SpawnAllPlayers);
+    }
+
+    private void SpawnAllPlayers()
+    {
         foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
         {
             SpawnPlayerForClient(client.ClientId);
@@ -56,5 +92,13 @@ public class NetworkGameManager : NetworkBehaviour
             client.PlayerObject.Despawn();
         }
         SpawnPlayerForClient(clientId);
+    }
+
+    private IEnumerable<Vector3> GetSpawnPositionsForConnectedClients()
+    {
+        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+        {
+            yield return spawnPoints.GetSpawnPoint(client.ClientId).position;
+        }
     }
 }

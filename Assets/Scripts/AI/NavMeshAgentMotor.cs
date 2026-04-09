@@ -22,7 +22,7 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor
 
     public Vector3 Velocity => agent ? agent.velocity : Vector3.zero;
 
-    public bool IsImmobile => !agent || agent.isStopped;
+    public bool IsImmobile => !agent || !agent.isOnNavMesh || agent.isStopped;
 
     public bool HasReachedDestination
     {
@@ -47,6 +47,7 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor
         defaultUpdateRotation = agent.updateRotation;
         defaultStoppingDistance = agent.stoppingDistance;
         defaultSpeed = agent.speed;
+        agent.autoBraking = false;
     }
 
     private void OnEnable()
@@ -111,6 +112,8 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor
 
     private void StopAgentPath()
     {
+        if (!agent.isOnNavMesh) return;
+
         agent.stoppingDistance = defaultStoppingDistance;
         agent.speed = defaultSpeed;
         agent.isStopped = true;

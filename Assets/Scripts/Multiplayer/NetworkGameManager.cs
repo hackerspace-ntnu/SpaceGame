@@ -63,15 +63,27 @@ public class NetworkGameManager : NetworkBehaviour
     {
         foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
         {
-            SpawnPlayerForClient(client.ClientId);
+            SpawnPlayerForClient(client.ClientId, Color.red);
         }
     }
 
-    private void SpawnPlayerForClient(ulong clientId)
+    private void SpawnPlayerForClient(ulong clientId, Color color)
     {
         // Instantiate your prefab
         Transform spawnpoint = spawnPoints.GetSpawnPoint(clientId);
         GameObject playerObj = Instantiate(playerPrefab, spawnpoint.position, spawnpoint.rotation);
+
+        MaterialPropertyBlock propBlock = new MaterialPropertyBlock();
+
+        GameObject scarfMesh = playerObj.GetComponent<PlayerController>().getScarfMesh();
+
+        SkinnedMeshRenderer skinnedMeshRenderer = scarfMesh.GetComponent<SkinnedMeshRenderer>();
+
+        skinnedMeshRenderer.GetPropertyBlock(propBlock);
+
+        propBlock.SetColor("_BaseColor", color);
+
+        skinnedMeshRenderer.SetPropertyBlock(propBlock);
 
         // Spawn it specifically as the Player Object for that ID
         playerObj.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
@@ -91,7 +103,7 @@ public class NetworkGameManager : NetworkBehaviour
         {
             client.PlayerObject.Despawn();
         }
-        SpawnPlayerForClient(clientId);
+        SpawnPlayerForClient(clientId, client.PlayerObject.GetComponent<MeshRenderer>().material.color);
     }
 
     private IEnumerable<Vector3> GetSpawnPositionsForConnectedClients()

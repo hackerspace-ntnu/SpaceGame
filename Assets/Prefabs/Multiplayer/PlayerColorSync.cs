@@ -5,13 +5,14 @@ using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
+using UnityEngine.InputSystem.Controls;
 
 public class PlayerColorSync : NetworkBehaviour
 {
     private Color chosenColor = new Color();
 
     private Dictionary<ulong, Color> clientColor = new Dictionary<ulong, Color>();
-    
+
     private LobbySystem lobbySystem;
 
     void Awake()
@@ -22,7 +23,7 @@ public class PlayerColorSync : NetworkBehaviour
     }
 
     public override void OnNetworkSpawn()
-    {   
+    {
         /*ServerRpcParams serverRpcParams = new ServerRpcParams();
         AddclientColorChosenServerRpc(new Color(1,1,1), serverRpcParams);*/
     }
@@ -49,7 +50,7 @@ public class PlayerColorSync : NetworkBehaviour
             if (ColorUtility.TryParseHtmlString("#" + hex, out Color lobbyColor))
             {
                 chosenColor = lobbyColor;
-               
+
                 ServerRpcParams serverRpcParams = new ServerRpcParams();
                 AddclientColorChosenServerRpc(chosenColor, serverRpcParams);
             }
@@ -60,7 +61,7 @@ public class PlayerColorSync : NetworkBehaviour
     {
         Dictionary<ulong, Color> clientColors = new Dictionary<ulong, Color>();
 
-        if(lobbySystem.getJoinedLobby().HostId != AuthenticationService.Instance.PlayerId)
+        if (lobbySystem.getJoinedLobby().HostId != AuthenticationService.Instance.PlayerId)
         {
             throw new LobbyServiceException(LobbyExceptionReason.UnknownErrorCode,
             "Only host of lobby can get colors!");
@@ -71,8 +72,8 @@ public class PlayerColorSync : NetworkBehaviour
             string hex = p.Data["PlayerColor"].Value;
             if (ColorUtility.TryParseHtmlString("#" + hex, out Color lobbyColor))
             {
-                chosenColor = lobbyColor;
-                
+                clientColors[ulong.Parse(p.AllocationId)] = lobbyColor;
+
                 ServerRpcParams serverRpcParams = new ServerRpcParams();
                 AddclientColorChosenServerRpc(chosenColor, serverRpcParams);
             }
@@ -82,12 +83,12 @@ public class PlayerColorSync : NetworkBehaviour
     }
 
 
-    [ServerRpc(RequireOwnership = false)]
+    [ServerRpc(InvokePermission = RpcInvokePermission.Owner)]
     private void AddclientColorChosenServerRpc(Color color, ServerRpcParams serverRpcParams)
     {
         Debug.Log("Setting color! " + color);
         ulong callerId = serverRpcParams.Receive.SenderClientId;
-        if(!clientColor.ContainsKey(callerId))
+        if (!clientColor.ContainsKey(callerId))
         {
             clientColor.Add(callerId, color);
         }

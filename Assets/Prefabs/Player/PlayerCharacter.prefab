@@ -150,7 +150,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 4236559143
+  GlobalObjectIdHash: 3207105160
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -303,6 +303,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   ShowTopMostFoldoutHeaderGroup: 1
+  scarfObject: {fileID: 3071993177026091885}
   playerCamera: {fileID: 9193306300937618076}
   playerHUD: {fileID: 5722297912467018950}
   playerMovement: {fileID: 1264622234854504379}
@@ -512,6 +513,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 80bed14fee28d6444a92fec3bbf366ff, type: 3}
   m_PrefabInstance: {fileID: 2677432995988726931}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &3071993177026091885 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1119653149620125694, guid: 80bed14fee28d6444a92fec3bbf366ff, type: 3}
+  m_PrefabInstance: {fileID: 2677432995988726931}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &6400345289391496217 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -145593762279114614, guid: 80bed14fee28d6444a92fec3bbf366ff, type: 3}
@@ -696,7 +702,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 8677202419445481981, guid: d28914b0eff1de143a8ce0664abe9849, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

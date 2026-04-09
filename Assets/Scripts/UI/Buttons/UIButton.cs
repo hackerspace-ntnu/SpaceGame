@@ -1,3 +1,4 @@
+using FMODUnity;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -12,8 +13,8 @@ public class UIButton : MonoBehaviour,
     [SerializeField] private Button button;
     
     [Header("Sound")]
-    [SerializeField] private AudioClip hoverSound;
-    [SerializeField] private AudioClip pressSound;
+    [SerializeField] private EventReference hoverSound;
+    [SerializeField] private EventReference pressSound;
 
     [SerializeField] private Animator animator;
     
@@ -38,8 +39,7 @@ public class UIButton : MonoBehaviour,
     {
         if (IsDisabled) return;
         
-        if (hoverSound != null)
-            AudioManager.Instance.PlayUI(hoverSound);
+        AudioManager.Instance.PlayEvent(hoverSound);
         
         SetState(ButtonState.Highlighted);
     }
@@ -55,8 +55,7 @@ public class UIButton : MonoBehaviour,
     {
         if (IsDisabled) return;
         
-        if (pressSound != null)
-            AudioManager.Instance.PlayUI(pressSound);
+        AudioManager.Instance.PlayEvent(pressSound);
         
         SetState(ButtonState.Pressed);
     }

@@ -70,6 +70,20 @@ public class PlayerMovement : MonoBehaviour
 
         UpdateAnimatorParametersServerRpc(velocity, grounded);
     }
+
+    public void ForceIdleAnimation()
+    {
+        if (!animator)
+        {
+            return;
+        }
+
+        animator.SetFloat("SpeedX", 0f);
+        animator.SetFloat("SpeedY", 0f);
+        animator.SetFloat("FallSpeed", 0f);
+        animator.SetBool("IsGrounded", IsGrounded());
+        animator.SetBool("IsImmobalized", true);
+    }
     
     [ServerRpc]
     private void UpdateAnimatorParametersServerRpc(Vector3 velocity, bool grounded)
@@ -86,6 +100,11 @@ public class PlayerMovement : MonoBehaviour
 
     public void OnJump()
     {
+        if (rb == null || !isActiveAndEnabled || rb.isKinematic)
+        {
+            return;
+        }
+
         if (IsGrounded() && !jumpOnCooldown)
         {
             Vector3 v = rb.linearVelocity;
@@ -98,6 +117,11 @@ public class PlayerMovement : MonoBehaviour
 
     public void OnDash()
     {
+        if (rb == null || !isActiveAndEnabled || rb.isKinematic)
+        {
+            return;
+        }
+
         Vector3 dashDirection = transform.forward;
         if (playerCamera)
         {

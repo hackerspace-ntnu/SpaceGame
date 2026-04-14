@@ -9,6 +9,7 @@ public class PlayerLook : MonoBehaviour
     public GameObject playerCamera;    
     public Transform playerHead; 
     public Transform playerBody;
+    public Transform cameraRoot => playerCamera != null ? playerCamera.transform : null;
     private Rigidbody playerRigidbody;
 
     [Header("Settings")]
@@ -16,17 +17,26 @@ public class PlayerLook : MonoBehaviour
     public float verticalClamp = 80f;
 
     private float pitch = 0f;
-    
+
     private Vector2 lookInput;
-    
+    private SkinnedMeshRenderer headRenderer;
+
     private void Start()
     {
         inputs = GetComponent<PlayerController>().Input;
         playerRigidbody = playerBody.GetComponent<Rigidbody>();
         
         // Hide the player head mesh to prevent clipping with the camera
-        var headRenderer = playerHead.GetComponent<SkinnedMeshRenderer>();
+        headRenderer = playerHead.GetComponent<SkinnedMeshRenderer>();
         headRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
+    }
+
+    public void SetHeadVisible(bool visible)
+    {
+        if (!headRenderer) return;
+        headRenderer.shadowCastingMode = visible
+            ? UnityEngine.Rendering.ShadowCastingMode.On
+            : UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
     }
     
     private void OnEnable()

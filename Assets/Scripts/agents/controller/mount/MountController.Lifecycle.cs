@@ -96,6 +96,7 @@ public partial class MountSteeringController
         leanAmount = Mathf.Max(0f, leanAmount);
         leanSmoothTime = Mathf.Max(0.01f, leanSmoothTime);
         momentumDamping = Mathf.Max(0.1f, momentumDamping);
+        thirdPersonDistance = Mathf.Max(0.1f, thirdPersonDistance);
         thirdPersonFollowLerp = Mathf.Max(0.01f, thirdPersonFollowLerp);
         cameraAutoAlignSpeed = Mathf.Max(0f, cameraAutoAlignSpeed);
         cameraAutoAlignDelay = Mathf.Max(0f, cameraAutoAlignDelay);

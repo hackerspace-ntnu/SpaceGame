@@ -92,7 +92,8 @@ Requires `MountController` on the same object (`[RequireComponent]`). Subscribes
 | `defaultPerspective` | ThirdPerson | Camera on mount |
 | `thirdPersonCamera` | -- | Auto-created if empty |
 | `thirdPersonPivot` | -- | Camera pivot point |
-| `thirdPersonOffset` | (0, 2.2, -3.8) | Camera position offset |
+| `thirdPersonOffset` | (0, 2.2, -3.8) | Camera framing offset; `x/y` frame the shot and the `z` sign controls back/front direction |
+| `thirdPersonDistance` | 3.8 | How far from the mount the third-person camera sits |
 | `thirdPersonFollowLerp` | 14 | Camera follow speed |
 | `cameraAutoAlignSpeed` | 90 deg/s | Look auto-center speed |
 | `cameraAutoAlignDelay` | 0.5s | Delay before auto-center |
@@ -103,6 +104,7 @@ Public API:
 - `HasSteeringOverride` -- true when rider is actively giving move input
 - `CurrentMoveInput` -- smoothed Vector2 from rider
 - `CurrentSteeringForward` -- world direction the rider is looking/steering toward
+- `ThirdPersonDistance` / `SetThirdPersonDistance(float)` -- read or change mounted camera distance at runtime
 - `ConsumeMountedJumpPressed()` -- returns true once per jump press
 
 ### MountInteractor

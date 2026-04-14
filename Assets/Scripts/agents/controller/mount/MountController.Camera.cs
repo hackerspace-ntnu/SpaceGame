@@ -10,14 +10,16 @@ public partial class MountSteeringController
             return;
         }
 
-        Transform pivot = thirdPersonPivot ? thirdPersonPivot : mountController.ActiveSeatPoint;
+        Transform pivot = thirdPersonPivot
+            ? thirdPersonPivot
+            : (mountController.MountedPlayerTransform ? mountController.MountedPlayerTransform : mountController.ActiveSeatPoint);
         if (pivot == null)
         {
             pivot = transform;
         }
 
         Quaternion cameraRot = Quaternion.Euler(mountedPitch, cameraYaw, 0f);
-        Vector3 targetPosition = pivot.position + cameraRot * thirdPersonOffset;
+        Vector3 targetPosition = pivot.position + cameraRot * GetThirdPersonCameraOffset();
         thirdPersonCamera.transform.position = Vector3.Lerp(
             thirdPersonCamera.transform.position,
             targetPosition,
@@ -120,5 +122,23 @@ public partial class MountSteeringController
     private void SetMountedVisorEnabled(bool enabled)
     {
         GlassDistortionRenderFeature.RuntimeEnabled = enabled;
+    }
+
+    private Vector3 GetThirdPersonCameraOffset()
+    {
+        float signedDistance = thirdPersonOffset.z > 0f
+            ? GetResolvedThirdPersonDistance()
+            : -GetResolvedThirdPersonDistance();
+        return new Vector3(thirdPersonOffset.x, thirdPersonOffset.y, signedDistance);
+    }
+
+    private float GetResolvedThirdPersonDistance()
+    {
+        if (thirdPersonDistance > 0.01f)
+        {
+            return thirdPersonDistance;
+        }
+
+        return Mathf.Max(0.1f, Mathf.Abs(thirdPersonOffset.z));
     }
 }

@@ -40,6 +40,7 @@ public partial class MountController : MonoBehaviour
     public bool IsMounted => mountedPlayer != null;
     public bool IsAvailableForMount => !IsMounted && Time.time >= lastMountChangeTime + mountCooldown;
     public Transform ActiveSeatPoint => activeSeatPoint != null ? activeSeatPoint : seatPoint;
+    public Transform MountedPlayerTransform => mountedPlayer;
     public PlayerMovement MountedPlayerMovement => mountedPlayerMovement;
     public PlayerLook MountedPlayerLook => mountedPlayerLook;
     public Interactor MountedInteractor => mountedInteractor;

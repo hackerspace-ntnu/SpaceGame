@@ -22,7 +22,7 @@ public class WorldStreamer : NetworkBehaviour
     [SerializeField] private NavMeshSurface navMeshSurface;
     [Tooltip("Delay in seconds after the last chunk load/unload before rebuilding the NavMesh. Prevents multiple rebuilds when loading a batch of chunks.")]
     [SerializeField] private float navMeshRebuildDelay = 0.5f;
-    [Tooltip("How far from a streamed NPC we search for a NavMesh position before re-enabling its NavMeshAgent.")]
+    [Tooltip("How far from a parked agent to search when reattaching it to the rebuilt NavMesh.")]
     [SerializeField] private float parkedAgentActivationDistance = 32f;
 
     [Header("Debug")]
@@ -37,13 +37,24 @@ public class WorldStreamer : NetworkBehaviour
     public bool InitialChunksLoaded => initialChunksLoaded;
     public bool IsReady => isReady;
 
+    public void RegisterTrackedTransform(Transform t)
+    {
+        if (t != null && !trackedTransforms.Contains(t))
+            trackedTransforms.Add(t);
+    }
+
+    public void UnregisterTrackedTransform(Transform t) => trackedTransforms.Remove(t);
+
     private enum ChunkState { NotLoaded, Loading, Loaded, Unloading }
 
     private readonly Dictionary<Vector2Int, ChunkState> chunkStates = new();
     private readonly Dictionary<Vector2Int, Scene> loadedScenes = new();
     private readonly Dictionary<Vector2Int, Terrain> loadedTerrains = new();
     private readonly Dictionary<Vector2Int, List<NavMeshAgent>> parkedAgentsByChunk = new();
+    private readonly List<NavMeshAgent> globallyParkedAgents = new();
+    private readonly Dictionary<NavMeshAgent, Vector3> parkedAgentPositions = new();
     private readonly Dictionary<Vector2Int, float> unloadTimers = new();
+    private readonly List<Transform> trackedTransforms = new();
 
     // Queue for sequential scene operations (Netcode only allows one at a time)
     private readonly Queue<SceneOperation> operationQueue = new();
@@ -56,9 +67,9 @@ public class WorldStreamer : NetworkBehaviour
 
     private bool navMeshDirty;
     private float navMeshRebuildTime;
+    private float nextParkedAgentRetryTime;
     private NavMeshDataInstance navMeshDataInstance;
     private AsyncOperation navMeshBuildOperation;
-    private float nextParkedAgentRetryTime;
 
     private struct SceneOperation
     {
@@ -66,6 +77,26 @@ public class WorldStreamer : NetworkBehaviour
         public Type OperationType;
         public Vector2Int Coord;
         public Action OnComplete;
+    }
+
+    private void Start()
+    {
+        // Offline: initialize immediately without waiting for Netcode
+        if (!Network.IsNetworked)
+            InitializeOffline();
+    }
+
+    private void InitializeOffline()
+    {
+        if (config == null)
+        {
+            Debug.LogError("[WorldStreamer] Missing WorldStreamingConfig reference.");
+            return;
+        }
+
+        InitializeChunkStates();
+        isReady = true;
+        Debug.Log("[WorldStreamer] Initialized in offline mode.");
     }
 
     public override void OnNetworkSpawn()
@@ -98,6 +129,8 @@ public class WorldStreamer : NetworkBehaviour
         loadedScenes.Clear();
         loadedTerrains.Clear();
         parkedAgentsByChunk.Clear();
+        globallyParkedAgents.Clear();
+        parkedAgentPositions.Clear();
         unloadTimers.Clear();
         operationQueue.Clear();
         operationInProgress = false;
@@ -105,7 +138,9 @@ public class WorldStreamer : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsServer || !isReady) return;
+        // Run if we're the server (online) or in offline mode
+        if (!isReady) return;
+        if (Network.IsNetworked && !IsServer) return;
 
         if (navMeshDirty && Time.time >= navMeshRebuildTime)
         {
@@ -113,12 +148,12 @@ public class WorldStreamer : NetworkBehaviour
             RebuildNavMesh();
         }
 
-        if (parkedAgentsByChunk.Count > 0
+        if ((parkedAgentsByChunk.Count > 0 || globallyParkedAgents.Count > 0)
             && (navMeshBuildOperation == null || navMeshBuildOperation.isDone)
             && Time.time >= nextParkedAgentRetryTime)
         {
-            ReleaseParkedAgents();
             nextParkedAgentRetryTime = Time.time + 0.5f;
+            ReleaseParkedAgents();
         }
 
         if (Time.time < nextUpdateTime) return;
@@ -220,15 +255,24 @@ public class WorldStreamer : NetworkBehaviour
     {
         var requiredChunks = new HashSet<Vector2Int>();
 
-        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+        if (Network.IsNetworked)
         {
-            if (client.PlayerObject == null) continue;
+            foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+            {
+                if (client.PlayerObject == null) continue;
 
-            var playerPos = client.PlayerObject.transform.position;
-            var playerChunk = config.WorldToChunkCoord(playerPos);
-            var nearby = GetChunksInRadius(playerChunk, config.loadRadius);
+                var playerPos = client.PlayerObject.transform.position;
+                var playerChunk = config.WorldToChunkCoord(playerPos);
+                foreach (var coord in GetChunksInRadius(playerChunk, config.loadRadius))
+                    requiredChunks.Add(coord);
+            }
+        }
 
-            foreach (var coord in nearby)
+        foreach (var t in trackedTransforms)
+        {
+            if (t == null) continue;
+            var playerChunk = config.WorldToChunkCoord(t.position);
+            foreach (var coord in GetChunksInRadius(playerChunk, config.loadRadius))
                 requiredChunks.Add(coord);
         }
 
@@ -337,20 +381,45 @@ public class WorldStreamer : NetworkBehaviour
         string sceneName = chunkInfo.Value.sceneName;
         Debug.Log($"[WorldStreamer] Loading chunk {op.Coord} ({sceneName})");
 
-        var status = NetworkManager.Singleton.SceneManager.LoadScene(sceneName, LoadSceneMode.Additive);
-
-        if (status != SceneEventProgressStatus.Started)
-        {
-            Debug.LogError($"[WorldStreamer] Failed to load {sceneName}: {status}");
-            chunkStates[op.Coord] = ChunkState.NotLoaded;
-            FinishOperation(op.OnComplete);
-            return;
-        }
-
-        // Completion is handled in HandleSceneEvent
         pendingCallback = op.OnComplete;
         pendingCoord = op.Coord;
         pendingSceneName = sceneName;
+
+        if (Network.IsNetworked)
+        {
+            var status = NetworkManager.Singleton.SceneManager.LoadScene(sceneName, LoadSceneMode.Additive);
+            if (status != SceneEventProgressStatus.Started)
+            {
+                Debug.LogError($"[WorldStreamer] Failed to load {sceneName}: {status}");
+                chunkStates[op.Coord] = ChunkState.NotLoaded;
+                FinishOperation(op.OnComplete);
+            }
+            // Completion handled in HandleSceneEvent
+        }
+        else
+        {
+            var asyncOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            if (asyncOp == null)
+            {
+                Debug.LogError($"[WorldStreamer] Failed to load {sceneName} (offline).");
+                chunkStates[op.Coord] = ChunkState.NotLoaded;
+                FinishOperation(op.OnComplete);
+                return;
+            }
+            asyncOp.completed += _ => OnOfflineSceneLoaded(op.Coord, sceneName, op.OnComplete);
+        }
+    }
+
+    private void OnOfflineSceneLoaded(Vector2Int coord, string sceneName, Action onComplete)
+    {
+        chunkStates[coord] = ChunkState.Loaded;
+        loadedScenes[coord] = SceneManager.GetSceneByName(sceneName);
+        CacheTerrainForChunk(coord);
+        ParkAgentsForChunk(coord);
+        RefreshTerrainNeighborsAround(coord);
+        ScheduleNavMeshRebuild();
+        Debug.Log($"[WorldStreamer] Chunk {coord} loaded (offline)");
+        FinishOperation(onComplete);
     }
 
     private void ExecuteUnload(SceneOperation op)
@@ -365,19 +434,45 @@ public class WorldStreamer : NetworkBehaviour
 
         Debug.Log($"[WorldStreamer] Unloading chunk {op.Coord}");
 
-        var status = NetworkManager.Singleton.SceneManager.UnloadScene(scene);
-
-        if (status != SceneEventProgressStatus.Started)
-        {
-            Debug.LogError($"[WorldStreamer] Failed to unload chunk {op.Coord}: {status}");
-            chunkStates[op.Coord] = ChunkState.Loaded;
-            FinishOperation(op.OnComplete);
-            return;
-        }
-
         pendingCallback = op.OnComplete;
         pendingCoord = op.Coord;
-        pendingSceneName = null; // unload doesn't match by name
+        pendingSceneName = null;
+
+        if (Network.IsNetworked)
+        {
+            var status = NetworkManager.Singleton.SceneManager.UnloadScene(scene);
+            if (status != SceneEventProgressStatus.Started)
+            {
+                Debug.LogError($"[WorldStreamer] Failed to unload chunk {op.Coord}: {status}");
+                chunkStates[op.Coord] = ChunkState.Loaded;
+                FinishOperation(op.OnComplete);
+            }
+            // Completion handled in HandleSceneEvent
+        }
+        else
+        {
+            var asyncOp = SceneManager.UnloadSceneAsync(scene);
+            if (asyncOp == null)
+            {
+                Debug.LogError($"[WorldStreamer] Failed to unload chunk {op.Coord} (offline).");
+                chunkStates[op.Coord] = ChunkState.Loaded;
+                FinishOperation(op.OnComplete);
+                return;
+            }
+            asyncOp.completed += _ => OnOfflineSceneUnloaded(op.Coord, op.OnComplete);
+        }
+    }
+
+    private void OnOfflineSceneUnloaded(Vector2Int coord, Action onComplete)
+    {
+        loadedTerrains.Remove(coord);
+        parkedAgentsByChunk.Remove(coord);
+        chunkStates[coord] = ChunkState.NotLoaded;
+        loadedScenes.Remove(coord);
+        RefreshTerrainNeighborsAround(coord);
+        ScheduleNavMeshRebuild();
+        Debug.Log($"[WorldStreamer] Chunk {coord} unloaded (offline)");
+        FinishOperation(onComplete);
     }
 
     // Pending operation tracking
@@ -433,6 +528,7 @@ public class WorldStreamer : NetworkBehaviour
     {
         navMeshDirty = true;
         navMeshRebuildTime = Time.time + navMeshRebuildDelay;
+        nextParkedAgentRetryTime = navMeshRebuildTime;
     }
 
     private void RebuildNavMesh()
@@ -450,6 +546,12 @@ public class WorldStreamer : NetworkBehaviour
             navMeshRebuildTime = Time.time + navMeshRebuildDelay;
             return;
         }
+
+        // Any streamed agents that are still enabled while NavMesh data is swapped in
+        // can throw "not close enough to the NavMesh" and get stranded. Park them all
+        // before the rebuild, then reattach after the async build completes.
+        ParkAgentsForAllLoadedChunks();
+        ParkAgentsGlobally();
 
         var settings = navMeshSurface.GetBuildSettings();
         // Increase slope and step height so agents handle gentle terrain undulation
@@ -545,8 +647,7 @@ public class WorldStreamer : NetworkBehaviour
             var terrains = root.GetComponentsInChildren<Terrain>(true);
             foreach (var terrain in terrains)
             {
-                // Align streamed terrain to the chunk's X/Z slot without discarding
-                // any baked Y offset from chunk generation.
+                // Preserve baked terrain elevation while aligning chunk X/Z to the grid.
                 Vector3 terrainPosition = terrain.transform.position;
                 terrain.transform.position = new Vector3(expectedPosition.x, terrainPosition.y, expectedPosition.z);
 
@@ -564,12 +665,16 @@ public class WorldStreamer : NetworkBehaviour
 
     private void ParkAgentsForChunk(Vector2Int coord)
     {
-        parkedAgentsByChunk.Remove(coord);
-
         if (!loadedScenes.TryGetValue(coord, out var scene) || !scene.IsValid() || !scene.isLoaded)
             return;
 
-        var agents = new List<NavMeshAgent>();
+        if (!parkedAgentsByChunk.TryGetValue(coord, out var agents))
+        {
+            agents = new List<NavMeshAgent>();
+            parkedAgentsByChunk[coord] = agents;
+        }
+
+        agents.RemoveAll(agent => agent == null);
 
         foreach (var root in scene.GetRootGameObjects())
         {
@@ -578,13 +683,61 @@ public class WorldStreamer : NetworkBehaviour
                 if (agent == null)
                     continue;
 
-                agent.enabled = false;
-                agents.Add(agent);
+                if (!agents.Contains(agent))
+                    agents.Add(agent);
+
+                ParkAgent(agent);
             }
         }
+    }
 
-        if (agents.Count > 0)
-            parkedAgentsByChunk[coord] = agents;
+    private void ParkAgent(NavMeshAgent agent)
+    {
+        if (!parkedAgentPositions.ContainsKey(agent))
+            parkedAgentPositions[agent] = agent.transform.position;
+
+        agent.enabled = false;
+
+        if (agent.TryGetComponent<Rigidbody>(out var rb))
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.Sleep();
+        }
+    }
+
+    private void ParkAgentsForAllLoadedChunks()
+    {
+        foreach (var coord in loadedScenes.Keys.ToList())
+            ParkAgentsForChunk(coord);
+    }
+
+    private void ParkAgentsGlobally()
+    {
+        globallyParkedAgents.RemoveAll(agent => agent == null);
+
+#if UNITY_2023_1_OR_NEWER
+        var agents = FindObjectsByType<NavMeshAgent>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+#else
+        var agents = FindObjectsOfType<NavMeshAgent>(true);
+#endif
+
+        var alreadyTracked = new HashSet<NavMeshAgent>(parkedAgentsByChunk.Values.SelectMany(l => l));
+
+        foreach (var agent in agents)
+        {
+            if (agent == null)
+                continue;
+
+            // Skip agents already managed per-chunk to avoid double-activation.
+            if (alreadyTracked.Contains(agent))
+                continue;
+
+            if (!globallyParkedAgents.Contains(agent))
+                globallyParkedAgents.Add(agent);
+
+            ParkAgent(agent);
+        }
     }
 
     private void ReleaseParkedAgents()
@@ -608,27 +761,53 @@ public class WorldStreamer : NetworkBehaviour
                 parkedAgentsByChunk.Remove(kvp.Key);
         }
 
-        if (parkedAgentsByChunk.Count == 0)
+        if (globallyParkedAgents.Count == 0)
+            return;
+
+        var remainingGlobalAgents = new List<NavMeshAgent>();
+        foreach (var agent in globallyParkedAgents)
         {
-            nextParkedAgentRetryTime = 0f;
+            if (agent == null)
+                continue;
+
+            if (!TryActivateAgent(agent))
+                remainingGlobalAgents.Add(agent);
         }
+
+        globallyParkedAgents.Clear();
+        globallyParkedAgents.AddRange(remainingGlobalAgents);
     }
 
     private bool TryActivateAgent(NavMeshAgent agent)
     {
-        Vector3 sampleOrigin = agent.transform.position;
+        Vector3 sampleOrigin = parkedAgentPositions.TryGetValue(agent, out var cached)
+            ? cached
+            : agent.transform.position;
         float sampleDistance = Mathf.Max(agent.radius * 4f, agent.height * 2f, parkedAgentActivationDistance);
 
         if (!NavMesh.SamplePosition(sampleOrigin, out var hit, sampleDistance, NavMesh.AllAreas))
         {
-            Debug.LogWarning($"[WorldStreamer] Failed to activate NavMeshAgent '{agent.name}' at {sampleOrigin} within {sampleDistance}m.");
+            Debug.LogWarning($"[WorldStreamer] Failed to activate NavMeshAgent '{agent.name}' near {sampleOrigin} (distance {sampleDistance:0.##}).");
             return false;
         }
 
         agent.transform.position = hit.position;
         agent.enabled = true;
-        agent.Warp(hit.position);
-        return agent.isOnNavMesh;
+
+        // Warp snaps the agent's internal state to the navmesh position.
+        // Must be called after enabled=true or it is a no-op.
+        if (agent.isOnNavMesh)
+            agent.Warp(hit.position);
+
+        if (agent.TryGetComponent<Rigidbody>(out var rb))
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        parkedAgentPositions.Remove(agent);
+
+        return true;
     }
 
     private void RefreshTerrainNeighborsAround(Vector2Int centerCoord)
@@ -668,15 +847,16 @@ public class WorldStreamer : NetworkBehaviour
     }
 
 #if UNITY_EDITOR
+    private void OnValidate()
+    {
+        navMeshRebuildDelay = Mathf.Max(0.05f, navMeshRebuildDelay);
+        parkedAgentActivationDistance = Mathf.Max(1f, parkedAgentActivationDistance);
+    }
+
     private void OnDrawGizmos()
     {
         if (!showDebugGizmos || config == null || config.chunks == null) return;
     }
 #endif
 
-    private void OnValidate()
-    {
-        navMeshRebuildDelay = Mathf.Max(0f, navMeshRebuildDelay);
-        parkedAgentActivationDistance = Mathf.Max(1f, parkedAgentActivationDistance);
-    }
 }

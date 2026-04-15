@@ -244,7 +244,7 @@ MonoBehaviour:
   airControl: 0.3
   jumpForce: 7
   jumpCooldown: 0.6
-  groundCheckDistance: 1.9
+  groundCheckDistance: 0.2
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -252,6 +252,7 @@ MonoBehaviour:
   playerCamera: {fileID: 0}
   rb: {fileID: 5527306943363674078}
   animator: {fileID: 5496312837281773235}
+  playerCollider: {fileID: 49510756297408105}
 --- !u!114 &6455897939897930130
 MonoBehaviour:
   m_ObjectHideFlags: 0

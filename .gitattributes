@@ -11,6 +11,11 @@
 *.asset text eol=lf
 *.meta text eol=lf
 
+# Unity terrain assets are binary despite the .asset extension.
+Assets/Terrain/ChunkData/*.asset binary
+Assets/TerrainData_*.asset binary
+Assets/*Terrain.asset binary
+
 # JSON / config
 *.json text eol=lf
 *.xml text eol=lf

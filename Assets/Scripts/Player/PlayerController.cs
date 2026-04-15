@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
@@ -21,14 +22,40 @@ public class PlayerController : MonoBehaviour
 
     private void Awake()
     {
-        Input = GetComponent<PlayerInputManager>(); 
+        Input = GetComponent<PlayerInputManager>();
         PlayerInventory = GetComponent<IPlayerInventory>();
-        
+
         DisablePlayer();
         if (!Network.IsNetworked)
         {
             EnablePlayer();
         }
+    }
+
+    private void Start()
+    {
+        var streamer = FindObjectOfType<WorldStreamer>();
+        if (streamer == null) return;
+
+        streamer.RegisterTrackedTransform(transform);
+
+        if (!Network.IsNetworked)
+            StartCoroutine(WaitForStreamerThenPreload(streamer));
+    }
+
+    private IEnumerator WaitForStreamerThenPreload(WorldStreamer streamer)
+    {
+        while (!streamer.IsReady)
+            yield return null;
+
+        streamer.PreloadChunksAroundPosition(transform.position);
+    }
+
+    private void OnDestroy()
+    {
+        var streamer = FindObjectOfType<WorldStreamer>();
+        if (streamer != null)
+            streamer.UnregisterTrackedTransform(transform);
     }
     public void EnablePlayer()
     {

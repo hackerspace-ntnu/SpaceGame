@@ -22,6 +22,8 @@ public class WorldStreamer : NetworkBehaviour
     [SerializeField] private NavMeshSurface navMeshSurface;
     [Tooltip("Delay in seconds after the last chunk load/unload before rebuilding the NavMesh. Prevents multiple rebuilds when loading a batch of chunks.")]
     [SerializeField] private float navMeshRebuildDelay = 0.5f;
+    [Tooltip("How far from a streamed NPC we search for a NavMesh position before re-enabling its NavMeshAgent.")]
+    [SerializeField] private float parkedAgentActivationDistance = 32f;
 
     [Header("Debug")]
     [SerializeField] private bool showDebugGizmos = true;
@@ -56,6 +58,7 @@ public class WorldStreamer : NetworkBehaviour
     private float navMeshRebuildTime;
     private NavMeshDataInstance navMeshDataInstance;
     private AsyncOperation navMeshBuildOperation;
+    private float nextParkedAgentRetryTime;
 
     private struct SceneOperation
     {
@@ -108,6 +111,14 @@ public class WorldStreamer : NetworkBehaviour
         {
             navMeshDirty = false;
             RebuildNavMesh();
+        }
+
+        if (parkedAgentsByChunk.Count > 0
+            && (navMeshBuildOperation == null || navMeshBuildOperation.isDone)
+            && Time.time >= nextParkedAgentRetryTime)
+        {
+            ReleaseParkedAgents();
+            nextParkedAgentRetryTime = Time.time + 0.5f;
         }
 
         if (Time.time < nextUpdateTime) return;
@@ -534,8 +545,10 @@ public class WorldStreamer : NetworkBehaviour
             var terrains = root.GetComponentsInChildren<Terrain>(true);
             foreach (var terrain in terrains)
             {
-                // Chunk scenes can carry stale baked positions from generation time.
-                terrain.transform.position = expectedPosition;
+                // Align streamed terrain to the chunk's X/Z slot without discarding
+                // any baked Y offset from chunk generation.
+                Vector3 terrainPosition = terrain.transform.position;
+                terrain.transform.position = new Vector3(expectedPosition.x, terrainPosition.y, expectedPosition.z);
 
                 if (primaryTerrain == null)
                     primaryTerrain = terrain;
@@ -594,15 +607,23 @@ public class WorldStreamer : NetworkBehaviour
             else
                 parkedAgentsByChunk.Remove(kvp.Key);
         }
+
+        if (parkedAgentsByChunk.Count == 0)
+        {
+            nextParkedAgentRetryTime = 0f;
+        }
     }
 
     private bool TryActivateAgent(NavMeshAgent agent)
     {
         Vector3 sampleOrigin = agent.transform.position;
-        float sampleDistance = Mathf.Max(agent.radius * 4f, agent.height * 2f, 8f);
+        float sampleDistance = Mathf.Max(agent.radius * 4f, agent.height * 2f, parkedAgentActivationDistance);
 
         if (!NavMesh.SamplePosition(sampleOrigin, out var hit, sampleDistance, NavMesh.AllAreas))
+        {
+            Debug.LogWarning($"[WorldStreamer] Failed to activate NavMeshAgent '{agent.name}' at {sampleOrigin} within {sampleDistance}m.");
             return false;
+        }
 
         agent.transform.position = hit.position;
         agent.enabled = true;
@@ -652,4 +673,10 @@ public class WorldStreamer : NetworkBehaviour
         if (!showDebugGizmos || config == null || config.chunks == null) return;
     }
 #endif
+
+    private void OnValidate()
+    {
+        navMeshRebuildDelay = Mathf.Max(0f, navMeshRebuildDelay);
+        parkedAgentActivationDistance = Mathf.Max(1f, parkedAgentActivationDistance);
+    }
 }

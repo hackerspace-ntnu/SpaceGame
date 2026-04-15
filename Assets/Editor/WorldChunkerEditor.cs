@@ -356,13 +356,13 @@ public class WorldChunkerEditor : EditorWindow
                     detectedOrigin.z + cy * chunkSize.y
                 );
 
-                var tileData = CreateCombinedTerrainTileData(terrainObjects, chunkWorldMin, chunkSize, cx, cy, out var sourceTerrain);
+                var tileData = CreateCombinedTerrainTileData(terrainObjects, chunkWorldMin, chunkSize, cx, cy, out var sourceTerrain, out var terrainBaseY);
                 if (tileData != null && sourceTerrain != null)
                 {
                     hasTerrain = true;
 
                     var terrainGO = new GameObject($"Terrain_{cx}_{cy}");
-                    terrainGO.transform.position = chunkWorldMin;
+                    terrainGO.transform.position = new Vector3(chunkWorldMin.x, terrainBaseY, chunkWorldMin.z);
 
                     var newTerrain = terrainGO.AddComponent<Terrain>();
                     newTerrain.terrainData = tileData;
@@ -466,9 +466,10 @@ public class WorldChunkerEditor : EditorWindow
         public float Area;
     }
 
-    private TerrainData CreateCombinedTerrainTileData(List<Terrain> srcTerrains, Vector3 chunkWorldMin, Vector2 tileSize, int cx, int cy, out Terrain sourceTerrain)
+    private TerrainData CreateCombinedTerrainTileData(List<Terrain> srcTerrains, Vector3 chunkWorldMin, Vector2 tileSize, int cx, int cy, out Terrain sourceTerrain, out float terrainBaseY)
     {
         sourceTerrain = null;
+        terrainBaseY = 0f;
 
         var overlaps = GetOverlappingTerrains(srcTerrains, chunkWorldMin, tileSize);
         if (overlaps.Count == 0)
@@ -477,7 +478,9 @@ public class WorldChunkerEditor : EditorWindow
         sourceTerrain = overlaps[0].Terrain;
         var templateData = sourceTerrain.terrainData;
 
-        float maxTerrainHeight = overlaps.Max(o => o.Terrain.terrainData.size.y);
+        terrainBaseY = overlaps.Min(o => o.Terrain.transform.position.y);
+        float maxTerrainWorldY = overlaps.Max(o => o.Terrain.transform.position.y + o.Terrain.terrainData.size.y);
+        float tileHeightRange = Mathf.Max(0.01f, maxTerrainWorldY - terrainBaseY);
         int maxSourceHeightRes = overlaps.Max(o => o.Terrain.terrainData.heightmapResolution);
         float maxSamplesPerUnit = overlaps.Max(o =>
         {
@@ -492,7 +495,7 @@ public class WorldChunkerEditor : EditorWindow
         var tileData = new TerrainData
         {
             heightmapResolution = tileHeightRes,
-            size = new Vector3(tileSize.x, maxTerrainHeight, tileSize.y),
+            size = new Vector3(tileSize.x, tileHeightRange, tileSize.y),
             terrainLayers = templateData.terrainLayers
         };
 
@@ -511,8 +514,8 @@ public class WorldChunkerEditor : EditorWindow
                 float worldX = Mathf.Lerp(chunkWorldMin.x, chunkMaxX, xT);
 
                 var terrain = FindTerrainForWorldPosition(overlaps, worldX, worldZ) ?? sourceTerrain;
-                float sampledHeight = SampleTerrainHeight(terrain, worldX, worldZ);
-                tileHeights[tz, tx] = Mathf.Clamp01(sampledHeight / Mathf.Max(maxTerrainHeight, 0.0001f));
+                float sampledWorldHeight = SampleTerrainHeight(terrain, worldX, worldZ);
+                tileHeights[tz, tx] = Mathf.Clamp01((sampledWorldHeight - terrainBaseY) / tileHeightRange);
             }
         }
 

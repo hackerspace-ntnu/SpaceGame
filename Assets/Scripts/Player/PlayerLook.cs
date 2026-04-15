@@ -41,15 +41,33 @@ public class PlayerLook : MonoBehaviour
     
     private void OnEnable()
     {
-        // Lock cursor to center
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        ApplyCursorLock();
     }
 
     private void OnDisable()
     {
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        ReleaseCursorLock();
+    }
+
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (hasFocus && isActiveAndEnabled)
+        {
+            ApplyCursorLock();
+        }
+    }
+
+    private void LateUpdate()
+    {
+        if (!isActiveAndEnabled)
+        {
+            return;
+        }
+
+        if (Cursor.lockState != CursorLockMode.Locked || Cursor.visible)
+        {
+            ApplyCursorLock();
+        }
     }
     
     void Update()
@@ -65,5 +83,17 @@ public class PlayerLook : MonoBehaviour
         pitch -= lookInput.y * sensitivity * Time.deltaTime;
         pitch = Mathf.Clamp(pitch, -verticalClamp, verticalClamp);
         playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+    }
+
+    private void ApplyCursorLock()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    private void ReleaseCursorLock()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 }

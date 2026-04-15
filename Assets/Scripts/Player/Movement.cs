@@ -15,7 +15,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Jumping")]
     [SerializeField] private float jumpForce = 7f;
     [SerializeField] private float jumpCooldown = 0.6f;
-    [SerializeField] private float groundCheckDistance = 1.9f;
+    [SerializeField] private float groundCheckDistance = 0.2f;
     [SerializeField] private LayerMask groundMask = ~0;
 
     [Header("Dash")]
@@ -24,6 +24,7 @@ public class PlayerMovement : MonoBehaviour
 
     [SerializeField] private Rigidbody rb;
     [SerializeField] private Animator animator;
+    [SerializeField] private CapsuleCollider playerCollider;
     private Vector2 moveInput;
     private float jumpCooldownTimer;
     private bool jumpOnCooldown;
@@ -150,8 +151,19 @@ public class PlayerMovement : MonoBehaviour
 
     private bool IsGrounded()
     {
-        Vector3 origin = transform.position;
-        return Physics.Raycast(origin, Vector3.down, groundCheckDistance, groundMask, QueryTriggerInteraction.Ignore);
+        CapsuleCollider colliderToUse = playerCollider != null ? playerCollider : GetComponentInChildren<CapsuleCollider>();
+        if (colliderToUse == null)
+        {
+            Vector3 rayOrigin = transform.position;
+            return Physics.Raycast(rayOrigin, Vector3.down, groundCheckDistance, groundMask, QueryTriggerInteraction.Ignore);
+        }
+
+        Bounds bounds = colliderToUse.bounds;
+        float radius = Mathf.Max(0.05f, bounds.extents.x * 0.9f);
+        Vector3 origin = bounds.center + Vector3.up * 0.05f;
+        float distance = bounds.extents.y + groundCheckDistance;
+
+        return Physics.SphereCast(origin, radius, Vector3.down, out _, distance, groundMask, QueryTriggerInteraction.Ignore);
     }
 
     private void HandleJumpCooldown()

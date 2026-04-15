@@ -15,6 +15,8 @@ using UnityEngine.AI;
 /// - Includes a "Stuck Recovery" mechanism to reset paths if the agent gets wedged.
 /// - Implements IMountJumpMotor to simulate jumping by animating the agent's baseOffset.
 /// </summary>
+// Run before default (0) so agent.enabled=false happens before NavMeshAgent's own Awake registers it.
+[DefaultExecutionOrder(-100)]
 [RequireComponent(typeof(NavMeshAgent))]
 public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
 {
@@ -72,7 +74,13 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
         defaultUpdateRotation = agent.updateRotation;
         defaultStoppingDistance = agent.stoppingDistance;
         defaultSpeed = agent.speed;
+        defaultBaseOffset = agent.baseOffset;
         agent.autoBraking = false;
+
+        // Disable immediately so Unity doesn't try to register this agent against
+        // a NavMesh that doesn't exist yet. WorldStreamer re-enables it after the
+        // NavMesh has been rebuilt around this chunk.
+        agent.enabled = false;
     }
 
     private void OnEnable()
@@ -86,7 +94,7 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
     {
         UpdateMountedJump(deltaTime);
 
-        if (!agent)
+        if (!agent || !agent.isActiveAndEnabled)
         {
             return;
         }

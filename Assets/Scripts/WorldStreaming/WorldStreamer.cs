@@ -70,7 +70,6 @@ public class WorldStreamer : NetworkBehaviour
     private float nextParkedAgentRetryTime;
     private NavMeshDataInstance navMeshDataInstance;
     private AsyncOperation navMeshBuildOperation;
-    private float nextParkedAgentRetryTime;
 
     private struct SceneOperation
     {
@@ -860,9 +859,4 @@ public class WorldStreamer : NetworkBehaviour
     }
 #endif
 
-    private void OnValidate()
-    {
-        navMeshRebuildDelay = Mathf.Max(0f, navMeshRebuildDelay);
-        parkedAgentActivationDistance = Mathf.Max(1f, parkedAgentActivationDistance);
-    }
 }

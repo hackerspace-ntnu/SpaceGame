@@ -19,7 +19,7 @@ public class LassoArtifact : ToolItem
     [SerializeField] private float throwDelay = 0.3f;
     [SerializeField] private float throwSpeed = 30f;
     [SerializeField] private float throwRadius = 1.2f;      // generous — easy to snatch NPCs
-    [SerializeField] private float missHoldTime = 1.5f;     // rope stays visible this long on miss
+    [SerializeField] private float reelSpeed = 18f;          // units/sec the rope pulls back on miss
 
     [Header("Rope / Joint")]
     [SerializeField] private float ropeSlack = 2f;
@@ -28,6 +28,7 @@ public class LassoArtifact : ToolItem
 
     [Header("Animation")]
     [SerializeField] private string throwTrigger = "Throw";
+    [SerializeField] private GameObject lassoModel;   // the held dummy mesh — hidden while rope is out
 
     [Header("Rope Visual")]
     [SerializeField] private LineRenderer lineRenderer;
@@ -42,6 +43,8 @@ public class LassoArtifact : ToolItem
     [SerializeField] private float loopRadius = 0.35f;
     [SerializeField] private float loopSpinSpeed = 360f;
     [SerializeField] private float loopTiltAngle = 60f;
+    [SerializeField] private float loopDistortAmount = 0.12f;  // max radius deviation
+    [SerializeField] private float loopDistortSpeed = 1.8f;    // how fast the distortion drifts
 
     [Header("Throw Arc")]
     [SerializeField] private float throwArcHeight = 4f;
@@ -97,6 +100,8 @@ public class LassoArtifact : ToolItem
     private IEnumerator ThrowRoutine()
     {
         _isThrowing = true;
+
+        if (lassoModel != null) lassoModel.SetActive(false);
 
         var animator = owner.GetComponentInChildren<Animator>();
         if (animator != null)
@@ -172,9 +177,57 @@ public class LassoArtifact : ToolItem
 
             if (pastTarget || tooFar)
             {
-                yield return new WaitForSeconds(missHoldTime);
+                // Let the head continue falling under gravity until it hits the ground
+                while (true)
+                {
+                    velocity += Vector3.down * throwGravity * Time.deltaTime;
+                    prevHeadPos = headPos;
+                    headPos += velocity * Time.deltaTime;
+
+                    _loopAngle += loopSpinSpeed * Time.deltaTime;
+                    _wobbleTime += Time.deltaTime;
+
+                    Vector3 stepDir2 = headPos - prevHeadPos;
+                    Vector3 stepDirNorm2 = stepDir2.magnitude > 0.001f ? stepDir2.normalized : velocity.normalized;
+
+                    bool landed = Physics.Linecast(prevHeadPos, headPos, out RaycastHit groundHit, ~0, QueryTriggerInteraction.Ignore)
+                                  && !groundHit.collider.transform.IsChildOf(owner.transform);
+                    if (landed)
+                        headPos = groundHit.point;
+
+                    _ropeEndPoint = headPos;
+                    UpdateRope(1f);
+                    UpdateLoop(headPos, stepDirNorm2);
+
+                    if (landed) break;
+
+                    if (headPos.y < start.y - maxRange)
+                        break;
+
+                    yield return null;
+                }
+
+                // Reel the rope end back toward the muzzle
+                Vector3 reelStart = _ropeEndPoint;
+                float reelDist = Vector3.Distance(reelStart, GetRopeStart());
+                float reelElapsed = 0f;
+                float reelDuration = reelDist / Mathf.Max(reelSpeed, 0.1f);
+
+                while (reelElapsed < reelDuration)
+                {
+                    reelElapsed += Time.deltaTime;
+                    float t = Mathf.Clamp01(reelElapsed / reelDuration);
+                    _ropeEndPoint = Vector3.Lerp(reelStart, GetRopeStart(), t);
+                    _loopAngle += loopSpinSpeed * Time.deltaTime;
+                    _wobbleTime += Time.deltaTime;
+                    UpdateRope(1f - t);
+                    UpdateLoop(_ropeEndPoint, (GetRopeStart() - _ropeEndPoint).normalized);
+                    yield return null;
+                }
+
                 DisableRope();
                 DisableLoop();
+                if (lassoModel != null) lassoModel.SetActive(true);
                 _isThrowing = false;
                 yield break;
             }
@@ -196,7 +249,6 @@ public class LassoArtifact : ToolItem
 
         _targetRb.isKinematic = false;
 
-        // Attach point is offset upward from the NPC root (chest area)
         _attachOffset = Vector3.up * npcAttachHeightOffset;
 
         Vector3 attachWorldPos = _targetRb.position + _attachOffset;
@@ -233,6 +285,7 @@ public class LassoArtifact : ToolItem
         _targetRb = null;
         DisableRope();
         DisableLoop();
+        if (lassoModel != null) lassoModel.SetActive(true);
     }
 
     // ── Reel-in loop ───────────────────────────────────────────────────────
@@ -268,17 +321,14 @@ public class LassoArtifact : ToolItem
         Vector3 toTarget = attachWorld - ropeStart;
         float dist = toTarget.magnitude;
 
-        // Only pull when rope is taut — no push, no spring inside the limit
         if (dist <= _currentRopeLength) return;
 
         Vector3 pullDir = toTarget.normalized;
         float excess = dist - _currentRopeLength;
         float force = ropeTension * excess;
 
-        // Pull the NPC toward the player
         _targetRb.AddForceAtPosition(-pullDir * force, attachWorld, ForceMode.Force);
 
-        // Optionally pull the player too (comment out if you want to be an anchor)
         Rigidbody ownerRb = owner.GetComponent<Rigidbody>();
         if (ownerRb != null)
             ownerRb.AddForce(pullDir * force * 0.3f, ForceMode.Force);
@@ -367,7 +417,12 @@ public class LassoArtifact : ToolItem
         for (int i = 0; i <= loopSegments; i++)
         {
             float angle = i / (float)loopSegments * Mathf.PI * 2f;
-            Vector3 pt = center + (right * Mathf.Cos(angle) + up * Mathf.Sin(angle)) * loopRadius;
+
+            float distort = Mathf.Sin(angle * 2f + _loopAngle * 0.03f * loopDistortSpeed) * 0.6f
+                          + Mathf.Sin(angle * 3f - _loopAngle * 0.05f * loopDistortSpeed) * 0.4f;
+            float r = loopRadius + distort * loopDistortAmount;
+
+            Vector3 pt = center + (right * Mathf.Cos(angle) + up * Mathf.Sin(angle)) * r;
             loopRenderer.SetPosition(i, pt);
         }
     }
@@ -391,7 +446,6 @@ public class LassoArtifact : ToolItem
             if (col == null) continue;
             if (col.transform.IsChildOf(owner.transform)) continue;
 
-            // Walk up to find a Rigidbody on this collider or any parent
             Rigidbody candidate = col.GetComponentInParent<Rigidbody>();
             if (candidate == null) continue;
 

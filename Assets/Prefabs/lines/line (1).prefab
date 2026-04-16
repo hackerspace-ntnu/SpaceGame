@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &8611137004152560908
+--- !u!1 &7691657007481231498
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,38 +8,38 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 8875714297587359038}
-  - component: {fileID: 4271453188105141778}
+  - component: {fileID: 5991691037974459475}
+  - component: {fileID: 4044869484733418720}
   m_Layer: 0
-  m_Name: line2
+  m_Name: line (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &8875714297587359038
+--- !u!4 &5991691037974459475
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8611137004152560908}
+  m_GameObject: {fileID: 7691657007481231498}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3499.601, y: 200.69012, z: 1371.4547}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -2259.8354, y: 0.00005, z: -434.92084}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!120 &4271453188105141778
+--- !u!120 &4044869484733418720
 LineRenderer:
   serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8611137004152560908}
+  m_GameObject: {fileID: 7691657007481231498}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -82,31 +82,8 @@ LineRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Positions:
-  - {x: 3771.3484, y: 101.27847, z: 1562.0536}
-  - {x: 3771.4282, y: 101.23497, z: 1562.0446}
-  - {x: 3771.5146, y: 101.21213, z: 1562.0256}
-  - {x: 3771.6018, y: 101.211494, z: 1561.998}
-  - {x: 3771.6836, y: 101.23312, z: 1561.9637}
-  - {x: 3771.7546, y: 101.27553, z: 1561.9249}
-  - {x: 3771.81, y: 101.33583, z: 1561.8843}
-  - {x: 3771.846, y: 101.40991, z: 1561.8446}
-  - {x: 3771.8599, y: 101.49273, z: 1561.8087}
-  - {x: 3771.851, y: 101.578636, z: 1561.7788}
-  - {x: 3771.82, y: 101.66178, z: 1561.7572}
-  - {x: 3771.7688, y: 101.736496, z: 1561.7451}
-  - {x: 3771.701, y: 101.79768, z: 1561.7435}
-  - {x: 3771.621, y: 101.84119, z: 1561.7526}
-  - {x: 3771.5347, y: 101.86403, z: 1561.7715}
-  - {x: 3771.4475, y: 101.86466, z: 1561.7991}
-  - {x: 3771.3657, y: 101.84303, z: 1561.8334}
-  - {x: 3771.2947, y: 101.80063, z: 1561.8722}
-  - {x: 3771.2393, y: 101.740326, z: 1561.9128}
-  - {x: 3771.2034, y: 101.666245, z: 1561.9525}
-  - {x: 3771.1895, y: 101.58343, z: 1561.9884}
-  - {x: 3771.1982, y: 101.49752, z: 1562.0183}
-  - {x: 3771.2292, y: 101.414375, z: 1562.0399}
-  - {x: 3771.2805, y: 101.33966, z: 1562.052}
-  - {x: 3771.3484, y: 101.27847, z: 1562.0536}
+  - {x: 0, y: 0, z: 0}
+  - {x: 0, y: 0, z: 1}
   m_Parameters:
     serializedVersion: 3
     widthMultiplier: 1
@@ -115,7 +92,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.08575593
+        value: 0.062015086
         inSlope: 0
         outSlope: 0
         tangentMode: 0

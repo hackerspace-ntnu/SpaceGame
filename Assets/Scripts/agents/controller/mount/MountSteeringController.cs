@@ -33,6 +33,7 @@ public partial class MountSteeringController : MonoBehaviour
     [SerializeField] private Vector3 thirdPersonOffset = new Vector3(0f, 2.2f, -3.8f);
     [SerializeField] private float thirdPersonDistance = 3.8f;
     [SerializeField] private float thirdPersonFollowLerp = 14f;
+    [SerializeField] private float defaultMountedPitch = -15f;
     [SerializeField] private float cameraAutoAlignSpeed = 90f;
     [SerializeField] private float cameraAutoAlignDelay = 0.5f;
     [SerializeField] private string perspectiveToggleActionName = "Next";

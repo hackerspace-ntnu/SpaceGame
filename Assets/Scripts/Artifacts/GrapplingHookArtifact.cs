@@ -17,7 +17,7 @@ public class GrapplingHookArtifact : ToolItem
     [SerializeField] private LayerMask hookableLayers = ~0;
 
     [Header("Pull")]
-    [SerializeField] private float pullSpeed = 18f;
+    [SerializeField] private float reelSpeed = 20f;          // rope shortens this many units/sec
     [SerializeField] private float arrivalDistance = 2.5f;
     [SerializeField] private float arrivalBoost = 14f;
 
@@ -30,6 +30,7 @@ public class GrapplingHookArtifact : ToolItem
     // ── Runtime state ──────────────────────────────────────────────────────
     private bool _isGrappling;
     private Vector3 _hookPoint;
+    private float _ropeLength;
     private Coroutine _pullCoroutine;
 
     // ── ToolItem override ──────────────────────────────────────────────────
@@ -53,6 +54,7 @@ public class GrapplingHookArtifact : ToolItem
 
         _hookPoint = hit.Value.point;
         _isGrappling = true;
+        _ropeLength = Vector3.Distance(owner.transform.position, _hookPoint);
 
         owner.GetComponent<PlayerMovement>()?.DisableGroundSnap(999f);
 
@@ -62,32 +64,44 @@ public class GrapplingHookArtifact : ToolItem
     }
 
     // ── Pull coroutine ─────────────────────────────────────────────────────
+    //
+    // Pendulum constraint: shorten the rope each frame, then enforce it as a
+    // hard inextensible constraint. Gravity acts freely — the player swings in
+    // an arc rather than flying straight at the hook point.
 
     private IEnumerator PullRoutine()
     {
         var rb = owner.GetComponent<Rigidbody>();
-        bool boostApplied = false;
 
         while (_isGrappling && rb != null)
         {
+            // Shorten rope over time
+            _ropeLength = Mathf.Max(arrivalDistance, _ropeLength - reelSpeed * Time.deltaTime);
+
             Vector3 toHook = _hookPoint - rb.position;
             float dist = toHook.magnitude;
-            Vector3 dir = toHook.normalized;
+            Vector3 radial = dist > 0.001f ? toHook / dist : Vector3.up;
 
-            // Smooth pull — lerp velocity toward the hook direction
-            rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, dir * pullSpeed, Time.deltaTime * 8f);
-
-            // Arrival boost fires once when close enough
-            if (!boostApplied && dist <= arrivalDistance)
+            // Hard constraint: if player is beyond rope length, cancel outward velocity
+            // and snap back to the rope surface so they swing rather than drift away
+            if (dist > _ropeLength)
             {
-                boostApplied = true;
-                rb.linearVelocity = dir * (rb.linearVelocity.magnitude + arrivalBoost);
+                float radialVel = Vector3.Dot(rb.linearVelocity, -radial); // velocity away from hook
+                if (radialVel > 0f)
+                    rb.linearVelocity += radial * radialVel;               // cancel the outward component
+
+                rb.position = _hookPoint - radial * _ropeLength;
+            }
+
+            // Arrival — release and apply momentum boost
+            if (_ropeLength <= arrivalDistance)
+            {
+                rb.linearVelocity += radial * arrivalBoost;
                 StopGrapple();
                 yield break;
             }
 
             UpdateRope(rb.position);
-
             yield return null;
         }
     }

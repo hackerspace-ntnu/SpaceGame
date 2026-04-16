@@ -379,7 +379,8 @@ public class WorldStreamer : NetworkBehaviour
         }
 
         string sceneName = chunkInfo.Value.sceneName;
-        Debug.Log($"[WorldStreamer] Loading chunk {op.Coord} ({sceneName})");
+        string scenePath = chunkInfo.Value.scenePath;
+        Debug.Log($"[WorldStreamer] Loading chunk {op.Coord} ({sceneName}){(string.IsNullOrEmpty(scenePath) ? "" : $" from {scenePath}")}");
 
         pendingCallback = op.OnComplete;
         pendingCoord = op.Coord;

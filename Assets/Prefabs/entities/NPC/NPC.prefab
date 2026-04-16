@@ -16,7 +16,6 @@ GameObject:
   - component: {fileID: 1783219288637548597}
   - component: {fileID: 1808153164638333970}
   - component: {fileID: 5168443937185367202}
-  - component: {fileID: 3846045544133022116}
   - component: {fileID: -2643361993383661770}
   - component: {fileID: 3912737409627460444}
   m_Layer: 0
@@ -35,7 +34,7 @@ Transform:
   m_GameObject: {fileID: 5802214957463739635}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -11.87, y: 2.7, z: 6.76}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -79,7 +78,7 @@ NavMeshAgent:
   m_GameObject: {fileID: 5802214957463739635}
   m_Enabled: 1
   m_AgentTypeID: 0
-  m_Radius: 0.5
+  m_Radius: 1.5
   m_Speed: 2
   m_Acceleration: 8
   avoidancePriority: 50
@@ -181,12 +180,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec2582aec804c4f45a4739731da4c023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WanderBehaviour
-  wanderRadius: 10
+  wanderRadius: 100
   sampleDistance: 6
   maxTriesPerDestination: 10
-  minDestinationDistance: 1.5
+  minDestinationDistance: 5
   minWaitTime: 0.5
-  maxWaitTime: 2
+  maxWaitTime: 10
   usePatrolPoints: 0
   patrolSelectionMode: 0
   patrolPointChance: 1
@@ -223,27 +222,6 @@ MonoBehaviour:
   lookAroundTurnAngle: 70
   lookAroundDuration: 0.75
   wanderSpeedMultiplier: 1
---- !u!114 &3846045544133022116
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5802214957463739635}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3d2e4eaafab874210a82642d039de6af, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NavMeshAgentMotor
-  agent: {fileID: 3876325014760975639}
-  navMeshSnapDistance: 6
-  stuckVelocityThreshold: 0.05
-  stuckTime: 1.5
-  faceRotateSpeed: 8
-  enableMountedJump: 1
-  mountedJumpHeight: 1.25
-  mountedJumpDuration: 0.55
-  mountedJumpCooldown: 0.45
 --- !u!114 &-2643361993383661770
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -257,7 +235,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AgentController
   brainComponent: {fileID: 5168443937185367202}
-  motorComponent: {fileID: 3846045544133022116}
+  motorComponent: {fileID: 1783219288637548597}
   animatorDriver: {fileID: 3912737409627460444}
 --- !u!114 &3912737409627460444
 MonoBehaviour:

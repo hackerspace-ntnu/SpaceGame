@@ -1,6 +1,8 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.InputSystem;
+
 
 /// <summary>
 /// Lasso artifact — extends ToolItem.
@@ -23,7 +25,9 @@ public class LassoArtifact : ToolItem
 
     [Header("Rope / Joint")]
     [SerializeField] private float ropeSlack = 2f;
-    [SerializeField] private float ropeTension = 600f;      // force applied when rope is taut
+    [SerializeField] private float ropeTension = 600f;
+    [SerializeField] private float reelInForce = 18f;   // units/sec speed when pulling target in
+    [SerializeField] private InputActionReference reelInAction;   // assign RightClick in Inspector      // force applied when rope is taut
     [SerializeField] private float npcAttachHeightOffset = 1.2f; // world-units above NPC root to attach
 
     [Header("Animation")]
@@ -59,11 +63,14 @@ public class LassoArtifact : ToolItem
     private bool _isLassoed;
     private bool _isThrowing;
     private Rigidbody _targetRb;
+    private Transform _targetTransform;   // used when target has no Rigidbody
     private NavMeshAgent _targetAgent;
+    private AgentController _targetAgentController;
     private float _currentRopeLength;
     private Coroutine _routine;
     private Vector3 _ropeEndPoint;   // world-space point drawn as rope tip (chest height)
     private Vector3 _attachOffset;   // local offset on NPC body where rope attaches
+    private float _loopSpinCurrent;  // actual spin speed, wound down after attach
 
     // Wobble state
     private float _wobbleTime;
@@ -72,6 +79,7 @@ public class LassoArtifact : ToolItem
 
     // Loop spin state
     private float _loopAngle;
+    private float _loopSpinDecay = 180f; // deg/sec² wind-down rate after attach
 
     // ── ToolItem override ──────────────────────────────────────────────────
 
@@ -157,14 +165,14 @@ public class LassoArtifact : ToolItem
 
             float progress = Mathf.Clamp01(elapsed / estimatedFlightTime);
 
-            if (TryGetLatchTarget(headPos, out Rigidbody latchedRb, out Vector3 latchPoint))
+            if (TryGetLatchTarget(headPos, out Rigidbody latchedRb, out Transform latchedTransform, out Vector3 latchPoint))
             {
                 _ropeEndPoint = latchPoint;
                 UpdateRope(progress);
                 UpdateLoop(_ropeEndPoint, stepDirNorm);
 
                 _isThrowing = false;
-                Attach(latchedRb);
+                Attach(latchedRb, latchedTransform);
                 yield break;
             }
 
@@ -238,28 +246,32 @@ public class LassoArtifact : ToolItem
 
     // ── Attach / Release ───────────────────────────────────────────────────
 
-    private void Attach(Rigidbody targetRb)
+    private void Attach(Rigidbody targetRb, Transform targetTransform)
     {
-        _targetRb = targetRb;
-        _isLassoed = true;
+        _targetRb        = targetRb;
+        _targetTransform = targetTransform;
+        _isLassoed       = true;
+        _loopSpinCurrent = loopSpinSpeed;
 
-        _targetAgent = targetRb.GetComponent<NavMeshAgent>();
-        if (_targetAgent != null)
-            _targetAgent.enabled = false;
+        Transform root = targetRb != null ? targetRb.transform : targetTransform;
 
-        _targetRb.isKinematic = false;
+        _targetAgent = root.GetComponentInParent<NavMeshAgent>();
+        if (_targetAgent != null) _targetAgent.enabled = false;
+
+        _targetAgentController = root.GetComponentInParent<AgentController>();
+
+        if (targetRb != null) targetRb.isKinematic = false;
 
         _attachOffset = Vector3.up * npcAttachHeightOffset;
 
-        Vector3 attachWorldPos = _targetRb.position + _attachOffset;
+        Vector3 attachWorldPos = root.position + _attachOffset;
         _currentRopeLength = Vector3.Distance(GetRopeStart(), attachWorldPos) + ropeSlack;
         _ropeEndPoint = attachWorldPos;
 
         _wobbleStrength = 1f;
-        _wobbleTime = 0f;
-        _wobbleAxis = Vector3.Cross((_targetRb.position - owner.transform.position).normalized, Vector3.up).normalized;
-        if (_wobbleAxis.sqrMagnitude < 0.01f)
-            _wobbleAxis = Vector3.right;
+        _wobbleTime     = 0f;
+        _wobbleAxis = Vector3.Cross((root.position - owner.transform.position).normalized, Vector3.up).normalized;
+        if (_wobbleAxis.sqrMagnitude < 0.01f) _wobbleAxis = Vector3.right;
 
         EnableRope();
         EnableLoop();
@@ -270,19 +282,13 @@ public class LassoArtifact : ToolItem
     {
         _isLassoed = false;
 
-        if (_routine != null)
-        {
-            StopCoroutine(_routine);
-            _routine = null;
-        }
+        if (_routine != null) { StopCoroutine(_routine); _routine = null; }
 
-        if (_targetAgent != null)
-        {
-            _targetAgent.enabled = true;
-            _targetAgent = null;
-        }
+        if (_targetAgent != null) { _targetAgent.enabled = true; _targetAgent = null; }
+        _targetAgentController = null;
 
-        _targetRb = null;
+        _targetRb        = null;
+        _targetTransform = null;
         DisableRope();
         DisableLoop();
         if (lassoModel != null) lassoModel.SetActive(true);
@@ -292,13 +298,16 @@ public class LassoArtifact : ToolItem
 
     private IEnumerator ReelRoutine()
     {
-        while (_isLassoed && _targetRb != null)
-        {
-            _wobbleTime += Time.deltaTime;
-            _wobbleStrength = Mathf.Max(0f, _wobbleStrength - wobbleDecay * Time.deltaTime);
-            _loopAngle += loopSpinSpeed * Time.deltaTime;
+        Transform root = _targetRb != null ? _targetRb.transform : _targetTransform;
 
-            Vector3 attachWorldPos = _targetRb.position + _attachOffset;
+        while (_isLassoed && root != null)
+        {
+            _wobbleTime      += Time.deltaTime;
+            _wobbleStrength   = Mathf.Max(0f, _wobbleStrength - wobbleDecay * Time.deltaTime);
+            _loopSpinCurrent  = Mathf.Max(0f, _loopSpinCurrent - _loopSpinDecay * Time.deltaTime);
+            _loopAngle       += _loopSpinCurrent * Time.deltaTime;
+
+            Vector3 attachWorldPos = root.position + _attachOffset;
             _ropeEndPoint = attachWorldPos;
 
             UpdateRope(1f);
@@ -310,28 +319,70 @@ public class LassoArtifact : ToolItem
         if (_isLassoed) Release();
     }
 
-    // ── Rope tension (FixedUpdate) ─────────────────────────────────────────
+    // ── Right-click reel-in (input read only) ─────────────────────────────
+
+    private bool _reelHeld;
+
+    private void Update()
+    {
+        _reelHeld = _isLassoed
+                    && reelInAction != null
+                    && reelInAction.action.ReadValue<float>() >= 0.5f;
+
+        // Transform-only targets (e.g. ant) — move directly, no physics
+        if (_reelHeld && _isLassoed && _targetRb == null && _targetTransform != null)
+        {
+            _targetTransform.position = Vector3.MoveTowards(
+                _targetTransform.position,
+                GetRopeStart() - _attachOffset,
+                reelInForce * Time.deltaTime);
+        }
+    }
+
+    // ── Rope physics (FixedUpdate) ─────────────────────────────────────────
+    //
+    // Pendulum-style swinging rope:
+    //   1. Hard constraint — strip any velocity component that would lengthen the rope
+    //      beyond _currentRopeLength (inextensible rope, no spring bounce).
+    //   2. Reel-in — when right-click held, shorten _currentRopeLength and remove the
+    //      radial velocity component so the target swings inward rather than flying straight.
+    //   3. Gravity acts freely every frame — the target arcs downward as it swings.
 
     private void FixedUpdate()
     {
         if (!_isLassoed || _targetRb == null) return;
 
-        Vector3 ropeStart = GetRopeStart();
+        Vector3 ropeStart   = GetRopeStart();
         Vector3 attachWorld = _targetRb.position + _attachOffset;
-        Vector3 toTarget = attachWorld - ropeStart;
-        float dist = toTarget.magnitude;
+        Vector3 toTarget    = attachWorld - ropeStart;          // rope vector (anchor → target)
+        float   dist        = toTarget.magnitude;
+        Vector3 radial      = dist > 0.001f ? toTarget / dist : Vector3.up;  // unit rope direction
 
-        if (dist <= _currentRopeLength) return;
+        // ── Shorten rope when reeling ──────────────────────────────────────
+        if (_reelHeld)
+            _currentRopeLength = Mathf.Max(ropeSlack, _currentRopeLength - reelInForce * Time.fixedDeltaTime);
 
-        Vector3 pullDir = toTarget.normalized;
-        float excess = dist - _currentRopeLength;
-        float force = ropeTension * excess;
+        // ── Inextensible constraint ────────────────────────────────────────
+        // If the target is beyond the rope length, cancel the outward radial velocity
+        // and push the target back to the rope surface. No spring — hard constraint.
+        if (dist > _currentRopeLength)
+        {
+            // Cancel the velocity component pulling away from anchor
+            float radialVel = Vector3.Dot(_targetRb.linearVelocity, radial);
+            if (radialVel > 0f)
+                _targetRb.linearVelocity -= radial * radialVel;
 
-        _targetRb.AddForceAtPosition(-pullDir * force, attachWorld, ForceMode.Force);
+            // Snap position to rope length
+            _targetRb.position = ropeStart + radial * _currentRopeLength - _attachOffset;
 
-        Rigidbody ownerRb = owner.GetComponent<Rigidbody>();
-        if (ownerRb != null)
-            ownerRb.AddForce(pullDir * force * 0.3f, ForceMode.Force);
+            // Drag the player anchor slightly (feel of weight on the rope)
+            Rigidbody ownerRb = owner.GetComponent<Rigidbody>();
+            if (ownerRb != null)
+            {
+                float drag = Mathf.Abs(radialVel) * 0.15f;
+                ownerRb.AddForce(radial * drag, ForceMode.VelocityChange);
+            }
+        }
     }
 
     // ── Rope visual ────────────────────────────────────────────────────────
@@ -432,10 +483,12 @@ public class LassoArtifact : ToolItem
         return muzzle != null ? muzzle.position : owner.transform.position;
     }
 
-    // Returns the first hookable Rigidbody within throwRadius of headPos (walks up the hierarchy).
-    private bool TryGetLatchTarget(Vector3 headPos, out Rigidbody rb, out Vector3 latchPoint)
+    // Returns the best hookable target within throwRadius of headPos.
+    // Prefers Rigidbody targets; falls back to any collider whose root has AgentController.
+    private bool TryGetLatchTarget(Vector3 headPos, out Rigidbody rb, out Transform hitTransform, out Vector3 latchPoint)
     {
         rb = null;
+        hitTransform = null;
         latchPoint = headPos;
 
         Collider[] nearby = Physics.OverlapSphere(headPos, throwRadius, ~0, QueryTriggerInteraction.Ignore);
@@ -445,22 +498,22 @@ public class LassoArtifact : ToolItem
         {
             if (col == null) continue;
             if (col.transform.IsChildOf(owner.transform)) continue;
-
-            Rigidbody candidate = col.GetComponentInParent<Rigidbody>();
-            if (candidate == null) continue;
-
-            bool layerOk = (hookableLayers.value & (1 << col.gameObject.layer)) != 0;
-            if (!layerOk) continue;
+            if ((hookableLayers.value & (1 << col.gameObject.layer)) == 0) continue;
 
             float d = Vector3.Distance(headPos, col.ClosestPoint(headPos));
-            if (d < bestDist)
-            {
-                bestDist = d;
-                rb = candidate;
-                latchPoint = col.ClosestPoint(headPos);
-            }
+            if (d >= bestDist) continue;
+
+            Rigidbody candidateRb = col.GetComponentInParent<Rigidbody>();
+            AgentController candidateAgent = col.GetComponentInParent<AgentController>();
+
+            if (candidateRb == null && candidateAgent == null) continue;
+
+            bestDist = d;
+            rb = candidateRb;
+            hitTransform = candidateAgent != null ? candidateAgent.transform : candidateRb.transform;
+            latchPoint = col.ClosestPoint(headPos);
         }
 
-        return rb != null;
+        return hitTransform != null || rb != null;
     }
 }

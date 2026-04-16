@@ -80,7 +80,24 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
         // Disable immediately so Unity doesn't try to register this agent against
         // a NavMesh that doesn't exist yet. WorldStreamer re-enables it after the
         // NavMesh has been rebuilt around this chunk.
+        // If no WorldStreamer is present, Start() will self-enable as a fallback.
         agent.enabled = false;
+    }
+
+    private void Start()
+    {
+        if (agent.enabled)
+        {
+            return;
+        }
+
+        if (FindObjectOfType<WorldStreamer>() != null)
+        {
+            return;
+        }
+
+        TrySnapToNavMesh();
+        agent.enabled = true;
     }
 
     private void OnEnable()

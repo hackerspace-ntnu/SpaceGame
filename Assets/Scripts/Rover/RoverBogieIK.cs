@@ -1,11 +1,11 @@
 using UnityEngine;
 
 /// <summary>
-/// Bogie suspension IK for a two-joint rover arm:
-/// - Main joint drives one wheel mount.
-/// - Secondary joint drives a smaller rig with two wheel mounts.
-///
-/// The solver raycasts down from each wheel mount and rotates joints so wheels try to stay on ground.
+/// Bogie suspension using physics joints.
+/// Wheels are connected to the bogie via ConfigurableJoints that:
+/// - Lock XYZ position (wheel stays attached)
+/// - Allow X-axis rotation (wheel can tilt with terrain)
+/// - Apply spring forces to keep wheels on ground
 /// </summary>
 public class RoverBogieIK : MonoBehaviour
 {
@@ -13,7 +13,7 @@ public class RoverBogieIK : MonoBehaviour
     [SerializeField] private Transform searchRoot;
     [SerializeField] private bool autoFindOnValidate = false;
 
-    [Header("Bogie Joints")]
+    [Header("Bogie Structure")]
     [SerializeField] private Transform mainJoint;
     [SerializeField] private Transform secondaryJoint;
 
@@ -22,19 +22,15 @@ public class RoverBogieIK : MonoBehaviour
     [SerializeField] private Transform secondaryWheelMountA;
     [SerializeField] private Transform secondaryWheelMountB;
 
-    [Header("Joint Axis (Local)")]
-    [SerializeField] private Vector3 mainJointAxisLocal = Vector3.right;
-    [SerializeField] private Vector3 secondaryJointAxisLocal = Vector3.right;
+    [Header("Joint Configuration")]
+    [SerializeField] private Vector3 jointRotationAxis = Vector3.right; // X-axis rotation
+    [SerializeField] private float jointSpring = 1000f; // Spring force to return to neutral
+    [SerializeField] private float jointDamper = 100f; // Damping to prevent oscillation
+    [SerializeField] private float jointMaxForce = 1000f; // Max force the joint can apply
 
-    [Header("Joint Limits")]
-    [SerializeField] private float mainMinAngle = -55f;
-    [SerializeField] private float mainMaxAngle = 55f;
-    [SerializeField] private float secondaryMinAngle = -65f;
-    [SerializeField] private float secondaryMaxAngle = 65f;
-
-    [Header("Joint Motion")]
-    [SerializeField] private float mainJointDegreesPerSecond = 140f;
-    [SerializeField] private float secondaryJointDegreesPerSecond = 160f;
+    [Header("Joint Angle Limits")]
+    [SerializeField] private float jointMinAngle = -60f;
+    [SerializeField] private float jointMaxAngle = 60f;
 
     [Header("Raycast Grounding")]
     [SerializeField] private LayerMask groundMask = ~0;
@@ -68,12 +64,12 @@ public class RoverBogieIK : MonoBehaviour
             searchRoot = transform;
         }
 
-        CacheBindPose();
+        InitializePhysics();
     }
 
     private void OnEnable()
     {
-        CacheBindPose();
+        InitializePhysics();
     }
 
     private void OnValidate()
@@ -87,8 +83,6 @@ public class RoverBogieIK : MonoBehaviour
         {
             AutoSetupFromChildren();
         }
-
-        CacheBindPose();
     }
 
     [ContextMenu("Auto Setup From Children")]
@@ -99,8 +93,125 @@ public class RoverBogieIK : MonoBehaviour
 
         AutoAssignJoints(all);
         AutoAssignWheelMounts(all);
+    }
 
-        CacheBindPose();
+    [ContextMenu("Initialize Physics Joints")]
+    public void InitializePhysics()
+    {
+        if (!HasRequiredReferences())
+        {
+            return;
+        }
+
+        // Get or create bogie rigidbody
+        Rigidbody bogieRigidbody = GetComponent<Rigidbody>();
+        if (bogieRigidbody == null)
+        {
+            bogieRigidbody = gameObject.AddComponent<Rigidbody>();
+            bogieRigidbody.isKinematic = false;
+            bogieRigidbody.useGravity = true;
+        }
+
+        // Create/update wheel rigidbodies and joints
+        // Wheels connect to their parent joint, not the bogie
+        SetupWheelPhysics(mainWheelMount);
+        SetupWheelPhysics(secondaryWheelMountA);
+        SetupWheelPhysics(secondaryWheelMountB);
+    }
+
+    private void SetupWheelPhysics(Transform wheelMount)
+    {
+        if (wheelMount == null)
+        {
+            return;
+        }
+
+        // Get the wheel's parent (should be the joint)
+        Transform parentJoint = wheelMount.parent;
+        if (parentJoint == null)
+        {
+            Debug.LogError($"{wheelMount.name} has no parent! Wheel must be child of a joint.", this);
+            return;
+        }
+
+        Rigidbody parentRb = parentJoint.GetComponent<Rigidbody>();
+        if (parentRb == null)
+        {
+            Debug.LogError($"{parentJoint.name} (parent of {wheelMount.name}) has no Rigidbody!", this);
+            return;
+        }
+
+        // Ensure wheel has rigidbody
+        Rigidbody wheelRb = wheelMount.GetComponent<Rigidbody>();
+        if (wheelRb == null)
+        {
+            wheelRb = wheelMount.gameObject.AddComponent<Rigidbody>();
+            wheelRb.isKinematic = false;
+            wheelRb.useGravity = true;
+            wheelRb.mass = 0.5f; // Light wheel
+            Debug.Log($"Created Rigidbody on {wheelMount.name}");
+        }
+
+        // Make sure wheel rigidbody is NOT kinematic
+        if (wheelRb.isKinematic)
+        {
+            wheelRb.isKinematic = false;
+            Debug.LogWarning($"{wheelMount.name} was kinematic, setting to dynamic");
+        }
+
+        // Remove old joint if exists
+        ConfigurableJoint existingJoint = wheelMount.GetComponent<ConfigurableJoint>();
+        if (existingJoint != null)
+        {
+            DestroyImmediate(existingJoint);
+        }
+
+        // Create new joint: wheel connected to its parent joint
+        ConfigurableJoint joint = wheelMount.gameObject.AddComponent<ConfigurableJoint>();
+        joint.connectedBody = parentRb;
+
+        // Set anchor to local position (relative to this wheel)
+        joint.anchor = Vector3.zero;
+        // Connected anchor on the parent joint
+        joint.connectedAnchor = parentRb.transform.InverseTransformPoint(wheelMount.position);
+
+        // Lock XYZ position (wheel stays attached to joint)
+        joint.xMotion = ConfigurableJointMotion.Locked;
+        joint.yMotion = ConfigurableJointMotion.Locked;
+        joint.zMotion = ConfigurableJointMotion.Locked;
+
+        // Allow rotation on X axis only (tilt with terrain)
+        joint.angularXMotion = ConfigurableJointMotion.Limited;
+        joint.angularYMotion = ConfigurableJointMotion.Locked;
+        joint.angularZMotion = ConfigurableJointMotion.Locked;
+
+        // Set angle limits on X axis
+        SoftJointLimit limitMax = new SoftJointLimit();
+        limitMax.limit = jointMaxAngle;
+        limitMax.bounciness = 0f;
+        joint.highAngularXLimit = limitMax;
+
+        SoftJointLimit limitMin = new SoftJointLimit();
+        limitMin.limit = jointMinAngle;
+        limitMin.bounciness = 0f;
+        joint.lowAngularXLimit = limitMin;
+
+        // Spring and damper for smooth motion
+        JointDrive drive = new JointDrive();
+        drive.positionSpring = 0;
+        drive.positionDamper = 0;
+        drive.maximumForce = jointMaxForce;
+        joint.xDrive = drive;
+        joint.yDrive = drive;
+        joint.zDrive = drive;
+
+        // Rotation drive for X axis
+        drive.positionSpring = jointSpring;
+        drive.positionDamper = jointDamper;
+        drive.maximumForce = jointMaxForce;
+        joint.angularXDrive = drive;
+
+        Debug.Log($"Created ConfigurableJoint on {wheelMount.name} connected to parent {parentJoint.name}");
     }
 
     public void UpdateBogieIK()
@@ -110,6 +221,7 @@ public class RoverBogieIK : MonoBehaviour
             return;
         }
 
+        // Sample ground contact for all wheels
         WheelContact mainContact = SampleWheelGround(mainWheelMount);
         WheelContact secondaryAContact = SampleWheelGround(secondaryWheelMountA);
         WheelContact secondaryBContact = SampleWheelGround(secondaryWheelMountB);
@@ -117,38 +229,10 @@ public class RoverBogieIK : MonoBehaviour
         hasGroundContact = mainContact.HasHit || secondaryAContact.HasHit || secondaryBContact.HasHit;
         UpdateDebugGroundState(mainContact, secondaryAContact, secondaryBContact);
 
-        float desiredMainAngle = ComputeDesiredMainAngle(mainContact);
-        float desiredSecondaryAngle = ComputeDesiredSecondaryAngle(secondaryAContact, secondaryBContact);
-
-        desiredMainAngle = Mathf.Clamp(desiredMainAngle, mainMinAngle, mainMaxAngle);
-        desiredSecondaryAngle = Mathf.Clamp(desiredSecondaryAngle, secondaryMinAngle, secondaryMaxAngle);
-
-        currentMainAngle = Mathf.MoveTowards(currentMainAngle, desiredMainAngle, mainJointDegreesPerSecond * Time.deltaTime);
-        currentSecondaryAngle = Mathf.MoveTowards(currentSecondaryAngle, desiredSecondaryAngle, secondaryJointDegreesPerSecond * Time.deltaTime);
-
-        mainJoint.localRotation = mainBaseLocalRotation * Quaternion.AngleAxis(currentMainAngle, mainJointAxisLocal.normalized);
-        secondaryJoint.localRotation = secondaryBaseLocalRotation * Quaternion.AngleAxis(currentSecondaryAngle, secondaryJointAxisLocal.normalized);
-
         if (drawDebug)
         {
             DrawDebug(mainContact, secondaryAContact, secondaryBContact);
         }
-    }
-
-    private void CacheBindPose()
-    {
-        if (mainJoint != null)
-        {
-            mainBaseLocalRotation = mainJoint.localRotation;
-        }
-
-        if (secondaryJoint != null)
-        {
-            secondaryBaseLocalRotation = secondaryJoint.localRotation;
-        }
-
-        currentMainAngle = 0f;
-        currentSecondaryAngle = 0f;
     }
 
     private bool HasRequiredReferences()
@@ -175,50 +259,8 @@ public class RoverBogieIK : MonoBehaviour
 
     private void AutoAssignJoints(Transform[] all)
     {
-        Transform firstJoint = null;
-        Transform secondJoint = null;
-        int firstDepth = int.MaxValue;
-        int secondDepth = int.MaxValue;
-
-        for (int i = 0; i < all.Length; i++)
-        {
-            Transform candidate = all[i];
-            if (candidate == null)
-            {
-                continue;
-            }
-
-            string lowerName = candidate.name.ToLowerInvariant();
-            if (!lowerName.Contains("joint"))
-            {
-                continue;
-            }
-
-            int depth = GetHierarchyDepth(candidate, searchRoot != null ? searchRoot : transform);
-
-            if (depth < firstDepth)
-            {
-                secondJoint = firstJoint;
-                secondDepth = firstDepth;
-                firstJoint = candidate;
-                firstDepth = depth;
-            }
-            else if (depth < secondDepth)
-            {
-                secondJoint = candidate;
-                secondDepth = depth;
-            }
-        }
-
-        if (firstJoint != null)
-        {
-            mainJoint = firstJoint;
-        }
-
-        if (secondJoint != null)
-        {
-            secondaryJoint = secondJoint;
-        }
+        // Joints are no longer used in physics-based approach
+        // Kept for compatibility
     }
 
     private void AutoAssignWheelMounts(Transform[] all)
@@ -292,38 +334,10 @@ public class RoverBogieIK : MonoBehaviour
         string lower = candidate.name.ToLowerInvariant();
         if (lower.Contains("wheel") || lower.Contains("bogie") || lower.Contains("mount"))
         {
-            return HasWheelChild(candidate);
-        }
-
-        return HasWheelChild(candidate);
-    }
-
-    private static bool HasWheelChild(Transform candidate)
-    {
-        for (int i = 0; i < candidate.childCount; i++)
-        {
-            Transform child = candidate.GetChild(i);
-            if (child.name.ToLowerInvariant().Contains("wheel"))
-            {
-                return true;
-            }
+            return true;
         }
 
         return false;
-    }
-
-    private static int GetHierarchyDepth(Transform target, Transform root)
-    {
-        int depth = 0;
-        Transform current = target;
-
-        while (current != null && current != root)
-        {
-            current = current.parent;
-            depth++;
-        }
-
-        return depth;
     }
 
     private WheelContact SampleWheelGround(Transform wheelMount)
@@ -338,45 +352,12 @@ public class RoverBogieIK : MonoBehaviour
                 wheelMount,
                 origin,
                 hit.point,
-                hit.normal,
-                hit.point + hit.normal * wheelGroundOffset
+                hit.normal
             );
         }
 
         Vector3 fallbackPoint = origin + Vector3.down * raycastDistance;
-        return new WheelContact(false, wheelMount, origin, fallbackPoint, Vector3.up, fallbackPoint + Vector3.up * wheelGroundOffset);
-    }
-
-    private float ComputeDesiredMainAngle(WheelContact mainContact)
-    {
-        float delta = ComputeWheelDeltaAngle(mainJoint, mainJointAxisLocal, mainWheelMount, mainContact.TargetPoint);
-        return currentMainAngle + delta;
-    }
-
-    private float ComputeDesiredSecondaryAngle(WheelContact contactA, WheelContact contactB)
-    {
-        float deltaA = ComputeWheelDeltaAngle(secondaryJoint, secondaryJointAxisLocal, secondaryWheelMountA, contactA.TargetPoint);
-        float deltaB = ComputeWheelDeltaAngle(secondaryJoint, secondaryJointAxisLocal, secondaryWheelMountB, contactB.TargetPoint);
-
-        float averageDelta = (deltaA + deltaB) * 0.5f;
-        return currentSecondaryAngle + averageDelta;
-    }
-
-    private float ComputeWheelDeltaAngle(Transform joint, Vector3 localAxis, Transform wheelMount, Vector3 targetPoint)
-    {
-        Vector3 worldAxis = joint.TransformDirection(localAxis.normalized);
-        Vector3 currentVector = wheelMount.position - joint.position;
-        Vector3 targetVector = targetPoint - joint.position;
-
-        Vector3 currentProjected = Vector3.ProjectOnPlane(currentVector, worldAxis);
-        Vector3 targetProjected = Vector3.ProjectOnPlane(targetVector, worldAxis);
-
-        if (currentProjected.sqrMagnitude < 0.000001f || targetProjected.sqrMagnitude < 0.000001f)
-        {
-            return 0f;
-        }
-
-        return Vector3.SignedAngle(currentProjected, targetProjected, worldAxis);
+        return new WheelContact(false, wheelMount, origin, fallbackPoint, Vector3.up);
     }
 
     private void UpdateDebugGroundState(WheelContact mainContact, WheelContact contactA, WheelContact contactB)
@@ -413,7 +394,7 @@ public class RoverBogieIK : MonoBehaviour
             return;
         }
 
-        lastGroundPoint = (mainContact.TargetPoint + contactA.TargetPoint + contactB.TargetPoint) / 3f;
+        lastGroundPoint = (mainContact.RaycastOrigin + contactA.RaycastOrigin + contactB.RaycastOrigin) / 3f;
         lastGroundNormal = Vector3.up;
     }
 
@@ -423,19 +404,20 @@ public class RoverBogieIK : MonoBehaviour
         DrawContact(contactA, new Color(1f, 0.6f, 0.2f));
         DrawContact(contactB, new Color(1f, 0.6f, 0.2f));
 
-        if (mainJoint != null && mainWheelMount != null)
+        // Draw connections to wheel mounts
+        if (mainWheelMount != null)
         {
-            Debug.DrawLine(mainJoint.position, mainWheelMount.position, Color.yellow);
+            Debug.DrawLine(transform.position, mainWheelMount.position, Color.yellow);
         }
 
-        if (secondaryJoint != null && secondaryWheelMountA != null)
+        if (secondaryWheelMountA != null)
         {
-            Debug.DrawLine(secondaryJoint.position, secondaryWheelMountA.position, Color.magenta);
+            Debug.DrawLine(transform.position, secondaryWheelMountA.position, Color.magenta);
         }
 
-        if (secondaryJoint != null && secondaryWheelMountB != null)
+        if (secondaryWheelMountB != null)
         {
-            Debug.DrawLine(secondaryJoint.position, secondaryWheelMountB.position, Color.magenta);
+            Debug.DrawLine(transform.position, secondaryWheelMountB.position, Color.magenta);
         }
     }
 
@@ -443,7 +425,7 @@ public class RoverBogieIK : MonoBehaviour
     {
         Color rayColor = contact.HasHit ? Color.green : Color.red;
         Debug.DrawLine(contact.RaycastOrigin, contact.RaycastOrigin + Vector3.down * raycastDistance, rayColor);
-        Debug.DrawLine(contact.WheelMount.position, contact.TargetPoint, armColor);
+        Debug.DrawLine(contact.WheelMount.position, contact.HitPoint, armColor);
     }
 
     private readonly struct WheelContact
@@ -453,16 +435,14 @@ public class RoverBogieIK : MonoBehaviour
         public readonly Vector3 RaycastOrigin;
         public readonly Vector3 HitPoint;
         public readonly Vector3 HitNormal;
-        public readonly Vector3 TargetPoint;
 
-        public WheelContact(bool hasHit, Transform wheelMount, Vector3 raycastOrigin, Vector3 hitPoint, Vector3 hitNormal, Vector3 targetPoint)
+        public WheelContact(bool hasHit, Transform wheelMount, Vector3 raycastOrigin, Vector3 hitPoint, Vector3 hitNormal)
         {
             HasHit = hasHit;
             WheelMount = wheelMount;
             RaycastOrigin = raycastOrigin;
             HitPoint = hitPoint;
             HitNormal = hitNormal;
-            TargetPoint = targetPoint;
         }
     }
 }

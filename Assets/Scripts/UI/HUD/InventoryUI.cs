@@ -16,9 +16,17 @@ public class InventoryUI: MonoBehaviour
 
     private void Start()
     {
+        if (player == null)
+        {
+            Debug.LogWarning($"{name}: InventoryUI has no PlayerController assigned.", this);
+            return;
+        }
+
         playerInventory = player.PlayerInventory;
         if (playerInventory == null)
-            Debug.LogError("Assigned inventoryComponent does not implement IPlayerInventory!");
+        {
+            Debug.LogWarning($"{name}: PlayerController has no IPlayerInventory available.", this);
+        }
         
         if(playerInventory == null) return;
         playerInventory.OnSlotSelected += OnSlotSelected;
@@ -30,7 +38,10 @@ public class InventoryUI: MonoBehaviour
     private void OnDestroy()
     {
         if(playerInventory != null)
+        {
             playerInventory.OnSlotSelected -= OnSlotSelected;
+            playerInventory.OnSlotChanged -= OnPlayerInventoryChanged;
+        }
     }
 
     public void InitializeUI()
@@ -71,6 +82,11 @@ public class InventoryUI: MonoBehaviour
 
     public void RefreshAll()
     {
+        if (slotUIs == null || playerInventory == null)
+        {
+            return;
+        }
+
         for (int i = 0; i < slotUIs.Length; i++)
         {
             slotUIs[i].Refresh(playerInventory.GetSlot(i),
@@ -93,4 +109,3 @@ public class InventoryUI: MonoBehaviour
         RefreshAll();
     }
 }
-

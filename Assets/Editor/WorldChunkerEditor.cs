@@ -19,7 +19,7 @@ public class WorldChunkerEditor : EditorWindow
     private Vector2 chunkSize = new Vector2(256f, 256f);
     private int loadRadius = 1;
     private float unloadGracePeriod = 10f;
-    private string outputFolder = "Assets/Scenes/Chunks";
+    private string outputFolder = "Assets/Scenes/world/Chunks";
     private string terrainDataFolder = "Assets/Terrain/ChunkData";
     private string configOutputPath = "Assets/Settings/WorldStreamingConfig.asset";
     private bool skipNetworkObjects = true;
@@ -33,12 +33,122 @@ public class WorldChunkerEditor : EditorWindow
     // Collected terrains from the scene
     private List<Terrain> sceneTerrains = new List<Terrain>();
 
+    // Selective update
+    private bool selectiveUpdateExpanded;
+    private readonly HashSet<Vector2Int> selectedChunks = new HashSet<Vector2Int>();
+
     private Vector2 scrollPos;
+
+    private static readonly Color ColorUnselected = new Color(0.6f, 0.6f, 0.6f, 0.25f);
+    private static readonly Color ColorSelected    = new Color(0.3f, 0.6f, 1f,  0.45f);
+    private static readonly Color ColorOutline     = new Color(1f,   1f,   1f,  0.5f);
+    private static readonly Color ColorLabel       = new Color(1f,   1f,   1f,  0.9f);
+
+    private GUIStyle chunkLabelStyle;
 
     [MenuItem("Tools/World Streaming/Chunk World")]
     public static void ShowWindow()
     {
         GetWindow<WorldChunkerEditor>("World Chunker");
+    }
+
+    private void OnEnable()
+    {
+        SceneView.duringSceneGui += OnSceneGUI;
+    }
+
+    private void OnDisable()
+    {
+        SceneView.duringSceneGui -= OnSceneGUI;
+    }
+
+    private void OnSceneGUI(SceneView sceneView)
+    {
+        if (!boundsDetected || !selectiveUpdateExpanded) return;
+
+        if (chunkLabelStyle == null)
+        {
+            chunkLabelStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                normal = { textColor = ColorLabel },
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 14
+            };
+        }
+
+        var currentEvent = Event.current;
+        bool clicked = currentEvent.type == EventType.MouseDown
+                       && currentEvent.button == 0
+                       && !currentEvent.alt;
+
+        for (int cx = 0; cx < calculatedGridDimensions.x; cx++)
+        {
+            for (int cy = 0; cy < calculatedGridDimensions.y; cy++)
+            {
+                var coord = new Vector2Int(cx, cy);
+                bool isSelected = selectedChunks.Contains(coord);
+
+                float worldX = detectedOrigin.x + cx * chunkSize.x;
+                float worldZ = detectedOrigin.z + cy * chunkSize.y;
+                float cx2 = worldX + chunkSize.x;
+                float cz2 = worldZ + chunkSize.y;
+
+                // Flat quad at y=0 — four corners
+                var c00 = new Vector3(worldX, 0, worldZ);
+                var c10 = new Vector3(cx2,   0, worldZ);
+                var c11 = new Vector3(cx2,   0, cz2);
+                var c01 = new Vector3(worldX, 0, cz2);
+                var center = new Vector3(worldX + chunkSize.x * 0.5f, 0, worldZ + chunkSize.y * 0.5f);
+
+                // Fill
+                Handles.color = isSelected ? ColorSelected : ColorUnselected;
+                Handles.DrawSolidRectangleWithOutline(
+                    new Vector3[] { c00, c10, c11, c01 },
+                    isSelected ? ColorSelected : ColorUnselected,
+                    ColorOutline
+                );
+
+                Handles.Label(center + Vector3.up * 2f, $"{cx},{cy}", chunkLabelStyle);
+
+                // Click detection — use a transparent button handle
+                if (clicked)
+                {
+                    // Project mouse ray onto y=0 plane
+                    Ray ray = HandleUtility.GUIPointToWorldRay(currentEvent.mousePosition);
+                    if (Mathf.Abs(ray.direction.y) > 0.0001f)
+                    {
+                        float t = -ray.origin.y / ray.direction.y;
+                        if (t > 0f)
+                        {
+                            var hit = ray.origin + ray.direction * t;
+                            if (hit.x >= worldX && hit.x < cx2 && hit.z >= worldZ && hit.z < cz2)
+                            {
+                                if (currentEvent.shift && lastClickedCoord.HasValue)
+                                {
+                                    int minX = Mathf.Min(lastClickedCoord.Value.x, cx);
+                                    int maxX = Mathf.Max(lastClickedCoord.Value.x, cx);
+                                    int minY = Mathf.Min(lastClickedCoord.Value.y, cy);
+                                    int maxY = Mathf.Max(lastClickedCoord.Value.y, cy);
+                                    for (int rx = minX; rx <= maxX; rx++)
+                                        for (int ry = minY; ry <= maxY; ry++)
+                                            selectedChunks.Add(new Vector2Int(rx, ry));
+                                }
+                                else
+                                {
+                                    if (isSelected) selectedChunks.Remove(coord);
+                                    else            selectedChunks.Add(coord);
+                                    lastClickedCoord = coord;
+                                }
+
+                                currentEvent.Use();
+                                Repaint();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     }
 
     private void OnGUI()
@@ -120,7 +230,7 @@ public class WorldChunkerEditor : EditorWindow
                 "Objects will be COPIED — the master scene will NOT be modified.\n\n" +
                 "Continue?", "Generate", "Cancel"))
             {
-                GenerateChunks();
+                GenerateChunks(null);
             }
         }
         GUI.backgroundColor = Color.white;
@@ -129,8 +239,47 @@ public class WorldChunkerEditor : EditorWindow
         EditorGUILayout.Space(10);
 
         if (boundsDetected)
-            DrawGridPreview();
+        {
+            selectiveUpdateExpanded = EditorGUILayout.Foldout(selectiveUpdateExpanded, "Selective Update", true);
+            if (!selectiveUpdateExpanded) goto endScrollView;
 
+            EditorGUILayout.HelpBox(
+                "Click chunks in the scene view or grid below to select them, then use 'Update Selected Chunks' to regenerate only those.\n" +
+                "Shift-click to select a range. Right-click to deselect.",
+                MessageType.None);
+
+            DrawSelectableGrid();
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("Select All"))
+            {
+                selectedChunks.Clear();
+                for (int x = 0; x < calculatedGridDimensions.x; x++)
+                    for (int y = 0; y < calculatedGridDimensions.y; y++)
+                        selectedChunks.Add(new Vector2Int(x, y));
+            }
+            if (GUILayout.Button("Clear Selection"))
+                selectedChunks.Clear();
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(5);
+
+            GUI.enabled = selectedChunks.Count > 0;
+            GUI.backgroundColor = new Color(0.4f, 0.6f, 1f);
+            if (GUILayout.Button($"Update Selected Chunks ({selectedChunks.Count})", GUILayout.Height(32)))
+            {
+                if (EditorUtility.DisplayDialog("Update Selected Chunks",
+                    $"Regenerate {selectedChunks.Count} selected chunk(s)?\n\nExisting scenes for those chunks will be overwritten.",
+                    "Update", "Cancel"))
+                {
+                    GenerateChunks(selectedChunks);
+                }
+            }
+            GUI.backgroundColor = Color.white;
+            GUI.enabled = true;
+        }
+
+        endScrollView:
         EditorGUILayout.EndScrollView();
     }
 
@@ -229,18 +378,29 @@ public class WorldChunkerEditor : EditorWindow
 
         foreach (var root in roots)
         {
-            if (skipNetworkObjects && HasNetworkObject(root))
-            {
-                skippedNetwork++;
-                continue;
-            }
-
-            // Skip terrain objects in preview count (they get split, not bucketed)
             if (root.GetComponentInChildren<Terrain>() != null)
                 continue;
+            if (skipNetworkObjects && HasNetworkObject(root)) { skippedNetwork++; continue; }
+            if (root.GetComponentInChildren<Camera>() != null) continue;
 
-            var coord = ClampCoord(WorldPosToChunkCoord(GetChunkAnchorPosition(root)));
-            buckets[coord] = buckets.GetValueOrDefault(coord, 0) + 1;
+            bool isGroup = root.GetComponent<Renderer>() == null
+                && root.GetComponent<Collider>() == null
+                && root.GetComponent<MeshFilter>() == null
+                && root.transform.childCount > 0;
+
+            if (isGroup)
+            {
+                foreach (Transform child in root.transform)
+                {
+                    var coord = ClampCoord(WorldPosToChunkCoord(GetChunkAnchorPosition(child.gameObject)));
+                    buckets[coord] = buckets.GetValueOrDefault(coord, 0) + 1;
+                }
+            }
+            else
+            {
+                var coord = ClampCoord(WorldPosToChunkCoord(GetChunkAnchorPosition(root)));
+                buckets[coord] = buckets.GetValueOrDefault(coord, 0) + 1;
+            }
         }
 
         string preview = $"World Origin: {detectedOrigin}\n" +
@@ -269,7 +429,7 @@ public class WorldChunkerEditor : EditorWindow
         EditorUtility.DisplayDialog("Chunk Preview", preview, "OK");
     }
 
-    private void GenerateChunks()
+    private void GenerateChunks(HashSet<Vector2Int> onlyCoords)
     {
         if (!boundsDetected)
         {
@@ -294,8 +454,12 @@ public class WorldChunkerEditor : EditorWindow
 
         // Separate terrain objects from regular objects
         var terrainObjects = new List<Terrain>();
-        var buckets = new Dictionary<Vector2Int, List<GameObject>>();
         int skippedNetwork = 0;
+
+        // buckets maps chunk coord -> list of (rootObject, childObject).
+        // For flat root objects: rootObject == childObject.
+        // For group containers (e.g. "entities"): rootObject is the group, childObject is the direct child to keep.
+        var groupBuckets = new Dictionary<Vector2Int, List<(GameObject root, GameObject child)>>();
 
         foreach (var root in roots)
         {
@@ -321,16 +485,43 @@ public class WorldChunkerEditor : EditorWindow
                 continue;
             }
 
-            var coord = ClampCoord(WorldPosToChunkCoord(GetChunkAnchorPosition(root)));
-            if (!buckets.ContainsKey(coord))
-                buckets[coord] = new List<GameObject>();
-            buckets[coord].Add(root);
+            bool isGroupContainer = root.GetComponent<Renderer>() == null
+                && root.GetComponent<Collider>() == null
+                && root.GetComponent<MeshFilter>() == null
+                && root.transform.childCount > 0;
+
+            if (isGroupContainer)
+            {
+                foreach (Transform child in root.transform)
+                {
+                    var coord = ClampCoord(WorldPosToChunkCoord(GetChunkAnchorPosition(child.gameObject)));
+                    if (!groupBuckets.ContainsKey(coord))
+                        groupBuckets[coord] = new List<(GameObject, GameObject)>();
+                    groupBuckets[coord].Add((root, child.gameObject));
+                }
+            }
+            else
+            {
+                var coord = ClampCoord(WorldPosToChunkCoord(GetChunkAnchorPosition(root)));
+                if (!groupBuckets.ContainsKey(coord))
+                    groupBuckets[coord] = new List<(GameObject, GameObject)>();
+                groupBuckets[coord].Add((root, root));
+            }
         }
+
+        bool isSelective = onlyCoords != null && onlyCoords.Count > 0;
+
+        // When doing a selective update, load the existing config so we can
+        // preserve entries for chunks we are NOT regenerating.
+        var existingConfig = AssetDatabase.LoadAssetAtPath<WorldStreamingConfig>(configOutputPath);
+        var existingChunkInfos = (isSelective && existingConfig != null && existingConfig.chunks != null)
+            ? existingConfig.chunks.ToDictionary(c => c.gridCoord)
+            : new Dictionary<Vector2Int, ChunkInfo>();
 
         // Generate chunk scenes
         var chunkInfos = new List<ChunkInfo>();
         var scenePaths = new List<string>();
-        int totalChunks = calculatedGridDimensions.x * calculatedGridDimensions.y;
+        int totalChunks = isSelective ? onlyCoords.Count : calculatedGridDimensions.x * calculatedGridDimensions.y;
         int created = 0;
 
         for (int cx = 0; cx < calculatedGridDimensions.x; cx++)
@@ -338,6 +529,14 @@ public class WorldChunkerEditor : EditorWindow
             for (int cy = 0; cy < calculatedGridDimensions.y; cy++)
             {
                 var coord = new Vector2Int(cx, cy);
+
+                // If selective, skip chunks not in the selection — but preserve their info.
+                if (isSelective && !onlyCoords.Contains(coord))
+                {
+                    if (existingChunkInfos.TryGetValue(coord, out var kept))
+                        chunkInfos.Add(kept);
+                    continue;
+                }
                 string sceneName = $"Chunk_{cx}_{cy}";
                 string scenePath = $"{outputFolder}/{sceneName}.unity";
 
@@ -356,13 +555,13 @@ public class WorldChunkerEditor : EditorWindow
                     detectedOrigin.z + cy * chunkSize.y
                 );
 
-                var tileData = CreateCombinedTerrainTileData(terrainObjects, chunkWorldMin, chunkSize, cx, cy, out var sourceTerrain);
+                var tileData = CreateCombinedTerrainTileData(terrainObjects, chunkWorldMin, chunkSize, cx, cy, out var sourceTerrain, out var terrainBaseY);
                 if (tileData != null && sourceTerrain != null)
                 {
                     hasTerrain = true;
 
                     var terrainGO = new GameObject($"Terrain_{cx}_{cy}");
-                    terrainGO.transform.position = chunkWorldMin;
+                    terrainGO.transform.position = new Vector3(chunkWorldMin.x, terrainBaseY, chunkWorldMin.z);
 
                     var newTerrain = terrainGO.AddComponent<Terrain>();
                     newTerrain.terrainData = tileData;
@@ -384,15 +583,51 @@ public class WorldChunkerEditor : EditorWindow
                 }
 
                 // --- Copy non-terrain objects ---
-                if (buckets.ContainsKey(coord))
+                if (groupBuckets.ContainsKey(coord))
                 {
-                    foreach (var original in buckets[coord])
+                    // Group entries by their root so each root is only copied once per chunk.
+                    var rootToChildren = new Dictionary<GameObject, List<GameObject>>();
+                    foreach (var (root, child) in groupBuckets[coord])
                     {
-                        var copy = UnityEngine.Object.Instantiate(original);
-                        copy.name = original.name;
-                        copy.transform.SetPositionAndRotation(original.transform.position, original.transform.rotation);
-                        copy.transform.localScale = original.transform.localScale;
-                        SceneManager.MoveGameObjectToScene(copy, chunkScene);
+                        if (!rootToChildren.ContainsKey(root))
+                            rootToChildren[root] = new List<GameObject>();
+                        if (root != child)
+                            rootToChildren[root].Add(child);
+                    }
+
+                    foreach (var kvp in rootToChildren)
+                    {
+                        var originalRoot = kvp.Key;
+                        var keepChildren = kvp.Value; // empty means root itself is the object
+
+                        var copy = UnityEngine.Object.Instantiate(originalRoot);
+                        copy.name = originalRoot.name;
+                        copy.transform.SetPositionAndRotation(originalRoot.transform.position, originalRoot.transform.rotation);
+                        copy.transform.localScale = originalRoot.transform.localScale;
+
+                        // If this was a group container, destroy children that don't belong to this chunk
+                        if (keepChildren.Count > 0)
+                        {
+                            var keepNames = new HashSet<string>(keepChildren.Select(c => c.name));
+                            var toDestroy = new List<Transform>();
+                            foreach (Transform t in copy.transform)
+                            {
+                                if (!keepNames.Contains(t.name))
+                                    toDestroy.Add(t);
+                            }
+                            foreach (var t in toDestroy)
+                                UnityEngine.Object.DestroyImmediate(t.gameObject);
+
+                            // Only add the group if it still has children
+                            if (copy.transform.childCount > 0)
+                                SceneManager.MoveGameObjectToScene(copy, chunkScene);
+                            else
+                                UnityEngine.Object.DestroyImmediate(copy);
+                        }
+                        else
+                        {
+                            SceneManager.MoveGameObjectToScene(copy, chunkScene);
+                        }
                     }
                 }
 
@@ -410,6 +645,7 @@ public class WorldChunkerEditor : EditorWindow
                 {
                     gridCoord = coord,
                     sceneName = sceneName,
+                    scenePath = scenePath,
                     worldBounds = new Bounds(boundsCenter, boundsSize),
                     hasTerrain = hasTerrain
                 });
@@ -442,12 +678,14 @@ public class WorldChunkerEditor : EditorWindow
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
 
-        int copiedCount = buckets.Values.Sum(b => b.Count);
-        int terrainTiles = chunkInfos.Count(c => c.hasTerrain);
-        string summary = $"Chunking complete!\n\n" +
-                         $"Created {created} chunk scenes in '{outputFolder}'\n" +
+        int copiedCount = groupBuckets
+            .Where(kvp => !isSelective || onlyCoords.Contains(kvp.Key))
+            .Sum(kvp => kvp.Value.Count);
+        int terrainTiles = chunkInfos.Count(c => c.hasTerrain && (!isSelective || onlyCoords.Contains(c.gridCoord)));
+        string summary = (isSelective ? $"Selective update complete! ({created} chunks)\n\n" : "Chunking complete!\n\n") +
+                         $"Created/updated {created} chunk scene(s) in '{outputFolder}'\n" +
                          $"Copied {copiedCount} root objects into chunks\n" +
-                         $"Split terrain into {terrainTiles} tiles\n" +
+                         $"Split terrain into {terrainTiles} tile(s)\n" +
                          $"Skipped {skippedNetwork} NetworkObjects\n" +
                          $"Master scene is UNCHANGED\n" +
                          $"Config saved to '{configOutputPath}'";
@@ -466,9 +704,10 @@ public class WorldChunkerEditor : EditorWindow
         public float Area;
     }
 
-    private TerrainData CreateCombinedTerrainTileData(List<Terrain> srcTerrains, Vector3 chunkWorldMin, Vector2 tileSize, int cx, int cy, out Terrain sourceTerrain)
+    private TerrainData CreateCombinedTerrainTileData(List<Terrain> srcTerrains, Vector3 chunkWorldMin, Vector2 tileSize, int cx, int cy, out Terrain sourceTerrain, out float terrainBaseY)
     {
         sourceTerrain = null;
+        terrainBaseY = 0f;
 
         var overlaps = GetOverlappingTerrains(srcTerrains, chunkWorldMin, tileSize);
         if (overlaps.Count == 0)
@@ -477,7 +716,9 @@ public class WorldChunkerEditor : EditorWindow
         sourceTerrain = overlaps[0].Terrain;
         var templateData = sourceTerrain.terrainData;
 
-        float maxTerrainHeight = overlaps.Max(o => o.Terrain.terrainData.size.y);
+        terrainBaseY = overlaps.Min(o => o.Terrain.transform.position.y);
+        float maxTerrainWorldY = overlaps.Max(o => o.Terrain.transform.position.y + o.Terrain.terrainData.size.y);
+        float tileHeightRange = Mathf.Max(0.01f, maxTerrainWorldY - terrainBaseY);
         int maxSourceHeightRes = overlaps.Max(o => o.Terrain.terrainData.heightmapResolution);
         float maxSamplesPerUnit = overlaps.Max(o =>
         {
@@ -492,7 +733,7 @@ public class WorldChunkerEditor : EditorWindow
         var tileData = new TerrainData
         {
             heightmapResolution = tileHeightRes,
-            size = new Vector3(tileSize.x, maxTerrainHeight, tileSize.y),
+            size = new Vector3(tileSize.x, tileHeightRange, tileSize.y),
             terrainLayers = templateData.terrainLayers
         };
 
@@ -511,8 +752,8 @@ public class WorldChunkerEditor : EditorWindow
                 float worldX = Mathf.Lerp(chunkWorldMin.x, chunkMaxX, xT);
 
                 var terrain = FindTerrainForWorldPosition(overlaps, worldX, worldZ) ?? sourceTerrain;
-                float sampledHeight = SampleTerrainHeight(terrain, worldX, worldZ);
-                tileHeights[tz, tx] = Mathf.Clamp01(sampledHeight / Mathf.Max(maxTerrainHeight, 0.0001f));
+                float sampledWorldHeight = SampleTerrainHeight(terrain, worldX, worldZ);
+                tileHeights[tz, tx] = Mathf.Clamp01((sampledWorldHeight - terrainBaseY) / tileHeightRange);
             }
         }
 
@@ -802,10 +1043,14 @@ public class WorldChunkerEditor : EditorWindow
     //  Utilities
     // ─────────────────────────────────────────────
 
+    /// <summary>
+    /// Returns true if this object should be skipped during chunking because it belongs
+    /// in the persistent scene. Only skips the NetworkManager itself — regular networked
+    /// world entities (NPCs, enemies, etc.) are intentionally included in chunk scenes.
+    /// </summary>
     private bool HasNetworkObject(GameObject obj)
     {
-        return obj.GetComponent<Unity.Netcode.NetworkObject>() != null
-            || obj.GetComponentInChildren<Unity.Netcode.NetworkObject>() != null;
+        return obj.GetComponent<Unity.Netcode.NetworkManager>() != null;
     }
 
     private Vector3 GetChunkAnchorPosition(GameObject root)
@@ -866,19 +1111,16 @@ public class WorldChunkerEditor : EditorWindow
 
     private void AddScenesToBuildSettings(List<string> scenePaths)
     {
+        // Remove ALL existing chunk scenes regardless of which folder they came from,
+        // then add only the freshly generated ones. This prevents stale entries from
+        // old output folders causing Unity to load the wrong scene by name.
+        var sceneNameSet = new HashSet<string>(scenePaths.Select(p => Path.GetFileNameWithoutExtension(p)));
         var existingScenes = EditorBuildSettings.scenes
-            .Where(s => !s.path.StartsWith(outputFolder + "/", StringComparison.OrdinalIgnoreCase))
+            .Where(s => !sceneNameSet.Contains(Path.GetFileNameWithoutExtension(s.path)))
             .ToList();
-        var existingPaths = new HashSet<string>(existingScenes.Select(s => s.path));
 
         foreach (var path in scenePaths)
-        {
-            if (!existingPaths.Contains(path))
-            {
-                existingScenes.Add(new EditorBuildSettingsScene(path, true));
-                existingPaths.Add(path);
-            }
-        }
+            existingScenes.Add(new EditorBuildSettingsScene(path, true));
 
         EditorBuildSettings.scenes = existingScenes.ToArray();
     }
@@ -895,13 +1137,16 @@ public class WorldChunkerEditor : EditorWindow
             AssetDatabase.CreateFolder(parent, folderName);
     }
 
-    private void DrawGridPreview()
+    private Vector2Int? lastClickedCoord;
+
+    private void DrawSelectableGrid()
     {
-        EditorGUILayout.LabelField("Grid Layout Preview", EditorStyles.boldLabel);
         float cellSize = 40f;
         float totalWidth = calculatedGridDimensions.x * cellSize;
         float totalHeight = calculatedGridDimensions.y * cellSize;
         var rect = GUILayoutUtility.GetRect(totalWidth + 40, totalHeight + 40);
+
+        var currentEvent = Event.current;
 
         for (int y = calculatedGridDimensions.y - 1; y >= 0; y--)
         {
@@ -913,9 +1158,49 @@ public class WorldChunkerEditor : EditorWindow
                     rect.y + 10 + drawY * cellSize,
                     cellSize - 2, cellSize - 2
                 );
-                EditorGUI.DrawRect(cellRect, new Color(0.3f, 0.3f, 0.3f));
+
+                var coord = new Vector2Int(x, y);
+                bool isSelected = selectedChunks.Contains(coord);
+
+                Color cellColor = isSelected ? new Color(0.3f, 0.55f, 1f) : new Color(0.3f, 0.3f, 0.3f);
+                EditorGUI.DrawRect(cellRect, cellColor);
                 GUI.Label(cellRect, $"{x},{y}", EditorStyles.miniLabel);
+
+                if (currentEvent.type == EventType.MouseDown && cellRect.Contains(currentEvent.mousePosition))
+                {
+                    bool rightClick = currentEvent.button == 1;
+
+                    if (rightClick)
+                    {
+                        selectedChunks.Remove(coord);
+                        lastClickedCoord = null;
+                    }
+                    else if (currentEvent.shift && lastClickedCoord.HasValue)
+                    {
+                        // Range select between lastClickedCoord and this coord
+                        int minX = Mathf.Min(lastClickedCoord.Value.x, x);
+                        int maxX = Mathf.Max(lastClickedCoord.Value.x, x);
+                        int minY = Mathf.Min(lastClickedCoord.Value.y, y);
+                        int maxY = Mathf.Max(lastClickedCoord.Value.y, y);
+
+                        for (int rx = minX; rx <= maxX; rx++)
+                            for (int ry = minY; ry <= maxY; ry++)
+                                selectedChunks.Add(new Vector2Int(rx, ry));
+                    }
+                    else
+                    {
+                        if (isSelected)
+                            selectedChunks.Remove(coord);
+                        else
+                            selectedChunks.Add(coord);
+                        lastClickedCoord = coord;
+                    }
+
+                    currentEvent.Use();
+                    Repaint();
+                }
             }
         }
     }
+
 }

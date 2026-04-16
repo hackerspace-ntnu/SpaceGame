@@ -10,9 +10,7 @@ public class RoverMovementController : MonoBehaviour
     [SerializeField] private float moveSpeed = 10f;
     [SerializeField] private float rotationSpeed = 45f;
     [SerializeField] private float acceleration = 5f;
-    [SerializeField] private float stoppingDistance = 0.5f;
 
-    private Vector3 currentVelocity;
     private Vector3 targetDirection;
     private float currentSpeed;
 

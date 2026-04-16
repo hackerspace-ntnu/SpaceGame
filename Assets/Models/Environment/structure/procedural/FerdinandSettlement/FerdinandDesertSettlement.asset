@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19fd2c35c710745f68d8940aae3e5d17, type: 3}
+  m_Name: FerdinandDesertSettlement
+  m_EditorClassIdentifier: Assembly-CSharp::SettlementPrefabConfig
+  wallPrefab: {fileID: 2430079764089172784, guid: 6b2fa8b33d1b947b99f4f031899030b4, type: 3}
+  pillarPrefab: {fileID: 7034724128527016092, guid: 0d81c86ea7f5d46639ee1133503abdd7, type: 3}
+  floorPrefab: {fileID: 2789628463808291041, guid: 98b2dbc53eded4ddf8bf71c5e24dae92, type: 3}
+  tileSize: 1

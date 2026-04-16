@@ -253,6 +253,9 @@ MonoBehaviour:
   rb: {fileID: 5527306943363674078}
   animator: {fileID: 5496312837281773235}
   playerCollider: {fileID: 49510756297408105}
+  minFallSpeed: -20
+  maxFallSpeed: -40
+  maxFallDamage: 100
 --- !u!114 &6455897939897930130
 MonoBehaviour:
   m_ObjectHideFlags: 0

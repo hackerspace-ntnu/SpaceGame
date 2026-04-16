@@ -1,5 +1,6 @@
 
 
+using FMODUnity;
 using Unity.Netcode;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -11,6 +12,8 @@ using UnityEngine;
 class PickupableItem : NetworkBehaviour, IInteractable
 {
    [SerializeField] private InventoryItem item;
+
+   [SerializeField] private EventReference pickupSound;
    
    public bool CanInteract()
    {
@@ -35,9 +38,14 @@ class PickupableItem : NetworkBehaviour, IInteractable
    {
       IPlayerInventory inventory = interactor.GetComponent<IPlayerInventory>();
       if (inventory == null) return;
+
       bool added = inventory.TryAddItem(item);
       if (added)
       {
+         if (!pickupSound.IsNull)
+         {
+            AudioManager.Instance.PlayAndAttachEvent(pickupSound, interactor.gameObject, interactor.GetComponent<Rigidbody>());
+         }
          GameServices.World.Despawn(gameObject);
       }
    }

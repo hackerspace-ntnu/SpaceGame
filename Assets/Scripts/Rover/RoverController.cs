@@ -1,50 +1,40 @@
 using UnityEngine;
 
 /// <summary>
-/// Main controller for the rover.
-/// Coordinates all bogie IK components and handles overall movement.
+/// Rover movement and exploration controller.
+/// Uses NavMesh for pathfinding waypoints but applies movement through RoverMovementController.
+/// Uses forward/downward raycasts from ThingMount to explore terrain.
 /// </summary>
 public class RoverController : MonoBehaviour
 {
-    [Header("Bogie References")]
-    [SerializeField] private RoverBogieIK[] bogies;
-    [SerializeField] private bool autoCollectBogiesFromChildren = false;
+    [Header("Exploration")]
+    [SerializeField] private Transform thingMount; // End of appendage where raycasts originate
+    [SerializeField] private float raycastLength = 5f;
+    [SerializeField] private LayerMask raycastMask = ~0;
 
     [Header("Movement")]
     [SerializeField] private RoverMovementController movementController;
-    [SerializeField] private bool useWaypoints = true;
-    [SerializeField] private Transform[] waypoints;
-    [SerializeField] private bool autoCollectWaypointsFromChildren = false;
-    [SerializeField] private bool loopWaypoints = true;
-    [SerializeField] private float waypointReachDistance = 2f;
-    [SerializeField] private float waypointWaitTime = 0f;
-
-    [Header("Ground Follow")]
-    [SerializeField] private bool followGroundHeight = true;
-    [SerializeField] private float bodyHeightOffset = 0.35f;
-    [SerializeField] private float bodyHeightLerpSpeed = 8f;
-    [SerializeField] private float minGroundContactCount = 1f;
+    [SerializeField] private float moveSpeed = 3f;
+    [SerializeField] private float directionChangeInterval = 5f; // Change direction every N seconds
+    [SerializeField] private float directionCommitTime = 1f; // Stick to direction for N seconds
+    [SerializeField] private float backupTime = 2f; // Backup for N seconds after hitting obstacle
+    [SerializeField] private float explorationRadius = 20f; // Max distance for random waypoints
+    [SerializeField] private float waypointStoppingDistance = 1f; // How close to waypoint before picking new one
 
     [Header("Debug")]
     [SerializeField] private bool drawDebug = true;
 
-    private float nextWaypointTime;
+    private float nextDirectionChangeTime;
+    private float directionCommitUntilTime;
+    private float backupUntilTime;
+    private Vector3 currentMoveDirection = Vector3.forward;
     private Vector3 currentWaypoint;
-    private int currentWaypointIndex;
-    private float currentHeightVelocity;
+    private bool canMoveForward = true;
+    private bool hasGroundBelow = true;
+    private Vector3 currentTargetDirection = Vector3.zero; // Track the current target direction being sent to movement controller
 
     private void Awake()
     {
-        if (autoCollectBogiesFromChildren)
-        {
-            CollectBogiesFromChildren();
-        }
-
-        if (autoCollectWaypointsFromChildren)
-        {
-            CollectWaypointsFromChildren();
-        }
-
         if (movementController == null)
         {
             movementController = GetComponent<RoverMovementController>();
@@ -55,27 +45,49 @@ public class RoverController : MonoBehaviour
             movementController = gameObject.AddComponent<RoverMovementController>();
         }
 
-        nextWaypointTime = Time.time;
+        if (thingMount == null)
+        {
+            // Try to find ThingMount in children
+            Transform found = transform.Find("**/ThingMount");
+            if (found == null)
+            {
+                // Fallback: search all children
+                foreach (Transform child in GetComponentsInChildren<Transform>())
+                {
+                    if (child.name.Contains("ThingMount"))
+                    {
+                        thingMount = child;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                thingMount = found;
+            }
+
+            if (thingMount == null)
+            {
+                Debug.LogWarning($"{name}: ThingMount not found! Exploration disabled.", this);
+            }
+        }
+
+        nextDirectionChangeTime = Time.time + directionChangeInterval;
+        directionCommitUntilTime = Time.time + directionCommitTime;
+        backupUntilTime = 0;
+        
+        // Pick initial waypoint
+        GenerateRandomWaypoint();
     }
 
-    private void OnValidate()
+    private void Start()
     {
-        if (autoCollectBogiesFromChildren)
-        {
-            CollectBogiesFromChildren();
-        }
-
-        if (autoCollectWaypointsFromChildren)
-        {
-            CollectWaypointsFromChildren();
-        }
+        // Nothing special needed - movement controller handles physics
     }
 
     private void Update()
     {
-        UpdateBogieIK();
-        UpdateMovement();
-        UpdateGroundHeight();
+        UpdateExploration();
 
         if (drawDebug)
         {
@@ -83,220 +95,153 @@ public class RoverController : MonoBehaviour
         }
     }
 
-    private void UpdateBogieIK()
+    private void UpdateExploration()
     {
-        if (bogies == null)
+        if (thingMount == null || movementController == null)
         {
             return;
         }
 
-        for (int i = 0; i < bogies.Length; i++)
-        {
-            bogies[i]?.UpdateBogieIK();
-        }
-    }
+        // Always check terrain
+        CheckTerrainAhead();
 
-    private void CollectBogiesFromChildren()
-    {
-        bogies = GetComponentsInChildren<RoverBogieIK>(true);
-    }
-
-    private void UpdateMovement()
-    {
-        if (!useWaypoints || movementController == null)
+        // Handle backup phase after hitting obstacle
+        if (Time.time < backupUntilTime)
         {
-            return;
-        }
-
-        if (!HasWaypoints())
-        {
-            movementController.SetTargetDirection(Vector3.zero);
+            // Backup in opposite direction
+            currentTargetDirection = -currentMoveDirection * moveSpeed;
+            movementController.SetTargetDirection(currentTargetDirection);
             movementController.UpdateMovement(transform);
             return;
         }
 
-        if (currentWaypoint == Vector3.zero)
+        // If we've committed to a direction, try to reach the waypoint
+        if (Time.time < directionCommitUntilTime)
         {
-            AdvanceWaypoint(true);
-        }
-
-        if (Time.time >= nextWaypointTime)
-        {
-            float distanceToWaypoint = Vector3.Distance(transform.position, currentWaypoint);
-            if (distanceToWaypoint <= waypointReachDistance)
+            // Try to move forward only if both checks pass
+            if (canMoveForward && hasGroundBelow)
             {
-                AdvanceWaypoint(false);
+                // Calculate direction to waypoint
+                Vector3 directionToWaypoint = (currentWaypoint - transform.position).normalized;
+                currentTargetDirection = directionToWaypoint * moveSpeed;
+                movementController.SetTargetDirection(currentTargetDirection);
             }
-        }
-
-        Vector3 directionToWaypoint = currentWaypoint - transform.position;
-        directionToWaypoint.y = 0f;
-
-        if (directionToWaypoint.sqrMagnitude > 0.01f)
-        {
-            movementController.SetTargetDirection(directionToWaypoint);
+            else
+            {
+                // Hit obstacle or lost ground during commitment - initiate backup immediately
+                backupUntilTime = Time.time + backupTime;
+                GenerateRandomWaypoint();
+                directionCommitUntilTime = Time.time + directionCommitTime + backupTime;
+                nextDirectionChangeTime = Time.time + directionChangeInterval;
+                currentTargetDirection = Vector3.zero;
+                movementController.SetTargetDirection(currentTargetDirection);
+            }
         }
         else
         {
-            movementController.SetTargetDirection(Vector3.zero);
+            // Commitment period ended - check if we should change direction
+            if (!canMoveForward || !hasGroundBelow)
+            {
+                // Obstacle detected - backup for 2 seconds then pick new direction
+                backupUntilTime = Time.time + backupTime;
+                GenerateRandomWaypoint();
+                directionCommitUntilTime = Time.time + directionCommitTime + backupTime;
+                nextDirectionChangeTime = Time.time + directionChangeInterval;
+                currentTargetDirection = Vector3.zero;
+                movementController.SetTargetDirection(currentTargetDirection);
+            }
+            else
+            {
+                // Check if we're close to waypoint
+                float distanceToWaypoint = Vector3.Distance(transform.position, currentWaypoint);
+                if (distanceToWaypoint < waypointStoppingDistance)
+                {
+                    // Reached waypoint - generate new one
+                    GenerateRandomWaypoint();
+                    directionCommitUntilTime = Time.time + directionCommitTime;
+                }
+                
+                // Keep moving to waypoint
+                Vector3 directionToWaypoint = (currentWaypoint - transform.position).normalized;
+                currentTargetDirection = directionToWaypoint * moveSpeed;
+                movementController.SetTargetDirection(currentTargetDirection);
+            }
+
+            // Also allow timed direction changes
+            if (Time.time >= nextDirectionChangeTime)
+            {
+                GenerateRandomWaypoint();
+                directionCommitUntilTime = Time.time + directionCommitTime;
+                nextDirectionChangeTime = Time.time + directionChangeInterval;
+            }
         }
 
         movementController.UpdateMovement(transform);
     }
 
-    private void UpdateGroundHeight()
+    private void CheckTerrainAhead()
     {
-        if (!followGroundHeight || bogies == null || bogies.Length == 0)
+        // Forward raycast: check for obstacles
+        Vector3 rayOrigin = thingMount.position;
+        Vector3 rayDir = thingMount.forward;
+        canMoveForward = !Physics.Raycast(rayOrigin, rayDir, raycastLength, raycastMask, QueryTriggerInteraction.Ignore);
+
+        // Downward raycast: check for ground
+        rayDir = Vector3.down;
+        hasGroundBelow = Physics.Raycast(rayOrigin, rayDir, raycastLength, raycastMask, QueryTriggerInteraction.Ignore);
+
+        if (drawDebug)
         {
-            return;
+            // Color for forward ray
+            Color forwardColor = canMoveForward ? Color.green : Color.red;
+            Debug.DrawRay(rayOrigin, thingMount.forward * raycastLength, forwardColor);
+
+            // Color for downward ray
+            Color downColor = hasGroundBelow ? Color.green : Color.red;
+            Debug.DrawRay(rayOrigin, Vector3.down * raycastLength, downColor);
         }
-
-        Vector3 sum = Vector3.zero;
-        int contactCount = 0;
-
-        for (int i = 0; i < bogies.Length; i++)
-        {
-            RoverBogieIK bogie = bogies[i];
-            if (bogie == null || !bogie.HasGroundContact)
-            {
-                continue;
-            }
-
-            sum += bogie.LastGroundPoint;
-            contactCount++;
-        }
-
-        if (contactCount < minGroundContactCount)
-        {
-            return;
-        }
-
-        Vector3 averageGroundPoint = sum / contactCount;
-        Vector3 targetPosition = transform.position;
-        targetPosition.y = averageGroundPoint.y + bodyHeightOffset;
-
-        float smoothedY = Mathf.Lerp(transform.position.y, targetPosition.y, bodyHeightLerpSpeed * Time.deltaTime);
-        transform.position = new Vector3(transform.position.x, smoothedY, transform.position.z);
     }
 
-    private void CollectWaypointsFromChildren()
+    private void GenerateRandomWaypoint()
     {
-        Transform[] allTransforms = GetComponentsInChildren<Transform>(true);
-        waypoints = new Transform[allTransforms.Length];
-        int count = 0;
+        // Pick a random point on the navmesh within exploration radius
+        Vector3 randomDirection = Random.insideUnitSphere * explorationRadius;
+        randomDirection += transform.position;
 
-        for (int i = 0; i < allTransforms.Length; i++)
+        if (UnityEngine.AI.NavMesh.SamplePosition(randomDirection, out UnityEngine.AI.NavMeshHit hit, explorationRadius, UnityEngine.AI.NavMesh.AllAreas))
         {
-            Transform waypoint = allTransforms[i];
-            if (waypoint == null || waypoint == transform)
-            {
-                continue;
-            }
-
-            if (waypoint.name.ToLowerInvariant().Contains("waypoint"))
-            {
-                waypoints[count++] = waypoint;
-            }
-        }
-
-        if (count < waypoints.Length)
-        {
-            System.Array.Resize(ref waypoints, count);
-        }
-
-        currentWaypointIndex = 0;
-    }
-
-    private bool HasWaypoints()
-    {
-        return waypoints != null && waypoints.Length > 0;
-    }
-
-    private void AdvanceWaypoint(bool forceFirst)
-    {
-        if (!HasWaypoints())
-        {
-            currentWaypoint = transform.position;
-            return;
-        }
-
-        if (forceFirst)
-        {
-            currentWaypointIndex = Mathf.Clamp(currentWaypointIndex, 0, waypoints.Length - 1);
+            currentWaypoint = hit.position;
+            currentMoveDirection = (currentWaypoint - transform.position).normalized;
         }
         else
         {
-            currentWaypointIndex++;
-            if (currentWaypointIndex >= waypoints.Length)
-            {
-                if (loopWaypoints)
-                {
-                    currentWaypointIndex = 0;
-                }
-                else
-                {
-                    currentWaypointIndex = waypoints.Length - 1;
-                }
-            }
+            // Fallback: if no navmesh point found, pick random direction
+            float randomAngle = Random.Range(0f, 360f);
+            currentMoveDirection = Quaternion.Euler(0, randomAngle, 0) * Vector3.forward;
+            currentWaypoint = transform.position + currentMoveDirection * explorationRadius;
         }
+    }
 
-        currentWaypoint = waypoints[currentWaypointIndex] != null ? waypoints[currentWaypointIndex].position : transform.position;
-        nextWaypointTime = Time.time + waypointWaitTime;
+    private void ChangeDirection()
+    {
+        // Deprecated - use GenerateRandomWaypoint instead
+        GenerateRandomWaypoint();
     }
 
     private void DrawDebugInfo()
     {
-        if (useWaypoints)
+        if (thingMount != null)
         {
-            Debug.DrawLine(transform.position + Vector3.up * 1.5f, currentWaypoint + Vector3.up * 1.5f, Color.blue);
-        }
-
-        if (bogies == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < bogies.Length; i++)
-        {
-            RoverBogieIK bogie = bogies[i];
-            if (bogie == null || bogie.Wheel == null)
-            {
-                continue;
-            }
-
-            Color color = bogie.HasGroundContact ? Color.green : Color.red;
-            Debug.DrawLine(bogie.Wheel.position, bogie.LastGroundPoint, color);
-        }
-
-        if (followGroundHeight && bogies.Length > 0)
-        {
-            Vector3 sum = Vector3.zero;
-            int contactCount = 0;
-
-            for (int i = 0; i < bogies.Length; i++)
-            {
-                RoverBogieIK bogie = bogies[i];
-                if (bogie == null || !bogie.HasGroundContact)
-                {
-                    continue;
-                }
-
-                sum += bogie.LastGroundPoint;
-                contactCount++;
-            }
-
-            if (contactCount > 0)
-            {
-                Vector3 averageGroundPoint = sum / contactCount;
-                Vector3 bodyPoint = new Vector3(transform.position.x, averageGroundPoint.y + bodyHeightOffset, transform.position.z);
-                Debug.DrawLine(transform.position, bodyPoint, Color.white);
-            }
+            Debug.DrawLine(transform.position, thingMount.position, Color.cyan);
+            Debug.DrawLine(thingMount.position, thingMount.position + currentMoveDirection * moveSpeed, Color.yellow);
         }
     }
 
-    public void SetWaypoint(Vector3 waypoint)
+    /// <summary>
+    /// Get the current target movement direction and speed being applied by the rover.
+    /// </summary>
+    public Vector3 GetCurrentMovementVelocity()
     {
-        currentWaypoint = waypoint;
-        nextWaypointTime = Time.time + waypointWaitTime;
+        return currentTargetDirection;
     }
 }

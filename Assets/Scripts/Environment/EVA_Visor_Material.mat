@@ -60,7 +60,7 @@ Material:
     - _LensFlareChromatic: 0.03
     - _LensFlareCount: 5
     - _LensFlareIntensity: 5
-    - _LensFlareMinBrightness: 0.3
+    - _LensFlareMinBrightness: 0
     - _LensFlareSpread: 0.7
     - _OverallIntensity: 0.336
     - _ScratchDensity: 21
@@ -68,15 +68,15 @@ Material:
     - _ScratchLength: 0.05
     - _ScratchWidth: 0.00066
     - _SmudgeIntensity: 1
-    - _VignetteBlurIntensity: 5
-    - _VignetteBlurRadius: 0.7
+    - _VignetteBlurIntensity: 15
+    - _VignetteBlurRadius: 1
     - _VignetteBlurSoftness: 0.3
     - _VignetteIntensity: 1
     - _VignetteSoftness: 0.5
     m_Colors:
     - _DirtColor: {r: 0.5754717, g: 0.51704854, b: 0.47232112, a: 1}
     - _FogColor: {r: 0.8, g: 0.85, b: 0.9, a: 1}
-    - _LensFlareColor: {r: 1.4, g: 1.2, b: 1, a: 1}
-    - _LightSourcePosition: {r: 0.6917669, g: 0.86067, b: 0, a: 0}
+    - _LensFlareColor: {r: 1, g: 0.9539701, b: 0.8254717, a: 1}
+    - _LightSourcePosition: {r: 0.5003237, g: 1, b: 0.2466651, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -29,6 +29,14 @@ public class PlayerMovement : MonoBehaviour
     private float jumpCooldownTimer;
     private bool jumpOnCooldown;
     private bool groundSnapEnabled = true;
+    
+    [Header("Fall Damage")]
+    [SerializeField] private float minFallSpeed = -5f;
+    [SerializeField] private float maxFallSpeed = -30f;
+    [SerializeField] private int maxFallDamage = 100;
+
+    private float lastYVelocity;
+    private bool wasGrounded;
 
     private void Start()
     {
@@ -46,6 +54,10 @@ public class PlayerMovement : MonoBehaviour
         {
             return;
         }
+        
+        bool grounded = IsGrounded();
+
+        HandleFallDamage(grounded);
 
         Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
         move = Vector3.ClampMagnitude(move, 1f);
@@ -53,16 +65,43 @@ public class PlayerMovement : MonoBehaviour
 
         Vector3 velocity = rb.linearVelocity;
         Vector3 currentHorizontal = new Vector3(velocity.x, 0f, velocity.z);
-
-        bool grounded = IsGrounded();
+        
         float control = grounded ? 1f : airControl;
         Vector3 newHorizontal = Vector3.Lerp(currentHorizontal, desiredHorizontal, control);
 
         velocity.x = newHorizontal.x;
         velocity.z = newHorizontal.z;
         rb.linearVelocity = velocity;
+        
+        lastYVelocity = rb.linearVelocity.y;
+        wasGrounded = grounded;
 
         UpdateAnimatorParameters(velocity, grounded);
+    }
+    
+    private void HandleFallDamage(bool grounded)
+    {
+        // Detect landing (was in air, now grounded)
+        if (!wasGrounded && grounded)
+        {
+            // Only apply if falling fast enough
+            if (lastYVelocity < minFallSpeed)
+            {
+                float t = Mathf.InverseLerp(minFallSpeed, maxFallSpeed, lastYVelocity);
+                int damage = Mathf.RoundToInt(t * maxFallDamage);
+
+                ApplyFallDamage(damage);
+            }
+        }
+    }
+    
+    private void ApplyFallDamage(int damage)
+    {
+        var health = GetComponent<HealthComponent>();
+        if (health)
+        {
+            health.Damage(damage);
+        }
     }
 
     private void UpdateAnimatorParameters(Vector3 velocity, bool grounded)

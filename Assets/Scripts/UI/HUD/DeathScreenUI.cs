@@ -31,8 +31,7 @@ public class DeathScreenUI : MonoBehaviour
         {
             return;
         }
-
-        NetworkGameManager.Instance.Respawn();  
+        SpawnManager.Instance.RespawnPlayer(player.gameObject);  
         
         deathScreen.gameObject.SetActive(false);
     }

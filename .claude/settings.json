@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Users/ferdinandfremming/Documents/hackerspace/spillgruppen/SpaceGame diff HEAD -- Assets/Scripts/agents/AI/motor/NavMeshAgentJumpMotor.cs)",
+      "Bash(git -C /Users/ferdinandfremming/Documents/hackerspace/spillgruppen/SpaceGame log --all --oneline --diff-filter=D -- \"*NavMeshAgentJump*\")"
+    ]
+  }
+}

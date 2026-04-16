@@ -24,6 +24,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerCharacterNetworked
       objectReference: {fileID: 0}
+    - target: {fileID: 5061754052965954174, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      propertyPath: playerHead
+      value: 
+      objectReference: {fileID: 7956194765726399654}
+    - target: {fileID: 5061754052965954174, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      propertyPath: playerCamera
+      value: 
+      objectReference: {fileID: 5273050518976504355}
     - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       propertyPath: m_LocalPosition.x
       value: 283.90833
@@ -204,8 +212,41 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ClientNetworkAnimator
   ShowTopMostFoldoutHeaderGroup: 1
-  TransitionStateInfoList: []
+  NetworkAnimatorExpanded: 0
+  AuthorityMode: 0
   m_Animator: {fileID: 8862626371871872524}
+  TransitionStateInfoList: []
+  AnimatorParameterEntries:
+    ParameterEntries:
+    - name: IdleIndex
+      NameHash: 1395001555
+      Synchronize: 1
+      ParameterType: 1
+    - name: SpeedY
+      NameHash: -1815580100
+      Synchronize: 1
+      ParameterType: 1
+    - name: SpeedX
+      NameHash: -456179030
+      Synchronize: 1
+      ParameterType: 1
+    - name: FallSpeed
+      NameHash: 1814364505
+      Synchronize: 1
+      ParameterType: 1
+    - name: IsCrouching
+      NameHash: -1154928320
+      Synchronize: 1
+      ParameterType: 4
+    - name: IsGrounded
+      NameHash: 507951781
+      Synchronize: 1
+      ParameterType: 4
+    - name: IsImmobalized
+      NameHash: -2061662632
+      Synchronize: 1
+      ParameterType: 4
+  AnimatorParametersExpanded: 0
 --- !u!114 &-3757295630438121014
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -273,9 +314,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkEquipmentComponent
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!1 &5273050518976504355 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9193306300937618076, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+  m_PrefabInstance: {fileID: 3943056354594775231}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &7613136204026731662 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6854416886719462449, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+  m_PrefabInstance: {fileID: 3943056354594775231}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &7956194765726399654 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6400345289391496217, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
   m_PrefabInstance: {fileID: 3943056354594775231}
   m_PrefabAsset: {fileID: 0}
 --- !u!95 &8862626371871872524 stripped

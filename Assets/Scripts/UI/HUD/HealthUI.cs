@@ -13,6 +13,12 @@ public class HealthUI : MonoBehaviour
 
     private void OnEnable()
     {
+        if (health == null)
+        {
+            Debug.LogWarning($"{name}: HealthUI has no HealthComponent assigned.", this);
+            return;
+        }
+
         health.OnDamage += HandleHealthChanged;
         health.OnHeal += HandleHealthChanged;
         health.OnDeath += HandleHealthChanged;
@@ -43,6 +49,11 @@ public class HealthUI : MonoBehaviour
 
     private void RefreshUI()
     {
+        if (health == null)
+        {
+            return;
+        }
+
         int current = health.GetHealth;
         int max = health.GetMaxHealth;
 

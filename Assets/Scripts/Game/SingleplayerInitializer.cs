@@ -16,12 +16,28 @@ public class SingleplayerInitializer : NetworkBehaviour
                 return;
             }
 
-            // Start host only if not already running
+            NetworkManager.Singleton.OnServerStarted += SpawnLocalPlayer;
+
+            // Start host only if not already running.
+            // Subscribe first so we cannot miss the server-start callback.
             if (!NetworkManager.Singleton.IsListening)
             {
                 NetworkManager.Singleton.StartHost();
             }
-            NetworkManager.Singleton.OnServerStarted += SpawnLocalPlayer;
+            else if (NetworkManager.Singleton.IsServer)
+            {
+                SpawnLocalPlayer();
+            }
+        }
+
+        public override void OnDestroy()
+        {
+            if (NetworkManager.Singleton != null)
+            {
+                NetworkManager.Singleton.OnServerStarted -= SpawnLocalPlayer;
+            }
+
+            base.OnDestroy();
         }
         
         private void SpawnLocalPlayer()
@@ -32,7 +48,15 @@ public class SingleplayerInitializer : NetworkBehaviour
             if (client.PlayerObject == null)
             {
                 GameObject player = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
-                player.GetComponent<NetworkObject>().SpawnAsPlayerObject(NetworkManager.Singleton.LocalClientId);
+                var networkObject = player.GetComponent<NetworkObject>();
+                if (networkObject == null)
+                {
+                    Debug.LogError($"Assigned player prefab '{playerPrefab.name}' is missing a NetworkObject component.");
+                    Destroy(player);
+                    return;
+                }
+
+                networkObject.SpawnAsPlayerObject(NetworkManager.Singleton.LocalClientId);
             }
         }
     

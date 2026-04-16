@@ -167,12 +167,7 @@ public partial class MountSteeringController
         cameraYawOffset = 0f;
         timeSinceLastLookInput = 0f;
 
-        Transform cameraRoot = mountController != null ? mountController.MountedFirstPersonCameraRoot : null;
-        mountedPitch = cameraRoot ? cameraRoot.localEulerAngles.x : 0f;
-        if (mountedPitch > 180f)
-        {
-            mountedPitch -= 360f;
-        }
+        mountedPitch = defaultMountedPitch;
     }
 
     private void ResetMountedInputState()

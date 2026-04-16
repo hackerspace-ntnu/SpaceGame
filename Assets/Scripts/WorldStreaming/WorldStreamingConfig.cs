@@ -85,6 +85,7 @@ public struct ChunkInfo
 {
     public Vector2Int gridCoord;
     public string sceneName;
+    public string scenePath; // full asset path, e.g. Assets/Scenes/Chunks/Chunk_0_0.unity
     public Bounds worldBounds;
     public bool hasTerrain;
 }

@@ -19,7 +19,7 @@ public class WorldChunkerEditor : EditorWindow
     private Vector2 chunkSize = new Vector2(256f, 256f);
     private int loadRadius = 1;
     private float unloadGracePeriod = 10f;
-    private string outputFolder = "Assets/Scenes/Chunks";
+    private string outputFolder = "Assets/Scenes/world/Chunks";
     private string terrainDataFolder = "Assets/Terrain/ChunkData";
     private string configOutputPath = "Assets/Settings/WorldStreamingConfig.asset";
     private bool skipNetworkObjects = true;
@@ -378,18 +378,29 @@ public class WorldChunkerEditor : EditorWindow
 
         foreach (var root in roots)
         {
-            if (skipNetworkObjects && HasNetworkObject(root))
-            {
-                skippedNetwork++;
-                continue;
-            }
-
-            // Skip terrain objects in preview count (they get split, not bucketed)
             if (root.GetComponentInChildren<Terrain>() != null)
                 continue;
+            if (skipNetworkObjects && HasNetworkObject(root)) { skippedNetwork++; continue; }
+            if (root.GetComponentInChildren<Camera>() != null) continue;
 
-            var coord = ClampCoord(WorldPosToChunkCoord(GetChunkAnchorPosition(root)));
-            buckets[coord] = buckets.GetValueOrDefault(coord, 0) + 1;
+            bool isGroup = root.GetComponent<Renderer>() == null
+                && root.GetComponent<Collider>() == null
+                && root.GetComponent<MeshFilter>() == null
+                && root.transform.childCount > 0;
+
+            if (isGroup)
+            {
+                foreach (Transform child in root.transform)
+                {
+                    var coord = ClampCoord(WorldPosToChunkCoord(GetChunkAnchorPosition(child.gameObject)));
+                    buckets[coord] = buckets.GetValueOrDefault(coord, 0) + 1;
+                }
+            }
+            else
+            {
+                var coord = ClampCoord(WorldPosToChunkCoord(GetChunkAnchorPosition(root)));
+                buckets[coord] = buckets.GetValueOrDefault(coord, 0) + 1;
+            }
         }
 
         string preview = $"World Origin: {detectedOrigin}\n" +
@@ -443,8 +454,12 @@ public class WorldChunkerEditor : EditorWindow
 
         // Separate terrain objects from regular objects
         var terrainObjects = new List<Terrain>();
-        var buckets = new Dictionary<Vector2Int, List<GameObject>>();
         int skippedNetwork = 0;
+
+        // buckets maps chunk coord -> list of (rootObject, childObject).
+        // For flat root objects: rootObject == childObject.
+        // For group containers (e.g. "entities"): rootObject is the group, childObject is the direct child to keep.
+        var groupBuckets = new Dictionary<Vector2Int, List<(GameObject root, GameObject child)>>();
 
         foreach (var root in roots)
         {
@@ -470,10 +485,28 @@ public class WorldChunkerEditor : EditorWindow
                 continue;
             }
 
-            var coord = ClampCoord(WorldPosToChunkCoord(GetChunkAnchorPosition(root)));
-            if (!buckets.ContainsKey(coord))
-                buckets[coord] = new List<GameObject>();
-            buckets[coord].Add(root);
+            bool isGroupContainer = root.GetComponent<Renderer>() == null
+                && root.GetComponent<Collider>() == null
+                && root.GetComponent<MeshFilter>() == null
+                && root.transform.childCount > 0;
+
+            if (isGroupContainer)
+            {
+                foreach (Transform child in root.transform)
+                {
+                    var coord = ClampCoord(WorldPosToChunkCoord(GetChunkAnchorPosition(child.gameObject)));
+                    if (!groupBuckets.ContainsKey(coord))
+                        groupBuckets[coord] = new List<(GameObject, GameObject)>();
+                    groupBuckets[coord].Add((root, child.gameObject));
+                }
+            }
+            else
+            {
+                var coord = ClampCoord(WorldPosToChunkCoord(GetChunkAnchorPosition(root)));
+                if (!groupBuckets.ContainsKey(coord))
+                    groupBuckets[coord] = new List<(GameObject, GameObject)>();
+                groupBuckets[coord].Add((root, root));
+            }
         }
 
         bool isSelective = onlyCoords != null && onlyCoords.Count > 0;
@@ -550,15 +583,51 @@ public class WorldChunkerEditor : EditorWindow
                 }
 
                 // --- Copy non-terrain objects ---
-                if (buckets.ContainsKey(coord))
+                if (groupBuckets.ContainsKey(coord))
                 {
-                    foreach (var original in buckets[coord])
+                    // Group entries by their root so each root is only copied once per chunk.
+                    var rootToChildren = new Dictionary<GameObject, List<GameObject>>();
+                    foreach (var (root, child) in groupBuckets[coord])
                     {
-                        var copy = UnityEngine.Object.Instantiate(original);
-                        copy.name = original.name;
-                        copy.transform.SetPositionAndRotation(original.transform.position, original.transform.rotation);
-                        copy.transform.localScale = original.transform.localScale;
-                        SceneManager.MoveGameObjectToScene(copy, chunkScene);
+                        if (!rootToChildren.ContainsKey(root))
+                            rootToChildren[root] = new List<GameObject>();
+                        if (root != child)
+                            rootToChildren[root].Add(child);
+                    }
+
+                    foreach (var kvp in rootToChildren)
+                    {
+                        var originalRoot = kvp.Key;
+                        var keepChildren = kvp.Value; // empty means root itself is the object
+
+                        var copy = UnityEngine.Object.Instantiate(originalRoot);
+                        copy.name = originalRoot.name;
+                        copy.transform.SetPositionAndRotation(originalRoot.transform.position, originalRoot.transform.rotation);
+                        copy.transform.localScale = originalRoot.transform.localScale;
+
+                        // If this was a group container, destroy children that don't belong to this chunk
+                        if (keepChildren.Count > 0)
+                        {
+                            var keepNames = new HashSet<string>(keepChildren.Select(c => c.name));
+                            var toDestroy = new List<Transform>();
+                            foreach (Transform t in copy.transform)
+                            {
+                                if (!keepNames.Contains(t.name))
+                                    toDestroy.Add(t);
+                            }
+                            foreach (var t in toDestroy)
+                                UnityEngine.Object.DestroyImmediate(t.gameObject);
+
+                            // Only add the group if it still has children
+                            if (copy.transform.childCount > 0)
+                                SceneManager.MoveGameObjectToScene(copy, chunkScene);
+                            else
+                                UnityEngine.Object.DestroyImmediate(copy);
+                        }
+                        else
+                        {
+                            SceneManager.MoveGameObjectToScene(copy, chunkScene);
+                        }
                     }
                 }
 
@@ -576,6 +645,7 @@ public class WorldChunkerEditor : EditorWindow
                 {
                     gridCoord = coord,
                     sceneName = sceneName,
+                    scenePath = scenePath,
                     worldBounds = new Bounds(boundsCenter, boundsSize),
                     hasTerrain = hasTerrain
                 });
@@ -608,7 +678,7 @@ public class WorldChunkerEditor : EditorWindow
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
 
-        int copiedCount = buckets
+        int copiedCount = groupBuckets
             .Where(kvp => !isSelective || onlyCoords.Contains(kvp.Key))
             .Sum(kvp => kvp.Value.Count);
         int terrainTiles = chunkInfos.Count(c => c.hasTerrain && (!isSelective || onlyCoords.Contains(c.gridCoord)));
@@ -973,10 +1043,14 @@ public class WorldChunkerEditor : EditorWindow
     //  Utilities
     // ─────────────────────────────────────────────
 
+    /// <summary>
+    /// Returns true if this object should be skipped during chunking because it belongs
+    /// in the persistent scene. Only skips the NetworkManager itself — regular networked
+    /// world entities (NPCs, enemies, etc.) are intentionally included in chunk scenes.
+    /// </summary>
     private bool HasNetworkObject(GameObject obj)
     {
-        return obj.GetComponent<Unity.Netcode.NetworkObject>() != null
-            || obj.GetComponentInChildren<Unity.Netcode.NetworkObject>() != null;
+        return obj.GetComponent<Unity.Netcode.NetworkManager>() != null;
     }
 
     private Vector3 GetChunkAnchorPosition(GameObject root)
@@ -1037,19 +1111,16 @@ public class WorldChunkerEditor : EditorWindow
 
     private void AddScenesToBuildSettings(List<string> scenePaths)
     {
+        // Remove ALL existing chunk scenes regardless of which folder they came from,
+        // then add only the freshly generated ones. This prevents stale entries from
+        // old output folders causing Unity to load the wrong scene by name.
+        var sceneNameSet = new HashSet<string>(scenePaths.Select(p => Path.GetFileNameWithoutExtension(p)));
         var existingScenes = EditorBuildSettings.scenes
-            .Where(s => !s.path.StartsWith(outputFolder + "/", StringComparison.OrdinalIgnoreCase))
+            .Where(s => !sceneNameSet.Contains(Path.GetFileNameWithoutExtension(s.path)))
             .ToList();
-        var existingPaths = new HashSet<string>(existingScenes.Select(s => s.path));
 
         foreach (var path in scenePaths)
-        {
-            if (!existingPaths.Contains(path))
-            {
-                existingScenes.Add(new EditorBuildSettingsScene(path, true));
-                existingPaths.Add(path);
-            }
-        }
+            existingScenes.Add(new EditorBuildSettingsScene(path, true));
 
         EditorBuildSettings.scenes = existingScenes.ToArray();
     }

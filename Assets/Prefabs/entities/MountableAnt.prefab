@@ -172,9 +172,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d151d4ee47624b1d8575f91257da610, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NpcBrain
-  wanderBehaviour: {fileID: 0}
-  mountController: {fileID: 0}
-  playerTarget: {fileID: 0}
+  wanderBehaviour: {fileID: 3573185430769340566}
+  mountController: {fileID: 1437152633474614801}
+  playerTarget: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
   playerTag: Player
   playerReactionMode: 1
   playerDetectRadius: 4
@@ -240,7 +240,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MountedAgentBrain
   fallbackBrain: {fileID: 5020335494934165387}
   mountController: {fileID: 1437152633474614801}
-  steeringController: {fileID: 0}
+  steeringController: {fileID: 3495873987215047714}
   mountedMoveDistance: 2
   mountedStopDistance: 0.15
   mountedSpeedMultiplier: 2.4
@@ -321,9 +321,10 @@ MonoBehaviour:
   defaultPerspective: 1
   thirdPersonCamera: {fileID: 6134801172691046204, guid: 61f2f8ec6f1849b1b72d6513a1ca1895, type: 3}
   thirdPersonPivot: {fileID: 0}
-  thirdPersonOffset: {x: 0, y: 2.2, z: -3.8}
-  thirdPersonDistance: 3.8
+  thirdPersonOffset: {x: 0, y: 3.2, z: -3.8}
+  thirdPersonDistance: 3
   thirdPersonFollowLerp: 14
+  defaultMountedPitch: 15
   cameraAutoAlignSpeed: 90
   cameraAutoAlignDelay: 0.5
   perspectiveToggleActionName: Next
@@ -340,7 +341,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 0
+  GlobalObjectIdHash: 1411922746
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1

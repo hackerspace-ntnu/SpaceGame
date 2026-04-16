@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3645339987
+  GlobalObjectIdHash: 1594445656
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -71,5 +71,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpawnManager
   ShowTopMostFoldoutHeaderGroup: 1
-  playerPrefab: {fileID: 0}
-  networkPlayerPrefab: {fileID: 0}
+  playerPrefab: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+  networkPlayerPrefab: {fileID: 582217690245548981, guid: 29c12f19fe277234e8f077d5c15501c2, type: 3}

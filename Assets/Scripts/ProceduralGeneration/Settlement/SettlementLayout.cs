@@ -55,16 +55,28 @@ public class SettlementLayout
     public static SettlementLayout Build(
         System.Random rng,
         int footprintRadius = 7,
-        int maxHeight       = 14,
+        int maxHeight       = 20,
         int minHeight       = 3)
+    {
+        return Build(rng, new SettlementGenerationSettings
+        {
+            footprintRadius = footprintRadius,
+            maxHeight = maxHeight,
+            minHeight = minHeight,
+        });
+    }
+
+    public static SettlementLayout Build(
+        System.Random rng,
+        SettlementGenerationSettings settings)
     {
         var l = new SettlementLayout
         {
-            FootprintRadius = footprintRadius,
-            MaxHeight       = maxHeight,
-            MinHeight       = minHeight,
+            FootprintRadius = settings.footprintRadius,
+            MaxHeight       = settings.maxHeight,
+            MinHeight       = settings.minHeight,
         };
-        l.Generate(rng, footprintRadius, maxHeight, minHeight);
+        l.Generate(rng, settings);
         return l;
     }
 
@@ -72,8 +84,12 @@ public class SettlementLayout
     // Generation
     // -------------------------------------------------------------------------
 
-    void Generate(System.Random rng, int radius, int maxH, int minH)
+    void Generate(System.Random rng, SettlementGenerationSettings settings)
     {
+        int radius = settings.footprintRadius;
+        int maxH = settings.maxHeight;
+        int minH = settings.minHeight;
+
         // ── 1. Core monolith base ─────────────────────────────────────────────
         int baseW = Mathf.Clamp(radius * 2 + rng.Next(-2, 1), 7, 11);
         int baseD = Mathf.Clamp(radius * 2 + rng.Next(-2, 1), 7, 11);
@@ -123,6 +139,7 @@ public class SettlementLayout
         var tierRect  = baseRect;
         int tierFloor = baseH;
         int maxTiers  = 6;
+        bool middleBulgeApplied = false;
 
         for (int tier = 0; tier < maxTiers && tierFloor < maxH - 2; tier++)
         {
@@ -147,10 +164,28 @@ public class SettlementLayout
             tierRect = new RectInt(newX, newY, newW, newH2);
 
             // Occasionally expand outward on one side (overhang over lower tier)
-            if (rng.NextDouble() < 0.2f)
+            bool canBulge = settings.allowMiddleBulge &&
+                            !middleBulgeApplied &&
+                            tier >= 1 &&
+                            tier <= 3 &&
+                            rng.NextDouble() < settings.middleBulgeChance;
+
+            if (canBulge)
+            {
+                int bulgeX = rng.Next(1, settings.middleBulgeExtraWidth + 1);
+                int bulgeZ = rng.Next(1, settings.middleBulgeExtraWidth + 1);
+                tierRect = new RectInt(
+                    tierRect.xMin - bulgeX,
+                    tierRect.yMin - bulgeZ,
+                    tierRect.width + bulgeX * 2,
+                    tierRect.height + bulgeZ * 2);
+                middleBulgeApplied = true;
+            }
+
+            if (rng.NextDouble() < settings.overhangChance)
             {
                 int side = rng.Next(4);
-                int push = rng.Next(1, 2);
+                int push = rng.Next(1, settings.overhangMaxPush + 1);
                 tierRect = side switch {
                     0 => new RectInt(tierRect.xMin - push, tierRect.yMin, tierRect.width + push, tierRect.height),
                     1 => new RectInt(tierRect.xMin, tierRect.yMin, tierRect.width + push, tierRect.height),
@@ -175,50 +210,55 @@ public class SettlementLayout
             tierFloor = newFloor;
         }
 
-        // Crown the structure with a narrower central spire so the full mass
-        // resolves into a single sci-fi tower instead of only stacked terraces.
-        int spineCount = rng.Next(2, 5);
-        for (int i = 0; i < spineCount; i++)
+        // Break the crown into many offset mini-masses so the silhouette reads
+        // like stacked ruined blocks instead of a clean keep or single spire.
+        int crownBandMin = Mathf.Max(baseH + 2, maxH - 5);
+        int crownBandMax = maxH;
+
+        var crownSeeds = new List<RectInt>();
+        int crownSeedCount = rng.Next(3, 6);
+        for (int i = 0; i < crownSeedCount; i++)
         {
-            int crownW = rng.Next(1, 3);
-            int crownD = rng.Next(1, 3);
-            int crownX = -crownW / 2 + rng.Next(-1, 2);
-            int crownZ = -crownD / 2 + rng.Next(-1, 2);
-            var crownRect = new RectInt(crownX, crownZ, crownW, crownD);
-            FillRect(crownRect, maxH, BlockRole.Monolith);
+            int seedW = rng.Next(2, 4);
+            int seedD = rng.Next(2, 4);
+            int seedX = rng.Next(baseRect.xMin + 1, Mathf.Max(baseRect.xMin + 2, baseRect.xMax - seedW));
+            int seedZ = rng.Next(baseRect.yMin + 1, Mathf.Max(baseRect.yMin + 2, baseRect.yMax - seedD));
+            int seedH = rng.Next(crownBandMin, crownBandMax + 1);
+            var seedRect = new RectInt(seedX, seedZ, seedW, seedD);
+            crownSeeds.Add(seedRect);
+            FillRect(seedRect, seedH, BlockRole.Monolith);
         }
 
-        // Add narrow vertical shards attached to the upper tower to create
-        // ruined sci-fi skyline silhouettes instead of battlement-like tops.
-        int shardCount = rng.Next(5, 10);
-        for (int i = 0; i < shardCount; i++)
+        // Grow lots of tiny stacked offsets around those seed masses.
+        int blockyClusterCount = rng.Next(18, 30);
+        for (int i = 0; i < blockyClusterCount; i++)
         {
-            int shardW = rng.Next(1, 2 + (rng.NextDouble() < 0.25 ? 1 : 0));
-            int shardD = rng.Next(1, 2 + (rng.NextDouble() < 0.25 ? 1 : 0));
-            int shardH = Mathf.Max(baseH + 2, maxH - rng.Next(0, 3));
-            int shardX = rng.Next(baseRect.xMin, baseRect.xMax);
-            int shardZ = rng.Next(baseRect.yMin, baseRect.yMax);
-            FillRect(new RectInt(shardX, shardZ, shardW, shardD), shardH, BlockRole.Monolith);
+            var seed = crownSeeds[rng.Next(crownSeeds.Count)];
+            int w = rng.NextDouble() < 0.8 ? 1 : 2;
+            int d = rng.NextDouble() < 0.8 ? 1 : 2;
+
+            int x = rng.Next(seed.xMin - 1, seed.xMax + 1);
+            int z = rng.Next(seed.yMin - 1, seed.yMax + 1);
+            int h = rng.Next(crownBandMin, crownBandMax + 1);
+
+            FillRect(new RectInt(x, z, w, d), h, BlockRole.Monolith);
         }
 
-        // Dense clutter field near the top: lots of 1x1 and 2x2 stacked blocks
-        // so the skyline feels broken, layered, and technological instead of clean.
-        int clutterCount = rng.Next(10, 18);
-        int clutterBandMin = Mathf.Max(baseH + 1, maxH - 4);
-        for (int i = 0; i < clutterCount; i++)
+        // Add a few taller needles inside the broken crown so the tower still
+        // feels like it rises upward through the messy top mass.
+        int needleCount = rng.Next(3, 6);
+        for (int i = 0; i < needleCount; i++)
         {
-            int clutterW = rng.NextDouble() < 0.75 ? 1 : 2;
-            int clutterD = rng.NextDouble() < 0.75 ? 1 : 2;
-            int clutterH = rng.Next(clutterBandMin, maxH + 1);
-            int clutterX = rng.Next(baseRect.xMin, baseRect.xMax);
-            int clutterZ = rng.Next(baseRect.yMin, baseRect.yMax);
-            FillRect(new RectInt(clutterX, clutterZ, clutterW, clutterD), clutterH, BlockRole.Monolith);
+            int x = rng.Next(baseRect.xMin + 1, baseRect.xMax - 1);
+            int z = rng.Next(baseRect.yMin + 1, baseRect.yMax - 1);
+            int h = Mathf.Max(crownBandMin + 1, maxH - rng.Next(0, 2));
+            FillRect(new RectInt(x, z, 1, 1), h, BlockRole.Monolith);
         }
 
         // ── 3. Carve an interior courtyard at mid-height (optional) ───────────
         // This punches a rectangular hollow through mid-levels, creating
         // a large atrium-like interior room open at the top.
-        if (rng.NextDouble() < 0.55f && baseW >= 7 && baseD >= 7)
+        if (rng.NextDouble() < settings.ruinedVoidChance && baseW >= 7 && baseD >= 7)
         {
             int cx  = rng.Next(2, Mathf.Max(3, baseW - 3));
             int cz  = rng.Next(2, Mathf.Max(3, baseD - 3));

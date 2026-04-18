@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 /// <summary>
 /// Instantiates prefabs from a List&lt;TilePlacement&gt; produced by SettlementGenerator.
@@ -42,7 +45,7 @@ public class SettlementBuilder : MonoBehaviour
 
     private struct VisualGroupKey
     {
-        public Material material;
+        public Material overrideMaterial;
         public Vector2Int chunk;
         public ShadowCastingMode shadowCastingMode;
     }
@@ -148,6 +151,9 @@ public class SettlementBuilder : MonoBehaviour
             case TileKind.WallPanel:
                 SpawnFaced(p.kind, config.Pick(config.wallPanelVariants, p.variant), center, p.face, s);
                 break;
+            case TileKind.WallRelief:
+                SpawnFaced(p.kind, config.Pick(config.wallReliefVariants, p.variant), center, p.face, s);
+                break;
             case TileKind.WallTech:
                 SpawnFaced(p.kind, config.Pick(config.wallTechVariants, p.variant), center, p.face, s);
                 break;
@@ -182,6 +188,15 @@ public class SettlementBuilder : MonoBehaviour
             case TileKind.RoofMachinery:
                 Spawn(p.kind, config.Pick(config.roofMachineryVariants, p.variant),
                       center, Quaternion.identity);
+                break;
+            case TileKind.CircularFeature:
+                Spawn(p.kind, config.Pick(config.circularFeatureVariants, p.variant),
+                      center, Quaternion.identity, new Vector3(5.4f, 6.2f, 5.4f));
+                break;
+            case TileKind.TriangularFeature:
+                Spawn(p.kind, config.Pick(config.triangularFeatureVariants, p.variant),
+                      center + new Vector3(0, -0.5f * s, 0), WallRotations[p.face],
+                      new Vector3(1.8f, 1.8f, 1.8f));
                 break;
 
             // ── Large structural ───────────────────────────────────────────────
@@ -246,7 +261,43 @@ public class SettlementBuilder : MonoBehaviour
         var instance = Instantiate(prefab, pos, rot, transform);
         if (localScaleOverride.HasValue)
             instance.transform.localScale = localScaleOverride.Value;
+        ApplyMaterial(instance, kind);
         spawnedObjects.Add(new SpawnRecord { root = instance, kind = kind });
+    }
+
+    void ApplyMaterial(GameObject instance, TileKind kind)
+    {
+        var mat = GetMaterialForKind(kind);
+        if (mat == null) return;
+        foreach (var renderer in instance.GetComponentsInChildren<MeshRenderer>(true))
+            renderer.sharedMaterial = mat;
+    }
+
+    Material GetMaterialForKind(TileKind kind)
+    {
+        return kind switch
+        {
+            TileKind.WallTech          => config.accentMaterial,
+            TileKind.WallVent          => config.accentMaterial,
+            TileKind.RoofMachinery     => config.accentMaterial,
+            TileKind.CircularFeature   => config.accentMaterial,
+            TileKind.TriangularFeature => config.accentMaterial,
+            TileKind.RoofTemple        => config.accentMaterial,
+            TileKind.Obelisk           => config.accentMaterial,
+            _ => IsSecondaryStructure(kind) ? config.baseMaterialB : config.baseMaterialA,
+        };
+    }
+
+    static bool IsSecondaryStructure(TileKind kind)
+    {
+        return kind == TileKind.Frieze ||
+               kind == TileKind.WallButtress ||
+               kind == TileKind.WallPanel ||
+               kind == TileKind.WallRelief ||
+               kind == TileKind.RoofParapet ||
+               kind == TileKind.Pillar ||
+               kind == TileKind.ColonnadeColumn ||
+               kind == TileKind.Balcony;
     }
 
     void OptimizeSpawnedGeometry(List<TilePlacement> placements, Vector3 worldOrigin, float tileSize)
@@ -278,6 +329,9 @@ public class SettlementBuilder : MonoBehaviour
 
         spawnedObjects.RemoveAll(r => r.root == null);
 
+        foreach (var go in optimizationObjects)
+            MarkStatic(go);
+
         Debug.Log($"[SettlementBuilder] Optimized settlement: {sourceRendererCount} source renderers -> {combinedRendererCount} combined renderers, {combinedColliderCount} baked collider meshes.");
     }
 
@@ -288,6 +342,7 @@ public class SettlementBuilder : MonoBehaviour
         Matrix4x4 toLocal = transform.worldToLocalMatrix;
         Vector2Int chunk = GetChunkCoord(root.transform.position, Mathf.Max(1, config.combinedChunkSizeInTiles), config.tileSize);
         ShadowCastingMode shadowMode = ShouldCastShadows(kind) ? ShadowCastingMode.On : ShadowCastingMode.Off;
+        Material overrideMat = GetMaterialForKind(kind);
 
         foreach (var filter in filters)
         {
@@ -301,12 +356,12 @@ public class SettlementBuilder : MonoBehaviour
             int subMeshCount = Mathf.Min(mesh.subMeshCount, materials.Length);
             for (int i = 0; i < subMeshCount; i++)
             {
-                var material = materials[i];
+                var material = overrideMat != null ? overrideMat : materials[i];
                 if (material == null) continue;
 
                 var key = new VisualGroupKey
                 {
-                    material = material,
+                    overrideMaterial = material,
                     chunk = chunk,
                     shadowCastingMode = shadowMode,
                 };
@@ -345,7 +400,7 @@ public class SettlementBuilder : MonoBehaviour
                 int count = Mathf.Min(batchSize, combines.Count - start);
                 var slice = combines.GetRange(start, count);
 
-                var go = new GameObject($"Combined_{key.material.name}_{key.chunk.x}_{key.chunk.y}_{start / batchSize}");
+                var go = new GameObject($"Combined_{key.overrideMaterial.name}_{key.chunk.x}_{key.chunk.y}_{start / batchSize}");
                 go.transform.SetParent(transform, false);
 
                 var filter = go.AddComponent<MeshFilter>();
@@ -358,9 +413,16 @@ public class SettlementBuilder : MonoBehaviour
                 mesh.CombineMeshes(slice.ToArray(), true, true, false);
 
                 filter.sharedMesh = mesh;
-                renderer.sharedMaterial = key.material;
+                renderer.sharedMaterial = key.overrideMaterial;
                 renderer.shadowCastingMode = key.shadowCastingMode;
                 renderer.receiveShadows = key.shadowCastingMode != ShadowCastingMode.Off;
+
+                if (key.shadowCastingMode != ShadowCastingMode.Off && config.shadowCullDistance > 0f)
+                {
+                    var culler = go.AddComponent<SettlementShadowCuller>();
+                    culler.shadowCullDistance = config.shadowCullDistance;
+                }
+
                 optimizationObjects.Add(go);
                 combinedRendererCount++;
             }
@@ -457,8 +519,16 @@ public class SettlementBuilder : MonoBehaviour
                     new Vector3(tileSize, slabThickness, tileSize));
                 break;
 
+            case TileKind.CircularFeature:
+                AddBox(combines, cubeMesh,
+                    basePos + new Vector3(0f, tileSize * 2.8f, 0f),
+                    Quaternion.identity,
+                    new Vector3(tileSize * 2.1f, tileSize * 5.6f, tileSize * 2.1f));
+                break;
+
             case TileKind.Stair:
             case TileKind.ExteriorRamp:
+            case TileKind.TriangularFeature:
                 AddBox(combines, cubeMesh,
                     basePos + new Vector3(0f, tileSize * 0.5f, 0f),
                     Quaternion.identity,
@@ -546,6 +616,7 @@ public class SettlementBuilder : MonoBehaviour
                kind == TileKind.WallGrandArch ||
                kind == TileKind.WallButtress ||
                kind == TileKind.WallPanel ||
+               kind == TileKind.WallRelief ||
                kind == TileKind.WallTech ||
                kind == TileKind.WallVent;
     }
@@ -562,8 +633,11 @@ public class SettlementBuilder : MonoBehaviour
             TileKind.WallGrandArch => true,
             TileKind.WallButtress => true,
             TileKind.WallPanel => true,
+            TileKind.WallRelief => true,
             TileKind.WallTech => true,
             TileKind.WallVent => true,
+            TileKind.CircularFeature => true,
+            TileKind.TriangularFeature => true,
             TileKind.GrandArch => true,
             TileKind.Bridge => true,
             TileKind.AqueductArch => true,
@@ -584,13 +658,29 @@ public class SettlementBuilder : MonoBehaviour
             TileKind.WallSlitWindow => true,
             TileKind.WallGrandArch => true,
             TileKind.WallButtress => true,
+            TileKind.WallRelief => true,
             TileKind.Bridge => true,
+            TileKind.CircularFeature => true,
+            TileKind.TriangularFeature => true,
             TileKind.GrandArch => true,
             TileKind.AqueductArch => true,
             TileKind.Stair => true,
             TileKind.ExteriorRamp => true,
             _ => false,
         };
+    }
+
+    static void MarkStatic(GameObject go)
+    {
+        go.isStatic = true;
+#if UNITY_EDITOR
+        GameObjectUtility.SetStaticEditorFlags(go,
+            StaticEditorFlags.ContributeGI |
+            StaticEditorFlags.OccluderStatic |
+            StaticEditorFlags.OccludeeStatic |
+            StaticEditorFlags.BatchingStatic |
+            StaticEditorFlags.ReflectionProbeStatic);
+#endif
     }
 
     static Mesh GetCubeMesh()

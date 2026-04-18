@@ -22,6 +22,7 @@ public enum TileKind
     // ── Walls – structural texture ──────────────────────────────────────────
     WallButtress,       // Heavy vertical rib / pier on the wall face
     WallPanel,          // Shallow recessed rectangular panel
+    WallRelief,         // Large raised half-depth slab across most of the wall face
     WallTech,           // Futuristic wall greeble / relief insert
     WallVent,           // Vent / machinery strip for broad facade planes
 
@@ -34,6 +35,8 @@ public enum TileKind
     RoofParapet,        // Low battlement/crenellation wall at roof edge
     RoofTemple,         // Small temple-top structure (central roof feature)
     RoofMachinery,      // Mechanical rooftop detail / antenna cluster
+    CircularFeature,    // Cylindrical/drum feature for mid-story landmarks
+    TriangularFeature,  // Triangular wedge/spire feature for silhouette contrast
 
     // ── Large structural ────────────────────────────────────────────────────
     GrandArch,          // Free-standing 3-floor arch spanning a gap

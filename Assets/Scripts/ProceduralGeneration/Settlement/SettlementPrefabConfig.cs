@@ -36,6 +36,8 @@ public class SettlementPrefabConfig : ScriptableObject
     public GameObject[] wallButtressVariants  = new GameObject[1];
     [Tooltip("Shallow recessed rectangular panel.")]
     public GameObject[] wallPanelVariants     = new GameObject[1];
+    [Tooltip("Large raised wall slab, like a half-cube embedded into the facade.")]
+    public GameObject[] wallReliefVariants    = new GameObject[1];
     [Tooltip("Wall-mounted sci-fi relief / greeble insert.")]
     public GameObject[] wallTechVariants      = new GameObject[1];
     [Tooltip("Vented or mechanical facade insert for large wall planes.")]
@@ -57,6 +59,10 @@ public class SettlementPrefabConfig : ScriptableObject
     public GameObject[] roofTempleVariants    = new GameObject[1];
     [Tooltip("Sci-fi roof machinery cluster for top decks and terraces.")]
     public GameObject[] roofMachineryVariants = new GameObject[1];
+    [Tooltip("Large cylindrical/drum feature used on mid-story terraces.")]
+    public GameObject[] circularFeatureVariants = new GameObject[1];
+    [Tooltip("Triangular wedge/spire feature used on terraces and mid-story bulges.")]
+    public GameObject[] triangularFeatureVariants = new GameObject[1];
 
     // ── Large structural ─────────────────────────────────────────────────────
     [Header("Large Structural")]
@@ -82,6 +88,19 @@ public class SettlementPrefabConfig : ScriptableObject
     public GameObject[] boulderLargeVariants  = new GameObject[1];
     [Tooltip("Uniform local scale applied to every spawned boulder.")]
     public float boulderUniformScale          = 1f;
+
+    // ── Materials ─────────────────────────────────────────────────────────────
+    [Header("Materials")]
+    [Tooltip("Primary material applied to structural tiles (walls, floors, roof, stairs…).")]
+    public Material baseMaterialA;
+    [Tooltip("Secondary material applied to surface detail tiles (buttresses, panels, reliefs, pillars, parapets…).")]
+    public Material baseMaterialB;
+    [Tooltip("Accent material applied to decorative inserts (tech panels, vents, obelisks, roof machinery…).")]
+    public Material accentMaterial;
+
+    [Header("Shadows")]
+    [Tooltip("Combined mesh renderers beyond this distance from the camera stop casting shadows. 0 = always cast.")]
+    public float shadowCullDistance = 60f;
 
     [Header("Optimization")]
     [Tooltip("Combine generated settlement visuals into a small number of meshes after spawning.")]

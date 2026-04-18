@@ -32,6 +32,8 @@ MonoBehaviour:
   - {fileID: 4000038, guid: 80ab9d0210b68434191db8e4d55bb51d, type: 3}
   wallPanelVariants:
   - {fileID: 4000048, guid: b5b930f3aaca147b9a4ff2fe92f06eb2, type: 3}
+  wallReliefVariants:
+  - {fileID: 4000300, guid: 57cab2e59881485fb86f8d793675ab88, type: 3}
   wallTechVariants:
   - {fileID: 2000057, guid: f1513fac44347400d86ed01b66e81a04, type: 3}
   wallVentVariants:
@@ -48,6 +50,9 @@ MonoBehaviour:
   - {fileID: 4000120, guid: 29d8e6c31d7d4326962565d6dd399f77, type: 3}
   roofMachineryVariants:
   - {fileID: 2000118, guid: 75b87c1dd0a394586ae611c5080a1062, type: 3}
+  circularFeatureVariants: []
+  triangularFeatureVariants:
+  - {fileID: 4000170, guid: 3dca62108a2a40fbbb33592ae2b243c1, type: 3}
   grandArchVariants:
   - {fileID: 4000138, guid: c8fc37b698624a90957c25a737b82026, type: 3}
   bridgeVariants:
@@ -69,6 +74,10 @@ MonoBehaviour:
   - {fileID: 5001400, guid: 64e507bf06ff448dba51c85a35fac0d5, type: 3}
   - {fileID: 5001400, guid: b2388cca43224e3caf01557846a160d2, type: 3}
   boulderUniformScale: 1
+  baseMaterialA: {fileID: 2100000, guid: 4d56c25c72db74282ba53196017fc7f0, type: 2}
+  baseMaterialB: {fileID: 2100000, guid: 987666025362c4181942e0190f70ad8d, type: 2}
+  accentMaterial: {fileID: 2100000, guid: 987666025362c4181942e0190f70ad8d, type: 2}
+  shadowCullDistance: 60
   optimizeAfterBuild: 1
   stripDetailColliders: 1
   bakeCombinedColliders: 1

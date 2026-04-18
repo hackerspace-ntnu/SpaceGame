@@ -9,18 +9,11 @@ public class SettlementSpawner : MonoBehaviour
     [Header("Config")]
     [SerializeField] private SettlementPrefabConfig config;
 
-    [Header("Layout")]
+    [Header("Generation")]
     [Tooltip("Seed. Same seed = identical ruins.")]
     [SerializeField] private int seed = 42;
 
-    [Tooltip("Half-width of the settlement footprint in tiles.")]
-    [SerializeField] private int footprintRadius = 7;
-
-    [Tooltip("Maximum height in floors (each floor = 1 tile = 3 world units at 3× scale).")]
-    [SerializeField] private int maxHeight = 14;
-
-    [Tooltip("Minimum base height in floors.")]
-    [SerializeField] private int minHeight = 3;
+    [SerializeField] private SettlementGenerationSettings settings = new();
 
     private SettlementBuilder builder;
 
@@ -37,7 +30,7 @@ public class SettlementSpawner : MonoBehaviour
         builder = GetComponent<SettlementBuilder>();
         builder.SetConfig(config);
 
-        var placements = SettlementGenerator.GenerateFull(seed, footprintRadius, maxHeight, minHeight);
+        var placements = SettlementGenerator.GenerateFull(seed, settings);
         builder.Build(placements, transform.position);
         Debug.Log($"[SettlementSpawner] {placements.Count} tiles. Seed={seed}");
     }
@@ -53,8 +46,8 @@ public class SettlementSpawner : MonoBehaviour
     void OnDrawGizmosSelected()
     {
         float s    = config != null ? config.tileSize : 1f;
-        float size = footprintRadius * 2 * s;
-        float h    = maxHeight * s;
+        float size = settings != null ? settings.footprintRadius * 2 * s : 14f;
+        float h    = settings != null ? settings.maxHeight * s : 20f;
         Gizmos.color = new Color(0.8f, 0.6f, 0.2f, 0.35f);
         Gizmos.DrawWireCube(
             transform.position + new Vector3(0, h / 2f, 0),

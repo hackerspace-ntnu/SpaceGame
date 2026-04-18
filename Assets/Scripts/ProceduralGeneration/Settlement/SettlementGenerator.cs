@@ -13,15 +13,28 @@ public static class SettlementGenerator
     public static List<TilePlacement> GenerateFull(
         int seed,
         int footprintRadius = 7,
-        int maxHeight       = 14,
+        int maxHeight       = 20,
         int minHeight       = 3)
     {
+        var settings = new SettlementGenerationSettings
+        {
+            footprintRadius = footprintRadius,
+            maxHeight = maxHeight,
+            minHeight = minHeight,
+        };
+        return GenerateFull(seed, settings);
+    }
+
+    public static List<TilePlacement> GenerateFull(
+        int seed,
+        SettlementGenerationSettings settings)
+    {
         var rng    = new System.Random(seed);
-        var layout = SettlementLayout.Build(rng, footprintRadius, maxHeight, minHeight);
+        var layout = SettlementLayout.Build(rng, settings);
 
         var tiles = EmitStructural(layout);
         SettlementInterior.Emit(layout, tiles, rng);
-        SettlementDetailPlacer.PlaceDetails(layout, tiles, rng);
+        SettlementDetailPlacer.PlaceDetails(layout, tiles, rng, settings);
 
         return tiles;
     }

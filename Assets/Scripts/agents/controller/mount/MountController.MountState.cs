@@ -83,7 +83,7 @@ public partial class MountController
 
     private void ParentRiderToMount()
     {
-        Transform rideParent = seatPoint ? seatPoint : transform;
+        Transform rideParent = activeSeatPoint ? activeSeatPoint : (seatPoint ? seatPoint : transform);
         mountedPlayer.SetParent(rideParent, true);
         mountedPlayer.localPosition = Vector3.zero;
         mountedPlayer.localRotation = Quaternion.identity;

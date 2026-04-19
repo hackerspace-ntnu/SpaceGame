@@ -32,6 +32,37 @@ Transform:
   - {fileID: 5933940968757465478}
   m_Father: {fileID: 4828460698616866726}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &195830640718494554
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4747290945561205562}
+  m_Layer: 0
+  m_Name: mountPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4747290945561205562
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 195830640718494554}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.92, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5145551025821658707}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &373510892184888052
 GameObject:
   m_ObjectHideFlags: 0
@@ -192,7 +223,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 02e2e3e49de24634d9799adba66e8fc6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WheelRotator
-  roverController: {fileID: 9043400717057734922}
+  roverMovementSystem: {fileID: 0}
   wheelRadius: 1.6
   rotateAroundX: 1
 --- !u!1 &1575810936101574624
@@ -290,7 +321,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 02e2e3e49de24634d9799adba66e8fc6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WheelRotator
-  roverController: {fileID: 9043400717057734922}
+  roverMovementSystem: {fileID: 0}
   wheelRadius: 1.6
   rotateAroundX: 1
 --- !u!1 &1698852772029987920
@@ -700,6 +731,15 @@ GameObject:
   - component: {fileID: 9043400717057734922}
   - component: {fileID: 62669566447615563}
   - component: {fileID: 4084164097783051441}
+  - component: {fileID: 6541561283928451753}
+  - component: {fileID: 4431140937083558887}
+  - component: {fileID: 6322318786262405592}
+  - component: {fileID: 3663465826950192337}
+  - component: {fileID: 8296975628843292302}
+  - component: {fileID: 8502842547039712715}
+  - component: {fileID: 8510724301843309270}
+  - component: {fileID: 4738094499408258674}
+  - component: {fileID: 2049518129418220521}
   m_Layer: 0
   m_Name: RoverNoHirarchy
   m_TagString: Untagged
@@ -723,6 +763,7 @@ Transform:
   - {fileID: 9189242187919514368}
   - {fileID: 403466496358786375}
   - {fileID: 8700510120091523485}
+  - {fileID: 4747290945561205562}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4206344025444730470
@@ -740,7 +781,6 @@ MonoBehaviour:
   moveSpeed: 5
   rotationSpeed: 45
   acceleration: 5
-  stoppingDistance: 0.5
 --- !u!65 &8201878865021766641
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -879,19 +919,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5cdaf4928be0f9042b25d9716da44896, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoverController
-  thingMount: {fileID: 4884315642406495309}
-  raycastLength: 7
-  raycastMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  movementController: {fileID: 0}
-  moveSpeed: 3
-  directionChangeInterval: 3
-  directionCommitTime: 1
-  backupTime: 2
-  explorationRadius: 20
-  waypointStoppingDistance: 1
-  drawDebug: 1
+  movementSystem: {fileID: 0}
+  mountController: {fileID: 4431140937083558887}
+  mountSteeringController: {fileID: 0}
 --- !u!195 &62669566447615563
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -921,7 +951,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2104903636770483098}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3d2e4eaafab874210a82642d039de6af, type: 3}
   m_Name: 
@@ -931,6 +961,188 @@ MonoBehaviour:
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 8
+  enableMountedJump: 1
+  mountedJumpHeight: 1.25
+  mountedJumpDuration: 0.55
+  mountedJumpCooldown: 0.45
+--- !u!114 &6541561283928451753
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104903636770483098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: acdc445562c6e420c8ef8cec6ec54ffb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MountInteractor
+  mountController: {fileID: 4431140937083558887}
+  mountTransform: {fileID: 0}
+--- !u!114 &4431140937083558887
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104903636770483098}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e03ab404b2c7f45b6930746c2df20c86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MountController
+  seatPoint: {fileID: 0}
+  dismountPoint: {fileID: 0}
+  disablePlayerMovement: 1
+  disablePlayerLook: 1
+  disablePlayerInteractor: 1
+  mountCooldown: 0.25
+  fallbackDismountDistance: 1.6
+  thirdPersonCameraPrefab: {fileID: 0}
+--- !u!114 &6322318786262405592
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104903636770483098}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ab4e14ea8b148f7b3f4ef0a5fefac42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MountSteeringController
+  mountController: {fileID: 4431140937083558887}
+  lookSensitivity: 10
+  lookPitchClamp: 75
+  steerSpeed: 120
+  turnSmoothTime: 0.12
+  leanAmount: 10
+  leanSmoothTime: 0.18
+  momentumDamping: 7
+  visualTiltRoot: {fileID: 0}
+  defaultPerspective: 1
+  thirdPersonCamera: {fileID: 0}
+  thirdPersonPivot: {fileID: 4747290945561205562}
+  thirdPersonOffset: {x: 0, y: 2.2, z: -3.8}
+  thirdPersonDistance: 3.8
+  thirdPersonFollowLerp: 14
+  defaultMountedPitch: -15
+  cameraAutoAlignSpeed: 90
+  cameraAutoAlignDelay: 0.5
+  perspectiveToggleActionName: Next
+  steeringOverrideThreshold: 0.1
+--- !u!114 &3663465826950192337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104903636770483098}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 434b1cb41931349a580b035d41199472, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MountedAgentBrain
+  fallbackBrain: {fileID: 0}
+  mountController: {fileID: 4431140937083558887}
+  steeringController: {fileID: 6322318786262405592}
+  mountedMoveDistance: 2
+  mountedStopDistance: 0.15
+  mountedSpeedMultiplier: 2.4
+  mountedNavMeshSampleDistance: 4
+  faceMouseLookDirection: 1
+  mountedAcceleration: 4
+  enableMountedJump: 1
+--- !u!114 &8296975628843292302
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104903636770483098}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54019b7ae9d2e374b8fdd290d7a6b836, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MountedRoverController
+  mountController: {fileID: 4431140937083558887}
+  mountSteeringController: {fileID: 6322318786262405592}
+  moveSpeed: 3
+--- !u!114 &8502842547039712715
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104903636770483098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e03ab404b2c7f45b6930746c2df20c86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MountController
+  seatPoint: {fileID: 0}
+  dismountPoint: {fileID: 0}
+  disablePlayerMovement: 1
+  disablePlayerLook: 1
+  disablePlayerInteractor: 1
+  mountCooldown: 0.25
+  fallbackDismountDistance: 1.6
+  thirdPersonCameraPrefab: {fileID: 0}
+--- !u!114 &8510724301843309270
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104903636770483098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55c0efc5b855aaa48bacdd05629f8302, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MountedInputHandler
+--- !u!114 &4738094499408258674
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104903636770483098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f55e4de7130b1f49884f639e041318d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MountedMovementController
+  moveSpeed: 3
+  acceleration: 10
+  deceleration: 8
+  inputHandler: {fileID: 8510724301843309270}
+  turnSpeed: 120
+--- !u!114 &2049518129418220521
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104903636770483098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 620ead605af1aef4da2cf4e262991a11, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MountedCameraController
+  mainCamera: {fileID: 0}
+  targetToOrbitAround: {fileID: 0}
+  movementController: {fileID: 0}
+  inputHandler: {fileID: 0}
+  orbitDistance: 4
+  minOrbitDistance: 2
+  maxOrbitDistance: 6
+  orbitHeight: 2
+  orbitSpeed: 2
+  speedThresholdForForwardTransition: 0.5
+  maxSpeedForFullTransition: 3
+  forwardFollowDistance: 3
+  transitionSmoothing: 5
+  lookAheadDistance: 2
 --- !u!1 &2169529945073363033
 GameObject:
   m_ObjectHideFlags: 0
@@ -1058,7 +1270,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 02e2e3e49de24634d9799adba66e8fc6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WheelRotator
-  roverController: {fileID: 9043400717057734922}
+  roverMovementSystem: {fileID: 0}
   wheelRadius: 1.6
   rotateAroundX: 1
 --- !u!1 &2542233102538150000
@@ -1188,7 +1400,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 02e2e3e49de24634d9799adba66e8fc6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WheelRotator
-  roverController: {fileID: 9043400717057734922}
+  roverMovementSystem: {fileID: 0}
   wheelRadius: 1.6
   rotateAroundX: 1
 --- !u!1 &3673164825083783537
@@ -1947,7 +2159,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 02e2e3e49de24634d9799adba66e8fc6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WheelRotator
-  roverController: {fileID: 9043400717057734922}
+  roverMovementSystem: {fileID: 0}
   wheelRadius: 1.6
   rotateAroundX: 1
 --- !u!1 &6939693557772252360
@@ -2045,7 +2257,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 02e2e3e49de24634d9799adba66e8fc6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WheelRotator
-  roverController: {fileID: 9043400717057734922}
+  roverMovementSystem: {fileID: 0}
   wheelRadius: 1.6
   rotateAroundX: 1
 --- !u!1 &7258332918093839771

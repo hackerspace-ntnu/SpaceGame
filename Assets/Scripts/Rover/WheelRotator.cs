@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 public class WheelRotator : MonoBehaviour
 {
-    [SerializeField] private RoverController roverController;
+    [SerializeField] private RoverMovementSystem roverMovementSystem;
     [SerializeField] private float wheelRadius = 0.5f; // Radius of the wheel in units
     [SerializeField] private bool rotateAroundX = true; // Rotation axis (typically X for wheels rotating forward)
 
@@ -14,39 +14,39 @@ public class WheelRotator : MonoBehaviour
 
     private void Awake()
     {
-        if (roverController == null)
+        if (roverMovementSystem == null)
         {
             // Try to find it in parent hierarchy
-            roverController = GetComponentInParent<RoverController>();
+            roverMovementSystem = GetComponentInParent<RoverMovementSystem>();
         }
 
-        if (roverController == null)
+        if (roverMovementSystem == null)
         {
             // Search up the hierarchy
             Transform rover = transform.parent;
             while (rover != null)
             {
-                roverController = rover.GetComponent<RoverController>();
-                if (roverController != null) break;
+                roverMovementSystem = rover.GetComponent<RoverMovementSystem>();
+                if (roverMovementSystem != null) break;
                 rover = rover.parent;
             }
         }
 
-        if (roverController == null)
+        if (roverMovementSystem == null)
         {
-            Debug.LogWarning($"{name}: Could not find RoverController! Wheel rotation disabled.", this);
+            Debug.LogWarning($"{name}: Could not find RoverMovementSystem! Wheel rotation disabled.", this);
         }
     }
 
     private void Update()
     {
-        if (roverController == null)
+        if (roverMovementSystem == null)
         {
             return;
         }
 
-        // Get the current movement velocity from the rover controller
-        Vector3 movementVelocity = roverController.GetCurrentMovementVelocity();
+        // Get the current movement velocity from the rover movement system
+        Vector3 movementVelocity = roverMovementSystem.GetCurrentMovementVelocity();
         float currentSpeed = movementVelocity.magnitude;
         
         // Calculate rotation speed: speed / circumference = rotations per unit time

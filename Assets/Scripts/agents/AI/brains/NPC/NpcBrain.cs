@@ -1,6 +1,6 @@
-// NPC decision brain for ambient movement and player-reactive behaviors.
-// Blends wander logic with configurable reaction modes (watch/approach/flee/etc).
-// Outputs MoveIntent commands for the active movement motor.
+// OBSOLETE: Replaced by the modular behaviour system (BehaviourModuleBase / IBehaviourModule).
+// Kept for prefab compatibility. Migrate to WatchModule + WanderModule + IdleLookAroundModule etc.
+// This brain still works — AgentController picks it up as a legacy IAgentBrain fallback.
 using UnityEngine;
 using UnityEngine.AI;
 

@@ -1,6 +1,6 @@
-// Enemy decision brain that switches between wandering and chasing a target.
-// Handles target acquisition/loss rules and close-range stop behavior.
-// Produces MoveIntent values consumed by the agent motor.
+// OBSOLETE: Replaced by the modular behaviour system (BehaviourModuleBase / IBehaviourModule).
+// Kept for prefab compatibility. Migrate to ChaseModule + WanderModule + EntityCombatModule.
+// This brain still works — AgentController picks it up as a legacy IAgentBrain fallback.
 using UnityEngine;
 
 public class EnemyBrain : MonoBehaviour, IAgentBrain

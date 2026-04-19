@@ -1895,6 +1895,7 @@ GameObject:
   - component: {fileID: 5168443937185367202}
   - component: {fileID: -2643361993383661770}
   - component: {fileID: 3912737409627460444}
+  - component: {fileID: 1030749303827801779}
   m_Layer: 0
   m_Name: Cath
   m_TagString: Untagged
@@ -2111,9 +2112,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9f3daeabc7b5491097940d9275e8162, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AgentController
-  brainComponent: {fileID: 5168443937185367202}
   motorComponent: {fileID: 1783219288637548597}
   animatorDriver: {fileID: 3912737409627460444}
+  nearbyAgentScanRadius: 0
+  nearbyAgentLayer:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!114 &3912737409627460444
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2128,6 +2132,34 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AgentAnimatorDriver
   animator: {fileID: 9077958314811689216}
   animationSpeedMultiplier: 2.4
+--- !u!114 &1030749303827801779
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5802214957463739635}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e75d8590c5d04d7fb36131d4391f62f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HerdPatrolModule
+  priority: 10
+  active: 1
+  baseTransform: {fileID: 4682265717552514664, guid: 8ce8d6dcd03844ea4a664ac19fb34665, type: 3}
+  patrolRadius: 80
+  sampleDistance: 8
+  minDestinationDistance: 8
+  minWaitTime: 0.4
+  maxWaitTime: 2.5
+  separationRadius: 3
+  separationWeight: 2.4
+  cohesionWeight: 1.1
+  alignmentWeight: 0.7
+  herdInfluence: 0.55
+  stepDistance: 6
+  stopDistance: 0.35
+  speedMultiplier: 1
 --- !u!1 &5829302077528479393
 GameObject:
   m_ObjectHideFlags: 0

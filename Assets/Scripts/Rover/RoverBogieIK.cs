@@ -351,7 +351,7 @@ public class RoverBogieIK : MonoBehaviour
                 true,
                 wheelMount,
                 origin,
-                hit.point,
+                hit.point + hit.normal * wheelGroundOffset,
                 hit.normal
             );
         }

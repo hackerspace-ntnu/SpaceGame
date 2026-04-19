@@ -34,7 +34,7 @@ public class PlayerController : MonoBehaviour
 
     private void Start()
     {
-        var streamer = FindObjectOfType<WorldStreamer>();
+        var streamer = FindFirstObjectByType<WorldStreamer>();
         if (streamer == null) return;
 
         streamer.RegisterTrackedTransform(transform);
@@ -53,7 +53,7 @@ public class PlayerController : MonoBehaviour
 
     private void OnDestroy()
     {
-        var streamer = FindObjectOfType<WorldStreamer>();
+        var streamer = FindFirstObjectByType<WorldStreamer>();
         if (streamer != null)
             streamer.UnregisterTrackedTransform(transform);
     }

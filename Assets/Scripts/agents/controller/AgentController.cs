@@ -1,153 +1,194 @@
-// Main runtime coordinator for agent entities.
-// Collects context, asks the selected brain for intent, then ticks the movement motor.
-// Optionally updates agent animation using the current motor state.
+// Main runtime coordinator for entity agents.
+// Each frame: ticks all side-effect modules (ClaimsMovement==false) unconditionally, then
+// evaluates movement modules (ClaimsMovement==true) highest-priority first — first non-null wins.
+// Also supports the legacy IAgentBrain interface so old prefabs don't break immediately.
+using System.Collections.Generic;
 using UnityEngine;
-using System.Text;
 
 public class AgentController : MonoBehaviour
 {
     [Header("Dependencies")]
-    [SerializeField] private MonoBehaviour brainComponent;
-    [SerializeField] private MonoBehaviour motorComponent;
+    [SerializeField] private MonoBehaviour MotorComponent;
     [SerializeField] private AgentAnimatorDriver animatorDriver;
 
-    private IAgentBrain brain;
-    private IMovementMotor motor;
+    [Header("Nearby Agents (Flocking)")]
+    [Tooltip("Radius within which nearby agents are gathered for FlockingModule. 0 = disabled.")]
+    [SerializeField] private float nearbyAgentScanRadius = 0f;
+    [SerializeField] private LayerMask nearbyAgentLayer;
+
+    public IMovementMotor Motor { get; private set; }
+    private IBehaviourModule[] movementModules;   // ClaimsMovement == true, sorted by priority
+    private IBehaviourModule[] sideEffectModules; // ClaimsMovement == false, ticked every frame
+    private IAgentBrain legacyBrain;
+
+    // Reused buffers for neighbour scan — instance-level to avoid cross-agent corruption.
+    private readonly Collider[] neighbourBuffer = new Collider[32];
+    private readonly Vector3[] nearbyPositionBuffer = new Vector3[32];
+    private readonly Vector3[] nearbyVelocityBuffer = new Vector3[32];
 
     private void Awake()
     {
-        ResolveDependencies();
+        ResolveMotor();
+        ResolveModules();
     }
 
     private void Update()
     {
-        if (brain == null || motor == null)
-        {
+        if (Motor == null)
             return;
-        }
 
-        AgentContext context = new AgentContext
+        float deltaTime = Time.deltaTime;
+        AgentContext context = BuildContext();
+        MoveIntent intent = EvaluateModules(in context, deltaTime);
+        Motor.Tick(in intent, deltaTime);
+
+        if (animatorDriver)
+            animatorDriver.Tick(Motor.Velocity, Motor.IsImmobile);
+    }
+
+    // ──────────────────────────────────────────────
+    // Context
+    // ──────────────────────────────────────────────
+
+    private AgentContext BuildContext()
+    {
+        AgentContext ctx = new AgentContext
         {
             Self = transform,
             Position = transform.position,
-            Velocity = motor.Velocity,
-            HasReachedDestination = motor.HasReachedDestination,
-            IsImmobile = motor.IsImmobile
+            Velocity = Motor.Velocity,
+            HasReachedDestination = Motor.HasReachedDestination,
+            IsImmobile = Motor.IsImmobile,
         };
 
-        MoveIntent intent = brain.Tick(in context, Time.deltaTime);
-        motor.Tick(in intent, Time.deltaTime);
-
-        if (animatorDriver)
+        if (nearbyAgentScanRadius > 0f)
         {
-            animatorDriver.Tick(motor.Velocity, motor.IsImmobile);
+            int count = Physics.OverlapSphereNonAlloc(transform.position, nearbyAgentScanRadius, neighbourBuffer, nearbyAgentLayer);
+            int written = 0;
+            for (int i = 0; i < count && written < nearbyPositionBuffer.Length; i++)
+            {
+                Transform t = neighbourBuffer[i].transform;
+                if (t == transform)
+                    continue;
+                nearbyPositionBuffer[written] = t.position;
+                // Populate velocity from NavMeshAgentMotor if available.
+                IMovementMotor neighbourMotor = t.GetComponent<IMovementMotor>();
+                nearbyVelocityBuffer[written] = neighbourMotor != null ? neighbourMotor.Velocity : Vector3.zero;
+                written++;
+            }
+            ctx.NearbyAgentPositions = nearbyPositionBuffer;
+            ctx.NearbyAgentVelocities = nearbyVelocityBuffer;
+            ctx.NearbyAgentCount = written;
         }
+
+        return ctx;
     }
 
-    private void ResolveDependencies()
+    // ──────────────────────────────────────────────
+    // Module evaluation
+    // ──────────────────────────────────────────────
+
+    private MoveIntent EvaluateModules(in AgentContext context, float deltaTime)
     {
-        if (brainComponent != null && brainComponent is not IAgentBrain)
+        // Always tick side-effect modules (attacks, audio, etc.) — they never produce a MoveIntent.
+        if (sideEffectModules != null)
         {
-            Debug.LogWarning($"{name}: Assigned brainComponent does not implement IAgentBrain. Auto-resolving instead.", this);
-            brainComponent = null;
-        }
-
-        if (motorComponent != null && motorComponent is not IMovementMotor)
-        {
-            Debug.LogWarning($"{name}: Assigned motorComponent does not implement IMovementMotor. Auto-resolving instead.", this);
-            motorComponent = null;
-        }
-
-        if (brainComponent == null)
-        {
-            brainComponent = FindPreferredBrain(GetComponents<MonoBehaviour>());
-
-            if (brainComponent == null)
+            foreach (IBehaviourModule module in sideEffectModules)
             {
-                brainComponent = FindPreferredBrain(GetComponentsInChildren<MonoBehaviour>(true));
+                if (module.IsActive)
+                    module.Tick(in context, deltaTime);
             }
         }
 
-        if (motorComponent == null)
+        // First movement module to return non-null wins this frame.
+        if (movementModules != null)
         {
-            foreach (MonoBehaviour component in GetComponents<MonoBehaviour>())
+            foreach (IBehaviourModule module in movementModules)
             {
-                if (component is IMovementMotor)
+                if (!module.IsActive)
+                    continue;
+
+                MoveIntent? result = module.Tick(in context, deltaTime);
+                if (result.HasValue)
+                    return result.Value;
+            }
+        }
+
+        // Fall back to legacy brain if present (old NpcBrain / EnemyBrain on same prefab).
+        if (legacyBrain != null)
+            return legacyBrain.Tick(in context, deltaTime);
+
+        return MoveIntent.Idle();
+    }
+
+    // ──────────────────────────────────────────────
+    // Setup
+    // ──────────────────────────────────────────────
+
+    private void ResolveModules()
+    {
+        List<IBehaviourModule> movement = new List<IBehaviourModule>();
+        List<IBehaviourModule> sideEffects = new List<IBehaviourModule>();
+
+        foreach (MonoBehaviour mb in GetComponentsInChildren<MonoBehaviour>(true))
+        {
+            if (mb is IBehaviourModule module)
+            {
+                if (module.ClaimsMovement)
+                    movement.Add(module);
+                else
+                    sideEffects.Add(module);
+            }
+        }
+
+        // Stable sort movement modules: highest priority first.
+        movement.Sort((a, b) => b.Priority.CompareTo(a.Priority));
+        movementModules   = movement.ToArray();
+        sideEffectModules = sideEffects.ToArray();
+
+        // Legacy fallback: pick up any old IAgentBrain that isn't also IBehaviourModule.
+        foreach (MonoBehaviour mb in GetComponentsInChildren<MonoBehaviour>(true))
+        {
+            if (mb is IAgentBrain brain && mb is not IBehaviourModule)
+            {
+                legacyBrain = brain;
+                break;
+            }
+        }
+
+        if (movementModules.Length == 0 && legacyBrain == null)
+            Debug.LogWarning($"{name}: AgentController found no movement IBehaviourModule or IAgentBrain. Add at least one module.", this);
+    }
+
+    private void ResolveMotor()
+    {
+        if (MotorComponent != null && MotorComponent is not IMovementMotor)
+        {
+            Debug.LogWarning($"{name}: MotorComponent does not implement IMovementMotor. Auto-resolving.", this);
+            MotorComponent = null;
+        }
+
+        if (MotorComponent == null)
+        {
+            foreach (MonoBehaviour mb in GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                if (mb is IMovementMotor)
                 {
-                    motorComponent = component;
+                    MotorComponent = mb;
                     break;
                 }
             }
-
-            if (motorComponent == null)
-            {
-                foreach (MonoBehaviour component in GetComponentsInChildren<MonoBehaviour>(true))
-                {
-                    if (component is IMovementMotor)
-                    {
-                        motorComponent = component;
-                        break;
-                    }
-                }
-            }
         }
 
         if (animatorDriver == null)
-        {
-            animatorDriver = GetComponent<AgentAnimatorDriver>();
-        }
-
-        if (animatorDriver == null)
-        {
             animatorDriver = GetComponentInChildren<AgentAnimatorDriver>(true);
-        }
 
-        brain = brainComponent as IAgentBrain;
-        motor = motorComponent as IMovementMotor;
+        Motor = MotorComponent as IMovementMotor;
 
-        if (brain == null || motor == null)
-        {
-            StringBuilder message = new StringBuilder();
-            message.Append($"{name}: AgentController setup is incomplete.");
-
-            if (brain == null)
-            {
-                message.Append(" Missing IAgentBrain.");
-            }
-
-            if (motor == null)
-            {
-                message.Append(" Missing IMovementMotor.");
-            }
-
-            message.Append(" Add NpcBrain or EnemyBrain + NavMeshAgentMotor (or equivalent) on this object or its children.");
-            Debug.LogError(message.ToString(), this);
-        }
+        if (Motor == null)
+            Debug.LogError($"{name}: AgentController could not find an IMovementMotor. Add NavMeshAgentMotor (or equivalent).", this);
     }
 
-    private static MonoBehaviour FindPreferredBrain(MonoBehaviour[] components)
-    {
-        MonoBehaviour fallback = null;
-
-        foreach (MonoBehaviour component in components)
-        {
-            if (component is not IAgentBrain)
-            {
-                continue;
-            }
-
-            if (fallback == null)
-            {
-                fallback = component;
-            }
-
-            string typeName = component.GetType().Name;
-            if (typeName == nameof(MountedAgentBrain) || typeName.EndsWith("MountedBrain"))
-            {
-                return component;
-            }
-        }
-
-        return fallback;
-    }
+    // Allow modules or external systems to force a live refresh (e.g. after adding components at runtime).
+    public void RefreshModules() => ResolveModules();
 }

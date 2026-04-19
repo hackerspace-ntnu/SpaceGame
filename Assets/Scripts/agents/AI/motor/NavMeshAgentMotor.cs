@@ -49,6 +49,16 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
 
     public bool IsImmobile => !agent || !agent.isOnNavMesh || agent.isStopped;
 
+    public Vector3? CurrentDestination
+    {
+        get
+        {
+            if (!IsAgentReady || agent.isStopped || !agent.hasPath)
+                return null;
+            return agent.destination;
+        }
+    }
+
     public bool HasReachedDestination
     {
         get
@@ -127,6 +137,28 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
     public void ForceStop()
     {
         StopAgentPath();
+    }
+
+    public void NudgeDestination(Vector3 offset)
+    {
+        if (!IsAgentReady || agent.isStopped || !agent.hasPath)
+            return;
+
+        Vector3 nudged = agent.destination + offset;
+        if (NavMesh.SamplePosition(nudged, out NavMeshHit hit, 2f, NavMesh.AllAreas))
+            agent.SetDestination(hit.position);
+    }
+
+    public void SuggestDestination(Vector3 position)
+    {
+        if (!IsAgentReady)
+            return;
+
+        if (NavMesh.SamplePosition(position, out NavMeshHit hit, 4f, NavMesh.AllAreas))
+        {
+            agent.isStopped = false;
+            agent.SetDestination(hit.position);
+        }
     }
 
     public void RequestJump()

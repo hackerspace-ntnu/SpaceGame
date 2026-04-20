@@ -88,6 +88,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &8364792314360643588
 GameObject:
@@ -142,15 +143,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 12.3
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.32
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -11.9
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
       propertyPath: m_LocalRotation.w
@@ -442,6 +443,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
       insertIndex: -1
       addedObject: {fileID: -270169135618391896}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7122486407198757050}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7617495984892818894}
   m_SourcePrefab: {fileID: 100100000, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
 --- !u!1 &2490650498845839401 stripped
 GameObject:
@@ -460,16 +467,75 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5b2d6b5833a5434faf803bbdd4fdc71, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BallLightningWeapon
+  maxUses: -1
+  useSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
   aimCamera: {fileID: 0}
   firePoint: {fileID: 0}
-  projectilePrefab: {fileID: 8231820350441839728, guid: 0d7c7f92c34842e44a41c93acf1ad89a, type: 3}
-  barrelTransform: {fileID: 6802091012970300938}
   fireRate: 6
   spawnOffset: 0
-  maxAimDistance: 300
   aimMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  magazine: {fileID: 0}
+  ammoPerShot: 1
+  fireSoundName: 
+  fireSoundVolume: 1
+  projectilePrefab: {fileID: 0}
+  projectileSpawnPoint: {fileID: 0}
+--- !u!65 &7122486407198757050
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2490650498845839401}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1.52, z: 8.03}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!54 &7617495984892818894
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2490650498845839401}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!4 &3016076678442732179 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}

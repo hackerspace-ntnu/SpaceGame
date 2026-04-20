@@ -1,11 +1,14 @@
 using UnityEngine;
 
-public class BallLightningProjectile : MonoBehaviour
+/// <summary>
+/// BallLightning projectile implementation.
+/// Extends abstract Projectile class with wandering AI movement,
+/// hover behavior, and lightning effects.
+/// </summary>
+public class BallLightningProjectile : Projectile
 {
     [Header("Movement")]
     [SerializeField] private float speed = 45f;
-    [SerializeField] private float lifeTime = 2.2f;
-    [SerializeField] private float collisionRadius = 0.2f;
     [SerializeField] private float wanderStrength = 4.5f;
     [SerializeField] private float wanderFrequency = 1.8f;
     [SerializeField] private float bobAmplitude = 0.45f;
@@ -19,11 +22,6 @@ public class BallLightningProjectile : MonoBehaviour
     [SerializeField] private float hoverRayDistance = 8f;
     [SerializeField] private float hoverCorrectionStrength = 5f;
     [SerializeField] private float maxVerticalCorrection = 3f;
-
-    [Header("Damage")]
-    [SerializeField] private int damage = 20;
-    [SerializeField] private LayerMask hitMask = ~0;
-    [SerializeField] private bool destroyOnHit = true;
 
     [Header("Projectile Light")]
     [SerializeField] private Light projectileLight;
@@ -45,41 +43,9 @@ public class BallLightningProjectile : MonoBehaviour
     [SerializeField] private float impactSpotIntensity = 35f;
     [SerializeField] private float impactSpotLifetime = 0.25f;
 
-    private Vector3 direction = Vector3.forward;
-    private Transform ownerRoot;
-    private bool initialized;
-    private float spawnTime;
     private float noiseSeed;
     private float bobPhase;
     private float lightNoiseSeed;
-
-    public void Initialize(Vector3 forwardDirection, Transform owner, Vector3 startPosition)
-    {
-        direction = forwardDirection.sqrMagnitude > 0.0001f ? forwardDirection.normalized : Vector3.forward;
-        ownerRoot = owner ? owner.root : null;
-        initialized = true;
-        spawnTime = Time.time;
-        noiseSeed = Random.Range(0f, 1000f);
-        bobPhase = Random.Range(0f, Mathf.PI * 2f);
-        lightNoiseSeed = Random.Range(0f, 1000f);
-
-        // Set projectile start position
-        transform.position = startPosition;
-
-        if (direction.sqrMagnitude > 0.0001f)
-        {
-            transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
-        }
-
-        CancelInvoke(nameof(DestroySelf));
-        Invoke(nameof(DestroySelf), lifeTime);
-    }
-
-    // For backward compatibility, keep the old Initialize signature:
-    public void Initialize(Vector3 forwardDirection, Transform owner)
-    {
-        Initialize(forwardDirection, owner, transform.position);
-    }
 
     private void OnEnable()
     {
@@ -102,32 +68,49 @@ public class BallLightningProjectile : MonoBehaviour
         {
             TrySyncColorsFromShader();
         }
+    }
 
-        if (!initialized)
-        {
-            CancelInvoke(nameof(DestroySelf));
-            Invoke(nameof(DestroySelf), lifeTime);
-        }
+    public override void Initialize(Vector3 forwardDirection, Transform owner, Vector3 startPosition)
+    {
+        base.Initialize(forwardDirection, owner, startPosition);
+
+        noiseSeed = Random.Range(0f, 1000f);
+        bobPhase = Random.Range(0f, Mathf.PI * 2f);
+        lightNoiseSeed = Random.Range(0f, 1000f);
     }
 
     private void Update()
     {
-        float elapsed = Time.time - spawnTime;
+        if (!initialized)
+        {
+            return;
+        }
+
+        UpdateMovement();
+    }
+
+    protected override void UpdateMovement()
+    {
+        float elapsed = GetElapsedTime();
         Vector3 frameVelocity = direction * speed;
 
+        // Calculate right axis for wandering
         Vector3 rightAxis = Vector3.Cross(Vector3.up, direction).normalized;
         if (rightAxis.sqrMagnitude < 0.0001f)
         {
             rightAxis = transform.right;
         }
 
+        // Wander behavior
         float wanderSampleA = Mathf.PerlinNoise(noiseSeed, elapsed * wanderFrequency) * 2f - 1f;
         float wanderSampleB = Mathf.PerlinNoise(noiseSeed + 17.31f, elapsed * wanderFrequency * 0.73f) * 2f - 1f;
         Vector3 wanderVelocity = (rightAxis * wanderSampleA + Vector3.up * wanderSampleB * 0.45f) * wanderStrength;
 
+        // Bob behavior
         float bob = Mathf.Sin(elapsed * bobFrequency + bobPhase) * bobAmplitude;
         Vector3 bobVelocity = Vector3.up * bob;
 
+        // Hover correction
         Vector3 hoverVelocity = Vector3.zero;
         if (hoverAboveGround)
         {
@@ -146,6 +129,7 @@ public class BallLightningProjectile : MonoBehaviour
 
         Vector3 moveDelta = frameVelocity * Time.deltaTime;
         float travelDistance = moveDelta.magnitude;
+
         if (travelDistance <= 0.0001f)
         {
             return;
@@ -155,6 +139,7 @@ public class BallLightningProjectile : MonoBehaviour
         Vector3 start = transform.position;
         Vector3 end = start + moveDelta;
 
+        // Collision check with sphere cast
         if (Physics.SphereCast(start, collisionRadius, moveDir, out RaycastHit hit, travelDistance, hitMask, QueryTriggerInteraction.Ignore))
         {
             if (!IsOwnerHit(hit.collider.transform))
@@ -167,6 +152,7 @@ public class BallLightningProjectile : MonoBehaviour
 
         transform.position = end;
 
+        // Update rotation to face direction of movement
         Vector3 planarForward = new Vector3(moveDir.x, 0f, moveDir.z);
         if (planarForward.sqrMagnitude > 0.0001f)
         {
@@ -176,33 +162,11 @@ public class BallLightningProjectile : MonoBehaviour
         UpdateProjectileLight(elapsed);
     }
 
-    private bool IsOwnerHit(Transform hitTransform)
+    protected override void OnImpact(Vector3 position, Vector3 normal, Collider hitCollider)
     {
-        if (ownerRoot == null || hitTransform == null)
-        {
-            return false;
-        }
-
-        return hitTransform.root == ownerRoot;
-    }
-
-    private void HandleHit(RaycastHit hit)
-    {
-        Collider other = hit.collider;
-        HealthComponent health = other.GetComponentInParent<HealthComponent>();
-        if (health != null)
-        {
-            health.Damage(damage);
-        }
-
         if (spawnImpactSpotlight)
         {
-            SpawnImpactSpotlight(hit.point, hit.normal);
-        }
-
-        if (destroyOnHit)
-        {
-            DestroySelf();
+            SpawnImpactSpotlight(position, normal);
         }
     }
 
@@ -270,10 +234,5 @@ public class BallLightningProjectile : MonoBehaviour
             Color candidate = material.GetColor("_CorePunchColor");
             boltLightColor = Color.Lerp(candidate, new Color(1.0f, 0.35f, 0.85f), 0.55f);
         }
-    }
-
-    private void DestroySelf()
-    {
-        Destroy(gameObject);
     }
 }

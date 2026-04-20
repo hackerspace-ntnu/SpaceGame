@@ -27,6 +27,15 @@ public class EquipItemSocket
 
         Setup(currentObject);
 
+        // If this is a weapon with a Handle1, position the weapon so Handle1 is at the socket
+        Weapon weapon = currentObject.GetComponent<Weapon>();
+        if (weapon != null && weapon.Handle1 != null)
+        {
+            // Offset the weapon's root so that Handle1 aligns with the socket position
+            Vector3 offsetFromRoot = currentObject.transform.position - weapon.Handle1.position;
+            currentObject.transform.position = socket.position + offsetFromRoot;
+        }
+
         return currentObject;
     }
 

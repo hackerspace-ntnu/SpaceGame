@@ -12,6 +12,8 @@ public abstract class Weapon : UsableItem
     [Header("Weapon Configuration")]
     [SerializeField] protected Camera aimCamera;
     [SerializeField] protected Transform firePoint;
+    [SerializeField] protected Transform handle1; // Primary grip point (main hand attachment)
+    [SerializeField] protected Transform handle2; // Secondary grip point (support hand - for future use)
     [SerializeField] protected float fireRate = 1f; // Shots per second
     [SerializeField] protected float spawnOffset = 0.5f;
     [SerializeField] protected LayerMask aimMask = ~0;
@@ -36,6 +38,8 @@ public abstract class Weapon : UsableItem
     public int MaxAmmo => magazine != null ? magazine.MaxAmmo : 0;
     public float FireRatePercent => Mathf.Clamp01((Time.time - (nextFireTime - 1f / Mathf.Max(0.01f, fireRate))) / (1f / Mathf.Max(0.01f, fireRate)));
     public bool IsReadyToFire => Time.time >= nextFireTime;
+    public Transform Handle1 => handle1; // Primary grip point
+    public Transform Handle2 => handle2; // Secondary grip point
 
     protected virtual void OnEnable()
     {
@@ -67,6 +71,12 @@ public abstract class Weapon : UsableItem
         {
             magazine.OnAmmoChanged += OnMagazineAmmoChanged;
         }
+
+        // Warn if handles aren't set (they're optional for now, but should be configured)
+        if (handle1 == null)
+        {
+            Debug.LogWarning($"Weapon '{gameObject.name}' has no Handle1 assigned. Set this in the inspector to a child transform for proper hand attachment.", this);
+        }
     }
 
     protected virtual void OnDisable()
@@ -84,6 +94,32 @@ public abstract class Weapon : UsableItem
         {
             OnFireRateReady?.Invoke();
         }
+
+        // Rotate weapon to match camera pitch (up/down look direction)
+        UpdateWeaponRotation();
+    }
+
+    /// <summary>
+    /// Rotate weapon to point in the direction the camera is looking (pitch only).
+    /// </summary>
+    protected virtual void UpdateWeaponRotation()
+    {
+        if (aimCamera == null)
+        {
+            aimCamera = Camera.main;
+        }
+
+        if (aimCamera == null)
+        {
+            return;
+        }
+
+        // Get camera's forward direction
+        Vector3 cameraForward = aimCamera.transform.forward;
+
+        // Create a rotation that points toward the camera's forward direction
+        // This includes both pitch (up/down) and yaw (left/right)
+        transform.rotation = Quaternion.LookRotation(cameraForward, aimCamera.transform.up);
     }
 
     /// <summary>

@@ -55,6 +55,7 @@ public class NoiseReceiverModule : BehaviourModuleBase
         if ((aggroOn & typeMask) != 0 && chaseModule != null && instigator)
         {
             chaseModule.ForceTarget(instigator);
+            isInvestigating = false;
             return;
         }
 
@@ -65,6 +66,14 @@ public class NoiseReceiverModule : BehaviourModuleBase
             isInvestigating = true;
         }
     }
+
+    public override string ModuleDescription =>
+        "Hears noise events from nearby NoiseEmitters and reacts based on noise type.\n\n" +
+        "• investigateOn — noise types that trigger moving to the source (footsteps, gunshots)\n" +
+        "• aggroOn — noise types that immediately force-alert ChaseModule (alerts, hurt sounds)\n" +
+        "• investigateDuration — how long to investigate a noise source before giving up\n" +
+        "• Requires: ChaseModule for aggro response. NoiseEmitters in the scene emit the events.\n" +
+        "• OnHearNoise — UnityEvent fired on any heard noise, regardless of type mask";
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {

@@ -1,8 +1,9 @@
-// Drives melee or ranged attacks when a target is within range.
+// Drives melee attacks when a target is within range.
 // Extends BehaviourModuleBase so it participates in the module system:
 // it can be toggled, suppressed by MountSuppressor, and uses the shared priority field.
 // Does NOT move the entity — pair with ChaseModule (same or higher priority) for movement.
-// For ranged entities: set attackRange higher and hook OnAttack to a projectile spawner.
+// Optionally assign an AgentWeaponDefinition to drive damage from a shared asset.
+// For ranged combat use AgentRangedCombatModule instead.
 using System;
 using UnityEngine;
 using UnityEngine.Events;
@@ -13,6 +14,10 @@ public class EntityCombatModule : BehaviourModuleBase
     [SerializeField] private Transform target;
     [SerializeField] private string targetTag = "Player";
     [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Hostile;
+
+    [Header("Weapon")]
+    [Tooltip("Optional. When assigned, damage is taken from the weapon asset. Falls back to attackDamage below.")]
+    [SerializeField] private AgentWeaponDefinition weaponDefinition;
 
     [Header("Attack")]
     [SerializeField] private float attackRange = 2f;
@@ -45,9 +50,10 @@ public class EntityCombatModule : BehaviourModuleBase
 
     public override string ModuleDescription =>
         "Deals melee damage to a target when within attackRange. Never claims movement — runs alongside ChaseModule which handles positioning.\n\n" +
+        "• weaponDefinition — optional ScriptableObject; overrides attackDamage when assigned\n" +
         "• attackRange — distance at which hits land\n" +
         "• attackCooldown — seconds between attacks\n" +
-        "• attackDamage — HP removed per hit\n" +
+        "• attackDamage — HP removed per hit (ignored when weaponDefinition is set)\n" +
         "• OnAttack event — wire to animator triggers, VFX, or sound";
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
@@ -85,8 +91,9 @@ public class EntityCombatModule : BehaviourModuleBase
 
     private void Attack()
     {
+        int damage = weaponDefinition != null ? weaponDefinition.damagePerHit : attackDamage;
         if (targetDamageable != null && targetDamageable.Alive)
-            targetDamageable.Damage(attackDamage);
+            targetDamageable.Damage(damage);
 
         OnAttack?.Invoke(target);
         OnAttackEvent?.Invoke();

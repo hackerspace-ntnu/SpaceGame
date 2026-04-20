@@ -16,10 +16,18 @@ public class AgentController : MonoBehaviour
     [SerializeField] private float nearbyAgentScanRadius = 0f;
     [SerializeField] private LayerMask nearbyAgentLayer;
 
+    [Header("Speed Variation")]
+    [Tooltip("How much the agent's speed can drift above and below its base. 0.1 = ±10%.")]
+    [SerializeField] private float speedVariationAmount = 0.1f;
+    [Tooltip("How many seconds one full drift cycle takes.")]
+    [SerializeField] private float speedVariationPeriod = 6f;
+
     public IMovementMotor Motor { get; private set; }
     private IBehaviourModule[] movementModules;   // ClaimsMovement == true, sorted by priority
     private IBehaviourModule[] sideEffectModules; // ClaimsMovement == false, ticked every frame
     private IAgentBrain legacyBrain;
+    private HerdModule herdModule;
+    private float speedVariationPhase;
 
     // Reused buffers for neighbour scan — instance-level to avoid cross-agent corruption.
     private readonly Collider[] neighbourBuffer = new Collider[32];
@@ -30,6 +38,7 @@ public class AgentController : MonoBehaviour
     {
         ResolveMotor();
         ResolveModules();
+        speedVariationPhase = Random.Range(0f, Mathf.PI * 2f);
     }
 
     private void Update()
@@ -40,6 +49,13 @@ public class AgentController : MonoBehaviour
         float deltaTime = Time.deltaTime;
         AgentContext context = BuildContext();
         MoveIntent intent = EvaluateModules(in context, deltaTime);
+
+        if (speedVariationAmount > 0f && intent.Type == AgentIntentType.MoveToPosition)
+        {
+            float drift = 1f + Mathf.Sin(Time.time * (Mathf.PI * 2f / speedVariationPeriod) + speedVariationPhase) * speedVariationAmount;
+            intent.SpeedMultiplier *= drift;
+        }
+
         Motor.Tick(in intent, deltaTime);
 
         if (animatorDriver)
@@ -110,7 +126,12 @@ public class AgentController : MonoBehaviour
 
                 MoveIntent? result = module.Tick(in context, deltaTime);
                 if (result.HasValue)
+                {
+                    // Don't broadcast Idle — it would lock the whole herd in place.
+                    if (result.Value.Type != AgentIntentType.Idle)
+                        herdModule?.Publish(module.Priority, result.Value);
                     return result.Value;
+                }
             }
         }
 
@@ -145,6 +166,7 @@ public class AgentController : MonoBehaviour
         movement.Sort((a, b) => b.Priority.CompareTo(a.Priority));
         movementModules   = movement.ToArray();
         sideEffectModules = sideEffects.ToArray();
+        herdModule = GetComponentInChildren<HerdModule>(true);
 
         // Legacy fallback: pick up any old IAgentBrain that isn't also IBehaviourModule.
         foreach (MonoBehaviour mb in GetComponentsInChildren<MonoBehaviour>(true))

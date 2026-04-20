@@ -15,7 +15,7 @@ public class AlertReceiverModule : BehaviourModuleBase
     private float alertTimer;
     private ChaseModule chaseModule;
 
-    private void Reset() => SetPriorityDefault(ModulePriority.Reactive);
+    private void Reset() => SetPriorityDefault(ModulePriority.Reactive - 1); // 19 — yields to ChaseModule when it has a target
     private void Awake() => chaseModule = GetComponent<ChaseModule>();
     private void OnEnable() => ClearAlert();
 
@@ -36,6 +36,13 @@ public class AlertReceiverModule : BehaviourModuleBase
         alertTarget = null;
         alertTimer = 0f;
     }
+
+    public override string ModuleDescription =>
+        "Receives alerts from allied AlertBroadcasters and investigates the reported position.\n\n" +
+        "• When an ally spots a target, this module forces ChaseModule to acquire it immediately.\n" +
+        "• If ChaseModule can't independently confirm the target, moves to the last known alert position instead.\n" +
+        "• alertDuration — how long to investigate before giving up\n" +
+        "• Requires: ChaseModule on the same entity. Add AlertBroadcaster to broadcasting allies.";
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {

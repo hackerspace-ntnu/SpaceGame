@@ -50,7 +50,7 @@ public class FleeModule : BehaviourModuleBase
         if (TryGetFleeDestination(context.Position, threat.position, out Vector3 dest))
             return MoveIntent.MoveTo(dest, stopDistance, fleeSpeedMultiplier);
 
-        return MoveIntent.StopAndFace(threat.position);
+        return null;
     }
 
     private bool TryGetFleeDestination(Vector3 self, Vector3 threatPos, out Vector3 destination)

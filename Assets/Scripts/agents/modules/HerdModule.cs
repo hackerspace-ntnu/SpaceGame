@@ -1,16 +1,20 @@
-// Keeps a herd moving together without overriding individual behaviours.
+// Distributes the highest-priority move intent across all herd members each frame.
 //
-//   SHARED DESTINATION — the herd maintains one shared target. The first member to start
-//   moving sets it; all others (idle or moving in a different direction) adopt a
-//   spread point around it so the group converges on one area instead of scattering.
+//   MOVING — all members follow the broadcast destination, each offset to a unique
+//   evenly-spaced slot on a circle around the target.
 //
-//   SEPARATION — nudges members apart when they get too close.
+//   SETTLING — once all members have arrived, the herd fans out to evenly-spaced
+//   positions around the group center. The broadcast clears only after every member
+//   has reached their settle slot, letting lower-priority modules pick the next move.
 //
-//   COHESION — biases each member's destination slightly toward the herd center.
+//   REACTIVE — chase/flee intents (priority >= Reactive) bypass spread and settling
+//   and are broadcast as-is so the whole herd reacts immediately.
 //
-// Combat, flee, and any reactive module are fully unaffected.
+// Combat and other reactive modules above Social priority are unaffected on the
+// member that owns them — they win locally and broadcast to the rest.
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class HerdModule : BehaviourModuleBase
 {
@@ -18,36 +22,54 @@ public class HerdModule : BehaviourModuleBase
     [Tooltip("Members with the same ID form one herd.")]
     [SerializeField] private string herdId = "default";
 
+    [Header("Spread")]
+    [Tooltip("Radius of the circle members spread out on when settling.")]
+    [SerializeField] private float settleRadius = 4f;
+    [Tooltip("How close a member must be to its settle slot to count as arrived.")]
+    [SerializeField] private float settleStopDistance = 0.6f;
+
+    [Header("Combat Spread")]
+    [Tooltip("Radius of the circle members spread to when a reactive intent (chase/flee) is broadcast. Prevents piling on the target.")]
+    [SerializeField] private float combatSpread = 3.5f;
+
     [Header("Separation")]
-    [Tooltip("Agents closer than this get pushed away.")]
+    [Tooltip("Agents closer than this get nudged apart.")]
     [SerializeField] private float separationRadius = 2f;
     [Tooltip("How strongly to push away from nearby members.")]
     [SerializeField] private float separationStrength = 0.8f;
 
-    [Header("Cohesion")]
-    [Tooltip("Radius within which other members count toward the herd center.")]
-    [SerializeField] private float cohesionRadius = 14f;
-    [Tooltip("How strongly to bias the current destination toward the herd center. Keep low (0.1–0.25).")]
-    [Range(0f, 1f)]
-    [SerializeField] private float cohesionStrength = 0.15f;
+    public override bool ClaimsMovement => true;
 
-    [Header("Destination Sharing")]
-    [Tooltip("Members within this range are considered part of the active group.")]
-    [SerializeField] private float shareRadius = 20f;
-    [Tooltip("Each member gets a random offset within this radius around the shared destination.")]
-    [SerializeField] private float destinationSpread = 2.5f;
+    // ── Shared state per herd ─────────────────────────────────────────────────
+    private struct BroadcastSlot
+    {
+        public int Priority;
+        public MoveIntent Intent;
+        public bool HasValue;
+    }
 
-    // Never claims movement — works entirely as a side-effect.
-    public override bool ClaimsMovement => false;
+    private enum HerdPhase { Idle, Moving, Settling }
 
-    // ── Static registry ───────────────────────────────────────────────────────
+    private struct HerdState
+    {
+        public HerdPhase Phase;
+        public Vector3 Destination;
+        public Vector3 SettleCenter;
+    }
+
     private static readonly Dictionary<string, List<HerdModule>> s_herds = new();
-    // One shared destination per herd ID. Null = no active target.
-    private static readonly Dictionary<string, Vector3?> s_herdDestinations = new();
+    private static readonly Dictionary<string, BroadcastSlot> s_broadcast = new();
+    private static readonly Dictionary<string, int> s_broadcastFrame = new();
+    private static readonly Dictionary<string, HerdState> s_state = new();
 
     private IMovementMotor motor;
-    public IMovementMotor Motor => motor;
 
+    // This member's assigned slot index on the settle circle — assigned once per settle phase.
+    private int mySlotIndex = -1;
+    private Vector3 mySlotPosition;
+    private bool slotAssigned;
+
+    // ── Registry ──────────────────────────────────────────────────────────────
     private static void Register(HerdModule m)
     {
         if (!s_herds.TryGetValue(m.herdId, out var list))
@@ -65,8 +87,25 @@ public class HerdModule : BehaviourModuleBase
             list.Remove(m);
     }
 
+    // Called by AgentController after it resolves a winning intent for this member.
+    public void Publish(int priority, MoveIntent intent)
+    {
+        int frame = Time.frameCount;
+        if (!s_broadcastFrame.TryGetValue(herdId, out int lastFrame) || lastFrame != frame)
+        {
+            s_broadcast[herdId] = default;
+            s_broadcastFrame[herdId] = frame;
+        }
+
+        if (!s_broadcast.TryGetValue(herdId, out BroadcastSlot slot) ||
+            !slot.HasValue || priority > slot.Priority)
+        {
+            s_broadcast[herdId] = new BroadcastSlot { Priority = priority, Intent = intent, HasValue = true };
+        }
+    }
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
-    private void Reset() => SetPriorityDefault(ModulePriority.Fallback);
+    private void Reset() => SetPriorityDefault(ModulePriority.Social);
 
     private void Start()
     {
@@ -81,16 +120,15 @@ public class HerdModule : BehaviourModuleBase
     private void OnDisable() => Unregister(this);
 
     public override string ModuleDescription =>
-        "Keeps herd members moving together by sharing one destination across the group.\n\n" +
-        "• The first member to move sets the shared destination; all others follow to a spread point around it.\n" +
-        "• When the whole herd reaches the target the shared destination is cleared so the next move is fresh.\n\n" +
-        "• herdId — string key grouping members (same ID = same herd)\n" +
-        "• separationRadius — members closer than this are pushed apart\n" +
-        "• separationStrength — push magnitude (applies even when idle)\n" +
-        "• cohesionRadius — range within which members pull toward the center\n" +
-        "• cohesionStrength — how strongly to bias toward center (0.1–0.25 recommended)\n" +
-        "• shareRadius — range within which members participate in the shared destination\n" +
-        "• destinationSpread — radius of random offset per member around the shared destination";
+        "Distributes the highest-priority move intent across all herd members each frame.\n\n" +
+        "• MOVING — all members move toward the broadcast destination, each to a unique evenly-spaced slot.\n" +
+        "• SETTLING — once arrived, members fan out to evenly-spaced positions around the group center.\n" +
+        "  The broadcast clears only after all members have settled, then lower-priority modules pick the next move.\n" +
+        "• REACTIVE — chase/flee bypass spread entirely; the whole herd reacts immediately.\n\n" +
+        "• herdId — string key grouping members into one herd\n" +
+        "• settleRadius — radius of the circle members spread to when settling\n" +
+        "• settleStopDistance — how close counts as arrived at settle slot\n" +
+        "• separationRadius / separationStrength — nudge apart members that are too close";
 
     // ── Tick ──────────────────────────────────────────────────────────────────
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
@@ -101,84 +139,190 @@ public class HerdModule : BehaviourModuleBase
         if (!s_herds.TryGetValue(herdId, out var members) || members.Count < 2)
             return null;
 
-        Vector3 myDestination = motor.CurrentDestination ?? Vector3.zero;
-        bool iAmMoving = motor.CurrentDestination.HasValue;
-
-        // If I just picked a new destination, register it as the herd's shared target.
-        if (iAmMoving)
-        {
-            if (!s_herdDestinations.TryGetValue(herdId, out Vector3? current) || current == null)
-                s_herdDestinations[herdId] = myDestination;
-        }
-
-        Vector3? sharedDestination = s_herdDestinations.TryGetValue(herdId, out var sd) ? sd : null;
-
-        Vector3 centerSum = Vector3.zero;
-        int cohesionCount = 0;
-        Vector3 separationForce = Vector3.zero;
-        int membersStillMoving = 0;
-
+        // Separation nudge (always).
         foreach (var other in members)
         {
             if (other == this || !other.isActiveAndEnabled)
                 continue;
 
             float dist = Vector3.Distance(context.Position, other.transform.position);
-
-            // Separation: push away from members that are too close.
             if (dist < separationRadius && dist > 0.001f)
             {
                 Vector3 away = context.Position - other.transform.position;
                 away.y = 0f;
-                separationForce += away.normalized * (1f - dist / separationRadius);
-            }
-
-            // Cohesion: accumulate herd center from nearby members.
-            if (dist <= cohesionRadius)
-            {
-                centerSum += other.transform.position;
-                cohesionCount++;
-            }
-
-            if (dist <= shareRadius)
-            {
-                // Sync: redirect members that are moving somewhere different to the shared destination.
-                if (sharedDestination.HasValue && other.Motor != null)
-                {
-                    Vector3? otherDest = other.Motor.CurrentDestination;
-                    bool otherIsMovingElsewhere = otherDest.HasValue &&
-                        Vector3.Distance(otherDest.Value, sharedDestination.Value) > destinationSpread * 2f;
-                    bool otherIsIdle = !otherDest.HasValue;
-
-                    if (otherIsIdle || otherIsMovingElsewhere)
-                    {
-                        Vector2 offset2D = Random.insideUnitCircle * destinationSpread;
-                        Vector3 spread = sharedDestination.Value + new Vector3(offset2D.x, 0f, offset2D.y);
-                        other.Motor.SuggestDestination(spread);
-                    }
-                }
-
-                if (other.Motor?.CurrentDestination.HasValue == true)
-                    membersStillMoving++;
+                motor.NudgeDestination(away.normalized * (separationStrength * (1f - dist / separationRadius)));
             }
         }
 
-        // Clear shared destination once the whole group has settled.
-        if (sharedDestination.HasValue && membersStillMoving == 0 && !iAmMoving)
-            s_herdDestinations[herdId] = null;
+        // Read last frame's broadcast.
+        if (!s_broadcast.TryGetValue(herdId, out BroadcastSlot slot) || !slot.HasValue)
+            return null;
 
-        // Apply separation nudge (always, even when idle).
-        if (separationForce.sqrMagnitude > 0.001f)
-            motor.NudgeDestination(separationForce.normalized * separationStrength);
+        MoveIntent broadcast = slot.Intent;
 
-        // Cohesion nudge on my own destination.
-        if (iAmMoving && cohesionCount > 0)
+        // Reactive intents (chase, flee, stop-and-face): spread members on a circle
+        // around the target so they surround it rather than piling on the same point.
+        if (slot.Priority >= ModulePriority.Reactive)
         {
-            Vector3 herdCenter = centerSum / cohesionCount;
-            Vector3 toCenter = herdCenter - context.Position;
-            toCenter.y = 0f;
-            if (toCenter.sqrMagnitude > 0.01f)
-                motor.NudgeDestination(toCenter.normalized * (toCenter.magnitude * cohesionStrength));
+            s_state[herdId] = default;
+
+            Vector3 combatCenter = broadcast.Type == AgentIntentType.StopAndFacePosition
+                ? broadcast.FacePosition
+                : broadcast.TargetPosition;
+
+            // Assign each agent the unoccupied slot closest to their current position,
+            // so no-one has to walk through others to reach the wrong side of the circle.
+            if (!slotAssigned)
+            {
+                int count = members.Count;
+                bool[] taken = new bool[count];
+
+                // First pass: let already-assigned members keep their slots.
+                foreach (var other in members)
+                {
+                    if (other == this || !other.isActiveAndEnabled) continue;
+                    if (other.slotAssigned)
+                        taken[other.mySlotIndex % count] = true;
+                }
+
+                // Pick nearest free slot for this member.
+                float bestDist = float.MaxValue;
+                int bestSlot = 0;
+                for (int i = 0; i < count; i++)
+                {
+                    if (taken[i]) continue;
+                    float a = i * (360f / count) * Mathf.Deg2Rad;
+                    Vector3 slotPos = combatCenter + new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a)) * combatSpread;
+                    float d = Vector3.Distance(context.Position, slotPos);
+                    if (d < bestDist) { bestDist = d; bestSlot = i; }
+                }
+
+                mySlotIndex = bestSlot;
+                slotAssigned = true;
+            }
+
+            float angle = mySlotIndex * (360f / members.Count) * Mathf.Deg2Rad;
+            Vector3 offset = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * combatSpread;
+            Vector3 candidate = combatCenter + offset;
+
+            if (NavMesh.SamplePosition(candidate, out NavMeshHit navHit, combatSpread, NavMesh.AllAreas))
+                broadcast.TargetPosition = navHit.position;
+            else
+                broadcast.TargetPosition = candidate;
+
+            broadcast.Type = AgentIntentType.MoveToPosition;
+            return broadcast;
+        }
+
+        // Non-positional intents with no spread logic: broadcast as-is.
+        if (broadcast.Type != AgentIntentType.MoveToPosition)
+        {
+            s_state[herdId] = default;
+            slotAssigned = false;
+            return broadcast;
+        }
+
+        // Get or update herd state.
+        if (!s_state.TryGetValue(herdId, out HerdState state))
+            state = default;
+
+        // New destination broadcast — switch to Moving and assign slots.
+        if (state.Phase == HerdPhase.Idle ||
+            Vector3.Distance(state.Destination, broadcast.TargetPosition) > 0.5f)
+        {
+            state.Phase = HerdPhase.Moving;
+            state.Destination = broadcast.TargetPosition;
+            s_state[herdId] = state;
+            slotAssigned = false;
+        }
+
+        if (state.Phase == HerdPhase.Moving)
+        {
+            // Assign a unique slot on a circle around the destination.
+            if (!slotAssigned)
+            {
+                mySlotIndex = members.IndexOf(this);
+                float angle = mySlotIndex * (360f / members.Count) * Mathf.Deg2Rad;
+                Vector3 offset = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * settleRadius;
+                Vector3 candidate = state.Destination + offset;
+                if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, settleRadius, NavMesh.AllAreas))
+                    mySlotPosition = hit.position;
+                else
+                    mySlotPosition = state.Destination;
+                slotAssigned = true;
+            }
+
+            // Check if all members have arrived.
+            bool allArrived = true;
+            foreach (var other in members)
+            {
+                if (!other.isActiveAndEnabled) continue;
+                if (Vector3.Distance(other.transform.position, other.mySlotPosition) > settleStopDistance + 0.5f)
+                {
+                    allArrived = false;
+                    break;
+                }
+            }
+
+            if (allArrived)
+            {
+                // Switch to settling: fan out from the group center.
+                Vector3 center = Vector3.zero;
+                int count = 0;
+                foreach (var other in members)
+                {
+                    if (!other.isActiveAndEnabled) continue;
+                    center += other.transform.position;
+                    count++;
+                }
+                center /= count;
+
+                state.Phase = HerdPhase.Settling;
+                state.SettleCenter = center;
+                s_state[herdId] = state;
+
+                // Assign evenly-spaced settle slots around the group center.
+                foreach (var other in members)
+                {
+                    if (!other.isActiveAndEnabled) continue;
+                    int idx = members.IndexOf(other);
+                    float angle = idx * (360f / members.Count) * Mathf.Deg2Rad;
+                    Vector3 offset = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * settleRadius;
+                    Vector3 candidate = center + offset;
+                    if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, settleRadius, NavMesh.AllAreas))
+                        other.mySlotPosition = hit.position;
+                    else
+                        other.mySlotPosition = center;
+                }
+            }
+
+            return MoveIntent.MoveTo(mySlotPosition, settleStopDistance, 1f);
+        }
+
+        if (state.Phase == HerdPhase.Settling)
+        {
+            // Check if all members have reached their settle slot.
+            bool allSettled = true;
+            foreach (var other in members)
+            {
+                if (!other.isActiveAndEnabled) continue;
+                if (Vector3.Distance(other.transform.position, other.mySlotPosition) > settleStopDistance + 0.2f)
+                {
+                    allSettled = false;
+                    break;
+                }
+            }
+
+            if (allSettled)
+            {
+                // Done — clear state so lower-priority modules pick the next move.
+                s_state[herdId] = default;
+                s_broadcast[herdId] = default;
+                slotAssigned = false;
+                return null;
+            }
+
+            return MoveIntent.MoveTo(mySlotPosition, settleStopDistance, 1f);
         }
 
         return null;
@@ -189,11 +333,10 @@ public class HerdModule : BehaviourModuleBase
     {
         if (string.IsNullOrWhiteSpace(herdId))
             herdId = "default";
-        separationRadius = Mathf.Max(0.1f, separationRadius);
+        combatSpread       = Mathf.Max(0.5f, combatSpread);
+        settleRadius       = Mathf.Max(0.5f, settleRadius);
+        settleStopDistance = Mathf.Max(0.1f, settleStopDistance);
+        separationRadius   = Mathf.Max(0.1f, separationRadius);
         separationStrength = Mathf.Max(0f, separationStrength);
-        cohesionRadius = Mathf.Max(separationRadius, cohesionRadius);
-        cohesionStrength = Mathf.Clamp01(cohesionStrength);
-        shareRadius = Mathf.Max(cohesionRadius, shareRadius);
-        destinationSpread = Mathf.Max(0f, destinationSpread);
     }
 }

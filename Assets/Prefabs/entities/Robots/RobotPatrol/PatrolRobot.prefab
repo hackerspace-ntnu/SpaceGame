@@ -216,7 +216,6 @@ GameObject:
   - component: {fileID: 1824085667345934116}
   - component: {fileID: 8080226799516551692}
   - component: {fileID: 265183514143828054}
-  - component: {fileID: 3263371614568491646}
   - component: {fileID: 8311379295706669771}
   - component: {fileID: 8183722105865903859}
   - component: {fileID: 2893093832651234806}
@@ -225,6 +224,10 @@ GameObject:
   - component: {fileID: 524557256601495323}
   - component: {fileID: -3559196977141645022}
   - component: {fileID: -2598982466493804936}
+  - component: {fileID: -6378742490638307093}
+  - component: {fileID: 1924074630592737745}
+  - component: {fileID: -6391014877555918980}
+  - component: {fileID: 8210118875136257248}
   m_Layer: 0
   m_Name: PatrolRobot
   m_TagString: Untagged
@@ -304,12 +307,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9f3daeabc7b5491097940d9275e8162, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AgentController
-  MotorComponent: {fileID: 0}
-  animatorDriver: {fileID: 0}
-  nearbyAgentScanRadius: 14
+  MotorComponent: {fileID: 1405644354602654759}
+  animatorDriver: {fileID: 6278956801260427360}
+  nearbyAgentScanRadius: 30
   nearbyAgentLayer:
     serializedVersion: 2
     m_Bits: 0
+  speedVariationAmount: 0.1
+  speedVariationPeriod: 6
 --- !u!114 &3470965047474242708
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -454,7 +459,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NoiseEmitter
   receiverLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 4294967295
 --- !u!114 &4776368252736565852
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -573,35 +578,6 @@ MonoBehaviour:
     Path: 
   despawnDelay: 12
   disableAgentOnDeath: 1
---- !u!114 &3263371614568491646
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1076306929392448245}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d5b2b08a4a4c840b39cb23adebf69029, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EntityCombatModule
-  priority: 20
-  active: 1
-  target: {fileID: 0}
-  targetTag: Player
-  requiredRelationship: 2
-  attackRange: 2.2
-  attackCooldown: 0.8
-  attackDamage: 18
-  OnAttack:
-    m_PersistentCalls:
-      m_Calls: []
-  OnEnterRange:
-    m_PersistentCalls:
-      m_Calls: []
-  OnExitRange:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!114 &8311379295706669771
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -736,12 +712,11 @@ MonoBehaviour:
   priority: 15
   active: 1
   herdId: default
+  settleRadius: 4
+  settleStopDistance: 0.6
+  combatSpread: 3.5
   separationRadius: 2
   separationStrength: 0.8
-  cohesionRadius: 14
-  cohesionStrength: 0.15
-  shareRadius: 20
-  destinationSpread: 2.5
 --- !u!114 &-3559196977141645022
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -780,6 +755,7 @@ MonoBehaviour:
   active: 1
   limitWanderRadius: 0
   wanderRadius: 0.1
+  freeRoamRadius: 50
   sampleDistance: 15
   minDestinationDistance: 1.5
   maxSampleAttempts: 10
@@ -787,6 +763,92 @@ MonoBehaviour:
   maxWaitTime: 2
   stopDistance: 0.2
   speedMultiplier: 1
+--- !u!114 &-6378742490638307093
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1076306929392448245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a76ab2054f26424dafb39fa6cc20c14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AgentRangedCombatModule
+  priority: 20
+  active: 1
+  target: {fileID: 0}
+  targetTag: Player
+  requiredRelationship: 2
+  weapon: {fileID: 11400000, guid: e353b7688558a49c7bd8586cda5e8398, type: 2}
+  fireProfile: {fileID: 11400000, guid: c19bbadfc9fe54b1eb3de0bedf171d10, type: 2}
+  aimProfile: {fileID: 11400000, guid: 7aa884b8ef85942f18fb0a63102ea09c, type: 2}
+  muzzleSocket: {fileID: 0}
+  OnFire:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMiss:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &1924074630592737745
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1076306929392448245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc48a3302b6d69f41839c4004ccf08a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
+  maxHealth: 100
+  currentHealth: 100
+--- !u!114 &-6391014877555918980
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1076306929392448245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7666b7ffc24fc44198de4ef7ac026b22, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LineOfSightRepositionModule
+  priority: 10
+  active: 1
+  target: {fileID: 0}
+  targetTag: Player
+  requiredRelationship: 2
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  searchRadius: 5
+  searchAttempts: 8
+  maxRange: 20
+  speedMultiplier: 1.2
+  stopDistance: 0.5
+--- !u!114 &8210118875136257248
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1076306929392448245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0085a5dcffc6475d8923b039f5addbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatSeparationModule
+  priority: 20
+  active: 1
+  agentLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  pushRadius: 2
+  pushStrength: 3
+  onlyDuringCombat: 1
 --- !u!1 &1133381225129490282
 GameObject:
   m_ObjectHideFlags: 0

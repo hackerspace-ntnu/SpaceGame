@@ -14,6 +14,8 @@ public class ChaseModule : BehaviourModuleBase
 
     [Header("Ranges")]
     [SerializeField] private float detectRange = 10f;
+    [Tooltip("Omnidirectional detection radius — bypasses FOV/LoS. Lets the agent react to targets that sneak up from behind. Should be <= detectRange.")]
+    [SerializeField] private float proximityDetectRange = 4f;
     [SerializeField] private float loseTargetRange = 14f;
     [SerializeField] private float attackRange = 1.8f;
 
@@ -58,10 +60,11 @@ public class ChaseModule : BehaviourModuleBase
     public override string ModuleDescription =>
         "Detects a target and chases it. Stops and faces the target when within attackRange. Loses the target beyond loseTargetRange.\n\n" +
         "• targetTag — tag used to find the target (default: Player)\n" +
-        "• detectRange — range at which the entity first notices the target\n" +
+        "• detectRange — range at which the entity notices the target (requires FOV+LoS if PerceptionModule present)\n" +
+        "• proximityDetectRange — inner omnidirectional range that bypasses FOV/LoS; lets the agent react to targets behind it\n" +
         "• attackRange — how close before the entity stops and faces\n" +
         "• loseTargetRange — target is forgotten beyond this distance\n" +
-        "• Add PerceptionModule to require FOV + line-of-sight before acquiring\n" +
+        "• Add PerceptionModule to require FOV + line-of-sight for the outer detectRange\n" +
         "• Add AlertBroadcaster to notify nearby allies when the target is first spotted\n" +
         "• OnEnterAttackRange event — wire to EntityCombatModule or animations";
 
@@ -73,12 +76,14 @@ public class ChaseModule : BehaviourModuleBase
 
         float distance = Vector3.Distance(context.Position, target.position);
 
-        // If a PerceptionModule is present, require LoS to acquire. Once acquired, chase persists through brief LoS breaks.
+        // Acquire target: proximity range ignores FOV/LoS (omnidirectional), outer detectRange requires CanSee.
         if (!hasTarget)
         {
             if (distance > detectRange)
                 return null;
-            if (perception != null && !perception.CanSee(target))
+
+            bool withinProximity = distance <= proximityDetectRange;
+            if (!withinProximity && perception != null && !perception.CanSee(target))
                 return null;
 
             hasTarget = true;
@@ -126,6 +131,7 @@ public class ChaseModule : BehaviourModuleBase
     protected override void OnValidate()
     {
         detectRange = Mathf.Max(0.1f, detectRange);
+        proximityDetectRange = Mathf.Clamp(proximityDetectRange, 0f, detectRange);
         loseTargetRange = Mathf.Max(detectRange, loseTargetRange);
         attackRange = Mathf.Max(0.1f, attackRange);
         chaseStopDistance = Mathf.Max(0.01f, chaseStopDistance);

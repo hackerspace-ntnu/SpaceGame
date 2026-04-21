@@ -25,6 +25,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2949769492445866411}
     - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: useSound.Path
       value: event:/SFX/Thunder
       objectReference: {fileID: 0}
@@ -32,6 +36,14 @@ PrefabInstance:
       propertyPath: projectilePrefab
       value: 
       objectReference: {fileID: -4999026456586161738, guid: 0d7c7f92c34842e44a41c93acf1ad89a, type: 3}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: recoilRotation.x
+      value: -117
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: recoilRecoverySpeed
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: useSound.Guid.Data1
       value: 1963259774
@@ -52,6 +64,30 @@ PrefabInstance:
       propertyPath: projectileSpawnPoint
       value: 
       objectReference: {fileID: 2949769492445866411}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: recoilPositionPunch.z
+      value: -1.15
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: recoilRecoveryDuration
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: recoilRecoveryFalloff.m_Curve.Array.data[0].time
+      value: 0.6020813
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: recoilRecoveryFalloff.m_Curve.Array.data[1].time
+      value: 1.0166626
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: recoilRecoveryFalloff.m_Curve.Array.data[0].value
+      value: 0.99642944
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: recoilRecoveryFalloff.m_Curve.Array.data[1].value
+      value: 0.0119018555
+      objectReference: {fileID: 0}
     - target: {fileID: 323723913112813014, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: m_LocalPosition.y
       value: -1.1
@@ -111,6 +147,10 @@ PrefabInstance:
     - target: {fileID: 6649430028773198538, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: m_LocalPosition.z
       value: -3.09
+      objectReference: {fileID: 0}
+    - target: {fileID: 7122486407198757050, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: m_Enabled
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7122486407198757050, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: m_IsTrigger

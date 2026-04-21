@@ -72,6 +72,10 @@ public abstract class Weapon : UsableItem
             magazine.OnAmmoChanged += OnMagazineAmmoChanged;
         }
 
+        // Reset firing state
+        nextFireTime = Time.time;
+        canFire = true;
+
         // Warn if handles aren't set (they're optional for now, but should be configured)
         if (handle1 == null)
         {
@@ -222,6 +226,8 @@ public abstract class Weapon : UsableItem
 
     /// <summary>
     /// Override CanUse() to check ammo.
+    /// Fire rate is checked in TryFire(), not here, because CanUse() must return true
+    /// for the UsableItem system to call Use() from the inventory.
     /// </summary>
     protected override bool CanUse()
     {
@@ -231,17 +237,14 @@ public abstract class Weapon : UsableItem
             return false;
         }
 
-        // Check if we have ammo and can fire
+        // Check if we have ammo
         if (magazine == null || magazine.IsEmpty)
         {
             return false;
         }
 
-        if (!IsReadyToFire)
-        {
-            return false;
-        }
-
+        // Fire rate is checked in TryFire(), not here
+        // This allows the inventory system to properly call Use()
         return true;
     }
 

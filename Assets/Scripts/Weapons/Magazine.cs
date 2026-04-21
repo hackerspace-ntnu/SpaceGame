@@ -28,6 +28,15 @@ public class Magazine : MonoBehaviour
         currentAmmo = maxAmmo;
     }
 
+    private void OnEnable()
+    {
+        // Ensure ammo is initialized (handles both creation and re-enable scenarios)
+        if (currentAmmo <= 0)
+        {
+            currentAmmo = maxAmmo;
+        }
+    }
+
     /// <summary>
     /// Consume ammo from the magazine.
     /// </summary>

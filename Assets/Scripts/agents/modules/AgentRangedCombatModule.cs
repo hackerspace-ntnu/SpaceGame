@@ -85,6 +85,9 @@ public class AgentRangedCombatModule : BehaviourModuleBase
             return null;
         }
 
+        if (!fireProfile.allowFireWhileRunning && context.IsMoving)
+            return null;
+
         float distance = Vector3.Distance(context.Position, target.position);
         if (distance < fireProfile.minRange || distance > fireProfile.maxRange)
         {

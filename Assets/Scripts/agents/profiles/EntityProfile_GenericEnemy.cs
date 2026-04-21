@@ -1,5 +1,6 @@
-// Data-only profile for robot groups that patrol around a base, move as a herd,
-// detect hostile entities nearby, and switch into fast melee or ranged attacks.
+// Generic enemy profile mirroring the PatrolRobot setup.
+// Add to a prefab, configure values in the Inspector, then click Generate.
+// After generating, this component can be removed — all modules are fully configured.
 using UnityEngine;
 
 public enum RobotHerdAttackStyle
@@ -10,13 +11,18 @@ public enum RobotHerdAttackStyle
     Mixed
 }
 
-public class EntityProfile_RobotHerdPatrol : MonoBehaviour
+public class EntityProfile_GenericEnemy : MonoBehaviour
 {
+    [TextArea(2, 4)]
+    public string description = "Generic enemy. Patrols a base area, moves as a herd, engages on detection.";
+
+    [Header("Health")]
+    public int maxHealth = 100;
+    public float despawnDelay = 12f;
+
     [Header("Base Patrol")]
     public Transform baseTransform;
     public float patrolRadius = 80f;
-    public float patrolSampleDistance = 8f;
-    public float patrolMinDestinationDistance = 8f;
     public float patrolMinWait = 0.4f;
     public float patrolMaxWait = 2.5f;
 
@@ -65,31 +71,22 @@ public class EntityProfile_RobotHerdPatrol : MonoBehaviour
     public float alertRadius = 28f;
     public LayerMask alertReceiverLayers;
 
-    [Header("Health / Loot")]
-    public float despawnDelay = 12f;
-
     private void OnValidate()
     {
+        maxHealth = Mathf.Max(1, maxHealth);
         patrolRadius = Mathf.Max(1f, patrolRadius);
-        patrolSampleDistance = Mathf.Max(0.5f, patrolSampleDistance);
-        patrolMinDestinationDistance = Mathf.Max(0.1f, patrolMinDestinationDistance);
         patrolMinWait = Mathf.Max(0f, patrolMinWait);
         patrolMaxWait = Mathf.Max(patrolMinWait, patrolMaxWait);
-
         herdSpeed = Mathf.Max(0.01f, herdSpeed);
-
         detectRange = Mathf.Max(0.1f, detectRange);
         loseTargetRange = Mathf.Max(detectRange, loseTargetRange);
         fieldOfViewAngle = Mathf.Clamp(fieldOfViewAngle, 1f, 360f);
         memoryDuration = Mathf.Max(0f, memoryDuration);
-
         chaseStopRange = Mathf.Max(0.1f, chaseStopRange);
         chaseSpeed = Mathf.Max(0.01f, chaseSpeed);
-
         meleeRange = Mathf.Max(0.1f, meleeRange);
         meleeCooldown = Mathf.Max(0.05f, meleeCooldown);
         meleeDamage = Mathf.Max(0, meleeDamage);
-
         minFireRange = Mathf.Max(0f, minFireRange);
         maxFireRange = Mathf.Max(minFireRange + 0.1f, maxFireRange);
         projectileSpeed = Mathf.Max(0.1f, projectileSpeed);
@@ -97,7 +94,6 @@ public class EntityProfile_RobotHerdPatrol : MonoBehaviour
         burstCount = Mathf.Max(1, burstCount);
         burstInterval = Mathf.Max(0.01f, burstInterval);
         spreadAngle = Mathf.Clamp(spreadAngle, 0f, 45f);
-
         keepDistanceDetect = Mathf.Max(0.1f, keepDistanceDetect);
         keepDistancePreferred = Mathf.Max(0.1f, keepDistancePreferred);
         keepDistanceSpeed = Mathf.Max(0.01f, keepDistanceSpeed);

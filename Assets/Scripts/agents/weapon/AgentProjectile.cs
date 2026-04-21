@@ -40,18 +40,22 @@ public class AgentProjectile : MonoBehaviour
 
         hasHit = true;
         Vector3 hitPos = collision.contacts.Length > 0 ? collision.contacts[0].point : transform.position;
+        Vector3 hitNormal = collision.contacts.Length > 0 ? collision.contacts[0].normal : -transform.forward;
 
         if (impactVfxPrefab != null)
-            Instantiate(impactVfxPrefab, hitPos, Quaternion.LookRotation(collision.contacts[0].normal));
+            Instantiate(impactVfxPrefab, hitPos, Quaternion.LookRotation(hitNormal));
 
-        // Ignore allied targets (friendly fire off).
-        if (shooterFaction != null && shooterFaction.IsHostileTo(collision.transform) == false)
+        IDamageable damageable = collision.gameObject.GetComponentInParent<IDamageable>();
+        EntityFaction hitFaction = collision.transform.GetComponentInParent<EntityFaction>();
+
+        // Friendly fire off: pass through explicitly allied damageables only.
+        // Unfactioned damageables are valid targets because targeting modules allow them.
+        if (damageable != null && shooterFaction != null && hitFaction != null && shooterFaction.IsAlliedWith(hitFaction))
         {
-            hasHit = false; // allow passing through allies
+            hasHit = false;
             return;
         }
 
-        IDamageable damageable = collision.gameObject.GetComponentInParent<IDamageable>();
         if (damageable != null && damageable.Alive)
         {
             damageable.Damage(damage);

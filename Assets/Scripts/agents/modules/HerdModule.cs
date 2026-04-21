@@ -28,16 +28,6 @@ public class HerdModule : BehaviourModuleBase
     [Tooltip("How close a member must be to its settle slot to count as arrived.")]
     [SerializeField] private float settleStopDistance = 0.6f;
 
-    [Header("Combat Spread")]
-    [Tooltip("Radius of the circle members spread to when a reactive intent (chase/flee) is broadcast. Prevents piling on the target.")]
-    [SerializeField] private float combatSpread = 3.5f;
-
-    [Header("Separation")]
-    [Tooltip("Agents closer than this get nudged apart.")]
-    [SerializeField] private float separationRadius = 2f;
-    [Tooltip("How strongly to push away from nearby members.")]
-    [SerializeField] private float separationStrength = 0.8f;
-
     public override bool ClaimsMovement => true;
 
     // ── Shared state per herd ─────────────────────────────────────────────────
@@ -139,78 +129,17 @@ public class HerdModule : BehaviourModuleBase
         if (!s_herds.TryGetValue(herdId, out var members) || members.Count < 2)
             return null;
 
-        // Separation nudge (always).
-        foreach (var other in members)
-        {
-            if (other == this || !other.isActiveAndEnabled)
-                continue;
-
-            float dist = Vector3.Distance(context.Position, other.transform.position);
-            if (dist < separationRadius && dist > 0.001f)
-            {
-                Vector3 away = context.Position - other.transform.position;
-                away.y = 0f;
-                motor.NudgeDestination(away.normalized * (separationStrength * (1f - dist / separationRadius)));
-            }
-        }
-
         // Read last frame's broadcast.
         if (!s_broadcast.TryGetValue(herdId, out BroadcastSlot slot) || !slot.HasValue)
             return null;
 
         MoveIntent broadcast = slot.Intent;
 
-        // Reactive intents (chase, flee, stop-and-face): spread members on a circle
-        // around the target so they surround it rather than piling on the same point.
+        // Reactive intents: broadcast as-is — CombatPositioningModule handles spread per agent.
         if (slot.Priority >= ModulePriority.Reactive)
         {
             s_state[herdId] = default;
-
-            Vector3 combatCenter = broadcast.Type == AgentIntentType.StopAndFacePosition
-                ? broadcast.FacePosition
-                : broadcast.TargetPosition;
-
-            // Assign each agent the unoccupied slot closest to their current position,
-            // so no-one has to walk through others to reach the wrong side of the circle.
-            if (!slotAssigned)
-            {
-                int count = members.Count;
-                bool[] taken = new bool[count];
-
-                // First pass: let already-assigned members keep their slots.
-                foreach (var other in members)
-                {
-                    if (other == this || !other.isActiveAndEnabled) continue;
-                    if (other.slotAssigned)
-                        taken[other.mySlotIndex % count] = true;
-                }
-
-                // Pick nearest free slot for this member.
-                float bestDist = float.MaxValue;
-                int bestSlot = 0;
-                for (int i = 0; i < count; i++)
-                {
-                    if (taken[i]) continue;
-                    float a = i * (360f / count) * Mathf.Deg2Rad;
-                    Vector3 slotPos = combatCenter + new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a)) * combatSpread;
-                    float d = Vector3.Distance(context.Position, slotPos);
-                    if (d < bestDist) { bestDist = d; bestSlot = i; }
-                }
-
-                mySlotIndex = bestSlot;
-                slotAssigned = true;
-            }
-
-            float angle = mySlotIndex * (360f / members.Count) * Mathf.Deg2Rad;
-            Vector3 offset = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * combatSpread;
-            Vector3 candidate = combatCenter + offset;
-
-            if (NavMesh.SamplePosition(candidate, out NavMeshHit navHit, combatSpread, NavMesh.AllAreas))
-                broadcast.TargetPosition = navHit.position;
-            else
-                broadcast.TargetPosition = candidate;
-
-            broadcast.Type = AgentIntentType.MoveToPosition;
+            slotAssigned = false;
             return broadcast;
         }
 
@@ -333,10 +262,7 @@ public class HerdModule : BehaviourModuleBase
     {
         if (string.IsNullOrWhiteSpace(herdId))
             herdId = "default";
-        combatSpread       = Mathf.Max(0.5f, combatSpread);
         settleRadius       = Mathf.Max(0.5f, settleRadius);
         settleStopDistance = Mathf.Max(0.1f, settleStopDistance);
-        separationRadius   = Mathf.Max(0.1f, separationRadius);
-        separationStrength = Mathf.Max(0f, separationStrength);
     }
 }

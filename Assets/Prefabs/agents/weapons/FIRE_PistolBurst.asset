@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: FIRE_PistolBurst
   m_EditorClassIdentifier: Assembly-CSharp::AgentFireProfile
   minRange: 0
-  maxRange: 14
+  maxRange: 22
+  allowFireWhileRunning: 0
   fireCooldown: 1.5
   burstCount: 2
   burstInterval: 0.15

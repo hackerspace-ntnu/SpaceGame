@@ -4,6 +4,12 @@ using UnityEngine;
 
 public class EntityProfile_NPC : MonoBehaviour
 {
+    [TextArea(2, 4)]
+    public string description = "A friendly NPC that wanders and flees from danger.";
+
+    [Header("Health")]
+    public int maxHealth = 80;
+
     [Header("Flee")]
     public float fleeRadius = 6f;
     public float fleeSafeRadius = 12f;

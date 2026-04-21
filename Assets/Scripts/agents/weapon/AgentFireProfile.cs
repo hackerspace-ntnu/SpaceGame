@@ -8,6 +8,9 @@ public class AgentFireProfile : ScriptableObject
     public float maxRange = 15f;
 
     [Header("Cadence")]
+    [Tooltip("If false, this profile will not fire while the agent is moving/running.")]
+    public bool allowFireWhileRunning = true;
+
     [Tooltip("Seconds between trigger pulls (or burst starts).")]
     public float fireCooldown = 1.2f;
 

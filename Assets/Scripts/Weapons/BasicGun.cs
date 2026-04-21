@@ -2,14 +2,14 @@ using UnityEngine;
 using Unity.Netcode;
 
 /// <summary>
-/// BallLightning weapon implementation.
-/// Extends abstract Weapon class to spawn BallLightningProjectile with
-/// proper ownership and networking support.
+/// BasicGun weapon implementation.
+/// A simple weapon that fires a single projectile with each shot.
+/// Extends the abstract Weapon class for inventory integration.
 /// </summary>
-public class BallLightningWeapon : Weapon
+public class BasicGun : Weapon
 {
-    [Header("BallLightning Projectile")]
-    [SerializeField] private BallLightningProjectile projectilePrefab;
+    [Header("Basic Projectile")]
+    [SerializeField] private BasicProjectile projectilePrefab;
     [SerializeField] private Transform projectileSpawnPoint;
 
     private NetworkObject networkOwner;
@@ -31,7 +31,7 @@ public class BallLightningWeapon : Weapon
     {
         if (projectilePrefab == null)
         {
-            Debug.LogError("BallLightningWeapon: Projectile prefab not assigned!", this);
+            Debug.LogError("BasicGun: Projectile prefab not assigned!", this);
             return;
         }
 
@@ -39,7 +39,7 @@ public class BallLightningWeapon : Weapon
         Vector3 fireDir = GetFireDirection();
 
         // Spawn projectile instance
-        BallLightningProjectile projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
+        BasicProjectile projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
 
         // Set owner for damage checks and networking
         Transform ownerRoot = networkOwner != null ? networkOwner.transform : transform.root;

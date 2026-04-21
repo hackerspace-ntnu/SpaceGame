@@ -41,14 +41,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3135100145107665175}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.8199275, b: 0, a: 1}
   m_Intensity: 20
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 0
     m_Resolution: -1
@@ -144,6 +144,7 @@ GameObject:
   - component: {fileID: 7258161178513121509}
   - component: {fileID: -4265280980628608086}
   - component: {fileID: 3655106206807437296}
+  - component: {fileID: -4999026456586161738}
   m_Layer: 0
   m_Name: BallLigthningProjectile
   m_TagString: Untagged
@@ -223,6 +224,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!64 &6261025932175022416
 MeshCollider:
@@ -274,48 +276,12 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5700003475246215283}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: beea2d59dad95a04ab83d1dd6f8b42b7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BallLightningProjectile
-  speed: 4
-  lifeTime: 20.2
-  collisionRadius: 0.2
-  wanderStrength: 4
-  wanderFrequency: 1
-  bobAmplitude: 2
-  bobFrequency: 4
-  hoverAboveGround: 1
-  groundMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  desiredHoverHeight: 2.5
-  hoverRayStartOffset: 3
-  hoverRayDistance: 8
-  hoverCorrectionStrength: 5
-  maxVerticalCorrection: 3
-  damage: 20
-  hitMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  destroyOnHit: 1
-  projectileLight: {fileID: 1353865374189628821}
-  lightningController: {fileID: 7258161178513121509}
-  colorSourceRenderer: {fileID: 4756947074320756583}
-  syncLightColorFromShader: 0
-  baseLightColor: {r: 0.21176468, g: 0.29745638, b: 0.7490196, a: 1}
-  boltLightColor: {r: 1, g: 0.4614268, b: 0, a: 1}
-  baseLightIntensity: 20
-  boltLightIntensity: 100
-  flickerAmplitude: 1
-  flickerFrequency: 242
-  lightResponseSpeed: 10
-  spawnImpactSpotlight: 1
-  impactSpotAngle: 70
-  impactSpotRange: 12
-  impactSpotIntensity: 3500
-  impactSpotLifetime: 0.25
+  deprecatedDoNotUse: 1
 --- !u!114 &7258161178513121509
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -331,7 +297,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 4756947074320756583}
   useScreenResolution: 1
   manualResolution: {x: 512, y: 512}
-  directBoltUv: {x: 38.755005, y: 36.52121}
+  directBoltUv: {x: -57.4118, y: 4.2311516}
   randomizeDirectBoltActivation: 1
   randomizeDirectBoltPosition: 1
   directBoltUvMin: {x: -60, y: -60}
@@ -386,6 +352,55 @@ MonoBehaviour:
   keepPreviousTargetIfNoHit: 1
   hitLightIntensity: 30
   hitLightHoverOffset: 0.12
+--- !u!114 &-4999026456586161738
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5700003475246215283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4daa893b035c3d74eb994a68fc02e9c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BallLightningProjectile
+  lifeTime: 5
+  collisionRadius: 0.1
+  hitMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  destroyOnHit: 1
+  damage: 10
+  speed: 10
+  wanderStrength: 4.5
+  wanderFrequency: 1.8
+  bobAmplitude: 0.45
+  bobFrequency: 4
+  hoverAboveGround: 1
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  desiredHoverHeight: 2.2
+  hoverRayStartOffset: 1.5
+  hoverRayDistance: 8
+  hoverCorrectionStrength: 5
+  maxVerticalCorrection: 3
+  projectileLight: {fileID: 1353865374189628821}
+  lightningController: {fileID: 7258161178513121509}
+  colorSourceRenderer: {fileID: 4756947074320756583}
+  syncLightColorFromShader: 1
+  baseLightColor: {r: 0.35, g: 0.75, b: 1.25, a: 1}
+  boltLightColor: {r: 1, g: 0.35, b: 0.85, a: 1}
+  baseLightIntensity: 8
+  boltLightIntensity: 24
+  flickerAmplitude: 0.25
+  flickerFrequency: 24
+  lightResponseSpeed: 10
+  spawnImpactSpotlight: 1
+  impactSpotAngle: 70
+  impactSpotRange: 12
+  impactSpotIntensity: 35
+  impactSpotLifetime: 0.25
 --- !u!1 &8856578778651788822
 GameObject:
   m_ObjectHideFlags: 0
@@ -427,14 +442,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8856578778651788822}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.116248935, b: 0, a: 1}
   m_Intensity: 200
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 0
     m_Resolution: -1

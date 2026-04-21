@@ -209,7 +209,7 @@ public class EntityProfile_GenericEnemyEditor : Editor
             var alertRx      = EntityProfileEditorUtils.GetOrAdd<AlertReceiverModule>(go);
             var noiseRx      = EntityProfileEditorUtils.GetOrAdd<NoiseReceiverModule>(go);
             var noise        = EntityProfileEditorUtils.GetOrAdd<NoiseEmitter>(go);
-            var melee        = EntityProfileEditorUtils.GetOrAdd<EntityCombatModule>(go);
+            var melee        = EntityProfileEditorUtils.GetOrAdd<CloseCombatModule>(go);
             var ranged       = EntityProfileEditorUtils.GetOrAdd<RangedAttackModule>(go);
             var keepDistance = EntityProfileEditorUtils.GetOrAdd<KeepDistanceModule>(go);
             var strafe       = EntityProfileEditorUtils.GetOrAdd<StrafeModule>(go);
@@ -247,7 +247,7 @@ public class EntityProfile_GenericEnemyEditor : Editor
 
             EntityProfileEditorUtils.SetFloat(chase, "detectRange",          p.detectRange);
             EntityProfileEditorUtils.SetFloat(chase, "loseTargetRange",      p.loseTargetRange);
-            EntityProfileEditorUtils.SetFloat(chase, "attackRange",          useRanged ? p.maxFireRange : p.chaseStopRange);
+            EntityProfileEditorUtils.SetFloat(chase, "engageRange",          useRanged ? p.maxFireRange : p.chaseStopRange);
             EntityProfileEditorUtils.SetFloat(chase, "chaseStopDistance",    useRanged ? p.maxFireRange * 0.8f : p.chaseStopRange);
             EntityProfileEditorUtils.SetFloat(chase, "chaseSpeedMultiplier", p.chaseSpeed);
 

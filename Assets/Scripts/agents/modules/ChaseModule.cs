@@ -1,8 +1,9 @@
-// Detects a target by tag or direct reference and chases it.
-// Stops and faces when within attackRange — fires OnAttackRange event for combat systems to hook into.
+// Detects a target and chases it.
+// Stops and faces when within engageRange — purely a movement concept, unrelated to attacks.
 // Loses target when it moves outside loseTargetRange (hysteresis prevents flickering).
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class ChaseModule : BehaviourModuleBase
 {
@@ -17,21 +18,20 @@ public class ChaseModule : BehaviourModuleBase
     [Tooltip("Omnidirectional detection radius — bypasses FOV/LoS. Lets the agent react to targets that sneak up from behind. Should be <= detectRange.")]
     [SerializeField] private float proximityDetectRange = 4f;
     [SerializeField] private float loseTargetRange = 14f;
-    [SerializeField] private float attackRange = 1.8f;
+    [Tooltip("Distance at which the agent stops approaching and faces the target. Set to match the attack module's range.")]
+    [FormerlySerializedAs("attackRange")]
+    [SerializeField] private float engageRange = 1.8f;
 
     [Header("Movement")]
     [SerializeField] private float chaseStopDistance = 1.3f;
     [SerializeField] private float chaseSpeedMultiplier = 1.3f;
 
-    // Subscribe to trigger attacks, animations, etc. from other components.
-    public event Action OnEnterAttackRange;
-    public event Action OnExitAttackRange;
+    public event Action OnEnterEngageRange;
+    public event Action OnExitEngageRange;
 
     public bool HasTarget => hasTarget;
-    // Last position where the target was seen, for SearchModule fallback when PerceptionModule is absent.
     public Vector3? LastKnownPosition { get; private set; }
 
-    // Allow AlertReceiverModule or external systems to force a target.
     public void ForceTarget(Transform newTarget)
     {
         target = newTarget;
@@ -39,7 +39,7 @@ public class ChaseModule : BehaviourModuleBase
     }
 
     private bool hasTarget;
-    private bool inAttackRange;
+    private bool inEngageRange;
     private PerceptionModule perception;
     private AlertBroadcaster alertBroadcaster;
 
@@ -48,25 +48,25 @@ public class ChaseModule : BehaviourModuleBase
         perception = GetComponent<PerceptionModule>();
         alertBroadcaster = GetComponent<AlertBroadcaster>();
     }
+
     private void Reset() => SetPriorityDefault(ModulePriority.Reactive);
 
     private void OnEnable()
     {
         hasTarget = false;
-        inAttackRange = false;
+        inEngageRange = false;
         LastKnownPosition = null;
     }
 
     public override string ModuleDescription =>
-        "Detects a target and chases it. Stops and faces the target when within attackRange. Loses the target beyond loseTargetRange.\n\n" +
+        "Detects a target and chases it. Stops and faces the target when within engageRange. Loses the target beyond loseTargetRange.\n\n" +
         "• targetTag — tag used to find the target (default: Player)\n" +
         "• detectRange — range at which the entity notices the target (requires FOV+LoS if PerceptionModule present)\n" +
-        "• proximityDetectRange — inner omnidirectional range that bypasses FOV/LoS; lets the agent react to targets behind it\n" +
-        "• attackRange — how close before the entity stops and faces\n" +
+        "• proximityDetectRange — inner omnidirectional range that bypasses FOV/LoS\n" +
+        "• engageRange — distance at which the agent stops approaching and faces the target\n" +
         "• loseTargetRange — target is forgotten beyond this distance\n" +
         "• Add PerceptionModule to require FOV + line-of-sight for the outer detectRange\n" +
-        "• Add AlertBroadcaster to notify nearby allies when the target is first spotted\n" +
-        "• OnEnterAttackRange event — wire to EntityCombatModule or animations";
+        "• Add AlertBroadcaster to notify nearby allies when the target is first spotted";
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {
@@ -76,7 +76,6 @@ public class ChaseModule : BehaviourModuleBase
 
         float distance = Vector3.Distance(context.Position, target.position);
 
-        // Acquire target: proximity range ignores FOV/LoS (omnidirectional), outer detectRange requires CanSee.
         if (!hasTarget)
         {
             if (distance > detectRange)
@@ -101,19 +100,19 @@ public class ChaseModule : BehaviourModuleBase
         if (!hasTarget)
             return null;
 
-        bool nowInRange = distance <= attackRange;
-        if (nowInRange && !inAttackRange)
+        bool nowInRange = distance <= engageRange;
+        if (nowInRange && !inEngageRange)
         {
-            inAttackRange = true;
-            OnEnterAttackRange?.Invoke();
+            inEngageRange = true;
+            OnEnterEngageRange?.Invoke();
         }
-        else if (!nowInRange && inAttackRange)
+        else if (!nowInRange && inEngageRange)
         {
-            inAttackRange = false;
-            OnExitAttackRange?.Invoke();
+            inEngageRange = false;
+            OnExitEngageRange?.Invoke();
         }
 
-        if (inAttackRange)
+        if (inEngageRange)
             return MoveIntent.StopAndFace(target.position);
 
         return MoveIntent.MoveTo(target.position, chaseStopDistance, chaseSpeedMultiplier, isRunning: true);
@@ -133,7 +132,7 @@ public class ChaseModule : BehaviourModuleBase
         detectRange = Mathf.Max(0.1f, detectRange);
         proximityDetectRange = Mathf.Clamp(proximityDetectRange, 0f, detectRange);
         loseTargetRange = Mathf.Max(detectRange, loseTargetRange);
-        attackRange = Mathf.Max(0.1f, attackRange);
+        engageRange = Mathf.Max(0.1f, engageRange);
         chaseStopDistance = Mathf.Max(0.01f, chaseStopDistance);
         chaseSpeedMultiplier = Mathf.Max(0.01f, chaseSpeedMultiplier);
     }

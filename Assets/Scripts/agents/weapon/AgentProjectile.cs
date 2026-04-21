@@ -14,12 +14,14 @@ public class AgentProjectile : MonoBehaviour
     private Action<bool, Vector3> onResult; // (hitDamageable, hitPosition)
     private bool hasHit;
     private EntityFaction shooterFaction;
+    private Transform shooterTransform;
 
     public void Init(int damageAmount, Action<bool, Vector3> resultCallback, GameObject shooter = null)
     {
         damage = damageAmount;
         onResult = resultCallback;
         shooterFaction = shooter != null ? shooter.GetComponentInParent<EntityFaction>() : null;
+        shooterTransform = shooter != null ? shooter.transform : null;
 
         if (shooter != null)
         {
@@ -58,7 +60,10 @@ public class AgentProjectile : MonoBehaviour
 
         if (damageable != null && damageable.Alive)
         {
-            damageable.Damage(damage);
+            if (damageable is HealthComponent hc)
+                hc.Damage(damage, shooterTransform);
+            else
+                damageable.Damage(damage);
             onResult?.Invoke(true, hitPos);
         }
         else

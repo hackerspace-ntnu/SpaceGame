@@ -51,6 +51,19 @@ public class AgentAnimatorDriver : MonoBehaviour
         animator.SetBool("IsImmobalized", isImmobile);
     }
 
+    public void TriggerHurt() => SetTriggerSafe("Hurt");
+    public void TriggerDie() => SetTriggerSafe("Die");
+    public void TriggerShootRifle() => SetTriggerSafe("ShootRifle");
+    public void TriggerSpearAttack() => SetTriggerSafe("SpearAttack");
+    public void TriggerByName(string triggerName) => SetTriggerSafe(triggerName);
+    public void SetIsAiming(bool aiming) => animator?.SetBool("IsAiming", aiming);
+
+    private void SetTriggerSafe(string triggerName)
+    {
+        if (animator && animator.runtimeAnimatorController != null)
+            animator.SetTrigger(triggerName);
+    }
+
     private void OnValidate()
     {
         animationSpeedMultiplier = Mathf.Max(0.1f, animationSpeedMultiplier);

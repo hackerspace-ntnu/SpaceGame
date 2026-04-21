@@ -27,6 +27,18 @@ public class AgentRangedCombatModule : BehaviourModuleBase
 
     [Tooltip("World-space transform used as the projectile spawn point. If left empty, uses this transform.")]
     [SerializeField] private Transform muzzleSocket;
+    [Tooltip("When true, spawns the weapon model from the weapon asset at runtime. " +
+             "Disable if the weapon is already placed in the prefab hierarchy (e.g. parented to a hand bone).")]
+    [SerializeField] private bool spawnWeaponModel = false;
+    [Tooltip("Optional. When assigned (or found on this object), overrides weapon and muzzleSocket with the active slot.")]
+    [SerializeField] private WeaponMount weaponMount;
+
+    [Header("Animation")]
+    [SerializeField] private Animator animator;
+    [Tooltip("Trigger to fire on each shot. Leave empty to disable.")]
+    [SerializeField] private string shootAnimTrigger = "AssualtShoot";
+    [Tooltip("Bool to set while the agent is in firing range and aiming. Leave empty to disable.")]
+    [SerializeField] private string aimAnimBool = "IsAiming";
 
     [Header("Events")]
     public UnityEvent<Vector3> OnFire;
@@ -44,9 +56,22 @@ public class AgentRangedCombatModule : BehaviourModuleBase
 
     private void Reset() => SetPriorityDefault(ModulePriority.Reactive);
     private void OnEnable() { cooldownTimer = 0f; burstRemaining = 0; }
+    private void OnDisable() => SetAiming(false);
+
+    private void Awake()
+    {
+        FindChildByName("Gun")?.SetActive(IsActive);
+        if (!animator)
+            animator = GetComponentInChildren<Animator>();
+        if (!weaponMount)
+            weaponMount = GetComponentInChildren<WeaponMount>();
+    }
 
     private void Start()
     {
+        if (!spawnWeaponModel)
+            return;
+
         if (weapon == null || weapon.weaponModelPrefab == null)
         {
             Debug.Log($"[RangedCombat] {name} no weapon model to spawn (weapon={weapon}, prefab={weapon?.weaponModelPrefab})");
@@ -81,25 +106,33 @@ public class AgentRangedCombatModule : BehaviourModuleBase
 
         if (!target || weapon == null || fireProfile == null || aimProfile == null)
         {
+            SetAiming(false);
             Debug.Log($"[RangedCombat] {name} blocked: target={target}, weapon={weapon}, fire={fireProfile}, aim={aimProfile}");
             return null;
         }
 
         if (!fireProfile.allowFireWhileRunning && context.IsMoving)
+        {
+            SetAiming(false);
             return null;
+        }
 
         float distance = Vector3.Distance(context.Position, target.position);
         if (distance < fireProfile.minRange || distance > fireProfile.maxRange)
         {
+            SetAiming(false);
             Debug.Log($"[RangedCombat] {name} out of range: dist={distance:F1} min={fireProfile.minRange} max={fireProfile.maxRange}");
             return null;
         }
 
         if (aimProfile.requireLineOfSight && !HasLineOfSight())
         {
+            SetAiming(false);
             Debug.Log($"[RangedCombat] {name} no LoS to target");
             return null;
         }
+
+        SetAiming(true);
 
         // Continue an active burst.
         if (burstRemaining > 0)
@@ -115,29 +148,32 @@ public class AgentRangedCombatModule : BehaviourModuleBase
         }
 
         cooldownTimer -= deltaTime;
-        if (cooldownTimer > 0f)
-            return null;
-
-        // Start a new burst.
-        currentBurstSpread = 0;
-        FireOne();
-        burstRemaining = fireProfile.burstCount - 1;
-        burstTimer = fireProfile.burstInterval;
-        cooldownTimer = fireProfile.fireCooldown;
+        if (cooldownTimer <= 0f)
+        {
+            // Start a new burst.
+            currentBurstSpread = 0;
+            FireOne();
+            burstRemaining = fireProfile.burstCount - 1;
+            burstTimer = fireProfile.burstInterval;
+            cooldownTimer = fireProfile.fireCooldown;
+        }
 
         return null;
     }
 
     private void FireOne()
     {
-        if (weapon.projectilePrefab == null)
+        AgentWeaponDefinition activeWeapon = weaponMount != null ? weaponMount.ActiveDefinition : weapon;
+        Transform activeMuzzle = weaponMount != null ? weaponMount.ActiveMuzzle : muzzleSocket;
+
+        if (activeWeapon == null || activeWeapon.projectilePrefab == null)
         {
             Debug.LogWarning($"[RangedCombat] {name} fired but projectilePrefab is null on weapon asset!");
             return;
         }
         Debug.Log($"[RangedCombat] {name} FIRING at {target.name}");
 
-        Transform muzzle = muzzleSocket != null ? muzzleSocket : transform;
+        Transform muzzle = activeMuzzle != null ? activeMuzzle : transform;
         Vector3 aimDir = ComputeAimDirection(muzzle.position);
 
         float totalSpread = aimProfile.baseSpreadAngle + aimProfile.spreadGrowthPerBurstShot * currentBurstSpread;
@@ -151,18 +187,21 @@ public class AgentRangedCombatModule : BehaviourModuleBase
         }
         currentBurstSpread++;
 
-        GameObject projectile = Instantiate(weapon.projectilePrefab, muzzle.position, Quaternion.LookRotation(aimDir));
+        GameObject projectile = Instantiate(activeWeapon.projectilePrefab, muzzle.position, Quaternion.LookRotation(aimDir));
 
         AgentProjectile agentProjectile = projectile.GetComponent<AgentProjectile>();
         if (agentProjectile != null)
-            agentProjectile.Init(weapon.damagePerHit, OnProjectileResult, gameObject);
+            agentProjectile.Init(activeWeapon.damagePerHit, OnProjectileResult, gameObject);
 
         Rigidbody rb = projectile.GetComponent<Rigidbody>();
         if (rb != null)
-            rb.linearVelocity = aimDir * weapon.projectileSpeed;
+            rb.linearVelocity = aimDir * activeWeapon.projectileSpeed;
 
-        if (!weapon.fireSound.IsNull)
-            RuntimeManager.PlayOneShot(weapon.fireSound, muzzle.position);
+        if (!activeWeapon.fireSound.IsNull)
+            RuntimeManager.PlayOneShot(activeWeapon.fireSound, muzzle.position);
+
+        if (animator && !string.IsNullOrEmpty(shootAnimTrigger))
+            animator.SetTrigger(shootAnimTrigger);
 
         OnFire?.Invoke(muzzle.position);
         OnFireEvent?.Invoke();
@@ -244,8 +283,22 @@ public class AgentRangedCombatModule : BehaviourModuleBase
         }
     }
 
+    private void SetAiming(bool aiming)
+    {
+        if (animator && !string.IsNullOrEmpty(aimAnimBool))
+            animator.SetBool(aimAnimBool, aiming);
+    }
+
+    private GameObject FindChildByName(string childName)
+    {
+        Transform result = null;
+        foreach (Transform t in GetComponentsInChildren<Transform>(true))
+            if (t.name == childName) { result = t; break; }
+        return result != null ? result.gameObject : null;
+    }
+
     protected override void OnValidate()
     {
-        // Validation lives in the ScriptableObjects' own OnValidate.
+        SetMinPriority(ModulePriority.Reactive + 1);
     }
 }

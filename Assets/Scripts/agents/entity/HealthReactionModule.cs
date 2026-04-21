@@ -26,6 +26,12 @@ public class HealthReactionModule : MonoBehaviour
     [Header("Threshold Reactions")]
     [SerializeField] private List<HealthThresholdReaction> thresholdReactions;
 
+    [Header("Animation")]
+    [Tooltip("Animator trigger to fire on damage. Leave empty to disable.")]
+    [SerializeField] private string hurtAnimTrigger = "Hurt";
+    [Tooltip("Animator trigger to fire on death. Leave empty to disable.")]
+    [SerializeField] private string dieAnimTrigger = "Death";
+
     [Header("On Damage")]
     [SerializeField] private bool emitNoiseOnDamage = true;
     [SerializeField] private float damageNoiseRadius = 15f;
@@ -43,12 +49,14 @@ public class HealthReactionModule : MonoBehaviour
     private HealthComponent health;
     private NoiseEmitter noiseEmitter;
     private AgentController agentController;
+    private Animator animator;
 
     private void Awake()
     {
         health = GetComponent<HealthComponent>();
         noiseEmitter = GetComponent<NoiseEmitter>();
         agentController = GetComponent<AgentController>();
+        animator = GetComponentInChildren<Animator>();
 
         if (!health)
             Debug.LogWarning($"{name}: HealthReactionModule needs a HealthComponent.", this);
@@ -79,8 +87,11 @@ public class HealthReactionModule : MonoBehaviour
 
     private void HandleDamage(int amount)
     {
+        if (!string.IsNullOrEmpty(hurtAnimTrigger) && animator)
+            animator.SetTrigger(hurtAnimTrigger);
+
         if (emitNoiseOnDamage && noiseEmitter)
-            noiseEmitter.Emit(NoiseType.Hurt, damageNoiseRadius);
+            noiseEmitter.Emit(NoiseType.Hurt, damageNoiseRadius, health.LastDamageSource);
 
         if (!hurtSound.IsNull)
             RuntimeManager.PlayOneShot(hurtSound, transform.position);
@@ -90,6 +101,9 @@ public class HealthReactionModule : MonoBehaviour
 
     private void HandleDeath()
     {
+        if (!string.IsNullOrEmpty(dieAnimTrigger) && animator)
+            animator.SetTrigger(dieAnimTrigger);
+
         if (emitNoiseOnDeath && noiseEmitter)
             noiseEmitter.Emit(NoiseType.Death, deathNoiseRadius);
 

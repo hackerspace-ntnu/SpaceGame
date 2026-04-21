@@ -55,5 +55,11 @@ public abstract class BehaviourModuleBase : MonoBehaviour, IBehaviourModule
         priority = defaultPriority;
     }
 
+    // Call from OnValidate() to enforce a floor on priority (fixes existing prefabs after recompile).
+    protected void SetMinPriority(int min)
+    {
+        if (priority < min) priority = min;
+    }
+
     protected virtual void OnValidate() { }
 }

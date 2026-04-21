@@ -77,6 +77,9 @@ public class GrapplingHookArtifact : ToolItem
         _isShooting = true;
         _isGrappling = false;
 
+        var animator = owner.GetComponentInChildren<Animator>();
+        if (animator) animator.SetTrigger("ShootRifle");
+
         float distance = Vector3.Distance(GetRopeStart(), _hookPoint);
         float duration = distance / Mathf.Max(shootSpeed, 0.1f);
         float elapsed = 0f;

@@ -7,18 +7,24 @@ public class NoiseEmitter : MonoBehaviour
 {
     [SerializeField] private LayerMask receiverLayers;
 
-    private static readonly Collider[] HitBuffer = new Collider[64];
+    private readonly Collider[] hitBuffer = new Collider[64];
+
+    private void Awake()
+    {
+        if (receiverLayers == 0)
+            Debug.LogWarning($"{name}: NoiseEmitter.receiverLayers is Nothing — noise will never reach any receiver. Set the layer mask in the Inspector.", this);
+    }
 
     public void Emit(NoiseType type, float radius, Transform instigator = null)
     {
         if (instigator == null)
             instigator = transform;
 
-        int count = Physics.OverlapSphereNonAlloc(transform.position, radius, HitBuffer, receiverLayers);
+        int count = Physics.OverlapSphereNonAlloc(transform.position, radius, hitBuffer, receiverLayers);
         for (int i = 0; i < count; i++)
         {
-            NoiseReceiverModule receiver = HitBuffer[i].GetComponent<NoiseReceiverModule>();
-            if (receiver && HitBuffer[i].transform != transform)
+            NoiseReceiverModule receiver = hitBuffer[i].GetComponent<NoiseReceiverModule>();
+            if (receiver && hitBuffer[i].transform != transform)
                 receiver.OnNoiseHeard(type, transform.position, radius, instigator);
         }
     }

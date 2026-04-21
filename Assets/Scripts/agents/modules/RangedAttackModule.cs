@@ -32,6 +32,13 @@ public class RangedAttackModule : BehaviourModuleBase
     [Tooltip("Compensate for target movement so projectiles lead the target.")]
     [SerializeField] private bool leadTarget = false;
 
+    [Header("Animation")]
+    [SerializeField] private Animator animator;
+    [Tooltip("Trigger to fire on each shot. Leave empty to disable.")]
+    [SerializeField] private string shootAnimTrigger = "AssualtShoot";
+    [Tooltip("Bool to set while the agent is in firing range and aiming. Leave empty to disable.")]
+    [SerializeField] private string aimAnimBool = "IsAiming";
+
     [Header("Events")]
     public UnityEvent<Vector3> OnFire;
     public event Action OnFireEvent;
@@ -47,6 +54,13 @@ public class RangedAttackModule : BehaviourModuleBase
 
     private void Reset() => SetPriorityDefault(ModulePriority.Reactive);
     private void OnEnable() { cooldownTimer = 0f; burstRemaining = 0; }
+    private void OnDisable() => SetAiming(false);
+
+    private void Awake()
+    {
+        if (!animator)
+            animator = GetComponentInChildren<Animator>();
+    }
 
     public override string ModuleDescription =>
         "Fires a projectile at a target when within range. Never claims movement — pair with ChaseModule, StrafeModule, or KeepDistanceModule for positioning.\n\n" +
@@ -62,11 +76,19 @@ public class RangedAttackModule : BehaviourModuleBase
     {
         TryResolveTarget();
         if (!target)
+        {
+            SetAiming(false);
             return null;
+        }
 
         float distance = Vector3.Distance(context.Position, target.position);
         if (distance < minRange || distance > maxRange)
+        {
+            SetAiming(false);
             return null;
+        }
+
+        SetAiming(true);
 
         // Handle burst
         if (burstRemaining > 0)
@@ -82,13 +104,13 @@ public class RangedAttackModule : BehaviourModuleBase
         }
 
         cooldownTimer -= deltaTime;
-        if (cooldownTimer > 0f)
-            return null;
-
-        burstRemaining = burstCount - 1;
-        burstTimer = burstInterval;
-        cooldownTimer = fireCooldown;
-        FireOne(context.Position);
+        if (cooldownTimer <= 0f)
+        {
+            burstRemaining = burstCount - 1;
+            burstTimer = burstInterval;
+            cooldownTimer = fireCooldown;
+            FireOne(context.Position);
+        }
 
         return null;
     }
@@ -117,6 +139,9 @@ public class RangedAttackModule : BehaviourModuleBase
 
         if (!fireSound.IsNull)
             RuntimeManager.PlayOneShot(fireSound, muzzle.position);
+
+        if (animator && !string.IsNullOrEmpty(shootAnimTrigger))
+            animator.SetTrigger(shootAnimTrigger);
 
         OnFire?.Invoke(muzzle.position);
         OnFireEvent?.Invoke();
@@ -152,6 +177,12 @@ public class RangedAttackModule : BehaviourModuleBase
             target = candidate;
     }
 
+    private void SetAiming(bool aiming)
+    {
+        if (animator && !string.IsNullOrEmpty(aimAnimBool))
+            animator.SetBool(aimAnimBool, aiming);
+    }
+
     protected override void OnValidate()
     {
         minRange = Mathf.Max(0f, minRange);
@@ -160,5 +191,6 @@ public class RangedAttackModule : BehaviourModuleBase
         fireCooldown = Mathf.Max(0.05f, fireCooldown);
         burstCount = Mathf.Max(1, burstCount);
         burstInterval = Mathf.Max(0.01f, burstInterval);
+        SetMinPriority(ModulePriority.Reactive + 1);
     }
 }

@@ -50,14 +50,14 @@ public class EntityAudioModule : MonoBehaviour
 
         if (chaseModule != null)
         {
-            chaseModule.OnEnterAttackRange += OnBecameAggressive;
+            chaseModule.OnEnterEngageRange += OnBecameAggressive;
         }
     }
 
     private void OnDisable()
     {
         if (chaseModule != null)
-            chaseModule.OnEnterAttackRange -= OnBecameAggressive;
+            chaseModule.OnEnterEngageRange -= OnBecameAggressive;
     }
 
     private void Update()

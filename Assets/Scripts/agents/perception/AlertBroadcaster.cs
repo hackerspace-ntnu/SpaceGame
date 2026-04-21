@@ -10,26 +10,32 @@ public class AlertBroadcaster : MonoBehaviour
     [Tooltip("If true, only alert entities of the same faction.")]
     [SerializeField] private bool alliedOnly = true;
 
-    private static readonly Collider[] HitBuffer = new Collider[32];
+    private readonly Collider[] hitBuffer = new Collider[32];
     private EntityFaction myFaction;
 
-    private void Awake() => myFaction = GetComponent<EntityFaction>();
+    private void Awake()
+    {
+        myFaction = GetComponent<EntityFaction>();
+
+        if (receiverLayers == 0)
+            Debug.LogWarning($"{name}: AlertBroadcaster.receiverLayers is Nothing — alerts will never reach any receiver. Set the layer mask in the Inspector.", this);
+    }
 
     public void Broadcast(Transform alertTarget, Vector3 lastKnownPosition)
     {
-        int count = Physics.OverlapSphereNonAlloc(transform.position, alertRadius, HitBuffer, receiverLayers);
+        int count = Physics.OverlapSphereNonAlloc(transform.position, alertRadius, hitBuffer, receiverLayers);
         for (int i = 0; i < count; i++)
         {
-            if (HitBuffer[i].transform == transform)
+            if (hitBuffer[i].transform == transform)
                 continue;
 
-            AlertReceiverModule receiver = HitBuffer[i].GetComponent<AlertReceiverModule>();
+            AlertReceiverModule receiver = hitBuffer[i].GetComponent<AlertReceiverModule>();
             if (!receiver)
                 continue;
 
             if (alliedOnly && myFaction != null)
             {
-                EntityFaction theirFaction = HitBuffer[i].GetComponent<EntityFaction>();
+                EntityFaction theirFaction = hitBuffer[i].GetComponent<EntityFaction>();
                 if (!myFaction.IsAlliedWith(theirFaction))
                     continue;
             }

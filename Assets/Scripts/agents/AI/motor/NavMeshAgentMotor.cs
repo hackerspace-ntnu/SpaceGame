@@ -24,6 +24,10 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
     [SerializeField] private NavMeshAgent agent;
     [SerializeField] private float navMeshSnapDistance = 6f;
 
+    [Header("Speeds")]
+    [Tooltip("Fraction of the NavMeshAgent speed used when walking (not running). 1 = same as run speed.")]
+    [SerializeField] [Range(0.01f, 1f)] private float walkSpeedMultiplier = 0.65f;
+
     [Header("Stuck Recovery")]
     [SerializeField] private float stuckVelocityThreshold = 0.05f;
     [SerializeField] private float stuckTime = 1.5f;
@@ -191,7 +195,8 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
         }
 
         agent.stoppingDistance = Mathf.Max(0.01f, intent.StopDistance);
-        agent.speed = defaultSpeed * Mathf.Max(0.01f, intent.SpeedMultiplier);
+        float baseMultiplier = intent.IsRunning ? 1f : walkSpeedMultiplier;
+        agent.speed = defaultSpeed * baseMultiplier * Mathf.Max(0.01f, intent.SpeedMultiplier);
 
         agent.isStopped = false;
 

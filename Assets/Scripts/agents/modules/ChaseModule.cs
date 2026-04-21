@@ -116,7 +116,7 @@ public class ChaseModule : BehaviourModuleBase
         if (inAttackRange)
             return MoveIntent.StopAndFace(target.position);
 
-        return MoveIntent.MoveTo(target.position, chaseStopDistance, chaseSpeedMultiplier);
+        return MoveIntent.MoveTo(target.position, chaseStopDistance, chaseSpeedMultiplier, isRunning: true);
     }
 
     private void TryResolveTarget()

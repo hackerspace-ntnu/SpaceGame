@@ -7,6 +7,8 @@ public class AgentAnimatorDriver : MonoBehaviour
 {
     [SerializeField] private Animator animator;
     [SerializeField] private float animationSpeedMultiplier = 1.5f;
+    [Tooltip("Extra velocity scale applied when walking (not running), to compensate for the reduced walk speed so animations don't look sluggish.")]
+    [SerializeField] private float walkAnimBoost = 2f;
 
     private void Awake()
     {
@@ -26,7 +28,7 @@ public class AgentAnimatorDriver : MonoBehaviour
         }
     }
 
-    public void Tick(Vector3 worldVelocity, bool isImmobile)
+    public void Tick(Vector3 worldVelocity, bool isImmobile, bool isRunning = false)
     {
         if (!animator)
         {
@@ -38,8 +40,9 @@ public class AgentAnimatorDriver : MonoBehaviour
             return;
         }
 
+        float speedScale = animationSpeedMultiplier * (isRunning ? 1f : walkAnimBoost);
         // Convert velocity in the animator rig's local space (important when rig is on a child transform).
-        Vector3 localVelocity = animator.transform.worldToLocalMatrix.MultiplyVector(worldVelocity) * animationSpeedMultiplier;
+        Vector3 localVelocity = animator.transform.worldToLocalMatrix.MultiplyVector(worldVelocity) * speedScale;
 
         animator.SetFloat("SpeedX", localVelocity.x, 0.1f, Time.deltaTime);
         animator.SetFloat("SpeedY", localVelocity.z, 0.1f, Time.deltaTime);

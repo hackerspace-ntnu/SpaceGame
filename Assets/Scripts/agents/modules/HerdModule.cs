@@ -27,6 +27,9 @@ public class HerdModule : BehaviourModuleBase
     [SerializeField] private float settleRadius = 4f;
     [Tooltip("How close a member must be to its settle slot to count as arrived.")]
     [SerializeField] private float settleStopDistance = 0.6f;
+    [Tooltip("Max seconds to wait for all members to arrive/settle before forcing the phase forward. " +
+             "Handles agents that have been taken over by higher-priority modules and can't reach their slots.")]
+    [SerializeField] private float settleTimeoutSeconds = 5f;
 
     public override bool ClaimsMovement => true;
 
@@ -45,6 +48,7 @@ public class HerdModule : BehaviourModuleBase
         public HerdPhase Phase;
         public Vector3 Destination;
         public Vector3 SettleCenter;
+        public float PhaseEnterTime;
     }
 
     private static readonly Dictionary<string, List<HerdModule>> s_herds = new();
@@ -135,11 +139,16 @@ public class HerdModule : BehaviourModuleBase
 
         MoveIntent broadcast = slot.Intent;
 
-        // Reactive intents: broadcast as-is — CombatPositioningModule handles spread per agent.
+        // Reactive intents: broadcast as-is for most types.
+        // Exception: if the broadcast is StopAndFace (an in-range agent stopped), this agent
+        // is being guided by HerdModule (its own ChaseModule returned null), meaning it has no
+        // target or is out of detection range. Send it toward the action instead of stopping.
         if (slot.Priority >= ModulePriority.Reactive)
         {
             s_state[herdId] = default;
             slotAssigned = false;
+            if (broadcast.Type == AgentIntentType.StopAndFacePosition)
+                return MoveIntent.MoveTo(broadcast.FacePosition, settleStopDistance, 1f);
             return broadcast;
         }
 
@@ -161,6 +170,7 @@ public class HerdModule : BehaviourModuleBase
         {
             state.Phase = HerdPhase.Moving;
             state.Destination = broadcast.TargetPosition;
+            state.PhaseEnterTime = Time.time;
             s_state[herdId] = state;
             slotAssigned = false;
         }
@@ -181,15 +191,21 @@ public class HerdModule : BehaviourModuleBase
                 slotAssigned = true;
             }
 
-            // Check if all members have arrived.
-            bool allArrived = true;
-            foreach (var other in members)
+            // Check if all members have arrived (or timeout elapsed — handles members whose
+            // higher-priority module moved them away from their slot).
+            bool allArrived = settleTimeoutSeconds > 0f &&
+                              Time.time - state.PhaseEnterTime > settleTimeoutSeconds;
+            if (!allArrived)
             {
-                if (!other.isActiveAndEnabled) continue;
-                if (Vector3.Distance(other.transform.position, other.mySlotPosition) > settleStopDistance + 0.5f)
+                allArrived = true;
+                foreach (var other in members)
                 {
-                    allArrived = false;
-                    break;
+                    if (!other.isActiveAndEnabled) continue;
+                    if (Vector3.Distance(other.transform.position, other.mySlotPosition) > settleStopDistance + 0.5f)
+                    {
+                        allArrived = false;
+                        break;
+                    }
                 }
             }
 
@@ -208,6 +224,7 @@ public class HerdModule : BehaviourModuleBase
 
                 state.Phase = HerdPhase.Settling;
                 state.SettleCenter = center;
+                state.PhaseEnterTime = Time.time;
                 s_state[herdId] = state;
 
                 // Assign evenly-spaced settle slots around the group center.
@@ -231,14 +248,20 @@ public class HerdModule : BehaviourModuleBase
         if (state.Phase == HerdPhase.Settling)
         {
             // Check if all members have reached their settle slot.
-            bool allSettled = true;
-            foreach (var other in members)
+            // Timeout handles members driven away from their slot by higher-priority modules.
+            bool allSettled = settleTimeoutSeconds > 0f &&
+                              Time.time - state.PhaseEnterTime > settleTimeoutSeconds;
+            if (!allSettled)
             {
-                if (!other.isActiveAndEnabled) continue;
-                if (Vector3.Distance(other.transform.position, other.mySlotPosition) > settleStopDistance + 0.2f)
+                allSettled = true;
+                foreach (var other in members)
                 {
-                    allSettled = false;
-                    break;
+                    if (!other.isActiveAndEnabled) continue;
+                    if (Vector3.Distance(other.transform.position, other.mySlotPosition) > settleStopDistance + 0.2f)
+                    {
+                        allSettled = false;
+                        break;
+                    }
                 }
             }
 
@@ -262,7 +285,8 @@ public class HerdModule : BehaviourModuleBase
     {
         if (string.IsNullOrWhiteSpace(herdId))
             herdId = "default";
-        settleRadius       = Mathf.Max(0.5f, settleRadius);
-        settleStopDistance = Mathf.Max(0.1f, settleStopDistance);
+        settleRadius          = Mathf.Max(0.5f, settleRadius);
+        settleStopDistance    = Mathf.Max(0.1f, settleStopDistance);
+        settleTimeoutSeconds  = Mathf.Max(0f, settleTimeoutSeconds);
     }
 }

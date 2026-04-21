@@ -9,6 +9,8 @@ public class PerceptionModule : MonoBehaviour
 {
     [Header("Field of View")]
     [SerializeField] private float fieldOfViewAngle = 110f;
+    [Tooltip("Extra FOV added while the agent is moving. Simulates wider peripheral awareness when walking.")]
+    [SerializeField] private float movingFovBonus = 40f;
     [SerializeField] private Transform eyeTransform;
 
     [Header("Line of Sight")]
@@ -33,10 +35,15 @@ public class PerceptionModule : MonoBehaviour
     public float TimeSinceLastSeen { get; private set; }
 
     private NoiseEmitter noiseEmitter;
+    private Vector3 prevForward;
+    private Vector3 prevPosition;
+    private bool isMoving;
 
     private void Awake()
     {
         noiseEmitter = GetComponent<NoiseEmitter>();
+        prevPosition = transform.position;
+        prevForward = transform.forward;
     }
 
     private void Update()
@@ -49,6 +56,10 @@ public class PerceptionModule : MonoBehaviour
             HasLastKnownPosition = false;
             TimeSinceLastSeen = 0f;
         }
+
+        isMoving = (transform.position - prevPosition).sqrMagnitude > 0.0001f;
+        prevForward = GetForward();
+        prevPosition = transform.position;
     }
 
     // Call this from ChaseModule / other targeting modules instead of raw distance checks.
@@ -60,8 +71,11 @@ public class PerceptionModule : MonoBehaviour
         Vector3 origin = eyeTransform ? eyeTransform.position : transform.position + Vector3.up * eyeHeight;
         Vector3 toTarget = target.position - origin;
 
-        // FOV check
-        if (Vector3.Angle(GetForward(), toTarget) > fieldOfViewAngle * 0.5f)
+        // FOV check — widen by the angular sweep this frame (covers mid-turn arcs) and by movingFovBonus while walking.
+        Vector3 currentForward = GetForward();
+        float sweep = Vector3.Angle(prevForward, currentForward);
+        float effectiveFov = fieldOfViewAngle + sweep + (isMoving ? movingFovBonus : 0f);
+        if (Vector3.Angle(currentForward, toTarget) > effectiveFov * 0.5f)
             return false;
 
         // Line-of-sight raycast

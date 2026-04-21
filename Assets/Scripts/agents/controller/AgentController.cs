@@ -59,7 +59,7 @@ public class AgentController : MonoBehaviour
         Motor.Tick(in intent, deltaTime);
 
         if (animatorDriver)
-            animatorDriver.Tick(Motor.Velocity, Motor.IsImmobile);
+            animatorDriver.Tick(Motor.Velocity, Motor.IsImmobile, intent.IsRunning);
     }
 
     // ──────────────────────────────────────────────

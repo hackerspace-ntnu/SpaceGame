@@ -251,11 +251,11 @@ GameObject:
   - component: {fileID: 4092899636993295912}
   - component: {fileID: 164182178236826577}
   - component: {fileID: 7198681263245389541}
-  - component: {fileID: 4839604393420977714}
   - component: {fileID: 2749094970167761448}
   - component: {fileID: 5826178671301965293}
   - component: {fileID: 551177450576191230}
   - component: {fileID: 3336273521187348112}
+  - component: {fileID: -360221956719914835}
   m_Layer: 0
   m_Name: PatrolRobot 1
   m_TagString: Untagged
@@ -316,6 +316,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NavMeshAgentMotor
   agent: {fileID: 7520083281846648822}
   navMeshSnapDistance: 6
+  walkSpeedMultiplier: 0.65
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 8
@@ -361,6 +362,7 @@ MonoBehaviour:
   targetTag: Player
   requiredRelationship: 2
   detectRange: 18
+  proximityDetectRange: 4
   loseTargetRange: 28
   attackRange: 16
   chaseStopDistance: 12.8
@@ -378,6 +380,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PerceptionModule
   fieldOfViewAngle: 130
+  movingFovBonus: 40
   eyeTransform: {fileID: 0}
   occlusionLayers:
     serializedVersion: 2
@@ -642,6 +645,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AgentAnimatorDriver
   animator: {fileID: 164182178236826577}
   animationSpeedMultiplier: 1.5
+  walkAnimBoost: 1.1
 --- !u!95 &164182178236826577
 Animator:
   serializedVersion: 7
@@ -671,7 +675,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fbb87cf2ffb7543aa9517dec3d2102a0, type: 3}
   m_Name: 
@@ -681,28 +685,7 @@ MonoBehaviour:
   herdId: herd2
   settleRadius: 4
   settleStopDistance: 0.6
---- !u!114 &4839604393420977714
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b430a782cc3264533addc8465482714e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BasePatrolModule
-  priority: 1
-  active: 1
-  baseTransform: {fileID: 0}
-  patrolRadius: 180
-  sampleDistance: 60
-  minDestinationDistance: 15
-  minWaitTime: 0.4
-  maxWaitTime: 2.5
-  stopDistance: 0.8
-  speedMultiplier: 1
+  settleTimeoutSeconds: 5
 --- !u!114 &2749094970167761448
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -718,8 +701,8 @@ MonoBehaviour:
   priority: 0
   active: 1
   limitWanderRadius: 0
-  wanderRadius: 0.1
-  freeRoamRadius: 50
+  wanderRadius: 100
+  freeRoamRadius: 100
   sampleDistance: 15
   minDestinationDistance: 1.5
   maxSampleAttempts: 10
@@ -795,6 +778,29 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &-360221956719914835
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9446d8881c4d04935940a413f3fba41e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PatrolModule
+  priority: 14
+  active: 1
+  mode: 0
+  radiusCenter: {fileID: 0}
+  patrolRadius: 15
+  minMoveDistance: 3
+  patrolPoints: []
+  selectionMode: 0
+  minWaitTime: 1
+  maxWaitTime: 3
+  stopDistance: 0.5
 --- !u!1 &1070476875886083830
 GameObject:
   m_ObjectHideFlags: 0

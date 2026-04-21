@@ -212,18 +212,17 @@ GameObject:
   - component: {fileID: 443577289899592234}
   - component: {fileID: 1130429238043732256}
   - component: {fileID: 2335287208516006250}
-  - component: {fileID: 8005158377296034571}
-  - component: {fileID: 7903389983572529390}
   - component: {fileID: 4847805356889917065}
   - component: {fileID: 5659964076644315265}
   - component: {fileID: 4092899636993295912}
   - component: {fileID: 164182178236826577}
   - component: {fileID: 7198681263245389541}
-  - component: {fileID: 4839604393420977714}
   - component: {fileID: 2749094970167761448}
   - component: {fileID: 5826178671301965293}
   - component: {fileID: 551177450576191230}
   - component: {fileID: 3336273521187348112}
+  - component: {fileID: -6504840504674842006}
+  - component: {fileID: 5177592585097973980}
   m_Layer: 0
   m_Name: PatrolRobot
   m_TagString: Untagged
@@ -284,6 +283,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NavMeshAgentMotor
   agent: {fileID: 7520083281846648822}
   navMeshSnapDistance: 6
+  walkSpeedMultiplier: 0.65
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 8
@@ -329,6 +329,7 @@ MonoBehaviour:
   targetTag: Player
   requiredRelationship: 2
   detectRange: 18
+  proximityDetectRange: 4
   loseTargetRange: 28
   attackRange: 16
   chaseStopDistance: 12.8
@@ -346,6 +347,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PerceptionModule
   fieldOfViewAngle: 130
+  movingFovBonus: 40
   eyeTransform: {fileID: 5059971983133559503}
   occlusionLayers:
     serializedVersion: 2
@@ -353,7 +355,7 @@ MonoBehaviour:
   eyeHeight: 1.6
   memoryDuration: 6
   emitNoiseOnSpot: 1
-  spotNoiseRadius: 12
+  spotNoiseRadius: 20
   playSpotSound: 1
   spotSound:
     Guid:
@@ -510,34 +512,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EntityFaction
   faction: {fileID: 0}
   relationshipTable: {fileID: 0}
---- !u!114 &8005158377296034571
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 367cf5f3e59d24fe392cb3df23b3c420, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EntityInventoryComponent
-  inventorySize: 4
-  startingItems: []
---- !u!114 &7903389983572529390
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 98e55432afa09477a97a6a6ee4302297, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EntityLootTable
-  lootEntries: []
-  dropInventoryContents: 1
 --- !u!114 &4847805356889917065
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -555,11 +529,11 @@ MonoBehaviour:
   damageNoiseRadius: 15
   hurtSound:
     Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
+      Data1: 568073404
+      Data2: 1232003800
+      Data3: -533523275
+      Data4: -1075932117
+    Path: event:/SFX/Hit
   onDeath:
     m_PersistentCalls:
       m_Calls: []
@@ -567,11 +541,11 @@ MonoBehaviour:
   deathNoiseRadius: 20
   deathSound:
     Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
+      Data1: -1486019807
+      Data2: 1229043757
+      Data3: -1953646154
+      Data4: -696340387
+    Path: event:/SFX/PlayerDie
   despawnDelay: 12
   disableAgentOnDeath: 1
 --- !u!114 &5659964076644315265
@@ -610,6 +584,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AgentAnimatorDriver
   animator: {fileID: 164182178236826577}
   animationSpeedMultiplier: 1.5
+  walkAnimBoost: 1.1
 --- !u!95 &164182178236826577
 Animator:
   serializedVersion: 7
@@ -639,7 +614,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fbb87cf2ffb7543aa9517dec3d2102a0, type: 3}
   m_Name: 
@@ -649,28 +624,7 @@ MonoBehaviour:
   herdId: herd2
   settleRadius: 4
   settleStopDistance: 0.6
---- !u!114 &4839604393420977714
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b430a782cc3264533addc8465482714e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BasePatrolModule
-  priority: 1
-  active: 1
-  baseTransform: {fileID: 0}
-  patrolRadius: 180
-  sampleDistance: 60
-  minDestinationDistance: 15
-  minWaitTime: 0.4
-  maxWaitTime: 2.5
-  stopDistance: 0.8
-  speedMultiplier: 1
+  settleTimeoutSeconds: 5
 --- !u!114 &2749094970167761448
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -686,8 +640,8 @@ MonoBehaviour:
   priority: 0
   active: 1
   limitWanderRadius: 0
-  wanderRadius: 0.1
-  freeRoamRadius: 50
+  wanderRadius: 100
+  freeRoamRadius: 100
   sampleDistance: 15
   minDestinationDistance: 1.5
   maxSampleAttempts: 10
@@ -763,6 +717,47 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &-6504840504674842006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9df4b2e8a10c2468a90eacf73ff27057, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IdleLookAroundModule
+  priority: 5
+  active: 1
+  minInterval: 1.5
+  maxInterval: 4.5
+  turnAngle: 70
+  lookDuration: 0.75
+--- !u!114 &5177592585097973980
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9446d8881c4d04935940a413f3fba41e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PatrolModule
+  priority: 14
+  active: 1
+  mode: 0
+  radiusCenter: {fileID: 0}
+  patrolRadius: 15
+  minMoveDistance: 3
+  patrolPoints: []
+  selectionMode: 0
+  minWaitTime: 1
+  maxWaitTime: 3
+  stopDistance: 0.5
 --- !u!1 &972329710984439990
 GameObject:
   m_ObjectHideFlags: 0

@@ -26,9 +26,17 @@ public abstract class Weapon : UsableItem
     [SerializeField] protected string fireSoundName = ""; // FMOD sound event or name
     [SerializeField] protected float fireSoundVolume = 1f;
 
+    [Header("Charging")]
+    [SerializeField] protected bool enableCharging = false; // Toggle charging mode on/off
+    [SerializeField] protected float chargeDuration = 3f; // Time to fully charge in seconds
+    [SerializeField] protected AnimationCurve chargeProgressCurve = AnimationCurve.Linear(0, 0, 1, 1); // Curve for charge progression
+
     protected float nextFireTime;
     protected bool canFire = true;
     protected AudioManager audioManager;
+    protected bool isCharging = false;
+    protected float chargeStartTime;
+    protected IChargeable chargedProjectile; // Reference to currently charging projectile
 
     public event Action<int> OnAmmoChanged;
     public event Action OnFireRateReady;
@@ -66,6 +74,12 @@ public abstract class Weapon : UsableItem
             magazine = gameObject.AddComponent<Magazine>();
         }
 
+        // Refill magazine when weapon is equipped/enabled
+        if (magazine != null)
+        {
+            magazine.Refill();
+        }
+
         // Subscribe to magazine changes
         if (magazine != null)
         {
@@ -89,6 +103,9 @@ public abstract class Weapon : UsableItem
         {
             magazine.OnAmmoChanged -= OnMagazineAmmoChanged;
         }
+
+        // Cancel charging when weapon is disabled
+        CancelCharging();
     }
 
     protected virtual void Update()
@@ -97,6 +114,26 @@ public abstract class Weapon : UsableItem
         if (Time.time >= nextFireTime && !IsReadyToFire)
         {
             OnFireRateReady?.Invoke();
+        }
+
+        // Update charging if active
+        if (isCharging && chargedProjectile != null)
+        {
+            float chargeElapsed = Time.time - chargeStartTime;
+            float chargeProgress = Mathf.Clamp01(chargeElapsed / chargeDuration);
+            
+            // Apply animation curve
+            chargeProgress = chargeProgressCurve.Evaluate(chargeProgress);
+            
+            // Double-check projectile hasn't been destroyed
+            if (chargedProjectile == null)
+            {
+                isCharging = false;
+                return;
+            }
+            
+            // Update projectile with charge progress
+            chargedProjectile.UpdateCharge(chargeProgress);
         }
 
         // Rotate weapon to match camera pitch (up/down look direction)
@@ -128,6 +165,8 @@ public abstract class Weapon : UsableItem
 
     /// <summary>
     /// Attempt to fire the weapon.
+    /// If charging is enabled and no projectile is charging, spawn and start charging.
+    /// If a projectile is already charging, fire it.
     /// Returns false if weapon can't fire (no ammo, fire rate not ready, etc).
     /// </summary>
     public bool TryFire()
@@ -137,15 +176,72 @@ public abstract class Weapon : UsableItem
             return false;
         }
 
+        // If charging is enabled and we're already charging, launch the charged projectile
+        if (enableCharging && isCharging)
+        {
+            if (chargedProjectile != null)
+            {
+                try
+                {
+                    // Tell the projectile to finish charging and be ready to move
+                    chargedProjectile.OnChargeComplete();
+                    
+                    // Launch the already-charged projectile with current aim direction
+                    Fire();
+                }
+                catch (MissingReferenceException)
+                {
+                    Debug.LogWarning("Charged projectile was destroyed before launch.");
+                }
+            }
+            
+            chargedProjectile = null;
+            isCharging = false;
+            nextFireTime = Time.time + (1f / Mathf.Max(0.01f, fireRate));
+            return true;
+        }
+
+        // Normal fire or start charging
         if (magazine == null || !magazine.ConsumeAmmo(ammoPerShot))
         {
             // No ammo
             return false;
         }
 
-        Fire();
-        nextFireTime = Time.time + (1f / Mathf.Max(0.01f, fireRate));
-        return true;
+        // If charging is enabled, start charging (spawns projectile)
+        if (enableCharging && !isCharging)
+        {
+            StartCharging();
+            return true;
+        }
+        else
+        {
+            // Normal firing (no charging)
+            Fire();
+            nextFireTime = Time.time + (1f / Mathf.Max(0.01f, fireRate));
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Start the charging sequence for a chargeable projectile.
+    /// Spawns the projectile and begins charging it.
+    /// Subclasses override SpawnChargeProjectile() to create the projectile.
+    /// </summary>
+    protected virtual void StartCharging()
+    {
+        isCharging = true;
+        chargeStartTime = Time.time;
+        SpawnChargeProjectile(); // Spawn the projectile for charging
+    }
+
+    /// <summary>
+    /// Spawn a projectile for charging. Override in subclasses.
+    /// Should set chargedProjectile to the spawned projectile.
+    /// </summary>
+    protected virtual void SpawnChargeProjectile()
+    {
+        // Subclasses override this to spawn the chargeable projectile
     }
 
     /// <summary>
@@ -219,8 +315,7 @@ public abstract class Weapon : UsableItem
     /// </summary>
     protected override void Use()
     {
-        // Fire attempt is handled by TryFire() - this is called after ammo check passes
-        // For UsableItem compatibility, just fire
+        // Fire attempt is handled by TryFire()
         TryFire();
     }
 
@@ -246,6 +341,20 @@ public abstract class Weapon : UsableItem
         // Fire rate is checked in TryFire(), not here
         // This allows the inventory system to properly call Use()
         return true;
+    }
+
+    /// <summary>
+    /// Cancel charging if active (e.g., when weapon is unequipped).
+    /// </summary>
+    protected virtual void CancelCharging()
+    {
+        if (isCharging && chargedProjectile != null)
+        {
+            chargedProjectile.OnChargeCancelled();
+        }
+
+        isCharging = false;
+        chargedProjectile = null;
     }
 
     /// <summary>

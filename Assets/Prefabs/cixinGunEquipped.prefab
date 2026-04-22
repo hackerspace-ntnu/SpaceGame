@@ -33,6 +33,10 @@ PrefabInstance:
       value: event:/SFX/Thunder
       objectReference: {fileID: 0}
     - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: enableCharging
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: projectilePrefab
       value: 
       objectReference: {fileID: -4999026456586161738, guid: 0d7c7f92c34842e44a41c93acf1ad89a, type: 3}
@@ -73,6 +77,14 @@ PrefabInstance:
       value: 20
       objectReference: {fileID: 0}
     - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: chargeProgressCurve.m_Curve.Array.data[1].time
+      value: 0.9937439
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: chargeProgressCurve.m_Curve.Array.data[1].value
+      value: 0.98806
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: recoilRecoveryFalloff.m_Curve.Array.data[0].time
       value: 0.6020813
       objectReference: {fileID: 0}
@@ -81,12 +93,36 @@ PrefabInstance:
       value: 1.0166626
       objectReference: {fileID: 0}
     - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: chargeProgressCurve.m_Curve.Array.data[0].inSlope
+      value: -0.04820641
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: chargeProgressCurve.m_Curve.Array.data[1].inSlope
+      value: -0.123285264
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: recoilRecoveryFalloff.m_Curve.Array.data[0].value
       value: 0.99642944
       objectReference: {fileID: 0}
     - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: recoilRecoveryFalloff.m_Curve.Array.data[1].value
       value: 0.0119018555
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: chargeProgressCurve.m_Curve.Array.data[0].outSlope
+      value: -0.04820641
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: chargeProgressCurve.m_Curve.Array.data[1].inWeight
+      value: 0.26819807
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: chargeProgressCurve.m_Curve.Array.data[1].outSlope
+      value: -0.123285264
+      objectReference: {fileID: 0}
+    - target: {fileID: -270169135618391896, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: chargeProgressCurve.m_Curve.Array.data[0].outWeight
+      value: 0.5634043
       objectReference: {fileID: 0}
     - target: {fileID: 323723913112813014, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: m_LocalPosition.y

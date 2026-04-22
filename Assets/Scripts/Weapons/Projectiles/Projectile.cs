@@ -40,8 +40,8 @@ public abstract class Projectile : MonoBehaviour
             transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
         }
 
-        CancelInvoke(nameof(DestroyProjectile));
-        Invoke(nameof(DestroyProjectile), lifeTime);
+        // Do NOT start lifetime here - it will be started when the projectile actually launches
+        // This allows projectiles to be spawned for charging without being destroyed prematurely
     }
 
     /// <summary>
@@ -105,6 +105,25 @@ public abstract class Projectile : MonoBehaviour
     protected virtual void DestroyProjectile()
     {
         Destroy(gameObject);
+    }
+
+    /// <summary>
+    /// Start the lifetime counter for the projectile.
+    /// Called when the projectile is launched/released.
+    /// </summary>
+    public virtual void StartLifetime()
+    {
+        CancelInvoke(nameof(DestroyProjectile));
+        Invoke(nameof(DestroyProjectile), lifeTime);
+    }
+
+    /// <summary>
+    /// Restart the lifetime counter.
+    /// Used for projectiles that delay launching (like charging).
+    /// </summary>
+    public virtual void RestartLifetime()
+    {
+        StartLifetime();
     }
 
     /// <summary>

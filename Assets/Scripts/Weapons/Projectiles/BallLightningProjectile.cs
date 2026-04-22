@@ -4,8 +4,9 @@ using UnityEngine;
 /// BallLightning projectile implementation.
 /// Extends abstract Projectile class with wandering AI movement,
 /// hover behavior, and lightning effects.
+/// Implements IChargeable for charging mechanics.
 /// </summary>
-public class BallLightningProjectile : Projectile
+public class BallLightningProjectile : Projectile, IChargeable
 {
     [Header("Movement")]
     [SerializeField] private float speed = 45f;
@@ -43,9 +44,18 @@ public class BallLightningProjectile : Projectile
     [SerializeField] private float impactSpotIntensity = 35f;
     [SerializeField] private float impactSpotLifetime = 0.25f;
 
+    [Header("Charging")]
+    [SerializeField] private float chargeMinScale = 0.2f; // Starting scale while charging
+    [SerializeField] private float chargeMaxScale = 1f; // Final scale after charging
+    [SerializeField] private AnimationCurve chargeScaleCurve = AnimationCurve.EaseInOut(0, 0, 1, 1); // Scale progression
+
     private float noiseSeed;
     private float bobPhase;
     private float lightNoiseSeed;
+    private float chargeLevel = 0f; // 0 to 1 indicating charge progress
+    private bool isChargeComplete = false;
+    private Vector3 originalScale; // Store original scale for relative scaling during charge
+    private Transform barrelTransform; // Reference to barrel/spawn point for position tracking
 
     private void OnEnable()
     {
@@ -74,9 +84,29 @@ public class BallLightningProjectile : Projectile
     {
         base.Initialize(forwardDirection, owner, startPosition);
 
+        // Store original scale for relative scaling during charge
+        originalScale = transform.localScale;
+
         noiseSeed = Random.Range(0f, 1000f);
         bobPhase = Random.Range(0f, Mathf.PI * 2f);
         lightNoiseSeed = Random.Range(0f, 1000f);
+    }
+
+    /// <summary>
+    /// Set the barrel transform reference for position tracking during charging.
+    /// </summary>
+    public void SetBarrelTransform(Transform barrel)
+    {
+        barrelTransform = barrel;
+    }
+
+    /// <summary>
+    /// Set the launch direction for the charged projectile.
+    /// Called when firing the charged projectile to update direction based on current aim.
+    /// </summary>
+    public void SetLaunchDirection(Vector3 newDirection)
+    {
+        direction = newDirection.sqrMagnitude > 0.0001f ? newDirection.normalized : Vector3.forward;
     }
 
     private void Update()
@@ -91,6 +121,12 @@ public class BallLightningProjectile : Projectile
 
     protected override void UpdateMovement()
     {
+        // Don't move while charging
+        if (!isChargeComplete)
+        {
+            return;
+        }
+
         float elapsed = GetElapsedTime();
         Vector3 frameVelocity = direction * speed;
 
@@ -234,5 +270,85 @@ public class BallLightningProjectile : Projectile
             Color candidate = material.GetColor("_CorePunchColor");
             boltLightColor = Color.Lerp(candidate, new Color(1.0f, 0.35f, 0.85f), 0.55f);
         }
+    }
+
+    /// <summary>
+    /// IChargeable implementation: Get current charge level.
+    /// </summary>
+    public float GetChargeLevel()
+    {
+        return chargeLevel;
+    }
+
+    /// <summary>
+    /// IChargeable implementation: Update charge state.
+    /// While charging, the projectile is frozen and scaled based on charge progress.
+    /// Position follows the barrel/spawn point.
+    /// </summary>
+    public void UpdateCharge(float chargeProgress)
+    {
+        // If already fully charged, don't update anymore (projectile is ready to launch)
+        if (chargeLevel >= 1f)
+        {
+            return;
+        }
+
+        chargeLevel = chargeProgress;
+
+        // Scale relative to original scale, from chargeMinScale to chargeMaxScale
+        float scaleCurveValue = chargeScaleCurve.Evaluate(chargeProgress);
+        float scaleMultiplier = Mathf.Lerp(chargeMinScale, chargeMaxScale, scaleCurveValue);
+        
+        // Apply relative scaling
+        transform.localScale = originalScale * scaleMultiplier;
+
+        // If barrel transform is available, follow its position during charging
+        if (barrelTransform != null)
+        {
+            transform.position = barrelTransform.position;
+        }
+
+        // Stop all movement during charging
+        // Movement will resume after LaunchCharged
+    }
+
+    /// <summary>
+    /// IChargeable implementation: Called when charging is complete.
+    /// Projectile is now fully charged and will launch on next fire.
+    /// </summary>
+    public void OnChargeComplete()
+    {
+        chargeLevel = 1f;
+        
+        // Keep the current scale (don't override it)
+        // The projectile has been scaling during UpdateCharge, so we just lock in that scale
+        // DO NOT reset to max scale - keep whatever scale it currently has
+    }
+
+    /// <summary>
+    /// IChargeable implementation: Called if charging is cancelled.
+    /// Destroys the projectile without launching it.
+    /// </summary>
+    public void OnChargeCancelled()
+    {
+        chargeLevel = 0f;
+        isChargeComplete = false;
+        
+        // Destroy the projectile
+        DestroyProjectile();
+    }
+
+    /// <summary>
+    /// Called when the charged projectile should actually be launched.
+    /// Sets isChargeComplete = true to allow movement to resume.
+    /// </summary>
+    public void LaunchCharged()
+    {
+        isChargeComplete = true;
+        barrelTransform = null; // Stop following barrel, now move freely
+        
+        // Restart the lifetime counter now that the projectile is launching
+        // This ensures the projectile has a full lifetime from launch, not from when charging started
+        RestartLifetime();
     }
 }

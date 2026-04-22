@@ -44,6 +44,9 @@ public class BasicGun : Weapon
         // Set owner for damage checks and networking
         Transform ownerRoot = networkOwner != null ? networkOwner.transform : transform.root;
         projectile.Initialize(fireDir, ownerRoot, spawnPos);
+        
+        // Start the lifetime counter now that projectile is launched
+        projectile.StartLifetime();
 
         // Play firing sound via base class
         PlayFireSound();

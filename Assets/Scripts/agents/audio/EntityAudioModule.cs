@@ -47,17 +47,6 @@ public class EntityAudioModule : MonoBehaviour
         footstepTimer = 0f;
         ScheduleNextAmbient();
         wasChasing = false;
-
-        if (chaseModule != null)
-        {
-            chaseModule.OnEnterEngageRange += OnBecameAggressive;
-        }
-    }
-
-    private void OnDisable()
-    {
-        if (chaseModule != null)
-            chaseModule.OnEnterEngageRange -= OnBecameAggressive;
     }
 
     private void Update()
@@ -121,11 +110,6 @@ public class EntityAudioModule : MonoBehaviour
         {
             wasChasing = false;
         }
-    }
-
-    private void OnBecameAggressive()
-    {
-        // Additional hook for entering attack range specifically.
     }
 
     private void ScheduleNextAmbient()

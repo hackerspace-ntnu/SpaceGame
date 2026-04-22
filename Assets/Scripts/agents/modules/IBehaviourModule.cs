@@ -1,6 +1,6 @@
 // Contract for all drag-and-drop behaviour modules on entity prefabs.
 // Return null from Tick() to pass movement control to the next module; return a MoveIntent to claim this frame.
-// Modules where ClaimsMovement == false (e.g. EntityCombatModule, RangedAttackModule) are always ticked
+// Modules where ClaimsMovement == false (pure side-effect modules) are always ticked
 // as side-effects even after a movement winner is found — they must always return null from Tick().
 public interface IBehaviourModule
 {

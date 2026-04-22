@@ -7,7 +7,7 @@ public class KeepDistanceModule : BehaviourModuleBase
 {
     [Header("Target")]
     [SerializeField] private Transform target;
-    [SerializeField] private string targetTag = "Player";
+    [Tooltip("Faction relationship the nearest target must have. Requires EntityFaction on both entities.")]
     [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Hostile;
 
     [Header("Ranges")]
@@ -19,13 +19,16 @@ public class KeepDistanceModule : BehaviourModuleBase
     [SerializeField] private float stopDistance = 0.2f;
     [SerializeField] private float navMeshSampleDistance = 4f;
 
+    private EntityFaction selfFaction;
+
+    private void Awake() => selfFaction = GetComponent<EntityFaction>();
     private void Reset() => SetPriorityDefault(ModulePriority.Ambient);
 
     public override string ModuleDescription =>
         "Maintains a preferred distance from a target. Backs away if too close, faces the target otherwise. Good for ranged enemies that kite.\n\n" +
         "• detectRadius — range at which the module activates\n" +
         "• preferredDistance — desired gap between entity and target\n" +
-        "• Pair with RangedAttackModule to shoot while backing away";
+        "• Pair with AgentRangedCombatModule to shoot while backing away";
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {
@@ -69,9 +72,7 @@ public class KeepDistanceModule : BehaviourModuleBase
     {
         if (target)
             return;
-        Transform candidate = EntityTargetRegistry.Resolve(targetTag, transform.position);
-        if (candidate && EntityFaction.IsValidTarget(transform, candidate, requiredRelationship))
-            target = candidate;
+        target = EntityTargetRegistry.ResolveNearest(selfFaction, requiredRelationship, transform.position);
     }
 
     protected override void OnValidate()

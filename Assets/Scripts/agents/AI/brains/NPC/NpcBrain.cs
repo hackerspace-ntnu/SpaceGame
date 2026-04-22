@@ -17,11 +17,14 @@ public class NpcBrain : MonoBehaviour, IAgentBrain
 {
     [Header("Behaviours")]
     [SerializeField] private WanderBehaviour wanderBehaviour;
-    [SerializeField] private MountController mountController;
+    [SerializeField] private MountModule mountController;
 
     [Header("Player Target")]
     [SerializeField] private Transform playerTarget;
-    [SerializeField] private string playerTag = "Player";
+    [Tooltip("Faction relationship the nearest player candidate must have. Requires EntityFaction on both entities.")]
+    [SerializeField] private FactionRelationship playerRelationship = FactionRelationship.Allied;
+
+    private EntityFaction selfFaction;
 
     [Header("Player Reaction")]
     [SerializeField] private NpcPlayerReactionMode playerReactionMode = NpcPlayerReactionMode.Watch;
@@ -59,8 +62,10 @@ public class NpcBrain : MonoBehaviour, IAgentBrain
 
         if (!mountController)
         {
-            mountController = GetComponent<MountController>();
+            mountController = GetComponent<MountModule>();
         }
+
+        selfFaction = GetComponent<EntityFaction>();
     }
 
     private void OnEnable()
@@ -139,11 +144,7 @@ public class NpcBrain : MonoBehaviour, IAgentBrain
             return;
         }
 
-        GameObject playerObject = GameObject.FindGameObjectWithTag(playerTag);
-        if (playerObject)
-        {
-            playerTarget = playerObject.transform;
-        }
+        playerTarget = EntityTargetRegistry.ResolveNearest(selfFaction, playerRelationship, transform.position);
     }
 
     private MoveIntent? TryGetPlayerReactionIntent(in AgentContext context)

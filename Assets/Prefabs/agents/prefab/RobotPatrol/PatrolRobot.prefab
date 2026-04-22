@@ -225,6 +225,7 @@ GameObject:
   - component: {fileID: -6504840504674842006}
   - component: {fileID: 5177592585097973980}
   - component: {fileID: 2551231991027282756}
+  - component: {fileID: -5517073708524184881}
   m_Layer: 0
   m_Name: PatrolRobot
   m_TagString: Untagged
@@ -293,6 +294,9 @@ MonoBehaviour:
   mountedJumpHeight: 1.25
   mountedJumpDuration: 0.55
   mountedJumpCooldown: 0.45
+  enableMountedLeap: 1
+  mountedLeapCooldown: 0.6
+  mountedLeapSampleRadius: 6
 --- !u!114 &8986471758657315100
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -328,12 +332,12 @@ MonoBehaviour:
   priority: 20
   active: 1
   target: {fileID: 0}
-  targetTag: Player
   requiredRelationship: 2
-  detectRange: 18
-  proximityDetectRange: 4
-  loseTargetRange: 28
-  attackRange: 16
+  detectRange: 30
+  proximityDetectRange: 3
+  loseTargetRange: 40
+  loseTargetRangeAttackBuffer: 4
+  detectRangeAttackBuffer: 1
   chaseStopDistance: 12.8
   chaseSpeedMultiplier: 1.7
 --- !u!114 &3153956235504603033
@@ -553,7 +557,6 @@ MonoBehaviour:
   priority: 10
   active: 1
   target: {fileID: 0}
-  targetTag: Player
   requiredRelationship: 2
   detectRadius: 10
   preferredDistance: 6
@@ -604,7 +607,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fbb87cf2ffb7543aa9517dec3d2102a0, type: 3}
   m_Name: 
@@ -615,6 +618,7 @@ MonoBehaviour:
   settleRadius: 4
   settleStopDistance: 0.6
   settleTimeoutSeconds: 5
+  combatSpreadRadius: 2.5
 --- !u!114 &2749094970167761448
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -646,23 +650,22 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5a76ab2054f26424dafb39fa6cc20c14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AgentRangedCombatModule
-  priority: 20
+  priority: 22
   active: 1
   target: {fileID: 0}
-  targetTag: Player
   requiredRelationship: 2
   weapon: {fileID: 11400000, guid: e353b7688558a49c7bd8586cda5e8398, type: 2}
   fireProfile: {fileID: 11400000, guid: c19bbadfc9fe54b1eb3de0bedf171d10, type: 2}
   aimProfile: {fileID: 11400000, guid: 7aa884b8ef85942f18fb0a63102ea09c, type: 2}
   muzzleSocket: {fileID: 0}
+  muzzleForwardOffset: 0.4
   spawnWeaponModel: 0
   weaponMount: {fileID: 0}
-  weaponModel: {fileID: 0}
   animator: {fileID: 164182178236826577}
   shootAnimTrigger: AssaultShoot
   aimAnimBool: IsAiming
@@ -711,7 +714,7 @@ Rigidbody:
   m_UseGravity: 0
   m_IsKinematic: 1
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 112
   m_CollisionDetection: 0
 --- !u!114 &-6504840504674842006
 MonoBehaviour:
@@ -738,7 +741,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 971402422321702955}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9446d8881c4d04935940a413f3fba41e, type: 3}
   m_Name: 
@@ -768,6 +771,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EntityFaction
   faction: {fileID: 11400000, guid: ad0ce5393f2404ae19642fa6323625ee, type: 2}
   relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
+--- !u!114 &-5517073708524184881
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43eff2e021982408cbdc8668fb5d941c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CloseCombatModule
+  priority: 23
+  active: 1
+  target: {fileID: 0}
+  requiredRelationship: 2
+  attackRange: 5
+  attackCooldown: 1.2
+  attackDamage: 10
+  attackCommitDuration: 0.5
+  attackAnimTrigger: Meele
+  OnAttack:
+    m_PersistentCalls:
+      m_Calls: []
+  attackSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
 --- !u!1 &972329710984439990
 GameObject:
   m_ObjectHideFlags: 0
@@ -2911,6 +2945,18 @@ PrefabInstance:
     m_TransformParent: {fileID: 79230835977552469}
     m_Modifications:
     - target: {fileID: 253104850378633474, guid: 3f29914b413904d40a89e972f348ebd8, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 253104850378633474, guid: 3f29914b413904d40a89e972f348ebd8, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 253104850378633474, guid: 3f29914b413904d40a89e972f348ebd8, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 253104850378633474, guid: 3f29914b413904d40a89e972f348ebd8, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.031
       objectReference: {fileID: 0}
@@ -2956,7 +3002,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 633007714637671352, guid: 3f29914b413904d40a89e972f348ebd8, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

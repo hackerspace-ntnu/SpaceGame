@@ -31,7 +31,6 @@ public class EntityProfile_GenericEnemy : MonoBehaviour
     public float herdSpeed = 1f;
 
     [Header("Detection")]
-    public string targetTag = "Player";
     public float detectRange = 18f;
     public float loseTargetRange = 28f;
     public float fieldOfViewAngle = 130f;
@@ -48,24 +47,17 @@ public class EntityProfile_GenericEnemy : MonoBehaviour
     public float meleeCooldown = 0.8f;
     public int meleeDamage = 18;
 
-    [Header("Ranged")]
-    public GameObject projectilePrefab;
+    [Header("Ranged — ScriptableObject refs for AgentRangedCombatModule")]
+    public AgentWeaponDefinition weapon;
+    public AgentFireProfile fireProfile;
+    public AgentAimProfile aimProfile;
+    [Tooltip("Empty child transform at the gun barrel tip. Projectiles spawn here.")]
     public Transform muzzleTransform;
-    public float minFireRange = 4f;
-    public float maxFireRange = 16f;
-    public float projectileSpeed = 24f;
-    public float fireCooldown = 1.1f;
-    public int burstCount = 2;
-    public float burstInterval = 0.12f;
-    public float spreadAngle = 3f;
-    public bool leadTarget = true;
 
     [Header("Ranged Positioning")]
     public float keepDistanceDetect = 10f;
     public float keepDistancePreferred = 6f;
     public float keepDistanceSpeed = 1.25f;
-    public float strafeEngageRange = 15f;
-    public float strafeRadius = 7f;
 
     [Header("Alerts")]
     public float alertRadius = 28f;
@@ -87,18 +79,9 @@ public class EntityProfile_GenericEnemy : MonoBehaviour
         meleeRange = Mathf.Max(0.1f, meleeRange);
         meleeCooldown = Mathf.Max(0.05f, meleeCooldown);
         meleeDamage = Mathf.Max(0, meleeDamage);
-        minFireRange = Mathf.Max(0f, minFireRange);
-        maxFireRange = Mathf.Max(minFireRange + 0.1f, maxFireRange);
-        projectileSpeed = Mathf.Max(0.1f, projectileSpeed);
-        fireCooldown = Mathf.Max(0.05f, fireCooldown);
-        burstCount = Mathf.Max(1, burstCount);
-        burstInterval = Mathf.Max(0.01f, burstInterval);
-        spreadAngle = Mathf.Clamp(spreadAngle, 0f, 45f);
         keepDistanceDetect = Mathf.Max(0.1f, keepDistanceDetect);
         keepDistancePreferred = Mathf.Max(0.1f, keepDistancePreferred);
         keepDistanceSpeed = Mathf.Max(0.01f, keepDistanceSpeed);
-        strafeEngageRange = Mathf.Max(0.1f, strafeEngageRange);
-        strafeRadius = Mathf.Max(0.1f, strafeRadius);
         alertRadius = Mathf.Max(0f, alertRadius);
         despawnDelay = Mathf.Max(0f, despawnDelay);
     }

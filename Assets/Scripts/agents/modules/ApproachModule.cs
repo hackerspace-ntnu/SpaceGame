@@ -6,8 +6,12 @@ public class ApproachModule : BehaviourModuleBase
 {
     [Header("Target")]
     [SerializeField] private Transform target;
-    [SerializeField] private string targetTag = "Player";
-    [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Neutral;
+    [Tooltip("Faction relationship the nearest candidate must have. Requires EntityFaction on both entities.")]
+    [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Allied;
+
+    private EntityFaction selfFaction;
+
+    private void Awake() => selfFaction = GetComponent<EntityFaction>();
 
     [Header("Range")]
     [SerializeField] private float detectRadius = 6f;
@@ -44,9 +48,7 @@ public class ApproachModule : BehaviourModuleBase
     {
         if (target)
             return;
-        Transform candidate = EntityTargetRegistry.Resolve(targetTag, transform.position);
-        if (candidate && EntityFaction.IsValidTarget(transform, candidate, requiredRelationship))
-            target = candidate;
+        target = EntityTargetRegistry.ResolveNearest(selfFaction, requiredRelationship, transform.position);
     }
 
     protected override void OnValidate()

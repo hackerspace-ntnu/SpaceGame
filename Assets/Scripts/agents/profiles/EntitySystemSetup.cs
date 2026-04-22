@@ -8,9 +8,10 @@
 //
 // 1. PLAYER
 //    - Open Assets/Prefabs/Player/PlayerCharacterNetworked.prefab
-//    - Add component: RegisterAsTarget  (targetTag = "Player")
-//    - Add component: EntityFaction     (assign PlayerFaction asset)
+//    - Add component: EntityFaction     (assign PlayerFaction asset + GlobalRelationships)
 //    - Add component: NoiseEmitter      (set receiverLayers to include enemy layer)
+//    (EntityFaction self-registers the player in EntityTargetRegistry — all AI targeting
+//     is faction-based. No RegisterAsTarget / targetTag needed anywhere.)
 //
 // 2. FACTIONS (create these ScriptableObjects once)
 //    - Right-click in Project → Factions → Faction Definition
@@ -36,7 +37,7 @@
 //
 // 4. Roberto (scout):  Same steps → EntityProfile_RobotRoberto
 // 5. Cath (cover):     Same steps → EntityProfile_RobotCath
-//    - Assign projectilePrefab on RangedAttackModule
+//    - Assign weapon/fireProfile/aimProfile SO refs on AgentRangedCombatModule
 // 6. Ernst (heavy):    Same steps → EntityProfile_RobotErnst
 //
 // ── NPC ───────────────────────────────────────────────────
@@ -66,14 +67,18 @@
 //
 // 10. Open Assets/Prefabs/entities/MountableAnt.prefab
 //     - Add component: EntityProfile_MountableAnt
-//     - The MountSuppressorModule on the MountController suppresses all modules while mounted.
+//     - Modular path: just MountModule + SteerModule (plus AgentController + NavMeshAgentMotor + AI modules
+//       if you want AI behaviour between rider inputs).
+//     - Toggle MountModule.allowAISelfMovementWhenMounted to let the mount keep running its AI
+//       between rider inputs (or false to freeze it until the rider steers).
+//     - MountModule implements IInteractable — no separate MountInteractor needed.
 //
 // ── BOUNTY HUNTER ─────────────────────────────────────────
 //
 // 11. Duplicate any humanoid robot prefab → rename BountyHunter
 //     - Add component: EntityProfile_BountyHunter
-//     - Assign RangedAttackModule.projectilePrefab
-//     - Assign RangedAttackModule.muzzleTransform to the gun barrel bone
+//     - Assign weapon/fireProfile/aimProfile SO refs on AgentRangedCombatModule
+//     - Assign AgentRangedCombatModule.muzzleSocket to the gun barrel bone
 //     - Place 2-3 hunters near each other for a hunting party
 //
 // ── COVER POINTS ──────────────────────────────────────────

@@ -1,14 +1,18 @@
 // Finds the best nearby CoverPoint relative to a threat and moves behind it.
 // Activates when threat is within threat range. Vacates cover when safe.
-// Pair with RangedAttackModule: entity hides, peeks, shoots.
+// Pair with AgentRangedCombatModule: entity hides, peeks, shoots.
 using UnityEngine;
 
 public class CoverModule : BehaviourModuleBase
 {
     [Header("Threat")]
     [SerializeField] private Transform threat;
-    [SerializeField] private string threatTag = "Player";
+    [Tooltip("Faction relationship the nearest threat must have. Requires EntityFaction on both entities.")]
     [SerializeField] private FactionRelationship threatRelationship = FactionRelationship.Hostile;
+
+    private EntityFaction selfFaction;
+
+    private void Awake() => selfFaction = GetComponent<EntityFaction>();
 
     [Header("Cover Seeking")]
     [SerializeField] private float threatRange = 14f;
@@ -29,7 +33,7 @@ public class CoverModule : BehaviourModuleBase
         "• threatRange — threat must be within this distance to trigger cover-seeking\n" +
         "• coverSearchRadius — only considers CoverPoints within this radius\n" +
         "• Requires CoverPoint components placed in the scene (behind rocks, crates, walls)\n" +
-        "• Pair with RangedAttackModule to shoot from cover";
+        "• Pair with AgentRangedCombatModule to shoot from cover";
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {
@@ -88,9 +92,7 @@ public class CoverModule : BehaviourModuleBase
     {
         if (threat)
             return;
-        Transform candidate = EntityTargetRegistry.Resolve(threatTag, transform.position);
-        if (candidate && EntityFaction.IsValidTarget(transform, candidate, threatRelationship))
-            threat = candidate;
+        threat = EntityTargetRegistry.ResolveNearest(selfFaction, threatRelationship, transform.position);
     }
 
     protected override void OnValidate()

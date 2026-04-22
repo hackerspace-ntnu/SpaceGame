@@ -2,24 +2,28 @@
 // Subclass this and implement Tick() to create a new drag-and-drop behaviour.
 //
 // Recommended priority scale (use these constants or multiples of them):
-//   ModulePriority.Scripted   = 100  — cutscenes, forced interactions (InteractionFocusModule)
-//   ModulePriority.Override   =  30  — urgent reactions that beat everything (e.g. danger flee)
-//   ModulePriority.Reactive   =  20  — combat, chase, flee from threat
-//   ModulePriority.Social     =  15  — flocking, group movement
-//   ModulePriority.Ambient    =  10  — watch, approach, keep-distance
-//   ModulePriority.Personality =  5  — idle look-around, emotes
-//   ModulePriority.Fallback   =   0  — wander, patrol (always last)
+//   ModulePriority.Scripted    = 100  — cutscenes, forced interactions (InteractionFocusModule)
+//   ModulePriority.Override    =  30  — urgent reactions that beat everything (e.g. danger flee)
+//   ModulePriority.MeleeAttack =  23  — close-combat attack (melee preempts ranged when both can hit)
+//   ModulePriority.RangedAttack=  22  — ranged attack (stands and fires when in band)
+//   ModulePriority.Reactive    =  20  — chase, kite, cover
+//   ModulePriority.Social      =  15  — flocking, group movement
+//   ModulePriority.Ambient     =  10  — watch, approach, keep-distance
+//   ModulePriority.Personality =   5  — idle look-around, emotes
+//   ModulePriority.Fallback    =   0  — wander, patrol (always last)
 using UnityEngine;
 
 public static class ModulePriority
 {
-    public const int Scripted    = 100;
-    public const int Override    =  30;
-    public const int Reactive    =  20;
-    public const int Social      =  15;
-    public const int Ambient     =  10;
-    public const int Personality =   5;
-    public const int Fallback    =   0;
+    public const int Scripted     = 100;
+    public const int Override     =  30;
+    public const int MeleeAttack  =  23;
+    public const int RangedAttack =  22;
+    public const int Reactive     =  20;
+    public const int Social       =  15;
+    public const int Ambient      =  10;
+    public const int Personality  =   5;
+    public const int Fallback     =   0;
 }
 
 public abstract class BehaviourModuleBase : MonoBehaviour, IBehaviourModule

@@ -15,9 +15,7 @@ public class AgentAimProfile : ScriptableObject
     [Range(0f, 1f)]
     public float aimLeadFactor = 0.5f;
 
-    [Tooltip("If true, the agent will not fire unless it has line-of-sight to the target.")]
+    [Tooltip("If true, the agent will not fire unless it has line-of-sight to the target. " +
+             "The LoS raycast is performed by the agent's PerceptionModule; if none is present, the check is skipped with a warning.")]
     public bool requireLineOfSight = true;
-
-    [Tooltip("Layer mask used for line-of-sight raycasts.")]
-    public LayerMask lineOfSightMask = Physics.DefaultRaycastLayers;
 }

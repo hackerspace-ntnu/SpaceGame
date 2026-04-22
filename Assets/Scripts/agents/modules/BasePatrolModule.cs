@@ -26,16 +26,8 @@ public class BasePatrolModule : BehaviourModuleBase
     private State state = State.Waiting;
     private Vector3 destination;
     private float waitTimer;
-    private IMovementMotor motor;
 
     private void Reset() => SetPriorityDefault(ModulePriority.Fallback);
-
-    private void Start()
-    {
-        var controller = GetComponent<AgentController>();
-        if (controller != null)
-            motor = controller.Motor;
-    }
 
     public override string ModuleDescription =>
         "Patrols random NavMesh points around a base transform (or spawn position if none assigned).\n\n" +
@@ -52,13 +44,6 @@ public class BasePatrolModule : BehaviourModuleBase
         switch (state)
         {
             case State.Waiting:
-                // If the herd suggested a destination while we're idle, follow it immediately.
-                if (motor?.CurrentDestination is Vector3 suggested)
-                {
-                    destination = suggested;
-                    state = State.Moving;
-                    return MoveIntent.MoveTo(destination, stopDistance, speedMultiplier);
-                }
                 waitTimer -= deltaTime;
                 if (waitTimer <= 0f)
                     TryBeginMove();

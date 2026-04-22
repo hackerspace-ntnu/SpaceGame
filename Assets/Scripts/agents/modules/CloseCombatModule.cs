@@ -1,6 +1,6 @@
 // Deals melee damage to a target when within attack range.
-// Does NOT move — pair with ChaseModule for positioning.
-// Never claims movement, runs as a side-effect module alongside movement modules.
+// Claims movement: returns StopAndFace while in range (preempting ChaseModule) and null otherwise,
+// so ChaseModule at lower priority can drive the approach when the target is out of melee reach.
 using System;
 using UnityEngine;
 using UnityEngine.Events;
@@ -10,13 +10,14 @@ public class CloseCombatModule : BehaviourModuleBase
 {
     [Header("Target")]
     [SerializeField] private Transform target;
-    [SerializeField] private string targetTag = "Player";
     [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Hostile;
 
     [Header("Attack")]
-    [SerializeField] private float attackRange = 2f;
+    [SerializeField] private float attackRange = 5f;
     [SerializeField] private float attackCooldown = 1.2f;
     [SerializeField] private int attackDamage = 10;
+    [Tooltip("Seconds the agent stays locked in StopAndFace after a swing fires — keeps the attack committed so it can't start walking mid-animation if the target drifts out of attackRange. Typically set to the length of the attack animation.")]
+    [SerializeField] private float attackCommitDuration = 0.5f;
 
     [Header("Animation")]
     [Tooltip("Trigger to fire on each attack. Leave empty to disable.")]
@@ -30,37 +31,54 @@ public class CloseCombatModule : BehaviourModuleBase
     [SerializeField] private EventReference attackSound;
 
     private float cooldownTimer;
+    // Ticks down after a swing fires; while > 0, the module keeps returning StopAndFace regardless
+    // of target distance so the in-progress swing can't be interrupted by Chase.
+    private float commitTimer;
     private Animator animator;
+    private EntityFaction selfFaction;
 
-    public override bool ClaimsMovement => false;
+    // Read by ChaseModule at Awake so it can tighten chaseStopDistance and skip herd-spread
+    // offsets that would park the agent outside melee reach.
+    public float AttackRange => attackRange;
 
-    private void Reset() => SetPriorityDefault(ModulePriority.Reactive);
-    private void OnEnable() => cooldownTimer = 0f;
+    private void Reset() => SetPriorityDefault(ModulePriority.MeleeAttack);
+    private void OnEnable() { cooldownTimer = 0f; commitTimer = 0f; }
 
     private void Awake()
     {
         FindChildByName("Sword")?.SetActive(IsActive);
         animator = GetComponentInChildren<Animator>();
+        selfFaction = GetComponent<EntityFaction>();
     }
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {
+        // Advance timers every frame so a target stepping out and back can't instant-hit,
+        // and so the commit window decays even on frames we're not returning an intent.
+        cooldownTimer -= deltaTime;
+        commitTimer -= deltaTime;
+
         TryResolveTarget();
         if (!target)
             return null;
+
+        // Mid-swing: keep the agent planted and facing the target regardless of distance,
+        // so Chase can't reclaim the frame and start walking while the attack animation plays.
+        if (commitTimer > 0f)
+            return MoveIntent.StopAndFace(target.position);
 
         float distance = Vector3.Distance(context.Position, target.position);
         if (distance > attackRange)
             return null;
 
-        cooldownTimer -= deltaTime;
-        if (cooldownTimer > 0f)
-            return null;
+        if (cooldownTimer <= 0f)
+        {
+            Attack();
+            cooldownTimer = attackCooldown;
+            commitTimer = attackCommitDuration;
+        }
 
-        Attack();
-        cooldownTimer = attackCooldown;
-
-        return null;
+        return MoveIntent.StopAndFace(target.position);
     }
 
     private void Attack()
@@ -81,10 +99,26 @@ public class CloseCombatModule : BehaviourModuleBase
 
     private void TryResolveTarget()
     {
-        if (target) return;
-        Transform candidate = EntityTargetRegistry.Resolve(targetTag, transform.position);
-        if (candidate && EntityFaction.IsValidTarget(transform, candidate, requiredRelationship))
-            target = candidate;
+        if (target)
+        {
+            // Dying entities stay active during their despawn delay, so the Transform ref survives.
+            // Drop the current target as soon as it reports dead and re-resolve to a live one.
+            IDamageable currentDamageable = target.GetComponentInChildren<IDamageable>();
+            if (currentDamageable != null && !currentDamageable.Alive)
+                target = null;
+            else
+                return;
+        }
+
+        Transform candidate = EntityTargetRegistry.ResolveNearest(selfFaction, requiredRelationship, transform.position);
+        if (!candidate)
+            return;
+
+        IDamageable candidateDamageable = candidate.GetComponentInChildren<IDamageable>();
+        if (candidateDamageable != null && !candidateDamageable.Alive)
+            return;
+
+        target = candidate;
     }
 
     private GameObject FindChildByName(string childName)
@@ -99,5 +133,7 @@ public class CloseCombatModule : BehaviourModuleBase
         attackRange = Mathf.Max(0.1f, attackRange);
         attackCooldown = Mathf.Max(0.1f, attackCooldown);
         attackDamage = Mathf.Max(0, attackDamage);
+        attackCommitDuration = Mathf.Max(0f, attackCommitDuration);
+        SetMinPriority(ModulePriority.MeleeAttack);
     }
 }

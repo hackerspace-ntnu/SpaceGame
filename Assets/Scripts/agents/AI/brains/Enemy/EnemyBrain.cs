@@ -10,9 +10,12 @@ public class EnemyBrain : MonoBehaviour, IAgentBrain
 
     [Header("Targeting")]
     [SerializeField] private Transform target;
-    [SerializeField] private string targetTag = "Player";
+    [Tooltip("Faction relationship the nearest candidate must have. Requires EntityFaction on both entities.")]
+    [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Hostile;
     [SerializeField] private float detectRange = 10f;
     [SerializeField] private float loseTargetRange = 14f;
+
+    private EntityFaction selfFaction;
 
     [Header("Combat Movement")]
     [SerializeField] private float attackRange = 1.8f;
@@ -28,6 +31,7 @@ public class EnemyBrain : MonoBehaviour, IAgentBrain
         {
             wanderBehaviour = GetComponent<WanderBehaviour>();
         }
+        selfFaction = GetComponent<EntityFaction>();
     }
 
     private void OnEnable()
@@ -84,11 +88,7 @@ public class EnemyBrain : MonoBehaviour, IAgentBrain
             return;
         }
 
-        GameObject targetObject = GameObject.FindGameObjectWithTag(targetTag);
-        if (targetObject)
-        {
-            target = targetObject.transform;
-        }
+        target = EntityTargetRegistry.ResolveNearest(selfFaction, requiredRelationship, transform.position);
     }
 
     private void OnValidate()

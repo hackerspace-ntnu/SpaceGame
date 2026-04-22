@@ -1,75 +1,75 @@
-// Lightweight tag-based target registry that replaces GameObject.FindGameObjectWithTag in modules.
-// Entities register/unregister themselves by tag. Modules resolve targets from here — O(1) lookup,
-// survives respawn, and never returns Unity fake-null dead references.
+// Faction-keyed registry of all targetable entities in the scene.
+// Entities self-register via EntityFaction on enable. Targeting modules call
+// ResolveNearest to find the nearest entity whose faction relationship matches
+// what the module needs (Hostile / Allied / Neutral).
 //
-// Usage — on the Player (or any targetable):
-//   EntityTargetRegistry.Register("Player", this.transform);
-//   EntityTargetRegistry.Unregister("Player", this.transform);  // in OnDestroy / OnDisable
-//
-// Modules call:
-//   Transform t = EntityTargetRegistry.Resolve("Player");
+// Factions are the SOLE definition of who targets whom — there is no string-tag
+// fallback. An entity without an EntityFaction is invisible to the targeting system.
 using System.Collections.Generic;
 using UnityEngine;
 
 public static class EntityTargetRegistry
 {
-    // Supports multiple registered transforms per tag (e.g. multiple players in co-op).
-    private static readonly Dictionary<string, List<Transform>> registry = new Dictionary<string, List<Transform>>();
+    private static readonly List<EntityFaction> entities = new List<EntityFaction>();
 
-    public static void Register(string tag, Transform target)
+    public static void Register(EntityFaction entity)
     {
-        if (string.IsNullOrEmpty(tag) || !target)
+        if (entity == null)
             return;
-
-        if (!registry.TryGetValue(tag, out List<Transform> list))
-        {
-            list = new List<Transform>();
-            registry[tag] = list;
-        }
-
-        if (!list.Contains(target))
-            list.Add(target);
+        if (!entities.Contains(entity))
+            entities.Add(entity);
     }
 
-    public static void Unregister(string tag, Transform target)
+    public static void Unregister(EntityFaction entity)
     {
-        if (string.IsNullOrEmpty(tag) || !registry.TryGetValue(tag, out List<Transform> list))
-            return;
-
-        list.Remove(target);
+        entities.Remove(entity);
     }
 
-    // Returns the closest live transform registered under this tag, or null if none.
-    public static Transform Resolve(string tag, Vector3? nearestTo = null)
+    // Returns the nearest registered entity whose relationship to `owner` equals `required`.
+    // Returns null if no entity matches. Owner is required — factionless owners cannot target.
+    public static Transform ResolveNearest(EntityFaction owner, FactionRelationship required, Vector3 position)
     {
-        if (!registry.TryGetValue(tag, out List<Transform> list))
+        if (owner == null)
             return null;
 
         Transform best = null;
         float bestDist = float.MaxValue;
 
-        for (int i = list.Count - 1; i >= 0; i--)
+        for (int i = entities.Count - 1; i >= 0; i--)
         {
-            Transform t = list[i];
-            if (!t) // destroyed — prune
+            EntityFaction e = entities[i];
+            if (e == null)
             {
-                list.RemoveAt(i);
+                entities.RemoveAt(i);
                 continue;
             }
+            if (e == owner)
+                continue;
+            if (owner.GetRelationshipWith(e) != required)
+                continue;
 
-            if (nearestTo == null)
-                return t; // first live entry
-
-            float dist = Vector3.Distance(nearestTo.Value, t.position);
-            if (dist < bestDist)
+            float d = Vector3.Distance(position, e.transform.position);
+            if (d < bestDist)
             {
-                bestDist = dist;
-                best = t;
+                bestDist = d;
+                best = e.transform;
             }
         }
 
         return best;
     }
 
-    public static bool HasAny(string tag) => registry.TryGetValue(tag, out var list) && list.Count > 0;
+    public static bool HasAny(EntityFaction owner, FactionRelationship required)
+    {
+        if (owner == null)
+            return false;
+        foreach (EntityFaction e in entities)
+        {
+            if (e == null || e == owner)
+                continue;
+            if (owner.GetRelationshipWith(e) == required)
+                return true;
+        }
+        return false;
+    }
 }

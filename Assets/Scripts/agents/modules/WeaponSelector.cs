@@ -10,8 +10,7 @@ public class WeaponSelector : MonoBehaviour
     private void Awake()
     {
         bool hasMelee = HasActiveModule<CloseCombatModule>();
-        bool hasRanged = HasActiveModule<AgentRangedCombatModule>()
-                      || HasActiveModule<RangedAttackModule>();
+        bool hasRanged = HasActiveModule<AgentRangedCombatModule>();
 
         if (meleeWeapon) meleeWeapon.SetActive(hasMelee && !hasRanged);
         if (rangedWeapon) rangedWeapon.SetActive(hasRanged);

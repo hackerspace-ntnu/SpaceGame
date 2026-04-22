@@ -6,18 +6,21 @@ public class WatchModule : BehaviourModuleBase
 {
     [Header("Target")]
     [SerializeField] private Transform target;
-    [SerializeField] private string targetTag = "Player";
+    [Tooltip("Faction relationship the nearest candidate must have. Requires EntityFaction on both entities.")]
     [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Neutral;
 
     [Header("Range")]
     [SerializeField] private float detectRadius = 5f;
 
+    private EntityFaction selfFaction;
+
+    private void Awake() => selfFaction = GetComponent<EntityFaction>();
     private void Reset() => SetPriorityDefault(ModulePriority.Ambient);
 
     public override string ModuleDescription =>
         "Stops and faces a nearby target without moving. Good for curious NPCs, sentry turrets, or anything that should track a target with its gaze.\n\n" +
         "• detectRadius — range within which the entity turns to look\n" +
-        "• targetTag — tag of the object to watch (default: Player)";
+        "• requiredRelationship — faction relationship the nearest candidate must have (default: Neutral)";
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {
@@ -35,9 +38,7 @@ public class WatchModule : BehaviourModuleBase
     {
         if (target)
             return;
-        Transform candidate = EntityTargetRegistry.Resolve(targetTag, transform.position);
-        if (candidate && EntityFaction.IsValidTarget(transform, candidate, requiredRelationship))
-            target = candidate;
+        target = EntityTargetRegistry.ResolveNearest(selfFaction, requiredRelationship, transform.position);
     }
 
     protected override void OnValidate()

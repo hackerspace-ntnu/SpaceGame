@@ -18,7 +18,7 @@ using UnityEngine.AI;
 // Run before default (0) so agent.enabled=false happens before NavMeshAgent's own Awake registers it.
 [DefaultExecutionOrder(-100)]
 [RequireComponent(typeof(NavMeshAgent))]
-public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
+public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IMountLeapMotor
 {
     [Header("Navigation")]
     [SerializeField] private NavMeshAgent agent;
@@ -41,13 +41,27 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
     [SerializeField] private float mountedJumpDuration = 0.55f;
     [SerializeField] private float mountedJumpCooldown = 0.45f;
 
+    [Header("Mounted Leap")]
+    [SerializeField] private bool enableMountedLeap = true;
+    [SerializeField] private float mountedLeapCooldown = 0.6f;
+    [SerializeField] private float mountedLeapSampleRadius = 6f;
+
     private float stuckTimer;
     private bool defaultUpdateRotation;
+    private bool defaultUpdatePosition;
     private float defaultStoppingDistance;
     private float defaultSpeed;
     private float defaultBaseOffset;
     private float jumpElapsed = -1f;
     private float jumpCooldownTimer;
+
+    private bool isLeaping;
+    private float leapElapsed;
+    private float leapDuration;
+    private float leapVertical;
+    private float leapCooldownTimer;
+    private Vector3 leapStart;
+    private Vector3 leapEnd;
 
     public Vector3 Velocity => IsAgentReady ? agent.velocity : Vector3.zero;
 
@@ -86,15 +100,17 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
         }
 
         defaultUpdateRotation = agent.updateRotation;
+        defaultUpdatePosition = agent.updatePosition;
         defaultStoppingDistance = agent.stoppingDistance;
         defaultSpeed = agent.speed;
         defaultBaseOffset = agent.baseOffset;
         agent.autoBraking = false;
 
-        // Disable immediately so Unity doesn't try to register this agent against
-        // a NavMesh that doesn't exist yet. WorldStreamer re-enables it after the
-        // NavMesh has been rebuilt around this chunk.
-        agent.enabled = false;
+        // Only disable if the NavMesh isn't ready here yet — WorldStreamer will re-enable us
+        // after the chunk is baked. If there's already a NavMesh covering our spawn position
+        // (pre-baked scene, test scene), stay enabled so the agent works immediately.
+        if (!NavMesh.SamplePosition(transform.position, out _, navMeshSnapDistance, NavMesh.AllAreas))
+            agent.enabled = false;
     }
 
     private void OnEnable()
@@ -102,13 +118,22 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
         stuckTimer = 0f;
         jumpCooldownTimer = 0f;
         jumpElapsed = -1f;
+        leapCooldownTimer = 0f;
+        isLeaping = false;
     }
 
     public void Tick(in MoveIntent intent, float deltaTime)
     {
         UpdateMountedJump(deltaTime);
+        UpdateMountedLeap(deltaTime);
 
         if (!agent || !agent.isActiveAndEnabled)
+        {
+            return;
+        }
+
+        // During a leap we drive the transform directly; ignore new movement intents.
+        if (isLeaping)
         {
             return;
         }
@@ -181,12 +206,54 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
         jumpCooldownTimer = mountedJumpCooldown;
     }
 
+    public bool IsLeapAvailable => enableMountedLeap && !isLeaping && leapCooldownTimer <= 0f;
+    public bool IsLeaping => isLeaping;
+
+    public void RequestLeap(Vector3 direction, float horizontalDistance, float verticalHeight, float duration)
+    {
+        if (!IsLeapAvailable || !agent)
+        {
+            return;
+        }
+
+        direction.y = 0f;
+        if (direction.sqrMagnitude < 1e-4f)
+        {
+            direction = transform.forward;
+            direction.y = 0f;
+        }
+        direction.Normalize();
+
+        Vector3 desired = transform.position + direction * Mathf.Max(0.1f, horizontalDistance);
+        Vector3 endPoint = desired;
+        if (agent.isOnNavMesh && NavMesh.SamplePosition(desired, out NavMeshHit hit, mountedLeapSampleRadius, NavMesh.AllAreas))
+        {
+            endPoint = hit.position;
+        }
+
+        leapStart = transform.position;
+        leapEnd = endPoint;
+        leapVertical = Mathf.Max(0f, verticalHeight);
+        leapDuration = Mathf.Max(0.05f, duration);
+        leapElapsed = 0f;
+        isLeaping = true;
+        leapCooldownTimer = leapDuration + mountedLeapCooldown;
+
+        if (agent.isOnNavMesh)
+        {
+            agent.ResetPath();
+            agent.isStopped = true;
+        }
+        agent.updatePosition = false;
+        agent.updateRotation = false;
+    }
+
     private void ApplyMoveIntent(in MoveIntent intent, float deltaTime)
     {
         if (intent.OverrideFacingDirection)
         {
             // The brain is supplying an explicit facing direction — suppress NavMesh
-            // auto-rotation so an external system (e.g. MountController) can own it.
+            // auto-rotation so an external system (e.g. SteerModule) can own it.
             agent.updateRotation = false;
         }
         else
@@ -242,7 +309,8 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
 
     private void HandleStuckRecovery(float deltaTime)
     {
-        if (agent.pathPending || agent.pathStatus != NavMeshPathStatus.PathComplete)
+        // Path still resolving — too early to call anything stuck.
+        if (agent.pathPending)
         {
             stuckTimer = 0f;
             return;
@@ -260,6 +328,9 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
             return;
         }
 
+        // Partial or invalid paths also count as stuck — the agent is not moving and can't reach
+        // the target as-is. Periodically re-request the path in case the nav graph has changed
+        // or a dynamic obstacle has moved out of the way.
         stuckTimer += deltaTime;
         if (stuckTimer < stuckTime)
         {
@@ -281,6 +352,39 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
 
         agent.Warp(hit.position);
         stuckTimer = 0f;
+    }
+
+    private void UpdateMountedLeap(float deltaTime)
+    {
+        leapCooldownTimer = Mathf.Max(0f, leapCooldownTimer - deltaTime);
+        if (!isLeaping || !agent)
+        {
+            return;
+        }
+
+        leapElapsed += deltaTime;
+        float t = Mathf.Clamp01(leapElapsed / leapDuration);
+        float arc = Mathf.Sin(t * Mathf.PI);
+
+        Vector3 flat = Vector3.Lerp(leapStart, leapEnd, t);
+        Vector3 pos = new Vector3(flat.x, flat.y + arc * leapVertical, flat.z);
+        transform.position = pos;
+
+        if (t >= 1f)
+        {
+            isLeaping = false;
+            agent.updatePosition = defaultUpdatePosition;
+            agent.updateRotation = defaultUpdateRotation;
+            if (NavMesh.SamplePosition(leapEnd, out NavMeshHit hit, mountedLeapSampleRadius, NavMesh.AllAreas))
+            {
+                agent.Warp(hit.position);
+            }
+            else
+            {
+                agent.Warp(leapEnd);
+            }
+            agent.isStopped = false;
+        }
     }
 
     private void UpdateMountedJump(float deltaTime)
@@ -326,5 +430,7 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor
         mountedJumpHeight = Mathf.Max(0.05f, mountedJumpHeight);
         mountedJumpDuration = Mathf.Max(0.05f, mountedJumpDuration);
         mountedJumpCooldown = Mathf.Max(0f, mountedJumpCooldown);
+        mountedLeapCooldown = Mathf.Max(0f, mountedLeapCooldown);
+        mountedLeapSampleRadius = Mathf.Max(0.5f, mountedLeapSampleRadius);
     }
 }

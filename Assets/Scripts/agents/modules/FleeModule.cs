@@ -1,4 +1,4 @@
-// Runs away from a threat (tag or direct reference) when it comes within triggerRadius.
+// Runs away from the nearest hostile-faction entity within triggerRadius.
 // Deactivates itself once the threat is beyond safeRadius (hysteresis).
 using UnityEngine;
 using UnityEngine.AI;
@@ -7,7 +7,7 @@ public class FleeModule : BehaviourModuleBase
 {
     [Header("Threat")]
     [SerializeField] private Transform threat;
-    [SerializeField] private string threatTag = "Player";
+    [Tooltip("Faction relationship the nearest threat must have. Requires EntityFaction on both entities.")]
     [SerializeField] private FactionRelationship fleeFromRelationship = FactionRelationship.Hostile;
 
     [Header("Ranges")]
@@ -20,16 +20,18 @@ public class FleeModule : BehaviourModuleBase
     [SerializeField] private float navMeshSampleDistance = 4f;
 
     private bool fleeing;
+    private EntityFaction selfFaction;
 
+    private void Awake() => selfFaction = GetComponent<EntityFaction>();
     private void Reset() => SetPriorityDefault(ModulePriority.Override);
     private void OnEnable() => fleeing = false;
 
     public override string ModuleDescription =>
-        "Runs away from a threat when it comes within triggerRadius. Stops fleeing once beyond safeRadius.\n\n" +
+        "Runs away from the nearest entity with the configured faction relationship when it enters triggerRadius. Stops fleeing once beyond safeRadius.\n\n" +
         "• triggerRadius — threat must enter this range to start fleeing\n" +
         "• safeRadius — entity stops fleeing once threat is this far away\n" +
         "• fleeSpeedMultiplier — movement speed boost while fleeing\n" +
-        "• threatTag — tag of the object to flee from (default: Player)";
+        "• fleeFromRelationship — faction relationship that identifies a threat (default: Hostile)";
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {
@@ -78,9 +80,7 @@ public class FleeModule : BehaviourModuleBase
     {
         if (threat)
             return;
-        Transform candidate = EntityTargetRegistry.Resolve(threatTag, transform.position);
-        if (candidate && EntityFaction.IsValidTarget(transform, candidate, fleeFromRelationship))
-            threat = candidate;
+        threat = EntityTargetRegistry.ResolveNearest(selfFaction, fleeFromRelationship, transform.position);
     }
 
     protected override void OnValidate()

@@ -3,21 +3,22 @@
 //   AgentFireProfile       — range, cooldown, burst cadence
 //   AgentAimProfile        — spread, lead prediction, LoS requirement
 //
-// Always a side-effect module (ClaimsMovement == false).
-// Pair with ChaseModule or KeepDistanceModule for positioning.
+// Claims movement: returns StopAndFace while in band (preempting ChaseModule) and null otherwise,
+// so ChaseModule at lower priority drives the approach when the target is out of band.
+// Stands and fires; never fires while running.
 // OnFire  — fires each shot (position of muzzle)
 // OnMiss  — fires when a projectile lands but hits no IDamageable
 // OnKill  — fires when a shot kills the target
 using System;
 using FMODUnity;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.Events;
 
 public class AgentRangedCombatModule : BehaviourModuleBase
 {
     [Header("Target")]
     [SerializeField] private Transform target;
-    [SerializeField] private string targetTag = "Player";
     [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Hostile;
 
     [Header("Weapon")]
@@ -25,8 +26,12 @@ public class AgentRangedCombatModule : BehaviourModuleBase
     [SerializeField] private AgentFireProfile fireProfile;
     [SerializeField] private AgentAimProfile aimProfile;
 
-    [Tooltip("World-space transform used as the projectile spawn point. If left empty, uses this transform.")]
+    [Tooltip("World-space transform used as the projectile spawn point. " +
+             "If left empty, falls back to the child named 'Gun', then to this transform.")]
     [SerializeField] private Transform muzzleSocket;
+    [Tooltip("Meters in front of the muzzle (along muzzle.forward) where the projectile actually spawns. " +
+             "Keeps the projectile clear of the gun model and the agent's armature on the first frame.")]
+    [SerializeField] private float muzzleForwardOffset = 0.4f;
     [Tooltip("When true, spawns the weapon model from the weapon asset at runtime. " +
              "Disable if the weapon is already placed in the prefab hierarchy (e.g. parented to a hand bone).")]
     [SerializeField] private bool spawnWeaponModel = false;
@@ -46,25 +51,38 @@ public class AgentRangedCombatModule : BehaviourModuleBase
     public event Action OnFireEvent;
     public event Action OnKillEvent;
 
-    public override bool ClaimsMovement => false;
-
     private float cooldownTimer;
     private int burstRemaining;
     private float burstTimer;
     private IDamageable targetDamageable;
     private int currentBurstSpread;
+    // Cached at Awake: if there's no melee fallback, this module retreats to minRange when the
+    // target gets too close rather than sitting still while Chase pushes the agent closer.
+    private bool hasMeleeFallback;
+    private PerceptionModule perception;
+    private EntityFaction selfFaction;
 
-    private void Reset() => SetPriorityDefault(ModulePriority.Reactive);
+    // Read by ChaseModule at Awake to ensure its loseTargetRange is at least this wide,
+    // so the agent doesn't drop aggro the moment the target steps out of fire range.
+    public float MaxRange => fireProfile != null ? fireProfile.maxRange : 0f;
+
+    private void Reset() => SetPriorityDefault(ModulePriority.RangedAttack);
     private void OnEnable() { cooldownTimer = 0f; burstRemaining = 0; }
     private void OnDisable() => SetAiming(false);
 
     private void Awake()
     {
-        FindChildByName("Gun")?.SetActive(IsActive);
+        GameObject gun = FindChildByName("Gun");
+        gun?.SetActive(IsActive);
+        if (!muzzleSocket && gun != null)
+            muzzleSocket = gun.transform;
         if (!animator)
             animator = GetComponentInChildren<Animator>();
         if (!weaponMount)
             weaponMount = GetComponentInChildren<WeaponMount>();
+        hasMeleeFallback = GetComponent<CloseCombatModule>() != null;
+        perception = GetComponent<PerceptionModule>();
+        selfFaction = GetComponent<EntityFaction>();
     }
 
     private void Start()
@@ -102,53 +120,52 @@ public class AgentRangedCombatModule : BehaviourModuleBase
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {
+        // Advance timers every frame so cooldown keeps ticking while the agent is out of range.
+        cooldownTimer -= deltaTime;
+        if (burstRemaining > 0)
+            burstTimer -= deltaTime;
+
         TryResolveTarget();
 
         if (!target || weapon == null || fireProfile == null || aimProfile == null)
-        {
-            SetAiming(false);
-            Debug.Log($"[RangedCombat] {name} blocked: target={target}, weapon={weapon}, fire={fireProfile}, aim={aimProfile}");
-            return null;
-        }
-
-        if (!fireProfile.allowFireWhileRunning && context.IsMoving)
         {
             SetAiming(false);
             return null;
         }
 
         float distance = Vector3.Distance(context.Position, target.position);
-        if (distance < fireProfile.minRange || distance > fireProfile.maxRange)
+        if (distance > fireProfile.maxRange)
         {
             SetAiming(false);
-            Debug.Log($"[RangedCombat] {name} out of range: dist={distance:F1} min={fireProfile.minRange} max={fireProfile.maxRange}");
             return null;
+        }
+
+        if (distance < fireProfile.minRange)
+        {
+            SetAiming(false);
+            if (hasMeleeFallback)
+                return null;
+            return ComputeRetreatIntent(context.Position, target.position, fireProfile.minRange);
         }
 
         if (aimProfile.requireLineOfSight && !HasLineOfSight())
         {
             SetAiming(false);
-            Debug.Log($"[RangedCombat] {name} no LoS to target");
             return null;
         }
 
         SetAiming(true);
 
-        // Continue an active burst.
         if (burstRemaining > 0)
         {
-            burstTimer -= deltaTime;
             if (burstTimer <= 0f)
             {
                 FireOne();
                 burstRemaining--;
                 burstTimer = fireProfile.burstInterval;
             }
-            return null;
         }
-
-        cooldownTimer -= deltaTime;
-        if (cooldownTimer <= 0f)
+        else if (cooldownTimer <= 0f)
         {
             // Start a new burst.
             currentBurstSpread = 0;
@@ -158,7 +175,7 @@ public class AgentRangedCombatModule : BehaviourModuleBase
             cooldownTimer = fireProfile.fireCooldown;
         }
 
-        return null;
+        return MoveIntent.StopAndFace(target.position);
     }
 
     private void FireOne()
@@ -174,7 +191,8 @@ public class AgentRangedCombatModule : BehaviourModuleBase
         Debug.Log($"[RangedCombat] {name} FIRING at {target.name}");
 
         Transform muzzle = activeMuzzle != null ? activeMuzzle : transform;
-        Vector3 aimDir = ComputeAimDirection(muzzle.position);
+        Vector3 spawnPos = muzzle.position + muzzle.forward * muzzleForwardOffset;
+        Vector3 aimDir = ComputeAimDirection(spawnPos);
 
         float totalSpread = aimProfile.baseSpreadAngle + aimProfile.spreadGrowthPerBurstShot * currentBurstSpread;
         if (totalSpread > 0f)
@@ -187,7 +205,7 @@ public class AgentRangedCombatModule : BehaviourModuleBase
         }
         currentBurstSpread++;
 
-        GameObject projectile = Instantiate(activeWeapon.projectilePrefab, muzzle.position, Quaternion.LookRotation(aimDir));
+        GameObject projectile = Instantiate(activeWeapon.projectilePrefab, spawnPos, Quaternion.LookRotation(aimDir));
 
         AgentProjectile agentProjectile = projectile.GetComponent<AgentProjectile>();
         if (agentProjectile != null)
@@ -233,25 +251,17 @@ public class AgentRangedCombatModule : BehaviourModuleBase
         if (!target)
             return false;
 
-        Transform muzzle = muzzleSocket != null ? muzzleSocket : transform;
-        Vector3 targetPos = target.position + Vector3.up * 1.2f;
-        Vector3 origin = muzzle.position;
-        Vector3 dir = targetPos - origin;
-        float dist = dir.magnitude;
-
-        RaycastHit[] hits = Physics.RaycastAll(origin, dir.normalized, dist, aimProfile.lineOfSightMask);
-        foreach (RaycastHit hit in hits)
+        // Route through PerceptionModule — single source of truth for occlusion layers and self-hit rules.
+        // The raycast originates at the muzzle so we're checking "can the bullet reach the target",
+        // not "can the eye see the target".
+        if (perception == null)
         {
-            // Ignore own hierarchy.
-            if (hit.transform == transform || hit.transform.IsChildOf(transform))
-                continue;
-            // If we hit the target it's clear.
-            if (hit.transform == target || hit.transform.IsChildOf(target))
-                return true;
-            // Something else is in the way.
-            return false;
+            Debug.LogWarning($"[RangedCombat] {name} requires a PerceptionModule on the same GameObject for line-of-sight checks. Disable aimProfile.requireLineOfSight or add a PerceptionModule.");
+            return true;
         }
-        return true;
+
+        Transform muzzle = muzzleSocket != null ? muzzleSocket : transform;
+        return perception.HasLineOfSightFrom(muzzle.position, target);
     }
 
     private void OnProjectileResult(bool hitDamageable, Vector3 hitPos)
@@ -266,21 +276,57 @@ public class AgentRangedCombatModule : BehaviourModuleBase
             OnKillEvent?.Invoke();
     }
 
+    private MoveIntent ComputeRetreatIntent(Vector3 self, Vector3 targetPos, float minRange)
+    {
+        Vector3 away = self - targetPos;
+        away.y = 0f;
+        if (away.sqrMagnitude < 0.0001f)
+        {
+            away = UnityEngine.Random.insideUnitSphere;
+            away.y = 0f;
+            if (away.sqrMagnitude < 0.0001f)
+                away = Vector3.forward;
+        }
+
+        float retreatDistance = minRange + 0.5f;
+        Vector3 candidate = targetPos + away.normalized * retreatDistance;
+
+        if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+            return MoveIntent.MoveTo(hit.position, 0.2f, 1f);
+
+        return MoveIntent.StopAndFace(targetPos);
+    }
+
     private void TryResolveTarget()
     {
         if (target)
         {
             if (targetDamageable == null)
                 targetDamageable = target.GetComponentInChildren<IDamageable>();
-            return;
+
+            // Drop dead targets so a new live one can be resolved. The dying robot stays active
+            // for its despawn delay, so the Transform reference survives — we have to gate on Alive.
+            if (targetDamageable != null && !targetDamageable.Alive)
+            {
+                target = null;
+                targetDamageable = null;
+            }
+            else
+            {
+                return;
+            }
         }
 
-        Transform candidate = EntityTargetRegistry.Resolve(targetTag, transform.position);
-        if (candidate != null && EntityFaction.IsValidTarget(transform, candidate, requiredRelationship))
-        {
-            target = candidate;
-            targetDamageable = candidate.GetComponentInChildren<IDamageable>();
-        }
+        Transform candidate = EntityTargetRegistry.ResolveNearest(selfFaction, requiredRelationship, transform.position);
+        if (candidate == null)
+            return;
+
+        IDamageable candidateDamageable = candidate.GetComponentInChildren<IDamageable>();
+        if (candidateDamageable != null && !candidateDamageable.Alive)
+            return;
+
+        target = candidate;
+        targetDamageable = candidateDamageable;
     }
 
     private void SetAiming(bool aiming)
@@ -299,6 +345,6 @@ public class AgentRangedCombatModule : BehaviourModuleBase
 
     protected override void OnValidate()
     {
-        SetMinPriority(ModulePriority.Reactive + 1);
+        SetMinPriority(ModulePriority.RangedAttack);
     }
 }

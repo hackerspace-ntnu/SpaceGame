@@ -30,6 +30,10 @@ public class HerdModule : BehaviourModuleBase
     [Tooltip("Max seconds to wait for all members to arrive/settle before forcing the phase forward. " +
              "Handles agents that have been taken over by higher-priority modules and can't reach their slots.")]
     [SerializeField] private float settleTimeoutSeconds = 5f;
+    [Tooltip("Radius of the ring slots used by GetSlotPositionAround — prevents members from stacking on a shared chase target.")]
+    [SerializeField] private float combatSpreadRadius = 2.5f;
+
+    public float CombatSpreadRadius => combatSpreadRadius;
 
     public override bool ClaimsMovement => true;
 
@@ -79,6 +83,35 @@ public class HerdModule : BehaviourModuleBase
     {
         if (s_herds.TryGetValue(m.herdId, out var list))
             list.Remove(m);
+    }
+
+    // Returns this member's assigned slot position on a ring around `center`, so herd members
+    // chasing the same target distribute around it instead of stacking on the same point.
+    // Called by ChaseModule (or any other module that wants to spread a shared destination).
+    // Falls back to `center` if this member isn't in a herd, the herd has only one member,
+    // radius is effectively zero, or the slot doesn't land on the NavMesh.
+    public Vector3 GetSlotPositionAround(Vector3 center) => GetSlotPositionAround(center, combatSpreadRadius);
+
+    public Vector3 GetSlotPositionAround(Vector3 center, float radius)
+    {
+        if (radius <= 0.01f)
+            return center;
+
+        if (!s_herds.TryGetValue(herdId, out var members) || members.Count < 2)
+            return center;
+
+        int myIndex = members.IndexOf(this);
+        if (myIndex < 0)
+            return center;
+
+        float angleRad = myIndex * (2f * Mathf.PI / members.Count);
+        Vector3 offset = new Vector3(Mathf.Sin(angleRad), 0f, Mathf.Cos(angleRad)) * radius;
+        Vector3 candidate = center + offset;
+
+        if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, radius, NavMesh.AllAreas))
+            return hit.position;
+
+        return center;
     }
 
     // Called by AgentController after it resolves a winning intent for this member.
@@ -142,13 +175,14 @@ public class HerdModule : BehaviourModuleBase
         // Reactive intents: broadcast as-is for most types.
         // Exception: if the broadcast is StopAndFace (an in-range agent stopped), this agent
         // is being guided by HerdModule (its own ChaseModule returned null), meaning it has no
-        // target or is out of detection range. Send it toward the action instead of stopping.
+        // target or is out of detection range. Send it toward the action but stop at settleRadius
+        // so non-combatants don't run onto the engaged ally.
         if (slot.Priority >= ModulePriority.Reactive)
         {
             s_state[herdId] = default;
             slotAssigned = false;
             if (broadcast.Type == AgentIntentType.StopAndFacePosition)
-                return MoveIntent.MoveTo(broadcast.FacePosition, settleStopDistance, 1f);
+                return MoveIntent.MoveTo(broadcast.FacePosition, settleRadius, 1f);
             return broadcast;
         }
 
@@ -288,5 +322,6 @@ public class HerdModule : BehaviourModuleBase
         settleRadius          = Mathf.Max(0.5f, settleRadius);
         settleStopDistance    = Mathf.Max(0.1f, settleStopDistance);
         settleTimeoutSeconds  = Mathf.Max(0f, settleTimeoutSeconds);
+        combatSpreadRadius    = Mathf.Max(0.1f, combatSpreadRadius);
     }
 }

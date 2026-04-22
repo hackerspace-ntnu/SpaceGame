@@ -1,8 +1,57 @@
-// MountController helper partial containing rider state setup/teardown routines.
+// Mount/dismount flow, rider state caching, rigidbody handoff, and third-person camera spawn/cleanup.
+// Split off MountModule.cs purely for readability.
 using UnityEngine;
 
-public partial class MountController
+public partial class MountModule
 {
+    public bool CanMount(Interactor interactor) =>
+        IsAvailableForMount && interactor != null && interactor.GetComponentInParent<PlayerMovement>() != null;
+
+    public bool TryMount(Interactor interactor, Transform mountPointOverride)
+    {
+        if (!CanMount(interactor))
+            return false;
+
+        PlayerMovement playerMovement = interactor.GetComponentInParent<PlayerMovement>();
+        if (!playerMovement)
+            return false;
+
+        CacheMountedPlayerReferences(playerMovement, mountPointOverride);
+        EnsureMountedThirdPersonCamera();
+        DisableRiderComponentsForMount();
+        EnterMountedRigidbodyState();
+        ParentRiderToMount();
+        ApplyModuleSuppression();
+        lastMountChangeTime = Time.time;
+        Mounted?.Invoke(playerMovement);
+        return true;
+    }
+
+    public void Dismount()
+    {
+        if (!IsMounted)
+            return;
+
+        Transform rider = mountedPlayer;
+        rider.SetParent(null, true);
+
+        Vector3 dismountPosition = dismountPoint
+            ? dismountPoint.position
+            : transform.position + transform.right * fallbackDismountDistance;
+        rider.position = dismountPosition;
+
+        ExitMountedRigidbodyState();
+        RestoreRiderComponentsAfterDismount();
+        RestoreModuleSuppression();
+        PlayerMovement dismountedMovement = mountedPlayerMovement;
+        Dismounted?.Invoke(dismountedMovement);
+        ReleaseMountedThirdPersonCamera();
+        ClearMountedReferences();
+        activeSeatPoint = seatPoint;
+        lastMountChangeTime = Time.time;
+    }
+
+    // ─────────── Rider state cache/restore ───────────
     private void CacheMountedPlayerReferences(PlayerMovement playerMovement, Transform mountPointOverride)
     {
         mountedPlayer = playerMovement.transform;
@@ -24,22 +73,16 @@ public partial class MountController
         }
 
         if (disablePlayerLook && mountedPlayerLook)
-        {
             mountedPlayerLook.enabled = false;
-        }
 
         if (disablePlayerInteractor && mountedInteractor)
-        {
             mountedInteractor.enabled = false;
-        }
     }
 
     private void RestoreRiderComponentsAfterDismount()
     {
         if (disablePlayerMovement && mountedPlayerMovement)
-        {
             mountedPlayerMovement.enabled = true;
-        }
 
         if (disablePlayerLook && mountedPlayerLook)
         {
@@ -48,17 +91,13 @@ public partial class MountController
         }
 
         if (disablePlayerInteractor && mountedInteractor)
-        {
             mountedInteractor.enabled = true;
-        }
     }
 
     private void EnterMountedRigidbodyState()
     {
         if (!mountedPlayerRigidbody)
-        {
             return;
-        }
 
         playerRigidbodyWasKinematic = mountedPlayerRigidbody.isKinematic;
         playerRigidbodyHadGravity = mountedPlayerRigidbody.useGravity;
@@ -71,9 +110,7 @@ public partial class MountController
     private void ExitMountedRigidbodyState()
     {
         if (!mountedPlayerRigidbody)
-        {
             return;
-        }
 
         mountedPlayerRigidbody.isKinematic = playerRigidbodyWasKinematic;
         mountedPlayerRigidbody.useGravity = playerRigidbodyHadGravity;
@@ -98,5 +135,27 @@ public partial class MountController
         mountedPlayerRigidbody = null;
         mountedFirstPersonCamera = null;
         mountedFirstPersonCameraRoot = null;
+    }
+
+    // ─────────── Third-person camera spawn ───────────
+    private void EnsureMountedThirdPersonCamera()
+    {
+        if (mountedThirdPersonCamera != null || thirdPersonCameraPrefab == null)
+            return;
+
+        GameObject cameraObject = Instantiate(thirdPersonCameraPrefab.gameObject);
+        cameraObject.name = $"{name}_MountedThirdPersonCamera";
+        mountedThirdPersonCamera = cameraObject.GetComponent<Camera>();
+        if (mountedThirdPersonCamera != null)
+            mountedThirdPersonCamera.enabled = false;
+    }
+
+    private void ReleaseMountedThirdPersonCamera()
+    {
+        if (mountedThirdPersonCamera == null)
+            return;
+
+        Destroy(mountedThirdPersonCamera.gameObject);
+        mountedThirdPersonCamera = null;
     }
 }

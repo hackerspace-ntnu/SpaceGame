@@ -160,20 +160,29 @@ public class EntityProfile_NPCEditor : Editor
 
             EntityProfileEditorUtils.SetupBaseComponents(go, p.maxHealth, 0f);
 
-            var flee = EntityProfileEditorUtils.GetOrAdd<FleeModule>(go);
-                       EntityProfileEditorUtils.GetOrAdd<WanderModule>(go);
-                       EntityProfileEditorUtils.GetOrAdd<InteractionFocusModule>(go);
-                       EntityProfileEditorUtils.GetOrAdd<EntityFaction>(go);
-                       EntityProfileEditorUtils.GetOrAdd<EntityInventoryComponent>(go);
+            var flee         = EntityProfileEditorUtils.GetOrAdd<FleeModule>(go);
+            var wander       = EntityProfileEditorUtils.GetOrAdd<WanderModule>(go);
+            var watch        = EntityProfileEditorUtils.GetOrAdd<WatchModule>(go);
+            var approach     = EntityProfileEditorUtils.GetOrAdd<ApproachModule>(go);
+            var keepDistance = EntityProfileEditorUtils.GetOrAdd<KeepDistanceModule>(go);
+                               EntityProfileEditorUtils.GetOrAdd<InteractionFocusModule>(go);
+                               EntityProfileEditorUtils.GetOrAdd<EntityFaction>(go);
+                               EntityProfileEditorUtils.GetOrAdd<EntityInventoryComponent>(go);
 
             EntityProfileEditorUtils.SetFloat(flee, "triggerRadius",       p.fleeRadius);
             EntityProfileEditorUtils.SetFloat(flee, "safeRadius",          p.fleeSafeRadius);
             EntityProfileEditorUtils.SetFloat(flee, "fleeSpeedMultiplier", p.fleeSpeed);
 
-            var wb = EntityProfileEditorUtils.GetOrAdd<WanderBehaviour>(go);
-            EntityProfileEditorUtils.SetFloat(wb, "wanderRadius", p.wanderRadius);
-            EntityProfileEditorUtils.SetFloat(wb, "minWaitTime",  p.wanderMinWait);
-            EntityProfileEditorUtils.SetFloat(wb, "maxWaitTime",  p.wanderMaxWait);
+            EntityProfileEditorUtils.SetFloat(wander, "wanderRadius", p.wanderRadius);
+            EntityProfileEditorUtils.SetFloat(wander, "minWaitTime",  p.wanderMinWait);
+            EntityProfileEditorUtils.SetFloat(wander, "maxWaitTime",  p.wanderMaxWait);
+
+            // Player-reaction modules are added but left inactive — toggle per NPC in the inspector.
+            EntityProfileEditorUtils.SetModuleActive(flee,         true);
+            EntityProfileEditorUtils.SetModuleActive(wander,       true);
+            EntityProfileEditorUtils.SetModuleActive(watch,        false);
+            EntityProfileEditorUtils.SetModuleActive(approach,     false);
+            EntityProfileEditorUtils.SetModuleActive(keepDistance, false);
 
             Debug.Log($"[EntityProfile] NPC generated on {go.name}", go);
         });
@@ -210,9 +219,8 @@ public class EntityProfile_GenericEnemyEditor : Editor
             var noiseRx      = EntityProfileEditorUtils.GetOrAdd<NoiseReceiverModule>(go);
             var noise        = EntityProfileEditorUtils.GetOrAdd<NoiseEmitter>(go);
             var melee        = EntityProfileEditorUtils.GetOrAdd<CloseCombatModule>(go);
-            var ranged       = EntityProfileEditorUtils.GetOrAdd<RangedAttackModule>(go);
+            var ranged       = EntityProfileEditorUtils.GetOrAdd<AgentRangedCombatModule>(go);
             var keepDistance = EntityProfileEditorUtils.GetOrAdd<KeepDistanceModule>(go);
-            var strafe       = EntityProfileEditorUtils.GetOrAdd<StrafeModule>(go);
                                EntityProfileEditorUtils.GetOrAdd<EntityFaction>(go);
                                EntityProfileEditorUtils.GetOrAdd<EntityInventoryComponent>(go);
                                EntityProfileEditorUtils.GetOrAdd<EntityLootTable>(go);
@@ -237,18 +245,10 @@ public class EntityProfile_GenericEnemyEditor : Editor
             EntityProfileEditorUtils.SetObject(ranged,       "target", null);
             EntityProfileEditorUtils.SetObject(melee,        "target", null);
             EntityProfileEditorUtils.SetObject(keepDistance, "target", null);
-            EntityProfileEditorUtils.SetObject(strafe,       "target", null);
-
-            EntityProfileEditorUtils.SetString(chase,        "targetTag", p.targetTag);
-            EntityProfileEditorUtils.SetString(ranged,       "targetTag", p.targetTag);
-            EntityProfileEditorUtils.SetString(melee,        "targetTag", p.targetTag);
-            EntityProfileEditorUtils.SetString(keepDistance, "targetTag", p.targetTag);
-            EntityProfileEditorUtils.SetString(strafe,       "targetTag", p.targetTag);
 
             EntityProfileEditorUtils.SetFloat(chase, "detectRange",          p.detectRange);
             EntityProfileEditorUtils.SetFloat(chase, "loseTargetRange",      p.loseTargetRange);
-            EntityProfileEditorUtils.SetFloat(chase, "engageRange",          useRanged ? p.maxFireRange : p.chaseStopRange);
-            EntityProfileEditorUtils.SetFloat(chase, "chaseStopDistance",    useRanged ? p.maxFireRange * 0.8f : p.chaseStopRange);
+            EntityProfileEditorUtils.SetFloat(chase, "chaseStopDistance",    p.chaseStopRange);
             EntityProfileEditorUtils.SetFloat(chase, "chaseSpeedMultiplier", p.chaseSpeed);
 
             EntityProfileEditorUtils.SetFloat(perception, "fieldOfViewAngle", p.fieldOfViewAngle);
@@ -259,29 +259,20 @@ public class EntityProfile_GenericEnemyEditor : Editor
             EntityProfileEditorUtils.SetFloat(melee, "attackCooldown", p.meleeCooldown);
             EntityProfileEditorUtils.SetInt  (melee, "attackDamage",   p.meleeDamage);
 
-            EntityProfileEditorUtils.SetObject(ranged, "projectilePrefab", p.projectilePrefab);
-            EntityProfileEditorUtils.SetObject(ranged, "muzzleTransform",  p.muzzleTransform);
-            EntityProfileEditorUtils.SetFloat (ranged, "minRange",         p.minFireRange);
-            EntityProfileEditorUtils.SetFloat (ranged, "maxRange",         p.maxFireRange);
-            EntityProfileEditorUtils.SetFloat (ranged, "projectileSpeed",  p.projectileSpeed);
-            EntityProfileEditorUtils.SetFloat (ranged, "fireCooldown",     p.fireCooldown);
-            EntityProfileEditorUtils.SetInt   (ranged, "burstCount",       p.burstCount);
-            EntityProfileEditorUtils.SetFloat (ranged, "burstInterval",    p.burstInterval);
-            EntityProfileEditorUtils.SetFloat (ranged, "spreadAngle",      p.spreadAngle);
-            EntityProfileEditorUtils.SetBool  (ranged, "leadTarget",       p.leadTarget);
+            EntityProfileEditorUtils.SetObject(ranged, "weapon",       p.weapon);
+            EntityProfileEditorUtils.SetObject(ranged, "fireProfile",  p.fireProfile);
+            EntityProfileEditorUtils.SetObject(ranged, "aimProfile",   p.aimProfile);
+            EntityProfileEditorUtils.SetObject(ranged, "muzzleSocket", p.muzzleTransform);
 
             EntityProfileEditorUtils.SetFloat(keepDistance, "detectRadius",      p.keepDistanceDetect);
             EntityProfileEditorUtils.SetFloat(keepDistance, "preferredDistance", p.keepDistancePreferred);
             EntityProfileEditorUtils.SetFloat(keepDistance, "speedMultiplier",   p.keepDistanceSpeed);
-            EntityProfileEditorUtils.SetFloat(strafe, "engageRange",  p.strafeEngageRange);
-            EntityProfileEditorUtils.SetFloat(strafe, "strafeRadius", p.strafeRadius);
 
             EntityProfileEditorUtils.SetInt(basePatrol,   "priority", ModulePriority.Fallback);
             EntityProfileEditorUtils.SetInt(herd,         "priority", ModulePriority.Social);
             EntityProfileEditorUtils.SetInt(chase,        "priority", ModulePriority.Reactive);
-            EntityProfileEditorUtils.SetInt(melee,        "priority", ModulePriority.Reactive);
-            EntityProfileEditorUtils.SetInt(ranged,       "priority", ModulePriority.Reactive);
-            EntityProfileEditorUtils.SetInt(strafe,       "priority", ModulePriority.Reactive + 1);
+            EntityProfileEditorUtils.SetInt(melee,        "priority", ModulePriority.MeleeAttack);
+            EntityProfileEditorUtils.SetInt(ranged,       "priority", ModulePriority.RangedAttack);
             EntityProfileEditorUtils.SetInt(keepDistance, "priority", ModulePriority.Reactive);
 
             EntityProfileEditorUtils.SetFloat(alertTx, "alertRadius",    p.alertRadius);
@@ -299,7 +290,6 @@ public class EntityProfile_GenericEnemyEditor : Editor
             EntityProfileEditorUtils.SetModuleActive(melee,        useMelee);
             EntityProfileEditorUtils.SetModuleActive(ranged,       useRanged);
             EntityProfileEditorUtils.SetModuleActive(keepDistance, useKiting);
-            EntityProfileEditorUtils.SetModuleActive(strafe,       useRanged);
 
             EditorUtility.SetDirty(basePatrol);
             EditorUtility.SetDirty(herd);

@@ -22,10 +22,7 @@ public class SpawnManager : NetworkBehaviour
         }
 
         Instance = this;
-    }
-
-    private void Start()
-    {
+        
         spawnPoints = FindObjectsByType<SpawnPoint>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
         if (spawnPoints == null || spawnPoints.Length == 0)
         {

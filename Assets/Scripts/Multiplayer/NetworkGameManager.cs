@@ -23,8 +23,9 @@ public class NetworkGameManager : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         if (!IsServer) return;
-
+        
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+        OnClientConnected(OwnerClientId);
     }
 
     private void OnClientConnected(ulong clientId)
@@ -34,12 +35,13 @@ public class NetworkGameManager : NetworkBehaviour
     
     private IEnumerator SpawnWhenReady(ulong clientId)
     {
+        
         if (worldStreamer)
         {
             var pos = SpawnManager.Instance.GetSpawnPoint();
             yield return WaitForWorldReady(new[] { pos });
         }
-
+        
         SpawnManager.Instance.SpawnPlayerForClient(clientId);
     }
     

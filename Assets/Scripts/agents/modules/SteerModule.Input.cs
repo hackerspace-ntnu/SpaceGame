@@ -1,5 +1,6 @@
 // Input reading + jump/leap decision logic for SteerModule.
 // Jump = press + quick release (hold < leapHoldTime). Leap = press + hold >= leapHoldTime, then release.
+// Vertical input (ascend/descend) is read from an optional Vector2 action and ignored by ground motors.
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -11,9 +12,13 @@ public partial class SteerModule
             return;
 
         moveAction = InputSystem.actions.FindAction(moveActionName);
-        lookAction = InputSystem.actions.FindAction(lookActionName);
         jumpAction = InputSystem.actions.FindAction(jumpActionName);
-        togglePerspectiveAction = InputSystem.actions.FindAction(togglePerspectiveActionName);
+        verticalAction = string.IsNullOrEmpty(verticalActionName)
+            ? null
+            : InputSystem.actions.FindAction(verticalActionName);
+        runAction = string.IsNullOrEmpty(runActionName)
+            ? null
+            : InputSystem.actions.FindAction(runActionName);
     }
 
     private void ReadMountedInput()
@@ -22,7 +27,12 @@ public partial class SteerModule
         currentMoveInput = new Vector2(
             Mathf.SmoothDamp(currentMoveInput.x, raw.x, ref moveInputVelocityX, turnSmoothTime),
             Mathf.SmoothDamp(currentMoveInput.y, raw.y, ref moveInputVelocityY, turnSmoothTime));
-        hasSteeringOverride = raw.sqrMagnitude >= steeringOverrideThreshold * steeringOverrideThreshold;
+
+        float rawVertical = ReadMountedVerticalInput();
+        currentVerticalInput = Mathf.SmoothDamp(currentVerticalInput, rawVertical, ref verticalInputVelocity, turnSmoothTime);
+
+        float overrideMag = Mathf.Max(raw.sqrMagnitude, rawVertical * rawVertical);
+        hasSteeringOverride = overrideMag >= steeringOverrideThreshold * steeringOverrideThreshold;
     }
 
     private Vector2 ReadMountedMoveInput()
@@ -32,17 +42,21 @@ public partial class SteerModule
         return Vector2.ClampMagnitude(moveAction.ReadValue<Vector2>(), 1f);
     }
 
-    private void EnsureMountedLookActionEnabled()
+    private float ReadMountedVerticalInput()
     {
-        if (lookAction == null || lookAction.enabled)
-            return;
-        lookAction.Enable();
-        forcedMountedLookActionEnabled = true;
+        if (verticalAction == null)
+            return 0f;
+
+        // Accept either a float or a Vector2 action. For Vector2 we use the Y axis.
+        if (verticalAction.expectedControlType == "Vector2")
+            return Mathf.Clamp(verticalAction.ReadValue<Vector2>().y, -1f, 1f);
+
+        return Mathf.Clamp(verticalAction.ReadValue<float>(), -1f, 1f);
     }
 
     private void HandleJumpAndLeap(float deltaTime)
     {
-        if (!jumpEnabled || jumpAction == null)
+        if (!jumpEnabled || jumpAction == null || jumpMotor == null)
         {
             jumpHeld = false;
             jumpHoldDuration = 0f;
@@ -60,7 +74,7 @@ public partial class SteerModule
 
         if (jumpAction.WasReleasedThisFrame() && jumpHeld)
         {
-            bool shouldLeap = leapEnabled && jumpHoldDuration >= leapHoldTime;
+            bool shouldLeap = leapEnabled && leapMotor != null && jumpHoldDuration >= leapHoldTime;
             jumpHeld = false;
             jumpHoldDuration = 0f;
 
@@ -73,48 +87,32 @@ public partial class SteerModule
 
     private void TriggerJump()
     {
-        if (jumpMotor != null)
-        {
-            jumpMotor.RequestJump();
+        if (jumpMotor == null)
             return;
-        }
-
-        // Self-drive fallback (vertical hop). Only runs on non-agent hosts — the arc is advanced
-        // by SelfDriveTick, which doesn't tick when an AgentController is present.
-        if (!hasAgentController && !selfDriveArcing)
-            BeginSelfDriveArc(Vector3.zero, 0f, selfDriveJumpHeight, selfDriveJumpDuration);
+        jumpMotor.RequestJump();
     }
 
     private void TriggerLeap()
     {
-        Vector3 direction = GetSteeringForward();
+        if (leapMotor == null)
+            return;
+
+        Vector3 direction = transform.forward;
         direction.y = 0f;
         if (direction.sqrMagnitude < 1e-4f)
             direction = transform.forward;
         direction.Normalize();
 
-        if (leapMotor != null)
-        {
-            leapMotor.RequestLeap(direction, leapHorizontal, leapVertical, leapDuration);
-            return;
-        }
-
-        // Self-drive fallback — same guard: SelfDriveTick only runs on non-agent hosts.
-        if (!hasAgentController && !selfDriveArcing)
-            BeginSelfDriveArc(direction, leapHorizontal, leapVertical, leapDuration);
-    }
-
-    private void HandleTogglePerspective()
-    {
-        if (togglePerspectiveAction != null && togglePerspectiveAction.WasPressedThisFrame())
-            TogglePerspective();
+        leapMotor.RequestLeap(direction, leapHorizontal, leapVertical, leapDuration);
     }
 
     private void ResetMountedInputState()
     {
         currentMoveInput = Vector2.zero;
+        currentVerticalInput = 0f;
         moveInputVelocityX = 0f;
         moveInputVelocityY = 0f;
+        verticalInputVelocity = 0f;
         hasSteeringOverride = false;
         jumpHeld = false;
         jumpHoldDuration = 0f;

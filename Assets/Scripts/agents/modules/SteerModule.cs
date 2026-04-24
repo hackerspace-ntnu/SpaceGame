@@ -1,59 +1,51 @@
-// Rider-steered movement module. Attach alongside MountModule to let a player drive
-// the object while mounted. Works on AI agents (produces MoveIntent so AgentController can
-// arbitrate with other modules) and on non-AI objects (directly drives a Rigidbody).
+// Universal rider-steering module. Attach alongside MountModule to let a player drive
+// anything: ground vehicle, mounted creature, flying blimp — the module doesn't care.
 //
-// Steering only claims the frame while the rider is actively inputting. When the rider
-// lets off the sticks, Tick returns null — which lets the mount's own AI take over if
-// MountModule.allowAISelfMovementWhenMounted is true, or idles if it's false.
+// SteerModule reads rider input and forwards it to the motor via IRiderControllable.
+// The motor interprets that input in its own physics model (tank-steer on RigidbodyMotor /
+// NavMeshAgentMotor, throttle+yaw+vertical on FlyingRigidbodyMotor, etc.).
 //
-// Features:
-//   • Move + Look input, tank-steer yaw, third/first person toggle, visual lean
-//   • Jump (tap) forwarded to IMountJumpMotor
-//   • Leap (hold jump, release) forwarded to IMountLeapMotor — long + high arc
-//   • Self-drive fallback when no AgentController is present
+// Flow per frame while mounted + rider has input above threshold:
+//   1. SteerModule.Update → ReadMountedInput → build RiderInput.
+//   2. SteerModule.Tick → motor.ApplyRiderInput(input, dt).
+//   3. Tick returns MoveIntent.Idle() to claim the frame (blocks AI modules).
+//   4. AgentController calls motor.Tick(Idle); motor's rider-frame guard skips the MoveIntent
+//      path so the rider's direct writes stand.
+//
+// When the rider lets off (input magnitude below threshold), Tick returns null — AI modules
+// can then run if MountModule.allowAISelfMovementWhenMounted is true.
+//
+// Jump / leap are one-shot rider actions and keep their dedicated interfaces
+// (IMountJumpMotor / IMountLeapMotor). Motors that don't implement them (e.g. FlyingRigidbodyMotor)
+// simply ignore the rider's jump button.
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(MountModule))]
+[RequireComponent(typeof(AgentController))]
 public partial class SteerModule : BehaviourModuleBase
 {
-    public enum CameraPerspective
-    {
-        FirstPerson,
-        ThirdPerson
-    }
-
     [Header("References")]
     [SerializeField] private MountModule mountModule;
 
     [Header("Input Action Names")]
     [SerializeField] private string moveActionName = "Move";
-    [SerializeField] private string lookActionName = "Look";
     [SerializeField] private string jumpActionName = "Jump";
-    [SerializeField] private string togglePerspectiveActionName = "Next";
+    [Tooltip("Optional Vector2 action whose Y axis is used as ascend/descend input for flying motors. " +
+             "Leave blank if this vehicle doesn't fly.")]
+    [SerializeField] private string verticalActionName = "";
     [SerializeField] private float steeringOverrideThreshold = 0.1f;
 
-    [Header("Movement")]
-    [Tooltip("Speed multiplier applied to MoveIntent (agent mode) or m/s (self-drive mode).")]
-    [SerializeField] private float moveSpeed = 2.4f;
-    [Tooltip("Tank-steer yaw rate in degrees per second.")]
-    [SerializeField] private float turnSpeed = 120f;
+    [Header("Input Smoothing")]
     [SerializeField] private float turnSmoothTime = 0.12f;
-    [SerializeField] private float momentumDamping = 7f;
-    [Tooltip("Multiplier units/sec that speed ramps to target. 4 ≈ 0.25s 0→full.")]
-    [SerializeField] private float acceleration = 4f;
-    [SerializeField] private float mountedMoveDistance = 2f;
-    [SerializeField] private float mountedStopDistance = 0.15f;
-    [SerializeField] private float mountedNavMeshSampleDistance = 4f;
-    [SerializeField] private bool faceMoveDirection = true;
+
+    [Header("Running")]
+    [SerializeField] private bool riderCanRun = false;
+    [SerializeField] private string runActionName = "Sprint";
 
     [Header("Jump")]
     [SerializeField] private bool jumpEnabled = true;
-    [Tooltip("Height of the jump when the host has no IMountJumpMotor (self-drive fallback).")]
-    [SerializeField] private float selfDriveJumpHeight = 1.2f;
-    [Tooltip("Duration of the self-drive jump arc.")]
-    [SerializeField] private float selfDriveJumpDuration = 0.45f;
 
     [Header("Leap (hold jump to charge, release to leap)")]
     [SerializeField] private bool leapEnabled = true;
@@ -66,19 +58,6 @@ public partial class SteerModule : BehaviourModuleBase
     [Tooltip("Seconds the leap animation takes.")]
     [SerializeField] private float leapDuration = 0.9f;
 
-    [Header("Camera")]
-    [SerializeField] private CameraPerspective defaultPerspective = CameraPerspective.ThirdPerson;
-    [SerializeField] private Camera thirdPersonCamera;
-    [SerializeField] private Transform thirdPersonPivot;
-    [SerializeField] private Vector3 thirdPersonOffset = new Vector3(0f, 2.2f, -3.8f);
-    [SerializeField] private float thirdPersonDistance = 3.8f;
-    [SerializeField] private float thirdPersonFollowLerp = 14f;
-    [SerializeField] private float lookSensitivity = 1f;
-    [SerializeField] private float lookPitchClamp = 75f;
-    [SerializeField] private float defaultMountedPitch = -15f;
-    [SerializeField] private float cameraAutoAlignSpeed = 90f;
-    [SerializeField] private float cameraAutoAlignDelay = 0.5f;
-
     [Header("Visual Lean")]
     [SerializeField] private Transform visualTiltRoot;
     [SerializeField] private float leanAmount = 10f;
@@ -86,68 +65,41 @@ public partial class SteerModule : BehaviourModuleBase
 
     // ─────────── Runtime state ───────────
     private InputAction moveAction;
-    private InputAction lookAction;
     private InputAction jumpAction;
-    private InputAction togglePerspectiveAction;
+    private InputAction verticalAction;
+    private InputAction runAction;
 
     private Vector2 currentMoveInput;
+    private float currentVerticalInput;
     private bool hasSteeringOverride;
-    private Vector3 currentSteeringForward;
 
-    private float mountedYaw;
-    private float cameraYaw;
-    private float cameraYawOffset;
-    private float mountedPitch;
-    private float timeSinceLastLookInput;
-
-    private float steeringMomentum;
     private float moveInputVelocityX;
     private float moveInputVelocityY;
+    private float verticalInputVelocity;
     private float currentLean;
     private float leanVelocity;
-    private float currentSpeedMultiplier;
 
     private Quaternion visualTiltBaseLocalRotation;
-    private CameraPerspective activePerspective;
-    private bool forcedMountedLookActionEnabled;
 
     // Jump/leap input tracking
     private bool jumpHeld;
     private float jumpHoldDuration;
 
-    // Execution mode
-    private bool hasAgentController;
+    private IRiderControllable riderMotor;
     private IMountJumpMotor jumpMotor;
     private IMountLeapMotor leapMotor;
-
-    // Self-drive (no AgentController) state
-    private Rigidbody selfDriveRigidbody;
-    private bool selfDriveArcing;
-    private float selfDriveArcElapsed;
-    private float selfDriveArcDuration;
-    private float selfDriveArcHeight;
-    private Vector3 selfDriveArcStart;
-    private Vector3 selfDriveArcEnd;
-    private bool selfDriveArcRestoredKinematic;
-    private bool selfDriveArcKinematicBefore;
 
     // ─────────── Public API ───────────
     public bool IsMounted => mountModule && mountModule.IsMounted;
     public Vector2 CurrentMoveInput => currentMoveInput;
-    public Vector3 CurrentSteeringForward => currentSteeringForward;
     public bool HasSteeringOverride => hasSteeringOverride;
-    public CameraPerspective ActivePerspective => activePerspective;
-    public bool IsLeaping => selfDriveArcing || (leapMotor != null && leapMotor.IsLeaping);
-
-    // ─────────── BehaviourModuleBase ───────────
-    // ClaimsMovement defaults to true (we want priority arbitration).
-    // IsActive is inherited — Tick() early-outs when not mounted.
+    public bool IsLeaping => leapMotor != null && leapMotor.IsLeaping;
 
     public override string ModuleDescription =>
-        "Rider-steered movement. Claims movement while the rider is actively steering.\n\n" +
-        "• Works on AI agents (via AgentController + MoveIntent) and non-AI objects (via Rigidbody).\n" +
-        "• Jump = tap. Leap = hold-and-release (defines leapHorizontal + leapVertical).\n" +
-        "• Toggle first/third person with the 'Next' action.\n" +
+        "Universal rider steering. Reads input, forwards to motor.ApplyRiderInput(), claims the frame.\n\n" +
+        "• Works with any motor implementing IRiderControllable (ground, flight, custom).\n" +
+        "• Jump = tap, Leap = hold-and-release (uses IMountJumpMotor / IMountLeapMotor if present).\n" +
+        "• Set verticalActionName for flying vehicles.\n" +
         "• Pair with MountModule for the mount lifecycle.";
 
     private void Reset() => SetPriorityDefault(ModulePriority.Scripted);
@@ -158,16 +110,12 @@ public partial class SteerModule : BehaviourModuleBase
         if (!mountModule)
             mountModule = GetComponent<MountModule>();
 
+        riderMotor = GetComponent<IRiderControllable>();
         jumpMotor = GetComponent<IMountJumpMotor>();
         leapMotor = GetComponent<IMountLeapMotor>();
-        hasAgentController = GetComponent<AgentController>() != null;
-        if (!hasAgentController)
-            selfDriveRigidbody = GetComponent<Rigidbody>();
 
         if (visualTiltRoot)
             visualTiltBaseLocalRotation = visualTiltRoot.localRotation;
-
-        currentSteeringForward = GetSteeringForward();
     }
 
     private void OnEnable()
@@ -192,15 +140,8 @@ public partial class SteerModule : BehaviourModuleBase
             mountModule.Dismounted -= HandleDismounted;
         }
 
-        SetThirdPersonCameraEnabled(false);
         SetVisualLean(0f);
-        ResetSteeringState();
-
-        if (forcedMountedLookActionEnabled && lookAction != null)
-        {
-            lookAction.Disable();
-            forcedMountedLookActionEnabled = false;
-        }
+        ResetMountedInputState();
     }
 
     private void Update()
@@ -208,26 +149,19 @@ public partial class SteerModule : BehaviourModuleBase
         if (!IsMounted)
         {
             ResetMountedInputState();
-            currentSteeringForward = GetSteeringForward();
             DampVisualLeanToNeutral(Time.deltaTime);
             return;
         }
 
-        EnsureMountedLookActionEnabled();
-
         ReadMountedInput();
         HandleJumpAndLeap(Time.deltaTime);
-        HandleMountedLook(Time.deltaTime);
-        HandleTogglePerspective();
+        UpdateVisualLean(Time.deltaTime);
 
         if (mountModule.MountedPlayerMovement != null)
             mountModule.MountedPlayerMovement.ForceIdleAnimation();
 
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             mountModule.Dismount();
-
-        if (!hasAgentController)
-            SelfDriveTick(Time.deltaTime);
     }
 
     // ─────────── AgentController Tick ───────────
@@ -243,67 +177,26 @@ public partial class SteerModule : BehaviourModuleBase
         if (!hasSteeringOverride)
             return null;
 
-        return ProcessSteering(in context, deltaTime);
-    }
-
-    private MoveIntent ProcessSteering(in AgentContext context, float deltaTime)
-    {
-        Vector3 forward = GetSteeringForward();
-        forward.y = 0f;
-        if (forward.sqrMagnitude <= 0.0001f)
-            forward = context.Self ? context.Self.forward : Vector3.forward;
-        forward.Normalize();
-
-        // Tank steering: A/D rotates the mount body (handled in HandleMountedLook).
-        // W/S drives forward/back along the mount's own forward.
-        Vector3 moveDir = forward * currentMoveInput.y;
-        moveDir.y = 0f;
-
-        if (moveDir.sqrMagnitude <= 0.0001f)
+        // Rider is driving — forward input to the motor and claim the frame.
+        if (riderMotor != null)
         {
-            currentSpeedMultiplier = Mathf.MoveTowards(currentSpeedMultiplier, 0f, acceleration * deltaTime);
-            return MoveIntent.Idle();
+            bool running = runAction != null && runAction.IsPressed();
+            RiderInput input = new RiderInput(currentMoveInput, currentVerticalInput, running && riderCanRun);
+            riderMotor.ApplyRiderInput(input, deltaTime);
         }
 
-        currentSpeedMultiplier = Mathf.MoveTowards(currentSpeedMultiplier, moveSpeed, acceleration * deltaTime);
-        moveDir.Normalize();
-
-        Vector3 target = context.Position + moveDir * mountedMoveDistance;
-        if (UnityEngine.AI.NavMesh.SamplePosition(target, out UnityEngine.AI.NavMeshHit hit, mountedNavMeshSampleDistance, UnityEngine.AI.NavMesh.AllAreas))
-            target = hit.position;
-
-        return MoveIntent.MoveTo(
-            target,
-            mountedStopDistance,
-            currentSpeedMultiplier,
-            faceMoveDirection,
-            forward);
+        return MoveIntent.Idle();
     }
 
     // ─────────── OnValidate ───────────
     protected override void OnValidate()
     {
         base.OnValidate();
-        moveSpeed = Mathf.Max(0.01f, moveSpeed);
-        turnSpeed = Mathf.Max(1f, turnSpeed);
         turnSmoothTime = Mathf.Max(0.01f, turnSmoothTime);
-        momentumDamping = Mathf.Max(0.1f, momentumDamping);
-        acceleration = Mathf.Max(0.1f, acceleration);
-        mountedMoveDistance = Mathf.Max(0.1f, mountedMoveDistance);
-        mountedStopDistance = Mathf.Max(0.01f, mountedStopDistance);
-        mountedNavMeshSampleDistance = Mathf.Max(0.1f, mountedNavMeshSampleDistance);
-        selfDriveJumpHeight = Mathf.Max(0f, selfDriveJumpHeight);
-        selfDriveJumpDuration = Mathf.Max(0.05f, selfDriveJumpDuration);
         leapHoldTime = Mathf.Max(0.05f, leapHoldTime);
         leapHorizontal = Mathf.Max(0f, leapHorizontal);
         leapVertical = Mathf.Max(0f, leapVertical);
         leapDuration = Mathf.Max(0.05f, leapDuration);
-        lookSensitivity = Mathf.Max(0f, lookSensitivity);
-        lookPitchClamp = Mathf.Clamp(lookPitchClamp, 0f, 89f);
-        thirdPersonDistance = Mathf.Max(0.1f, thirdPersonDistance);
-        thirdPersonFollowLerp = Mathf.Max(0.01f, thirdPersonFollowLerp);
-        cameraAutoAlignSpeed = Mathf.Max(0f, cameraAutoAlignSpeed);
-        cameraAutoAlignDelay = Mathf.Max(0f, cameraAutoAlignDelay);
         steeringOverrideThreshold = Mathf.Max(0.01f, steeringOverrideThreshold);
         leanAmount = Mathf.Max(0f, leanAmount);
         leanSmoothTime = Mathf.Max(0.01f, leanSmoothTime);

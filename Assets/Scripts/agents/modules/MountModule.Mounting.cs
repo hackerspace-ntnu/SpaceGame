@@ -17,14 +17,127 @@ public partial class MountModule
             return false;
 
         CacheMountedPlayerReferences(playerMovement, mountPointOverride);
-        EnsureMountedThirdPersonCamera();
         DisableRiderComponentsForMount();
         EnterMountedRigidbodyState();
         ParentRiderToMount();
         ApplyModuleSuppression();
+        StopOwnMotorOnMount();
+        FreezeOwnRigidbodyRotationOnMount();
+        IgnoreRiderMountCollisions();
+        SuppressRootMotionOnMount();
+        InitializeMountedViewState();
+        ApplyPerspective(defaultPerspective);
         lastMountChangeTime = Time.time;
         Mounted?.Invoke(playerMovement);
         return true;
+    }
+
+    // Clear any pending nav destination / velocity so the mount doesn't keep
+    // cruising on its own when the rider takes over with no input.
+    private void StopOwnMotorOnMount()
+    {
+        if (allowAISelfMovementWhenMounted)
+            return;
+        IMovementMotor motor = GetComponent<IMovementMotor>();
+        motor?.ForceStop();
+    }
+
+    // Rider is a kinematic Rigidbody parented inside the mount's collider — contacts from that
+    // overlap spin the mount in place. The rider owns rotation via SteerModule writing to
+    // transform.rotation directly, so physics rotation isn't wanted while mounted anyway.
+    // Lock it, remember the original constraints, restore on dismount.
+    private void FreezeOwnRigidbodyRotationOnMount()
+    {
+        if (!ownRigidbody)
+            ownRigidbody = GetComponent<Rigidbody>();
+        if (!ownRigidbody)
+            return;
+        ownRigidbodyConstraints = ownRigidbody.constraints;
+        ownRigidbodyConstraintsCaptured = true;
+        ownRigidbody.constraints = ownRigidbodyConstraints | RigidbodyConstraints.FreezeRotation;
+        ownRigidbody.angularVelocity = Vector3.zero;
+    }
+
+    private void RestoreOwnRigidbodyRotationAfterDismount()
+    {
+        if (!ownRigidbody || !ownRigidbodyConstraintsCaptured)
+            return;
+        ownRigidbody.constraints = ownRigidbodyConstraints;
+        ownRigidbody.angularVelocity = Vector3.zero;
+        ownRigidbodyConstraintsCaptured = false;
+    }
+
+    // Disable collision between every rider collider and every mount collider so the rider's
+    // kinematic body can't shove the mount via contacts at the seat point.
+    private void IgnoreRiderMountCollisions()
+    {
+        if (mountedPlayer == null)
+            return;
+
+        Collider[] riderColliders = mountedPlayer.GetComponentsInChildren<Collider>(true);
+        Collider[] mountColliders = GetComponentsInChildren<Collider>(true);
+        if (riderColliders.Length == 0 || mountColliders.Length == 0)
+            return;
+
+        var pairs = new System.Collections.Generic.List<(Collider, Collider)>(
+            riderColliders.Length * mountColliders.Length);
+
+        foreach (Collider r in riderColliders)
+        {
+            if (!r) continue;
+            foreach (Collider m in mountColliders)
+            {
+                if (!m || r == m) continue;
+                Physics.IgnoreCollision(r, m, true);
+                pairs.Add((r, m));
+            }
+        }
+
+        ignoredCollisionPairs = pairs.ToArray();
+    }
+
+    private void RestoreRiderMountCollisions()
+    {
+        if (ignoredCollisionPairs == null)
+            return;
+
+        foreach (var (a, b) in ignoredCollisionPairs)
+        {
+            if (a && b)
+                Physics.IgnoreCollision(a, b, false);
+        }
+
+        ignoredCollisionPairs = null;
+    }
+
+    // Animator root motion can translate/rotate the mount transform even when every module
+    // is suppressed and every intent is Idle — a classic "mount walks in circles" source.
+    // Turn it off on the mount's animators for the mounted duration.
+    private void SuppressRootMotionOnMount()
+    {
+        if (allowAISelfMovementWhenMounted)
+            return;
+        Animator[] animators = GetComponentsInChildren<Animator>(true);
+        suppressibleAnimators = animators;
+        suppressibleAnimatorRootMotion = new bool[animators.Length];
+        for (int i = 0; i < animators.Length; i++)
+        {
+            suppressibleAnimatorRootMotion[i] = animators[i].applyRootMotion;
+            animators[i].applyRootMotion = false;
+        }
+    }
+
+    private void RestoreRootMotionAfterDismount()
+    {
+        if (suppressibleAnimators == null)
+            return;
+        for (int i = 0; i < suppressibleAnimators.Length; i++)
+        {
+            if (suppressibleAnimators[i])
+                suppressibleAnimators[i].applyRootMotion = suppressibleAnimatorRootMotion[i];
+        }
+        suppressibleAnimators = null;
+        suppressibleAnimatorRootMotion = null;
     }
 
     public void Dismount()
@@ -42,10 +155,16 @@ public partial class MountModule
 
         ExitMountedRigidbodyState();
         RestoreRiderComponentsAfterDismount();
+        RestoreOwnRigidbodyRotationAfterDismount();
+        RestoreRiderMountCollisions();
+        RestoreRootMotionAfterDismount();
         RestoreModuleSuppression();
+        SetThirdPersonCameraEnabled(false);
+        SetFirstPersonCameraEnabled(true);
+        SetMountedVisorEnabled(true);
         PlayerMovement dismountedMovement = mountedPlayerMovement;
         Dismounted?.Invoke(dismountedMovement);
-        ReleaseMountedThirdPersonCamera();
+        ReleaseRuntimeThirdPersonCamera();
         ClearMountedReferences();
         activeSeatPoint = seatPoint;
         lastMountChangeTime = Time.time;
@@ -137,25 +256,11 @@ public partial class MountModule
         mountedFirstPersonCameraRoot = null;
     }
 
-    // ─────────── Third-person camera spawn ───────────
-    private void EnsureMountedThirdPersonCamera()
+    private void ReleaseRuntimeThirdPersonCamera()
     {
-        if (mountedThirdPersonCamera != null || thirdPersonCameraPrefab == null)
+        if (runtimeThirdPersonCamera == null)
             return;
-
-        GameObject cameraObject = Instantiate(thirdPersonCameraPrefab.gameObject);
-        cameraObject.name = $"{name}_MountedThirdPersonCamera";
-        mountedThirdPersonCamera = cameraObject.GetComponent<Camera>();
-        if (mountedThirdPersonCamera != null)
-            mountedThirdPersonCamera.enabled = false;
-    }
-
-    private void ReleaseMountedThirdPersonCamera()
-    {
-        if (mountedThirdPersonCamera == null)
-            return;
-
-        Destroy(mountedThirdPersonCamera.gameObject);
-        mountedThirdPersonCamera = null;
+        Destroy(runtimeThirdPersonCamera.gameObject);
+        runtimeThirdPersonCamera = null;
     }
 }

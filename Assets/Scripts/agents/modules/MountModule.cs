@@ -9,9 +9,19 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
+// Late execution order so our LateUpdate runs after any other LateUpdate in the scene —
+// guarantees the mounted third-person camera transform isn't overwritten afterwards.
+[DefaultExecutionOrder(1000)]
 public partial class MountModule : BehaviourModuleBase, IInteractable
 {
+    public enum CameraPerspective
+    {
+        FirstPerson,
+        ThirdPerson
+    }
+
     [Header("Mount Points")]
     [SerializeField] private Transform seatPoint;
     [SerializeField] private Transform dismountPoint;
@@ -26,12 +36,36 @@ public partial class MountModule : BehaviourModuleBase, IInteractable
     [SerializeField] private float fallbackDismountDistance = 1.6f;
 
     [Header("Mounted Camera")]
-    [SerializeField] private Camera thirdPersonCameraPrefab;
+    [SerializeField] private CameraPerspective defaultPerspective = CameraPerspective.ThirdPerson;
+    [SerializeField] private Transform thirdPersonPivot;
+    [SerializeField] private Vector3 thirdPersonOffset = new Vector3(0f, 2.2f, -3.8f);
+    [SerializeField] private float thirdPersonDistance = 3.8f;
+    [SerializeField] private float thirdPersonFollowLerp = 14f;
+    [Tooltip("Meters ahead of the pivot the camera aims at. Higher = camera tilts further down, shows more ground ahead.")]
+    [SerializeField] private float thirdPersonLookAhead = 6f;
+
+    [Header("Mounted Look")]
+    [SerializeField] private string lookActionName = "Look";
+    [SerializeField] private float lookSensitivity = 1f;
+    [SerializeField] private float lookPitchClamp = 75f;
+    [SerializeField] private float defaultMountedPitch = -15f;
+    [SerializeField] private float cameraAutoAlignSpeed = 90f;
+    [SerializeField] private float cameraAutoAlignDelay = 0.5f;
 
     [Header("While Mounted")]
     [Tooltip("If true, the mount keeps running its own AI modules (wander, patrol, etc.) between rider inputs. " +
              "If false, all non-mount modules are disabled while mounted — the mount stands still when the rider isn't steering.")]
     [SerializeField] private bool allowAISelfMovementWhenMounted = false;
+
+    // Camera / look runtime state
+    private InputAction lookAction;
+    private bool forcedLookActionEnabled;
+    private Camera runtimeThirdPersonCamera;
+    private float mountedPitch;
+    private float cameraYaw;
+    private float cameraYawOffset;
+    private float timeSinceLastLookInput;
+    private CameraPerspective activePerspective;
 
     // Rider state
     private Transform mountedPlayer;
@@ -46,9 +80,23 @@ public partial class MountModule : BehaviourModuleBase, IInteractable
     private Transform activeSeatPoint;
     private Camera mountedFirstPersonCamera;
     private Transform mountedFirstPersonCameraRoot;
-    private Camera mountedThirdPersonCamera;
 
     private MonoBehaviour[] suppressibleModules;
+
+    // Animator state captured at mount time so root-motion-driven drift is suppressed while
+    // ridden and restored on dismount.
+    private Animator[] suppressibleAnimators;
+    private bool[] suppressibleAnimatorRootMotion;
+
+    // Rigidbody constraints captured at mount time so physics can't spin the mount via
+    // contact forces (notably the rider's own collider overlapping the seat point).
+    private Rigidbody ownRigidbody;
+    private RigidbodyConstraints ownRigidbodyConstraints;
+    private bool ownRigidbodyConstraintsCaptured;
+
+    // Rider<->mount collider pairs ignored while mounted so the rider's kinematic collider
+    // doesn't push the mount around. Restored on dismount.
+    private (Collider a, Collider b)[] ignoredCollisionPairs;
 
     public event Action<PlayerMovement> Mounted;
     public event Action<PlayerMovement> Dismounted;
@@ -65,7 +113,11 @@ public partial class MountModule : BehaviourModuleBase, IInteractable
     public Rigidbody MountedPlayerRigidbody => mountedPlayerRigidbody;
     public Camera MountedFirstPersonCamera => mountedFirstPersonCamera;
     public Transform MountedFirstPersonCameraRoot => mountedFirstPersonCameraRoot;
-    public Camera MountedThirdPersonCamera => mountedThirdPersonCamera;
+    public Camera MountedThirdPersonCamera => runtimeThirdPersonCamera;
+    public CameraPerspective ActivePerspective => activePerspective;
+    public float CameraYaw => cameraYaw;
+    public float CameraYawOffset => cameraYawOffset;
+    public float MountedPitch => mountedPitch;
 
     public override string ModuleDescription =>
         "Mount lifecycle + interaction surface + AI suppression. Drop this + SteerModule to make anything mountable.\n\n" +
@@ -84,10 +136,30 @@ public partial class MountModule : BehaviourModuleBase, IInteractable
         CacheSuppressibleModules();
     }
 
+    private void OnEnable()
+    {
+        ResolveCameraInputActions();
+    }
+
     private void OnDisable()
     {
         if (IsMounted)
             Dismount();
+
+        if (forcedLookActionEnabled && lookAction != null)
+        {
+            lookAction.Disable();
+            forcedLookActionEnabled = false;
+        }
+    }
+
+    private void Update()
+    {
+        if (!IsMounted)
+            return;
+
+        EnsureLookActionEnabled();
+        HandleLookInput(Time.deltaTime);
     }
 
     protected override void OnValidate()
@@ -95,6 +167,13 @@ public partial class MountModule : BehaviourModuleBase, IInteractable
         base.OnValidate();
         mountCooldown = Mathf.Max(0f, mountCooldown);
         fallbackDismountDistance = Mathf.Max(0.1f, fallbackDismountDistance);
+        lookSensitivity = Mathf.Max(0f, lookSensitivity);
+        lookPitchClamp = Mathf.Clamp(lookPitchClamp, 0f, 89f);
+        thirdPersonDistance = Mathf.Max(0.1f, thirdPersonDistance);
+        thirdPersonFollowLerp = Mathf.Max(0.01f, thirdPersonFollowLerp);
+        thirdPersonLookAhead = Mathf.Max(0.1f, thirdPersonLookAhead);
+        cameraAutoAlignSpeed = Mathf.Max(0f, cameraAutoAlignSpeed);
+        cameraAutoAlignDelay = Mathf.Max(0f, cameraAutoAlignDelay);
     }
 
     // MountModule never produces movement. Null → AgentController falls through to other modules
@@ -118,7 +197,11 @@ public partial class MountModule : BehaviourModuleBase, IInteractable
         MonoBehaviour[] all = GetComponentsInChildren<MonoBehaviour>(true);
         foreach (MonoBehaviour mb in all)
         {
-            if (mb is IBehaviourModule && !IsMountAware(mb))
+            // Suppress anything that could produce movement or a MoveIntent while mounted:
+            // IBehaviourModule (except Mount/Steer themselves) and legacy IAgentBrain fallbacks.
+            // Without this, e.g. a legacy NpcBrain/EnemyBrain would keep feeding intents to the
+            // motor and make the mount drift/circle while the rider is idle.
+            if ((mb is IBehaviourModule || mb is IAgentBrain) && !IsMountAware(mb))
                 list.Add(mb);
         }
         suppressibleModules = list.ToArray();

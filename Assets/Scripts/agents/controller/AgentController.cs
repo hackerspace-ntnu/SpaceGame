@@ -208,7 +208,7 @@ public class AgentController : MonoBehaviour
         Motor = MotorComponent as IMovementMotor;
 
         if (Motor == null)
-            Debug.LogError($"{name}: AgentController could not find an IMovementMotor. Add NavMeshAgentMotor (or equivalent).", this);
+            Debug.LogError($"{name}: AgentController could not find an IMovementMotor. Add NavMeshAgentMotor (pathfinding) or RigidbodyMotor (physics vehicle).", this);
     }
 
     // Allow modules or external systems to force a live refresh (e.g. after adding components at runtime).

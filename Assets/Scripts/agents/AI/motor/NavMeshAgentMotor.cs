@@ -18,7 +18,7 @@ using UnityEngine.AI;
 // Run before default (0) so agent.enabled=false happens before NavMeshAgent's own Awake registers it.
 [DefaultExecutionOrder(-100)]
 [RequireComponent(typeof(NavMeshAgent))]
-public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IMountLeapMotor
+public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IMountLeapMotor, IRiderControllable
 {
     [Header("Navigation")]
     [SerializeField] private NavMeshAgent agent;
@@ -46,6 +46,14 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor,
     [SerializeField] private float mountedLeapCooldown = 0.6f;
     [SerializeField] private float mountedLeapSampleRadius = 6f;
 
+    [Header("Rider Steering")]
+    [Tooltip("Tank-steer yaw rate in degrees/sec while the rider is driving.")]
+    [SerializeField] private float riderTurnSpeed = 120f;
+    [Tooltip("How far ahead of self the NavMesh destination is placed while rider drives.")]
+    [SerializeField] private float riderForwardTargetDistance = 2f;
+    [SerializeField] private float riderStopDistance = 0.15f;
+    [SerializeField] private float riderNavMeshSampleDistance = 4f;
+
     private float stuckTimer;
     private bool defaultUpdateRotation;
     private bool defaultUpdatePosition;
@@ -54,6 +62,10 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor,
     private float defaultBaseOffset;
     private float jumpElapsed = -1f;
     private float jumpCooldownTimer;
+
+    // Set to Time.frameCount inside ApplyRiderInput so the MoveIntent switch in Tick skips
+    // that frame. Arc/cooldown updates still run.
+    private int riderDriveFrame = -1;
 
     private bool isLeaping;
     private float leapElapsed;
@@ -144,6 +156,10 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor,
             return;
         }
 
+        // Rider is driving this frame via ApplyRiderInput — don't re-interpret a MoveIntent.
+        if (riderDriveFrame == Time.frameCount)
+            return;
+
         switch (intent.Type)
         {
             case AgentIntentType.MoveToPosition:
@@ -166,6 +182,13 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor,
     public void ForceStop()
     {
         StopAgentPath();
+        if (IsAgentReady)
+        {
+            // Zero residual internal velocity so the agent doesn't drift
+            // (NavMeshAgent otherwise decelerates from its current velocity, which with
+            // autoBraking=false can take a while and can look like slow circling).
+            agent.velocity = Vector3.zero;
+        }
     }
 
     public void NudgeDestination(Vector3 offset)
@@ -188,6 +211,45 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor,
             agent.isStopped = false;
             agent.SetDestination(hit.position);
         }
+    }
+
+    public void ApplyRiderInput(in RiderInput input, float deltaTime)
+    {
+        riderDriveFrame = Time.frameCount;
+        if (!IsAgentReady || isLeaping)
+            return;
+
+        // Tank steer: rotate transform directly. Disable agent's own rotation so it doesn't
+        // fight us on the next path update.
+        float yaw = input.Move.x * riderTurnSpeed * deltaTime;
+        if (Mathf.Abs(yaw) > 1e-4f)
+            transform.Rotate(0f, yaw, 0f, Space.World);
+        agent.updateRotation = false;
+
+        float throttle = input.Move.y;
+        agent.stoppingDistance = Mathf.Max(0.01f, riderStopDistance);
+        float baseMultiplier = input.IsRunning ? 1f : walkSpeedMultiplier;
+        agent.speed = defaultSpeed * baseMultiplier * Mathf.Max(0.01f, Mathf.Abs(throttle));
+
+        if (Mathf.Abs(throttle) <= 0.01f)
+        {
+            StopAgentPath();
+            return;
+        }
+
+        Vector3 forward = transform.forward;
+        forward.y = 0f;
+        if (forward.sqrMagnitude < 1e-4f)
+            forward = Vector3.forward;
+        forward.Normalize();
+
+        Vector3 desired = transform.position + forward * (riderForwardTargetDistance * Mathf.Sign(throttle));
+        Vector3 target = desired;
+        if (NavMesh.SamplePosition(desired, out NavMeshHit hit, riderNavMeshSampleDistance, NavMesh.AllAreas))
+            target = hit.position;
+
+        agent.isStopped = false;
+        agent.SetDestination(target);
     }
 
     public void RequestJump()
@@ -432,5 +494,9 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor,
         mountedJumpCooldown = Mathf.Max(0f, mountedJumpCooldown);
         mountedLeapCooldown = Mathf.Max(0f, mountedLeapCooldown);
         mountedLeapSampleRadius = Mathf.Max(0.5f, mountedLeapSampleRadius);
+        riderTurnSpeed = Mathf.Max(1f, riderTurnSpeed);
+        riderForwardTargetDistance = Mathf.Max(0.1f, riderForwardTargetDistance);
+        riderStopDistance = Mathf.Max(0.01f, riderStopDistance);
+        riderNavMeshSampleDistance = Mathf.Max(0.1f, riderNavMeshSampleDistance);
     }
 }

@@ -66,6 +66,10 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor,
     // Set to Time.frameCount inside ApplyRiderInput so the MoveIntent switch in Tick skips
     // that frame. Arc/cooldown updates still run.
     private int riderDriveFrame = -1;
+    // True between a rider's last ApplyRiderInput and our restoration of agent defaults.
+    // Without this, post-dismount the agent slides crab-wise (updateRotation stuck false) and
+    // races toward the leftover rider-forward destination — looks like "speeds up abnormally".
+    private bool riderStateDirty;
 
     private bool isLeaping;
     private float leapElapsed;
@@ -160,6 +164,20 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor,
         if (riderDriveFrame == Time.frameCount)
             return;
 
+        // Rider just released. Restore agent defaults the rider's ApplyRiderInput mutated
+        // (updateRotation, stoppingDistance, speed) and clear any leftover rider destination
+        // so the AI starts from a clean slate.
+        if (riderStateDirty)
+        {
+            riderStateDirty = false;
+            agent.updateRotation = defaultUpdateRotation;
+            agent.stoppingDistance = defaultStoppingDistance;
+            agent.speed = defaultSpeed;
+            if (agent.hasPath)
+                agent.ResetPath();
+            agent.velocity = Vector3.zero;
+        }
+
         switch (intent.Type)
         {
             case AgentIntentType.MoveToPosition:
@@ -216,6 +234,7 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor,
     public void ApplyRiderInput(in RiderInput input, float deltaTime)
     {
         riderDriveFrame = Time.frameCount;
+        riderStateDirty = true;
         if (!IsAgentReady || isLeaping)
             return;
 

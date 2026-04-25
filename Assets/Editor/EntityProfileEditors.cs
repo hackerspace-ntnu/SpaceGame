@@ -299,4 +299,75 @@ public class EntityProfile_GenericEnemyEditor : Editor
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+// EntityProfile_Vehicle
+// ─────────────────────────────────────────────────────────────
+
+[CustomEditor(typeof(EntityProfile_Vehicle))]
+public class EntityProfile_VehicleEditor : Editor
+{
+    public override void OnInspectorGUI()
+    {
+        DrawDefaultInspector();
+
+        EntityProfileEditorUtils.DrawGenerateButton("Mountable Vehicle", () =>
+        {
+            var p  = (EntityProfile_Vehicle)target;
+            var go = p.gameObject;
+
+            // Base agent stack: Rigidbody + Collider + NavMeshAgent + Motor + Controller + Anim + Health.
+            EntityProfileEditorUtils.SetupBaseComponents(go, p.maxHealth, p.despawnDelay);
+            EntityProfileEditorUtils.GetOrAdd<EntityFaction>(go);
+
+            var col      = go.GetComponent<CapsuleCollider>();
+            var navAgent = go.GetComponent<NavMeshAgent>();
+            var wander   = EntityProfileEditorUtils.GetOrAdd<WanderModule>(go);
+            var mount    = EntityProfileEditorUtils.GetOrAdd<MountModule>(go);
+            var steer    = EntityProfileEditorUtils.GetOrAdd<SteerModule>(go);
+
+            // Collider sized for the vehicle.
+            if (col)
+            {
+                col.radius = p.colliderRadius;
+                col.height = p.colliderHeight;
+                col.center = p.colliderCenter;
+                EditorUtility.SetDirty(col);
+            }
+
+            // NavMeshAgent tuning — vehicles are bigger and faster than NPCs.
+            if (navAgent)
+            {
+                navAgent.speed            = p.agentSpeed;
+                navAgent.angularSpeed     = p.agentAngularSpeed;
+                navAgent.acceleration     = p.agentAcceleration;
+                navAgent.radius           = p.agentRadius;
+                navAgent.height           = p.agentHeight;
+                navAgent.stoppingDistance = p.stoppingDistance;
+                EditorUtility.SetDirty(navAgent);
+            }
+
+            // Wander = idle AI behaviour when not ridden.
+            EntityProfileEditorUtils.SetFloat(wander, "wanderRadius",    p.wanderRadius);
+            EntityProfileEditorUtils.SetFloat(wander, "minWaitTime",     p.wanderMinWait);
+            EntityProfileEditorUtils.SetFloat(wander, "maxWaitTime",     p.wanderMaxWait);
+            EntityProfileEditorUtils.SetFloat(wander, "speedMultiplier", p.wanderSpeedMultiplier);
+            EntityProfileEditorUtils.SetInt  (wander, "priority",        ModulePriority.Fallback);
+            EntityProfileEditorUtils.SetModuleActive(wander, p.wanderEnabled);
+
+            // Mount lifecycle.
+            EntityProfileEditorUtils.SetObject(mount, "seatPoint", p.seatPoint != null ? p.seatPoint : go.transform);
+            EntityProfileEditorUtils.SetBool  (mount, "allowAISelfMovementWhenMounted", p.allowAISelfMovementWhenMounted);
+            EntityProfileEditorUtils.SetModuleActive(mount, true);
+
+            // Rider steering.
+            EntityProfileEditorUtils.SetBool(steer, "jumpEnabled",  p.jumpEnabled);
+            EntityProfileEditorUtils.SetBool(steer, "leapEnabled",  p.leapEnabled);
+            EntityProfileEditorUtils.SetBool(steer, "riderCanRun",  p.riderCanRun);
+            EntityProfileEditorUtils.SetModuleActive(steer, true);
+
+            Debug.Log($"[EntityProfile] Mountable Vehicle generated on {go.name}", go);
+        });
+    }
+}
+
 #endif

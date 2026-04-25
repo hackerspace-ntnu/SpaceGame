@@ -39,6 +39,8 @@ public partial class SteerModule
 
     private void HandleMounted(PlayerMovement _)
     {
+        ResolveMotorReferences();
+        EnsureMountedInputActionsEnabled();
         ResetMountedInputState();
         currentLean = 0f;
         leanVelocity = 0f;
@@ -46,6 +48,7 @@ public partial class SteerModule
 
     private void HandleDismounted(PlayerMovement _)
     {
+        RestoreMountedInputActions();
         ResetMountedInputState();
         currentLean = 0f;
         leanVelocity = 0f;

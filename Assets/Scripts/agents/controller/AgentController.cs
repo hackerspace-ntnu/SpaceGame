@@ -213,4 +213,5 @@ public class AgentController : MonoBehaviour
 
     // Allow modules or external systems to force a live refresh (e.g. after adding components at runtime).
     public void RefreshModules() => ResolveModules();
+    public void RefreshMotor() => ResolveMotor();
 }

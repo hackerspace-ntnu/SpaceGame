@@ -21,6 +21,45 @@ public partial class SteerModule
             : InputSystem.actions.FindAction(runActionName);
     }
 
+    private void EnsureMountedInputActionsEnabled()
+    {
+        if (moveAction == null && jumpAction == null && verticalAction == null && runAction == null)
+            ResolveInputActions();
+
+        EnsureActionEnabled(moveAction, ref forcedMoveActionEnabled);
+        EnsureActionEnabled(jumpAction, ref forcedJumpActionEnabled);
+        EnsureActionEnabled(verticalAction, ref forcedVerticalActionEnabled);
+        EnsureActionEnabled(runAction, ref forcedRunActionEnabled);
+    }
+
+    private void RestoreMountedInputActions()
+    {
+        RestoreActionEnabledState(moveAction, ref forcedMoveActionEnabled);
+        RestoreActionEnabledState(jumpAction, ref forcedJumpActionEnabled);
+        RestoreActionEnabledState(verticalAction, ref forcedVerticalActionEnabled);
+        RestoreActionEnabledState(runAction, ref forcedRunActionEnabled);
+    }
+
+    private static void EnsureActionEnabled(InputAction action, ref bool forcedEnabled)
+    {
+        if (action == null || action.enabled)
+            return;
+
+        action.Enable();
+        forcedEnabled = true;
+    }
+
+    private static void RestoreActionEnabledState(InputAction action, ref bool forcedEnabled)
+    {
+        if (!forcedEnabled)
+            return;
+
+        if (action != null)
+            action.Disable();
+
+        forcedEnabled = false;
+    }
+
     private void ReadMountedInput()
     {
         Vector2 raw = ReadMountedMoveInput();

@@ -2147,7 +2147,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -7156140323540615168, guid: 4938ebdecf1e547a0ac42cc484c9e5d3, type: 3}
       propertyPath: maxSpeed
-      value: 1000
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 618654540477302815, guid: 4938ebdecf1e547a0ac42cc484c9e5d3, type: 3}
       propertyPath: m_Name
@@ -2230,9 +2230,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ca7ba5a805ba44ccb6f65d44d1d0d9ae, type: 3}
+  m_Script: {fileID: 11500000, guid: 93332eec514f24714b313e241062bc1c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FlyingRigidbodyMotor
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodyMotor
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

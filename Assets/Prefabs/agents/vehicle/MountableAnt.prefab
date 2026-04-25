@@ -42,17 +42,14 @@ GameObject:
   - component: {fileID: 5687535127947588808}
   - component: {fileID: 2170031554702978709}
   - component: {fileID: 2223796372505140579}
-  - component: {fileID: 3573185430769340566}
   - component: {fileID: 5126750603006013056}
-  - component: {fileID: 5020335494934165387}
   - component: {fileID: 5484313847132196878}
-  - component: {fileID: 2064530944249068100}
-  - component: {fileID: 4244306153911302343}
   - component: {fileID: 329883727858611980}
   - component: {fileID: 4374206462040571851}
-  - component: {fileID: 1437152633474614801}
-  - component: {fileID: 3495873987215047714}
-  - component: {fileID: 2351876344199623393}
+  - component: {fileID: 2393866070613181396}
+  - component: {fileID: -8796574540232835244}
+  - component: {fileID: 1690087036186908651}
+  - component: {fileID: -6181572552685032935}
   m_Layer: 0
   m_Name: MountableAnt
   m_TagString: Untagged
@@ -114,6 +111,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NavMeshAgentMotor
   agent: {fileID: 2170031554702978709}
   navMeshSnapDistance: 6
+  walkSpeedMultiplier: 0.65
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 15
@@ -121,31 +119,13 @@ MonoBehaviour:
   mountedJumpHeight: 1.25
   mountedJumpDuration: 0.55
   mountedJumpCooldown: 0.45
---- !u!114 &3573185430769340566
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8519007536564081167}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ec2582aec804c4f45a4739731da4c023, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WanderBehaviour
-  wanderRadius: 10
-  sampleDistance: 6
-  maxTriesPerDestination: 10
-  minDestinationDistance: 1.5
-  minWaitTime: 0.5
-  maxWaitTime: 2
-  usePatrolPoints: 0
-  patrolSelectionMode: 0
-  patrolPointChance: 1
-  patrolPoints: []
-  useSpawnAsAnchor: 1
-  anchorTransform: {fileID: 0}
-  leashRadius: 0
+  enableMountedLeap: 1
+  mountedLeapCooldown: 0.6
+  mountedLeapSampleRadius: 6
+  riderTurnSpeed: 120
+  riderForwardTargetDistance: 2
+  riderStopDistance: 0.15
+  riderNavMeshSampleDistance: 4
 --- !u!114 &5126750603006013056
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -160,35 +140,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
   maxHealth: 100
   currentHealth: 100
---- !u!114 &5020335494934165387
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8519007536564081167}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6d151d4ee47624b1d8575f91257da610, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NpcBrain
-  wanderBehaviour: {fileID: 3573185430769340566}
-  mountController: {fileID: 1437152633474614801}
-  playerTarget: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-  playerTag: Player
-  playerReactionMode: 1
-  playerDetectRadius: 4
-  reactionSpeedMultiplier: 1.1
-  moveStopDistance: 0.2
-  approachStopDistance: 1.6
-  keepDistanceRadius: 3
-  fleeDistanceRadius: 7
-  enableLookAround: 1
-  lookAroundMinInterval: 1.5
-  lookAroundMaxInterval: 4.5
-  lookAroundTurnAngle: 70
-  lookAroundDuration: 0.75
-  wanderSpeedMultiplier: 1
 --- !u!136 &5484313847132196878
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -212,42 +163,6 @@ CapsuleCollider:
   m_Height: 4
   m_Direction: 2
   m_Center: {x: 0.5, y: 1.5, z: -0.5}
---- !u!114 &2064530944249068100
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8519007536564081167}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: acdc445562c6e420c8ef8cec6ec54ffb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MountInteractor
-  mountController: {fileID: 1437152633474614801}
-  mountTransform: {fileID: 5687535127947588808}
---- !u!114 &4244306153911302343
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8519007536564081167}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 434b1cb41931349a580b035d41199472, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MountedAgentBrain
-  fallbackBrain: {fileID: 5020335494934165387}
-  mountController: {fileID: 1437152633474614801}
-  steeringController: {fileID: 3495873987215047714}
-  mountedMoveDistance: 2
-  mountedStopDistance: 0.15
-  mountedSpeedMultiplier: 2.4
-  mountedNavMeshSampleDistance: 4
-  faceMouseLookDirection: 1
-  mountedAcceleration: 4
-  enableMountedJump: 1
 --- !u!114 &329883727858611980
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -262,6 +177,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AgentAnimatorDriver
   animator: {fileID: 0}
   animationSpeedMultiplier: 1.5
+  walkAnimBoost: 2
 --- !u!114 &4374206462040571851
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -274,10 +190,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9f3daeabc7b5491097940d9275e8162, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AgentController
-  brainComponent: {fileID: 2223796372505140579}
-  motorComponent: {fileID: 2223796372505140579}
+  MotorComponent: {fileID: 2223796372505140579}
   animatorDriver: {fileID: 329883727858611980}
---- !u!114 &1437152633474614801
+  nearbyAgentScanRadius: 0
+  nearbyAgentLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  speedVariationAmount: 0.1
+  speedVariationPeriod: 6
+--- !u!114 &2393866070613181396
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -286,50 +207,56 @@ MonoBehaviour:
   m_GameObject: {fileID: 8519007536564081167}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e03ab404b2c7f45b6930746c2df20c86, type: 3}
+  m_Script: {fileID: 11500000, guid: 421edd01c56ce43e49db60c5c7a6caed, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MountController
-  seatPoint: {fileID: 263414305937197813}
-  dismountPoint: {fileID: 7091826620043523878}
+  m_EditorClassIdentifier: Assembly-CSharp::WanderModule
+  priority: 0
+  active: 1
+  limitWanderRadius: 1
+  wanderRadius: 10
+  freeRoamRadius: 50
+  sampleDistance: 6
+  minDestinationDistance: 1.5
+  maxSampleAttempts: 10
+  minWaitTime: 0.5
+  maxWaitTime: 2
+  stopDistance: 0.2
+  speedMultiplier: 1
+--- !u!114 &-8796574540232835244
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8519007536564081167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5143ff601f504c72995e51afbceb9fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MountModule
+  priority: 0
+  active: 1
+  seatPoint: {fileID: 0}
+  dismountPoint: {fileID: 0}
   disablePlayerMovement: 1
   disablePlayerLook: 1
   disablePlayerInteractor: 1
   mountCooldown: 0.25
   fallbackDismountDistance: 1.6
-  thirdPersonCameraPrefab: {fileID: 6134801172691046204, guid: 61f2f8ec6f1849b1b72d6513a1ca1895, type: 3}
---- !u!114 &3495873987215047714
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8519007536564081167}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5ab4e14ea8b148f7b3f4ef0a5fefac42, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MountSteeringController
-  mountController: {fileID: 1437152633474614801}
+  defaultPerspective: 1
+  thirdPersonPivot: {fileID: 0}
+  thirdPersonOffset: {x: 0, y: 2.2, z: -3.8}
+  thirdPersonDistance: 3.8
+  thirdPersonFollowLerp: 14
+  thirdPersonLookAhead: 6
+  lookActionName: Look
   lookSensitivity: 1
   lookPitchClamp: 75
-  steerSpeed: 120
-  turnSmoothTime: 0.12
-  leanAmount: 10
-  leanSmoothTime: 0.18
-  momentumDamping: 7
-  visualTiltRoot: {fileID: 0}
-  defaultPerspective: 1
-  thirdPersonCamera: {fileID: 6134801172691046204, guid: 61f2f8ec6f1849b1b72d6513a1ca1895, type: 3}
-  thirdPersonPivot: {fileID: 0}
-  thirdPersonOffset: {x: 0, y: 3.2, z: -3.8}
-  thirdPersonDistance: 3
-  thirdPersonFollowLerp: 14
-  defaultMountedPitch: 15
+  defaultMountedPitch: -15
   cameraAutoAlignSpeed: 90
   cameraAutoAlignDelay: 0.5
-  perspectiveToggleActionName: Next
-  steeringOverrideThreshold: 0.1
---- !u!114 &2351876344199623393
+  allowAISelfMovementWhenMounted: 1
+--- !u!114 &1690087036186908651
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -338,22 +265,55 @@ MonoBehaviour:
   m_GameObject: {fileID: 8519007536564081167}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Script: {fileID: 11500000, guid: c7c257d806b8c467abd0f18840dfdfe5, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1411922746
-  InScenePlacedSourceGlobalObjectIdHash: 0
-  DeferredDespawnTick: 0
-  Ownership: 1
-  AlwaysReplicateAsRoot: 0
-  SynchronizeTransform: 1
-  ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
-  SpawnWithObservers: 1
-  DontDestroyWithOwner: 0
-  AutoObjectParentSync: 1
-  SyncOwnerTransformWhenParented: 1
-  AllowOwnerToParent: 0
+  m_EditorClassIdentifier: Assembly-CSharp::SteerModule
+  priority: 100
+  active: 1
+  mountModule: {fileID: -8796574540232835244}
+  moveActionName: Move
+  jumpActionName: Jump
+  verticalActionName: 
+  steeringOverrideThreshold: 0.1
+  turnSmoothTime: 0.12
+  riderCanRun: 1
+  runActionName: Sprint
+  jumpEnabled: 1
+  leapEnabled: 1
+  leapHoldTime: 0.4
+  leapHorizontal: 8
+  leapVertical: 3
+  leapDuration: 0.9
+  visualTiltRoot: {fileID: 0}
+  leanAmount: 10
+  leanSmoothTime: 0.18
+--- !u!54 &-6181572552685032935
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8519007536564081167}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &8662569606765360294
 GameObject:
   m_ObjectHideFlags: 0

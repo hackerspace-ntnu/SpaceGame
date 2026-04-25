@@ -51,6 +51,11 @@ public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IM
     // MoveIntent-interpretation path (which would decelerate and fight the rider).
     private int riderDriveFrame = -1;
 
+    // Track rider throttle along forward in our own state. If we read this back from
+    // body.linearVelocity, ground friction between FixedUpdates eats it and the rider
+    // feels stuck — see RigidbodyMotor.ApplyRiderInput for the full reasoning.
+    private float riderForwardSpeed;
+
     public Vector3 Velocity => body ? body.linearVelocity : Vector3.zero;
 
     public bool IsImmobile
@@ -106,6 +111,10 @@ public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IM
         if (riderDriveFrame == Time.frameCount)
             return;
 
+        // Rider released — drop tracked rider speed so AI handoff doesn't snap back to it
+        // if the rider re-mounts later mid-motion.
+        riderForwardSpeed = 0f;
+
         switch (intent.Type)
         {
             case AgentIntentType.MoveToPosition:
@@ -130,6 +139,8 @@ public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IM
         if (!body || arcing)
             return;
 
+        body.WakeUp();
+
         // Tank steer: rotate body by yaw input.
         float yaw = input.Move.x * riderTurnSpeed * deltaTime;
         if (Mathf.Abs(yaw) > 1e-4f)
@@ -138,15 +149,21 @@ public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IM
         // Throttle along own forward.
         float throttle = input.Move.y;
         float baseMultiplier = input.IsRunning ? 1f : walkSpeedMultiplier;
-        Vector3 desired = transform.forward * (throttle * maxSpeed * baseMultiplier);
+        Vector3 forward = transform.forward;
+        forward.y = 0f;
+        if (forward.sqrMagnitude < 1e-4f)
+            forward = Vector3.forward;
+        forward.Normalize();
+
+        // Track speed in our own state so ground friction between FixedUpdates can't drain it.
+        float targetSpeed = throttle * maxSpeed * baseMultiplier;
+        float ramp = (Mathf.Abs(throttle) > 0.01f ? acceleration : deceleration) * deltaTime;
+        riderForwardSpeed = Mathf.MoveTowards(riderForwardSpeed, targetSpeed, ramp);
 
         Vector3 current = body.linearVelocity;
-        Vector3 horizontal = new Vector3(current.x, 0f, current.z);
-        float ramp = (Mathf.Abs(throttle) > 0.01f ? acceleration : deceleration) * deltaTime;
-        Vector3 next = Vector3.MoveTowards(horizontal, new Vector3(desired.x, 0f, desired.z), ramp);
-
-        current.x = next.x;
-        current.z = next.z;
+        Vector3 horizontal = forward * riderForwardSpeed;
+        current.x = horizontal.x;
+        current.z = horizontal.z;
         body.linearVelocity = current;
 
         // Rider drives manually, so any AI-era destination is stale.
@@ -156,6 +173,7 @@ public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IM
     public void ForceStop()
     {
         currentDestination = null;
+        riderForwardSpeed = 0f;
         if (!body)
             return;
         Vector3 v = body.linearVelocity;

@@ -85,9 +85,17 @@ public partial class SteerModule : BehaviourModuleBase
     private bool jumpHeld;
     private float jumpHoldDuration;
 
+    private AgentController agentController;
+    private IMovementMotor controllerMotor;
     private IRiderControllable riderMotor;
     private IMountJumpMotor jumpMotor;
     private IMountLeapMotor leapMotor;
+
+    private bool forcedMoveActionEnabled;
+    private bool forcedJumpActionEnabled;
+    private bool forcedVerticalActionEnabled;
+    private bool forcedRunActionEnabled;
+    private bool runtimeMovementPathEnsured;
 
     // ─────────── Public API ───────────
     public bool IsMounted => mountModule && mountModule.IsMounted;
@@ -110,9 +118,9 @@ public partial class SteerModule : BehaviourModuleBase
         if (!mountModule)
             mountModule = GetComponent<MountModule>();
 
-        riderMotor = GetComponent<IRiderControllable>();
-        jumpMotor = GetComponent<IMountJumpMotor>();
-        leapMotor = GetComponent<IMountLeapMotor>();
+        EnsureRuntimeMovementPath();
+        agentController = GetComponent<AgentController>();
+        ResolveMotorReferences();
 
         if (visualTiltRoot)
             visualTiltBaseLocalRotation = visualTiltRoot.localRotation;
@@ -141,6 +149,7 @@ public partial class SteerModule : BehaviourModuleBase
         }
 
         SetVisualLean(0f);
+        RestoreMountedInputActions();
         ResetMountedInputState();
     }
 
@@ -153,6 +162,7 @@ public partial class SteerModule : BehaviourModuleBase
             return;
         }
 
+        EnsureMountedInputActionsEnabled();
         ReadMountedInput();
         HandleJumpAndLeap(Time.deltaTime);
         UpdateVisualLean(Time.deltaTime);
@@ -177,6 +187,8 @@ public partial class SteerModule : BehaviourModuleBase
         if (!hasSteeringOverride)
             return null;
 
+        ResolveMotorReferences();
+
         // Rider is driving — forward input to the motor and claim the frame.
         if (riderMotor != null)
         {
@@ -186,6 +198,63 @@ public partial class SteerModule : BehaviourModuleBase
         }
 
         return MoveIntent.Idle();
+    }
+
+    private void ResolveMotorReferences()
+    {
+        EnsureRuntimeMovementPath();
+
+        if (!agentController)
+            agentController = GetComponent<AgentController>();
+
+        IMovementMotor selectedMotor = agentController != null ? agentController.Motor : null;
+        if (selectedMotor != null)
+        {
+            if (!ReferenceEquals(controllerMotor, selectedMotor))
+            {
+                controllerMotor = selectedMotor;
+                riderMotor = selectedMotor as IRiderControllable;
+                jumpMotor = selectedMotor as IMountJumpMotor;
+                leapMotor = selectedMotor as IMountLeapMotor;
+            }
+
+            return;
+        }
+
+        riderMotor = GetComponent<IRiderControllable>();
+        jumpMotor = GetComponent<IMountJumpMotor>();
+        leapMotor = GetComponent<IMountLeapMotor>();
+    }
+
+    private void EnsureRuntimeMovementPath()
+    {
+        if (runtimeMovementPathEnsured)
+            return;
+
+        if (!HasMovementMotor() && GetComponent<Rigidbody>() != null)
+            gameObject.AddComponent<RigidbodyMotor>();
+
+        if (!agentController && !TryGetComponent(out agentController))
+            agentController = gameObject.AddComponent<AgentController>();
+
+        if (agentController != null)
+        {
+            agentController.RefreshMotor();
+            agentController.RefreshModules();
+        }
+
+        runtimeMovementPathEnsured = true;
+    }
+
+    private bool HasMovementMotor()
+    {
+        foreach (MonoBehaviour mb in GetComponentsInChildren<MonoBehaviour>(true))
+        {
+            if (mb is IMovementMotor)
+                return true;
+        }
+
+        return false;
     }
 
     // ─────────── OnValidate ───────────

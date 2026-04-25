@@ -14,6 +14,8 @@ GameObject:
   - component: {fileID: 3937059897492907912}
   - component: {fileID: 8189839842806153898}
   - component: {fileID: 2308803391461584994}
+  - component: {fileID: 7242184591122700101}
+  - component: {fileID: 7242184591122700102}
   m_Layer: 0
   m_Name: Ship
   m_TagString: Untagged
@@ -47,7 +49,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f5143ff601f504c72995e51afbceb9fe, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MountModule
   priority: 0
   active: 1
@@ -70,7 +72,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c7c257d806b8c467abd0f18840dfdfe5, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::SteerModule
   priority: 100
   active: 1
@@ -136,7 +138,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 16
+  m_Constraints: 80
   m_CollisionDetection: 0
 --- !u!136 &8189839842806153898
 CapsuleCollider:
@@ -174,6 +176,51 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InteractableProxy
   target: {fileID: 1200799986661571085}
+--- !u!114 &7242184591122700101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6672092376933083607}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9f3daeabc7b5491097940d9275e8162, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::AgentController
+  MotorComponent: {fileID: 7242184591122700102}
+  animatorDriver: {fileID: 0}
+  nearbyAgentScanRadius: 0
+  nearbyAgentLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  speedVariationAmount: 0.1
+  speedVariationPeriod: 6
+--- !u!114 &7242184591122700102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6672092376933083607}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 93332eec514f24714b313e241062bc1c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodyMotor
+  body: {fileID: 3937059897492907912}
+  maxSpeed: 8
+  walkSpeedMultiplier: 0.65
+  acceleration: 12
+  deceleration: 16
+  faceRotateSpeed: 8
+  riderTurnSpeed: 120
+  enableJump: 1
+  jumpHeight: 1.25
+  jumpDuration: 0.55
+  jumpCooldown: 0.45
+  enableLeap: 1
+  leapCooldown: 0.6
 --- !u!1001 &1666508079098551782
 PrefabInstance:
   m_ObjectHideFlags: 0

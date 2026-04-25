@@ -91,7 +91,7 @@ MonoBehaviour:
   mountModule: {fileID: 6031458113021965483}
   moveActionName: Move
   jumpActionName: Jump
-  verticalActionName:
+  verticalActionName: 
   steeringOverrideThreshold: 0.1
   turnSmoothTime: 0.12
   riderCanRun: 0
@@ -180,7 +180,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9f3daeabc7b5491097940d9275e8162, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AgentController
-  MotorComponent: {fileID: 0}
+  MotorComponent: {fileID: -7156140323540615168}
   animatorDriver: {fileID: 0}
   nearbyAgentScanRadius: 0
   nearbyAgentLayer:
@@ -198,10 +198,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 93332eec514f24714b313e241062bc1c, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RigidbodyMotor
   body: {fileID: 7506703934802226678}
-  maxSpeed: 8
+  maxSpeed: 30
   walkSpeedMultiplier: 0.65
   acceleration: 12
   deceleration: 16

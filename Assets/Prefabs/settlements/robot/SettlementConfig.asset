@@ -25,7 +25,7 @@ MonoBehaviour:
   - {fileID: 1462365582139384296, guid: 98cf5da821b619f459a8e7f711f45e04, type: 3}
   - {fileID: 5474938629155099127, guid: 2209375ec9b47db458c72ebf622ef124, type: 3}
   - {fileID: 7152350675828110143, guid: daacc74051713694594a4e745afc6bd9, type: 3}
-  rockCount: {x: 4, y: 12}
+  rockCount: {x: 2, y: 6}
   rockScaleRange: {x: 0.4, y: 0.8}
   rockMaxTerrainVariance: 0.6
   rockPlacementAttempts: 30
@@ -43,11 +43,11 @@ MonoBehaviour:
   - {fileID: 491640813585523826, guid: cb392a8c37daf46bc8bf8506a1f1b2e3, type: 3}
   vehicleTotal: 10
   innerRadius: 50
-  midRadius: 80
-  outerRadius: 130
+  midRadius: 60
+  outerRadius: 100
   minStructureSpacing: 14
   buildingFootprint: 25
-  buildingPadding: 4
+  buildingPadding: 0
   maxPlacementAttempts: 40
   organizedLayout: 1
   slotRadialJitter: 0.5
@@ -55,4 +55,4 @@ MonoBehaviour:
   faceCenter: 1
   foundationPadThreshold: 0.35
   foundationPadOverhang: 0.5
-  foundationPadMaterial: {fileID: 8327331436112100881, guid: b709759e6e17d2b408aa8f06cce5f55c, type: 3}
+  foundationPadMaterial: {fileID: 2100000, guid: c3e91b7d28a54f6a9b2d5e8c1f4a7d92, type: 2}

@@ -56,6 +56,7 @@ public class BallLightningProjectile : Projectile, IChargeable
     private bool isChargeComplete = false;
     private Vector3 originalScale; // Store original scale for relative scaling during charge
     private Transform barrelTransform; // Reference to barrel/spawn point for position tracking
+    private bool isLaunched = false; // Track if projectile has been launched
 
     private void OnEnable()
     {
@@ -77,6 +78,12 @@ public class BallLightningProjectile : Projectile, IChargeable
         if (syncLightColorFromShader)
         {
             TrySyncColorsFromShader();
+        }
+        
+        // Disable light during charging
+        if (projectileLight != null)
+        {
+            projectileLight.enabled = false;
         }
     }
 
@@ -208,7 +215,7 @@ public class BallLightningProjectile : Projectile, IChargeable
 
     private void UpdateProjectileLight(float elapsed)
     {
-        if (projectileLight == null)
+        if (projectileLight == null || !isLaunched)
         {
             return;
         }
@@ -345,7 +352,14 @@ public class BallLightningProjectile : Projectile, IChargeable
     public void LaunchCharged()
     {
         isChargeComplete = true;
+        isLaunched = true;
         barrelTransform = null; // Stop following barrel, now move freely
+        
+        // Enable the light now that the projectile is launched
+        if (projectileLight != null)
+        {
+            projectileLight.enabled = true;
+        }
         
         // Restart the lifetime counter now that the projectile is launching
         // This ensures the projectile has a full lifetime from launch, not from when charging started

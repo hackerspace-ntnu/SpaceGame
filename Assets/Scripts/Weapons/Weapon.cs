@@ -25,6 +25,8 @@ public abstract class Weapon : UsableItem
     [Header("Audio")]
     [SerializeField] protected string fireSoundName = ""; // FMOD sound event or name
     [SerializeField] protected float fireSoundVolume = 1f;
+    [SerializeField] protected string chargeStartSoundName = ""; // Sound played when charging starts
+    [SerializeField] protected float chargeStartSoundVolume = 1f;
 
     [Header("Charging")]
     [SerializeField] protected bool enableCharging = false; // Toggle charging mode on/off
@@ -233,6 +235,9 @@ public abstract class Weapon : UsableItem
         isCharging = true;
         chargeStartTime = Time.time;
         SpawnChargeProjectile(); // Spawn the projectile for charging
+        
+        // Play charge start sound
+        PlayChargeStartSound();
     }
 
     /// <summary>
@@ -402,6 +407,17 @@ public abstract class Weapon : UsableItem
         if (!string.IsNullOrEmpty(fireSoundName) && audioManager != null)
         {
             audioManager.PlaySFX3d(fireSoundName, GetFireOrigin().position);
+        }
+    }
+
+    /// <summary>
+    /// Play charge start sound via AudioManager.
+    /// </summary>
+    protected virtual void PlayChargeStartSound()
+    {
+        if (!string.IsNullOrEmpty(chargeStartSoundName) && audioManager != null)
+        {
+            audioManager.PlaySFX3d(chargeStartSoundName, GetFireOrigin().position);
         }
     }
 }

@@ -15,7 +15,9 @@ public class MapHologramTerrain : MonoBehaviour
     [SerializeField] private string toggleActionName = "Map";
     [SerializeField] private bool startVisible;
 
-    [Header("Placement (relative to player)")]
+    [Header("Placement (relative to projector anchor)")]
+    [Tooltip("Transform that defines where the hologram floats. The hologram is placed at this anchor's position plus the offsets below, using the anchor's forward/right/up axes. If null, falls back to the player.")]
+    [SerializeField] private Transform projectorAnchor;
     [SerializeField] private Transform helmetAnchor;
     [SerializeField] private float helmetHeightFallback = 1.7f;
     [SerializeField] private float distance = 0.9f;
@@ -303,15 +305,47 @@ public class MapHologramTerrain : MonoBehaviour
         tri.transform.SetParent(go.transform, false);
 
         var mesh = new Mesh { name = "PlayerArrow" };
-        // Arrow lies in the XZ plane, tip pointing +Z. Slight Y thickness via
-        // duplicate quad-style geometry isn't needed — additive shader renders
-        // both sides. Scaled by markerSize externally (Vector3.one base).
-        Vector3 tip   = new Vector3( 0.0f, 0.0f,  0.6f);
-        Vector3 left  = new Vector3(-0.5f, 0.0f, -0.4f);
-        Vector3 right = new Vector3( 0.5f, 0.0f, -0.4f);
-        mesh.vertices  = new[] { tip, left, right };
-        mesh.triangles = new[] { 0, 2, 1, 0, 1, 2 }; // double-sided
-        mesh.normals   = new[] { Vector3.up, Vector3.up, Vector3.up };
+        // Arrow lies in the XZ plane, tip pointing +Z. Elongated arrowhead +
+        // narrow shaft + tail notch so the forward direction reads at a glance.
+        Vector3 tip       = new Vector3( 0.00f, 0.0f,  1.20f);
+        Vector3 headLeft  = new Vector3(-0.55f, 0.0f,  0.10f);
+        Vector3 headRight = new Vector3( 0.55f, 0.0f,  0.10f);
+        Vector3 neckLeft  = new Vector3(-0.18f, 0.0f,  0.10f);
+        Vector3 neckRight = new Vector3( 0.18f, 0.0f,  0.10f);
+        Vector3 tailLeft  = new Vector3(-0.18f, 0.0f, -0.55f);
+        Vector3 tailRight = new Vector3( 0.18f, 0.0f, -0.55f);
+        Vector3 tailNotch = new Vector3( 0.00f, 0.0f, -0.35f); // concave back edge
+        mesh.vertices = new[]
+        {
+            tip,        // 0
+            headLeft,   // 1
+            headRight,  // 2
+            neckLeft,   // 3
+            neckRight,  // 4
+            tailLeft,   // 5
+            tailRight,  // 6
+            tailNotch,  // 7
+        };
+        mesh.triangles = new[]
+        {
+            // Arrowhead (front, double-sided)
+            0, 2, 1,
+            0, 1, 2,
+            // Shaft left half
+            3, 5, 7,
+            3, 7, 5,
+            // Shaft right half
+            4, 7, 6,
+            4, 6, 7,
+            // Bridge between shaft tops
+            3, 4, 7,
+            3, 7, 4,
+        };
+        mesh.normals = new[]
+        {
+            Vector3.up, Vector3.up, Vector3.up, Vector3.up,
+            Vector3.up, Vector3.up, Vector3.up, Vector3.up,
+        };
         mesh.RecalculateBounds();
 
         var mf = tri.AddComponent<MeshFilter>();
@@ -496,12 +530,29 @@ public class MapHologramTerrain : MonoBehaviour
             if (player == null) return;
         }
 
-        Vector3 fwd = player.forward; fwd.y = 0f;
-        if (fwd.sqrMagnitude < 0.0001f) fwd = Vector3.forward;
-        fwd.Normalize();
-        Vector3 right = Vector3.Cross(Vector3.up, fwd);
+        // Anchor placement on the projector transform when assigned (e.g. a
+        // helmet/wrist mount that already moves perfectly with the camera);
+        // fall back to the player's flat-forward frame otherwise.
+        Vector3 anchorPos;
+        Vector3 fwd, right, up;
+        if (projectorAnchor != null)
+        {
+            anchorPos = projectorAnchor.position;
+            fwd = projectorAnchor.forward;
+            right = projectorAnchor.right;
+            up = projectorAnchor.up;
+        }
+        else
+        {
+            anchorPos = player.position;
+            fwd = player.forward; fwd.y = 0f;
+            if (fwd.sqrMagnitude < 0.0001f) fwd = Vector3.forward;
+            fwd.Normalize();
+            right = Vector3.Cross(Vector3.up, fwd);
+            up = Vector3.up;
+        }
 
-        Vector3 worldPos = player.position + fwd * distance + right * sideOffset + Vector3.up * height;
+        Vector3 worldPos = anchorPos + fwd * distance + right * sideOffset + up * height;
 
         float t = Mathf.Clamp01((Time.time - visibleSinceTime) / Mathf.Max(0.0001f, spawnRiseTime));
         float rise = Mathf.SmoothStep(0f, 1f, t);

@@ -148,10 +148,18 @@ public class MapUI : MonoBehaviour
 
         if (canvasGroup.alpha < 0.01f) return;
 
-        UpdatePlayerIcon();
-        UpdateMarkers();
         UpdateAnimation();
         UpdateReadouts();
+    }
+
+    private void LateUpdate()
+    {
+        if (canvasGroup == null || canvasGroup.alpha < 0.01f) return;
+        // Sample positions in LateUpdate so we read the player's interpolated
+        // transform after physics interpolation and any camera/animator rigs
+        // have settled — eliminates icon jitter relative to the world.
+        UpdatePlayerIcon();
+        UpdateMarkers();
     }
 
     public void SetVisible(bool visible)
@@ -320,7 +328,17 @@ public class MapUI : MonoBehaviour
         var svc = MapService.Instance;
         if (svc == null || svc.LocalPlayer == null || playerIcon == null) return;
         playerIcon.anchoredPosition = WorldToMap(svc.LocalPlayer.position);
-        playerIcon.localEulerAngles = new Vector3(0, 0, -svc.LocalPlayer.eulerAngles.y);
+
+        // Derive yaw from the camera's forward when available — it reflects
+        // what the player is actually looking at and avoids Euler-decomposition
+        // quirks on the player rigidbody.
+        Vector3 fwd = svc.LocalPlayer.forward;
+        var cam = Camera.main;
+        if (cam != null) fwd = cam.transform.forward;
+        fwd.y = 0f;
+        if (fwd.sqrMagnitude < 0.0001f) return;
+        float yawDeg = Mathf.Atan2(fwd.x, fwd.z) * Mathf.Rad2Deg;
+        playerIcon.localEulerAngles = new Vector3(0, 0, -yawDeg);
     }
 
     private void UpdateMarkers()

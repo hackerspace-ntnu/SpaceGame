@@ -22,7 +22,7 @@ Shader "Hologram/Terrain"
 
     SubShader
     {
-        Tags { "Queue"="Transparent" "RenderType"="Transparent" "IgnoreProjector"="True" }
+        Tags { "Queue"="Overlay+1" "RenderType"="Transparent" "IgnoreProjector"="True" }
 
         Cull   Off
         Lighting Off
@@ -32,6 +32,8 @@ Shader "Hologram/Terrain"
 
         Pass
         {
+            Tags { "LightMode"="SRPDefaultUnlit" }
+
             CGPROGRAM
             #pragma vertex   vert
             #pragma fragment frag

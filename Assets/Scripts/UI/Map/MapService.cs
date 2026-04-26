@@ -36,6 +36,7 @@ public class MapService : MonoBehaviour
     }
 
     private readonly List<Marker> markers = new();
+    private readonly Dictionary<string, Marker> poisById = new();
     private readonly HashSet<Vector2Int> revealed = new();
     private Transform localPlayer;
     private float nextPollTime;
@@ -132,6 +133,23 @@ public class MapService : MonoBehaviour
         OnMarkerAdded?.Invoke(m);
         return m;
     }
+
+    /// <summary>
+    /// Registers a static POI with a unique ID — used by `MapPOI` components so
+    /// that re-enabling on chunk reload doesn't create duplicates. The marker
+    /// persists for the rest of the session even if the GameObject is destroyed.
+    /// </summary>
+    public Marker RegisterPOI(string id, Vector3 worldPos, MapMarkerType type, string label = null,
+        bool requiresRevealedChunk = false)
+    {
+        if (string.IsNullOrEmpty(id)) return AddStaticMarker(worldPos, type, label, requiresRevealedChunk);
+        if (poisById.TryGetValue(id, out var existing)) return existing;
+        var m = AddStaticMarker(worldPos, type, label, requiresRevealedChunk);
+        poisById[id] = m;
+        return m;
+    }
+
+    public bool HasPOI(string id) => !string.IsNullOrEmpty(id) && poisById.ContainsKey(id);
 
     public void RemoveMarker(Marker marker)
     {

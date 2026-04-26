@@ -71,6 +71,12 @@ public class MapHologramProjector : MonoBehaviour
     [SerializeField] private float wobbleAmplitudeDeg = 1.5f;
     [SerializeField] private float wobbleSpeed = 0.7f;
     [SerializeField] private float spawnRiseTime = 0.25f;
+    [Tooltip("Position smoothing time (s). 0 = locked to player, ~0.20 hides player jitter at the cost of slight follow lag.")]
+    [Range(0f, 0.5f)]
+    [SerializeField] private float positionSmoothing = 0.20f;
+    [Tooltip("Facing smoothing time (s). Higher = hologram doesn't swing around with quick mouse turns.")]
+    [Range(0f, 0.5f)]
+    [SerializeField] private float facingSmoothing = 0.20f;
 
     [Header("Input")]
     [SerializeField] private string toggleActionName = "Map";
@@ -90,6 +96,11 @@ public class MapHologramProjector : MonoBehaviour
     private Transform originalPanelParent;
     private bool visible;
     private float visibleSinceTime = -999f;
+    private Vector3 smoothedPos;
+    private Vector3 smoothedPosVel;
+    private Vector3 smoothedForward;
+    private Vector3 smoothedForwardVel;
+    private bool hasSmoothedPos;
 
     private void Start()
     {
@@ -132,8 +143,16 @@ public class MapHologramProjector : MonoBehaviour
             SetVisible(!visible);
 
         if (!visible) return;
-        UpdateProjectionTransform();
         UpdateMaterial();
+    }
+
+    private void LateUpdate()
+    {
+        // Sample the player transform after rigidbody interpolation and any
+        // camera/animator rigs have settled this frame — keeps the hologram
+        // glued to the player visually.
+        if (!visible) return;
+        UpdateProjectionTransform();
     }
 
     public void SetVisible(bool v)
@@ -149,7 +168,11 @@ public class MapHologramProjector : MonoBehaviour
                 if (beam != null) beam.gameObject.SetActive(v && showBeams);
         }
         if (mapPanel != null) mapPanel.SetVisible(v);
-        if (v) visibleSinceTime = Time.time;
+        if (v)
+        {
+            visibleSinceTime = Time.time;
+            hasSmoothedPos = false;
+        }
     }
 
     // ─────────────────────────────────────────────
@@ -348,16 +371,51 @@ public class MapHologramProjector : MonoBehaviour
             if (player == null) return;
         }
 
-        Vector3 forward = faceCameraYaw ? player.forward : transform.forward;
-        forward.y = 0f;
-        if (forward.sqrMagnitude < 0.0001f) forward = Vector3.forward;
-        forward.Normalize();
+        Vector3 targetForward = faceCameraYaw ? player.forward : transform.forward;
+        targetForward.y = 0f;
+        if (targetForward.sqrMagnitude < 0.0001f) targetForward = Vector3.forward;
+        targetForward.Normalize();
+
+        if (!hasSmoothedPos)
+        {
+            smoothedForward = targetForward;
+            smoothedForwardVel = Vector3.zero;
+        }
+        else if (facingSmoothing > 0.0001f)
+        {
+            smoothedForward = Vector3.SmoothDamp(smoothedForward, targetForward, ref smoothedForwardVel, facingSmoothing);
+            smoothedForward.y = 0f;
+            if (smoothedForward.sqrMagnitude < 0.0001f) smoothedForward = targetForward;
+            smoothedForward.Normalize();
+        }
+        else
+        {
+            smoothedForward = targetForward;
+        }
+
+        Vector3 forward = smoothedForward;
         Vector3 right = Vector3.Cross(Vector3.up, forward);
 
-        Vector3 basePos = player.position
+        Vector3 targetPos = player.position
                           + forward * distance
                           + right * sideOffset
                           + Vector3.up * height;
+
+        if (!hasSmoothedPos)
+        {
+            smoothedPos = targetPos;
+            smoothedPosVel = Vector3.zero;
+            hasSmoothedPos = true;
+        }
+        else if (positionSmoothing > 0.0001f)
+        {
+            smoothedPos = Vector3.SmoothDamp(smoothedPos, targetPos, ref smoothedPosVel, positionSmoothing);
+        }
+        else
+        {
+            smoothedPos = targetPos;
+        }
+        Vector3 basePos = smoothedPos;
 
         float wobbleX = Mathf.Sin(Time.time * wobbleSpeed * Mathf.PI * 2f) * wobbleAmplitudeDeg;
         float wobbleZ = Mathf.Sin(Time.time * wobbleSpeed * Mathf.PI * 2f * 0.73f) * wobbleAmplitudeDeg * 0.5f;

@@ -10,7 +10,7 @@ Shader "Hologram/Solid"
 
     SubShader
     {
-        Tags { "Queue"="Transparent+10" "RenderType"="Transparent" "IgnoreProjector"="True" }
+        Tags { "Queue"="Overlay+2" "RenderType"="Transparent" "IgnoreProjector"="True" }
 
         Cull   Off
         Lighting Off
@@ -20,6 +20,8 @@ Shader "Hologram/Solid"
 
         Pass
         {
+            Tags { "LightMode"="SRPDefaultUnlit" }
+
             CGPROGRAM
             #pragma vertex   vert
             #pragma fragment frag

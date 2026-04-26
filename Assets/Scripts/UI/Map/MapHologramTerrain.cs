@@ -42,7 +42,7 @@ public class MapHologramTerrain : MonoBehaviour
     [SerializeField] private Color hologramTint = new Color(0.45f, 0.95f, 1.00f, 1f);
     [SerializeField] private Color valleyTint = new Color(0.10f, 0.45f, 0.65f, 1f);
     [SerializeField] private Color peakTint = new Color(0.85f, 1.00f, 1.00f, 1f);
-    [Range(0, 5)] [SerializeField] private float intensity = 1.4f;
+    [Range(0, 5)] [SerializeField] private float intensity = 0.7f;
     [SerializeField] private float contourSpacing = 20f;
     [Range(0, 0.5f)] [SerializeField] private float contourThickness = 0.08f;
     [SerializeField] private float gridSpacing = 32f;
@@ -60,13 +60,15 @@ public class MapHologramTerrain : MonoBehaviour
     [Range(0, 1)] [SerializeField] private float beamBaseAlpha = 0.20f;
     [SerializeField] private float beamOriginOffset = 0.05f;
     [Range(0, 32)] [SerializeField] private float beamRayCount = 14f;
-    [Range(0, 1)] [SerializeField] private float beamRayStrength = 0.65f;
+    [Range(0, 1)] [SerializeField] private float beamRayStrength = 0.4f;
     [Range(1, 16)] [SerializeField] private float beamRaySharpness = 6f;
     [SerializeField] private float beamRayDrift = 0.12f;
 
     [Header("Layer (helps exclude from helmet/screen shaders)")]
     [Tooltip("All hologram visuals are placed on this layer at startup. Create a layer named 'Hologram' (Edit → Project Settings → Tags & Layers) and exclude it from helmet/screen-space shader cameras to stop bleed-through.")]
     [SerializeField] private string hologramLayerName = "Hologram";
+    [Tooltip("FALLBACK ONLY. Temporarily disables GlassDistortionRenderFeature while the map is open. Use only if you can't add HologramOverlayRenderFeature to your URP renderer. Off by default — preferred fix is the render feature.")]
+    [SerializeField] private bool disableGlassDistortionWhileOpen = false;
 
     [Header("Markers")]
     [SerializeField] private float playerMarkerSize = 0.025f;
@@ -75,8 +77,8 @@ public class MapHologramTerrain : MonoBehaviour
     [Tooltip("A vertical pillar/spike above each marker so it's visible against the terrain. 0 = off.")]
     [SerializeField] private float markerSpikeHeight = 0.06f;
     [SerializeField] private float markerSpikeWidth = 0.005f;
-    [Range(0, 8)] [SerializeField] private float playerIntensity = 3.5f;
-    [Range(0, 8)] [SerializeField] private float markerIntensity = 2.5f;
+    [Range(0, 8)] [SerializeField] private float playerIntensity = 1.75f;
+    [Range(0, 8)] [SerializeField] private float markerIntensity = 1.25f;
     [SerializeField] private bool showOnlyRevealedMarkers = true;
     [Tooltip("Spawn meshes for all chunks at startup, ignoring MapService reveal state. Useful for debugging or static maps.")]
     [SerializeField] private bool revealAllChunks;
@@ -146,9 +148,16 @@ public class MapHologramTerrain : MonoBehaviour
     {
         if (toggleAction != null && toggleAction.WasPressedThisFrame())
             SetVisible(!visible);
+    }
 
+    /// <summary>
+    /// Run transform updates in LateUpdate so they read the player's interpolated
+    /// position (after physics + animation), avoiding stutter when the player is
+    /// driven by a Rigidbody on FixedUpdate.
+    /// </summary>
+    private void LateUpdate()
+    {
         if (!visible) return;
-
         UpdateRootTransform();
         UpdatePlayerMarker();
         UpdateMarkerPositions();
@@ -162,6 +171,19 @@ public class MapHologramTerrain : MonoBehaviour
         if (root != null) root.gameObject.SetActive(v);
         if (beamObject != null) beamObject.SetActive(v && showBeam);
         if (v) visibleSinceTime = Time.time;
+
+        // Temporarily disable the player's glass-lens chromatic distortion while
+        // the map is open to prevent red/blue fringes from forming around the
+        // hologram's edges as the camera moves.
+        if (disableGlassDistortionWhileOpen)
+            GlassDistortionRenderFeature.RuntimeEnabled = !v;
+    }
+
+    private void OnDisable()
+    {
+        // Make sure we re-enable distortion if the map component is disabled mid-session.
+        if (disableGlassDistortionWhileOpen)
+            GlassDistortionRenderFeature.RuntimeEnabled = true;
     }
 
     // ─────────────────────────────────────────────
@@ -263,7 +285,48 @@ public class MapHologramTerrain : MonoBehaviour
 
     private void BuildPlayerMarker()
     {
-        playerMarker = BuildMarkerVisual("PlayerMarker", new Color(0.40f, 1.00f, 1.00f, 1f), playerIntensity, pulse: 0.25f);
+        playerMarker = BuildTriangleMarkerVisual("PlayerMarker", new Color(1.00f, 0.55f, 0.10f, 1f), playerIntensity, pulse: 0.25f);
+    }
+
+    /// <summary>
+    /// Flat triangular arrow marker pointing along +Z (forward), so it rotates
+    /// with the player's yaw to indicate facing direction.
+    /// </summary>
+    private GameObject BuildTriangleMarkerVisual(string name, Color color, float intensity, float pulse = 0f)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(markerContainer, false);
+
+        var mat = MakeSolidMarkerMaterial(color, intensity, pulse);
+
+        var tri = new GameObject("Arrow");
+        tri.transform.SetParent(go.transform, false);
+
+        var mesh = new Mesh { name = "PlayerArrow" };
+        // Arrow lies in the XZ plane, tip pointing +Z. Slight Y thickness via
+        // duplicate quad-style geometry isn't needed — additive shader renders
+        // both sides. Scaled by markerSize externally (Vector3.one base).
+        Vector3 tip   = new Vector3( 0.0f, 0.0f,  0.6f);
+        Vector3 left  = new Vector3(-0.5f, 0.0f, -0.4f);
+        Vector3 right = new Vector3( 0.5f, 0.0f, -0.4f);
+        mesh.vertices  = new[] { tip, left, right };
+        mesh.triangles = new[] { 0, 2, 1, 0, 1, 2 }; // double-sided
+        mesh.normals   = new[] { Vector3.up, Vector3.up, Vector3.up };
+        mesh.RecalculateBounds();
+
+        var mf = tri.AddComponent<MeshFilter>();
+        mf.sharedMesh = mesh;
+        var mr = tri.AddComponent<MeshRenderer>();
+        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        mr.receiveShadows = false;
+        mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+        mr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+        mr.sharedMaterial = mat;
+
+        // Lift the arrow slightly above the terrain so it doesn't z-fight.
+        tri.transform.localPosition = new Vector3(0f, 0.05f, 0f);
+
+        return go;
     }
 
     /// <summary>
@@ -448,27 +511,40 @@ public class MapHologramTerrain : MonoBehaviour
         float wobZ = Mathf.Sin(Time.time * wobbleSpeed * Mathf.PI * 2f * 0.73f) * wobbleAmplitudeDeg * 0.6f;
 
         root.position = worldPos - Vector3.up * (1f - rise) * 0.35f;
-        root.rotation = Quaternion.LookRotation(fwd) * Quaternion.Euler(baseTiltX + wobX, yawTowardPlayer, wobZ);
+        // North-up map: parent frame is world-aligned so the player marker
+        // visibly rotates as the player turns, instead of the terrain spinning
+        // underneath a fixed arrow.
+        root.rotation = Quaternion.Euler(baseTiltX + wobX, yawTowardPlayer, wobZ);
 
-        // Determine the visible window — either the whole world or a chunk
-        // radius around the player's current chunk.
+        // Visible chunk window — chunk coords are integer (used for show/hide),
+        // but visCenter uses the player's continuous world position so the
+        // hologram pans smoothly instead of snapping at chunk boundaries.
         Vector2Int visMin, visMax;
+        Vector2 visCenter;
+        Vector2 visSize;
         if (centerOnPlayer)
         {
             var pChunk = config.WorldToChunkCoord(player.position);
             visMin = new Vector2Int(pChunk.x - viewRadius,     pChunk.y - viewRadius);
             visMax = new Vector2Int(pChunk.x + viewRadius + 1, pChunk.y + viewRadius + 1);
+
+            // Continuous center in container space (= world XZ minus worldOrigin).
+            visCenter = new Vector2(
+                player.position.x - config.worldOrigin.x,
+                player.position.z - config.worldOrigin.z);
+            visSize = new Vector2(
+                (visMax.x - visMin.x) * config.chunkSize.x,
+                (visMax.y - visMin.y) * config.chunkSize.y);
         }
         else
         {
             visMin = Vector2Int.zero;
             visMax = config.gridDimensions;
+            Vector2 worldMin = Vector2.zero;
+            Vector2 worldMax = new Vector2(visMax.x * config.chunkSize.x, visMax.y * config.chunkSize.y);
+            visCenter = (worldMin + worldMax) * 0.5f;
+            visSize   = worldMax - worldMin;
         }
-
-        Vector2 visWorldMin = new Vector2(visMin.x * config.chunkSize.x, visMin.y * config.chunkSize.y);
-        Vector2 visWorldMax = new Vector2(visMax.x * config.chunkSize.x, visMax.y * config.chunkSize.y);
-        Vector2 visSize = visWorldMax - visWorldMin;
-        Vector2 visCenter = (visWorldMin + visWorldMax) * 0.5f;
 
         // Scale: fit visible area into footprint.
         float maxDim = Mathf.Max(visSize.x, visSize.y);
@@ -565,7 +641,18 @@ public class MapHologramTerrain : MonoBehaviour
         playerMarker.transform.localPosition = WorldToTerrainLocal(player.position)
             + Vector3.up * (markerLift / s.y);
         playerMarker.transform.localScale = InverseContainerScale(playerMarkerSize);
-        playerMarker.transform.localRotation = Quaternion.Euler(0f, player.eulerAngles.y, 0f);
+
+        // The marker is nested under a rotated/tilted hologram root. To make the
+        // arrow point in the player's actual world-facing direction, convert the
+        // player's flat forward into the marker's parent local space.
+        Vector3 worldFwd = player.forward; worldFwd.y = 0f;
+        if (worldFwd.sqrMagnitude > 1e-6f)
+        {
+            Vector3 localFwd = playerMarker.transform.parent.InverseTransformDirection(worldFwd.normalized);
+            localFwd.y = 0f;
+            if (localFwd.sqrMagnitude > 1e-6f)
+                playerMarker.transform.localRotation = Quaternion.LookRotation(localFwd.normalized, Vector3.up);
+        }
     }
 
     private void UpdateMarkerPositions()
@@ -586,7 +673,11 @@ public class MapHologramTerrain : MonoBehaviour
             if (go == null) continue;
 
             Vector3 worldPos = marker.GetWorldPosition();
-            bool show = !showOnlyRevealedMarkers
+            // Honor the marker's own opt-out (MapPOI's alwaysVisible sets this).
+            // Falling through to the global toggle keeps the old behaviour for
+            // markers that do require chunk reveal.
+            bool gateOnReveal = showOnlyRevealedMarkers && marker.requiresRevealedChunk;
+            bool show = !gateOnReveal
                 || (svc != null && svc.IsChunkRevealed(config.WorldToChunkCoord(worldPos)));
             go.SetActive(show);
             if (!show) continue;

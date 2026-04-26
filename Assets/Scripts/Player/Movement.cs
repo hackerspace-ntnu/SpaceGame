@@ -43,6 +43,13 @@ public class PlayerMovement : MonoBehaviour
         inputs = GetComponent<PlayerController>().Input;
         inputs.OnJumpPressed += OnJump;
         inputs.OnDashPressed += OnDash;
+
+        var health = GetComponent<HealthComponent>();
+        if (health != null)
+        {
+            health.OnDamage += _ => TriggerAnimator("Hurt");
+            health.OnDeath += () => TriggerAnimator("Die");
+        }
     }
 
     private void FixedUpdate()
@@ -109,6 +116,12 @@ public class PlayerMovement : MonoBehaviour
         if (!animator) return;
 
         UpdateAnimatorParametersServerRpc(velocity, grounded);
+    }
+
+    private void TriggerAnimator(string triggerName)
+    {
+        if (animator && animator.runtimeAnimatorController != null)
+            animator.SetTrigger(triggerName);
     }
 
     public void ForceIdleAnimation()

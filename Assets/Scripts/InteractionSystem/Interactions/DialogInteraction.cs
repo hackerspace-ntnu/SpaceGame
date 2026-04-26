@@ -220,10 +220,7 @@ public class DialogInteraction : MonoBehaviour, IInteractable
             Debug.Log($"[DialogInteraction] Fallback dialog log: {line}");
         }
 
-        if (TryGetComponent(out NpcBrain npcBrain))
-        {
-            npcBrain.FocusOn(interactor.transform, interactionFocusDuration);
-        }
+        FocusOnInteractor(interactor);
 
         lastInteractionTime = Time.time;
     }
@@ -267,10 +264,7 @@ public class DialogInteraction : MonoBehaviour, IInteractable
             Debug.Log($"[DialogInteraction] Fallback dialog log: {line}");
         }
 
-        if (TryGetComponent(out NpcBrain npcBrain))
-        {
-            npcBrain.FocusOn(interactor.transform, interactionFocusDuration);
-        }
+            FocusOnInteractor(interactor);
 
         lastInteractionTime = Time.time;
     }
@@ -332,10 +326,7 @@ public class DialogInteraction : MonoBehaviour, IInteractable
         currentLineIndex = ResolveNextIndex(step.nextStepIndex, currentLineIndex + 1);
         lastInteractionTime = Time.time;
 
-        if (TryGetComponent(out NpcBrain npcBrain))
-        {
-            npcBrain.FocusOn(interactor.transform, interactionFocusDuration);
-        }
+        FocusOnInteractor(interactor);
     }
 
     private void ShowBranchQuestion(BranchDialogStep step, Interactor interactor)
@@ -344,10 +335,7 @@ public class DialogInteraction : MonoBehaviour, IInteractable
         BeginDialogueSession();
         step.onStepShown?.Invoke();
 
-        if (TryGetComponent(out NpcBrain npcBrain))
-        {
-            npcBrain.FocusOn(interactor.transform, interactionFocusDuration);
-        }
+        FocusOnInteractor(interactor);
 
         if (NpcDialogPopupUI.Instance == null)
         {
@@ -550,6 +538,22 @@ public class DialogInteraction : MonoBehaviour, IInteractable
         }
 
         return Time.time - lastInteractionTime >= restartFromBeginningAfterSeconds;
+    }
+
+    private void FocusOnInteractor(Interactor interactor)
+    {
+        if (interactor == null)
+            return;
+
+        if (TryGetComponent(out InteractionFocusModule focusModule))
+        {
+            focusModule.FocusOn(interactor.transform, interactionFocusDuration);
+        }
+
+        if (TryGetComponent(out NpcBrain npcBrain))
+        {
+            npcBrain.FocusOn(interactor.transform, interactionFocusDuration);
+        }
     }
 
     private void OnValidate()

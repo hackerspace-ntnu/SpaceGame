@@ -19,6 +19,7 @@ public struct MoveIntent
     public bool OverrideFacingDirection;
     public float StopDistance;
     public float SpeedMultiplier;
+    public bool IsRunning;
 
     public static MoveIntent Idle()
     {
@@ -35,7 +36,8 @@ public struct MoveIntent
         float stopDistance = 0.2f,
         float speedMultiplier = 1f,
         bool overrideFacingDirection = false,
-        Vector3 facingDirection = default)
+        Vector3 facingDirection = default,
+        bool isRunning = false)
     {
         return new MoveIntent
         {
@@ -44,7 +46,8 @@ public struct MoveIntent
             FacingDirection = facingDirection,
             OverrideFacingDirection = overrideFacingDirection,
             StopDistance = Mathf.Max(0.01f, stopDistance),
-            SpeedMultiplier = Mathf.Max(0.01f, speedMultiplier)
+            SpeedMultiplier = Mathf.Max(0.01f, speedMultiplier),
+            IsRunning = isRunning
         };
     }
 

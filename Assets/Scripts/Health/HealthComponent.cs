@@ -13,17 +13,22 @@ public class HealthComponent : MonoBehaviour, IDamageable
 
     [SerializeField] private int currentHealth = 100;
     public int GetHealth => currentHealth;
-        
+
     public bool Alive => currentHealth > 0;
-    
-    public void Damage(int amount)
+
+    public Transform LastDamageSource { get; private set; }
+
+    public void Damage(int amount) => Damage(amount, null);
+
+    public void Damage(int amount, Transform source)
     {
         if (amount <= 0 || !Alive) return;
 
+        LastDamageSource = source;
         currentHealth -= amount;
 
         OnDamage?.Invoke(amount);
-        
+
         if (currentHealth <= 0) OnDeath?.Invoke();
     }
     

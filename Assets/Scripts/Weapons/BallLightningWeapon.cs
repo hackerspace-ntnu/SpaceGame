@@ -1,113 +1,104 @@
-using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.InputSystem;
+using Unity.Netcode;
 
-public class BallLightningWeapon : MonoBehaviour
+/// <summary>
+/// BallLightning weapon implementation.
+/// Extends abstract Weapon class to spawn BallLightningProjectile with
+/// proper ownership and networking support.
+/// Supports charging mechanics for gradual power-up.
+/// </summary>
+public class BallLightningWeapon : Weapon
 {
-    [Header("References")]
-    [SerializeField] private Camera aimCamera;
-    [SerializeField] private Transform firePoint;
+    [Header("BallLightning Projectile")]
     [SerializeField] private BallLightningProjectile projectilePrefab;
-    [Tooltip("Optional: Assign the gun barrel transform for projectile spawn position.")]
-    [SerializeField] private Transform barrelTransform;
+    [SerializeField] private Transform projectileSpawnPoint;
 
-    [Header("Shot Settings")]
-    [SerializeField] private float fireRate = 6f;
-    [SerializeField] private float spawnOffset = 0.8f;
-    [SerializeField] private float maxAimDistance = 300f;
-    [SerializeField] private LayerMask aimMask = ~0;
-
-    private InputAction attackAction;
-    private float nextFireTime;
-    private NetworkObject networkObject;
-
-    private void Awake()
-    {
-        networkObject = GetComponentInParent<NetworkObject>();
-
-        if (aimCamera == null)
-        {
-            aimCamera = Camera.main;
-        }
-    }
+    private NetworkObject networkOwner;
+    private BallLightningProjectile currentProjectile; // Reference to the currently charging projectile
 
     private void OnEnable()
     {
-        attackAction = InputSystem.actions.FindAction("Attack");
-        attackAction?.Enable();
-    }
+        // Call parent OnEnable first
+        base.OnEnable();
 
-    private void OnDisable()
-    {
-        attackAction?.Disable();
-    }
-
-    private void Update()
-    {
-        if (!HasLocalAuthority())
+        if (projectileSpawnPoint == null)
         {
+            projectileSpawnPoint = firePoint != null ? firePoint : transform;
+        }
+
+        if (networkOwner == null)
+        {
+            networkOwner = GetComponentInParent<NetworkObject>();
+        }
+    }
+
+    /// <summary>
+    /// Spawn a projectile for charging (called on first press when charging enabled).
+    /// </summary>
+    protected override void SpawnChargeProjectile()
+    {
+        if (projectilePrefab == null)
+        {
+            Debug.LogError("BallLightningWeapon: Projectile prefab not assigned!", this);
             return;
         }
 
-        if (projectilePrefab == null || attackAction == null)
+        Vector3 spawnPos = GetSpawnPosition();
+        Vector3 initialDir = GetFireDirection();
+
+        // Spawn projectile instance
+        BallLightningProjectile projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
+
+        if (projectile == null)
         {
+            Debug.LogError("BallLightningWeapon: Failed to instantiate projectile!", this);
             return;
         }
 
-        if (!attackAction.WasPressedThisFrame())
-        {
-            return;
-        }
+        // Set owner for damage checks and networking
+        Transform ownerRoot = networkOwner != null ? networkOwner.transform : transform.root;
+        projectile.Initialize(initialDir, ownerRoot, spawnPos);
 
-        if (Time.time < nextFireTime)
-        {
-            return;
-        }
-
-        Fire();
-        nextFireTime = Time.time + (1f / Mathf.Max(0.01f, fireRate));
+        // Pass the barrel transform so projectile follows it during charging
+        Transform barrel = projectileSpawnPoint != null ? projectileSpawnPoint : firePoint;
+        projectile.SetBarrelTransform(barrel);
+        
+        currentProjectile = projectile;
+        chargedProjectile = projectile as IChargeable; // Set the reference for the weapon
     }
 
-    private bool HasLocalAuthority()
+    /// <summary>
+    /// Fire/launch the charged projectile (called on second press when charging enabled).
+    /// </summary>
+    protected override void Fire()
     {
-        if (networkObject == null)
+        if (currentProjectile == null)
         {
-            return true;
+            Debug.LogError("BallLightningWeapon: No charged projectile to launch!", this);
+            return;
         }
 
-        if (!networkObject.IsSpawned)
-        {
-            return false;
-        }
-
-        return networkObject.IsOwner;
+        // Get current fire direction (where player is aiming NOW, not where they were when charging started)
+        Vector3 fireDir = GetFireDirection();
+        
+        // Update the projectile's direction
+        currentProjectile.SetLaunchDirection(fireDir);
+        
+        // Tell the projectile to actually launch (enables movement)
+        currentProjectile.LaunchCharged();
+        
+        // Play firing sound
+        PlayFireSound();
     }
 
-    private void Fire()
+    private new Vector3 GetSpawnPosition()
     {
-        Transform origin = barrelTransform != null ? barrelTransform : (firePoint != null ? firePoint : (aimCamera != null ? aimCamera.transform : transform));
-
-        Vector3 spawnPosition = origin.position + origin.forward * spawnOffset;
-        Vector3 shootDirection = origin.forward;
-
-        if (aimCamera != null)
+        if (projectileSpawnPoint == null)
         {
-            Ray ray = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-            Vector3 targetPoint = ray.origin + ray.direction * maxAimDistance;
-
-            if (Physics.Raycast(ray, out RaycastHit hit, maxAimDistance, aimMask, QueryTriggerInteraction.Ignore))
-            {
-                targetPoint = hit.point;
-            }
-
-            shootDirection = (targetPoint - spawnPosition).normalized;
-            if (shootDirection.sqrMagnitude < 0.0001f)
-            {
-                shootDirection = origin.forward;
-            }
+            projectileSpawnPoint = transform;
         }
 
-        BallLightningProjectile projectile = Instantiate(projectilePrefab, spawnPosition, Quaternion.LookRotation(shootDirection, Vector3.up));
-        projectile.Initialize(shootDirection, transform, spawnPosition);
+        return projectileSpawnPoint.position + projectileSpawnPoint.forward * spawnOffset;
     }
 }
+

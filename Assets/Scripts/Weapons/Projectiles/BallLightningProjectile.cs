@@ -1,11 +1,15 @@
 using UnityEngine;
 
-public class BallLightningProjectile : MonoBehaviour
+/// <summary>
+/// BallLightning projectile implementation.
+/// Extends abstract Projectile class with wandering AI movement,
+/// hover behavior, and lightning effects.
+/// Implements IChargeable for charging mechanics.
+/// </summary>
+public class BallLightningProjectile : Projectile, IChargeable
 {
     [Header("Movement")]
     [SerializeField] private float speed = 45f;
-    [SerializeField] private float lifeTime = 2.2f;
-    [SerializeField] private float collisionRadius = 0.2f;
     [SerializeField] private float wanderStrength = 4.5f;
     [SerializeField] private float wanderFrequency = 1.8f;
     [SerializeField] private float bobAmplitude = 0.45f;
@@ -19,11 +23,6 @@ public class BallLightningProjectile : MonoBehaviour
     [SerializeField] private float hoverRayDistance = 8f;
     [SerializeField] private float hoverCorrectionStrength = 5f;
     [SerializeField] private float maxVerticalCorrection = 3f;
-
-    [Header("Damage")]
-    [SerializeField] private int damage = 20;
-    [SerializeField] private LayerMask hitMask = ~0;
-    [SerializeField] private bool destroyOnHit = true;
 
     [Header("Projectile Light")]
     [SerializeField] private Light projectileLight;
@@ -45,41 +44,19 @@ public class BallLightningProjectile : MonoBehaviour
     [SerializeField] private float impactSpotIntensity = 35f;
     [SerializeField] private float impactSpotLifetime = 0.25f;
 
-    private Vector3 direction = Vector3.forward;
-    private Transform ownerRoot;
-    private bool initialized;
-    private float spawnTime;
+    [Header("Charging")]
+    [SerializeField] private float chargeMinScale = 0.2f; // Starting scale while charging
+    [SerializeField] private float chargeMaxScale = 1f; // Final scale after charging
+    [SerializeField] private AnimationCurve chargeScaleCurve = AnimationCurve.EaseInOut(0, 0, 1, 1); // Scale progression
+
     private float noiseSeed;
     private float bobPhase;
     private float lightNoiseSeed;
-
-    public void Initialize(Vector3 forwardDirection, Transform owner, Vector3 startPosition)
-    {
-        direction = forwardDirection.sqrMagnitude > 0.0001f ? forwardDirection.normalized : Vector3.forward;
-        ownerRoot = owner ? owner.root : null;
-        initialized = true;
-        spawnTime = Time.time;
-        noiseSeed = Random.Range(0f, 1000f);
-        bobPhase = Random.Range(0f, Mathf.PI * 2f);
-        lightNoiseSeed = Random.Range(0f, 1000f);
-
-        // Set projectile start position
-        transform.position = startPosition;
-
-        if (direction.sqrMagnitude > 0.0001f)
-        {
-            transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
-        }
-
-        CancelInvoke(nameof(DestroySelf));
-        Invoke(nameof(DestroySelf), lifeTime);
-    }
-
-    // For backward compatibility, keep the old Initialize signature:
-    public void Initialize(Vector3 forwardDirection, Transform owner)
-    {
-        Initialize(forwardDirection, owner, transform.position);
-    }
+    private float chargeLevel = 0f; // 0 to 1 indicating charge progress
+    private bool isChargeComplete = false;
+    private Vector3 originalScale; // Store original scale for relative scaling during charge
+    private Transform barrelTransform; // Reference to barrel/spawn point for position tracking
+    private bool isLaunched = false; // Track if projectile has been launched
 
     private void OnEnable()
     {
@@ -102,32 +79,81 @@ public class BallLightningProjectile : MonoBehaviour
         {
             TrySyncColorsFromShader();
         }
-
-        if (!initialized)
+        
+        // Disable light during charging
+        if (projectileLight != null)
         {
-            CancelInvoke(nameof(DestroySelf));
-            Invoke(nameof(DestroySelf), lifeTime);
+            projectileLight.enabled = false;
         }
+    }
+
+    public override void Initialize(Vector3 forwardDirection, Transform owner, Vector3 startPosition)
+    {
+        base.Initialize(forwardDirection, owner, startPosition);
+
+        // Store original scale for relative scaling during charge
+        originalScale = transform.localScale;
+
+        noiseSeed = Random.Range(0f, 1000f);
+        bobPhase = Random.Range(0f, Mathf.PI * 2f);
+        lightNoiseSeed = Random.Range(0f, 1000f);
+    }
+
+    /// <summary>
+    /// Set the barrel transform reference for position tracking during charging.
+    /// </summary>
+    public void SetBarrelTransform(Transform barrel)
+    {
+        barrelTransform = barrel;
+    }
+
+    /// <summary>
+    /// Set the launch direction for the charged projectile.
+    /// Called when firing the charged projectile to update direction based on current aim.
+    /// </summary>
+    public void SetLaunchDirection(Vector3 newDirection)
+    {
+        direction = newDirection.sqrMagnitude > 0.0001f ? newDirection.normalized : Vector3.forward;
     }
 
     private void Update()
     {
-        float elapsed = Time.time - spawnTime;
+        if (!initialized)
+        {
+            return;
+        }
+
+        UpdateMovement();
+    }
+
+    protected override void UpdateMovement()
+    {
+        // Don't move while charging
+        if (!isChargeComplete)
+        {
+            return;
+        }
+
+        float elapsed = GetElapsedTime();
         Vector3 frameVelocity = direction * speed;
 
+        // Calculate right axis for wandering
         Vector3 rightAxis = Vector3.Cross(Vector3.up, direction).normalized;
         if (rightAxis.sqrMagnitude < 0.0001f)
         {
             rightAxis = transform.right;
         }
 
+        // Wander behavior
         float wanderSampleA = Mathf.PerlinNoise(noiseSeed, elapsed * wanderFrequency) * 2f - 1f;
         float wanderSampleB = Mathf.PerlinNoise(noiseSeed + 17.31f, elapsed * wanderFrequency * 0.73f) * 2f - 1f;
         Vector3 wanderVelocity = (rightAxis * wanderSampleA + Vector3.up * wanderSampleB * 0.45f) * wanderStrength;
 
+        // Bob behavior
         float bob = Mathf.Sin(elapsed * bobFrequency + bobPhase) * bobAmplitude;
         Vector3 bobVelocity = Vector3.up * bob;
 
+        // Hover correction
         Vector3 hoverVelocity = Vector3.zero;
         if (hoverAboveGround)
         {
@@ -146,6 +172,7 @@ public class BallLightningProjectile : MonoBehaviour
 
         Vector3 moveDelta = frameVelocity * Time.deltaTime;
         float travelDistance = moveDelta.magnitude;
+
         if (travelDistance <= 0.0001f)
         {
             return;
@@ -155,6 +182,7 @@ public class BallLightningProjectile : MonoBehaviour
         Vector3 start = transform.position;
         Vector3 end = start + moveDelta;
 
+        // Collision check with sphere cast
         if (Physics.SphereCast(start, collisionRadius, moveDir, out RaycastHit hit, travelDistance, hitMask, QueryTriggerInteraction.Ignore))
         {
             if (!IsOwnerHit(hit.collider.transform))
@@ -167,6 +195,7 @@ public class BallLightningProjectile : MonoBehaviour
 
         transform.position = end;
 
+        // Update rotation to face direction of movement
         Vector3 planarForward = new Vector3(moveDir.x, 0f, moveDir.z);
         if (planarForward.sqrMagnitude > 0.0001f)
         {
@@ -176,39 +205,17 @@ public class BallLightningProjectile : MonoBehaviour
         UpdateProjectileLight(elapsed);
     }
 
-    private bool IsOwnerHit(Transform hitTransform)
+    protected override void OnImpact(Vector3 position, Vector3 normal, Collider hitCollider)
     {
-        if (ownerRoot == null || hitTransform == null)
-        {
-            return false;
-        }
-
-        return hitTransform.root == ownerRoot;
-    }
-
-    private void HandleHit(RaycastHit hit)
-    {
-        Collider other = hit.collider;
-        HealthComponent health = other.GetComponentInParent<HealthComponent>();
-        if (health != null)
-        {
-            health.Damage(damage);
-        }
-
         if (spawnImpactSpotlight)
         {
-            SpawnImpactSpotlight(hit.point, hit.normal);
-        }
-
-        if (destroyOnHit)
-        {
-            DestroySelf();
+            SpawnImpactSpotlight(position, normal);
         }
     }
 
     private void UpdateProjectileLight(float elapsed)
     {
-        if (projectileLight == null)
+        if (projectileLight == null || !isLaunched)
         {
             return;
         }
@@ -272,8 +279,90 @@ public class BallLightningProjectile : MonoBehaviour
         }
     }
 
-    private void DestroySelf()
+    /// <summary>
+    /// IChargeable implementation: Get current charge level.
+    /// </summary>
+    public float GetChargeLevel()
     {
-        Destroy(gameObject);
+        return chargeLevel;
+    }
+
+    /// <summary>
+    /// IChargeable implementation: Update charge state.
+    /// While charging, the projectile is frozen and scaled based on charge progress.
+    /// Position follows the barrel/spawn point.
+    /// </summary>
+    public void UpdateCharge(float chargeProgress)
+    {
+        // If already fully charged, don't update anymore (projectile is ready to launch)
+        if (chargeLevel >= 1f)
+        {
+            return;
+        }
+
+        chargeLevel = chargeProgress;
+
+        // Scale relative to original scale, from chargeMinScale to chargeMaxScale
+        float scaleCurveValue = chargeScaleCurve.Evaluate(chargeProgress);
+        float scaleMultiplier = Mathf.Lerp(chargeMinScale, chargeMaxScale, scaleCurveValue);
+        
+        // Apply relative scaling
+        transform.localScale = originalScale * scaleMultiplier;
+
+        // If barrel transform is available, follow its position during charging
+        if (barrelTransform != null)
+        {
+            transform.position = barrelTransform.position;
+        }
+
+        // Stop all movement during charging
+        // Movement will resume after LaunchCharged
+    }
+
+    /// <summary>
+    /// IChargeable implementation: Called when charging is complete.
+    /// Projectile is now fully charged and will launch on next fire.
+    /// </summary>
+    public void OnChargeComplete()
+    {
+        chargeLevel = 1f;
+        
+        // Keep the current scale (don't override it)
+        // The projectile has been scaling during UpdateCharge, so we just lock in that scale
+        // DO NOT reset to max scale - keep whatever scale it currently has
+    }
+
+    /// <summary>
+    /// IChargeable implementation: Called if charging is cancelled.
+    /// Destroys the projectile without launching it.
+    /// </summary>
+    public void OnChargeCancelled()
+    {
+        chargeLevel = 0f;
+        isChargeComplete = false;
+        
+        // Destroy the projectile
+        DestroyProjectile();
+    }
+
+    /// <summary>
+    /// Called when the charged projectile should actually be launched.
+    /// Sets isChargeComplete = true to allow movement to resume.
+    /// </summary>
+    public void LaunchCharged()
+    {
+        isChargeComplete = true;
+        isLaunched = true;
+        barrelTransform = null; // Stop following barrel, now move freely
+        
+        // Enable the light now that the projectile is launched
+        if (projectileLight != null)
+        {
+            projectileLight.enabled = true;
+        }
+        
+        // Restart the lifetime counter now that the projectile is launching
+        // This ensures the projectile has a full lifetime from launch, not from when charging started
+        RestartLifetime();
     }
 }

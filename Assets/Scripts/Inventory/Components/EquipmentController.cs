@@ -52,7 +52,19 @@ public class EquipmentController : MonoBehaviour
     {
         Unequip();
 
+        if (item == null || item.itemPrefab == null)
+        {
+            Debug.LogError("EquipmentController.Equip: InventoryItem or itemPrefab is null!", this);
+            return;
+        }
+
         equippedItemObject = equipmentSocket.Equip(item.itemPrefab);
+
+        if (equippedItemObject == null)
+        {
+            Debug.LogError($"EquipmentController.Equip: Failed to equip {item.name} - prefab instantiation failed!", this);
+            return;
+        }
 
         var usableItem = equippedItemObject.GetComponent<UsableItem>();
         if (usableItem)

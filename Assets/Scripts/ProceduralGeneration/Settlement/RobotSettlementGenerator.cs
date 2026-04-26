@@ -57,24 +57,39 @@ public class RobotSettlementGenerator : MonoBehaviour
         // Shield generator: dead center.
         SpawnBuilding(recipe.shieldGeneratorPrefab, Vector2.zero, root, placed);
 
-        // Inner ring: barracks + eco hubs.
         int barracks = RandRange(recipe.barracksCount);
-        for (int i = 0; i < barracks; i++)
-            TryPlaceBuilding(recipe.barracksPrefab, 0f, recipe.innerRadius, root, placed);
+        int ecoHubs  = RandRange(recipe.ecoHubCount);
+        int dishes   = RandRange(recipe.satelliteDishCount);
+        int turrets  = RandRange(recipe.turretCount);
 
-        int ecoHubs = RandRange(recipe.ecoHubCount);
-        for (int i = 0; i < ecoHubs; i++)
-            TryPlaceBuilding(recipe.ecoHubPrefab, 0f, recipe.innerRadius, root, placed);
+        if (recipe.organizedLayout)
+        {
+            // Inner ring shares barracks + eco hubs evenly around a single radius.
+            var innerEntries = new List<GameObject>();
+            for (int i = 0; i < barracks; i++) innerEntries.Add(recipe.barracksPrefab);
+            for (int i = 0; i < ecoHubs;  i++) innerEntries.Add(recipe.ecoHubPrefab);
+            ShuffleInPlace(innerEntries);
+            PlaceRingSlots(innerEntries, recipe.innerRadius, root, placed);
 
-        // Mid ring: satellite dishes (toward outside).
-        int dishes = RandRange(recipe.satelliteDishCount);
-        for (int i = 0; i < dishes; i++)
-            TryPlaceBuilding(recipe.satelliteDishPrefab, recipe.innerRadius * 0.8f, recipe.midRadius, root, placed);
+            var midEntries = new List<GameObject>();
+            for (int i = 0; i < dishes; i++) midEntries.Add(recipe.satelliteDishPrefab);
+            PlaceRingSlots(midEntries, recipe.midRadius, root, placed);
 
-        // Outer ring: turrets.
-        int turrets = RandRange(recipe.turretCount);
-        for (int i = 0; i < turrets; i++)
-            TryPlaceBuilding(recipe.turretPrefab, recipe.midRadius * 0.9f, recipe.outerRadius, root, placed);
+            var outerEntries = new List<GameObject>();
+            for (int i = 0; i < turrets; i++) outerEntries.Add(recipe.turretPrefab);
+            PlaceRingSlots(outerEntries, recipe.outerRadius, root, placed);
+        }
+        else
+        {
+            for (int i = 0; i < barracks; i++)
+                TryPlaceBuilding(recipe.barracksPrefab, 0f, recipe.innerRadius, root, placed);
+            for (int i = 0; i < ecoHubs; i++)
+                TryPlaceBuilding(recipe.ecoHubPrefab, 0f, recipe.innerRadius, root, placed);
+            for (int i = 0; i < dishes; i++)
+                TryPlaceBuilding(recipe.satelliteDishPrefab, recipe.innerRadius * 0.8f, recipe.midRadius, root, placed);
+            for (int i = 0; i < turrets; i++)
+                TryPlaceBuilding(recipe.turretPrefab, recipe.midRadius * 0.9f, recipe.outerRadius, root, placed);
+        }
 
         // Scenery rocks.
         if (recipe.rockPrefabs != null && recipe.rockPrefabs.Length > 0)
@@ -134,6 +149,89 @@ public class RobotSettlementGenerator : MonoBehaviour
     }
 
     // ── placement helpers ────────────────────────────────────────────────────
+
+    private void PlaceRingSlots(List<GameObject> prefabs, float radius, Transform root, List<Placement> placed)
+    {
+        int count = 0;
+        for (int i = 0; i < prefabs.Count; i++) if (prefabs[i]) count++;
+        if (count == 0) return;
+
+        float startAngle = Random.Range(0f, 360f);
+        float step = 360f / count;
+        int idx = 0;
+        for (int i = 0; i < prefabs.Count; i++)
+        {
+            var prefab = prefabs[i];
+            if (!prefab) continue;
+
+            float ang = (startAngle + step * idx + Random.Range(-recipe.slotAngularJitter, recipe.slotAngularJitter)) * Mathf.Deg2Rad;
+            float r   = radius + Random.Range(-recipe.slotRadialJitter, recipe.slotRadialJitter);
+            Vector2 xz = new Vector2(Mathf.Cos(ang) * r, Mathf.Sin(ang) * r);
+
+            float clearance = BuildingClearanceRadius(prefab);
+            if (IsTooCloseToOthers(xz, clearance, placed))
+            {
+                // Try a couple of nudges along the ring before giving up on this slot.
+                bool resolved = false;
+                for (int nudge = 1; nudge <= 4 && !resolved; nudge++)
+                {
+                    float nudgeAng = (startAngle + step * idx + nudge * step * 0.25f) * Mathf.Deg2Rad;
+                    Vector2 nudged = new Vector2(Mathf.Cos(nudgeAng) * r, Mathf.Sin(nudgeAng) * r);
+                    if (!IsTooCloseToOthers(nudged, clearance, placed))
+                    {
+                        xz = nudged;
+                        resolved = true;
+                    }
+                }
+                if (!resolved) { idx++; continue; }
+            }
+
+            SpawnBuildingAtSlot(prefab, xz, root, placed);
+            idx++;
+        }
+    }
+
+    private void SpawnBuildingAtSlot(GameObject prefab, Vector2 localXZ, Transform root, List<Placement> placed)
+    {
+        if (!prefab) return;
+        Vector3 worldXZ = transform.TransformPoint(new Vector3(localXZ.x, 0f, localXZ.y));
+        if (!SampleGround(worldXZ, out float baseY)) return;
+
+        Quaternion rot;
+        if (recipe.faceCenter && localXZ.sqrMagnitude > 0.01f)
+        {
+            // Face the settlement center; snap to the nearest 90° so axis-aligned prefabs still read square.
+            float yaw = Mathf.Atan2(-localXZ.x, -localXZ.y) * Mathf.Rad2Deg;
+            yaw = Mathf.Round(yaw / 90f) * 90f;
+            rot = Quaternion.Euler(0f, yaw, 0f);
+        }
+        else
+        {
+            rot = Quaternion.Euler(0f, Random.Range(0, 4) * 90f, 0f);
+        }
+
+        Vector3 spawnPos = new Vector3(worldXZ.x, baseY, worldXZ.z);
+
+#if UNITY_EDITOR
+        GameObject go = (GameObject)UnityEditor.PrefabUtility.InstantiatePrefab(prefab, root);
+        go.transform.SetPositionAndRotation(spawnPos, rot);
+#else
+        GameObject go = Instantiate(prefab, spawnPos, rot, root);
+#endif
+
+        Vector2 footprint = GetPrefabFootprint(prefab);
+        MaybeAddFoundationPad(go.transform, worldXZ, baseY, root, footprint, rot);
+        placed.Add(new Placement { xz = localXZ, radius = BuildingClearanceRadius(prefab) });
+    }
+
+    private static void ShuffleInPlace<T>(List<T> list)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
+    }
 
     private void TryPlaceBuilding(GameObject prefab, float minR, float maxR, Transform root, List<Placement> placed)
     {

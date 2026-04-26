@@ -25,8 +25,10 @@ MonoBehaviour:
   - {fileID: 1462365582139384296, guid: 98cf5da821b619f459a8e7f711f45e04, type: 3}
   - {fileID: 5474938629155099127, guid: 2209375ec9b47db458c72ebf622ef124, type: 3}
   - {fileID: 7152350675828110143, guid: daacc74051713694594a4e745afc6bd9, type: 3}
-  rockCount: {x: 8, y: 30}
-  rockScaleRange: {x: 0.4, y: 1.6}
+  rockCount: {x: 4, y: 12}
+  rockScaleRange: {x: 0.4, y: 0.8}
+  rockMaxTerrainVariance: 0.6
+  rockPlacementAttempts: 30
   robotPrefabs:
   - {fileID: 971402422321702955, guid: 20facc26f948b45c8983db130e2a842e, type: 3}
   - {fileID: 971402422321702955, guid: 7e0f6e012da904eab85a87db6f8f0261, type: 3}
@@ -40,12 +42,17 @@ MonoBehaviour:
   - {fileID: 6204948476149608045, guid: be34622f4b03c4a8d9f7ac99ffe3e218, type: 3}
   - {fileID: 491640813585523826, guid: cb392a8c37daf46bc8bf8506a1f1b2e3, type: 3}
   vehicleTotal: 10
-  innerRadius: 80
-  midRadius: 150
-  outerRadius: 200
+  innerRadius: 50
+  midRadius: 80
+  outerRadius: 130
   minStructureSpacing: 14
-  buildingFootprint: 20
-  buildingPadding: 8
+  buildingFootprint: 25
+  buildingPadding: 4
   maxPlacementAttempts: 40
+  organizedLayout: 1
+  slotRadialJitter: 0.5
+  slotAngularJitter: 2
+  faceCenter: 1
   foundationPadThreshold: 0.35
+  foundationPadOverhang: 0.5
   foundationPadMaterial: {fileID: 8327331436112100881, guid: b709759e6e17d2b408aa8f06cce5f55c, type: 3}

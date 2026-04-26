@@ -374,11 +374,47 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1001130551400491267, guid: 81588ed703dd6e24ea08c454204dfc80, type: 3}
   m_PrefabInstance: {fileID: 62145267}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &205269238 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2495731290304414584, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+  m_PrefabInstance: {fileID: 309659530}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &220856772 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4455440814821038552, guid: 5c9c4eb0ed40ad64e9208a510dc8957a, type: 3}
   m_PrefabInstance: {fileID: 1680016979}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &235825508
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 235825509}
+  m_Layer: 0
+  m_Name: Projector
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &235825509
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 235825508}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.225, y: 2.59, z: 0.361}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 205269238}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &308087925
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -559,7 +595,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 2495731290304414584, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 235825509}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
@@ -1565,6 +1604,85 @@ PrefabInstance:
       addedObject: {fileID: 308087926}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d33ac27917a94aac82652cec4f25841c, type: 3}
+--- !u!1 &2143684989
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2143684991}
+  - component: {fileID: 2143684990}
+  m_Layer: 0
+  m_Name: MapHologramTerrain
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2143684990
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2143684989}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77b0f783117524e86a88023381402ca7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MapHologramTerrain
+  config: {fileID: 11400000, guid: 303234dac994845669b13bb8047213be, type: 2}
+  toggleActionName: Map
+  startVisible: 0
+  helmetAnchor: {fileID: 235825509}
+  helmetHeightFallback: 1.7
+  distance: 0.9
+  sideOffset: -0.55
+  height: 1.25
+  yawTowardPlayer: 25
+  baseTiltX: 0
+  footprint: 1
+  verticalExaggeration: 4
+  hologramTint: {r: 0.45, g: 0.95, b: 1, a: 1}
+  valleyTint: {r: 0.1, g: 0.45, b: 0.65, a: 1}
+  peakTint: {r: 0.85, g: 1, b: 1, a: 1}
+  intensity: 1.4
+  contourSpacing: 20
+  contourThickness: 0.08
+  gridSpacing: 32
+  gridStrength: 0.4
+  fresnelPower: 2.5
+  fresnelStrength: 1.6
+  showBeam: 1
+  beamSides: 28
+  beamRadius: 0.45
+  beamApexAlpha: 0.95
+  beamBaseAlpha: 0.2
+  beamOriginOffset: 0.05
+  playerMarkerSize: 0.04
+  markerSize: 0.03
+  markerLift: 0.04
+  showOnlyRevealedMarkers: 1
+  spawnRiseTime: 0.35
+  wobbleAmplitudeDeg: 0.8
+  wobbleSpeed: 0.4
+--- !u!4 &2143684991
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2143684989}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &825023554855684085
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1635,3 +1753,4 @@ SceneRoots:
   - {fileID: 1968268363}
   - {fileID: 825023554855684085}
   - {fileID: 88631713}
+  - {fileID: 2143684991}

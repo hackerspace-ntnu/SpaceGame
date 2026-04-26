@@ -1140,7 +1140,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -2.62889, y: 0, z: -1.8984}
-  m_LocalScale: {x: 3.139, y: 3.139, z: 3.139}
+  m_LocalScale: {x: 3.139, y: 3.139, z: 10.42}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -2403,6 +2403,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: launchArea
       objectReference: {fileID: 0}
+    - target: {fileID: 3192038625551392099, guid: bfba40266f0256a4bbcbe7346daab589, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: f50494d965af98b4f8ab60bfb70ff1c6, type: 2}
     - target: {fileID: 5732394339258839324, guid: bfba40266f0256a4bbcbe7346daab589, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.8

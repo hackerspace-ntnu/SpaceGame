@@ -23,13 +23,15 @@ Shader "Hologram/Terrain"
         _FogIntensity    ("Fog Intensity", Range(0, 4))= 0.6
         _FogNoiseScale   ("Fog Noise Scale", Float)    = 0.015
         _FogNoiseSpeed   ("Fog Noise Speed", Float)    = 0.08
-        _DiscoveryRadius ("Discovery Radius (m)", Float)= 160
-        _DiscoveryFalloff("Discovery Falloff (m)", Float)= 70
+        _DiscoveryRadius ("Discovery Radius (m)", Float)= 700
+        _DiscoveryFalloff("Discovery Falloff (m)", Float)= 280
         _DiscoveryCount  ("Discovery Count", Int)      = 0
         _FogEnabled      ("Fog Enabled", Float)        = 1
+        _FogSlopeDim     ("Fog Slope Dim", Range(0,1)) = 0.85
+        _FogViewDim      ("Fog View Dim", Range(0,1))  = 0.6
 
-        _MapRadius       ("Map Radius (m)", Float)     = 240
-        _MapEdgeFalloff  ("Map Edge Falloff (m)", Float)= 120
+        _MapRadius       ("Map Radius (m)", Float)     = 1100
+        _MapEdgeFalloff  ("Map Edge Falloff (m)", Float)= 450
     }
 
     SubShader
@@ -79,6 +81,7 @@ Shader "Hologram/Terrain"
             float4 _FogColor;
             float  _FogIntensity, _FogNoiseScale, _FogNoiseSpeed;
             float  _DiscoveryRadius, _DiscoveryFalloff, _FogEnabled;
+            float  _FogSlopeDim, _FogViewDim;
             int    _DiscoveryCount;
             // Per-renderer (set via MaterialPropertyBlock): simulated world-space
             // origin of this chunk in XZ. Vertex object-space xz + this = sim world XZ.
@@ -182,6 +185,18 @@ Shader "Hologram/Terrain"
                     fixed3 fogCol = _FogColor.rgb * (_FogIntensity * (0.55 + n * 0.9));
                     // Keep grid faintly visible through the fog so the chunked feel reads.
                     fogCol += grid * _Color.rgb * 0.35;
+
+                    // Steep slopes (peak faces) and view-grazing surfaces
+                    // accumulate too much fog brightness in the additive blend
+                    // because more surface area lands per screen pixel. Dim the
+                    // fog there so peaks aren't visually "revealed" through fog.
+                    float3 N = normalize(i.worldNorm);
+                    float upDot = saturate(N.y);                  // 1 on flat ground, 0 on vertical cliff
+                    float slopeAtten = lerp(1.0 - _FogSlopeDim, 1.0, upDot);
+                    float viewDot = saturate(dot(N, normalize(i.viewDir)));
+                    float viewAtten = lerp(1.0 - _FogViewDim, 1.0, viewDot);
+                    fogCol *= slopeAtten * viewAtten;
+
                     col = lerp(fogCol, col, visibility);
                 }
 

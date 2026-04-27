@@ -38,7 +38,7 @@ public class MapHologramTerrain : MonoBehaviour
     [SerializeField] private float verticalExaggeration = 0.6f;
     [Tooltip("How many chunks around the player are shown. 1 = 3x3 area, 2 = 5x5, etc. Set very high to show the whole world.")]
     [Range(0, 12)]
-    [SerializeField] private int viewRadius = 2;
+    [SerializeField] private int viewRadius = 6;
     [Tooltip("If on, the hologram recenters on the player's current chunk each frame (mini-map style).")]
     [SerializeField] private bool centerOnPlayer = true;
 
@@ -87,6 +87,15 @@ public class MapHologramTerrain : MonoBehaviour
     [Tooltip("Spawn meshes for all chunks at startup, ignoring MapService reveal state. Useful for debugging or static maps.")]
     [SerializeField] private bool revealAllChunks;
 
+    [Header("Marker Labels")]
+    [Tooltip("If on, POI labels (the marker's text) are rendered above each marker, billboarded to face the camera.")]
+    [SerializeField] private bool showMarkerLabels = true;
+    [Tooltip("Marker label visual size. Higher = bigger text. Roughly equivalent to TMP font-size units.")]
+    [SerializeField] private float markerLabelFontSize = 64f;
+    [Tooltip("Vertical offset of the label above the marker, in marker-local units (1 = markerSize).")]
+    [SerializeField] private float markerLabelHeight = 2.5f;
+    [SerializeField] private Color markerLabelColor = new Color(0.85f, 1.00f, 1.00f, 1f);
+
     [Header("Animation")]
     [SerializeField] private float spawnRiseTime = 0.35f;
     [SerializeField] private float wobbleAmplitudeDeg = 0.8f;
@@ -96,23 +105,27 @@ public class MapHologramTerrain : MonoBehaviour
     [Tooltip("If on, terrain only renders in detail near places the player has been. Other areas are obscured by an animated fog. POIs remain visible.")]
     [SerializeField] private bool enableFogOfWar = true;
     [Tooltip("World-space radius around each recorded discovery point that counts as 'revealed'. Smaller = more fog left to discover.")]
-    [SerializeField] private float discoveryRadius = 160f;
+    [SerializeField] private float discoveryRadius = 700f;
     [Tooltip("Soft edge width (m) at the boundary between revealed and fogged terrain.")]
-    [SerializeField] private float discoveryFalloff = 70f;
+    [SerializeField] private float discoveryFalloff = 280f;
     [Tooltip("Minimum world distance the player must move before a new discovery point is sampled.")]
-    [SerializeField] private float discoveryPointSpacing = 40f;
+    [SerializeField] private float discoveryPointSpacing = 120f;
     [Tooltip("Maximum number of discovery points kept. Once full, oldest is dropped (matches shader's MAX_DISCOVERY_POINTS = 256).")]
     [SerializeField] private int maxDiscoveryPoints = 256;
     [SerializeField] private Color fogColor = new Color(0.20f, 0.40f, 0.55f, 1f);
     [Range(0f, 4f)] [SerializeField] private float fogIntensity = 0.6f;
     [SerializeField] private float fogNoiseScale = 0.015f;
     [SerializeField] private float fogNoiseSpeed = 0.08f;
+    [Tooltip("How much to darken fog on steep slopes. 0 = no dim (peaks pop through fog). 1 = vertical faces fully dark. ~0.85 hides peaks well.")]
+    [Range(0f, 1f)] [SerializeField] private float fogSlopeDim = 0.85f;
+    [Tooltip("How much to darken fog on view-grazing surfaces. Helps hide silhouette stacking when you look at the map from a low angle.")]
+    [Range(0f, 1f)] [SerializeField] private float fogViewDim = 0.6f;
 
     [Header("Map Shape (round vignette)")]
     [Tooltip("Radius (sim-world meters) of the circular map area at full opacity. Beyond this the hologram fades out with a fuzzy edge.")]
-    [SerializeField] private float mapRadius = 240f;
+    [SerializeField] private float mapRadius = 1100f;
     [Tooltip("Width (m) of the soft fade-out at the map's edge. Larger = fuzzier rim.")]
-    [SerializeField] private float mapEdgeFalloff = 120f;
+    [SerializeField] private float mapEdgeFalloff = 450f;
 
     // Runtime
     private Transform root;
@@ -130,6 +143,7 @@ public class MapHologramTerrain : MonoBehaviour
 
     private readonly Dictionary<Vector2Int, GameObject> chunkMeshes = new();
     private readonly Dictionary<MapService.Marker, GameObject> markerVisuals = new();
+    private readonly Dictionary<MapService.Marker, GameObject> markerLabels = new();
 
     // Fog of war: rolling buffer of revealed world-XZ centers.
     private readonly List<Vector4> discoveryPoints = new();
@@ -433,43 +447,201 @@ public class MapHologramTerrain : MonoBehaviour
     }
 
     /// <summary>
-    /// Builds a marker visual: a small base cube + an upward spike, both using the
-    /// solid additive hologram shader so they're visible from any angle.
+    /// Builds a sci-fi map marker: a thin vertical stalk anchored on a flat
+    /// diamond at terrain level, with a downward-pointing pin head at the top
+    /// and a ground ring around the base. Optional billboarded text label is
+    /// spawned as a child so callers can position/scale it independently.
+    /// All geometry uses the additive `Hologram/Solid` shader.
     /// </summary>
-    private GameObject BuildMarkerVisual(string name, Color color, float intensity, float pulse = 0f)
+    private GameObject BuildMarkerVisual(string name, Color color, float intensity, string label = null, float pulse = 0f)
     {
         var go = new GameObject(name);
         go.transform.SetParent(markerContainer, false);
 
         var mat = MakeSolidMarkerMaterial(color, intensity, pulse);
 
-        // Base cube
-        var baseCube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        baseCube.name = "Base";
-        var bcol = baseCube.GetComponent<Collider>();
-        if (bcol != null) Destroy(bcol);
-        baseCube.transform.SetParent(go.transform, false);
-        baseCube.transform.localScale = Vector3.one;
-        ApplyMaterialAndStrip(baseCube, mat);
+        // 1) Ground diamond (flat octahedron) — sits flush with the terrain.
+        var basePin = new GameObject("BasePin");
+        basePin.transform.SetParent(go.transform, false);
+        AttachMesh(basePin, BuildDiamondMesh(0.55f, 0.12f), mat);
 
-        // Vertical spike — thin tall cube above the base.
-        if (markerSpikeHeight > 0.001f)
-        {
-            var spike = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            spike.name = "Spike";
-            var scol = spike.GetComponent<Collider>();
-            if (scol != null) Destroy(scol);
-            spike.transform.SetParent(go.transform, false);
-            // Width is relative to spike width as fraction of marker size,
-            // height is the spike length above the base.
-            float spikeRelW = markerSpikeWidth / Mathf.Max(0.0001f, markerSize);
-            float spikeRelH = markerSpikeHeight / Mathf.Max(0.0001f, markerSize);
-            spike.transform.localScale = new Vector3(spikeRelW, spikeRelH, spikeRelW);
-            spike.transform.localPosition = new Vector3(0, spikeRelH * 0.5f + 0.5f, 0);
-            ApplyMaterialAndStrip(spike, mat);
-        }
+        // 2) Stalk — thin tall quad-tube from terrain up to the pin head.
+        float stalkH = Mathf.Max(0.001f, markerSpikeHeight / Mathf.Max(0.0001f, markerSize));
+        float stalkW = Mathf.Max(0.0001f, markerSpikeWidth / Mathf.Max(0.0001f, markerSize));
+        var stalk = new GameObject("Stalk");
+        stalk.transform.SetParent(go.transform, false);
+        AttachMesh(stalk, BuildBoxMesh(stalkW, stalkH, stalkW), mat);
+        stalk.transform.localPosition = new Vector3(0f, stalkH * 0.5f, 0f);
+
+        // 3) Pin head — inverted teardrop / downward diamond at the top of the stalk.
+        var head = new GameObject("Head");
+        head.transform.SetParent(go.transform, false);
+        AttachMesh(head, BuildDiamondMesh(0.55f, 0.55f), mat);
+        head.transform.localPosition = new Vector3(0f, stalkH + 0.45f, 0f);
+
+        // 4) Ground ring — flat torus to draw attention to the marker's footprint.
+        var ring = new GameObject("Ring");
+        ring.transform.SetParent(go.transform, false);
+        AttachMesh(ring, BuildRingMesh(1.0f, 0.85f, 32), mat);
+        ring.transform.localPosition = new Vector3(0f, 0.005f, 0f);
 
         return go;
+    }
+
+    /// <summary>
+    /// Builds a world-space label as a sibling of the marker (not a child), so
+    /// it doesn't inherit the marker's non-uniform vertical-exaggeration scale.
+    /// Uses Unity's legacy `TextMesh` because runtime TMP setups in this project
+    /// render fallback glyphs ("two T's") regardless of how we bind the font —
+    /// `TextMesh` ships with a built-in font and is reliable.
+    /// Position + uniform scale + camera billboarding are handled per-frame.
+    /// </summary>
+    private GameObject BuildMarkerLabel(string text)
+    {
+        var go = new GameObject("Label");
+        go.transform.SetParent(markerContainer, false);
+
+        var tm = go.AddComponent<TextMesh>();
+        tm.text = text;
+        tm.fontSize = 64;          // raster resolution; visual size comes from characterSize × transform scale
+        // characterSize directly controls visual size in label-local units, so we
+        // route the inspector's font-size knob through it. Scale by 1/64 so a
+        // value of 64 in the inspector gives roughly the old default.
+        tm.characterSize = Mathf.Max(0.001f, markerLabelFontSize / 64f);
+        tm.alignment = TextAlignment.Center;
+        tm.anchor = TextAnchor.MiddleCenter;
+        tm.color = markerLabelColor;
+        tm.fontStyle = FontStyle.Bold;
+
+        var mr = go.GetComponent<MeshRenderer>();
+        if (mr != null)
+        {
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+            mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            mr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+
+            // TextMesh uses the Font's shared material by default. To tint it
+            // per-label without mutating the shared asset (which would tint
+            // every TextMesh in the project), give this renderer its own
+            // material instance and a high render queue so it sits over the
+            // additive hologram.
+            if (tm.font != null && tm.font.material != null)
+            {
+                var matInstance = new Material(tm.font.material) { hideFlags = HideFlags.DontSave };
+                matInstance.color = markerLabelColor;
+                matInstance.renderQueue = 4001;
+                mr.sharedMaterial = matInstance;
+            }
+        }
+        return go;
+    }
+
+    private void AttachMesh(GameObject go, Mesh mesh, Material mat)
+    {
+        var mf = go.AddComponent<MeshFilter>();
+        mf.sharedMesh = mesh;
+        var mr = go.AddComponent<MeshRenderer>();
+        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        mr.receiveShadows = false;
+        mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+        mr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+        mr.sharedMaterial = mat;
+    }
+
+    /// <summary>Octahedral "diamond" mesh: 4 horizontal points + top + bottom apex.</summary>
+    private static Mesh BuildDiamondMesh(float radius, float halfHeight)
+    {
+        var verts = new[]
+        {
+            new Vector3(0f,  halfHeight, 0f),       // 0 top
+            new Vector3(0f, -halfHeight, 0f),       // 1 bottom
+            new Vector3( radius, 0f,  0f),          // 2 +x
+            new Vector3( 0f,    0f,  radius),       // 3 +z
+            new Vector3(-radius, 0f,  0f),          // 4 -x
+            new Vector3( 0f,    0f, -radius),       // 5 -z
+        };
+        var tris = new[]
+        {
+            // Upper pyramid (double-sided so additive shader looks right from any angle)
+            0,2,3, 0,3,2,
+            0,3,4, 0,4,3,
+            0,4,5, 0,5,4,
+            0,5,2, 0,2,5,
+            // Lower pyramid
+            1,3,2, 1,2,3,
+            1,4,3, 1,3,4,
+            1,5,4, 1,4,5,
+            1,2,5, 1,5,2,
+        };
+        var mesh = new Mesh { name = "MarkerDiamond" };
+        mesh.vertices = verts;
+        mesh.triangles = tris;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
+    /// <summary>Axis-aligned box mesh, centered on origin.</summary>
+    private static Mesh BuildBoxMesh(float w, float h, float d)
+    {
+        float x = w * 0.5f, y = h * 0.5f, z = d * 0.5f;
+        var verts = new[]
+        {
+            new Vector3(-x,-y,-z), new Vector3( x,-y,-z),
+            new Vector3( x, y,-z), new Vector3(-x, y,-z),
+            new Vector3(-x,-y, z), new Vector3( x,-y, z),
+            new Vector3( x, y, z), new Vector3(-x, y, z),
+        };
+        var tris = new[]
+        {
+            0,2,1, 0,3,2,    // back
+            4,5,6, 4,6,7,    // front
+            0,1,5, 0,5,4,    // bottom
+            3,7,6, 3,6,2,    // top
+            0,4,7, 0,7,3,    // left
+            1,2,6, 1,6,5,    // right
+        };
+        var mesh = new Mesh { name = "MarkerBox" };
+        mesh.vertices = verts;
+        mesh.triangles = tris;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
+    /// <summary>Flat ring on the XZ plane. outerR > innerR. Double-sided.</summary>
+    private static Mesh BuildRingMesh(float outerR, float innerR, int segments)
+    {
+        segments = Mathf.Max(8, segments);
+        var verts = new Vector3[segments * 2];
+        var tris = new int[segments * 12]; // 2 quads (front+back) per segment
+        for (int i = 0; i < segments; i++)
+        {
+            float a = (float)i / segments * Mathf.PI * 2f;
+            float c = Mathf.Cos(a), s = Mathf.Sin(a);
+            verts[i * 2 + 0] = new Vector3(c * outerR, 0f, s * outerR);
+            verts[i * 2 + 1] = new Vector3(c * innerR, 0f, s * innerR);
+        }
+        int t = 0;
+        for (int i = 0; i < segments; i++)
+        {
+            int next = (i + 1) % segments;
+            int o0 = i * 2, i0 = i * 2 + 1;
+            int o1 = next * 2, i1 = next * 2 + 1;
+            // top
+            tris[t++] = o0; tris[t++] = o1; tris[t++] = i1;
+            tris[t++] = o0; tris[t++] = i1; tris[t++] = i0;
+            // bottom (flipped winding)
+            tris[t++] = o0; tris[t++] = i1; tris[t++] = o1;
+            tris[t++] = o0; tris[t++] = i0; tris[t++] = i1;
+        }
+        var mesh = new Mesh { name = "MarkerRing" };
+        mesh.vertices = verts;
+        mesh.triangles = tris;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
     }
 
     private void ApplyMaterialAndStrip(GameObject go, Material mat)
@@ -506,6 +678,15 @@ public class MapHologramTerrain : MonoBehaviour
     {
         var svc = MapService.Instance;
 
+        // Marker subscription is independent of chunk-reveal mode: we want POIs
+        // to render whether or not we're in the all-chunks-visible fallback.
+        if (svc != null)
+        {
+            svc.OnMarkerAdded   += OnMarkerAdded;
+            svc.OnMarkerRemoved += OnMarkerRemoved;
+            foreach (var m in svc.Markers) OnMarkerAdded(m);
+        }
+
         if (revealAllChunks || svc == null)
         {
             // Spawn every chunk regardless of reveal state.
@@ -514,16 +695,12 @@ public class MapHologramTerrain : MonoBehaviour
                 foreach (var c in config.chunks) OnChunkRevealed(c.gridCoord);
             }
             if (svc == null)
-                Debug.LogWarning("[MapHologramTerrain] No MapService in scene — running with all chunks visible.", this);
+                Debug.LogWarning("[MapHologramTerrain] No MapService in scene — running with all chunks visible. Add a MapService component to persistentScene to enable POIs and reveal-on-explore.", this);
         }
         else
         {
             svc.OnChunkRevealed += OnChunkRevealed;
-            svc.OnMarkerAdded   += OnMarkerAdded;
-            svc.OnMarkerRemoved += OnMarkerRemoved;
-
             foreach (var c in svc.RevealedChunks) OnChunkRevealed(c);
-            foreach (var m in svc.Markers)        OnMarkerAdded(m);
         }
 
         Debug.Log($"[MapHologramTerrain] Spawned {chunkMeshes.Count} chunk mesh(es) at startup. " +
@@ -584,9 +761,17 @@ public class MapHologramTerrain : MonoBehaviour
         var go = BuildMarkerVisual($"Marker_{marker.label ?? marker.type.ToString()}",
                                    MapMarkerColors.For(marker.type),
                                    markerIntensity,
+                                   label: marker.label,
                                    pulse: 0.15f);
         markerVisuals[marker] = go;
         EnsureLayer(go);
+
+        if (showMarkerLabels && !string.IsNullOrEmpty(marker.label))
+        {
+            var labelGo = BuildMarkerLabel(marker.label);
+            markerLabels[marker] = labelGo;
+            EnsureLayer(labelGo);
+        }
     }
 
     private void OnMarkerRemoved(MapService.Marker marker)
@@ -594,6 +779,12 @@ public class MapHologramTerrain : MonoBehaviour
         if (!markerVisuals.TryGetValue(marker, out var go)) return;
         markerVisuals.Remove(marker);
         if (go != null) Destroy(go);
+
+        if (markerLabels.TryGetValue(marker, out var labelGo))
+        {
+            markerLabels.Remove(marker);
+            if (labelGo != null) Destroy(labelGo);
+        }
     }
 
     // ─────────────────────────────────────────────
@@ -813,6 +1004,8 @@ public class MapHologramTerrain : MonoBehaviour
         {
             foreach (var kvp in markerVisuals)
                 if (kvp.Value != null) kvp.Value.SetActive(false);
+            foreach (var kvp in markerLabels)
+                if (kvp.Value != null) kvp.Value.SetActive(false);
             return;
         }
 
@@ -837,6 +1030,61 @@ public class MapHologramTerrain : MonoBehaviour
             go.transform.localPosition = WorldToTerrainLocal(worldPos)
                 + Vector3.up * (markerLift / s.y);
             go.transform.localScale = InverseContainerScale(markerSize);
+
+            // Update the separate label sibling: position above the marker in
+            // terrain-local space, uniform world scale (so non-uniform vertical
+            // exaggeration doesn't squish the text), and billboard toward the
+            // camera each frame.
+            if (markerLabels.TryGetValue(marker, out var labelGo) && labelGo != null)
+            {
+                labelGo.SetActive(true);
+                Vector3 markerLocal = WorldToTerrainLocal(worldPos)
+                    + Vector3.up * (markerLift / s.y);
+                // Lift label above the pin head: stalk height (in marker-local) is
+                // markerSpikeHeight/markerSize, plus the configured label offset.
+                float liftMarkerLocal = (markerSpikeHeight / Mathf.Max(0.0001f, markerSize))
+                                        + markerLabelHeight;
+                // Convert that marker-local lift to terrain-local via scale ratio.
+                float markerToTerrain = markerSize; // marker localScale is InverseContainerScale(markerSize)
+                labelGo.transform.localPosition = markerLocal + Vector3.up * (liftMarkerLocal * markerToTerrain / s.y);
+
+                // Uniform world scale: use the container's horizontal scale only
+                // so vertical-exaggeration doesn't squish/stretch the text.
+                float uniform = markerSize / Mathf.Max(MinScaleEpsilon, s.x);
+                labelGo.transform.localScale = new Vector3(uniform, uniform, uniform);
+
+                // Live-update font size + color from the inspector so tweaks take
+                // effect without rebuilding the marker.
+                var tm = labelGo.GetComponent<TextMesh>();
+                if (tm != null)
+                {
+                    tm.characterSize = Mathf.Max(0.001f, markerLabelFontSize / 64f);
+                    tm.color = markerLabelColor;
+                    var lmr = labelGo.GetComponent<MeshRenderer>();
+                    if (lmr != null && lmr.sharedMaterial != null)
+                        lmr.sharedMaterial.color = markerLabelColor;
+                }
+
+                // Full billboard: face the camera straight-on, regardless of
+                // camera tilt. The label's up axis tracks the camera's up, so
+                // text is always readable head-on (side, top, anywhere).
+                var cam = Camera.main;
+                if (cam != null)
+                {
+                    Vector3 toCam = cam.transform.position - labelGo.transform.position;
+                    if (toCam.sqrMagnitude > 1e-6f)
+                        labelGo.transform.rotation = Quaternion.LookRotation(-toCam.normalized, cam.transform.up);
+                }
+            }
+        }
+
+        // Hide labels for markers that aren't being shown (their parent marker
+        // GO was set inactive above, but the label is a sibling).
+        foreach (var kvp in markerLabels)
+        {
+            if (kvp.Value == null) continue;
+            if (markerVisuals.TryGetValue(kvp.Key, out var mgo) && mgo != null)
+                kvp.Value.SetActive(mgo.activeSelf);
         }
     }
 
@@ -899,6 +1147,8 @@ public class MapHologramTerrain : MonoBehaviour
             terrainMaterial.SetFloat("_FogIntensity", fogIntensity);
             terrainMaterial.SetFloat("_FogNoiseScale", fogNoiseScale);
             terrainMaterial.SetFloat("_FogNoiseSpeed", fogNoiseSpeed);
+            terrainMaterial.SetFloat("_FogSlopeDim", fogSlopeDim);
+            terrainMaterial.SetFloat("_FogViewDim", fogViewDim);
             terrainMaterial.SetFloat("_DiscoveryRadius", Mathf.Max(0.01f, discoveryRadius));
             terrainMaterial.SetFloat("_DiscoveryFalloff", Mathf.Max(0.0001f, discoveryFalloff));
 

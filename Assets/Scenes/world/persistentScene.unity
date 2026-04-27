@@ -461,6 +461,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8377454752422811906, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 4c70d2a0c51a84648b6c62ea3aba7f0d, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
@@ -980,6 +984,54 @@ Transform:
   - {fileID: 712164104}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1128150115
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1128150117}
+  - component: {fileID: 1128150116}
+  m_Layer: 0
+  m_Name: MAPPOI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1128150116
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1128150115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1a4e319f9f54471fa9f6c3d16156d80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MapPOI
+  poiName: Test
+  type: 4
+  alwaysVisible: 1
+  id: 7e6ccdbb73ef4a7fbc3515c502d236f0
+--- !u!4 &1128150117
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1128150115}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3500, y: 120, z: 1300}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1236054300
 GameObject:
   m_ObjectHideFlags: 0
@@ -1418,6 +1470,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2143684991}
   - component: {fileID: 2143684990}
+  - component: {fileID: 2143684992}
   m_Layer: 8
   m_Name: MapHologramTerrain
   m_TagString: Untagged
@@ -1447,6 +1500,7 @@ MonoBehaviour:
   sideOffset: -0.3
   height: 0
   yawTowardPlayer: 25
+  leanTowardPlayer: 45
   footprint: 1
   verticalExaggeration: 1.2
   viewRadius: 3
@@ -1485,6 +1539,17 @@ MonoBehaviour:
   spawnRiseTime: 0.35
   wobbleAmplitudeDeg: 0.8
   wobbleSpeed: 0.4
+  enableFogOfWar: 1
+  discoveryRadius: 250
+  discoveryFalloff: 150
+  discoveryPointSpacing: 12
+  maxDiscoveryPoints: 256
+  fogColor: {r: 0.495283, g: 1, b: 0.991541, a: 1}
+  fogIntensity: 0.13
+  fogNoiseScale: 0.015
+  fogNoiseSpeed: 0.08
+  mapRadius: 700
+  mapEdgeFalloff: 120
 --- !u!4 &2143684991
 Transform:
   m_ObjectHideFlags: 0
@@ -1500,6 +1565,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1026961185}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2143684992
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2143684989}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a905e2eb5dd284ab1b1923518d831838, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MapService
+  config: {fileID: 11400000, guid: 303234dac994845669b13bb8047213be, type: 2}
+  revealPollInterval: 0.5
+  revealRadius: 1
+  revealAll: 0
 --- !u!1001 &648372190620039843
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1626,3 +1707,4 @@ SceneRoots:
   - {fileID: 309659530}
   - {fileID: 1314242199836212414}
   - {fileID: 648372190620039843}
+  - {fileID: 1128150117}

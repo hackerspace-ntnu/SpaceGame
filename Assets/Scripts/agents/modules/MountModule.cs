@@ -78,6 +78,7 @@ public partial class MountModule : BehaviourModuleBase, IInteractable
     private Rigidbody mountedPlayerRigidbody;
     private bool playerRigidbodyWasKinematic;
     private bool playerRigidbodyHadGravity;
+    private RigidbodyInterpolation playerRigidbodyInterpolation;
     private float lastMountChangeTime;
 
     private Transform activeSeatPoint;

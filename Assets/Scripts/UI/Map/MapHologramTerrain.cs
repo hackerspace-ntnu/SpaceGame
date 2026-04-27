@@ -23,10 +23,12 @@ public class MapHologramTerrain : MonoBehaviour
     [SerializeField] private float distance = 0.9f;
     [SerializeField] private float sideOffset = -0.55f;
     [SerializeField] private float height = 1.25f;
+    [Tooltip("Small twist around the hologram's local up axis (degrees), purely for readability. Applied on top of the camera-facing orientation.")]
     [Range(-90, 90)]
     [SerializeField] private float yawTowardPlayer = 25f;
-    [Range(-30, 30)]
-    [SerializeField] private float baseTiltX = 0f;
+    [Tooltip("Fixed lean (degrees) of the map's surface from world horizontal, tilting its top edge in the world-fixed lean direction. Higher values protect against seeing the underside when looking up — geometrically, this is the maximum upward camera pitch (from horizontal) that still shows the top.")]
+    [Range(0f, 89f)]
+    [SerializeField] private float leanTowardPlayer = 45f;
 
     [Header("Hologram Scale")]
     [Tooltip("Width of the hologram footprint in meters.")]
@@ -69,7 +71,7 @@ public class MapHologramTerrain : MonoBehaviour
     [Header("Layer (helps exclude from helmet/screen shaders)")]
     [Tooltip("All hologram visuals are placed on this layer at startup. Create a layer named 'Hologram' (Edit → Project Settings → Tags & Layers) and exclude it from helmet/screen-space shader cameras to stop bleed-through.")]
     [SerializeField] private string hologramLayerName = "Hologram";
-    [Tooltip("FALLBACK ONLY. Temporarily disables GlassDistortionRenderFeature while the map is open. Use only if you can't add HologramOverlayRenderFeature to your URP renderer. Off by default — preferred fix is the render feature.")]
+    [Tooltip("Temporarily disables GlassDistortionRenderFeature while the map is open to prevent bleed-through onto hologram visuals.")]
     [SerializeField] private bool disableGlassDistortionWhileOpen = false;
 
     [Header("Markers")]
@@ -90,6 +92,28 @@ public class MapHologramTerrain : MonoBehaviour
     [SerializeField] private float wobbleAmplitudeDeg = 0.8f;
     [SerializeField] private float wobbleSpeed = 0.4f;
 
+    [Header("Fog of War")]
+    [Tooltip("If on, terrain only renders in detail near places the player has been. Other areas are obscured by an animated fog. POIs remain visible.")]
+    [SerializeField] private bool enableFogOfWar = true;
+    [Tooltip("World-space radius around each recorded discovery point that counts as 'revealed'. Smaller = more fog left to discover.")]
+    [SerializeField] private float discoveryRadius = 160f;
+    [Tooltip("Soft edge width (m) at the boundary between revealed and fogged terrain.")]
+    [SerializeField] private float discoveryFalloff = 70f;
+    [Tooltip("Minimum world distance the player must move before a new discovery point is sampled.")]
+    [SerializeField] private float discoveryPointSpacing = 40f;
+    [Tooltip("Maximum number of discovery points kept. Once full, oldest is dropped (matches shader's MAX_DISCOVERY_POINTS = 256).")]
+    [SerializeField] private int maxDiscoveryPoints = 256;
+    [SerializeField] private Color fogColor = new Color(0.20f, 0.40f, 0.55f, 1f);
+    [Range(0f, 4f)] [SerializeField] private float fogIntensity = 0.6f;
+    [SerializeField] private float fogNoiseScale = 0.015f;
+    [SerializeField] private float fogNoiseSpeed = 0.08f;
+
+    [Header("Map Shape (round vignette)")]
+    [Tooltip("Radius (sim-world meters) of the circular map area at full opacity. Beyond this the hologram fades out with a fuzzy edge.")]
+    [SerializeField] private float mapRadius = 240f;
+    [Tooltip("Width (m) of the soft fade-out at the map's edge. Larger = fuzzier rim.")]
+    [SerializeField] private float mapEdgeFalloff = 120f;
+
     // Runtime
     private Transform root;
     private Transform terrainContainer; // children: per-chunk mesh GOs
@@ -106,6 +130,12 @@ public class MapHologramTerrain : MonoBehaviour
 
     private readonly Dictionary<Vector2Int, GameObject> chunkMeshes = new();
     private readonly Dictionary<MapService.Marker, GameObject> markerVisuals = new();
+
+    // Fog of war: rolling buffer of revealed world-XZ centers.
+    private readonly List<Vector4> discoveryPoints = new();
+    private Vector3 lastDiscoverySamplePos;
+    private bool hasDiscoverySample;
+    private static readonly Vector4[] discoveryUploadBuffer = new Vector4[256];
 
     private float MinTerrainY = 0f;
     private float MaxTerrainY = 200f;
@@ -159,12 +189,51 @@ public class MapHologramTerrain : MonoBehaviour
     /// </summary>
     private void LateUpdate()
     {
+        SampleDiscovery();
         if (!visible) return;
         UpdateRootTransform();
         UpdatePlayerMarker();
         UpdateMarkerPositions();
         UpdateBeamTransform();
         UpdateMaterialUniforms();
+    }
+
+    private void SampleDiscovery()
+    {
+        if (!enableFogOfWar) return;
+        if (player == null)
+        {
+            var p = GameObject.FindGameObjectWithTag("Player");
+            if (p != null) player = p.transform;
+            if (player == null) return;
+        }
+
+        Vector3 pos = player.position;
+        if (!hasDiscoverySample)
+        {
+            AddDiscoveryPoint(pos);
+            lastDiscoverySamplePos = pos;
+            hasDiscoverySample = true;
+            return;
+        }
+
+        float dx = pos.x - lastDiscoverySamplePos.x;
+        float dz = pos.z - lastDiscoverySamplePos.z;
+        float spacing = Mathf.Max(0.01f, discoveryPointSpacing);
+        if (dx * dx + dz * dz >= spacing * spacing)
+        {
+            AddDiscoveryPoint(pos);
+            lastDiscoverySamplePos = pos;
+        }
+    }
+
+    private void AddDiscoveryPoint(Vector3 worldPos)
+    {
+        int cap = Mathf.Clamp(maxDiscoveryPoints, 1, discoveryUploadBuffer.Length);
+        var v = new Vector4(worldPos.x, 0f, worldPos.z, 0f);
+        if (discoveryPoints.Count >= cap)
+            discoveryPoints.RemoveAt(0);
+        discoveryPoints.Add(v);
     }
 
     public void SetVisible(bool v)
@@ -482,6 +551,16 @@ public class MapHologramTerrain : MonoBehaviour
         r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
         r.sharedMaterial = terrainMaterial;
 
+        // Tell the shader which simulated world XZ this chunk represents, so fog
+        // discovery distance compares against the player's real game-world position
+        // instead of the tiny hologram render-world position.
+        var mpb = new MaterialPropertyBlock();
+        mpb.SetVector("_ChunkWorldOriginXZ", new Vector4(
+            config.worldOrigin.x + coord.x * config.chunkSize.x,
+            config.worldOrigin.z + coord.y * config.chunkSize.y,
+            0f, 0f));
+        r.SetPropertyBlock(mpb);
+
         chunkMeshes[coord] = go;
         EnsureLayer(go);
 
@@ -530,42 +609,58 @@ public class MapHologramTerrain : MonoBehaviour
             if (player == null) return;
         }
 
-        // Anchor placement on the projector transform when assigned (e.g. a
-        // helmet/wrist mount that already moves perfectly with the camera);
-        // fall back to the player's flat-forward frame otherwise.
-        Vector3 anchorPos;
-        Vector3 fwd, right, up;
-        if (projectorAnchor != null)
-        {
-            anchorPos = projectorAnchor.position;
-            fwd = projectorAnchor.forward;
-            right = projectorAnchor.right;
-            up = projectorAnchor.up;
-        }
-        else
-        {
-            anchorPos = player.position;
-            fwd = player.forward; fwd.y = 0f;
-            if (fwd.sqrMagnitude < 0.0001f) fwd = Vector3.forward;
-            fwd.Normalize();
-            right = Vector3.Cross(Vector3.up, fwd);
-            up = Vector3.up;
-        }
+        // Anchor: prefer the live camera so the hologram tracks the screen
+        // (yaw + pitch). projectorAnchor / player are fallbacks if no camera
+        // resolves.
+        Transform anchor = (Camera.main != null && Camera.main.isActiveAndEnabled)
+            ? Camera.main.transform
+            : (projectorAnchor != null ? projectorAnchor : player);
 
-        Vector3 worldPos = anchorPos + fwd * distance + right * sideOffset + up * height;
+        Vector3 anchorPos = anchor.position;
+        Vector3 anchorFwd = anchor.forward;
+        Vector3 anchorRight = anchor.right;
+        Vector3 anchorUp = anchor.up;
+
+        Vector3 worldPos = anchorPos + anchorFwd * distance + anchorRight * sideOffset + anchorUp * height;
 
         float t = Mathf.Clamp01((Time.time - visibleSinceTime) / Mathf.Max(0.0001f, spawnRiseTime));
         float rise = Mathf.SmoothStep(0f, 1f, t);
         currentRise = rise;
 
+        root.position = worldPos - Vector3.up * (1f - rise) * 0.35f;
+
+        // Orientation: lean direction always tracks the camera (so the
+        // top of the map always faces you — readable from any direction).
+        // The map's "north" axis is built from a WORLD-FIXED reference
+        // (world +Z) projected onto the tilted plane. As you turn, the
+        // projection of world-north onto the always-toward-you plane
+        // rotates around the surface normal — visually, the terrain
+        // content spins around the map's own axis while the tilt stays
+        // pointed at you.
+        Vector3 viewFwd = anchorFwd; viewFwd.y = 0f;
+        if (viewFwd.sqrMagnitude < 1e-6f)
+        {
+            viewFwd = player.forward; viewFwd.y = 0f;
+            if (viewFwd.sqrMagnitude < 1e-6f) viewFwd = Vector3.forward;
+        }
+        viewFwd.Normalize();
+
+        Vector3 leanDir = -viewFwd;
+        Vector3 leanAxis = Vector3.Cross(Vector3.up, leanDir);
+        Vector3 modelUp = Quaternion.AngleAxis(leanTowardPlayer, leanAxis) * Vector3.up;
+
+        Vector3 modelFwd = Vector3.ProjectOnPlane(Vector3.forward, modelUp);
+        if (modelFwd.sqrMagnitude < 1e-6f)
+            modelFwd = Vector3.ProjectOnPlane(Vector3.right, modelUp);
+        modelFwd.Normalize();
+        Quaternion baseRot = Quaternion.LookRotation(modelFwd, modelUp);
+
+        // Small wobble + readability twist applied in the model's local frame.
         float wobX = Mathf.Sin(Time.time * wobbleSpeed * Mathf.PI * 2f) * wobbleAmplitudeDeg;
         float wobZ = Mathf.Sin(Time.time * wobbleSpeed * Mathf.PI * 2f * 0.73f) * wobbleAmplitudeDeg * 0.6f;
+        Quaternion localTweak = Quaternion.Euler(wobX, yawTowardPlayer, wobZ);
 
-        root.position = worldPos - Vector3.up * (1f - rise) * 0.35f;
-        // North-up map: parent frame is world-aligned so the player marker
-        // visibly rotates as the player turns, instead of the terrain spinning
-        // underneath a fixed arrow.
-        root.rotation = Quaternion.Euler(baseTiltX + wobX, yawTowardPlayer, wobZ);
+        root.rotation = baseRot * localTweak;
 
         // Visible chunk window — chunk coords are integer (used for show/hide),
         // but visCenter uses the player's continuous world position so the
@@ -693,16 +788,22 @@ public class MapHologramTerrain : MonoBehaviour
             + Vector3.up * (markerLift / s.y);
         playerMarker.transform.localScale = InverseContainerScale(playerMarkerSize);
 
-        // The marker is nested under a rotated/tilted hologram root. To make the
-        // arrow point in the player's actual world-facing direction, convert the
-        // player's flat forward into the marker's parent local space.
-        Vector3 worldFwd = player.forward; worldFwd.y = 0f;
-        if (worldFwd.sqrMagnitude > 1e-6f)
+        // Arrow direction = player's body yaw (world-flat forward). The marker
+        // is nested under a hologram root that may be tilted toward the camera,
+        // so we project the world-flat forward onto the model's terrain plane
+        // (perpendicular to parent.up) before converting to local space —
+        // otherwise camera pitch leaks into the arrow yaw.
+        var parent = playerMarker.transform.parent;
+        Vector3 bodyFwdWorld = player.forward; bodyFwdWorld.y = 0f;
+        if (bodyFwdWorld.sqrMagnitude > 1e-6f)
         {
-            Vector3 localFwd = playerMarker.transform.parent.InverseTransformDirection(worldFwd.normalized);
-            localFwd.y = 0f;
-            if (localFwd.sqrMagnitude > 1e-6f)
-                playerMarker.transform.localRotation = Quaternion.LookRotation(localFwd.normalized, Vector3.up);
+            bodyFwdWorld.Normalize();
+            Vector3 onPlane = Vector3.ProjectOnPlane(bodyFwdWorld, parent.up);
+            if (onPlane.sqrMagnitude > 1e-6f)
+            {
+                Vector3 localFwd = parent.InverseTransformDirection(onPlane.normalized);
+                playerMarker.transform.localRotation = Quaternion.LookRotation(localFwd, Vector3.up);
+            }
         }
     }
 
@@ -791,6 +892,28 @@ public class MapHologramTerrain : MonoBehaviour
             terrainMaterial.SetFloat("_GridStrength", gridStrength);
             terrainMaterial.SetFloat("_Fresnel", fresnelPower);
             terrainMaterial.SetFloat("_FresnelStrength", fresnelStrength);
+
+            // Fog of war
+            terrainMaterial.SetFloat("_FogEnabled", enableFogOfWar ? 1f : 0f);
+            terrainMaterial.SetColor("_FogColor", fogColor);
+            terrainMaterial.SetFloat("_FogIntensity", fogIntensity);
+            terrainMaterial.SetFloat("_FogNoiseScale", fogNoiseScale);
+            terrainMaterial.SetFloat("_FogNoiseSpeed", fogNoiseSpeed);
+            terrainMaterial.SetFloat("_DiscoveryRadius", Mathf.Max(0.01f, discoveryRadius));
+            terrainMaterial.SetFloat("_DiscoveryFalloff", Mathf.Max(0.0001f, discoveryFalloff));
+
+            int count = Mathf.Min(discoveryPoints.Count, discoveryUploadBuffer.Length);
+            for (int i = 0; i < count; i++) discoveryUploadBuffer[i] = discoveryPoints[i];
+            // Zero the rest so stale entries don't reveal anything if count shrinks.
+            for (int i = count; i < discoveryUploadBuffer.Length; i++) discoveryUploadBuffer[i] = Vector4.zero;
+            terrainMaterial.SetVectorArray("_DiscoveryPoints", discoveryUploadBuffer);
+            terrainMaterial.SetInt("_DiscoveryCount", count);
+
+            // Round map vignette centered on the player's sim-world XZ.
+            Vector3 centerWorld = player != null ? player.position : Vector3.zero;
+            terrainMaterial.SetVector("_MapCenterXZ", new Vector4(centerWorld.x, centerWorld.z, 0f, 0f));
+            terrainMaterial.SetFloat("_MapRadius", Mathf.Max(0.01f, mapRadius));
+            terrainMaterial.SetFloat("_MapEdgeFalloff", Mathf.Max(0.0001f, mapEdgeFalloff));
         }
         if (beamMaterial != null)
         {

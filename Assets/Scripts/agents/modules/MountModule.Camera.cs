@@ -91,32 +91,50 @@ public partial class MountModule
             listener.enabled = enabledState;
     }
 
-    // Clone Camera.main so the mount's third-person view inherits every render setting:
-    // URP UniversalAdditionalCameraData (renderer, post-processing, volume mask), shaders,
-    // clear flags, culling mask, skybox — everything. Falls back to a bare Camera only if
-    // Camera.main is missing entirely.
-    //
-    // Critical: any user scripts on the main camera (PlayerLook, head-bob, etc.) get cloned
-    // too, and their LateUpdate would overwrite the rotation this module sets each frame.
-    // We disable every non-Unity MonoBehaviour on the clone to neutralize them.
+    // Default third-person camera prefab loaded from Resources/ when no per-vehicle prefab
+    // is wired. Authored with the right URP settings (post-processing on, volume mask, etc.)
+    // so every mountable gets sane visuals out of the box.
+    private const string DefaultThirdPersonCameraResourcePath = "Mount Third Person Camera";
+    private static Camera s_defaultThirdPersonCameraPrefab;
+
+    private static Camera ResolveDefaultThirdPersonCameraPrefab()
+    {
+        if (s_defaultThirdPersonCameraPrefab != null)
+            return s_defaultThirdPersonCameraPrefab;
+        s_defaultThirdPersonCameraPrefab = Resources.Load<Camera>(DefaultThirdPersonCameraResourcePath);
+        return s_defaultThirdPersonCameraPrefab;
+    }
+
+    // Spawn the third-person camera. Prefers thirdPersonCameraPrefab (per-vehicle override),
+    // then the project default loaded from Resources/, then a clone of Camera.main, then a
+    // bare Camera as last resort.
     private void EnsureRuntimeThirdPersonCamera()
     {
         if (runtimeThirdPersonCamera != null)
             return;
 
-        Camera source = Camera.main;
+        Camera prefabToUse = thirdPersonCameraPrefab != null
+            ? thirdPersonCameraPrefab
+            : ResolveDefaultThirdPersonCameraPrefab();
+
         GameObject cameraObject;
-        if (source != null)
+        if (prefabToUse != null)
         {
-            cameraObject = Object.Instantiate(source.gameObject);
+            cameraObject = Object.Instantiate(prefabToUse.gameObject, transform);
             cameraObject.name = $"{name}_MountThirdPersonCamera";
             cameraObject.tag = "Untagged";
-            cameraObject.transform.SetParent(transform, false);
+            runtimeThirdPersonCamera = cameraObject.GetComponent<Camera>();
+            runtimeThirdPersonCamera.targetTexture = null;
+        }
+        else if (Camera.main != null)
+        {
+            cameraObject = Object.Instantiate(Camera.main.gameObject, transform);
+            cameraObject.name = $"{name}_MountThirdPersonCamera";
+            cameraObject.tag = "Untagged";
             foreach (Transform child in cameraObject.transform)
                 Object.Destroy(child.gameObject);
             runtimeThirdPersonCamera = cameraObject.GetComponent<Camera>();
             runtimeThirdPersonCamera.targetTexture = null;
-            DisableUserScriptsOnClone(cameraObject);
         }
         else
         {
@@ -127,22 +145,6 @@ public partial class MountModule
 
         if (!cameraObject.GetComponent<AudioListener>())
             cameraObject.AddComponent<AudioListener>();
-    }
-
-    // Disable every user-assembly MonoBehaviour on the cloned camera so nothing rotates or
-    // repositions it from under us. Keeps Unity and URP components (Camera, AudioListener,
-    // UniversalAdditionalCameraData, Volume, etc.) untouched so render settings still apply.
-    private static void DisableUserScriptsOnClone(GameObject cameraObject)
-    {
-        foreach (MonoBehaviour mb in cameraObject.GetComponents<MonoBehaviour>())
-        {
-            if (!mb)
-                continue;
-            string asm = mb.GetType().Assembly.GetName().Name;
-            if (asm.StartsWith("UnityEngine") || asm.StartsWith("Unity."))
-                continue;
-            mb.enabled = false;
-        }
     }
 
     private void SetMountedVisorEnabled(bool enabledState)

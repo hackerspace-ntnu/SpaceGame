@@ -37,6 +37,9 @@ public partial class MountModule : BehaviourModuleBase, IInteractable
 
     [Header("Mounted Camera")]
     [SerializeField] private CameraPerspective defaultPerspective = CameraPerspective.ThirdPerson;
+    [Tooltip("Prefab spawned and parented to the mount when entering third-person view. Falls back " +
+             "to a clone of Camera.main if null. Leave default unless this vehicle needs custom render settings.")]
+    [SerializeField] private Camera thirdPersonCameraPrefab;
     [SerializeField] private Transform thirdPersonPivot;
     [SerializeField] private Vector3 thirdPersonOffset = new Vector3(0f, 2.2f, -3.8f);
     [SerializeField] private float thirdPersonDistance = 3.8f;

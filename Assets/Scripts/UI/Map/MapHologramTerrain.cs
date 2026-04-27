@@ -54,19 +54,27 @@ public class MapHologramTerrain : MonoBehaviour
     [Range(0, 8)] [SerializeField] private float fresnelPower = 2.5f;
     [Range(0, 4)] [SerializeField] private float fresnelStrength = 1.6f;
 
-    [Header("Volumetric Beam")]
+    [Header("Sunray Fan")]
     [SerializeField] private bool showBeam = true;
-    [Range(16, 96)] [SerializeField] private int beamSides = 48;
-    [Tooltip("Beam base radius as a fraction of the hologram footprint. 0.5 = exactly cover the map width, 0.55 = slightly larger, 0.4 = inside the map.")]
-    [Range(0.2f, 0.9f)]
-    [SerializeField] private float beamRadiusFraction = 0.55f;
-    [Range(0, 1)] [SerializeField] private float beamApexAlpha = 0.95f;
-    [Range(0, 1)] [SerializeField] private float beamBaseAlpha = 0.20f;
+    [Tooltip("Reach radius as a fraction of the hologram footprint. Determines how wide the ray fan spreads at the base.")]
+    [Range(0.2f, 0.9f)] [SerializeField] private float beamRadiusFraction = 0.55f;
     [SerializeField] private float beamOriginOffset = 0.05f;
-    [Range(0, 32)] [SerializeField] private float beamRayCount = 14f;
-    [Range(0, 1)] [SerializeField] private float beamRayStrength = 0.4f;
-    [Range(1, 16)] [SerializeField] private float beamRaySharpness = 6f;
-    [SerializeField] private float beamRayDrift = 0.12f;
+    [Tooltip("Number of individual ray quads in the fan.")]
+    [Range(3, 24)] [SerializeField] private int sunrayCount = 9;
+    [Tooltip("Width of each ray at the base, as a fraction of the map radius. Smaller = thinner rays.")]
+    [Range(0.02f, 0.5f)] [SerializeField] private float sunrayBaseWidth = 0.12f;
+    [Tooltip("Brightness at the apex of each ray.")]
+    [Range(0, 2)] [SerializeField] private float sunrayApexAlpha = 1.0f;
+    [Tooltip("Brightness at the base of each ray.")]
+    [Range(0, 1)] [SerializeField] private float sunrayBaseAlpha = 0.0f;
+    [Tooltip("How sharply the ray fades at its left/right edges (across width). Higher = harder edge.")]
+    [Range(1f, 8f)] [SerializeField] private float sunrayEdgeSharpness = 2.0f;
+    [Tooltip("Slow rotation of the whole fan around the cone axis (revolutions per second). 0 = static.")]
+    [SerializeField] private float sunraySpinSpeed = 0.015f;
+    [Tooltip("Per-ray independent brightness shimmer strength.")]
+    [Range(0f, 1f)] [SerializeField] private float sunrayShimmer = 0.45f;
+    [Tooltip("How fast individual rays shimmer (Hz).")]
+    [SerializeField] private float sunrayShimmerSpeed = 0.6f;
 
     [Header("Layer (helps exclude from helmet/screen shaders)")]
     [Tooltip("All hologram visuals are placed on this layer at startup. Create a layer named 'Hologram' (Edit → Project Settings → Tags & Layers) and exclude it from helmet/screen-space shader cameras to stop bleed-through.")]
@@ -188,6 +196,7 @@ public class MapHologramTerrain : MonoBehaviour
         }
         if (terrainMaterial != null) Destroy(terrainMaterial);
         if (beamMaterial != null) Destroy(beamMaterial);
+        if (beamMesh != null) Destroy(beamMesh);
     }
 
     private void Update()
@@ -300,6 +309,9 @@ public class MapHologramTerrain : MonoBehaviour
         }
     }
 
+    private Mesh beamMesh;
+    private int beamMeshRayCount;
+
     private void BuildBeam()
     {
         beamObject = new GameObject("MapHologram_Beam");
@@ -312,15 +324,13 @@ public class MapHologramTerrain : MonoBehaviour
         renderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
         renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
 
-        beamMeshFilter.sharedMesh = BuildUnitConeMesh(beamSides);
+        BuildSunrayFanMesh();
 
         var shader = Shader.Find("Hologram/Beam");
         if (shader != null)
         {
             beamMaterial = new Material(shader) { hideFlags = HideFlags.DontSave };
             beamMaterial.SetColor("_Color", hologramTint);
-            beamMaterial.SetFloat("_ApexFade", beamApexAlpha);
-            beamMaterial.SetFloat("_BaseFade", beamBaseAlpha);
             renderer.sharedMaterial = beamMaterial;
         }
         else
@@ -330,42 +340,86 @@ public class MapHologramTerrain : MonoBehaviour
     }
 
     /// <summary>
-    /// Unit cone: apex at (0,0,0), base disc at z=1 with radius 1.
-    /// Side normals are perpendicular to the slant for fresnel softness.
+    /// Builds a fan of N flat quads radiating from the apex. Each quad is
+    /// 1 ray: a thin trapezoid with apex narrow and base wide. UV.x = across
+    /// width (0..1), UV.y = apex (0) → base (1). Vertex color R encodes
+    /// the per-ray index normalized to 0..1, so the shader can derive a
+    /// stable per-ray seed for shimmer.
     /// </summary>
-    private static Mesh BuildUnitConeMesh(int sides)
+    private void BuildSunrayFanMesh()
     {
-        var verts = new Vector3[1 + (sides + 1)];
-        var norms = new Vector3[verts.Length];
-        var uvs   = new Vector2[verts.Length];
-        var tris  = new int[sides * 3];
+        int rays = Mathf.Max(3, sunrayCount);
+        // Each quad has 4 verts and 2 tris.
+        var verts  = new Vector3[rays * 4];
+        var uvs    = new Vector2[rays * 4];
+        var colors = new Color32[rays * 4];
+        var tris   = new int[rays * 6];
 
-        verts[0] = Vector3.zero;
-        norms[0] = Vector3.back;
-        uvs[0]   = new Vector2(0.5f, 0f);
+        float baseHalfWidth = Mathf.Max(0.001f, sunrayBaseWidth) * 0.5f;
+        // Apex narrows to a point but with a tiny width so rasterization
+        // doesn't collapse the triangle to nothing.
+        float apexHalfWidth = baseHalfWidth * 0.05f;
 
-        for (int i = 0; i <= sides; i++)
+        for (int r = 0; r < rays; r++)
         {
-            float a = (float)i / sides * Mathf.PI * 2f;
-            float c = Mathf.Cos(a), s = Mathf.Sin(a);
-            verts[1 + i] = new Vector3(c, s, 1f);
-            norms[1 + i] = new Vector3(c, s, 0f).normalized;
-            uvs[1 + i]   = new Vector2((float)i / sides, 1f);
-        }
-        for (int i = 0; i < sides; i++)
-        {
-            tris[i * 3 + 0] = 0;
-            tris[i * 3 + 1] = 1 + i;
-            tris[i * 3 + 2] = 1 + i + 1;
+            float angle = (r / (float)rays) * Mathf.PI * 2f;
+            float c = Mathf.Cos(angle);
+            float s = Mathf.Sin(angle);
+            // Local axes for this ray:
+            //   forward = (c, s, 0) — radial outward in XY plane
+            //   right   = (-s, c, 0) — perpendicular (across width)
+            // The cone's length axis is +Z, but a flat fan doesn't have any
+            // Z extent — so we lay each ray in a plane perpendicular to the
+            // cone's axis is wrong. Instead, the ray is a quad lying in the
+            // plane spanned by Z (length, apex→base) and the radial outward
+            // direction (c, s, 0) at base. At apex, length=0, so the quad
+            // tapers to the apex point.
+            //
+            // Vertices in local cone space (apex=z=0, base=z=1):
+            //   apex-left, apex-right, base-left, base-right
+            // The "left/right" is in the radial-tangent direction, scaled by
+            // half-width × radial offset (so the quad widens as it leaves apex).
+            float ax = -s, ay = c, az = 0f;        // tangent at angle
+            // Apex-left and apex-right: same point at origin, slight offset for
+            // non-zero rasterization.
+            int v0 = r * 4;
+            verts[v0 + 0] = new Vector3(ax * apexHalfWidth, ay * apexHalfWidth, 0f);
+            verts[v0 + 1] = new Vector3(-ax * apexHalfWidth, -ay * apexHalfWidth, 0f);
+            // Base-left and base-right: at radial distance 1 from axis, offset
+            // by ±baseHalfWidth in the tangent direction.
+            verts[v0 + 2] = new Vector3(c + ax * baseHalfWidth, s + ay * baseHalfWidth, 1f);
+            verts[v0 + 3] = new Vector3(c - ax * baseHalfWidth, s - ay * baseHalfWidth, 1f);
+
+            uvs[v0 + 0] = new Vector2(0f, 0f);
+            uvs[v0 + 1] = new Vector2(1f, 0f);
+            uvs[v0 + 2] = new Vector2(0f, 1f);
+            uvs[v0 + 3] = new Vector2(1f, 1f);
+
+            // Per-ray seed in vertex.color.r: index/count gives a unique stable
+            // value 0..1 the shader can hash for independent shimmer.
+            byte seed = (byte)Mathf.Min(255, Mathf.RoundToInt(((r + 0.5f) / rays) * 255f));
+            colors[v0 + 0] = new Color32(seed, 0, 0, 255);
+            colors[v0 + 1] = new Color32(seed, 0, 0, 255);
+            colors[v0 + 2] = new Color32(seed, 0, 0, 255);
+            colors[v0 + 3] = new Color32(seed, 0, 0, 255);
+
+            int t0 = r * 6;
+            tris[t0 + 0] = v0 + 0; tris[t0 + 1] = v0 + 2; tris[t0 + 2] = v0 + 3;
+            tris[t0 + 3] = v0 + 0; tris[t0 + 4] = v0 + 3; tris[t0 + 5] = v0 + 1;
         }
 
-        var mesh = new Mesh { name = "HologramBeamCone" };
-        mesh.vertices  = verts;
-        mesh.normals   = norms;
-        mesh.uv        = uvs;
-        mesh.triangles = tris;
-        mesh.RecalculateBounds();
-        return mesh;
+        if (beamMesh == null)
+        {
+            beamMesh = new Mesh { name = "HologramSunrayFan", hideFlags = HideFlags.DontSave };
+            beamMeshFilter.sharedMesh = beamMesh;
+        }
+        beamMesh.Clear();
+        beamMesh.vertices  = verts;
+        beamMesh.uv        = uvs;
+        beamMesh.colors32  = colors;
+        beamMesh.triangles = tris;
+        beamMesh.RecalculateBounds();
+        beamMeshRayCount = rays;
     }
 
     private void BuildPlayerMarker()
@@ -1104,6 +1158,10 @@ public class MapHologramTerrain : MonoBehaviour
     {
         if (beamObject == null || !showBeam) return;
 
+        // Rebuild the fan mesh if ray count changed in the inspector.
+        if (beamMeshRayCount != Mathf.Max(3, sunrayCount))
+            BuildSunrayFanMesh();
+
         Vector3 origin = helmetAnchor != null
             ? helmetAnchor.position
             : (player != null ? player.position + Vector3.up * helmetHeightFallback : transform.position);
@@ -1115,12 +1173,13 @@ public class MapHologramTerrain : MonoBehaviour
         Vector3 dir = toRoot / length;
         Vector3 start = origin + dir * beamOriginOffset;
         float effectiveLen = Mathf.Max(0.01f, length - beamOriginOffset);
-
-        // Auto-fit cone base radius to the hologram footprint so rays land on the map.
         float radius = footprint * beamRadiusFraction;
 
+        // Roll the whole fan slowly around the cone's forward axis.
+        float spinDeg = (Time.time * sunraySpinSpeed * 360f) % 360f;
+
         beamObject.transform.position = start;
-        beamObject.transform.rotation = Quaternion.LookRotation(dir);
+        beamObject.transform.rotation = Quaternion.LookRotation(dir) * Quaternion.Euler(0f, 0f, spinDeg);
         beamObject.transform.localScale = new Vector3(radius, radius, effectiveLen);
     }
 
@@ -1168,12 +1227,12 @@ public class MapHologramTerrain : MonoBehaviour
         if (beamMaterial != null)
         {
             beamMaterial.SetColor("_Color", hologramTint);
-            beamMaterial.SetFloat("_ApexFade", beamApexAlpha);
-            beamMaterial.SetFloat("_BaseFade", beamBaseAlpha);
-            beamMaterial.SetFloat("_RayCount", beamRayCount);
-            beamMaterial.SetFloat("_RayStrength", beamRayStrength);
-            beamMaterial.SetFloat("_RaySharpness", beamRaySharpness);
-            beamMaterial.SetFloat("_RayDrift", beamRayDrift);
+            beamMaterial.SetFloat("_Intensity", intensity);
+            beamMaterial.SetFloat("_ApexFade", sunrayApexAlpha);
+            beamMaterial.SetFloat("_BaseFade", sunrayBaseAlpha);
+            beamMaterial.SetFloat("_EdgeSharpness", sunrayEdgeSharpness);
+            beamMaterial.SetFloat("_Shimmer", sunrayShimmer);
+            beamMaterial.SetFloat("_ShimmerSpeed", sunrayShimmerSpeed);
         }
     }
 }

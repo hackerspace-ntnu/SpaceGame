@@ -153,6 +153,10 @@ public partial class MountModule
             : transform.position + transform.right * fallbackDismountDistance;
         rider.position = dismountPosition;
 
+        // Strip any tilt the rider inherited from a tilted mount — keep only yaw so the
+        // player stands upright after dismount.
+        rider.rotation = Quaternion.Euler(0f, rider.eulerAngles.y, 0f);
+
         ExitMountedRigidbodyState();
         RestoreRiderComponentsAfterDismount();
         RestoreOwnRigidbodyRotationAfterDismount();

@@ -141,10 +141,12 @@ public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IM
 
         body.WakeUp();
 
-        // Tank steer: rotate body by yaw input.
+        // Tank steer: rotate body by yaw input. Rebuild rotation as upright + yaw so any
+        // initial tilt (vehicle spawned on a slope) is shed instead of preserved forever
+        // by additive transform.Rotate around world Y.
         float yaw = input.Move.x * riderTurnSpeed * deltaTime;
-        if (Mathf.Abs(yaw) > 1e-4f)
-            transform.Rotate(0f, yaw, 0f, Space.World);
+        float currentYaw = transform.eulerAngles.y + yaw;
+        transform.rotation = Quaternion.Euler(0f, currentYaw, 0f);
 
         // Throttle along own forward.
         float throttle = input.Move.y;
@@ -278,7 +280,10 @@ public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IM
         if (direction.sqrMagnitude <= 1e-4f)
             return;
         Quaternion target = Quaternion.LookRotation(direction.normalized);
-        transform.rotation = Quaternion.Slerp(transform.rotation, target, faceRotateSpeed * deltaTime);
+        Quaternion blended = Quaternion.Slerp(transform.rotation, target, faceRotateSpeed * deltaTime);
+        // Strip residual pitch/roll so a vehicle that spawned tilted (or got bumped) levels
+        // itself as it drives, instead of slerping forever toward upright.
+        transform.rotation = Quaternion.Euler(0f, blended.eulerAngles.y, 0f);
     }
 
     private void BeginArc(Vector3 direction, float horizontalDistance, float height, float duration)

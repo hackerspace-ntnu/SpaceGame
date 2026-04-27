@@ -216,16 +216,16 @@ MonoBehaviour:
   defaultPerspective: 1
   thirdPersonPivot: {fileID: 0}
   thirdPersonOffset: {x: 0, y: 10, z: -3.8}
-  thirdPersonDistance: 10
+  thirdPersonDistance: 20
   thirdPersonFollowLerp: 14
-  thirdPersonLookAhead: 6
+  thirdPersonLookAhead: 20
   lookActionName: Look
   lookSensitivity: 1
   lookPitchClamp: 75
   defaultMountedPitch: -15
   cameraAutoAlignSpeed: 90
   cameraAutoAlignDelay: 0.5
-  allowAISelfMovementWhenMounted: 0
+  allowAISelfMovementWhenMounted: 1
 --- !u!114 &5034448006587262711
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -292,7 +292,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SteerModule
   priority: 100
   active: 1
-  mountModule: {fileID: 0}
+  mountModule: {fileID: -4190948762612445816}
   moveActionName: Move
   jumpActionName: Jump
   verticalActionName: 

@@ -1,16 +1,22 @@
 Shader "Hologram/Beam"
 {
+    // Sunray fan: a small set of flat triangle quads radiating from a
+    // shared apex, each one a single ray. The fan rotates as a whole via
+    // the GameObject's transform Z-roll. Per-quad shader work:
+    //   - soft horizontal profile (bright at width center, fading to edges)
+    //   - apex→base length fade
+    //   - per-quad shimmer driven by a stable per-quad seed encoded in
+    //     vertex.color.r so each ray brightens/dims independently.
     Properties
     {
-        _Color    ("Tint", Color)            = (0.45, 0.95, 1.0, 1.0)
-        _Intensity("Intensity", Range(0, 4)) = 0.6
-        _ApexFade ("Apex Fade", Range(0, 1)) = 0.95
-        _BaseFade ("Base Fade", Range(0, 1)) = 0.30
-        _SoftEdge ("Soft Edge", Range(0, 1)) = 0.6
-        _RayCount ("Ray Count", Range(0, 32))= 12
-        _RayStrength ("Ray Strength", Range(0,1)) = 0.6
-        _RaySharpness("Ray Sharpness", Range(1, 16)) = 5
-        _RayDrift  ("Ray Drift", Float)      = 0.15
+        _Color    ("Tint", Color)            = (0.55, 0.90, 1.00, 1.0)
+        _Intensity("Intensity", Range(0, 6)) = 1.4
+
+        _ApexFade      ("Apex Brightness", Range(0, 2)) = 1.0
+        _BaseFade      ("Base Brightness", Range(0, 1)) = 0.0
+        _EdgeSharpness ("Edge Sharpness",  Range(1, 8)) = 2.0
+        _Shimmer       ("Shimmer",         Range(0, 1)) = 0.45
+        _ShimmerSpeed  ("Shimmer Speed",   Float)       = 0.6
     }
 
     SubShader
@@ -32,76 +38,59 @@ Shader "Hologram/Beam"
             #pragma fragment frag
             #include "UnityCG.cginc"
 
-            // Cone with apex at (0,0,0), base at z=1, radius=1.
-            // UV.x = around cone (0..1), UV.y = apex (0) to base (1).
-            // Normal = outward from cone axis for a fresnel-style soft edge.
-
             struct appdata
             {
                 float4 vertex : POSITION;
-                float3 normal : NORMAL;
                 float2 uv     : TEXCOORD0;
+                float4 color  : COLOR; // r = per-ray seed (0..1)
             };
-
             struct v2f
             {
-                float4 pos     : SV_POSITION;
-                float2 uv      : TEXCOORD0;
-                float3 worldP  : TEXCOORD1;
-                float3 worldN  : TEXCOORD2;
-                float3 viewDir : TEXCOORD3;
+                float4 pos : SV_POSITION;
+                float2 uv  : TEXCOORD0;
+                float  seed: TEXCOORD1;
             };
 
             float4 _Color;
             float  _Intensity;
             float  _ApexFade, _BaseFade;
-            float  _SoftEdge;
-            float  _RayCount;
-            float  _RayStrength;
-            float  _RaySharpness;
-            float  _RayDrift;
+            float  _EdgeSharpness;
+            float  _Shimmer, _ShimmerSpeed;
 
             v2f vert (appdata v)
             {
                 v2f o;
-                o.pos     = UnityObjectToClipPos(v.vertex);
-                o.uv      = v.uv;
-                o.worldP  = mul(unity_ObjectToWorld, v.vertex).xyz;
-                o.worldN  = UnityObjectToWorldNormal(v.normal);
-                o.viewDir = normalize(_WorldSpaceCameraPos - o.worldP);
+                o.pos  = UnityObjectToClipPos(v.vertex);
+                o.uv   = v.uv;
+                o.seed = v.color.r;
                 return o;
             }
 
             fixed4 frag (v2f i) : SV_Target
             {
-                // Length-wise opacity: bright near apex, faints toward base.
-                float lenA = lerp(_ApexFade, _BaseFade, saturate(i.uv.y));
+                float u = i.uv.x; // across width: 0 = left edge, 1 = right edge
+                float v = saturate(i.uv.y); // apex 0 → base 1
 
-                // Soft view-dependent edge for volumetric thickness.
-                float viewDot = abs(dot(normalize(i.worldN), normalize(i.viewDir)));
-                float side = pow(1.0 - viewDot, _SoftEdge * 4.0 + 1.0);
+                // Soft horizontal profile: 1 at center, fading to edges.
+                // 1 - |2u - 1| is a triangle that peaks at center; raise to a
+                // power for sharper falloff.
+                float profile = 1.0 - abs(2.0 * u - 1.0);
+                profile = pow(saturate(profile), _EdgeSharpness);
 
-                // Discrete rays along the cone surface — FIXED angular positions
-                // (no rotation, so it doesn't read as a spinning hypnosis pattern).
-                float angle = i.uv.x;
-                float ray = 0.5 + 0.5 * cos(angle * _RayCount * 6.2831);
-                ray = pow(saturate(ray), _RaySharpness);
+                // Length fade: bright at apex, dim at base.
+                float lenA = lerp(_ApexFade, _BaseFade, v);
 
-                // Each ray fades from bright at apex to dim at base.
-                float lengthFade = saturate(1.0 - i.uv.y);
-                lengthFade = pow(lengthFade, 1.4);
+                // Per-ray shimmer using the seed encoded in vertex color.
+                // Each ray gets an independent slow sine-driven brightness
+                // multiplier in [1 - shimmer, 1 + shimmer * 0.5].
+                float phase = i.seed * 6.2831853;
+                float shimmerWave = 0.5 + 0.5 * sin(_Time.y * _ShimmerSpeed * 6.2831853 + phase);
+                float shimmer = lerp(1.0, shimmerWave, _Shimmer);
 
-                // Subtle pulse traveling apex → base (faint flicker, not rotation).
-                float pulse = 0.85 + 0.15 * sin(i.uv.y * 8.0 - _Time.y * _RayDrift * 3.0);
+                // Final brightness.
+                float bright = profile * lenA * shimmer;
 
-                // Final ray fill = static streaks * length fade * pulse.
-                float rayFill = ray * lengthFade * pulse;
-
-                // Mix: soft base cone + sharp ray streaks on top.
-                float baseFill = side * (1.0 - _RayStrength);
-                float fill = baseFill + rayFill * _RayStrength;
-
-                fixed3 rgb = _Color.rgb * _Intensity * lenA * fill;
+                fixed3 rgb = _Color.rgb * _Intensity * bright;
                 return fixed4(rgb, 1.0);
             }
             ENDCG

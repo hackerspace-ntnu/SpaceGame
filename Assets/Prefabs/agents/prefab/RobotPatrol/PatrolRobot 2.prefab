@@ -96,6 +96,7 @@ GameObject:
   - component: {fileID: 3336273521187348112}
   - component: {fileID: 1142221981809942712}
   - component: {fileID: 7713946356376539874}
+  - component: {fileID: -450800050193387401}
   m_Layer: 0
   m_Name: PatrolRobot 2
   m_TagString: Untagged
@@ -167,6 +168,10 @@ MonoBehaviour:
   enableMountedLeap: 1
   mountedLeapCooldown: 0.6
   mountedLeapSampleRadius: 6
+  riderTurnSpeed: 120
+  riderForwardTargetDistance: 2
+  riderStopDistance: 0.15
+  riderNavMeshSampleDistance: 4
 --- !u!114 &8986471758657315100
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -651,6 +656,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EntityFaction
   faction: {fileID: 11400000, guid: e60e1b5fdd5ac4c0187e288640201cf6, type: 2}
   relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
+--- !u!114 &-450800050193387401
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c2de851ee8ee4bb4be2025d7ecbb018, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SceneTracked
+  keepChunksLoaded: 1
+  policy: 1
 --- !u!1 &1034371811066968702
 GameObject:
   m_ObjectHideFlags: 0

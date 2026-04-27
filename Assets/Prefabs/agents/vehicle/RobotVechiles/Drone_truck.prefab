@@ -114,6 +114,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 15f8b8d76c227cb4bb073e4622cf0e40, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7301163499157253567}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 15f8b8d76c227cb4bb073e4622cf0e40, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -5015738634771027535}
   m_SourcePrefab: {fileID: 100100000, guid: 15f8b8d76c227cb4bb073e4622cf0e40, type: 3}
 --- !u!1 &491640813585523826 stripped
 GameObject:
@@ -214,6 +217,7 @@ MonoBehaviour:
   mountCooldown: 0.25
   fallbackDismountDistance: 1.6
   defaultPerspective: 1
+  thirdPersonCameraPrefab: {fileID: 0}
   thirdPersonPivot: {fileID: 0}
   thirdPersonOffset: {x: 0, y: 10, z: -3.8}
   thirdPersonDistance: 20
@@ -332,6 +336,20 @@ CapsuleCollider:
   m_Height: 9.638582
   m_Direction: 2
   m_Center: {x: 0, y: 2.5193055, z: -0.32626247}
+--- !u!114 &-5015738634771027535
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 491640813585523826}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c2de851ee8ee4bb4be2025d7ecbb018, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SceneTracked
+  keepChunksLoaded: 1
+  policy: 1
 --- !u!4 &979946453577842376 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 15f8b8d76c227cb4bb073e4622cf0e40, type: 3}

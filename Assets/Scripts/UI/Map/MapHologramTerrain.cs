@@ -57,22 +57,23 @@ public class MapHologramTerrain : MonoBehaviour
     [Header("Sunray Fan")]
     [SerializeField] private bool showBeam = true;
     [Tooltip("Reach radius as a fraction of the hologram footprint. Determines how wide the ray fan spreads at the base.")]
-    [Range(0.2f, 0.9f)] [SerializeField] private float beamRadiusFraction = 0.55f;
+    [Range(0.2f, 0.9f)] [SerializeField] private float beamRadiusFraction = 0.449f;
     [SerializeField] private float beamOriginOffset = 0.05f;
-    [Tooltip("Number of individual ray quads in the fan.")]
-    [Range(3, 24)] [SerializeField] private int sunrayCount = 9;
-    [Tooltip("Width of each ray at the base, as a fraction of the map radius. Smaller = thinner rays.")]
-    [Range(0.02f, 0.5f)] [SerializeField] private float sunrayBaseWidth = 0.12f;
+    [Tooltip("Number of streak quads in the cone fan. Each quad is one straight ray.")]
+    [Range(3, 96)] [SerializeField] private int sunrayCount = 86;
+    [Tooltip("Width of each streak at the base ring. Smaller = thinner rays.")]
+    [Range(0.005f, 0.3f)] [SerializeField] private float sunrayBaseWidth = 0.3f;
+    [Tooltip("Slow rotation of the whole fan around the cone axis (revolutions per second). 0 = static.")]
+    [SerializeField] private float sunraySpinSpeed = 6f;
+
     [Tooltip("Brightness at the apex of each ray.")]
-    [Range(0, 2)] [SerializeField] private float sunrayApexAlpha = 1.0f;
+    [Range(0, 2)] [SerializeField] private float sunrayApexAlpha = 0.14f;
     [Tooltip("Brightness at the base of each ray.")]
     [Range(0, 1)] [SerializeField] private float sunrayBaseAlpha = 0.0f;
-    [Tooltip("How sharply the ray fades at its left/right edges (across width). Higher = harder edge.")]
-    [Range(1f, 8f)] [SerializeField] private float sunrayEdgeSharpness = 2.0f;
-    [Tooltip("Slow rotation of the whole fan around the cone axis (revolutions per second). 0 = static.")]
-    [SerializeField] private float sunraySpinSpeed = 0.015f;
+    [Tooltip("How sharply each streak fades at its left/right edges. Higher = harder edge.")]
+    [Range(1f, 8f)] [SerializeField] private float sunrayEdgeSharpness = 7.02f;
     [Tooltip("Per-ray independent brightness shimmer strength.")]
-    [Range(0f, 1f)] [SerializeField] private float sunrayShimmer = 0.45f;
+    [Range(0f, 1f)] [SerializeField] private float sunrayShimmer = 0.333f;
     [Tooltip("How fast individual rays shimmer (Hz).")]
     [SerializeField] private float sunrayShimmerSpeed = 0.6f;
 
@@ -311,6 +312,7 @@ public class MapHologramTerrain : MonoBehaviour
 
     private Mesh beamMesh;
     private int beamMeshRayCount;
+    private float beamMeshBuiltWidth;
 
     private void BuildBeam()
     {
@@ -420,6 +422,7 @@ public class MapHologramTerrain : MonoBehaviour
         beamMesh.triangles = tris;
         beamMesh.RecalculateBounds();
         beamMeshRayCount = rays;
+        beamMeshBuiltWidth = sunrayBaseWidth;
     }
 
     private void BuildPlayerMarker()
@@ -1158,8 +1161,9 @@ public class MapHologramTerrain : MonoBehaviour
     {
         if (beamObject == null || !showBeam) return;
 
-        // Rebuild the fan mesh if ray count changed in the inspector.
-        if (beamMeshRayCount != Mathf.Max(3, sunrayCount))
+        // Rebuild the fan mesh if ray count or per-quad width changed.
+        if (beamMeshRayCount != Mathf.Max(3, sunrayCount) ||
+            !Mathf.Approximately(beamMeshBuiltWidth, sunrayBaseWidth))
             BuildSunrayFanMesh();
 
         Vector3 origin = helmetAnchor != null

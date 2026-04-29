@@ -52,6 +52,14 @@ public class HelmetNavMarkers : MonoBehaviour
     [Tooltip("Marker alpha falls from 1 at this distance to 0.4 at maxDistance.")]
     [SerializeField] private float fadeStartDistance = 80f;
 
+    [Header("Arrow look (off-screen)")]
+    [Tooltip("Multiplier on markerSize when rendering an off-screen arrow — bigger reads better at the HUD edge.")]
+    [SerializeField] private float arrowSizeMultiplier = 1.35f;
+    [Tooltip("Hostile off-screen arrows pulse this much (0 = no pulse, 0.4 = strong).")]
+    [SerializeField, Range(0f, 0.6f)] private float hostilePulseAmount = 0.25f;
+    [Tooltip("Pulse speed in Hz for hostile off-screen arrows.")]
+    [SerializeField] private float hostilePulseHz = 2.4f;
+
     [Header("Threat detection (forwards info to vignette)")]
     [Tooltip("Distance at which a hostile entity registers full threat (1.0).")]
     [SerializeField] private float threatRange = 35f;
@@ -65,7 +73,10 @@ public class HelmetNavMarkers : MonoBehaviour
     [SerializeField] private bool debugForceDefaultMaterial = false;
     [Tooltip("If true, render every entity even when player faction can't resolve (will appear Neutral).")]
     [SerializeField] private bool showEvenWithoutPlayerFaction = true;
+    [Tooltip("Spawns 4 debug markers at +/- 10m on N/E/S/W around the camera. Use to verify rendering works regardless of factions/POIs in your scene.")]
+    [SerializeField] private bool debugSelfTestMarkers = false;
     private float nextDebugLog;
+    private readonly List<Transform> selfTestTransforms = new();
 
     private RectTransform rect;
     private readonly Dictionary<object, MarkerView> views = new();
@@ -191,6 +202,23 @@ public class HelmetNavMarkers : MonoBehaviour
             nextDebugLog = Time.unscaledTime + 1f;
             int poiCount = MapService.Instance != null ? MapService.Instance.Markers.Count : 0;
             Debug.Log($"[HelmetNavMarkers] entities={EntityTargetRegistry.All.Count} pois={poiCount} playerFaction={(playerFaction == null ? "NULL" : playerFaction.name)} canvasSize={size}");
+        }
+
+        // -------- 0) Self-test markers --------
+        if (debugSelfTestMarkers)
+        {
+            EnsureSelfTestTransforms(camPos);
+            for (int i = 0; i < selfTestTransforms.Count; i++)
+            {
+                var t = selfTestTransforms[i];
+                if (t == null) continue;
+                object key = t;
+                seenThisFrame.Add(key);
+                ProcessTarget(key, t.position, $"TEST{i}", new Color(1f, 0.4f, 1f, 1f),
+                    cam, camPos, size, left, right, bottom, top,
+                    relForThreat: FactionRelationship.Neutral,
+                    ref threatLevel, ref threatLocalDir);
+            }
         }
 
         // -------- 1) Faction-driven entities --------
@@ -356,7 +384,22 @@ public class HelmetNavMarkers : MonoBehaviour
         view.distance.text = FormatDistance(dist);
 
         if (!onScreen)
+        {
             view.arrow.rectTransform.localRotation = Quaternion.Euler(0, 0, arrowAngle);
+
+            // Bigger, optionally pulsing scale for off-screen arrows so they read at the edge.
+            float pulse = 1f;
+            if (relForThreat == FactionRelationship.Hostile && hostilePulseAmount > 0f)
+            {
+                float t = Mathf.Sin(Time.unscaledTime * hostilePulseHz * Mathf.PI * 2f) * 0.5f + 0.5f;
+                pulse = 1f + hostilePulseAmount * t;
+            }
+            view.arrow.rectTransform.localScale = Vector3.one * arrowSizeMultiplier * pulse;
+        }
+        else
+        {
+            view.arrow.rectTransform.localScale = Vector3.one;
+        }
 
         float a = 1f;
         if (maxDistance > 0f && fadeStartDistance > 0f && dist > fadeStartDistance)
@@ -376,6 +419,28 @@ public class HelmetNavMarkers : MonoBehaviour
     {
         if (img == null) return;
         var c = img.color; c.a = a; img.color = c;
+    }
+
+    private void EnsureSelfTestTransforms(Vector3 around)
+    {
+        if (selfTestTransforms.Count == 4) return;
+        // Clear leftovers
+        for (int i = 0; i < selfTestTransforms.Count; i++)
+            if (selfTestTransforms[i] != null) Destroy(selfTestTransforms[i].gameObject);
+        selfTestTransforms.Clear();
+
+        Vector3[] offsets = {
+            new Vector3( 0, 0,  10),  // forward
+            new Vector3(10, 0,  0),   // right
+            new Vector3( 0, 0, -10),  // back
+            new Vector3(-10, 0, 0),   // left
+        };
+        for (int i = 0; i < 4; i++)
+        {
+            var go = new GameObject($"HelmetHUD_SelfTest_{i}");
+            go.transform.position = around + offsets[i];
+            selfTestTransforms.Add(go.transform);
+        }
     }
 
     private static string FormatDistance(float meters)

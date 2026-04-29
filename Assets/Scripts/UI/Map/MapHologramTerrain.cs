@@ -118,8 +118,6 @@ public class MapHologramTerrain : MonoBehaviour
     [SerializeField] private float hiddenFogTintFalloff = 200f;
     [Tooltip("Random offset (m) applied to each hidden POI's tint center, so the marker isn't pinpointed by the red blob. Sampled once per marker.")]
     [SerializeField] private float hiddenFogPositionJitter = 80f;
-    [Tooltip("World-space distance the player must come within for a hidden marker to flip from fog tint to real marker. Per-POI override on MapPOI takes precedence.")]
-    [SerializeField] private float hiddenFogDiscoveryRadius = 250f;
 
     [Header("Animation")]
     [SerializeField] private float spawnRiseTime = 0.35f;
@@ -1100,7 +1098,6 @@ public class MapHologramTerrain : MonoBehaviour
 
         var svc = MapService.Instance;
         var s = terrainContainer.localScale;
-        Vector3 playerPos = player != null ? player.position : Vector3.zero;
 
         foreach (var kvp in markerVisuals)
         {
@@ -1110,15 +1107,27 @@ public class MapHologramTerrain : MonoBehaviour
 
             Vector3 worldPos = marker.GetWorldPosition();
 
-            // Promote a hidden marker to "discovered" once the player is close
-            // enough. Once flipped this stays true for the rest of the session.
-            if (enableHiddenMarkerFog && marker.requiresRevealedChunk && !marker.discovered && player != null)
+            // Promote a hidden marker to "discovered" once its location lies
+            // inside the same revealed-circle the terrain fog shader uses.
+            // This keeps the POI reveal in lock-step with the terrain fog
+            // dissolving — no more "marker pops out of still-fogged terrain".
+            // Per-POI discoveryRadius (if >= 0) shrinks/grows the test relative
+            // to the global terrain discovery radius.
+            if (enableHiddenMarkerFog && marker.requiresRevealedChunk && !marker.discovered)
             {
-                float r = marker.discoveryRadius >= 0f ? marker.discoveryRadius : hiddenFogDiscoveryRadius;
-                float dx = worldPos.x - playerPos.x;
-                float dz = worldPos.z - playerPos.z;
-                if (dx * dx + dz * dz <= r * r)
-                    marker.discovered = true;
+                float baseR = Mathf.Max(0.01f, discoveryRadius);
+                float effectiveR = marker.discoveryRadius >= 0f
+                    ? Mathf.Min(marker.discoveryRadius, baseR)
+                    : baseR;
+                float r2 = effectiveR * effectiveR;
+                int dpCount = discoveryPoints.Count;
+                for (int dpi = 0; dpi < dpCount; dpi++)
+                {
+                    var dp = discoveryPoints[dpi];
+                    float dx = worldPos.x - dp.x;
+                    float dz = worldPos.z - dp.z;
+                    if (dx * dx + dz * dz <= r2) { marker.discovered = true; break; }
+                }
             }
 
             // Honor the marker's own opt-out (MapPOI's alwaysVisible sets this).

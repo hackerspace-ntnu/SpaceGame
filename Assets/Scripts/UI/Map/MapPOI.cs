@@ -22,7 +22,7 @@ public class MapPOI : MonoBehaviour
     [Tooltip("If on, the marker is visible regardless of which chunks the player has explored. If off, only shows once the chunk is revealed (and meanwhile renders as a reddish fog cloud until the player gets close enough to discover it).")]
     [SerializeField] private bool alwaysVisible = true;
 
-    [Tooltip("World-space radius (m) the player must come within for this hidden POI to be 'discovered' (cloud → real marker). Use -1 to fall back to the hologram's global default.")]
+    [Tooltip("Optional per-POI tighter discovery radius (m). By default, a hidden POI is discovered when the player has explored close enough that the terrain fog around it would clear. Set this to a smaller value to require the player to get extra close before revealing this specific POI. -1 = use the terrain-fog reveal radius (default).")]
     [SerializeField] private float discoveryRadius = -1f;
 
     [Tooltip("Stable unique ID. Auto-generated on first add — don't edit unless you know what you're doing.")]

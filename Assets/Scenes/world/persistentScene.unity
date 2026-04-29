@@ -679,6 +679,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 71245afc7be6afd4993f070e81c0cb88, type: 3}
+--- !u!4 &641910449 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6400345289391496217, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+  m_PrefabInstance: {fileID: 309659530}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &671962444
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1067,7 +1072,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MapPOI
   poiName: Test
   type: 4
-  alwaysVisible: 1
+  alwaysVisible: 0
+  discoveryRadius: -1
   id: 7e6ccdbb73ef4a7fbc3515c502d236f0
 --- !u!4 &1128150117
 Transform:
@@ -1513,117 +1519,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1001130551400491267, guid: 81588ed703dd6e24ea08c454204dfc80, type: 3}
   m_PrefabInstance: {fileID: 1771626073}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &2143684989
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2143684991}
-  - component: {fileID: 2143684990}
-  m_Layer: 8
-  m_Name: MapHologramTerrain
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &2143684990
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2143684989}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 77b0f783117524e86a88023381402ca7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MapHologramTerrain
-  config: {fileID: 11400000, guid: 303234dac994845669b13bb8047213be, type: 2}
-  toggleActionName: Map
-  startVisible: 0
-  projectorAnchor: {fileID: 235825509}
-  helmetAnchor: {fileID: 235825509}
-  helmetHeightFallback: 1.7
-  distance: 1
-  sideOffset: -0.5
-  height: 0
-  yawTowardPlayer: 25
-  leanTowardPlayer: 45
-  footprint: 1
-  verticalExaggeration: 1.2
-  viewRadius: 3
-  centerOnPlayer: 1
-  hologramTint: {r: 0.45, g: 0.95, b: 1, a: 1}
-  valleyTint: {r: 0.1, g: 0.45, b: 0.65, a: 1}
-  peakTint: {r: 0.85, g: 1, b: 1, a: 1}
-  intensity: 1.4
-  contourSpacing: 20
-  contourThickness: 0.08
-  gridSpacing: 32
-  gridStrength: 0.4
-  fresnelPower: 2.5
-  fresnelStrength: 1.6
-  showBeam: 1
-  beamRadiusFraction: 0.55
-  beamOriginOffset: 0.05
-  sunrayCount: 9
-  sunrayBaseWidth: 0.12
-  sunrayApexAlpha: 1
-  sunrayBaseAlpha: 0
-  sunrayEdgeSharpness: 2
-  sunraySpinSpeed: 0.02
-  sunrayShimmer: 0.45
-  sunrayShimmerSpeed: 0.6
-  hologramLayerName: Hologram
-  disableGlassDistortionWhileOpen: 0
-  playerMarkerSize: 0.03
-  markerSize: 0.02
-  markerLift: 0.04
-  markerSpikeHeight: 0.06
-  markerSpikeWidth: 0.005
-  playerIntensity: 2.01
-  markerIntensity: 1.24
-  showOnlyRevealedMarkers: 1
-  revealAllChunks: 1
-  showMarkerLabels: 1
-  markerLabelFontSize: 6
-  markerLabelHeight: 2.6
-  markerLabelColor: {r: 1, g: 0.7971698, b: 0.8090742, a: 1}
-  spawnRiseTime: 0.35
-  wobbleAmplitudeDeg: 0.8
-  wobbleSpeed: 0.4
-  enableFogOfWar: 1
-  discoveryRadius: 250
-  discoveryFalloff: 150
-  discoveryPointSpacing: 12
-  maxDiscoveryPoints: 256
-  fogColor: {r: 0.495283, g: 1, b: 0.991541, a: 1}
-  fogIntensity: 0.07
-  fogNoiseScale: 0.015
-  fogNoiseSpeed: 0.08
-  fogSlopeDim: 0.85
-  fogViewDim: 0.6
-  mapRadius: 700
-  mapEdgeFalloff: 120
---- !u!4 &2143684991
+--- !u!4 &2143684991 stripped
 Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
+  m_CorrespondingSourceObject: {fileID: 4270090172241190741, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+  m_PrefabInstance: {fileID: 6102284891518314694}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2143684989}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -232.06828, y: 0.00002, z: 166.21432}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1026961185}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &648372190620039843
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1738,6 +1638,83 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 906da3c4fbcf24bafbbb3a8bfba925ea, type: 3}
+--- !u!1001 &6102284891518314694
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1026961185}
+    m_Modifications:
+    - target: {fileID: 83163578757683316, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: m_Name
+      value: MapHologramTerrain
+      objectReference: {fileID: 0}
+    - target: {fileID: 4270090172241190741, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -232.06828
+      objectReference: {fileID: 0}
+    - target: {fileID: 4270090172241190741, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.00002
+      objectReference: {fileID: 0}
+    - target: {fileID: 4270090172241190741, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 166.21432
+      objectReference: {fileID: 0}
+    - target: {fileID: 4270090172241190741, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4270090172241190741, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4270090172241190741, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4270090172241190741, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4270090172241190741, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4270090172241190741, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4270090172241190741, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8748746087574189271, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: fogIntensity
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8748746087574189271, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: helmetAnchor
+      value: 
+      objectReference: {fileID: 641910449}
+    - target: {fileID: 8748746087574189271, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: projectorAnchor
+      value: 
+      objectReference: {fileID: 235825509}
+    - target: {fileID: 8748746087574189271, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: maxDiscoveryPoints
+      value: 2000
+      objectReference: {fileID: 0}
+    - target: {fileID: 8748746087574189271, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: discoveryPointSpacing
+      value: 30
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

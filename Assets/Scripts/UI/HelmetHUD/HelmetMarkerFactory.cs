@@ -94,11 +94,23 @@ public static class HelmetMarkerFactory
         if (arrowTex == null) arrowTex = MakeArrow(128);
     }
 
+    private static bool warnedShaderMissing;
     private static void EnsureMaterial()
     {
         if (sharedHoloMaterial != null) return;
         var shader = Shader.Find("UI/HelmetHUDHolographic");
-        if (shader == null) return;
+        if (shader == null)
+        {
+            if (!warnedShaderMissing)
+            {
+                Debug.LogWarning("[HelmetMarkerFactory] Shader 'UI/HelmetHUDHolographic' not found. Markers will use the default UI shader. Add the shader to Project Settings → Graphics → Always Included Shaders, or create a dummy Material referencing it so Unity tracks it.");
+                warnedShaderMissing = true;
+            }
+            // Fall back to the default UI shader so markers are still visible.
+            var fallback = Shader.Find("UI/Default");
+            if (fallback != null) sharedHoloMaterial = new Material(fallback) { hideFlags = HideFlags.DontSave };
+            return;
+        }
         sharedHoloMaterial = new Material(shader) { hideFlags = HideFlags.DontSave };
     }
 
@@ -170,25 +182,73 @@ public static class HelmetMarkerFactory
 
     private static Texture2D MakeArrow(int size)
     {
-        // Pointing up (+y); rotated by HelmetNavMarkers
+        // Pointing up (+y); rotated by HelmetNavMarkers.
+        // Visual:
+        //   - Bold filled chevron (V-shape) with bright outline
+        //   - Small gap, then a thin tail tick (cardinal-line look)
+        //   - A bright apex dot at the very tip for readability at HUD edges
         var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, hideFlags = HideFlags.DontSave };
         var px = new Color[size * size];
-        // Triangle: apex at (0.5, 0.92), base from (0.18, 0.18) to (0.82, 0.18)
-        Vector2 a = new Vector2(0.5f, 0.92f);
-        Vector2 b = new Vector2(0.18f, 0.18f);
-        Vector2 c = new Vector2(0.82f, 0.18f);
+
+        float invSize = 1f / size;
+        // Edge feather in UV space — a couple of pixels worth.
+        float feather = 2f * invSize;
+
+        // Chevron geometry (UV space). Apex up.
+        Vector2 apex     = new Vector2(0.50f, 0.94f);
+        Vector2 leftOut  = new Vector2(0.10f, 0.46f);
+        Vector2 rightOut = new Vector2(0.90f, 0.46f);
+        Vector2 leftIn   = new Vector2(0.50f, 0.78f); // notch on the inside making it a V
+        Vector2 innerTip = new Vector2(0.50f, 0.50f);
+        Vector2 rightIn  = new Vector2(0.50f, 0.78f);
+
+        // The chevron is the union of two triangles: (apex, leftOut, innerTip) and (apex, rightOut, innerTip).
+        // Outline thickness in UV space.
+        float outline = 0.045f;
+
+        // Tail tick — a thin rectangle below the chevron.
+        float tickHalfW   = 0.035f;
+        float tickBottom  = 0.10f;
+        float tickTop     = 0.30f;
+
+        // Apex glow dot
+        Vector2 dot = apex;
+        float dotR = 0.06f;
+
         for (int y = 0; y < size; y++)
         {
             for (int x = 0; x < size; x++)
             {
-                Vector2 p = new Vector2((x + 0.5f) / size, (y + 0.5f) / size);
-                float t = SignedTriDistance(p, a, b, c);
-                // t < 0 inside; use feather to make edge smooth
-                float alpha = Mathf.Clamp01(-t * size * 0.5f);
-                // Inner notch — add a hollow stroke effect
-                float stroke = Mathf.Clamp01(0.06f - Mathf.Abs(t) * 4f);
-                float final = Mathf.Max(alpha * 0.55f, stroke);
-                px[y * size + x] = new Color(1, 1, 1, final);
+                Vector2 p = new Vector2((x + 0.5f) * invSize, (y + 0.5f) * invSize);
+
+                // --- Chevron: signed distance to two triangles, take the min ---
+                float dTriL = TriSDF(p, apex, leftOut, innerTip);
+                float dTriR = TriSDF(p, apex, rightOut, innerTip);
+                float dChev = Mathf.Min(dTriL, dTriR);
+
+                // Filled body (soft inside)
+                float bodyA = SmoothEdge(dChev, 0f, feather) * 0.55f;
+                // Bright outline ring around the chevron edge
+                float outlineA = Band(dChev, -outline, 0f, feather);
+
+                // --- Tail tick (thin vertical bar) ---
+                float tickX = Mathf.Abs(p.x - 0.5f) - tickHalfW;
+                float tickY = Mathf.Max(p.y - tickTop, tickBottom - p.y);
+                float dTick = Mathf.Max(tickX, tickY);
+                float tickA = SmoothEdge(dTick, 0f, feather);
+
+                // --- Apex glow dot ---
+                float dDot = (p - dot).magnitude - dotR;
+                float dotCore  = SmoothEdge(dDot, 0f, feather) * 0.85f;
+                float dotGlow  = SmoothEdge(dDot, dotR * 0.8f, dotR * 1.6f) * 0.35f;
+
+                float a = outlineA;
+                if (bodyA > a) a = bodyA;
+                if (tickA  > a) a = tickA;
+                if (dotCore > a) a = dotCore;
+                a = Mathf.Min(1f, a + dotGlow * 0.6f);
+
+                px[y * size + x] = new Color(1, 1, 1, a);
             }
         }
         tex.SetPixels(px);
@@ -196,13 +256,31 @@ public static class HelmetMarkerFactory
         return tex;
     }
 
-    private static float SignedTriDistance(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
+    // Smooth 0->1 step where val<edge becomes 1, val>edge+f becomes 0.
+    private static float SmoothEdge(float val, float edge, float f)
     {
-        // Approximate "inside-ness" by signed distance to the three edges
+        return 1f - Mathf.SmoothStep(edge, edge + f, val);
+    }
+
+    // Smooth band: 1 between [lo, hi], feathered by f on each side.
+    private static float Band(float val, float lo, float hi, float f)
+    {
+        float a = Mathf.SmoothStep(lo - f, lo, val);
+        float b = 1f - Mathf.SmoothStep(hi, hi + f, val);
+        return Mathf.Clamp01(Mathf.Min(a, b));
+    }
+
+    // Signed distance to a triangle (negative inside).
+    private static float TriSDF(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
+    {
         float d1 = SignedEdge(p, a, b);
         float d2 = SignedEdge(p, b, c);
         float d3 = SignedEdge(p, c, a);
-        return Mathf.Max(Mathf.Max(d1, d2), d3);
+        // Ensure consistent sign regardless of vertex winding.
+        float maxD = Mathf.Max(Mathf.Max(d1, d2), d3);
+        float minD = Mathf.Min(Mathf.Min(d1, d2), d3);
+        // Inside if all same sign; SDF magnitude is the closest edge.
+        return (maxD < 0f) ? maxD : (minD > 0f ? minD : maxD);
     }
 
     private static float SignedEdge(Vector2 p, Vector2 a, Vector2 b)

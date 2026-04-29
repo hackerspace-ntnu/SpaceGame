@@ -105,6 +105,22 @@ public class MapHologramTerrain : MonoBehaviour
     [SerializeField] private float markerLabelHeight = 2.5f;
     [SerializeField] private Color markerLabelColor = new Color(0.85f, 1.00f, 1.00f, 1f);
 
+    [Header("Hidden Marker Fog")]
+    [Tooltip("If on, hidden (Hide) markers that the player hasn't yet 'discovered' tint the surrounding terrain fog reddish, hinting that something is out there. Once the player gets within the discovery radius, the tint disappears and the real marker is revealed.")]
+    [SerializeField] private bool enableHiddenMarkerFog = true;
+    [Tooltip("Tint applied to the terrain fog around hidden, undiscovered POIs.")]
+    [SerializeField] private Color hiddenFogColor = new Color(1.0f, 0.25f, 0.20f, 1f);
+    [Tooltip("Brightness of the reddish fog tint at the center of a hidden POI's influence area.")]
+    [Range(0f, 4f)] [SerializeField] private float hiddenFogIntensity = 1.6f;
+    [Tooltip("World-space radius (m) over which a hidden POI tints the surrounding fog.")]
+    [SerializeField] private float hiddenFogTintRadius = 350f;
+    [Tooltip("Soft edge width (m) at the boundary of the tint area. Larger = mushier transition.")]
+    [SerializeField] private float hiddenFogTintFalloff = 200f;
+    [Tooltip("Random offset (m) applied to each hidden POI's tint center, so the marker isn't pinpointed by the red blob. Sampled once per marker.")]
+    [SerializeField] private float hiddenFogPositionJitter = 80f;
+    [Tooltip("World-space distance the player must come within for a hidden marker to flip from fog tint to real marker. Per-POI override on MapPOI takes precedence.")]
+    [SerializeField] private float hiddenFogDiscoveryRadius = 250f;
+
     [Header("Animation")]
     [SerializeField] private float spawnRiseTime = 0.35f;
     [SerializeField] private float wobbleAmplitudeDeg = 0.8f;
@@ -153,6 +169,8 @@ public class MapHologramTerrain : MonoBehaviour
     private readonly Dictionary<Vector2Int, GameObject> chunkMeshes = new();
     private readonly Dictionary<MapService.Marker, GameObject> markerVisuals = new();
     private readonly Dictionary<MapService.Marker, GameObject> markerLabels = new();
+    private readonly Dictionary<MapService.Marker, Vector3>    fogJitterByMarker = new();
+    private static readonly Vector4[] hiddenPoiUploadBuffer = new Vector4[32];
 
     // Fog of war: rolling buffer of revealed world-XZ centers.
     private readonly List<Vector4> discoveryPoints = new();
@@ -815,6 +833,16 @@ public class MapHologramTerrain : MonoBehaviour
     private void OnMarkerAdded(MapService.Marker marker)
     {
         if (markerVisuals.ContainsKey(marker)) return;
+
+        // Pre-pick a stable jitter offset per-marker so the red fog tint
+        // doesn't sit exactly on top of the real position (preserves mystery).
+        if (!fogJitterByMarker.ContainsKey(marker))
+        {
+            float j = Mathf.Max(0f, hiddenFogPositionJitter);
+            Vector2 r = j > 0f ? Random.insideUnitCircle * j : Vector2.zero;
+            fogJitterByMarker[marker] = new Vector3(r.x, 0f, r.y);
+        }
+
         var go = BuildMarkerVisual($"Marker_{marker.label ?? marker.type.ToString()}",
                                    MapMarkerColors.For(marker.type),
                                    markerIntensity,
@@ -833,15 +861,19 @@ public class MapHologramTerrain : MonoBehaviour
 
     private void OnMarkerRemoved(MapService.Marker marker)
     {
-        if (!markerVisuals.TryGetValue(marker, out var go)) return;
-        markerVisuals.Remove(marker);
-        if (go != null) Destroy(go);
+        if (markerVisuals.TryGetValue(marker, out var go))
+        {
+            markerVisuals.Remove(marker);
+            if (go != null) Destroy(go);
+        }
 
         if (markerLabels.TryGetValue(marker, out var labelGo))
         {
             markerLabels.Remove(marker);
             if (labelGo != null) Destroy(labelGo);
         }
+
+        fogJitterByMarker.Remove(marker);
     }
 
     // ─────────────────────────────────────────────
@@ -1068,6 +1100,8 @@ public class MapHologramTerrain : MonoBehaviour
 
         var svc = MapService.Instance;
         var s = terrainContainer.localScale;
+        Vector3 playerPos = player != null ? player.position : Vector3.zero;
+
         foreach (var kvp in markerVisuals)
         {
             var marker = kvp.Key;
@@ -1075,13 +1109,34 @@ public class MapHologramTerrain : MonoBehaviour
             if (go == null) continue;
 
             Vector3 worldPos = marker.GetWorldPosition();
+
+            // Promote a hidden marker to "discovered" once the player is close
+            // enough. Once flipped this stays true for the rest of the session.
+            if (enableHiddenMarkerFog && marker.requiresRevealedChunk && !marker.discovered && player != null)
+            {
+                float r = marker.discoveryRadius >= 0f ? marker.discoveryRadius : hiddenFogDiscoveryRadius;
+                float dx = worldPos.x - playerPos.x;
+                float dz = worldPos.z - playerPos.z;
+                if (dx * dx + dz * dz <= r * r)
+                    marker.discovered = true;
+            }
+
             // Honor the marker's own opt-out (MapPOI's alwaysVisible sets this).
             // Falling through to the global toggle keeps the old behaviour for
             // markers that do require chunk reveal.
             bool gateOnReveal = showOnlyRevealedMarkers && marker.requiresRevealedChunk;
-            bool show = !gateOnReveal
+            bool chunkRevealed = !gateOnReveal
                 || (svc != null && svc.IsChunkRevealed(config.WorldToChunkCoord(worldPos)));
+
+            // While hidden+undiscovered, suppress the real marker — the
+            // terrain fog tint (uploaded via _HiddenPOIs) hints at it instead.
+            bool hiddenAsFog = enableHiddenMarkerFog
+                && marker.requiresRevealedChunk
+                && !marker.discovered;
+            bool show = chunkRevealed && !hiddenAsFog;
+
             go.SetActive(show);
+
             if (!show) continue;
 
             go.transform.localPosition = WorldToTerrainLocal(worldPos)
@@ -1227,6 +1282,32 @@ public class MapHologramTerrain : MonoBehaviour
             terrainMaterial.SetVector("_MapCenterXZ", new Vector4(centerWorld.x, centerWorld.z, 0f, 0f));
             terrainMaterial.SetFloat("_MapRadius", Mathf.Max(0.01f, mapRadius));
             terrainMaterial.SetFloat("_MapEdgeFalloff", Mathf.Max(0.0001f, mapEdgeFalloff));
+
+            // Hidden POI fog tint: collect every hidden+undiscovered marker
+            // into the shader array as (simWorldX, simWorldZ, radius, falloff).
+            terrainMaterial.SetColor("_HiddenPOIColor", hiddenFogColor);
+            terrainMaterial.SetFloat("_HiddenPOIIntensity", hiddenFogIntensity);
+            int hCount = 0;
+            if (enableHiddenMarkerFog)
+            {
+                float radius = Mathf.Max(0.01f, hiddenFogTintRadius);
+                float falloff = Mathf.Max(0.0001f, hiddenFogTintFalloff);
+                foreach (var kvp in markerVisuals)
+                {
+                    var marker = kvp.Key;
+                    if (marker == null) continue;
+                    if (!marker.requiresRevealedChunk || marker.discovered) continue;
+                    if (hCount >= hiddenPoiUploadBuffer.Length) break;
+                    Vector3 wp = marker.GetWorldPosition();
+                    Vector3 jitter = fogJitterByMarker.TryGetValue(marker, out var j) ? j : Vector3.zero;
+                    hiddenPoiUploadBuffer[hCount++] = new Vector4(
+                        wp.x + jitter.x, wp.z + jitter.z, radius, falloff);
+                }
+            }
+            for (int i = hCount; i < hiddenPoiUploadBuffer.Length; i++)
+                hiddenPoiUploadBuffer[i] = Vector4.zero;
+            terrainMaterial.SetVectorArray("_HiddenPOIs", hiddenPoiUploadBuffer);
+            terrainMaterial.SetInt("_HiddenPOICount", hCount);
         }
         if (beamMaterial != null)
         {

@@ -12,6 +12,10 @@ public static class EntityTargetRegistry
 {
     private static readonly List<EntityFaction> entities = new List<EntityFaction>();
 
+    // Read-only view for systems that need to enumerate every registered entity
+    // (e.g. the helmet AR HUD building markers per frame).
+    public static IReadOnlyList<EntityFaction> All => entities;
+
     public static void Register(EntityFaction entity)
     {
         if (entity == null)

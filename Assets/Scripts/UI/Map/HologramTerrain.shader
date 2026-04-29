@@ -32,6 +32,10 @@ Shader "Hologram/Terrain"
 
         _MapRadius       ("Map Radius (m)", Float)     = 1100
         _MapEdgeFalloff  ("Map Edge Falloff (m)", Float)= 450
+
+        _HiddenPOIColor  ("Hidden POI Fog Color", Color) = (1.0, 0.25, 0.20, 1.0)
+        _HiddenPOIIntensity("Hidden POI Fog Intensity", Range(0, 4)) = 1.6
+        _HiddenPOICount  ("Hidden POI Count", Int)     = 0
     }
 
     SubShader
@@ -91,6 +95,14 @@ Shader "Hologram/Terrain"
             float  _MapRadius, _MapEdgeFalloff;
             #define MAX_DISCOVERY_POINTS 256
             float4 _DiscoveryPoints[MAX_DISCOVERY_POINTS]; // xz = world position
+
+            // Hidden + undiscovered POIs that recolor the surrounding fog reddish.
+            // .xy = sim-world XZ, .z = radius (m), .w = falloff (m).
+            #define MAX_HIDDEN_POIS 32
+            float4 _HiddenPOIs[MAX_HIDDEN_POIS];
+            float4 _HiddenPOIColor;
+            float  _HiddenPOIIntensity;
+            int    _HiddenPOICount;
 
             // Cheap value noise on world XZ for animated fog wisps.
             float hash21(float2 p)
@@ -182,7 +194,34 @@ Shader "Hologram/Terrain"
                     float2 np = i.simXZ * _FogNoiseScale;
                     float n = vnoise(np + _Time.y * _FogNoiseSpeed) * 0.6
                             + vnoise(np * 2.3 - _Time.y * _FogNoiseSpeed * 0.7) * 0.4;
-                    fixed3 fogCol = _FogColor.rgb * (_FogIntensity * (0.55 + n * 0.9));
+
+                    // Hidden+undiscovered POI influence: a soft circular weight
+                    // around each hidden POI, max'd across all POIs. Used to
+                    // tint the fog reddish in their general area without
+                    // pinpointing the exact location.
+                    float hiddenWeight = 0.0;
+                    if (_HiddenPOICount > 0)
+                    {
+                        int hcount = min(_HiddenPOICount, MAX_HIDDEN_POIS);
+                        for (int hk = 0; hk < hcount; hk++)
+                        {
+                            float2 hd = i.simXZ - _HiddenPOIs[hk].xy;
+                            float hr = max(0.0001, _HiddenPOIs[hk].z);
+                            float hf = max(0.0001, _HiddenPOIs[hk].w);
+                            float hdist = length(hd);
+                            // 1 inside (radius - falloff), smoothly fades to 0 at radius.
+                            float inner = max(0.0, hr - hf);
+                            float w = 1.0 - smoothstep(inner, hr, hdist);
+                            hiddenWeight = max(hiddenWeight, w);
+                        }
+                        // Modulate by the same noise as the fog so the red tint
+                        // also reads as wispy rather than as a flat disc.
+                        hiddenWeight *= (0.55 + n * 0.9);
+                    }
+
+                    fixed3 baseFogCol = _FogColor.rgb * (_FogIntensity * (0.55 + n * 0.9));
+                    fixed3 hiddenFogCol = _HiddenPOIColor.rgb * _HiddenPOIIntensity;
+                    fixed3 fogCol = lerp(baseFogCol, hiddenFogCol, saturate(hiddenWeight));
                     // Keep grid faintly visible through the fog so the chunked feel reads.
                     fogCol += grid * _Color.rgb * 0.35;
 

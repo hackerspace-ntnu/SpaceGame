@@ -25,7 +25,7 @@ public class HelmetDangerVignette : MonoBehaviour
     [Tooltip("Radius of the arc line from its (off-screen) center.")]
     [Range(0.5f, 4f)] [SerializeField] private float arcRadius = 2.27f;
     [Tooltip("Thickness of the arc line, in UV units.")]
-    [Range(0.001f, 0.05f)] [SerializeField] private float arcThickness = 0.0222f;
+    [Range(0.001f, 0.05f)] [SerializeField] private float arcThickness = 0.012f;
     [Tooltip("Soft fade at each end of the arc.")]
     [Range(0f, 0.3f)] [SerializeField] private float spanFeather = 0.249f;
 

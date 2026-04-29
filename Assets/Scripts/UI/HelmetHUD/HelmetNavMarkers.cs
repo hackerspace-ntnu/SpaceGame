@@ -53,12 +53,18 @@ public class HelmetNavMarkers : MonoBehaviour
     [SerializeField] private float fadeStartDistance = 80f;
 
     [Header("Arrow look (off-screen)")]
-    [Tooltip("Multiplier on markerSize when rendering an off-screen arrow — bigger reads better at the HUD edge.")]
-    [SerializeField] private float arrowSizeMultiplier = 1.35f;
+    [Tooltip("Color used for all off-screen directional arrows, regardless of faction. Matches the map hologram tint.")]
+    [SerializeField] private Color arrowColor = new Color(0.45f, 0.95f, 1.0f, 0.45f);
+    [Tooltip("Multiplier on markerSize when rendering an off-screen arrow.")]
+    [SerializeField] private float arrowSizeMultiplier = 0.55f;
     [Tooltip("Hostile off-screen arrows pulse this much (0 = no pulse, 0.4 = strong).")]
     [SerializeField, Range(0f, 0.6f)] private float hostilePulseAmount = 0.25f;
     [Tooltip("Pulse speed in Hz for hostile off-screen arrows.")]
     [SerializeField] private float hostilePulseHz = 2.4f;
+    [Tooltip("Soft Perlin breathing scale (0.04 = ±4%). Matches the slow pulse of the map hologram.")]
+    [SerializeField, Range(0f, 0.2f)] private float arrowScaleWobble = 0.04f;
+    [Tooltip("Speed of the scale wobble breathing.")]
+    [SerializeField, Range(0.1f, 4f)] private float arrowScaleWobbleHz = 1.2f;
 
     [Header("Threat detection (forwards info to vignette)")]
     [Tooltip("Distance at which a hostile entity registers full threat (1.0).")]
@@ -89,6 +95,7 @@ public class HelmetNavMarkers : MonoBehaviour
     {
         public RectTransform root;
         public Image ring;       // visible when on-screen
+        public Image pip;        // inner dot — visible when on-screen
         public Image arrow;      // visible when off-screen
         public TextMeshProUGUI label;
         public TextMeshProUGUI distance;
@@ -129,11 +136,11 @@ public class HelmetNavMarkers : MonoBehaviour
             if (existing.tint != tint)
             {
                 existing.ring.color = tint;
-                existing.arrow.color = tint;
                 existing.label.color = tint;
                 existing.distance.color = tint;
                 existing.tint = tint;
             }
+            existing.arrow.color = arrowColor;
             if (existing.label.text != labelText) existing.label.text = labelText;
             return existing;
         }
@@ -142,7 +149,7 @@ public class HelmetNavMarkers : MonoBehaviour
         v.label.color = tint;
         v.distance.color = tint;
         v.ring.color = tint;
-        v.arrow.color = tint;
+        v.arrow.color = arrowColor;
         v.tint = tint;
         views[key] = v;
         return v;
@@ -378,23 +385,27 @@ public class HelmetNavMarkers : MonoBehaviour
 
         view.root.anchoredPosition = anchored;
         view.onScreen = onScreen;
-        view.ring.gameObject.SetActive(onScreen);
+        view.ring.gameObject.SetActive(false);
+        if (view.pip != null) view.pip.gameObject.SetActive(false);
         view.arrow.gameObject.SetActive(!onScreen);
-        view.label.gameObject.SetActive(onScreen);
-        view.distance.text = FormatDistance(dist);
+        view.label.gameObject.SetActive(false);
+        view.distance.gameObject.SetActive(false);
 
         if (!onScreen)
         {
             view.arrow.rectTransform.localRotation = Quaternion.Euler(0, 0, arrowAngle);
 
-            // Bigger, optionally pulsing scale for off-screen arrows so they read at the edge.
+            // Optional hostile pulse on top of the breathing wobble.
             float pulse = 1f;
             if (relForThreat == FactionRelationship.Hostile && hostilePulseAmount > 0f)
             {
-                float t = Mathf.Sin(Time.unscaledTime * hostilePulseHz * Mathf.PI * 2f) * 0.5f + 0.5f;
-                pulse = 1f + hostilePulseAmount * t;
+                float tp = Mathf.Sin(Time.unscaledTime * hostilePulseHz * Mathf.PI * 2f) * 0.5f + 0.5f;
+                pulse = 1f + hostilePulseAmount * tp;
             }
-            view.arrow.rectTransform.localScale = Vector3.one * arrowSizeMultiplier * pulse;
+
+            // Slow shared breathing scale (matches map hologram cadence).
+            float wobble = 1f + (Mathf.PerlinNoise(Time.unscaledTime * arrowScaleWobbleHz, 0f) - 0.5f) * 2f * arrowScaleWobble;
+            view.arrow.rectTransform.localScale = Vector3.one * arrowSizeMultiplier * pulse * wobble;
         }
         else
         {
@@ -410,6 +421,7 @@ public class HelmetNavMarkers : MonoBehaviour
     private static void SetGroupAlpha(MarkerView v, float a)
     {
         SetA(v.ring, a);
+        SetA(v.pip, a);
         SetA(v.arrow, a);
         v.label.alpha = a;
         v.distance.alpha = a * 0.85f;

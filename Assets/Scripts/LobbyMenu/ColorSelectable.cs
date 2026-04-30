@@ -8,11 +8,9 @@ public class ColorSelectable : MonoBehaviour
     private PlayerColorSync playerColorSync;
     void Start()
     {
-        playerColorSync = FindAnyObjectByType<PlayerColorSync>();
         lobbySystem = FindAnyObjectByType<LobbySystem>();
         GetComponent<Button>().onClick.AddListener(() => {
             SetPlayerColor(GetComponent<Image>().color);
-            playerColorSync.updateColorLocal();
         });
     }
     

@@ -15,35 +15,78 @@ using System;
 using UnityEngine.SceneManagement;
 using Unity.VisualScripting;
 using NUnit.Framework;
+using UnityEditor.PackageManager;
 
+/// <summary>
+/// Manages the processes required for creating, joining, leaving, and starting
+/// a lobby. Utilizes Unity's Lobby system in tandem with the Relay service
+/// and netcode for game objects (NGO).
+/// </summary>
 public class LobbySystem : NetworkBehaviour
 {
+    //Holds the reference to the main game scene.
     [SerializeField] SceneReference gameScene;
-    
+
+    //Unity relay join code
     private const string KEY_RELAY_JOIN_CODE = "RelayJoinCode";
+
+    //The lobby this client is considered the host of
     private Lobby hostLobby;
+
+    //The lobby this client is currently in
     private Lobby joinedLobby;
+
+    //Timer used by a lobby host to send a heartbeat to
+    //The lobby so it does not automatically close.
     private float heartBeatTimer;
+
+    //Timer used to update the lobby internally, so that
+    //clients are able to see changes such as color selection
+    //and lobby member changes.
     private float lobbyUpdateTimer;
+
+    //Timer used when refreshing the lobbies in the lobby list.
     private float refreshLobbyListTimer;
+
+    //Maximum amount of players allowed in a lobby at one time.
     public static int maxPlayers = 4;
+
+    //Object responsible for controlling the UI layer of the lobby system.
     private LobbyListSystem lobbyList;
+
+    //This clients' name.
     private string playerName;
 
+    //Custom warning system used to display exceptions to the
+    //end user in a panel.
     private LobbyWarningSystem warningSystem;
 
-    
+    //Game settings object used to send information in the lobby
+    //to the in game network
+    [SerializeField]
+    private GameSettings gameSettings;
+
+    //This clients' id in the network.
+    private ulong clientId = 0;
+
+    //This clients' chosen color.
+    private Color chosenColor = Color.grey;
+
+    /// <summary>
+    /// - Sets the player name to "player" plus a random number.
+    /// - Initializes components
+    /// - Subscribes to standard network events.
+    /// </summary>
     public async void Start()
     {
         playerName = "Player" + UnityEngine.Random.Range(10, 99);
         lobbyList = GetComponent<LobbyListSystem>();
         await UnityServices.InitializeAsync();
-        
         warningSystem = GetComponent<LobbyWarningSystem>();
 
         AuthenticationService.Instance.SignedIn += () =>
         {
-        Debug.Log("Signed in " + AuthenticationService.Instance.PlayerId);
+            Debug.Log("Signed in " + AuthenticationService.Instance.PlayerId);
         };
 
         await AuthenticationService.Instance.SignInAnonymouslyAsync();
@@ -69,12 +112,15 @@ public class LobbySystem : NetworkBehaviour
                 //Server disconnect (restart network)
                 //restartNetwork();
             }
-            // This is the most important debug line!
             Debug.Log($"[NETCODE] Disconnected. Reason: {NetworkManager.Singleton.DisconnectReason}");
         };
 
     }
 
+    /// <summary>
+    /// Restarts the network by allocating a new host.
+    /// (Unused)
+    /// </summary>
     private void restartNetwork()
     {
         // Find new host (use Lobby service auto migration)
@@ -87,12 +133,19 @@ public class LobbySystem : NetworkBehaviour
         warningSystem.warn("Host left the game!");*/
     }
 
+    /// <summary>
+    /// Handles automatic synchronizations
+    /// </summary>
     private void Update() {
         //HandleLobbyRefreshList();
         HandleLobbyHeartBeat();
         HandleLobbyPollForUpdates();
     }
 
+    /// <summary>
+    /// Sends a heart beat ping to the lobby if the
+    /// client is the host of a lobby.s
+    /// </summary>
     private async void HandleLobbyHeartBeat() {
         if(hostLobby != null && joinedLobby != null) {
             heartBeatTimer -= Time.deltaTime;
@@ -104,6 +157,10 @@ public class LobbySystem : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Handles polling for changes in the lobby, such as
+    /// clients and data such as color.
+    /// </summary>
     private async void HandleLobbyPollForUpdates()
     {
         if (joinedLobby != null)
@@ -127,6 +184,11 @@ public class LobbySystem : NetworkBehaviour
             }
         }
     }
+
+    /// <summary>
+    /// Refreshes the lobby list automatically
+    /// (unused due to bandwidth usage)
+    /// </summary>
     private void HandleLobbyRefreshList()
     {
         if(UnityServices.State == ServicesInitializationState.Initialized && AuthenticationService.Instance.IsSignedIn)
@@ -141,6 +203,10 @@ public class LobbySystem : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Gets an allocation from the relay service
+    /// </summary>
+    /// <returns>Task<Allocation> the allocation gotten from the relay service</returns>
     private async Task<Allocation> AllocateRelay()
     {
         try
@@ -155,7 +221,11 @@ public class LobbySystem : NetworkBehaviour
         
     }
 
-
+    /// <summary>
+    /// Gets a relay join code from a given allocation
+    /// </summary>
+    /// <param name="allocation"> The allocation to get the join code from</param>
+    /// <returns>The join code gotten as a Task<String> object.</returns>
     private async Task<String> GetRelayJoinCode(Allocation allocation)
     {
         try
@@ -170,7 +240,11 @@ public class LobbySystem : NetworkBehaviour
         
     }
 
-
+    /// <summary>
+    /// Joins a specific relay using a join code
+    /// </summary>
+    /// <param name="joinCode">The join code to join the relay using</param>
+    /// <returns>the join allocation gotten from the relay service</returns>
     private async Task<JoinAllocation> JoinRelay(string joinCode)
     {
         try
@@ -184,6 +258,11 @@ public class LobbySystem : NetworkBehaviour
         }
         
     }
+
+    /// <summary>
+    /// Creates a lobby using the options provided
+    /// in the create lobby UI panel.
+    /// </summary>
     public async void createLobbyWithGivenOptions()
     {
         try
@@ -236,6 +315,10 @@ public class LobbySystem : NetworkBehaviour
             {
                 hostLobby.Players[0].Data["PlayerColor"].Value
             };
+            List<string> playerNetworkIds = new List<string>
+            {
+                hostLobby.Players[0].Data["PlayerNetworkId"].Value
+            };
             lobbyList.openLobbyScreen(joinedLobby.Name, joinedLobby.LobbyCode);
             lobbyList.showPlayerElements(playerNames.ToArray(), playerColors.ToArray());
             listLobbies();
@@ -247,6 +330,9 @@ public class LobbySystem : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Lists all public lobbies in the lobby list.
+    /// </summary>
     public async void listLobbies()
     {
         try
@@ -265,20 +351,22 @@ public class LobbySystem : NetworkBehaviour
         };
 
         QueryResponse queryResponse = await LobbyService.Instance.QueryLobbiesAsync(queryLobbiesOptions);
-        //Debug.Log("Lobbies found: " + queryResponse.Results.Count);
 
         lobbyList.clearPrevList();
 
         foreach (Lobby lobby in queryResponse.Results)
         {
             lobbyList.listNewLobby(lobby);
-            //Debug.Log(lobby.Name + " " + lobby.MaxPlayers);
         }
         } catch (LobbyServiceException e) {
             warningSystem.warn(e.Message);
         }
     }
 
+    /// <summary>
+    /// Join a lobby by a given id.
+    /// </summary>
+    /// <param name="id">the id of the lobby.</param>
     public async void JoinLobbyById(string id) {
         var joinOptions = new JoinLobbyByIdOptions
         {
@@ -293,6 +381,11 @@ public class LobbySystem : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Joins a lobby by a given code.
+    /// Used when joining private lobbies, as passwords are non-unique by nature.
+    /// </summary>
+    /// <param name="lobbyCode">The code to join by.</param>
     public async void JoinLobbyByCode(string lobbyCode)
     {
         var joinOptions = new JoinLobbyByCodeOptions
@@ -309,8 +402,10 @@ public class LobbySystem : NetworkBehaviour
         }
     }
 
-
-
+    /// <summary>
+    /// Join a lobby using a given password.
+    /// </summary>
+    /// <param name="lobbyPassword">The password used.</param>
     public async void JoinLobbyByPassword(string lobbyPassword)
     {
         var idOptions = new JoinLobbyByIdOptions{
@@ -328,6 +423,11 @@ public class LobbySystem : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// The relay layer required for seperating networks in several networks,
+    /// called when joining a lobby.
+    /// </summary>
+    /// <param name="lobby">The lobby to join.</param>
     private async void LobbyJoinRelayLayer(Lobby lobby)
     {
         try
@@ -346,23 +446,33 @@ public class LobbySystem : NetworkBehaviour
         }
 
     }
+
+    /// <summary>
+    /// Joins a given lobby.
+    /// </summary>
+    /// <param name="lobby">The lobby to join</param>
     private void JoinLobby(Lobby lobby)
     {
-        Debug.Log("Succesfully joined Lobby!");
         joinedLobby = lobby;
         AuthenticationService.Instance.UpdatePlayerNameAsync("Player_" + (lobby.Players.Count + 1));
         lobbyList.openLobbyScreen(joinedLobby.Name, joinedLobby.LobbyCode);
         lobbyList.setStartGameButtonState(false);
+        clientId = NetworkManager.Singleton.LocalClientId;
+        Debug.Log("CLIENT ID: " + clientId);
+        UpdatePlayerNetworkId(clientId);
         UpdatePlayerListInLobby();
-
     }
 
+    /// <summary>
+    /// Updates the player list for the client in a lobby.
+    /// </summary>
     private void UpdatePlayerListInLobby()
     {
         if(joinedLobby != null)
         {
             List<string> playerNames = new List<string>();
             List<string> playerColors = new List<string>();
+            
             foreach (Player p in joinedLobby.Players)
             {
                 playerNames.Add(p.Data["PlayerName"].Value);
@@ -372,6 +482,10 @@ public class LobbySystem : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Creates a player object with given data values.
+    /// </summary>
+    /// <returns>A Player object with a corresponding Data dictionary.</returns>
     private Player GetPlayer()
     {
         return new Player
@@ -379,26 +493,61 @@ public class LobbySystem : NetworkBehaviour
             Data = new Dictionary<string, PlayerDataObject>
             {
                 {"PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName)},
-                {"PlayerColor", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, UnityEngine.ColorUtility.ToHtmlStringRGB(Color.grey))}
+                {"PlayerColor", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, UnityEngine.ColorUtility.ToHtmlStringRGB(chosenColor))},
+                {"PlayerNetworkId", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, clientId.ToString())}
             }
         };
     }
 
+    /// <summary>
+    /// Updates the client player object with new data
+    /// </summary>
+    /// <param name="data">The data to update the player with.</param>
     private void UpdatePlayer(Dictionary<string, PlayerDataObject> data)
     {
+        gameSettings.setPlayerColor(clientId, chosenColor);
         UpdatePlayerData(joinedLobby.Id, AuthenticationService.Instance.PlayerId, data);
     }
 
+    /// <summary>
+    /// Updates the clients' color data field
+    /// </summary>
+    /// <param name="color">The new color to set for the player.</param>
     public void UpdatePlayerColor(Color color)
     {
+        chosenColor = color;
         Dictionary<string, PlayerDataObject> playerInfo = new Dictionary<string, PlayerDataObject>
             {
                 {"PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName)},
-                {"PlayerColor", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, UnityEngine.ColorUtility.ToHtmlStringRGB(color))}
+                {"PlayerColor", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, UnityEngine.ColorUtility.ToHtmlStringRGB(chosenColor))},
+                {"PlayerNetworkId", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, clientId.ToString())}
             };
         UpdatePlayer(playerInfo);
     }
 
+
+    /// <summary>
+    /// Updates the clients' network id field.
+    /// </summary>
+    /// <param name="networkId">The new client id to assign to the player.</param>
+    public void UpdatePlayerNetworkId(ulong networkId)
+    {
+        clientId = networkId;
+        Dictionary<string, PlayerDataObject> playerInfo = new Dictionary<string, PlayerDataObject>
+            {
+                {"PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName)},
+                {"PlayerColor", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, UnityEngine.ColorUtility.ToHtmlStringRGB(chosenColor))},
+                {"PlayerNetworkId", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, clientId.ToString())}
+            };
+        UpdatePlayer(playerInfo);
+    }
+
+    /// <summary>
+    /// Updates a givens players' data in a given lobby and given data.
+    /// </summary>
+    /// <param name="lobbyId">The lobby the player should be updated in</param>
+    /// <param name="playerId">The id of the player to update</param>
+    /// <param name="updateData">The data to update by</param>
     public async void UpdatePlayerData(string lobbyId, string playerId, Dictionary<string, PlayerDataObject> updateData)
     {
         try
@@ -417,10 +566,14 @@ public class LobbySystem : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Leaves the lobby, making joinedlobby null
+    /// </summary>
     public async void LeaveLobby() {
         try {
             await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, AuthenticationService.Instance.PlayerId);
             joinedLobby = null;
+            hostLobby = null;
             if (NetworkManager.Singleton.IsConnectedClient)
             {
                 NetworkManager.Singleton.Shutdown();
@@ -451,6 +604,10 @@ public class LobbySystem : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Kicks a selected player from the lobby
+    /// </summary>
+    /// <param name="playerId">The id of the player to kick</param>
     public async void KickPlayer(string playerId)
     {
         try
@@ -464,6 +621,10 @@ public class LobbySystem : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Migrates the lobby host to a new host.
+    /// </summary>
+    /// <param name="newHostId">The id of the player who will become the new host.</param>
     public async void MigrateLobbyHost(string newHostId)
     {
         try
@@ -480,12 +641,20 @@ public class LobbySystem : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Helper method to check if the client is the lobby host.
+    /// </summary>
+    /// <returns>true if host, false otherwise</returns>
     private bool isPlayerLobbyHost()
     {
         //Checks if the player is the host of the lobby.
         return joinedLobby.HostId == AuthenticationService.Instance.PlayerId;
     }
 
+    /// <summary>
+    /// Method for starting the game with the entire lobby.
+    /// Initializes the network and calls LoadScene from the network manager object.
+    /// </summary>
     public async void StartLobbyGame()
     {
         if (joinedLobby.HostId != AuthenticationService.Instance.PlayerId)
@@ -506,8 +675,21 @@ public class LobbySystem : NetworkBehaviour
                 IsLocked = true
             };
             await LobbyService.Instance.UpdateLobbyAsync(joinedLobby.Id, options);
+            foreach (Player p in joinedLobby.Players)
+            {
+                if (ulong.TryParse(p.Data["PlayerNetworkId"].Value, out ulong id))
+                {
+                    string hex = p.Data["PlayerColor"].Value;
+
+                    if (UnityEngine.ColorUtility.TryParseHtmlString(hex, out Color col))
+                    {
+                        gameSettings.setPlayerColor(id, col);
+                    }
+                }
+            }
             joinedLobby = null;
             hostLobby = null;
+
             NetworkManager.Singleton.SceneManager.LoadScene(gameScene.SceneName, LoadSceneMode.Single);
         }
         catch (LobbyServiceException e)
@@ -516,6 +698,10 @@ public class LobbySystem : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Returns the joined lobby
+    /// </summary>
+    /// <returns>The joined lobby</returns>
     public Lobby getJoinedLobby()
     {
         return joinedLobby;

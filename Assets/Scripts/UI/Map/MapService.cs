@@ -160,30 +160,6 @@ public class MapService : MonoBehaviour
 
     public bool HasPOI(string id) => !string.IsNullOrEmpty(id) && poisById.ContainsKey(id);
 
-    public Marker GetPOI(string id) =>
-        !string.IsNullOrEmpty(id) && poisById.TryGetValue(id, out var m) ? m : null;
-
-    /// <summary>
-    /// Force-discover every hidden POI within `radius` of `worldPos`. Returns
-    /// the count newly revealed. Used by the Ruin Scanner to lift the fog on
-    /// nearby secrets without requiring the player to walk into them.
-    /// </summary>
-    public int DiscoverPOIsInRadius(Vector3 worldPos, float radius)
-    {
-        int revealed = 0;
-        float r2 = radius * radius;
-        foreach (var m in markers)
-        {
-            if (!m.requiresRevealedChunk || m.discovered) continue;
-            if ((m.GetWorldPosition() - worldPos).sqrMagnitude <= r2)
-            {
-                m.discovered = true;
-                revealed++;
-            }
-        }
-        return revealed;
-    }
-
     public void RemoveMarker(Marker marker)
     {
         if (marker == null) return;

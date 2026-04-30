@@ -20,15 +20,19 @@ public class RuinScannerPulse : MonoBehaviour
     private static readonly int ProgressId = Shader.PropertyToID("_Progress");
 
     /// <summary>
-    /// Spawns the cone. `center` = scanner position (cone tip).
-    /// `radius` = base radius in meters. `length` = how far down the cone extends.
+    /// Spawns the cone. `center` = cone tip (scanner muzzle).
+    /// `direction` = where the cone points (player aim).
+    /// `radius` = base radius in meters. `length` = how far the cone extends along `direction`.
     /// </summary>
-    public static RuinScannerPulse Spawn(Vector3 center, float radius, float length, float duration, Material material)
+    public static RuinScannerPulse Spawn(Vector3 center, Vector3 direction, float radius, float length, float duration, Material material)
     {
+        if (direction.sqrMagnitude < 0.0001f) direction = Vector3.down;
+        direction.Normalize();
+
         var go = new GameObject("RuinScannerPulse");
         go.transform.position = center;
-        // Mesh is built along local +Y. Rotate so +Y points world-down.
-        go.transform.rotation = Quaternion.FromToRotation(Vector3.up, Vector3.down);
+        // Mesh is built along local +Y. Rotate so local +Y points along `direction`.
+        go.transform.rotation = Quaternion.FromToRotation(Vector3.up, direction);
 
         var mf = go.AddComponent<MeshFilter>();
         mf.sharedMesh = BuildConeMesh(radius, length);

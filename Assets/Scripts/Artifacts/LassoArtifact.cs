@@ -379,7 +379,8 @@ public class LassoArtifact : ToolItem
             Rigidbody ownerRb = owner.GetComponent<Rigidbody>();
             if (ownerRb != null)
             {
-                float drag = Mathf.Abs(radialVel) * 0.15f;
+                float tensionScale = Mathf.Clamp01(ropeTension / 600f);
+                float drag = Mathf.Abs(radialVel) * 0.15f * tensionScale;
                 ownerRb.AddForce(radial * drag, ForceMode.VelocityChange);
             }
         }

@@ -1,6 +1,6 @@
-// Enemy decision brain that switches between wandering and chasing a target.
-// Handles target acquisition/loss rules and close-range stop behavior.
-// Produces MoveIntent values consumed by the agent motor.
+// OBSOLETE: Replaced by the modular behaviour system (BehaviourModuleBase / IBehaviourModule).
+// Kept for prefab compatibility. Migrate to ChaseModule + WanderModule + EntityCombatModule.
+// This brain still works — AgentController picks it up as a legacy IAgentBrain fallback.
 using UnityEngine;
 
 public class EnemyBrain : MonoBehaviour, IAgentBrain
@@ -10,9 +10,12 @@ public class EnemyBrain : MonoBehaviour, IAgentBrain
 
     [Header("Targeting")]
     [SerializeField] private Transform target;
-    [SerializeField] private string targetTag = "Player";
+    [Tooltip("Faction relationship the nearest candidate must have. Requires EntityFaction on both entities.")]
+    [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Hostile;
     [SerializeField] private float detectRange = 10f;
     [SerializeField] private float loseTargetRange = 14f;
+
+    private EntityFaction selfFaction;
 
     [Header("Combat Movement")]
     [SerializeField] private float attackRange = 1.8f;
@@ -28,6 +31,7 @@ public class EnemyBrain : MonoBehaviour, IAgentBrain
         {
             wanderBehaviour = GetComponent<WanderBehaviour>();
         }
+        selfFaction = GetComponent<EntityFaction>();
     }
 
     private void OnEnable()
@@ -84,11 +88,7 @@ public class EnemyBrain : MonoBehaviour, IAgentBrain
             return;
         }
 
-        GameObject targetObject = GameObject.FindGameObjectWithTag(targetTag);
-        if (targetObject)
-        {
-            target = targetObject.transform;
-        }
+        target = EntityTargetRegistry.ResolveNearest(selfFaction, requiredRelationship, transform.position);
     }
 
     private void OnValidate()

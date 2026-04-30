@@ -1,233 +1,182 @@
 # Mounting System
 
-Guide for setting up mountable entities (rovers, creatures, vehicles, etc.).
+Guide for setting up mountable entities — creatures, vehicles, ships, anything a player can climb onto and drive.
 
-The system is split into two responsibilities:
+The runtime is **two components** plus **one motor**. Pick the motor based on how the entity should move; everything else is the same.
 
-- **`MountController`** -- mount-state only: rider attach/detach, component toggling, seat/dismount points.
-- **`MountSteeringController`** -- mounted input, camera perspective, look, steering override, and visual lean.
+---
 
-This separation means you can have mountable objects that don't give the rider direct steering control (e.g. a transport pod), or full rider-steerable mounts with camera and lean.
+## 1. The Two-Component Core
 
-## Components Overview
+Every mountable entity needs:
 
-| Component | Where | Purpose | Required? |
-|-----------|-------|---------|-----------|
-| `MountController` | Mount object | Rider attach/detach lifecycle, component toggling | Always |
-| `MountSteeringController` | Mount object | Mounted input, camera, steering override | Only for rider-steerable mounts |
-| `MountInteractor` | Mount object | Lets players interact to mount via the interaction system | Always |
-| `MountedAgentBrain` | Mount object | Hybrid brain: AI fallback + rider steering override | Only for creatures/vehicles with AI |
-| `IMountJumpMotor` | Mount motor (optional) | Implement on a motor to support mounted jumping | Optional |
+| Component | File | Responsibility |
+|---|---|---|
+| `MountModule` | `Assets/Scripts/agents/modules/MountModule.cs` | Mount/dismount lifecycle, `IInteractable` surface, AI suppression while ridden, mounted camera (FP/TP), look input. |
+| `SteerModule` | `Assets/Scripts/agents/modules/SteerModule.cs` | Reads rider input each frame, forwards it to the motor as a `RiderInput`, handles jump/hold-to-leap, optional visual lean. |
 
-## Setup Recipes
+Both are `IBehaviourModule`s — they sit on the entity alongside its normal AI modules and an `AgentController` resolves them automatically.
 
-### A. Rider-steerable creature with AI (e.g. ant)
+`MountModule` fires `Mounted` / `Dismounted` events. While mounted, it suppresses every other `IBehaviourModule` (and legacy `IAgentBrain`) on the entity unless `allowAISelfMovementWhenMounted = true`.
 
-Add all three components:
+---
 
-1. **`MountController`** -- mount/dismount lifecycle
-2. **`MountSteeringController`** -- rider camera + steering
-3. **`MountedAgentBrain`** -- blends AI with rider override
+## 2. The Motor — pick one
 
-Key behavior: when mounted but idle (no WASD input), the creature continues its normal AI movement. As soon as the rider gives steering input, the mounted override takes control.
+The motor is the physics/locomotion layer. Whichever you pick must implement `IRiderControllable` (`ApplyRiderInput`) so `SteerModule` can drive it. Optional interfaces (`IMountJumpMotor`, `IMountLeapMotor`) unlock the corresponding rider features.
 
-### B. Rider-steerable vehicle (no AI)
+| Motor | File | Movement model | Use for |
+|---|---|---|---|
+| `NavMeshAgentMotor` | `agents/AI/motor/NavMeshAgentMotor.cs` | Unity NavMeshAgent — follows baked navmesh, AI does pathfinding. | Mountable creatures and NPCs that should *also* wander/patrol/flee with proper pathfinding when not ridden. |
+| `RigidbodyMotor` | `agents/AI/motor/RigidbodyMotor.cs` | Direct `Rigidbody.linearVelocity` writes along forward; tank steer via `transform.Rotate`. Gravity + collisions intact. | Ground vehicles (rovers, dune riders, hover bikes) and physics creatures that don't need pathfinding. |
+| `FlyingRigidbodyMotor` | `agents/AI/motor/FlyingRigidbodyMotor.cs` | Throttle + yaw + ascend/descend on a Rigidbody, optional altitude hold, no gravity dependence. | Flying vehicles, drones, ships. |
 
-1. **`MountController`**
-2. **`MountSteeringController`**
+All three implement `IMovementMotor` (so `AgentController` can also drive them with AI `MoveIntent`s) **and** `IRiderControllable` (so `SteerModule` can drive them with `RiderInput`).
 
-No `MountedAgentBrain` needed -- wire `MountSteeringController.CurrentMoveInput` / `CurrentSteeringForward` into your vehicle's motor directly.
+### Motor Capability Matrix
 
-### C. Non-steerable mount (e.g. transport pod)
+| Capability | NavMeshAgentMotor | RigidbodyMotor | FlyingRigidbodyMotor |
+|---|---|---|---|
+| AI pathfinding (`MoveIntent.MoveToPosition`) | ✅ via NavMesh | ✅ direct steering, no obstacle avoidance | ✅ direct steering, free-flight |
+| Rider steering (`IRiderControllable`) | ✅ tank steer | ✅ tank steer | ✅ throttle + yaw + vertical |
+| Jump (`IMountJumpMotor`) | ✅ | ✅ (kinematic arc) | ❌ |
+| Leap (`IMountLeapMotor`) | ✅ | ✅ (kinematic arc) | ❌ |
+| Vertical / altitude axis | ❌ | ❌ | ✅ |
+| Honors gravity / ground friction | NavMesh decides | ✅ | ❌ (altitude controlled) |
+| Required scene support | Baked NavMesh | Rigidbody + Collider | Rigidbody + Collider |
 
-1. **`MountController`** only
+---
 
-The rider sits and rides along but has no steering control. The mount moves via its own AI or scripted path.
+## 3. Setup Recipes
 
-### Backwards compatibility
+### A. Mountable creature with AI (e.g. a rideable ant)
 
-`MountedAgentBrain` auto-adds `MountSteeringController` at runtime if the object has a `MountController` but no steering component yet. Existing scene objects (e.g. ants) will keep working without immediate scene changes.
+Components on the root GameObject:
 
-## Component Details
+1. `MountModule`
+2. `SteerModule`
+3. `AgentController`
+4. `NavMeshAgentMotor` + Unity `NavMeshAgent`
+5. Any AI modules you want — `WanderModule`, `PatrolModule`, `FleeModule`, etc.
+6. `MountModule.allowAISelfMovementWhenMounted` → set to `true` if you want the creature to keep wandering while the rider is idle, `false` to make it stand still until the rider gives input.
 
-### MountController
+The creature pathfinds through AI when not ridden, and the rider tank-steers it through `SteerModule` → `NavMeshAgentMotor.ApplyRiderInput`. Jump and leap come for free.
 
-Mount-state only. No input, camera, or steering logic.
+### B. Ground vehicle (e.g. dune rider, rover)
 
-| Field | Default | Description |
-|-------|---------|-------------|
-| `seatPoint` | self | Transform where the rider sits |
-| `dismountPoint` | -- | Transform where rider is placed on dismount (falls back to offset from mount) |
-| `disablePlayerMovement` | true | Disable `PlayerMovement` while mounted |
-| `disablePlayerLook` | true | Disable `PlayerLook` while mounted |
-| `disablePlayerInteractor` | true | Disable `Interactor` while mounted |
-| `mountCooldown` | 0.25s | Cooldown between mount/dismount |
-| `fallbackDismountDistance` | 1.6 | Fallback offset if no dismount point assigned |
+1. `MountModule`
+2. `SteerModule`
+3. `Rigidbody` + `Collider`
+4. `RigidbodyMotor` (auto-added by `SteerModule.EnsureRuntimeMovementPath` if missing, but add explicitly so you can tune fields)
+5. `AgentController` (also auto-added if missing)
+6. No AI modules → vehicle is inert until ridden.
 
-Events:
-- `Mounted(PlayerMovement)` -- fired after rider is attached
-- `Dismounted(PlayerMovement)` -- fired after rider is detached
+Tune `RigidbodyMotor.maxSpeed`, `walkSpeedMultiplier`, `acceleration`, `riderTurnSpeed`, `enableJump`. If the rider should be able to sprint, set `SteerModule.riderCanRun = true` and assign `runActionName` (default `"Sprint"`).
 
-Public API:
-- `TryMount(Interactor, Transform mountPointOverride)` -- attempts to mount the rider
-- `Dismount()` -- detaches the rider
-- `CanMount(Interactor)` -- availability check
-- `IsMounted`, `IsAvailableForMount` -- state queries
-- Exposes cached rider references: `MountedPlayerMovement`, `MountedPlayerLook`, `MountedFirstPersonCamera`, etc.
+### C. Flying vehicle / ship
 
-### MountSteeringController
+1. `MountModule`
+2. `SteerModule` + set `verticalActionName` to a Vector2 action whose Y axis is ascend/descend (or a float action).
+3. `Rigidbody` + `Collider`
+4. `FlyingRigidbodyMotor`
+5. Optional `AgentController` if you want autopilot AI when not ridden.
 
-Requires `MountController` on the same object (`[RequireComponent]`). Subscribes to `Mounted`/`Dismounted` events to activate/deactivate.
+`FlyingRigidbodyMotor.altitudeHold = true` keeps the craft at `cruiseAltitude` when the rider isn't pushing the vertical axis. Jump/leap are intentionally absent — flying motors don't implement those interfaces.
 
-| Field | Default | Description |
-|-------|---------|-------------|
-| `lookSensitivity` | 1.0 | Mouse/stick sensitivity |
-| `lookPitchClamp` | 75 deg | Vertical look limit |
-| `steerSpeed` | 120 deg/s | Mount rotation speed |
-| `turnSmoothTime` | 0.12s | Input dampening |
-| `leanAmount` | 10 deg | Max visual tilt angle |
-| `leanSmoothTime` | 0.18s | Lean animation smoothness |
-| `momentumDamping` | 7.0 | Steering momentum decay |
-| `visualTiltRoot` | -- | Object that tilts for visual lean |
-| `defaultPerspective` | ThirdPerson | Camera on mount |
-| `thirdPersonCamera` | -- | Auto-created if empty |
-| `thirdPersonPivot` | -- | Camera pivot point |
-| `thirdPersonOffset` | (0, 2.2, -3.8) | Camera framing offset; `x/y` frame the shot and the `z` sign controls back/front direction |
-| `thirdPersonDistance` | 3.8 | How far from the mount the third-person camera sits |
-| `thirdPersonFollowLerp` | 14 | Camera follow speed |
-| `cameraAutoAlignSpeed` | 90 deg/s | Look auto-center speed |
-| `cameraAutoAlignDelay` | 0.5s | Delay before auto-center |
-| `perspectiveToggleActionName` | "Next" | Input action to toggle camera |
-| `steeringOverrideThreshold` | 0.1 | Input magnitude before rider takes steering control |
+---
 
-Public API:
-- `HasSteeringOverride` -- true when rider is actively giving move input
-- `CurrentMoveInput` -- smoothed Vector2 from rider
-- `CurrentSteeringForward` -- world direction the rider is looking/steering toward
-- `ThirdPersonDistance` / `SetThirdPersonDistance(float)` -- read or change mounted camera distance at runtime
-- `ConsumeMountedJumpPressed()` -- returns true once per jump press
+## 4. Per-Component Field Reference
 
-### MountInteractor
+### `MountModule`
 
-Implements `IInteractable`. Place on the mount or a child object (e.g. a saddle collider).
+| Field | Purpose |
+|---|---|
+| `seatPoint` | Where the rider is parented while mounted. Defaults to the entity itself. |
+| `dismountPoint` | Where the rider lands on dismount. Falls back to `fallbackDismountDistance` ahead of the seat if null. |
+| `disablePlayerMovement` / `disablePlayerLook` / `disablePlayerInteractor` | Toggle individual rider components off while seated. |
+| `mountCooldown` | Seconds after dismount before re-mount is allowed. |
+| `defaultPerspective` | First-person or third-person on mount. |
+| `thirdPersonPivot` / `thirdPersonOffset` / `thirdPersonDistance` / `thirdPersonFollowLerp` / `thirdPersonLookAhead` | TP camera rig. |
+| `lookActionName` / `lookSensitivity` / `lookPitchClamp` / `defaultMountedPitch` | Mounted look input. |
+| `cameraAutoAlignSpeed` / `cameraAutoAlignDelay` | Camera snaps back behind the entity after the rider stops looking around. |
+| `allowAISelfMovementWhenMounted` | If false, all other modules are disabled while ridden. |
 
-| Field | Description |
-|-------|-------------|
-| `mountController` | Reference to `MountController` (auto-found in parent if empty) |
-| `mountTransform` | Optional seat position override |
+### `SteerModule`
 
-### MountedAgentBrain
+| Field | Purpose |
+|---|---|
+| `moveActionName` | Vector2 input action for steer. Default `"Move"`. |
+| `jumpActionName` | Button action for jump/leap. Default `"Jump"`. |
+| `verticalActionName` | Optional ascend/descend axis (only used by flying motors). Leave blank for ground. |
+| `runActionName` | Sprint button. Active only if `riderCanRun = true`. |
+| `steeringOverrideThreshold` | Below this magnitude, rider input is ignored and AI can run (if allowed). |
+| `turnSmoothTime` | SmoothDamp window on rider stick input. |
+| `riderCanRun` | If false, rider is locked to walk speed regardless of sprint button. |
+| `jumpEnabled` / `leapEnabled` / `leapHoldTime` / `leapHorizontal` / `leapVertical` / `leapDuration` | Tap-jump vs hold-leap config. |
+| `visualTiltRoot` / `leanAmount` / `leanSmoothTime` | Cosmetic body lean during turns. |
 
-Implements `IAgentBrain`. Hybrid brain that delegates to fallback AI or rider input.
+### `RigidbodyMotor` (rider-relevant)
 
-Decision flow each `Tick()`:
-1. If mounted **and** `steeringController.HasSteeringOverride` -- use rider input (tank steering: W/S forward/back, A/D handled by `MountSteeringController`)
-2. If mounted but **no steering override** -- fall through to fallback AI (creature keeps moving on its own)
-3. If not mounted -- use fallback AI
+| Field | Purpose |
+|---|---|
+| `maxSpeed` | Top speed when running. |
+| `walkSpeedMultiplier` | Fraction of `maxSpeed` when not running. |
+| `acceleration` / `deceleration` | Throttle ramp rates. |
+| `riderTurnSpeed` | Yaw degrees/sec under rider control. |
+| `enableJump` / `jumpHeight` / `jumpDuration` / `jumpCooldown` | Tap-jump parameters (kinematic arc). |
+| `enableLeap` / `leapCooldown` | Hold-jump leap parameters. |
 
-| Field | Default | Description |
-|-------|---------|-------------|
-| `fallbackBrain` | -- | `NpcBrain` to use when unmounted or idle-mounted |
-| `mountController` | -- | Auto-found if empty |
-| `steeringController` | -- | Auto-found; auto-added if missing |
-| `mountedMoveDistance` | 2.0 | NavMesh target distance ahead |
-| `mountedStopDistance` | 0.15 | Stop threshold |
-| `mountedSpeedMultiplier` | 2.4x | Top mounted speed |
-| `mountedAcceleration` | 4.0 | Speed ramp rate (units/sec) |
-| `mountedNavMeshSampleDistance` | 4.0 | NavMesh sample radius |
-| `faceMouseLookDirection` | true | Face steering forward |
-| `enableMountedJump` | true | Forward jump to `IMountJumpMotor` |
+### `NavMeshAgentMotor` (rider-relevant)
 
-## Rider Requirements
+| Field | Purpose |
+|---|---|
+| `NavMeshAgent.speed` (on the agent itself) | Base run speed. Captured at Awake as `defaultSpeed`. |
+| `walkSpeedMultiplier` | Fraction of base speed when not running. |
+| `riderTurnSpeed` | Yaw degrees/sec under rider control. |
 
-The player object needs these components reachable from the interacting transform:
+### `FlyingRigidbodyMotor` (rider-relevant)
 
-- `PlayerMovement` on a parent -- disabled while mounted.
-- `PlayerLook` -- disabled while mounted.
-- `Interactor` -- disabled while mounted.
-- `Rigidbody` -- set to kinematic during mount, restored on dismount.
-- `Camera` -- first-person camera, toggled off in third-person mode.
+| Field | Purpose |
+|---|---|
+| `maxSpeed` | Horizontal top speed. |
+| `maxVerticalSpeed` | Ascend/descend top speed. |
+| `acceleration` / `deceleration` | Throttle ramp rates. |
+| `riderTurnSpeed` | Yaw degrees/sec. |
+| `altitudeHold` / `cruiseAltitude` / `altitudeHoldGain` | Hands-off altitude maintenance. |
 
-No extra setup needed on the player side; `MountController` finds and manages these automatically.
+---
 
-## Mount / Dismount Flow
+## 5. Frame Flow
 
-**Mounting** (triggered via `MountInteractor`):
-1. `MountController.TryMount()` validates availability, caches rider references.
-2. Disables rider movement, look, and interaction components.
-3. Parents rider to seat point, sets rigidbody to kinematic.
-4. Fires `Mounted` event.
-5. `MountSteeringController` (if present) receives the event, initializes view state, and applies camera perspective.
+While mounted *and* rider input is above `steeringOverrideThreshold`:
 
-**Dismounting** (Escape key, or calling `Dismount()`):
-1. Unparents rider, places at dismount point.
-2. Restores rigidbody state and re-enables rider components.
-3. Fires `Dismounted` event.
-4. `MountSteeringController` resets steering/camera state.
-5. Cooldown starts to prevent spam.
+1. `SteerModule.Update` — read input, smooth, build a `RiderInput`.
+2. `SteerModule.Tick` (called from `AgentController.Update`) — call `motor.ApplyRiderInput(input, dt)` and return `MoveIntent.Idle()` to claim the frame.
+3. `AgentController` calls `motor.Tick(Idle)`. The motor's rider-frame guard skips the `MoveIntent` branch so the rider's writes stand.
 
-## Camera System
+When rider input drops below threshold, `SteerModule.Tick` returns `null` — other modules can produce intents (only if `allowAISelfMovementWhenMounted = true`).
 
-Managed by `MountSteeringController`. Two perspectives, toggled via `perspectiveToggleActionName` (default: `"Next"`).
+Jump / leap go through `IMountJumpMotor` / `IMountLeapMotor` — motors that don't implement them just ignore the rider's button.
 
-- **First-person** -- uses the rider's own camera, positioned at head. Visor distortion enabled.
-- **Third-person** -- offset behind/above the mount, smooth-follows with lerp. Rider head made visible.
+---
 
-Look input adjusts `cameraYawOffset`. After `cameraAutoAlignDelay` (0.5s) of no look input, the camera auto-aligns back to mount forward.
+## 6. Common Tweaks
 
-## Steering Override Behavior
+| I want… | Do this |
+|---|---|
+| Faster vehicle | Increase `RigidbodyMotor.maxSpeed`. For runtime boosts, wrap it in a setter. |
+| Faster creature | Increase `NavMeshAgent.speed` on the prefab. (Note: motor caches it on Awake, so runtime changes need a setter that updates `defaultSpeed`.) |
+| Sprint while ridden | `SteerModule.riderCanRun = true` and assign a sprint action. |
+| Mount keeps wandering when rider is idle | `MountModule.allowAISelfMovementWhenMounted = true`. |
+| Add a flying ship | Use `FlyingRigidbodyMotor` and set `SteerModule.verticalActionName`. |
+| Disable jump on a particular vehicle | `SteerModule.jumpEnabled = false` or `RigidbodyMotor.enableJump = false`. |
+| Custom motor (water, grappling, etc.) | Implement `IMovementMotor` + `IRiderControllable`. Optionally implement `IMountJumpMotor` / `IMountLeapMotor`. `SteerModule` will pick it up automatically. |
 
-When the rider is mounted but not pressing movement keys (`HasSteeringOverride == false`):
-- `MountSteeringController` tracks the mount's current yaw but does not rotate it
-- `MountedAgentBrain` falls through to the fallback AI brain
-- The creature continues its normal AI movement
+---
 
-When the rider gives input (`HasSteeringOverride == true`):
-- `MountSteeringController` takes over rotation via momentum-based steering
-- `MountedAgentBrain` uses rider input for `MoveIntent`
-- Visual lean activates based on steering momentum and speed
+## 7. Notes / Gotchas
 
-The `steeringOverrideThreshold` (default 0.1) controls how much input is needed before the override kicks in.
-
-## Adding Jump Support
-
-Implement `IMountJumpMotor` on your mount's movement motor. `MountedAgentBrain` calls `RequestJump()` when the rider presses Jump (if `enableMountedJump` is true).
-
-## Quick Checklist
-
-**Every mount:**
-- [ ] `MountController` with seat/dismount transforms assigned
-- [ ] `MountInteractor` referencing the `MountController`
-
-**Rider-steerable mounts (add):**
-- [ ] `MountSteeringController` with camera and steering settings
-- [ ] (Optional) `visualTiltRoot` assigned for lean animation
-- [ ] (Optional) Third-person camera/pivot assigned, or left empty for auto-creation
-
-**AI creatures (add):**
-- [ ] `MountedAgentBrain` with a fallback `NpcBrain` assigned
-- [ ] Mount has a NavMeshAgent or compatible motor
-- [ ] (Optional) `IMountJumpMotor` on motor for jump support
-
-## File Locations
-
-```
-Assets/Scripts/agents/controller/mount/
-  MountController.cs                -- Core partial: fields, state, Awake/OnDisable
-  MountController.Mounting.cs       -- Mount/dismount API (TryMount, Dismount)
-  MountController.MountState.cs     -- Rider component caching, toggling, rigidbody state
-  MountSteeringController.cs        -- Core partial: fields, state, public API
-  MountSteeringController via:
-    MountController.Lifecycle.cs    -- Update loop, input reading, event handlers
-    MountController.Camera.cs       -- Camera perspective, first/third person toggling
-    MountController.Steering.cs     -- Look, steering rotation, visual lean
-
-Assets/Scripts/InteractionSystem/Interactions/
-  MountInteractor.cs                -- IInteractable entry point
-
-Assets/Scripts/agents/AI/brains/
-  MountedAgentBrain.cs              -- Hybrid AI/rider brain
-
-Assets/Scripts/agents/AI/motor/
-  IMountJumpMotor.cs                -- Jump interface
-```
+- **Ground friction draining throttle**: `RigidbodyMotor.ApplyRiderInput` keeps an internal `riderForwardSpeed` and re-asserts absolute velocity each call. If you write a custom rigidbody motor, do the same — reading back `Rigidbody.linearVelocity` after a friction-damped FixedUpdate makes the rider feel glued to the ground.
+- **Rider/mount collisions**: `MountModule` ignores collider pairs between rider and mount while seated, then restores them on dismount. Rigidbody constraints are also captured/restored.
+- **Animator root motion**: captured at mount time and restored on dismount, so root-motion-driven drift can't fight rider input.
+- **Mount cooldown**: `IsAvailableForMount` enforces `mountCooldown` seconds between dismount and re-mount.

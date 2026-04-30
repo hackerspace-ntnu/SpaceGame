@@ -19,7 +19,7 @@ public class RuinScannerArtifact : ToolItem
     [Tooltip("Cone half-angle in degrees. The cone stays the same shape regardless of distance — wider angle = wider beam.")]
     [Range(2f, 45f)]
     [SerializeField] private float coneHalfAngleDegrees = 12f;
-    [Tooltip("Maximum beam length (m). The cone stops earlier if the center ray hits geometry.")]
+    [Tooltip("Maximum beam length (m). Each direction inside the cone reaches as far as its own raycast travels, capped at this distance — open directions stay long even if other directions hit a wall.")]
     [SerializeField] private float maxBeamDistance = 25f;
     [Tooltip("Minimum cone length so the beam is always visible even when aiming at point-blank geometry.")]
     [SerializeField] private float minBeamDistance = 2f;
@@ -102,30 +102,13 @@ public class RuinScannerArtifact : ToolItem
         Transform muzzleT = muzzle != null ? muzzle : transform;
         Vector3 beamOrigin = muzzleT.position;
 
-        // ---- Center ray to size the cone ----
-        // The cone reaches as far as the center ray travels (capped at
-        // maxBeamDistance), but never shorter than minBeamDistance — keeps the
-        // beam visible when you aim at point-blank geometry like the floor
-        // beneath your feet.
-        float coneLength = maxBeamDistance;
-        if (Physics.Raycast(beamOrigin, aimDir, out RaycastHit centerHit,
-                maxBeamDistance, ~0, QueryTriggerInteraction.Ignore))
-        {
-            coneLength = centerHit.distance;
-        }
-        coneLength = Mathf.Max(minBeamDistance, coneLength);
-
-        // Cone base radius is derived from a fixed half-angle, so the cone
-        // always *looks* like a beam regardless of distance — short shots stay
-        // narrow rather than ballooning into a flat disk.
-        float baseRadius = coneLength * Mathf.Tan(coneHalfAngleDegrees * Mathf.Deg2Rad);
-
-        // ---- Detection: cast a fan of rays inside the cone ----
-        // Whatever any ray hits gets revealed — visual and detection use the
-        // same geometry, so "if the rays hit it, it's discovered" is literally
-        // what happens. Occlusion is respected: a wall blocks rays behind it.
-        var revealed = new System.Collections.Generic.HashSet<IRuinSecret>();
-        TryHitWithRay(beamOrigin, aimDir, coneLength, revealed);
+        // ---- Per-direction ray expansion ----
+        // Each direction in the cone reaches as far as *its own* raycast
+        // travels — so if the center ray hits a wall but the rim above it has
+        // open sky, that side of the cone keeps extending. The visual mesh and
+        // the detection rays both use these per-direction lengths, so the
+        // shape of the beam still equals the shape of what it scanned.
+        float baseRadius = maxBeamDistance * Mathf.Tan(coneHalfAngleDegrees * Mathf.Deg2Rad);
 
         // Build an orthonormal basis perpendicular to aimDir for the rim rings.
         Vector3 right = Vector3.Cross(aimDir, Vector3.up);
@@ -133,40 +116,73 @@ public class RuinScannerArtifact : ToolItem
         right.Normalize();
         Vector3 up = Vector3.Cross(right, aimDir).normalized;
 
-        Vector3 endPoint = beamOrigin + aimDir * coneLength;
-        for (int ring = 1; ring <= detectionRings; ring++)
+        var revealed = new System.Collections.Generic.HashSet<IRuinSecret>();
+
+        // Center ray.
+        float centerSlant = CastSlant(beamOrigin, aimDir, maxBeamDistance, revealed);
+
+        // Rim rings — each (ring, segment) has its own slant length.
+        // Outer rim ring (ring == detectionRings) drives the visual mesh's
+        // base ring per radial segment.
+        int rings = Mathf.Max(1, detectionRings);
+        int segs = Mathf.Max(4, detectionRadialSegments);
+        var outerRimSlants = new float[segs];
+        Vector3 axisEnd = beamOrigin + aimDir * maxBeamDistance;
+        for (int ring = 1; ring <= rings; ring++)
         {
-            float t = (float)ring / detectionRings;          // 0..1 of the cone radius
+            float t = (float)ring / rings;
             float ringRadius = baseRadius * t;
-            for (int s = 0; s < detectionRadialSegments; s++)
+            for (int s = 0; s < segs; s++)
             {
-                float a = (s / (float)detectionRadialSegments) * Mathf.PI * 2f;
+                float a = (s / (float)segs) * Mathf.PI * 2f;
                 Vector3 rimOffset = (right * Mathf.Cos(a) + up * Mathf.Sin(a)) * ringRadius;
-                Vector3 target = endPoint + rimOffset;
+                Vector3 target = axisEnd + rimOffset;
                 Vector3 dir = (target - beamOrigin).normalized;
-                // Use the cone's slant length so corner rays reach the rim.
-                float slant = Vector3.Distance(beamOrigin, target);
-                TryHitWithRay(beamOrigin, dir, slant, revealed);
+                float maxSlant = Vector3.Distance(beamOrigin, target);
+                float slant = CastSlant(beamOrigin, dir, maxSlant, revealed);
+                if (ring == rings) outerRimSlants[s] = slant;
             }
         }
 
         foreach (var s in revealed) s.Reveal(revealDuration);
 
         // ---- Visual pulse ----
+        // Mesh base ring follows the outer rim slants so the cone bulges out
+        // wherever rays travelled further. minBeamDistance keeps the beam
+        // visible at point-blank.
         if (pulseMaterial != null)
-            RuinScannerPulse.Spawn(beamOrigin, aimDir, baseRadius, coneLength, pulseDuration, pulseMaterial);
+        {
+            float visibleCenter = Mathf.Max(minBeamDistance, centerSlant);
+            float[] visibleRim = new float[segs];
+            for (int s = 0; s < segs; s++)
+                visibleRim[s] = Mathf.Max(minBeamDistance, outerRimSlants[s]);
+            RuinScannerPulse.Spawn(beamOrigin, aimDir, right, up, baseRadius, visibleCenter, visibleRim, pulseDuration, pulseMaterial);
+        }
 
         // ---- Discovery audio cue ----
         if (revealed.Count > 0 && !discoverySound.IsNull)
             AudioManager.Instance.PlayEvent(discoverySound, beamOrigin);
     }
 
-    private void TryHitWithRay(Vector3 origin, Vector3 dir, float distance,
+    /// <summary>
+    /// Casts one ray inside the cone, reveals any IRuinSecret it hits, and
+    /// returns the slant length the cone should occupy in this direction —
+    /// either the full requested distance (open sky) or the distance to the
+    /// blocker. Detection and visual length stay in sync because they share
+    /// this number.
+    /// </summary>
+    private float CastSlant(Vector3 origin, Vector3 dir, float distance,
         System.Collections.Generic.HashSet<IRuinSecret> revealed)
     {
-        if (!Physics.Raycast(origin, dir, out RaycastHit hit, distance, secretMask, QueryTriggerInteraction.Collide))
-            return;
-        var secret = hit.collider.GetComponentInParent<IRuinSecret>();
-        if (secret != null) revealed.Add(secret);
+        // Use a single all-layers cast so opaque world geometry blocks the
+        // beam, but still surface IRuinSecret hits from the secret layers.
+        if (!Physics.Raycast(origin, dir, out RaycastHit hit, distance, ~0, QueryTriggerInteraction.Collide))
+            return distance;
+        if (((1 << hit.collider.gameObject.layer) & secretMask) != 0)
+        {
+            var secret = hit.collider.GetComponentInParent<IRuinSecret>();
+            if (secret != null) revealed.Add(secret);
+        }
+        return hit.distance;
     }
 }

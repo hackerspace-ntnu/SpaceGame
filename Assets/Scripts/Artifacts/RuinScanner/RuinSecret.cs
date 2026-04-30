@@ -28,6 +28,9 @@ public class RuinSecret : MonoBehaviour, IRuinSecret
     [Tooltip("Default reveal duration if the scanner doesn't override it. Seconds.")]
     [SerializeField] private float defaultRevealDuration = 6f;
 
+    [Tooltip("Optional interactable component (anything deriving from Behaviour, e.g. an IInteractable script). Disabled while dormant, enabled while exposed — so the player can only interact with the secret while the scanner has it lit up.")]
+    [SerializeField] private Behaviour interactable;
+
     [Tooltip("Fade-in time at the start of a reveal. Seconds.")]
     [SerializeField] private float fadeInDuration = 0.4f;
 
@@ -59,6 +62,7 @@ public class RuinSecret : MonoBehaviour, IRuinSecret
 
     private void ApplyDormantState()
     {
+        if (interactable != null) interactable.enabled = false;
         if (!hideWhenDormant) return;
         foreach (var r in revealRenderers)
             if (r != null) r.enabled = false;
@@ -66,6 +70,8 @@ public class RuinSecret : MonoBehaviour, IRuinSecret
 
     public void Reveal(float duration)
     {
+        if (interactable != null) interactable.enabled = true;
+
         if (revealMaterial == null)
         {
             // No reveal material assigned — just make the object visible while active.
@@ -123,6 +129,7 @@ public class RuinSecret : MonoBehaviour, IRuinSecret
             foreach (var r in revealRenderers)
                 if (r != null) r.enabled = false;
         }
+        if (interactable != null) interactable.enabled = false;
     }
 
     private void Update()

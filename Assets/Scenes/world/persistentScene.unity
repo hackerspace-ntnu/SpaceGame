@@ -485,6 +485,10 @@ PrefabInstance:
       propertyPath: 'startingItems.Array.data[3]'
       value: 
       objectReference: {fileID: 11400000, guid: ddc806d4e9f24024954706f300b743aa, type: 2}
+    - target: {fileID: 5434080627583097398, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6372178186651775710, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       propertyPath: m_LocalPosition.x
       value: 3531.9
@@ -946,6 +950,18 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 1176007778295941177, guid: df428b181d64444e9a524088b49acfd4, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1176007778295941177, guid: df428b181d64444e9a524088b49acfd4, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1176007778295941177, guid: df428b181d64444e9a524088b49acfd4, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1176007778295941177, guid: df428b181d64444e9a524088b49acfd4, type: 3}
       propertyPath: m_LocalPosition.x
       value: 3539.6484
       objectReference: {fileID: 0}
@@ -1261,7 +1277,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RuinSecret
   secretRoot: {fileID: 1296950318}
   revealRenderers: []
-  revealMaterial: {fileID: 2100000, guid: 21fa07ac648df6844b0b679d225d5ad0, type: 2}
+  revealMaterial: {fileID: 2100000, guid: bc305508a67a4d9a9fa0a48a2ebb4edd, type: 2}
   hideWhenDormant: 1
   defaultRevealDuration: 6
   fadeInDuration: 0.4
@@ -1678,7 +1694,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8748746087574189271, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
       propertyPath: fogIntensity
-      value: 0
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 8748746087574189271, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
       propertyPath: helmetAnchor
@@ -1688,6 +1704,10 @@ PrefabInstance:
       propertyPath: projectorAnchor
       value: 
       objectReference: {fileID: 235825509}
+    - target: {fileID: 8748746087574189271, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+      propertyPath: hiddenFogIntensity
+      value: 0.24
+      objectReference: {fileID: 0}
     - target: {fileID: 8748746087574189271, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
       propertyPath: maxDiscoveryPoints
       value: 2000

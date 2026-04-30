@@ -248,7 +248,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4ba6750b2df0954a964d09c8a682fcf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  gameScene: {fileID: 11400000, guid: 82720d07ebf37a74884b612d66a6e181, type: 2}
+  gameScene: {fileID: 11400000, guid: 5bea97992cbf86e4eac692ce781c955b, type: 2}
   lobbyScene: {fileID: 11400000, guid: 47fd2dd0022cb1b429fe1298146ccaa9, type: 2}
 --- !u!1 &113650345
 GameObject:
@@ -330,6 +330,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &113650348
 MeshFilter:
@@ -774,6 +775,7 @@ MonoBehaviour:
   m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0

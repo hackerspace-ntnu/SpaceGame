@@ -1720,7 +1720,100 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 12c9fe0861d3c4309a988da2a133a969, type: 3}
+  m_SourcePrefab: {fileID: 100100000, guid: d33ac27917a94aac82652cec4f25841c, type: 3}
+--- !u!1 &2143684989
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2143684991}
+  - component: {fileID: 2143684990}
+  m_Layer: 8
+  m_Name: MapHologramTerrain
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2143684990
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2143684989}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77b0f783117524e86a88023381402ca7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MapHologramTerrain
+  config: {fileID: 11400000, guid: 303234dac994845669b13bb8047213be, type: 2}
+  toggleActionName: Map
+  startVisible: 0
+  projectorAnchor: {fileID: 0}
+  helmetAnchor: {fileID: 235825509}
+  helmetHeightFallback: 1.7
+  distance: 1.3
+  sideOffset: -0.3
+  height: 1.25
+  yawTowardPlayer: 25
+  baseTiltX: 0
+  footprint: 1
+  verticalExaggeration: 0.86
+  viewRadius: 2
+  centerOnPlayer: 1
+  hologramTint: {r: 0.45, g: 0.95, b: 1, a: 1}
+  valleyTint: {r: 0.1, g: 0.45, b: 0.65, a: 1}
+  peakTint: {r: 0.85, g: 1, b: 1, a: 1}
+  intensity: 1.4
+  contourSpacing: 20
+  contourThickness: 0.08
+  gridSpacing: 32
+  gridStrength: 0.4
+  fresnelPower: 2.5
+  fresnelStrength: 1.6
+  showBeam: 1
+  beamSides: 28
+  beamRadiusFraction: 0.55
+  beamApexAlpha: 0.95
+  beamBaseAlpha: 0.2
+  beamOriginOffset: 0.05
+  beamRayCount: 14
+  beamRayStrength: 0.65
+  beamRaySharpness: 6
+  beamRayDrift: 0.12
+  hologramLayerName: Hologram
+  disableGlassDistortionWhileOpen: 0
+  playerMarkerSize: 0.03
+  markerSize: 0.03
+  markerLift: 0.04
+  markerSpikeHeight: 0.06
+  markerSpikeWidth: 0.005
+  playerIntensity: 2.01
+  markerIntensity: 2.04
+  showOnlyRevealedMarkers: 1
+  revealAllChunks: 1
+  spawnRiseTime: 0.35
+  wobbleAmplitudeDeg: 0.8
+  wobbleSpeed: 0.4
+--- !u!4 &2143684991
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2143684989}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

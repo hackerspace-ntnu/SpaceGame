@@ -12,19 +12,6 @@ public class InteractableProxy : MonoBehaviour, IInteractable
 
     private void Awake()
     {
-        if (target == null)
-        {
-            Debug.LogWarning($"[InteractableProxy] target not assigned on {name}, searching children.", this);
-            foreach (var c in GetComponentsInChildren<IInteractable>(true))
-            {
-                if (c is not InteractableProxy)
-                {
-                    targetInteractable = c;
-                    return;
-                }
-            }
-            return;
-        }
         targetInteractable = target.GetComponent<IInteractable>();
     }
 

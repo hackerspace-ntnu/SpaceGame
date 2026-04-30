@@ -598,15 +598,6 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": true
-                },
-                {
-                    "name": "Map",
-                    "type": "Button",
-                    "id": "17cff972-06b2-4be0-863b-c4e01666967a",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -1135,17 +1126,6 @@
                     "processors": "Scale(factor=10)",
                     "groups": ";Keyboard&Mouse",
                     "action": "Hotkey",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "783f6a90-0cec-457c-b046-ba5c715fb9df",
-                    "path": "<Keyboard>/m",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "Map",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

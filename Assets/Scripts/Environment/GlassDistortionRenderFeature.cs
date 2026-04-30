@@ -6,8 +6,6 @@ using UnityEngine.Rendering.RenderGraphModule.Util;
 
 public class GlassDistortionRenderFeature : ScriptableRendererFeature
 {
-    public static bool RuntimeEnabled { get; set; } = true;
-
     [System.Serializable]
     public class Settings
     {
@@ -35,11 +33,6 @@ public class GlassDistortionRenderFeature : ScriptableRendererFeature
     {
         // Don't apply effect in edit mode
         if (!Application.isPlaying)
-        {
-            return;
-        }
-
-        if (!RuntimeEnabled)
         {
             return;
         }

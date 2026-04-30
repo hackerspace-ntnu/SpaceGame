@@ -10,6 +10,11 @@ public class VisorOverlayController : MonoBehaviour
     
     void Start()
     {
+        if (sourceCamera == null)
+        {
+            sourceCamera = Camera.main;
+        }
+        
         if (visorMaterial == null)
         {
             Debug.LogError("Visor Material not assigned!");
@@ -18,12 +23,6 @@ public class VisorOverlayController : MonoBehaviour
     
     void Update()
     {
-        // Auto-detect camera if not set or if it became null (prefab replacement scenario)
-        if (sourceCamera == null)
-        {
-            sourceCamera = Camera.main;
-        }
-        
         // Update light source position in shader
         if (visorMaterial != null && sourceCamera != null)
         {

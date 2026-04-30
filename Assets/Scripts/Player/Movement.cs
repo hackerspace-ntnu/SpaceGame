@@ -4,9 +4,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
-public class PlayerMovement : MonoBehaviour
+public class PlayerMovement : NetworkBehaviour
 {
-    private PlayerInputManager inputs; 
+    private InputControls controls;
     
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 6f;
@@ -15,7 +15,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Jumping")]
     [SerializeField] private float jumpForce = 7f;
     [SerializeField] private float jumpCooldown = 0.6f;
-    [SerializeField] private float groundCheckDistance = 0.2f;
+    [SerializeField] private float groundCheckDistance = 1.9f;
     [SerializeField] private LayerMask groundMask = ~0;
 
     [Header("Dash")]
@@ -24,91 +24,51 @@ public class PlayerMovement : MonoBehaviour
 
     [SerializeField] private Rigidbody rb;
     [SerializeField] private Animator animator;
-    [SerializeField] private CapsuleCollider playerCollider;
-    private Vector2 moveInput;
+    private Vector2 input;
     private float jumpCooldownTimer;
     private bool jumpOnCooldown;
     private bool groundSnapEnabled = true;
-    
-    [Header("Fall Damage")]
-    [SerializeField] private float minFallSpeed = -5f;
-    [SerializeField] private float maxFallSpeed = -30f;
-    [SerializeField] private int maxFallDamage = 100;
 
-    private float lastYVelocity;
-    private bool wasGrounded;
-
-    private void Start()
+    private void Awake()
     {
-        inputs = GetComponent<PlayerController>().Input;
-        inputs.OnJumpPressed += OnJump;
-        inputs.OnDashPressed += OnDash;
+        controls  = new InputControls();
+    }
 
-        var health = GetComponent<HealthComponent>();
-        if (health != null)
-        {
-            health.OnDamage += _ => TriggerAnimator("Hurt");
-            health.OnDeath += () => TriggerAnimator("Die");
-        }
+    private void OnEnable()
+    {
+        controls.Player.Move.performed += ctx => OnMove(ctx.ReadValue<Vector2>());
+        controls.Player.Move.canceled += ctx => OnMove(Vector2.zero);
+        controls.Player.Jump.performed += ctx => OnJump();
+        controls.Player.Dash.performed += ctx => OnDash();
+
+        controls.Enable();
     }
 
     private void FixedUpdate()
     {
-        moveInput = inputs.MoveInput;
         HandleJumpCooldown();
 
         if (!groundSnapEnabled)
         {
             return;
         }
-        
-        bool grounded = IsGrounded();
 
-        HandleFallDamage(grounded);
-
-        Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
+        Vector3 move = transform.right * input.x + transform.forward * input.y;
         move = Vector3.ClampMagnitude(move, 1f);
         Vector3 desiredHorizontal = move * moveSpeed;
 
         Vector3 velocity = rb.linearVelocity;
         Vector3 currentHorizontal = new Vector3(velocity.x, 0f, velocity.z);
-        
+
+        bool grounded = IsGrounded();
         float control = grounded ? 1f : airControl;
         Vector3 newHorizontal = Vector3.Lerp(currentHorizontal, desiredHorizontal, control);
 
         velocity.x = newHorizontal.x;
         velocity.z = newHorizontal.z;
         rb.linearVelocity = velocity;
-        
-        lastYVelocity = rb.linearVelocity.y;
-        wasGrounded = grounded;
 
         UpdateAnimatorParameters(velocity, grounded);
-    }
-    
-    private void HandleFallDamage(bool grounded)
-    {
-        // Detect landing (was in air, now grounded)
-        if (!wasGrounded && grounded)
-        {
-            // Only apply if falling fast enough
-            if (lastYVelocity < minFallSpeed)
-            {
-                float t = Mathf.InverseLerp(minFallSpeed, maxFallSpeed, lastYVelocity);
-                int damage = Mathf.RoundToInt(t * maxFallDamage);
-
-                ApplyFallDamage(damage);
-            }
-        }
-    }
-    
-    private void ApplyFallDamage(int damage)
-    {
-        var health = GetComponent<HealthComponent>();
-        if (health)
-        {
-            health.Damage(damage);
-        }
     }
 
     private void UpdateAnimatorParameters(Vector3 velocity, bool grounded)
@@ -116,26 +76,6 @@ public class PlayerMovement : MonoBehaviour
         if (!animator) return;
 
         UpdateAnimatorParametersServerRpc(velocity, grounded);
-    }
-
-    private void TriggerAnimator(string triggerName)
-    {
-        if (animator && animator.runtimeAnimatorController != null)
-            animator.SetTrigger(triggerName);
-    }
-
-    public void ForceIdleAnimation()
-    {
-        if (!animator)
-        {
-            return;
-        }
-
-        animator.SetFloat("SpeedX", 0f);
-        animator.SetFloat("SpeedY", 0f);
-        animator.SetFloat("FallSpeed", 0f);
-        animator.SetBool("IsGrounded", IsGrounded());
-        animator.SetBool("IsImmobalized", true);
     }
     
     [ServerRpc]
@@ -151,13 +91,13 @@ public class PlayerMovement : MonoBehaviour
         animator.SetBool("IsImmobalized", !groundSnapEnabled);
     }
 
+    public void OnMove(Vector2 inputVector)
+    {
+        input = inputVector;
+    }
+
     public void OnJump()
     {
-        if (rb == null || !isActiveAndEnabled || rb.isKinematic)
-        {
-            return;
-        }
-
         if (IsGrounded() && !jumpOnCooldown)
         {
             Vector3 v = rb.linearVelocity;
@@ -170,11 +110,6 @@ public class PlayerMovement : MonoBehaviour
 
     public void OnDash()
     {
-        if (rb == null || !isActiveAndEnabled || rb.isKinematic)
-        {
-            return;
-        }
-
         Vector3 dashDirection = transform.forward;
         if (playerCamera)
         {
@@ -203,19 +138,8 @@ public class PlayerMovement : MonoBehaviour
 
     private bool IsGrounded()
     {
-        CapsuleCollider colliderToUse = playerCollider != null ? playerCollider : GetComponentInChildren<CapsuleCollider>();
-        if (colliderToUse == null)
-        {
-            Vector3 rayOrigin = transform.position;
-            return Physics.Raycast(rayOrigin, Vector3.down, groundCheckDistance, groundMask, QueryTriggerInteraction.Ignore);
-        }
-
-        Bounds bounds = colliderToUse.bounds;
-        float radius = Mathf.Max(0.05f, bounds.extents.x * 0.9f);
-        Vector3 origin = bounds.center + Vector3.up * 0.05f;
-        float distance = bounds.extents.y + groundCheckDistance;
-
-        return Physics.SphereCast(origin, radius, Vector3.down, out _, distance, groundMask, QueryTriggerInteraction.Ignore);
+        Vector3 origin = transform.position;
+        return Physics.Raycast(origin, Vector3.down, groundCheckDistance, groundMask, QueryTriggerInteraction.Ignore);
     }
 
     private void HandleJumpCooldown()

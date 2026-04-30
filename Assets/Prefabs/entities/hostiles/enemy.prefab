@@ -89,7 +89,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!135 &6578932453248530832
 SphereCollider:
@@ -204,7 +203,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!136 &4078640190948857034
 CapsuleCollider:
@@ -242,9 +240,9 @@ GameObject:
   - component: {fileID: 6504777449288710906}
   - component: {fileID: 120196357197114049}
   - component: {fileID: 4634644083453421095}
+  - component: {fileID: 6288853131104913169}
+  - component: {fileID: 1188990810784256702}
   - component: {fileID: 2389676600849721614}
-  - component: {fileID: 8614814776678528410}
-  - component: {fileID: 7667578260436518029}
   m_Layer: 0
   m_Name: enemy
   m_TagString: Untagged
@@ -309,13 +307,6 @@ MonoBehaviour:
   minDestinationDistance: 1.5
   minWaitTime: 0.5
   maxWaitTime: 2
-  usePatrolPoints: 0
-  patrolSelectionMode: 0
-  patrolPointChance: 1
-  patrolPoints: []
-  useSpawnAsAnchor: 1
-  anchorTransform: {fileID: 0}
-  leashRadius: 0
 --- !u!114 &120196357197114049
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -354,10 +345,35 @@ MonoBehaviour:
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 8
-  enableMountedJump: 1
-  mountedJumpHeight: 1.25
-  mountedJumpDuration: 0.55
-  mountedJumpCooldown: 0.45
+--- !u!114 &6288853131104913169
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4998032714708367772}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d2a08c77c5fa49c381df60f8d4a6908, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AgentController
+  brainComponent: {fileID: 120196357197114049}
+  motorComponent: {fileID: 4634644083453421095}
+  animatorDriver: {fileID: 1188990810784256702}
+--- !u!114 &1188990810784256702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4998032714708367772}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e06419d63461f4c9aa9fbb6305ff1358, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AgentAnimatorDriver
+  animator: {fileID: 2389676600849721614}
+  animationSpeedMultiplier: 1.5
 --- !u!95 &2389676600849721614
 Animator:
   serializedVersion: 7
@@ -380,35 +396,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &8614814776678528410
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4998032714708367772}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f9f3daeabc7b5491097940d9275e8162, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AgentController
-  brainComponent: {fileID: 6504777449288710906}
-  motorComponent: {fileID: 6504777449288710906}
-  animatorDriver: {fileID: 7667578260436518029}
---- !u!114 &7667578260436518029
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4998032714708367772}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 24920a13d998c44f1a8cbece6dab2abe, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AgentAnimatorDriver
-  animator: {fileID: 2389676600849721614}
-  animationSpeedMultiplier: 2.5
 --- !u!1 &7100007885713920922
 GameObject:
   m_ObjectHideFlags: 0
@@ -498,7 +485,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!136 &5794613689614121995
 CapsuleCollider:
@@ -612,7 +598,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!136 &7790668039293628968
 CapsuleCollider:

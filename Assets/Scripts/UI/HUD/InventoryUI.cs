@@ -1,12 +1,10 @@
-using System;
 using UnityEngine;
 
-public class InventoryUI: MonoBehaviour
+public class InventoryUI : MonoBehaviour
 {
     private InventorySlotUI[] slotUIs;
-
-    [SerializeField] private PlayerController player;
-    private IPlayerInventory playerInventory;
+    
+    [SerializeField] private PlayerInventory playerInventory;
     
     [SerializeField] private Transform slotPrefab;
     [SerializeField] private Transform inventoryGrid; 
@@ -14,34 +12,18 @@ public class InventoryUI: MonoBehaviour
     private int selectedIndex = -1;
     private int hoveredIndex = -1;
 
-    private void Start()
+    public void OnEnable()
     {
-        if (player == null)
-        {
-            Debug.LogWarning($"{name}: InventoryUI has no PlayerController assigned.", this);
-            return;
-        }
-
-        playerInventory = player.PlayerInventory;
-        if (playerInventory == null)
-        {
-            Debug.LogWarning($"{name}: PlayerController has no IPlayerInventory available.", this);
-        }
-        
-        if(playerInventory == null) return;
         playerInventory.OnSlotSelected += OnSlotSelected;
-        playerInventory.OnSlotChanged += OnPlayerInventoryChanged;
+        playerInventory.OnInventoryChanged += OnPlayerInventoryChanged;
         InitializeUI();
     }
 
 
     private void OnDestroy()
     {
-        if(playerInventory != null)
-        {
-            playerInventory.OnSlotSelected -= OnSlotSelected;
-            playerInventory.OnSlotChanged -= OnPlayerInventoryChanged;
-        }
+        if(!playerInventory) return;
+        playerInventory.OnSlotSelected -= OnSlotSelected;
     }
 
     public void InitializeUI()
@@ -61,20 +43,13 @@ public class InventoryUI: MonoBehaviour
         RefreshAll();
     }
     
-    private void OnSlotSelected(InventorySlot slot)
+    private void OnSlotSelected(int index)
     {
-        if (slot == null)
-        {
-            selectedIndex = -1;
-        }
-        else
-        {
-            selectedIndex = slot.Index;
-        }
+        selectedIndex = index;
         RefreshAll();
     }
     
-    private void OnPlayerInventoryChanged(int index, InventorySlot slot)
+    private void OnPlayerInventoryChanged()
     {
         RefreshAll();
     }
@@ -82,11 +57,6 @@ public class InventoryUI: MonoBehaviour
 
     public void RefreshAll()
     {
-        if (slotUIs == null || playerInventory == null)
-        {
-            return;
-        }
-
         for (int i = 0; i < slotUIs.Length; i++)
         {
             slotUIs[i].Refresh(playerInventory.GetSlot(i),
@@ -109,3 +79,4 @@ public class InventoryUI: MonoBehaviour
         RefreshAll();
     }
 }
+

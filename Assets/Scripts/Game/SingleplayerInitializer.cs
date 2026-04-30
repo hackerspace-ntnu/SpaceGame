@@ -30,14 +30,10 @@ public class SingleplayerInitializer : NetworkBehaviour
             }
         }
 
-        public override void OnDestroy()
+        private void OnDestroy()
         {
             if (NetworkManager.Singleton != null)
-            {
                 NetworkManager.Singleton.OnServerStarted -= SpawnLocalPlayer;
-            }
-
-            base.OnDestroy();
         }
         
         private void SpawnLocalPlayer()

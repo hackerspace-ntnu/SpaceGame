@@ -16,8 +16,8 @@ GameObject:
   - component: {fileID: 1783219288637548597}
   - component: {fileID: 1808153164638333970}
   - component: {fileID: 5168443937185367202}
-  - component: {fileID: -2643361993383661770}
-  - component: {fileID: 3912737409627460444}
+  - component: {fileID: 3641544735717938011}
+  - component: {fileID: 2416177895390522872}
   m_Layer: 0
   m_Name: NPC
   m_TagString: Untagged
@@ -34,7 +34,7 @@ Transform:
   m_GameObject: {fileID: 5802214957463739635}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -11.87, y: 2.7, z: 6.76}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -64,8 +64,8 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 0
-  m_IsKinematic: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
@@ -76,9 +76,9 @@ NavMeshAgent:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5802214957463739635}
-  m_Enabled: 1
+  m_Enabled: 0
   m_AgentTypeID: 0
-  m_Radius: 1.5
+  m_Radius: 0.5
   m_Speed: 2
   m_Acceleration: 8
   avoidancePriority: 50
@@ -116,15 +116,14 @@ MonoBehaviour:
   - this is a sentence from the random predefined pool
   - there is a defualt 3 seconds between sentences for the predefined pool
   globalDialogPool: {fileID: 0}
-  branchingSteps: []
   loopDialogLines: 0
   allowRestartAfterEnd: 1
   finishCurrentLineOnInteractWhileTyping: 1
   popupDuration: 2.5
   interactionFocusDuration: 2.5
   restartFromBeginningAfterSeconds: 10
-  useDelayBetweenDialogues: 1
-  dialogueDelaySeconds: 3
+  useDelayBetweenRandomSentences: 1
+  randomSentenceDelaySeconds: 3
 --- !u!95 &9077958314811689216
 Animator:
   serializedVersion: 7
@@ -164,10 +163,6 @@ MonoBehaviour:
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 8
-  enableMountedJump: 1
-  mountedJumpHeight: 1.25
-  mountedJumpDuration: 0.55
-  mountedJumpCooldown: 0.45
 --- !u!114 &1808153164638333970
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -180,19 +175,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec2582aec804c4f45a4739731da4c023, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WanderBehaviour
-  wanderRadius: 100
+  wanderRadius: 10
   sampleDistance: 6
   maxTriesPerDestination: 10
-  minDestinationDistance: 5
+  minDestinationDistance: 1.5
   minWaitTime: 0.5
-  maxWaitTime: 10
-  usePatrolPoints: 0
-  patrolSelectionMode: 0
-  patrolPointChance: 1
-  patrolPoints: []
-  useSpawnAsAnchor: 1
-  anchorTransform: {fileID: 0}
-  leashRadius: 0
+  maxWaitTime: 2
 --- !u!114 &5168443937185367202
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -206,23 +194,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NpcBrain
   wanderBehaviour: {fileID: 1808153164638333970}
-  mountController: {fileID: 0}
   playerTarget: {fileID: 0}
   playerTag: Player
-  playerReactionMode: 1
-  playerDetectRadius: 4
-  reactionSpeedMultiplier: 1.1
+  stopAndLookRadius: 4
   moveStopDistance: 0.2
-  approachStopDistance: 1.6
-  keepDistanceRadius: 3
-  fleeDistanceRadius: 7
-  enableLookAround: 1
-  lookAroundMinInterval: 1.5
-  lookAroundMaxInterval: 4.5
-  lookAroundTurnAngle: 70
-  lookAroundDuration: 0.75
-  wanderSpeedMultiplier: 1
---- !u!114 &-2643361993383661770
+  moveSpeedMultiplier: 1
+--- !u!114 &3641544735717938011
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -231,13 +208,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 5802214957463739635}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f9f3daeabc7b5491097940d9275e8162, type: 3}
+  m_Script: {fileID: 11500000, guid: 3d2a08c77c5fa49c381df60f8d4a6908, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AgentController
   brainComponent: {fileID: 5168443937185367202}
   motorComponent: {fileID: 1783219288637548597}
-  animatorDriver: {fileID: 3912737409627460444}
---- !u!114 &3912737409627460444
+  animatorDriver: {fileID: 2416177895390522872}
+--- !u!114 &2416177895390522872
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -246,7 +223,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 5802214957463739635}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 24920a13d998c44f1a8cbece6dab2abe, type: 3}
+  m_Script: {fileID: 11500000, guid: e06419d63461f4c9aa9fbb6305ff1358, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AgentAnimatorDriver
   animator: {fileID: 9077958314811689216}

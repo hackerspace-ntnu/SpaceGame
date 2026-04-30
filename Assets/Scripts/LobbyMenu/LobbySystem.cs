@@ -94,6 +94,13 @@ public class LobbySystem : NetworkBehaviour
         NetworkManager.Singleton.OnClientConnectedCallback += (id) =>
         {
             Debug.Log($"[NETCODE] Successfully Connected! ID: {id}");
+
+            if(id == NetworkManager.Singleton.LocalClientId)
+            {
+                clientId = id;
+                UpdatePlayerNetworkId(clientId);
+                Debug.Log("Local ID: " + clientId);
+            }
         };
 
         NetworkManager.Singleton.OnClientDisconnectCallback += (id) =>
@@ -457,9 +464,6 @@ public class LobbySystem : NetworkBehaviour
         AuthenticationService.Instance.UpdatePlayerNameAsync("Player_" + (lobby.Players.Count + 1));
         lobbyList.openLobbyScreen(joinedLobby.Name, joinedLobby.LobbyCode);
         lobbyList.setStartGameButtonState(false);
-        clientId = NetworkManager.Singleton.LocalClientId;
-        Debug.Log("CLIENT ID: " + clientId);
-        UpdatePlayerNetworkId(clientId);
         UpdatePlayerListInLobby();
     }
 
@@ -505,7 +509,6 @@ public class LobbySystem : NetworkBehaviour
     /// <param name="data">The data to update the player with.</param>
     private void UpdatePlayer(Dictionary<string, PlayerDataObject> data)
     {
-        gameSettings.setPlayerColor(clientId, chosenColor);
         UpdatePlayerData(joinedLobby.Id, AuthenticationService.Instance.PlayerId, data);
     }
 
@@ -533,6 +536,7 @@ public class LobbySystem : NetworkBehaviour
     public void UpdatePlayerNetworkId(ulong networkId)
     {
         clientId = networkId;
+
         Dictionary<string, PlayerDataObject> playerInfo = new Dictionary<string, PlayerDataObject>
             {
                 {"PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName)},
@@ -556,7 +560,6 @@ public class LobbySystem : NetworkBehaviour
             {
                 Data = updateData
             };
-
             // Update lobby with new player data.
             var lobby = await LobbyService.Instance.UpdatePlayerAsync(lobbyId, playerId, options);
         }
@@ -681,8 +684,9 @@ public class LobbySystem : NetworkBehaviour
                 {
                     string hex = p.Data["PlayerColor"].Value;
 
-                    if (UnityEngine.ColorUtility.TryParseHtmlString(hex, out Color col))
+                    if (UnityEngine.ColorUtility.TryParseHtmlString("#" + hex, out Color col))
                     {
+                        Debug.Log(id + ": " + col);
                         gameSettings.setPlayerColor(id, col);
                     }
                 }

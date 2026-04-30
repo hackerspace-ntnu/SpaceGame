@@ -18,10 +18,10 @@ public class GameSettings : MonoBehaviour
             playerColors[playerId] = color;
         }
         else
-        {
+        { 
             playerColors.Add(playerId, color);
         }
-        
+        Debug.Log("Set player color!");
     }
 
     public void removePlayer(ulong playerId)

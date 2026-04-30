@@ -39,17 +39,24 @@ public class Interactor : MonoBehaviour
             IsHoveringInteractable = false;
             return;
         }
-        
+
+        if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled)
+        {
+            IsHoveringInteractable = false;
+            return;
+        }
+
         IsHoveringInteractable = true;
     }
 
     private void Interact()
     {
         if (!DoInteractionTest(out IInteractable interactable)) return;
-        
+
+        if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled) return;
         if (!interactable.CanInteract()) return;
         interactable.Interact(this);
-        
+
     }
 
     private bool DoInteractionTest(out IInteractable interactable)

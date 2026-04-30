@@ -13,8 +13,8 @@ using UnityEngine;
 public class MapMeshBaker : EditorWindow
 {
     private WorldStreamingConfig config;
-    [Tooltip("Mesh resolution per chunk (verts per side). 33 = 32x32 quads = 2048 tris/chunk.")]
-    private int meshResolution = 33;
+    [Tooltip("Mesh resolution per chunk (verts per side). 65 = 64x64 quads = 8192 tris/chunk.")]
+    private int meshResolution = 65;
     private string outputFolder = "Assets/Resources/MapMeshes";
 
     [MenuItem("Tools/World Streaming/Bake Map Meshes")]
@@ -31,7 +31,7 @@ public class MapMeshBaker : EditorWindow
         config = (WorldStreamingConfig)EditorGUILayout.ObjectField(
             "World Streaming Config", config, typeof(WorldStreamingConfig), false);
 
-        meshResolution = EditorGUILayout.IntSlider("Mesh Resolution", meshResolution, 9, 129);
+        meshResolution = EditorGUILayout.IntSlider("Mesh Resolution", meshResolution, 9, 257);
         outputFolder   = EditorGUILayout.TextField("Output Folder", outputFolder);
 
         EditorGUILayout.Space(10);

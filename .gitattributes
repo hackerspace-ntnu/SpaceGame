@@ -1,2 +1,28 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Normalize all text files to LF
+* text=auto eol=lf
+
+# Unity specific files
+*.cs text eol=lf
+*.shader text eol=lf
+*.cginc text eol=lf
+
+*.unity text eol=lf
+*.prefab text eol=lf
+*.asset text eol=lf
+*.meta text eol=lf
+
+# Unity terrain assets are binary despite the .asset extension.
+Assets/Terrain/ChunkData/*.asset binary
+Assets/TerrainData_*.asset binary
+Assets/*Terrain.asset binary
+
+# JSON / config
+*.json text eol=lf
+*.xml text eol=lf
+*.yml text eol=lf
+
+# Binary files (do not touch line endings)
+*.png binary
+*.jpg binary
+*.fbx binary
+*.mp4 binary

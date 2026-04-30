@@ -182,7 +182,14 @@ public class NpcDialogPopupUI : MonoBehaviour
 
     private IEnumerator ShowRoutine(string message, float duration, bool autoHide)
     {
-        dialogText.text = string.Empty;
+        if (message == null)
+        {
+            message = string.Empty;
+        }
+
+        dialogText.text = message;
+        dialogText.maxVisibleCharacters = useTypewriter && charactersPerSecond > 0f ? 0 : int.MaxValue;
+
         float elapsed = 0f;
         isTyping = false;
         skipTypingRequested = false;
@@ -195,12 +202,12 @@ public class NpcDialogPopupUI : MonoBehaviour
             {
                 if (skipTypingRequested)
                 {
-                    dialogText.text = message;
+                    dialogText.maxVisibleCharacters = int.MaxValue;
                     break;
                 }
 
                 char character = message[i];
-                dialogText.text += character;
+                dialogText.maxVisibleCharacters = i + 1;
 
                 float delay = baseDelay;
                 if (character == '.' || character == ',' || character == '!' || character == '?' || character == ';' || character == ':')
@@ -217,6 +224,7 @@ public class NpcDialogPopupUI : MonoBehaviour
         else
         {
             dialogText.text = message;
+            dialogText.maxVisibleCharacters = int.MaxValue;
         }
 
         if (autoHide)

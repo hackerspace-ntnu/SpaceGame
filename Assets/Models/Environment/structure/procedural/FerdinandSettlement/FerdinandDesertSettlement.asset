@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19fd2c35c710745f68d8940aae3e5d17, type: 3}
+  m_Name: FerdinandDesertSettlement
+  m_EditorClassIdentifier: Assembly-CSharp::SettlementPrefabConfig
+  tileSize: 3
+  slabThickness: 0.1
+  floorVariants:
+  - {fileID: 4000058, guid: 391337120f5d470ba4593d2b0cdebd42, type: 3}
+  interiorFloorVariants:
+  - {fileID: 4000058, guid: 391337120f5d470ba4593d2b0cdebd42, type: 3}
+  roofVariants:
+  - {fileID: 4000058, guid: 391337120f5d470ba4593d2b0cdebd42, type: 3}
+  friezeVariants:
+  - {fileID: 4000064, guid: 68b3d6dbf6c04e15868789175a7f70b4, type: 3}
+  wallMonolithVariants:
+  - {fileID: 4000000, guid: a6140f8d34724779b7d9ae2910dd1a0a, type: 3}
+  wallSlitVariants:
+  - {fileID: 4000006, guid: 2a59baa5e0cc48adb378cf43ddc0e755, type: 3}
+  wallGrandArchVariants:
+  - {fileID: 4000024, guid: ec435e4287784630a68946b9cab3fa21, type: 3}
+  wallButtressVariants:
+  - {fileID: 4000038, guid: 80ab9d0210b68434191db8e4d55bb51d, type: 3}
+  wallPanelVariants:
+  - {fileID: 4000048, guid: b5b930f3aaca147b9a4ff2fe92f06eb2, type: 3}
+  wallReliefVariants:
+  - {fileID: 4000300, guid: 57cab2e59881485fb86f8d793675ab88, type: 3}
+  wallTechVariants:
+  - {fileID: 2000057, guid: f1513fac44347400d86ed01b66e81a04, type: 3}
+  wallVentVariants:
+  - {fileID: 2000038, guid: cf643812ba5b04322bbfd56cc271c4ab, type: 3}
+  pillarVariants:
+  - {fileID: 4000082, guid: 38ceacf57d0a4983bbcbf49e46d500cf, type: 3}
+  colonnadeVariants:
+  - {fileID: 4000088, guid: 7948bcb014d542c8b961f3078fa3ec3e, type: 3}
+  balconyVariants:
+  - {fileID: 2000133, guid: c944f9bd0b848425e9ac35a1cbbd28e4, type: 3}
+  roofParapetVariants:
+  - {fileID: 4000106, guid: 395bbad3af8b46bab28a6386f067c6b1, type: 3}
+  roofTempleVariants:
+  - {fileID: 4000120, guid: 29d8e6c31d7d4326962565d6dd399f77, type: 3}
+  roofMachineryVariants:
+  - {fileID: 2000118, guid: 75b87c1dd0a394586ae611c5080a1062, type: 3}
+  circularFeatureVariants: []
+  triangularFeatureVariants:
+  - {fileID: 4000170, guid: 3dca62108a2a40fbbb33592ae2b243c1, type: 3}
+  grandArchVariants:
+  - {fileID: 4000138, guid: c8fc37b698624a90957c25a737b82026, type: 3}
+  bridgeVariants:
+  - {fileID: 4000156, guid: e96269b32bac4b9d9da89c0e4ad899d4, type: 3}
+  aqueductArchVariants:
+  - {fileID: 4000138, guid: c8fc37b698624a90957c25a737b82026, type: 3}
+  stairVariants:
+  - {fileID: 4000170, guid: 3dca62108a2a40fbbb33592ae2b243c1, type: 3}
+  exteriorRampVariants:
+  - {fileID: 4000188, guid: d436d43274c445ee8064c593084f3255, type: 3}
+  obeliskVariants:
+  - {fileID: 4000202, guid: 02317faef5de4714affe7243adda2c64, type: 3}
+  boulderSmallVariants:
+  - {fileID: 5001400, guid: 81502606619c4142bbc286ac0a6e9f79, type: 3}
+  - {fileID: 5001400, guid: 9ac8f1b66cc44d9e985870dbf14e2836, type: 3}
+  - {fileID: 5001400, guid: 700a06e9379d4841a30888742f992470, type: 3}
+  boulderLargeVariants:
+  - {fileID: 5001400, guid: 6474e4b7e4984bd8908df59efc31a2f0, type: 3}
+  - {fileID: 5001400, guid: 64e507bf06ff448dba51c85a35fac0d5, type: 3}
+  - {fileID: 5001400, guid: b2388cca43224e3caf01557846a160d2, type: 3}
+  boulderUniformScale: 1
+  baseMaterialA: {fileID: 2100000, guid: 4d56c25c72db74282ba53196017fc7f0, type: 2}
+  baseMaterialB: {fileID: 2100000, guid: 987666025362c4181942e0190f70ad8d, type: 2}
+  accentMaterial: {fileID: 2100000, guid: 987666025362c4181942e0190f70ad8d, type: 2}
+  shadowCullDistance: 60
+  optimizeAfterBuild: 1
+  stripDetailColliders: 1
+  bakeCombinedColliders: 1
+  combinedChunkSizeInTiles: 4
+  combinedMeshBatchSize: 256
+  combinedColliderBatchSize: 192
+  combinedMeshIndexFormat: 1

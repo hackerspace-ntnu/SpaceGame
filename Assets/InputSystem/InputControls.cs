@@ -684,6 +684,15 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""Map"",
+                    ""type"": ""Button"",
+                    ""id"": ""17cff972-06b2-4be0-863b-c4e01666967a"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -1214,6 +1223,17 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""action"": ""Hotkey"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""783f6a90-0cec-457c-b046-ba5c715fb9df"",
+                    ""path"": ""<Keyboard>/m"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Map"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -1534,6 +1554,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         m_UI_TrackedDevicePosition = m_UI.FindAction("TrackedDevicePosition", throwIfNotFound: true);
         m_UI_TrackedDeviceOrientation = m_UI.FindAction("TrackedDeviceOrientation", throwIfNotFound: true);
         m_UI_Hotkey = m_UI.FindAction("Hotkey", throwIfNotFound: true);
+        m_UI_Map = m_UI.FindAction("Map", throwIfNotFound: true);
         // Hotbar
         m_Hotbar = asset.FindActionMap("Hotbar", throwIfNotFound: true);
         m_Hotbar_Hotbar1 = m_Hotbar.FindAction("Hotbar1", throwIfNotFound: true);
@@ -1835,6 +1856,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_UI_TrackedDevicePosition;
     private readonly InputAction m_UI_TrackedDeviceOrientation;
     private readonly InputAction m_UI_Hotkey;
+    private readonly InputAction m_UI_Map;
     /// <summary>
     /// Provides access to input actions defined in input action map "UI".
     /// </summary>
@@ -1890,6 +1912,10 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "UI/Hotkey".
         /// </summary>
         public InputAction @Hotkey => m_Wrapper.m_UI_Hotkey;
+        /// <summary>
+        /// Provides access to the underlying input action "UI/Map".
+        /// </summary>
+        public InputAction @Map => m_Wrapper.m_UI_Map;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -1949,6 +1975,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @Hotkey.started += instance.OnHotkey;
             @Hotkey.performed += instance.OnHotkey;
             @Hotkey.canceled += instance.OnHotkey;
+            @Map.started += instance.OnMap;
+            @Map.performed += instance.OnMap;
+            @Map.canceled += instance.OnMap;
         }
 
         /// <summary>
@@ -1993,6 +2022,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @Hotkey.started -= instance.OnHotkey;
             @Hotkey.performed -= instance.OnHotkey;
             @Hotkey.canceled -= instance.OnHotkey;
+            @Map.started -= instance.OnMap;
+            @Map.performed -= instance.OnMap;
+            @Map.canceled -= instance.OnMap;
         }
 
         /// <summary>
@@ -2459,6 +2491,13 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnHotkey(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Map" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnMap(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Hotbar" which allows adding and removing callbacks.

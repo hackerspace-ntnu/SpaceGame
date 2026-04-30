@@ -4,13 +4,12 @@ using UnityEngine.InputSystem;
 
 public class PlayerLook : MonoBehaviour
 {
-    [Header("Input")]
-    public InputActionReference lookAction; // Vector2
-
+    private PlayerInputManager inputs;
     [Header("References")]
     public GameObject playerCamera;    
     public Transform playerHead; 
     public Transform playerBody;
+    public Transform cameraRoot => playerCamera != null ? playerCamera.transform : null;
     private Rigidbody playerRigidbody;
 
     [Header("Settings")]
@@ -18,34 +17,62 @@ public class PlayerLook : MonoBehaviour
     public float verticalClamp = 80f;
 
     private float pitch = 0f;
-    
+
     private Vector2 lookInput;
-    
+    private SkinnedMeshRenderer headRenderer;
+
     private void Start()
     {
-        // Lock cursor to center
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        inputs = GetComponent<PlayerController>().Input;
         playerRigidbody = playerBody.GetComponent<Rigidbody>();
         
         // Hide the player head mesh to prevent clipping with the camera
-        var headRenderer = playerHead.GetComponent<SkinnedMeshRenderer>();
+        headRenderer = playerHead.GetComponent<SkinnedMeshRenderer>();
         headRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
+    }
+
+    public void SetHeadVisible(bool visible)
+    {
+        if (!headRenderer) return;
+        headRenderer.shadowCastingMode = visible
+            ? UnityEngine.Rendering.ShadowCastingMode.On
+            : UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
     }
     
     private void OnEnable()
     {
-        lookAction.action.Enable();
+        ApplyCursorLock();
     }
 
     private void OnDisable()
     {
-        lookAction.action.Disable();
+        ReleaseCursorLock();
+    }
+
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (hasFocus && isActiveAndEnabled)
+        {
+            ApplyCursorLock();
+        }
+    }
+
+    private void LateUpdate()
+    {
+        if (!isActiveAndEnabled)
+        {
+            return;
+        }
+
+        if (Cursor.lockState != CursorLockMode.Locked || Cursor.visible)
+        {
+            ApplyCursorLock();
+        }
     }
     
     void Update()
     {
-        lookInput = lookAction.action.ReadValue<Vector2>();
+        lookInput = inputs.LookInput;
 
         // body rotation (yaw)
         float yaw = lookInput.x * sensitivity * Time.deltaTime;
@@ -58,8 +85,13 @@ public class PlayerLook : MonoBehaviour
         playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 
+    private void ApplyCursorLock()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
 
-    public void OnDestroy()
+    private void ReleaseCursorLock()
     {
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;

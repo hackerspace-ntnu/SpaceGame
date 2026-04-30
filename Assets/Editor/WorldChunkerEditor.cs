@@ -543,8 +543,28 @@ public class WorldChunkerEditor : EditorWindow
                 EditorUtility.DisplayProgressBar("Generating Chunks",
                     $"Creating {sceneName}...", (float)created / totalChunks);
 
-                var chunkScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
-                chunkScene.name = sceneName;
+                // If a chunk scene already exists at this path, open it and update
+                // ONLY the terrain — leave any other GameObjects in the scene untouched.
+                // Otherwise create a fresh empty scene and copy prefabs from the master scene below.
+                bool chunkSceneExists = File.Exists(scenePath);
+                Scene chunkScene;
+                if (chunkSceneExists)
+                {
+                    chunkScene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Additive);
+
+                    // Remove existing terrain GameObjects so they can be replaced with the
+                    // freshly generated tile. Anything without a Terrain component is kept.
+                    foreach (var rootGO in chunkScene.GetRootGameObjects())
+                    {
+                        if (rootGO.GetComponentInChildren<Terrain>(true) != null)
+                            UnityEngine.Object.DestroyImmediate(rootGO);
+                    }
+                }
+                else
+                {
+                    chunkScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+                    chunkScene.name = sceneName;
+                }
 
                 bool hasTerrain = false;
 
@@ -583,7 +603,10 @@ public class WorldChunkerEditor : EditorWindow
                 }
 
                 // --- Copy non-terrain objects ---
-                if (groupBuckets.ContainsKey(coord))
+                // Only copy prefabs from the master scene when generating a fresh chunk.
+                // When updating an existing chunk scene we preserve whatever GameObjects
+                // already live there (the user may have edited the chunk directly).
+                if (!chunkSceneExists && groupBuckets.ContainsKey(coord))
                 {
                     // Group entries by their root so each root is only copied once per chunk.
                     var rootToChildren = new Dictionary<GameObject, List<GameObject>>();

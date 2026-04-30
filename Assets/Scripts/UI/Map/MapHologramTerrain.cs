@@ -32,7 +32,7 @@ public class MapHologramTerrain : MonoBehaviour
 
     [Header("Hologram Scale")]
     [Tooltip("Width of the hologram footprint in meters.")]
-    [SerializeField] private float footprint = 0.55f;
+    [SerializeField] private float footprint = 1.07f;
     [Tooltip("Vertical exaggeration. 1 = real proportions, <1 flattens. Lower = more readable, higher = dramatic peaks.")]
     [Range(0.05f, 10f)]
     [SerializeField] private float verticalExaggeration = 0.6f;
@@ -793,6 +793,12 @@ public class MapHologramTerrain : MonoBehaviour
         var go = new GameObject($"Chunk_{coord.x}_{coord.y}", typeof(MeshFilter), typeof(MeshRenderer));
         go.transform.SetParent(terrainContainer, false);
         go.transform.localPosition = new Vector3(coord.x * config.chunkSize.x, 0f, coord.y * config.chunkSize.y);
+        // Baked meshes span their bake-time chunkSize on XZ; rescale on the fly so
+        // a chunkSize change in WorldStreamingConfig doesn't require re-baking.
+        var meshSize = mesh.bounds.size;
+        float sx = meshSize.x > 0.0001f ? config.chunkSize.x / meshSize.x : 1f;
+        float sz = meshSize.z > 0.0001f ? config.chunkSize.y / meshSize.z : 1f;
+        go.transform.localScale = new Vector3(sx, 1f, sz);
         go.GetComponent<MeshFilter>().sharedMesh = mesh;
         var r = go.GetComponent<MeshRenderer>();
         r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -809,6 +815,9 @@ public class MapHologramTerrain : MonoBehaviour
             config.worldOrigin.x + coord.x * config.chunkSize.x,
             config.worldOrigin.z + coord.y * config.chunkSize.y,
             0f, 0f));
+        // Shader needs the same XZ rescale we apply to the GameObject so simXZ
+        // (used for fog/discovery/grid) tiles correctly across chunks.
+        mpb.SetVector("_ChunkObjectToSimScaleXZ", new Vector4(sx, sz, 0f, 0f));
         r.SetPropertyBlock(mpb);
 
         chunkMeshes[coord] = go;

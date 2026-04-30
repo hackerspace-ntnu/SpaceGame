@@ -154,6 +154,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d0031200c64b8064d8075dab376b2683, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3774528432963592237}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d0031200c64b8064d8075dab376b2683, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8373074624701540916}
   m_SourcePrefab: {fileID: 100100000, guid: d0031200c64b8064d8075dab376b2683, type: 3}
 --- !u!1 &1474439616740511624 stripped
 GameObject:
@@ -278,6 +281,7 @@ MonoBehaviour:
   mountCooldown: 0.25
   fallbackDismountDistance: 1.6
   defaultPerspective: 1
+  thirdPersonCameraPrefab: {fileID: 0}
   thirdPersonPivot: {fileID: 0}
   thirdPersonOffset: {x: 0, y: 10, z: -3.8}
   thirdPersonDistance: 15
@@ -289,7 +293,7 @@ MonoBehaviour:
   defaultMountedPitch: -15
   cameraAutoAlignSpeed: 90
   cameraAutoAlignDelay: 0.5
-  allowAISelfMovementWhenMounted: 0
+  allowAISelfMovementWhenMounted: 1
 --- !u!114 &-6914386319407262388
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -389,7 +393,7 @@ Rigidbody:
   m_ImplicitTensor: 1
   m_UseGravity: 1
   m_IsKinematic: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 0
 --- !u!114 &3774528432963592237
@@ -417,6 +421,20 @@ MonoBehaviour:
   jumpCooldown: 0.45
   enableLeap: 1
   leapCooldown: 0.6
+--- !u!114 &8373074624701540916
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1474439616740511624}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c2de851ee8ee4bb4be2025d7ecbb018, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SceneTracked
+  keepChunksLoaded: 1
+  policy: 1
 --- !u!4 &2251117740199023922 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d0031200c64b8064d8075dab376b2683, type: 3}

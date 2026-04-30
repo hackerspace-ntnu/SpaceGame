@@ -19,8 +19,11 @@ public class MapPOI : MonoBehaviour
     [Tooltip("Marker color category (Discovery, Quest, Hostile, Friendly, Neutral).")]
     [SerializeField] private MapMarkerType type = MapMarkerType.Discovery;
 
-    [Tooltip("If on, the marker is visible regardless of which chunks the player has explored. If off, only shows once the chunk is revealed.")]
+    [Tooltip("If on, the marker is visible regardless of which chunks the player has explored. If off, only shows once the chunk is revealed (and meanwhile renders as a reddish fog cloud until the player gets close enough to discover it).")]
     [SerializeField] private bool alwaysVisible = true;
+
+    [Tooltip("Optional per-POI tighter discovery radius (m). By default, a hidden POI is discovered when the player has explored close enough that the terrain fog around it would clear. Set this to a smaller value to require the player to get extra close before revealing this specific POI. -1 = use the terrain-fog reveal radius (default).")]
+    [SerializeField] private float discoveryRadius = -1f;
 
     [Tooltip("Stable unique ID. Auto-generated on first add — don't edit unless you know what you're doing.")]
     [HideInInspector]
@@ -56,7 +59,7 @@ public class MapPOI : MonoBehaviour
         var svc = MapService.Instance;
         if (svc == null) return;
         if (svc.HasPOI(id)) return;
-        svc.RegisterPOI(id, transform.position, type, poiName, !alwaysVisible);
+        svc.RegisterPOI(id, transform.position, type, poiName, !alwaysVisible, discoveryRadius);
     }
 
     /// <summary>
@@ -69,6 +72,6 @@ public class MapPOI : MonoBehaviour
         // Currently MapService doesn't support in-place updates, so we just
         // skip if already present. Users editing live can disable→enable the GO.
         if (!svc.HasPOI(id))
-            svc.RegisterPOI(id, transform.position, type, poiName, !alwaysVisible);
+            svc.RegisterPOI(id, transform.position, type, poiName, !alwaysVisible, discoveryRadius);
     }
 }

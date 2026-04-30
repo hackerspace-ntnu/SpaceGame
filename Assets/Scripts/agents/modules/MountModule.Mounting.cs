@@ -153,6 +153,10 @@ public partial class MountModule
             : transform.position + transform.right * fallbackDismountDistance;
         rider.position = dismountPosition;
 
+        // Strip any tilt the rider inherited from a tilted mount — keep only yaw so the
+        // player stands upright after dismount.
+        rider.rotation = Quaternion.Euler(0f, rider.eulerAngles.y, 0f);
+
         ExitMountedRigidbodyState();
         RestoreRiderComponentsAfterDismount();
         RestoreOwnRigidbodyRotationAfterDismount();
@@ -220,10 +224,15 @@ public partial class MountModule
 
         playerRigidbodyWasKinematic = mountedPlayerRigidbody.isKinematic;
         playerRigidbodyHadGravity = mountedPlayerRigidbody.useGravity;
+        playerRigidbodyInterpolation = mountedPlayerRigidbody.interpolation;
         mountedPlayerRigidbody.linearVelocity = Vector3.zero;
         mountedPlayerRigidbody.angularVelocity = Vector3.zero;
         mountedPlayerRigidbody.isKinematic = true;
         mountedPlayerRigidbody.useGravity = false;
+        // Rider is parented to the mount and follows it via the transform hierarchy. Letting
+        // the rider's Rigidbody also interpolate makes it sample stale world positions one
+        // physics step behind the parent, which renders the rider drifting off the seat.
+        mountedPlayerRigidbody.interpolation = RigidbodyInterpolation.None;
     }
 
     private void ExitMountedRigidbodyState()
@@ -233,6 +242,7 @@ public partial class MountModule
 
         mountedPlayerRigidbody.isKinematic = playerRigidbodyWasKinematic;
         mountedPlayerRigidbody.useGravity = playerRigidbodyHadGravity;
+        mountedPlayerRigidbody.interpolation = playerRigidbodyInterpolation;
         mountedPlayerRigidbody.linearVelocity = Vector3.zero;
         mountedPlayerRigidbody.angularVelocity = Vector3.zero;
     }

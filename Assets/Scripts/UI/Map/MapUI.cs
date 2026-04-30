@@ -35,7 +35,7 @@ public class MapUI : MonoBehaviour
     [SerializeField] private float holographicGlow = 1.6f;
 
     [Header("3D Hologram")]
-    [Tooltip("Legacy 3D-tilt mode applied to the panel itself. Leave OFF when using MapHologramProjector — the projector renders the panel to a RenderTexture and projects it as a real 3D hologram instead.")]
+    [Tooltip("Legacy 3D-tilt mode applied to the panel itself.")]
     [SerializeField] private bool use3DPerspective = false;
     [Range(0f, 75f)]
     [SerializeField] private float tiltAngleX = 35f;

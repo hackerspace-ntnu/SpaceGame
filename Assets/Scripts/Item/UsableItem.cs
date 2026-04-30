@@ -54,5 +54,28 @@ public abstract class UsableItem : MonoBehaviour
         OnItemDepleted?.Invoke(this);
     }
 
+    /// <summary>
+    /// Lifecycle hook fired by EquipmentController right after the item prefab is
+    /// instantiated and parented to the player's hand. Use for "while held"
+    /// effects (animation flags, audio loops, glow, etc). Subclasses overriding
+    /// this should call base.OnEquipped() so the shared HoldAnimator wiring
+    /// still fires.
+    /// </summary>
+    public virtual void OnEquipped(GameObject holder)
+    {
+        var hold = GetComponent<HoldAnimator>();
+        if (hold != null) hold.SetHeld(holder, true);
+    }
+
+    /// <summary>
+    /// Lifecycle hook fired by EquipmentController right before the item prefab
+    /// is unparented/destroyed. Mirror of OnEquipped — clean up here.
+    /// </summary>
+    public virtual void OnUnequipped(GameObject holder)
+    {
+        var hold = GetComponent<HoldAnimator>();
+        if (hold != null) hold.SetHeld(holder, false);
+    }
+
     protected abstract void Use();
 }

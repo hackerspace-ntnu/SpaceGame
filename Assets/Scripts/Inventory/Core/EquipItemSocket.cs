@@ -50,11 +50,11 @@ public class EquipItemSocket
 
     private void Setup(GameObject obj)
     {
-        // Don't modify physics on pickup objects (they have PickupableItem component)
-        if (obj.GetComponent<PickupableItem>() != null)
-        {
-            return;
-        }
+        // // Don't modify physics on pickup objects (they have PickupableItem component)
+        // if (obj.GetComponent<PickupableItem>() != null)
+        // {
+        //     return;
+        // }
 
         Rigidbody rb = obj.GetComponent<Rigidbody>();
         if (rb)

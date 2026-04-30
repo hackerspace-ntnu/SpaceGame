@@ -16,6 +16,17 @@ public class AgentProjectile : MonoBehaviour
     private EntityFaction shooterFaction;
     private Transform shooterTransform;
 
+    private Rigidbody rb;
+    private Collider col;
+    private Vector3 frozenVelocity;
+    private bool isFrozen;
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody>();
+        col = GetComponent<Collider>();
+    }
+
     public void Init(int damageAmount, Action<bool, Vector3> resultCallback, GameObject shooter = null)
     {
         damage = damageAmount;
@@ -32,7 +43,54 @@ public class AgentProjectile : MonoBehaviour
 
     private void Start()
     {
-        Destroy(gameObject, lifetime);
+        Invoke(nameof(LifetimeExpired), lifetime);
+    }
+
+    private void LifetimeExpired()
+    {
+        Destroy(gameObject);
+    }
+
+    public bool IsFrozen => isFrozen;
+    public float FrozenSpeed => frozenVelocity.magnitude;
+
+    public void Freeze()
+    {
+        if (isFrozen || hasHit) return;
+        isFrozen = true;
+        if (rb != null)
+        {
+            frozenVelocity = rb.linearVelocity;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.isKinematic = true;
+        }
+        if (col != null) col.enabled = false;
+        CancelInvoke(nameof(LifetimeExpired));
+    }
+
+    public void ReleaseRetargeted(Vector3 direction, float speed, GameObject newShooter)
+    {
+        if (!isFrozen) return;
+        isFrozen = false;
+
+        shooterFaction = newShooter != null ? newShooter.GetComponentInParent<EntityFaction>() : null;
+        shooterTransform = newShooter != null ? newShooter.transform : null;
+        if (newShooter != null && col != null)
+        {
+            foreach (Collider shooterCol in newShooter.GetComponentsInChildren<Collider>())
+                Physics.IgnoreCollision(col, shooterCol);
+        }
+
+        if (col != null) col.enabled = true;
+        transform.rotation = Quaternion.LookRotation(direction);
+        if (rb != null)
+        {
+            rb.isKinematic = false;
+            rb.linearVelocity = direction * speed;
+        }
+
+        Invoke(nameof(LifetimeExpired), lifetime);
     }
 
     private void OnCollisionEnter(Collision collision)

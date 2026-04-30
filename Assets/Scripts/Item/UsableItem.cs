@@ -54,5 +54,15 @@ public abstract class UsableItem : MonoBehaviour
         OnItemDepleted?.Invoke(this);
     }
 
+    /// <summary>
+    /// Refunds a previously consumed use. Intended for cases where Use() kicks off
+    /// async work that may later determine the activation should not have counted.
+    /// </summary>
+    protected void RefundUse()
+    {
+        if (currentUses > 0)
+            currentUses--;
+    }
+
     protected abstract void Use();
 }

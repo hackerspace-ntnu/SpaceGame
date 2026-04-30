@@ -31,6 +31,13 @@ public class MapService : MonoBehaviour
         public string label;
         public bool requiresRevealedChunk;
 
+        // Discovery state for "Hide" markers (requiresRevealedChunk == true).
+        // While !discovered the hologram renders a fog cloud instead of the
+        // marker itself. Negative discoveryRadius means "use the hologram's
+        // global default".
+        public bool discovered;
+        public float discoveryRadius = -1f;
+
         public Vector3 GetWorldPosition() =>
             follow != null ? follow.position : worldPosition;
     }
@@ -104,7 +111,7 @@ public class MapService : MonoBehaviour
     public bool IsChunkRevealed(Vector2Int coord) => revealed.Contains(coord);
 
     public Marker RegisterMarker(Transform follow, MapMarkerType type, string label = null,
-        bool requiresRevealedChunk = true)
+        bool requiresRevealedChunk = true, float discoveryRadius = -1f)
     {
         if (follow == null) return null;
         var m = new Marker
@@ -113,6 +120,7 @@ public class MapService : MonoBehaviour
             type = type,
             label = label,
             requiresRevealedChunk = requiresRevealedChunk,
+            discoveryRadius = discoveryRadius,
         };
         markers.Add(m);
         OnMarkerAdded?.Invoke(m);
@@ -120,7 +128,7 @@ public class MapService : MonoBehaviour
     }
 
     public Marker AddStaticMarker(Vector3 worldPos, MapMarkerType type, string label = null,
-        bool requiresRevealedChunk = true)
+        bool requiresRevealedChunk = true, float discoveryRadius = -1f)
     {
         var m = new Marker
         {
@@ -128,6 +136,7 @@ public class MapService : MonoBehaviour
             type = type,
             label = label,
             requiresRevealedChunk = requiresRevealedChunk,
+            discoveryRadius = discoveryRadius,
         };
         markers.Add(m);
         OnMarkerAdded?.Invoke(m);
@@ -140,11 +149,11 @@ public class MapService : MonoBehaviour
     /// persists for the rest of the session even if the GameObject is destroyed.
     /// </summary>
     public Marker RegisterPOI(string id, Vector3 worldPos, MapMarkerType type, string label = null,
-        bool requiresRevealedChunk = false)
+        bool requiresRevealedChunk = false, float discoveryRadius = -1f)
     {
-        if (string.IsNullOrEmpty(id)) return AddStaticMarker(worldPos, type, label, requiresRevealedChunk);
+        if (string.IsNullOrEmpty(id)) return AddStaticMarker(worldPos, type, label, requiresRevealedChunk, discoveryRadius);
         if (poisById.TryGetValue(id, out var existing)) return existing;
-        var m = AddStaticMarker(worldPos, type, label, requiresRevealedChunk);
+        var m = AddStaticMarker(worldPos, type, label, requiresRevealedChunk, discoveryRadius);
         poisById[id] = m;
         return m;
     }

@@ -45,6 +45,25 @@ public class WorldStreamer : NetworkBehaviour
 
     public void UnregisterTrackedTransform(Transform t) => trackedTransforms.Remove(t);
 
+    // ─────────────────────────────────────────────
+    //  SceneTracked registry (static so components can self-register from OnEnable
+    //  without a FindFirstObjectByType call, and survives WorldStreamer respawn).
+    // ─────────────────────────────────────────────
+
+    private static readonly HashSet<SceneTracked> s_trackedEntities = new();
+
+    public static void RegisterTracked(SceneTracked entity)
+    {
+        if (entity != null)
+            s_trackedEntities.Add(entity);
+    }
+
+    public static void UnregisterTracked(SceneTracked entity)
+    {
+        if (entity != null)
+            s_trackedEntities.Remove(entity);
+    }
+
     private enum ChunkState { NotLoaded, Loading, Loaded, Unloading }
 
     private readonly Dictionary<Vector2Int, ChunkState> chunkStates = new();
@@ -65,6 +84,9 @@ public class WorldStreamer : NetworkBehaviour
     private float updateInterval = 0.5f;
     private float nextUpdateTime;
 
+    // Scene this WorldStreamer lives in — used as the migration target for Pin'd entities.
+    private Scene persistentScene;
+
     private bool navMeshDirty;
     private float navMeshRebuildTime;
     private float nextParkedAgentRetryTime;
@@ -81,6 +103,8 @@ public class WorldStreamer : NetworkBehaviour
 
     private void Start()
     {
+        persistentScene = gameObject.scene;
+
         // Offline: initialize immediately without waiting for Netcode
         if (!Network.IsNetworked)
             InitializeOffline();
@@ -108,6 +132,9 @@ public class WorldStreamer : NetworkBehaviour
             Debug.LogError("[WorldStreamer] Missing WorldStreamingConfig reference.");
             return;
         }
+
+        if (!persistentScene.IsValid())
+            persistentScene = gameObject.scene;
 
         NetworkManager.Singleton.SceneManager.OnSceneEvent += HandleSceneEvent;
         InitializeChunkStates();
@@ -160,6 +187,7 @@ public class WorldStreamer : NetworkBehaviour
         nextUpdateTime = Time.time + updateInterval;
 
         UpdateChunkLoading();
+        UpdateSceneMembership();
     }
 
     private void InitializeChunkStates()
@@ -276,6 +304,30 @@ public class WorldStreamer : NetworkBehaviour
                 requiredChunks.Add(coord);
         }
 
+        // SceneTracked entities with keepChunksLoaded=true also pull chunks in around them.
+        // Pin'd entities (mounts) need their surroundings loaded so the world doesn't vanish
+        // beneath them when the player drives further than the player's own load radius.
+        s_trackedEntities.RemoveWhere(e => e == null);
+        foreach (var entity in s_trackedEntities)
+        {
+            if (!entity.KeepChunksLoaded) continue;
+            var entityChunk = config.WorldToChunkCoord(entity.TrackedTransform.position);
+            foreach (var coord in GetChunksInRadius(entityChunk, config.loadRadius))
+                requiredChunks.Add(coord);
+        }
+
+        // Chunks that contain a tracker which would be destroyed by the unload (Pin/Migrate)
+        // get pinned even if they're outside the load radius. Despawn-policy trackers don't pin.
+        // Without this guard a Migrate'd vehicle could still get yanked out from under itself
+        // if it idled at the very edge of a chunk for the grace period.
+        foreach (var entity in s_trackedEntities)
+        {
+            if (entity.Policy == SceneTracked.UnloadPolicy.Despawn) continue;
+            var coord = config.WorldToChunkCoord(entity.TrackedTransform.position);
+            if (config.IsValidCoord(coord))
+                requiredChunks.Add(coord);
+        }
+
         // Load required chunks that aren't loaded
         foreach (var coord in requiredChunks)
         {
@@ -302,6 +354,63 @@ public class WorldStreamer : NetworkBehaviour
                 EnqueueUnload(kvp.Key);
                 unloadTimers.Remove(kvp.Key);
             }
+        }
+    }
+
+    // ─────────────────────────────────────────────
+    //  Scene membership pass — keep SceneTracked entities in the right scene
+    // ─────────────────────────────────────────────
+
+    private void UpdateSceneMembership()
+    {
+        if (!persistentScene.IsValid() || !persistentScene.isLoaded)
+            return;
+
+        s_trackedEntities.RemoveWhere(e => e == null);
+
+        foreach (var entity in s_trackedEntities)
+        {
+            Scene desired = ResolveDesiredScene(entity);
+            if (!desired.IsValid() || !desired.isLoaded) continue;
+
+            var go = entity.gameObject;
+            if (go.scene == desired) continue;
+
+            // Only move root objects — Unity rejects MoveGameObjectToScene on a child.
+            // Anything parented elsewhere (e.g. rider parented to mount) follows automatically.
+            if (go.transform.parent != null) continue;
+
+            // Hand off through Netcode when this is a NetworkObject so all clients agree on
+            // the new scene assignment. Non-networked or offline path falls through to the
+            // direct SceneManager call.
+            // TODO: when NetworkObject support lands on vehicles, route this through
+            // NetworkManager.Singleton.SceneManager.MoveObjectToScene (Netcode-for-GameObjects
+            // adds this in 1.x via NetworkObject.SceneMigrationSynchronization).
+            SceneManager.MoveGameObjectToScene(go, desired);
+        }
+    }
+
+    private Scene ResolveDesiredScene(SceneTracked entity)
+    {
+        switch (entity.Policy)
+        {
+            case SceneTracked.UnloadPolicy.Pin:
+                return persistentScene;
+
+            case SceneTracked.UnloadPolicy.Migrate:
+            {
+                var coord = config.WorldToChunkCoord(entity.TrackedTransform.position);
+                if (loadedScenes.TryGetValue(coord, out var scene) && scene.IsValid() && scene.isLoaded)
+                    return scene;
+                // Chunk under the entity isn't loaded yet — leave the entity where it is.
+                // The unload guard in UpdateChunkLoading prevents its current scene from being
+                // ripped out, and the next tick will re-evaluate once the chunk loads.
+                return entity.gameObject.scene;
+            }
+
+            case SceneTracked.UnloadPolicy.Despawn:
+            default:
+                return entity.gameObject.scene;
         }
     }
 

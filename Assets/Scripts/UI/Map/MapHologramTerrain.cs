@@ -23,10 +23,12 @@ public class MapHologramTerrain : MonoBehaviour
     [SerializeField] private float distance = 0.9f;
     [SerializeField] private float sideOffset = -0.55f;
     [SerializeField] private float height = 1.25f;
+    [Tooltip("Small twist around the hologram's local up axis (degrees), purely for readability. Applied on top of the camera-facing orientation.")]
     [Range(-90, 90)]
     [SerializeField] private float yawTowardPlayer = 25f;
-    [Range(-30, 30)]
-    [SerializeField] private float baseTiltX = 0f;
+    [Tooltip("Fixed lean (degrees) of the map's surface from world horizontal, tilting its top edge in the world-fixed lean direction. Higher values protect against seeing the underside when looking up — geometrically, this is the maximum upward camera pitch (from horizontal) that still shows the top.")]
+    [Range(0f, 89f)]
+    [SerializeField] private float leanTowardPlayer = 45f;
 
     [Header("Hologram Scale")]
     [Tooltip("Width of the hologram footprint in meters.")]
@@ -36,7 +38,7 @@ public class MapHologramTerrain : MonoBehaviour
     [SerializeField] private float verticalExaggeration = 0.6f;
     [Tooltip("How many chunks around the player are shown. 1 = 3x3 area, 2 = 5x5, etc. Set very high to show the whole world.")]
     [Range(0, 12)]
-    [SerializeField] private int viewRadius = 2;
+    [SerializeField] private int viewRadius = 6;
     [Tooltip("If on, the hologram recenters on the player's current chunk each frame (mini-map style).")]
     [SerializeField] private bool centerOnPlayer = true;
 
@@ -52,24 +54,33 @@ public class MapHologramTerrain : MonoBehaviour
     [Range(0, 8)] [SerializeField] private float fresnelPower = 2.5f;
     [Range(0, 4)] [SerializeField] private float fresnelStrength = 1.6f;
 
-    [Header("Volumetric Beam")]
+    [Header("Sunray Fan")]
     [SerializeField] private bool showBeam = true;
-    [Range(16, 96)] [SerializeField] private int beamSides = 48;
-    [Tooltip("Beam base radius as a fraction of the hologram footprint. 0.5 = exactly cover the map width, 0.55 = slightly larger, 0.4 = inside the map.")]
-    [Range(0.2f, 0.9f)]
-    [SerializeField] private float beamRadiusFraction = 0.55f;
-    [Range(0, 1)] [SerializeField] private float beamApexAlpha = 0.95f;
-    [Range(0, 1)] [SerializeField] private float beamBaseAlpha = 0.20f;
+    [Tooltip("Reach radius as a fraction of the hologram footprint. Determines how wide the ray fan spreads at the base.")]
+    [Range(0.2f, 0.9f)] [SerializeField] private float beamRadiusFraction = 0.449f;
     [SerializeField] private float beamOriginOffset = 0.05f;
-    [Range(0, 32)] [SerializeField] private float beamRayCount = 14f;
-    [Range(0, 1)] [SerializeField] private float beamRayStrength = 0.4f;
-    [Range(1, 16)] [SerializeField] private float beamRaySharpness = 6f;
-    [SerializeField] private float beamRayDrift = 0.12f;
+    [Tooltip("Number of streak quads in the cone fan. Each quad is one straight ray.")]
+    [Range(3, 96)] [SerializeField] private int sunrayCount = 86;
+    [Tooltip("Width of each streak at the base ring. Smaller = thinner rays.")]
+    [Range(0.005f, 0.3f)] [SerializeField] private float sunrayBaseWidth = 0.3f;
+    [Tooltip("Slow rotation of the whole fan around the cone axis (revolutions per second). 0 = static.")]
+    [SerializeField] private float sunraySpinSpeed = 6f;
+
+    [Tooltip("Brightness at the apex of each ray.")]
+    [Range(0, 2)] [SerializeField] private float sunrayApexAlpha = 0.14f;
+    [Tooltip("Brightness at the base of each ray.")]
+    [Range(0, 1)] [SerializeField] private float sunrayBaseAlpha = 0.0f;
+    [Tooltip("How sharply each streak fades at its left/right edges. Higher = harder edge.")]
+    [Range(1f, 8f)] [SerializeField] private float sunrayEdgeSharpness = 7.02f;
+    [Tooltip("Per-ray independent brightness shimmer strength.")]
+    [Range(0f, 1f)] [SerializeField] private float sunrayShimmer = 0.333f;
+    [Tooltip("How fast individual rays shimmer (Hz).")]
+    [SerializeField] private float sunrayShimmerSpeed = 0.6f;
 
     [Header("Layer (helps exclude from helmet/screen shaders)")]
     [Tooltip("All hologram visuals are placed on this layer at startup. Create a layer named 'Hologram' (Edit → Project Settings → Tags & Layers) and exclude it from helmet/screen-space shader cameras to stop bleed-through.")]
     [SerializeField] private string hologramLayerName = "Hologram";
-    [Tooltip("FALLBACK ONLY. Temporarily disables GlassDistortionRenderFeature while the map is open. Use only if you can't add HologramOverlayRenderFeature to your URP renderer. Off by default — preferred fix is the render feature.")]
+    [Tooltip("Temporarily disables GlassDistortionRenderFeature while the map is open to prevent bleed-through onto hologram visuals.")]
     [SerializeField] private bool disableGlassDistortionWhileOpen = false;
 
     [Header("Markers")]
@@ -85,10 +96,59 @@ public class MapHologramTerrain : MonoBehaviour
     [Tooltip("Spawn meshes for all chunks at startup, ignoring MapService reveal state. Useful for debugging or static maps.")]
     [SerializeField] private bool revealAllChunks;
 
+    [Header("Marker Labels")]
+    [Tooltip("If on, POI labels (the marker's text) are rendered above each marker, billboarded to face the camera.")]
+    [SerializeField] private bool showMarkerLabels = true;
+    [Tooltip("Marker label visual size. Higher = bigger text. Roughly equivalent to TMP font-size units.")]
+    [SerializeField] private float markerLabelFontSize = 64f;
+    [Tooltip("Vertical offset of the label above the marker, in marker-local units (1 = markerSize).")]
+    [SerializeField] private float markerLabelHeight = 2.5f;
+    [SerializeField] private Color markerLabelColor = new Color(0.85f, 1.00f, 1.00f, 1f);
+
+    [Header("Hidden Marker Fog")]
+    [Tooltip("If on, hidden (Hide) markers that the player hasn't yet 'discovered' tint the surrounding terrain fog reddish, hinting that something is out there. Once the player gets within the discovery radius, the tint disappears and the real marker is revealed.")]
+    [SerializeField] private bool enableHiddenMarkerFog = true;
+    [Tooltip("Tint applied to the terrain fog around hidden, undiscovered POIs.")]
+    [SerializeField] private Color hiddenFogColor = new Color(1.0f, 0.25f, 0.20f, 1f);
+    [Tooltip("Brightness of the reddish fog tint at the center of a hidden POI's influence area.")]
+    [Range(0f, 4f)] [SerializeField] private float hiddenFogIntensity = 1.6f;
+    [Tooltip("World-space radius (m) over which a hidden POI tints the surrounding fog.")]
+    [SerializeField] private float hiddenFogTintRadius = 350f;
+    [Tooltip("Soft edge width (m) at the boundary of the tint area. Larger = mushier transition.")]
+    [SerializeField] private float hiddenFogTintFalloff = 200f;
+    [Tooltip("Random offset (m) applied to each hidden POI's tint center, so the marker isn't pinpointed by the red blob. Sampled once per marker.")]
+    [SerializeField] private float hiddenFogPositionJitter = 80f;
+
     [Header("Animation")]
     [SerializeField] private float spawnRiseTime = 0.35f;
     [SerializeField] private float wobbleAmplitudeDeg = 0.8f;
     [SerializeField] private float wobbleSpeed = 0.4f;
+
+    [Header("Fog of War")]
+    [Tooltip("If on, terrain only renders in detail near places the player has been. Other areas are obscured by an animated fog. POIs remain visible.")]
+    [SerializeField] private bool enableFogOfWar = true;
+    [Tooltip("World-space radius around each recorded discovery point that counts as 'revealed'. Smaller = more fog left to discover.")]
+    [SerializeField] private float discoveryRadius = 700f;
+    [Tooltip("Soft edge width (m) at the boundary between revealed and fogged terrain.")]
+    [SerializeField] private float discoveryFalloff = 280f;
+    [Tooltip("Minimum world distance the player must move before a new discovery point is sampled.")]
+    [SerializeField] private float discoveryPointSpacing = 120f;
+    [Tooltip("Maximum number of discovery points kept. Once full, oldest is dropped (matches shader's MAX_DISCOVERY_POINTS = 256).")]
+    [SerializeField] private int maxDiscoveryPoints = 256;
+    [SerializeField] private Color fogColor = new Color(0.20f, 0.40f, 0.55f, 1f);
+    [Range(0f, 4f)] [SerializeField] private float fogIntensity = 0.6f;
+    [SerializeField] private float fogNoiseScale = 0.015f;
+    [SerializeField] private float fogNoiseSpeed = 0.08f;
+    [Tooltip("How much to darken fog on steep slopes. 0 = no dim (peaks pop through fog). 1 = vertical faces fully dark. ~0.85 hides peaks well.")]
+    [Range(0f, 1f)] [SerializeField] private float fogSlopeDim = 0.85f;
+    [Tooltip("How much to darken fog on view-grazing surfaces. Helps hide silhouette stacking when you look at the map from a low angle.")]
+    [Range(0f, 1f)] [SerializeField] private float fogViewDim = 0.6f;
+
+    [Header("Map Shape (round vignette)")]
+    [Tooltip("Radius (sim-world meters) of the circular map area at full opacity. Beyond this the hologram fades out with a fuzzy edge.")]
+    [SerializeField] private float mapRadius = 1100f;
+    [Tooltip("Width (m) of the soft fade-out at the map's edge. Larger = fuzzier rim.")]
+    [SerializeField] private float mapEdgeFalloff = 450f;
 
     // Runtime
     private Transform root;
@@ -106,6 +166,15 @@ public class MapHologramTerrain : MonoBehaviour
 
     private readonly Dictionary<Vector2Int, GameObject> chunkMeshes = new();
     private readonly Dictionary<MapService.Marker, GameObject> markerVisuals = new();
+    private readonly Dictionary<MapService.Marker, GameObject> markerLabels = new();
+    private readonly Dictionary<MapService.Marker, Vector3>    fogJitterByMarker = new();
+    private static readonly Vector4[] hiddenPoiUploadBuffer = new Vector4[32];
+
+    // Fog of war: rolling buffer of revealed world-XZ centers.
+    private readonly List<Vector4> discoveryPoints = new();
+    private Vector3 lastDiscoverySamplePos;
+    private bool hasDiscoverySample;
+    private static readonly Vector4[] discoveryUploadBuffer = new Vector4[256];
 
     private float MinTerrainY = 0f;
     private float MaxTerrainY = 200f;
@@ -144,6 +213,7 @@ public class MapHologramTerrain : MonoBehaviour
         }
         if (terrainMaterial != null) Destroy(terrainMaterial);
         if (beamMaterial != null) Destroy(beamMaterial);
+        if (beamMesh != null) Destroy(beamMesh);
     }
 
     private void Update()
@@ -159,12 +229,51 @@ public class MapHologramTerrain : MonoBehaviour
     /// </summary>
     private void LateUpdate()
     {
+        SampleDiscovery();
         if (!visible) return;
         UpdateRootTransform();
         UpdatePlayerMarker();
         UpdateMarkerPositions();
         UpdateBeamTransform();
         UpdateMaterialUniforms();
+    }
+
+    private void SampleDiscovery()
+    {
+        if (!enableFogOfWar) return;
+        if (player == null)
+        {
+            var p = GameObject.FindGameObjectWithTag("Player");
+            if (p != null) player = p.transform;
+            if (player == null) return;
+        }
+
+        Vector3 pos = player.position;
+        if (!hasDiscoverySample)
+        {
+            AddDiscoveryPoint(pos);
+            lastDiscoverySamplePos = pos;
+            hasDiscoverySample = true;
+            return;
+        }
+
+        float dx = pos.x - lastDiscoverySamplePos.x;
+        float dz = pos.z - lastDiscoverySamplePos.z;
+        float spacing = Mathf.Max(0.01f, discoveryPointSpacing);
+        if (dx * dx + dz * dz >= spacing * spacing)
+        {
+            AddDiscoveryPoint(pos);
+            lastDiscoverySamplePos = pos;
+        }
+    }
+
+    private void AddDiscoveryPoint(Vector3 worldPos)
+    {
+        int cap = Mathf.Clamp(maxDiscoveryPoints, 1, discoveryUploadBuffer.Length);
+        var v = new Vector4(worldPos.x, 0f, worldPos.z, 0f);
+        if (discoveryPoints.Count >= cap)
+            discoveryPoints.RemoveAt(0);
+        discoveryPoints.Add(v);
     }
 
     public void SetVisible(bool v)
@@ -217,6 +326,10 @@ public class MapHologramTerrain : MonoBehaviour
         }
     }
 
+    private Mesh beamMesh;
+    private int beamMeshRayCount;
+    private float beamMeshBuiltWidth;
+
     private void BuildBeam()
     {
         beamObject = new GameObject("MapHologram_Beam");
@@ -229,15 +342,13 @@ public class MapHologramTerrain : MonoBehaviour
         renderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
         renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
 
-        beamMeshFilter.sharedMesh = BuildUnitConeMesh(beamSides);
+        BuildSunrayFanMesh();
 
         var shader = Shader.Find("Hologram/Beam");
         if (shader != null)
         {
             beamMaterial = new Material(shader) { hideFlags = HideFlags.DontSave };
             beamMaterial.SetColor("_Color", hologramTint);
-            beamMaterial.SetFloat("_ApexFade", beamApexAlpha);
-            beamMaterial.SetFloat("_BaseFade", beamBaseAlpha);
             renderer.sharedMaterial = beamMaterial;
         }
         else
@@ -247,42 +358,87 @@ public class MapHologramTerrain : MonoBehaviour
     }
 
     /// <summary>
-    /// Unit cone: apex at (0,0,0), base disc at z=1 with radius 1.
-    /// Side normals are perpendicular to the slant for fresnel softness.
+    /// Builds a fan of N flat quads radiating from the apex. Each quad is
+    /// 1 ray: a thin trapezoid with apex narrow and base wide. UV.x = across
+    /// width (0..1), UV.y = apex (0) → base (1). Vertex color R encodes
+    /// the per-ray index normalized to 0..1, so the shader can derive a
+    /// stable per-ray seed for shimmer.
     /// </summary>
-    private static Mesh BuildUnitConeMesh(int sides)
+    private void BuildSunrayFanMesh()
     {
-        var verts = new Vector3[1 + (sides + 1)];
-        var norms = new Vector3[verts.Length];
-        var uvs   = new Vector2[verts.Length];
-        var tris  = new int[sides * 3];
+        int rays = Mathf.Max(3, sunrayCount);
+        // Each quad has 4 verts and 2 tris.
+        var verts  = new Vector3[rays * 4];
+        var uvs    = new Vector2[rays * 4];
+        var colors = new Color32[rays * 4];
+        var tris   = new int[rays * 6];
 
-        verts[0] = Vector3.zero;
-        norms[0] = Vector3.back;
-        uvs[0]   = new Vector2(0.5f, 0f);
+        float baseHalfWidth = Mathf.Max(0.001f, sunrayBaseWidth) * 0.5f;
+        // Apex narrows to a point but with a tiny width so rasterization
+        // doesn't collapse the triangle to nothing.
+        float apexHalfWidth = baseHalfWidth * 0.05f;
 
-        for (int i = 0; i <= sides; i++)
+        for (int r = 0; r < rays; r++)
         {
-            float a = (float)i / sides * Mathf.PI * 2f;
-            float c = Mathf.Cos(a), s = Mathf.Sin(a);
-            verts[1 + i] = new Vector3(c, s, 1f);
-            norms[1 + i] = new Vector3(c, s, 0f).normalized;
-            uvs[1 + i]   = new Vector2((float)i / sides, 1f);
-        }
-        for (int i = 0; i < sides; i++)
-        {
-            tris[i * 3 + 0] = 0;
-            tris[i * 3 + 1] = 1 + i;
-            tris[i * 3 + 2] = 1 + i + 1;
+            float angle = (r / (float)rays) * Mathf.PI * 2f;
+            float c = Mathf.Cos(angle);
+            float s = Mathf.Sin(angle);
+            // Local axes for this ray:
+            //   forward = (c, s, 0) — radial outward in XY plane
+            //   right   = (-s, c, 0) — perpendicular (across width)
+            // The cone's length axis is +Z, but a flat fan doesn't have any
+            // Z extent — so we lay each ray in a plane perpendicular to the
+            // cone's axis is wrong. Instead, the ray is a quad lying in the
+            // plane spanned by Z (length, apex→base) and the radial outward
+            // direction (c, s, 0) at base. At apex, length=0, so the quad
+            // tapers to the apex point.
+            //
+            // Vertices in local cone space (apex=z=0, base=z=1):
+            //   apex-left, apex-right, base-left, base-right
+            // The "left/right" is in the radial-tangent direction, scaled by
+            // half-width × radial offset (so the quad widens as it leaves apex).
+            float ax = -s, ay = c, az = 0f;        // tangent at angle
+            // Apex-left and apex-right: same point at origin, slight offset for
+            // non-zero rasterization.
+            int v0 = r * 4;
+            verts[v0 + 0] = new Vector3(ax * apexHalfWidth, ay * apexHalfWidth, 0f);
+            verts[v0 + 1] = new Vector3(-ax * apexHalfWidth, -ay * apexHalfWidth, 0f);
+            // Base-left and base-right: at radial distance 1 from axis, offset
+            // by ±baseHalfWidth in the tangent direction.
+            verts[v0 + 2] = new Vector3(c + ax * baseHalfWidth, s + ay * baseHalfWidth, 1f);
+            verts[v0 + 3] = new Vector3(c - ax * baseHalfWidth, s - ay * baseHalfWidth, 1f);
+
+            uvs[v0 + 0] = new Vector2(0f, 0f);
+            uvs[v0 + 1] = new Vector2(1f, 0f);
+            uvs[v0 + 2] = new Vector2(0f, 1f);
+            uvs[v0 + 3] = new Vector2(1f, 1f);
+
+            // Per-ray seed in vertex.color.r: index/count gives a unique stable
+            // value 0..1 the shader can hash for independent shimmer.
+            byte seed = (byte)Mathf.Min(255, Mathf.RoundToInt(((r + 0.5f) / rays) * 255f));
+            colors[v0 + 0] = new Color32(seed, 0, 0, 255);
+            colors[v0 + 1] = new Color32(seed, 0, 0, 255);
+            colors[v0 + 2] = new Color32(seed, 0, 0, 255);
+            colors[v0 + 3] = new Color32(seed, 0, 0, 255);
+
+            int t0 = r * 6;
+            tris[t0 + 0] = v0 + 0; tris[t0 + 1] = v0 + 2; tris[t0 + 2] = v0 + 3;
+            tris[t0 + 3] = v0 + 0; tris[t0 + 4] = v0 + 3; tris[t0 + 5] = v0 + 1;
         }
 
-        var mesh = new Mesh { name = "HologramBeamCone" };
-        mesh.vertices  = verts;
-        mesh.normals   = norms;
-        mesh.uv        = uvs;
-        mesh.triangles = tris;
-        mesh.RecalculateBounds();
-        return mesh;
+        if (beamMesh == null)
+        {
+            beamMesh = new Mesh { name = "HologramSunrayFan", hideFlags = HideFlags.DontSave };
+            beamMeshFilter.sharedMesh = beamMesh;
+        }
+        beamMesh.Clear();
+        beamMesh.vertices  = verts;
+        beamMesh.uv        = uvs;
+        beamMesh.colors32  = colors;
+        beamMesh.triangles = tris;
+        beamMesh.RecalculateBounds();
+        beamMeshRayCount = rays;
+        beamMeshBuiltWidth = sunrayBaseWidth;
     }
 
     private void BuildPlayerMarker()
@@ -364,43 +520,201 @@ public class MapHologramTerrain : MonoBehaviour
     }
 
     /// <summary>
-    /// Builds a marker visual: a small base cube + an upward spike, both using the
-    /// solid additive hologram shader so they're visible from any angle.
+    /// Builds a sci-fi map marker: a thin vertical stalk anchored on a flat
+    /// diamond at terrain level, with a downward-pointing pin head at the top
+    /// and a ground ring around the base. Optional billboarded text label is
+    /// spawned as a child so callers can position/scale it independently.
+    /// All geometry uses the additive `Hologram/Solid` shader.
     /// </summary>
-    private GameObject BuildMarkerVisual(string name, Color color, float intensity, float pulse = 0f)
+    private GameObject BuildMarkerVisual(string name, Color color, float intensity, string label = null, float pulse = 0f)
     {
         var go = new GameObject(name);
         go.transform.SetParent(markerContainer, false);
 
         var mat = MakeSolidMarkerMaterial(color, intensity, pulse);
 
-        // Base cube
-        var baseCube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        baseCube.name = "Base";
-        var bcol = baseCube.GetComponent<Collider>();
-        if (bcol != null) Destroy(bcol);
-        baseCube.transform.SetParent(go.transform, false);
-        baseCube.transform.localScale = Vector3.one;
-        ApplyMaterialAndStrip(baseCube, mat);
+        // 1) Ground diamond (flat octahedron) — sits flush with the terrain.
+        var basePin = new GameObject("BasePin");
+        basePin.transform.SetParent(go.transform, false);
+        AttachMesh(basePin, BuildDiamondMesh(0.55f, 0.12f), mat);
 
-        // Vertical spike — thin tall cube above the base.
-        if (markerSpikeHeight > 0.001f)
-        {
-            var spike = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            spike.name = "Spike";
-            var scol = spike.GetComponent<Collider>();
-            if (scol != null) Destroy(scol);
-            spike.transform.SetParent(go.transform, false);
-            // Width is relative to spike width as fraction of marker size,
-            // height is the spike length above the base.
-            float spikeRelW = markerSpikeWidth / Mathf.Max(0.0001f, markerSize);
-            float spikeRelH = markerSpikeHeight / Mathf.Max(0.0001f, markerSize);
-            spike.transform.localScale = new Vector3(spikeRelW, spikeRelH, spikeRelW);
-            spike.transform.localPosition = new Vector3(0, spikeRelH * 0.5f + 0.5f, 0);
-            ApplyMaterialAndStrip(spike, mat);
-        }
+        // 2) Stalk — thin tall quad-tube from terrain up to the pin head.
+        float stalkH = Mathf.Max(0.001f, markerSpikeHeight / Mathf.Max(0.0001f, markerSize));
+        float stalkW = Mathf.Max(0.0001f, markerSpikeWidth / Mathf.Max(0.0001f, markerSize));
+        var stalk = new GameObject("Stalk");
+        stalk.transform.SetParent(go.transform, false);
+        AttachMesh(stalk, BuildBoxMesh(stalkW, stalkH, stalkW), mat);
+        stalk.transform.localPosition = new Vector3(0f, stalkH * 0.5f, 0f);
+
+        // 3) Pin head — inverted teardrop / downward diamond at the top of the stalk.
+        var head = new GameObject("Head");
+        head.transform.SetParent(go.transform, false);
+        AttachMesh(head, BuildDiamondMesh(0.55f, 0.55f), mat);
+        head.transform.localPosition = new Vector3(0f, stalkH + 0.45f, 0f);
+
+        // 4) Ground ring — flat torus to draw attention to the marker's footprint.
+        var ring = new GameObject("Ring");
+        ring.transform.SetParent(go.transform, false);
+        AttachMesh(ring, BuildRingMesh(1.0f, 0.85f, 32), mat);
+        ring.transform.localPosition = new Vector3(0f, 0.005f, 0f);
 
         return go;
+    }
+
+    /// <summary>
+    /// Builds a world-space label as a sibling of the marker (not a child), so
+    /// it doesn't inherit the marker's non-uniform vertical-exaggeration scale.
+    /// Uses Unity's legacy `TextMesh` because runtime TMP setups in this project
+    /// render fallback glyphs ("two T's") regardless of how we bind the font —
+    /// `TextMesh` ships with a built-in font and is reliable.
+    /// Position + uniform scale + camera billboarding are handled per-frame.
+    /// </summary>
+    private GameObject BuildMarkerLabel(string text)
+    {
+        var go = new GameObject("Label");
+        go.transform.SetParent(markerContainer, false);
+
+        var tm = go.AddComponent<TextMesh>();
+        tm.text = text;
+        tm.fontSize = 64;          // raster resolution; visual size comes from characterSize × transform scale
+        // characterSize directly controls visual size in label-local units, so we
+        // route the inspector's font-size knob through it. Scale by 1/64 so a
+        // value of 64 in the inspector gives roughly the old default.
+        tm.characterSize = Mathf.Max(0.001f, markerLabelFontSize / 64f);
+        tm.alignment = TextAlignment.Center;
+        tm.anchor = TextAnchor.MiddleCenter;
+        tm.color = markerLabelColor;
+        tm.fontStyle = FontStyle.Bold;
+
+        var mr = go.GetComponent<MeshRenderer>();
+        if (mr != null)
+        {
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+            mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            mr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+
+            // TextMesh uses the Font's shared material by default. To tint it
+            // per-label without mutating the shared asset (which would tint
+            // every TextMesh in the project), give this renderer its own
+            // material instance and a high render queue so it sits over the
+            // additive hologram.
+            if (tm.font != null && tm.font.material != null)
+            {
+                var matInstance = new Material(tm.font.material) { hideFlags = HideFlags.DontSave };
+                matInstance.color = markerLabelColor;
+                matInstance.renderQueue = 4001;
+                mr.sharedMaterial = matInstance;
+            }
+        }
+        return go;
+    }
+
+    private void AttachMesh(GameObject go, Mesh mesh, Material mat)
+    {
+        var mf = go.AddComponent<MeshFilter>();
+        mf.sharedMesh = mesh;
+        var mr = go.AddComponent<MeshRenderer>();
+        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        mr.receiveShadows = false;
+        mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+        mr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+        mr.sharedMaterial = mat;
+    }
+
+    /// <summary>Octahedral "diamond" mesh: 4 horizontal points + top + bottom apex.</summary>
+    private static Mesh BuildDiamondMesh(float radius, float halfHeight)
+    {
+        var verts = new[]
+        {
+            new Vector3(0f,  halfHeight, 0f),       // 0 top
+            new Vector3(0f, -halfHeight, 0f),       // 1 bottom
+            new Vector3( radius, 0f,  0f),          // 2 +x
+            new Vector3( 0f,    0f,  radius),       // 3 +z
+            new Vector3(-radius, 0f,  0f),          // 4 -x
+            new Vector3( 0f,    0f, -radius),       // 5 -z
+        };
+        var tris = new[]
+        {
+            // Upper pyramid (double-sided so additive shader looks right from any angle)
+            0,2,3, 0,3,2,
+            0,3,4, 0,4,3,
+            0,4,5, 0,5,4,
+            0,5,2, 0,2,5,
+            // Lower pyramid
+            1,3,2, 1,2,3,
+            1,4,3, 1,3,4,
+            1,5,4, 1,4,5,
+            1,2,5, 1,5,2,
+        };
+        var mesh = new Mesh { name = "MarkerDiamond" };
+        mesh.vertices = verts;
+        mesh.triangles = tris;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
+    /// <summary>Axis-aligned box mesh, centered on origin.</summary>
+    private static Mesh BuildBoxMesh(float w, float h, float d)
+    {
+        float x = w * 0.5f, y = h * 0.5f, z = d * 0.5f;
+        var verts = new[]
+        {
+            new Vector3(-x,-y,-z), new Vector3( x,-y,-z),
+            new Vector3( x, y,-z), new Vector3(-x, y,-z),
+            new Vector3(-x,-y, z), new Vector3( x,-y, z),
+            new Vector3( x, y, z), new Vector3(-x, y, z),
+        };
+        var tris = new[]
+        {
+            0,2,1, 0,3,2,    // back
+            4,5,6, 4,6,7,    // front
+            0,1,5, 0,5,4,    // bottom
+            3,7,6, 3,6,2,    // top
+            0,4,7, 0,7,3,    // left
+            1,2,6, 1,6,5,    // right
+        };
+        var mesh = new Mesh { name = "MarkerBox" };
+        mesh.vertices = verts;
+        mesh.triangles = tris;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
+    }
+
+    /// <summary>Flat ring on the XZ plane. outerR > innerR. Double-sided.</summary>
+    private static Mesh BuildRingMesh(float outerR, float innerR, int segments)
+    {
+        segments = Mathf.Max(8, segments);
+        var verts = new Vector3[segments * 2];
+        var tris = new int[segments * 12]; // 2 quads (front+back) per segment
+        for (int i = 0; i < segments; i++)
+        {
+            float a = (float)i / segments * Mathf.PI * 2f;
+            float c = Mathf.Cos(a), s = Mathf.Sin(a);
+            verts[i * 2 + 0] = new Vector3(c * outerR, 0f, s * outerR);
+            verts[i * 2 + 1] = new Vector3(c * innerR, 0f, s * innerR);
+        }
+        int t = 0;
+        for (int i = 0; i < segments; i++)
+        {
+            int next = (i + 1) % segments;
+            int o0 = i * 2, i0 = i * 2 + 1;
+            int o1 = next * 2, i1 = next * 2 + 1;
+            // top
+            tris[t++] = o0; tris[t++] = o1; tris[t++] = i1;
+            tris[t++] = o0; tris[t++] = i1; tris[t++] = i0;
+            // bottom (flipped winding)
+            tris[t++] = o0; tris[t++] = i1; tris[t++] = o1;
+            tris[t++] = o0; tris[t++] = i0; tris[t++] = i1;
+        }
+        var mesh = new Mesh { name = "MarkerRing" };
+        mesh.vertices = verts;
+        mesh.triangles = tris;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        return mesh;
     }
 
     private void ApplyMaterialAndStrip(GameObject go, Material mat)
@@ -437,6 +751,15 @@ public class MapHologramTerrain : MonoBehaviour
     {
         var svc = MapService.Instance;
 
+        // Marker subscription is independent of chunk-reveal mode: we want POIs
+        // to render whether or not we're in the all-chunks-visible fallback.
+        if (svc != null)
+        {
+            svc.OnMarkerAdded   += OnMarkerAdded;
+            svc.OnMarkerRemoved += OnMarkerRemoved;
+            foreach (var m in svc.Markers) OnMarkerAdded(m);
+        }
+
         if (revealAllChunks || svc == null)
         {
             // Spawn every chunk regardless of reveal state.
@@ -445,16 +768,12 @@ public class MapHologramTerrain : MonoBehaviour
                 foreach (var c in config.chunks) OnChunkRevealed(c.gridCoord);
             }
             if (svc == null)
-                Debug.LogWarning("[MapHologramTerrain] No MapService in scene — running with all chunks visible.", this);
+                Debug.LogWarning("[MapHologramTerrain] No MapService in scene — running with all chunks visible. Add a MapService component to persistentScene to enable POIs and reveal-on-explore.", this);
         }
         else
         {
             svc.OnChunkRevealed += OnChunkRevealed;
-            svc.OnMarkerAdded   += OnMarkerAdded;
-            svc.OnMarkerRemoved += OnMarkerRemoved;
-
             foreach (var c in svc.RevealedChunks) OnChunkRevealed(c);
-            foreach (var m in svc.Markers)        OnMarkerAdded(m);
         }
 
         Debug.Log($"[MapHologramTerrain] Spawned {chunkMeshes.Count} chunk mesh(es) at startup. " +
@@ -482,6 +801,16 @@ public class MapHologramTerrain : MonoBehaviour
         r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
         r.sharedMaterial = terrainMaterial;
 
+        // Tell the shader which simulated world XZ this chunk represents, so fog
+        // discovery distance compares against the player's real game-world position
+        // instead of the tiny hologram render-world position.
+        var mpb = new MaterialPropertyBlock();
+        mpb.SetVector("_ChunkWorldOriginXZ", new Vector4(
+            config.worldOrigin.x + coord.x * config.chunkSize.x,
+            config.worldOrigin.z + coord.y * config.chunkSize.y,
+            0f, 0f));
+        r.SetPropertyBlock(mpb);
+
         chunkMeshes[coord] = go;
         EnsureLayer(go);
 
@@ -502,19 +831,47 @@ public class MapHologramTerrain : MonoBehaviour
     private void OnMarkerAdded(MapService.Marker marker)
     {
         if (markerVisuals.ContainsKey(marker)) return;
+
+        // Pre-pick a stable jitter offset per-marker so the red fog tint
+        // doesn't sit exactly on top of the real position (preserves mystery).
+        if (!fogJitterByMarker.ContainsKey(marker))
+        {
+            float j = Mathf.Max(0f, hiddenFogPositionJitter);
+            Vector2 r = j > 0f ? Random.insideUnitCircle * j : Vector2.zero;
+            fogJitterByMarker[marker] = new Vector3(r.x, 0f, r.y);
+        }
+
         var go = BuildMarkerVisual($"Marker_{marker.label ?? marker.type.ToString()}",
                                    MapMarkerColors.For(marker.type),
                                    markerIntensity,
+                                   label: marker.label,
                                    pulse: 0.15f);
         markerVisuals[marker] = go;
         EnsureLayer(go);
+
+        if (showMarkerLabels && !string.IsNullOrEmpty(marker.label))
+        {
+            var labelGo = BuildMarkerLabel(marker.label);
+            markerLabels[marker] = labelGo;
+            EnsureLayer(labelGo);
+        }
     }
 
     private void OnMarkerRemoved(MapService.Marker marker)
     {
-        if (!markerVisuals.TryGetValue(marker, out var go)) return;
-        markerVisuals.Remove(marker);
-        if (go != null) Destroy(go);
+        if (markerVisuals.TryGetValue(marker, out var go))
+        {
+            markerVisuals.Remove(marker);
+            if (go != null) Destroy(go);
+        }
+
+        if (markerLabels.TryGetValue(marker, out var labelGo))
+        {
+            markerLabels.Remove(marker);
+            if (labelGo != null) Destroy(labelGo);
+        }
+
+        fogJitterByMarker.Remove(marker);
     }
 
     // ─────────────────────────────────────────────
@@ -530,42 +887,58 @@ public class MapHologramTerrain : MonoBehaviour
             if (player == null) return;
         }
 
-        // Anchor placement on the projector transform when assigned (e.g. a
-        // helmet/wrist mount that already moves perfectly with the camera);
-        // fall back to the player's flat-forward frame otherwise.
-        Vector3 anchorPos;
-        Vector3 fwd, right, up;
-        if (projectorAnchor != null)
-        {
-            anchorPos = projectorAnchor.position;
-            fwd = projectorAnchor.forward;
-            right = projectorAnchor.right;
-            up = projectorAnchor.up;
-        }
-        else
-        {
-            anchorPos = player.position;
-            fwd = player.forward; fwd.y = 0f;
-            if (fwd.sqrMagnitude < 0.0001f) fwd = Vector3.forward;
-            fwd.Normalize();
-            right = Vector3.Cross(Vector3.up, fwd);
-            up = Vector3.up;
-        }
+        // Anchor: prefer the live camera so the hologram tracks the screen
+        // (yaw + pitch). projectorAnchor / player are fallbacks if no camera
+        // resolves.
+        Transform anchor = (Camera.main != null && Camera.main.isActiveAndEnabled)
+            ? Camera.main.transform
+            : (projectorAnchor != null ? projectorAnchor : player);
 
-        Vector3 worldPos = anchorPos + fwd * distance + right * sideOffset + up * height;
+        Vector3 anchorPos = anchor.position;
+        Vector3 anchorFwd = anchor.forward;
+        Vector3 anchorRight = anchor.right;
+        Vector3 anchorUp = anchor.up;
+
+        Vector3 worldPos = anchorPos + anchorFwd * distance + anchorRight * sideOffset + anchorUp * height;
 
         float t = Mathf.Clamp01((Time.time - visibleSinceTime) / Mathf.Max(0.0001f, spawnRiseTime));
         float rise = Mathf.SmoothStep(0f, 1f, t);
         currentRise = rise;
 
+        root.position = worldPos - Vector3.up * (1f - rise) * 0.35f;
+
+        // Orientation: lean direction always tracks the camera (so the
+        // top of the map always faces you — readable from any direction).
+        // The map's "north" axis is built from a WORLD-FIXED reference
+        // (world +Z) projected onto the tilted plane. As you turn, the
+        // projection of world-north onto the always-toward-you plane
+        // rotates around the surface normal — visually, the terrain
+        // content spins around the map's own axis while the tilt stays
+        // pointed at you.
+        Vector3 viewFwd = anchorFwd; viewFwd.y = 0f;
+        if (viewFwd.sqrMagnitude < 1e-6f)
+        {
+            viewFwd = player.forward; viewFwd.y = 0f;
+            if (viewFwd.sqrMagnitude < 1e-6f) viewFwd = Vector3.forward;
+        }
+        viewFwd.Normalize();
+
+        Vector3 leanDir = -viewFwd;
+        Vector3 leanAxis = Vector3.Cross(Vector3.up, leanDir);
+        Vector3 modelUp = Quaternion.AngleAxis(leanTowardPlayer, leanAxis) * Vector3.up;
+
+        Vector3 modelFwd = Vector3.ProjectOnPlane(Vector3.forward, modelUp);
+        if (modelFwd.sqrMagnitude < 1e-6f)
+            modelFwd = Vector3.ProjectOnPlane(Vector3.right, modelUp);
+        modelFwd.Normalize();
+        Quaternion baseRot = Quaternion.LookRotation(modelFwd, modelUp);
+
+        // Small wobble + readability twist applied in the model's local frame.
         float wobX = Mathf.Sin(Time.time * wobbleSpeed * Mathf.PI * 2f) * wobbleAmplitudeDeg;
         float wobZ = Mathf.Sin(Time.time * wobbleSpeed * Mathf.PI * 2f * 0.73f) * wobbleAmplitudeDeg * 0.6f;
+        Quaternion localTweak = Quaternion.Euler(wobX, yawTowardPlayer, wobZ);
 
-        root.position = worldPos - Vector3.up * (1f - rise) * 0.35f;
-        // North-up map: parent frame is world-aligned so the player marker
-        // visibly rotates as the player turns, instead of the terrain spinning
-        // underneath a fixed arrow.
-        root.rotation = Quaternion.Euler(baseTiltX + wobX, yawTowardPlayer, wobZ);
+        root.rotation = baseRot * localTweak;
 
         // Visible chunk window — chunk coords are integer (used for show/hide),
         // but visCenter uses the player's continuous world position so the
@@ -693,16 +1066,22 @@ public class MapHologramTerrain : MonoBehaviour
             + Vector3.up * (markerLift / s.y);
         playerMarker.transform.localScale = InverseContainerScale(playerMarkerSize);
 
-        // The marker is nested under a rotated/tilted hologram root. To make the
-        // arrow point in the player's actual world-facing direction, convert the
-        // player's flat forward into the marker's parent local space.
-        Vector3 worldFwd = player.forward; worldFwd.y = 0f;
-        if (worldFwd.sqrMagnitude > 1e-6f)
+        // Arrow direction = player's body yaw (world-flat forward). The marker
+        // is nested under a hologram root that may be tilted toward the camera,
+        // so we project the world-flat forward onto the model's terrain plane
+        // (perpendicular to parent.up) before converting to local space —
+        // otherwise camera pitch leaks into the arrow yaw.
+        var parent = playerMarker.transform.parent;
+        Vector3 bodyFwdWorld = player.forward; bodyFwdWorld.y = 0f;
+        if (bodyFwdWorld.sqrMagnitude > 1e-6f)
         {
-            Vector3 localFwd = playerMarker.transform.parent.InverseTransformDirection(worldFwd.normalized);
-            localFwd.y = 0f;
-            if (localFwd.sqrMagnitude > 1e-6f)
-                playerMarker.transform.localRotation = Quaternion.LookRotation(localFwd.normalized, Vector3.up);
+            bodyFwdWorld.Normalize();
+            Vector3 onPlane = Vector3.ProjectOnPlane(bodyFwdWorld, parent.up);
+            if (onPlane.sqrMagnitude > 1e-6f)
+            {
+                Vector3 localFwd = parent.InverseTransformDirection(onPlane.normalized);
+                playerMarker.transform.localRotation = Quaternion.LookRotation(localFwd, Vector3.up);
+            }
         }
     }
 
@@ -712,11 +1091,14 @@ public class MapHologramTerrain : MonoBehaviour
         {
             foreach (var kvp in markerVisuals)
                 if (kvp.Value != null) kvp.Value.SetActive(false);
+            foreach (var kvp in markerLabels)
+                if (kvp.Value != null) kvp.Value.SetActive(false);
             return;
         }
 
         var svc = MapService.Instance;
         var s = terrainContainer.localScale;
+
         foreach (var kvp in markerVisuals)
         {
             var marker = kvp.Key;
@@ -724,18 +1106,106 @@ public class MapHologramTerrain : MonoBehaviour
             if (go == null) continue;
 
             Vector3 worldPos = marker.GetWorldPosition();
+
+            // Promote a hidden marker to "discovered" once its location lies
+            // inside the same revealed-circle the terrain fog shader uses.
+            // This keeps the POI reveal in lock-step with the terrain fog
+            // dissolving — no more "marker pops out of still-fogged terrain".
+            // Per-POI discoveryRadius (if >= 0) shrinks/grows the test relative
+            // to the global terrain discovery radius.
+            if (enableHiddenMarkerFog && marker.requiresRevealedChunk && !marker.discovered)
+            {
+                float baseR = Mathf.Max(0.01f, discoveryRadius);
+                float effectiveR = marker.discoveryRadius >= 0f
+                    ? Mathf.Min(marker.discoveryRadius, baseR)
+                    : baseR;
+                float r2 = effectiveR * effectiveR;
+                int dpCount = discoveryPoints.Count;
+                for (int dpi = 0; dpi < dpCount; dpi++)
+                {
+                    var dp = discoveryPoints[dpi];
+                    float dx = worldPos.x - dp.x;
+                    float dz = worldPos.z - dp.z;
+                    if (dx * dx + dz * dz <= r2) { marker.discovered = true; break; }
+                }
+            }
+
             // Honor the marker's own opt-out (MapPOI's alwaysVisible sets this).
             // Falling through to the global toggle keeps the old behaviour for
             // markers that do require chunk reveal.
             bool gateOnReveal = showOnlyRevealedMarkers && marker.requiresRevealedChunk;
-            bool show = !gateOnReveal
+            bool chunkRevealed = !gateOnReveal
                 || (svc != null && svc.IsChunkRevealed(config.WorldToChunkCoord(worldPos)));
+
+            // While hidden+undiscovered, suppress the real marker — the
+            // terrain fog tint (uploaded via _HiddenPOIs) hints at it instead.
+            bool hiddenAsFog = enableHiddenMarkerFog
+                && marker.requiresRevealedChunk
+                && !marker.discovered;
+            bool show = chunkRevealed && !hiddenAsFog;
+
             go.SetActive(show);
+
             if (!show) continue;
 
             go.transform.localPosition = WorldToTerrainLocal(worldPos)
                 + Vector3.up * (markerLift / s.y);
             go.transform.localScale = InverseContainerScale(markerSize);
+
+            // Update the separate label sibling: position above the marker in
+            // terrain-local space, uniform world scale (so non-uniform vertical
+            // exaggeration doesn't squish the text), and billboard toward the
+            // camera each frame.
+            if (markerLabels.TryGetValue(marker, out var labelGo) && labelGo != null)
+            {
+                labelGo.SetActive(true);
+                Vector3 markerLocal = WorldToTerrainLocal(worldPos)
+                    + Vector3.up * (markerLift / s.y);
+                // Lift label above the pin head: stalk height (in marker-local) is
+                // markerSpikeHeight/markerSize, plus the configured label offset.
+                float liftMarkerLocal = (markerSpikeHeight / Mathf.Max(0.0001f, markerSize))
+                                        + markerLabelHeight;
+                // Convert that marker-local lift to terrain-local via scale ratio.
+                float markerToTerrain = markerSize; // marker localScale is InverseContainerScale(markerSize)
+                labelGo.transform.localPosition = markerLocal + Vector3.up * (liftMarkerLocal * markerToTerrain / s.y);
+
+                // Uniform world scale: use the container's horizontal scale only
+                // so vertical-exaggeration doesn't squish/stretch the text.
+                float uniform = markerSize / Mathf.Max(MinScaleEpsilon, s.x);
+                labelGo.transform.localScale = new Vector3(uniform, uniform, uniform);
+
+                // Live-update font size + color from the inspector so tweaks take
+                // effect without rebuilding the marker.
+                var tm = labelGo.GetComponent<TextMesh>();
+                if (tm != null)
+                {
+                    tm.characterSize = Mathf.Max(0.001f, markerLabelFontSize / 64f);
+                    tm.color = markerLabelColor;
+                    var lmr = labelGo.GetComponent<MeshRenderer>();
+                    if (lmr != null && lmr.sharedMaterial != null)
+                        lmr.sharedMaterial.color = markerLabelColor;
+                }
+
+                // Full billboard: face the camera straight-on, regardless of
+                // camera tilt. The label's up axis tracks the camera's up, so
+                // text is always readable head-on (side, top, anywhere).
+                var cam = Camera.main;
+                if (cam != null)
+                {
+                    Vector3 toCam = cam.transform.position - labelGo.transform.position;
+                    if (toCam.sqrMagnitude > 1e-6f)
+                        labelGo.transform.rotation = Quaternion.LookRotation(-toCam.normalized, cam.transform.up);
+                }
+            }
+        }
+
+        // Hide labels for markers that aren't being shown (their parent marker
+        // GO was set inactive above, but the label is a sibling).
+        foreach (var kvp in markerLabels)
+        {
+            if (kvp.Value == null) continue;
+            if (markerVisuals.TryGetValue(kvp.Key, out var mgo) && mgo != null)
+                kvp.Value.SetActive(mgo.activeSelf);
         }
     }
 
@@ -755,6 +1225,11 @@ public class MapHologramTerrain : MonoBehaviour
     {
         if (beamObject == null || !showBeam) return;
 
+        // Rebuild the fan mesh if ray count or per-quad width changed.
+        if (beamMeshRayCount != Mathf.Max(3, sunrayCount) ||
+            !Mathf.Approximately(beamMeshBuiltWidth, sunrayBaseWidth))
+            BuildSunrayFanMesh();
+
         Vector3 origin = helmetAnchor != null
             ? helmetAnchor.position
             : (player != null ? player.position + Vector3.up * helmetHeightFallback : transform.position);
@@ -766,12 +1241,13 @@ public class MapHologramTerrain : MonoBehaviour
         Vector3 dir = toRoot / length;
         Vector3 start = origin + dir * beamOriginOffset;
         float effectiveLen = Mathf.Max(0.01f, length - beamOriginOffset);
-
-        // Auto-fit cone base radius to the hologram footprint so rays land on the map.
         float radius = footprint * beamRadiusFraction;
 
+        // Roll the whole fan slowly around the cone's forward axis.
+        float spinDeg = (Time.time * sunraySpinSpeed * 360f) % 360f;
+
         beamObject.transform.position = start;
-        beamObject.transform.rotation = Quaternion.LookRotation(dir);
+        beamObject.transform.rotation = Quaternion.LookRotation(dir) * Quaternion.Euler(0f, 0f, spinDeg);
         beamObject.transform.localScale = new Vector3(radius, radius, effectiveLen);
     }
 
@@ -791,16 +1267,66 @@ public class MapHologramTerrain : MonoBehaviour
             terrainMaterial.SetFloat("_GridStrength", gridStrength);
             terrainMaterial.SetFloat("_Fresnel", fresnelPower);
             terrainMaterial.SetFloat("_FresnelStrength", fresnelStrength);
+
+            // Fog of war
+            terrainMaterial.SetFloat("_FogEnabled", enableFogOfWar ? 1f : 0f);
+            terrainMaterial.SetColor("_FogColor", fogColor);
+            terrainMaterial.SetFloat("_FogIntensity", fogIntensity);
+            terrainMaterial.SetFloat("_FogNoiseScale", fogNoiseScale);
+            terrainMaterial.SetFloat("_FogNoiseSpeed", fogNoiseSpeed);
+            terrainMaterial.SetFloat("_FogSlopeDim", fogSlopeDim);
+            terrainMaterial.SetFloat("_FogViewDim", fogViewDim);
+            terrainMaterial.SetFloat("_DiscoveryRadius", Mathf.Max(0.01f, discoveryRadius));
+            terrainMaterial.SetFloat("_DiscoveryFalloff", Mathf.Max(0.0001f, discoveryFalloff));
+
+            int count = Mathf.Min(discoveryPoints.Count, discoveryUploadBuffer.Length);
+            for (int i = 0; i < count; i++) discoveryUploadBuffer[i] = discoveryPoints[i];
+            // Zero the rest so stale entries don't reveal anything if count shrinks.
+            for (int i = count; i < discoveryUploadBuffer.Length; i++) discoveryUploadBuffer[i] = Vector4.zero;
+            terrainMaterial.SetVectorArray("_DiscoveryPoints", discoveryUploadBuffer);
+            terrainMaterial.SetInt("_DiscoveryCount", count);
+
+            // Round map vignette centered on the player's sim-world XZ.
+            Vector3 centerWorld = player != null ? player.position : Vector3.zero;
+            terrainMaterial.SetVector("_MapCenterXZ", new Vector4(centerWorld.x, centerWorld.z, 0f, 0f));
+            terrainMaterial.SetFloat("_MapRadius", Mathf.Max(0.01f, mapRadius));
+            terrainMaterial.SetFloat("_MapEdgeFalloff", Mathf.Max(0.0001f, mapEdgeFalloff));
+
+            // Hidden POI fog tint: collect every hidden+undiscovered marker
+            // into the shader array as (simWorldX, simWorldZ, radius, falloff).
+            terrainMaterial.SetColor("_HiddenPOIColor", hiddenFogColor);
+            terrainMaterial.SetFloat("_HiddenPOIIntensity", hiddenFogIntensity);
+            int hCount = 0;
+            if (enableHiddenMarkerFog)
+            {
+                float radius = Mathf.Max(0.01f, hiddenFogTintRadius);
+                float falloff = Mathf.Max(0.0001f, hiddenFogTintFalloff);
+                foreach (var kvp in markerVisuals)
+                {
+                    var marker = kvp.Key;
+                    if (marker == null) continue;
+                    if (!marker.requiresRevealedChunk || marker.discovered) continue;
+                    if (hCount >= hiddenPoiUploadBuffer.Length) break;
+                    Vector3 wp = marker.GetWorldPosition();
+                    Vector3 jitter = fogJitterByMarker.TryGetValue(marker, out var j) ? j : Vector3.zero;
+                    hiddenPoiUploadBuffer[hCount++] = new Vector4(
+                        wp.x + jitter.x, wp.z + jitter.z, radius, falloff);
+                }
+            }
+            for (int i = hCount; i < hiddenPoiUploadBuffer.Length; i++)
+                hiddenPoiUploadBuffer[i] = Vector4.zero;
+            terrainMaterial.SetVectorArray("_HiddenPOIs", hiddenPoiUploadBuffer);
+            terrainMaterial.SetInt("_HiddenPOICount", hCount);
         }
         if (beamMaterial != null)
         {
             beamMaterial.SetColor("_Color", hologramTint);
-            beamMaterial.SetFloat("_ApexFade", beamApexAlpha);
-            beamMaterial.SetFloat("_BaseFade", beamBaseAlpha);
-            beamMaterial.SetFloat("_RayCount", beamRayCount);
-            beamMaterial.SetFloat("_RayStrength", beamRayStrength);
-            beamMaterial.SetFloat("_RaySharpness", beamRaySharpness);
-            beamMaterial.SetFloat("_RayDrift", beamRayDrift);
+            beamMaterial.SetFloat("_Intensity", intensity);
+            beamMaterial.SetFloat("_ApexFade", sunrayApexAlpha);
+            beamMaterial.SetFloat("_BaseFade", sunrayBaseAlpha);
+            beamMaterial.SetFloat("_EdgeSharpness", sunrayEdgeSharpness);
+            beamMaterial.SetFloat("_Shimmer", sunrayShimmer);
+            beamMaterial.SetFloat("_ShimmerSpeed", sunrayShimmerSpeed);
         }
     }
 }

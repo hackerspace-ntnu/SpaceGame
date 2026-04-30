@@ -157,6 +157,7 @@ GameObject:
   - component: {fileID: 8851460314457709842}
   - component: {fileID: 7690567672306401050}
   - component: {fileID: 8923646687290719108}
+  - component: {fileID: 4400000000000000002}
   m_Layer: 0
   m_Name: Lasso
   m_TagString: Untagged
@@ -340,6 +341,25 @@ MonoBehaviour:
   wobbleAmplitude: 0.3
   wobbleFrequency: 2.5
   wobbleDecay: 2
+--- !u!114 &4400000000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6774419219061973401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 995eecce84894515a70877e3c499412f, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  animator: {fileID: 0}
+  boolParameter: Hold
+  requireStationary: 1
+  inputDeadzone: 0.01
+  velocityThreshold: 0.15
+  holdReArmDelay: 0.2
+  debugLog: 0
 --- !u!1 &7664494423032639174
 GameObject:
   m_ObjectHideFlags: 0

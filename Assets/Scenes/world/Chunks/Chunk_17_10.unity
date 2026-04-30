@@ -4235,7 +4235,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MapPOI
   poiName: Settlement
   type: 4
-  alwaysVisible: 1
+  alwaysVisible: 0
+  discoveryRadius: -1
   id: 23f0f66dd1c74a3b9f155f18abdb7871
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

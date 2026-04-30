@@ -113,9 +113,15 @@ public class PlayerMovement : MonoBehaviour
 
     private void UpdateAnimatorParameters(Vector3 velocity, bool grounded)
     {
-        if (!animator) return;
+        if (!animator || animator.runtimeAnimatorController == null) return;
 
-        UpdateAnimatorParametersServerRpc(velocity, grounded);
+        Vector3 localVelocity = transform.worldToLocalMatrix.MultiplyVector(velocity);
+
+        animator.SetFloat("SpeedX", localVelocity.x, .1f, Time.deltaTime);
+        animator.SetFloat("SpeedY", localVelocity.z, .1f, Time.deltaTime);
+        animator.SetFloat("FallSpeed", velocity.y, .1f, Time.deltaTime);
+        animator.SetBool("IsGrounded", grounded);
+        animator.SetBool("IsImmobalized", !groundSnapEnabled);
     }
 
     private void TriggerAnimator(string triggerName)
@@ -136,19 +142,6 @@ public class PlayerMovement : MonoBehaviour
         animator.SetFloat("FallSpeed", 0f);
         animator.SetBool("IsGrounded", IsGrounded());
         animator.SetBool("IsImmobalized", true);
-    }
-    
-    [ServerRpc]
-    private void UpdateAnimatorParametersServerRpc(Vector3 velocity, bool grounded)
-    {
-        // Calculate local velocity for animation
-        Vector3 localVelocity = transform.worldToLocalMatrix.MultiplyVector(velocity);
-        
-        animator.SetFloat("SpeedX", localVelocity.x, .1f, Time.deltaTime);
-        animator.SetFloat("SpeedY", localVelocity.z, .1f, Time.deltaTime);
-        animator.SetFloat("FallSpeed", velocity.y, .1f, Time.deltaTime);
-        animator.SetBool("IsGrounded", grounded);
-        animator.SetBool("IsImmobalized", !groundSnapEnabled);
     }
 
     public void OnJump()

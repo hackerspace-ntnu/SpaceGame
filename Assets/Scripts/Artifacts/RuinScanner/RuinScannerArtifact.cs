@@ -117,9 +117,10 @@ public class RuinScannerArtifact : ToolItem
         Vector3 up = Vector3.Cross(right, aimDir).normalized;
 
         var revealed = new System.Collections.Generic.HashSet<IRuinSecret>();
+        bool anyHit = false;
 
         // Center ray.
-        float centerSlant = CastSlant(beamOrigin, aimDir, maxBeamDistance, revealed);
+        float centerSlant = CastSlant(beamOrigin, aimDir, maxBeamDistance, revealed, ref anyHit);
 
         // Rim rings — each (ring, segment) has its own slant length.
         // Outer rim ring (ring == detectionRings) drives the visual mesh's
@@ -139,7 +140,7 @@ public class RuinScannerArtifact : ToolItem
                 Vector3 target = axisEnd + rimOffset;
                 Vector3 dir = (target - beamOrigin).normalized;
                 float maxSlant = Vector3.Distance(beamOrigin, target);
-                float slant = CastSlant(beamOrigin, dir, maxSlant, revealed);
+                float slant = CastSlant(beamOrigin, dir, maxSlant, revealed, ref anyHit);
                 if (ring == rings) outerRimSlants[s] = slant;
             }
         }
@@ -147,16 +148,18 @@ public class RuinScannerArtifact : ToolItem
         foreach (var s in revealed) s.Reveal(revealDuration);
 
         // ---- Visual pulse ----
+        // Only show the pulse when the beam actually landed on something —
+        // firing into open sky shouldn't produce a ground scan.
         // Mesh base ring follows the outer rim slants so the cone bulges out
         // wherever rays travelled further. minBeamDistance keeps the beam
         // visible at point-blank.
-        if (pulseMaterial != null)
+        if (pulseMaterial != null && anyHit)
         {
             float visibleCenter = Mathf.Max(minBeamDistance, centerSlant);
             float[] visibleRim = new float[segs];
             for (int s = 0; s < segs; s++)
                 visibleRim[s] = Mathf.Max(minBeamDistance, outerRimSlants[s]);
-            RuinScannerPulse.Spawn(beamOrigin, aimDir, right, up, baseRadius, visibleCenter, visibleRim, pulseDuration, pulseMaterial);
+            RuinScannerPulse.Spawn(beamOrigin, aimDir, right, up, baseRadius, visibleCenter, visibleRim, pulseDuration, pulseMaterial, muzzleT);
         }
 
         // ---- Discovery audio cue ----
@@ -172,12 +175,13 @@ public class RuinScannerArtifact : ToolItem
     /// this number.
     /// </summary>
     private float CastSlant(Vector3 origin, Vector3 dir, float distance,
-        System.Collections.Generic.HashSet<IRuinSecret> revealed)
+        System.Collections.Generic.HashSet<IRuinSecret> revealed, ref bool anyHit)
     {
         // Use a single all-layers cast so opaque world geometry blocks the
         // beam, but still surface IRuinSecret hits from the secret layers.
         if (!Physics.Raycast(origin, dir, out RaycastHit hit, distance, ~0, QueryTriggerInteraction.Collide))
             return distance;
+        anyHit = true;
         if (((1 << hit.collider.gameObject.layer) & secretMask) != 0)
         {
             var secret = hit.collider.GetComponentInParent<IRuinSecret>();

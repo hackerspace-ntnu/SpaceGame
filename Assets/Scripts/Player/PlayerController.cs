@@ -65,10 +65,10 @@ public class PlayerController : MonoBehaviour
         playerMovement.enabled = true;
         playerLook.enabled = true;
         damageFeedback.enabled = true;
-        
+
         playerHealth.OnDeath += OnDeath;
     }
-    
+
     public void DisablePlayer()
     {
         Input.enabled = false;
@@ -77,8 +77,53 @@ public class PlayerController : MonoBehaviour
         playerMovement.enabled = false;
         playerLook.enabled = false;
         damageFeedback.enabled = false;
-        
+
         playerHealth.OnDeath -= OnDeath;
+    }
+
+    public Camera PlayerCamera => playerCamera != null ? playerCamera.GetComponent<Camera>() : null;
+    public Transform PlayerCameraTransform => playerCamera != null ? playerCamera.transform : null;
+
+    // Cutscene handover: lock input/look/movement but keep the camera GameObject active so a
+    // cutscene can drive its transform. Prior enabled-state is captured so the same call is
+    // safe whether the player is on foot, mounted, or already had something disabled.
+    private bool inCutsceneMode;
+    private bool savedInputEnabled;
+    private bool savedMovementEnabled;
+    private bool savedLookEnabled;
+    private bool savedDamageFeedbackEnabled;
+    private bool savedHudActive;
+
+    public bool InCutsceneMode => inCutsceneMode;
+
+    public void EnterCutsceneMode()
+    {
+        if (inCutsceneMode) return;
+        inCutsceneMode = true;
+
+        savedInputEnabled = Input.enabled;
+        savedMovementEnabled = playerMovement.enabled;
+        savedLookEnabled = playerLook.enabled;
+        savedDamageFeedbackEnabled = damageFeedback.enabled;
+        savedHudActive = playerHUD.activeSelf;
+
+        Input.enabled = false;
+        playerMovement.enabled = false;
+        playerLook.enabled = false;
+        damageFeedback.enabled = false;
+        playerHUD.SetActive(false);
+    }
+
+    public void ExitCutsceneMode()
+    {
+        if (!inCutsceneMode) return;
+        inCutsceneMode = false;
+
+        Input.enabled = savedInputEnabled;
+        playerMovement.enabled = savedMovementEnabled;
+        playerLook.enabled = savedLookEnabled;
+        damageFeedback.enabled = savedDamageFeedbackEnabled;
+        playerHUD.SetActive(savedHudActive);
     }
 
     private void OnDeath()

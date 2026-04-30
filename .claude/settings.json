@@ -2,7 +2,22 @@
   "permissions": {
     "allow": [
       "Bash(git -C /Users/ferdinandfremming/Documents/hackerspace/spillgruppen/SpaceGame diff HEAD -- Assets/Scripts/agents/AI/motor/NavMeshAgentJumpMotor.cs)",
-      "Bash(git -C /Users/ferdinandfremming/Documents/hackerspace/spillgruppen/SpaceGame log --all --oneline --diff-filter=D -- \"*NavMeshAgentJump*\")"
+      "Bash(git -C /Users/ferdinandfremming/Documents/hackerspace/spillgruppen/SpaceGame log --all --oneline --diff-filter=D -- \"*NavMeshAgentJump*\")",
+      "Bash(grep -rln \"public static class Network\\\\b\\\\|class Network$\\\\|static class Network \" /Users/ferdinandfremming/Documents/hackerspace/spillgruppen/SpaceGame/Assets/Scripts/)",
+      "mcp__unity-mcp__Unity_GetProjectData",
+      "mcp__unity-mcp__Unity_GetUserGuidelines",
+      "mcp__unity-mcp__Unity_ManageScript_capabilities",
+      "mcp__unity-mcp__Unity_ReadConsole",
+      "mcp__unity-mcp__Unity_ManageScene",
+      "mcp__unity-mcp__Unity_ManageAsset",
+      "WebSearch",
+      "mcp__unity-mcp__Unity_FindInFile",
+      "mcp__unity-mcp__Unity_ValidateScript",
+      "mcp__unity-mcp__Unity_Camera_Capture",
+      "mcp__unity-mcp__Unity_SceneView_CaptureMultiAngleSceneView",
+      "Bash(awk '/m_Name: EntranceAnchor/,/--- /' /Users/ferdinandfremming/Documents/hackerspace/spillgruppen/SpaceGame/Assets/Scenes/Interiors/InsideRuin.unity)",
+      "Bash(awk '/m_Name: ExitDoor/,/--- /' /Users/ferdinandfremming/Documents/hackerspace/spillgruppen/SpaceGame/Assets/Scenes/Interiors/InsideRuin.unity)",
+      "Read(//Users/ferdinandfremming/Library/Logs/Unity/**)"
     ]
   }
 }

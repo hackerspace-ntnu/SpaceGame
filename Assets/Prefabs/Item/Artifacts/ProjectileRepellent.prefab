@@ -139,12 +139,12 @@ MonoBehaviour:
     Path: event:/SFX/Implosion
   catchRadius: 4
   shieldForwardOffset: 1.5
-  catchConeAngle: 120
-  repelDelay: 1
-  spreadConeAngle: 30
+  catchConeAngle: 86
+  repelDelay: 5
+  spreadConeAngle: 60
   baseKnockback: 5
-  perProjectileKnockback: 2
-  knockbackForceMode: 1
+  perProjectileKnockback: 1
+  knockbackForceMode: 2
   shieldVfxPrefab: {fileID: 0}
 --- !u!114 &5911295904450997368
 MonoBehaviour:

@@ -41,6 +41,7 @@ public class RepelArtifact : ToolItem
 
     private IEnumerator CatchAndRepelRoutine()
     {
+        Debug.Log($"[RepelArtifact] CatchAndRepelRoutine STARTED, repelDelay={repelDelay}, catchRadius={catchRadius}, catchConeAngle={catchConeAngle}");
         Transform cameraTransform = GetCameraTransform();
         if (cameraTransform == null)
         {
@@ -72,6 +73,7 @@ public class RepelArtifact : ToolItem
             yield return null;
         }
 
+        Debug.Log($"[RepelArtifact] wait loop ended after {elapsed:F2}s, caught {caught.Count} total");
         Vector3 repelOrigin = cameraTransform.position;
         Vector3 repelForward = cameraTransform.forward;
 
@@ -126,7 +128,9 @@ public class RepelArtifact : ToolItem
             Rigidbody prb = p.GetComponent<Rigidbody>();
             float speed = prb != null ? prb.linearVelocity.magnitude : 0f;
 
+            Debug.Log($"[RepelArtifact] caught {p.name} at dist={dist:F2} angle={angle:F1} speed={speed:F1}");
             p.Freeze();
+            p.transform.SetParent(cam, worldPositionStays: true);
             caught.Add(new CaughtProjectile { projectile = p, speed = speed });
         }
     }
@@ -141,6 +145,7 @@ public class RepelArtifact : ToolItem
             CaughtProjectile cp = caught[i];
             if (cp.projectile == null) continue;
 
+            cp.projectile.transform.SetParent(null, worldPositionStays: true);
             Vector3 dir = SampleConeDirection(baseDirection, halfSpread, i, count);
             cp.projectile.ReleaseRetargeted(dir, cp.speed, owner);
         }

@@ -48,6 +48,7 @@ public class AgentProjectile : MonoBehaviour
 
     private void LifetimeExpired()
     {
+        Debug.Log($"[AgentProjectile] {name} lifetime expired (frozen={isFrozen}, hasHit={hasHit})");
         Destroy(gameObject);
     }
 
@@ -95,7 +96,11 @@ public class AgentProjectile : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
+        Debug.Log($"[AgentProjectile] {name} OnCollisionEnter with {collision.gameObject.name} (frozen={isFrozen}, colEnabled={col != null && col.enabled})");
         if (hasHit)
+            return;
+
+        if (collision.gameObject.GetComponent<AgentProjectile>() != null)
             return;
 
         hasHit = true;

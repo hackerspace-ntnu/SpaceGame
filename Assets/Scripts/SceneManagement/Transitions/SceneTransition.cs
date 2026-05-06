@@ -75,10 +75,15 @@ public class SceneTransition : MonoBehaviour
             foreach (var e in effects)
             {
                 if (e == null) continue;
-                var handle = e.Begin();
+                var handle = e.Begin(this);
                 if (handle != null) handles.Add(handle);
             }
         }
+
+        // Wait for any effect that wants to block the load (e.g. a walk-through
+        // cutscene that must play before the teleport). Out-phases run in parallel —
+        // we yield each one in turn, so total wait is the slowest.
+        foreach (var h in handles) yield return h.AwaitOutPhase();
 
         yield return destination.Apply(initiator);
 

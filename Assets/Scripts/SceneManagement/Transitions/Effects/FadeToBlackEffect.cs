@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Fade screen to black during the "out" phase, fade back during the "in" phase.
@@ -18,7 +19,7 @@ public class FadeToBlackEffect : SceneTransitionEffect
 
     public override TransitionChannel Channel => TransitionChannel.Screen;
 
-    public override EffectHandle Begin()
+    public override EffectHandle Begin(SceneTransition host)
     {
         var handle = new FadeHandle(fadeOut, fadeIn, skippableWithSpacebar);
         handle.StartOut();
@@ -71,7 +72,7 @@ public class FadeToBlackEffect : SceneTransitionEffect
             while (t < dur)
             {
                 t += Time.unscaledDeltaTime;
-                if (skippable && Input.GetKeyDown(KeyCode.Space))
+                if (skippable && Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
                 {
                     LetterboxOverlay.Instance.SnapClear();
                     break;

@@ -31,8 +31,14 @@ public abstract class SceneTransitionEffect : ScriptableObject
 {
     public abstract TransitionChannel Channel { get; }
 
-    /// <summary>Start the "out" phase. Returns a handle the orchestrator drives.</summary>
-    public abstract EffectHandle Begin();
+    /// <summary>
+    /// Start the "out" phase. Returns a handle the orchestrator drives.
+    /// <paramref name="host"/> is the SceneTransition firing this effect — effects that
+    /// need per-instance scene refs (a sibling Cutscene MonoBehaviour, an animator on
+    /// the door, …) read them off <c>host.gameObject</c>. Effects that don't need it
+    /// can ignore the parameter.
+    /// </summary>
+    public abstract EffectHandle Begin(SceneTransition host);
 }
 
 /// <summary>
@@ -41,6 +47,15 @@ public abstract class SceneTransitionEffect : ScriptableObject
 /// </summary>
 public abstract class EffectHandle
 {
+    /// <summary>
+    /// Yield until the "out" phase is finished. The orchestrator awaits this on every
+    /// handle in parallel before running the destination, so an effect that wants to
+    /// block the load (a walk-through cutscene that should play before the teleport)
+    /// just yields here until it's done. Default is "out phase finishes immediately"
+    /// — a fade can ignore this and fade-out alongside the load.
+    /// </summary>
+    public virtual IEnumerator AwaitOutPhase() { yield break; }
+
     /// <summary>Signal the load is done — start the "in" phase.</summary>
     public abstract void End();
 

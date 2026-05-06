@@ -107,7 +107,7 @@ MonoBehaviour:
       Data4: 1455594882
     Path: event:/SFX/Implosion
   muzzle: {fileID: 8884324833336084954}
-  coneHalfAngleDegrees: 25
+  coneHalfAngleDegrees: 45
   maxBeamDistance: 20
   minBeamDistance: 2
   revealDuration: 6
@@ -116,6 +116,9 @@ MonoBehaviour:
     m_Bits: 4294967295
   detectionRings: 3
   detectionRadialSegments: 14
+  topDownOriginHeight: 10
+  topDownForwardOffset: 6
+  topDownPitchDegrees: 82
   cooldown: 2
   debugLogAim: 1
   pulseMaterial: {fileID: 2100000, guid: bf58a5e62834426eb6faca9b192702ad, type: 2}

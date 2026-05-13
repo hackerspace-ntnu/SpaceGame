@@ -1,16 +1,20 @@
 using System.Collections;
 using UnityEngine;
 
-// Standalone "go somewhere" interactable.
-// Drop on a door / portal / pad. Configure:
-//   • Cutscene transitionCutscene — drag whatever cutscene you want (or none).
-//   • Destination — either an InteriorScene asset (full additive scene load) or a
-//     same-scene anchor id (just teleport within the loaded world).
-//   • fadeAroundTransition — black fade around the teleport for a clean cut.
-//
-// Click it (player Interactor raycast) → cutscene plays (if any) → fade-out →
-// teleport → fade-in. The whole post-cutscene chain runs on LetterboxOverlay
-// (DontDestroyOnLoad) so it survives interior-scene unloads.
+/// <summary>
+/// Compatibility shim. Pre-unified "go somewhere" interactable that bundles cutscene +
+/// fade + teleport in one component. For new content, use the unified stack:
+///
+///   • <see cref="SceneTransition"/> as the orchestrator
+///   • <see cref="InteractableTrigger"/> or <see cref="VolumeTrigger"/> to fire it
+///   • <see cref="WalkThroughCutsceneEffect"/> + <see cref="FadeToBlackEffect"/> as effects
+///   • <see cref="InteriorSceneDestination"/> or <see cref="SameSceneAnchorDestination"/>
+///
+/// Kept so existing prefabs that serialize InteriorPortal keep working until they're
+/// migrated. The behaviour is unchanged.
+/// </summary>
+[System.Obsolete("Use SceneTransition + a trigger + effects + a destination instead. " +
+                 "SameSceneAnchorDestination covers the SameSceneAnchor mode.")]
 public class InteriorPortal : MonoBehaviour, IInteractable
 {
     public enum DestinationKind
@@ -33,10 +37,7 @@ public class InteriorPortal : MonoBehaviour, IInteractable
     [Header("Destination")]
     [SerializeField] private DestinationKind destinationKind = DestinationKind.InteriorScene;
 
-    [Tooltip("Used when destinationKind = InteriorScene. The scene is loaded additively and the player is moved to its spawn anchor.")]
     [SerializeField] private InteriorScene targetInterior;
-
-    [Tooltip("Used when destinationKind = SameSceneAnchor. Looks up the InteriorAnchor with this id in any loaded scene and teleports the player there.")]
     [SerializeField] private string anchorId;
 
     [Header("Interactable")]
@@ -67,15 +68,11 @@ public class InteriorPortal : MonoBehaviour, IInteractable
         busy = true;
         try
         {
-            // 1. Optional cutscene.
-            if (transitionCutscene != null)
-                yield return CutsceneRunner.PlayAndAwait(transitionCutscene);
-
-            // 2. Fade + teleport. The fade chain runs on LetterboxOverlay (DontDestroyOnLoad)
-            //    so it survives the interior scene load that may unload us. We still wait
-            //    for it here so `busy` doesn't clear until the whole transition is done —
-            //    that prevents a double-click from re-firing mid-fade.
             GameObject player = interactor.gameObject;
+
+            if (transitionCutscene != null)
+                yield return CutsceneRunner.PlayAndAwait(transitionCutscene, player);
+
             DestinationKind kind = destinationKind;
             InteriorScene interior = targetInterior;
             string aid = anchorId;
@@ -100,16 +97,10 @@ public class InteriorPortal : MonoBehaviour, IInteractable
             else
                 doTeleport();
 
-            // Only mark `fired` after the whole transition succeeded. (If we were destroyed
-            // mid-await — interior unload — control never reaches here, but the GameObject
-            // is gone anyway so playOnce semantics are moot.)
             fired = true;
         }
         finally
         {
-            // If we survived the transition, clear busy. If we were destroyed (interior
-            // load took us with it), this never runs but it doesn't matter — the
-            // GameObject is gone.
             busy = false;
         }
     }

@@ -1,14 +1,15 @@
 using UnityEngine;
 
 /// <summary>
-/// Place on a door inside an interior scene. On interact, fades to black, returns the
-/// player to where they came from in the exterior, fades back.
+/// Compatibility shim. "Exit interior with a fade" door, pre-dating the unified
+/// SceneTransition stack. For new content, prefer:
 ///
-/// The fade sequence is run on LetterboxOverlay (DontDestroyOnLoad) rather than on this
-/// component — because ExitInterior unloads the interior scene, which destroys this
-/// GameObject mid-coroutine and would leave the screen stuck black if the fade-back
-/// step ran here.
+///   SceneTransition + InteractableTrigger + FadeToBlackEffect + ExitInteriorDestination
+///
+/// The fade sequence still runs on LetterboxOverlay (DontDestroyOnLoad) so this
+/// component being destroyed mid-coroutine doesn't strand a black screen.
 /// </summary>
+[System.Obsolete("Use SceneTransition + ExitInteriorDestination + FadeToBlackEffect instead.")]
 public class InteriorExit : MonoBehaviour, IInteractable
 {
     public bool CanInteract() => InteriorManager.Instance != null;

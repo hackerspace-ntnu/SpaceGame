@@ -2,11 +2,13 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 
-// Generic IInteractable: click → play the assigned cutscene → fire OnCutsceneEnded.
-//
-// Drag whatever cutscene you want into `cutscene` and wire any number of methods into
-// `OnCutsceneEnded` in the inspector. No baked-in coupling to any particular action
-// (interior load, scene change, sound, dialog, etc.) — that's whatever you wire up.
+/// <summary>
+/// Compatibility shim. Same surface as before — click → play assigned cutscene → fire
+/// UnityEvent — but routed through the unified <see cref="ITriggerable"/> path so it
+/// shares behaviour with everything else. For new content, prefer
+/// <see cref="CutsceneAction"/> + <see cref="InteractableTrigger"/>.
+/// </summary>
+[System.Obsolete("Use CutsceneAction + InteractableTrigger on the same GameObject.")]
 public class CutsceneInteractable : MonoBehaviour, IInteractable
 {
     [SerializeField] private Cutscene cutscene;
@@ -39,12 +41,7 @@ public class CutsceneInteractable : MonoBehaviour, IInteractable
         try
         {
             bool accepted = false;
-            yield return CutsceneRunner.PlayAndAwait(cutscene, ok => accepted = ok);
-
-            // Only consider the trigger "fired" if the cutscene actually played.
-            // (If the Director rejected because something else was running, we still
-            // invoke the post-action so the player isn't stranded — but we leave
-            // `fired` clear so a playOnce trigger isn't bricked.)
+            yield return CutsceneRunner.PlayAndAwait(cutscene, interactor.gameObject, ok => accepted = ok);
             if (accepted) fired = true;
 
             try { onCutsceneEnded?.Invoke(interactor); }

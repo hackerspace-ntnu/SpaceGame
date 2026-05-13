@@ -1,0 +1,135 @@
+@startuml SceneTransitionAndCutscene
+title Scene Transition  ↔  Cutscene  (unified via ITriggerable)
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+hide empty members
+
+' ==================================================================
+package "Trigger seam (InteractionSystem)" #EFEFEF {
+    interface ITriggerable {
+        + CanTrigger(initiator) : bool
+        + Trigger(initiator) : Coroutine
+    }
+    class InteractableTrigger <<MonoBehaviour>> {
+        + Interact(interactor) : void
+    }
+    class VolumeTrigger <<MonoBehaviour>> {
+        - OnTriggerEnter(other) : void
+    }
+    InteractableTrigger ..> ITriggerable : discovers on GO
+    VolumeTrigger       ..> ITriggerable : discovers on GO
+}
+
+' ==================================================================
+package "Scene Transition" #DDEEFF {
+    class SceneTransition <<MonoBehaviour>> {
+        + IsBusy : bool
+        + LastInitiator : GameObject
+        + Destination : SceneDestination
+        + CanTrigger(initiator) : bool
+        + Trigger(initiator) : Coroutine
+    }
+
+    abstract class SceneTransitionEffect <<ScriptableObject>> {
+        + {abstract} Channel : TransitionChannel
+        + {abstract} Begin(host) : EffectHandle
+    }
+    abstract class EffectHandle {
+        + AwaitOutPhase() : IEnumerator
+        + {abstract} End() : void
+        + {abstract} AwaitCompletion() : IEnumerator
+    }
+    abstract class SceneDestination <<ScriptableObject>>
+
+    class FadeToBlackEffect           <<ScriptableObject>>
+    class WalkThroughCutsceneEffect   <<ScriptableObject>> {
+        + cutsceneOverride : Cutscene  <<optional>>
+    }
+    class InteriorSceneDestination    <<ScriptableObject>>
+    class ExitInteriorDestination     <<ScriptableObject>>
+    class SameSceneAnchorDestination  <<ScriptableObject>>
+
+    SceneTransitionEffect <|-- FadeToBlackEffect
+    SceneTransitionEffect <|-- WalkThroughCutsceneEffect
+    SceneDestination <|-- InteriorSceneDestination
+    SceneDestination <|-- ExitInteriorDestination
+    SceneDestination <|-- SameSceneAnchorDestination
+
+    SceneTransition "1" o--> "*" SceneTransitionEffect : effects
+    SceneTransition "1" o--> "1" SceneDestination     : destination
+    SceneTransitionEffect ..> EffectHandle             : creates
+}
+SceneTransition ..|> ITriggerable
+
+' ==================================================================
+package "Cutscene" #FFEEDD {
+    class CutsceneAction <<MonoBehaviour>> {
+        + cutscene : Cutscene
+        + onCutsceneEnded : UnityEvent<GameObject>
+        + CanTrigger(initiator) : bool
+        + Trigger(initiator) : Coroutine
+    }
+
+    class CutsceneDirector <<MonoBehaviour,singleton>> {
+        + Play(cutscene, subject) : bool
+        + OnCutsceneStarted / OnCutsceneEnded
+    }
+    class CutsceneRunner <<static>> {
+        + PlayAndAwait(cutscene, initiator?) : IEnumerator
+    }
+    abstract class Cutscene <<MonoBehaviour>> {
+        + {abstract} Play(ctx) : IEnumerator
+    }
+    class CutsceneContext {
+        + Player, PlayerCamera, Subject
+    }
+
+    class WalkThroughDoorCutscene
+    class ThirdPersonWalkThroughCutscene
+    class CameraShakeCutscene
+    class LookAtCutscene
+
+    Cutscene <|-- WalkThroughDoorCutscene
+    Cutscene <|-- ThirdPersonWalkThroughCutscene
+    Cutscene <|-- CameraShakeCutscene
+    Cutscene <|-- LookAtCutscene
+
+    CutsceneAction ..> CutsceneRunner
+    CutsceneRunner ..> CutsceneDirector : Play(cutscene, initiator)
+    CutsceneDirector ..> Cutscene : drives
+    Cutscene ..> CutsceneContext
+}
+CutsceneAction ..|> ITriggerable
+
+' ==================================================================
+package "Shared infrastructure" #EEEEEE {
+    class LetterboxOverlay <<MonoBehaviour,singleton>>
+    class InteriorManager  <<singleton>>
+    class TransitionRunner <<MonoBehaviour,singleton>>
+}
+
+' ==================================================================
+package "Legacy shims (obsolete — kept for prefab compatibility)" #FFE0E0 {
+    class InteriorPortal <<MonoBehaviour>>
+    class CutsceneInteractable <<MonoBehaviour>>
+    class CutsceneTriggerVolume <<MonoBehaviour>>
+    class InteractableTransitionTrigger <<MonoBehaviour>>
+    class VolumeTransitionTrigger <<MonoBehaviour>>
+    class InteriorExit <<MonoBehaviour>>
+}
+
+' ==================================================================
+' Bridges
+' ==================================================================
+WalkThroughCutsceneEffect ..> CutsceneRunner : <<bridge>> PlayAndAwait(initiator)
+WalkThroughCutsceneEffect ..> Cutscene       : cutsceneOverride || host.GetComponent<Cutscene>()
+
+FadeToBlackEffect          ..> LetterboxOverlay
+CutsceneDirector           ..> LetterboxOverlay : show/hide bars
+InteriorSceneDestination   ..> InteriorManager
+ExitInteriorDestination    ..> InteriorManager
+SameSceneAnchorDestination ..> InteriorAnchor  : FindAnywhere
+SceneTransition            ..> TransitionRunner
+
+@enduml

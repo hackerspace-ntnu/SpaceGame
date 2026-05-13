@@ -1,7 +1,10 @@
 using UnityEngine;
 
-// Drop on a GameObject with a trigger Collider. Fires the assigned cutscene once when
-// the player walks in. Cutscene is a child component so it travels with the prefab.
+/// <summary>
+/// Compatibility shim. Volume trigger that fires a single Cutscene on the player.
+/// For new content, prefer <see cref="CutsceneAction"/> + <see cref="VolumeTrigger"/>.
+/// </summary>
+[System.Obsolete("Use CutsceneAction + VolumeTrigger on the same GameObject.")]
 [RequireComponent(typeof(Collider))]
 public class CutsceneTriggerVolume : MonoBehaviour
 {
@@ -21,9 +24,10 @@ public class CutsceneTriggerVolume : MonoBehaviour
         if (playOnce && fired) return;
         if (cutscene == null) return;
         if (CutsceneDirector.Instance == null) return;
-        if (other.GetComponentInParent<PlayerController>() == null) return;
+        var player = other.GetComponentInParent<PlayerController>();
+        if (player == null) return;
 
-        if (CutsceneDirector.Instance.Play(cutscene))
+        if (CutsceneDirector.Instance.Play(cutscene, player.gameObject))
             fired = true;
     }
 }

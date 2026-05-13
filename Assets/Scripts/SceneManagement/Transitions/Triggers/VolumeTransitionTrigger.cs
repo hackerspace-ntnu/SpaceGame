@@ -1,18 +1,15 @@
 using UnityEngine;
 
 /// <summary>
-/// Drop on the same GameObject as a SceneTransition to fire it when a moving agent
-/// enters a trigger collider. Identifies eligible initiators by:
-///   • Player — GameObject tagged "Player" (matches existing convention).
-///   • AI agent — has an AgentController in self or parents (universal "moving agent" marker).
-///
-/// Both checks are togglable per volume; default is to accept either. After firing,
-/// the trigger goes on a short cooldown so the same agent stepping back through it
-/// (e.g. after exit) doesn't immediately re-enter.
+/// Compatibility shim: legacy volume trigger specific to SceneTransition. Prefer the
+/// generic <see cref="VolumeTrigger"/> on the same GameObject — it works with any
+/// <see cref="ITriggerable"/>. Kept so existing prefabs/scenes that serialize this
+/// component keep working.
 /// </summary>
+[System.Obsolete("Use VolumeTrigger (which auto-discovers any ITriggerable on the same GameObject).")]
 [RequireComponent(typeof(SceneTransition))]
 [RequireComponent(typeof(Collider))]
-[AddComponentMenu("Scene Management/Triggers/Volume Transition Trigger")]
+[AddComponentMenu("Scene Management/Triggers/Volume Transition Trigger (legacy)")]
 public class VolumeTransitionTrigger : MonoBehaviour
 {
     [SerializeField] private bool triggerForPlayers = true;
@@ -34,11 +31,12 @@ public class VolumeTransitionTrigger : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (Time.time < armedAt) return;
-        if (transition == null || transition.IsBusy) return;
+        if (transition == null) return;
 
         GameObject candidate = ResolveInitiatorRoot(other);
         if (candidate == null) return;
         if (!IsEligible(candidate)) return;
+        if (!transition.CanTrigger(candidate)) return;
 
         if (transition.Trigger(candidate) != null)
             armedAt = Time.time + rearmCooldown;
@@ -46,8 +44,6 @@ public class VolumeTransitionTrigger : MonoBehaviour
 
     private static GameObject ResolveInitiatorRoot(Collider other)
     {
-        // Compound colliders on agents/players hang under a rigidbody root — climb to it
-        // so we identify the entity, not the limb.
         if (other.attachedRigidbody != null) return other.attachedRigidbody.gameObject;
         return other.gameObject;
     }

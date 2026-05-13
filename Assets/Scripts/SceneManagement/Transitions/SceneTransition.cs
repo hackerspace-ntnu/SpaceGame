@@ -8,9 +8,9 @@ using UnityEngine;
 /// Place this on any GameObject that should send an initiator (player or AI agent) to
 /// another scene. It does no triggering of its own — pair it with a trigger component:
 ///
-///   • InteractableTransitionTrigger — fires when the player interacts with this object.
-///   • VolumeTransitionTrigger        — fires when a player or agent enters a trigger volume.
-///   • From script                    — call <see cref="Trigger"/> directly.
+///   • InteractableTrigger — fires when the player interacts with this object.
+///   • VolumeTrigger       — fires when a player or agent enters a trigger volume.
+///   • From script         — call <see cref="Trigger"/> directly.
 ///
 /// What it does, in order:
 ///   1. Plays all assigned effects in parallel (fade, audio muffle, camera shake, ...).
@@ -24,7 +24,7 @@ using UnityEngine;
 /// firing on the same frame all call back into the same single transition safely.
 /// </summary>
 [AddComponentMenu("Scene Management/Scene Transition")]
-public class SceneTransition : MonoBehaviour
+public class SceneTransition : MonoBehaviour, ITriggerable
 {
     [TextArea(6, 12)]
     [SerializeField] private string description =
@@ -32,8 +32,8 @@ public class SceneTransition : MonoBehaviour
         "• Destination: which scene + spawn anchor (ScriptableObject).\n" +
         "• Effects: visual/audio effects that play during the load. Multiple allowed,\n" +
         "  but each must use a different TransitionChannel (Screen/Audio/Camera/Time).\n" +
-        "• Add an InteractableTransitionTrigger or VolumeTransitionTrigger on the same\n" +
-        "  GameObject, or call Trigger(initiator) from script, to fire the transition.\n" +
+        "• Pair with an InteractableTrigger or VolumeTrigger on the same GameObject,\n" +
+        "  or call Trigger(initiator) from script, to fire the transition.\n" +
         "• Effects play during load. When the load finishes, the 'in' phase of each\n" +
         "  effect runs and the transition completes.\n" +
         "• Spacebar skips effects (skip is ignored until the load completes).";
@@ -43,9 +43,17 @@ public class SceneTransition : MonoBehaviour
     [SerializeField] private SceneTransitionEffect[] effects;
 
     private bool busy;
+    private GameObject lastInitiator;
 
     public bool IsBusy => busy;
     public SceneDestination Destination => destination;
+
+    /// <summary>
+    /// The GameObject that fired the currently-running transition (the player or AI agent).
+    /// Effects that need to know who's being transported read this on Begin(). Null between
+    /// transitions.
+    /// </summary>
+    public GameObject LastInitiator => lastInitiator;
 
     public bool CanTrigger(GameObject initiator)
     {
@@ -60,6 +68,7 @@ public class SceneTransition : MonoBehaviour
     {
         if (!CanTrigger(initiator)) return null;
         busy = true;
+        lastInitiator = initiator;
         // Run on TransitionRunner (DontDestroyOnLoad). The host GameObject may be
         // inside a scene that the destination unloads — if the coroutine ran on us,
         // it would die mid-transition and effects would never receive End().
@@ -92,7 +101,11 @@ public class SceneTransition : MonoBehaviour
 
         // Clear busy on this component if it still exists. If our scene was unloaded
         // mid-transition the SceneTransition is gone — no busy flag to clear, no leak.
-        if (this != null) busy = false;
+        if (this != null)
+        {
+            busy = false;
+            lastInitiator = null;
+        }
     }
 
 #if UNITY_EDITOR

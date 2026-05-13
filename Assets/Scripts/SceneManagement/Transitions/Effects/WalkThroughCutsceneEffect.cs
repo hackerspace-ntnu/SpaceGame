@@ -2,23 +2,32 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// Plays a sibling <see cref="Cutscene"/> MonoBehaviour during the out-phase of a
-/// transition. The destination teleport is delayed until the cutscene finishes, so
-/// the player visibly walks through the door before the scene loads.
+/// Plays a <see cref="Cutscene"/> during the out-phase of a transition. The destination
+/// teleport is delayed until the cutscene finishes, so the player visibly walks through
+/// the door before the scene loads.
 ///
-/// Per-door config (target points, camera offsets, …) lives on the Cutscene
-/// component itself — this SO is just the "play whichever Cutscene is on the
-/// triggering GameObject" wiring.
+/// Cutscene binding is resolved in this order:
+///   1. <see cref="cutsceneOverride"/> on the asset (rare — only useful if every door
+///      using this effect plays the exact same cutscene).
+///   2. A <c>Cutscene</c> MonoBehaviour on the SceneTransition GameObject (the common
+///      case — per-door config lives on the door itself).
 /// </summary>
 [CreateAssetMenu(fileName = "Effect_WalkThroughCutscene", menuName = "Scene Management/Effects/Walk Through Cutscene")]
 public class WalkThroughCutsceneEffect : SceneTransitionEffect
 {
+    [Tooltip("Optional. If set, this cutscene plays for every transition that uses this " +
+             "effect asset. Leave null to use the Cutscene component on the SceneTransition " +
+             "GameObject (the usual per-door pattern).")]
+    [SerializeField] private Cutscene cutsceneOverride;
+
     public override TransitionChannel Channel => TransitionChannel.Camera;
 
     public override EffectHandle Begin(SceneTransition host)
     {
-        Cutscene cutscene = host != null ? host.GetComponent<Cutscene>() : null;
-        var handle = new CutsceneHandle(cutscene);
+        Cutscene cutscene = cutsceneOverride;
+        if (cutscene == null && host != null) cutscene = host.GetComponent<Cutscene>();
+
+        var handle = new CutsceneHandle(cutscene, host != null ? host.LastInitiator : null);
         handle.StartOut();
         return handle;
     }
@@ -26,11 +35,13 @@ public class WalkThroughCutsceneEffect : SceneTransitionEffect
     private class CutsceneHandle : EffectHandle
     {
         private readonly Cutscene cutscene;
+        private readonly GameObject initiator;
         private bool outDone;
 
-        public CutsceneHandle(Cutscene cutscene)
+        public CutsceneHandle(Cutscene cutscene, GameObject initiator)
         {
             this.cutscene = cutscene;
+            this.initiator = initiator;
         }
 
         public void StartOut()
@@ -45,7 +56,7 @@ public class WalkThroughCutsceneEffect : SceneTransitionEffect
 
         private IEnumerator RunOut()
         {
-            yield return CutsceneRunner.PlayAndAwait(cutscene);
+            yield return CutsceneRunner.PlayAndAwait(cutscene, initiator);
             outDone = true;
         }
 

@@ -2,8 +2,9 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-// Local-per-client cutscene playback. Locks the player, runs a Cutscene's coroutine,
-// restores on end (even if Play throws). One cutscene at a time; concurrent Play() rejects.
+// Local-per-client cutscene playback. Locks the subject (player or AI agent), runs a
+// Cutscene's coroutine, restores on end (even if Play throws). One cutscene at a time;
+// concurrent Play() rejects.
 public class CutsceneDirector : MonoBehaviour
 {
     public static CutsceneDirector Instance { get; private set; }
@@ -28,7 +29,15 @@ public class CutsceneDirector : MonoBehaviour
         if (Instance == this) Instance = null;
     }
 
-    public bool Play(Cutscene cutscene)
+    /// <summary>Play a cutscene with the local player as the subject (legacy convenience).</summary>
+    public bool Play(Cutscene cutscene) => Play(cutscene, subject: null);
+
+    /// <summary>
+    /// Play a cutscene with an explicit subject. The subject is whichever entity the
+    /// cutscene is "about" — usually the player walking through a door, but it could be
+    /// an AI agent in scripted sequences. If null, falls back to the local PlayerController.
+    /// </summary>
+    public bool Play(Cutscene cutscene, GameObject subject)
     {
         if (cutscene == null)
         {
@@ -41,24 +50,24 @@ public class CutsceneDirector : MonoBehaviour
             return false;
         }
 
-        StartCoroutine(RunCutscene(cutscene));
+        StartCoroutine(RunCutscene(cutscene, subject));
         return true;
     }
 
-    private IEnumerator RunCutscene(Cutscene cutscene)
+    private IEnumerator RunCutscene(Cutscene cutscene, GameObject subject)
     {
         IsPlaying = true;
 
-        PlayerController player = FindFirstObjectByType<PlayerController>();
+        PlayerController player = ResolvePlayer(subject);
         if (player == null)
         {
-            Debug.LogError("[CutsceneDirector] No PlayerController in scene; aborting cutscene.");
+            Debug.LogError("[CutsceneDirector] No PlayerController for cutscene subject; aborting cutscene.");
             IsPlaying = false;
             yield break;
         }
 
         Camera cam = player.PlayerCamera;
-        var ctx = new CutsceneContext(player, cam);
+        var ctx = new CutsceneContext(player, cam, subject != null ? subject : player.gameObject);
 
         player.EnterCutsceneMode();
         LetterboxOverlay.Instance.ShowBarsAsync(0.4f);
@@ -87,5 +96,15 @@ public class CutsceneDirector : MonoBehaviour
         LetterboxOverlay.Instance.HideBarsAsync(0.4f);
         IsPlaying = false;
         OnCutsceneEnded?.Invoke(cutscene);
+    }
+
+    private static PlayerController ResolvePlayer(GameObject subject)
+    {
+        if (subject != null)
+        {
+            var p = subject.GetComponentInParent<PlayerController>();
+            if (p != null) return p;
+        }
+        return FindFirstObjectByType<PlayerController>();
     }
 }

@@ -4,8 +4,9 @@ Take control of the player camera + input for a scripted moment, then give it ba
 
 ## Concepts
 
-- **`Cutscene`** — abstract `MonoBehaviour`. Subclass and write `IEnumerator Play(CutsceneContext)`.
-- **`CutsceneDirector`** (singleton in `persistentScene`) — runs one `Cutscene` at a time. Locks player input + HUD on entry, restores on exit (even on exception). Shows letterbox bars while playing.
+- **`Cutscene`** — abstract `MonoBehaviour`. Subclass and write `IEnumerator Play(CutsceneContext)`. `CutsceneContext` carries `Player`, `PlayerCamera`, and `Subject` (the GameObject the cutscene is "about" — usually the player, can be an AI agent).
+- **`CutsceneDirector`** (singleton in `persistentScene`) — runs one `Cutscene` at a time. Locks player input + HUD on entry, restores on exit (even on exception). Shows letterbox bars while playing. `Play(cutscene, subject)` takes the subject; the no-subject overload falls back to the local player.
+- **`CutsceneRunner`** — `IEnumerator PlayAndAwait(cutscene, initiator?)` for chaining post-cutscene work. Used by `CutsceneAction`, `WalkThroughCutsceneEffect`, and ad-hoc story code.
 - **`LetterboxOverlay`** (auto-spawned, `DontDestroyOnLoad`) — bars + black fade. Use for any fade, not just cutscenes.
 
 ## Built-in cutscenes
@@ -19,14 +20,20 @@ Take control of the player camera + input for a scripted moment, then give it ba
 
 ## Triggering a cutscene
 
+Cutscenes are wired through the generic [trigger seam](Assets/Scripts/InteractionSystem/README.md): a `CutsceneAction` component on a GameObject implements `ITriggerable`, and a separate trigger component decides how it fires.
+
 | Trigger | Component | Use case |
 |---|---|---|
-| Walk into a volume | `CutsceneTriggerVolume` | Discovery moments, area transitions. |
-| Click → cutscene → arbitrary actions | `CutsceneInteractable` | "Click → cutscene → UnityEvent." Wire any post-actions. |
-| Click → cutscene → go somewhere | `InteriorPortal` | Doors. Cutscene + destination (interior scene or same-scene anchor) in one component. |
-| From code | `CutsceneDirector.Instance.Play(myCutscene)` | Story beats, death, etc. |
+| Walk into a volume | `VolumeTrigger` + `CutsceneAction` | Discovery moments, area transitions. |
+| Click → cutscene → arbitrary actions | `InteractableTrigger` + `CutsceneAction` | "Click → cutscene → UnityEvent." Wire any post-action on `CutsceneAction.onCutsceneEnded`. |
+| Click → cutscene → go somewhere | `InteractableTrigger` + `SceneTransition` + `WalkThroughCutsceneEffect` + a destination | Doors. See [INTERIORS.md](INTERIORS.md). |
+| From code | `CutsceneDirector.Instance.Play(myCutscene, subject)` | Story beats, death, etc. |
 
-`InteriorPortal` is the recommended path for any "this door takes me somewhere." See [INTERIORS.md](INTERIORS.md).
+For doors, prefer the [`SceneTransition`](Assets/Scripts/SceneManagement/Transitions/SceneTransition.cs) stack — it composes a cutscene effect with a fade effect and a destination so you can mix and match.
+
+### Legacy components
+
+`CutsceneInteractable`, `CutsceneTriggerVolume`, and `InteriorPortal` are still present and `[Obsolete]`-marked. They keep working so existing prefabs aren't broken, but new content should use `CutsceneAction + InteractableTrigger/VolumeTrigger` (and `SceneTransition` for doors).
 
 ## Writing a new cutscene
 
@@ -52,32 +59,37 @@ public class MyCutscene : Cutscene
 
 For a third-person camera: disable `ctx.PlayerCamera`, spawn your own with `AudioListener`, restore in `finally`, destroy on exit. See `ThirdPersonWalkThroughCutscene`.
 
+To act on whoever triggered the cutscene (e.g. an AI agent walking through a door), read `ctx.Subject` — it's the initiator passed by the caller and falls back to `Player.gameObject` when no explicit subject was supplied.
+
 ## Showcase in `persistentScene`
 
 Four stations in front of the player spawn:
 
 | Station | Demo |
 |---|---|
-| **A** (red) | `InteriorPortal` + `ThirdPersonWalkThroughCutscene` → loads `InsideRuin` |
-| **B** (green) | `CutsceneInteractable` + `LookAtCutscene`. No scene change. |
-| **C** (grey) | `CutsceneInteractable` + `CameraShakeCutscene`. "Locked door." |
-| **D** (gold pad) | `CutsceneTriggerVolume` + `LookAtCutscene`. Walk on it. |
+| **A** (red) | `SceneTransition` + `WalkThroughCutsceneEffect` + `ThirdPersonWalkThroughCutscene` + `InteriorSceneDestination` → loads `InsideRuin` |
+| **B** (green) | `CutsceneAction` + `LookAtCutscene`. No scene change. |
+| **C** (grey) | `CutsceneAction` + `CameraShakeCutscene`. "Locked door." |
+| **D** (gold pad) | `VolumeTrigger` + `CutsceneAction` + `LookAtCutscene`. Walk on it. |
+
+Existing prefabs in the showcase still use the legacy `CutsceneInteractable` / `CutsceneTriggerVolume` / `InteriorPortal` components — they keep working via the obsolete shims. Migrate them when convenient.
 
 ## Files
 
 ```
 Assets/Scripts/Cutscenes/
-├── Cutscene.cs                          base + CutsceneContext
-├── CutsceneDirector.cs                  singleton, lifecycle
-├── CutsceneTriggerVolume.cs             walk-into trigger
-├── CutsceneInteractable.cs              click → cutscene → UnityEvent
-├── InteriorPortal.cs                    click → cutscene → teleport
-├── EnterInteriorOnEvent.cs              UnityEvent helper for interior loads
+├── Cutscene.cs                          base + CutsceneContext (Player, Camera, Subject)
+├── CutsceneDirector.cs                  singleton; Play(cutscene, subject)
+├── CutsceneRunner.cs                    PlayAndAwait helper
+├── CutsceneAction.cs                    ITriggerable action: play cutscene + fire UnityEvent
 ├── LookAtCutscene.cs
 ├── WalkThroughDoorCutscene.cs
 ├── ThirdPersonWalkThroughCutscene.cs
 ├── CameraShakeCutscene.cs
-└── UI/LetterboxOverlay.cs
+├── UI/LetterboxOverlay.cs
+├── CutsceneInteractable.cs              [Obsolete] use CutsceneAction + InteractableTrigger
+├── CutsceneTriggerVolume.cs             [Obsolete] use CutsceneAction + VolumeTrigger
+└── InteriorPortal.cs                    [Obsolete] use SceneTransition stack
 ```
 
 `PlayerController.EnterCutsceneMode()` / `ExitCutsceneMode()` is what the Director uses. Captures + restores prior state, so it's safe mid-mount.

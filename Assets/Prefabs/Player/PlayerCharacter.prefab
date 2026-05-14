@@ -302,6 +302,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentController
   handSocket: {fileID: 6854416886719462449}
+  handBone: 18
+  handBoneNameHints:
+  - RightHand
+  - Hand_R
+  - R_Hand
+  - hand.R
 --- !u!114 &-6402392480385526436
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -572,7 +578,8 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 4516265153368369930}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 5642419939978909808, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}

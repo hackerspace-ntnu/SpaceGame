@@ -10,7 +10,6 @@ public class WorldService : IWorldService
         if (Network.IsNetworked && networkObject && networkObject.IsSpawned)
         {
             networkObject.Despawn(false);
-            return;
         }
         
         Object.Destroy(gameObject);

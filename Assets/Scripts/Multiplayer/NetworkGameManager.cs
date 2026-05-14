@@ -38,6 +38,10 @@ public class NetworkGameManager : NetworkBehaviour
         
         if (worldStreamer)
         {
+            while (!SpawnManager.Instance.SpawnPointsAvailable())
+            {
+                yield return new WaitForSeconds(1f);
+            }
             var pos = SpawnManager.Instance.GetSpawnPoint();
             yield return WaitForWorldReady(new[] { pos });
         }

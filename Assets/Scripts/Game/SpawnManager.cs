@@ -22,16 +22,28 @@ public class SpawnManager : NetworkBehaviour
         }
 
         Instance = this;
-        
+    }
+
+    private void Start()
+    {
         spawnPoints = FindObjectsByType<SpawnPoint>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
         if (spawnPoints == null || spawnPoints.Length == 0)
         {
             Debug.LogError("No SpawnPoint found in scene!");
         }
     }
+    
+    public bool SpawnPointsAvailable()
+    {
+        return spawnPoints != null && spawnPoints.Length > 0;
+    }
 
     public Vector3 GetSpawnPoint()
     {
+        Debug.Log("GetSpawnPoint");
+        Debug.Log(spawnPoints.Length);
+        Debug.Log(spawnPoints[0].name);;
+        Debug.Log(spawnPoints[0].GetSpawnPoint());
         return spawnPoints[0].GetSpawnPoint();
     }
     

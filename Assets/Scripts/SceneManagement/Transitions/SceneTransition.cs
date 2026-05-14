@@ -42,6 +42,16 @@ public class SceneTransition : MonoBehaviour, ITriggerable
     [SerializeField] private SceneDestination destination;
     [SerializeField] private SceneTransitionEffect[] effects;
 
+    [Tooltip("After this transition fires for an initiator, that initiator cannot be moved by ANY " +
+             "SceneTransition for this many seconds. Prevents an exit volume from re-firing on the " +
+             "spawn frame inside the destination, or an entrance from re-firing as the player walks back out.")]
+    [SerializeField] private float postTransitionLockoutSeconds = 1f;
+
+    // Initiator → unscaled-time when the post-transition lockout ends.
+    // Static so the gate is shared across every SceneTransition in every scene
+    // (entrance and exit are different components on different GameObjects).
+    private static readonly System.Collections.Generic.Dictionary<int, float> s_lockoutUntil = new();
+
     private bool busy;
     private GameObject lastInitiator;
 
@@ -60,6 +70,19 @@ public class SceneTransition : MonoBehaviour, ITriggerable
         if (busy) return false;
         if (initiator == null) return false;
         if (destination == null || !destination.IsValid()) return false;
+        if (IsLockedOut(initiator)) return false;
+        return true;
+    }
+
+    private static bool IsLockedOut(GameObject initiator)
+    {
+        int key = initiator.GetInstanceID();
+        if (!s_lockoutUntil.TryGetValue(key, out var until)) return false;
+        if (Time.unscaledTime >= until)
+        {
+            s_lockoutUntil.Remove(key);
+            return false;
+        }
         return true;
     }
 
@@ -95,6 +118,13 @@ public class SceneTransition : MonoBehaviour, ITriggerable
         foreach (var h in handles) yield return h.AwaitOutPhase();
 
         yield return destination.Apply(initiator);
+
+        // Arm the cross-transition lockout once the initiator has landed. Prevents an
+        // exit volume from firing on the spawn frame, or any other immediate bounce.
+        // Keyed on InstanceID; entry is harmlessly orphaned if the initiator is destroyed
+        // before expiry (next Trigger that reads it sees Time >= until and clears it).
+        if (initiator != null && postTransitionLockoutSeconds > 0f)
+            s_lockoutUntil[initiator.GetInstanceID()] = Time.unscaledTime + postTransitionLockoutSeconds;
 
         foreach (var h in handles) h.End();
         foreach (var h in handles) yield return h.AwaitCompletion();

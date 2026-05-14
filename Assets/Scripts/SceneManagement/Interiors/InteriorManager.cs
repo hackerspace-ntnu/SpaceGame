@@ -26,6 +26,17 @@ public class InteriorManager : MonoBehaviour
     private readonly Dictionary<string, int> interiorRefCount = new();
 
     private Scene persistentScene;
+    private PersistentSceneVisibility persistentVisibility;
+
+    private int TotalInteriorOccupancy
+    {
+        get
+        {
+            int sum = 0;
+            foreach (var n in interiorRefCount.Values) sum += n;
+            return sum;
+        }
+    }
 
     private void Awake()
     {
@@ -36,6 +47,7 @@ public class InteriorManager : MonoBehaviour
         }
         Instance = this;
         persistentScene = gameObject.scene;
+        persistentVisibility = new PersistentSceneVisibility(persistentScene);
     }
 
     private void OnDestroy()
@@ -158,12 +170,16 @@ public class InteriorManager : MonoBehaviour
         {
             if (player.transform.parent != null) player.transform.SetParent(null);
             SceneManager.MoveGameObjectToScene(player, info.ExteriorScene);
+            SceneManager.SetActiveScene(info.ExteriorScene);
         }
         TeleportPlayer(player, info.Position, info.Rotation);
         returnInfoByPlayer.Remove(key);
 
         if (string.IsNullOrEmpty(interiorName) || currentInterior == info.ExteriorScene)
+        {
+            if (TotalInteriorOccupancy == 0) persistentVisibility?.Restore();
             return;
+        }
 
         int remaining = interiorRefCount.GetValueOrDefault(interiorName) - 1;
         if (remaining <= 0)
@@ -175,6 +191,8 @@ public class InteriorManager : MonoBehaviour
         {
             interiorRefCount[interiorName] = remaining;
         }
+
+        if (TotalInteriorOccupancy == 0) persistentVisibility?.Restore();
     }
 
     private void PlacePlayerAtAnchor(GameObject player, Scene scene, string anchorId)
@@ -189,6 +207,13 @@ public class InteriorManager : MonoBehaviour
         if (player.transform.parent != null) player.transform.SetParent(null);
         SceneManager.MoveGameObjectToScene(player, scene);
         TeleportPlayer(player, position, rotation);
+
+        // Activate the interior scene so its RenderSettings (ambient, fog, skybox) take effect.
+        // Without this, renderers in the interior sample the persistent scene's bright skybox ambient.
+        if (scene.IsValid() && scene.isLoaded)
+            SceneManager.SetActiveScene(scene);
+
+        persistentVisibility?.Suspend();
     }
 
     private static void TeleportPlayer(GameObject player, Vector3 position, Quaternion rotation)

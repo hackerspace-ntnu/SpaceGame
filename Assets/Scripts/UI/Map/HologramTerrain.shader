@@ -88,8 +88,11 @@ Shader "Hologram/Terrain"
             float  _FogSlopeDim, _FogViewDim;
             int    _DiscoveryCount;
             // Per-renderer (set via MaterialPropertyBlock): simulated world-space
-            // origin of this chunk in XZ. Vertex object-space xz + this = sim world XZ.
+            // origin of this chunk in XZ. Vertex object-space xz * scale + this = sim world XZ.
             float4 _ChunkWorldOriginXZ;
+            // Per-renderer scale that maps baked object-space XZ (which spans the
+            // bake-time chunkSize) to the current chunkSize. xy = (scaleX, scaleZ).
+            float4 _ChunkObjectToSimScaleXZ;
             // Circular map vignette (in simulated world XZ).
             float4 _MapCenterXZ; // xy = sim-world XZ center
             float  _MapRadius, _MapEdgeFalloff;
@@ -131,7 +134,10 @@ Shader "Hologram/Terrain"
                 o.worldNorm = UnityObjectToWorldNormal(v.normal);
                 o.viewDir   = normalize(_WorldSpaceCameraPos - o.worldPos);
                 o.localY    = v.vertex.y;
-                o.simXZ     = v.vertex.xz + _ChunkWorldOriginXZ.xy;
+                float2 scl  = _ChunkObjectToSimScaleXZ.xy;
+                if (scl.x < 0.0001) scl.x = 1.0;
+                if (scl.y < 0.0001) scl.y = 1.0;
+                o.simXZ     = v.vertex.xz * scl + _ChunkWorldOriginXZ.xy;
                 return o;
             }
 

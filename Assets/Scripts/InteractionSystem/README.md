@@ -1,8 +1,11 @@
 # Interaction System
 
-This folder contains a generic interaction framework (`IInteractable`, `Interactor`) and interaction implementations such as `DoorInteraction` and `DialogInteraction`.
+Two layers:
 
-## Core Concepts
+1. **`IInteractable` / `Interactor`** — raycast-based "look at thing, press E" interaction. The original surface; most one-off interactions implement this directly (`DoorInteraction`, `DialogInteraction`, `MountModule`, …).
+2. **`ITriggerable` + generic triggers** — a seam for any action that can be "fired with an initiator" (scene transitions, cutscenes, future actions). Lets one set of trigger components work with every action type.
+
+## Layer 1 — `IInteractable` / `Interactor`
 
 ### `IInteractable.cs`
 
@@ -18,11 +21,55 @@ Should be placed on the player (or any actor that can interact).
 - Performs a raycast to find objects with components implementing `IInteractable`.
 - Calls `CanInteract()`, then `Interact(...)` when the interact input is pressed.
 
-## Basic Setup
+### Basic setup
 
 1. Add `Interactor` to your player object.
 2. Add a collider to any object you want to interact with.
 3. Add an interaction component (`DoorInteraction`, `DialogInteraction`, etc.) to that object.
+
+## Layer 2 — `ITriggerable` + triggers
+
+For "do a thing to whichever entity caused this" actions (open a door + load a scene, play a cutscene + fire a UnityEvent, teleport somewhere), use the trigger seam.
+
+### `ITriggerable.cs`
+
+```csharp
+public interface ITriggerable
+{
+    bool      CanTrigger(GameObject initiator);
+    Coroutine Trigger   (GameObject initiator);
+}
+```
+
+Anything fireable. The initiator is the player or AI agent the action runs *on*. Current implementers:
+
+- [`SceneTransition`](../SceneManagement/Transitions/SceneTransition.cs) — orchestrates effects + a scene destination. See [INTERIORS.md](../../../INTERIORS.md).
+- [`CutsceneAction`](../Cutscenes/CutsceneAction.cs) — plays a `Cutscene` then fires a `UnityEvent<GameObject>`. See [CUTSCENES.md](../../../CUTSCENES.md).
+
+### Trigger components
+
+Drop one of these on the same GameObject as your `ITriggerable`. They auto-discover it via `GetComponent<ITriggerable>()`, so the trigger never has to know which action is wired up.
+
+| Component | Fires when |
+|---|---|
+| `InteractableTrigger` | Player raycast → E (implements `IInteractable` and forwards). |
+| `VolumeTrigger` | A player or AI agent enters a trigger collider. Eligibility flags + rearm cooldown. |
+
+Either component has an optional `triggerableOverride` field if you want to point at an `ITriggerable` on a different component on the same GameObject (rare; auto-discovery covers nearly all cases).
+
+### Adding a new triggerable action
+
+```csharp
+public class MyAction : MonoBehaviour, ITriggerable
+{
+    public bool CanTrigger(GameObject initiator) => /* gate */;
+    public Coroutine Trigger(GameObject initiator) => StartCoroutine(Run(initiator));
+
+    IEnumerator Run(GameObject initiator) { /* … */ yield break; }
+}
+```
+
+Drop `InteractableTrigger` or `VolumeTrigger` on the same GameObject. Done — no new trigger class.
 
 
 ## Dialogue Setup Guide (Developer)

@@ -2,11 +2,10 @@ using UnityEngine;
 using FMODUnity;
 
 /// <summary>
-/// Ruin Scanner — emits a forward cone of light along the player's aim that
-/// exposes traces of old alien tech. Every IRuinSecret the cone's rays hit
-/// is told to Reveal() itself for `revealDuration` seconds. The detection
-/// cone matches the visual cone exactly — what the beam touches is what
-/// gets exposed.
+/// Ruin Scanner — emits a raised, top-down cone of light guided by the
+/// player's horizontal aim. Every IRuinSecret the cone's rays hit is told to
+/// Reveal() itself for `revealDuration` seconds. The detection cone matches
+/// the visual cone exactly — what the beam touches is what gets exposed.
 ///
 /// Designed to feel like a tool for interpretation rather than a universal
 /// key — partial information that the player still has to act on.
@@ -33,6 +32,15 @@ public class RuinScannerArtifact : ToolItem
     [Tooltip("Radial samples per ring.")]
     [Range(4, 32)]
     [SerializeField] private int detectionRadialSegments = 12;
+
+    [Header("Top-Down Scan Pose")]
+    [Tooltip("Raises the scan origin above the held scanner so the sweep reads the ruin from overhead.")]
+    [SerializeField] private float topDownOriginHeight = 10f;
+    [Tooltip("Moves the raised scan origin forward along the player's horizontal aim.")]
+    [SerializeField] private float topDownForwardOffset = 6f;
+    [Tooltip("Downward pitch of the scan cone relative to the horizon. 90 = straight down.")]
+    [Range(45f, 89f)]
+    [SerializeField] private float topDownPitchDegrees = 82f;
 
     [Header("Cooldown")]
     [Tooltip("Minimum time between pulses, in seconds.")]
@@ -69,38 +77,44 @@ public class RuinScannerArtifact : ToolItem
         // Prefer the *currently active* main camera (handles mount/unmount and
         // third-person swaps where the AimProvider's serialized camera ref can
         // be stale or disabled). Fall back to AimProvider, then player forward.
-        Vector3 aimDir = Vector3.zero;
+        Vector3 rawAimDir = Vector3.zero;
         string aimSource = "none";
         var activeCam = Camera.main;
         if (activeCam != null && activeCam.isActiveAndEnabled)
         {
-            aimDir = activeCam.transform.forward;
+            rawAimDir = activeCam.transform.forward;
             aimSource = "Camera.main:" + activeCam.name;
         }
         else if (aimProvider != null)
         {
-            aimDir = aimProvider.GetAimRay().direction;
+            rawAimDir = aimProvider.GetAimRay().direction;
             aimSource = "AimProvider";
         }
         else if (owner != null)
         {
-            aimDir = owner.transform.forward;
+            rawAimDir = owner.transform.forward;
             aimSource = "owner.forward";
         }
         else
         {
-            aimDir = transform.forward;
+            rawAimDir = transform.forward;
             aimSource = "self.forward";
         }
-        if (aimDir.sqrMagnitude < 0.0001f) aimDir = Vector3.forward;
-        aimDir.Normalize();
+        if (rawAimDir.sqrMagnitude < 0.0001f) rawAimDir = Vector3.forward;
+        rawAimDir.Normalize();
+
+        // ---- Beam origin = raised top-down scan pose ----
+        Transform muzzleT = muzzle != null ? muzzle : transform;
+        Vector3 horizontalAim = ResolveHorizontalAim(rawAimDir);
+        Vector3 beamOrigin = muzzleT.position
+            + Vector3.up * Mathf.Max(0f, topDownOriginHeight)
+            + horizontalAim * topDownForwardOffset;
+        Vector3 aimDir = ResolveTopDownAim(horizontalAim);
 
         if (debugLogAim)
-            Debug.Log($"[RuinScanner] aim={aimDir} source={aimSource} muzzle={(muzzle != null ? muzzle.name : "<self>")}");
-
-        // ---- Beam origin = muzzle ----
-        Transform muzzleT = muzzle != null ? muzzle : transform;
-        Vector3 beamOrigin = muzzleT.position;
+        {
+            Debug.Log($"[RuinScanner] source={aimSource} rawAim={rawAimDir} scanAim={aimDir} scanOrigin={beamOrigin} muzzle={(muzzle != null ? muzzle.name : "<self>")}");
+        }
 
         // ---- Per-direction ray expansion ----
         // Each direction in the cone reaches as far as *its own* raycast
@@ -117,9 +131,10 @@ public class RuinScannerArtifact : ToolItem
         Vector3 up = Vector3.Cross(right, aimDir).normalized;
 
         var revealed = new System.Collections.Generic.HashSet<IRuinSecret>();
+        bool anyHit = false;
 
         // Center ray.
-        float centerSlant = CastSlant(beamOrigin, aimDir, maxBeamDistance, revealed);
+        float centerSlant = CastSlant(beamOrigin, aimDir, maxBeamDistance, revealed, ref anyHit);
 
         // Rim rings — each (ring, segment) has its own slant length.
         // Outer rim ring (ring == detectionRings) drives the visual mesh's
@@ -139,7 +154,7 @@ public class RuinScannerArtifact : ToolItem
                 Vector3 target = axisEnd + rimOffset;
                 Vector3 dir = (target - beamOrigin).normalized;
                 float maxSlant = Vector3.Distance(beamOrigin, target);
-                float slant = CastSlant(beamOrigin, dir, maxSlant, revealed);
+                float slant = CastSlant(beamOrigin, dir, maxSlant, revealed, ref anyHit);
                 if (ring == rings) outerRimSlants[s] = slant;
             }
         }
@@ -147,10 +162,12 @@ public class RuinScannerArtifact : ToolItem
         foreach (var s in revealed) s.Reveal(revealDuration);
 
         // ---- Visual pulse ----
+        // Only show the pulse when the beam actually landed on something —
+        // firing into open sky shouldn't produce a ground scan.
         // Mesh base ring follows the outer rim slants so the cone bulges out
         // wherever rays travelled further. minBeamDistance keeps the beam
         // visible at point-blank.
-        if (pulseMaterial != null)
+        if (pulseMaterial != null && anyHit)
         {
             float visibleCenter = Mathf.Max(minBeamDistance, centerSlant);
             float[] visibleRim = new float[segs];
@@ -161,7 +178,30 @@ public class RuinScannerArtifact : ToolItem
 
         // ---- Discovery audio cue ----
         if (revealed.Count > 0 && !discoverySound.IsNull)
-            AudioManager.Instance.PlayEvent(discoverySound, beamOrigin);
+            AudioManager.Instance.PlayEvent(discoverySound, muzzleT.position);
+    }
+
+    private Vector3 ResolveHorizontalAim(Vector3 aimDir)
+    {
+        Vector3 horizontal = Vector3.ProjectOnPlane(aimDir, Vector3.up);
+        if (horizontal.sqrMagnitude >= 0.0001f) return horizontal.normalized;
+
+        if (owner != null)
+        {
+            horizontal = Vector3.ProjectOnPlane(owner.transform.forward, Vector3.up);
+            if (horizontal.sqrMagnitude >= 0.0001f) return horizontal.normalized;
+        }
+
+        horizontal = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
+        if (horizontal.sqrMagnitude >= 0.0001f) return horizontal.normalized;
+
+        return Vector3.forward;
+    }
+
+    private Vector3 ResolveTopDownAim(Vector3 horizontalAim)
+    {
+        float pitch = Mathf.Clamp(topDownPitchDegrees, 45f, 89f) * Mathf.Deg2Rad;
+        return (horizontalAim * Mathf.Cos(pitch) + Vector3.down * Mathf.Sin(pitch)).normalized;
     }
 
     /// <summary>
@@ -172,12 +212,33 @@ public class RuinScannerArtifact : ToolItem
     /// this number.
     /// </summary>
     private float CastSlant(Vector3 origin, Vector3 dir, float distance,
-        System.Collections.Generic.HashSet<IRuinSecret> revealed)
+        System.Collections.Generic.HashSet<IRuinSecret> revealed, ref bool anyHit)
     {
         // Use a single all-layers cast so opaque world geometry blocks the
         // beam, but still surface IRuinSecret hits from the secret layers.
-        if (!Physics.Raycast(origin, dir, out RaycastHit hit, distance, ~0, QueryTriggerInteraction.Collide))
+        // The overhead cone can pass through the player, so ignore owner hits.
+        RaycastHit[] hits = Physics.RaycastAll(origin, dir, distance, ~0, QueryTriggerInteraction.Collide);
+        if (hits.Length == 0)
             return distance;
+
+        int closestIndex = -1;
+        float closestDistance = float.PositiveInfinity;
+        for (int i = 0; i < hits.Length; i++)
+        {
+            Collider hitCollider = hits[i].collider;
+            if (hitCollider == null) continue;
+            if (owner != null && hitCollider.transform.IsChildOf(owner.transform)) continue;
+            if (hits[i].distance >= closestDistance) continue;
+
+            closestIndex = i;
+            closestDistance = hits[i].distance;
+        }
+
+        if (closestIndex < 0)
+            return distance;
+
+        RaycastHit hit = hits[closestIndex];
+        anyHit = true;
         if (((1 << hit.collider.gameObject.layer) & secretMask) != 0)
         {
             var secret = hit.collider.GetComponentInParent<IRuinSecret>();

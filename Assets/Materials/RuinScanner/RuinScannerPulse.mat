@@ -25,13 +25,16 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _Intensity: 0.6
+    - _LineIntensity: 8
+    - _RayIntensity: 3
+    - _ScannedAlpha: 0.06
     - _Progress: 0
-    - _BodyFalloff: 1.4
-    - _TipFade: 0.1
-    - _FresnelBoost: 0.6
-    - _FresnelPower: 2.5
+    - _BandWidth: 0.025
+    - _BandSharpness: 8
+    - _EdgeFade: 0.06
+    - _NearLimit: 0.4
+    - _FarLimit: 1
     m_Colors:
-    - _Color: {r: 0.45, g: 0.95, b: 1, a: 0.35}
+    - _Color: {r: 0.45, g: 0.95, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

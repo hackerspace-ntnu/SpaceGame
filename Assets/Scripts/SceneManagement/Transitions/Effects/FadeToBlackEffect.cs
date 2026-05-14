@@ -32,7 +32,9 @@ public class FadeToBlackEffect : SceneTransitionEffect
         private readonly float inDur;
         private readonly bool skippable;
 
+        private Coroutine outRoutine;
         private Coroutine inRoutine;
+        private bool outDone;
         private bool inDone;
         private bool ended;
 
@@ -45,7 +47,12 @@ public class FadeToBlackEffect : SceneTransitionEffect
 
         public void StartOut()
         {
-            LetterboxOverlay.Instance.FadeToBlackAsync(outDur);
+            outRoutine = LetterboxOverlay.Instance.StartCoroutine(RunOut());
+        }
+
+        public override IEnumerator AwaitOutPhase()
+        {
+            while (!outDone) yield return null;
         }
 
         public override void End()
@@ -58,6 +65,16 @@ public class FadeToBlackEffect : SceneTransitionEffect
         public override IEnumerator AwaitCompletion()
         {
             while (!inDone) yield return null;
+        }
+
+        private IEnumerator RunOut()
+        {
+            // Drive the fade-out ourselves so the orchestrator can await its completion
+            // before kicking off the (potentially main-thread-stalling) destination load.
+            // Without this gate the load freeze can swallow the entire fade.
+            yield return LetterboxOverlay.Instance.FadeToBlackAsync(outDur);
+            outDone = true;
+            outRoutine = null;
         }
 
         private IEnumerator RunIn()

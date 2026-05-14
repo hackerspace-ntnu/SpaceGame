@@ -89,9 +89,23 @@ public class SceneTransition : MonoBehaviour, ITriggerable
     /// <summary>Fire the transition for the given initiator. Returns null if not eligible.</summary>
     public Coroutine Trigger(GameObject initiator)
     {
-        if (!CanTrigger(initiator)) return null;
+        if (!CanTrigger(initiator))
+        {
+            // Diagnostic so we can see WHY repeat triggers are being denied — the only
+            // way for the trigger to silently no-op. Remove once round-trip is solid.
+            string reason =
+                busy ? "busy" :
+                initiator == null ? "no-initiator" :
+                destination == null ? "no-destination" :
+                !destination.IsValid() ? "destination-invalid" :
+                IsLockedOut(initiator) ? "locked-out" :
+                "unknown";
+            Debug.Log($"[SceneTransition] '{name}' Trigger denied ({reason}) for {(initiator != null ? initiator.name : "null")}", this);
+            return null;
+        }
         busy = true;
         lastInitiator = initiator;
+        Debug.Log($"[SceneTransition] '{name}' Trigger firing for {initiator.name}", this);
         // Run on TransitionRunner (DontDestroyOnLoad). The host GameObject may be
         // inside a scene that the destination unloads — if the coroutine ran on us,
         // it would die mid-transition and effects would never receive End().
@@ -100,6 +114,7 @@ public class SceneTransition : MonoBehaviour, ITriggerable
 
     private IEnumerator Run(GameObject initiator)
     {
+        string label = name;
         var handles = new List<EffectHandle>();
 
         if (effects != null)
@@ -117,7 +132,9 @@ public class SceneTransition : MonoBehaviour, ITriggerable
         // we yield each one in turn, so total wait is the slowest.
         foreach (var h in handles) yield return h.AwaitOutPhase();
 
+        Debug.Log($"[SceneTransition] '{label}' out-phase done; applying destination.");
         yield return destination.Apply(initiator);
+        Debug.Log($"[SceneTransition] '{label}' destination applied; running in-phase.");
 
         // Arm the cross-transition lockout once the initiator has landed. Prevents an
         // exit volume from firing on the spawn frame, or any other immediate bounce.
@@ -135,6 +152,11 @@ public class SceneTransition : MonoBehaviour, ITriggerable
         {
             busy = false;
             lastInitiator = null;
+            Debug.Log($"[SceneTransition] '{label}' complete; busy cleared.");
+        }
+        else
+        {
+            Debug.Log($"[SceneTransition] '{label}' complete but host destroyed mid-flow; no state to clear.");
         }
     }
 

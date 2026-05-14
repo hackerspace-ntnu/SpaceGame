@@ -42,6 +42,16 @@ public class SceneTransition : MonoBehaviour, ITriggerable
     [SerializeField] private SceneDestination destination;
     [SerializeField] private SceneTransitionEffect[] effects;
 
+    [Tooltip("After this transition fires for an initiator, that initiator cannot be moved by ANY " +
+             "SceneTransition for this many seconds. Prevents an exit volume from re-firing on the " +
+             "spawn frame inside the destination, or an entrance from re-firing as the player walks back out.")]
+    [SerializeField] private float postTransitionLockoutSeconds = 1f;
+
+    // Initiator → unscaled-time when the post-transition lockout ends.
+    // Static so the gate is shared across every SceneTransition in every scene
+    // (entrance and exit are different components on different GameObjects).
+    private static readonly System.Collections.Generic.Dictionary<int, float> s_lockoutUntil = new();
+
     private bool busy;
     private GameObject lastInitiator;
 
@@ -60,15 +70,42 @@ public class SceneTransition : MonoBehaviour, ITriggerable
         if (busy) return false;
         if (initiator == null) return false;
         if (destination == null || !destination.IsValid()) return false;
+        if (IsLockedOut(initiator)) return false;
+        return true;
+    }
+
+    private static bool IsLockedOut(GameObject initiator)
+    {
+        int key = initiator.GetInstanceID();
+        if (!s_lockoutUntil.TryGetValue(key, out var until)) return false;
+        if (Time.unscaledTime >= until)
+        {
+            s_lockoutUntil.Remove(key);
+            return false;
+        }
         return true;
     }
 
     /// <summary>Fire the transition for the given initiator. Returns null if not eligible.</summary>
     public Coroutine Trigger(GameObject initiator)
     {
-        if (!CanTrigger(initiator)) return null;
+        if (!CanTrigger(initiator))
+        {
+            // Diagnostic so we can see WHY repeat triggers are being denied — the only
+            // way for the trigger to silently no-op. Remove once round-trip is solid.
+            string reason =
+                busy ? "busy" :
+                initiator == null ? "no-initiator" :
+                destination == null ? "no-destination" :
+                !destination.IsValid() ? "destination-invalid" :
+                IsLockedOut(initiator) ? "locked-out" :
+                "unknown";
+            Debug.Log($"[SceneTransition] '{name}' Trigger denied ({reason}) for {(initiator != null ? initiator.name : "null")}", this);
+            return null;
+        }
         busy = true;
         lastInitiator = initiator;
+        Debug.Log($"[SceneTransition] '{name}' Trigger firing for {initiator.name}", this);
         // Run on TransitionRunner (DontDestroyOnLoad). The host GameObject may be
         // inside a scene that the destination unloads — if the coroutine ran on us,
         // it would die mid-transition and effects would never receive End().
@@ -77,6 +114,7 @@ public class SceneTransition : MonoBehaviour, ITriggerable
 
     private IEnumerator Run(GameObject initiator)
     {
+        string label = name;
         var handles = new List<EffectHandle>();
 
         if (effects != null)
@@ -94,7 +132,16 @@ public class SceneTransition : MonoBehaviour, ITriggerable
         // we yield each one in turn, so total wait is the slowest.
         foreach (var h in handles) yield return h.AwaitOutPhase();
 
+        Debug.Log($"[SceneTransition] '{label}' out-phase done; applying destination.");
         yield return destination.Apply(initiator);
+        Debug.Log($"[SceneTransition] '{label}' destination applied; running in-phase.");
+
+        // Arm the cross-transition lockout once the initiator has landed. Prevents an
+        // exit volume from firing on the spawn frame, or any other immediate bounce.
+        // Keyed on InstanceID; entry is harmlessly orphaned if the initiator is destroyed
+        // before expiry (next Trigger that reads it sees Time >= until and clears it).
+        if (initiator != null && postTransitionLockoutSeconds > 0f)
+            s_lockoutUntil[initiator.GetInstanceID()] = Time.unscaledTime + postTransitionLockoutSeconds;
 
         foreach (var h in handles) h.End();
         foreach (var h in handles) yield return h.AwaitCompletion();
@@ -105,6 +152,11 @@ public class SceneTransition : MonoBehaviour, ITriggerable
         {
             busy = false;
             lastInitiator = null;
+            Debug.Log($"[SceneTransition] '{label}' complete; busy cleared.");
+        }
+        else
+        {
+            Debug.Log($"[SceneTransition] '{label}' complete but host destroyed mid-flow; no state to clear.");
         }
     }
 

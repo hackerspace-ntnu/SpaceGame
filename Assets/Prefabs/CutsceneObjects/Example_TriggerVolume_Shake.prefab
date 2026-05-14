@@ -11,7 +11,8 @@ GameObject:
   - component: {fileID: 4428173452089691401}
   - component: {fileID: 5430620995972317113}
   - component: {fileID: 8331171625766414411}
-  - component: {fileID: 2624301727639461703}
+  - component: {fileID: 4983169029210418315}
+  - component: {fileID: 1675408992041322470}
   m_Layer: 0
   m_Name: Example_TriggerVolume_Shake
   m_TagString: Untagged
@@ -72,7 +73,7 @@ MonoBehaviour:
   positionalAmplitude: 0.18
   rotationalAmplitude: 2
   frequency: 28
---- !u!114 &2624301727639461703
+--- !u!114 &4983169029210418315
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -81,11 +82,30 @@ MonoBehaviour:
   m_GameObject: {fileID: 1646729239914869325}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b6789ba27102d47279f4b25b76039bb3, type: 3}
+  m_Script: {fileID: 11500000, guid: 28335949967ef49c9bd35c8ddf997827, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CutsceneTriggerVolume
+  m_EditorClassIdentifier: Assembly-CSharp::CutsceneAction
   cutscene: {fileID: 8331171625766414411}
   playOnce: 1
+  onCutsceneEnded:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &1675408992041322470
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1646729239914869325}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1e25481f8d7f4572b3c2461452aa9c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VolumeTrigger
+  triggerableOverride: {fileID: 0}
+  triggerForPlayers: 1
+  triggerForAgents: 1
+  rearmCooldown: 1
 --- !u!1 &7122595348898900507
 GameObject:
   m_ObjectHideFlags: 0

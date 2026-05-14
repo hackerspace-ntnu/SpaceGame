@@ -31,10 +31,6 @@ Cutscenes are wired through the generic [trigger seam](Assets/Scripts/Interactio
 
 For doors, prefer the [`SceneTransition`](Assets/Scripts/SceneManagement/Transitions/SceneTransition.cs) stack — it composes a cutscene effect with a fade effect and a destination so you can mix and match.
 
-### Legacy components
-
-`CutsceneInteractable`, `CutsceneTriggerVolume`, and `InteriorPortal` are still present and `[Obsolete]`-marked. They keep working so existing prefabs aren't broken, but new content should use `CutsceneAction + InteractableTrigger/VolumeTrigger` (and `SceneTransition` for doors).
-
 ## Writing a new cutscene
 
 ```csharp
@@ -67,12 +63,10 @@ Four stations in front of the player spawn:
 
 | Station | Demo |
 |---|---|
-| **A** (red) | `SceneTransition` + `WalkThroughCutsceneEffect` + `ThirdPersonWalkThroughCutscene` + `InteriorSceneDestination` → loads `InsideRuin` |
+| **A** (red) | `SceneTransition` + `WalkThroughCutsceneEffect` + `ThirdPersonWalkThroughCutscene` + `InteriorSceneDestination` → loads `RuinInterior` |
 | **B** (green) | `CutsceneAction` + `LookAtCutscene`. No scene change. |
 | **C** (grey) | `CutsceneAction` + `CameraShakeCutscene`. "Locked door." |
 | **D** (gold pad) | `VolumeTrigger` + `CutsceneAction` + `LookAtCutscene`. Walk on it. |
-
-Existing prefabs in the showcase still use the legacy `CutsceneInteractable` / `CutsceneTriggerVolume` / `InteriorPortal` components — they keep working via the obsolete shims. Migrate them when convenient.
 
 ## Files
 
@@ -86,10 +80,7 @@ Assets/Scripts/Cutscenes/
 ├── WalkThroughDoorCutscene.cs
 ├── ThirdPersonWalkThroughCutscene.cs
 ├── CameraShakeCutscene.cs
-├── UI/LetterboxOverlay.cs
-├── CutsceneInteractable.cs              [Obsolete] use CutsceneAction + InteractableTrigger
-├── CutsceneTriggerVolume.cs             [Obsolete] use CutsceneAction + VolumeTrigger
-└── InteriorPortal.cs                    [Obsolete] use SceneTransition stack
+└── UI/LetterboxOverlay.cs
 ```
 
 `PlayerController.EnterCutsceneMode()` / `ExitCutsceneMode()` is what the Director uses. Captures + restores prior state, so it's safe mid-mount.

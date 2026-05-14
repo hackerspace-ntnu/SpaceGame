@@ -243,7 +243,8 @@ GameObject:
   m_Component:
   - component: {fileID: 3138912667017891558}
   - component: {fileID: 4560523424135662541}
-  - component: {fileID: 7741309784404668366}
+  - component: {fileID: 6129929386886192160}
+  - component: {fileID: 1879610565139964810}
   m_Layer: 0
   m_Name: Example_WalkThroughDoor_TP
   m_TagString: Untagged
@@ -288,7 +289,7 @@ MonoBehaviour:
   endOffset: {x: 3.5, y: 3, z: -6}
   duration: 3
   easeFraction: 0.25
---- !u!114 &7741309784404668366
+--- !u!114 &6129929386886192160
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -297,14 +298,27 @@ MonoBehaviour:
   m_GameObject: {fileID: 5020121558281356059}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b093b17b1896543f4896f5904d7ebb3d, type: 3}
+  m_Script: {fileID: 11500000, guid: 28335949967ef49c9bd35c8ddf997827, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CutsceneInteractable
+  m_EditorClassIdentifier: Assembly-CSharp::CutsceneAction
   cutscene: {fileID: 4560523424135662541}
   playOnce: 0
   onCutsceneEnded:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1879610565139964810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5020121558281356059}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 159c1656655924328b99fe97be481d4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractableTrigger
+  triggerableOverride: {fileID: 0}
 --- !u!1 &6182196070749437346
 GameObject:
   m_ObjectHideFlags: 0

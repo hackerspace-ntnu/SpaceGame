@@ -790,7 +790,7 @@ GameObject:
   - component: {fileID: 87807348}
   - component: {fileID: 87807347}
   - component: {fileID: 87807346}
-  - component: {fileID: 87807345}
+  - component: {fileID: 87807349}
   m_Layer: 0
   m_Name: ExitVolume
   m_TagString: Untagged
@@ -798,21 +798,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &87807345
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 87807344}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6ae186338601f4c5eaa4a0695cb4a6ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::VolumeTransitionTrigger
-  triggerForPlayers: 1
-  triggerForAgents: 1
-  rearmCooldown: 1
 --- !u!114 &87807346
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -872,6 +857,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &87807349
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 87807344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1e25481f8d7f4572b3c2461452aa9c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VolumeTrigger
+  triggerableOverride: {fileID: 0}
+  triggerForPlayers: 1
+  triggerForAgents: 1
+  rearmCooldown: 1
 --- !u!64 &100662118
 MeshCollider:
   m_ObjectHideFlags: 0

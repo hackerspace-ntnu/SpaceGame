@@ -119,7 +119,8 @@ GameObject:
   - component: {fileID: 3101381862168725613}
   - component: {fileID: 2312101264847227986}
   - component: {fileID: 6202137669948291734}
-  - component: {fileID: 2886550720166452761}
+  - component: {fileID: 5758041688677580595}
+  - component: {fileID: 6002140095107301015}
   m_Layer: 0
   m_Name: CutsceneTriggerPad
   m_TagString: Untagged
@@ -238,7 +239,7 @@ MonoBehaviour:
   blendInDuration: 0.7
   holdDuration: 1.5
   blendOutDuration: 0.7
---- !u!114 &2886550720166452761
+--- !u!114 &5758041688677580595
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -247,11 +248,30 @@ MonoBehaviour:
   m_GameObject: {fileID: 5178368312753883239}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b6789ba27102d47279f4b25b76039bb3, type: 3}
+  m_Script: {fileID: 11500000, guid: 28335949967ef49c9bd35c8ddf997827, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CutsceneTriggerVolume
+  m_EditorClassIdentifier: Assembly-CSharp::CutsceneAction
   cutscene: {fileID: 6202137669948291734}
   playOnce: 0
+  onCutsceneEnded:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &6002140095107301015
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5178368312753883239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1e25481f8d7f4572b3c2461452aa9c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VolumeTrigger
+  triggerableOverride: {fileID: 0}
+  triggerForPlayers: 1
+  triggerForAgents: 1
+  rearmCooldown: 1
 --- !u!1 &6387993603300177246
 GameObject:
   m_ObjectHideFlags: 0

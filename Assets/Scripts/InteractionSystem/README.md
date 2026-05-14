@@ -71,15 +71,6 @@ public class MyAction : MonoBehaviour, ITriggerable
 
 Drop `InteractableTrigger` or `VolumeTrigger` on the same GameObject. Done — no new trigger class.
 
-### Legacy trigger components (compatibility shims)
-
-These exist only so older prefabs/scenes that serialize them keep working. They are `[Obsolete]` — don't use for new content:
-
-- `InteractableTransitionTrigger` / `VolumeTransitionTrigger` (SceneTransition-specific)
-- `CutsceneInteractable` / `CutsceneTriggerVolume` (Cutscene-specific)
-- `InteriorPortal` (bundled cutscene + fade + teleport)
-- `InteriorExit` (fade + exit)
-
 
 ## Dialogue Setup Guide (Developer)
 

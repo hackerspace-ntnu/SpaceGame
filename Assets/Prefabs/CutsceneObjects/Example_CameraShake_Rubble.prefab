@@ -122,7 +122,8 @@ GameObject:
   m_Component:
   - component: {fileID: 5455312503032279880}
   - component: {fileID: 7317363942147059014}
-  - component: {fileID: 2158412566334307854}
+  - component: {fileID: 4851441916801578315}
+  - component: {fileID: 1166930760010135059}
   m_Layer: 0
   m_Name: Example_CameraShake_Rubble
   m_TagString: Untagged
@@ -164,7 +165,7 @@ MonoBehaviour:
   positionalAmplitude: 0.12
   rotationalAmplitude: 1.5
   frequency: 28
---- !u!114 &2158412566334307854
+--- !u!114 &4851441916801578315
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -173,14 +174,27 @@ MonoBehaviour:
   m_GameObject: {fileID: 2780213240013391294}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b093b17b1896543f4896f5904d7ebb3d, type: 3}
+  m_Script: {fileID: 11500000, guid: 28335949967ef49c9bd35c8ddf997827, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CutsceneInteractable
+  m_EditorClassIdentifier: Assembly-CSharp::CutsceneAction
   cutscene: {fileID: 7317363942147059014}
   playOnce: 0
   onCutsceneEnded:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1166930760010135059
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2780213240013391294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 159c1656655924328b99fe97be481d4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractableTrigger
+  triggerableOverride: {fileID: 0}
 --- !u!1 &5205016032636400075
 GameObject:
   m_ObjectHideFlags: 0

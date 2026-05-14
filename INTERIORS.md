@@ -36,15 +36,7 @@ GameObject (the door)
 
 Effects use distinct `TransitionChannel`s (Screen / Audio / Camera / Time). `SceneTransition` warns at edit-time if two effects fight for the same channel.
 
-### Legacy components
-
-`InteriorPortal`, `InteriorEntrance`, and `InteriorExit` are still present and (where applicable) marked `[Obsolete]`. They keep working so existing prefabs aren't broken. New content should use the transition stack above.
-
-| Legacy component | Modern replacement |
-|---|---|
-| `InteriorPortal` (cutscene + fade + destination in one) | `SceneTransition` + `InteractableTrigger` + `WalkThroughCutsceneEffect` + `FadeToBlackEffect` + `InteriorSceneDestination` / `SameSceneAnchorDestination` |
-| `InteriorExit` (fade-around-exit door) | `SceneTransition` + `InteractableTrigger` + `FadeToBlackEffect` + `ExitInteriorDestination` |
-| `InteriorEntrance` (minimal, no fade) | `SceneTransition` + `InteractableTrigger` + `InteriorSceneDestination` (no effects) |
+`InteriorEntrance` still exists as the minimal "no fade, no cutscene" entry door (used by `InteriorTestBootstrap`). It's not deprecated — just simpler than the full transition stack when you don't need effects.
 
 ## Adding a new interior
 
@@ -69,7 +61,7 @@ Effects use distinct `TransitionChannel`s (Screen / Audio / Camera / Time). `Sce
 | `Interior_Test.asset` | `TestInterior.unity` (4-wall placeholder) |
 | `Interior_InsideRuin.asset` | `InsideRuin.unity` (16×16 room with altar, crates, pillars) |
 
-Door A in the persistentScene showcase plaza targets `Interior_InsideRuin`. The existing showcase prefabs still use `InteriorPortal` (legacy shim).
+Door A in the persistentScene showcase plaza targets the ruin interior via `Destination_EnterRuin` (which references `Interior_RuinDemo` → `RuinInterior.unity`).
 
 ## Files
 
@@ -78,8 +70,7 @@ Assets/Scripts/SceneManagement/Interiors/
 ├── InteriorManager.cs              singleton loader (NetCode-aware)
 ├── InteriorScene.cs                ScriptableObject (sceneName + anchorId)
 ├── InteriorAnchor.cs               spawn/exit marker; FindAnywhere/TeleportPlayer helpers
-├── InteriorEntrance.cs             minimal IInteractable (legacy)
-├── InteriorExit.cs                 [Obsolete] use SceneTransition + ExitInteriorDestination
+├── InteriorEntrance.cs             minimal IInteractable (no fade, no cutscene)
 └── InteriorTestBootstrap.cs        test-only auto-spawner (off by default)
 
 Assets/Scripts/SceneManagement/Transitions/
@@ -90,13 +81,14 @@ Assets/Scripts/SceneManagement/Transitions/
 │   ├── InteriorSceneDestination.cs     additive load + place at anchor
 │   ├── ExitInteriorDestination.cs      return to recorded exterior position
 │   └── SameSceneAnchorDestination.cs   teleport to anchor in any loaded scene
-├── Effects/
-│   ├── SceneTransitionEffect.cs        abstract base + EffectHandle + TransitionChannel
-│   ├── FadeToBlackEffect.cs            screen channel, spacebar-skippable in-phase
-│   └── WalkThroughCutsceneEffect.cs    camera channel, blocks load until cutscene done
-└── Triggers/                           [Obsolete] legacy SceneTransition-only triggers
+└── Effects/
+    ├── SceneTransitionEffect.cs        abstract base + EffectHandle + TransitionChannel
+    ├── FadeToBlackEffect.cs            screen channel, spacebar-skippable in-phase
+    └── WalkThroughCutsceneEffect.cs    camera channel, blocks load until cutscene done
 
-Assets/Resources/Interiors/         InteriorScene assets
+Triggers live in the InteractionSystem (InteractableTrigger, VolumeTrigger).
+
+Assets/Resources/Interiors/         InteriorScene + Destination + Effect assets
 Assets/Scenes/Interiors/            the .unity scenes
 ```
 

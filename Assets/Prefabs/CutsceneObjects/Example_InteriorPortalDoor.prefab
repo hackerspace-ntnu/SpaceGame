@@ -355,7 +355,8 @@ GameObject:
   m_Component:
   - component: {fileID: 123863355985601762}
   - component: {fileID: 3624293819949488938}
-  - component: {fileID: 2498049463276501187}
+  - component: {fileID: 2750860985952376373}
+  - component: {fileID: 658571556814525454}
   m_Layer: 0
   m_Name: Example_InteriorPortalDoor
   m_TagString: Untagged
@@ -398,7 +399,7 @@ MonoBehaviour:
   throughPoint: {fileID: 8801069276841931687}
   duration: 2
   easeFraction: 0.25
---- !u!114 &2498049463276501187
+--- !u!114 &2750860985952376373
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -407,18 +408,34 @@ MonoBehaviour:
   m_GameObject: {fileID: 5827826846244073306}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5aa06dc60768342ae9ed9f1dfaafc98d, type: 3}
+  m_Script: {fileID: 11500000, guid: 7687ab9d6e041412d9c974c9a140a800, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::InteriorPortal
-  transitionCutscene: {fileID: 3624293819949488938}
-  fadeAroundTransition: 1
-  fadeOut: 0.25
-  fadeHold: 0.4
-  fadeIn: 0.35
-  destinationKind: 0
-  targetInterior: {fileID: 0}
-  anchorId: 
-  playOnce: 0
+  m_EditorClassIdentifier: Assembly-CSharp::SceneTransition
+  description: "Drop-in scene transition.\n\u2022 Destination: which scene + spawn
+    anchor (ScriptableObject).\n\u2022 Effects: visual/audio effects that play during
+    the load. Multiple allowed,\n  but each must use a different TransitionChannel
+    (Screen/Audio/Camera/Time).\n\u2022 Pair with an InteractableTrigger or VolumeTrigger
+    on the same GameObject,\n  or call Trigger(initiator) from script, to fire the
+    transition.\n\u2022 Effects play during load. When the load finishes, the 'in'
+    phase of each\n  effect runs and the transition completes.\n\u2022 Spacebar skips
+    effects (skip is ignored until the load completes)."
+  destination: {fileID: 11400000, guid: 6f316933a750c4019b4c9c43b47caecf, type: 2}
+  effects:
+  - {fileID: 11400000, guid: 534ff89ac36fd4c5f9d62b58ea6af62d, type: 2}
+  - {fileID: 11400000, guid: ab1dbfa8ccd2f407da212d50b41f061f, type: 2}
+--- !u!114 &658571556814525454
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5827826846244073306}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 159c1656655924328b99fe97be481d4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractableTrigger
+  triggerableOverride: {fileID: 0}
 --- !u!1 &8571795635534665785
 GameObject:
   m_ObjectHideFlags: 0

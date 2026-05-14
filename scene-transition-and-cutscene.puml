@@ -110,16 +110,6 @@ package "Shared infrastructure" #EEEEEE {
 }
 
 ' ==================================================================
-package "Legacy shims (obsolete — kept for prefab compatibility)" #FFE0E0 {
-    class InteriorPortal <<MonoBehaviour>>
-    class CutsceneInteractable <<MonoBehaviour>>
-    class CutsceneTriggerVolume <<MonoBehaviour>>
-    class InteractableTransitionTrigger <<MonoBehaviour>>
-    class VolumeTransitionTrigger <<MonoBehaviour>>
-    class InteriorExit <<MonoBehaviour>>
-}
-
-' ==================================================================
 ' Bridges
 ' ==================================================================
 WalkThroughCutsceneEffect ..> CutsceneRunner : <<bridge>> PlayAndAwait(initiator)

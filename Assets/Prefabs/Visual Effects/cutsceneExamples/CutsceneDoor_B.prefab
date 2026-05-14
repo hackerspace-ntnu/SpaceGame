@@ -101,7 +101,8 @@ GameObject:
   - component: {fileID: 2761453878168404319}
   - component: {fileID: 7064182603436755974}
   - component: {fileID: 4686859732786770911}
-  - component: {fileID: 7408530065403274679}
+  - component: {fileID: 3725611776929093282}
+  - component: {fileID: 3084007268017527824}
   m_Layer: 0
   m_Name: CutsceneDoor_B
   m_TagString: Untagged
@@ -168,7 +169,7 @@ MonoBehaviour:
   blendInDuration: 0.5
   holdDuration: 1.2
   blendOutDuration: 0.5
---- !u!114 &7408530065403274679
+--- !u!114 &3725611776929093282
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -177,14 +178,27 @@ MonoBehaviour:
   m_GameObject: {fileID: 4643105881425154603}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b093b17b1896543f4896f5904d7ebb3d, type: 3}
+  m_Script: {fileID: 11500000, guid: 28335949967ef49c9bd35c8ddf997827, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CutsceneInteractable
+  m_EditorClassIdentifier: Assembly-CSharp::CutsceneAction
   cutscene: {fileID: 4686859732786770911}
   playOnce: 0
   onCutsceneEnded:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &3084007268017527824
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4643105881425154603}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 159c1656655924328b99fe97be481d4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractableTrigger
+  triggerableOverride: {fileID: 0}
 --- !u!1 &5882832720516383778
 GameObject:
   m_ObjectHideFlags: 0

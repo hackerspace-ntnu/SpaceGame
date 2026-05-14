@@ -190,7 +190,8 @@ GameObject:
   m_Component:
   - component: {fileID: 9039800497782159719}
   - component: {fileID: 8274132300312259537}
-  - component: {fileID: 5456070253980024237}
+  - component: {fileID: 1672739086139198242}
+  - component: {fileID: 7987342493445142252}
   m_Layer: 0
   m_Name: Example_LookAt_Beacon
   m_TagString: Untagged
@@ -232,7 +233,7 @@ MonoBehaviour:
   blendInDuration: 0.7
   holdDuration: 1.6
   blendOutDuration: 0.7
---- !u!114 &5456070253980024237
+--- !u!114 &1672739086139198242
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -241,14 +242,27 @@ MonoBehaviour:
   m_GameObject: {fileID: 6771497760164461047}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b093b17b1896543f4896f5904d7ebb3d, type: 3}
+  m_Script: {fileID: 11500000, guid: 28335949967ef49c9bd35c8ddf997827, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CutsceneInteractable
+  m_EditorClassIdentifier: Assembly-CSharp::CutsceneAction
   cutscene: {fileID: 8274132300312259537}
   playOnce: 0
   onCutsceneEnded:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &7987342493445142252
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6771497760164461047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 159c1656655924328b99fe97be481d4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InteractableTrigger
+  triggerableOverride: {fileID: 0}
 --- !u!1 &6974848107965739149
 GameObject:
   m_ObjectHideFlags: 0

@@ -45,6 +45,43 @@ public class WorldStreamer : NetworkBehaviour
 
     public void UnregisterTrackedTransform(Transform t) => trackedTransforms.Remove(t);
 
+    /// <summary>True if the chunk under <paramref name="worldPos"/> is fully loaded (state == Loaded).</summary>
+    public bool IsChunkLoadedAt(Vector3 worldPos)
+    {
+        if (config == null) return false;
+        var coord = config.WorldToChunkCoord(worldPos);
+        return GetChunkState(coord) == ChunkState.Loaded;
+    }
+
+    /// <summary>
+    /// Sample the ground height at <paramref name="worldPos"/> using a downward raycast first,
+    /// then the chunk's terrain as fallback. Returns false if neither is available.
+    /// </summary>
+    public bool TrySampleGroundHeight(Vector3 worldPos, out float groundY)
+    {
+        // Raycast against any collider above ground level — works for terrain and structures.
+        var rayOrigin = new Vector3(worldPos.x, worldPos.y + 200f, worldPos.z);
+        if (Physics.Raycast(rayOrigin, Vector3.down, out var hit, 1000f, ~0, QueryTriggerInteraction.Ignore))
+        {
+            groundY = hit.point.y;
+            return true;
+        }
+
+        // Fallback: sample the chunk's terrain directly.
+        if (config != null)
+        {
+            var coord = config.WorldToChunkCoord(worldPos);
+            if (loadedTerrains.TryGetValue(coord, out var terrain) && terrain != null)
+            {
+                groundY = terrain.SampleHeight(worldPos) + terrain.transform.position.y;
+                return true;
+            }
+        }
+
+        groundY = 0f;
+        return false;
+    }
+
     // ─────────────────────────────────────────────
     //  SceneTracked registry (static so components can self-register from OnEnable
     //  without a FindFirstObjectByType call, and survives WorldStreamer respawn).

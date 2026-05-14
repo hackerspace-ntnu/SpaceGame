@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
@@ -15,17 +16,42 @@ public class InteriorManager : MonoBehaviour
     public static InteriorManager Instance { get; private set; }
 
     /// <summary>Where the player was last standing in the exterior, keyed by NetworkObjectId (or 0 in offline).</summary>
-    private struct ReturnInfo
+    private class ReturnInfo
     {
         public Vector3 Position;
         public Quaternion Rotation;
         public Scene ExteriorScene;
+        /// <summary>
+        /// Pin GameObject registered with WorldStreamer so the exterior chunks under the
+        /// return position stay loaded for the duration of the interior visit. Without this,
+        /// WorldStreamer chunks the world around the interior anchor and unloads the player's
+        /// origin — they then fall through the ground on exit.
+        /// </summary>
+        public Transform ReturnPin;
     }
 
     private readonly Dictionary<ulong, ReturnInfo> returnInfoByPlayer = new();
     private readonly Dictionary<string, int> interiorRefCount = new();
 
     private Scene persistentScene;
+    private PersistentSceneVisibility persistentVisibility;
+    private WorldStreamer worldStreamer;
+
+    [Header("Exit")]
+    [Tooltip("Hard cap on how long ServerExitInterior will wait for the chunk under the return position to load before teleporting anyway.")]
+    [SerializeField] private float exitChunkLoadTimeoutSeconds = 8f;
+    [Tooltip("Cap on how far the player can be moved upward by the ground-clamp. Keeps a stuck return position from launching them into the sky.")]
+    [SerializeField] private float groundClampMaxLift = 50f;
+
+    private int TotalInteriorOccupancy
+    {
+        get
+        {
+            int sum = 0;
+            foreach (var n in interiorRefCount.Values) sum += n;
+            return sum;
+        }
+    }
 
     private void Awake()
     {
@@ -36,10 +62,23 @@ public class InteriorManager : MonoBehaviour
         }
         Instance = this;
         persistentScene = gameObject.scene;
+        persistentVisibility = new PersistentSceneVisibility(persistentScene);
     }
 
     private void OnDestroy()
     {
+        // Drop any outstanding return pins so we don't leak transforms that linger in
+        // WorldStreamer's trackedTransforms list across scene reloads.
+        foreach (var kvp in returnInfoByPlayer)
+        {
+            var info = kvp.Value;
+            if (info?.ReturnPin == null) continue;
+            if (worldStreamer != null)
+                worldStreamer.UnregisterTrackedTransform(info.ReturnPin);
+            Destroy(info.ReturnPin.gameObject);
+        }
+        returnInfoByPlayer.Clear();
+
         if (Instance == this) Instance = null;
     }
 
@@ -111,12 +150,27 @@ public class InteriorManager : MonoBehaviour
     {
         ulong key = GetPlayerKey(player);
 
+        // Re-entry without a prior exit (interior-to-interior, or duplicate call) — drop the
+        // old pin so we don't leak it and don't keep chunks loaded around a stale position.
+        if (returnInfoByPlayer.TryGetValue(key, out var stale))
+            CleanupReturnInfo(key, stale);
+
+        Vector3 returnPos = player.transform.position;
+        Quaternion returnRot = player.transform.rotation;
+        Scene exteriorScene = persistentScene.IsValid() ? persistentScene : player.scene;
+
+        // Drop a pin at the return position and register it with WorldStreamer. While the
+        // player is inside, WorldStreamer sees them at the interior anchor and would unload
+        // the exterior chunks under their origin — the pin keeps those chunks alive.
+        Transform pin = CreateReturnPin(returnPos);
+
         // Remember where the player was so ExitInterior can put them back.
         returnInfoByPlayer[key] = new ReturnInfo
         {
-            Position = player.transform.position,
-            Rotation = player.transform.rotation,
-            ExteriorScene = persistentScene.IsValid() ? persistentScene : player.scene,
+            Position = returnPos,
+            Rotation = returnRot,
+            ExteriorScene = exteriorScene,
+            ReturnPin = pin,
         };
 
         var existing = SceneManager.GetSceneByName(sceneName);
@@ -150,20 +204,72 @@ public class InteriorManager : MonoBehaviour
             return;
         }
 
+        // Drive the exit on a coroutine so we can wait for the exterior chunks under the
+        // return position to be fully loaded before teleporting the player. Otherwise the
+        // teleport lands on an unloaded chunk and the player falls through the ground.
+        StartCoroutine(ExitInteriorRoutine(player, key, info));
+    }
+
+    private IEnumerator ExitInteriorRoutine(GameObject player, ulong key, ReturnInfo info)
+    {
         Scene currentInterior = player.scene;
         string interiorName = currentInterior.name;
 
-        // Move player back to exterior first so the interior can safely unload.
+        // Make sure the chunk under the return position is loaded before the move.
+        // The return pin should already be keeping it alive, but if WorldStreamer was
+        // mid-unload when EnterInterior fired, the chunk can still be in Loading state.
+        EnsureWorldStreamer();
+        if (worldStreamer != null)
+        {
+            worldStreamer.PreloadChunksAroundPosition(info.Position);
+
+            float deadline = Time.unscaledTime + Mathf.Max(0.5f, exitChunkLoadTimeoutSeconds);
+            while (!worldStreamer.IsChunkLoadedAt(info.Position))
+            {
+                if (player == null)
+                {
+                    CleanupReturnInfo(key, info);
+                    yield break;
+                }
+                if (Time.unscaledTime >= deadline)
+                {
+                    Debug.LogWarning(
+                        $"[InteriorManager] Timed out waiting for exterior chunk under {info.Position} to load. " +
+                        "Teleporting anyway — player may briefly clip if terrain isn't ready.");
+                    break;
+                }
+                yield return null;
+            }
+        }
+
+        if (player == null)
+        {
+            CleanupReturnInfo(key, info);
+            yield break;
+        }
+
+        // Move player back to exterior so the interior can safely unload.
         if (info.ExteriorScene.IsValid() && info.ExteriorScene.isLoaded)
         {
             if (player.transform.parent != null) player.transform.SetParent(null);
             SceneManager.MoveGameObjectToScene(player, info.ExteriorScene);
+            SceneManager.SetActiveScene(info.ExteriorScene);
         }
         TeleportPlayer(player, info.Position, info.Rotation);
-        returnInfoByPlayer.Remove(key);
+
+        // One frame to let Physics.SyncTransforms-ish settling happen, then ground-clamp
+        // so a stale Y (e.g., we entered the interior mid-jump or the terrain changed) can't
+        // leave the player floating or clipped into the ground.
+        yield return null;
+        GroundClampPlayer(player, info.Position);
+
+        CleanupReturnInfo(key, info);
 
         if (string.IsNullOrEmpty(interiorName) || currentInterior == info.ExteriorScene)
-            return;
+        {
+            if (TotalInteriorOccupancy == 0) persistentVisibility?.Restore();
+            yield break;
+        }
 
         int remaining = interiorRefCount.GetValueOrDefault(interiorName) - 1;
         if (remaining <= 0)
@@ -175,6 +281,58 @@ public class InteriorManager : MonoBehaviour
         {
             interiorRefCount[interiorName] = remaining;
         }
+
+        if (TotalInteriorOccupancy == 0) persistentVisibility?.Restore();
+    }
+
+    private void CleanupReturnInfo(ulong key, ReturnInfo info)
+    {
+        if (info != null && info.ReturnPin != null)
+        {
+            if (worldStreamer != null)
+                worldStreamer.UnregisterTrackedTransform(info.ReturnPin);
+            Destroy(info.ReturnPin.gameObject);
+            info.ReturnPin = null;
+        }
+        returnInfoByPlayer.Remove(key);
+    }
+
+    private void GroundClampPlayer(GameObject player, Vector3 returnPos)
+    {
+        if (player == null) return;
+        if (worldStreamer == null) return;
+
+        if (!worldStreamer.TrySampleGroundHeight(returnPos, out float groundY))
+            return;
+
+        var pos = player.transform.position;
+        // Only lift up to ground level if the saved Y is below it (we were clipped under terrain
+        // due to a respawn-chunk mismatch). Don't drop the player onto the ground if they're
+        // legitimately a bit above — gravity will resolve that.
+        if (pos.y < groundY)
+        {
+            float lifted = Mathf.Min(groundY + 0.05f, pos.y + groundClampMaxLift);
+            TeleportPlayer(player, new Vector3(pos.x, lifted, pos.z), player.transform.rotation);
+        }
+    }
+
+    private Transform CreateReturnPin(Vector3 worldPos)
+    {
+        EnsureWorldStreamer();
+        if (worldStreamer == null) return null;
+
+        var go = new GameObject("InteriorReturnPin");
+        if (persistentScene.IsValid() && persistentScene.isLoaded)
+            SceneManager.MoveGameObjectToScene(go, persistentScene);
+        go.transform.position = worldPos;
+        worldStreamer.RegisterTrackedTransform(go.transform);
+        return go.transform;
+    }
+
+    private void EnsureWorldStreamer()
+    {
+        if (worldStreamer != null) return;
+        worldStreamer = FindFirstObjectByType<WorldStreamer>();
     }
 
     private void PlacePlayerAtAnchor(GameObject player, Scene scene, string anchorId)
@@ -189,6 +347,13 @@ public class InteriorManager : MonoBehaviour
         if (player.transform.parent != null) player.transform.SetParent(null);
         SceneManager.MoveGameObjectToScene(player, scene);
         TeleportPlayer(player, position, rotation);
+
+        // Activate the interior scene so its RenderSettings (ambient, fog, skybox) take effect.
+        // Without this, renderers in the interior sample the persistent scene's bright skybox ambient.
+        if (scene.IsValid() && scene.isLoaded)
+            SceneManager.SetActiveScene(scene);
+
+        persistentVisibility?.Suspend();
     }
 
     private static void TeleportPlayer(GameObject player, Vector3 position, Quaternion rotation)

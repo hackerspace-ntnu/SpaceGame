@@ -20,13 +20,13 @@ Material:
   m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
-  m_LockedProperties:
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _AmbientBoost: 0.25
+    - _AmbientBoost: 0.05
     - _BandNoise: 0.35
     - _BandNoiseScale: 18
     - _BandSoftness: 0.08
@@ -34,7 +34,7 @@ Material:
     - _FogEnd: 600
     - _FogStart: 80
     - _FogStrength: 0
-    - _LightWrap: 0.35
+    - _LightWrap: 0.05
     - _MaxHeight: 200
     - _MinHeight: 0
     - _RimPower: 3
@@ -42,12 +42,12 @@ Material:
     - _SlopeEnd: 0.8
     - _SlopeStart: 0.55
     m_Colors:
-    - _ColorCliff: {r: 0.22, g: 0.10, b: 0.07, a: 1}
-    - _ColorHigh: {r: 0.82, g: 0.52, b: 0.30, a: 1}
+    - _ColorCliff: {r: 0.22, g: 0.1, b: 0.07, a: 1}
+    - _ColorHigh: {r: 0.82, g: 0.52, b: 0.3, a: 1}
     - _ColorMid: {r: 0.62, g: 0.28, b: 0.14, a: 1}
     - _ColorPeak: {r: 0.92, g: 0.78, b: 0.58, a: 1}
-    - _ColorValley: {r: 0.32, g: 0.10, b: 0.06, a: 1}
-    - _FogTint: {r: 0.85, g: 0.55, b: 0.40, a: 1}
-    - _RimColor: {r: 1.0, g: 0.55, b: 0.30, a: 1}
+    - _ColorValley: {r: 0.32, g: 0.1, b: 0.06, a: 1}
+    - _FogTint: {r: 0.85, g: 0.55, b: 0.4, a: 1}
+    - _RimColor: {r: 1, g: 0.55, b: 0.3, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

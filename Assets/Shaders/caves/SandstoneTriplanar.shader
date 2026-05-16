@@ -11,7 +11,7 @@ Shader "SpaceGame/SandstoneTriplanar"
         [Header(Sand Blobs  Big stylized patches of lighter sandy colors)]
         _BlobScale ("Blob Scale (smaller = bigger blobs)", Range(0.02, 1)) = 0.12
         _BlobThreshold ("Blob Threshold (lower = more blobs)", Range(0, 1)) = 0.5
-        _BlobEdgeSoftness ("Blob Edge Softness (lower = more stylized hard edges)", Range(0.001, 0.3)) = 0.04
+        _BlobEdgeSoftness ("Blob Edge Softness (lower = more stylized hard edges)", Range(0.001, 0.3)) = 0.015
         _BlobStrength ("Blob Color Strength", Range(0, 1)) = 1.0
 
         [Header(Sand Blob Palette  3 lighter tones)]
@@ -20,6 +20,19 @@ Shader "SpaceGame/SandstoneTriplanar"
         _SandColor3 ("Sand Color 3 (Warm Tan)", Color) = (0.85, 0.70, 0.45, 1)
         _SandMixScale ("Sand Color Mix Scale (smaller = bigger color zones)", Range(0.05, 5)) = 0.6
 
+        [Header(Accent Layer  Sedimentary streaks plus large accent blobs)]
+        _AccentColor ("Accent Color", Color) = (0.45, 0.18, 0.22, 1)
+        _StreakScale ("Streak Scale (smaller = wider bands)", Range(0.005, 0.5)) = 0.05
+        _StreakWarp ("Streak Horizontal Warp (jagged sedimentary feel)", Range(0, 1)) = 0.35
+        _StreakWarpScale ("Streak Warp Frequency", Range(0.01, 1)) = 0.08
+        _StreakThreshold ("Streak Threshold (lower = more streaks)", Range(0, 1)) = 0.55
+        _StreakEdgeSoftness ("Streak Edge Softness", Range(0.001, 0.3)) = 0.05
+        _StreakStrength ("Streak Color Strength", Range(0, 1)) = 0.8
+        _AccentBlobScale ("Accent Blob Scale (smaller = bigger blobs)", Range(0.01, 0.5)) = 0.07
+        _AccentBlobThreshold ("Accent Blob Threshold (lower = more)", Range(0, 1)) = 0.62
+        _AccentBlobEdgeSoftness ("Accent Blob Edge Softness", Range(0.001, 0.3)) = 0.05
+        _AccentBlobStrength ("Accent Blob Color Strength", Range(0, 1)) = 0.85
+
         [Header(Inner Detail  Small secondary blobs inside big blobs)]
         _InnerBlobScale ("Inner Blob Scale", Range(0.1, 4)) = 0.8
         _InnerBlobStrength ("Inner Blob Strength", Range(0, 1)) = 0.35
@@ -27,6 +40,11 @@ Shader "SpaceGame/SandstoneTriplanar"
         [Header(Surface)]
         _Smoothness ("Smoothness", Range(0, 1)) = 0
         _Metallic ("Metallic", Range(0, 1)) = 0
+
+        [Header(Lighting)]
+        _AmbientBoost ("Ambient Boost (cave fill light)", Range(0, 1)) = 0.02
+        _LightWrap    ("Light Wrap", Range(0, 1)) = 0.0
+        _SkyAmbientStrength ("Sky/SH Ambient Strength (0 = pitch black w/o lights)", Range(0, 1)) = 0.0
     }
 
     SubShader
@@ -47,6 +65,8 @@ Shader "SpaceGame/SandstoneTriplanar"
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile _ _SHADOWS_SOFT
+            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
+            #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fog
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
@@ -58,8 +78,13 @@ Shader "SpaceGame/SandstoneTriplanar"
                 float  _BlobScale, _BlobThreshold, _BlobEdgeSoftness, _BlobStrength;
                 float4 _SandColor1, _SandColor2, _SandColor3;
                 float  _SandMixScale;
+                float4 _AccentColor;
+                float  _StreakScale, _StreakWarp, _StreakWarpScale;
+                float  _StreakThreshold, _StreakEdgeSoftness, _StreakStrength;
+                float  _AccentBlobScale, _AccentBlobThreshold, _AccentBlobEdgeSoftness, _AccentBlobStrength;
                 float  _InnerBlobScale, _InnerBlobStrength;
                 float  _Smoothness, _Metallic;
+                float  _AmbientBoost, _LightWrap, _SkyAmbientStrength;
             CBUFFER_END
 
             struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; };
@@ -140,27 +165,59 @@ Shader "SpaceGame/SandstoneTriplanar"
                 // Final albedo: dark brown base, replaced by sand color where blob mass is high
                 float3 albedo = lerp(baseColor, sandColor, blobMass * _BlobStrength);
 
+                // ---- Accent layer: sedimentary streaks ----
+                // Stylized horizontal sediment banding. World-Y drives the band coordinate so streaks are
+                // mostly horizontal (sedimentary feel). XZ-driven FBM warp gives them jagged, irregular
+                // borders rather than perfectly flat lines.
+                float warp = (fbm(IN.positionWS.xzx * _StreakWarpScale) - 0.5) * 2.0 * _StreakWarp;
+                float streakCoord = IN.positionWS.y * _StreakScale + warp;
+                // Use vnoise on the 1D streak coordinate (lifted to 3D) so bands are smooth low-frequency.
+                float streakNoise = vnoise(float3(streakCoord, streakCoord * 0.31, streakCoord * 1.7));
+                float streakMass = smoothstep(_StreakThreshold,
+                                              _StreakThreshold + _StreakEdgeSoftness,
+                                              streakNoise);
+
+                // ---- Accent layer: large accent blobs ----
+                // Big low-frequency blobs of the accent color, crisp anti-aliased borders.
+                float accentBlobNoise = fbm(IN.positionWS * _AccentBlobScale + 41.7);
+                float accentBlobMass  = smoothstep(_AccentBlobThreshold,
+                                                   _AccentBlobThreshold + _AccentBlobEdgeSoftness,
+                                                   accentBlobNoise);
+
+                // Combine streak + accent blob masks; both push toward the accent color.
+                float accentMass = saturate(max(streakMass * _StreakStrength,
+                                                accentBlobMass * _AccentBlobStrength));
+                albedo = lerp(albedo, _AccentColor.rgb, accentMass);
+
                 // ---- Lighting ----
+                // Caves should be near pitch-black without a light source.
+                float wrap = _LightWrap;
+
+                float4 shadowCoord = TransformWorldToShadowCoord(IN.positionWS);
+                Light mainLight = GetMainLight(shadowCoord);
+                float mainNdotL = saturate((dot(N, mainLight.direction) + wrap) / (1.0 + wrap));
+                float3 lit = mainLight.color * mainNdotL * mainLight.shadowAttenuation;
+
+            #ifdef _ADDITIONAL_LIGHTS
                 InputData inputData = (InputData)0;
                 inputData.positionWS = IN.positionWS;
-                inputData.normalWS   = N;
-                inputData.viewDirectionWS = SafeNormalize(GetCameraPositionWS() - IN.positionWS);
-                inputData.shadowCoord     = TransformWorldToShadowCoord(IN.positionWS);
-                inputData.fogCoord        = IN.fogFactor;
-                inputData.bakedGI         = SampleSH(N);
+                inputData.normalWS = N;
+                inputData.viewDirectionWS = normalize(GetWorldSpaceViewDir(IN.positionWS));
+                inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(IN.positionCS);
 
-                SurfaceData surfaceData = (SurfaceData)0;
-                surfaceData.albedo     = albedo;
-                surfaceData.metallic   = _Metallic;
-                surfaceData.smoothness = _Smoothness;
-                surfaceData.normalTS   = float3(0, 0, 1);
-                surfaceData.occlusion  = 1.0;
-                surfaceData.emission   = float3(0, 0, 0);
-                surfaceData.alpha      = 1.0;
+                uint addCount = GetAdditionalLightsCount();
+                LIGHT_LOOP_BEGIN(addCount)
+                    Light addLight = GetAdditionalLight(lightIndex, IN.positionWS);
+                    float addNdotL = saturate((dot(N, addLight.direction) + wrap) / (1.0 + wrap));
+                    lit += addLight.color * addNdotL * addLight.distanceAttenuation * addLight.shadowAttenuation;
+                LIGHT_LOOP_END
+            #endif
 
-                half4 color = UniversalFragmentPBR(inputData, surfaceData);
-                color.rgb = MixFog(color.rgb, IN.fogFactor);
-                return color;
+                float3 ambient = SampleSH(N) * _SkyAmbientStrength + _AmbientBoost.xxx;
+
+                float3 color = albedo * (lit + ambient);
+                color = MixFog(color, IN.fogFactor);
+                return half4(color, 1.0);
             }
             ENDHLSL
         }

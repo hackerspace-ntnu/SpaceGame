@@ -37,6 +37,12 @@ Shader "SpaceGame/CaveTriplanar"
         _DotFadeEnd ("Dot Fade End Distance (m)", Range(1, 100)) = 18
         _DistantGlowMultiplier ("Distant Glow Multiplier (0..1)", Range(0, 1)) = 0.3
 
+        [Header(Distance Simplification  Antiflicker LOD for far algae)]
+        _LodFadeStart ("LOD Fade Start (m)  small-dot emission begins simplifying", Range(0, 200)) = 12
+        _LodFadeEnd ("LOD Fade End (m)  fully simplified to soft glow", Range(1, 500)) = 60
+        _LodBoldFadeStart ("Bold LOD Fade Start (m)", Range(0, 500)) = 80
+        _LodBoldFadeEnd ("Bold LOD Fade End (m)", Range(1, 1000)) = 250
+
         [Header(Bold Specs  Few big bright standout algae per patch)]
         _BoldDensity ("Bold Spec Density (lower = fewer per area)", Range(1, 30)) = 6
         _BoldFraction ("Fraction of cells that produce a bold spec", Range(0, 1)) = 0.55
@@ -49,13 +55,18 @@ Shader "SpaceGame/CaveTriplanar"
         _GlowingPatchFraction ("Fraction of patches with glow", Range(0, 1)) = 0.7
         _GlowingSpecFraction ("Fraction of thread sections (within glow patch) that glow", Range(0, 1)) = 0.25
         _GlowingDotFraction ("Fraction of individual dots (within glow section) that emit", Range(0, 1)) = 0.3
-        _GlowIntensity ("Glow Intensity", Range(0, 10)) = 1.5
+        _GlowIntensity ("Glow Intensity", Range(0, 30)) = 6
         _PulseSpeed ("Pulse Speed", Range(0, 2)) = 0.5
         _PulseAmount ("Pulse Amount (0..1)", Range(0, 1)) = 0.4
 
         [Header(Surface)]
         _Smoothness ("Smoothness", Range(0, 1)) = 0
         _Metallic ("Metallic", Range(0, 1)) = 0
+
+        [Header(Lighting)]
+        _AmbientBoost ("Ambient Boost (cave fill light)", Range(0, 1)) = 0.02
+        _LightWrap    ("Light Wrap", Range(0, 1)) = 0.0
+        _SkyAmbientStrength ("Sky/SH Ambient Strength (0 = pitch black w/o lights)", Range(0, 1)) = 0.0
     }
 
     SubShader
@@ -76,6 +87,8 @@ Shader "SpaceGame/CaveTriplanar"
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile _ _SHADOWS_SOFT
+            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
+            #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fog
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
@@ -92,10 +105,13 @@ Shader "SpaceGame/CaveTriplanar"
                 float  _SpecDensity, _SpecSizeMin, _SpecSizeMax, _SpecShapeNoise;
                 float  _DotScale, _DotSize;
                 float  _DotFadeStart, _DotFadeEnd, _DistantGlowMultiplier;
+                float  _LodFadeStart, _LodFadeEnd;
+                float  _LodBoldFadeStart, _LodBoldFadeEnd;
                 float  _BoldDensity, _BoldFraction, _BoldSizeMin, _BoldSizeMax, _BoldIntensity, _BoldGlowFraction;
                 float  _GlowingPatchFraction, _GlowingSpecFraction, _GlowingDotFraction, _GlowIntensity;
                 float  _PulseSpeed, _PulseAmount;
                 float  _Smoothness, _Metallic;
+                float  _AmbientBoost, _LightWrap, _SkyAmbientStrength;
             CBUFFER_END
 
             struct Attributes { float4 positionOS : POSITION; float3 normalOS : NORMAL; };
@@ -137,7 +153,9 @@ Shader "SpaceGame/CaveTriplanar"
             // Returns: filament mass 0..1, and an "id" used for glow gating + animation phase
             // (sampled coarsely so neighboring filaments share gating, looking like a connected
             // mycelium).
-            void evaluateSpec(float3 worldP, out float specMass, out float specId)
+            // specMass: full filament render (used for albedo tinting; merges to threads at distance)
+            // dotOnlyMass: pure dot pricks (used for emission so light never smears into lines)
+            void evaluateSpec(float3 worldP, out float specMass, out float dotOnlyMass, out float specId)
             {
                 // Domain warp the input so cells aren't axis-aligned
                 float specCellScale = _SpecDensity * 0.012;
@@ -208,10 +226,16 @@ Shader "SpaceGame/CaveTriplanar"
                 // as the camera moves. _DotFadeStart = distance where fade begins; _DotFadeEnd =
                 // fully merged. Eliminates the sparkle/static at distance with zero quality loss
                 // up close.
+                // Albedo path: fade dot mask toward 1 at distance so the painted thread shape
+                // remains visible when individual dots become sub-pixel.
                 float distToCam = distance(GetCameraPositionWS(), worldP);
                 float fadeT = saturate((distToCam - _DotFadeStart) / max(_DotFadeEnd - _DotFadeStart, 0.001));
-                dotMask = lerp(dotMask, 1.0, fadeT);
-                specMass *= dotMask;
+                float dotMaskFaded = lerp(dotMask, 1.0, fadeT);
+
+                // Emission path: gate by the strict (non-faded) dot mask so light stays as
+                // discrete pricks only — never smears into filament/thread lines, no matter the distance.
+                dotOnlyMass = specMass * dotMask;
+                specMass    *= dotMaskFaded;
 
                 specId = hash13(closestId + 23.7);
             }
@@ -283,20 +307,20 @@ Shader "SpaceGame/CaveTriplanar"
                 float3 patchColor = algaeTapestry(patchCellWorld);
 
                 // ---- Spec layer ----
-                float specMass; float specId;
-                evaluateSpec(IN.positionWS, specMass, specId);
+                float specMass; float dotOnlyMass; float specId;
+                evaluateSpec(IN.positionWS, specMass, dotOnlyMass, specId);
                 // Specs only exist where there's a patch
-                specMass *= patchMass;
+                specMass    *= patchMass;
+                dotOnlyMass *= patchMass;
 
                 // Spec color = patch color with a TINY per-spec hue jitter (not full re-sample).
                 // This keeps each patch coherent (mostly one color) while individual specs can vary slightly.
                 float3 hueJitter = (hash33(float3(specId, specId * 1.7, specId * 2.3)) - 0.5) * 0.15;
                 float3 specColor = saturate(patchColor + hueJitter);
 
-                // ---- Albedo: rock tinted toward patch tapestry where there's a patch,
-                //              and toward spec color where there's a spec on that patch ----
+                // ---- Albedo: rock stays as rock; algae only shows as discrete specs/pricks,
+                //              never as a smeared patch-wide wash. ----
                 float3 albedo = baseColor;
-                albedo = lerp(albedo, patchColor, patchMass * _PatchAlbedoStrength * 0.5);
                 albedo = lerp(albedo, specColor, specMass * _PatchAlbedoStrength);
 
                 // ---- Glow gating ----
@@ -320,7 +344,23 @@ Shader "SpaceGame/CaveTriplanar"
                 float distantPulseMul = lerp(1.0, 0.0, fadeTGlow); // kill animation entirely at distance
 
                 float pulse = 1.0 + sin(_Time.y * _PulseSpeed * 6.2831 + specId * 6.2831) * _PulseAmount * distantPulseMul;
-                float3 emission = specColor * _GlowIntensity * distantGlowMul * specMass * glowGate * max(0.0, pulse);
+                // Use dotOnlyMass (strict per-dot, never faded to threads) so emission stays as point lights.
+                // Emission deliberately ignores scene lighting and is NOT faded with distance — algae must
+                // remain visible no matter the ambient light level (caves are intentionally near pitch-black
+                // without light sources). Pulse is clamped so it never dips emission below 50% of peak.
+                float pulseClamped = max(0.5, pulse);
+
+                // ---- Distance LOD on small-dot emission (anti-flicker) ----
+                // Close up: strict per-dot pricks (dotOnlyMass — high-frequency, aliases when sub-pixel).
+                // Far away: blend toward a smooth low-frequency approximation = specMass (filament shape,
+                // slowly varying, no aliasing) scaled by the average dot coverage so total emitted energy
+                // is roughly preserved.
+                float dotCoverage = saturate(3.14159 * _DotSize * _DotSize); // π r² in unit cell
+                float lodFadeT = saturate((distToCamGlow - _LodFadeStart) /
+                                          max(_LodFadeEnd - _LodFadeStart, 0.001));
+                float emissionMass = lerp(dotOnlyMass, specMass * dotCoverage, lodFadeT);
+
+                float3 emission = specColor * _GlowIntensity * emissionMass * glowGate * pulseClamped;
 
                 // ---- Bold spec layer: a few big visible standout algae per patch ----
                 // Sparse Worley grid with cells much larger than the regular dot grid. Each cell
@@ -346,9 +386,16 @@ Shader "SpaceGame/CaveTriplanar"
                 // Per-cell randomized size and gate — only some cells have a bold spec
                 float boldExists = step(1.0 - _BoldFraction, hash13(boldClosest + 33.3));
                 float boldSizeRand = lerp(_BoldSizeMin, _BoldSizeMax, hash13(boldClosest + 47.1));
-                // Bold dot mass with soft falloff (organic via tiny FBM distortion on the radius)
-                float boldShapeNoise = (fbm(IN.positionWS * boldCellScale * 8.0) - 0.5) * boldSizeRand * 0.3;
-                float boldMass = saturate(1.0 - smoothstep(boldSizeRand * 0.5, boldSizeRand, boldF1 + boldShapeNoise));
+                // Distance LOD for bold specs: at far distance fade out organic FBM distortion (the 8x
+                // high-frequency noise aliases) and widen the smoothstep edge so the dot edge stays
+                // pixel-smooth instead of sharp. Bold specs are bigger so they alias later than small dots.
+                float boldLodT = saturate((distance(GetCameraPositionWS(), IN.positionWS) - _LodBoldFadeStart) /
+                                          max(_LodBoldFadeEnd - _LodBoldFadeStart, 0.001));
+                float boldShapeNoiseScale = lerp(0.3, 0.0, boldLodT);
+                float boldShapeNoise = (fbm(IN.positionWS * boldCellScale * 8.0) - 0.5) * boldSizeRand * boldShapeNoiseScale;
+                // Widen the inner edge of the smoothstep at distance to soften the dot border.
+                float boldEdgeInner = lerp(boldSizeRand * 0.5, boldSizeRand * 0.2, boldLodT);
+                float boldMass = saturate(1.0 - smoothstep(boldEdgeInner, boldSizeRand, boldF1 + boldShapeNoise));
                 // Gated: only inside a patch + only if cell-gate passes
                 boldMass *= boldExists * patchMass;
 
@@ -361,29 +408,44 @@ Shader "SpaceGame/CaveTriplanar"
                 // ---- Bold glow: separate gate, only some bold specs emit ----
                 float boldEmits = step(1.0 - _BoldGlowFraction, hash13(boldClosest + 67.7));
                 float boldPulse = 1.0 + sin(_Time.y * _PulseSpeed * 6.2831 * 0.6 + hash13(boldClosest) * 6.2831) * _PulseAmount * distantPulseMul;
-                emission += boldColor * _BoldIntensity * boldMass * boldEmits * distantGlowMul * max(0.0, boldPulse);
+                float boldPulseClamped = max(0.5, boldPulse);
+                // Bold glow also ignores distance fade — bright algae stay visible across the cave.
+                emission += boldColor * _BoldIntensity * boldMass * boldEmits * boldPulseClamped;
 
                 // ---- Lighting ----
+                // Caves should be near pitch-black without a light source. _AmbientBoost adds
+                // a tiny floor (default 0.02) and _SkyAmbientStrength scales the sky/SH probe
+                // (default 0 — caves ignore the skybox so they stay dark when there's no light).
+                // Point/spot lights (torches, lanterns) light the cave via the additional-lights loop.
+                float wrap = _LightWrap;
+
+                float4 shadowCoord = TransformWorldToShadowCoord(IN.positionWS);
+                Light mainLight = GetMainLight(shadowCoord);
+                float mainNdotL = saturate((dot(N, mainLight.direction) + wrap) / (1.0 + wrap));
+                float3 lit = mainLight.color * mainNdotL * mainLight.shadowAttenuation;
+
+                // Additional (point/spot) lights — required for torches/lanterns to actually light caves.
+                // LIGHT_LOOP_BEGIN expands correctly for both Forward and Forward+ (tile-binned) paths.
+            #ifdef _ADDITIONAL_LIGHTS
                 InputData inputData = (InputData)0;
                 inputData.positionWS = IN.positionWS;
-                inputData.normalWS   = N;
-                inputData.viewDirectionWS = SafeNormalize(GetCameraPositionWS() - IN.positionWS);
-                inputData.shadowCoord     = TransformWorldToShadowCoord(IN.positionWS);
-                inputData.fogCoord        = IN.fogFactor;
-                inputData.bakedGI         = SampleSH(N);
+                inputData.normalWS = N;
+                inputData.viewDirectionWS = normalize(GetWorldSpaceViewDir(IN.positionWS));
+                inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(IN.positionCS);
 
-                SurfaceData surfaceData = (SurfaceData)0;
-                surfaceData.albedo     = albedo;
-                surfaceData.metallic   = _Metallic;
-                surfaceData.smoothness = _Smoothness;
-                surfaceData.normalTS   = float3(0, 0, 1);
-                surfaceData.occlusion  = 1.0;
-                surfaceData.emission   = emission;
-                surfaceData.alpha      = 1.0;
+                uint addCount = GetAdditionalLightsCount();
+                LIGHT_LOOP_BEGIN(addCount)
+                    Light addLight = GetAdditionalLight(lightIndex, IN.positionWS);
+                    float addNdotL = saturate((dot(N, addLight.direction) + wrap) / (1.0 + wrap));
+                    lit += addLight.color * addNdotL * addLight.distanceAttenuation * addLight.shadowAttenuation;
+                LIGHT_LOOP_END
+            #endif
 
-                half4 color = UniversalFragmentPBR(inputData, surfaceData);
-                color.rgb = MixFog(color.rgb, IN.fogFactor);
-                return color;
+                float3 ambient = SampleSH(N) * _SkyAmbientStrength + _AmbientBoost.xxx;
+
+                float3 color = albedo * (lit + ambient) + emission;
+                color = MixFog(color, IN.fogFactor);
+                return half4(color, 1.0);
             }
             ENDHLSL
         }

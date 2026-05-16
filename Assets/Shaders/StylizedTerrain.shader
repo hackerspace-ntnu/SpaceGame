@@ -59,7 +59,11 @@ Shader "SpaceGame/StylizedTerrain"
             #pragma shader_feature_local _FLAT_SHADING
 
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
 
@@ -193,6 +197,22 @@ Shader "SpaceGame/StylizedTerrain"
                 float wrap = _LightWrap;
                 float NdotL = saturate((dot(N, mainLight.direction) + wrap) / (1.0 + wrap));
                 float3 lit  = mainLight.color * NdotL * mainLight.shadowAttenuation;
+
+                // Additional (point/spot) lights — flashlight + any point lights affect the terrain.
+            #ifdef _ADDITIONAL_LIGHTS
+                InputData inputData = (InputData)0;
+                inputData.positionWS = IN.positionWS;
+                inputData.normalWS = N;
+                inputData.viewDirectionWS = normalize(GetWorldSpaceViewDir(IN.positionWS));
+                inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(IN.positionCS);
+
+                uint addCount = GetAdditionalLightsCount();
+                LIGHT_LOOP_BEGIN(addCount)
+                    Light addLight = GetAdditionalLight(lightIndex, IN.positionWS);
+                    float addNdotL = saturate((dot(N, addLight.direction) + wrap) / (1.0 + wrap));
+                    lit += addLight.color * addNdotL * addLight.distanceAttenuation * addLight.shadowAttenuation;
+                LIGHT_LOOP_END
+            #endif
 
                 // SH ambient (sky-tinted) + small flat boost so shadow side reads color.
                 float3 ambient = SampleSH(N) + _AmbientBoost.xxx;

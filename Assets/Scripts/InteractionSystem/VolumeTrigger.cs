@@ -37,7 +37,16 @@ public class VolumeTrigger : MonoBehaviour
         if (col != null) col.isTrigger = true;
     }
 
-    private void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider other) => TryFire(other);
+
+    // Also poll while overlapping — a destination that teleports the player back to the
+    // exterior often lands them *inside* this volume (e.g. cave exit teleports to the
+    // saved entry position). Unity does not fire OnTriggerEnter for instantaneous
+    // teleports, so without this the player can never re-enter. CanTrigger + the cross-
+    // transition lockout in SceneTransition still prevent immediate re-fire.
+    private void OnTriggerStay(Collider other) => TryFire(other);
+
+    private void TryFire(Collider other)
     {
         if (Time.time < armedAt) return;
         var t = cached ?? ResolveTriggerable();

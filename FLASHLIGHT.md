@@ -10,7 +10,7 @@ Lives on the `Flashlight` child of [Main Camera.prefab](Assets/Prefabs/Camera/Ma
 |---|---|---|
 | **URP spot light** | Near-field lighting + shadows | Light component on the prefab |
 | **Long-throw layer** | Reaches far surfaces (URP falls off too fast) | [Flashlight.cs](Assets/Scripts/Player/Flashlight.cs) pushes globals → [Flashlight.hlsl](Assets/Shaders/Flashlight.hlsl) |
-| **Visible beam** | The dust cone you see in the air | [FlashlightBeam.shader](Assets/Shaders/FlashlightBeam.shader) on a procedural cone mesh |
+| **Visible beam** | Dust cone in the air. Analytical ray-vs-cone math in fragment shader — cone mesh is just a bounding volume | [FlashlightBeam.shader](Assets/Shaders/FlashlightBeam.shader) |
 
 Consumers: [CaveTriplanar.shader](Assets/Shaders/caves/CaveTriplanar.shader), [StylizedTerrain.shader](Assets/Shaders/StylizedTerrain.shader). Both add `lit += SampleFlashlight(posWS, N, wrap);` on top of URP's normal additional-lights loop.
 
@@ -20,9 +20,13 @@ Consumers: [CaveTriplanar.shader](Assets/Shaders/caves/CaveTriplanar.shader), [S
 
 **"Cone shape too obvious / too narrow"** → widen `Spot Angle` / `Inner Spot Angle` on the Light component. Cookie texture is intentionally off — re-enabling it brings back the projected shape.
 
-**"Can't see the beam in the air"** → raise `_Intensity` on [FlashlightBeam.mat](Assets/Materials/FlashlightBeam.mat). Or `beamLengthScale` / `beamWidthScale` on the script (requires play-mode restart — mesh is baked in `Awake()`).
+**"Can't see the beam in the air"** → raise `_Intensity` on [FlashlightBeam.mat](Assets/Materials/FlashlightBeam.mat). The cone mesh is just a bounding volume — brightness is computed analytically. If the mesh isn't big enough, the visible beam will get clipped: raise `beamLengthScale` / `beamWidthScale` on the script (requires play-mode restart).
 
-**"Too smoky / too bright"** → `_EdgeFalloff` on the beam material. Higher = thinner edge glow.
+**"Beam looks too solid / too thin"** → `_RadialDensity` on the beam material. Lower = wider/softer halo, higher = thin laser-like core.
+
+**"Beam falls off too fast along its length"** → `_AxialFalloff` on the beam material. Lower = carries further.
+
+**"Beam clips into walls weirdly"** → `_SoftIntersect` on the beam material. Higher = smoother fade where the beam meets surfaces.
 
 ## Adding flashlight response to a new shader
 

@@ -208,7 +208,7 @@ Light:
   m_Type: 0
   m_Shape: 0
   m_Color: {r: 1, g: 0.96, b: 0.85, a: 1}
-  m_Intensity: 12
+  m_Intensity: 20
   m_Range: 350
   m_SpotAngle: 75
   m_InnerSpotAngle: 30
@@ -272,7 +272,7 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   toggleKey: 26
-  longThrowIntensity: 3.5
+  longThrowIntensity: 7
   longThrowFalloff: 0.012
   longThrowRangeFadeStart: 0.85
   beamMaterial: {fileID: 2100000, guid: 512d8bde4f2554940b273cbad29fa6b4, type: 2}

@@ -72,11 +72,25 @@ public class CaveSdfField : ICaveDensityField
             roughness = (n + n2) / 1.5f * _settings.floorRoughness;
         }
 
-        // Rooms (spheres)
+        // Rooms (spheres, with optional cathedral ceiling lift)
         for (int i = 0; i < _graph.Rooms.Count; i++)
         {
             var r = _graph.Rooms[i];
-            float s = SdfPrimitives.Sphere(p, r.Center, r.Radius);
+
+            float s;
+            if (r.CeilingLift > 0.01f)
+            {
+                // Cathedral chamber: vertical capsule giving the upper hemisphere extra height.
+                // Bottom anchor = sphere centre (so the floor stays where it was),
+                // top    anchor = centre + up * (radius + lift).
+                Vector3 top = r.Center + Vector3.up * (r.Radius + r.CeilingLift);
+                s = SdfPrimitives.Capsule(p, r.Center, top, r.Radius);
+            }
+            else
+            {
+                s = SdfPrimitives.Sphere(p, r.Center, r.Radius);
+            }
+
             if (_settings.flattenFloors)
             {
                 s = SdfPrimitives.ApplyFloorFlatten(
@@ -89,15 +103,43 @@ public class CaveSdfField : ICaveDensityField
             d = SdfPrimitives.SmoothMin(d, s, k);
         }
 
-        // Corridors (capsules)
+        // Corridors (capsules; Slot = vertically-stretched, Shaft = vertical capsule, skip floor flattening)
         for (int i = 0; i < _graph.Corridors.Count; i++)
         {
             var c = _graph.Corridors[i];
             Vector3 a = _graph.Rooms[c.FromRoomId].Center;
             Vector3 b = _graph.Rooms[c.ToRoomId].Center;
-            float s = SdfPrimitives.Capsule(p, a, b, c.Radius);
 
-            if (_settings.flattenFloors)
+            float s;
+            bool applyFloorFlatten = _settings.flattenFloors;
+
+            if (c.Kind == CorridorKind.Slot && c.HeightStretch > 1.01f)
+            {
+                // Slot canyon: stretch vertically by scaling Y around the segment line. Cheap
+                // approximation: sample the capsule SDF on a Y-compressed point so the implicit
+                // shape becomes a vertical ellipsoidal sweep.
+                Vector3 pStretched = p;
+                float midY = (a.y + b.y) * 0.5f;
+                pStretched.y = midY + (p.y - midY) / Mathf.Max(1f, c.HeightStretch);
+                s = SdfPrimitives.Capsule(pStretched, a, b, c.Radius);
+            }
+            else if (c.Kind == CorridorKind.Shaft)
+            {
+                // Vertical shaft: keep the XZ position of the upper room, run a vertical capsule
+                // down to the lower room's height. The slope clamp is bypassed because the
+                // graph-gen tagged this as a shaft.
+                Vector3 upper = a.y > b.y ? a : b;
+                Vector3 lower = a.y > b.y ? b : a;
+                Vector3 shaftBottom = new Vector3(upper.x, lower.y, upper.z);
+                s = SdfPrimitives.Capsule(p, upper, shaftBottom, c.Radius);
+                applyFloorFlatten = false;  // a flat plane inside a shaft would block the drop
+            }
+            else
+            {
+                s = SdfPrimitives.Capsule(p, a, b, c.Radius);
+            }
+
+            if (applyFloorFlatten)
             {
                 // Anchor the floor reference on the line a→b parametrised by horizontal position
                 // of p. That way the corridor's floor plane *follows the corridor's slope* — a
@@ -131,7 +173,8 @@ public class CaveSdfField : ICaveDensityField
             float falloff = 1f - Mathf.Clamp01(Mathf.Abs(d) / Mathf.Max(0.01f, falloffRadius));
             if (falloff > 0f)
             {
-                float n = NoiseDistortion.Fbm(p, _settings.noiseFrequency, _settings.seed);
+                float n = NoiseDistortion.SampleByType(
+                    _settings.noiseType, p, _settings.noiseFrequency, _settings.seed, _settings.domainWarpStrength);
                 d += n * _settings.noiseAmplitude * falloff;
             }
         }

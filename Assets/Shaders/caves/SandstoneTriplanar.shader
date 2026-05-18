@@ -41,6 +41,11 @@ Shader "SpaceGame/SandstoneTriplanar"
         _Smoothness ("Smoothness", Range(0, 1)) = 0
         _Metallic ("Metallic", Range(0, 1)) = 0
 
+        [Header(Procedural Normal Detail)]
+        _BumpStrength ("Bump Strength (0 = off)", Range(0, 2)) = 0.6
+        _BumpScale ("Bump Scale (smaller = bigger lumps)", Range(0.1, 5)) = 1.0
+        _BumpDetailMix ("Bump High-Freq Detail Mix", Range(0, 1)) = 0.85
+
         [Header(Lighting)]
         _AmbientBoost ("Ambient Boost (cave fill light)", Range(0, 1)) = 0.02
         _LightWrap    ("Light Wrap", Range(0, 1)) = 0.0
@@ -84,6 +89,7 @@ Shader "SpaceGame/SandstoneTriplanar"
                 float  _AccentBlobScale, _AccentBlobThreshold, _AccentBlobEdgeSoftness, _AccentBlobStrength;
                 float  _InnerBlobScale, _InnerBlobStrength;
                 float  _Smoothness, _Metallic;
+                float  _BumpStrength, _BumpScale, _BumpDetailMix;
                 float  _AmbientBoost, _LightWrap, _SkyAmbientStrength;
             CBUFFER_END
 
@@ -114,6 +120,11 @@ Shader "SpaceGame/SandstoneTriplanar"
                 return v;
             }
 
+            // Procedural normal-perturbation — reuses fbm above so bumps match the sand patches'
+            // visual personality. Applied at the top of frag().
+            #define CAVE_BUMP_FBM(p) fbm(p)
+            #include "CaveBump.hlsl"
+
             // Pick a sand color from the 3-color palette using two noise fields as coords.
             float3 sandTapestry(float3 worldP)
             {
@@ -139,6 +150,9 @@ Shader "SpaceGame/SandstoneTriplanar"
             half4 frag(Varyings IN) : SV_Target
             {
                 float3 N = normalize(IN.normalWS);
+                // Procedural micro-bump derived from the same fbm field that drives the patches —
+                // makes the sandstone look textured under direct light without needing textures.
+                N = ApplyCaveBump(IN.positionWS, N, _BumpStrength, _BumpScale, _BumpDetailMix);
 
                 // Triplanar dark-brown rock base
                 float3 absN = pow(abs(N), _BlendSharpness);

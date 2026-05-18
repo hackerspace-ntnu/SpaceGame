@@ -134,6 +134,16 @@ public static class CaveGraphGenerator
         // stepping-stone rooms as needed). This is what makes the cave traversable end-to-end.
         EnsureConnectivity(graph, existingEdges, s, rng);
 
+        // Pass d — optional vertical-shaft corridors between vertically-stacked rooms.
+        // Shafts skip the slope clamp, so they unlock connections that the normal corridor
+        // pass refused. Only added when the profile opts in.
+        if (s.enableVerticalShafts)
+            AddVerticalShafts(graph, existingEdges, s, rng);
+
+        // Pass e — upgrade some Tight corridors to slot canyons.
+        if (s.enableSlotCanyons && s.slotCanyonHeightStretch > 1.01f)
+            ApplySlotCanyonUpgrades(graph, s, rng);
+
         // -------------------------------------------------------------------------
         // 3) Tag rooms based on size + connectivity
         // -------------------------------------------------------------------------
@@ -153,10 +163,74 @@ public static class CaveGraphGenerator
             else if (degree[i] >= 4) r.Kind = RoomKind.Junction;
             else if (r.Radius >= bigCutoff) r.Kind = RoomKind.BigChamber;
             else r.Kind = RoomKind.Normal;
+
+            // Cathedral lift: BigChambers get their ceilings stretched upward when the toggle is on.
+            // We only apply this here (after kind tagging) so cathedrals = "extra-tall BigChambers."
+            if (s.enableCathedralChambers && r.Kind == RoomKind.BigChamber && s.cathedralCeilingLift > 0.01f)
+            {
+                // Per-room variation so they aren't all identical height.
+                float jitter = 0.6f + (float)rng.NextDouble() * 0.4f; // 60–100% of the configured lift
+                r.CeilingLift = s.cathedralCeilingLift * jitter;
+            }
+
             graph.Rooms[i] = r;
         }
 
         return graph;
+    }
+
+    // -------------------------------------------------------------------------
+    // Shape modifier passes
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// For every pair of rooms whose vertical separation exceeds verticalShaftMinDrop AND whose
+    /// horizontal distance is small (so they'd be roughly stacked), roll a chance to add a Shaft
+    /// corridor. Shafts skip the slope clamp because they drop straight down.
+    /// </summary>
+    static void AddVerticalShafts(CaveGraph g, HashSet<long> edges, CaveGenerationSettings s, System.Random rng)
+    {
+        int n = g.Rooms.Count;
+        for (int i = 0; i < n; i++)
+        for (int j = i + 1; j < n; j++)
+        {
+            Vector3 d = g.Rooms[j].Center - g.Rooms[i].Center;
+            float horiz = new Vector2(d.x, d.z).magnitude;
+            float dy = Mathf.Abs(d.y);
+            if (dy < s.verticalShaftMinDrop) continue;
+            // "Stacked-ish": horizontal offset shouldn't exceed half the vertical drop.
+            if (horiz > dy * 0.5f) continue;
+            if (edges.Contains(EdgeKey(i, j))) continue;
+            if (rng.NextDouble() > s.verticalShaftChance) continue;
+
+            g.Corridors.Add(new CaveCorridor
+            {
+                FromRoomId = i,
+                ToRoomId   = j,
+                Radius     = s.verticalShaftRadius,
+                Kind       = CorridorKind.Shaft,
+            });
+            edges.Add(EdgeKey(i, j));
+        }
+    }
+
+    /// <summary>
+    /// Re-roll a fraction of existing Tight corridors as Slot canyons (very narrow horizontal,
+    /// vertically stretched). Implemented by mutating the corridor in-place rather than adding
+    /// new edges — slot canyons replace what would otherwise be a tight passage.
+    /// </summary>
+    static void ApplySlotCanyonUpgrades(CaveGraph g, CaveGenerationSettings s, System.Random rng)
+    {
+        for (int i = 0; i < g.Corridors.Count; i++)
+        {
+            var c = g.Corridors[i];
+            if (c.Kind != CorridorKind.Tight) continue;
+            if (rng.NextDouble() > s.slotCanyonChance) continue;
+            c.Kind = CorridorKind.Slot;
+            c.Radius *= 0.7f; // narrower horizontally
+            c.HeightStretch = s.slotCanyonHeightStretch;
+            g.Corridors[i] = c;
+        }
     }
 
     // -------------------------------------------------------------------------

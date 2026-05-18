@@ -63,6 +63,11 @@ Shader "SpaceGame/CaveTriplanar"
         _Smoothness ("Smoothness", Range(0, 1)) = 0
         _Metallic ("Metallic", Range(0, 1)) = 0
 
+        [Header(Procedural Normal Detail)]
+        _BumpStrength ("Bump Strength (0 = off)", Range(0, 2)) = 0.7
+        _BumpScale ("Bump Scale (smaller = bigger lumps)", Range(0.1, 5)) = 0.8
+        _BumpDetailMix ("Bump High-Freq Detail Mix", Range(0, 1)) = 0.8
+
         [Header(Lighting)]
         _AmbientBoost ("Ambient Boost (cave fill light)", Range(0, 1)) = 0.02
         _LightWrap    ("Light Wrap", Range(0, 1)) = 0.0
@@ -93,6 +98,7 @@ Shader "SpaceGame/CaveTriplanar"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "../Flashlight.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _ColorX, _ColorY, _ColorZ;
@@ -111,6 +117,7 @@ Shader "SpaceGame/CaveTriplanar"
                 float  _GlowingPatchFraction, _GlowingSpecFraction, _GlowingDotFraction, _GlowIntensity;
                 float  _PulseSpeed, _PulseAmount;
                 float  _Smoothness, _Metallic;
+                float  _BumpStrength, _BumpScale, _BumpDetailMix;
                 float  _AmbientBoost, _LightWrap, _SkyAmbientStrength;
             CBUFFER_END
 
@@ -142,6 +149,12 @@ Shader "SpaceGame/CaveTriplanar"
                 for (int i = 0; i < 4; i++) { v += a * vnoise(p); p *= 2.03; a *= 0.5; }
                 return v;
             }
+
+            // Procedural normal-perturbation — reuses the fbm above so the bump field is
+            // visually consistent with the colour patches. Sampled in frag() right after we
+            // normalise the interpolated vertex normal.
+            #define CAVE_BUMP_FBM(p) fbm(p)
+            #include "CaveBump.hlsl"
 
             // ---- Filament/spec layer ----
             // Generates structural fungus-like threads with varying density: distorted Worley
@@ -268,6 +281,10 @@ Shader "SpaceGame/CaveTriplanar"
             half4 frag(Varyings IN) : SV_Target
             {
                 float3 N = normalize(IN.normalWS);
+                // Inject procedural micro-bump *before* the triplanar weights are computed so
+                // the colour blending also follows the perturbed normal — this is what makes
+                // lit surfaces look like rock rather than a smoothly shaded blob.
+                N = ApplyCaveBump(IN.positionWS, N, _BumpStrength, _BumpScale, _BumpDetailMix);
 
                 // Triplanar rock base
                 float3 absN = pow(abs(N), _BlendSharpness);
@@ -440,6 +457,10 @@ Shader "SpaceGame/CaveTriplanar"
                     lit += addLight.color * addNdotL * addLight.distanceAttenuation * addLight.shadowAttenuation;
                 LIGHT_LOOP_END
             #endif
+
+                // Long-throw flashlight contribution — flatter falloff than URP's standard
+                // additional-light attenuation so distant cave walls still read.
+                lit += SampleFlashlight(IN.positionWS, N, wrap);
 
                 float3 ambient = SampleSH(N) * _SkyAmbientStrength + _AmbientBoost.xxx;
 

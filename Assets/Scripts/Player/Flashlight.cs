@@ -6,15 +6,31 @@ public class Flashlight : MonoBehaviour
 {
     [SerializeField] private Key toggleKey = Key.L;
 
+    [Header("Long-Throw (custom shader contribution)")]
+    [Tooltip("Extra intensity added on top of URP's spot light, with a flatter falloff so distant surfaces still read.")]
+    [SerializeField] private float longThrowIntensity = 6f;
+    [Tooltip("Lower = slower falloff (carries further). Inverse-linear factor: attenuation = 1 / (1 + k*d).")]
+    [SerializeField] private float longThrowFalloff = 0.012f;
+    [Tooltip("Where the soft range cutoff begins as a fraction of the light range (0..1).")]
+    [SerializeField, Range(0.5f, 1.0f)] private float longThrowRangeFadeStart = 0.85f;
+
     [Header("Volumetric Beam")]
     [SerializeField] private Material beamMaterial;
-    [SerializeField] private int beamSegments = 32;
-    [SerializeField] private float beamLengthScale = 0.9f;
-    [SerializeField] private float beamWidthScale = 1.0f;
+    [SerializeField] private int beamSegments = 48;
+    [Tooltip("Visible beam length as a fraction of Light.range.")]
+    [SerializeField, Range(0.01f, 1.0f)] private float beamLengthScale = 0.35f;
+    [Tooltip("Multiplier on the cone's radius. >1 makes the visible cone wider than the light's spot angle.")]
+    [SerializeField, Range(0.5f, 3.0f)] private float beamWidthScale = 1.3f;
 
     private Light flashlight;
     private GameObject beamGO;
     private MeshRenderer beamRenderer;
+
+    private static readonly int IdPos       = Shader.PropertyToID("_FlashlightPos");
+    private static readonly int IdDir       = Shader.PropertyToID("_FlashlightDir");
+    private static readonly int IdColor     = Shader.PropertyToID("_FlashlightColor");
+    private static readonly int IdParams    = Shader.PropertyToID("_FlashlightParams");   // x=cosOuter, y=cosInner, z=range, w=enabled
+    private static readonly int IdFalloff   = Shader.PropertyToID("_FlashlightFalloff");  // x=k, y=rangeFadeStart
 
     private void Awake()
     {
@@ -31,6 +47,23 @@ public class Flashlight : MonoBehaviour
         {
             SetEnabled(!flashlight.enabled);
         }
+
+        PushShaderGlobals();
+    }
+
+    private void PushShaderGlobals()
+    {
+        bool on = flashlight.enabled;
+        // Outer is full spot angle; inner is Unity's InnerSpotAngle. Both in degrees, converted to cosines.
+        float cosOuter = Mathf.Cos(flashlight.spotAngle * 0.5f * Mathf.Deg2Rad);
+        float cosInner = Mathf.Cos(flashlight.innerSpotAngle * 0.5f * Mathf.Deg2Rad);
+
+        Shader.SetGlobalVector(IdPos, transform.position);
+        Shader.SetGlobalVector(IdDir, transform.forward);
+        Color c = flashlight.color * (on ? longThrowIntensity : 0f);
+        Shader.SetGlobalVector(IdColor, new Vector4(c.r, c.g, c.b, 1f));
+        Shader.SetGlobalVector(IdParams, new Vector4(cosOuter, cosInner, flashlight.range, on ? 1f : 0f));
+        Shader.SetGlobalVector(IdFalloff, new Vector4(longThrowFalloff, longThrowRangeFadeStart, 0f, 0f));
     }
 
     private void SetEnabled(bool on)
@@ -70,7 +103,6 @@ public class Flashlight : MonoBehaviour
         var uvs = new Vector2[segments + 2];
         var normals = new Vector3[segments + 2];
 
-        // tip at origin
         verts[0] = Vector3.zero;
         uvs[0] = new Vector2(0.5f, 0f);
         normals[0] = Vector3.up;
@@ -83,7 +115,6 @@ public class Flashlight : MonoBehaviour
             float s = Mathf.Sin(ang);
             verts[i + 1] = new Vector3(c * radius, length, s * radius);
             uvs[i + 1] = new Vector2(t, 1f);
-            // approximate side normal: slope normal of cone wall
             Vector3 radialDir = new Vector3(c, 0f, s);
             Vector3 sideNormal = (radialDir * length + Vector3.up * radius).normalized;
             normals[i + 1] = sideNormal;
@@ -112,5 +143,7 @@ public class Flashlight : MonoBehaviour
     private void OnDestroy()
     {
         if (beamGO != null) Destroy(beamGO);
+        // Make sure shaders don't keep lighting from a destroyed flashlight.
+        Shader.SetGlobalVector(IdParams, new Vector4(1f, 1f, 1f, 0f));
     }
 }

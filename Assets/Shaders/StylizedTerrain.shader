@@ -70,6 +70,7 @@ Shader "SpaceGame/StylizedTerrain"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
+            #include "Flashlight.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _ColorValley;
@@ -213,6 +214,10 @@ Shader "SpaceGame/StylizedTerrain"
                     lit += addLight.color * addNdotL * addLight.distanceAttenuation * addLight.shadowAttenuation;
                 LIGHT_LOOP_END
             #endif
+
+                // Long-throw flashlight contribution — flatter falloff than URP's
+                // additional-light attenuation so distant terrain still reads.
+                lit += SampleFlashlight(IN.positionWS, N, wrap);
 
                 // SH ambient (sky-tinted) + small flat boost so shadow side reads color.
                 float3 ambient = SampleSH(N) + _AmbientBoost.xxx;

@@ -1,9 +1,11 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Bundle returned by <see cref="CaveGenerator.Generate"/>. Holds everything a caller needs
-/// to instantiate the cave: the high-level graph (for spawning lights / loot / encounters),
-/// the underlying density field (for further carving / debug gizmos), and the extracted mesh.
+/// Bundle returned by <see cref="CaveGenerator.Generate"/>. Holds the high-level graph,
+/// the underlying density field, the extracted mesh, and any detected liquid pools.
+/// Scene-level instantiation (decoration scatter, light placement, NavMesh bake) is the
+/// <see cref="CaveSpawner"/>'s job — this object is pure data.
 /// </summary>
 public class CaveGenerationResult
 {
@@ -12,4 +14,7 @@ public class CaveGenerationResult
     public Mesh Mesh;
     public Bounds Bounds;
     public int Seed;
+
+    /// <summary>Detected liquid pools (may be empty if liquid was disabled or none were large enough).</summary>
+    public List<LiquidPool> LiquidPools = new List<LiquidPool>();
 }

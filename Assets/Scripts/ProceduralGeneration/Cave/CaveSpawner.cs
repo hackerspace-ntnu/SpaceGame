@@ -3,18 +3,34 @@ using UnityEngine;
 using UnityEngine.AI;
 
 /// <summary>
-/// Scene-level driver for the cave system. Two modes:
+/// Scene-level driver for the cave system.
 ///
-///   • Live generation (designer iteration) — calls <see cref="CaveGenerator"/> at runtime, instantiates
-///     the mesh as a child, and (optionally) bakes a NavMesh on the spot. Slow on transition.
-///   • Baked assets (shipping) — assign <see cref="bakedMesh"/> + <see cref="bakedNavMeshData"/> in the
-///     inspector. At runtime we just spawn the mesh and attach the prebuilt navmesh. No generation,
-///     no bake. Use the Editor "Bake &amp; Save" button on the inspector to produce these assets.
+/// Two source modes:
+///   • <see cref="profile"/> assigned  — full profile-driven pipeline (shape + decoration + liquid +
+///     material). Recommended. Different profile = totally different-feeling cave.
+///   • <see cref="profile"/> null      — legacy inline-<see cref="legacyShapeSettings"/> path. Generates
+///     a shape-only cave with the previously-existing cluster lights. Keeps scenes baked under the
+///     old workflow working.
+///
+/// Two runtime modes (orthogonal to the source):
+///   • Live generation (designer iteration) — calls <see cref="CaveGenerator"/> at runtime,
+///     instantiates the mesh as a child, runs decoration + liquid passes, optionally bakes a NavMesh
+///     on the spot. Slow on scene transition.
+///   • Baked assets (shipping) — assign <see cref="bakedMesh"/> + <see cref="bakedNavMeshData"/> in
+///     the inspector. At runtime we just spawn the mesh and attach the prebuilt navmesh. Use the
+///     editor "Bake &amp; Save" button to produce these. Decoration + liquid still run live (they
+///     depend on the profile and are cheap).
 /// </summary>
 [DisallowMultipleComponent]
 public class CaveSpawner : MonoBehaviour
 {
-    [SerializeField] private CaveGenerationSettings settings = new CaveGenerationSettings();
+    [Header("Profile (recommended)")]
+    [Tooltip("CaveProfile ScriptableObject. Defines shape, decoration rules, liquid, material/shader.")]
+    [SerializeField] private CaveProfile profile;
+
+    [Header("Legacy inline shape (used when no profile is assigned)")]
+    [Tooltip("Only consulted when 'profile' above is null. Existing inline-config workflow.")]
+    [SerializeField] private CaveGenerationSettings legacyShapeSettings = new CaveGenerationSettings();
 
     [Header("Baked assets (preferred at runtime)")]
     [Tooltip("Pre-baked cave mesh. If set, runtime uses this instead of generating a new cave. Produce via the inspector 'Bake & Save' button.")]
@@ -22,23 +38,6 @@ public class CaveSpawner : MonoBehaviour
 
     [Tooltip("Pre-baked NavMeshData matching bakedMesh. If set, attached instead of running a fresh bake.")]
     [SerializeField] private NavMeshData bakedNavMeshData;
-
-    [Header("Visuals")]
-    [Tooltip("Optional material applied to the generated mesh. Falls back to URP-lit default if null.")]
-    [SerializeField] private Material caveMaterial;
-
-    [Header("Cluster lights")]
-    [Tooltip("Number of point lights placed at random spots along the cave walls. The shader handles the visible algae specs; these lights add real illumination so nearby surfaces glow.")]
-    [SerializeField] private int clusterLightCount = 20;
-    [Tooltip("Color of each cluster light.")]
-    [SerializeField] private Color clusterLightColor = new Color(0.35f, 0.75f, 1.0f, 1f);
-    [Tooltip("Intensity of each cluster light.")]
-    [SerializeField] private float clusterLightIntensity = 1.2f;
-    [Tooltip("Range of each cluster light in world units.")]
-    [SerializeField] private float clusterLightRange = 5f;
-    [Tooltip("Hit normals where |normal.y| exceeds this are treated as floor/ceiling and skipped (kept on walls only).")]
-    [Range(0f, 1f)]
-    [SerializeField] private float clusterLightMaxNormalY = 0.7f;
 
     [Header("Lifecycle")]
     [SerializeField] private bool generateOnStart = true;
@@ -52,9 +51,14 @@ public class CaveSpawner : MonoBehaviour
     GameObject _caveRoot;
     CaveGenerationResult _last;
     NavMeshDataInstance _navMeshInstance;
+    bool _fogOverrideActive;
+    bool _fogPrevEnabled;
+    Color _fogPrevColor;
+    float _fogPrevDensity;
 
     public CaveGenerationResult LastResult => _last;
-    public CaveGenerationSettings Settings => settings;
+    public CaveProfile Profile => profile;
+    public CaveGenerationSettings ActiveShapeSettings => profile != null ? profile.shape : legacyShapeSettings;
     public bool HasBakedAssets => bakedMesh != null && bakedNavMeshData != null;
 
     void Start()
@@ -67,63 +71,79 @@ public class CaveSpawner : MonoBehaviour
     void OnDestroy()
     {
         if (_navMeshInstance.valid) _navMeshInstance.Remove();
+        RestoreFog();
     }
 
     /// <summary>
-    /// Runtime path for shipping: instantiate the prebaked mesh and attach the prebaked navmesh.
-    /// O(milliseconds) regardless of cave size.
+    /// Runtime path for shipping: instantiate the prebaked mesh, attach the prebaked navmesh, and
+    /// still run the cheap decoration / liquid / material passes from the profile.
+    /// O(milliseconds) for mesh+navmesh; decoration cost scales with mesh size and rule density.
     /// </summary>
     public void SpawnBaked()
     {
         ClearPrevious();
+        ApplyFogOverride();
 
         _caveRoot = new GameObject("CaveMesh_baked");
         _caveRoot.transform.SetParent(transform, worldPositionStays: false);
+        int layer = ResolveCaveLayer();
+        if (layer >= 0) _caveRoot.layer = layer;
 
         var mf = _caveRoot.AddComponent<MeshFilter>();
         mf.sharedMesh = bakedMesh;
 
         var mr = _caveRoot.AddComponent<MeshRenderer>();
-        mr.sharedMaterial = caveMaterial != null ? caveMaterial : DefaultCaveMaterial();
+        mr.sharedMaterial = ResolvePrimaryMaterial();
 
         var mc = _caveRoot.AddComponent<MeshCollider>();
         mc.sharedMesh = bakedMesh;
 
         _navMeshInstance = NavMesh.AddNavMeshData(bakedNavMeshData);
 
-        ScatterWallDecor(mc);
+        // Baked-mode pipeline still benefits from the profile's runtime passes — they're cheap.
+        // We can't run liquid pool detection without a density field; baked path skips it.
+        SpawnClusterLights(mc);
+        RunDecorationPass(bakedMesh, _caveRoot.transform, null, layer);
     }
 
     [ContextMenu("Generate Now")]
     public void GenerateNow()
     {
-        if (randomSeedOnStart) settings.seed = Random.Range(int.MinValue, int.MaxValue);
+        var shape = ActiveShapeSettings;
+        if (randomSeedOnStart) shape.seed = Random.Range(int.MinValue, int.MaxValue);
 
         ClearPrevious();
+        ApplyFogOverride();
 
         float t0 = Time.realtimeSinceStartup;
-        _last = CaveGenerator.Generate(settings);
+        _last = profile != null ? CaveGenerator.Generate(profile) : CaveGenerator.Generate(shape);
         float genMs = (Time.realtimeSinceStartup - t0) * 1000f;
 
         _caveRoot = new GameObject($"CaveMesh_seed{_last.Seed}");
         _caveRoot.transform.SetParent(transform, worldPositionStays: false);
+        int layer = ResolveCaveLayer();
+        if (layer >= 0) _caveRoot.layer = layer;
 
         var mf = _caveRoot.AddComponent<MeshFilter>();
         mf.sharedMesh = _last.Mesh;
 
         var mr = _caveRoot.AddComponent<MeshRenderer>();
-        mr.sharedMaterial = caveMaterial != null ? caveMaterial : DefaultCaveMaterial();
+        mr.sharedMaterial = ResolvePrimaryMaterial();
 
         var mc = _caveRoot.AddComponent<MeshCollider>();
         mc.sharedMesh = _last.Mesh;
 
-        if (settings.bakeNavMeshOnGenerate) BakeNavMeshLive();
+        if (shape.bakeNavMeshOnGenerate) BakeNavMeshLive();
 
-        ScatterWallDecor(mc);
+        // Order: liquid first (so vegetation rules can sense waterlines), then decoration, then lights.
+        SpawnLiquidPools(layer);
+        int decorPlaced = RunDecorationPass(_last.Mesh, _caveRoot.transform, _last.LiquidPools, layer);
+        SpawnClusterLights(mc);
 
         Debug.Log($"[CaveSpawner] generated cave: {_last.Graph.Rooms.Count} rooms, " +
                   $"{_last.Graph.Corridors.Count} corridors, " +
-                  $"{_last.Mesh.vertexCount} verts, {_last.Mesh.triangles.Length / 3} tris " +
+                  $"{_last.Mesh.vertexCount} verts, {_last.Mesh.triangles.Length / 3} tris, " +
+                  $"{_last.LiquidPools.Count} pools, {decorPlaced} decor instances " +
                   $"in {genMs:F0} ms (seed {_last.Seed}).");
     }
 
@@ -136,16 +156,18 @@ public class CaveSpawner : MonoBehaviour
         mesh = null;
         navMeshData = null;
 
+        var shape = ActiveShapeSettings;
+
         ClearPrevious();
 
-        _last = CaveGenerator.Generate(settings);
+        _last = profile != null ? CaveGenerator.Generate(profile) : CaveGenerator.Generate(shape);
         if (_last == null || _last.Mesh == null) return false;
 
         _caveRoot = new GameObject($"CaveMesh_seed{_last.Seed}");
         _caveRoot.transform.SetParent(transform, worldPositionStays: false);
         _caveRoot.AddComponent<MeshFilter>().sharedMesh = _last.Mesh;
         var mr = _caveRoot.AddComponent<MeshRenderer>();
-        mr.sharedMaterial = caveMaterial != null ? caveMaterial : DefaultCaveMaterial();
+        mr.sharedMaterial = ResolvePrimaryMaterial();
         _caveRoot.AddComponent<MeshCollider>().sharedMesh = _last.Mesh;
 
         var surface = GetComponent<NavMeshSurface>();
@@ -163,6 +185,90 @@ public class CaveSpawner : MonoBehaviour
     {
         bakedMesh = mesh;
         bakedNavMeshData = data;
+    }
+
+    // -------------------------------------------------------------------------
+    // Sub-passes
+    // -------------------------------------------------------------------------
+
+    int RunDecorationPass(Mesh mesh, Transform root, System.Collections.Generic.List<LiquidPool> pools, int layer)
+    {
+        if (profile == null || profile.decoration == null || !profile.decoration.enabled) return 0;
+        int seed = _last != null ? _last.Seed : ActiveShapeSettings.seed;
+        return DecorationScatterer.Scatter(profile.decoration, new DecorationScatterer.ScatterContext
+        {
+            Mesh = mesh,
+            Parent = root,
+            Graph = _last?.Graph,
+            LiquidPools = pools,
+            Seed = seed,
+            CaveLayer = layer,
+        });
+    }
+
+    void SpawnLiquidPools(int layer)
+    {
+        if (profile == null || profile.liquid == null || !profile.liquid.enabled) return;
+        if (_last == null || _last.LiquidPools == null || _last.LiquidPools.Count == 0) return;
+        LiquidPoolSpawner.Spawn(_last.LiquidPools, profile.liquid, _caveRoot.transform, layer);
+    }
+
+    void SpawnClusterLights(MeshCollider caveCollider)
+    {
+        var mat = profile != null ? profile.material : null;
+        int count = mat != null ? mat.clusterLightCount : 0;
+        if (count <= 0 || caveCollider == null) return;
+        var mesh = caveCollider.sharedMesh;
+        if (mesh == null) return;
+
+        var verts = mesh.vertices;
+        var tris  = mesh.triangles;
+        var normals = mesh.normals;
+        if (tris.Length == 0) return;
+
+        int triCount = tris.Length / 3;
+        var rng = new System.Random(_last != null ? _last.Seed : ActiveShapeSettings.seed);
+        var caveTransform = _caveRoot.transform;
+        Vector3 worldCenter = caveCollider.bounds.center;
+
+        var wallTris = new System.Collections.Generic.List<(Vector3 center, Vector3 inwardNormal)>();
+        for (int t = 0; t < triCount; t++)
+        {
+            int i0 = tris[t * 3 + 0], i1 = tris[t * 3 + 1], i2 = tris[t * 3 + 2];
+            Vector3 localCenter = (verts[i0] + verts[i1] + verts[i2]) / 3f;
+            Vector3 localNormal = normals != null && normals.Length == verts.Length
+                ? (normals[i0] + normals[i1] + normals[i2]).normalized
+                : Vector3.Cross(verts[i1] - verts[i0], verts[i2] - verts[i0]).normalized;
+            Vector3 worldPos = caveTransform.TransformPoint(localCenter);
+            Vector3 worldNormal = caveTransform.TransformDirection(localNormal).normalized;
+            Vector3 toCenter = (worldCenter - worldPos).normalized;
+            Vector3 inward = Vector3.Dot(worldNormal, toCenter) > 0f ? worldNormal : -worldNormal;
+            if (Mathf.Abs(inward.y) <= mat.clusterLightMaxNormalY)
+                wallTris.Add((worldPos, inward));
+        }
+        if (wallTris.Count == 0) return;
+
+        var lightsRoot = new GameObject("ClusterLights");
+        lightsRoot.transform.SetParent(caveTransform, worldPositionStays: false);
+        int interiorLayer = ResolveCaveLayer();
+
+        for (int i = 0; i < count; i++)
+        {
+            var pick = wallTris[rng.Next(wallTris.Count)];
+            Vector3 lightPos = pick.center + pick.inwardNormal * 0.4f;
+
+            var lightGo = new GameObject($"ClusterLight_{i}");
+            lightGo.transform.SetParent(lightsRoot.transform, worldPositionStays: true);
+            lightGo.transform.position = lightPos;
+            if (interiorLayer >= 0) lightGo.layer = interiorLayer;
+
+            var light = lightGo.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = mat.clusterLightColor;
+            light.intensity = mat.clusterLightIntensity;
+            light.range = mat.clusterLightRange;
+            light.shadows = LightShadows.None;
+        }
     }
 
     void BakeNavMeshLive()
@@ -190,68 +296,15 @@ public class CaveSpawner : MonoBehaviour
         if (surface != null && surface.navMeshData != null) surface.RemoveData();
     }
 
-    void ScatterWallDecor(MeshCollider caveCollider)
+    // -------------------------------------------------------------------------
+    // Material / layer / fog helpers
+    // -------------------------------------------------------------------------
+
+    Material ResolvePrimaryMaterial()
     {
-        if (clusterLightCount <= 0 || caveCollider == null) return;
-        var mesh = caveCollider.sharedMesh;
-        if (mesh == null) return;
-
-        var verts = mesh.vertices;
-        var tris  = mesh.triangles;
-        var normals = mesh.normals;
-        if (tris.Length == 0) return;
-
-        int triCount = tris.Length / 3;
-        var rng = new System.Random(_last != null ? _last.Seed : settings.seed);
-        var caveTransform = _caveRoot.transform;
-        Vector3 worldCenter = caveCollider.bounds.center;
-
-        // Collect wall triangles (skip floor/ceiling)
-        var wallTris = new System.Collections.Generic.List<(Vector3 center, Vector3 inwardNormal)>();
-        for (int t = 0; t < triCount; t++)
-        {
-            int i0 = tris[t * 3 + 0], i1 = tris[t * 3 + 1], i2 = tris[t * 3 + 2];
-            Vector3 localCenter = (verts[i0] + verts[i1] + verts[i2]) / 3f;
-            Vector3 localNormal = normals != null && normals.Length == verts.Length
-                ? (normals[i0] + normals[i1] + normals[i2]).normalized
-                : Vector3.Cross(verts[i1] - verts[i0], verts[i2] - verts[i0]).normalized;
-            Vector3 worldPos = caveTransform.TransformPoint(localCenter);
-            Vector3 worldNormal = caveTransform.TransformDirection(localNormal).normalized;
-            Vector3 toCenter = (worldCenter - worldPos).normalized;
-            Vector3 inward = Vector3.Dot(worldNormal, toCenter) > 0f ? worldNormal : -worldNormal;
-            if (Mathf.Abs(inward.y) <= clusterLightMaxNormalY)
-                wallTris.Add((worldPos, inward));
-        }
-        if (wallTris.Count == 0) return;
-
-        var lightsRoot = new GameObject("AlgaeLights");
-        lightsRoot.transform.SetParent(caveTransform, worldPositionStays: false);
-        int interiorLayer = LayerMask.NameToLayer("Interior");
-
-        int placed = 0;
-        for (int i = 0; i < clusterLightCount; i++)
-        {
-            var pick = wallTris[rng.Next(wallTris.Count)];
-            // Sit the light just off the wall, inside the cave
-            Vector3 lightPos = pick.center + pick.inwardNormal * 0.4f;
-
-            var lightGo = new GameObject($"AlgaeLight_{placed}");
-            lightGo.transform.SetParent(lightsRoot.transform, worldPositionStays: true);
-            lightGo.transform.position = lightPos;
-            if (interiorLayer >= 0) lightGo.layer = interiorLayer;
-
-            var light = lightGo.AddComponent<Light>();
-            light.type = LightType.Point;
-            light.color = clusterLightColor;
-            light.intensity = clusterLightIntensity;
-            light.range = clusterLightRange;
-            light.shadows = LightShadows.None;
-            placed++;
-        }
-
-        Debug.Log($"[CaveSpawner] placed {placed} algae cluster lights.");
+        var m = profile != null && profile.material != null ? profile.material.primaryMaterial : null;
+        return m != null ? m : DefaultCaveMaterial();
     }
-
 
     Material DefaultCaveMaterial()
     {
@@ -262,16 +315,48 @@ public class CaveSpawner : MonoBehaviour
         return m;
     }
 
+    int ResolveCaveLayer()
+    {
+        string layerName = profile != null && profile.material != null ? profile.material.caveLayer : "Interior";
+        if (string.IsNullOrEmpty(layerName)) return -1;
+        int idx = LayerMask.NameToLayer(layerName);
+        return idx >= 0 ? idx : -1;
+    }
+
+    void ApplyFogOverride()
+    {
+        var mat = profile != null ? profile.material : null;
+        if (mat == null || !mat.overrideFog) return;
+        _fogPrevEnabled = RenderSettings.fog;
+        _fogPrevColor   = RenderSettings.fogColor;
+        _fogPrevDensity = RenderSettings.fogDensity;
+        RenderSettings.fog = true;
+        RenderSettings.fogColor = mat.fogColor;
+        RenderSettings.fogDensity = mat.fogDensity;
+        RenderSettings.fogMode = FogMode.ExponentialSquared;
+        _fogOverrideActive = true;
+    }
+
+    void RestoreFog()
+    {
+        if (!_fogOverrideActive) return;
+        RenderSettings.fog = _fogPrevEnabled;
+        RenderSettings.fogColor = _fogPrevColor;
+        RenderSettings.fogDensity = _fogPrevDensity;
+        _fogOverrideActive = false;
+    }
+
     // -------------------------------------------------------------------------
     // Gizmos
     // -------------------------------------------------------------------------
 
     void OnDrawGizmosSelected()
     {
+        var shape = ActiveShapeSettings;
         if (drawBoundsGizmo)
         {
             Gizmos.color = new Color(0.4f, 0.8f, 1f, 0.4f);
-            Gizmos.DrawWireCube(Vector3.zero, settings.halfExtents * 2f);
+            Gizmos.DrawWireCube(Vector3.zero, shape.halfExtents * 2f);
         }
 
         if (drawGraphGizmos && _last != null)
@@ -286,14 +371,38 @@ public class CaveSpawner : MonoBehaviour
                     _                   => new Color(0.9f, 0.9f, 0.2f, 0.5f),
                 };
                 Gizmos.DrawWireSphere(transform.TransformPoint(r.Center), r.Radius);
+                if (r.CeilingLift > 0.01f)
+                {
+                    Gizmos.color = new Color(1f, 0.6f, 0.3f, 0.4f);
+                    Gizmos.DrawLine(transform.TransformPoint(r.Center),
+                                    transform.TransformPoint(r.Center + Vector3.up * (r.Radius + r.CeilingLift)));
+                }
             }
 
-            Gizmos.color = new Color(0.2f, 0.6f, 1f, 0.7f);
             foreach (var c in _last.Graph.Corridors)
             {
+                Gizmos.color = c.Kind switch
+                {
+                    CorridorKind.Shaft => new Color(1f, 0.2f, 0.2f, 0.8f),
+                    CorridorKind.Slot  => new Color(0.9f, 0.7f, 0.2f, 0.8f),
+                    CorridorKind.Wide  => new Color(0.4f, 0.8f, 1f,  0.8f),
+                    CorridorKind.Tight => new Color(0.6f, 0.6f, 0.9f, 0.6f),
+                    _                  => new Color(0.2f, 0.6f, 1f,  0.7f),
+                };
                 var a = transform.TransformPoint(_last.Graph.Rooms[c.FromRoomId].Center);
                 var b = transform.TransformPoint(_last.Graph.Rooms[c.ToRoomId].Center);
                 Gizmos.DrawLine(a, b);
+            }
+
+            if (_last.LiquidPools != null)
+            {
+                Gizmos.color = new Color(0.2f, 0.5f, 1f, 0.5f);
+                foreach (var p in _last.LiquidPools)
+                {
+                    Vector3 c = transform.TransformPoint(new Vector3(p.HorizontalBounds.center.x, p.WaterlineY, p.HorizontalBounds.center.z));
+                    Vector3 s = new Vector3(p.HorizontalBounds.size.x, 0.1f, p.HorizontalBounds.size.z);
+                    Gizmos.DrawWireCube(c, s);
+                }
             }
         }
     }

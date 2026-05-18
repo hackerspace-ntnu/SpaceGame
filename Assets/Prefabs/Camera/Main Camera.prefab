@@ -208,9 +208,9 @@ Light:
   m_Type: 0
   m_Shape: 0
   m_Color: {r: 1, g: 0.96, b: 0.85, a: 1}
-  m_Intensity: 15
-  m_Range: 300
-  m_SpotAngle: 45
+  m_Intensity: 12
+  m_Range: 350
+  m_SpotAngle: 75
   m_InnerSpotAngle: 30
   m_CookieSize: 10
   m_Shadows:
@@ -239,7 +239,7 @@ Light:
       e32: 0
       e33: 1
     m_UseCullingMatrixOverride: 0
-  m_Cookie: {fileID: 2800000, guid: 6e7182e301b79481e9160e50bac7dd11, type: 3}
+  m_Cookie: {fileID: 0}
   m_DrawHalo: 0
   m_Flare: {fileID: 0}
   m_RenderMode: 0
@@ -272,7 +272,10 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   toggleKey: 26
+  longThrowIntensity: 3.5
+  longThrowFalloff: 0.012
+  longThrowRangeFadeStart: 0.85
   beamMaterial: {fileID: 2100000, guid: 512d8bde4f2554940b273cbad29fa6b4, type: 2}
   beamSegments: 48
-  beamLengthScale: 0.05
-  beamWidthScale: 1.0
+  beamLengthScale: 0.35
+  beamWidthScale: 1.3

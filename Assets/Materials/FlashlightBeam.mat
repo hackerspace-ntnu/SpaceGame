@@ -19,18 +19,18 @@ Material:
   m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
-  m_LockedProperties:
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _Intensity: 2.5
-    - _RadialDensity: 1.2
-    - _AxialFalloff: 0.015
-    - _MaxTravel: 80
-    - _NearFade: 0.6
-    - _SoftIntersect: 2.0
+    - _AxialFalloff: 0.154
+    - _Intensity: 0.09
+    - _MaxTravel: 250
+    - _NearFade: 0
+    - _RadialDensity: 0.94
+    - _SoftIntersect: 5.91
     m_Colors:
     - _Color: {r: 1, g: 0.95, b: 0.85, a: 1}
   m_BuildTextureStacks: []

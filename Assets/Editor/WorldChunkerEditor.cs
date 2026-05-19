@@ -548,15 +548,20 @@ public class WorldChunkerEditor : EditorWindow
                 // Otherwise create a fresh empty scene and copy prefabs from the master scene below.
                 bool chunkSceneExists = File.Exists(scenePath);
                 Scene chunkScene;
+                GameObject existingTerrainRoot = null;
                 if (chunkSceneExists)
                 {
                     chunkScene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Additive);
 
-                    // Remove existing terrain GameObjects so they can be replaced with the
-                    // freshly generated tile. Anything without a Terrain component is kept.
+                    // Keep an existing terrain root so we can reuse it (preserving its
+                    // fileIDs) if the freshly generated tile matches. If multiple exist,
+                    // delete the extras so we end up with a single canonical terrain GO.
                     foreach (var rootGO in chunkScene.GetRootGameObjects())
                     {
-                        if (rootGO.GetComponentInChildren<Terrain>(true) != null)
+                        if (rootGO.GetComponentInChildren<Terrain>(true) == null) continue;
+                        if (existingTerrainRoot == null)
+                            existingTerrainRoot = rootGO;
+                        else
                             UnityEngine.Object.DestroyImmediate(rootGO);
                     }
                 }
@@ -580,26 +585,47 @@ public class WorldChunkerEditor : EditorWindow
                 {
                     hasTerrain = true;
 
-                    var terrainGO = new GameObject($"Terrain_{cx}_{cy}");
-                    terrainGO.transform.position = new Vector3(chunkWorldMin.x, terrainBaseY, chunkWorldMin.z);
+                    var existingTerrain = existingTerrainRoot != null ? existingTerrainRoot.GetComponentInChildren<Terrain>(true) : null;
+                    bool canReuse = existingTerrain != null
+                                    && existingTerrain.terrainData == tileData
+                                    && existingTerrainRoot.transform.position == new Vector3(chunkWorldMin.x, terrainBaseY, chunkWorldMin.z);
 
-                    var newTerrain = terrainGO.AddComponent<Terrain>();
-                    newTerrain.terrainData = tileData;
-                    newTerrain.materialTemplate = sourceTerrain.materialTemplate;
-                    newTerrain.drawHeightmap = sourceTerrain.drawHeightmap;
-                    newTerrain.drawTreesAndFoliage = sourceTerrain.drawTreesAndFoliage;
-                    newTerrain.reflectionProbeUsage = sourceTerrain.reflectionProbeUsage;
-                    newTerrain.shadowCastingMode = sourceTerrain.shadowCastingMode;
-                    newTerrain.heightmapPixelError = sourceTerrain.heightmapPixelError;
-                    newTerrain.basemapDistance = sourceTerrain.basemapDistance;
-                    newTerrain.drawInstanced = sourceTerrain.drawInstanced;
+                    if (canReuse)
+                    {
+                        // Leave the existing Terrain GO in place — its fileIDs and serialized
+                        // form stay identical, so the .unity file produces no diff on save.
+                    }
+                    else
+                    {
+                        if (existingTerrainRoot != null)
+                            UnityEngine.Object.DestroyImmediate(existingTerrainRoot);
 
-                    var collider = terrainGO.AddComponent<TerrainCollider>();
-                    collider.terrainData = tileData;
+                        var terrainGO = new GameObject($"Terrain_{cx}_{cy}");
+                        terrainGO.transform.position = new Vector3(chunkWorldMin.x, terrainBaseY, chunkWorldMin.z);
 
-                    terrainGO.isStatic = true;
+                        var newTerrain = terrainGO.AddComponent<Terrain>();
+                        newTerrain.terrainData = tileData;
+                        newTerrain.materialTemplate = sourceTerrain.materialTemplate;
+                        newTerrain.drawHeightmap = sourceTerrain.drawHeightmap;
+                        newTerrain.drawTreesAndFoliage = sourceTerrain.drawTreesAndFoliage;
+                        newTerrain.reflectionProbeUsage = sourceTerrain.reflectionProbeUsage;
+                        newTerrain.shadowCastingMode = sourceTerrain.shadowCastingMode;
+                        newTerrain.heightmapPixelError = sourceTerrain.heightmapPixelError;
+                        newTerrain.basemapDistance = sourceTerrain.basemapDistance;
+                        newTerrain.drawInstanced = sourceTerrain.drawInstanced;
 
-                    SceneManager.MoveGameObjectToScene(terrainGO, chunkScene);
+                        var collider = terrainGO.AddComponent<TerrainCollider>();
+                        collider.terrainData = tileData;
+
+                        terrainGO.isStatic = true;
+
+                        SceneManager.MoveGameObjectToScene(terrainGO, chunkScene);
+                    }
+                }
+                else if (existingTerrainRoot != null)
+                {
+                    // No terrain should exist in this chunk anymore.
+                    UnityEngine.Object.DestroyImmediate(existingTerrainRoot);
                 }
 
                 // --- Copy non-terrain objects ---
@@ -654,7 +680,8 @@ public class WorldChunkerEditor : EditorWindow
                     }
                 }
 
-                EditorSceneManager.SaveScene(chunkScene, scenePath);
+                if (chunkScene.isDirty)
+                    EditorSceneManager.SaveScene(chunkScene, scenePath);
                 EditorSceneManager.CloseScene(chunkScene, true);
 
                 var boundsCenter = new Vector3(
@@ -784,12 +811,55 @@ public class WorldChunkerEditor : EditorWindow
 
         string assetPath = $"{terrainDataFolder}/TerrainData_{cx}_{cy}.asset";
         var existing = AssetDatabase.LoadAssetAtPath<TerrainData>(assetPath);
+
         if (existing != null)
-            AssetDatabase.DeleteAsset(assetPath);
+        {
+            if (TerrainTileMatches(existing, tileData, tileHeights))
+            {
+                UnityEngine.Object.DestroyImmediate(tileData);
+                return existing;
+            }
+
+            // Update in place so the .meta GUID (and any scene references) survive.
+            existing.heightmapResolution = tileData.heightmapResolution;
+            existing.size = tileData.size;
+            existing.terrainLayers = tileData.terrainLayers;
+            existing.SetHeights(0, 0, tileHeights);
+            EditorUtility.SetDirty(existing);
+            UnityEngine.Object.DestroyImmediate(tileData);
+            return existing;
+        }
 
         AssetDatabase.CreateAsset(tileData, assetPath);
-
         return tileData;
+    }
+
+    private static bool TerrainTileMatches(TerrainData existing, TerrainData candidate, float[,] candidateHeights)
+    {
+        if (existing.heightmapResolution != candidate.heightmapResolution) return false;
+        if (existing.size != candidate.size) return false;
+
+        var a = existing.terrainLayers;
+        var b = candidate.terrainLayers;
+        if ((a == null) != (b == null)) return false;
+        if (a != null)
+        {
+            if (a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++)
+                if (a[i] != b[i]) return false;
+        }
+
+        int res = existing.heightmapResolution;
+        var existingHeights = existing.GetHeights(0, 0, res, res);
+        // Heights round-trip through 16-bit storage (~1/65535 ≈ 1.53e-5), so use a
+        // slightly larger epsilon to avoid spurious diffs after SetHeights/GetHeights.
+        const float epsilon = 2e-5f;
+        for (int z = 0; z < res; z++)
+            for (int x = 0; x < res; x++)
+                if (Mathf.Abs(existingHeights[z, x] - candidateHeights[z, x]) > epsilon)
+                    return false;
+
+        return true;
     }
 
     /// <summary>

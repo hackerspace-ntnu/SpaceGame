@@ -111,19 +111,48 @@ public static class MarchingCubesMesher
         if (settings.use32BitIndices)
             mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
 
-        if (settings.flatShade)
+        // Three output modes, in priority order:
+        //
+        //   1. smoothingIterations > 0 → weld + Laplacian smooth + smooth normals.
+        //      Best visual quality, masks marching-cube blockiness, ~100 ms per million tris.
+        //   2. flatShade                → per-triangle vertex split + flat normals.
+        //      Stylised low-poly look (original behaviour).
+        //   3. else                     → raw welded mesh with averaged normals.
+        //      Cheapest "smooth" output; not as clean as #1 because MC voxel seams remain.
+        //
+        // The mutual-exclusion is intentional: applying flat-shade after smoothing would undo
+        // the point of smoothing (it splits every vertex again).
+        if (settings.smoothingIterations > 0)
+        {
+            MeshSmoothingUtility.WeldAndSmooth(
+                verts, tris, mesh,
+                settings.smoothingIterations,
+                settings.smoothingStrength,
+                settings.smoothingPreserveVolume,
+                settings.recalculateTangents);
+        }
+        else if (settings.flatShade)
         {
             FlatShadeUtility.ApplyFlatShade(verts, tris, mesh);
+            mesh.RecalculateBounds();
+            if (settings.recalculateTangents) mesh.RecalculateTangents();
         }
         else
         {
             mesh.SetVertices(verts);
             mesh.SetTriangles(tris, 0);
             mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            if (settings.recalculateTangents) mesh.RecalculateTangents();
         }
 
-        mesh.RecalculateBounds();
-        if (settings.recalculateTangents) mesh.RecalculateTangents();
+        // Optional analytic-gradient normals — replaces whatever normals were just computed with
+        // the true SDF gradient at each vertex. Geometry unchanged, lighting noticeably smoother.
+        if (settings.useGradientNormals)
+        {
+            MeshSmoothingUtility.ApplyGradientNormals(mesh, field, Mathf.Max(0.01f, settings.gradientEpsilon));
+        }
+
         return mesh;
     }
 

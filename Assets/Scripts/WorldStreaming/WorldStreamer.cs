@@ -24,6 +24,8 @@ public class WorldStreamer : NetworkBehaviour
     [SerializeField] private float navMeshRebuildDelay = 0.5f;
     [Tooltip("How far from a parked agent to search when reattaching it to the rebuilt NavMesh.")]
     [SerializeField] private float parkedAgentActivationDistance = 32f;
+    [Tooltip("Per-frame time budget (milliseconds) for incremental NavMesh source collection. Lower = less per-frame cost but slower source readiness after a chunk loads.")]
+    [SerializeField] private float navMeshSourceCollectionBudgetMs = 1.0f;
 
     [Header("Debug")]
     [SerializeField] private bool showDebugGizmos = true;
@@ -107,7 +109,6 @@ public class WorldStreamer : NetworkBehaviour
     private readonly Dictionary<Vector2Int, Scene> loadedScenes = new();
     private readonly Dictionary<Vector2Int, Terrain> loadedTerrains = new();
     private readonly Dictionary<Vector2Int, List<NavMeshAgent>> parkedAgentsByChunk = new();
-    private readonly List<NavMeshAgent> globallyParkedAgents = new();
     private readonly Dictionary<NavMeshAgent, Vector3> parkedAgentPositions = new();
     private readonly Dictionary<Vector2Int, float> unloadTimers = new();
     private readonly List<Transform> trackedTransforms = new();
@@ -129,6 +130,8 @@ public class WorldStreamer : NetworkBehaviour
     private float nextParkedAgentRetryTime;
     private NavMeshDataInstance navMeshDataInstance;
     private AsyncOperation navMeshBuildOperation;
+    private readonly NavMeshSourceCache sourceCache = new();
+    private readonly List<NavMeshBuildSource> reusableSourceBuffer = new();
 
     private struct SceneOperation
     {
@@ -188,12 +191,12 @@ public class WorldStreamer : NetworkBehaviour
         if (navMeshDataInstance.valid)
             navMeshDataInstance.Remove();
 
+        sourceCache.Clear();
         isReady = false;
         chunkStates.Clear();
         loadedScenes.Clear();
         loadedTerrains.Clear();
         parkedAgentsByChunk.Clear();
-        globallyParkedAgents.Clear();
         parkedAgentPositions.Clear();
         unloadTimers.Clear();
         operationQueue.Clear();
@@ -206,13 +209,22 @@ public class WorldStreamer : NetworkBehaviour
         if (!isReady) return;
         if (Network.IsNetworked && !IsServer) return;
 
-        if (navMeshDirty && Time.time >= navMeshRebuildTime)
+        // Advance any in-flight per-chunk source collection. Budgeted to never exceed
+        // navMeshSourceCollectionBudgetMs per frame, so this can't cause a stall.
+        sourceCache.perFrameBudgetMs = navMeshSourceCollectionBudgetMs;
+        sourceCache.Tick();
+
+        // Only rebuild when the cache has actually changed and is no longer collecting,
+        // and the post-load debounce window has elapsed.
+        if (navMeshDirty && !sourceCache.HasPendingWork
+            && sourceCache.ConsumeDirty()
+            && Time.time >= navMeshRebuildTime)
         {
             navMeshDirty = false;
             RebuildNavMesh();
         }
 
-        if ((parkedAgentsByChunk.Count > 0 || globallyParkedAgents.Count > 0)
+        if (parkedAgentsByChunk.Count > 0
             && (navMeshBuildOperation == null || navMeshBuildOperation.isDone)
             && Time.time >= nextParkedAgentRetryTime)
         {
@@ -564,6 +576,7 @@ public class WorldStreamer : NetworkBehaviour
         CacheTerrainForChunk(coord);
         ParkAgentsForChunk(coord);
         RefreshTerrainNeighborsAround(coord);
+        BeginChunkSourceCollection(coord);
         ScheduleNavMeshRebuild();
         Debug.Log($"[WorldStreamer] Chunk {coord} loaded (offline)");
         FinishOperation(onComplete);
@@ -617,6 +630,7 @@ public class WorldStreamer : NetworkBehaviour
         chunkStates[coord] = ChunkState.NotLoaded;
         loadedScenes.Remove(coord);
         RefreshTerrainNeighborsAround(coord);
+        sourceCache.Drop(coord);
         ScheduleNavMeshRebuild();
         Debug.Log($"[WorldStreamer] Chunk {coord} unloaded (offline)");
         FinishOperation(onComplete);
@@ -640,6 +654,7 @@ public class WorldStreamer : NetworkBehaviour
             CacheTerrainForChunk(pendingCoord);
             ParkAgentsForChunk(pendingCoord);
             RefreshTerrainNeighborsAround(pendingCoord);
+            BeginChunkSourceCollection(pendingCoord);
             ScheduleNavMeshRebuild();
             Debug.Log($"[WorldStreamer] Chunk {pendingCoord} loaded");
             FinishOperation(pendingCallback);
@@ -652,6 +667,7 @@ public class WorldStreamer : NetworkBehaviour
             chunkStates[pendingCoord] = ChunkState.NotLoaded;
             loadedScenes.Remove(pendingCoord);
             RefreshTerrainNeighborsAround(pendingCoord);
+            sourceCache.Drop(pendingCoord);
             ScheduleNavMeshRebuild();
             Debug.Log($"[WorldStreamer] Chunk {pendingCoord} unloaded");
             FinishOperation(pendingCallback);
@@ -686,7 +702,7 @@ public class WorldStreamer : NetworkBehaviour
             return;
         }
 
-        // Skip if a previous async build is still running — it will be replaced next cycle
+        // Skip if a previous async build is still running — it will be replaced next cycle.
         if (navMeshBuildOperation != null && !navMeshBuildOperation.isDone)
         {
             navMeshDirty = true;
@@ -694,32 +710,18 @@ public class WorldStreamer : NetworkBehaviour
             return;
         }
 
-        // Any streamed agents that are still enabled while NavMesh data is swapped in
-        // can throw "not close enough to the NavMesh" and get stranded. Park them all
-        // before the rebuild, then reattach after the async build completes.
-        ParkAgentsForAllLoadedChunks();
-        ParkAgentsGlobally();
+        // Agents in chunks that just changed are already parked at load time. We don't
+        // run a global FindObjectsByType scan here — that was the second source of stalls
+        // and is unnecessary because the NavMesh swap is atomic at the engine level. Any
+        // agent we miss simply waits for the next ReleaseParkedAgents retry in Update().
 
         var settings = navMeshSurface.GetBuildSettings();
-        // Increase slope and step height so agents handle gentle terrain undulation
         settings.agentSlope = 60f;
         settings.agentClimb = 0.8f;
 
-        var sources = new List<NavMeshBuildSource>();
-        var markups = new List<NavMeshBuildMarkup>();
-
-        NavMeshBuilder.CollectSources(
-            navMeshSurface.collectObjects == CollectObjects.Children ? navMeshSurface.transform : null,
-            navMeshSurface.layerMask,
-            navMeshSurface.useGeometry,
-            navMeshSurface.defaultArea,
-            markups,
-            sources
-        );
-
-        // Skip any non-readable meshes that slipped through (shouldn't happen
-        // after MeshReadablePostprocessor reimports, but just in case).
-        sources.RemoveAll(s => s.sourceObject is Mesh mesh && !mesh.isReadable);
+        // Pull the union of cached per-chunk sources. No synchronous scene walk happens here.
+        reusableSourceBuffer.Clear();
+        sourceCache.BuildFlatSourceList(reusableSourceBuffer);
 
         var bounds = new Bounds(navMeshSurface.center, navMeshSurface.size);
         if (navMeshSurface.collectObjects != CollectObjects.Volume)
@@ -727,18 +729,16 @@ public class WorldStreamer : NetworkBehaviour
             bounds = new Bounds(Vector3.zero, new Vector3(10000f, 500f, 10000f));
         }
 
-        // Ensure we have NavMeshData to update into
         if (navMeshSurface.navMeshData == null)
             navMeshSurface.navMeshData = new NavMeshData(settings.agentTypeID);
 
         if (!navMeshDataInstance.valid)
             navMeshDataInstance = NavMesh.AddNavMeshData(navMeshSurface.navMeshData);
 
-        // Async build — spreads work across frames instead of freezing the game
         navMeshBuildOperation = NavMeshBuilder.UpdateNavMeshDataAsync(
             navMeshSurface.navMeshData,
             settings,
-            sources,
+            reusableSourceBuffer,
             bounds
         );
 
@@ -750,7 +750,14 @@ public class WorldStreamer : NetworkBehaviour
             ReleaseParkedAgents();
         };
 
-        Debug.Log($"[WorldStreamer] NavMesh async rebuild started ({sources.Count} sources)");
+        Debug.Log($"[WorldStreamer] NavMesh async rebuild started ({reusableSourceBuffer.Count} sources, cache covers {sourceCache.TotalSourceCount} total)");
+    }
+
+    private void BeginChunkSourceCollection(Vector2Int coord)
+    {
+        if (!loadedScenes.TryGetValue(coord, out var scene) || !scene.IsValid() || !scene.isLoaded) return;
+        if (navMeshSurface == null) return;
+        sourceCache.BeginCollect(coord, scene, navMeshSurface.layerMask, navMeshSurface.useGeometry, navMeshSurface.defaultArea);
     }
 
     // ─────────────────────────────────────────────
@@ -857,40 +864,6 @@ public class WorldStreamer : NetworkBehaviour
         }
     }
 
-    private void ParkAgentsForAllLoadedChunks()
-    {
-        foreach (var coord in loadedScenes.Keys.ToList())
-            ParkAgentsForChunk(coord);
-    }
-
-    private void ParkAgentsGlobally()
-    {
-        globallyParkedAgents.RemoveAll(agent => agent == null);
-
-#if UNITY_2023_1_OR_NEWER
-        var agents = FindObjectsByType<NavMeshAgent>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-#else
-        var agents = FindObjectsOfType<NavMeshAgent>(true);
-#endif
-
-        var alreadyTracked = new HashSet<NavMeshAgent>(parkedAgentsByChunk.Values.SelectMany(l => l));
-
-        foreach (var agent in agents)
-        {
-            if (agent == null)
-                continue;
-
-            // Skip agents already managed per-chunk to avoid double-activation.
-            if (alreadyTracked.Contains(agent))
-                continue;
-
-            if (!globallyParkedAgents.Contains(agent))
-                globallyParkedAgents.Add(agent);
-
-            ParkAgent(agent);
-        }
-    }
-
     private void ReleaseParkedAgents()
     {
         foreach (var kvp in parkedAgentsByChunk.ToList())
@@ -911,22 +884,6 @@ public class WorldStreamer : NetworkBehaviour
             else
                 parkedAgentsByChunk.Remove(kvp.Key);
         }
-
-        if (globallyParkedAgents.Count == 0)
-            return;
-
-        var remainingGlobalAgents = new List<NavMeshAgent>();
-        foreach (var agent in globallyParkedAgents)
-        {
-            if (agent == null)
-                continue;
-
-            if (!TryActivateAgent(agent))
-                remainingGlobalAgents.Add(agent);
-        }
-
-        globallyParkedAgents.Clear();
-        globallyParkedAgents.AddRange(remainingGlobalAgents);
     }
 
     private bool TryActivateAgent(NavMeshAgent agent)

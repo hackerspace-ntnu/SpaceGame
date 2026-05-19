@@ -22,6 +22,7 @@ public class VolumeTrigger : MonoBehaviour
 
     private ITriggerable cached;
     private float armedAt;
+    private float lastStayLog;
 
     private void Awake()
     {
@@ -39,14 +40,61 @@ public class VolumeTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (Time.time < armedAt) return;
+        Debug.Log($"[VolumeTrigger] '{name}' OnTriggerEnter from '{other?.name}'", this);
+        TryFire(other, "Enter");
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        Debug.Log($"[VolumeTrigger] '{name}' OnTriggerExit from '{other?.name}'", this);
+    }
+
+    // Also poll while overlapping — a destination that teleports the player back to the
+    // exterior often lands them *inside* this volume (e.g. cave exit teleports to the
+    // saved entry position). Unity does not fire OnTriggerEnter for instantaneous
+    // teleports, so without this the player can never re-enter. CanTrigger + the cross-
+    // transition lockout in SceneTransition still prevent immediate re-fire.
+    private void OnTriggerStay(Collider other)
+    {
+        if (Time.time - lastStayLog > 1f)
+        {
+            Debug.Log($"[VolumeTrigger] '{name}' OnTriggerStay from '{other?.name}' (armedAt-now={armedAt - Time.time:0.00})", this);
+            lastStayLog = Time.time;
+        }
+        TryFire(other, "Stay");
+    }
+
+    private void TryFire(Collider other, string source)
+    {
+        if (Time.time < armedAt)
+        {
+            if (source == "Enter")
+                Debug.Log($"[VolumeTrigger] '{name}' {source} rejected: armed-cooldown ({armedAt - Time.time:0.00}s remaining)", this);
+            return;
+        }
         var t = cached ?? ResolveTriggerable();
-        if (t == null) return;
+        if (t == null)
+        {
+            if (source == "Enter")
+                Debug.LogWarning($"[VolumeTrigger] '{name}' has no ITriggerable", this);
+            return;
+        }
 
         GameObject candidate = ResolveInitiatorRoot(other);
         if (candidate == null) return;
-        if (!IsEligible(candidate)) return;
-        if (!t.CanTrigger(candidate)) return;
+        if (source == "Enter")
+            Debug.Log($"[VolumeTrigger] '{name}' {source}: resolved candidate='{candidate.name}' tag='{candidate.tag}' (other='{other.name}', otherTag='{other.tag}', attachedRb={(other.attachedRigidbody != null ? other.attachedRigidbody.name : "<none>")})", this);
+        if (!IsEligible(candidate))
+        {
+            if (source == "Enter")
+                Debug.Log($"[VolumeTrigger] '{name}' {source} rejected: '{candidate.name}' not eligible (tag={candidate.tag}, hasAgent={candidate.GetComponentInParent<AgentController>() != null})", this);
+            return;
+        }
+        if (!t.CanTrigger(candidate))
+        {
+            // SceneTransition prints its own diagnostic when it denies — no log here.
+            return;
+        }
 
         if (t.Trigger(candidate) != null)
             armedAt = Time.time + rearmCooldown;

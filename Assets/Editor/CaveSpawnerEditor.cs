@@ -67,7 +67,7 @@ public class CaveSpawnerEditor : Editor
 
             EditorUtility.DisplayProgressBar("Cave bake", "Writing assets…", 0.8f);
 
-            int seed = spawner.Settings.seed;
+            int seed = spawner.ActiveShapeSettings.seed;
             string folder = ResolveBakeFolder(spawner);
             string meshPath = $"{folder}/seed_{seed}_Mesh.asset";
             string navPath  = $"{folder}/seed_{seed}_NavMesh.asset";

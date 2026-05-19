@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: CaveAlgaeGlow
+  m_Shader: {fileID: 4800000, guid: 1bf1f7a8629e458bb48c5b41097764b5, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties:
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _BlendSharpness: 4
+    - _BoldDensity: 6
+    - _BoldFraction: 0.55
+    - _BoldGlowFraction: 0.25
+    - _BoldIntensity: 12
+    - _BoldSizeMax: 0.55
+    - _BoldSizeMin: 0.25
+    - _ColorMixScale: 5
+    - _DistantGlowMultiplier: 0.3
+    - _DotFadeEnd: 18
+    - _DotFadeStart: 6
+    - _DotScale: 70
+    - _DotSize: 0.4
+    - _GlowIntensity: 6
+    - _GlowingDotFraction: 0.3
+    - _GlowingPatchFraction: 0.7
+    - _GlowingSpecFraction: 0.25
+    - _Metallic: 0
+    - _PatchAffinityAxis: 2
+    - _PatchAffinityStrength: 0.3
+    - _PatchAlbedoStrength: 0.55
+    - _PatchEdgeSoftness: 0.18
+    - _PatchFalloff: 2.5
+    - _PatchScale: 0.25
+    - _PatchThreshold: 0.55
+    - _PulseAmount: 0.4
+    - _PulseSpeed: 0.5
+    - _Smoothness: 0
+    - _SpecDensity: 80
+    - _SpecShapeNoise: 0.8
+    - _SpecSizeMax: 0.35
+    - _SpecSizeMin: 0.05
+    m_Colors:
+    - _ColorAlga1: {r: 0.2, g: 0.85, b: 1, a: 1}
+    - _ColorAlga2: {r: 0.3, g: 0.95, b: 0.55, a: 1}
+    - _ColorAlga3: {r: 0.95, g: 0.3, b: 0.85, a: 1}
+    - _ColorAlga4: {r: 0.95, g: 0.85, b: 0.3, a: 1}
+    - _ColorX: {r: 0.55, g: 0.32, b: 0.2, a: 1}
+    - _ColorY: {r: 0.62, g: 0.45, b: 0.28, a: 1}
+    - _ColorZ: {r: 0.42, g: 0.22, b: 0.16, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

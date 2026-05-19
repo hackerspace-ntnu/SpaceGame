@@ -1,8 +1,19 @@
 using UnityEngine;
 
+public enum CaveNoiseType
+{
+    /// <summary>Classic perlin fbm. Smooth, bubbly, slightly repetitive. Earth-like sandstone.</summary>
+    Perlin,
+    /// <summary>Perlin warped by a second noise layer. Swirling, chaotic, hard to read at a glance. Alien.</summary>
+    DomainWarped,
+    /// <summary>Voronoi/cellular cracks. Chunky, broken rock. Volcanic / fresh rockfall.</summary>
+    Cellular,
+}
+
 /// <summary>
-/// All parameters that shape a generated cave. Stored as a plain serialisable class so it can live
-/// directly on the <see cref="CaveSpawner"/> MonoBehaviour or be promoted to a ScriptableObject later.
+/// Core shape + meshing parameters for a cave. Lives inside a <see cref="CaveProfile"/> alongside
+/// decoration / liquid / material sub-configs. Designed so two profiles can share an identical
+/// shape config but differ in everything visual/decorative.
 /// </summary>
 [System.Serializable]
 public class CaveGenerationSettings
@@ -70,14 +81,55 @@ public class CaveGenerationSettings
     // -------------------------------------------------------------------------
 
     [Header("Organic noise")]
+    [Tooltip("Which noise function shapes the walls. Perlin = smooth bubbly, DomainWarped = swirling alien, Cellular = chunky broken rock.")]
+    public CaveNoiseType noiseType = CaveNoiseType.Perlin;
+
     [Tooltip("How strongly 3D noise warps the cave walls. 0 = perfectly smooth SDF primitives.")]
     [Range(0f, 6f)] public float noiseAmplitude = 1.4f;
 
     [Tooltip("Spatial scale of the noise (larger = bigger blobs).")]
     public float noiseFrequency = 0.08f;
 
+    [Tooltip("DomainWarped only: how strongly the warp noise displaces sample coordinates before the primary noise. 0 = identical to perlin.")]
+    [Range(0f, 8f)] public float domainWarpStrength = 2.5f;
+
     [Tooltip("How smoothly two intersecting primitives blend together. 0 = sharp union, >0 = smoothed.")]
     [Range(0f, 3f)] public float smoothUnionRadius = 1.8f;
+
+    // -------------------------------------------------------------------------
+    // Shape modifiers — toggleable large-scale topology variants. Each runs on
+    // top of the base graph; turn any combination on/off per cave-profile.
+    // -------------------------------------------------------------------------
+
+    [Header("Shape modifier — Cathedral chambers")]
+    [Tooltip("Lift the ceiling of BigChamber rooms for dramatic vertical scale without enlarging the footprint.")]
+    public bool enableCathedralChambers = false;
+
+    [Tooltip("Extra ceiling height (metres) added to BigChamber rooms when enabled. Stretches the sphere's top hemisphere upward.")]
+    [Range(0f, 30f)] public float cathedralCeilingLift = 10f;
+
+    [Header("Shape modifier — Slot canyons")]
+    [Tooltip("Some corridors become tall narrow slits — claustrophobic vertical extent, very narrow horizontal radius.")]
+    public bool enableSlotCanyons = false;
+
+    [Tooltip("Probability a Tight corridor is upgraded to a slot canyon when enabled.")]
+    [Range(0f, 1f)] public float slotCanyonChance = 0.3f;
+
+    [Tooltip("Vertical-stretch multiplier applied to slot canyon corridors (height / horizontal radius).")]
+    [Range(1f, 6f)] public float slotCanyonHeightStretch = 2.5f;
+
+    [Header("Shape modifier — Vertical shafts")]
+    [Tooltip("Allow near-vertical shaft corridors between vertically-stacked rooms. Currently the slope clamp prevents these — enabling adds a Shaft corridor kind that uses a vertical capsule and skips slope checks.")]
+    public bool enableVerticalShafts = false;
+
+    [Tooltip("Maximum probability of inserting a vertical shaft between two vertically-aligned rooms during graph generation.")]
+    [Range(0f, 1f)] public float verticalShaftChance = 0.25f;
+
+    [Tooltip("Minimum vertical separation (metres) for two rooms to be eligible as a shaft pair.")]
+    public float verticalShaftMinDrop = 8f;
+
+    [Tooltip("Shaft corridor radius (metres). Wider than tight corridors so a player can reasonably climb down.")]
+    public float verticalShaftRadius = 2.5f;
 
     // -------------------------------------------------------------------------
     // Floor flattening (critical for NavMesh quality)
@@ -113,11 +165,27 @@ public class CaveGenerationSettings
     [Tooltip("Use 32-bit indices — required for large caves (>65k verts).")]
     public bool use32BitIndices = true;
 
-    [Tooltip("Duplicate every vertex per triangle so flat shading kicks in without a custom shader.")]
+    [Tooltip("Duplicate every vertex per triangle so flat shading kicks in without a custom shader. Mutually exclusive with smoothing — when smoothing > 0 this is ignored and welded smooth normals are used instead.")]
     public bool flatShade = true;
 
     [Tooltip("Recalculate tangents on the resulting mesh (only needed for normal-mapped materials).")]
     public bool recalculateTangents = false;
+
+    [Header("Mesh smoothing (post-marching-cubes)")]
+    [Tooltip("Number of Laplacian smoothing iterations applied after marching cubes. 0 = no smoothing (raw blocky MC output). 2–3 is usually enough to round off voxel artefacts without losing shape.")]
+    [Range(0, 8)] public int smoothingIterations = 0;
+
+    [Tooltip("Per-iteration blend factor. 1.0 = fully average to neighbours each pass, lower = gentler. 0.5 is safe.")]
+    [Range(0f, 1f)] public float smoothingStrength = 0.5f;
+
+    [Tooltip("Taubin volume preservation — alternates an inflate pass with each shrink pass, so the cave doesn't shrink as it smooths. Recommended on.")]
+    public bool smoothingPreserveVolume = true;
+
+    [Tooltip("After smoothing, override normals with the analytic SDF gradient. Gives perfectly smooth shading even with low-poly geometry. Set false to keep triangle-averaged normals (cheaper, but slightly more faceted).")]
+    public bool useGradientNormals = false;
+
+    [Tooltip("Finite-difference epsilon (metres) used to estimate the SDF gradient. ~half the voxel size is a good default.")]
+    public float gradientEpsilon = 0.5f;
 
     // -------------------------------------------------------------------------
     // NavMesh

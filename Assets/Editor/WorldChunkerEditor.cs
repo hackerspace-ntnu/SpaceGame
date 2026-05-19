@@ -16,12 +16,17 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public class WorldChunkerEditor : EditorWindow
 {
-    private Vector2 chunkSize = new Vector2(256f, 256f);
+    // Chunk size and output paths are fixed by design — the world layout, scene
+    // references, and WorldStreamingConfig all assume these exact values. Do not
+    // expose them in the UI; changing them rebuilds the world on a different grid
+    // and orphans every existing chunk asset.
+    private static readonly Vector2 chunkSize = new Vector2(500f, 500f);
+    private const string outputFolder = "Assets/Scenes/world/Chunks";
+    private const string terrainDataFolder = "Assets/Terrain/ChunkData";
+    private const string configOutputPath = "Assets/Settings/WorldStreamingConfig.asset";
+
     private int loadRadius = 1;
     private float unloadGracePeriod = 10f;
-    private string outputFolder = "Assets/Scenes/world/Chunks";
-    private string terrainDataFolder = "Assets/Terrain/ChunkData";
-    private string configOutputPath = "Assets/Settings/WorldStreamingConfig.asset";
     private bool skipNetworkObjects = true;
 
     // Auto-calculated from scanning the scene
@@ -162,14 +167,12 @@ public class WorldChunkerEditor : EditorWindow
             "- Terrain is automatically split into tiles per chunk\n" +
             "- Grid size is auto-calculated from world bounds\n\n" +
             "1. Open your master world scene\n" +
-            "2. Set the chunk size\n" +
-            "3. Click 'Scan World' then 'Generate Chunks'",
+            "2. Click 'Scan World' then 'Generate Chunks'",
             MessageType.Info);
 
         EditorGUILayout.Space(10);
 
-        EditorGUILayout.LabelField("Chunk Size", EditorStyles.boldLabel);
-        chunkSize = EditorGUILayout.Vector2Field("Chunk Size (world units)", chunkSize);
+        EditorGUILayout.LabelField($"Chunk Size: {chunkSize.x:F0} x {chunkSize.y:F0} units (fixed)", EditorStyles.miniLabel);
 
         EditorGUILayout.Space(5);
 
@@ -204,10 +207,6 @@ public class WorldChunkerEditor : EditorWindow
 
         EditorGUILayout.Space(10);
 
-        EditorGUILayout.LabelField("Output", EditorStyles.boldLabel);
-        outputFolder = EditorGUILayout.TextField("Chunk Scenes Folder", outputFolder);
-        terrainDataFolder = EditorGUILayout.TextField("Terrain Data Folder", terrainDataFolder);
-        configOutputPath = EditorGUILayout.TextField("Config Asset Path", configOutputPath);
         skipNetworkObjects = EditorGUILayout.Toggle("Skip NetworkObjects", skipNetworkObjects);
 
         EditorGUILayout.Space(10);

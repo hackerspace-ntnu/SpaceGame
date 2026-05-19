@@ -65,10 +65,40 @@ MonoBehaviour:
     gradientEpsilon: 0.75
     bakeNavMeshOnGenerate: 1
   decoration:
-    enabled: 0
+    enabled: 1
     floorCeilingThreshold: 0.7
     globalInstanceCap: 4000
-    rules: []
+    rules:
+    - name: 
+      enabled: 1
+      prefabs:
+      - {fileID: 919132149155446097, guid: 2cc258338d3e049e386c74e497109512, type: 3}
+      - {fileID: 919132149155446097, guid: 5475276684ee94426a275b7e270c5682, type: 3}
+      - {fileID: 919132149155446097, guid: 3974b222a3762484484d3ec610cdb65b, type: 3}
+      - {fileID: 919132149155446097, guid: 15dbe324844354c10b8d44c1c1f4cdc9, type: 3}
+      - {fileID: 919132149155446097, guid: 11698ae43d32545eaa0e2bfdf07112c3, type: 3}
+      - {fileID: 919132149155446097, guid: 074557fc7437549589c7460d9bb92b78, type: 3}
+      fallbackColor: {r: 0, g: 0, b: 0, a: 0}
+      fallbackEmission: {r: 0, g: 0, b: 0, a: 0}
+      fallbackPrimitive: 0
+      surfaceType: 1
+      allowedRoomKinds: 00000000030000000200000001000000
+      minWorldY: -200
+      maxWorldY: 300
+      maxSurfaceTilt: 0.207
+      liquidProximityBoost: 0
+      densityPerSqM: 0.03
+      minSpacing: 0
+      maxInstances: 0
+      densityNoiseScale: 0.161
+      densityNoiseContrast: 0
+      scaleRange: {x: 0.05, y: 0.6}
+      normalAlignment: 0.462
+      yawRange: {x: 0.5, y: 2}
+      surfaceEmbed: 0
+      attachedLightRange: 0
+      attachedLightIntensity: 0
+      seedSalt: 0
   liquid:
     enabled: 1
     fillFraction: 0.18
@@ -79,7 +109,7 @@ MonoBehaviour:
     spawnTriggerVolume: 1
     triggerDepth: 3
   material:
-    primaryMaterial: {fileID: 2100000, guid: da8ede92ad14743b4991954fc8c1f40f, type: 2}
+    primaryMaterial: {fileID: 2100000, guid: 963133962477432bb203ae0bc868cd34, type: 2}
     chamberMaterial: {fileID: 0}
     clusterLightCount: 5
     clusterLightColor: {r: 0.35, g: 0.75, b: 1, a: 1}

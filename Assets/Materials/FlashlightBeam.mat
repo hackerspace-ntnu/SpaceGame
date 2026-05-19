@@ -25,12 +25,15 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _AxialFalloff: 0.154
-    - _Intensity: 0.09
-    - _MaxTravel: 250
-    - _NearFade: 0
-    - _RadialDensity: 0.94
-    - _SoftIntersect: 5.91
+    - _CoreStrength: 0.5
+    - _CoreWidth: 0.1
+    - _BeamLength: 6
+    - _EndFadePow: 4
+    - _HaloPow: 3
+    - _HaloStrength: 0.12
+    - _HaloWidth: 0.55
+    - _Intensity: 0.15
+    - _NearFade: 0.1
     m_Colors:
     - _Color: {r: 1, g: 0.95, b: 0.85, a: 1}
   m_BuildTextureStacks: []

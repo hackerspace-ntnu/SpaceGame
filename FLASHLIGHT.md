@@ -8,25 +8,37 @@ Lives on the `Flashlight` child of [Main Camera.prefab](Assets/Prefabs/Camera/Ma
 
 | Piece | What it does | File |
 |---|---|---|
-| **URP spot light** | Near-field lighting + shadows | Light component on the prefab |
-| **Long-throw layer** | Reaches far surfaces (URP falls off too fast) | [Flashlight.cs](Assets/Scripts/Player/Flashlight.cs) pushes globals → [Flashlight.hlsl](Assets/Shaders/Flashlight.hlsl) |
-| **Visible beam** | Dust cone in the air. Analytical ray-vs-cone math in fragment shader — cone mesh is just a bounding volume | [FlashlightBeam.shader](Assets/Shaders/FlashlightBeam.shader) |
+| **URP spot light** | Near-field lighting + shadows (short range, ~40m) | Light component on the prefab |
+| **Long-throw layer** | Reaches far surfaces (URP falls off too fast). Uses `flashlightReach` on the script, *not* `Light.range` | [Flashlight.cs](Assets/Scripts/Player/Flashlight.cs) pushes globals → [Flashlight.hlsl](Assets/Shaders/Flashlight.hlsl) |
+| **Visible beam** | Dust cone in the air. Cone mesh is rebuilt each frame from raycasts so it ends at the actual surface. Radial falloff is normalized to the cone's local radius at each axial slice — that's why it reads as a cone, not a spike | [FlashlightBeam.shader](Assets/Shaders/FlashlightBeam.shader) |
 
 Consumers: [CaveTriplanar.shader](Assets/Shaders/caves/CaveTriplanar.shader), [StylizedTerrain.shader](Assets/Shaders/StylizedTerrain.shader). Both add `lit += SampleFlashlight(posWS, N, wrap);` on top of URP's normal additional-lights loop.
 
+**URP `Light.range` is intentionally short** (~40m). The long-throw layer handles distance via `flashlightReach` on the Flashlight script. This split is why intensity tuning works: URP only has to cover near-field, so reasonable intensities (~25) don't blow out objects 1m from the camera.
+
 ## Tweaking
 
-**"Doesn't reach far enough"** → lower `longThrowFalloff` on the Flashlight script (0.012 default; try 0.006). Or raise `longThrowIntensity`.
+**"Doesn't reach far enough" (surfaces)** → raise `flashlightReach` and/or `longThrowIntensity` on the Flashlight script. To slow the long-distance falloff, lower `longThrowFalloff` (0.008 default). Note: only shaders that include `Flashlight.hlsl` benefit. Other surfaces only see URP's spot light — capped at `Light.range` (~40m).
 
-**"Cone shape too obvious / too narrow"** → widen `Spot Angle` / `Inner Spot Angle` on the Light component. Cookie texture is intentionally off — re-enabling it brings back the projected shape.
+**"Near surfaces blow out"** → lower URP Light `Intensity` (default 25). Long-distance reach comes from the long-throw layer, not the URP light, so you can keep this modest.
 
-**"Can't see the beam in the air"** → raise `_Intensity` on [FlashlightBeam.mat](Assets/Materials/FlashlightBeam.mat). The cone mesh is just a bounding volume — brightness is computed analytically. If the mesh isn't big enough, the visible beam will get clipped: raise `beamLengthScale` / `beamWidthScale` on the script (requires play-mode restart).
+**"Cone shape too obvious / too narrow"** → widen `Spot Angle` / `Inner Spot Angle` on the Light component.
 
-**"Beam looks too solid / too thin"** → `_RadialDensity` on the beam material. Lower = wider/softer halo, higher = thin laser-like core.
+**"Beam doesn't reach the ground / hovers past surfaces"** → the beam now raycasts to find the surface each frame. If it still misses, check `beamHitMask` (must include your ground layer) and `beamProbeRays` (more rays catch tighter geometry).
 
-**"Beam falls off too fast along its length"** → `_AxialFalloff` on the beam material. Lower = carries further.
+**"Beam jitters as length changes"** → lower `beamLengthSmoothing` on the script (0.5 default; lower = smoother but laggier).
 
-**"Beam clips into walls weirdly"** → `_SoftIntersect` on the beam material. Higher = smoother fade where the beam meets surfaces.
+**"Beam mesh too short on open spaces"** → raise `beamMaxLength` on the script (default 120m, clamped to `flashlightReach`).
+
+**"Can't see the beam in the air"** → raise `_Density` or `_Intensity` on [FlashlightBeam.mat](Assets/Materials/FlashlightBeam.mat).
+
+**"Beam core too tight / too washed out"** → `_AxisFalloff` on the beam material. Higher = tighter bright axis, lower = more uniformly lit cone.
+
+**"Beam looks chunky / banded"** → raise `_StepCount` (24 default, up to 64). Cost scales linearly.
+
+**"Beam clips into walls weirdly"** → the beam clips against the scene depth buffer automatically. If you want a softer transition, raise `_SoftIntersect`. The beam *will* stop at solid geometry — that's the point.
+
+**"Rays don't reach the ground"** → enable `debugDrawRays` on the Flashlight component to see the raycasts in the Scene view. Green = center hit, magenta = probe hit, yellow/grey = miss. Common causes: `beamHitMask` excludes the ground layer; the ground has no collider; you're pointing into empty space past `beamMaxLength`.
 
 ## Adding flashlight response to a new shader
 
@@ -40,5 +52,7 @@ lit += SampleFlashlight(positionWS, N, wrap); // wrap = 0 if you don't have a wr
 
 - Only one flashlight supported (globals are singular).
 - Long-throw layer doesn't sample shadows — that's what keeps it cheap. URP layer handles shadows.
-- Beam cone mesh is baked at `Awake()`. Light range/angle and beam scale changes need a play-mode restart.
-- Toggle through the script's `SetEnabled`, not the Light directly, or the beam mesh desyncs.
+- Beam mesh is built ONCE in `Awake()` as a generous bounding volume at `beamMaxLength × beamWidthScale`. It is **not** resized per frame. The shader ray-marches inside this bounding mesh and clips against `_FlashlightBeamEnd` (the per-frame raycast distance pushed from C#) plus the scene depth buffer. If you change `beamMaxLength`, `beamWidthScale`, `flashlightReach`, or the Light's `Spot Angle` at runtime, the mesh won't update — restart play mode.
+- The shader reads `_CameraDepthTexture`. URP's "Depth Texture" must be enabled on the active URP asset (it is on `PC_RPAsset`; check Mobile if you're targeting it).
+- Raycast layer mask excludes the Player layer (6) by default. If your player uses a different layer, update `beamHitMask` or rays will self-hit and the beam collapses to zero length.
+- Toggle through the script's `SetEnabled`, not the Light directly, or the beam-renderer desyncs.

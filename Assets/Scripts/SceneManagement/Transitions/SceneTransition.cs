@@ -54,6 +54,21 @@ public class SceneTransition : MonoBehaviour, ITriggerable
 
     private bool busy;
     private GameObject lastInitiator;
+    private float busySetAt;
+    private const float BusyMaxSeconds = 20f;
+
+    private void Update()
+    {
+        // Self-heal: if busy has been stuck longer than any plausible transition,
+        // something didn't clean up (host destroyed, coroutine cancelled, scene
+        // unload mid-flight). Force-clear so the volume can fire again next time.
+        if (busy && Time.unscaledTime - busySetAt > BusyMaxSeconds)
+        {
+            Debug.LogWarning($"[SceneTransition] '{name}' (instId={GetInstanceID()}) busy stuck for {Time.unscaledTime - busySetAt:0.0}s — force-clearing. Original initiator={(lastInitiator != null ? lastInitiator.name : "<null>")}", this);
+            busy = false;
+            lastInitiator = null;
+        }
+    }
 
     public bool IsBusy => busy;
     public SceneDestination Destination => destination;
@@ -67,11 +82,34 @@ public class SceneTransition : MonoBehaviour, ITriggerable
 
     public bool CanTrigger(GameObject initiator)
     {
-        if (busy) return false;
+        // Dedup throttles by (instId, reason) once per second so we see flips
+        // (busy↔lockout) without flooding when nothing changes.
+        if (busy)
+        {
+            LogDeniedThrottled("busy", $"lastInitiator={(lastInitiator != null ? lastInitiator.name : "<null>")}, frame={Time.frameCount}");
+            return false;
+        }
         if (initiator == null) return false;
-        if (destination == null || !destination.IsValid()) return false;
-        if (IsLockedOut(initiator)) return false;
+        if (destination == null || !destination.IsValid())
+        {
+            LogDeniedThrottled("dest-invalid", $"destination={(destination == null ? "null" : "IsValid=false")}, InteriorManager.Instance={(InteriorManager.Instance == null ? "<null>" : "alive")}");
+            return false;
+        }
+        if (IsLockedOut(initiator))
+        {
+            LogDeniedThrottled("locked-out", $"initiator={initiator.name}, remaining={s_lockoutUntil[initiator.GetInstanceID()] - Time.unscaledTime:0.00}s");
+            return false;
+        }
         return true;
+    }
+
+    private static readonly Dictionary<(int, string), float> s_lastDeniedLog = new();
+    private void LogDeniedThrottled(string reason, string extra)
+    {
+        var key = (GetInstanceID(), reason);
+        if (s_lastDeniedLog.TryGetValue(key, out var last) && Time.unscaledTime - last < 1f) return;
+        s_lastDeniedLog[key] = Time.unscaledTime;
+        Debug.Log($"[SceneTransition] '{name}' (instId={GetInstanceID()}) CanTrigger=false: {reason} ({extra})", this);
     }
 
     private static bool IsLockedOut(GameObject initiator)
@@ -104,8 +142,9 @@ public class SceneTransition : MonoBehaviour, ITriggerable
             return null;
         }
         busy = true;
+        busySetAt = Time.unscaledTime;
         lastInitiator = initiator;
-        Debug.Log($"[SceneTransition] '{name}' Trigger firing for {initiator.name}", this);
+        Debug.Log($"[SceneTransition] '{name}' (instId={GetInstanceID()}) Trigger firing for {initiator.name} [busy<-true, frame={Time.frameCount}]", this);
         // Run on TransitionRunner (DontDestroyOnLoad). The host GameObject may be
         // inside a scene that the destination unloads — if the coroutine ran on us,
         // it would die mid-transition and effects would never receive End().
@@ -116,6 +155,7 @@ public class SceneTransition : MonoBehaviour, ITriggerable
     {
         string label = name;
         var handles = new List<EffectHandle>();
+        int instId = GetInstanceID();
 
         if (effects != null)
         {
@@ -127,6 +167,15 @@ public class SceneTransition : MonoBehaviour, ITriggerable
             }
         }
 
+        // Arm the cross-transition lockout BEFORE the destination runs. The destination
+        // can teleport the initiator into another SceneTransition's volume (e.g. an exit
+        // teleporting the player back into the entrance volume); without an early lockout,
+        // that volume's OnTriggerEnter fires on the same frame and re-fires the entrance
+        // before we've had a chance to clear our own busy. Refresh the lockout again
+        // after Apply so the full duration always extends past landing.
+        if (initiator != null && postTransitionLockoutSeconds > 0f)
+            s_lockoutUntil[initiator.GetInstanceID()] = Time.unscaledTime + postTransitionLockoutSeconds;
+
         // Wait for any effect that wants to block the load (e.g. a walk-through
         // cutscene that must play before the teleport). Out-phases run in parallel —
         // we yield each one in turn, so total wait is the slowest.
@@ -136,28 +185,25 @@ public class SceneTransition : MonoBehaviour, ITriggerable
         yield return destination.Apply(initiator);
         Debug.Log($"[SceneTransition] '{label}' destination applied; running in-phase.");
 
-        // Arm the cross-transition lockout once the initiator has landed. Prevents an
-        // exit volume from firing on the spawn frame, or any other immediate bounce.
-        // Keyed on InstanceID; entry is harmlessly orphaned if the initiator is destroyed
-        // before expiry (next Trigger that reads it sees Time >= until and clears it).
         if (initiator != null && postTransitionLockoutSeconds > 0f)
             s_lockoutUntil[initiator.GetInstanceID()] = Time.unscaledTime + postTransitionLockoutSeconds;
 
-        foreach (var h in handles) h.End();
-        foreach (var h in handles) yield return h.AwaitCompletion();
-
-        // Clear busy on this component if it still exists. If our scene was unloaded
-        // mid-transition the SceneTransition is gone — no busy flag to clear, no leak.
+        // Clear busy as soon as the destination has landed — the remaining work
+        // (in-phase fades) is cosmetic and must not gate the next trigger. If we
+        // wait until AwaitCompletion and that hangs or throws, busy never clears
+        // and the volume becomes permanently dead (the original bug).
         if (this != null)
         {
             busy = false;
             lastInitiator = null;
-            Debug.Log($"[SceneTransition] '{label}' complete; busy cleared.");
+            Debug.Log($"[SceneTransition] '{label}' (instId={instId}) destination done; busy cleared [frame={Time.frameCount}].");
         }
-        else
-        {
-            Debug.Log($"[SceneTransition] '{label}' complete but host destroyed mid-flow; no state to clear.");
-        }
+
+        foreach (var h in handles) h.End();
+        foreach (var h in handles) yield return h.AwaitCompletion();
+
+        if (this == null)
+            Debug.Log($"[SceneTransition] '{label}' in-phase complete but host destroyed.");
     }
 
 #if UNITY_EDITOR

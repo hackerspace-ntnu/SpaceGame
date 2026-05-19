@@ -30,6 +30,7 @@ public class InteriorSceneDestination : SceneDestination
         if (!IsValid() || initiator == null) yield break;
 
         Scene before = initiator.scene;
+        Debug.Log($"[InteriorSceneDestination] Apply: starting EnterInterior for '{initiator.name}' (before.scene='{before.name}', target='{interior.SceneName}')", interior);
         InteriorManager.Instance.EnterInterior(initiator, interior);
 
         // InteriorManager finishes the move by calling MoveGameObjectToScene +
@@ -38,8 +39,14 @@ public class InteriorSceneDestination : SceneDestination
         // delay doesn't deadlock the transition (which would leave the door stuck busy
         // and any fade frozen on screen).
         float deadline = Time.unscaledTime + Mathf.Max(1f, timeoutSeconds);
+        float nextLog = Time.unscaledTime + 1f;
         while (initiator != null && initiator.scene == before)
         {
+            if (Time.unscaledTime >= nextLog)
+            {
+                Debug.Log($"[InteriorSceneDestination] Apply: still waiting for '{initiator.name}' to leave '{before.name}' (elapsed={(Time.unscaledTime - (deadline - timeoutSeconds)):0.0}s, scene='{initiator.scene.name}')", interior);
+                nextLog = Time.unscaledTime + 1f;
+            }
             if (Time.unscaledTime >= deadline)
             {
                 Debug.LogError(
@@ -52,5 +59,6 @@ public class InteriorSceneDestination : SceneDestination
             }
             yield return null;
         }
+        Debug.Log($"[InteriorSceneDestination] Apply: '{initiator?.name}' arrived in '{initiator?.scene.name}'", interior);
     }
 }

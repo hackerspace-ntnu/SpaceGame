@@ -132,6 +132,33 @@ public class CaveGenerationSettings
     public float verticalShaftRadius = 2.5f;
 
     // -------------------------------------------------------------------------
+    // Entrance — every cave gets one entrance tunnel: a "thick spaghetti" of
+    // uniform-radius segments winding gently downwards from a mouth node at the
+    // top of the footprint into the highest cave room. No big chamber — just a
+    // small walkable tube. The CaveSpawner hooks the InteriorAnchor + player
+    // spawn + dark exit cut to the mouth node.
+    // -------------------------------------------------------------------------
+
+    [Header("Entrance")]
+    [Tooltip("Generate the dedicated entrance tunnel. Leave on — the transition/spawn system depends on it.")]
+    public bool generateEntrance = true;
+
+    [Tooltip("Uniform radius (metres) of every entrance tunnel segment. A 'thick spaghetti' — wide enough to walk, but a tube, not a room.")]
+    [Range(1f, 4f)] public float entranceTubeRadius = 1.8f;
+
+    [Tooltip("Number of segments the entrance tube is built from. More = longer, windier spaghetti.")]
+    [Range(2, 12)] public int entranceSegmentCount = 5;
+
+    [Tooltip("Length (metres) of each entrance tube segment.")]
+    [Range(3f, 14f)] public float entranceSegmentLength = 7f;
+
+    [Tooltip("Downward slope of the entrance tube as |dy|/horizontal — kept low so the tube is comfortably walkable. 0.25 ≈ 14°.")]
+    [Range(0.05f, 0.5f)] public float entranceTubeSlope = 0.22f;
+
+    [Tooltip("How much each segment may wander left/right in heading (degrees) — gives the tube its winding spaghetti shape without breaking walkability.")]
+    [Range(0f, 70f)] public float entranceTubeWander = 35f;
+
+    // -------------------------------------------------------------------------
     // Floor flattening (critical for NavMesh quality)
     // -------------------------------------------------------------------------
 

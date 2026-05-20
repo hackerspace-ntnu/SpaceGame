@@ -12,6 +12,17 @@ public class CaveGraph
     public readonly List<CaveRoom> Rooms = new();
     public readonly List<CaveCorridor> Corridors = new();
 
+    /// <summary>
+    /// Index into <see cref="Rooms"/> of the cave's single entrance chamber, or -1 if none was
+    /// generated. The entrance chamber is the highest point of the cave, thin, and a dead end.
+    /// <see cref="CaveSpawner"/> places the InteriorAnchor + player spawn + dark exit cover here.
+    /// </summary>
+    public int EntranceRoomId = -1;
+
+    /// <summary>The entrance chamber room, or null if <see cref="EntranceRoomId"/> is unset.</summary>
+    public CaveRoom? EntranceRoom =>
+        EntranceRoomId >= 0 && EntranceRoomId < Rooms.Count ? Rooms[EntranceRoomId] : (CaveRoom?)null;
+
     public Bounds ComputeBounds(float padding = 0f)
     {
         if (Rooms.Count == 0) return new Bounds(Vector3.zero, Vector3.one);

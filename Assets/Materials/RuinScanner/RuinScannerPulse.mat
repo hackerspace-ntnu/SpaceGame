@@ -25,15 +25,20 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _LineIntensity: 8
-    - _RayIntensity: 3
-    - _ScannedAlpha: 0.06
+    - _ConeAlpha: 0.04
+    - _EdgeSoft: 0.35
+    - _TipFade: 0.15
     - _Progress: 0
-    - _BandWidth: 0.025
-    - _BandSharpness: 8
-    - _EdgeFade: 0.06
-    - _NearLimit: 0.4
-    - _FarLimit: 1
+    - _ScanlineFreq: 60
+    - _ScanlineSpeed: 2.5
+    - _ScanlineDepth: 0.6
+    - _PulseSpeed: 1.5
+    - _PulseWidth: 0.18
+    - _PulseBoost: 1.6
+    - _Flicker: 0.35
+    - _FlickerSpeed: 22
+    - _Jitter: 0.06
+    - _RimGlow: 1.5
     m_Colors:
     - _Color: {r: 0.45, g: 0.95, b: 1, a: 1}
   m_BuildTextureStacks: []

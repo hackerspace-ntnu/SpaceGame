@@ -6,6 +6,11 @@ public enum RoomKind
     BigChamber,
     Junction,
     DeadEnd,
+    /// <summary>
+    /// The cave's single entrance chamber. Highest point of the cave, thin radius, always a
+    /// dead end. Holds the entrance anchor + player spawn and is capped by the dark exit cover.
+    /// </summary>
+    Entrance,
 }
 
 [System.Serializable]

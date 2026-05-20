@@ -8,6 +8,7 @@ public enum CorridorKind
     Bridge,      // added by the connectivity pass to merge disjoint components
     Slot,        // tall narrow slit (slot canyon)
     Shaft,       // near-vertical shaft / chimney (drops slope rule, vertical capsule)
+    Entrance,    // thin dead-end passage leading up to the cave's single entrance chamber
 }
 
 [System.Serializable]

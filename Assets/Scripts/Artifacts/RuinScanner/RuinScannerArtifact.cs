@@ -136,12 +136,10 @@ public class RuinScannerArtifact : ToolItem
         // Center ray.
         float centerSlant = CastSlant(beamOrigin, aimDir, maxBeamDistance, revealed, ref anyHit);
 
-        // Rim rings — each (ring, segment) has its own slant length.
-        // Outer rim ring (ring == detectionRings) drives the visual mesh's
-        // base ring per radial segment.
+        // Rim rings — sample the detection cone with one ray per (ring,
+        // segment) so secrets anywhere inside the cone get revealed.
         int rings = Mathf.Max(1, detectionRings);
         int segs = Mathf.Max(4, detectionRadialSegments);
-        var outerRimSlants = new float[segs];
         Vector3 axisEnd = beamOrigin + aimDir * maxBeamDistance;
         for (int ring = 1; ring <= rings; ring++)
         {
@@ -154,26 +152,32 @@ public class RuinScannerArtifact : ToolItem
                 Vector3 target = axisEnd + rimOffset;
                 Vector3 dir = (target - beamOrigin).normalized;
                 float maxSlant = Vector3.Distance(beamOrigin, target);
-                float slant = CastSlant(beamOrigin, dir, maxSlant, revealed, ref anyHit);
-                if (ring == rings) outerRimSlants[s] = slant;
+                CastSlant(beamOrigin, dir, maxSlant, revealed, ref anyHit);
             }
         }
 
         foreach (var s in revealed) s.Reveal(revealDuration);
 
         // ---- Visual pulse ----
-        // Only show the pulse when the beam actually landed on something —
-        // firing into open sky shouldn't produce a ground scan.
-        // Mesh base ring follows the outer rim slants so the cone bulges out
-        // wherever rays travelled further. minBeamDistance keeps the beam
-        // visible at point-blank.
+        // A single cone of light rooted on the scanner muzzle, aimed along the
+        // scan direction. Only shown when the beam landed on something —
+        // firing into open sky shouldn't produce a scan cone.
         if (pulseMaterial != null && anyHit)
         {
-            float visibleCenter = Mathf.Max(minBeamDistance, centerSlant);
-            float[] visibleRim = new float[segs];
-            for (int s = 0; s < segs; s++)
-                visibleRim[s] = Mathf.Max(minBeamDistance, outerRimSlants[s]);
-            RuinScannerPulse.Spawn(beamOrigin, aimDir, right, up, baseRadius, visibleCenter, visibleRim, pulseDuration, pulseMaterial);
+            // The detection cone fans out from the raised top-down origin; the
+            // visual cone instead starts at the muzzle and reaches the same
+            // scanned ground, so it looks like light shot from the gun.
+            Vector3 scanPoint = beamOrigin + aimDir * Mathf.Max(minBeamDistance, centerSlant);
+            Vector3 coneDir   = scanPoint - muzzleT.position;
+            float   coneLen   = Mathf.Max(minBeamDistance, coneDir.magnitude);
+            if (coneDir.sqrMagnitude > 0.0001f) coneDir.Normalize();
+            else coneDir = aimDir;
+
+            // Base radius at the cone's far end, from the same half-angle.
+            float coneBaseRadius = coneLen * Mathf.Tan(coneHalfAngleDegrees * Mathf.Deg2Rad);
+
+            RuinScannerPulse.Spawn(muzzleT.position, coneDir, coneBaseRadius, coneLen,
+                pulseDuration, pulseMaterial, muzzleTracker: muzzleT);
         }
 
         // ---- Discovery audio cue ----

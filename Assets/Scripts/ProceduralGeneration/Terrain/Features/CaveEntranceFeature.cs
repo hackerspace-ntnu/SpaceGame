@@ -3,57 +3,70 @@ using UnityEngine;
 /// <summary>
 /// Per-feature settings for <see cref="CaveEntranceFeature"/>. All values tunable in the spawner
 /// inspector via the <c>[SerializeReference]</c> settings object; kept separate from the shared
-/// <see cref="TerrainFeatureTuning"/> so the four mandated knobs remain untouched.
+/// <see cref="TerrainFeatureTuning"/> so the four mandated knobs remain untouched. These knobs let
+/// the designer dial the feature from a small boulder-with-a-hole up to a big mine-shaft hillside.
 /// </summary>
 [System.Serializable]
 public class CaveEntranceSettings
 {
-    [Tooltip("Radius of the tunnel mouth carved into the rock face, in metres.")]
-    [Range(1.5f, 8f)] public float mouthRadius = 3.5f;
+    [Tooltip("Radius of the main rock mass, in metres. Small = a boulder you could walk around; " +
+             "large = a whole hillside. The whole entrance scales around this.")]
+    [Range(6f, 40f)] public float rockRadius = 16f;
 
-    [Tooltip("How far the tunnel throat penetrates inward before dead-ending, in metres.")]
-    [Range(4f, 24f)] public float tunnelDepth = 10f;
+    [Tooltip("How far the rock mass rises above the terrain, as a fraction of rockRadius. " +
+             "Larger = a tall, prominent landmark hill rather than a flat mound.")]
+    [Range(0.6f, 2f)] public float rockHeightScale = 1.1f;
 
-    [Tooltip("How much rock mass surrounds the opening. 0 = a minimal rocky lip framing the " +
-             "mouth; 1 = a large hillside. Scales rock-blob size and count.")]
-    [Range(0f, 1f)] public float surroundingRockAmount = 0.5f;
+    [Tooltip("Width of the tunnel mouth bored into the rock face, in metres (left-to-right span).")]
+    [Range(2f, 10f)] public float entranceWidth = 4.5f;
+
+    [Tooltip("Height of the tunnel mouth, in metres (floor-to-lintel). Should comfortably clear " +
+             "a walking agent.")]
+    [Range(2.5f, 9f)] public float entranceHeight = 4f;
+
+    [Tooltip("How far the tunnel throat bores straight into the rock before dead-ending, in metres.")]
+    [Range(5f, 30f)] public float tunnelDepth = 14f;
 
     [Tooltip("Vertical slope of the tunnel throat. 0 = runs flat into the mountain; negative = " +
-             "the throat descends down into the mountain as it goes inward. Drives the throat " +
-             "end Y drop and the walkable floor slope.")]
-    [Range(-1f, 1f)] public float descentSlope = -0.25f;
+             "the throat descends down into the mountain like a mine shaft as it goes inward.")]
+    [Range(-1f, 0.4f)] public float descentSlope = -0.2f;
 
-    [Tooltip("How far the rock brow juts forward over the mouth, as a fraction of mouthRadius. " +
-             "Larger = a deeper overhang shading the opening.")]
-    [Range(0.1f, 1f)] public float browOverhang = 0.5f;
+    [Tooltip("How far the rock brow/lintel juts forward over the mouth, as a fraction of the " +
+             "entrance height. Larger = a deeper, more sheltering overhang above the portal.")]
+    [Range(0f, 1f)] public float browOverhang = 0.45f;
 
-    [Tooltip("Smooth-min blend radius for carving the mouth and blending blobs. Larger = more " +
-             "eroded, rounded edges.")]
-    [Range(0.5f, 6f)] public float smoothBlendK = 2.5f;
+    [Tooltip("Smooth-min blend radius for fusing the rock blobs and carving the mouth. Larger = " +
+             "more eroded, rounded rock; smaller = sharper, blockier rock.")]
+    [Range(0.5f, 5f)] public float smoothBlendK = 2f;
 
-    [Tooltip("Noise amplitude eroding the rock surface as an SDF displacement, in metres.")]
-    [Range(0f, 4f)] public float surfaceNoiseAmplitude = 1.8f;
+    [Tooltip("Noise amplitude eroding the rock surface as an SDF displacement, in metres. Gives " +
+             "the mass a natural crumbling-sandstone look instead of smooth geometric solids.")]
+    [Range(0f, 4f)] public float surfaceNoiseAmplitude = 1.6f;
 }
 
 /// <summary>
-/// Surface cave entrance: a sandstone rocky outcrop rising from the terrain with a tunnel mouth
-/// carved into its face and an overhanging brow of rock above the opening. The brow juts forward
-/// over the mouth — a genuine 3D overhang — hence the Voxel density. The throat can be tuned to
-/// descend down into the mountain or run flat, and the surrounding rock mass scales from a small
-/// outcrop to a whole hillside.
+/// Surface MINE ENTRANCE: a big chunky rock mass / hillside rising from the terrain with a clear,
+/// deliberate tunnel portal bored straight into its face. The portal is framed by rock on every
+/// side (a brow/lintel above, jambs on both sides, a walkable floor below) and the tunnel throat
+/// bores a short distance inward and dead-ends — the real interior is a separate scene system.
 ///
 /// Construction layers (negative = solid rock, positive = air):
 ///   1. ROCK MASS  — several spheres blended with <see cref="SdfPrimitives.SmoothMin"/> so the
-///      silhouette reads as a natural outcrop, not one perfect dome. Its base is anchored to
-///      <see cref="FeatureContext.LocalGroundHeight"/> so it sits on and rises above the terrain.
-///   2. THROAT     — a capsule smooth-subtracted from the mass, opening on the face at ground
-///      level and dead-ending inward; <c>descentSlope</c> tilts the inner end downward.
-///   3. BROW       — only the lower part of the face is carved, so the rock above the mouth stays
-///      solid and overhangs the opening.
-///   4. FLOOR      — a LOCAL slope-tracking flatten masked to the throat region only, giving
-///      NavMeshAgents a walkable floor that follows the descent without flattening the whole volume.
-///   5. EROSION    — <see cref="NoiseDistortion"/> displaces the iso-surface so it reads as
-///      crumbling sandstone rather than smooth geometric solids.
+///      silhouette reads as a lumpy natural rock hill, not one perfect dome. Its base is anchored
+///      to <see cref="FeatureContext.LocalGroundHeight"/> so it sits on and rises well above the
+///      terrain as a landmark. Size driven by <see cref="CaveEntranceSettings.rockRadius"/>.
+///   2. PORTAL     — a roughly rectangular tunnel mouth (an axis-aligned rounded box) smooth-
+///      subtracted from the mass at ground level, so an agent walks straight in. Its size is
+///      driven by <see cref="CaveEntranceSettings.entranceWidth"/> / <c>entranceHeight</c>.
+///   3. THROAT     — the opening continues inward as a capsule that dead-ends; <c>descentSlope</c>
+///      tilts the inner end downward like a mine shaft.
+///   4. BROW       — only the lower face is carved: the carve is inflated above the lintel line so
+///      the rock above the mouth stays solid and overhangs the portal.
+///   5. FLOOR      — a LOCAL slope-tracking flatten masked to the throat region ONLY, giving
+///      NavMeshAgents a walkable floor that follows the descent without flattening the whole
+///      volume (the old infinite-half-space-plane bug is deliberately NOT reintroduced).
+///   6. EROSION    — <see cref="NoiseDistortion"/> displaces the iso-surface near the surface only
+///      so it reads as crumbling sandstone and cannot punch spurious holes.
 ///
 /// Path orientation: when a valid <see cref="FeaturePath"/> is present the tunnel axis follows its
 /// first-segment direction (mouth at path start, throat inward); otherwise it faces the box long
@@ -93,57 +106,63 @@ public sealed class CaveEntranceFeature : TerrainFeature
         Vector2 centreXZ = new Vector2(context.LocalBounds.center.x, context.LocalBounds.center.z);
         float groundY = context.LocalGroundHeight(centreXZ.x, centreXZ.y);
 
-        // --- Rock-mass size scales with surroundingRockAmount. ------------------------------
-        // Low amount = a minimal lip just bigger than the mouth; high = a broad hillside.
-        float massRadius = Mathf.Lerp(cfg.mouthRadius * 1.8f, cfg.mouthRadius * 5.5f,
-                                      cfg.surroundingRockAmount);
-        float massHeight = TerrainNoiseHelper.VariedHeight(tuning.height, tuning, seed)
-                           + massRadius * 0.6f;
+        // --- Rock-mass dimensions. ----------------------------------------------------------
+        float rockR = cfg.rockRadius;
+        float rockH = rockR * cfg.rockHeightScale;          // total rise above the terrain
 
-        // --- Tunnel axis (horizontal). ------------------------------------------------------
+        // --- Tunnel axis (horizontal travel direction into the rock). -----------------------
         Vector3 dir = TunnelDirection(context);
 
-        // Mouth opens on the rock face at ground level so an agent walks straight in. The mass
-        // centre sits BEHIND the mouth so the bulk of the rock is over and around the opening.
-        Vector3 mouthCentre = new Vector3(centreXZ.x, groundY + cfg.mouthRadius, centreXZ.y);
-        Vector3 massCentre = mouthCentre - dir * massRadius * 0.55f;
-        massCentre.y = groundY + massHeight * 0.5f;
+        // --- Portal half-extents. The mouth opens on the rock face at ground level so an agent
+        //     walks straight in; its floor sits ON the terrain. ------------------------------
+        float halfW = cfg.entranceWidth * 0.5f;
+        float halfH = cfg.entranceHeight * 0.5f;
+        Vector3 sideAxis = new Vector3(-dir.z, 0f, dir.x);  // horizontal, perpendicular to dir
+        Vector3 mouthCentre = new Vector3(centreXZ.x, groundY + halfH, centreXZ.y);
 
-        // Throat: punched inward; descentSlope drops the inner end down into the mountain.
-        float endDrop = Mathf.Clamp(cfg.descentSlope, -1f, 1f) * cfg.tunnelDepth;
+        // The mass centre sits BEHIND and slightly into the mouth so the bulk of rock frames and
+        // overhangs the opening rather than burying it.
+        Vector3 massCentre = mouthCentre - dir * rockR * 0.45f;
+        massCentre.y = groundY + rockH * 0.42f;
+
+        // Throat: bores inward from just behind the portal; descentSlope drops the inner end.
+        float endDrop = Mathf.Clamp(cfg.descentSlope, -1f, 0.4f) * cfg.tunnelDepth;
+        Vector3 throatStart = mouthCentre + dir * halfW;     // start inside the portal box
         Vector3 throatEnd = mouthCentre - dir * cfg.tunnelDepth + Vector3.up * endDrop;
 
-        // --- Surrounding blobs: deterministic offsets give an organic, lumpy outcrop. -------
-        int blobCount = 1 + Mathf.RoundToInt(cfg.surroundingRockAmount * 3f);
-        var blobs = new Vector4[blobCount];               // xyz = centre, w = radius
-        blobs[0] = new Vector4(massCentre.x, massCentre.y, massCentre.z, massRadius);
+        // --- Surrounding blobs: deterministic offsets give an organic, lumpy rock hill. -----
+        const int blobCount = 4;
+        var blobs = new Vector4[blobCount];                  // xyz = centre, w = radius
+        blobs[0] = new Vector4(massCentre.x, massCentre.y, massCentre.z, rockR);
         for (int i = 1; i < blobCount; i++)
         {
             float ang = TerrainNoiseHelper.Hash01(seed, i * 7 + 1) * Mathf.PI * 2f;
-            float dist = massRadius * (0.4f + TerrainNoiseHelper.Hash01(seed, i * 7 + 2) * 0.6f);
-            float r = massRadius * (0.45f + TerrainNoiseHelper.Hash01(seed, i * 7 + 3) * 0.4f);
+            float dist = rockR * (0.35f + TerrainNoiseHelper.Hash01(seed, i * 7 + 2) * 0.55f);
+            float r = rockR * (0.5f + TerrainNoiseHelper.Hash01(seed, i * 7 + 3) * 0.45f);
             float bx = massCentre.x + Mathf.Cos(ang) * dist;
             float bz = massCentre.z + Mathf.Sin(ang) * dist;
-            float by = groundY + r * (0.55f + TerrainNoiseHelper.Hash01(seed, i * 7 + 4) * 0.4f);
+            float by = groundY + r * (0.45f + TerrainNoiseHelper.Hash01(seed, i * 7 + 4) * 0.5f);
             blobs[i] = new Vector4(bx, by, bz, r);
         }
 
         // --- Capture immutables for the deterministic SDF lambda. ---------------------------
-        float mouthR = cfg.mouthRadius;
         float blendK = cfg.smoothBlendK;
-        float browK = cfg.browOverhang;
+        float browInflate = halfH * 2f * cfg.browOverhang;   // how hard the brow caps the carve
         float noiseAmp = cfg.surfaceNoiseAmplitude * Mathf.Lerp(0.5f, 1.5f, tuning.jaggedness);
         float noiseFreq = tuning.noiseScale;
         var noiseType = (CaveNoiseType)(int)tuning.noiseType;
         float warpStr = tuning.domainWarpStrength;
-        Vector3 mouth = mouthCentre, end = throatEnd;
-        float groundLevel = groundY;
+        Vector3 mouth = mouthCentre, tStart = throatStart, tEnd = throatEnd;
+        Vector3 fwd = dir, side = sideAxis;
+        float portalHalfW = halfW, portalHalfH = halfH;
+        float throatR = Mathf.Min(halfW, halfH) * 0.95f;     // throat radius from portal size
+        float lintelY = mouthCentre.y + halfH;               // top of the portal opening
         Vector4[] rockBlobs = blobs;
 
         // --- SDF lambda ---------------------------------------------------------------------
         System.Func<Vector3, float> sdf = p =>
         {
-            // 1. Rock mass — blended blobs form a natural lumpy outcrop.
+            // 1. Rock mass — blended blobs form a chunky lumpy rock hill.
             float dRock = 1e6f;
             for (int i = 0; i < rockBlobs.Length; i++)
             {
@@ -152,35 +171,37 @@ public sealed class CaveEntranceFeature : TerrainFeature
                 dRock = SdfPrimitives.SmoothMin(dRock, s, blendK);
             }
 
-            // 2. Throat capsule. Only carve the LOWER face: shrink the carve smoothly above the
-            //    mouth so the rock above stays solid → genuine overhanging brow.
-            float dThroat = SdfPrimitives.Capsule(p, mouth, end, mouthR);
-            float browLine = mouth.y + mouthR * (1f - browK);
-            if (p.y > browLine)
+            // 2. PORTAL — a rounded box opening (the deliberate rectangular mine-mouth) plus the
+            //    THROAT capsule continuing inward. Union of the two gives air the agent walks into.
+            float dPortal = RoundedBoxOpening(p, mouth, fwd, side, portalHalfW, portalHalfH);
+            float dThroat = SdfPrimitives.Capsule(p, tStart, tEnd, throatR);
+            float dOpening = SdfPrimitives.SmoothMin(dPortal, dThroat, blendK * 0.5f);
+
+            // 3. BROW — keep the rock above the lintel solid: inflate the opening SDF above the
+            //    lintel line so it stops carving, leaving a solid rock brow jutting over the mouth.
+            if (p.y > lintelY)
             {
-                // Inflate (push positive = toward air-only) the throat SDF above the brow line so
-                // it stops carving, leaving a solid rock lip jutting over the opening.
-                dThroat += (p.y - browLine);
+                dOpening += (p.y - lintelY) + browInflate;
             }
 
-            // 3. Smooth-subtract the throat from the rock mass: union(rock, -throat).
-            float dCarved = SdfPrimitives.SmoothMin(dRock, -dThroat, blendK);
+            // 4. Smooth-subtract the opening from the rock mass: union(rock, -opening).
+            float dCarved = SdfPrimitives.SmoothMin(dRock, -dOpening, blendK);
 
-            // 4. LOCAL walkable floor — masked to the throat region ONLY so it never flattens the
-            //    whole volume (the old bug: ApplyFloorFlatten cut an INFINITE half-space plane).
-            //    The floor Y follows the throat axis, so it tracks the descentSlope and stays
-            //    navmeshable. The mask falls off with distance to the throat axis.
-            Vector3 axisPt = ClosestPointOnSegment(p, mouth, end);
+            // 5. LOCAL walkable floor — masked to the throat region ONLY so it never flattens the
+            //    whole volume (the old bug cut an INFINITE half-space plane). The floor Y follows
+            //    the throat axis so it tracks descentSlope and stays navmeshable; the mask falls
+            //    off with horizontal distance to the throat axis.
+            Vector3 axisPt = ClosestPointOnSegment(p, mouth, tEnd);
             float axisDist = new Vector2(p.x - axisPt.x, p.z - axisPt.z).magnitude;
-            float floorMask = 1f - Mathf.Clamp01(axisDist / (mouthR + blendK));
+            float floorMask = 1f - Mathf.Clamp01(axisDist / (portalHalfW + blendK));
             if (floorMask > 0f && dCarved > 0f)
             {
-                float floorY = axisPt.y - mouthR * 0.85f;        // walkable floor under the axis
+                float floorY = axisPt.y - portalHalfH * 0.92f;   // walkable floor under the axis
                 float halfSpace = floorY - p.y;                  // solid below floorY
                 dCarved = Mathf.Lerp(dCarved, Mathf.Max(dCarved, halfSpace), floorMask);
             }
 
-            // 5. Surface erosion — displace only near the iso-surface so noise cannot pop pockets.
+            // 6. Surface erosion — displace only near the iso-surface so noise cannot pop pockets.
             if (noiseAmp > 0f)
             {
                 float falloff = 1f - Mathf.Clamp01(Mathf.Abs(dCarved) / Mathf.Max(0.01f, noiseAmp * 2f));
@@ -203,10 +224,11 @@ public sealed class CaveEntranceFeature : TerrainFeature
             lo = Vector3.Min(lo, new Vector3(b.x - b.w, b.y - b.w, b.z - b.w));
             hi = Vector3.Max(hi, new Vector3(b.x + b.w, b.y + b.w, b.z + b.w));
         }
-        foreach (Vector3 t in new[] { mouthCentre, throatEnd })
+        float reach = Mathf.Max(portalHalfW, portalHalfH) + throatR;
+        foreach (Vector3 t in new[] { mouthCentre, throatStart, throatEnd })
         {
-            lo = Vector3.Min(lo, t - Vector3.one * mouthR);
-            hi = Vector3.Max(hi, t + Vector3.one * mouthR);
+            lo = Vector3.Min(lo, t - Vector3.one * reach);
+            hi = Vector3.Max(hi, t + Vector3.one * reach);
         }
         lo -= Vector3.one * pad;
         hi += Vector3.one * pad;
@@ -218,6 +240,31 @@ public sealed class CaveEntranceFeature : TerrainFeature
     // -----------------------------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// SDF of a rounded, axis-oriented box opening — the deliberate rectangular mine-mouth. The box
+    /// is centred at <paramref name="centre"/>, oriented by the horizontal <paramref name="fwd"/>
+    /// (depth axis) and <paramref name="side"/> (width axis) with world-up as the height axis. It
+    /// is deep enough along <paramref name="fwd"/> to cut cleanly through the rock face; lateral
+    /// half-extents are <paramref name="halfW"/> (width) and <paramref name="halfH"/> (height).
+    /// Returned distance is slightly rounded so the portal has eroded, mine-like corners.
+    /// </summary>
+    static float RoundedBoxOpening(Vector3 p, Vector3 centre, Vector3 fwd, Vector3 side,
+                                   float halfW, float halfH)
+    {
+        Vector3 d = p - centre;
+        float along = Vector3.Dot(d, fwd);          // depth axis (into the rock)
+        float lat = Vector3.Dot(d, side);           // width axis
+        float up = d.y;                             // height axis
+        const float round = 0.6f;                   // corner-rounding radius
+        float halfDepth = halfW * 1.6f;             // generous depth so it pierces the face
+        Vector3 q = new Vector3(
+            Mathf.Abs(along) - halfDepth + round,
+            Mathf.Abs(up) - halfH + round,
+            Mathf.Abs(lat) - halfW + round);
+        Vector3 qMax = new Vector3(Mathf.Max(q.x, 0f), Mathf.Max(q.y, 0f), Mathf.Max(q.z, 0f));
+        return qMax.magnitude + Mathf.Min(Mathf.Max(q.x, Mathf.Max(q.y, q.z)), 0f) - round;
+    }
 
     /// <summary>
     /// Returns the normalised horizontal tunnel direction. Uses the path first-segment direction

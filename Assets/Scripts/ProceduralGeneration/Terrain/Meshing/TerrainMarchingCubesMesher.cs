@@ -4,21 +4,27 @@ using UnityEngine;
 /// <summary>
 /// Marching-cubes iso-surface extractor for terrain features. Adapted from the cave system's
 /// <c>MarchingCubesMesher</c>: same Paul-Bourke algorithm, same <see cref="MarchingCubesTables"/>
-/// lookup tables, but with two terrain-specific changes:
+/// lookup tables.
 ///
-///   1. WINDING — caves want normals facing inward (player sees the inside of the rock). Terrain
-///      is a solid lump seen from outside, so triangle winding is NOT reversed: normals face out.
-///   2. SURFACE-BAND WALK — for an <see cref="ITerrainDensity.IsHeightfield"/> density the mesher
-///      voxelises only a thin slab straddling the surface instead of the whole volume. This makes
-///      a heightfield feature cost scale with footprint AREA, not VOLUME (the performance mandate).
-///      For a voxel SDF density it walks the full bounds, exactly like the cave mesher.
+/// PERFORMANCE — the density field is sampled ONCE per grid point into a cached array, exactly
+/// like the cave mesher. A marching cube reads 8 corners, and every interior grid point is shared
+/// by up to 8 neighbouring cubes; sampling per-corner would evaluate the field ~8× more than
+/// necessary. For the voxel (overhang) path the density sample is expensive — multi-octave noise
+/// plus undercut maths — so caching is the difference between a fast bake and a slow one.
 ///
-/// Output is a feature-local-space <see cref="Mesh"/>, smoothed via the shared
-/// <see cref="MeshSmoothingUtility"/> and given gradient or flat normals — terrain must not look
-/// flat-faceted, so smoothing defaults on.
+/// Two density kinds:
+///   • HEIGHTFIELD — the cache is filled only for the thin Y band straddling the surface in each
+///     column (cost scales with footprint AREA). Rows outside the band are left "known solid /
+///     known air" and skipped.
+///   • VOXEL — the whole grid is cached and walked (real overhangs need the full volume).
+///
+/// Gradient normals also read the cached grid (trilinear) instead of re-sampling the field.
 /// </summary>
 public static class TerrainMarchingCubesMesher
 {
+    // Sentinel marking a grid cell that was never sampled (heightfield rows outside the band).
+    const float Unsampled = float.MaxValue;
+
     public static Mesh Build(ITerrainDensity density, TerrainMeshSettings settings)
     {
         if (settings == null) settings = new TerrainMeshSettings();
@@ -32,37 +38,28 @@ public static class TerrainMarchingCubesMesher
         int ny = Mathf.CeilToInt(size.y / voxel) + 1;
         int nz = Mathf.CeilToInt(size.z / voxel) + 1;
 
-        var verts = new List<Vector3>(2048);
-        var tris = new List<int>(4096);
-
-        Vector3[] cornerPos = new Vector3[8];
-        float[] cornerVal = new float[8];
-        Vector3[] edgeVerts = new Vector3[12];
-
-        // Vertical band half-thickness used to skip columns far from a heightfield surface.
+        // -------------------------------------------------------------------------
+        // 1) Sample the density field ONCE per grid point into a cached array.
+        //    Heightfield: only the band rows per column. Voxel: the whole grid.
+        // -------------------------------------------------------------------------
+        float[] grid = new float[nx * ny * nz];
         float bandHalf = settings.surfaceBandVoxels * voxel;
+        bool heightfield = density.IsHeightfield;
 
-        for (int z = 0; z < nz - 1; z++)
-        for (int x = 0; x < nx - 1; x++)
+        // Per-column band limits (heightfield only) — reused by the march pass so a cube never
+        // touches an Unsampled corner.
+        int[] colLo = heightfield ? new int[nx * nz] : null;
+        int[] colHi = heightfield ? new int[nx * nz] : null;
+
+        for (int z = 0; z < nz; z++)
+        for (int x = 0; x < nx; x++)
         {
-            // Heightfield fast-path: only march the voxels whose Y range straddles the surface.
-            //
-            // A marching cube at (x,y,z) reads 8 corners spanning the columns x..x+1, z..z+1, so
-            // its triangles can sit anywhere between THOSE columns' surface heights — not just this
-            // column's. On a steep feature (a butte wall, a cliff face, a narrow overlap band) the
-            // surface can jump tens of metres between adjacent columns; a band sized from this
-            // column alone would miss the connecting wall voxels and leave vertical holes.
-            //
-            // Fix: size the band from the min/max surface height over the 3x3 block of columns
-            // centred here. The band then auto-expands to exactly bridge the local steepness —
-            // cheap on flat ground, fully sealed on cliffs — without needing a large fixed
-            // surfaceBandVoxels.
-            int yLo = 0;
-            int yHi = ny - 1;
-            if (density.IsHeightfield)
+            int yLo = 0, yHi = ny - 1;
+            if (heightfield)
             {
-                float loSurf = float.MaxValue;
-                float hiSurf = float.MinValue;
+                // Band straddling the surface, sized from the 4×4 neighbour columns this point's
+                // cubes can read — so a steep wall between columns is always bridged.
+                float loSurf = float.MaxValue, hiSurf = float.MinValue;
                 for (int sz = -1; sz <= 2; sz++)
                 for (int sx = -1; sx <= 2; sx++)
                 {
@@ -72,23 +69,69 @@ public static class TerrainMarchingCubesMesher
                     if (s < loSurf) loSurf = s;
                     if (s > hiSurf) hiSurf = s;
                 }
-                yLo = Mathf.Clamp(Mathf.FloorToInt((loSurf - bandHalf - origin.y) / voxel), 0, ny - 2);
-                yHi = Mathf.Clamp(Mathf.CeilToInt((hiSurf + bandHalf - origin.y) / voxel), 0, ny - 2);
+                yLo = Mathf.Clamp(Mathf.FloorToInt((loSurf - bandHalf - origin.y) / voxel), 0, ny - 1);
+                yHi = Mathf.Clamp(Mathf.CeilToInt((hiSurf + bandHalf - origin.y) / voxel), 0, ny - 1);
+                colLo[x + z * nx] = yLo;
+                colHi[x + z * nx] = yHi;
+
+                // Rows outside the band: mark as Unsampled and skip the field call entirely.
+                for (int y = 0; y < ny; y++)
+                    if (y < yLo || y > yHi)
+                        grid[Idx(x, y, z, nx, ny)] = Unsampled;
+            }
+
+            for (int y = yLo; y <= yHi; y++)
+            {
+                Vector3 wp = origin + new Vector3(x * voxel, y * voxel, z * voxel);
+                grid[Idx(x, y, z, nx, ny)] = density.Sample(wp);
+            }
+        }
+
+        // -------------------------------------------------------------------------
+        // 2) March the voxels, reading corner densities from the cache.
+        // -------------------------------------------------------------------------
+        var verts = new List<Vector3>(2048);
+        var tris = new List<int>(4096);
+
+        Vector3[] cornerPos = new Vector3[8];
+        float[] cornerVal = new float[8];
+        Vector3[] edgeVerts = new Vector3[12];
+
+        for (int z = 0; z < nz - 1; z++)
+        for (int x = 0; x < nx - 1; x++)
+        {
+            // Heightfield: derive this cube column's Y range from the per-column band of all four
+            // columns the cube touches, so no cube ever reads an Unsampled corner.
+            int yLo = 0, yHi = ny - 2;
+            if (heightfield)
+            {
+                int lo = ny, hi = -1;
+                for (int sz = 0; sz <= 1; sz++)
+                for (int sx = 0; sx <= 1; sx++)
+                {
+                    int c = (x + sx) + (z + sz) * nx;
+                    if (colLo[c] < lo) lo = colLo[c];
+                    if (colHi[c] > hi) hi = colHi[c];
+                }
+                yLo = Mathf.Clamp(lo, 0, ny - 2);
+                yHi = Mathf.Clamp(hi - 1, 0, ny - 2);
             }
 
             for (int y = yLo; y <= yHi; y++)
             {
                 int cubeIndex = 0;
+                bool incomplete = false;
                 for (int i = 0; i < 8; i++)
                 {
                     var off = MarchingCubesTables.CornerOffsets[i];
-                    Vector3 cp = origin + new Vector3(
-                        (x + off[0]) * voxel, (y + off[1]) * voxel, (z + off[2]) * voxel);
-                    cornerPos[i] = cp;
-                    float v = density.Sample(cp);
+                    int cx = x + off[0], cy = y + off[1], cz = z + off[2];
+                    cornerPos[i] = origin + new Vector3(cx * voxel, cy * voxel, cz * voxel);
+                    float v = grid[Idx(cx, cy, cz, nx, ny)];
+                    if (v == Unsampled) { incomplete = true; break; }
                     cornerVal[i] = v;
                     if (v < 0f) cubeIndex |= (1 << i);
                 }
+                if (incomplete) continue;   // cube straddles the band edge — skip cleanly
 
                 int edges = MarchingCubesTables.EdgeTable[cubeIndex];
                 if (edges == 0) continue;
@@ -116,15 +159,15 @@ public static class TerrainMarchingCubesMesher
             }
         }
 
-        return Finalise(verts, tris, density, settings);
+        return Finalise(verts, tris, grid, origin, voxel, nx, ny, nz, settings);
     }
 
     /// <summary>
-    /// Builds the Unity mesh from the raw MC vertex/triangle lists and runs the shared smoothing /
-    /// normal passes. Smoothing is the visual workhorse — terrain MC output is blocky and must be
-    /// welded + Laplacian-smoothed (Taubin volume-preserving) so it does not read as faceted.
+    /// Builds the Unity mesh from the raw MC lists and runs smoothing / normals. Smoothing welds
+    /// and Laplacian-smooths the blocky MC output so it does not read as faceted.
     /// </summary>
-    static Mesh Finalise(List<Vector3> verts, List<int> tris, ITerrainDensity density, TerrainMeshSettings settings)
+    static Mesh Finalise(List<Vector3> verts, List<int> tris, float[] grid,
+        Vector3 origin, float voxel, int nx, int ny, int nz, TerrainMeshSettings settings)
     {
         Mesh mesh = new Mesh { name = "TerrainFeatureMesh" };
         if (settings.use32BitIndices)
@@ -154,35 +197,78 @@ public static class TerrainMarchingCubesMesher
             if (settings.recalculateTangents) mesh.RecalculateTangents();
         }
 
-        // Analytic gradient normals — same trick the cave mesher uses, but NOT negated: terrain
-        // normals point away from the solid (the density gradient already points solid→air).
+        // Gradient normals — derived from the CACHED grid (trilinear finite difference), so this
+        // costs zero extra density-field evaluations.
         if (settings.useGradientNormals)
-            ApplyGradientNormals(mesh, density, Mathf.Max(0.01f, settings.gradientEpsilon));
+            ApplyGradientNormals(mesh, grid, origin, voxel, nx, ny, nz);
 
         return mesh;
     }
 
     /// <summary>
-    /// Per-vertex normals from the density gradient. Identical maths to
-    /// <c>MeshSmoothingUtility.ApplyGradientNormals</c> but for the terrain (outward) convention,
-    /// so the gradient is used as-is rather than negated.
+    /// Per-vertex normals from the density gradient, sampled from the cached grid by trilinear
+    /// interpolation. The gradient points solid→air, which is the outward terrain normal.
     /// </summary>
-    static void ApplyGradientNormals(Mesh mesh, ITerrainDensity density, float epsilon)
+    static void ApplyGradientNormals(Mesh mesh, float[] grid,
+        Vector3 origin, float voxel, int nx, int ny, int nz)
     {
         var verts = mesh.vertices;
         var normals = new Vector3[verts.Length];
+        float h = voxel * 0.5f;
         for (int i = 0; i < verts.Length; i++)
         {
             Vector3 p = verts[i];
-            float dx = density.Sample(p + new Vector3(epsilon, 0, 0)) - density.Sample(p - new Vector3(epsilon, 0, 0));
-            float dy = density.Sample(p + new Vector3(0, epsilon, 0)) - density.Sample(p - new Vector3(0, epsilon, 0));
-            float dz = density.Sample(p + new Vector3(0, 0, epsilon)) - density.Sample(p - new Vector3(0, 0, epsilon));
+            float dx = SampleGrid(grid, p + new Vector3(h, 0, 0), origin, voxel, nx, ny, nz)
+                     - SampleGrid(grid, p - new Vector3(h, 0, 0), origin, voxel, nx, ny, nz);
+            float dy = SampleGrid(grid, p + new Vector3(0, h, 0), origin, voxel, nx, ny, nz)
+                     - SampleGrid(grid, p - new Vector3(0, h, 0), origin, voxel, nx, ny, nz);
+            float dz = SampleGrid(grid, p + new Vector3(0, 0, h), origin, voxel, nx, ny, nz)
+                     - SampleGrid(grid, p - new Vector3(0, 0, h), origin, voxel, nx, ny, nz);
             Vector3 grad = new Vector3(dx, dy, dz);
             float m = grad.magnitude;
             normals[i] = m > 1e-6f ? grad / m : Vector3.up;
         }
         mesh.SetNormals(normals);
     }
+
+    /// <summary>Trilinear sample of the cached density grid at a world-space point. Unsampled
+    /// corners (heightfield band edges) fall back to their nearest sampled neighbour's sign.</summary>
+    static float SampleGrid(float[] grid, Vector3 p, Vector3 origin, float voxel,
+        int nx, int ny, int nz)
+    {
+        float fx = (p.x - origin.x) / voxel;
+        float fy = (p.y - origin.y) / voxel;
+        float fz = (p.z - origin.z) / voxel;
+        int x0 = Mathf.Clamp(Mathf.FloorToInt(fx), 0, nx - 1);
+        int y0 = Mathf.Clamp(Mathf.FloorToInt(fy), 0, ny - 1);
+        int z0 = Mathf.Clamp(Mathf.FloorToInt(fz), 0, nz - 1);
+        int x1 = Mathf.Min(x0 + 1, nx - 1);
+        int y1 = Mathf.Min(y0 + 1, ny - 1);
+        int z1 = Mathf.Min(z0 + 1, nz - 1);
+        float tx = Mathf.Clamp01(fx - x0);
+        float ty = Mathf.Clamp01(fy - y0);
+        float tz = Mathf.Clamp01(fz - z0);
+
+        float c000 = G(grid, x0, y0, z0, nx, ny), c100 = G(grid, x1, y0, z0, nx, ny);
+        float c010 = G(grid, x0, y1, z0, nx, ny), c110 = G(grid, x1, y1, z0, nx, ny);
+        float c001 = G(grid, x0, y0, z1, nx, ny), c101 = G(grid, x1, y0, z1, nx, ny);
+        float c011 = G(grid, x0, y1, z1, nx, ny), c111 = G(grid, x1, y1, z1, nx, ny);
+
+        float x00 = Mathf.Lerp(c000, c100, tx), x10 = Mathf.Lerp(c010, c110, tx);
+        float x01 = Mathf.Lerp(c001, c101, tx), x11 = Mathf.Lerp(c011, c111, tx);
+        float y0v = Mathf.Lerp(x00, x10, ty), y1v = Mathf.Lerp(x01, x11, ty);
+        return Mathf.Lerp(y0v, y1v, tz);
+    }
+
+    /// <summary>Reads a grid cell, treating an Unsampled cell as a large positive (air) value so
+    /// gradients at the heightfield band edge still point sanely outward.</summary>
+    static float G(float[] grid, int x, int y, int z, int nx, int ny)
+    {
+        float v = grid[Idx(x, y, z, nx, ny)];
+        return v == Unsampled ? 1f : v;
+    }
+
+    static int Idx(int x, int y, int z, int nx, int ny) => x + y * nx + z * nx * ny;
 
     static Vector3 Interpolate(Vector3 a, Vector3 b, float va, float vb)
     {

@@ -37,4 +37,14 @@ public enum TerrainFeatureType
     StoneArch = 9,
     /// <summary>Surface cave entrance / overhang mouth — needs a real overhang. Voxel SDF density.</summary>
     CaveEntrance = 10,
+
+    // --- Large composite area features --------------------------------------
+    /// <summary>Monumental desert rock complex — a forest of pillars and natural arches with light
+    /// through the gaps. AREA feature, voxel SDF, internally chunked into many sub-meshes.</summary>
+    ArchingCave = 11,
+
+    /// <summary>A badlands maze — a solid rock massif eroded by a wide branching channel network,
+    /// leaving a labyrinth of mesas with overhangs and cliffs, scattered with boulders. Walked from
+    /// the channel floors looking up. AREA feature, voxel SDF, internally chunked into sub-meshes.</summary>
+    BadlandsMaze = 12,
 }

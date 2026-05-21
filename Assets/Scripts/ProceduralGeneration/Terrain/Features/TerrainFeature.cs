@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -79,6 +80,36 @@ public abstract class TerrainFeature
     /// for a friendlier label.
     /// </summary>
     public virtual string DisplayName => FeatureType.ToString();
+
+    // -------------------------------------------------------------------------
+    // Multi-mesh capability (opt-in).
+    //
+    // The default pipeline is SINGLE-mesh: a feature returns one ITerrainDensity from
+    // BuildDensity, the generator meshes it into one Mesh, the spawner spawns one GameObject. All
+    // eleven other features use exactly that path and these two members untouched.
+    //
+    // A large feature (e.g. ArchingCave) whose site must be split into internally-chunked
+    // sub-meshes overrides ProducesMultipleMeshes to true and implements BuildMeshes. The
+    // generator then takes the multi-mesh branch: it ignores BuildDensity and calls BuildMeshes,
+    // and the result carries every sub-mesh. The change is fully backward-compatible — a feature
+    // that does not override these keeps the original single-mesh behaviour.
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// True if this feature produces MULTIPLE sub-meshes instead of one. Default false — the
+    /// generator then uses the standard single-mesh <see cref="BuildDensity"/> path. Override to
+    /// true and implement <see cref="BuildMeshes"/> for an internally-chunked feature.
+    /// </summary>
+    public virtual bool ProducesMultipleMeshes => false;
+
+    /// <summary>
+    /// Builds the feature as a list of finished sub-meshes (each in feature-local space). Called by
+    /// the generator INSTEAD of <see cref="BuildDensity"/> when <see cref="ProducesMultipleMeshes"/>
+    /// is true. A multi-mesh feature owns its own meshing here (typically via an internal chunker)
+    /// because the shape it produces does not fit one voxel volume. Default returns null —
+    /// single-mesh features never implement this.
+    /// </summary>
+    public virtual List<Mesh> BuildMeshes(FeatureContext context, TerrainMeshSettings meshSettings) => null;
 
     // -------------------------------------------------------------------------
     // Per-feature settings hook.

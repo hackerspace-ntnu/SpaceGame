@@ -76,5 +76,9 @@ public static class TerrainFeatureRegistry
         Register(() => new NaturalBridgeFeature());
         Register(() => new StoneArchFeature());
         Register(() => new CaveEntranceFeature());
+
+        // --- Large composite area features -------------------------------------
+        Register(() => new ArchingCaveFeature());
+        Register(() => new BadlandsMazeFeature());
     }
 }

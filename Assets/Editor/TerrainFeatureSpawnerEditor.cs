@@ -1,4 +1,3 @@
-using System.IO;
 using UnityEditor;
 using UnityEngine;
 
@@ -27,7 +26,15 @@ public class TerrainFeatureSpawnerEditor : Editor
 
     void OnSceneGUI()
     {
-        TerrainFeatureHandles.Draw((TerrainFeatureSpawner)target);
+        var spawner = (TerrainFeatureSpawner)target;
+
+        // Process the footprint handles. A returned 'true' means the designer dragged a polygon
+        // vertex / path point / size handle this frame — the serialized footprint changed, so the
+        // in-scene mesh is now stale and must be rebuilt for the terrain to reflect the new shape.
+        bool footprintChanged = TerrainFeatureHandles.Draw(spawner);
+
+        if (footprintChanged && _livePreview)
+            Regenerate(spawner);
     }
 
     // Serialized fields drawn manually (or not at all) below — excluded from the default pass.
@@ -247,44 +254,33 @@ public class TerrainFeatureSpawnerEditor : Editor
 
             EditorUtility.DisplayProgressBar("Terrain feature bake", "Writing asset…", 0.8f);
 
-            string folder = ResolveBakeFolder(spawner);
-            string meshPath = $"{folder}/{spawner.FeatureType}_seed_{spawner.Seed}_Mesh.asset";
-            ReplaceAsset(result.Mesh, meshPath);
+            string folder = TerrainFeatureBakeUtility.ResolveBakeFolder(spawner);
 
-            var saved = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
-            spawner.AssignBakedMesh(saved);
-            // Spawn the saved asset so the scene shows the persistent mesh, not the temporary.
+            if (result.IsMultiMesh)
+            {
+                // MULTI-MESH feature (e.g. ArchingCave): one saved asset per chunked sub-mesh.
+                Mesh[] saved = TerrainFeatureBakeUtility.SaveSubMeshes(result.SubMeshes, folder, spawner);
+                spawner.AssignBakedSubMeshes(saved);
+                Debug.Log($"[TerrainFeatureSpawnerEditor] baked {spawner.FeatureType} " +
+                          $"seed {spawner.Seed} → {saved.Length} sub-meshes.");
+            }
+            else
+            {
+                Mesh saved = TerrainFeatureBakeUtility.SaveSingle(result.Mesh, folder, spawner);
+                spawner.AssignBakedMesh(saved);
+                Debug.Log($"[TerrainFeatureSpawnerEditor] baked {spawner.FeatureType} " +
+                          $"seed {spawner.Seed} ({result.Mesh.vertexCount} verts).");
+            }
+
+            // Spawn the saved asset(s) so the scene shows the persistent mesh, not the temporary.
             spawner.SpawnBaked();
-
             EditorUtility.SetDirty(spawner);
             MarkSceneDirty(spawner);
-            Debug.Log($"[TerrainFeatureSpawnerEditor] baked {spawner.FeatureType} " +
-                      $"seed {spawner.Seed} → {meshPath} ({result.Mesh.vertexCount} verts).");
         }
         finally
         {
             EditorUtility.ClearProgressBar();
         }
-    }
-
-    static string ResolveBakeFolder(TerrainFeatureSpawner spawner)
-    {
-        string scenePath = spawner.gameObject.scene.path;
-        string parent = string.IsNullOrEmpty(scenePath)
-            ? "Assets"
-            : Path.GetDirectoryName(scenePath).Replace('\\', '/');
-        string folder = $"{parent}/TerrainFeatureBakes";
-        if (!AssetDatabase.IsValidFolder(folder))
-            AssetDatabase.CreateFolder(parent, "TerrainFeatureBakes");
-        return folder;
-    }
-
-    static void ReplaceAsset(Object asset, string path)
-    {
-        if (AssetDatabase.LoadMainAssetAtPath(path) != null)
-            AssetDatabase.DeleteAsset(path);
-        AssetDatabase.CreateAsset(asset, path);
-        AssetDatabase.SaveAssets();
     }
 
     static void MarkSceneDirty(TerrainFeatureSpawner spawner)

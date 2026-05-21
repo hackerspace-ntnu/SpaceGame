@@ -23,6 +23,15 @@ public class CliffFeatureSettings
     [Range(0f, 1f)]
     [Tooltip("How wavy/organic the cliff-edge line is. 0 = ruler-straight, 1 = heavily eroded.")]
     public float edgeIrregularity = 0.55f;
+
+    /// <summary>
+    /// Rock-body shaping for the cliff face. When <see cref="OverhangSettings.enableOverhangs"/> is
+    /// off (default) the cliff stays on the cheap heightfield path. When on, the cliff is rebuilt as
+    /// a linear <see cref="RockBodySdf"/> wall: its face profile (how far rock extends out from the
+    /// edge line) varies with height and along the run, so the face bulges and undercuts as eroded
+    /// canyon-wall rock instead of a flat plane with shelves bolted on.
+    /// </summary>
+    public OverhangSettings overhang = new OverhangSettings();
 }
 
 /// <summary>
@@ -60,8 +69,16 @@ public sealed class CliffFeature : TerrainFeature
     /// <inheritdoc/>
     public override TerrainFeatureType FeatureType => TerrainFeatureType.Cliff;
 
-    /// <inheritdoc/>
-    public override TerrainDensityKind DensityKind => TerrainDensityKind.Heightfield;
+    /// <summary>
+    /// Dynamic density model: <see cref="TerrainDensityKind.Heightfield"/> (cheap, area-scaled) when
+    /// overhangs are disabled, <see cref="TerrainDensityKind.Voxel"/> when enabled. The mesher
+    /// actually keys off the returned density's <see cref="ITerrainDensity.IsHeightfield"/>, so this
+    /// property is advisory — but it is kept honest so any other consumer sees the true model.
+    /// </summary>
+    public override TerrainDensityKind DensityKind =>
+        Settings != null && Settings.overhang != null && Settings.overhang.enableOverhangs
+            ? TerrainDensityKind.Voxel
+            : TerrainDensityKind.Heightfield;
 
     /// <inheritdoc/>
     public override object CreateDefaultSettings() => new CliffFeatureSettings();
@@ -199,6 +216,61 @@ public sealed class CliffFeature : TerrainFeature
         float minY          = centreGroundY - noiseMargin;
         float maxY          = centreGroundY + stepHeight + noiseMargin;
         float bandPadding   = context.VoxelSize * 2f;
+
+        // OVERHANG SWITCH. Disabled (default) → cheap heightfield path, the mesher walks only a
+        // thin surface band. Enabled → discard the heightfield and build a LINEAR RockBodySdf — an
+        // escarpment wall along the cliff-edge line whose face profile varies with height and along
+        // its length, so the face bulges and undercuts. Only the voxel branch pays the full-volume
+        // walk cost — the heightfield fast-path is preserved.
+        OverhangSettings oh = Settings != null ? Settings.overhang : null;
+        if (oh != null && oh.enableOverhangs)
+        {
+            // Resolve the cliff-edge centre-line. Spline mode → first/last spline points; box
+            // fallback → the centre-line across the longer axis.
+            Vector2 lineA, lineB;
+            if (useSpline)
+            {
+                Vector3 a3 = spline.Evaluate(0f);
+                Vector3 b3 = spline.Evaluate(1f);
+                lineA = new Vector2(a3.x, a3.z);
+                lineB = new Vector2(b3.x, b3.z);
+            }
+            else if (stepAlongX)
+            {
+                lineA = new Vector2(box.min.x, centreXZ.y);
+                lineB = new Vector2(box.max.x, centreXZ.y);
+            }
+            else
+            {
+                lineA = new Vector2(centreXZ.x, box.min.z);
+                lineB = new Vector2(centreXZ.x, box.max.z);
+            }
+
+            // Nominal perpendicular reach of the wall body: the face-width fraction of the half
+            // span perpendicular to the line. Stays inside the footprint at the base; the radius
+            // profile lets it bulge OUT higher up (the overhang).
+            float perpHalf = useSpline ? Mathf.Max(0.1f, spline.HalfWidth)
+                                       : (stepAlongX ? halfXZ.y : halfXZ.x);
+            float nominalReach = Mathf.Max(2f, perpHalf * Mathf.Clamp01(faceWidth + 0.25f));
+
+            float bodyGround = centreGroundY;
+            float bodySummit = centreGroundY + stepHeight;
+
+            // Volume must contain the widest face bulge plus erosion warp and craggy jaggedness.
+            float maxReach = nominalReach * RockBodyProfile.MaxRadiusMultiplier(oh)
+                             + oh.erosion + oh.sideJaggedness + 2f;
+            float vMinY = bodyGround - 4f;
+            float vMaxY = bodySummit + oh.erosion + oh.sideJaggedness + 2f;
+            // Expand the box laterally so the bulging face fits inside the marched bounds.
+            Vector3 volCentre = new Vector3(box.center.x, (vMinY + vMaxY) * 0.5f, box.center.z);
+            Vector3 volSize = new Vector3(
+                box.size.x + maxReach * 2f, vMaxY - vMinY, box.size.z + maxReach * 2f);
+            Bounds volume = new Bounds(volCentre, volSize);
+
+            return new RockBodySdf(
+                lineA, lineB, nominalReach, bodyGround, bodySummit,
+                context.LocalGroundHeight, volume, oh, seed);
+        }
 
         return new HeightfieldDensity(heightFn, box, minY, maxY, bandPadding);
     }

@@ -87,30 +87,45 @@ public class FeaturePolygon
     public bool Contains(float x, float z) => SignedDistanceInside(x, z) > 0f;
 
     /// <summary>
-    /// Builds a deterministic, noise-warped outline that fills the given box half-extents — a
-    /// natural irregular footprint with no hand-editing. The shape is a ring of
-    /// <paramref name="vertexCount"/> vertices whose radius is modulated by Perlin noise:
+    /// Builds a deterministic, noise-warped outline that fills the given box half-extents — driven
+    /// by a SINGLE <paramref name="complexity"/> dial running 1 → 10:
     ///
-    ///   • <paramref name="noiseScale"/> sets how many lobes/wiggles go around the ring (frequency).
-    ///   • <paramref name="irregularity"/> is the "rectangleness" knob — 0 keeps the outline close
-    ///     to the plain box rectangle, 1 lets the noise pull vertices far in and out for a wild,
-    ///     organic silhouette.
+    ///   • complexity 1  — a near-perfect clean circle (or box-proportioned ellipse).
+    ///   • complexity ~4 — a soft, gently rolling organic blob.
+    ///   • complexity ~7 — pronounced lobes pushing in and out in different directions.
+    ///   • complexity 10 — a wild, spiky, multi-armed silhouette with no two directions alike.
     ///
-    /// Same (box, seed, knobs) always yields the same polygon, so a Noise-mode footprint bakes
-    /// identically every time.
+    /// As the dial rises three things scale together: the radius noise gets STRONGER (lobes pull
+    /// further in/out), gains more OCTAVES (finer spikes ride on the big lobes), and the ring uses
+    /// MORE VERTICES (so the sharper detail is actually resolved). A per-direction asymmetry term
+    /// (also scaled by the dial) breaks the radial symmetry so arms point random ways instead of
+    /// forming an even star.
+    ///
+    /// Same (box, seed, complexity) always yields the same polygon, so a Noise-mode footprint
+    /// bakes identically every time.
     /// </summary>
-    public void GenerateFromNoise(Vector3 boxHalfExtents, int seed, float noiseScale,
-                                  float irregularity, int vertexCount = 24)
+    public void GenerateFromNoise(Vector3 boxHalfExtents, int seed, float complexity)
     {
         float hx = Mathf.Max(1f, boxHalfExtents.x);
         float hz = Mathf.Max(1f, boxHalfExtents.z);
-        int n = Mathf.Clamp(vertexCount, 6, 64);
-        float irr = Mathf.Clamp01(irregularity);
-        float scale = Mathf.Max(0.1f, noiseScale);
+
+        // Normalised dial: 0 at complexity 1 (clean circle) → 1 at complexity 10 (wild).
+        float c = Mathf.Clamp01((Mathf.Clamp(complexity, 1f, 10f) - 1f) / 9f);
+
+        // Everything scales off the one dial.
+        int n          = Mathf.RoundToInt(Mathf.Lerp(20f, 64f, c));   // ring resolution
+        float amp      = Mathf.Lerp(0.02f, 0.85f, c);                 // how far lobes pull in/out
+        int octaves    = Mathf.RoundToInt(Mathf.Lerp(1f, 4f, c));     // detail layers
+        float asymmetry= Mathf.Lerp(0f, 0.55f, c);                    // breaks radial symmetry
+        // Base lobe count: a couple of broad lobes at low complexity, many at high.
+        float baseFreq = Mathf.Lerp(1.5f, 5f, c);
 
         // Deterministic per-feature noise origin so different seeds give different outlines.
-        float ox = (seed * 0.731f) % 1000f;
-        float oz = (seed * 1.373f) % 1000f;
+        float ox = (seed * 0.731f) % 1000f + 13.7f;
+        float oz = (seed * 1.373f) % 1000f + 41.3f;
+        // A second, unrelated origin for the symmetry-breaking asymmetry pass.
+        float ax = (seed * 2.117f) % 1000f + 71.9f;
+        float az = (seed * 0.529f) % 1000f + 5.1f;
 
         var pts = new List<Vector3>(n);
         for (int i = 0; i < n; i++)
@@ -119,13 +134,26 @@ public class FeaturePolygon
             float cos = Mathf.Cos(ang);
             float sin = Mathf.Sin(ang);
 
-            // Sample Perlin around a circle so the noise wraps seamlessly at the seam vertex.
-            float nx = ox + Mathf.Cos(ang) * scale;
-            float nz = oz + Mathf.Sin(ang) * scale;
-            float noise = Mathf.PerlinNoise(nx, nz) * 2f - 1f;   // [-1, 1]
+            // Fractal Brownian motion sampled around a circle so it wraps seamlessly at the seam.
+            // Each octave doubles the frequency and halves the weight.
+            float noise = 0f, freq = baseFreq, weight = 1f, norm = 0f;
+            for (int o = 0; o < octaves; o++)
+            {
+                float nx = ox + Mathf.Cos(ang) * freq;
+                float nz = oz + Mathf.Sin(ang) * freq;
+                noise += (Mathf.PerlinNoise(nx, nz) * 2f - 1f) * weight;
+                norm  += weight;
+                freq  *= 2f;
+                weight *= 0.5f;
+            }
+            noise /= Mathf.Max(0.0001f, norm);   // back into [-1, 1]
 
-            // Radius multiplier: 1 at irregularity 0, swinging in [1-irr, 1+irr] as irr rises.
-            float radiusMul = 1f + noise * irr;
+            // Asymmetry: a slow, low-frequency warp that biases whole arcs of the ring inward or
+            // outward, so lobes cluster and point in irregular directions instead of an even star.
+            float asym = (Mathf.PerlinNoise(ax + cos * 0.9f, az + sin * 0.9f) * 2f - 1f) * asymmetry;
+
+            // Radius multiplier: 1 at complexity 1 (no swing), wide swing at complexity 10.
+            float radiusMul = Mathf.Max(0.12f, 1f + noise * amp + asym);
             pts.Add(new Vector3(cos * hx * radiusMul, 0f, sin * hz * radiusMul));
         }
         vertices = pts;

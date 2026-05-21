@@ -41,6 +41,15 @@ public static class TerrainFeatureGenerator
         result.FeatureType = feature.FeatureType;
         result.Seed = context.Seed;
 
+        // MULTI-MESH BRANCH. A feature that internally chunks its output (e.g. ArchingCave)
+        // overrides ProducesMultipleMeshes and owns its own meshing in BuildMeshes — the standard
+        // single-mesh passes below are skipped. Every other feature leaves ProducesMultipleMeshes
+        // false and takes the unchanged single-mesh path.
+        if (feature.ProducesMultipleMeshes)
+        {
+            return GenerateMultiMesh(feature, context, meshSettings, result);
+        }
+
         // 1) Feature describes its shape as a density field.
         ITerrainDensity density = feature.BuildDensity(context);
         if (density == null)
@@ -70,6 +79,54 @@ public static class TerrainFeatureGenerator
 
         result.Mesh = mesh;
         result.Bounds = mesh.bounds;
+        return result;
+    }
+
+    /// <summary>
+    /// Multi-mesh pipeline for an internally-chunked feature. Calls <see cref="TerrainFeature.BuildMeshes"/>
+    /// (the feature owns its own chunked meshing) and collects every non-empty sub-mesh into the
+    /// result. The skirt-blend pass is intentionally NOT run here: a multi-mesh feature places its
+    /// own geometry on the terrain (ArchingCave grounds its floor at the sampled terrain height),
+    /// and a per-tile skirt would wrongly lift interior tile borders. PostProcess is still offered
+    /// per sub-mesh so a feature can do a final tweak. Determinism is unchanged — BuildMeshes is
+    /// seeded entirely off the context.
+    /// </summary>
+    static TerrainFeatureResult GenerateMultiMesh(
+        TerrainFeature feature, FeatureContext context,
+        TerrainMeshSettings meshSettings, TerrainFeatureResult result)
+    {
+        var subMeshes = feature.BuildMeshes(context, meshSettings);
+        if (subMeshes == null || subMeshes.Count == 0)
+        {
+            Debug.LogWarning($"[TerrainFeatureGenerator] multi-mesh feature '{feature.DisplayName}' " +
+                             "produced no sub-meshes.");
+            return result;
+        }
+
+        var kept = new System.Collections.Generic.List<Mesh>(subMeshes.Count);
+        Bounds combined = new Bounds();
+        bool first = true;
+        for (int i = 0; i < subMeshes.Count; i++)
+        {
+            Mesh m = subMeshes[i];
+            if (m == null || m.vertexCount == 0) continue;
+            if (string.IsNullOrEmpty(m.name) || m.name == "TerrainFeatureMesh")
+                m.name = $"{feature.FeatureType}_seed{context.Seed}_sub{kept.Count}";
+            feature.PostProcess(m, context);
+            if (first) { combined = m.bounds; first = false; }
+            else combined.Encapsulate(m.bounds);
+            kept.Add(m);
+        }
+
+        if (kept.Count == 0)
+        {
+            Debug.LogWarning($"[TerrainFeatureGenerator] multi-mesh feature '{feature.DisplayName}' " +
+                             "produced only empty sub-meshes.");
+            return result;
+        }
+
+        result.SubMeshes = kept;
+        result.Bounds = combined;
         return result;
     }
 }

@@ -54,6 +54,15 @@ public class MesaSettings
     /// </summary>
     [Range(0f, 4f)]
     public float summitRippleStrength = 0.8f;
+
+    /// <summary>
+    /// Rock-body shaping for the mesa. When <see cref="OverhangSettings.enableOverhangs"/> is off
+    /// (default) the mesa stays on the cheap heightfield path. When on, the mesa is rebuilt as a 3D
+    /// <see cref="RockBodySdf"/> whose horizontal cross-section varies with height, so it bulges,
+    /// pinches and overhangs as a direct consequence of its body shape — eroded desert rock rather
+    /// than a flat wall with shelves bolted on.
+    /// </summary>
+    public OverhangSettings overhang = new OverhangSettings();
 }
 
 /// <summary>
@@ -89,8 +98,16 @@ public sealed class MesaFeature : TerrainFeature
     /// <inheritdoc/>
     public override TerrainFeatureType FeatureType => TerrainFeatureType.Mesa;
 
-    /// <inheritdoc/>
-    public override TerrainDensityKind DensityKind => TerrainDensityKind.Heightfield;
+    /// <summary>
+    /// Dynamic density model: <see cref="TerrainDensityKind.Heightfield"/> (cheap, area-scaled) when
+    /// overhangs are disabled, <see cref="TerrainDensityKind.Voxel"/> when enabled. The mesher
+    /// actually keys off the returned density's <see cref="ITerrainDensity.IsHeightfield"/>, so this
+    /// property is advisory — but it is kept honest so any other consumer sees the true model.
+    /// </summary>
+    public override TerrainDensityKind DensityKind =>
+        _settings != null && _settings.overhang != null && _settings.overhang.enableOverhangs
+            ? TerrainDensityKind.Voxel
+            : TerrainDensityKind.Heightfield;
 
     // Per-instance settings. If no MesaSettings instance is injected, defaults are used.
     private MesaSettings _settings = new MesaSettings();
@@ -225,6 +242,38 @@ public sealed class MesaFeature : TerrainFeature
         float minY = groundAtCentre - 4f;
         float maxY = box.max.y + mesaHeight + tuning.noiseAmount + s.wallStriationStrength + 2f;
         float bandPadding = context.VoxelSize * 2f;
+
+        // OVERHANG SWITCH. Disabled (default) → cheap heightfield path, cost scales with area and
+        // the mesher only walks a thin surface band. Enabled → discard the heightfield entirely and
+        // build a 3D RockBodySdf: a true rock mass whose cross-section varies with height, so the
+        // mesa bulges and overhangs as a consequence of its body shape. Only the voxel branch pays
+        // the full-volume walk cost — the heightfield fast-path is preserved.
+        if (s.overhang != null && s.overhang.enableOverhangs)
+        {
+            // Nominal radial reach = the footprint's shorter half-extent, so the body stays inside
+            // the placed footprint at the base. (The radius profile lets it bulge OUT higher up —
+            // that overhang is intentional.)
+            float nominalRadius = halfMin;
+
+            // The body sits on the ground and rises to a summit at groundY + the varied height.
+            float bodyGround = groundAtCentre;
+            float bodySummit = groundAtCentre + mesaHeight;
+
+            // The body can bulge out to MaxRadiusMultiplier × nominal, plus erosion warp and
+            // craggy jaggedness — the volume must be wide enough to contain that widest swell.
+            float maxReach = nominalRadius * RockBodyProfile.MaxRadiusMultiplier(s.overhang)
+                             + s.overhang.erosion + s.overhang.sideJaggedness + 2f;
+            float vMinY = bodyGround - 4f;
+            float vMaxY = bodySummit + s.overhang.erosion + s.overhang.sideJaggedness + 2f;
+            Vector3 volCentre = new Vector3(box.center.x, (vMinY + vMaxY) * 0.5f, box.center.z);
+            Vector3 volSize = new Vector3(maxReach * 2f, vMaxY - vMinY, maxReach * 2f);
+            Bounds volume = new Bounds(volCentre, volSize);
+
+            return new RockBodySdf(
+                new Vector2(box.center.x, box.center.z), nominalRadius,
+                bodyGround, bodySummit, context.LocalGroundHeight,
+                volume, s.overhang, context.Seed);
+        }
 
         return new HeightfieldDensity(heightFn, box, minY, maxY, bandPadding);
     }

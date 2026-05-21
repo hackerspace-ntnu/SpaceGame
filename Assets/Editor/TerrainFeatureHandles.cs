@@ -16,23 +16,26 @@ using UnityEngine;
 /// </summary>
 public static class TerrainFeatureHandles
 {
-    /// <summary>Draws and processes the footprint handles. Call from the editor's OnSceneGUI.</summary>
-    public static void Draw(TerrainFeatureSpawner spawner)
+    /// <summary>Draws and processes the footprint handles. Call from the editor's OnSceneGUI.
+    /// Returns true when the designer changed the footprint this frame, so the caller can
+    /// regenerate the in-scene mesh and the terrain reflects the new polygon / path immediately.</summary>
+    public static bool Draw(TerrainFeatureSpawner spawner)
     {
-        if (spawner == null) return;
-        if (spawner.UsesPath) DrawPathHandles(spawner);
-        else DrawPolygonHandles(spawner);
+        if (spawner == null) return false;
+        return spawner.UsesPath ? DrawPathHandles(spawner) : DrawPolygonHandles(spawner);
     }
 
     // -------------------------------------------------------------------------
     // Area features — editable closed polygon
     // -------------------------------------------------------------------------
 
-    static void DrawPolygonHandles(TerrainFeatureSpawner spawner)
+    /// <summary>Returns true when a polygon vertex was moved, added or removed this frame.</summary>
+    static bool DrawPolygonHandles(TerrainFeatureSpawner spawner)
     {
         Transform t = spawner.transform;
         FeaturePolygon poly = spawner.Footprint;
-        if (poly == null) return;
+        if (poly == null) return false;
+        bool changed = false;
 
         // Noise mode: the outline is generated, not hand-edited. Keep it fresh, draw it as a
         // read-only outline, and still offer the height handle + the box-size handles.
@@ -40,9 +43,11 @@ public static class TerrainFeatureHandles
         {
             spawner.RefreshGeneratedFootprint();
             DrawPolygonOutline(spawner, poly, new Color(0.55f, 0.95f, 0.7f, 0.9f));
-            DrawBoxSizeHandles(spawner);
-            DrawHeightHandle(spawner);
-            return;
+            bool boxChanged = DrawBoxSizeHandles(spawner);
+            bool heightChanged = DrawHeightHandle(spawner);
+            // Resizing the box re-derives the noise outline, so the mesh must rebuild too.
+            if (boxChanged) spawner.RefreshGeneratedFootprint();
+            return boxChanged || heightChanged;
         }
 
         // Auto-seed an empty polygon from the box so a freshly switched area feature is editable.
@@ -67,6 +72,7 @@ public static class TerrainFeatureHandles
                 Vector3 local = t.InverseTransformPoint(moved);
                 poly.vertices[i] = new Vector3(local.x, 0f, local.z);   // keep on the XZ plane
                 EditorUtility.SetDirty(spawner);
+                changed = true;
             }
 
             // Insert / remove buttons floating beside each vertex.
@@ -78,6 +84,7 @@ public static class TerrainFeatureHandles
                 int next = (i + 1) % poly.vertices.Count;
                 poly.vertices.Insert(i + 1, (poly.vertices[i] + poly.vertices[next]) * 0.5f);
                 EditorUtility.SetDirty(spawner);
+                changed = true;
             }
             if (poly.vertices.Count > 3 &&
                 GUI.Button(new Rect(gui.x + 12f, gui.y + 12f, 22f, 20f), "-"))
@@ -85,12 +92,14 @@ public static class TerrainFeatureHandles
                 Undo.RecordObject(spawner, "Remove Terrain Feature Polygon Vertex");
                 poly.vertices.RemoveAt(i);
                 EditorUtility.SetDirty(spawner);
+                changed = true;
             }
             Handles.EndGUI();
         }
 
         DrawPolygonOutline(spawner, poly, new Color(0.5f, 0.85f, 1f, 0.9f));
-        DrawHeightHandle(spawner);
+        if (DrawHeightHandle(spawner)) changed = true;
+        return changed;
     }
 
     /// <summary>Draws the closed polygon outline as a coloured loop (no interactive handles).</summary>
@@ -108,8 +117,9 @@ public static class TerrainFeatureHandles
         }
     }
 
-    /// <summary>Green up-arrow handle that drags the box Y half-extent (the meshing band height).</summary>
-    static void DrawHeightHandle(TerrainFeatureSpawner spawner)
+    /// <summary>Green up-arrow handle that drags the box Y half-extent (the meshing band height).
+    /// Returns true when dragged this frame.</summary>
+    static bool DrawHeightHandle(TerrainFeatureSpawner spawner)
     {
         Transform t = spawner.transform;
         Vector3 topWorld = t.TransformPoint(new Vector3(0f, spawner.BoxHalfExtents.y, 0f));
@@ -124,12 +134,15 @@ public static class TerrainFeatureHandles
             Vector3 h = spawner.BoxHalfExtents; h.y = y;
             spawner.BoxHalfExtents = h;
             EditorUtility.SetDirty(spawner);
+            return true;
         }
+        return false;
     }
 
     /// <summary>+X / +Z face handles that resize the bounding box — used in Noise mode, where the
-    /// outline is generated from the box rather than hand-edited vertex by vertex.</summary>
-    static void DrawBoxSizeHandles(TerrainFeatureSpawner spawner)
+    /// outline is generated from the box rather than hand-edited vertex by vertex. Returns true
+    /// when a face was dragged this frame.</summary>
+    static bool DrawBoxSizeHandles(TerrainFeatureSpawner spawner)
     {
         Transform t = spawner.transform;
         Vector3 half = spawner.BoxHalfExtents;
@@ -158,17 +171,20 @@ public static class TerrainFeatureHandles
             spawner.BoxHalfExtents = newHalf;
             EditorUtility.SetDirty(spawner);
         }
+        return changed;
     }
 
     // -------------------------------------------------------------------------
     // Linear features — editable spline path
     // -------------------------------------------------------------------------
 
-    static void DrawPathHandles(TerrainFeatureSpawner spawner)
+    /// <summary>Returns true when a path point or width was changed this frame.</summary>
+    static bool DrawPathHandles(TerrainFeatureSpawner spawner)
     {
         Transform t = spawner.transform;
         FeaturePath path = spawner.Path;
-        if (path == null) return;
+        if (path == null) return false;
+        bool changed = false;
 
         // Auto-seed an empty path so a freshly switched linear feature is editable straight away.
         if (path.Count < 2)
@@ -190,6 +206,7 @@ public static class TerrainFeatureHandles
                 Undo.RecordObject(spawner, "Move Terrain Feature Path Point");
                 path.controlPoints[i] = t.InverseTransformPoint(moved);
                 EditorUtility.SetDirty(spawner);
+                changed = true;
             }
 
             // Insert / remove buttons floating beside each point.
@@ -203,6 +220,7 @@ public static class TerrainFeatureHandles
                     : path.controlPoints[i] + Vector3.right * 10f;
                 path.controlPoints.Insert(i + 1, next);
                 EditorUtility.SetDirty(spawner);
+                changed = true;
             }
             if (path.controlPoints.Count > 2 &&
                 GUI.Button(new Rect(gui.x + 12f, gui.y + 12f, 22f, 20f), "-"))
@@ -210,6 +228,7 @@ public static class TerrainFeatureHandles
                 Undo.RecordObject(spawner, "Remove Terrain Feature Path Point");
                 path.controlPoints.RemoveAt(i);
                 EditorUtility.SetDirty(spawner);
+                changed = true;
             }
             Handles.EndGUI();
         }
@@ -245,7 +264,9 @@ public static class TerrainFeatureHandles
                 Undo.RecordObject(spawner, "Resize Terrain Feature Path Width");
                 path.halfWidth = Mathf.Max(1f, Vector3.Distance(mid, dragged));
                 EditorUtility.SetDirty(spawner);
+                changed = true;
             }
         }
+        return changed;
     }
 }

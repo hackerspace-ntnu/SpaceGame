@@ -2,17 +2,10 @@ using UnityEngine;
 
 /// <summary>
 /// Scene-level driver for the terrain-feature system — the terrain analogue of <c>CaveSpawner</c>.
-///
-/// The designer drops one of these on a GameObject, drags the box/spline gizmo (handled by
-/// <c>TerrainFeatureSpawnerEditor</c>) to define the footprint, picks a <see cref="featureType"/>,
-/// and tunes the shared <see cref="tuning"/> sliders. The editor's "Bake &amp; Save" button writes
-/// the finished mesh to an asset; at runtime the spawner just instantiates that baked mesh — zero
-/// runtime generation cost, exactly like <c>CaveSpawner</c>'s baked path.
-///
-/// NAVMESH: the feature mesh CONTRIBUTES to the shared world NavMesh. The spawner gives the spawned
-/// mesh a <see cref="MeshCollider"/> on the configured layer; the world's <c>NavMeshSourceCache</c>
-/// / <c>NavMeshSurface</c> rebuild picks it up as one source among many. The feature gets NO
-/// isolated NavMeshData of its own — one unified walkable surface is the design rule.
+/// The designer picks a <see cref="featureType"/>, defines the footprint and tunes the sliders;
+/// the editor bakes the mesh(es) to assets and runtime instantiates them. Feature meshes contribute
+/// to the shared world NavMesh via their <see cref="MeshCollider"/> — a multi-mesh feature spawns
+/// one collider per sub-mesh, all feeding the one unified walkable surface.
 /// </summary>
 [DisallowMultipleComponent]
 public class TerrainFeatureSpawner : MonoBehaviour
@@ -28,11 +21,10 @@ public class TerrainFeatureSpawner : MonoBehaviour
     [Tooltip("How the area footprint outline is defined.\n• Polygon — hand-edit vertices with the Scene-view handles.\n• Noise — the outline is auto-generated from noise; no hand-editing.")]
     [SerializeField] private FootprintShape footprintShape = FootprintShape.Polygon;
 
-    [Tooltip("Noise mode: lobe frequency of the generated outline — higher = more, smaller wiggles around the edge.")]
-    [Range(0.5f, 8f)] [SerializeField] private float footprintNoiseScale = 2.5f;
-
-    [Tooltip("Noise mode: 'rectangleness'. 0 = outline stays close to the box rectangle; 1 = noise pulls the edge wildly in and out for a very organic, natural silhouette.")]
-    [Range(0f, 1f)] [SerializeField] private float footprintIrregularity = 0.35f;
+    [Tooltip("Noise mode: footprint complexity. 1 = a clean circle. ~4 = a soft organic blob. " +
+             "~7 = pronounced lobes. 10 = a wild, spiky, multi-armed silhouette. One dial drives " +
+             "lobe strength, detail octaves, vertex count and directional asymmetry together.")]
+    [Range(1f, 10f)] [SerializeField] private float footprintComplexity = 3f;
 
     [Tooltip("The closed polygon footprint (local space) — the organic outline of an area feature. In Polygon mode you edit it with the Scene-view handles; in Noise mode it is generated. Not shown as raw fields — edit it visually in the Scene view.")]
     [SerializeField] private FeaturePolygon footprint = new FeaturePolygon();
@@ -74,19 +66,19 @@ public class TerrainFeatureSpawner : MonoBehaviour
     [SerializeField] private string featureLayer = "Default";
 
     [Header("Baked asset (preferred at runtime)")]
-    [Tooltip("Pre-baked feature mesh. If set, runtime instantiates this instead of generating. Produce via the inspector 'Bake & Save' button.")]
+    [Tooltip("Pre-baked feature mesh (single-mesh features). If set, runtime instantiates it instead of generating.")]
     [SerializeField] private Mesh bakedMesh;
+    [Tooltip("Pre-baked sub-meshes for an internally-chunked MULTI-MESH feature (e.g. ArchingCave). If non-empty, runtime instantiates these. Single-mesh features leave this empty.")]
+    [SerializeField] private Mesh[] bakedSubMeshes;
 
     [Header("Lifecycle")]
     [Tooltip("Spawn the feature automatically on Awake. Turn off if another system drives spawning.")]
     [SerializeField] private bool spawnOnAwake = true;
-
-    [Header("Gizmo")]
+    [Tooltip("Draw the footprint gizmo when selected.")]
     [SerializeField] private bool drawFootprintGizmo = true;
 
     GameObject _featureRoot;
     TerrainFeatureResult _lastResult;
-
     /// <summary>Prefix on every spawned feature-root GameObject — used for robust cleanup.</summary>
     const string FeatureRootPrefix = "TerrainFeature_";
 
@@ -103,13 +95,13 @@ public class TerrainFeatureSpawner : MonoBehaviour
     /// <summary>True while the footprint outline is noise-generated — vertex handles are then read-only.</summary>
     public bool FootprintIsGenerated => !UsesPath && footprintShape == FootprintShape.Noise;
 
-    /// <summary>Rebuilds the noise-generated footprint from the current box + knobs so the editor
-    /// can live-update the Scene outline. No-op for linear features or Polygon mode.</summary>
+    /// <summary>Rebuilds the noise-generated footprint from the current box + knobs (editor live
+    /// update). No-op for linear features or Polygon mode.</summary>
     public void RefreshGeneratedFootprint()
     {
         if (UsesPath || footprintShape != FootprintShape.Noise) return;
         footprint ??= new FeaturePolygon();
-        footprint.GenerateFromNoise(boxHalfExtents, seed, footprintNoiseScale, footprintIrregularity);
+        footprint.GenerateFromNoise(boxHalfExtents, seed, footprintComplexity);
     }
     public TerrainFeatureTuning Tuning => tuning;
     public int Seed => seed;
@@ -120,38 +112,36 @@ public class TerrainFeatureSpawner : MonoBehaviour
     /// <summary>Which feature type <see cref="FeatureSettings"/> was last seeded for.</summary>
     public TerrainFeatureType FeatureSettingsType { get => featureSettingsType; set => featureSettingsType = value; }
 
-    /// <summary>
-    /// Ensures <see cref="FeatureSettings"/> holds a settings object matching the current feature
-    /// type — reseeding with that feature's defaults when the type changed or nothing exists yet.
-    /// Returns the (possibly new) settings object. The editor calls this so the inspector always
-    /// shows the right knobs; <see cref="Generate"/> calls it so a bake always has valid settings.
-    /// </summary>
+    /// <summary>Ensures <see cref="FeatureSettings"/> holds a settings object matching the current
+    /// feature type — reseeding with that feature's defaults when the type changed or none exists.
+    /// Returns the (possibly new) settings object.</summary>
     public object SyncFeatureSettings()
     {
         if (featureSettings != null && featureSettingsType == featureType)
             return featureSettings;
-
         TerrainFeature probe = TerrainFeatureRegistry.Create(featureType);
         featureSettings = probe != null ? probe.CreateDefaultSettings() : null;
         featureSettingsType = featureType;
         return featureSettings;
     }
-    public bool HasBakedMesh => bakedMesh != null;
+
+    /// <summary>True when a baked single mesh OR baked sub-meshes exist.</summary>
+    public bool HasBakedMesh => bakedMesh != null || HasBakedSubMeshes;
+
+    /// <summary>True when pre-baked sub-meshes exist for a multi-mesh feature.</summary>
+    public bool HasBakedSubMeshes => bakedSubMeshes != null && bakedSubMeshes.Length > 0;
+
     public TerrainFeatureResult LastResult => _lastResult;
 
-    /// <summary>True if the chosen feature type sweeps the spline rather than filling the box.</summary>
-    public bool UsesPath
-    {
-        get
-        {
-            return featureType == TerrainFeatureType.Canyon
-                || featureType == TerrainFeatureType.CanyonPath
-                || featureType == TerrainFeatureType.Ridge
-                || featureType == TerrainFeatureType.NaturalBridge
-                || featureType == TerrainFeatureType.StoneArch
-                || featureType == TerrainFeatureType.CaveEntrance;
-        }
-    }
+    /// <summary>True if the chosen feature type sweeps the spline rather than filling the box.
+    /// ArchingCave is an AREA feature and is deliberately NOT listed here.</summary>
+    public bool UsesPath =>
+        featureType == TerrainFeatureType.Canyon
+        || featureType == TerrainFeatureType.CanyonPath
+        || featureType == TerrainFeatureType.Ridge
+        || featureType == TerrainFeatureType.NaturalBridge
+        || featureType == TerrainFeatureType.StoneArch
+        || featureType == TerrainFeatureType.CaveEntrance;
 
     void Awake()
     {
@@ -162,10 +152,8 @@ public class TerrainFeatureSpawner : MonoBehaviour
 
     // --- Generation ----------------------------------------------------------
 
-    /// <summary>
-    /// Builds the local <see cref="FeatureContext"/> from this spawner's serialized state. Shared
-    /// by the live-generate path and the editor bake path so they are guaranteed identical.
-    /// </summary>
+    /// <summary>Builds the local <see cref="FeatureContext"/> from this spawner's serialized state.
+    /// Shared by the live-generate and editor bake paths so they are guaranteed identical.</summary>
     public FeatureContext BuildContext()
     {
         Terrain terrain = targetTerrain != null ? targetTerrain : Terrain.activeTerrain;
@@ -177,9 +165,9 @@ public class TerrainFeatureSpawner : MonoBehaviour
             footprint ??= new FeaturePolygon();
             if (footprintShape == FootprintShape.Noise)
             {
-                // Generated mode: rebuild the outline from noise every time, so the two knobs
-                // (scale, irregularity) live-update and the bake is deterministic off the seed.
-                footprint.GenerateFromNoise(boxHalfExtents, seed, footprintNoiseScale, footprintIrregularity);
+                // Generated mode: rebuild the outline from noise every time, so the complexity
+                // dial live-updates and the bake is deterministic off the seed.
+                footprint.GenerateFromNoise(boxHalfExtents, seed, footprintComplexity);
             }
             else if (!footprint.IsValid)
             {
@@ -223,7 +211,7 @@ public class TerrainFeatureSpawner : MonoBehaviour
         return _lastResult;
     }
 
-    /// <summary>Live-generation path: generate, then instantiate the mesh into the scene.</summary>
+    /// <summary>Live-generation path: generate, then instantiate the mesh(es) into the scene.</summary>
     [ContextMenu("Generate Now")]
     public void GenerateNow()
     {
@@ -233,12 +221,15 @@ public class TerrainFeatureSpawner : MonoBehaviour
             Debug.LogWarning("[TerrainFeatureSpawner] generation produced no mesh.");
             return;
         }
-        SpawnMesh(result.Mesh);
+        // Multi-mesh feature → spawn one child per sub-mesh; single-mesh → the original path.
+        if (result.IsMultiMesh) SpawnMeshes(result.SubMeshes.ToArray());
+        else SpawnMesh(result.Mesh);
     }
 
-    /// <summary>Runtime path for shipping: instantiate the pre-baked mesh, no generation cost.</summary>
+    /// <summary>Runtime path for shipping: instantiate the pre-baked mesh(es), no generation cost.</summary>
     public void SpawnBaked()
     {
+        if (HasBakedSubMeshes) { SpawnMeshes(bakedSubMeshes); return; }
         if (bakedMesh == null)
         {
             Debug.LogWarning("[TerrainFeatureSpawner] SpawnBaked called with no baked mesh.");
@@ -247,31 +238,28 @@ public class TerrainFeatureSpawner : MonoBehaviour
         SpawnMesh(bakedMesh);
     }
 
-    /// <summary>
-    /// Instantiates the given feature-local mesh as a child GameObject with a MeshFilter, a
-    /// MeshRenderer and a MeshCollider. The collider on the configured layer is what makes the
-    /// feature contribute to the shared world NavMesh — no isolated NavMeshData is created.
-    /// </summary>
+    /// <summary>Instantiates one feature-local mesh under a fresh feature root.</summary>
     void SpawnMesh(Mesh mesh)
     {
         ClearSpawned();
-
-        _featureRoot = new GameObject($"{FeatureRootPrefix}{featureType}_seed{seed}");
-        _featureRoot.transform.SetParent(transform, worldPositionStays: false);
-
-        int layer = LayerMask.NameToLayer(featureLayer);
-        if (layer >= 0) _featureRoot.layer = layer;
-
-        _featureRoot.AddComponent<MeshFilter>().sharedMesh = mesh;
-        _featureRoot.AddComponent<MeshRenderer>().sharedMaterial = ResolveMaterial();
-
-        // MeshCollider — picked up by NavMeshSourceCache (PhysicsColliders geometry) so the
-        // feature joins the one unified world NavMesh on the next rebuild.
-        _featureRoot.AddComponent<MeshCollider>().sharedMesh = mesh;
+        _featureRoot = TerrainFeatureMeshSpawn.CreateRoot(transform, RootName(), FeatureLayerIndex());
+        TerrainFeatureMeshSpawn.AttachMesh(_featureRoot, mesh, "Mesh", ResolveMaterial());
     }
 
-    /// <summary>Destroys any previously spawned feature root. Sweeps by name prefix so a stale
-    /// root surviving a domain reload cannot leave a duplicate behind.</summary>
+    /// <summary>Instantiates a MULTI-MESH feature: one feature root with one child per sub-mesh.
+    /// Every sub-mesh collider feeds the world NavMesh as one continuous walkable surface.</summary>
+    void SpawnMeshes(Mesh[] meshes)
+    {
+        ClearSpawned();
+        _featureRoot = TerrainFeatureMeshSpawn.CreateRoot(transform, RootName(), FeatureLayerIndex());
+        TerrainFeatureMeshSpawn.AttachMeshes(_featureRoot, meshes, ResolveMaterial());
+    }
+
+    string RootName() => $"{FeatureRootPrefix}{featureType}_seed{seed}";
+    int FeatureLayerIndex() => LayerMask.NameToLayer(featureLayer);
+
+    /// <summary>Destroys any previously spawned feature root, sweeping by name prefix so a stale
+    /// root surviving a domain reload cannot leave a duplicate.</summary>
     public void ClearSpawned()
     {
         for (int i = transform.childCount - 1; i >= 0; i--)
@@ -284,8 +272,21 @@ public class TerrainFeatureSpawner : MonoBehaviour
         _featureRoot = null;
     }
 
-    /// <summary>Assigns the baked mesh asset (called by the editor after a bake).</summary>
-    public void AssignBakedMesh(Mesh mesh) => bakedMesh = mesh;
+    /// <summary>Assigns the baked single-mesh asset (editor, after a single-mesh bake). Clears any
+    /// baked sub-meshes so the two baked paths never conflict.</summary>
+    public void AssignBakedMesh(Mesh mesh)
+    {
+        bakedMesh = mesh;
+        if (mesh != null) bakedSubMeshes = null;
+    }
+
+    /// <summary>Assigns the baked sub-mesh assets for a multi-mesh feature (editor, after a
+    /// multi-mesh bake). Clears the single baked mesh so the two paths never conflict.</summary>
+    public void AssignBakedSubMeshes(Mesh[] meshes)
+    {
+        bakedSubMeshes = meshes;
+        if (meshes != null && meshes.Length > 0) bakedMesh = null;
+    }
 
     /// <summary>The default desert-rock material if none was assigned (see <see cref="TerrainFeatureSpawnerVisuals"/>).</summary>
     Material ResolveMaterial() => TerrainFeatureSpawnerVisuals.ResolveMaterial(featureMaterial);

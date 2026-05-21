@@ -45,17 +45,35 @@ public static class TerrainMarchingCubesMesher
         for (int z = 0; z < nz - 1; z++)
         for (int x = 0; x < nx - 1; x++)
         {
-            // Heightfield fast-path: derive the surface height for this XZ column and only march
-            // the voxels whose Y range straddles it. Everything else is known solid or known air.
+            // Heightfield fast-path: only march the voxels whose Y range straddles the surface.
+            //
+            // A marching cube at (x,y,z) reads 8 corners spanning the columns x..x+1, z..z+1, so
+            // its triangles can sit anywhere between THOSE columns' surface heights — not just this
+            // column's. On a steep feature (a butte wall, a cliff face, a narrow overlap band) the
+            // surface can jump tens of metres between adjacent columns; a band sized from this
+            // column alone would miss the connecting wall voxels and leave vertical holes.
+            //
+            // Fix: size the band from the min/max surface height over the 3x3 block of columns
+            // centred here. The band then auto-expands to exactly bridge the local steepness —
+            // cheap on flat ground, fully sealed on cliffs — without needing a large fixed
+            // surfaceBandVoxels.
             int yLo = 0;
             int yHi = ny - 1;
             if (density.IsHeightfield)
             {
-                float wx = origin.x + (x + 0.5f) * voxel;
-                float wz = origin.z + (z + 0.5f) * voxel;
-                float surfaceY = density.SurfaceHeight(wx, wz);
-                yLo = Mathf.Clamp(Mathf.FloorToInt((surfaceY - bandHalf - origin.y) / voxel), 0, ny - 2);
-                yHi = Mathf.Clamp(Mathf.CeilToInt((surfaceY + bandHalf - origin.y) / voxel), 0, ny - 2);
+                float loSurf = float.MaxValue;
+                float hiSurf = float.MinValue;
+                for (int sz = -1; sz <= 2; sz++)
+                for (int sx = -1; sx <= 2; sx++)
+                {
+                    float wx = origin.x + (x + sx) * voxel;
+                    float wz = origin.z + (z + sz) * voxel;
+                    float s = density.SurfaceHeight(wx, wz);
+                    if (s < loSurf) loSurf = s;
+                    if (s > hiSurf) hiSurf = s;
+                }
+                yLo = Mathf.Clamp(Mathf.FloorToInt((loSurf - bandHalf - origin.y) / voxel), 0, ny - 2);
+                yHi = Mathf.Clamp(Mathf.CeilToInt((hiSurf + bandHalf - origin.y) / voxel), 0, ny - 2);
             }
 
             for (int y = yLo; y <= yHi; y++)

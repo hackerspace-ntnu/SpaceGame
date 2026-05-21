@@ -79,4 +79,29 @@ public abstract class TerrainFeature
     /// for a friendlier label.
     /// </summary>
     public virtual string DisplayName => FeatureType.ToString();
+
+    // -------------------------------------------------------------------------
+    // Per-feature settings hook.
+    //
+    // A feature may expose its OWN extra knobs (e.g. CliffFeatureSettings.faceWidthFraction) via a
+    // small [System.Serializable] settings class. The spawner stores one such object, draws its
+    // fields in the inspector, and injects it here before BuildDensity is called. Features with no
+    // extra knobs simply leave these two members alone.
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Creates a fresh default instance of this feature's per-feature settings class, or null if
+    /// the feature has no extra knobs. The spawner uses this to know the settings type and to
+    /// seed a new settings object when the designer switches feature type.
+    /// </summary>
+    public virtual object CreateDefaultSettings() => null;
+
+    /// <summary>
+    /// Injects the designer-tuned per-feature settings object (produced earlier by
+    /// <see cref="CreateDefaultSettings"/>) into this feature instance, before
+    /// <see cref="BuildDensity"/> runs. A feature overrides this to cast the object to its own
+    /// settings type and store it. Called with null when the spawner has no settings yet — the
+    /// feature should fall back to its code defaults in that case.
+    /// </summary>
+    public virtual void ApplySettings(object settings) { }
 }

@@ -19,9 +19,16 @@ public sealed class FeatureContext
     /// <summary>Deterministic seed. Same seed + same tuning + same footprint = identical output.</summary>
     public readonly int Seed;
 
-    /// <summary>The resizable box footprint, in feature-local space, centred on the spawner origin.
-    /// Area features mesh inside this; linear features use it only as an overall clamp.</summary>
+    /// <summary>Axis-aligned local-space bounds of the footprint — the bounding box of
+    /// <see cref="Footprint"/> for area features, or of <see cref="Path"/> for linear features.
+    /// The mesher uses this for its voxel-walk extent; features should prefer
+    /// <see cref="FootprintDistanceInside"/> over reading this box directly for their silhouette.</summary>
     public readonly Bounds LocalBounds;
+
+    /// <summary>The editable CLOSED polygon footprint, in feature-local space. Valid (≥3 vertices)
+    /// for AREA features — they get their organic outline by feeding
+    /// <see cref="FootprintDistanceInside"/> into the overlap falloff. Empty for linear features.</summary>
+    public readonly FeaturePolygon Footprint;
 
     /// <summary>The editable poly-line path, in feature-local space. Valid (≥2 points) for linear
     /// features; empty for area features. Wrap it in a <see cref="FeatureSpline"/> to sample.</summary>
@@ -47,6 +54,7 @@ public sealed class FeatureContext
     public FeatureContext(
         int seed,
         Bounds localBounds,
+        FeaturePolygon footprint,
         FeaturePath path,
         TerrainFeatureTuning tuning,
         ITerrainHeightSampler ground,
@@ -55,11 +63,32 @@ public sealed class FeatureContext
     {
         Seed = seed;
         LocalBounds = localBounds;
+        Footprint = footprint ?? new FeaturePolygon();
         Path = path ?? new FeaturePath();
         Tuning = tuning ?? new TerrainFeatureTuning();
         Ground = ground ?? new UnityTerrainHeightSampler(null);
         LocalToWorld = localToWorld;
         VoxelSize = Mathf.Max(0.1f, voxelSize);
+    }
+
+    /// <summary>
+    /// Signed distance from a feature-local (x, z) point to the area footprint boundary: POSITIVE
+    /// metres inside, NEGATIVE outside. This is the single shared call every AREA feature should
+    /// feed into <see cref="TerrainNoiseHelper.OverlapWeight"/> — it makes the feature's silhouette
+    /// follow the designer-drawn <see cref="Footprint"/> polygon instead of a hardcoded rectangle.
+    ///
+    /// Falls back to the axis-aligned <see cref="LocalBounds"/> rectangle when the polygon has
+    /// fewer than 3 vertices, so a feature works even before a footprint is drawn.
+    /// </summary>
+    public float FootprintDistanceInside(float localX, float localZ)
+    {
+        if (Footprint != null && Footprint.IsValid)
+            return Footprint.SignedDistanceInside(localX, localZ);
+
+        // Box fallback: distance into the axis-aligned bounds rectangle.
+        float dx = LocalBounds.extents.x - Mathf.Abs(localX - LocalBounds.center.x);
+        float dz = LocalBounds.extents.z - Mathf.Abs(localZ - LocalBounds.center.z);
+        return Mathf.Min(dx, dz);
     }
 
     /// <summary>Convert a feature-local point to world space (for querying <see cref="Ground"/>).</summary>

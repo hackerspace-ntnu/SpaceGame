@@ -86,7 +86,6 @@ public sealed class SandDunesFeature : TerrainFeature
         float duneHeight = TerrainNoiseHelper.VariedHeight(tuning.height, tuning, seed);
 
         // Footprint geometry used by the overlap-weight falloff.
-        Vector2 halfXZ   = new Vector2(box.extents.x, box.extents.z);
         Vector2 centreXZ = new Vector2(box.center.x, box.center.z);
 
         // Cell sizes in wind-aligned (U) and cross-wind (V) axes.
@@ -111,10 +110,9 @@ public sealed class SandDunesFeature : TerrainFeature
         {
             float groundY = context.LocalGroundHeight(x, z);
 
-            // Signed dist INTO the footprint box (negative = outside).
-            float dx       = halfXZ.x - Mathf.Abs(x - centreXZ.x);
-            float dz       = halfXZ.y - Mathf.Abs(z - centreXZ.y);
-            float distInside = Mathf.Min(dx, dz);
+            // Signed distance INTO the designer-drawn polygon footprint (negative = outside),
+            // so the dune field's outline follows the polygon, not a rectangle.
+            float distInside = context.FootprintDistanceInside(x, z);
 
             float weight = TerrainNoiseHelper.OverlapWeight(distInside, tuning);
             if (weight <= 0f) return groundY;

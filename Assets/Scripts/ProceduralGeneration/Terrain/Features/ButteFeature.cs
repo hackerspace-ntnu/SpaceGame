@@ -79,6 +79,12 @@ public sealed class ButteFeature : TerrainFeature
     public override TerrainDensityKind DensityKind => TerrainDensityKind.Heightfield;
 
     /// <inheritdoc/>
+    public override object CreateDefaultSettings() => new ButteSettings();
+
+    /// <inheritdoc/>
+    public override void ApplySettings(object settings) => Settings = settings as ButteSettings;
+
+    /// <inheritdoc/>
     public override ITerrainDensity BuildDensity(FeatureContext context)
     {
         Bounds box         = context.LocalBounds;
@@ -124,10 +130,14 @@ public sealed class ButteFeature : TerrainFeature
             float radialT  = Mathf.Sqrt(dx * dx + dz * dz);   // 0 = centre, 1 = ellipse rim
 
             // --- 2. Overlap weight: blend only the outer skirt into the terrain -----------
-            // distInside < 0 outside the ellipse, so OverlapWeight returns 0 there.
-            // We convert radialT → metres-inside so OverlapWeight's overlap band works:
-            //   dist = (minSemi * (1 - radialT)) gives metres inside the rim at the ground.
-            float distInside = minSemi * (1f - radialT);
+            // The tower shape stays radial (radialT drives the Plateau/taper/fluting above),
+            // but the footprint blend is now gated by the designer-drawn polygon so the butte
+            // never spills outside the spawner's drawn outline.
+            // polyDist: metres inside the polygon boundary (negative = outside).
+            // radialDist: metres inside the ellipse rim — keeps the spire silhouette radial.
+            // Taking the minimum honours whichever boundary is tighter at each point.
+            float polyDist   = context.FootprintDistanceInside(x, z);
+            float distInside = Mathf.Min(minSemi * (1f - radialT), polyDist);
             float weight   = TerrainNoiseHelper.OverlapWeight(distInside, tuning);
             if (weight <= 0f) return groundY;
 

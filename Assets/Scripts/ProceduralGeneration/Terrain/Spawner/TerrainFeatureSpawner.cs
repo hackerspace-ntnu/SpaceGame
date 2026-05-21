@@ -21,13 +21,32 @@ public class TerrainFeatureSpawner : MonoBehaviour
     [Tooltip("Which procedural terrain feature this spawner builds. The editor warns if the chosen type has no implementation registered yet.")]
     [SerializeField] private TerrainFeatureType featureType = TerrainFeatureType.FlatPad;
 
-    [Header("Footprint — box (area features)")]
-    [Tooltip("Half-extents of the resizable box footprint, in local space. Drag the gizmo handles in the Scene view to resize. Area features (dunes, mesas, buttes, cliffs) mesh inside this box.")]
+    [Header("Footprint — box bound (area features)")]
+    [Tooltip("Half-extents of the local-space box that bounds an area feature and seeds the polygon. The polygon defines the actual organic outline; this box is the starting rectangle and the meshing extent.")]
     [SerializeField] private Vector3 boxHalfExtents = new Vector3(40f, 25f, 40f);
+
+    [Tooltip("How the area footprint outline is defined.\n• Polygon — hand-edit vertices with the Scene-view handles.\n• Noise — the outline is auto-generated from noise; no hand-editing.")]
+    [SerializeField] private FootprintShape footprintShape = FootprintShape.Polygon;
+
+    [Tooltip("Noise mode: lobe frequency of the generated outline — higher = more, smaller wiggles around the edge.")]
+    [Range(0.5f, 8f)] [SerializeField] private float footprintNoiseScale = 2.5f;
+
+    [Tooltip("Noise mode: 'rectangleness'. 0 = outline stays close to the box rectangle; 1 = noise pulls the edge wildly in and out for a very organic, natural silhouette.")]
+    [Range(0f, 1f)] [SerializeField] private float footprintIrregularity = 0.35f;
+
+    [Tooltip("The closed polygon footprint (local space) — the organic outline of an area feature. In Polygon mode you edit it with the Scene-view handles; in Noise mode it is generated. Not shown as raw fields — edit it visually in the Scene view.")]
+    [SerializeField] private FeaturePolygon footprint = new FeaturePolygon();
 
     [Header("Footprint — path (linear features)")]
     [Tooltip("Editable poly-line path, in local space. Linear features (canyons, paths, ridges, bridges, arches, cave entrances) sweep along this. Edit the points with the Scene-view handles.")]
     [SerializeField] private FeaturePath path = new FeaturePath();
+
+    [Header("Per-feature settings")]
+    [Tooltip("Extra knobs specific to the chosen feature type (e.g. cliff face width, butte taper). The inspector draws these automatically; switching feature type reseeds them with that feature's defaults.")]
+    [SerializeReference] private object featureSettings;
+
+    [Tooltip("Tracks which feature type 'featureSettings' was created for, so the inspector can reseed it when the type changes.")]
+    [SerializeField] private TerrainFeatureType featureSettingsType = TerrainFeatureType.FlatPad;
 
     [Header("Tuning")]
     [Tooltip("The four shared knobs — noise, overlap, height, jaggedness — plus walkability. All nine features read these.")]
@@ -71,15 +90,52 @@ public class TerrainFeatureSpawner : MonoBehaviour
     /// <summary>Prefix on every spawned feature-root GameObject — used for robust cleanup.</summary>
     const string FeatureRootPrefix = "TerrainFeature_";
 
-    // -------------------------------------------------------------------------
-    // Public surface (inspector / editor use these)
-    // -------------------------------------------------------------------------
+    // --- Public surface (inspector / editor use these) -----------------------
 
     public TerrainFeatureType FeatureType => featureType;
     public Vector3 BoxHalfExtents { get => boxHalfExtents; set => boxHalfExtents = value; }
+    public FeaturePolygon Footprint => footprint;
     public FeaturePath Path => path;
+
+    /// <summary>Whether the area footprint is hand-edited (Polygon) or noise-generated (Noise).</summary>
+    public FootprintShape FootprintShapeMode => footprintShape;
+
+    /// <summary>True while the footprint outline is noise-generated — vertex handles are then read-only.</summary>
+    public bool FootprintIsGenerated => !UsesPath && footprintShape == FootprintShape.Noise;
+
+    /// <summary>Rebuilds the noise-generated footprint from the current box + knobs so the editor
+    /// can live-update the Scene outline. No-op for linear features or Polygon mode.</summary>
+    public void RefreshGeneratedFootprint()
+    {
+        if (UsesPath || footprintShape != FootprintShape.Noise) return;
+        footprint ??= new FeaturePolygon();
+        footprint.GenerateFromNoise(boxHalfExtents, seed, footprintNoiseScale, footprintIrregularity);
+    }
     public TerrainFeatureTuning Tuning => tuning;
     public int Seed => seed;
+
+    /// <summary>The designer-tuned per-feature settings object (editor reads/writes this).</summary>
+    public object FeatureSettings { get => featureSettings; set => featureSettings = value; }
+
+    /// <summary>Which feature type <see cref="FeatureSettings"/> was last seeded for.</summary>
+    public TerrainFeatureType FeatureSettingsType { get => featureSettingsType; set => featureSettingsType = value; }
+
+    /// <summary>
+    /// Ensures <see cref="FeatureSettings"/> holds a settings object matching the current feature
+    /// type — reseeding with that feature's defaults when the type changed or nothing exists yet.
+    /// Returns the (possibly new) settings object. The editor calls this so the inspector always
+    /// shows the right knobs; <see cref="Generate"/> calls it so a bake always has valid settings.
+    /// </summary>
+    public object SyncFeatureSettings()
+    {
+        if (featureSettings != null && featureSettingsType == featureType)
+            return featureSettings;
+
+        TerrainFeature probe = TerrainFeatureRegistry.Create(featureType);
+        featureSettings = probe != null ? probe.CreateDefaultSettings() : null;
+        featureSettingsType = featureType;
+        return featureSettings;
+    }
     public bool HasBakedMesh => bakedMesh != null;
     public TerrainFeatureResult LastResult => _lastResult;
 
@@ -104,9 +160,7 @@ public class TerrainFeatureSpawner : MonoBehaviour
         else GenerateNow();
     }
 
-    // -------------------------------------------------------------------------
-    // Generation
-    // -------------------------------------------------------------------------
+    // --- Generation ----------------------------------------------------------
 
     /// <summary>
     /// Builds the local <see cref="FeatureContext"/> from this spawner's serialized state. Shared
@@ -116,8 +170,40 @@ public class TerrainFeatureSpawner : MonoBehaviour
     {
         Terrain terrain = targetTerrain != null ? targetTerrain : Terrain.activeTerrain;
         var ground = new UnityTerrainHeightSampler(terrain, fallbackGroundHeight);
-        var bounds = new Bounds(Vector3.zero, boxHalfExtents * 2f);
-        return new FeatureContext(seed, bounds, path, tuning, ground,
+
+        // Resolve the area footprint outline.
+        if (!UsesPath)
+        {
+            footprint ??= new FeaturePolygon();
+            if (footprintShape == FootprintShape.Noise)
+            {
+                // Generated mode: rebuild the outline from noise every time, so the two knobs
+                // (scale, irregularity) live-update and the bake is deterministic off the seed.
+                footprint.GenerateFromNoise(boxHalfExtents, seed, footprintNoiseScale, footprintIrregularity);
+            }
+            else if (!footprint.IsValid)
+            {
+                // Polygon mode: seed from the box the first time so there is always an outline.
+                footprint.ResetToBox(boxHalfExtents);
+            }
+        }
+
+        // Meshing bounds: XZ from the polygon's outline (so the voxel walk covers the real shape),
+        // Y from the box half-extent. Linear features keep the plain box.
+        Bounds bounds;
+        if (!UsesPath && footprint != null && footprint.IsValid)
+        {
+            Bounds poly = footprint.ComputeLocalBounds();
+            bounds = new Bounds(
+                new Vector3(poly.center.x, 0f, poly.center.z),
+                new Vector3(poly.size.x, boxHalfExtents.y * 2f, poly.size.z));
+        }
+        else
+        {
+            bounds = new Bounds(Vector3.zero, boxHalfExtents * 2f);
+        }
+
+        return new FeatureContext(seed, bounds, footprint, path, tuning, ground,
             transform.localToWorldMatrix, meshSettings.voxelSize);
     }
 
@@ -131,6 +217,8 @@ public class TerrainFeatureSpawner : MonoBehaviour
                              "no class registered in TerrainFeatureRegistry.");
             return new TerrainFeatureResult();
         }
+        // Inject the designer-tuned per-feature knobs before the feature describes its shape.
+        feature.ApplySettings(SyncFeatureSettings());
         _lastResult = TerrainFeatureGenerator.Generate(feature, BuildContext(), meshSettings);
         return _lastResult;
     }
@@ -199,44 +287,12 @@ public class TerrainFeatureSpawner : MonoBehaviour
     /// <summary>Assigns the baked mesh asset (called by the editor after a bake).</summary>
     public void AssignBakedMesh(Mesh mesh) => bakedMesh = mesh;
 
-    Material ResolveMaterial()
-    {
-        if (featureMaterial != null) return featureMaterial;
-        var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-        var m = new Material(shader) { name = "DefaultTerrainFeatureMaterial" };
-        if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", new Color(0.78f, 0.66f, 0.46f));
-        if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.1f);
-        return m;
-    }
+    /// <summary>The default desert-rock material if none was assigned (see <see cref="TerrainFeatureSpawnerVisuals"/>).</summary>
+    Material ResolveMaterial() => TerrainFeatureSpawnerVisuals.ResolveMaterial(featureMaterial);
 
-    // -------------------------------------------------------------------------
-    // Gizmo — the editor draws the interactive handles; this is the passive draw.
-    // -------------------------------------------------------------------------
-
+    /// <summary>Passive footprint gizmo — the interactive handles are drawn by the editor.</summary>
     void OnDrawGizmosSelected()
     {
-        if (!drawFootprintGizmo) return;
-        Gizmos.matrix = transform.localToWorldMatrix;
-
-        if (UsesPath)
-        {
-            Gizmos.color = new Color(1f, 0.7f, 0.2f, 0.9f);
-            if (path != null && path.IsValid)
-            {
-                var spline = new FeatureSpline(path);
-                Vector3 prev = spline.Evaluate(0f);
-                for (int i = 1; i <= 48; i++)
-                {
-                    Vector3 cur = spline.Evaluate(i / 48f);
-                    Gizmos.DrawLine(prev, cur);
-                    prev = cur;
-                }
-            }
-        }
-        else
-        {
-            Gizmos.color = new Color(0.5f, 0.85f, 1f, 0.5f);
-            Gizmos.DrawWireCube(Vector3.zero, boxHalfExtents * 2f);
-        }
+        if (drawFootprintGizmo) TerrainFeatureSpawnerVisuals.DrawFootprintGizmo(this);
     }
 }

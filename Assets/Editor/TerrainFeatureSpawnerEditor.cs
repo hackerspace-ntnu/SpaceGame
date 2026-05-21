@@ -22,20 +22,47 @@ using UnityEngine;
 [CustomEditor(typeof(TerrainFeatureSpawner))]
 public class TerrainFeatureSpawnerEditor : Editor
 {
-    bool _livePreview;
+    // Live preview is ON by default; the designer can toggle it off.
+    bool _livePreview = true;
 
     void OnSceneGUI()
     {
         TerrainFeatureHandles.Draw((TerrainFeatureSpawner)target);
     }
 
+    // Serialized fields drawn manually (or not at all) below — excluded from the default pass.
+    // 'footprint' is hidden entirely: it is edited visually with the Scene-view handles, never
+    // as raw vertex input fields.
+    static readonly string[] HiddenProps = { "featureSettings", "featureSettingsType", "footprint" };
+
     public override void OnInspectorGUI()
     {
-        EditorGUI.BeginChangeCheck();
-        DrawDefaultInspector();
-        bool settingsChanged = EditorGUI.EndChangeCheck();
-
         var spawner = (TerrainFeatureSpawner)target;
+
+        // Keep the per-feature settings object in sync with the chosen feature type BEFORE drawing,
+        // so the inspector always shows the knobs for the currently selected feature.
+        spawner.SyncFeatureSettings();
+
+        serializedObject.Update();
+
+        EditorGUI.BeginChangeCheck();
+
+        // Default inspector minus the manually-drawn settings fields.
+        DrawPropertiesExcluding(serializedObject, HiddenProps);
+
+        // Per-feature settings block, drawn from the polymorphic [SerializeReference] property.
+        DrawFeatureSettings();
+
+        bool settingsChanged = EditorGUI.EndChangeCheck();
+        serializedObject.ApplyModifiedProperties();
+
+        // Footprint authoring help + manual tools (the polygon is edited in the Scene view).
+        DrawFootprintHelp(spawner);
+
+        // A Noise-mode footprint must be rebuilt whenever a knob changed so the Scene + preview
+        // reflect the new outline immediately.
+        if (settingsChanged && spawner.FootprintIsGenerated)
+            spawner.RefreshGeneratedFootprint();
 
         EditorGUILayout.Space();
         DrawImplementationStatus(spawner);
@@ -84,6 +111,87 @@ public class TerrainFeatureSpawnerEditor : Editor
             EditorGUILayout.HelpBox(
                 "No baked mesh. Runtime will generate the feature live on Awake (slow).",
                 MessageType.Warning);
+    }
+
+    // -------------------------------------------------------------------------
+    // Per-feature settings block
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Draws the chosen feature's own settings object (e.g. CliffFeatureSettings) directly in the
+    /// inspector. The object is a polymorphic [SerializeReference] field, so its children are
+    /// enumerated and drawn generically — every feature's bespoke knobs appear with zero per-feature
+    /// editor code.
+    /// </summary>
+    void DrawFeatureSettings()
+    {
+        SerializedProperty settings = serializedObject.FindProperty("featureSettings");
+        if (settings == null) return;
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Feature Settings", EditorStyles.boldLabel);
+
+        if (settings.managedReferenceValue == null)
+        {
+            EditorGUILayout.HelpBox("This feature exposes no extra settings.", MessageType.None);
+            return;
+        }
+
+        // Enumerate the settings object's serialized children and draw each one.
+        SerializedProperty child = settings.Copy();
+        SerializedProperty end = child.GetEndProperty();
+        bool enterChildren = true;
+        while (child.NextVisible(enterChildren) && !SerializedProperty.EqualContents(child, end))
+        {
+            enterChildren = false;
+            EditorGUILayout.PropertyField(child, true);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Footprint authoring help
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Draws guidance + manual tools for the area footprint. The polygon is never shown as raw
+    /// vertex fields — it is edited visually with the Scene-view handles. In Noise mode the outline
+    /// is generated, so this just explains the knobs; in Polygon mode it offers a "Reset to box".
+    /// </summary>
+    void DrawFootprintHelp(TerrainFeatureSpawner spawner)
+    {
+        if (spawner.UsesPath) return;   // linear features use the spline, not a polygon
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Footprint", EditorStyles.boldLabel);
+
+        if (spawner.FootprintShapeMode == FootprintShape.Noise)
+        {
+            EditorGUILayout.HelpBox(
+                "Noise mode: the outline is generated from the noise scale + irregularity knobs " +
+                "above. Drag the box handles to set the overall size; the Scene-view outline " +
+                "updates live. Switch to Polygon mode to hand-edit vertices.",
+                MessageType.Info);
+            if (GUILayout.Button("Regenerate Outline"))
+            {
+                Undo.RecordObject(spawner, "Regenerate Footprint");
+                spawner.RefreshGeneratedFootprint();
+                MarkSceneDirty(spawner);
+            }
+        }
+        else
+        {
+            EditorGUILayout.HelpBox(
+                "Polygon mode: shape the outline in the Scene view — drag the blue vertex dots, " +
+                "use the +/- buttons beside each to add or remove vertices. The green arrow sets " +
+                "feature height. Switch to Noise mode to auto-generate an organic outline.",
+                MessageType.Info);
+            if (GUILayout.Button("Reset Outline to Box"))
+            {
+                Undo.RecordObject(spawner, "Reset Footprint");
+                spawner.Footprint.ResetToBox(spawner.BoxHalfExtents);
+                MarkSceneDirty(spawner);
+            }
+        }
     }
 
     // -------------------------------------------------------------------------

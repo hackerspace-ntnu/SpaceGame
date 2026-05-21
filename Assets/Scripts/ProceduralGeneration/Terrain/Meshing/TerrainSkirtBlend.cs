@@ -3,50 +3,67 @@ using UnityEngine;
 
 /// <summary>
 /// Shared terrain-skirt blend. A feature produces a standalone marching-cubes mesh; on its own
-/// that mesh would float above, or punch through, the underlying Unity Terrain wherever the two
-/// disagree. This helper closes that gap: it pulls the mesh's LOWER BAND of vertices down so they
-/// land exactly on the ground, leaving no floating edge and no hard seam.
+/// that mesh can punch THROUGH the underlying Unity Terrain wherever the feature surface dips below
+/// the ground. This helper closes that seam.
 ///
-/// Every one of the nine features calls <see cref="Apply"/> as the last step of its build, so the
-/// blend behaviour is identical and tunable in one place. The maths is a vertical snap weighted
-/// by how close a vertex is to the feature's base — vertices at or below the base height are
-/// snapped fully onto the ground, vertices high up are untouched, and a smooth band between the
-/// two is interpolated so the transition reads as a natural skirt of sand/rock.
+/// IMPORTANT — this is NOT the feature's overlap/edge-falloff control. A feature shapes its own
+/// soft edge with <see cref="TerrainNoiseHelper.OverlapWeight"/> driven by the <c>overlap</c>
+/// tuning; that is the designer-facing blend. The skirt here only fixes the literal geometric
+/// seam, with a SMALL FIXED band that does NOT depend on <c>overlap</c> — so raising the overlap
+/// slider widens the feature's soft edge without the skirt eating into the feature.
+///
+/// What <see cref="Apply"/> does: a vertex that has sunk BELOW the terrain is lifted back up to
+/// sit just under the ground (clears the punch-through); a vertex within a thin fixed band ABOVE
+/// the ground is gently nudged down so the contact reads as a buried skirt rather than a floating
+/// crease. Vertices clearly above the ground — the whole body of the feature — are never touched,
+/// so low/flat features (dune fields, mesa bases, canyon floors) keep their full height.
 /// </summary>
 public static class TerrainSkirtBlend
 {
+    /// <summary>Fixed skirt band (metres above ground) over which the gentle contact-nudge fades.
+    /// Deliberately small and constant — the feature's own OverlapWeight owns the wide soft edge.</summary>
+    const float ContactBand = 1.5f;
+
     /// <summary>
-    /// Snaps the lower band of <paramref name="mesh"/> down onto the ground sampled through the
-    /// <see cref="FeatureContext"/>. Mutates the mesh in place (vertices + bounds + normals).
+    /// Closes the geometric seam between <paramref name="mesh"/> and the underlying terrain.
+    /// Mutates the mesh in place (vertices + bounds + normals).
+    ///
+    /// Only two kinds of vertex are moved:
+    ///   • BELOW ground — lifted up to <c>groundY - embed</c> so the feature stops poking through.
+    ///   • Within <see cref="ContactBand"/> ABOVE ground — nudged down by a fraction that fades to
+    ///     zero at the top of the band, so the base buries cleanly with no hard crease.
+    /// Everything higher is left exactly as the feature authored it.
     /// </summary>
     /// <param name="mesh">Feature-local-space mesh produced by the MC mesher.</param>
     /// <param name="context">Carries the ground sampler and the local→world transform.</param>
-    /// <param name="blendBand">Height (metres) above the ground over which the snap fades from
-    /// full (at/below ground) to none. Larger = a longer, gentler skirt. Drive this from the
-    /// feature's <c>overlap</c> tuning for consistency.</param>
-    /// <param name="embed">Metres the snapped vertices are pushed BELOW the ground, so the skirt
-    /// visibly buries into the terrain instead of resting on a visible crease. 0.5–1 is typical.</param>
-    public static void Apply(Mesh mesh, FeatureContext context, float blendBand, float embed)
+    /// <param name="embed">Metres the contact vertices sit BELOW the ground, so the skirt buries
+    /// into the terrain instead of resting on a visible crease. 0.5–1 is typical.</param>
+    public static void Apply(Mesh mesh, FeatureContext context, float embed)
     {
         if (mesh == null || mesh.vertexCount == 0 || context == null) return;
 
         var verts = mesh.vertices;
-        float band = Mathf.Max(0.0001f, blendBand);
 
         for (int i = 0; i < verts.Length; i++)
         {
             Vector3 local = verts[i];
-            // Ground height expressed in feature-local Y under this vertex's XZ column.
             float groundLocalY = context.LocalGroundHeight(local.x, local.z);
+            float target = groundLocalY - embed;        // where a contact vertex should sit
+            float above = local.y - groundLocalY;       // signed height over the ground
 
-            // How far this vertex sits ABOVE the ground. Vertices below the ground (negative)
-            // get fully snapped; vertices within the band get a smooth partial snap.
-            float above = local.y - groundLocalY;
-            float snap = 1f - Mathf.Clamp01(above / band);
-            if (snap <= 0f) continue;
+            if (above <= 0f)
+            {
+                // Punching through the terrain — lift it back up to the buried-contact line.
+                local.y = Mathf.Max(local.y, target);
+            }
+            else if (above < ContactBand)
+            {
+                // Thin contact band — gently nudge down toward the buried line, fading to zero
+                // at the top of the band. Never raises the vertex, never touches the body above.
+                float t = 1f - above / ContactBand;     // 1 at ground, 0 at band top
+                local.y = Mathf.Lerp(local.y, Mathf.Min(local.y, target), t);
+            }
 
-            float target = groundLocalY - embed;
-            local.y = Mathf.Lerp(local.y, Mathf.Min(local.y, target), snap);
             verts[i] = local;
         }
 

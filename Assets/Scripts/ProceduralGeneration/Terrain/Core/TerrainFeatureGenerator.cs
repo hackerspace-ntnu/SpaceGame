@@ -59,10 +59,11 @@ public static class TerrainFeatureGenerator
         }
         mesh.name = $"{feature.FeatureType}_seed{context.Seed}";
 
-        // 3) Skirt-blend the lower band down onto the terrain. Band width tracks the feature's
-        //    overlap tuning so the skirt and the surface falloff feel consistent.
-        float blendBand = Mathf.Max(2f, context.Tuning != null ? context.Tuning.overlap : 8f);
-        TerrainSkirtBlend.Apply(mesh, context, blendBand, embed: 1f);
+        // 3) Skirt-blend: close the geometric seam where the feature meets the terrain. This is a
+        //    small fixed contact fix only — it deliberately does NOT use the 'overlap' tuning, so
+        //    'overlap' is free to mean exactly one thing: the feature's own soft edge falloff
+        //    (TerrainNoiseHelper.OverlapWeight). The two used to fight over the same number.
+        TerrainSkirtBlend.Apply(mesh, context, embed: 1f);
 
         // 4) Optional per-feature final tweak.
         feature.PostProcess(mesh, context);

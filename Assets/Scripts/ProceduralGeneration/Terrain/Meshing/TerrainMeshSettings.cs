@@ -17,7 +17,7 @@ public class TerrainMeshSettings
     [Tooltip("Voxel edge length in metres. Smaller = more detail + much slower bake. 1.5–3 is a good band for large terrain features.")]
     [Range(0.5f, 6f)] public float voxelSize = 2f;
 
-    [Tooltip("Heightfield features only: how many voxels of solid below and air above the surface the mesher voxelises. 2 is the minimum for a sealed surface; raise for steep features so no triangles are clipped.")]
+    [Tooltip("Heightfield features only: voxels of padding added below/above the surface band. The mesher already auto-expands the band across neighbouring columns to bridge steep walls, so 2-3 is enough even for cliffs and buttes; this is just iso-surface padding, not a steepness knob.")]
     [Range(2, 8)] public int surfaceBandVoxels = 3;
 
     [Tooltip("Use 32-bit mesh indices — required for features above 65k vertices.")]

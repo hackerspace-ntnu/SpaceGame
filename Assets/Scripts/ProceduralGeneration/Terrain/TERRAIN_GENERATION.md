@@ -34,8 +34,9 @@ it — near-zero runtime cost, exactly like `CaveSpawner`'s baked path.
 2. **`TerrainMarchingCubesMesher.Build(density, meshSettings)`** — voxelises and extracts the
    iso-surface. For a *heightfield* density it walks only a thin band straddling the surface
    (cost scales with footprint **area**); for a *voxel* density it walks the full volume.
-3. **`TerrainSkirtBlend.Apply(mesh, context, …)`** — snaps the mesh's lower band of vertices down
-   onto the underlying terrain so there is no floating edge and no hard seam.
+3. **`TerrainSkirtBlend.Apply(mesh, context, embed)`** — closes the geometric SEAM where the mesh
+   meets the terrain (lifts punch-through vertices, buries a thin contact band). It uses a small
+   FIXED band and is NOT driven by `overlap` — the feature's own `OverlapWeight` owns the soft edge.
 4. **`TerrainFeature.PostProcess(mesh, context)`** — optional per-feature final mesh tweak.
 
 The feature only does step 1. Everything else is shared and identical for all features.
@@ -62,16 +63,54 @@ function `f(x, z)`; a voxel SDF's surface can fold back over itself.
 There is **one** `FeatureContext` for all nine features (no area/linear class split — maximum
 interchangeability is the #1 design rule). It carries:
 
-- `LocalBounds` — the resizable box, in feature-local space (area features mesh inside this).
+- `Footprint` — the editable **closed polygon** (`FeaturePolygon`), in feature-local space. AREA
+  features get their organic outline from this.
 - `Path` — the editable `FeaturePath` poly-line (linear features sweep along this; wrap it in a
   `FeatureSpline` to sample a smooth Catmull-Rom curve).
+- `LocalBounds` — axis-aligned bounding box of whichever footprint is active. Used by the mesher
+  for its voxel-walk extent; features should NOT read this for their silhouette.
 - `Tuning` — the shared `TerrainFeatureTuning` knobs.
 - `Ground` — an `ITerrainHeightSampler` over the underlying Unity Terrain.
 - `LocalToWorld`, `Seed`, `VoxelSize`.
 
-An area feature reads `LocalBounds` and ignores `Path`. A linear feature reads `Path` and uses
-`LocalBounds` only as an overall clamp. `TerrainFeatureSpawner.UsesPath` decides which gizmo the
-editor shows.
+**Area features must shape their outline with `context.FootprintDistanceInside(x, z)`** — it
+returns the signed distance to the polygon boundary (positive metres inside, negative outside).
+Feed it straight into `TerrainNoiseHelper.OverlapWeight`. Do NOT recompute a box edge with
+`Mathf.Min(dx, dz)` — that hardcodes a rectangle and ignores the designer's polygon.
+
+A linear feature reads `Path` and uses `LocalBounds` only as an overall clamp.
+`TerrainFeatureSpawner.UsesPath` decides which gizmo the editor shows (polygon vs spline).
+
+### Authoring the area footprint
+
+The polygon is edited **visually in the Scene view** — never as raw vertex fields. The spawner's
+`footprintShape` picks how the outline is defined:
+
+- **`Polygon`** — hand-edited. Drag the blue vertex dots; the `+`/`-` buttons beside each add or
+  remove vertices. A green up-arrow sets feature height.
+- **`Noise`** — the outline is *generated* by `FeaturePolygon.GenerateFromNoise` from two knobs:
+  `footprintNoiseScale` (lobe frequency — how wiggly) and `footprintIrregularity` (the
+  "rectangleness" — 0 stays near the box, 1 is wildly organic). No vertex editing; resize with the
+  box handles and the outline regenerates live.
+
+Either way a feature just calls `context.FootprintDistanceInside(x, z)` — it never cares which
+mode produced the polygon.
+
+### Per-feature settings
+
+Beyond the four shared `TerrainFeatureTuning` knobs, a feature may expose its own knobs via a
+small `[System.Serializable]` settings class (e.g. `CliffFeatureSettings.faceWidthFraction`). To
+make those reachable from the spawner inspector, override two members on `TerrainFeature`:
+
+```csharp
+public override object CreateDefaultSettings() => new MyFeatureSettings();
+public override void ApplySettings(object settings) => Settings = settings as MyFeatureSettings;
+```
+
+The spawner stores the settings object (`[SerializeReference]`), the editor draws its fields
+automatically, and the spawner injects it via `ApplySettings` before `BuildDensity` runs. A
+feature with no extra knobs simply omits both overrides. Always null-guard the injected settings
+(`ApplySettings(null)` is valid) and fall back to code defaults.
 
 ---
 
@@ -130,10 +169,12 @@ return new HeightfieldDensity(
         float ground = context.LocalGroundHeight(x, z);
         float profile = TerrainProfiles.Dune(...);          // shape
         float noise   = TerrainNoiseHelper.SurfaceNoise(new Vector3(x,0,z), context.Tuning, context.Seed);
+        // Outline + edge falloff come from the polygon footprint — NOT a box edge.
+        float distInside = context.FootprintDistanceInside(x, z);
         float weight  = TerrainNoiseHelper.OverlapWeight(distInside, context.Tuning);
         return ground + (profile * height + noise) * weight;
     },
-    footprintBounds, minY, maxY, bandPadding);
+    context.LocalBounds, minY, maxY, bandPadding);
 ```
 
 **Voxel feature pattern (overhangs):**

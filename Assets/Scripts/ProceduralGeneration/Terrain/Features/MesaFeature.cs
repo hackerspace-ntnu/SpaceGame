@@ -62,10 +62,14 @@ public class MesaSettings
 ///
 /// <para><b>Shape approach</b></para>
 /// <list type="bullet">
-///   <item>The box footprint's edge distance is normalised to [0, 1] and warped by low-frequency
-///     noise (<see cref="MesaSettings.outlineWarpStrength"/>) so the perimeter is organic rather
-///     than a perfect rectangle.</item>
-///   <item><see cref="TerrainProfiles.Plateau"/> converts that warped distance into the
+///   <item>The designer-drawn polygon footprint drives the outline via
+///     <see cref="FeatureContext.FootprintDistanceInside"/>, which returns signed metres inside
+///     the polygon boundary. This gives the mesa a non-rectangular plateau that exactly follows
+///     the placed polygon rather than an axis-aligned box.</item>
+///   <item>The metres-inside distance is normalised to [0, 1] using the shorter polygon
+///     bounding-box half-extent, then warped by low-frequency noise
+///     (<see cref="MesaSettings.outlineWarpStrength"/>) for an organic, irregular perimeter.</item>
+///   <item><see cref="TerrainProfiles.Plateau"/> converts the warped normalised distance into the
 ///     steep-wall→flat-top silhouette: 0 at the edge, rising sharply across the wall fraction,
 ///     then clamped to 1 (the summit).</item>
 ///   <item>Within the wall band, vertical erosion striations are applied via a separate
@@ -75,7 +79,7 @@ public class MesaSettings
 ///     fine-scale surface crags everywhere; on the summit its amplitude is reduced to preserve
 ///     walkability.</item>
 ///   <item><see cref="TerrainNoiseHelper.OverlapWeight"/> blends the entire feature gracefully
-///     into the surrounding terrain across the overlap band.</item>
+///     into the surrounding terrain across the overlap band, fed the raw metres-inside value.</item>
 /// </list>
 ///
 /// <para>All outputs are deterministic off <see cref="FeatureContext.Seed"/>.</para>
@@ -97,6 +101,23 @@ public sealed class MesaFeature : TerrainFeature
     /// </summary>
     public void Configure(MesaSettings settings) => _settings = settings ?? new MesaSettings();
 
+    /// <summary>
+    /// Called by the spawner to obtain a fresh default settings object for this feature type.
+    /// Returns a new <see cref="MesaSettings"/> with all fields at their inspector defaults.
+    /// </summary>
+    public override object CreateDefaultSettings() => new MesaSettings();
+
+    /// <summary>
+    /// Called by the spawner to inject a previously-created settings object.
+    /// Casts <paramref name="settings"/> to <see cref="MesaSettings"/> and stores it;
+    /// a null or wrong-type value leaves the current settings unchanged.
+    /// </summary>
+    public override void ApplySettings(object settings)
+    {
+        if (settings is MesaSettings ms)
+            _settings = ms;
+    }
+
     /// <inheritdoc/>
     public override ITerrainDensity BuildDensity(FeatureContext context)
     {
@@ -107,13 +128,9 @@ public sealed class MesaFeature : TerrainFeature
         // Deterministic per-feature height with variation applied.
         float mesaHeight = TerrainNoiseHelper.VariedHeight(tuning.height, tuning, context.Seed);
 
-        // Pre-compute footprint geometry in XZ.
-        Vector2 centre  = new Vector2(box.center.x, box.center.z);
-        float   halfX   = box.extents.x;
-        float   halfZ   = box.extents.z;
-        // Shortest half-extent drives the normalisation so the profile is consistent
-        // regardless of aspect ratio.
-        float   halfMin = Mathf.Min(halfX, halfZ);
+        // Shortest bounding-box half-extent drives the normalisation so the profile is
+        // consistent regardless of footprint aspect ratio.
+        float halfMin = Mathf.Max(0.01f, Mathf.Min(box.extents.x, box.extents.z));
 
         // Salt constants so the three noise passes don't correlate.
         int seedOutline    = context.Seed ^ 0x3A7F1C2B;
@@ -127,18 +144,19 @@ public sealed class MesaFeature : TerrainFeature
         {
             float groundY = context.LocalGroundHeight(x, z);
 
-            // --- 1. Rectangular signed distance from nearest footprint edge ----
-            float dx = halfX - Mathf.Abs(x - centre.x);
-            float dz = halfZ - Mathf.Abs(z - centre.y);
-            float distInside = Mathf.Min(dx, dz);   // negative = outside footprint
+            // --- 1. Polygon signed distance from nearest footprint edge ----------
+            // Positive = inside the designer-drawn polygon (metres); negative = outside.
+            float distInside = context.FootprintDistanceInside(x, z);
 
             // --- 2. Overlap falloff — drives blending into surrounding terrain --
+            // OverlapWeight takes raw metres-inside directly.
             float weight = TerrainNoiseHelper.OverlapWeight(distInside, tuning);
             if (weight <= 0f) return groundY;
 
-            // --- 3. Organic outline warp — breaks the rectangular silhouette ---
-            // Low-frequency FBM noise shifts the effective edge distance inward or outward,
-            // giving the mesa perimeter a natural, irregular look.
+            // --- 3. Organic outline warp — perturbs the polygon-derived distance --
+            // Low-frequency FBM noise shifts the effective metres-inside value inward or
+            // outward, giving the mesa perimeter an irregular, organic look while still
+            // following the polygon outline overall.
             float outlineWarp = 0f;
             if (s.outlineWarpStrength > 0f)
             {
@@ -149,7 +167,7 @@ public sealed class MesaFeature : TerrainFeature
             }
             float warpedDist = distInside + outlineWarp;
 
-            // Normalise the warped distance to [0,1] where 1 = footprint centre.
+            // Normalise the warped metres-inside to [0,1] where 1 = deep inside the polygon.
             float normDist = Mathf.Clamp01(warpedDist / halfMin);
 
             // --- 4. Plateau profile: steep wall rising to flat top --------------

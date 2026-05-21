@@ -63,6 +63,15 @@ public sealed class CliffFeature : TerrainFeature
     /// <inheritdoc/>
     public override TerrainDensityKind DensityKind => TerrainDensityKind.Heightfield;
 
+    /// <inheritdoc/>
+    public override object CreateDefaultSettings() => new CliffFeatureSettings();
+
+    /// <inheritdoc/>
+    public override void ApplySettings(object settings)
+    {
+        Settings = settings as CliffFeatureSettings;
+    }
+
     /// <summary>
     /// Builds the escarpment heightfield density. The height lambda evaluates the lateral distance
     /// from the cliff edge (spline- or box-derived), feeds it through
@@ -107,9 +116,7 @@ public sealed class CliffFeature : TerrainFeature
             float groundY   = context.LocalGroundHeight(x, z);
 
             // --- 1. Footprint overlap weight (fades feature into surrounding terrain) ----------
-            float dx        = halfXZ.x - Mathf.Abs(x - centreXZ.x);
-            float dz        = halfXZ.y - Mathf.Abs(z - centreXZ.y);
-            float distInside = Mathf.Min(dx, dz);
+            float distInside = context.FootprintDistanceInside(x, z);
             float weight    = TerrainNoiseHelper.OverlapWeight(distInside, tuning);
             if (weight <= 0f) return groundY;
 

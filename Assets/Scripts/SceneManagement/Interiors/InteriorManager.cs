@@ -42,6 +42,41 @@ public class InteriorManager : MonoBehaviour
     [SerializeField] private float exitChunkLoadTimeoutSeconds = 8f;
     [Tooltip("Cap on how far the player can be moved upward by the ground-clamp. Keeps a stuck return position from launching them into the sky.")]
     [SerializeField] private float groundClampMaxLift = 50f;
+    [Tooltip("After exiting an interior, how long (seconds) entrance triggers refuse to fire for that player. " +
+             "Exiting drops the player back where they entered — right inside the entrance volume — so without " +
+             "this lockout a walk-in entrance re-fires instantly and yo-yos them straight back in.")]
+    [SerializeField] private float postExitEntranceLockout = 2f;
+
+    /// <summary>Per-player real-time stamp until which entrance triggers should treat re-entry as locked out.</summary>
+    private readonly Dictionary<ulong, float> entranceLockoutUntil = new();
+
+    /// <summary>
+    /// True if <paramref name="player"/> just exited an interior and the post-exit lockout window
+    /// has not elapsed. Entrance triggers (InteriorEntrance, volume triggers) should not fire while
+    /// this is true — it stops the player yo-yoing straight back into the interior they just left.
+    /// </summary>
+    public bool IsEntranceLockedOut(GameObject player)
+    {
+        if (player == null) return false;
+        return entranceLockoutUntil.TryGetValue(GetPlayerKey(player), out float until)
+               && Time.unscaledTime < until;
+    }
+
+    /// <summary>
+    /// True if <paramref name="player"/> is currently inside an interior (has been moved out of the
+    /// exterior by EnterInterior and not yet returned by ExitInterior). A player has a ReturnInfo
+    /// entry for exactly the duration of an interior visit, so this is the authoritative test.
+    ///
+    /// Triggers in the persistent/exterior scene use this instead of a raw scene-equality check:
+    /// world streaming legitimately migrates the player between exterior chunk sub-scenes, so
+    /// "player.scene != trigger.scene" is true in normal play and must NOT block triggering.
+    /// The thing a trigger actually needs to exclude is a player who is off in an interior.
+    /// </summary>
+    public bool IsInsideInterior(GameObject player)
+    {
+        if (player == null) return false;
+        return returnInfoByPlayer.ContainsKey(GetPlayerKey(player));
+    }
 
     private int TotalInteriorOccupancy
     {
@@ -78,6 +113,7 @@ public class InteriorManager : MonoBehaviour
             Destroy(info.ReturnPin.gameObject);
         }
         returnInfoByPlayer.Clear();
+        entranceLockoutUntil.Clear();
 
         if (Instance == this) Instance = null;
     }
@@ -262,6 +298,12 @@ public class InteriorManager : MonoBehaviour
         // leave the player floating or clipped into the ground.
         yield return null;
         GroundClampPlayer(player, info.Position);
+
+        // The player is now standing exactly where they entered — i.e. inside the entrance
+        // trigger volume. Arm a lockout so entrance triggers ignore them until they've had a
+        // chance to walk clear; otherwise a walk-in entrance fires this same frame and sends
+        // them straight back in.
+        entranceLockoutUntil[key] = Time.unscaledTime + Mathf.Max(0f, postExitEntranceLockout);
 
         CleanupReturnInfo(key, info);
 

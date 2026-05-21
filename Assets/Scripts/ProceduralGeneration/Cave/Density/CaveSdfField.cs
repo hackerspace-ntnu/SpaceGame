@@ -123,6 +123,14 @@ public class CaveSdfField : ICaveDensityField
                 pStretched.y = midY + (p.y - midY) / Mathf.Max(1f, c.HeightStretch);
                 s = SdfPrimitives.Capsule(pStretched, a, b, c.Radius);
             }
+            else if (c.Kind == CorridorKind.Entrance)
+            {
+                // Entrance tube segment: a plain uniform-radius capsule. Floor flattening stays
+                // ON — the entrance tunnel has a deliberately gentle, walkable slope, so a
+                // slope-tracking floor (handled by the shared corridor flatten below) gives the
+                // player solid footing the whole way down rather than a rounded tube bottom.
+                s = SdfPrimitives.Capsule(p, a, b, c.Radius);
+            }
             else if (c.Kind == CorridorKind.Shaft)
             {
                 // Vertical shaft: keep the XZ position of the upper room, run a vertical capsule

@@ -14,6 +14,26 @@ public class InteriorAnchor : MonoBehaviour
 
     private static readonly Dictionary<(string scene, string id), InteriorAnchor> s_anchors = new();
 
+    /// <summary>
+    /// Assign the anchor id at runtime (used by procedurally-spawned anchors, e.g. the cave
+    /// entrance). Re-registers under the new key so <see cref="Find"/> resolves it. Safe to call
+    /// after the component is already enabled.
+    /// </summary>
+    public void SetAnchorId(string id)
+    {
+        if (string.IsNullOrEmpty(id) || id == anchorId) { anchorId = id; return; }
+
+        // Drop the stale registration keyed under the old id, if it was us.
+        var oldKey = (gameObject.scene.name, anchorId);
+        if (s_anchors.TryGetValue(oldKey, out var existing) && existing == this)
+            s_anchors.Remove(oldKey);
+
+        anchorId = id;
+
+        if (isActiveAndEnabled)
+            s_anchors[(gameObject.scene.name, anchorId)] = this;
+    }
+
     private void OnEnable()
     {
         var key = (gameObject.scene.name, anchorId);

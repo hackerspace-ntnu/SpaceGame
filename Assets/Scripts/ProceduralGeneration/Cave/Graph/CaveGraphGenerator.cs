@@ -144,6 +144,12 @@ public static class CaveGraphGenerator
         if (s.enableSlotCanyons && s.slotCanyonHeightStretch > 1.01f)
             ApplySlotCanyonUpgrades(graph, s, rng);
 
+        // Pass f — append the dedicated entrance: a thin dead-end passage rising from the
+        // highest existing room to a small entrance chamber at the top of the footprint.
+        // Runs after connectivity so the entrance is guaranteed to be a leaf (degree 1).
+        if (s.generateEntrance)
+            AppendEntrance(graph, existingEdges, s, rng);
+
         // -------------------------------------------------------------------------
         // 3) Tag rooms based on size + connectivity
         // -------------------------------------------------------------------------
@@ -159,6 +165,15 @@ public static class CaveGraphGenerator
         for (int i = 0; i < graph.Rooms.Count; i++)
         {
             var r = graph.Rooms[i];
+
+            // Every entrance-tube node keeps its dedicated Entrance kind — don't let the degree
+            // pass re-tag the tube (mouth would become DeadEnd, mid-nodes Normal/BigChamber).
+            if (r.Kind == RoomKind.Entrance)
+            {
+                graph.Rooms[i] = r;
+                continue;
+            }
+
             if (degree[i] == 1) r.Kind = RoomKind.DeadEnd;
             else if (degree[i] >= 4) r.Kind = RoomKind.Junction;
             else if (r.Radius >= bigCutoff) r.Kind = RoomKind.BigChamber;
@@ -231,6 +246,91 @@ public static class CaveGraphGenerator
             c.HeightStretch = s.slotCanyonHeightStretch;
             g.Corridors[i] = c;
         }
+    }
+
+    /// <summary>
+    /// Appends the cave's entrance tunnel — a "thick spaghetti" of uniform-radius segments that
+    /// winds gently upward from the highest cave room to a mouth node near the top of the
+    /// footprint. Every node is a small same-radius room and every link is a same-radius
+    /// <see cref="CorridorKind.Entrance"/> corridor, so the tube has a constant cross-section
+    /// and a low, walkable slope (no big chamber anywhere).
+    ///
+    /// The walk starts at the cave end and climbs, so the slope/wander accumulate predictably;
+    /// the final node (mouth) becomes <see cref="CaveGraph.EntranceRoomId"/> — a guaranteed
+    /// dead end (single corridor) and the highest point of the cave.
+    /// </summary>
+    static void AppendEntrance(CaveGraph g, HashSet<long> edges, CaveGenerationSettings s, System.Random rng)
+    {
+        if (g.Rooms.Count == 0) return;
+
+        // Highest existing room — the tunnel grows up out of it.
+        int baseIdx = 0;
+        for (int i = 1; i < g.Rooms.Count; i++)
+            if (g.Rooms[i].Center.y > g.Rooms[baseIdx].Center.y) baseIdx = i;
+
+        float radius = s.entranceTubeRadius;
+        int segments = Mathf.Max(2, s.entranceSegmentCount);
+        float segLen = Mathf.Max(2f, s.entranceSegmentLength);
+
+        // Footprint limits the tube must stay inside (so marching cubes doesn't clip it).
+        float maxY = Mathf.Min(s.halfExtents.y, s.verticalRange) - radius;
+        float limX = s.halfExtents.x - radius;
+        float limZ = s.halfExtents.z - radius;
+
+        // Initial heading: random compass direction, walked one segment at a time. The vertical
+        // component is fixed by entranceTubeSlope so every segment climbs the same gentle amount.
+        float heading = (float)(rng.NextDouble() * Mathf.PI * 2.0);
+        float vertPerStep = segLen * s.entranceTubeSlope; // metres of rise per segment
+
+        Vector3 cursor = g.Rooms[baseIdx].Center;
+        int prevId = baseIdx;
+        int lastNodeId = baseIdx;
+
+        for (int seg = 0; seg < segments; seg++)
+        {
+            // Wander the heading a little each step — this is what gives the tube its winding
+            // spaghetti shape. Bounded so the tube never doubles back hard.
+            heading += (float)((rng.NextDouble() - 0.5) * 2.0) * s.entranceTubeWander * Mathf.Deg2Rad;
+
+            float horiz = Mathf.Sqrt(Mathf.Max(0f, segLen * segLen - vertPerStep * vertPerStep));
+            Vector3 step = new Vector3(
+                Mathf.Cos(heading) * horiz,
+                vertPerStep,
+                Mathf.Sin(heading) * horiz);
+
+            Vector3 next = cursor + step;
+            next.y = Mathf.Min(next.y, maxY);
+            next.x = Mathf.Clamp(next.x, -limX, limX);
+            next.z = Mathf.Clamp(next.z, -limZ, limZ);
+
+            // If a clamp shoved the node, nudge the cursor with it so the next segment continues
+            // from the real position rather than drifting outside the footprint.
+            cursor = next;
+
+            int nodeId = g.Rooms.Count;
+            g.Rooms.Add(new CaveRoom
+            {
+                Id = nodeId,
+                Center = cursor,
+                Radius = radius,
+                Kind = RoomKind.Entrance,
+            });
+
+            g.Corridors.Add(new CaveCorridor
+            {
+                FromRoomId = prevId,
+                ToRoomId   = nodeId,
+                Radius     = radius,            // uniform — same as the nodes, so a constant tube
+                Kind       = CorridorKind.Entrance,
+            });
+            edges.Add(EdgeKey(prevId, nodeId));
+
+            prevId = nodeId;
+            lastNodeId = nodeId;
+        }
+
+        // The last node is the mouth: highest point, single corridor → guaranteed dead end.
+        g.EntranceRoomId = lastNodeId;
     }
 
     // -------------------------------------------------------------------------

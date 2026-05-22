@@ -169,18 +169,18 @@ public abstract class SpanFeature : TerrainFeature
         float sweepR  = Mathf.Max(halfThick, sagitta * 1.5f) + 0.05f;
 
         // ---- Erosion: clamp so it can NEVER exceed the rock it can absorb ------
-        // Max displacement is capped to 60% of the deck half-thickness, so even a
-        // full-amplitude erosion sample leaves >=40% solid rock through the deck.
-        float rawErosionAmp = tuning.noiseAmount * cfg.erosionStrength;
+        // Amplitude = the feature's own macro erosion PLUS the shared surface-detail layer, so the
+        // central "Surface detail" dials reach the bridge/arch. Capped to 60% of the deck half-
+        // thickness so even a violently jagged setting leaves >=40% solid rock through the deck.
+        float rawErosionAmp = tuning.noiseAmount * cfg.erosionStrength + tuning.detailStrength;
         float erosionCap    = halfThick * 0.6f;
         float erosionAmp    = Mathf.Min(rawErosionAmp, erosionCap);
 
         Vector3 abutA = startPt;
         Vector3 abutB = endPt;
-        var caveType  = (CaveNoiseType)(int)tuning.noiseType;
-        float noiseScale = tuning.noiseScale;
-        float warpStr    = tuning.domainWarpStrength;
-        float jagg       = tuning.jaggedness;
+        // Capture the whole tuning so erosion runs through the shared DetailedNoise — the central
+        // "Surface detail" dials reach the bridge/arch like every other feature.
+        TerrainFeatureTuning noiseTuning = tuning;
 
         // ---- SDF lambda ---------------------------------------------------------
         System.Func<Vector3, float> sdfFn = p =>
@@ -204,9 +204,8 @@ public abstract class SpanFeature : TerrainFeature
             // 3. Clamped surface erosion — never punches through the deck.
             if (erosionAmp > 0f)
             {
-                float n = NoiseDistortion.SampleByType(caveType, p, noiseScale, seed, warpStr);
-                n = TerrainNoiseHelper.ApplyJaggedness(n, jagg);
-                shape += Mathf.Clamp(n, -1f, 1f) * erosionAmp;
+                float n = TerrainNoiseHelper.DetailUnit(p, noiseTuning, seed);
+                shape += n * erosionAmp;
             }
 
             return shape;

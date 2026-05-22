@@ -47,4 +47,9 @@ public enum TerrainFeatureType
     /// leaving a labyrinth of mesas with overhangs and cliffs, scattered with boulders. Walked from
     /// the channel floors looking up. AREA feature, voxel SDF, internally chunked into sub-meshes.</summary>
     BadlandsMaze = 12,
+
+    /// <summary>A scattered field of natural, eroded rock boulders strewn across the footprint
+    /// polygon. Noise-driven non-uniform placement (clusters and sparse areas), each boulder a
+    /// domain-warp eroded 3D rock partially buried in the ground. AREA feature, voxel SDF.</summary>
+    Boulders = 13,
 }

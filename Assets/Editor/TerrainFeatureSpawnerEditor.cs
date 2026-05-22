@@ -38,9 +38,12 @@ public class TerrainFeatureSpawnerEditor : Editor
     }
 
     // Serialized fields drawn manually (or not at all) below — excluded from the default pass.
-    // 'footprint' is hidden entirely: it is edited visually with the Scene-view handles, never
-    // as raw vertex input fields.
-    static readonly string[] HiddenProps = { "featureSettings", "featureSettingsType", "footprint" };
+    // 'area' is drawn by DrawFootprintBlock (mode-aware, with the noise knobs shown only in Noise
+    // mode); the legacy footprint fields are hidden; 'materialPreset' / 'featureMaterial' are drawn
+    // together by DrawMaterialBlock so the preset dropdown can auto-assign the material.
+    static readonly string[] HiddenProps =
+        { "featureSettings", "featureSettingsType", "area", "boxHalfExtents", "footprintShape",
+          "footprintComplexity", "footprint", "materialPreset", "featureMaterial" };
 
     public override void OnInspectorGUI()
     {
@@ -52,19 +55,32 @@ public class TerrainFeatureSpawnerEditor : Editor
 
         serializedObject.Update();
 
+        // One-time cleanup of pre-rewrite legacy footprint data. TerrainFeatureSpawner.OnAfterDeserialize
+        // migrates the old boxHalfExtents/footprintShape/complexity/polygon into 'area' and clears them —
+        // but that clear happens only in the transient deserialized object, never persisted. The
+        // inspector's serializedObject keeps re-reading the still-serialized legacy values, so every
+        // ApplyModifiedProperties round-trips through OnAfterDeserialize, which re-runs MigrateFromLegacy
+        // and overwrites width/height/breadth — making any footprint edit instantly snap back. Clearing
+        // the legacy properties HERE, through the serializedObject, makes the cleared state stick so the
+        // migration guard stops firing.
+        PurgeLegacyFootprintData();
+
         EditorGUI.BeginChangeCheck();
 
         // Default inspector minus the manually-drawn settings fields.
         DrawPropertiesExcluding(serializedObject, HiddenProps);
+
+        // Footprint — mode-aware block (box dims + Polygon/Noise + the noise knobs).
+        DrawFootprintBlock(spawner);
+
+        // Rendering material — preset dropdown + explicit material slot.
+        DrawMaterialBlock();
 
         // Per-feature settings block, drawn from the polymorphic [SerializeReference] property.
         DrawFeatureSettings();
 
         bool settingsChanged = EditorGUI.EndChangeCheck();
         serializedObject.ApplyModifiedProperties();
-
-        // Footprint authoring help + manual tools (the polygon is edited in the Scene view).
-        DrawFootprintHelp(spawner);
 
         // A Noise-mode footprint must be rebuilt whenever a knob changed so the Scene + preview
         // reflect the new outline immediately.
@@ -156,47 +172,188 @@ public class TerrainFeatureSpawnerEditor : Editor
     }
 
     // -------------------------------------------------------------------------
+    // Rendering material block
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Draws the material preset dropdown plus the explicit material slot. Picking any preset other
+    /// than <see cref="TerrainMaterialPreset.Custom"/> resolves the matching sandstone material asset
+    /// and writes it into <c>featureMaterial</c>, so a designer chooses a terrain look from one menu.
+    /// In Custom mode the material slot is editable for hand-assigning any material.
+    /// </summary>
+    void DrawMaterialBlock()
+    {
+        SerializedProperty presetProp = serializedObject.FindProperty("materialPreset");
+        SerializedProperty matProp    = serializedObject.FindProperty("featureMaterial");
+        if (presetProp == null || matProp == null) return;
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Rendering / NavMesh — Material", EditorStyles.boldLabel);
+
+        EditorGUI.BeginChangeCheck();
+        EditorGUILayout.PropertyField(presetProp, new GUIContent(
+            "Material Preset",
+            "Quick-pick terrain look. Any choice but 'Custom' auto-assigns the matching sandstone material."));
+        bool presetChanged = EditorGUI.EndChangeCheck();
+
+        var preset = (TerrainMaterialPreset)presetProp.enumValueIndex;
+
+        if (presetChanged && preset != TerrainMaterialPreset.Custom)
+        {
+            Material resolved = TerrainFeatureSpawnerVisuals.LoadPresetMaterial(preset);
+            if (resolved != null)
+            {
+                matProp.objectReferenceValue = resolved;
+            }
+            else
+            {
+                EditorGUILayout.HelpBox(
+                    $"Material asset for preset '{preset}' could not be found.", MessageType.Error);
+            }
+        }
+
+        // In Custom mode the slot is hand-editable; with a preset it shows the resolved asset
+        // (greyed out, since the dropdown owns it).
+        using (new EditorGUI.DisabledScope(preset != TerrainMaterialPreset.Custom))
+        {
+            EditorGUILayout.PropertyField(matProp, new GUIContent(
+                "Feature Material",
+                "Material applied to the spawned mesh. Driven by the preset above unless preset = Custom."));
+        }
+
+        if (preset != TerrainMaterialPreset.Custom)
+            EditorGUILayout.HelpBox(
+                $"Material driven by preset '{preset}'. Switch to 'Custom' to assign your own.",
+                MessageType.None);
+    }
+
+    // -------------------------------------------------------------------------
     // Footprint authoring help
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// Draws guidance + manual tools for the area footprint. The polygon is never shown as raw
-    /// vertex fields — it is edited visually with the Scene-view handles. In Noise mode the outline
-    /// is generated, so this just explains the knobs; in Polygon mode it offers a "Reset to box".
+    /// Permanently clears the pre-rewrite legacy footprint fields (boxHalfExtents, footprintShape,
+    /// footprintComplexity, footprint) through the serializedObject, so the spawner's
+    /// <c>OnAfterDeserialize</c> migration guard (<c>hasLegacy</c>) goes false and stops re-running
+    /// <c>MigrateFromLegacy</c> on every serialize round-trip. Without this, every footprint edit
+    /// snaps back. A no-op once the fields are already at their cleared sentinels.
     /// </summary>
-    void DrawFootprintHelp(TerrainFeatureSpawner spawner)
+    void PurgeLegacyFootprintData()
     {
-        if (spawner.UsesPath) return;   // linear features use the spline, not a polygon
+        SerializedProperty boxHalf = serializedObject.FindProperty("boxHalfExtents");
+        SerializedProperty shape   = serializedObject.FindProperty("footprintShape");
+        SerializedProperty cplx    = serializedObject.FindProperty("footprintComplexity");
+        SerializedProperty poly    = serializedObject.FindProperty("footprint");
+        // The legacy 'footprint' is an embedded [Serializable] FeaturePolygon, not an Object
+        // reference — its "is it legacy data" signal is its vertex count.
+        SerializedProperty polyVerts = poly != null ? poly.FindPropertyRelative("vertices") : null;
+
+        bool hasLegacy =
+            (boxHalf   != null && boxHalf.vector3Value != Vector3.zero) ||
+            (shape     != null && shape.intValue >= 0) ||
+            (cplx      != null && cplx.floatValue >= 0f) ||
+            (polyVerts != null && polyVerts.arraySize > 0);
+        if (!hasLegacy) return;
+
+        if (boxHalf   != null) boxHalf.vector3Value = Vector3.zero;
+        if (shape     != null) shape.intValue = -1;
+        if (cplx      != null) cplx.floatValue = -1f;
+        if (polyVerts != null) polyVerts.ClearArray();
+
+        // Persist the cleared sentinels immediately so the migration guard never fires again.
+        serializedObject.ApplyModifiedPropertiesWithoutUndo();
+        serializedObject.Update();
+    }
+
+    /// <summary>
+    /// Draws the area footprint block: Width / Height / Breadth, the Polygon vs Noise mode toggle,
+    /// the explicit noise knobs (shown only in Noise mode) and the authoring buttons. The outline
+    /// itself is never shown as raw vertex fields — it is edited visually in the Scene view. Linear
+    /// features skip this entirely; they use the spline path.
+    /// </summary>
+    void DrawFootprintBlock(TerrainFeatureSpawner spawner)
+    {
+        if (spawner.UsesPath) return;
+
+        SerializedProperty areaProp = serializedObject.FindProperty("area");
+        if (areaProp == null) return;
+
+        SerializedProperty widthP   = areaProp.FindPropertyRelative("width");
+        SerializedProperty heightP  = areaProp.FindPropertyRelative("height");
+        SerializedProperty breadthP = areaProp.FindPropertyRelative("breadth");
+        SerializedProperty modeP    = areaProp.FindPropertyRelative("mode");
+        SerializedProperty noiseP   = areaProp.FindPropertyRelative("noise");
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Footprint", EditorStyles.boldLabel);
 
-        if (spawner.FootprintShapeMode == FootprintShape.Noise)
+        // --- Size: Width / Height / Breadth ---------------------------------
+        EditorGUILayout.PropertyField(widthP, new GUIContent(
+            "Width", "Footprint size along local X, in metres."));
+        EditorGUILayout.PropertyField(breadthP, new GUIContent(
+            "Breadth", "Footprint size along local Z, in metres."));
+        EditorGUILayout.PropertyField(heightP, new GUIContent(
+            "Height", "Vertical extent of the feature (meshing band height), in metres. " +
+                      "Does NOT affect the 2D outline shape."));
+
+        // --- Mode ------------------------------------------------------------
+        EditorGUILayout.PropertyField(modeP, new GUIContent(
+            "Mode", "Polygon — hand-edit the outline vertices in the Scene view.\n" +
+                    "Noise — the outline is generated from the knobs below."));
+
+        var mode = (FootprintMode)modeP.enumValueIndex;
+
+        if (mode == FootprintMode.Noise)
         {
             EditorGUILayout.HelpBox(
-                "Noise mode: the outline is generated from the noise scale + irregularity knobs " +
-                "above. Drag the box handles to set the overall size; the Scene-view outline " +
-                "updates live. Switch to Polygon mode to hand-edit vertices.",
+                "Noise mode: the outline is generated from the knobs below and the Width × Breadth " +
+                "box. All knobs minimal → a clean rounded blob; all knobs high → a wild, messy, " +
+                "multi-armed silhouette. Drag the box handles in the Scene view to resize.",
                 MessageType.Info);
-            if (GUILayout.Button("Regenerate Outline"))
+
+            EditorGUILayout.PropertyField(noiseP, new GUIContent(
+                "Noise Knobs", "Lobe frequency/amplitude, detail octaves/gain, irregularity and " +
+                               "corner sharpness."), true);
+
+            using (new EditorGUILayout.HorizontalScope())
             {
-                Undo.RecordObject(spawner, "Regenerate Footprint");
-                spawner.RefreshGeneratedFootprint();
-                MarkSceneDirty(spawner);
+                if (GUILayout.Button("Regenerate Outline"))
+                {
+                    Undo.RecordObject(spawner, "Regenerate Footprint");
+                    spawner.RefreshGeneratedFootprint();
+                    MarkSceneDirty(spawner);
+                }
+                if (GUILayout.Button(new GUIContent("Bake to Polygon",
+                        "Freeze the current generated outline into editable Polygon-mode vertices.")))
+                {
+                    Undo.RecordObject(spawner, "Bake Footprint To Polygon");
+                    spawner.Area.ConvertNoiseToPolygon(spawner.Seed);
+                    MarkSceneDirty(spawner);
+                }
             }
         }
         else
         {
             EditorGUILayout.HelpBox(
                 "Polygon mode: shape the outline in the Scene view — drag the blue vertex dots, " +
-                "use the +/- buttons beside each to add or remove vertices. The green arrow sets " +
-                "feature height. Switch to Noise mode to auto-generate an organic outline.",
+                "click anywhere on an edge to insert a vertex, use the ✕ button beside a dot to " +
+                "delete it. The green arrow sets the feature Height.",
                 MessageType.Info);
-            if (GUILayout.Button("Reset Outline to Box"))
+
+            using (new EditorGUILayout.HorizontalScope())
             {
-                Undo.RecordObject(spawner, "Reset Footprint");
-                spawner.Footprint.ResetToBox(spawner.BoxHalfExtents);
-                MarkSceneDirty(spawner);
+                if (GUILayout.Button("Reset Outline to Box"))
+                {
+                    Undo.RecordObject(spawner, "Reset Footprint");
+                    spawner.Footprint.ResetToBox(spawner.Area.BoxHalfExtents);
+                    MarkSceneDirty(spawner);
+                }
+                if (GUILayout.Button("Reset Outline to Ellipse"))
+                {
+                    Undo.RecordObject(spawner, "Reset Footprint");
+                    spawner.Footprint.ResetToEllipse(spawner.Area.BoxHalfExtents);
+                    MarkSceneDirty(spawner);
+                }
             }
         }
     }

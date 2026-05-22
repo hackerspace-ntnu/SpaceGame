@@ -79,6 +79,38 @@ public class TerrainFeatureTuning
     [Range(0f, 1f)] public float jaggedness = 0.3f;
 
     // -------------------------------------------------------------------------
+    // Surface detail — an INDEPENDENT high-frequency detail layer added on top
+    // of every feature's surface. This is the central "how bumpy is the rock"
+    // control. It is SEPARATE from 'noiseAmount' (the macro shape noise): a
+    // feature can be smooth-macro + jagged-detail, or vice versa. The amplitude
+    // is an ABSOLUTE metre value (detailStrength) — set it to 0 for a glassy
+    // surface, crank it for violently broken rock. Every feature funnels through
+    // TerrainNoiseHelper.DetailLayer, so these knobs reach all of them.
+    // -------------------------------------------------------------------------
+
+    [Header("Surface detail")]
+    [Tooltip("ABSOLUTE displacement of the detail layer, in metres. THE master bumpiness dial. 0 = perfectly smooth surface. 1-3 = naturally bumpy rock. 6+ = harshly broken, craggy rock with deep relief. Independent of 'Noise amount'.")]
+    [Range(0f, 15f)] public float detailStrength = 1.5f;
+
+    [Tooltip("Spatial frequency of the detail layer (separate from the macro 'Noise scale'). Larger = finer, busier bumps; smaller = broader lumps. Note: detail finer than ~2x the voxel size cannot survive meshing.")]
+    [Range(0.02f, 1f)] public float detailScale = 0.12f;
+
+    [Tooltip("Number of fractal octaves in the detail layer. 1 = a single clean bump frequency. 3-5 stacks progressively finer crags on top, widening the range of bump sizes. Higher = richer, slightly slower bake.")]
+    [Range(1, 6)] public int detailOctaves = 4;
+
+    [Tooltip("How strongly each finer octave contributes. 0 = only the base detail frequency (smooth lumps). 0.5 = classic fractal. 0.8+ = fine crags nearly as strong as the base — rough, harsh rock.")]
+    [Range(0f, 0.95f)] public float detailRoughness = 0.55f;
+
+    [Tooltip("Frequency multiplier between successive detail octaves. 2 = each octave twice as busy. Higher spreads detail across more scales for a less periodic, more broken look.")]
+    [Range(1.6f, 3.2f)] public float detailLacunarity = 2.2f;
+
+    [Tooltip("Crinkles the detail toward sharp eroded ridges and gullies. 0 = soft rounded bumps, 1 = knife-edged crags and deep cracks. Stacks with 'Jaggedness'.")]
+    [Range(0f, 1f)] public float detailRidged = 0.3f;
+
+    [Tooltip("Domain-warp applied to the detail layer so the crags swirl and never read as a repeating grid. 0 = plain fractal, higher = more chaotic, wind-carved detail.")]
+    [Range(0f, 8f)] public float detailWarp = 2f;
+
+    // -------------------------------------------------------------------------
     // Walkability — keeps NavMeshAgents able to traverse what designers intend.
     // Pairs with the cave system's ApplyFloorFlatten thinking.
     // -------------------------------------------------------------------------

@@ -189,7 +189,17 @@ public sealed class CanyonPathFeature : TerrainFeature
         float maxY       = centreGroundY + wallHeight + tuning.noiseAmount + 4f;
         float bandPad    = context.VoxelSize * 2f;
 
-        return new HeightfieldDensity(heightFn, footprint, minY, maxY, bandPad);
+        // Coverage mask: the corridor only occupies the columns within its full cross-section
+        // (floor strip + wall band) plus the overlap band. Beyond that the column is plain
+        // desert floor — meshing it would build a flat apron alongside the path, which is not
+        // wanted. A column is covered exactly where it falls inside that lateral extent.
+        System.Func<float, float, bool> coverageFn = (x, z) =>
+        {
+            spline.ClosestParam(new Vector3(x, 0f, z), out float lateralDist, out _);
+            return (totalHW + tuning.overlap - Mathf.Abs(lateralDist)) > 0f;
+        };
+
+        return new HeightfieldDensity(heightFn, footprint, minY, maxY, bandPad, coverageFn);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

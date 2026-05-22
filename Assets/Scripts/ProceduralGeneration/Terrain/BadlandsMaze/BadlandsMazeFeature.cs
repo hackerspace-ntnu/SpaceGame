@@ -84,7 +84,8 @@ public sealed class BadlandsMazeFeature : TerrainFeature
 
         // STAGE 3 — wrap the placed plan in the global SDF.
         Bounds siteVolume = ComputeSiteVolume(plan, settings, footprint, floorY);
-        var sdf = new BadlandsMazeSdf(plan, settings, context.Seed, siteVolume);
+        var sdf = new BadlandsMazeSdf(plan, settings, context.Seed, siteVolume)
+            .WithTuning(context.Tuning);
 
         // STAGE 3b — chunk the global SDF into seamless per-tile sub-meshes.
         return BadlandsMazeChunker.BuildSubMeshes(sdf, settings, meshSettings);

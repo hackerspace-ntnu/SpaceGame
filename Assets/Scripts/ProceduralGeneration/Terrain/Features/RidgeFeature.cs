@@ -170,7 +170,18 @@ public sealed class RidgeFeature : TerrainFeature
         float minY = centreGroundY - 4f;
         float maxY = centreGroundY + crestHeight + tuning.noiseAmount + bandPadding;
 
-        return new HeightfieldDensity(heightFn, footprint, minY, maxY, bandPadding);
+        // Coverage mask: the ridge only occupies the band within its half-width of the spline.
+        // Beyond that band the column is plain desert floor — meshing it would build a flat apron
+        // alongside the ridge, which is not wanted. A column is covered exactly where the overlap
+        // weight is non-zero, using the same distance-to-centreline the height lambda uses.
+        System.Func<float, float, bool> coverageFn = (x, z) =>
+        {
+            spline.ClosestParam(new Vector3(x, 0f, z), out float lateralDist, out _);
+            float distInside = halfWidth - Mathf.Abs(lateralDist);
+            return TerrainNoiseHelper.OverlapWeight(distInside, tuning) > 0f;
+        };
+
+        return new HeightfieldDensity(heightFn, footprint, minY, maxY, bandPadding, coverageFn);
     }
 
     // =========================================================================

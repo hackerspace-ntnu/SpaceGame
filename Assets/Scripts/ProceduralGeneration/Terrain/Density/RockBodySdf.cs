@@ -49,12 +49,23 @@ public sealed class RockBodySdf : ITerrainDensity
     // Radial-tower axis (mesa): a single XZ point.
     readonly Vector2 _axisXZ;
 
+    // Optional footprint shape for the radial tower: signed metres INSIDE the designer-drawn
+    // footprint polygon at a local XZ (positive inside, negative outside). When non-null the body's
+    // base cross-section follows this polygon instead of a circle of _nominalRadius, so footprint
+    // Width / Breadth / outline edits actually shape the overhang mesa. Null = legacy round tower.
+    Func<float, float, float> _footprintDistInside;
+
     // Linear-wall axis (cliff): centre-line in XZ plus its perpendicular. lateralSign picks which
     // side of the line the rock body grows on (the high side of the escarpment).
     readonly Vector2 _lineA, _lineB;
     readonly float _lineLen;
 
     readonly Func<float, float, float> _groundFn;   // never carve below this
+
+    // Optional macro relief on the summit cap: (x, z) -> signed metres added to the flat
+    // summit Y. Null = a perfectly flat top (legacy). Lets the mesa plateau undulate with
+    // the same profile the heightfield path uses, so overhang toggling keeps the top consistent.
+    Func<float, float, float> _summitReliefFn;
 
     public Bounds Bounds => _bounds;
     public bool IsHeightfield => false;
@@ -84,6 +95,33 @@ public sealed class RockBodySdf : ITerrainDensity
         _summitY = Mathf.Max(summitY, groundY + 1f);
         _totalHeight = _summitY - _groundY;
         _groundFn = groundFn ?? ((x, z) => groundY);
+    }
+
+    /// <summary>
+    /// Optional macro elevation relief applied to the summit cap: a delegate mapping local XZ to a
+    /// signed metre offset added to the flat summit Y. Pass null (or never call) for a flat top.
+    /// Keep the offset's magnitude well under <see cref="_totalHeight"/>; the caller must also size
+    /// the voxel volume tall enough to contain the highest point the relief produces.
+    /// </summary>
+    public void SetSummitRelief(Func<float, float, float> summitReliefFn)
+        => _summitReliefFn = summitReliefFn;
+
+    /// <summary>
+    /// Makes the RADIAL tower follow a designer-drawn footprint polygon instead of a circle. The
+    /// delegate maps a local XZ point to signed metres INSIDE the footprint outline (positive
+    /// inside, negative outside) — exactly <see cref="FeatureContext.FootprintDistanceInside"/>.
+    ///
+    /// <para>With this set, the body's base cross-section IS the polygon: a non-square Width vs
+    /// Breadth, a hand-edited outline and the mesa's outline-warp all reach the overhang mesh. The
+    /// height-varying <see cref="RockBodyProfile.RadiusMultiplier"/> still bulges and pinches that
+    /// shape, so overhangs emerge the same way — they just emerge from the real footprint.</para>
+    ///
+    /// <para>No-op for the linear-wall (cliff) shape, which already follows its edge line.</para>
+    /// </summary>
+    public void SetFootprint(Func<float, float, float> footprintDistInside)
+    {
+        if (_shape == BodyShape.RadialTower)
+            _footprintDistInside = footprintDistInside;
     }
 
     /// <summary>
@@ -154,8 +192,30 @@ public sealed class RockBodySdf : ITerrainDensity
         float radiusMul = RockBodyProfile.RadiusMultiplier(clampedT, angle, _settings, _seed);
         float radius = _nominalRadius * radiusMul;
 
-        // The core solid: inside where horizontal distance is less than the body radius.
-        float solid = horiz - radius;
+        // The core solid: negative inside the body, positive in air.
+        float solid;
+        if (_shape == BodyShape.RadialTower && _footprintDistInside != null)
+        {
+            // FOOTPRINT-AWARE base cross-section. The body's shape at the base IS the designer's
+            // footprint polygon, not a circle: distInside is signed metres into that outline
+            // (positive inside). -distInside is therefore the analogous "negative inside" SDF.
+            //
+            // The height profile bulges and pinches that shape by offsetting the footprint
+            // boundary outward/inward: radiusMul > 1 grows the cross-section OUT past the footprint
+            // (an overhang), radiusMul < 1 pinches it IN. The offset is expressed in metres via the
+            // nominal reach so it has the same physical scale the circular path used.
+            //
+            // The query uses the warped+leaned point q so erosion and lean still displace the
+            // cross-section; subtracting leanOffset would undo the lean we deliberately applied.
+            float distInside = _footprintDistInside(q.x, q.z);
+            float boundaryOffset = (radiusMul - 1f) * _nominalRadius;
+            solid = -distInside - boundaryOffset;
+        }
+        else
+        {
+            // Circular cross-section: inside where horizontal distance is less than the radius.
+            solid = horiz - radius;
+        }
 
         // --- Fine craggy surface detail on the rock faces -----------------------------------
         if (_settings.sideJaggedness > 0f)
@@ -169,13 +229,46 @@ public sealed class RockBodySdf : ITerrainDensity
         // --- Cap the body top and floor so it is a finite, walkable-topped mass -------------
         // Top: solid only below the summit. SmoothMin'd as an intersection (max) so the flat
         // summit cap blends into the bulging walls instead of meeting them at a hard rim.
-        float topCut = p.y - _summitY;                       // >0 above summit -> air
+        // The summit Y can be displaced by macro relief so the plateau has real high/low ground.
+        float summitY = _summitReliefFn != null ? _summitY + _summitReliefFn(p.x, p.z) : _summitY;
+        float topCut = p.y - summitY;                        // >0 above summit -> air
         solid = SmoothMax(solid, topCut, _totalHeight * 0.06f);
 
-        // Floor: never carve below the underlying ground. Below ground is always solid rock.
+        // Floor fill: keep the rock solid down to (and a little below) the underlying ground so
+        // the body grounds into the terrain — but ONLY directly beneath the rock body, not across
+        // the whole volume. The volume bounds are far wider than the formation; filling every
+        // below-ground voxel would mesh a flat ground apron all around the feature. We therefore
+        // gate the fill by horizontal extent: it applies only inside the body's base cross-section
+        // (plus a small skirt for a clean joint), so outside the rock the below-ground space
+        // stays air and no apron is generated.
         float groundHere = _groundFn(p.x, p.z);
-        float floorFill = groundHere - p.y;                  // >0 below ground -> force solid
-        solid = Mathf.Min(solid, -floorFill);
+        float footprintSkirt = _nominalRadius * 0.15f + _settings.sideJaggedness;
+        bool underBody;
+        if (_shape == BodyShape.RadialTower && _footprintDistInside != null)
+        {
+            // Footprint-aware gate: under the body wherever the column is inside the footprint
+            // polygon, widened by the skirt so the ground joint is clean. Uses the warped point q
+            // so the gate tracks the same eroded base outline the solid test uses.
+            underBody = _footprintDistInside(q.x, q.z) >= -footprintSkirt;
+        }
+        else
+        {
+            float baseRadius = _nominalRadius
+                               * RockBodyProfile.RadiusMultiplier(0f, angle, _settings, _seed);
+            underBody = horiz <= baseRadius + footprintSkirt;
+        }
+        if (underBody)
+        {
+            float floorFill = groundHere - p.y;              // >0 below ground -> force solid
+            solid = Mathf.Min(solid, -floorFill);
+        }
+        else
+        {
+            // Outside the body footprint: never let the below-ground fill leak in. Clamp the
+            // surface so anything below ground out here reads as air, leaving no flat apron.
+            float aboveGround = p.y - groundHere;            // <0 below ground
+            if (aboveGround < 0f) solid = Mathf.Max(solid, -aboveGround);
+        }
 
         return solid;
     }

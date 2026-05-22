@@ -186,7 +186,24 @@ public sealed class CanyonFeature : TerrainFeature
             return Mathf.Lerp(groundY, carvedY, overlapWeight);
         };
 
-        return new HeightfieldDensity(heightFn, footprint, minY, maxY, bandPadding);
+        // Coverage mask: the canyon only occupies the carved zone within its (meandering)
+        // half-width of the spline. Beyond that the column is undisturbed desert floor — meshing
+        // it would build a flat ground apron alongside the canyon, which is not wanted. A column
+        // is covered exactly where the overlap weight is non-zero, mirroring the half-width
+        // meander of the height lambda.
+        System.Func<float, float, bool> coverageFn = (x, z) =>
+        {
+            float tParam = spline.ClosestParam(new Vector3(x, 0f, z), out float lateralDist, out _);
+            float meanderNoise = TerrainNoiseHelper.Fbm(
+                new Vector3(tParam * meanderFreq, 0f, (float)seed * 0.001f),
+                1f, seed + 3779, 2);
+            float halfWidth = baseHalfWidth * (1f + widthMeander * meanderNoise);
+            halfWidth = Mathf.Max(halfWidth, baseHalfWidth * 0.15f);
+            float distInsideRim = halfWidth - Mathf.Abs(lateralDist);
+            return TerrainNoiseHelper.OverlapWeight(distInsideRim, tuning) > 0f;
+        };
+
+        return new HeightfieldDensity(heightFn, footprint, minY, maxY, bandPadding, coverageFn);
     }
 
     // ------------------------------------------------------------------

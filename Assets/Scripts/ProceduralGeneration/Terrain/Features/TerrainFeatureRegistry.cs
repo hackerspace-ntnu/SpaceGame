@@ -80,5 +80,8 @@ public static class TerrainFeatureRegistry
         // --- Large composite area features -------------------------------------
         Register(() => new ArchingCaveFeature());
         Register(() => new BadlandsMazeFeature());
+
+        // --- Scatter area features ---------------------------------------------
+        Register(() => new BouldersFeature());
     }
 }

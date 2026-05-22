@@ -76,6 +76,15 @@ public abstract class TerrainFeature
     public virtual void PostProcess(Mesh mesh, FeatureContext context) { }
 
     /// <summary>
+    /// True if this feature deliberately authors geometry BELOW the terrain surface (e.g. a cave
+    /// entrance whose tunnel descends underground). The generator then SKIPS the terrain skirt
+    /// blend for this feature — the skirt lifts every below-ground vertex up to the ground line,
+    /// which would collapse a descending tunnel and reseal its mouth. Default false: ordinary
+    /// features sit on top of the terrain and want the skirt seam-fix.
+    /// </summary>
+    public virtual bool HasSubTerrainGeometry => false;
+
+    /// <summary>
     /// Human-readable name for logs / inspector. Defaults to the feature type name; override only
     /// for a friendlier label.
     /// </summary>
@@ -135,4 +144,17 @@ public abstract class TerrainFeature
     /// feature should fall back to its code defaults in that case.
     /// </summary>
     public virtual void ApplySettings(object settings) { }
+
+    /// <summary>
+    /// Repairs a previously-serialized settings object in place, returning a usable instance.
+    ///
+    /// <para><b>Why this exists.</b> The spawner stores the settings object in a
+    /// <c>[SerializeReference]</c> field. When a feature's settings class later gains a NEW
+    /// reference-type field, Unity reconstructs already-serialized instances through the
+    /// serializer — NOT the constructor — so that field's <c>= new T()</c> initialiser never runs
+    /// and it deserialises as <c>null</c>. A feature whose settings class has nested blocks should
+    /// override this to null-fill those blocks, so old scenes pick up the new knobs. The default
+    /// returns the object unchanged. Returns null only if <paramref name="settings"/> is null.</para>
+    /// </summary>
+    public virtual object HealSettings(object settings) => settings;
 }

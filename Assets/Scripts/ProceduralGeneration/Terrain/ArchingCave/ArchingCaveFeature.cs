@@ -86,7 +86,8 @@ public sealed class ArchingCaveFeature : TerrainFeature
         // STAGE 3 — wrap the placed plan in the global SDF. The site volume spans the footprint
         // XZ and a Y range tall enough for the canopy roof plus erosion headroom.
         Bounds siteVolume = ComputeSiteVolume(plan, settings, footprint, floorY);
-        var sdf = new ArchingCaveSdf(plan, settings, context.Seed, siteVolume);
+        var sdf = new ArchingCaveSdf(plan, settings, context.Seed, siteVolume)
+            .WithTuning(context.Tuning);
 
         // STAGE 3b — chunk the global SDF into seamless per-tile sub-meshes.
         return ArchingCaveChunker.BuildSubMeshes(sdf, settings, meshSettings);

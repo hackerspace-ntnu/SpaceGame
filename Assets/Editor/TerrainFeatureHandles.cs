@@ -5,12 +5,15 @@ using UnityEngine;
 /// Scene-view interactive handles for a <see cref="TerrainFeatureSpawner"/>'s footprint. Split out
 /// of <c>TerrainFeatureSpawnerEditor</c> to keep both files small.
 ///
-/// Two footprint modes, switched by the spawner's chosen feature type:
-///   • AREA features  — an editable closed polygon: a movable handle per vertex, plus "+"/"-"
-///     buttons to add/remove vertices. The polygon is the feature's organic outline. A height
-///     handle still controls the box Y (the meshing band's vertical extent).
-///   • LINEAR features — an editable Catmull-Rom path: a movable handle per control point, plus
-///     "+"/"-" buttons to add/remove points, plus a half-width slider handle.
+/// Three handle sets, picked by the spawner's feature type + footprint mode:
+///
+///   • AREA / Polygon mode — the closed outline is hand-authored. Each vertex is a draggable dot;
+///     a "✕" button beside it deletes it; clicking anywhere on an edge inserts a new vertex at the
+///     click point. A green arrow sets the feature Height.
+///   • AREA / Noise mode — the outline is generated. The designer drags the Width / Breadth box
+///     faces and the Height arrow; the outline regenerates live and is drawn read-only.
+///   • LINEAR features — an editable Catmull-Rom path: a handle per control point, "+"/"-" buttons,
+///     and a half-width slider.
 ///
 /// All edits go through <see cref="Undo"/> and mark the spawner dirty so the scene saves correctly.
 /// </summary>
@@ -18,111 +21,199 @@ public static class TerrainFeatureHandles
 {
     /// <summary>Draws and processes the footprint handles. Call from the editor's OnSceneGUI.
     /// Returns true when the designer changed the footprint this frame, so the caller can
-    /// regenerate the in-scene mesh and the terrain reflects the new polygon / path immediately.</summary>
+    /// regenerate the in-scene mesh immediately.</summary>
     public static bool Draw(TerrainFeatureSpawner spawner)
     {
         if (spawner == null) return false;
-        return spawner.UsesPath ? DrawPathHandles(spawner) : DrawPolygonHandles(spawner);
+        return spawner.UsesPath ? DrawPathHandles(spawner) : DrawAreaHandles(spawner);
+    }
+
+    // =========================================================================
+    // Area features
+    // =========================================================================
+
+    static bool DrawAreaHandles(TerrainFeatureSpawner spawner)
+    {
+        FeatureFootprint area = spawner.Area;
+        if (area == null) return false;
+
+        return area.mode == FootprintMode.Noise
+            ? DrawNoiseHandles(spawner, area)
+            : DrawPolygonHandles(spawner, area);
     }
 
     // -------------------------------------------------------------------------
-    // Area features — editable closed polygon
+    // Polygon mode — hand-edited closed outline
     // -------------------------------------------------------------------------
 
-    /// <summary>Returns true when a polygon vertex was moved, added or removed this frame.</summary>
-    static bool DrawPolygonHandles(TerrainFeatureSpawner spawner)
+    static bool DrawPolygonHandles(TerrainFeatureSpawner spawner, FeatureFootprint area)
     {
         Transform t = spawner.transform;
-        FeaturePolygon poly = spawner.Footprint;
-        if (poly == null) return false;
+        FeaturePolygon poly = area.polygon;
         bool changed = false;
 
-        // Noise mode: the outline is generated, not hand-edited. Keep it fresh, draw it as a
-        // read-only outline, and still offer the height handle + the box-size handles.
-        if (spawner.FootprintIsGenerated)
-        {
-            spawner.RefreshGeneratedFootprint();
-            DrawPolygonOutline(spawner, poly, new Color(0.55f, 0.95f, 0.7f, 0.9f));
-            bool boxChanged = DrawBoxSizeHandles(spawner);
-            bool heightChanged = DrawHeightHandle(spawner);
-            // Resizing the box re-derives the noise outline, so the mesh must rebuild too.
-            if (boxChanged) spawner.RefreshGeneratedFootprint();
-            return boxChanged || heightChanged;
-        }
-
-        // Auto-seed an empty polygon from the box so a freshly switched area feature is editable.
-        if (!poly.IsValid)
+        // Seed an empty polygon from the box so a freshly switched feature is editable at once.
+        if (poly == null || !poly.IsValid)
         {
             Undo.RecordObject(spawner, "Init Terrain Feature Polygon");
-            poly.ResetToBox(spawner.BoxHalfExtents);
+            area.Refresh(spawner.Seed);
+            poly = area.polygon;
             EditorUtility.SetDirty(spawner);
+            changed = true;
         }
 
-        // Per-vertex position handles (constrained to the local XZ plane).
+        // Outline first, so the vertex dots sit visually on top of it.
+        DrawPolygonOutline(spawner, poly, new Color(0.35f, 0.8f, 1f, 1f));
+
+        // Click-on-edge insertion: a faint marker tracks the nearest edge point under the mouse,
+        // and a left-click there inserts a vertex. This is the primary "add a vertex" gesture.
+        changed |= HandleEdgeClickInsert(spawner, poly);
+
+        // Per-vertex drag handles + delete buttons. Drawn z-test Always so the dots stay visible
+        // even when the generated rock mesh would otherwise cover them.
+        var prevZ = Handles.zTest;
+        Handles.zTest = UnityEngine.Rendering.CompareFunction.Always;
+
         for (int i = 0; i < poly.vertices.Count; i++)
         {
             Vector3 world = t.TransformPoint(new Vector3(poly.vertices[i].x, 0f, poly.vertices[i].z));
+            float hs = Mathf.Max(0.6f, HandleUtility.GetHandleSize(world) * 0.16f);
+
             EditorGUI.BeginChangeCheck();
-            Handles.color = new Color(0.5f, 0.85f, 1f, 1f);
-            float hs = HandleUtility.GetHandleSize(world) * 0.12f;
-            Vector3 moved = Handles.FreeMoveHandle(world, hs, Vector3.zero, Handles.DotHandleCap);
+            Handles.color = new Color(0.4f, 0.85f, 1f, 1f);
+            Vector3 moved = Handles.FreeMoveHandle(world, hs, Vector3.zero, Handles.SphereHandleCap);
             if (EditorGUI.EndChangeCheck())
             {
-                Undo.RecordObject(spawner, "Move Terrain Feature Polygon Vertex");
-                Vector3 local = t.InverseTransformPoint(moved);
-                poly.vertices[i] = new Vector3(local.x, 0f, local.z);   // keep on the XZ plane
+                Undo.RecordObject(spawner, "Move Terrain Feature Vertex");
+                poly.SetVertex(i, t.InverseTransformPoint(moved));
                 EditorUtility.SetDirty(spawner);
                 changed = true;
             }
 
-            // Insert / remove buttons floating beside each vertex.
-            Handles.BeginGUI();
-            Vector2 gui = HandleUtility.WorldToGUIPoint(world);
-            if (GUI.Button(new Rect(gui.x + 12f, gui.y - 10f, 22f, 20f), "+"))
+            // Delete button beside the vertex (only while above the 3-vertex minimum).
+            if (poly.vertices.Count > 3)
             {
-                Undo.RecordObject(spawner, "Add Terrain Feature Polygon Vertex");
-                int next = (i + 1) % poly.vertices.Count;
-                poly.vertices.Insert(i + 1, (poly.vertices[i] + poly.vertices[next]) * 0.5f);
-                EditorUtility.SetDirty(spawner);
-                changed = true;
+                Handles.BeginGUI();
+                Vector2 gui = HandleUtility.WorldToGUIPoint(world);
+                var btn = new Rect(gui.x + 12f, gui.y - 11f, 22f, 22f);
+                var prevColor = GUI.backgroundColor;
+                GUI.backgroundColor = new Color(1f, 0.5f, 0.5f);
+                if (GUI.Button(btn, new GUIContent("✕", "Delete this vertex")))
+                {
+                    Undo.RecordObject(spawner, "Delete Terrain Feature Vertex");
+                    poly.RemoveVertex(i);
+                    EditorUtility.SetDirty(spawner);
+                    changed = true;
+                }
+                GUI.backgroundColor = prevColor;
+                Handles.EndGUI();
             }
-            if (poly.vertices.Count > 3 &&
-                GUI.Button(new Rect(gui.x + 12f, gui.y + 12f, 22f, 20f), "-"))
-            {
-                Undo.RecordObject(spawner, "Remove Terrain Feature Polygon Vertex");
-                poly.vertices.RemoveAt(i);
-                EditorUtility.SetDirty(spawner);
-                changed = true;
-            }
-            Handles.EndGUI();
         }
+        Handles.zTest = prevZ;
 
-        DrawPolygonOutline(spawner, poly, new Color(0.5f, 0.85f, 1f, 0.9f));
         if (DrawHeightHandle(spawner)) changed = true;
         return changed;
     }
 
-    /// <summary>Draws the closed polygon outline as a coloured loop (no interactive handles).</summary>
+    /// <summary>
+    /// Tracks the closest point on the polygon outline to the mouse ray and, on a plain left-click
+    /// there, inserts a new vertex at that point. Draws a small green preview dot so the designer
+    /// sees where the click will land. Returns true when a vertex was inserted.
+    /// </summary>
+    static bool HandleEdgeClickInsert(TerrainFeatureSpawner spawner, FeaturePolygon poly)
+    {
+        if (poly == null || !poly.IsValid) return false;
+        Transform t = spawner.transform;
+        Event e = Event.current;
+
+        // Project the mouse ray onto the feature's local XZ plane (y = 0 in local space).
+        Ray ray = HandleUtility.GUIPointToWorldRay(e.mousePosition);
+        Plane plane = new Plane(t.up, t.position);
+        if (!plane.Raycast(ray, out float enter)) return false;
+        Vector3 worldHit = ray.GetPoint(enter);
+        Vector3 localHit = t.InverseTransformPoint(worldHit);
+
+        // Nearest point on the outline to that hit.
+        int edge = poly.ClosestEdge(localHit.x, localHit.z, out Vector3 localOnEdge);
+        if (edge < 0) return false;
+        Vector3 worldOnEdge = t.TransformPoint(new Vector3(localOnEdge.x, 0f, localOnEdge.z));
+
+        // Only offer insertion when the mouse is genuinely near the outline (in screen pixels),
+        // so it never competes with vertex dragging or fights the scene-navigation controls.
+        Vector2 guiOnEdge = HandleUtility.WorldToGUIPoint(worldOnEdge);
+        if (Vector2.Distance(guiOnEdge, e.mousePosition) > 18f) return false;
+
+        // Preview dot.
+        var prevZ = Handles.zTest;
+        Handles.zTest = UnityEngine.Rendering.CompareFunction.Always;
+        Handles.color = new Color(0.4f, 1f, 0.5f, 0.95f);
+        float dotSize = HandleUtility.GetHandleSize(worldOnEdge) * 0.1f;
+        Handles.DrawSolidDisc(worldOnEdge, t.up, dotSize);
+        Handles.zTest = prevZ;
+        SceneView.RepaintAll();
+
+        // Plain left-click (no modifier) on the outline → insert.
+        if (e.type == EventType.MouseDown && e.button == 0 && e.modifiers == EventModifiers.None)
+        {
+            Undo.RecordObject(spawner, "Insert Terrain Feature Vertex");
+            poly.InsertOnNearestEdge(new Vector3(localOnEdge.x, 0f, localOnEdge.z));
+            EditorUtility.SetDirty(spawner);
+            e.Use();
+            return true;
+        }
+        return false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Noise mode — generated outline, box-driven
+    // -------------------------------------------------------------------------
+
+    static bool DrawNoiseHandles(TerrainFeatureSpawner spawner, FeatureFootprint area)
+    {
+        // Keep the outline current with the knobs, then draw it read-only.
+        area.Refresh(spawner.Seed);
+        DrawPolygonOutline(spawner, area.polygon, new Color(0.55f, 0.95f, 0.7f, 0.9f));
+
+        bool boxChanged = DrawBoxSizeHandles(spawner);
+        bool heightChanged = DrawHeightHandle(spawner);
+
+        // Resizing the box re-derives the noise outline, so the mesh must rebuild too.
+        if (boxChanged) area.Refresh(spawner.Seed);
+        return boxChanged || heightChanged;
+    }
+
+    // -------------------------------------------------------------------------
+    // Shared area handles
+    // -------------------------------------------------------------------------
+
+    /// <summary>Draws the closed outline as a thick anti-aliased loop, rendered THROUGH the
+    /// generated mesh (z-test disabled) so the footprint is always visible while editing.</summary>
     static void DrawPolygonOutline(TerrainFeatureSpawner spawner, FeaturePolygon poly, Color color)
     {
         if (poly == null || !poly.IsValid) return;
         Transform t = spawner.transform;
+
+        int n = poly.vertices.Count;
+        var loop = new Vector3[n + 1];
+        for (int i = 0; i < n; i++)
+            loop[i] = t.TransformPoint(new Vector3(poly.vertices[i].x, 0f, poly.vertices[i].z));
+        loop[n] = loop[0];
+
+        var prevZ = Handles.zTest;
+        Handles.zTest = UnityEngine.Rendering.CompareFunction.Always;
         Handles.color = color;
-        for (int i = 0; i < poly.vertices.Count; i++)
-        {
-            int j = (i + 1) % poly.vertices.Count;
-            Handles.DrawLine(
-                t.TransformPoint(new Vector3(poly.vertices[i].x, 0f, poly.vertices[i].z)),
-                t.TransformPoint(new Vector3(poly.vertices[j].x, 0f, poly.vertices[j].z)));
-        }
+        Handles.DrawAAPolyLine(5f, loop);
+        Handles.zTest = prevZ;
     }
 
-    /// <summary>Green up-arrow handle that drags the box Y half-extent (the meshing band height).
+    /// <summary>Green up-arrow handle dragging the feature Height (the meshing band height).
     /// Returns true when dragged this frame.</summary>
     static bool DrawHeightHandle(TerrainFeatureSpawner spawner)
     {
         Transform t = spawner.transform;
-        Vector3 topWorld = t.TransformPoint(new Vector3(0f, spawner.BoxHalfExtents.y, 0f));
+        FeatureFootprint area = spawner.Area;
+        Vector3 topWorld = t.TransformPoint(new Vector3(0f, area.height * 0.5f, 0f));
+
         EditorGUI.BeginChangeCheck();
         Handles.color = new Color(0.6f, 1f, 0.6f, 1f);
         float ths = HandleUtility.GetHandleSize(topWorld) * 0.15f;
@@ -130,22 +221,21 @@ public static class TerrainFeatureHandles
         if (EditorGUI.EndChangeCheck())
         {
             Undo.RecordObject(spawner, "Resize Terrain Feature Height");
-            float y = Mathf.Max(2f, Vector3.Dot(t.InverseTransformPoint(dragged), Vector3.up));
-            Vector3 h = spawner.BoxHalfExtents; h.y = y;
-            spawner.BoxHalfExtents = h;
+            float halfY = Mathf.Max(1f, Vector3.Dot(t.InverseTransformPoint(dragged), Vector3.up));
+            area.height = halfY * 2f;
             EditorUtility.SetDirty(spawner);
             return true;
         }
         return false;
     }
 
-    /// <summary>+X / +Z face handles that resize the bounding box — used in Noise mode, where the
-    /// outline is generated from the box rather than hand-edited vertex by vertex. Returns true
+    /// <summary>+X (Width) / +Z (Breadth) face handles that resize the footprint box. Returns true
     /// when a face was dragged this frame.</summary>
     static bool DrawBoxSizeHandles(TerrainFeatureSpawner spawner)
     {
         Transform t = spawner.transform;
-        Vector3 half = spawner.BoxHalfExtents;
+        FeatureFootprint area = spawner.Area;
+        Vector3 half = area.BoxHalfExtents;
         Vector3[] axes = { Vector3.right, Vector3.forward };
         Vector3 newHalf = half;
         bool changed = false;
@@ -160,7 +250,7 @@ public static class TerrainFeatureHandles
                 size, Handles.CubeHandleCap, 0f);
             if (EditorGUI.EndChangeCheck())
             {
-                float v = Mathf.Max(2f, Vector3.Dot(t.InverseTransformPoint(dragged), axes[a]));
+                float v = Mathf.Max(1f, Vector3.Dot(t.InverseTransformPoint(dragged), axes[a]));
                 newHalf[axes[a].x > 0f ? 0 : 2] = v;
                 changed = true;
             }
@@ -168,17 +258,17 @@ public static class TerrainFeatureHandles
         if (changed)
         {
             Undo.RecordObject(spawner, "Resize Terrain Feature Box");
-            spawner.BoxHalfExtents = newHalf;
+            area.width = newHalf.x * 2f;
+            area.breadth = newHalf.z * 2f;
             EditorUtility.SetDirty(spawner);
         }
         return changed;
     }
 
-    // -------------------------------------------------------------------------
+    // =========================================================================
     // Linear features — editable spline path
-    // -------------------------------------------------------------------------
+    // =========================================================================
 
-    /// <summary>Returns true when a path point or width was changed this frame.</summary>
     static bool DrawPathHandles(TerrainFeatureSpawner spawner)
     {
         Transform t = spawner.transform;
@@ -209,7 +299,6 @@ public static class TerrainFeatureHandles
                 changed = true;
             }
 
-            // Insert / remove buttons floating beside each point.
             Handles.BeginGUI();
             Vector2 gui = HandleUtility.WorldToGUIPoint(world);
             if (GUI.Button(new Rect(gui.x + 12f, gui.y - 10f, 22f, 20f), "+"))

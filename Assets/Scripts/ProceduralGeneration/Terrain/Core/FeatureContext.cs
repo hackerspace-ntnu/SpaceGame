@@ -25,10 +25,17 @@ public sealed class FeatureContext
     /// <see cref="FootprintDistanceInside"/> over reading this box directly for their silhouette.</summary>
     public readonly Bounds LocalBounds;
 
-    /// <summary>The editable CLOSED polygon footprint, in feature-local space. Valid (≥3 vertices)
-    /// for AREA features — they get their organic outline by feeding
-    /// <see cref="FootprintDistanceInside"/> into the overlap falloff. Empty for linear features.</summary>
-    public readonly FeaturePolygon Footprint;
+    /// <summary>The resolved AREA footprint — box dimensions, mode and outline polygon. Area
+    /// features read it only through <see cref="FootprintDistanceInside"/>; the area is null for
+    /// linear features. See <see cref="FeatureFootprint"/>.</summary>
+    public readonly FeatureFootprint Area;
+
+    /// <summary>The CLOSED polygon outline of the area footprint, in feature-local space. Valid
+    /// (≥3 vertices) for AREA features. Convenience accessor onto <see cref="Area"/> — kept so
+    /// existing features and docs that reference <c>context.Footprint</c> still compile. Empty
+    /// for linear features.</summary>
+    public FeaturePolygon Footprint => Area != null ? Area.polygon : _emptyPolygon;
+    static readonly FeaturePolygon _emptyPolygon = new FeaturePolygon();
 
     /// <summary>The editable poly-line path, in feature-local space. Valid (≥2 points) for linear
     /// features; empty for area features. Wrap it in a <see cref="FeatureSpline"/> to sample.</summary>
@@ -54,7 +61,7 @@ public sealed class FeatureContext
     public FeatureContext(
         int seed,
         Bounds localBounds,
-        FeaturePolygon footprint,
+        FeatureFootprint area,
         FeaturePath path,
         TerrainFeatureTuning tuning,
         ITerrainHeightSampler ground,
@@ -63,7 +70,7 @@ public sealed class FeatureContext
     {
         Seed = seed;
         LocalBounds = localBounds;
-        Footprint = footprint ?? new FeaturePolygon();
+        Area = area;
         Path = path ?? new FeaturePath();
         Tuning = tuning ?? new TerrainFeatureTuning();
         Ground = ground ?? new UnityTerrainHeightSampler(null);
@@ -82,10 +89,11 @@ public sealed class FeatureContext
     /// </summary>
     public float FootprintDistanceInside(float localX, float localZ)
     {
-        if (Footprint != null && Footprint.IsValid)
-            return Footprint.SignedDistanceInside(localX, localZ);
+        if (Area != null)
+            return Area.SignedDistanceInside(localX, localZ);
 
-        // Box fallback: distance into the axis-aligned bounds rectangle.
+        // Box fallback (no area footprint — e.g. a linear feature querying defensively):
+        // distance into the axis-aligned bounds rectangle.
         float dx = LocalBounds.extents.x - Mathf.Abs(localX - LocalBounds.center.x);
         float dz = LocalBounds.extents.z - Mathf.Abs(localZ - LocalBounds.center.z);
         return Mathf.Min(dx, dz);

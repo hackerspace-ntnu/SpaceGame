@@ -216,9 +216,15 @@ public class WorldStreamer : NetworkBehaviour
 
         // Only rebuild when the cache has actually changed and is no longer collecting,
         // and the post-load debounce window has elapsed.
+        //
+        // Order matters: sourceCache.ConsumeDirty() clears the cache's dirty flag as a side
+        // effect, so it must be the LAST condition checked. If it runs before the debounce
+        // timer check (Time.time >= navMeshRebuildTime), it swallows the dirty flag on a
+        // frame where the rebuild is skipped for being too early — and the rebuild then
+        // never fires because ConsumeDirty returns false on every subsequent frame.
         if (navMeshDirty && !sourceCache.HasPendingWork
-            && sourceCache.ConsumeDirty()
-            && Time.time >= navMeshRebuildTime)
+            && Time.time >= navMeshRebuildTime
+            && sourceCache.ConsumeDirty())
         {
             navMeshDirty = false;
             RebuildNavMesh();
@@ -245,8 +251,36 @@ public class WorldStreamer : NetworkBehaviour
 
         foreach (var chunk in config.chunks)
         {
-            chunkStates[chunk.gridCoord] = ChunkState.NotLoaded;
+            // A chunk scene may already be open when we enter Play mode — this happens
+            // whenever someone keeps the chunk scenes loaded additively in the editor for
+            // editing. If we blindly mark it NotLoaded the streamer never collects its
+            // NavMesh sources (BeginChunkSourceCollection only runs from the load callbacks),
+            // so the runtime NavMesh bakes from an empty cache and no agent can ever activate.
+            // Adopt the already-open scene instead.
+            var existing = SceneManager.GetSceneByName(chunk.sceneName);
+            if (existing.IsValid() && existing.isLoaded)
+            {
+                AdoptLoadedChunk(chunk.gridCoord, existing);
+            }
+            else
+            {
+                chunkStates[chunk.gridCoord] = ChunkState.NotLoaded;
+            }
         }
+    }
+
+    // Register a chunk scene that was already loaded before the streamer took over
+    // (e.g. left open additively in the editor). Mirrors the work the load callbacks do.
+    private void AdoptLoadedChunk(Vector2Int coord, Scene scene)
+    {
+        chunkStates[coord] = ChunkState.Loaded;
+        loadedScenes[coord] = scene;
+        CacheTerrainForChunk(coord);
+        ParkAgentsForChunk(coord);
+        RefreshTerrainNeighborsAround(coord);
+        BeginChunkSourceCollection(coord);
+        ScheduleNavMeshRebuild();
+        Debug.Log($"[WorldStreamer] Adopted pre-loaded chunk {coord} ({scene.name})");
     }
 
     public void PreloadChunksAroundPosition(Vector3 worldPos, Action onComplete = null)
@@ -902,10 +936,15 @@ public class WorldStreamer : NetworkBehaviour
         agent.transform.position = hit.position;
         agent.enabled = true;
 
-        // Warp snaps the agent's internal state to the navmesh position.
-        // Must be called after enabled=true or it is a no-op.
-        if (agent.isOnNavMesh)
-            agent.Warp(hit.position);
+        // Warp snaps the agent's internal state to the navmesh position. It must run after
+        // enabled=true. Warp itself places the agent onto the NavMesh, so we call it
+        // unconditionally — gating on isOnNavMesh would skip it on the activation frame
+        // (the agent has not registered onto the mesh yet right after enabled=true), leaving
+        // the agent enabled but detached. If Warp fails the motor's TrySnapToNavMesh recovers.
+        if (!agent.Warp(hit.position))
+        {
+            Debug.LogWarning($"[WorldStreamer] NavMeshAgent '{agent.name}' enabled but Warp to {hit.position} failed; motor will retry snap.");
+        }
 
         if (agent.TryGetComponent<Rigidbody>(out var rb))
         {

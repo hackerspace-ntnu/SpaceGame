@@ -61,11 +61,20 @@ public sealed class FlatPadFeature : TerrainFeature
             return groundY + (padHeight + noise) * weight;
         };
 
+        // Coverage mask: the pad only occupies the columns inside its polygon footprint (plus the
+        // overlap band). Columns outside it are just plain ground — without this mask the mesher
+        // would build a flat ground-following apron all around the pad. Returning false there
+        // makes those columns mesh as pure air, so only the pad itself is generated. Every real
+        // area feature follows this same pattern: the coverage predicate mirrors whatever the
+        // height lambda uses to decide weight > 0.
+        System.Func<float, float, bool> coverageFn = (x, z) =>
+            TerrainNoiseHelper.OverlapWeight(context.FootprintDistanceInside(x, z), tuning) > 0f;
+
         // Vertical extent the meshing band must cover: from a touch below ground to the pad top.
         float maxY = box.max.y + padHeight + tuning.noiseAmount + 2f;
         float minY = context.LocalGroundHeight(box.center.x, box.center.z) - 4f;
         float bandPadding = context.VoxelSize * 2f;
 
-        return new HeightfieldDensity(heightFn, box, minY, maxY, bandPadding);
+        return new HeightfieldDensity(heightFn, box, minY, maxY, bandPadding, coverageFn);
     }
 }

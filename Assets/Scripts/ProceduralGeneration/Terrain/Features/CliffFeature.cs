@@ -272,6 +272,39 @@ public sealed class CliffFeature : TerrainFeature
                 context.LocalGroundHeight, volume, oh, seed);
         }
 
-        return new HeightfieldDensity(heightFn, box, minY, maxY, bandPadding);
+        // Coverage mask: only mesh the raised part of the escarpment — the steep face and the
+        // high plateau above it. The LOW side of a cliff step sits at natural ground level, so
+        // meshing it would just build a flat ground apron, which is not the feature. A column is
+        // covered when the footprint overlap weight is non-zero AND the CliffStep profile lifts
+        // the surface meaningfully above ground. The face/high side stay; the low side is dropped.
+        System.Func<float, float, bool> coverageFn = (x, z) =>
+        {
+            float distInside = context.FootprintDistanceInside(x, z);
+            if (TerrainNoiseHelper.OverlapWeight(distInside, tuning) <= 0f) return false;
+
+            // Re-derive the cliff-step profile (mirrors the height lambda, steps 2–4).
+            float lateralT;
+            if (useSpline)
+            {
+                float hw = Mathf.Max(0.1f, spline.HalfWidth);
+                spline.ClosestParam(new Vector3(x, 0f, z), out float latDist, out _);
+                lateralT = Mathf.Clamp(latDist / hw, -1f, 1f);
+            }
+            else if (stepAlongX)
+            {
+                lateralT = Mathf.Clamp((z - centreXZ.y) / Mathf.Max(0.1f, halfXZ.y), -1f, 1f);
+            }
+            else
+            {
+                lateralT = Mathf.Clamp((x - centreXZ.x) / Mathf.Max(0.1f, halfXZ.x), -1f, 1f);
+            }
+            float edgeWiggle = TerrainNoiseHelper.Fbm(new Vector3(x, 0f, z), edgeFreq, seed + 11, 3);
+            lateralT += edgeWiggle * edgeIrreg * faceWidth * 2f;
+            lateralT  = Mathf.Clamp(lateralT, -1.5f, 1.5f);
+            float profile = TerrainProfiles.CliffStep(lateralT, 0f, faceWidth * 2f);
+            return profile > 0.02f;
+        };
+
+        return new HeightfieldDensity(heightFn, box, minY, maxY, bandPadding, coverageFn);
     }
 }

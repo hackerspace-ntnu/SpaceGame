@@ -43,6 +43,11 @@ public sealed class ArchingCaveSdf : ITerrainDensity
     readonly Bounds _bounds;
     readonly float _erosionAmp;
 
+    /// <summary>Shared feature tuning — captured so the wall erosion runs through the central
+    /// <see cref="TerrainNoiseHelper.DetailedNoise"/> and the "Surface detail" dials reach this
+    /// feature too. Optional: when null the erosion falls back to its standalone domain-warp noise.</summary>
+    TerrainFeatureTuning _tuning;
+
     // Cave-convention smooth-union radius for blending chambers + passages into one cavity.
     readonly float _caveK;
     // Per-chamber carved-cavity vertical span (floor → cavity ceiling), precomputed once.
@@ -55,6 +60,14 @@ public sealed class ArchingCaveSdf : ITerrainDensity
 
     /// <summary>Always a voxel field — the carved cave has genuine overhangs (roofs, arches).</summary>
     public bool IsHeightfield => false;
+
+    /// <summary>Captures the shared feature tuning so the wall erosion obeys the central
+    /// "Surface detail" dials. Returns <c>this</c> for fluent use right after construction.</summary>
+    public ArchingCaveSdf WithTuning(TerrainFeatureTuning tuning)
+    {
+        _tuning = tuning;
+        return this;
+    }
 
     public ArchingCaveSdf(ArchingCavePlan plan, ArchingCaveSettings settings, int seed, Bounds siteBounds)
     {
@@ -126,16 +139,21 @@ public sealed class ArchingCaveSdf : ITerrainDensity
 
         // --- 4) DOMAIN-WARP EROSION — ripple the cave walls into cohesive eroded sandstone ----
         // Applied only near the iso-band so deep-solid / deep-air regions cannot pop pockets or
-        // float shards. A couple of octaves, low frequency — cheap and cohesive.
-        if (_erosionAmp > 0f)
+        // float shards. The amplitude is the feature's own erosion PLUS the shared surface-detail
+        // layer, so the central "Surface detail" dials sharpen the cave walls too.
+        float erosionAmp = _erosionAmp + (_tuning != null ? _tuning.detailStrength : 0f);
+        if (erosionAmp > 0f)
         {
-            float band = _erosionAmp * 2.5f;
+            float band = erosionAmp * 2.5f;
             float falloff = 1f - Mathf.Clamp01(Mathf.Abs(d) / Mathf.Max(0.01f, band));
             if (falloff > 0f)
             {
-                float n = NoiseDistortion.DomainWarpedFbm(
-                    p, _settings.erosion * 0.04f + 0.02f, _seed ^ 0x51A3, 4f);
-                d += n * _erosionAmp * falloff;
+                // The shared unit detail field shapes the wall crags; the standalone domain-warp
+                // noise is the fallback when no tuning was supplied.
+                float n = _tuning != null
+                    ? TerrainNoiseHelper.DetailUnit(p, _tuning, _seed ^ 0x51A3)
+                    : NoiseDistortion.DomainWarpedFbm(p, _settings.erosion * 0.04f + 0.02f, _seed ^ 0x51A3, 4f);
+                d += n * erosionAmp * falloff;
             }
         }
 

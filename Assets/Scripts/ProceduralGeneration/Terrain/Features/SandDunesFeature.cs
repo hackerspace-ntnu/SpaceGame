@@ -165,24 +165,17 @@ public sealed class SandDunesFeature : TerrainFeature
             Vector3 swellP = new Vector3(x * 0.012f, 0f, z * 0.012f);
             float   swell  = TerrainNoiseHelper.Fbm(swellP, 1f, seed ^ 0xFACE, 2) * 0.15f + 0.85f;
 
-            // Fine ripple (sand grain-scale surface texture).
-            TerrainFeatureTuning rippleTuning = new TerrainFeatureTuning
-            {
-                noiseType          = TerrainNoiseType.Perlin,
-                noiseAmount        = tuning.noiseAmount * 0.18f,
-                noiseScale         = tuning.noiseScale * RippleScaleMult,
-                domainWarpStrength = 0f,
-                jaggedness         = 0f,           // ripples are smooth
-                overlap            = tuning.overlap,
-                overlapFalloff     = tuning.overlapFalloff,
-                height             = tuning.height,
-                heightVariation    = tuning.heightVariation,
-                keepWalkable       = tuning.keepWalkable,
-                maxWalkableSlope   = tuning.maxWalkableSlope,
-            };
-            float ripple = TerrainNoiseHelper.SurfaceNoise(new Vector3(x, 0f, z), rippleTuning, seed ^ 0xD00E);
+            // Fine sand ripple (grain-scale surface texture) — a clean low-amplitude perlin band,
+            // intentionally smooth and independent of the shared bumpiness dials.
+            float ripplePerlin = NoiseDistortion.Fbm(
+                new Vector3(x, 0f, z), tuning.noiseScale * RippleScaleMult, seed ^ 0xD00E);
+            float ripple = ripplePerlin * tuning.noiseAmount * 0.18f;
 
-            float finalHeight = duneHeight * macroHeight * swell + ripple;
+            // Shared surface-detail layer — lets a designer dial dunes from glassy-smooth to
+            // bumpy/craggy from the central "Surface detail" knobs, exactly like every feature.
+            float detail = TerrainNoiseHelper.DetailLayer(new Vector3(x, 0f, z), tuning, seed ^ 0x5A11D);
+
+            float finalHeight = duneHeight * macroHeight * swell + ripple + detail;
 
             // Clamp slope for walkability when the designer asks for it.
             if (tuning.keepWalkable)
@@ -202,6 +195,16 @@ public sealed class SandDunesFeature : TerrainFeature
         float maxY         = box.max.y + duneHeight + tuning.noiseAmount + 2f;
         float bandPadding  = context.VoxelSize * 2f;
 
-        return new HeightfieldDensity(heightFn, box, minY, maxY, bandPadding);
+        // Coverage mask: the dune field only occupies the columns inside its designer-drawn
+        // polygon footprint (plus the overlap band). Outside that the column is plain ground —
+        // meshing it would build a flat apron around the dune sea, which is not wanted. A column
+        // is covered exactly where the overlap weight is non-zero.
+        System.Func<float, float, bool> coverageFn = (x, z) =>
+        {
+            float distInside = context.FootprintDistanceInside(x, z);
+            return TerrainNoiseHelper.OverlapWeight(distInside, tuning) > 0f;
+        };
+
+        return new HeightfieldDensity(heightFn, box, minY, maxY, bandPadding, coverageFn);
     }
 }

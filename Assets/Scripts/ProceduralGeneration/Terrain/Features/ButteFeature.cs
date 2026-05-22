@@ -191,7 +191,22 @@ public sealed class ButteFeature : TerrainFeature
             return groundY + towerH * weight;
         };
 
+        // Coverage mask: the butte only occupies the columns inside its elliptical tower footprint
+        // (intersected with the designer polygon). Outside that the column is plain ground —
+        // meshing it would build a flat apron around the spire, which is not wanted. A column is
+        // covered exactly where the overlap weight is non-zero, using the same min(ellipse, polygon)
+        // distance the height lambda uses.
+        System.Func<float, float, bool> coverageFn = (x, z) =>
+        {
+            float dx       = (x - centreXZ.x) / semiX;
+            float dz       = (z - centreXZ.y) / semiZ;
+            float radialT  = Mathf.Sqrt(dx * dx + dz * dz);
+            float polyDist   = context.FootprintDistanceInside(x, z);
+            float distInside = Mathf.Min(minSemi * (1f - radialT), polyDist);
+            return TerrainNoiseHelper.OverlapWeight(distInside, tuning) > 0f;
+        };
+
         float bandPadding = context.VoxelSize * 2f;
-        return new HeightfieldDensity(heightFn, box, minSurfaceY, maxSurfaceY, bandPadding);
+        return new HeightfieldDensity(heightFn, box, minSurfaceY, maxSurfaceY, bandPadding, coverageFn);
     }
 }

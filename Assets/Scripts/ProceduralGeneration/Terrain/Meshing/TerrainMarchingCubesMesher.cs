@@ -59,25 +59,43 @@ public static class TerrainMarchingCubesMesher
             {
                 // Band straddling the surface, sized from the 4×4 neighbour columns this point's
                 // cubes can read — so a steep wall between columns is always bridged.
+                // Columns the feature does not cover report HeightfieldDensity.NoColumn; they are
+                // skipped here so an empty column produces no geometry and never drags a covered
+                // neighbour's band down to the sentinel.
                 float loSurf = float.MaxValue, hiSurf = float.MinValue;
+                bool anyCovered = false;
                 for (int sz = -1; sz <= 2; sz++)
                 for (int sx = -1; sx <= 2; sx++)
                 {
                     float wx = origin.x + (x + sx) * voxel;
                     float wz = origin.z + (z + sz) * voxel;
                     float s = density.SurfaceHeight(wx, wz);
+                    if (s <= HeightfieldDensity.NoColumn) continue;   // uncovered — ignore
+                    anyCovered = true;
                     if (s < loSurf) loSurf = s;
                     if (s > hiSurf) hiSurf = s;
                 }
-                yLo = Mathf.Clamp(Mathf.FloorToInt((loSurf - bandHalf - origin.y) / voxel), 0, ny - 1);
-                yHi = Mathf.Clamp(Mathf.CeilToInt((hiSurf + bandHalf - origin.y) / voxel), 0, ny - 1);
-                colLo[x + z * nx] = yLo;
-                colHi[x + z * nx] = yHi;
 
-                // Rows outside the band: mark as Unsampled and skip the field call entirely.
-                for (int y = 0; y < ny; y++)
-                    if (y < yLo || y > yHi)
+                if (!anyCovered)
+                {
+                    // Whole 4×4 neighbourhood is empty ground — mesh nothing in this column.
+                    colLo[x + z * nx] = 1;
+                    colHi[x + z * nx] = 0;          // lo > hi ⇒ no cube rows walked
+                    for (int y = 0; y < ny; y++)
                         grid[Idx(x, y, z, nx, ny)] = Unsampled;
+                }
+                else
+                {
+                    yLo = Mathf.Clamp(Mathf.FloorToInt((loSurf - bandHalf - origin.y) / voxel), 0, ny - 1);
+                    yHi = Mathf.Clamp(Mathf.CeilToInt((hiSurf + bandHalf - origin.y) / voxel), 0, ny - 1);
+                    colLo[x + z * nx] = yLo;
+                    colHi[x + z * nx] = yHi;
+
+                    // Rows outside the band: mark as Unsampled and skip the field call entirely.
+                    for (int y = 0; y < ny; y++)
+                        if (y < yLo || y > yHi)
+                            grid[Idx(x, y, z, nx, ny)] = Unsampled;
+                }
             }
 
             for (int y = yLo; y <= yHi; y++)

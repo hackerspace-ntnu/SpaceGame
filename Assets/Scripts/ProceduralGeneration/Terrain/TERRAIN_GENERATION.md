@@ -58,13 +58,14 @@ function `f(x, z)`; a voxel SDF's surface can fold back over itself.
 
 ---
 
-## 4. The footprint — one context, both shapes
+## 4. The footprint — one authority, two modes
 
 There is **one** `FeatureContext` for all nine features (no area/linear class split — maximum
 interchangeability is the #1 design rule). It carries:
 
-- `Footprint` — the editable **closed polygon** (`FeaturePolygon`), in feature-local space. AREA
-  features get their organic outline from this.
+- `Area` — the AREA footprint authority (`FeatureFootprint`): box dimensions, mode and outline.
+- `Footprint` — convenience accessor onto `Area.polygon`, the editable **closed polygon**
+  (`FeaturePolygon`) in feature-local space.
 - `Path` — the editable `FeaturePath` poly-line (linear features sweep along this; wrap it in a
   `FeatureSpline` to sample a smooth Catmull-Rom curve).
 - `LocalBounds` — axis-aligned bounding box of whichever footprint is active. Used by the mesher
@@ -74,27 +75,33 @@ interchangeability is the #1 design rule). It carries:
 - `LocalToWorld`, `Seed`, `VoxelSize`.
 
 **Area features must shape their outline with `context.FootprintDistanceInside(x, z)`** — it
-returns the signed distance to the polygon boundary (positive metres inside, negative outside).
+returns the signed distance to the footprint boundary (positive metres inside, negative outside).
 Feed it straight into `TerrainNoiseHelper.OverlapWeight`. Do NOT recompute a box edge with
-`Mathf.Min(dx, dz)` — that hardcodes a rectangle and ignores the designer's polygon.
+`Mathf.Min(dx, dz)` — that hardcodes a rectangle and ignores the designer's footprint.
 
 A linear feature reads `Path` and uses `LocalBounds` only as an overall clamp.
 `TerrainFeatureSpawner.UsesPath` decides which gizmo the editor shows (polygon vs spline).
 
 ### Authoring the area footprint
 
-The polygon is edited **visually in the Scene view** — never as raw vertex fields. The spawner's
-`footprintShape` picks how the outline is defined:
+`FeatureFootprint` is the single authority. It owns the box — **Width (X) / Height (Y) /
+Breadth (Z)** in metres — the `FootprintMode`, the outline `FeaturePolygon`, and the
+`FootprintNoise` knob block. Every feature only ever calls `context.FootprintDistanceInside(x, z)`;
+it never branches on the mode. The two modes:
 
-- **`Polygon`** — hand-edited. Drag the blue vertex dots; the `+`/`-` buttons beside each add or
-  remove vertices. A green up-arrow sets feature height.
-- **`Noise`** — the outline is *generated* by `FeaturePolygon.GenerateFromNoise` from two knobs:
-  `footprintNoiseScale` (lobe frequency — how wiggly) and `footprintIrregularity` (the
-  "rectangleness" — 0 stays near the box, 1 is wildly organic). No vertex editing; resize with the
-  box handles and the outline regenerates live.
+- **`Polygon`** — hand-edited. In the Scene view: drag the blue vertex dots, **click anywhere on
+  an edge** to insert a vertex there, use the **✕** button beside a dot to delete it. A green
+  up-arrow sets the feature Height.
+- **`Noise`** — the outline is *generated* by `FootprintNoise.Generate` from the Width × Breadth
+  box plus a set of **explicit knobs**: `lobeFrequency`, `lobeAmplitude`, `detailOctaves`,
+  `detailGain`, `irregularity`, `cornerSharpness`, `resolution`. All knobs minimal → a clean
+  rounded blob; all knobs high → a wild, messy, multi-armed silhouette. No vertex editing; resize
+  with the box handles and the outline regenerates live and deterministically off the seed. The
+  **Bake to Polygon** button freezes the generated outline into editable Polygon-mode vertices.
 
-Either way a feature just calls `context.FootprintDistanceInside(x, z)` — it never cares which
-mode produced the polygon.
+`FeatureFootprint.Refresh(seed)` keeps the outline consistent with the mode (regenerates in Noise
+mode, seeds an ellipse in Polygon mode); `MigrateFromLegacy` upgrades scenes authored before this
+rewrite (old `boxHalfExtents` + `FootprintShape` + complexity dial).
 
 ### Per-feature settings
 
@@ -125,6 +132,27 @@ feature with no extra knobs simply omits both overrides. Always null-guard the i
 - **Height** — `height`, `heightVariation`. Primary vertical extent plus deterministic per-feature
   variation.
 - **Jaggedness** — `jaggedness`. Sharpens ridges/cliffs vs soft rounded forms.
+- **Surface detail** — `detailStrength`, `detailScale`, `detailOctaves`, `detailRoughness`,
+  `detailLacunarity`, `detailRidged`, `detailWarp`. An **independent high-frequency detail layer**
+  added on top of every feature's surface — the central "how bumpy is the rock" control. It is
+  SEPARATE from `noiseAmount` (the macro shape noise): a feature can be smooth-macro + jagged-detail
+  or any mix. `detailStrength` is an **absolute metre amplitude** — 0 = glassy smooth, crank it for
+  violently broken rock. See §7.
+
+> **Smooth vs jagged terrain — how to tune it.** The detail layer is owned by the shared
+> `Surface detail` knobs and applied centrally in `TerrainNoiseHelper.DetailLayer` (added by every
+> feature, heightfield AND voxel), so the same dials reach all 14 features.
+> - *Glassy smooth rock* — `detailStrength` 0 (the layer is fully off).
+> - *Naturally bumpy rock* — `detailStrength` 1–3, `detailRoughness` ~0.5, `detailRidged` ~0.3.
+> - *Harsh broken badlands* — `detailStrength` 6–15, `detailRoughness` 0.8+, `detailRidged` 0.6+,
+>   `detailOctaves` 5–6, plus `jaggedness`.
+>
+> `detailStrength` is the master amplitude — the fractal is normalised, so adding octaves enriches
+> the shape without silently changing the displacement. The post-marching-cubes Laplacian smoothing
+> would wash out fine crags, so `TerrainFeatureGenerator` **auto-eases the smoothing** in proportion
+> to `detailStrength` (`AdaptSmoothingToDetail`) — strong detail survives to the final mesh without
+> the designer touching `TerrainMeshSettings`. Detail finer than ~2× `voxelSize` still cannot exist;
+> shrink the voxel size for very fine crags.
 
 Plus **walkability**: `keepWalkable`, `maxWalkableSlope` — slope control so NavMeshAgents can
 traverse climbable ridges, narrow canyon paths and natural bridges. Use `TerrainProfiles.LimitSlope`
@@ -195,7 +223,16 @@ return new VoxelSdfDensity(
 ## 7. Shared helpers — use these, do not reinvent
 
 **`TerrainNoiseHelper`** (`Density/`)
-- `SurfaceNoise(p, tuning, seed)` — noise displacement in metres, jaggedness applied.
+- `SurfaceNoise(p, tuning, seed)` — total surface displacement in metres = the macro shape noise
+  (`noiseAmount`) **plus** `DetailLayer`. Heightfield features add this straight to their height.
+- `DetailLayer(p, tuning, seed)` — **the independent surface-detail layer, in metres.** Driven by
+  the `Surface detail` knobs; `detailStrength` is the absolute amplitude (0 ⇒ returns 0). This is
+  the one central place surface bumpiness lives — every feature adds it, so smooth-vs-jagged is
+  tuned once.
+- `DetailUnit(p, tuning, seed)` — the same shaped field normalised to ~[-1,1] (before the
+  `detailStrength` metre scaling). Voxel features call this and apply their own **capped** amplitude
+  so erosion can never punch through thin rock.
+- `DetailedNoise(p, tuning, seed)` — back-compat alias of `DetailUnit`.
 - `ApplyJaggedness(n, jaggedness)` — sharpen noise into ridges/crags.
 - `Fbm(p, frequency, seed, octaves)` — multi-octave fractal noise.
 - `OverlapWeight(distanceInside, tuning)` — 0→1 edge falloff for blending/overlap.
@@ -265,6 +302,10 @@ Terrain/
     TerrainDensityKind.cs       Heightfield vs Voxel enum
     TerrainFeatureTuning.cs     shared noise/overlap/height/jaggedness + walkability
     FeatureContext.cs           footprint-agnostic input bundle for every feature
+    FeatureFootprint.cs         THE area-footprint authority — box dims, mode, outline, noise knobs
+    FootprintMode.cs            Polygon (hand-edited) vs Noise (generated) enum
+    FootprintNoise.cs           explicit-knob noise → outline-polygon generator
+    FeaturePolygon.cs           closed-polygon geometry — signed distance, containment, edge ops
     TerrainFeatureResult.cs     pure-data output bundle
     ITerrainHeightSampler.cs    underlying-terrain height/normal sampler (+ Unity impl)
     TerrainFeatureGenerator.cs  the orchestration entry point (4-pass pipeline)
@@ -431,3 +472,44 @@ from it as obstacles routed around; overhanging rims are elevated scenery.
 **Feature toggle** — `BadlandsMazeSettings.enableBoulders` gates the scattered small-rock field;
 `mesaBody.enableOverhangs` (on by default) gates the rock-body overhang model on every mesa. Each
 gates a clearly delimited block of the SDF / placer.
+
+---
+
+## 13. Boulders — a noise-scattered field of natural rock boulders
+
+`Boulders` (`TerrainFeatureType.Boulders = 13`) scatters a field of natural, eroded rock BOULDERS
+across its footprint. ONE feature with many knobs (`BouldersSettings`) — the designer customises
+scatter density, clustering, size distribution, per-boulder shape and grounding. It is an AREA
+feature: it uses the footprint polygon as the scatter region and is deliberately NOT in
+`TerrainFeatureSpawner.UsesPath`. It is a normal single-mesh feature — `BuildDensity` returns one
+voxel `BouldersSdf` and the shared pipeline meshes / skirt-blends it.
+
+**Voxel SDF model.** A boulder is a rounded 3D rock that bulges over its contact point — a genuine
+overhang a heightfield cannot represent — so `DensityKind` is `Voxel`. The field is the
+`SmoothMin` union of N individual boulders. The volume's Y extent is kept modest (ground span to
+the tallest boulder + padding) since boulders are not tall.
+
+**Per-boulder shape** (`BouldersSdf.BoulderSdf`) — reads as weathered rock, not a sphere:
+a lumpy core of `lumpiness` `SmoothMin`-blended sub-spheres, evaluated in the boulder's own space
+after un-yawing and un-squashing (per-axis flatten + shape-variety stretch), then domain-warp /
+fbm erosion (`NoiseDistortion.DomainWarpedFbm`, sharpened by the shared `jaggedness`) added to the
+distance so the surface is faceted-but-rounded. Each boulder gets a deterministic random size,
+stretch, yaw and noise phase, and sinks into the ground by `embedDepth` so it rests partially
+buried.
+
+**Noise-driven scatter** (`BouldersScatter`) — a jittered grid thresholded by a low-frequency
+density-noise field: cells sized off `density`, one jittered candidate per cell, kept only when a
+per-cell random roll beats a threshold that tracks the cluster-noise. `clustering` sets the
+contrast (0 = even scatter, 1 = tight clumps with bare gaps). Candidates outside the polygon or
+thinned by `edgeFalloff` near the rim are dropped. All deterministic off `context.Seed`.
+
+**Spatial acceleration** — a naive union is O(N) per `Sample`. The `BouldersSdf` constructor
+buckets every boulder into a uniform XZ grid (cell ≈ the largest boulder reach); `Sample` tests
+only the 3×3 cell neighbourhood of the query point, so it stays ~O(boulders in the neighbourhood)
+no matter how large the field. A ground-fill half-space (gated to below-ground voxels under a
+boulder) grounds each rock without meshing a flat apron.
+
+**Knobs** (`BouldersSettings`): `density`, `clustering`, `clusterFrequency`, `edgeFalloff`,
+`sizeRange`, `sizeBias`, `irregularity`, `shapeNoiseFrequency`, `lumpiness`, `flattenAmount`,
+`shapeVariety`, `embedDepth`, `blendRadius`. The shared tuning still applies — `height` scales
+every boulder's size, `jaggedness` sharpens the erosion.

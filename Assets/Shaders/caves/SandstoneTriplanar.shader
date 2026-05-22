@@ -22,7 +22,7 @@ Shader "SpaceGame/SandstoneTriplanar"
 
         [Header(Accent Layer  Sedimentary streaks plus large accent blobs)]
         _AccentColor ("Accent Color", Color) = (0.45, 0.18, 0.22, 1)
-        _StreakScale ("Streak Scale (smaller = wider bands)", Range(0.005, 0.5)) = 0.05
+        _StreakScale ("Streak Scale (smaller = wider bands)", Range(0.005, 1.5)) = 0.15
         _StreakWarp ("Streak Horizontal Warp (jagged sedimentary feel)", Range(0, 1)) = 0.35
         _StreakWarpScale ("Streak Warp Frequency", Range(0.01, 1)) = 0.08
         _StreakThreshold ("Streak Threshold (lower = more streaks)", Range(0, 1)) = 0.55

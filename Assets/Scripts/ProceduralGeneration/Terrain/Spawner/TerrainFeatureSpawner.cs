@@ -1,6 +1,22 @@
 using UnityEngine;
 
 /// <summary>
+/// Quick-pick palette of the project's sandstone triplanar materials, surfaced as a dropdown on
+/// <see cref="TerrainFeatureSpawner"/> so a designer can choose a terrain look without hunting for
+/// the material asset. <see cref="Custom"/> leaves the explicit <c>featureMaterial</c> field in
+/// charge. The enum-to-asset mapping lives in <see cref="TerrainFeatureSpawnerVisuals"/>.
+/// </summary>
+public enum TerrainMaterialPreset
+{
+    Custom = 0,
+    SandstoneLight,
+    RedDesert,
+    GoldenDune,
+    SaltFlat,
+    SandstoneDark,
+}
+
+/// <summary>
 /// Scene-level driver for the terrain-feature system — the terrain analogue of <c>CaveSpawner</c>.
 /// The designer picks a <see cref="featureType"/>, defines the footprint and tunes the sliders;
 /// the editor bakes the mesh(es) to assets and runtime instantiates them. Feature meshes contribute
@@ -8,26 +24,24 @@ using UnityEngine;
 /// one collider per sub-mesh, all feeding the one unified walkable surface.
 /// </summary>
 [DisallowMultipleComponent]
-public class TerrainFeatureSpawner : MonoBehaviour
+public class TerrainFeatureSpawner : MonoBehaviour, ISerializationCallbackReceiver
 {
     [Header("Feature")]
     [Tooltip("Which procedural terrain feature this spawner builds. The editor warns if the chosen type has no implementation registered yet.")]
     [SerializeField] private TerrainFeatureType featureType = TerrainFeatureType.FlatPad;
 
-    [Header("Footprint — box bound (area features)")]
-    [Tooltip("Half-extents of the local-space box that bounds an area feature and seeds the polygon. The polygon defines the actual organic outline; this box is the starting rectangle and the meshing extent.")]
-    [SerializeField] private Vector3 boxHalfExtents = new Vector3(40f, 25f, 40f);
+    [Header("Footprint (area features)")]
+    [Tooltip("The area footprint: box dimensions (Width / Height / Breadth), the Polygon/Noise " +
+             "mode, the outline polygon and the noise knobs. Edit the outline visually in the " +
+             "Scene view; tune size and noise here.")]
+    [SerializeField] private FeatureFootprint area = new FeatureFootprint();
 
-    [Tooltip("How the area footprint outline is defined.\n• Polygon — hand-edit vertices with the Scene-view handles.\n• Noise — the outline is auto-generated from noise; no hand-editing.")]
-    [SerializeField] private FootprintShape footprintShape = FootprintShape.Polygon;
-
-    [Tooltip("Noise mode: footprint complexity. 1 = a clean circle. ~4 = a soft organic blob. " +
-             "~7 = pronounced lobes. 10 = a wild, spiky, multi-armed silhouette. One dial drives " +
-             "lobe strength, detail octaves, vertex count and directional asymmetry together.")]
-    [Range(1f, 10f)] [SerializeField] private float footprintComplexity = 3f;
-
-    [Tooltip("The closed polygon footprint (local space) — the organic outline of an area feature. In Polygon mode you edit it with the Scene-view handles; in Noise mode it is generated. Not shown as raw fields — edit it visually in the Scene view.")]
-    [SerializeField] private FeaturePolygon footprint = new FeaturePolygon();
+    // --- Legacy fields (pre-rewrite). Kept ONLY so old scenes deserialize; migrated into 'area'
+    //     in OnAfterDeserialize, then never written again. Hidden from the inspector.
+    [HideInInspector] [SerializeField] private Vector3 boxHalfExtents = Vector3.zero;
+    [HideInInspector] [SerializeField] private int footprintShape = -1;
+    [HideInInspector] [SerializeField] private float footprintComplexity = -1f;
+    [HideInInspector] [SerializeField] private FeaturePolygon footprint;
 
     [Header("Footprint — path (linear features)")]
     [Tooltip("Editable poly-line path, in local space. Linear features (canyons, paths, ridges, bridges, arches, cave entrances) sweep along this. Edit the points with the Scene-view handles.")]
@@ -59,7 +73,12 @@ public class TerrainFeatureSpawner : MonoBehaviour
     [SerializeField] private float fallbackGroundHeight = 0f;
 
     [Header("Rendering / NavMesh")]
-    [Tooltip("Material applied to the spawned feature mesh. If null a neutral desert-rock material is generated.")]
+    [Tooltip("Quick-pick terrain look. Choosing any preset other than 'Custom' auto-assigns the matching " +
+             "sandstone material into 'Feature Material' below. Pick 'Custom' to drag in your own material.")]
+    [SerializeField] private TerrainMaterialPreset materialPreset = TerrainMaterialPreset.Custom;
+
+    [Tooltip("Material applied to the spawned feature mesh. If null a neutral desert-rock material is generated. " +
+             "Set automatically when a Material Preset is chosen.")]
     [SerializeField] private Material featureMaterial;
 
     [Tooltip("Layer the spawned mesh GameObject is placed on. Must be a layer the world NavMeshSurface collects, so the feature contributes to the shared NavMesh.")]
@@ -85,23 +104,56 @@ public class TerrainFeatureSpawner : MonoBehaviour
     // --- Public surface (inspector / editor use these) -----------------------
 
     public TerrainFeatureType FeatureType => featureType;
-    public Vector3 BoxHalfExtents { get => boxHalfExtents; set => boxHalfExtents = value; }
-    public FeaturePolygon Footprint => footprint;
+
+    /// <summary>The Unity Terrain this feature blends onto. Null falls back to the active Terrain
+    /// at bake time. Exposed so <see cref="TerrainGenManager"/> can assign one terrain across a
+    /// whole folder of features in a single click.</summary>
+    public Terrain TargetTerrain { get => targetTerrain; set => targetTerrain = value; }
+
+    /// <summary>Name of the layer the spawned mesh GameObject is placed on. Exposed so the manager
+    /// can set a consistent NavMesh-collected layer across every feature in a folder.</summary>
+    public string FeatureLayer { get => featureLayer; set => featureLayer = value; }
+
+    /// <summary>Quick-pick terrain material preset. <see cref="TerrainMaterialPreset.Custom"/> means
+    /// the explicit <see cref="featureMaterial"/> is used as-is.</summary>
+    public TerrainMaterialPreset MaterialPreset { get => materialPreset; set => materialPreset = value; }
+
+    /// <summary>The explicitly-assigned feature material (also the slot a preset writes into).</summary>
+    public Material FeatureMaterial { get => featureMaterial; set => featureMaterial = value; }
+
+    /// <summary>The area footprint authority — box dimensions, mode, outline polygon, noise knobs.</summary>
+    public FeatureFootprint Area => area ??= new FeatureFootprint();
+
+    /// <summary>Box half-extents of the area footprint (X = half-Width, Y = half-Height,
+    /// Z = half-Breadth). Setting it writes the three dimensions back. Compatibility shim for the
+    /// Scene-view handles, which work in half-extents.</summary>
+    public Vector3 BoxHalfExtents
+    {
+        get => Area.BoxHalfExtents;
+        set
+        {
+            Area.width   = Mathf.Max(2f, value.x * 2f);
+            Area.height  = Mathf.Max(2f, value.y * 2f);
+            Area.breadth = Mathf.Max(2f, value.z * 2f);
+        }
+    }
+
+    /// <summary>The hand-editable / generated outline polygon of the area footprint.</summary>
+    public FeaturePolygon Footprint => Area.polygon;
     public FeaturePath Path => path;
 
     /// <summary>Whether the area footprint is hand-edited (Polygon) or noise-generated (Noise).</summary>
-    public FootprintShape FootprintShapeMode => footprintShape;
+    public FootprintMode FootprintModeValue => Area.mode;
 
     /// <summary>True while the footprint outline is noise-generated — vertex handles are then read-only.</summary>
-    public bool FootprintIsGenerated => !UsesPath && footprintShape == FootprintShape.Noise;
+    public bool FootprintIsGenerated => !UsesPath && Area.mode == FootprintMode.Noise;
 
     /// <summary>Rebuilds the noise-generated footprint from the current box + knobs (editor live
     /// update). No-op for linear features or Polygon mode.</summary>
     public void RefreshGeneratedFootprint()
     {
-        if (UsesPath || footprintShape != FootprintShape.Noise) return;
-        footprint ??= new FeaturePolygon();
-        footprint.GenerateFromNoise(boxHalfExtents, seed, footprintComplexity);
+        if (UsesPath) return;
+        Area.Refresh(seed);
     }
     public TerrainFeatureTuning Tuning => tuning;
     public int Seed => seed;
@@ -118,7 +170,14 @@ public class TerrainFeatureSpawner : MonoBehaviour
     public object SyncFeatureSettings()
     {
         if (featureSettings != null && featureSettingsType == featureType)
+        {
+            // Heal nested [SerializeReference] blocks that an older scene deserialised as null,
+            // so newly-added knobs materialise (and draw in the inspector) on existing spawners.
+            TerrainFeature healProbe = TerrainFeatureRegistry.Create(featureType);
+            if (healProbe != null)
+                featureSettings = healProbe.HealSettings(featureSettings);
             return featureSettings;
+        }
         TerrainFeature probe = TerrainFeatureRegistry.Create(featureType);
         featureSettings = probe != null ? probe.CreateDefaultSettings() : null;
         featureSettingsType = featureType;
@@ -159,40 +218,48 @@ public class TerrainFeatureSpawner : MonoBehaviour
         Terrain terrain = targetTerrain != null ? targetTerrain : Terrain.activeTerrain;
         var ground = new UnityTerrainHeightSampler(terrain, fallbackGroundHeight);
 
-        // Resolve the area footprint outline.
-        if (!UsesPath)
-        {
-            footprint ??= new FeaturePolygon();
-            if (footprintShape == FootprintShape.Noise)
-            {
-                // Generated mode: rebuild the outline from noise every time, so the complexity
-                // dial live-updates and the bake is deterministic off the seed.
-                footprint.GenerateFromNoise(boxHalfExtents, seed, footprintComplexity);
-            }
-            else if (!footprint.IsValid)
-            {
-                // Polygon mode: seed from the box the first time so there is always an outline.
-                footprint.ResetToBox(boxHalfExtents);
-            }
-        }
+        area ??= new FeatureFootprint();
 
-        // Meshing bounds: XZ from the polygon's outline (so the voxel walk covers the real shape),
-        // Y from the box half-extent. Linear features keep the plain box.
-        Bounds bounds;
-        if (!UsesPath && footprint != null && footprint.IsValid)
-        {
-            Bounds poly = footprint.ComputeLocalBounds();
-            bounds = new Bounds(
-                new Vector3(poly.center.x, 0f, poly.center.z),
-                new Vector3(poly.size.x, boxHalfExtents.y * 2f, poly.size.z));
-        }
-        else
-        {
-            bounds = new Bounds(Vector3.zero, boxHalfExtents * 2f);
-        }
+        // Resolve the area footprint outline (regenerates from noise / seeds an ellipse as needed).
+        // Linear features ignore it but it stays valid so a feature switch is seamless.
+        area.Refresh(seed);
 
-        return new FeatureContext(seed, bounds, footprint, path, tuning, ground,
+        // Meshing bounds: from the footprint for area features, from the path box for linear ones.
+        Bounds bounds = UsesPath
+            ? new Bounds(Vector3.zero, area.BoxHalfExtents * 2f)
+            : area.ComputeLocalBounds();
+
+        return new FeatureContext(seed, bounds, area, path, tuning, ground,
             transform.localToWorldMatrix, meshSettings.voxelSize);
+    }
+
+    // --- Legacy migration ----------------------------------------------------
+
+    void ISerializationCallbackReceiver.OnBeforeSerialize() { }
+
+    /// <summary>Upgrades a scene authored before the footprint rewrite: the old boxHalfExtents +
+    /// FootprintShape + complexity + loose polygon are folded into <see cref="area"/> once, then
+    /// the legacy fields are cleared so they are never written back.</summary>
+    void ISerializationCallbackReceiver.OnAfterDeserialize()
+    {
+        // A legacy scene is detected by the value-type sentinels (boxHalfExtents/shape/complexity)
+        // or a still-VALID legacy polygon. The polygon is tested for validity (>=3 verts) rather
+        // than mere non-null: a plain [Serializable] field deserialises as a non-null empty object,
+        // and treating that as "legacy" would re-run migration forever and revert footprint edits.
+        bool hasLegacy = footprintShape >= 0 || boxHalfExtents != Vector3.zero
+                         || footprintComplexity >= 0f
+                         || (footprint != null && footprint.IsValid);
+        if (!hasLegacy) return;
+
+        area ??= new FeatureFootprint();
+        area.MigrateFromLegacy(
+            boxHalfExtents != Vector3.zero ? boxHalfExtents : new Vector3(40f, 25f, 40f),
+            footprintShape, footprintComplexity >= 0f ? footprintComplexity : 3f, footprint);
+
+        boxHalfExtents = Vector3.zero;
+        footprintShape = -1;
+        footprintComplexity = -1f;
+        footprint = null;
     }
 
     /// <summary>Runs the full generate pipeline and returns the result (mesh not yet instantiated).</summary>

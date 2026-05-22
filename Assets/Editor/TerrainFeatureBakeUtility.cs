@@ -28,10 +28,28 @@ public static class TerrainFeatureBakeUtility
         return folder;
     }
 
+    /// <summary>
+    /// A filename stem that is UNIQUE per spawner GameObject — feature type, seed, AND a stable
+    /// per-object id. Keying on type+seed alone meant two same-type, same-seed features (e.g. two
+    /// Mesas both left at the default seed 0) baked to the SAME asset path: the second bake's
+    /// <see cref="ReplaceAsset"/> deleted the asset the first feature's MeshFilter still pointed at,
+    /// leaving that feature with an empty mesh. The id disambiguates them.
+    /// </summary>
+    static string AssetStem(TerrainFeatureSpawner spawner)
+    {
+        // GlobalObjectId's scene-local file id is stable across domain reloads and unique within
+        // the scene — exactly the per-object key we need. Fall back to the (less stable but still
+        // per-object) instance id if no global id is available (e.g. a transient object).
+        GlobalObjectId gid = GlobalObjectId.GetGlobalObjectIdSlow(spawner);
+        ulong objId = gid.targetObjectId != 0 ? gid.targetObjectId
+                                              : (ulong)(uint)spawner.GetInstanceID();
+        return $"{spawner.FeatureType}_seed_{spawner.Seed}_{objId:x}";
+    }
+
     /// <summary>Saves a single-mesh bake and returns the persistent mesh asset.</summary>
     public static Mesh SaveSingle(Mesh mesh, string folder, TerrainFeatureSpawner spawner)
     {
-        string path = $"{folder}/{spawner.FeatureType}_seed_{spawner.Seed}_Mesh.asset";
+        string path = $"{folder}/{AssetStem(spawner)}_Mesh.asset";
         ReplaceAsset(mesh, path);
         return AssetDatabase.LoadAssetAtPath<Mesh>(path);
     }
@@ -44,20 +62,22 @@ public static class TerrainFeatureBakeUtility
         System.Collections.Generic.List<Mesh> subMeshes, string folder, TerrainFeatureSpawner spawner)
     {
         ClearOldSubMeshAssets(folder, spawner);
+        string stem = AssetStem(spawner);
         var saved = new Mesh[subMeshes.Count];
         for (int i = 0; i < subMeshes.Count; i++)
         {
-            string p = $"{folder}/{spawner.FeatureType}_seed_{spawner.Seed}_Sub{i}.asset";
+            string p = $"{folder}/{stem}_Sub{i}.asset";
             ReplaceAsset(subMeshes[i], p);
             saved[i] = AssetDatabase.LoadAssetAtPath<Mesh>(p);
         }
         return saved;
     }
 
-    /// <summary>Deletes previously-baked sub-mesh assets for this feature+seed.</summary>
+    /// <summary>Deletes previously-baked sub-mesh assets for THIS spawner only. The prefix carries
+    /// the per-object id so it never touches another same-type, same-seed feature's sub-meshes.</summary>
     static void ClearOldSubMeshAssets(string folder, TerrainFeatureSpawner spawner)
     {
-        string prefix = $"{spawner.FeatureType}_seed_{spawner.Seed}_Sub";
+        string prefix = $"{AssetStem(spawner)}_Sub";
         foreach (string guid in AssetDatabase.FindAssets("t:Mesh", new[] { folder }))
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);

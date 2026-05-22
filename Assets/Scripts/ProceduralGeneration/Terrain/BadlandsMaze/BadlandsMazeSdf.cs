@@ -38,11 +38,24 @@ public sealed class BadlandsMazeSdf : ITerrainDensity
     readonly float _floorHalfThickness;
     readonly float _channelFloorY;
 
+    /// <summary>Shared feature tuning — captured so the rock erosion runs through the central
+    /// <see cref="TerrainNoiseHelper.DetailedNoise"/> and the "Surface detail" dials reach this
+    /// feature too. Optional: when null the erosion falls back to its standalone domain-warp noise.</summary>
+    TerrainFeatureTuning _tuning;
+
     /// <summary>Local-space volume the field occupies — the whole maze plus padding.</summary>
     public Bounds Bounds => _bounds;
 
     /// <summary>Always a voxel field — the maze has genuine overhangs.</summary>
     public bool IsHeightfield => false;
+
+    /// <summary>Captures the shared feature tuning so the rock erosion obeys the central
+    /// "Surface detail" dials. Returns <c>this</c> for fluent use right after construction.</summary>
+    public BadlandsMazeSdf WithTuning(TerrainFeatureTuning tuning)
+    {
+        _tuning = tuning;
+        return this;
+    }
 
     public BadlandsMazeSdf(BadlandsMazePlan plan, BadlandsMazeSettings settings, int seed, Bounds siteBounds)
     {
@@ -103,15 +116,21 @@ public sealed class BadlandsMazeSdf : ITerrainDensity
         // --- 5) Domain-warp erosion — carve the whole mass into cohesive eroded sandstone -----
         // Applied only near the iso-band so deep-solid / deep-air regions cannot pop pockets or
         // float shards. Low frequency + a couple of octaves — cheap and cohesive.
-        if (_erosionAmp > 0f)
+        // Amplitude = the feature's own erosion PLUS the shared surface-detail layer, so the
+        // central "Surface detail" dials sharpen the maze walls too.
+        float erosionAmp = _erosionAmp + (_tuning != null ? _tuning.detailStrength : 0f);
+        if (erosionAmp > 0f)
         {
-            float band = _erosionAmp * 2.5f;
+            float band = erosionAmp * 2.5f;
             float falloff = 1f - Mathf.Clamp01(Mathf.Abs(rock) / Mathf.Max(0.01f, band));
             if (falloff > 0f)
             {
-                float n = NoiseDistortion.DomainWarpedFbm(
-                    p, _settings.erosion * 0.045f + 0.02f, _seed ^ 0x2D74, 4f);
-                rock += n * _erosionAmp * falloff;
+                // The shared unit detail field shapes the wall crags; the standalone domain-warp
+                // noise is the fallback when no tuning was supplied.
+                float n = _tuning != null
+                    ? TerrainNoiseHelper.DetailUnit(p, _tuning, _seed ^ 0x2D74)
+                    : NoiseDistortion.DomainWarpedFbm(p, _settings.erosion * 0.045f + 0.02f, _seed ^ 0x2D74, 4f);
+                rock += n * erosionAmp * falloff;
             }
         }
 
@@ -192,8 +211,19 @@ public sealed class BadlandsMazeSdf : ITerrainDensity
         // --- Cap the top into a flat-ish walkable summit; floor-fill below the foot ------------
         float topCut = p.y - summitY;
         solid = SmoothMax(solid, topCut, totalHeight * 0.06f);
-        float footFill = groundY - p.y;
-        solid = Mathf.Min(solid, -footFill);
+
+        // Floor fill: solid below the mesa foot so it fuses into the channel-floor slab — but
+        // gated to the mesa's own base column. Without the gate every mesa would fill the whole
+        // sample volume below ground, meshing a flat apron beyond the massif. Inside the base
+        // radius (plus a small skirt) the fill applies; outside it the below-ground space stays
+        // air so no apron spreads past the rock.
+        float baseRadius = mesa.Radius * RockBodyProfile.RadiusMultiplier(0f, angle, s, seed);
+        float footprintSkirt = mesa.Radius * 0.15f + s.sideJaggedness;
+        if (horiz <= baseRadius + footprintSkirt)
+        {
+            float footFill = groundY - p.y;
+            solid = Mathf.Min(solid, -footFill);
+        }
         return solid;
     }
 

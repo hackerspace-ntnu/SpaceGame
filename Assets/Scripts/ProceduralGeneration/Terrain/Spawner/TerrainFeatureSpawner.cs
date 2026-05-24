@@ -207,6 +207,17 @@ public class TerrainFeatureSpawner : MonoBehaviour, ISerializationCallbackReceiv
         if (!spawnOnAwake) return;
         if (HasBakedMesh) SpawnBaked();
         else GenerateNow();
+
+        // The chunk's load callback scanned the scene for NavMesh sources BEFORE this Awake
+        // ran, so the mesh(es) just spawned were not collected. Tell the streamer to
+        // re-collect this chunk so the new terrain geometry is baked into the world NavMesh.
+        // Without this, agents standing on a runtime-generated feature have no NavMesh.
+        if (Application.isPlaying)
+        {
+            var streamer = FindFirstObjectByType<WorldStreamer>();
+            if (streamer != null)
+                streamer.NotifyChunkGeometryChanged(transform.position);
+        }
     }
 
     // --- Generation ----------------------------------------------------------

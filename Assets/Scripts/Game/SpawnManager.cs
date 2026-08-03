@@ -1,6 +1,7 @@
 using System;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Random = UnityEngine.Random;
 
 
@@ -8,8 +9,6 @@ public class SpawnManager : NetworkBehaviour
 {
     public static SpawnManager Instance;
 
-    private SpawnPoint[] spawnPoints;
-    
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject networkPlayerPrefab;
 
@@ -24,37 +23,47 @@ public class SpawnManager : NetworkBehaviour
         Instance = this;
     }
 
-    private void Start()
+    /// <summary>
+    /// Spawn points are re-scanned on every call rather than cached, since SpawnManager lives in
+    /// persistentScene and activates before scenes loaded additively on top of it (e.g. the
+    /// minigame scene) exist. Prefers a SpawnPoint in the current active scene — falls back to
+    /// any loaded SpawnPoint so the main world (which has no additive scene on top) still works.
+    /// </summary>
+    private SpawnPoint[] FindSpawnPoints()
     {
-        spawnPoints = FindObjectsByType<SpawnPoint>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-        if (spawnPoints == null || spawnPoints.Length == 0)
-        {
-            Debug.LogError("No SpawnPoint found in scene!");
-        }
+        var all = FindObjectsByType<SpawnPoint>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        if (all.Length == 0) return all;
+
+        Scene active = SceneManager.GetActiveScene();
+        var inActiveScene = Array.FindAll(all, sp => sp.gameObject.scene == active);
+        return inActiveScene.Length > 0 ? inActiveScene : all;
     }
-    
+
     public bool SpawnPointsAvailable()
     {
-        return spawnPoints != null && spawnPoints.Length > 0;
+        return FindSpawnPoints().Length > 0;
     }
 
     public Vector3 GetSpawnPoint()
     {
-        Debug.Log("GetSpawnPoint");
-        Debug.Log(spawnPoints.Length);
-        Debug.Log(spawnPoints[0].name);;
-        Debug.Log(spawnPoints[0].GetSpawnPoint());
+        var spawnPoints = FindSpawnPoints();
+        if (spawnPoints.Length == 0)
+        {
+            Debug.LogError("No SpawnPoint found in scene!");
+            return Vector3.zero;
+        }
+
         return spawnPoints[0].GetSpawnPoint();
     }
     
     private void SpawnPlayer()
     {
-        if (spawnPoints == null || spawnPoints.Length == 0)
+        if (!SpawnPointsAvailable())
         {
             Debug.LogError("Cannot spawn player: No SpawnPoint found!");
             return;
         }
-        
+
         Vector3 spawnPosition = GetSpawnPoint();
         Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
     }

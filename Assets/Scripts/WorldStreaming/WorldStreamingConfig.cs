@@ -26,6 +26,21 @@ public class WorldStreamingConfig : ScriptableObject
     public ChunkInfo[] chunks;
 
     /// <summary>
+    /// Returns true if <paramref name="worldPos"/> falls within the grid's world-space bounds.
+    /// WorldToChunkCoord clamps out-of-bounds positions to the nearest edge chunk rather than
+    /// signaling invalidity, so callers that need to distinguish "outside the world" (e.g. a
+    /// scene deliberately placed off-grid) from "inside the world" must check this first.
+    /// </summary>
+    public bool IsWithinGrid(Vector3 worldPos)
+    {
+        float relX = worldPos.x - worldOrigin.x;
+        float relZ = worldPos.z - worldOrigin.z;
+
+        return relX >= 0f && relX < chunkSize.x * gridDimensions.x
+            && relZ >= 0f && relZ < chunkSize.y * gridDimensions.y;
+    }
+
+    /// <summary>
     /// Converts a world position to the chunk grid coordinate that contains it.
     /// </summary>
     public Vector2Int WorldToChunkCoord(Vector3 worldPos)

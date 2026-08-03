@@ -136,6 +136,19 @@ public class WorldStreamer : NetworkBehaviour
     private readonly Queue<SceneOperation> operationQueue = new();
     private bool operationInProgress;
 
+    // Set when NetworkManager.SceneManager.LoadScene/UnloadScene rejects our call with
+    // SceneEventInProgress. Netcode's "a scene event is active" flag is global to the whole
+    // NetworkSceneManager, not per-scene, so this can happen even for the very first operation
+    // in our own queue — e.g. another, unrelated scene load (the minigame scene itself, or one
+    // kicked off by other game code) is still finishing on Netcode's side even though it may
+    // already look complete from a plain UnityEngine.SceneManager perspective. Failing the
+    // operation outright would silently drop chunk loads; instead we retry the SAME operation
+    // after a short cooldown rather than moving on to the next queued op (which would just hit
+    // the same busy flag and cascade-fail every other queued operation in the same frame).
+    private SceneOperation? retryOperation;
+    private float retryTime;
+    private const float SceneEventRetryDelay = 0.2f;
+
     private bool isReady;
     private bool initialChunksLoaded;
     private float updateInterval = 0.5f;
@@ -224,6 +237,7 @@ public class WorldStreamer : NetworkBehaviour
         unloadTimers.Clear();
         operationQueue.Clear();
         operationInProgress = false;
+        retryOperation = null;
     }
 
     private void Update()
@@ -231,6 +245,14 @@ public class WorldStreamer : NetworkBehaviour
         // Run if we're the server (online) or in offline mode
         if (!isReady) return;
         if (Network.IsNetworked && !IsServer) return;
+
+        // Retry an operation Netcode previously rejected with SceneEventInProgress. Nothing
+        // else pokes ProcessNextOperation() once the retry cooldown elapses, since the retry
+        // isn't triggered by an Enqueue call or a FinishOperation completion.
+        if (retryOperation.HasValue && !operationInProgress && Time.time >= retryTime)
+        {
+            ProcessNextOperation();
+        }
 
         // Advance any in-flight per-chunk source collection. Budgeted to never exceed
         // navMeshSourceCollectionBudgetMs per frame, so this can't cause a stall.
@@ -358,6 +380,11 @@ public class WorldStreamer : NetworkBehaviour
 
         foreach (var worldPos in worldPositions)
         {
+            // Positions outside the grid (e.g. a minigame scene placed off-grid on purpose)
+            // must not be clamped into a real edge chunk here — WorldToChunkCoord clamps,
+            // so the bounds check has to happen before calling it.
+            if (!config.IsWithinGrid(worldPos)) continue;
+
             var coord = config.WorldToChunkCoord(worldPos);
             foreach (var chunk in GetChunksInRadius(coord, config.loadRadius))
             {
@@ -399,6 +426,10 @@ public class WorldStreamer : NetworkBehaviour
                 if (client.PlayerObject == null) continue;
 
                 var playerPos = client.PlayerObject.transform.position;
+                // Players outside the grid (e.g. in an off-grid minigame scene) don't pull in
+                // any chunks — WorldToChunkCoord clamps, so this must be checked first or every
+                // off-grid player would continuously request the nearest edge chunk.
+                if (!config.IsWithinGrid(playerPos)) continue;
                 var playerChunk = config.WorldToChunkCoord(playerPos);
                 foreach (var coord in GetChunksInRadius(playerChunk, config.loadRadius))
                     requiredChunks.Add(coord);
@@ -408,6 +439,7 @@ public class WorldStreamer : NetworkBehaviour
         foreach (var t in trackedTransforms)
         {
             if (t == null) continue;
+            if (!config.IsWithinGrid(t.position)) continue;
             var playerChunk = config.WorldToChunkCoord(t.position);
             foreach (var coord in GetChunksInRadius(playerChunk, config.loadRadius))
                 requiredChunks.Add(coord);
@@ -420,6 +452,7 @@ public class WorldStreamer : NetworkBehaviour
         foreach (var entity in s_trackedEntities)
         {
             if (!entity.KeepChunksLoaded) continue;
+            if (!config.IsWithinGrid(entity.TrackedTransform.position)) continue;
             var entityChunk = config.WorldToChunkCoord(entity.TrackedTransform.position);
             foreach (var coord in GetChunksInRadius(entityChunk, config.loadRadius))
                 requiredChunks.Add(coord);
@@ -432,6 +465,7 @@ public class WorldStreamer : NetworkBehaviour
         foreach (var entity in s_trackedEntities)
         {
             if (entity.Policy == SceneTracked.UnloadPolicy.Despawn) continue;
+            if (!config.IsWithinGrid(entity.TrackedTransform.position)) continue;
             var coord = config.WorldToChunkCoord(entity.TrackedTransform.position);
             if (config.IsValidCoord(coord))
                 requiredChunks.Add(coord);
@@ -570,10 +604,24 @@ public class WorldStreamer : NetworkBehaviour
     private void ProcessNextOperation()
     {
         if (operationInProgress) return;
-        if (operationQueue.Count == 0) return;
+
+        SceneOperation op;
+        if (retryOperation.HasValue)
+        {
+            if (Time.time < retryTime) return;
+            op = retryOperation.Value;
+            retryOperation = null;
+        }
+        else if (operationQueue.Count > 0)
+        {
+            op = operationQueue.Dequeue();
+        }
+        else
+        {
+            return;
+        }
 
         operationInProgress = true;
-        var op = operationQueue.Dequeue();
 
         if (op.OperationType == SceneOperation.Type.Load)
         {
@@ -607,7 +655,11 @@ public class WorldStreamer : NetworkBehaviour
         if (Network.IsNetworked)
         {
             var status = NetworkManager.Singleton.SceneManager.LoadScene(sceneName, LoadSceneMode.Additive);
-            if (status != SceneEventProgressStatus.Started)
+            if (status == SceneEventProgressStatus.SceneEventInProgress)
+            {
+                RetryOperation(op);
+            }
+            else if (status != SceneEventProgressStatus.Started)
             {
                 Debug.LogError($"[WorldStreamer] Failed to load {sceneName}: {status}");
                 chunkStates[op.Coord] = ChunkState.NotLoaded;
@@ -627,6 +679,19 @@ public class WorldStreamer : NetworkBehaviour
             }
             asyncOp.completed += _ => OnOfflineSceneLoaded(op.Coord, sceneName, op.OnComplete);
         }
+    }
+
+    // Netcode rejected the scene event because ITS OWN internal "event active" flag — which is
+    // global to the whole NetworkSceneManager, not per-scene — is still set from an unrelated
+    // scene event elsewhere in the game. Re-attempt the exact same operation shortly instead of
+    // dropping it; leaves chunkStates/pendingXxx untouched since nothing actually started.
+    private void RetryOperation(SceneOperation op)
+    {
+        retryOperation = op;
+        retryTime = Time.time + SceneEventRetryDelay;
+        pendingCallback = null;
+        pendingSceneName = null;
+        operationInProgress = false;
     }
 
     private void OnOfflineSceneLoaded(Vector2Int coord, string sceneName, Action onComplete)
@@ -661,7 +726,11 @@ public class WorldStreamer : NetworkBehaviour
         if (Network.IsNetworked)
         {
             var status = NetworkManager.Singleton.SceneManager.UnloadScene(scene);
-            if (status != SceneEventProgressStatus.Started)
+            if (status == SceneEventProgressStatus.SceneEventInProgress)
+            {
+                RetryOperation(op);
+            }
+            else if (status != SceneEventProgressStatus.Started)
             {
                 Debug.LogError($"[WorldStreamer] Failed to unload chunk {op.Coord}: {status}");
                 chunkStates[op.Coord] = ChunkState.Loaded;
@@ -700,6 +769,13 @@ public class WorldStreamer : NetworkBehaviour
     private Action pendingCallback;
     private Vector2Int pendingCoord;
     private string pendingSceneName;
+
+    public string DebugDumpState()
+    {
+        return $"operationInProgress={operationInProgress} queueCount={operationQueue.Count} " +
+               $"pendingCoord={pendingCoord} pendingSceneName={pendingSceneName} " +
+               $"chunkStates=[{string.Join(", ", chunkStates.Select(kv => $"{kv.Key}:{kv.Value}"))}]";
+    }
 
     private void HandleSceneEvent(SceneEvent sceneEvent)
     {

@@ -67,6 +67,11 @@ public class PlayerController : MonoBehaviour
         damageFeedback.enabled = true;
 
         playerHealth.OnDeath += OnDeath;
+        playerHealth.OnRevive += OnRevive;
+
+        var rangedCombat = GetComponent<PlayerRangedCombat>();
+        if (rangedCombat != null)
+            Input.OnUsePressed += rangedCombat.TryFire;
     }
 
     public void DisablePlayer()
@@ -79,6 +84,11 @@ public class PlayerController : MonoBehaviour
         damageFeedback.enabled = false;
 
         playerHealth.OnDeath -= OnDeath;
+        playerHealth.OnRevive -= OnRevive;
+
+        var rangedCombat = GetComponent<PlayerRangedCombat>();
+        if (rangedCombat != null)
+            Input.OnUsePressed -= rangedCombat.TryFire;
     }
 
     public Camera PlayerCamera => playerCamera != null ? playerCamera.GetComponent<Camera>() : null;
@@ -133,5 +143,54 @@ public class PlayerController : MonoBehaviour
         playerLook.enabled = false;
 
         // TODO: ragdoll
+    }
+
+    // Paired with OnDeath: without this a respawned player keeps the frozen
+    // movement/look from the death that preceded it. HealthComponent raises
+    // OnRevive when health is restored from zero, which is what MatchManager's
+    // respawn does, so this is the natural place to hand control back.
+    private void OnRevive()
+    {
+        ExitSpectatorMode();
+
+        if (!inCutsceneMode)
+        {
+            playerMovement.enabled = true;
+            playerLook.enabled = true;
+        }
+    }
+
+    private SpectatorCamera spectator;
+
+    // Called (via MatchManager, on the owning client) only when this player is
+    // out of the match for good — not on a death they'll respawn from, which
+    // would swap the player camera out and never hand it back.
+    public void EnterSpectatorMode()
+    {
+        if (spectator != null) return;
+
+        var spectatorGo = new GameObject("SpectatorCamera");
+        if (PlayerCameraTransform != null)
+        {
+            spectatorGo.transform.SetPositionAndRotation(
+                PlayerCameraTransform.position, PlayerCameraTransform.rotation);
+        }
+
+        spectatorGo.AddComponent<Camera>();
+        spectator = spectatorGo.AddComponent<SpectatorCamera>();
+
+        if (playerCamera != null)
+            playerCamera.SetActive(false);
+    }
+
+    public void ExitSpectatorMode()
+    {
+        if (spectator == null) return;
+
+        Destroy(spectator.gameObject);
+        spectator = null;
+
+        if (playerCamera != null)
+            playerCamera.SetActive(true);
     }
 }

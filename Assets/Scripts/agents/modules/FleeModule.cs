@@ -21,10 +21,11 @@ public class FleeModule : BehaviourModuleBase
 
     private bool fleeing;
     private EntityFaction selfFaction;
+    private float retargetTimer;
 
     private void Awake() => selfFaction = GetComponent<EntityFaction>();
     private void Reset() => SetPriorityDefault(ModulePriority.Override);
-    private void OnEnable() => fleeing = false;
+    private void OnEnable() { fleeing = false; retargetTimer = 0f; }
 
     public override string ModuleDescription =>
         "Runs away from the nearest entity with the configured faction relationship when it enters triggerRadius. Stops fleeing once beyond safeRadius.\n\n" +
@@ -35,9 +36,15 @@ public class FleeModule : BehaviourModuleBase
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {
-        TryResolveThreat();
+        // Re-resolved on an interval and dropped when it dies. Holding the first threat forever
+        // is how a creature ended up fleeing from a corpse for the rest of the session.
+        threat = TargetResolution.Refresh(threat, ref retargetTimer, 0.5f, deltaTime,
+                                          selfFaction, fleeFromRelationship, context.Position);
         if (!threat)
+        {
+            fleeing = false;
             return null;
+        }
 
         float distance = Vector3.Distance(context.Position, threat.position);
 
@@ -74,13 +81,6 @@ public class FleeModule : BehaviourModuleBase
 
         destination = self;
         return false;
-    }
-
-    private void TryResolveThreat()
-    {
-        if (threat)
-            return;
-        threat = EntityTargetRegistry.ResolveNearest(selfFaction, fleeFromRelationship, transform.position);
     }
 
     protected override void OnValidate()

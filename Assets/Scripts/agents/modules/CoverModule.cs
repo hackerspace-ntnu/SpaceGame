@@ -11,6 +11,7 @@ public class CoverModule : BehaviourModuleBase
     [SerializeField] private FactionRelationship threatRelationship = FactionRelationship.Hostile;
 
     private EntityFaction selfFaction;
+    private float retargetTimer;
 
     private void Awake() => selfFaction = GetComponent<EntityFaction>();
 
@@ -37,9 +38,20 @@ public class CoverModule : BehaviourModuleBase
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {
-        TryResolveThreat();
+        // Prefer the agent's committed target: taking cover from someone other than whoever is
+        // shooting at you is worse than taking no cover at all.
+        AgentTargeting targeting = context.Targeting;
+        if (targeting != null && targeting.HasTarget)
+            threat = targeting.Target;
+        else
+            threat = TargetResolution.Refresh(threat, ref retargetTimer, 0.5f, deltaTime,
+                                              selfFaction, threatRelationship, context.Position);
+
         if (!threat)
+        {
+            VacateCover();
             return null;
+        }
 
         float distToThreat = Vector3.Distance(context.Position, threat.position);
         if (distToThreat > threatRange)
@@ -86,13 +98,6 @@ public class CoverModule : BehaviourModuleBase
         occupiedCover?.Vacate();
         occupiedCover = null;
         arrivedAtCover = false;
-    }
-
-    private void TryResolveThreat()
-    {
-        if (threat)
-            return;
-        threat = EntityTargetRegistry.ResolveNearest(selfFaction, threatRelationship, transform.position);
     }
 
     protected override void OnValidate()

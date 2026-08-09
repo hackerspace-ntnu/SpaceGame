@@ -35,6 +35,26 @@ public class HerdModule : BehaviourModuleBase
 
     public float CombatSpreadRadius => combatSpreadRadius;
 
+    // Re-keys this member into a different herd at runtime. Needed because herd membership is
+    // baked into the prefab: every DeathmatchBot ships with the same herdId, so a Free-For-All
+    // spawned sixteen mutually hostile bots into one herd that shared movement broadcasts with
+    // each other. MatchManager assigns a per-team id at spawn instead.
+    public void SetHerdId(string newHerdId)
+    {
+        if (string.IsNullOrWhiteSpace(newHerdId) || newHerdId == herdId)
+            return;
+
+        bool wasRegistered = isActiveAndEnabled;
+        if (wasRegistered)
+            Unregister(this);
+
+        herdId = newHerdId;
+        slotAssigned = false;
+
+        if (wasRegistered)
+            Register(this);
+    }
+
     public override bool ClaimsMovement => true;
 
     // ── Shared state per herd ─────────────────────────────────────────────────

@@ -10,6 +10,11 @@ public struct AgentContext
     public bool HasReachedDestination;
     public bool IsImmobile;
 
+    // The agent's shared target decision, or null on agents without an AgentTargeting
+    // component. Combat modules should read this instead of querying EntityTargetRegistry
+    // themselves — that is what keeps chase, melee and ranged committed to the same entity.
+    public AgentTargeting Targeting;
+
     // Filled by AgentController when nearbyAgentScanRadius > 0.
     // Positions and velocities are parallel arrays indexed [0..NearbyAgentCount).
     public Vector3[] NearbyAgentPositions;

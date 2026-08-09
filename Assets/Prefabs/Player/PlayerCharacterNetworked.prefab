@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2917816564998073486
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4101505935913178216}
+  m_Layer: 0
+  m_Name: Muzzle
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4101505935913178216
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2917816564998073486}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1885774286167179584}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &3943056354594775231
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -76,7 +107,10 @@ PrefabInstance:
     - {fileID: 2750247493964292827, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
     - {fileID: 5205092769686626828, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 3211930088316101119, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4101505935913178216}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: 1
@@ -105,6 +139,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6009078263795696338}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 151938354145788327}
   m_SourcePrefab: {fileID: 100100000, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
 --- !u!1 &582217690245548981 stripped
 GameObject:
@@ -215,7 +252,49 @@ MonoBehaviour:
   NetworkAnimatorExpanded: 0
   AuthorityMode: 0
   m_Animator: {fileID: 8862626371871872524}
-  TransitionStateInfoList: []
+  TransitionStateInfoList:
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: 33332140
+    DestinationState: -1907200461
+    TransitionDuration: 0.25
+    TriggerNameHash: -1992750699
+    TransitionIndex: 0
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: -535349013
+    DestinationState: -1907200461
+    TransitionDuration: 0.1
+    TriggerNameHash: -1992750699
+    TransitionIndex: 0
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: -535349013
+    DestinationState: -1718659478
+    TransitionDuration: 0.15
+    TriggerNameHash: -801778589
+    TransitionIndex: 4
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: -1288562623
+    DestinationState: -1718659478
+    TransitionDuration: 0.25
+    TriggerNameHash: -801778589
+    TransitionIndex: 3
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: 1505629670
+    DestinationState: -1907200461
+    TransitionDuration: 0.1
+    TriggerNameHash: -1992750699
+    TransitionIndex: 0
+  - IsCrossFadeExit: 0
+    Layer: 0
+    OriginatingState: 1486804723
+    DestinationState: 738289533
+    TransitionDuration: 0.05
+    TriggerNameHash: -1478861625
+    TransitionIndex: 1
   AnimatorParameterEntries:
     ParameterEntries:
     - name: IdleIndex
@@ -244,6 +323,34 @@ MonoBehaviour:
       ParameterType: 4
     - name: IsImmobalized
       NameHash: -2061662632
+      Synchronize: 1
+      ParameterType: 4
+    - name: IsThrow
+      NameHash: -1992750699
+      Synchronize: 1
+      ParameterType: 9
+    - name: AssualtShoot
+      NameHash: -1478861625
+      Synchronize: 1
+      ParameterType: 9
+    - name: Death
+      NameHash: 646380074
+      Synchronize: 1
+      ParameterType: 9
+    - name: Hurt
+      NameHash: 1740614436
+      Synchronize: 1
+      ParameterType: 9
+    - name: Meele
+      NameHash: -801778589
+      Synchronize: 1
+      ParameterType: 9
+    - name: IsAiming
+      NameHash: 2025090383
+      Synchronize: 1
+      ParameterType: 4
+    - name: Hold
+      NameHash: -1074224583
       Synchronize: 1
       ParameterType: 4
   AnimatorParametersExpanded: 0
@@ -301,6 +408,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentController
   handSocket: {fileID: 7613136204026731662}
+  handBone: 18
+  handBoneNameHints:
+  - RightHand
+  - Hand_R
+  - R_Hand
+  - hand.R
 --- !u!114 &6009078263795696338
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -314,11 +427,44 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkEquipmentComponent
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &151938354145788327
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 495b4576d16e744c6bce371e4e2cdb80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerRangedCombat
+  ShowTopMostFoldoutHeaderGroup: 1
+  weapon: {fileID: 11400000, guid: e353b7688558a49c7bd8586cda5e8398, type: 2}
+  aimProvider: {fileID: 5469936711292871202}
+  muzzle: {fileID: 4101505935913178216}
+  fireCooldown: 0.3
+--- !u!4 &1885774286167179584 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3211930088316101119, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+  m_PrefabInstance: {fileID: 3943056354594775231}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &5273050518976504355 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 9193306300937618076, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
   m_PrefabInstance: {fileID: 3943056354594775231}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &5469936711292871202 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9030159979122590365, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+  m_PrefabInstance: {fileID: 3943056354594775231}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 494650d4a46d4114fa8261576f24a550, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AimProvider
 --- !u!4 &7613136204026731662 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6854416886719462449, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}

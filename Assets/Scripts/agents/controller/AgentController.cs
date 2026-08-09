@@ -25,8 +25,10 @@ public class AgentController : MonoBehaviour
     public IMovementMotor Motor { get; private set; }
     private IBehaviourModule[] movementModules;   // ClaimsMovement == true, sorted by priority
     private IBehaviourModule[] sideEffectModules; // ClaimsMovement == false, ticked every frame
+    private IFacingModule[] facingModules;        // separate facing channel, priority-sorted
     private IAgentBrain legacyBrain;
     private HerdModule herdModule;
+    private AgentTargeting targeting;
     private float speedVariationPhase;
 
     // Reused buffers for neighbour scan — instance-level to avoid cross-agent corruption.
@@ -49,6 +51,7 @@ public class AgentController : MonoBehaviour
         float deltaTime = Time.deltaTime;
         AgentContext context = BuildContext();
         MoveIntent intent = EvaluateModules(in context, deltaTime);
+        ApplyFacingOverride(in context, ref intent);
 
         if (speedVariationAmount > 0f && intent.Type == AgentIntentType.MoveToPosition)
         {
@@ -75,6 +78,7 @@ public class AgentController : MonoBehaviour
             Velocity = Motor.Velocity,
             HasReachedDestination = Motor.HasReachedDestination,
             IsImmobile = Motor.IsImmobile,
+            Targeting = targeting,
         };
 
         if (nearbyAgentScanRadius > 0f)
@@ -142,31 +146,83 @@ public class AgentController : MonoBehaviour
         return MoveIntent.Idle();
     }
 
+    // Second arbitration pass, over the facing channel only. Runs after a locomotion winner is
+    // picked and does not disturb it: the highest-priority facing module that wants the body
+    // pointed somewhere gets it, whether or not it also won the movement frame.
+    private void ApplyFacingOverride(in AgentContext context, ref MoveIntent intent)
+    {
+        if (facingModules == null)
+            return;
+
+        foreach (IFacingModule module in facingModules)
+        {
+            if (!module.IsActive)
+                continue;
+
+            if (module.TryGetFacing(in context, out Vector3 facePosition))
+            {
+                intent.FacePosition = facePosition;
+                intent.OverrideFacing = true;
+                return;
+            }
+        }
+    }
+
     // ──────────────────────────────────────────────
     // Setup
     // ──────────────────────────────────────────────
 
     private void ResolveModules()
     {
-        List<IBehaviourModule> movement = new List<IBehaviourModule>();
+        List<(IBehaviourModule Module, int Discovery)> movement = new List<(IBehaviourModule, int)>();
         List<IBehaviourModule> sideEffects = new List<IBehaviourModule>();
+        List<(IFacingModule Module, int Discovery)> facing = new List<(IFacingModule, int)>();
 
+        int discovered = 0;
         foreach (MonoBehaviour mb in GetComponentsInChildren<MonoBehaviour>(true))
         {
             if (mb is IBehaviourModule module)
             {
                 if (module.ClaimsMovement)
-                    movement.Add(module);
+                    movement.Add((module, discovered++));
                 else
                     sideEffects.Add(module);
             }
+
+            if (mb is IFacingModule facingModule)
+                facing.Add((facingModule, discovered++));
         }
 
-        // Stable sort movement modules: highest priority first.
-        movement.Sort((a, b) => b.Priority.CompareTo(a.Priority));
-        movementModules   = movement.ToArray();
+        // Highest priority first, ties broken by component order on the GameObject.
+        // List<T>.Sort is introsort and therefore unstable: without the discovery-index
+        // tiebreak, two modules sharing a priority (ChaseModule and AlertReceiverModule
+        // both sit at Reactive on several prefabs) arbitrate in an arbitrary order that
+        // can differ between agents, runs and builds.
+        movement.Sort((a, b) =>
+        {
+            int byPriority = b.Module.Priority.CompareTo(a.Module.Priority);
+            return byPriority != 0 ? byPriority : a.Discovery.CompareTo(b.Discovery);
+        });
+
+        movementModules = new IBehaviourModule[movement.Count];
+        for (int i = 0; i < movement.Count; i++)
+            movementModules[i] = movement[i].Module;
+
+        facing.Sort((a, b) =>
+        {
+            int byPriority = b.Module.FacingPriority.CompareTo(a.Module.FacingPriority);
+            return byPriority != 0 ? byPriority : a.Discovery.CompareTo(b.Discovery);
+        });
+
+        facingModules = new IFacingModule[facing.Count];
+        for (int i = 0; i < facing.Count; i++)
+            facingModules[i] = facing[i].Module;
+
         sideEffectModules = sideEffects.ToArray();
         herdModule = GetComponentInChildren<HerdModule>(true);
+        // Auto-added rather than required, so prefabs that predate the component still get one
+        // shared target decision instead of every combat module resolving its own.
+        targeting = AgentTargeting.GetOrAdd(gameObject);
 
         // Legacy fallback: pick up any old IAgentBrain that isn't also IBehaviourModule.
         foreach (MonoBehaviour mb in GetComponentsInChildren<MonoBehaviour>(true))

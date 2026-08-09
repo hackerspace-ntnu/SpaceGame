@@ -38,6 +38,11 @@ public class PatrolModule : BehaviourModuleBase
     [Tooltip("How close to the destination counts as arrived.")]
     [SerializeField] private float stopDistance = 0.5f;
 
+    [Tooltip("While pausing between patrol points, claim the frame and stand still (a guard holding " +
+             "a post). Uncheck to yield the pause to lower-priority modules instead — required when " +
+             "something below this module should run during the wait, e.g. HuntModule on arena bots.")]
+    [SerializeField] private bool holdPositionWhileWaiting = true;
+
     private Vector3 spawnAnchor;
     private bool hasSpawnAnchor;
     private Vector3? destination;
@@ -75,7 +80,7 @@ public class PatrolModule : BehaviourModuleBase
         if (waitTimer > 0f)
         {
             waitTimer -= deltaTime;
-            return MoveIntent.Idle();
+            return holdPositionWhileWaiting ? MoveIntent.Idle() : (MoveIntent?)null;
         }
 
         if (!destination.HasValue)
@@ -93,7 +98,7 @@ public class PatrolModule : BehaviourModuleBase
         {
             destination = null;
             waitTimer = Random.Range(minWaitTime, maxWaitTime);
-            return MoveIntent.Idle();
+            return holdPositionWhileWaiting ? MoveIntent.Idle() : (MoveIntent?)null;
         }
 
         return MoveIntent.MoveTo(destination.Value, stopDistance);

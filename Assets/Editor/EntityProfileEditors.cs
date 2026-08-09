@@ -212,6 +212,7 @@ public class EntityProfile_GenericEnemyEditor : Editor
             var wander       = go.GetComponent<WanderModule>();
             var flock        = go.GetComponent<FlockingModule>();
             var chase        = EntityProfileEditorUtils.GetOrAdd<ChaseModule>(go);
+            var targeting    = EntityProfileEditorUtils.GetOrAdd<AgentTargeting>(go);
             var perception   = EntityProfileEditorUtils.GetOrAdd<PerceptionModule>(go);
             var search       = EntityProfileEditorUtils.GetOrAdd<SearchModule>(go);
             var alertTx      = EntityProfileEditorUtils.GetOrAdd<AlertBroadcaster>(go);
@@ -241,13 +242,11 @@ public class EntityProfile_GenericEnemyEditor : Editor
 
             EntityProfileEditorUtils.SetString(herd, "herdId", p.herdId);
 
-            EntityProfileEditorUtils.SetObject(chase,        "target", null);
-            EntityProfileEditorUtils.SetObject(ranged,       "target", null);
-            EntityProfileEditorUtils.SetObject(melee,        "target", null);
-            EntityProfileEditorUtils.SetObject(keepDistance, "target", null);
+            // Detection ranges belong to AgentTargeting now — it makes the one target decision
+            // that chase, melee, ranged and kiting all act on.
+            EntityProfileEditorUtils.SetFloat(targeting, "acquisitionRange", p.detectRange);
+            EntityProfileEditorUtils.SetFloat(targeting, "loseRange",        p.loseTargetRange);
 
-            EntityProfileEditorUtils.SetFloat(chase, "detectRange",          p.detectRange);
-            EntityProfileEditorUtils.SetFloat(chase, "loseTargetRange",      p.loseTargetRange);
             EntityProfileEditorUtils.SetFloat(chase, "chaseStopDistance",    p.chaseStopRange);
             EntityProfileEditorUtils.SetFloat(chase, "chaseSpeedMultiplier", p.chaseSpeed);
 

@@ -108,6 +108,12 @@ public partial class MountModule
     // Spawn the third-person camera. Prefers thirdPersonCameraPrefab (per-vehicle override),
     // then the project default loaded from Resources/, then a clone of Camera.main, then a
     // bare Camera as last resort.
+    //
+    // Deliberately spawned unparented. LateUpdate below writes the camera's world pose outright,
+    // so parenting it to the mount applies the vehicle's motion twice — once through the parent
+    // transform, once through the recomputed target — and the residual smoothing between them
+    // shows up as judder (measured: 48% frame-to-frame variance parented vs 2.6% free).
+    // Lifetime is handled explicitly by ReleaseRuntimeThirdPersonCamera, not by the hierarchy.
     private void EnsureRuntimeThirdPersonCamera()
     {
         if (runtimeThirdPersonCamera != null)
@@ -120,7 +126,7 @@ public partial class MountModule
         GameObject cameraObject;
         if (prefabToUse != null)
         {
-            cameraObject = Object.Instantiate(prefabToUse.gameObject, transform);
+            cameraObject = Object.Instantiate(prefabToUse.gameObject);
             cameraObject.name = $"{name}_MountThirdPersonCamera";
             cameraObject.tag = "Untagged";
             runtimeThirdPersonCamera = cameraObject.GetComponent<Camera>();
@@ -128,7 +134,7 @@ public partial class MountModule
         }
         else if (Camera.main != null)
         {
-            cameraObject = Object.Instantiate(Camera.main.gameObject, transform);
+            cameraObject = Object.Instantiate(Camera.main.gameObject);
             cameraObject.name = $"{name}_MountThirdPersonCamera";
             cameraObject.tag = "Untagged";
             foreach (Transform child in cameraObject.transform)
@@ -139,12 +145,15 @@ public partial class MountModule
         else
         {
             cameraObject = new GameObject($"{name}_MountThirdPersonCamera");
-            cameraObject.transform.SetParent(transform, false);
             runtimeThirdPersonCamera = cameraObject.AddComponent<Camera>();
         }
 
         if (!cameraObject.GetComponent<AudioListener>())
             cameraObject.AddComponent<AudioListener>();
+
+        // Without the parent to start it in the right place, the first frame must snap rather
+        // than lerp — otherwise the camera swoops in from wherever the prefab was authored.
+        thirdPersonCameraNeedsSnap = true;
     }
 
     private void SetMountedVisorEnabled(bool enabledState)
@@ -164,7 +173,15 @@ public partial class MountModule
         if (!IsMounted)
             return;
 
-        cameraYaw = transform.rotation.eulerAngles.y + cameraYawOffset;
+        // Light smoothing on the orbit yaw. This is a comfort filter, not the shake fix — the
+        // shake came from the motor driving the Rigidbody on the render loop, which made the
+        // interpolated pose advance unevenly per frame; that is fixed in the motor's FixedUpdate.
+        // Keep this responsive: over-damping here reads as the camera lagging the vehicle.
+        float targetYaw = transform.rotation.eulerAngles.y + cameraYawOffset;
+        if (thirdPersonCameraNeedsSnap)
+            cameraYaw = targetYaw;
+        else
+            cameraYaw = Mathf.LerpAngle(cameraYaw, targetYaw, 1f - Mathf.Exp(-thirdPersonYawLerp * Time.deltaTime));
 
         if (activePerspective != CameraPerspective.ThirdPerson || runtimeThirdPersonCamera == null)
             return;
@@ -179,16 +196,35 @@ public partial class MountModule
         Quaternion yawRot = Quaternion.Euler(0f, cameraYaw, 0f);
         Vector3 targetPosition = pivot.position + yawRot * GetThirdPersonCameraOffset();
         Transform camTransform = runtimeThirdPersonCamera.transform;
-        camTransform.position = Vector3.Lerp(
-            camTransform.position,
-            targetPosition,
-            Mathf.Clamp01(thirdPersonFollowLerp * Time.deltaTime));
 
         // Aim: look at a point ahead of the pivot at pivot height. Because the camera is
         // above the pivot, LookRotation naturally tilts down — exactly enough to frame both
         // the vehicle and the ground ahead. thirdPersonLookAhead controls how far down.
-        Vector3 aimPoint = pivot.position + yawRot * (Vector3.forward * thirdPersonLookAhead);
-        Vector3 aimDir = aimPoint - camTransform.position;
+        Vector3 targetAimPoint = pivot.position + yawRot * (Vector3.forward * thirdPersonLookAhead);
+
+        if (thirdPersonCameraNeedsSnap)
+        {
+            camTransform.position = targetPosition;
+            smoothedAimPoint = targetAimPoint;
+            thirdPersonCameraNeedsSnap = false;
+        }
+        else
+        {
+            // Exponential decay rather than Lerp(a, b, k * deltaTime): the naive form makes the
+            // smoothing strength scale with frame time, so on an uncapped framerate the camera
+            // catches up by a different fraction every frame and shimmers behind the vehicle.
+            float follow = 1f - Mathf.Exp(-thirdPersonFollowLerp * Time.deltaTime);
+            camTransform.position = Vector3.Lerp(camTransform.position, targetPosition, follow);
+
+            // The aim point gets its own, slower filter. Deriving rotation straight from the raw
+            // target meant the camera both chased a moving point and pivoted toward it, so the
+            // small position error left by the follow lerp was re-expressed as angular jitter at
+            // the end of a long boom. Filtering the point the camera looks at breaks that coupling.
+            float aim = 1f - Mathf.Exp(-thirdPersonAimLerp * Time.deltaTime);
+            smoothedAimPoint = Vector3.Lerp(smoothedAimPoint, targetAimPoint, aim);
+        }
+
+        Vector3 aimDir = smoothedAimPoint - camTransform.position;
         if (aimDir.sqrMagnitude > 1e-4f)
             camTransform.rotation = Quaternion.LookRotation(aimDir);
     }

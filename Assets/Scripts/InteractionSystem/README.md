@@ -27,6 +27,21 @@ Should be placed on the player (or any actor that can interact).
 2. Add a collider to any object you want to interact with.
 3. Add an interaction component (`DoorInteraction`, `DialogInteraction`, etc.) to that object.
 
+### `RepairWorkstation` (item-gated interaction)
+
+`Assets/Prefabs/Environment/RepairWorkstation.prefab` — a motor that is repaired by feeding it ship scrap.
+
+Interacting checks the player's **selected hotbar slot**: if it holds `requiredItem` (`Assets/Resources/Items/Scraps.asset`) the item is consumed and progress advances by one; anything else fires `onScrapRejected`. Progress lives in a server-owned `NetworkVariable`, so the gauge matches on every client, and the whole thing still works with no session running.
+
+Feedback, all driven off the same progress value:
+
+- The world-space `Gauge` canvas (`RepairProgressUI`) — fill bar plus an `x / y` readout, red → amber → green, `NEEDS SCRAP` → `ONLINE`.
+- The `StatusLight` sphere, tinted through a `MaterialPropertyBlock`.
+- A piston "clunk" on each accepted scrap, and the flywheels spin once repaired.
+- `onScrapAccepted(float progress01)` / `onScrapRejected` / `onRepaired` UnityEvents for sound and gameplay hooks.
+
+`CanInteract()` returns false once repaired, so the crosshair stops lighting up on a finished machine.
+
 ## Layer 2 — `ITriggerable` + triggers
 
 For "do a thing to whichever entity caused this" actions (open a door + load a scene, play a cutscene + fire a UnityEvent, teleport somewhere), use the trigger seam.

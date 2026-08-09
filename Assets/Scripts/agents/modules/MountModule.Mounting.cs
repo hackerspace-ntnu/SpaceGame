@@ -151,11 +151,11 @@ public partial class MountModule
         Vector3 dismountPosition = dismountPoint
             ? dismountPoint.position
             : transform.position + transform.right * fallbackDismountDistance;
-        rider.position = dismountPosition;
 
         // Strip any tilt the rider inherited from a tilted mount — keep only yaw so the
         // player stands upright after dismount.
-        rider.rotation = Quaternion.Euler(0f, rider.eulerAngles.y, 0f);
+        Quaternion dismountRotation = Quaternion.Euler(0f, rider.eulerAngles.y, 0f);
+        ApplyDismountPose(rider, dismountPosition, dismountRotation);
 
         ExitMountedRigidbodyState();
         RestoreRiderComponentsAfterDismount();
@@ -172,6 +172,28 @@ public partial class MountModule
         ClearMountedReferences();
         activeSeatPoint = seatPoint;
         lastMountChangeTime = Time.time;
+    }
+
+    // Writing the transform alone isn't enough to place the rider. Physics.autoSyncTransforms is
+    // off project-wide, so a direct transform write doesn't reach the Rigidbody until the next
+    // physics step — until then the body still holds the pose it last synced, which is the mount's,
+    // tilt and all. PlayerLook rebuilds the player's rotation every frame from
+    // playerRigidbody.rotation, and Dismount re-enables it moments later, so the first Update after
+    // dismount would read that stale pose and put the mount's orientation straight back on the
+    // player. Write the Rigidbody too so both sides agree before anything reads either.
+    //
+    // Called while the rider is still kinematic with interpolation off (the mounted state), so the
+    // pose lands immediately and there's no interpolation history to smear from once
+    // ExitMountedRigidbodyState hands the body back to physics.
+    private void ApplyDismountPose(Transform rider, Vector3 position, Quaternion rotation)
+    {
+        rider.SetPositionAndRotation(position, rotation);
+
+        if (!mountedPlayerRigidbody)
+            return;
+
+        mountedPlayerRigidbody.position = position;
+        mountedPlayerRigidbody.rotation = rotation;
     }
 
     // ─────────── Rider state cache/restore ───────────

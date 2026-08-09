@@ -38,6 +38,32 @@ public class FlyingRigidbodyMotor : MonoBehaviour, IMovementMotor, IRiderControl
     private float stopDistance = 0.5f;
     private int riderDriveFrame = -1;
 
+    // Yaw is tracked here rather than read back off the transform: MoveRotation defers the
+    // rotation to the next physics step, so transform.eulerAngles stays stale for the rest of
+    // the frame and accumulating off it would drop steering increments between steps.
+    private float riderYaw;
+    private bool riderYawValid;
+
+    // Rider speed is tracked here rather than read back off the Rigidbody, and as scalars rather
+    // than a velocity vector. Two separate reasons:
+    //
+    //  • Reading back from the body feeds its linear damping into the next ramp step as if the
+    //    vehicle had genuinely slowed, so acceleration only has to out-run drag rather than reach
+    //    maxSpeed. The vehicle then settles far below it (ShipRV: 8 m/s against a configured 26).
+    //  • Ramping a velocity *vector* toward a rotating target coples turning to speed: holding
+    //    45 m/s through a 100 deg/s turn needs ~78 m/s² of lateral acceleration, so anything less
+    //    bleeds the magnitude away instead (measured 45 -> 17 m/s mid-turn). Steering should
+    //    re-point the thrust, not scrub it.
+    //
+    // Same approach as RigidbodyMotor.riderForwardSpeed.
+    private float riderForwardSpeed;
+    private float riderVerticalSpeed;
+    private bool riderVelocityValid;
+
+    // Latest rider input, latched in Update and consumed in FixedUpdate. See ApplyRiderInput.
+    private RiderInput pendingRiderInput;
+    private bool hasPendingRiderInput;
+
     public Vector3 Velocity => body ? body.linearVelocity : Vector3.zero;
 
     public bool IsImmobile
@@ -79,6 +105,13 @@ public class FlyingRigidbodyMotor : MonoBehaviour, IMovementMotor, IRiderControl
         if (riderDriveFrame == Time.frameCount)
             return;
 
+        // Rider released — re-seed yaw and velocity from the body next time someone takes the
+        // controls, so AI movement in between isn't snapped away on re-mount. The latched input
+        // goes too, otherwise FixedUpdate would keep flying the last throttle indefinitely.
+        riderYawValid = false;
+        riderVelocityValid = false;
+        hasPendingRiderInput = false;
+
         switch (intent.Type)
         {
             case AgentIntentType.MoveToPosition:
@@ -97,30 +130,76 @@ public class FlyingRigidbodyMotor : MonoBehaviour, IMovementMotor, IRiderControl
         }
     }
 
+    // Rider input is latched on the render loop and consumed on the physics loop below.
+    //
+    // Writing the body directly from here — which is what this did — drives a Rigidbody with the
+    // wrong clock. MoveRotation and linearVelocity are only meaningful per physics step, but
+    // Update runs at render rate: above 50 Hz several calls land between steps and all but the
+    // last are discarded, below it steps get none, and either way the increment is scaled by
+    // Time.deltaTime while being integrated over Time.fixedDeltaTime. The body still travels the
+    // right *average* distance, so it looks correct to a static observer, but the per-step
+    // advance is uneven — and a follow camera that subtracts that pose every frame turns the
+    // unevenness straight into shake.
     public void ApplyRiderInput(in RiderInput input, float deltaTime)
     {
         riderDriveFrame = Time.frameCount;
+        pendingRiderInput = input;
+        hasPendingRiderInput = true;
+    }
+
+    private void FixedUpdate()
+    {
+        if (!hasPendingRiderInput)
+            return;
+
+        // Input is latched, not cleared: Update may run several times between physics steps (or
+        // not at all), and the rider's intent is a held state rather than an event. Clearing it
+        // here would drop steering on any frame the two loops did not line up.
+        DriveFromRider(pendingRiderInput, Time.fixedDeltaTime);
+    }
+
+    // Called once per physics step with the physics clock — the only place the body is written.
+    private void DriveFromRider(in RiderInput input, float deltaTime)
+    {
         if (!body)
             return;
 
-        // Yaw from Move.x.
-        float yaw = input.Move.x * riderTurnSpeed * deltaTime;
-        if (Mathf.Abs(yaw) > 1e-4f)
-            transform.Rotate(0f, yaw, 0f, Space.World);
+        // Yaw from Move.x, written through MoveRotation rather than the transform: rotating the
+        // transform of a non-kinematic Rigidbody teleports it and discards the pose interpolation
+        // blends from, so the body renders at the raw physics rate. At 50 Hz physics and 90 fps
+        // that froze roughly half of all rendered frames whenever the pilot was steering — the
+        // "choppy vehicle" bug.
+        if (!riderYawValid)
+        {
+            riderYaw = body.rotation.eulerAngles.y;
+            riderYawValid = true;
+        }
 
-        // Throttle along own forward (ignore pitch — blimp stays level).
-        Vector3 forward = transform.forward;
-        forward.y = 0f;
-        if (forward.sqrMagnitude > 1e-4f)
-            forward.Normalize();
+        riderYaw += input.Move.x * riderTurnSpeed * deltaTime;
+        Quaternion facing = Quaternion.Euler(0f, riderYaw, 0f);
+        body.MoveRotation(facing);
+
+        // Throttle along the yaw we just asked for — transform.forward is still a physics step
+        // behind until MoveRotation lands. Level by construction, so no pitch to strip.
+        Vector3 forward = facing * Vector3.forward;
+
+        if (!riderVelocityValid)
+        {
+            Vector3 v = body.linearVelocity;
+            riderForwardSpeed = Vector3.Dot(v, forward);
+            riderVerticalSpeed = v.y;
+            riderVelocityValid = true;
+        }
 
         float throttle = input.Move.y;
-        Vector3 desired = forward * (throttle * maxSpeed);
-        desired.y = input.Vertical * maxVerticalSpeed;
-
         bool hasInput = Mathf.Abs(throttle) > 0.01f || Mathf.Abs(input.Vertical) > 0.01f;
         float ramp = (hasInput ? acceleration : deceleration) * deltaTime;
-        body.linearVelocity = Vector3.MoveTowards(body.linearVelocity, desired, ramp);
+
+        riderForwardSpeed = Mathf.MoveTowards(riderForwardSpeed, throttle * maxSpeed, ramp);
+        riderVerticalSpeed = Mathf.MoveTowards(riderVerticalSpeed, input.Vertical * maxVerticalSpeed, ramp);
+
+        // Thrust always points along the current facing, so steering redirects it immediately.
+        body.linearVelocity = forward * riderForwardSpeed + Vector3.up * riderVerticalSpeed;
 
         currentDestination = null;
     }
@@ -128,6 +207,12 @@ public class FlyingRigidbodyMotor : MonoBehaviour, IMovementMotor, IRiderControl
     public void ForceStop()
     {
         currentDestination = null;
+        riderForwardSpeed = 0f;
+        riderVerticalSpeed = 0f;
+        riderVelocityValid = false;
+        // Drop the latch as well — otherwise the next physics step re-applies the last throttle
+        // and the stop is undone before it is ever rendered.
+        hasPendingRiderInput = false;
         if (!body)
             return;
         body.linearVelocity = Vector3.zero;
@@ -211,7 +296,8 @@ public class FlyingRigidbodyMotor : MonoBehaviour, IMovementMotor, IRiderControl
         if (direction.sqrMagnitude <= 1e-4f)
             return;
         Quaternion target = Quaternion.LookRotation(direction.normalized);
-        transform.rotation = Quaternion.Slerp(transform.rotation, target, rotateSpeed * deltaTime);
+        // MoveRotation rather than transform.rotation for the interpolation reason in ApplyRiderInput.
+        body.MoveRotation(Quaternion.Slerp(body.rotation, target, rotateSpeed * deltaTime));
     }
 
     private void OnValidate()

@@ -14,7 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AgentFireProfile
   minRange: 0
   maxRange: 22
-  allowFireWhileRunning: 0
+  preferredRange: 14
+  rangeTolerance: 3
+  allowFireWhileRunning: 1
+  strafeWhileEngaged: 1
+  strafeDistance: 3.5
+  strafeInterval: 1.6
   fireCooldown: 1.5
   burstCount: 2
   burstInterval: 0.15

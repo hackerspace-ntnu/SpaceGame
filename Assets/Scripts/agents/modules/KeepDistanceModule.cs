@@ -6,8 +6,10 @@ using UnityEngine.AI;
 public class KeepDistanceModule : BehaviourModuleBase
 {
     [Header("Target")]
-    [SerializeField] private Transform target;
-    [Tooltip("Faction relationship the nearest target must have. Requires EntityFaction on both entities.")]
+    [Tooltip("Faction relationship the target must have. Ignored when the agent has an " +
+             "AgentTargeting component — kiting the entity the agent is fighting is the only " +
+             "sensible reading, and a separate query here is how agents ended up backing away " +
+             "from one enemy while shooting a different one.")]
     [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Hostile;
 
     [Header("Ranges")]
@@ -20,9 +22,12 @@ public class KeepDistanceModule : BehaviourModuleBase
     [SerializeField] private float navMeshSampleDistance = 4f;
 
     private EntityFaction selfFaction;
+    private Transform target;
+    private float retargetTimer;
 
     private void Awake() => selfFaction = GetComponent<EntityFaction>();
     private void Reset() => SetPriorityDefault(ModulePriority.Ambient);
+    private void OnEnable() { target = null; retargetTimer = 0f; }
 
     public override string ModuleDescription =>
         "Maintains a preferred distance from a target. Backs away if too close, faces the target otherwise. Good for ranged enemies that kite.\n\n" +
@@ -32,11 +37,25 @@ public class KeepDistanceModule : BehaviourModuleBase
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {
-        TryResolveTarget();
-        if (!target)
-            return null;
+        AgentTargeting targeting = context.Targeting;
+        float distance;
 
-        float distance = Vector3.Distance(context.Position, target.position);
+        if (targeting != null)
+        {
+            if (!targeting.HasTarget)
+                return null;
+            target = targeting.Target;
+            distance = targeting.DistanceToTarget;
+        }
+        else
+        {
+            target = TargetResolution.Refresh(target, ref retargetTimer, 0.5f, deltaTime,
+                                              selfFaction, requiredRelationship, context.Position);
+            if (target == null)
+                return null;
+            distance = Vector3.Distance(context.Position, target.position);
+        }
+
         if (distance > detectRadius)
             return null;
 
@@ -66,13 +85,6 @@ public class KeepDistanceModule : BehaviourModuleBase
         }
         destination = self;
         return false;
-    }
-
-    private void TryResolveTarget()
-    {
-        if (target)
-            return;
-        target = EntityTargetRegistry.ResolveNearest(selfFaction, requiredRelationship, transform.position);
     }
 
     protected override void OnValidate()

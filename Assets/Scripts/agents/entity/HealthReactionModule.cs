@@ -67,6 +67,7 @@ public class HealthReactionModule : MonoBehaviour
         if (!health) return;
         health.OnDamage += HandleDamage;
         health.OnDeath += HandleDeath;
+        health.OnRevive += HandleRevive;
 
         // Reset threshold triggers in case entity was revived.
         if (thresholdReactions != null)
@@ -83,6 +84,19 @@ public class HealthReactionModule : MonoBehaviour
         if (!health) return;
         health.OnDamage -= HandleDamage;
         health.OnDeath -= HandleDeath;
+        health.OnRevive -= HandleRevive;
+    }
+
+    // A revive that lands inside the death despawn window (respawn delay is
+    // shorter than despawnDelay in the deathmatch minigame) must cancel the
+    // pending Despawn, or the entity is disabled again mid-fight seconds after
+    // coming back. Also restores the agent this module disabled on death.
+    private void HandleRevive()
+    {
+        CancelInvoke(nameof(Despawn));
+
+        if (disableAgentOnDeath && agentController)
+            agentController.enabled = true;
     }
 
     private void HandleDamage(int amount)

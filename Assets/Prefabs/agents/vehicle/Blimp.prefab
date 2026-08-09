@@ -56,12 +56,14 @@ MonoBehaviour:
   active: 1
   seatPoint: {fileID: 1000000000000000010}
   dismountPoint: {fileID: 1000000000000000010}
+  mountableByDirectInteraction: 1
   disablePlayerMovement: 1
   disablePlayerLook: 1
   disablePlayerInteractor: 1
   mountCooldown: 0.25
   fallbackDismountDistance: 1.6
   defaultPerspective: 1
+  thirdPersonCameraPrefab: {fileID: 0}
   thirdPersonPivot: {fileID: 1000000000000000010}
   thirdPersonOffset: {x: 0, y: 2.8, z: -6}
   thirdPersonDistance: 7
@@ -188,12 +190,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlyingRigidbodyMotor
   body: {fileID: 1000000000000000004}
-  maxSpeed: 5
-  maxVerticalSpeed: 3
-  acceleration: 4
-  deceleration: 3
+  maxSpeed: 14
+  maxVerticalSpeed: 7
+  acceleration: 10
+  deceleration: 8
   faceRotateSpeed: 3
-  riderTurnSpeed: 5
+  riderTurnSpeed: 50
   altitudeHold: 1
   cruiseAltitude: 40
   altitudeHoldGain: 0.5

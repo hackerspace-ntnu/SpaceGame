@@ -1,6 +1,6 @@
-// Hears noise events emitted by NoiseEmitters and reacts by alerting ChaseModule
-// or moving toward the noise source. Drag onto any entity that should respond to sound.
-// Configure which NoiseTypes trigger investigation vs immediate aggro.
+// Hears noise events emitted by NoiseEmitters and reacts either by handing the instigator to
+// AgentTargeting or by moving toward the noise source. Drag onto any entity that should respond
+// to sound. Configure which NoiseTypes trigger investigation vs immediate aggro.
 using System;
 using UnityEngine;
 using UnityEngine.Events;
@@ -24,7 +24,7 @@ public class NoiseReceiverModule : BehaviourModuleBase
     [Header("Hearing")]
     [Tooltip("Which noise types trigger investigation.")]
     [SerializeField] private NoiseTypeMask investigateOn = NoiseTypeMask.Footstep | NoiseTypeMask.Gunshot | NoiseTypeMask.Explosion;
-    [Tooltip("Which noise types immediately force-alert ChaseModule.")]
+    [Tooltip("Which noise types immediately hand the instigator to AgentTargeting as a target.")]
     [SerializeField] private NoiseTypeMask aggroOn = NoiseTypeMask.Alert | NoiseTypeMask.Hurt;
 
     [Header("Investigation")]
@@ -35,15 +35,18 @@ public class NoiseReceiverModule : BehaviourModuleBase
     [Header("Events")]
     public UnityEvent<Vector3> OnHearNoise;
 
-    private ChaseModule chaseModule;
+    private AgentTargeting targeting;
 
     private bool isInvestigating;
     private Vector3 investigatePosition;
     private float investigateTimer;
 
     private void Reset() => SetPriorityDefault(ModulePriority.Reactive - 2); // 18 — below Chase, above Search
-    private void Awake() => chaseModule = GetComponent<ChaseModule>();
     private void OnEnable() { isInvestigating = false; investigateTimer = 0f; }
+
+    // Resolved lazily: noises can arrive before AgentController has run its own resolve.
+    private AgentTargeting Targeting =>
+        targeting != null ? targeting : targeting = AgentTargeting.GetOrAdd(gameObject);
 
     // Called by NoiseEmitter when this receiver is within range.
     public void OnNoiseHeard(NoiseType type, Vector3 origin, float radius, Transform instigator)
@@ -52,9 +55,9 @@ public class NoiseReceiverModule : BehaviourModuleBase
 
         OnHearNoise?.Invoke(origin);
 
-        if ((aggroOn & typeMask) != 0 && chaseModule != null && instigator)
+        if ((aggroOn & typeMask) != 0 && instigator)
         {
-            chaseModule.ForceTarget(instigator);
+            Targeting.ForceTarget(instigator);
             isInvestigating = false;
             return;
         }
@@ -70,15 +73,15 @@ public class NoiseReceiverModule : BehaviourModuleBase
     public override string ModuleDescription =>
         "Hears noise events from nearby NoiseEmitters and reacts based on noise type.\n\n" +
         "• investigateOn — noise types that trigger moving to the source (footsteps, gunshots)\n" +
-        "• aggroOn — noise types that immediately force-alert ChaseModule (alerts, hurt sounds)\n" +
+        "• aggroOn — noise types that immediately target the instigator (alerts, hurt sounds)\n" +
         "• investigateDuration — how long to investigate a noise source before giving up\n" +
-        "• Requires: ChaseModule for aggro response. NoiseEmitters in the scene emit the events.\n" +
+        "• NoiseEmitters in the scene emit the events.\n" +
         "• OnHearNoise — UnityEvent fired on any heard noise, regardless of type mask";
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {
-        // Don't investigate if already chasing.
-        if (chaseModule != null && chaseModule.HasTarget)
+        // Don't investigate if the agent already has something to fight.
+        if (context.Targeting != null && context.Targeting.HasTarget)
         {
             isInvestigating = false;
             return null;

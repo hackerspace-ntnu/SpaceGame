@@ -26,6 +26,13 @@ public partial class MountModule : BehaviourModuleBase, IInteractable
     [SerializeField] private Transform seatPoint;
     [SerializeField] private Transform dismountPoint;
 
+    [Header("Interaction")]
+    [Tooltip("Allow mounting by interacting with this entity's own colliders. Turn off for large " +
+             "vehicles that should only be boarded from a dedicated control — Interactor resolves " +
+             "IInteractable by walking up from the collider it hit, so otherwise every hull collider " +
+             "becomes a mount point. Use a MountStation on the cockpit control instead.")]
+    [SerializeField] private bool mountableByDirectInteraction = true;
+
     [Header("Player Components To Toggle")]
     [SerializeField] private bool disablePlayerMovement = true;
     [SerializeField] private bool disablePlayerLook = true;
@@ -44,6 +51,12 @@ public partial class MountModule : BehaviourModuleBase, IInteractable
     [SerializeField] private Vector3 thirdPersonOffset = new Vector3(0f, 2.2f, -3.8f);
     [SerializeField] private float thirdPersonDistance = 3.8f;
     [SerializeField] private float thirdPersonFollowLerp = 14f;
+    [Tooltip("How fast the camera's aim catches up. Slightly below thirdPersonFollowLerp so the " +
+             "framing settles after the position does rather than fighting it.")]
+    [SerializeField] private float thirdPersonAimLerp = 18f;
+    [Tooltip("How fast the camera's orbit yaw follows the vehicle's heading. Lower = the vehicle " +
+             "can rotate a little within frame before the camera swings round behind it.")]
+    [SerializeField] private float thirdPersonYawLerp = 16f;
     [Tooltip("Meters ahead of the pivot the camera aims at. Higher = camera tilts further down, shows more ground ahead.")]
     [SerializeField] private float thirdPersonLookAhead = 6f;
 
@@ -64,9 +77,13 @@ public partial class MountModule : BehaviourModuleBase, IInteractable
     private InputAction lookAction;
     private bool forcedLookActionEnabled;
     private Camera runtimeThirdPersonCamera;
+    private bool thirdPersonCameraNeedsSnap;
     private float mountedPitch;
     private float cameraYaw;
     private float cameraYawOffset;
+    // Aim target is smoothed in world space and persists between frames, so the camera's
+    // rotation is driven by a filtered point rather than recomputed from raw vehicle pose.
+    private Vector3 smoothedAimPoint;
     private float timeSinceLastLookInput;
     private CameraPerspective activePerspective;
 
@@ -175,6 +192,8 @@ public partial class MountModule : BehaviourModuleBase, IInteractable
         lookPitchClamp = Mathf.Clamp(lookPitchClamp, 0f, 89f);
         thirdPersonDistance = Mathf.Max(0.1f, thirdPersonDistance);
         thirdPersonFollowLerp = Mathf.Max(0.01f, thirdPersonFollowLerp);
+        thirdPersonAimLerp = Mathf.Max(0.01f, thirdPersonAimLerp);
+        thirdPersonYawLerp = Mathf.Max(0.01f, thirdPersonYawLerp);
         thirdPersonLookAhead = Mathf.Max(0.1f, thirdPersonLookAhead);
         cameraAutoAlignSpeed = Mathf.Max(0f, cameraAutoAlignSpeed);
         cameraAutoAlignDelay = Mathf.Max(0f, cameraAutoAlignDelay);
@@ -185,7 +204,9 @@ public partial class MountModule : BehaviourModuleBase, IInteractable
     public override MoveIntent? Tick(in AgentContext context, float deltaTime) => null;
 
     // ─────────── IInteractable ───────────
-    public bool CanInteract() => IsAvailableForMount;
+    // MountStation calls TryMount directly, so switching this off closes the "look at any part
+    // of the hull and press E" path without disabling dedicated cockpit controls.
+    public bool CanInteract() => mountableByDirectInteraction && IsAvailableForMount;
 
     public void Interact(Interactor interactor)
     {

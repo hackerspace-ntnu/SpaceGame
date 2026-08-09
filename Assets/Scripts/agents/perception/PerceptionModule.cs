@@ -51,13 +51,25 @@ public class PerceptionModule : MonoBehaviour
     private Vector3 prevPosition;
     private bool isMoving;
 
+    // Layers treated as sight blockers when occlusionLayers is left at Nothing. A mask of 0
+    // makes every raycast return no hits, which reads as "line of sight confirmed" everywhere —
+    // agents see and shoot through walls, and aimProfile.requireLineOfSight becomes a no-op.
+    // Failing towards "solid geometry blocks sight" is the far less surprising default.
+    private static readonly string[] FallbackOcclusionLayerNames = { "Default", "Ground", "Interior" };
+
     private void Awake()
     {
         noiseEmitter = GetComponent<NoiseEmitter>();
         prevPosition = transform.position;
 
         if (occlusionLayers == 0)
-            Debug.LogWarning($"{name}: PerceptionModule.occlusionLayers is Nothing — agents will see through all geometry. Set the layer mask to walls/terrain.", this);
+        {
+            occlusionLayers = LayerMask.GetMask(FallbackOcclusionLayerNames);
+            Debug.LogWarning(
+                $"{name}: PerceptionModule.occlusionLayers is Nothing — line-of-sight would always " +
+                $"succeed. Falling back to [{string.Join(", ", FallbackOcclusionLayerNames)}]. " +
+                "Set the mask explicitly on the prefab to silence this.", this);
+        }
     }
 
     private void Update()
@@ -76,7 +88,23 @@ public class PerceptionModule : MonoBehaviour
     }
 
     // Full perception check: FOV + LoS from the eye. Updates last-known memory when visible.
+    // Only call this for the target the agent is actually committed to — see IsVisible().
     public bool CanSee(Transform target)
+    {
+        if (!IsVisible(target))
+            return false;
+
+        LastKnownPosition = target.position;
+        HasLastKnownPosition = true;
+        TimeSinceLastSeen = 0f;
+
+        return true;
+    }
+
+    // FOV + LoS with no memory side effect. Use when testing candidates the agent has not
+    // committed to: CanSee() writes LastKnownPosition, so scoring a crowd with it would
+    // overwrite the memory of the target actually being tracked.
+    public bool IsVisible(Transform target)
     {
         if (!target)
             return false;
@@ -96,15 +124,7 @@ public class PerceptionModule : MonoBehaviour
         if (Vector3.Angle(flatForward, flatToTarget) > effectiveFov * 0.5f)
             return false;
 
-        if (!HasLineOfSightFrom(origin, target))
-            return false;
-
-        // Visible — update memory
-        LastKnownPosition = target.position;
-        HasLastKnownPosition = true;
-        TimeSinceLastSeen = 0f;
-
-        return true;
+        return HasLineOfSightFrom(origin, target);
     }
 
     // LoS from the eye only — no FOV, no memory update. Use for passive "could we shoot them if we aimed?" checks.

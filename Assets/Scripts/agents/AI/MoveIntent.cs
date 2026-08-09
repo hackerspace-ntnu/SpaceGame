@@ -21,6 +21,22 @@ public struct MoveIntent
     public float SpeedMultiplier;
     public bool IsRunning;
 
+    // Facing is a separate channel from locomotion. When set, the motor turns the body toward
+    // FacePosition instead of along the path, so an agent can walk one way and aim another —
+    // that is what lets a ranged module keep its gun on target while ChaseModule owns the path,
+    // instead of every combat behaviour having to come to a full stop to shoot.
+    public bool OverrideFacing;
+
+    // Returns this intent with the facing channel pointed at a world position. Locomotion is
+    // untouched, so the caller keeps whatever destination it already decided on.
+    public MoveIntent WithFacing(Vector3 facePosition)
+    {
+        MoveIntent copy = this;
+        copy.FacePosition = facePosition;
+        copy.OverrideFacing = true;
+        return copy;
+    }
+
     public static MoveIntent Idle()
     {
         return new MoveIntent

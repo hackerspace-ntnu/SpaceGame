@@ -10,8 +10,10 @@ public class ApproachModule : BehaviourModuleBase
     [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Allied;
 
     private EntityFaction selfFaction;
+    private float retargetTimer;
 
     private void Awake() => selfFaction = GetComponent<EntityFaction>();
+    private void OnEnable() => retargetTimer = 0f;
 
     [Header("Range")]
     [SerializeField] private float detectRadius = 6f;
@@ -30,7 +32,8 @@ public class ApproachModule : BehaviourModuleBase
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {
-        TryResolveTarget();
+        target = TargetResolution.Refresh(target, ref retargetTimer, 1f, deltaTime,
+                                          selfFaction, requiredRelationship, context.Position);
         if (!target)
             return null;
 
@@ -42,13 +45,6 @@ public class ApproachModule : BehaviourModuleBase
             return MoveIntent.StopAndFace(target.position);
 
         return MoveIntent.MoveTo(target.position, conversationDistance, speedMultiplier);
-    }
-
-    private void TryResolveTarget()
-    {
-        if (target)
-            return;
-        target = EntityTargetRegistry.ResolveNearest(selfFaction, requiredRelationship, transform.position);
     }
 
     protected override void OnValidate()

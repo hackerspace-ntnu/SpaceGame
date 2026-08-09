@@ -10,9 +10,11 @@ public class FacePlayerModule : BehaviourModuleBase
 
     private Transform target;
     private EntityFaction selfFaction;
+    private float retargetTimer;
 
     private void Awake() => selfFaction = GetComponent<EntityFaction>();
     private void Reset() => SetPriorityDefault(ModulePriority.Ambient);
+    private void OnEnable() => retargetTimer = 0f;
 
     public override string ModuleDescription =>
         "Stops and faces the nearest entity of the configured faction relationship when it steps within triggerRadius. " +
@@ -22,8 +24,8 @@ public class FacePlayerModule : BehaviourModuleBase
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {
-        TryResolveTarget();
-
+        target = TargetResolution.Refresh(target, ref retargetTimer, 1f, deltaTime,
+                                          selfFaction, requiredRelationship, context.Position);
         if (!target)
             return null;
 
@@ -31,12 +33,6 @@ public class FacePlayerModule : BehaviourModuleBase
             return null;
 
         return MoveIntent.StopAndFace(target.position);
-    }
-
-    private void TryResolveTarget()
-    {
-        if (target) return;
-        target = EntityTargetRegistry.ResolveNearest(selfFaction, requiredRelationship, transform.position);
     }
 
     protected override void OnValidate()

@@ -193,6 +193,11 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor,
 
             default:
                 StopAgentPath();
+                if (intent.OverrideFacing)
+                {
+                    agent.updateRotation = false;
+                    FacePosition(intent.FacePosition, deltaTime);
+                }
                 break;
         }
     }
@@ -336,6 +341,13 @@ public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor,
             // The brain is supplying an explicit facing direction — suppress NavMesh
             // auto-rotation so an external system (e.g. SteerModule) can own it.
             agent.updateRotation = false;
+        }
+        else if (intent.OverrideFacing)
+        {
+            // Move-and-aim: travel along the path but keep the body turned toward the facing
+            // target. NavMesh auto-rotation would fight this every frame, so it stays off.
+            agent.updateRotation = false;
+            FacePosition(intent.FacePosition, deltaTime);
         }
         else
         {

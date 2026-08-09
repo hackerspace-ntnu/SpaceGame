@@ -13,9 +13,11 @@ public class WatchModule : BehaviourModuleBase
     [SerializeField] private float detectRadius = 5f;
 
     private EntityFaction selfFaction;
+    private float retargetTimer;
 
     private void Awake() => selfFaction = GetComponent<EntityFaction>();
     private void Reset() => SetPriorityDefault(ModulePriority.Ambient);
+    private void OnEnable() => retargetTimer = 0f;
 
     public override string ModuleDescription =>
         "Stops and faces a nearby target without moving. Good for curious NPCs, sentry turrets, or anything that should track a target with its gaze.\n\n" +
@@ -24,7 +26,8 @@ public class WatchModule : BehaviourModuleBase
 
     public override MoveIntent? Tick(in AgentContext context, float deltaTime)
     {
-        TryResolveTarget();
+        target = TargetResolution.Refresh(target, ref retargetTimer, 1f, deltaTime,
+                                          selfFaction, requiredRelationship, context.Position);
         if (!target)
             return null;
 
@@ -32,13 +35,6 @@ public class WatchModule : BehaviourModuleBase
             return null;
 
         return MoveIntent.StopAndFace(target.position);
-    }
-
-    private void TryResolveTarget()
-    {
-        if (target)
-            return;
-        target = EntityTargetRegistry.ResolveNearest(selfFaction, requiredRelationship, transform.position);
     }
 
     protected override void OnValidate()

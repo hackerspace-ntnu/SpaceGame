@@ -12,6 +12,13 @@ public class SpawnManager : NetworkBehaviour
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject networkPlayerPrefab;
 
+    [Header("Targeting")]
+    [Tooltip("Faction assigned to every spawned player so AI can see them. Without this the " +
+             "player is absent from EntityTargetRegistry and no enemy will ever target them. " +
+             "MatchManager overrides this with a team/solo faction while a match is running.")]
+    [SerializeField] private FactionDefinition playerFaction;
+    [SerializeField] private FactionRelationshipTable relationshipTable;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -65,7 +72,8 @@ public class SpawnManager : NetworkBehaviour
         }
 
         Vector3 spawnPosition = GetSpawnPoint();
-        Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+        GameObject player = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+        EntityFaction.Ensure(player, playerFaction, relationshipTable);
     }
 
     public void SpawnNetworkPlayer()
@@ -105,7 +113,18 @@ public class SpawnManager : NetworkBehaviour
         Vector3 spawnPosition = GetSpawnPoint();
         GameObject playerObj = Instantiate(networkPlayerPrefab, spawnPosition, Quaternion.identity);
 
+        // Before the network spawn, so the entity is registered for targeting from its first
+        // frame. MatchManager reassigns the faction below when a match is running.
+        EntityFaction.Ensure(playerObj, playerFaction, relationshipTable);
+
         // Spawn it specifically as the Player Object for that ID
         playerObj.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
+
+        // MatchManager picks the team/faction and moves the player to that side's
+        // spawn point. Only runs when one is present in the loaded scene (i.e. the
+        // minigame flow), so the main game's plain spawn path is unaffected.
+        var matchManager = FindFirstObjectByType<MatchManager>();
+        if (matchManager != null)
+            matchManager.RegisterPlayerEntity(playerObj);
     }
 }

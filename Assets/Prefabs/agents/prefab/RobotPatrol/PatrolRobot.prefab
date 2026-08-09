@@ -316,7 +316,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AgentController
   MotorComponent: {fileID: 836584490720039465}
   animatorDriver: {fileID: 4092899636993295912}
-  nearbyAgentScanRadius: 30
+  nearbyAgentScanRadius: 0
   nearbyAgentLayer:
     serializedVersion: 2
     m_Bits: 0
@@ -362,7 +362,7 @@ MonoBehaviour:
   eyeTransform: {fileID: 5059971983133559503}
   occlusionLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 641
   eyeHeight: 1.6
   memoryDuration: 6
   emitNoiseOnSpot: 1
@@ -792,7 +792,7 @@ MonoBehaviour:
   active: 1
   target: {fileID: 0}
   requiredRelationship: 2
-  attackRange: 5
+  attackRange: 2.5
   attackCooldown: 1.2
   attackDamage: 10
   attackCommitDuration: 0.5

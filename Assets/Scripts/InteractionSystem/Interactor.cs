@@ -46,7 +46,10 @@ public class Interactor : MonoBehaviour
             return;
         }
 
-        IsHoveringInteractable = true;
+        // Match the crosshair to what pressing Interact would actually do. Without the
+        // CanInteract test the crosshair lights up over things that refuse the interaction —
+        // e.g. a whole vehicle hull whose root MountModule is the nearest IInteractable.
+        IsHoveringInteractable = interactable.CanInteract();
     }
 
     private void Interact()

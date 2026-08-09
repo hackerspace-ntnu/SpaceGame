@@ -5,6 +5,11 @@ public class SpawnPoint : MonoBehaviour
 {
     [SerializeField] private float spawnRadius = 10f;
     [SerializeField] private LayerMask blockingLayers;
+    [Tooltip("Lift above the sampled ground point. The player capsule's bottom sits ~1m below " +
+             "the prefab pivot, so spawning exactly on the surface buries half the collider and " +
+             "PhysX sometimes resolves that penetration downwards, dropping the player through " +
+             "the terrain.")]
+    [SerializeField] private float groundClearance = 1.2f;
     public Vector3 GetSpawnPoint()
     {
         return GetValidSpawnPoint(transform.position, spawnRadius, blockingLayers);
@@ -19,7 +24,7 @@ public class SpawnPoint : MonoBehaviour
             {
                 if (IsSpawnPointClear(groundPoint, 1.5f, layer))
                 {
-                    return groundPoint;
+                    return groundPoint + Vector3.up * groundClearance;
                 }
             }
         }

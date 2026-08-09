@@ -56,12 +56,14 @@ MonoBehaviour:
   active: 1
   seatPoint: {fileID: 7744711783463718392}
   dismountPoint: {fileID: 7744711783463718392}
+  mountableByDirectInteraction: 1
   disablePlayerMovement: 1
   disablePlayerLook: 1
   disablePlayerInteractor: 1
   mountCooldown: 0.25
   fallbackDismountDistance: 1.6
   defaultPerspective: 1
+  thirdPersonCameraPrefab: {fileID: 0}
   thirdPersonPivot: {fileID: 0}
   thirdPersonOffset: {x: 0, y: 3, z: -3.8}
   thirdPersonDistance: 6
@@ -129,7 +131,7 @@ Rigidbody:
   m_ImplicitTensor: 1
   m_UseGravity: 1
   m_IsKinematic: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_Constraints: 80
   m_CollisionDetection: 0
 --- !u!114 &5586210974804010835

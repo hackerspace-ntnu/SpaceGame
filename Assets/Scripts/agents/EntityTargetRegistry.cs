@@ -63,6 +63,41 @@ public static class EntityTargetRegistry
         return best;
     }
 
+    // Collects every registered entity within maxRange whose relationship to `owner` equals
+    // `required`, into a caller-owned list. Compares squared distances and rejects on range
+    // before the relationship lookup, so a distant crowd costs one subtraction per entity
+    // instead of a dictionary probe and a sqrt.
+    //
+    // Use this instead of calling ResolveNearest once per module: AgentTargeting runs one
+    // query per agent per interval and shares the result with every behaviour module.
+    public static void Query(EntityFaction owner, FactionRelationship required, Vector3 position,
+                             float maxRange, List<EntityFaction> results)
+    {
+        results.Clear();
+        if (owner == null)
+            return;
+
+        float maxRangeSqr = maxRange > 0f ? maxRange * maxRange : float.MaxValue;
+
+        for (int i = entities.Count - 1; i >= 0; i--)
+        {
+            EntityFaction e = entities[i];
+            if (e == null)
+            {
+                entities.RemoveAt(i);
+                continue;
+            }
+            if (e == owner)
+                continue;
+            if ((e.transform.position - position).sqrMagnitude > maxRangeSqr)
+                continue;
+            if (owner.GetRelationshipWith(e) != required)
+                continue;
+
+            results.Add(e);
+        }
+    }
+
     public static bool HasAny(EntityFaction owner, FactionRelationship required)
     {
         if (owner == null)

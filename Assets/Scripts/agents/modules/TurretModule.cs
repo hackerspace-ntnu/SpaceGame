@@ -119,12 +119,13 @@ public class TurretModule : MonoBehaviour
 
     private void AcquireTarget()
     {
-        // Drop dead/out-of-range targets so the registry can hand us a fresh one.
+        // Drop dead/out-of-range targets so the registry can hand us a fresh one. Viability
+        // covers retired entities too — an eliminated player object stays active forever with
+        // only its EntityFaction disabled, and a turret tracking one would never fire again.
         if (target != null)
         {
-            IDamageable existing = target.GetComponentInChildren<IDamageable>();
             float d = Vector3.Distance(transform.position, target.position);
-            if ((existing != null && !existing.Alive) || d > maxRange || d < minRange)
+            if (!TargetResolution.IsViable(target) || d > maxRange || d < minRange)
                 target = null;
         }
         if (target != null)

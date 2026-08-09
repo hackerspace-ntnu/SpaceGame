@@ -51,10 +51,20 @@ public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IM
     // MoveIntent-interpretation path (which would decelerate and fight the rider).
     private int riderDriveFrame = -1;
 
+    // Latest rider input, latched in Update and consumed in FixedUpdate. See ApplyRiderInput.
+    private RiderInput pendingRiderInput;
+    private bool hasPendingRiderInput;
+
     // Track rider throttle along forward in our own state. If we read this back from
     // body.linearVelocity, ground friction between FixedUpdates eats it and the rider
     // feels stuck — see RigidbodyMotor.ApplyRiderInput for the full reasoning.
     private float riderForwardSpeed;
+
+    // Same reasoning for yaw. MoveRotation defers the actual rotation to the next physics step,
+    // so transform.eulerAngles still reads the old value for the rest of this frame; accumulating
+    // off it would silently drop every steering increment made between physics steps.
+    private float riderYaw;
+    private bool riderYawValid;
 
     public Vector3 Velocity => body ? body.linearVelocity : Vector3.zero;
 
@@ -112,8 +122,11 @@ public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IM
             return;
 
         // Rider released — drop tracked rider speed so AI handoff doesn't snap back to it
-        // if the rider re-mounts later mid-motion.
+        // if the rider re-mounts later mid-motion. The latched input goes too, otherwise
+        // FixedUpdate would keep driving the last throttle indefinitely.
         riderForwardSpeed = 0f;
+        riderYawValid = false;
+        hasPendingRiderInput = false;
 
         switch (intent.Type)
         {
@@ -133,9 +146,34 @@ public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IM
         }
     }
 
+    // Rider input is latched on the render loop and consumed on the physics loop below.
+    //
+    // Writing the body directly from here drives a Rigidbody with the wrong clock: MoveRotation
+    // and linearVelocity only mean anything per physics step, but Update runs at render rate, so
+    // above 50 Hz several calls land between steps and all but the last are discarded, below it
+    // steps get none, and the increment is scaled by Time.deltaTime while being integrated over
+    // Time.fixedDeltaTime. Average motion still looks right to a static observer, but the
+    // per-step advance is uneven — which a follow camera converts directly into shake.
     public void ApplyRiderInput(in RiderInput input, float deltaTime)
     {
         riderDriveFrame = Time.frameCount;
+        pendingRiderInput = input;
+        hasPendingRiderInput = true;
+    }
+
+    private void FixedUpdate()
+    {
+        if (!hasPendingRiderInput)
+            return;
+
+        // Latched, not cleared: Update may run several times between physics steps or not at all,
+        // and the rider's intent is a held state rather than an event.
+        DriveFromRider(pendingRiderInput, Time.fixedDeltaTime);
+    }
+
+    // Called once per physics step with the physics clock — the only place the body is written.
+    private void DriveFromRider(in RiderInput input, float deltaTime)
+    {
         if (!body || arcing)
             return;
 
@@ -143,19 +181,27 @@ public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IM
 
         // Tank steer: rotate body by yaw input. Rebuild rotation as upright + yaw so any
         // initial tilt (vehicle spawned on a slope) is shed instead of preserved forever
-        // by additive transform.Rotate around world Y.
-        float yaw = input.Move.x * riderTurnSpeed * deltaTime;
-        float currentYaw = transform.eulerAngles.y + yaw;
-        transform.rotation = Quaternion.Euler(0f, currentYaw, 0f);
+        // by additive rotation around world Y.
+        //
+        // Written through MoveRotation, never transform.rotation: assigning the transform of a
+        // non-kinematic Rigidbody teleports it and discards the pose interpolation blends from,
+        // so the body renders at the raw physics rate. At 50 Hz physics and 90 fps that froze
+        // roughly half of all rendered frames — the "choppy vehicle" bug.
+        if (!riderYawValid)
+        {
+            riderYaw = body.rotation.eulerAngles.y;
+            riderYawValid = true;
+        }
 
-        // Throttle along own forward.
+        riderYaw += input.Move.x * riderTurnSpeed * deltaTime;
+        Quaternion facing = Quaternion.Euler(0f, riderYaw, 0f);
+        body.MoveRotation(facing);
+
+        // Throttle along the yaw we just asked for rather than transform.forward, which is still
+        // a physics step behind until MoveRotation lands.
         float throttle = input.Move.y;
         float baseMultiplier = input.IsRunning ? 1f : walkSpeedMultiplier;
-        Vector3 forward = transform.forward;
-        forward.y = 0f;
-        if (forward.sqrMagnitude < 1e-4f)
-            forward = Vector3.forward;
-        forward.Normalize();
+        Vector3 forward = facing * Vector3.forward;
 
         // Track speed in our own state so ground friction between FixedUpdates can't drain it.
         float targetSpeed = throttle * maxSpeed * baseMultiplier;
@@ -176,6 +222,9 @@ public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IM
     {
         currentDestination = null;
         riderForwardSpeed = 0f;
+        // Drop the latch as well — otherwise the next physics step re-applies the last throttle
+        // and the stop is undone before it is ever rendered.
+        hasPendingRiderInput = false;
         if (!body)
             return;
         Vector3 v = body.linearVelocity;
@@ -280,10 +329,11 @@ public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IM
         if (direction.sqrMagnitude <= 1e-4f)
             return;
         Quaternion target = Quaternion.LookRotation(direction.normalized);
-        Quaternion blended = Quaternion.Slerp(transform.rotation, target, faceRotateSpeed * deltaTime);
+        Quaternion blended = Quaternion.Slerp(body.rotation, target, faceRotateSpeed * deltaTime);
         // Strip residual pitch/roll so a vehicle that spawned tilted (or got bumped) levels
-        // itself as it drives, instead of slerping forever toward upright.
-        transform.rotation = Quaternion.Euler(0f, blended.eulerAngles.y, 0f);
+        // itself as it drives, instead of slerping forever toward upright. MoveRotation rather
+        // than transform.rotation for the interpolation reason in ApplyRiderInput.
+        body.MoveRotation(Quaternion.Euler(0f, blended.eulerAngles.y, 0f));
     }
 
     private void BeginArc(Vector3 direction, float horizontalDistance, float height, float duration)
@@ -319,7 +369,9 @@ public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IM
         float arc = Mathf.Sin(t * Mathf.PI);
 
         Vector3 flat = Vector3.Lerp(arcStart, arcEnd, t);
-        transform.position = new Vector3(flat.x, flat.y + arc * arcHeight, flat.z);
+        // MovePosition, not transform.position — same interpolation reason as the rotation
+        // writes, and it applies to the kinematic body an arc runs on too.
+        body.MovePosition(new Vector3(flat.x, flat.y + arc * arcHeight, flat.z));
 
         if (t >= 1f)
         {

@@ -3,9 +3,16 @@
 //   AgentFireProfile       — range, cooldown, burst cadence
 //   AgentAimProfile        — spread, lead prediction, LoS requirement
 //
-// Claims movement: returns StopAndFace while in band (preempting ChaseModule) and null otherwise,
-// so ChaseModule at lower priority drives the approach when the target is out of band.
-// Stands and fires; never fires while running.
+// Owns positioning for the whole engagement, not just the trigger:
+//   out of range        — passes, so ChaseModule closes the gap.
+//   inside preferred    — backs off to preferredRange, still firing and still facing the target.
+//   in the band         — holds station, strafing if the profile allows it.
+// Facing is claimed separately (IFacingModule) so the agent keeps its gun on the target while
+// side-stepping or retreating rather than turning to look where it is walking.
+//
+// Handing movement to ChaseModule while a target is in weapon range does not work: Chase's only
+// goal is to close the distance, so the agent walks into its target's face while shooting.
+// CloseCombatModule at higher priority still preempts if something gets right on top of us.
 // OnFire  — fires each shot (position of muzzle)
 // OnMiss  — fires when a projectile lands but hits no IDamageable
 // OnKill  — fires when a shot kills the target
@@ -15,11 +22,14 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Events;
 
-public class AgentRangedCombatModule : BehaviourModuleBase
+public class AgentRangedCombatModule : BehaviourModuleBase, IFacingModule
 {
-    [Header("Target")]
-    [SerializeField] private Transform target;
-    [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Hostile;
+    [Header("Engagement")]
+    [Tooltip("Fraction of the fire profile's maxRange the target must exceed before the agent " +
+             "stops holding position and lets Chase close again. Without this gap the winner " +
+             "alternates every frame at the edge of the fire band and the NavMesh path is " +
+             "discarded and re-requested until the agent visibly stutters.")]
+    [SerializeField] [Range(1f, 2f)] private float rangeExitFactor = 1.1f;
 
     [Header("Weapon")]
     [SerializeField] private AgentWeaponDefinition weapon;
@@ -54,20 +64,34 @@ public class AgentRangedCombatModule : BehaviourModuleBase
     private float cooldownTimer;
     private int burstRemaining;
     private float burstTimer;
-    private IDamageable targetDamageable;
     private int currentBurstSpread;
-    // Cached at Awake: if there's no melee fallback, this module retreats to minRange when the
-    // target gets too close rather than sitting still while Chase pushes the agent closer.
-    private bool hasMeleeFallback;
     private PerceptionModule perception;
-    private EntityFaction selfFaction;
+    // True while holding position to fire. With rangeExitFactor this is the hysteresis:
+    // entering the band costs maxRange, leaving it costs maxRange * rangeExitFactor.
+    private bool engaged;
+    // What the facing channel points at while engaged, so the agent keeps its gun on the target
+    // while backing off or strafing instead of turning to face where it is walking.
+    private Transform faceTarget;
+    private float strafeTimer;
+    private Vector3 strafeDestination;
+    private bool hasStrafeDestination;
+    // The target this module was firing at when the last shot landed, so OnKillEvent can be
+    // attributed even after AgentTargeting has already moved on to someone else.
+    private IDamageable firingAt;
 
-    // Read by ChaseModule at Awake to ensure its loseTargetRange is at least this wide,
-    // so the agent doesn't drop aggro the moment the target steps out of fire range.
+    // Read by AgentTargeting at Awake so acquisition range covers the fire band — otherwise an
+    // agent can be equipped for a fight it will never notice it could start.
     public float MaxRange => fireProfile != null ? fireProfile.maxRange : 0f;
 
     private void Reset() => SetPriorityDefault(ModulePriority.RangedAttack);
-    private void OnEnable() { cooldownTimer = 0f; burstRemaining = 0; }
+    private void OnEnable()
+    {
+        cooldownTimer = 0f;
+        burstRemaining = 0;
+        engaged = false;
+        hasStrafeDestination = false;
+        strafeTimer = 0f;
+    }
     private void OnDisable() => SetAiming(false);
 
     private void Awake()
@@ -80,9 +104,7 @@ public class AgentRangedCombatModule : BehaviourModuleBase
             animator = GetComponentInChildren<Animator>();
         if (!weaponMount)
             weaponMount = GetComponentInChildren<WeaponMount>();
-        hasMeleeFallback = GetComponent<CloseCombatModule>() != null;
         perception = GetComponent<PerceptionModule>();
-        selfFaction = GetComponent<EntityFaction>();
     }
 
     private void Start()
@@ -125,60 +147,160 @@ public class AgentRangedCombatModule : BehaviourModuleBase
         if (burstRemaining > 0)
             burstTimer -= deltaTime;
 
-        TryResolveTarget();
+        AgentTargeting targeting = context.Targeting;
+        Transform target = targeting != null && targeting.HasTarget ? targeting.Target : null;
 
-        if (!target || weapon == null || fireProfile == null || aimProfile == null)
+        if (target == null || weapon == null || fireProfile == null || aimProfile == null)
         {
+            engaged = false;
+            faceTarget = null;
             SetAiming(false);
             return null;
         }
 
-        float distance = Vector3.Distance(context.Position, target.position);
-        if (distance > fireProfile.maxRange)
+        float distance = targeting.DistanceToTarget;
+        float bandExit = fireProfile.maxRange * rangeExitFactor;
+        if (distance > (engaged ? bandExit : fireProfile.maxRange))
         {
+            engaged = false;
+            faceTarget = null;
             SetAiming(false);
             return null;
         }
 
-        if (distance < fireProfile.minRange)
+        if (aimProfile.requireLineOfSight && !HasLineOfSight(target))
         {
-            SetAiming(false);
-            if (hasMeleeFallback)
-                return null;
-            return ComputeRetreatIntent(context.Position, target.position, fireProfile.minRange);
-        }
-
-        if (aimProfile.requireLineOfSight && !HasLineOfSight())
-        {
+            // Losing line of sight is a reason to move, not a reason to stand there aiming at a
+            // wall — drop the engagement so Chase can reposition.
+            engaged = false;
+            faceTarget = null;
             SetAiming(false);
             return null;
         }
 
+        engaged = true;
         SetAiming(true);
+        faceTarget = target;
 
-        if (burstRemaining > 0)
+        // Where to stand. This module claims movement for the whole engagement rather than
+        // deferring to ChaseModule, because Chase's only goal is to close the distance — hand it
+        // the frame while a target is in weapon range and the agent walks into its face while
+        // shooting. Melee (higher priority) still preempts if something gets right on top of us.
+        bool tooClose = distance < fireProfile.preferredRange - fireProfile.rangeTolerance;
+        MoveIntent movement = tooClose
+            ? BackAwayTo(context.Position, target.position, fireProfile.preferredRange)
+            : HoldStation(context.Position, target.position, deltaTime);
+
+        // Fire whenever the band allows it, including on the very first frame the target comes
+        // into range — no wind-up, no closing first.
+        bool canFireNow = distance <= fireProfile.maxRange
+                          && distance >= fireProfile.minRange
+                          && (fireProfile.allowFireWhileRunning || movement.Type != AgentIntentType.MoveToPosition);
+
+        if (canFireNow)
         {
-            if (burstTimer <= 0f)
+            if (burstRemaining > 0)
             {
-                FireOne();
-                burstRemaining--;
+                if (burstTimer <= 0f)
+                {
+                    FireOne(target);
+                    burstRemaining--;
+                    burstTimer = fireProfile.burstInterval;
+                }
+            }
+            else if (cooldownTimer <= 0f)
+            {
+                // Start a new burst.
+                currentBurstSpread = 0;
+                FireOne(target);
+                burstRemaining = fireProfile.burstCount - 1;
                 burstTimer = fireProfile.burstInterval;
+                cooldownTimer = fireProfile.fireCooldown;
             }
         }
-        else if (cooldownTimer <= 0f)
-        {
-            // Start a new burst.
-            currentBurstSpread = 0;
-            FireOne();
-            burstRemaining = fireProfile.burstCount - 1;
-            burstTimer = fireProfile.burstInterval;
-            cooldownTimer = fireProfile.fireCooldown;
-        }
 
-        return MoveIntent.StopAndFace(target.position);
+        return movement;
     }
 
-    private void FireOne()
+    // Backs off to the preferred distance. Facing is left to the facing channel so the agent
+    // retreats while still pointing its gun at the target rather than turning its back.
+    private MoveIntent BackAwayTo(Vector3 self, Vector3 targetPos, float standoff)
+    {
+        Vector3 away = self - targetPos;
+        away.y = 0f;
+        if (away.sqrMagnitude < 0.0001f)
+        {
+            away = UnityEngine.Random.insideUnitSphere;
+            away.y = 0f;
+            if (away.sqrMagnitude < 0.0001f)
+                away = Vector3.forward;
+        }
+
+        Vector3 candidate = targetPos + away.normalized * standoff;
+
+        // Backed into a wall with nowhere to go — hold and keep shooting rather than grinding
+        // against geometry.
+        if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+            return MoveIntent.StopAndFace(targetPos);
+
+        // Running, not walking: something closed the gap, and backing off at walk speed just
+        // means being followed at walk speed.
+        return MoveIntent.MoveTo(hit.position, 0.4f, 1f, isRunning: true).WithFacing(targetPos);
+    }
+
+    // In the band: sidestep periodically instead of standing still. A stationary shooter is
+    // trivially easy to hit and reads as a turret rather than a combatant.
+    private MoveIntent HoldStation(Vector3 self, Vector3 targetPos, float deltaTime)
+    {
+        // Strafing is off for weapons that can't fire on the move — otherwise the agent would
+        // sidestep its way through the entire engagement without ever taking a shot.
+        if (!fireProfile.strafeWhileEngaged
+            || !fireProfile.allowFireWhileRunning
+            || fireProfile.strafeDistance <= 0.01f)
+        {
+            return MoveIntent.StopAndFace(targetPos);
+        }
+
+        strafeTimer -= deltaTime;
+        if (strafeTimer <= 0f || !hasStrafeDestination)
+        {
+            strafeTimer = fireProfile.strafeInterval;
+
+            Vector3 toTarget = targetPos - self;
+            toTarget.y = 0f;
+            if (toTarget.sqrMagnitude < 0.0001f)
+                return MoveIntent.StopAndFace(targetPos);
+
+            float side = UnityEngine.Random.value < 0.5f ? -1f : 1f;
+            Vector3 lateral = Vector3.Cross(Vector3.up, toTarget.normalized) * (side * fireProfile.strafeDistance);
+            hasStrafeDestination = NavMesh.SamplePosition(self + lateral, out NavMeshHit hit, 2f, NavMesh.AllAreas);
+            if (hasStrafeDestination)
+                strafeDestination = hit.position;
+        }
+
+        if (!hasStrafeDestination)
+            return MoveIntent.StopAndFace(targetPos);
+
+        return MoveIntent.MoveTo(strafeDestination, 0.4f, 1f).WithFacing(targetPos);
+    }
+
+    // ── IFacingModule ─────────────────────────────────────────────────────────
+    // Outranks every ambient look-around so the gun stays on target while the body walks.
+    public int FacingPriority => Priority;
+
+    public bool TryGetFacing(in AgentContext context, out Vector3 facePosition)
+    {
+        if (!engaged || faceTarget == null)
+        {
+            facePosition = default;
+            return false;
+        }
+
+        facePosition = faceTarget.position;
+        return true;
+    }
+
+    private void FireOne(Transform target)
     {
         AgentWeaponDefinition activeWeapon = weaponMount != null ? weaponMount.ActiveDefinition : weapon;
         Transform activeMuzzle = weaponMount != null ? weaponMount.ActiveMuzzle : muzzleSocket;
@@ -188,11 +310,12 @@ public class AgentRangedCombatModule : BehaviourModuleBase
             Debug.LogWarning($"[RangedCombat] {name} fired but projectilePrefab is null on weapon asset!");
             return;
         }
-        Debug.Log($"[RangedCombat] {name} FIRING at {target.name}");
+
+        firingAt = target.GetComponentInChildren<IDamageable>();
 
         Transform muzzle = activeMuzzle != null ? activeMuzzle : transform;
         Vector3 spawnPos = muzzle.position + muzzle.forward * muzzleForwardOffset;
-        Vector3 aimDir = ComputeAimDirection(spawnPos);
+        Vector3 aimDir = ComputeAimDirection(target, spawnPos, activeWeapon);
 
         float totalSpread = aimProfile.baseSpreadAngle + aimProfile.spreadGrowthPerBurstShot * currentBurstSpread;
         if (totalSpread > 0f)
@@ -225,7 +348,10 @@ public class AgentRangedCombatModule : BehaviourModuleBase
         OnFireEvent?.Invoke();
     }
 
-    private Vector3 ComputeAimDirection(Vector3 from)
+    // Lead prediction uses the weapon actually being fired, not the serialized fallback — a
+    // WeaponMount slot swap changes projectile speed, and aiming with the old number puts every
+    // shot behind or ahead of a moving target.
+    private Vector3 ComputeAimDirection(Transform target, Vector3 from, AgentWeaponDefinition activeWeapon)
     {
         if (!target)
             return transform.forward;
@@ -234,11 +360,11 @@ public class AgentRangedCombatModule : BehaviourModuleBase
 
         if (aimProfile.aimLeadFactor > 0f)
         {
-            Rigidbody targetRb = target.GetComponent<Rigidbody>();
-            if (targetRb != null && weapon.projectileSpeed > 0f)
+            Rigidbody targetRb = target.GetComponentInParent<Rigidbody>();
+            if (targetRb != null && activeWeapon.projectileSpeed > 0f)
             {
                 float dist = Vector3.Distance(from, targetPos);
-                float travelTime = dist / weapon.projectileSpeed;
+                float travelTime = dist / activeWeapon.projectileSpeed;
                 targetPos += targetRb.linearVelocity * (travelTime * aimProfile.aimLeadFactor);
             }
         }
@@ -246,7 +372,7 @@ public class AgentRangedCombatModule : BehaviourModuleBase
         return (targetPos - from).normalized;
     }
 
-    private bool HasLineOfSight()
+    private bool HasLineOfSight(Transform target)
     {
         if (!target)
             return false;
@@ -272,61 +398,8 @@ public class AgentRangedCombatModule : BehaviourModuleBase
             return;
         }
 
-        if (targetDamageable != null && !targetDamageable.Alive)
+        if (firingAt != null && !firingAt.Alive)
             OnKillEvent?.Invoke();
-    }
-
-    private MoveIntent ComputeRetreatIntent(Vector3 self, Vector3 targetPos, float minRange)
-    {
-        Vector3 away = self - targetPos;
-        away.y = 0f;
-        if (away.sqrMagnitude < 0.0001f)
-        {
-            away = UnityEngine.Random.insideUnitSphere;
-            away.y = 0f;
-            if (away.sqrMagnitude < 0.0001f)
-                away = Vector3.forward;
-        }
-
-        float retreatDistance = minRange + 0.5f;
-        Vector3 candidate = targetPos + away.normalized * retreatDistance;
-
-        if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, 3f, NavMesh.AllAreas))
-            return MoveIntent.MoveTo(hit.position, 0.2f, 1f);
-
-        return MoveIntent.StopAndFace(targetPos);
-    }
-
-    private void TryResolveTarget()
-    {
-        if (target)
-        {
-            if (targetDamageable == null)
-                targetDamageable = target.GetComponentInChildren<IDamageable>();
-
-            // Drop dead targets so a new live one can be resolved. The dying robot stays active
-            // for its despawn delay, so the Transform reference survives — we have to gate on Alive.
-            if (targetDamageable != null && !targetDamageable.Alive)
-            {
-                target = null;
-                targetDamageable = null;
-            }
-            else
-            {
-                return;
-            }
-        }
-
-        Transform candidate = EntityTargetRegistry.ResolveNearest(selfFaction, requiredRelationship, transform.position);
-        if (candidate == null)
-            return;
-
-        IDamageable candidateDamageable = candidate.GetComponentInChildren<IDamageable>();
-        if (candidateDamageable != null && !candidateDamageable.Alive)
-            return;
-
-        target = candidate;
-        targetDamageable = candidateDamageable;
     }
 
     private void SetAiming(bool aiming)

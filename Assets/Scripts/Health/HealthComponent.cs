@@ -32,6 +32,23 @@ public class HealthComponent : MonoBehaviour, IDamageable
         if (currentHealth <= 0) OnDeath?.Invoke();
     }
     
+    // Full restore for respawns. Heal() can't be used for this: overkill damage
+    // drives currentHealth below zero, and Heal clamps the applied amount to
+    // `amount`, so healing by maxHealth after a -50 hit comes back at half health
+    // — or still dead if the overkill exceeded maxHealth. Raises OnHeal so
+    // NetworkedHealthComponent replicates the new value like any other change.
+    public void ResetToFull()
+    {
+        int restored = maxHealth - currentHealth;
+        if (restored <= 0) return;
+
+        bool wasDead = !Alive;
+        currentHealth = maxHealth;
+
+        OnHeal?.Invoke(restored);
+        if (wasDead) OnRevive?.Invoke();
+    }
+
     public void Heal(int amount)
     {
         if (amount <= 0 || currentHealth == maxHealth) return;

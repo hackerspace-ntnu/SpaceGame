@@ -10,6 +10,11 @@ public class MainMenuUI : MonoBehaviour
 
     public void StartSinglePlayer()
     {
+        // Up before the load starts, and held until terrain streaming and the NavMesh bake have
+        // finished — those run after the scene reports loaded and are what makes the first few
+        // seconds stutter.
+        LoadingScreenUI.ShowUntilReady(gameScene.SceneName);
+
         NetworkManager.Singleton.StartHost();
         NetworkManager.Singleton.SceneManager.LoadScene(gameScene.SceneName, LoadSceneMode.Single);
     }
@@ -19,14 +24,24 @@ public class MainMenuUI : MonoBehaviour
         SceneManager.LoadScene(lobbyScene.SceneName, LoadSceneMode.Single);
     }
 
+    // Wired to the menu's Minigame button. The match is configured first — the
+    // config screen calls LaunchMinigame() once the host has picked a gamemode.
     public void StartMinigame()
+    {
+        MinigameConfigUI.Open(this);
+    }
+
+    public void LaunchMinigame()
     {
         // Tell NetworkGameManager's auto-spawn coroutine to hold off until minigameScene has
         // loaded and gone active, otherwise it spawns the player at persistentScene's own
         // SpawnPoint the instant persistentScene finishes loading. Must be set before StartHost()
         // so it's in place before OnNetworkSpawn fires.
         NetworkGameManager.PendingSceneNameToWaitFor = minigameScene.SceneName;
-        Debug.Log($"[MainMenuUI DEBUG] Set PendingSceneNameToWaitFor='{NetworkGameManager.PendingSceneNameToWaitFor}' (minigameScene={(minigameScene != null ? minigameScene.name : "NULL")})");
+
+        // Waits on the arena, not gameScene: the arena is loaded additively on top and is the
+        // scene the player actually ends up in.
+        LoadingScreenUI.ShowUntilReady(minigameScene.SceneName, "Entering Arena");
 
         NetworkManager.Singleton.StartHost();
 

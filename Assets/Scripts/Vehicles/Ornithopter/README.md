@@ -19,7 +19,7 @@ underneath. Wings beat, spread open at launch, twist through the stroke, and a t
 | `WingPackItem` | *(Assembly-CSharp)* The inventory item. Spawns the craft and mounts the player. |
 
 Built by **Tools ▸ Vehicles ▸ Build Dune Ornithopter Prefab** and **▸ Build Wing Pack Item**, from
-`Assets/Models/Vehicles/Ornithopter/dune_ornithopter.fbx`. Both are re-runnable and measure
+`Assets/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx`. Both are re-runnable and measure
 everything off the meshes, so re-exporting a re-proportioned model and re-running still lands right.
 
 ### Why the motor is in a different assembly from the physics

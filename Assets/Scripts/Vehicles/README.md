@@ -134,7 +134,7 @@ panel and the skin.
 
 - The model is `ship_model 1.blend`, which lives in `Assets/Prefabs/agents/vehicle/` alongside an
   older `ship_model.blend` and a Blender autosave (`ship_model 1.blend1`), with a third copy still
-  in `Assets/Models/Vehicles/RV/`. Only `ship_model 1.blend` is used. Worth consolidating — if the
+  in `Assets/Art/Models/Vehicles/RV/`. Only `ship_model 1.blend` is used. Worth consolidating — if the
   file is renamed or moved, update `ShipRVBuilder.ModelPath`.
 - The artist names the moving parts (`baggage_door`, `left_wing`, `right_motor`,
   `left_wing_axel`, `shell_open`, `shell_closed`), and the builder passes those through untouched.
@@ -265,7 +265,7 @@ corner never drops below the ride height.
 # Dune Foil
 
 `Assets/Prefabs/agents/vehicle/DuneFoil.prefab` — an 18 m wind-driven hydrofoil sand craft, built
-from `Assets/Models/Vehicles/DuneFoil/dune_foil_rig.fbx` by
+from `Assets/Art/Models/Vehicles/DuneFoil/dune_foil_rig.fbx` by
 [`DuneFoilBuilder`](../../Editor/Vehicles/DuneFoilBuilder.cs) — **Tools ▸ Vehicles ▸ Build Dune
 Foil Prefab**.
 
@@ -406,7 +406,7 @@ from windward. `[ExecuteAlways]`, so a rig in the scene trims itself while you a
 
 ## The model
 
-`Assets/Models/_Source~/models/vehicles/dune_foil_rig.py` derives `dune_foil_rig.blend` from the hand-modelled
+`Assets/Art/Models/_Source~/models/vehicles/dune_foil_rig.py` derives `dune_foil_rig.blend` from the hand-modelled
 `dune_foil.blend`, which it **never writes to**. It dedupes 61 materials to 5 (one per colour),
 builds the pivot hierarchy, subdivides the 13-poly sail planes into billowable grids, and UVs them
 luff → leech.
@@ -441,7 +441,7 @@ rig's rest pose.
 
 ## Sailcloth shader
 
-`Assets/Shaders/SailCloth.shader` + `SailCloth.hlsl`. Billow is a vertex displacement to leeward
+`Assets/Art/Shaders/SailCloth.shader` + `SailCloth.hlsl`. Billow is a vertex displacement to leeward
 with the draft at 40% of the chord and the luff, foot and head pinned; flutter is two octaves of
 scrolling noise weighted to the free leech. `SailSurface` writes `_Billow`, `_Luff`, `_Hoist` and
 `_WindDirection` per sail through a `MaterialPropertyBlock`, so all four sails share one material.
@@ -472,7 +472,7 @@ stopped by 15°.
 # Dune Ornithopter
 
 `Assets/Prefabs/agents/vehicle/DuneOrnithopter.prefab` — a 10 m flapping-wing flyer, built from
-`Assets/Models/Vehicles/Ornithopter/dune_ornithopter.fbx` by
+`Assets/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx` by
 [`OrnithopterBuilder`](../../Editor/Vehicles/OrnithopterBuilder.cs) — **Tools ▸ Vehicles ▸ Build
 Dune Ornithopter Prefab**.
 

@@ -80,7 +80,7 @@ namespace SpaceGame.Vehicles.Ornithopter
                 throw new MissingReferenceException(
                     $"OrnithopterWingRig: no bone named '{name}' under '{root.name}'. The FBX must " +
                     "be exported from dune_ornithopter.blend with its armature — see " +
-                    "Assets/Models/_Source~/models/vehicles/dune_ornithopter_export.py.");
+                    "Assets/Art/Models/_Source~/models/vehicles/dune_ornithopter_export.py.");
             }
 
             Root = Find("Bone_Root");

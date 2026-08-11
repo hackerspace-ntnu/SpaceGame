@@ -27,6 +27,7 @@
 //   .Gait.cs  WHEN and WHERE a foot goes -- the clock, swing arcs, footholds, load transfer
 //   .Body.cs  where the BODY goes        -- height, gravity, falling, landing
 //   .Ik.cs    posing the legs onto it    -- the solver call, foot articulation, gizmos
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Locomotion
@@ -104,7 +105,11 @@ namespace SpaceGame.Locomotion
         [Header("Debug")]
         [SerializeField] private bool drawGizmos = true;
 
-        private float commandedSpeed;
+        /// The commanded twist's linear half, as a PLANAR VELOCITY IN BODY SPACE: x to the
+        /// machine's right, y along its nose. Not a scalar, because travel is not always along the
+        /// nose -- a crab goes sideways with its body square to the direction of motion, and a
+        /// scalar plus a heading cannot say that.
+        private Vector2 commandedVelocity;
         private float commandedYawRate;
         private bool ready;
         private Diagnostics diagnostics;
@@ -138,6 +143,13 @@ namespace SpaceGame.Locomotion
             return limits;
         }
 
+        /// Joint travel for one ARM. Split from `BuildLimits` because a shoulder and a hip have
+        /// nothing in common but a name: a hip that could reach where a shoulder reaches would
+        /// fold the machine up. Defaults to the leg's ranges so a rig that has never thought about
+        /// it still solves.
+        protected virtual WalkerLimbSolver.Limits BuildArmLimits(in WalkerLimbGeometry g)
+            => BuildLimits(g);
+
         /// Fastest the machine may turn.
         ///
         /// Derived by default: the outermost foot travels furthest per degree of turn, so it is
@@ -150,6 +162,16 @@ namespace SpaceGame.Locomotion
 
         public bool IsReady => ready;
         public int LegCount => legs.Count;
+
+        /// Limbs that are NOT walked on. Empty on every machine whose rig has no `Arm_` root, which
+        /// is both of the ones shipping.
+        public int ArmCount => arms.Count;
+
+        /// The arms, for whatever drives them. Exposed rather than driven here on purpose: the base
+        /// owns the gait and the body, and an arm's target is neither -- it comes from the robot's
+        /// own component, which calls `SolveArms()` once it has written the targets.
+        public IReadOnlyList<WalkerArm> Arms => arms;
+
         /// Smoothed world velocity, as achieved rather than as commanded.
         public Vector3 MeasuredVelocity => velocity;
 
@@ -202,15 +224,35 @@ namespace SpaceGame.Locomotion
             return true;
         }
 
-        /// What the driver calls each frame. Speed is world units/second along the body's forward,
-        /// yaw rate is degrees/second; both are clamped to what the legs can deliver.
-        ///
-        /// Invariant I1: this clamps, it never zeroes. The clock advances by distance travelled, so
-        /// forcing speed to 0 stops the gait, no phase slice ever reopens, and nothing can un-stick
-        /// the machine. That latch cost a session once already.
+        /// What the driver calls each frame, for a machine that travels along its nose. Speed is
+        /// world units/second forward, yaw rate is degrees/second.
         public void SetTwist(float speed, float yawRate)
+            => SetTwist(new Vector2(0f, speed), yawRate);
+
+        /// The full twist: a planar velocity in the BODY'S OWN frame -- x to the right, y along the
+        /// nose -- plus a yaw rate in degrees/second. Both are clamped to what the legs can deliver.
+        ///
+        /// The lateral channel exists because "how fast" and "which way" are two different
+        /// questions and only one of them is the heading. A crab holds its body square to the
+        /// direction it is going; a mech sidesteps without turning. Expressing that as a speed down
+        /// the nose is not possible, and expressing it by yawing the body first is a different
+        /// machine.
+        ///
+        /// Invariant I1: this clamps, it never zeroes, and it clamps the velocity's MAGNITUDE so
+        /// the direction survives. The clock advances by distance travelled, so a lateral channel
+        /// clamped independently to 0 would stop the gait dead on a purely sideways command, no
+        /// phase slice would ever reopen, and nothing could un-stick the machine. That latch cost a
+        /// session once already, from the other end.
+        public void SetTwist(Vector2 velocityLocal, float yawRate)
         {
-            commandedSpeed = Mathf.Clamp(speed, -MaxSpeed, MaxSpeed);
+            float max = MaxSpeed;
+            float sq = velocityLocal.sqrMagnitude;
+            // Scaled rather than component-clamped: clamping x and y separately turns a diagonal
+            // command into a different direction, and a box clamp lets a machine travel faster on
+            // the diagonal than its legs can carry it.
+            if (sq > max * max && sq > 1e-12f) velocityLocal *= max / Mathf.Sqrt(sq);
+
+            commandedVelocity = velocityLocal;
             commandedYawRate = Mathf.Clamp(yawRate, -MaxYawRate, MaxYawRate);
         }
 
@@ -218,14 +260,18 @@ namespace SpaceGame.Locomotion
 
         /// Ground speed of the hardest-worked foot. A pivot moves the outer legs even when the
         /// body's centre is still, so cadence has to be paced by this rather than by speed alone.
+        ///
+        /// Taken from the velocity's MAGNITUDE, so a machine crabbing sideways is paced exactly as
+        /// one walking forwards at the same ground speed. Reading the forward component alone would
+        /// leave a purely lateral command with a pace of zero, which stops the clock (I1).
         protected float Pace =>
-            Mathf.Abs(commandedSpeed) + Mathf.Abs(commandedYawRate) * Mathf.Deg2Rad * maxFootRadius;
+            commandedVelocity.magnitude + Mathf.Abs(commandedYawRate) * Mathf.Deg2Rad * maxFootRadius;
 
         /// How far into "running" the current speed is, 0..1. Drives duty, pitch and bob together
         /// so the whole machine changes character at once instead of in pieces.
         protected float RunBlend => MaxSpeed <= 1e-4f
             ? 0f
-            : Mathf.Clamp01(Mathf.Abs(commandedSpeed) / MaxSpeed);
+            : Mathf.Clamp01(commandedVelocity.magnitude / MaxSpeed);
 
         protected float CurrentDuty => gaitPattern.Duty(RunBlend);
 
@@ -233,7 +279,13 @@ namespace SpaceGame.Locomotion
         /// standing machine is still rather than idling up and down on the spot.
         protected float Effort => Mathf.Clamp01(Pace / Mathf.Max(MaxSpeed, 1e-4f));
 
-        protected float CommandedSpeed => commandedSpeed;
+        /// The commanded planar velocity in body space: x right, y forward.
+        protected Vector2 CommandedVelocity => commandedVelocity;
+
+        /// The forward component only. Kept for the body motions, which lean and pitch against the
+        /// nose; anything that cares how fast the machine is actually going wants `Pace` or
+        /// `CommandedVelocity.magnitude` instead, both of which count sideways travel.
+        protected float CommandedSpeed => commandedVelocity.y;
         protected float CommandedYawRate => commandedYawRate;
         protected Transform Body => body;
 

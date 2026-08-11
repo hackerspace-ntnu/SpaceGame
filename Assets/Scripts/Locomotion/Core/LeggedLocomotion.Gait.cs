@@ -40,7 +40,10 @@ namespace SpaceGame.Locomotion
             float runBlend = RunBlend;
             float duty = gaitPattern.Duty(runBlend);
             Vector3 up = Vector3.up;
-            Vector3 linear = Quaternion.AngleAxis(currentYaw, Vector3.up) * Vector3.forward * CommandedSpeed;
+            // The world velocity AdvancePath integrated this frame, not a speed re-derived from the
+            // heading. On a machine travelling across its own nose the two are different vectors,
+            // and a foot drifted against the wrong one is dragged sideways all stance.
+            Vector3 linear = commandedWorldVelocity;
             float yawRate = CommandedYawRate * Mathf.Deg2Rad;
             float pace = Pace;
 
@@ -176,7 +179,7 @@ namespace SpaceGame.Locomotion
             Vector3 probe = WalkerGait.Foothold(home, drift, stance, swing, leg.Measure.StrideLength);
 
             Vector3 hipAtTouchdown = WalkerFoothold.HipAtTouchdown(
-                leg.Rig.Anchor.position, currentYaw, CommandedSpeed, swing);
+                leg.Rig.Anchor.position, commandedWorldVelocity, swing);
 
             Vector3 aim = WalkerFoothold.Clamp(
                 probe, hipAtTouchdown, leg.Rig.Geometry.MaxReach, FootholdReachFraction);

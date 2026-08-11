@@ -59,6 +59,12 @@ public partial class MountModule : BehaviourModuleBase, IInteractable
     [SerializeField] private float thirdPersonYawLerp = 16f;
     [Tooltip("Meters ahead of the pivot the camera aims at. Higher = camera tilts further down, shows more ground ahead.")]
     [SerializeField] private float thirdPersonLookAhead = 6f;
+    [Tooltip("Orbit the camera on the mount's FULL rotation rather than its yaw alone. Off for " +
+             "ground vehicles, which stay level and want a level horizon however the hull tilts. " +
+             "On for anything that pitches or rolls in flight — otherwise the camera stays level " +
+             "through a dive and the manoeuvre reads as the ground rising rather than the pilot " +
+             "pitching over.")]
+    [SerializeField] private bool followMountPitch = false;
 
     [Header("Mounted Look")]
     [SerializeField] private string lookActionName = "Look";

@@ -61,13 +61,31 @@ public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovemen
              "that rides metres above the ground needs this to clear the ride height.")]
     [SerializeField] private float navMeshSampleDistance = 20f;
 
+    [Header("Lateral travel")]
+    [Tooltip("This machine may travel across its own nose.\n\nOFF is what every machine built " +
+             "before this did and what most of them still want: a bird and a walking station point " +
+             "at what they are walking toward, so the whole steering problem is one heading and a " +
+             "throttle.\n\nON turns the drive into a planar one. The AI translates straight at its " +
+             "destination whatever way the body is facing, and turns only to keep the target ABEAM " +
+             "— which for a crab is the direction it covers ground fastest in. A rider's stick " +
+             "becomes a two-axis translation: left and right STRAFE rather than turn, and the " +
+             "heading moves to SteerModule's separate turn action (Turn Action Name). Leave that " +
+             "action unbound and the machine strafes but cannot be turned by its rider.")]
+    [SerializeField] private bool lateralSteering;
+
     /// Throttle and yaw for this frame, both -1..1. A subclass writes these from its own idle
     /// behaviour; everything else here is what fills them from a rider or an intent.
     protected float forward;
     protected float turn;
 
+    /// Sideways throttle, -1..1, positive to the machine's right. Stays 0 on every machine that
+    /// left `lateralSteering` off, and the twist is then handed over through the scalar overload —
+    /// so a machine that cannot strafe takes literally the same path it always did.
+    protected float strafe;
+
     private float speedScale = 1f;
     private float currentSpeed;
+    private float currentStrafe;
     private int riderFrame = -1;
     private int commandFrame = -1;
 
@@ -102,12 +120,21 @@ public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovemen
     /// True while an AI route is being followed rather than a straight line to the destination.
     public bool IsFollowingPath => hasPath && path.HasPath;
 
+    /// True while this machine is being steered as a planar drive rather than a heading.
+    public bool CanStrafe => lateralSteering;
+
     /// Drive externally: both in -1..1. For debug tools and cutscenes.
     public void SetInput(float forwardInput, float turnInput)
+        => SetInput(forwardInput, turnInput, 0f);
+
+    /// The same, with a sideways channel. Ignored by a machine that is not a lateral traveller,
+    /// rather than quietly steering one that cannot honour it.
+    public void SetInput(float forwardInput, float turnInput, float strafeInput)
     {
         commandFrame = Time.frameCount;
         forward = Mathf.Clamp(forwardInput, -1f, 1f);
         turn = Mathf.Clamp(turnInput, -1f, 1f);
+        strafe = lateralSteering ? Mathf.Clamp(strafeInput, -1f, 1f) : 0f;
     }
 
     // ─────────── IRiderControllable ───────────
@@ -118,7 +145,21 @@ public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovemen
         riderFrame = Time.frameCount;
         commandFrame = Time.frameCount;
         forward = Mathf.Clamp(input.Move.y, -1f, 1f);
-        turn = Mathf.Clamp(input.Move.x, -1f, 1f);
+
+        // On a lateral traveller the stick's X means STRAFE, so the heading comes off RiderInput's
+        // dedicated Turn axis instead. That axis is 0 unless SteerModule has a turn action bound,
+        // which is why a crab with nothing bound still strafes exactly as it did before.
+        if (lateralSteering)
+        {
+            strafe = Mathf.Clamp(input.Move.x, -1f, 1f);
+            turn = Mathf.Clamp(input.Turn, -1f, 1f);
+        }
+        else
+        {
+            turn = Mathf.Clamp(input.Move.x, -1f, 1f);
+            strafe = 0f;
+        }
+
         speedScale = 1f;
     }
 
@@ -145,8 +186,9 @@ public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovemen
             case AgentIntentType.MoveToPosition:
                 destination = intent.TargetPosition;
                 stopDistance = intent.StopDistance > 0f ? intent.StopDistance : defaultStopDistance;
-                // A legged machine has one heading and cannot strafe, so intent.OverrideFacing is
-                // not honoured while moving -- the body faces where it is going.
+                // A machine with one heading cannot strafe, so intent.OverrideFacing is not honoured
+                // while moving -- the body faces where it is going. A lateral traveller keeps its
+                // heading independently of its course, which is what SteerTowards does below.
                 speedScale = Mathf.Clamp(
                     intent.SpeedMultiplier <= 0f ? 1f : intent.SpeedMultiplier, 0f, 1f);
                 break;
@@ -160,6 +202,7 @@ public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovemen
                 destination = null;
                 forward = 0f;
                 turn = 0f;
+                strafe = 0f;
                 return;
         }
 
@@ -168,6 +211,7 @@ public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovemen
             ClearPath();
             forward = 0f;
             turn = 0f;
+            strafe = 0f;
             return;
         }
 
@@ -180,7 +224,9 @@ public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovemen
         destination = null;
         forward = 0f;
         turn = 0f;
+        strafe = 0f;
         currentSpeed = 0f;
+        currentStrafe = 0f;
         // Cancel the standing order immediately rather than waiting for the next Update, so a stop
         // requested mid-frame cannot leak one more frame of travel into the legs.
         if (locomotion != null) locomotion.SetTwist(0f, 0f);
@@ -272,17 +318,43 @@ public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovemen
         if (to.sqrMagnitude < 1e-4f) { turn = 0f; return; }
         turn = WalkerSteering.Turn(HeadingErrorTo(to));
         forward = 0f;
+        strafe = 0f;
     }
 
     private void SteerTowards(Vector3 worldPoint)
     {
         Vector3 to = worldPoint - transform.position;
         to.y = 0f;
-        if (to.sqrMagnitude < 1e-4f) { forward = 0f; turn = 0f; return; }
+        if (to.sqrMagnitude < 1e-4f) { forward = 0f; turn = 0f; strafe = 0f; return; }
+
+        if (lateralSteering) { SteerLaterally(to.normalized); return; }
 
         float error = HeadingErrorTo(to);
         turn = WalkerSteering.Turn(error);
         forward = WalkerSteering.Throttle(error, turnInPlaceAngle, speedScale);
+    }
+
+    /// Steering for a machine that travels across its own nose.
+    ///
+    /// The course is resolved straight into the body frame, so the machine sets off toward its
+    /// destination on frame one whatever way it happens to be pointing -- there is no turn-in-place
+    /// phase, because there is nothing to turn in place FOR.
+    ///
+    /// The heading is then a separate, slower question, and the answer is to keep the destination
+    /// ABEAM. A crab's legs sweep their yaw arcs along its X, so that is the axis it covers ground
+    /// fastest on; putting the course on it is the difference between scuttling and shuffling.
+    /// Either beam will do -- the nearest one wins, so the machine never spins 180 degrees to
+    /// present the other side.
+    private void SteerLaterally(Vector3 course)
+    {
+        Vector3 local = transform.InverseTransformDirection(course);
+        forward = Mathf.Clamp(local.z, -1f, 1f) * speedScale;
+        strafe = Mathf.Clamp(local.x, -1f, 1f) * speedScale;
+
+        float abeam = Vector3.SignedAngle(transform.right, course, Vector3.up);
+        if (abeam > 90f) abeam -= 180f;
+        else if (abeam < -90f) abeam += 180f;
+        turn = WalkerSteering.Turn(abeam);
     }
 
     private float HeadingErrorTo(Vector3 flatDirection) =>
@@ -296,6 +368,7 @@ public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovemen
     {
         forward = 0f;
         turn = 0f;
+        strafe = 0f;
     }
 
     private void Update()
@@ -305,11 +378,20 @@ public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovemen
         if (commandFrame != Time.frameCount) Idle();
 
         float dt = Time.deltaTime;
-        currentSpeed = Mathf.Lerp(currentSpeed, forward * moveSpeed, 1f - Mathf.Exp(-acceleration * dt));
+        float k = 1f - Mathf.Exp(-acceleration * dt);
+        currentSpeed = Mathf.Lerp(currentSpeed, forward * moveSpeed, k);
+        currentStrafe = Mathf.Lerp(currentStrafe, strafe * moveSpeed, k);
 
         // Hand over the request and let the legs answer it. Every write to the machine's transform
         // lives in the locomotion so there is exactly one owner of the pose.
-        if (locomotion != null) locomotion.SetTwist(currentSpeed, turn * turnSpeed);
+        //
+        // The scalar overload for a machine that does not strafe, deliberately: it is the call the
+        // shipping machines have always made, so nothing about their path changes here. (It forwards
+        // to the planar one with a zero X, so the two agree — this is belt and braces on a file
+        // three machines now share.)
+        if (locomotion == null) return;
+        if (lateralSteering) locomotion.SetTwist(new Vector2(currentStrafe, currentSpeed), turn * turnSpeed);
+        else locomotion.SetTwist(currentSpeed, turn * turnSpeed);
     }
 
     protected virtual void OnValidate()

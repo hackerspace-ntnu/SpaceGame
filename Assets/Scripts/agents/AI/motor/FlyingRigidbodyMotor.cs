@@ -3,8 +3,9 @@
 // channel (Tick(MoveIntent) → fly toward 3D target) and the rider channel
 // (ApplyRiderInput → throttle/yaw/vertical).
 //
-// Expects a Rigidbody with useGravity = false and reasonable linear/angular damping so the blimp
-// doesn't drift forever. Gravity compensation is not done here — configure the Rigidbody itself.
+// Expects a Rigidbody with reasonable linear/angular damping so the blimp doesn't drift forever.
+// The motor owns useGravity: thrust holds the craft up while it is being driven, and `gravityWhenIdle`
+// decides what happens when nothing is — a blimp keeps hanging, a grounded vehicle settles.
 using UnityEngine;
 
 [DefaultExecutionOrder(-100)]
@@ -34,6 +35,12 @@ public class FlyingRigidbodyMotor : MonoBehaviour, IMovementMotor, IRiderControl
     [Tooltip("How hard the blimp pulls toward cruiseAltitude (m/s per m of error, capped).")]
     [SerializeField] private float altitudeHoldGain = 0.5f;
 
+    [Header("Gravity")]
+    [Tooltip("Fall and settle on the ground when the craft is parked — nobody aboard and no AI " +
+             "destination. Leave off for craft that hang in the air by themselves, like a blimp. " +
+             "Ignored while altitudeHold is on: that already owns the vertical axis.")]
+    [SerializeField] private bool gravityWhenIdle;
+
     private Vector3? currentDestination;
     private float stopDistance = 0.5f;
     private int riderDriveFrame = -1;
@@ -59,6 +66,10 @@ public class FlyingRigidbodyMotor : MonoBehaviour, IMovementMotor, IRiderControl
     private float riderForwardSpeed;
     private float riderVerticalSpeed;
     private bool riderVelocityValid;
+
+    // Optional — a craft with no MountModule simply never has a rider.
+    private MountModule mount;
+    private bool mountLookedUp;
 
     // Latest rider input, latched in Update and consumed in FixedUpdate. See ApplyRiderInput.
     private RiderInput pendingRiderInput;
@@ -92,8 +103,42 @@ public class FlyingRigidbodyMotor : MonoBehaviour, IMovementMotor, IRiderControl
     {
         if (!body)
             body = GetComponent<Rigidbody>();
-        if (body)
-            body.useGravity = false;
+
+        // Nothing is driving the craft yet, so start it in its idle gravity state rather than
+        // unconditionally weightless: Tick only reaches IdleHover once an AgentController is
+        // actually ticking the motor, and a parked vehicle that never gets ticked would otherwise
+        // hang in mid-air for the whole session.
+        ApplyGravity(FallsWhenIdle);
+    }
+
+    // Thrust owns the vertical axis whenever the motor writes a velocity, so gravity is switched
+    // off for those frames rather than fought with. Writing useGravity every step is free, but
+    // guarding it keeps the Rigidbody from being woken needlessly.
+    //
+    // A rider aboard counts as driving even on the frames they hold no stick: SteerModule only
+    // forwards input once it clears its override threshold, so a pilot coasting or looking around
+    // reaches IdleHover exactly like a parked craft does. Dropping out of the sky the instant the
+    // throttle centres is not what "obeys gravity" is meant to buy — the machine settles when it
+    // is left alone, not when it is being flown.
+    private bool FallsWhenIdle => gravityWhenIdle && !altitudeHold && !HasRider;
+
+    private bool HasRider
+    {
+        get
+        {
+            if (!mountLookedUp)
+            {
+                mount = GetComponent<MountModule>();
+                mountLookedUp = true;
+            }
+            return mount != null && mount.IsMounted;
+        }
+    }
+
+    private void ApplyGravity(bool enabled)
+    {
+        if (body && body.useGravity != enabled)
+            body.useGravity = enabled;
     }
 
     public void Tick(in MoveIntent intent, float deltaTime)
@@ -195,6 +240,9 @@ public class FlyingRigidbodyMotor : MonoBehaviour, IMovementMotor, IRiderControl
         bool hasInput = Mathf.Abs(throttle) > 0.01f || Mathf.Abs(input.Vertical) > 0.01f;
         float ramp = (hasInput ? acceleration : deceleration) * deltaTime;
 
+        // The rider is flying it — hold it up, whatever it does when parked.
+        ApplyGravity(false);
+
         riderForwardSpeed = Mathf.MoveTowards(riderForwardSpeed, throttle * maxSpeed, ramp);
         riderVerticalSpeed = Mathf.MoveTowards(riderVerticalSpeed, input.Vertical * maxVerticalSpeed, ramp);
 
@@ -217,6 +265,9 @@ public class FlyingRigidbodyMotor : MonoBehaviour, IMovementMotor, IRiderControl
             return;
         body.linearVelocity = Vector3.zero;
         body.angularVelocity = Vector3.zero;
+        // Dismounting is what hands the craft back to physics — don't wait for the next Tick,
+        // which only arrives if something is still ticking the motor.
+        ApplyGravity(FallsWhenIdle);
     }
 
     public void NudgeDestination(Vector3 offset)
@@ -249,6 +300,9 @@ public class FlyingRigidbodyMotor : MonoBehaviour, IMovementMotor, IRiderControl
         float targetSpeed = maxSpeed * Mathf.Max(0.01f, intent.SpeedMultiplier);
         Vector3 desired = moveDir * targetSpeed;
 
+        // AI is flying it to a 3D point, so the velocity below is the whole story.
+        ApplyGravity(false);
+
         body.linearVelocity = Vector3.MoveTowards(body.linearVelocity, desired, acceleration * deltaTime);
 
         // Face horizontal direction of travel.
@@ -259,6 +313,9 @@ public class FlyingRigidbodyMotor : MonoBehaviour, IMovementMotor, IRiderControl
 
     private void IdleHover(float deltaTime)
     {
+        bool falls = FallsWhenIdle;
+        ApplyGravity(falls);
+
         Vector3 v = body.linearVelocity;
 
         // Bleed horizontal velocity.
@@ -274,10 +331,12 @@ public class FlyingRigidbodyMotor : MonoBehaviour, IMovementMotor, IRiderControl
             float targetVy = Mathf.Clamp(altitudeError * altitudeHoldGain, -maxVerticalSpeed, maxVerticalSpeed);
             v.y = Mathf.MoveTowards(v.y, targetVy, acceleration * deltaTime);
         }
-        else
+        else if (!falls)
         {
             v.y = Mathf.MoveTowards(v.y, 0f, deceleration * deltaTime);
         }
+        // else: leave Y to gravity and the ground contact, otherwise the fall is damped away
+        // one step after it starts and the craft hangs exactly where it was parked.
 
         body.linearVelocity = v;
         body.angularVelocity = Vector3.MoveTowards(body.angularVelocity, Vector3.zero, deceleration * deltaTime);
@@ -286,6 +345,8 @@ public class FlyingRigidbodyMotor : MonoBehaviour, IMovementMotor, IRiderControl
     private void DecelerateAll(float deltaTime)
     {
         if (!body) return;
+        // Commanded to hold station, which includes holding altitude.
+        ApplyGravity(false);
         body.linearVelocity = Vector3.MoveTowards(body.linearVelocity, Vector3.zero, deceleration * deltaTime);
         body.angularVelocity = Vector3.MoveTowards(body.angularVelocity, Vector3.zero, deceleration * deltaTime);
     }

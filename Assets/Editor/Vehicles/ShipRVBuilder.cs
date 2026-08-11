@@ -6,8 +6,8 @@
 // hangs the doors and the two engine pylons off hinge pivots, boxes in a walkable interior, and
 // wires up the cockpit controls.
 //
-// The model is generated from models/models/vehicles/ship_rv.blend — see that file and
-// models/models/vehicles/ship_rv_BUILD.md. It replaced a hand-built model whose meshes carried
+// The model is generated from Assets/Models/_Source~/models/vehicles/ship_rv.blend — see that file and
+// Assets/Models/_Source~/models/vehicles/ship_rv_BUILD.md. It replaced a hand-built model whose meshes carried
 // Blender's default names; the source .blend for that older model is still in
 // Assets/Prefabs/agents/vehicle/ and is no longer read by this script.
 //
@@ -510,11 +510,16 @@ public static class ShipRVBuilder
 
         // Yawed a quarter turn so the machine's length runs fore-aft along the wall and its face —
         // gauge, status lamp — looks in across the cabin at whoever is standing in front of it.
+        //
+        // -90, not +90: the presentable side of the machine is its local -Z. A world-space Canvas
+        // reads correctly from the side its own forward points *away* from, so the gauge above the
+        // machine faces -Z too. Yawing +90 aimed both at the port wall and left the cabin looking
+        // at the back of the gauge — two dark panels with the lettering mirrored.
         BoxCollider box = station.GetComponent<BoxCollider>();
         float halfDepth = box != null ? box.size.z * 0.5f : 0.6f;
 
         station.transform.localPosition = new Vector3(portWall.max.x + halfDepth, floorTop, portWall.center.z);
-        station.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+        station.transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
     }
 
     // ─────────── Collision ───────────

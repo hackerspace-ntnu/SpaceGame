@@ -356,8 +356,8 @@ def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 
     parser = argparse.ArgumentParser(prog="palette.py")
-    parser.add_argument("--palette", default="models/palette.blend")
-    parser.add_argument("--doc", default="models/PALETTE.md")
+    parser.add_argument("--palette", default="Assets/Models/_Source~/palette.blend")
+    parser.add_argument("--doc", default="Assets/Models/_Source~/PALETTE.md")
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("init", help="Create an empty palette")

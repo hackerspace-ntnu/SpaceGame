@@ -2,7 +2,7 @@
 
 Run from the repository root:
 
-    python scripts/index_library.py --models-dir models
+    python scripts/index_library.py --models-dir "Assets/Models/_Source~"
 
 Opens every .blend under the library headless, records its collections,
 objects, dimensions, materials and armatures, then writes:
@@ -202,7 +202,7 @@ def write_markdown(index, path, models_dir):
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--models-dir", default="models")
+    parser.add_argument("--models-dir", default="Assets/Models/_Source~")
     parser.add_argument("--blender", default=None, help="Path to the Blender executable")
     args = parser.parse_args()
 

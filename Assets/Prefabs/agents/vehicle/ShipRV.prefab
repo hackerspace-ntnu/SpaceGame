@@ -4644,6 +4644,7 @@ MonoBehaviour:
   altitudeHold: 0
   cruiseAltitude: 40
   altitudeHoldGain: 0.5
+  gravityWhenIdle: 1
 --- !u!114 &4586280668807433832
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4695,6 +4696,7 @@ MonoBehaviour:
   thirdPersonAimLerp: 18
   thirdPersonYawLerp: 16
   thirdPersonLookAhead: 14
+  followMountPitch: 0
   lookActionName: Look
   lookSensitivity: 1
   lookPitchClamp: 75
@@ -4720,6 +4722,7 @@ MonoBehaviour:
   moveActionName: Move
   jumpActionName: Jump
   verticalActionName: Vertical
+  turnActionName: 
   steeringOverrideThreshold: 0.1
   turnSmoothTime: 0.25
   riderCanRun: 0
@@ -9611,7 +9614,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7100001, guid: 6b4d9c2e8a1f74e3ba5c0d78f1e29435, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.7071068
+      value: -0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: 7100001, guid: 6b4d9c2e8a1f74e3ba5c0d78f1e29435, type: 3}
       propertyPath: m_LocalRotation.z

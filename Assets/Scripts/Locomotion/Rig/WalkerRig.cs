@@ -30,7 +30,13 @@ namespace SpaceGame.Locomotion
     {
         /// Prefixes a limb's root bone may carry, most specific first. `Hip_` is the fallback for a
         /// planar rig that never had a yaw joint modelled.
-        private static readonly string[] RootPrefixes = { "Limb_", "Coxa_", "Hip_" };
+        ///
+        /// The first three all mean LEG, because every rig that existed before roles did uses them
+        /// and must keep meaning exactly what it meant. `Arm_` is the one that means anything else.
+        private static readonly string[] RootPrefixes = { "Limb_", "Coxa_", "Hip_", "Arm_" };
+
+        /// The prefix that marks a limb the machine does not walk on.
+        private const string ArmPrefix = "Arm_";
 
         /// Longest chain the walk will follow before concluding the rig is malformed. Well clear of
         /// any real limb; this exists so a cycle in the hierarchy cannot hang the import.
@@ -53,17 +59,25 @@ namespace SpaceGame.Locomotion
 
             // A limb is claimed by the most specific root prefix present, so a rig carrying both
             // Coxa_N1 and Hip_N1 is one limb rooted at the coxa -- never two with the same id.
-            var claimed = new HashSet<string>();
+            //
+            // The claim is per ROLE, not per id. A humanoid naming its legs Coxa_L/Coxa_R and its
+            // arms Arm_L/Arm_R is the obvious thing to do and shares both ids across the two roles;
+            // one namespace would silently drop the arms.
+            var claimed = new HashSet<(LimbRole, string)>();
             foreach (string prefix in RootPrefixes)
             {
+                LimbRole role = RoleFor(prefix);
                 foreach (Transform t in all)
                 {
                     if (!t.name.StartsWith(prefix)) continue;
                     string id = t.name.Substring(prefix.Length);
-                    if (id.Length == 0 || !claimed.Add(id)) continue;
+                    if (id.Length == 0 || !claimed.Add((role, id))) continue;
 
-                    Limb limb = Discover(all, t, id);
-                    if (limb != null && Measure(limb, body)) limbs.Add(limb);
+                    Limb limb = Discover(all, t, id, role);
+                    if (limb == null || !Measure(limb, body)) continue;
+
+                    limb.Role = role;
+                    limbs.Add(limb);
                 }
             }
             return limbs;
@@ -85,6 +99,9 @@ namespace SpaceGame.Locomotion
             return best != null ? best : root;
         }
 
+        private static LimbRole RoleFor(string prefix)
+            => prefix == ArmPrefix ? LimbRole.Arm : LimbRole.Leg;
+
         private static bool IsRootBone(string name)
         {
             foreach (string prefix in RootPrefixes)
@@ -105,9 +122,15 @@ namespace SpaceGame.Locomotion
         /// Everything else is discovered by WALKING the bone hierarchy, which is what lets a limb
         /// shape nobody has named yet import with no code change. Both paths hand the same chain to
         /// the same classifier, so a limb's shape is always decided by measurement.
-        private static Limb Discover(Transform[] all, Transform root, string id)
+        ///
+        /// An ARM never takes the name path. `ChainPrefixes` is the classic LEG's vocabulary, and
+        /// it is looked up by id across the whole armature -- so a humanoid with `Arm_L` and
+        /// `Coxa_L` would have its arm assembled out of the leg's bones. An arm's chain is always
+        /// found by walking the hierarchy, which is also what leaves its joints free to be named
+        /// whatever they actually are: a shoulder is not a coxa.
+        private static Limb Discover(Transform[] all, Transform root, string id, LimbRole role)
         {
-            List<Transform> named = NamedChain(all, id);
+            List<Transform> named = role == LimbRole.Leg ? NamedChain(all, id) : new List<Transform>();
             List<Transform> chain = named.Count >= 3 ? named : WalkChain(root, id);
             if (chain == null) return null;
 

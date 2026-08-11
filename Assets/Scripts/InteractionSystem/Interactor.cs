@@ -30,6 +30,7 @@ public class Interactor : MonoBehaviour
     {
         PlayerInputManager input = GetComponent<PlayerController>().Input;
         input.OnInteractPressed += Interact;
+        input.OnUsePressed += SecondaryInteract;
     }
 
     private void Update()
@@ -60,6 +61,21 @@ public class Interactor : MonoBehaviour
         if (!interactable.CanInteract()) return;
         interactable.Interact(this);
 
+    }
+
+    /// <summary>
+    /// Use, on whatever the crosshair is on. Only reaches things that opt in by implementing
+    /// <see cref="ISecondaryInteractable"/>, so looking at an ordinary interactable and
+    /// clicking still falls through to the weapon.
+    /// </summary>
+    private void SecondaryInteract()
+    {
+        if (!DoInteractionTest(out IInteractable interactable)) return;
+        if (interactable is not ISecondaryInteractable secondary) return;
+
+        if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled) return;
+        if (!secondary.CanSecondaryInteract()) return;
+        secondary.SecondaryInteract(this);
     }
 
     private bool DoInteractionTest(out IInteractable interactable)

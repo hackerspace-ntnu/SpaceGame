@@ -9,7 +9,7 @@ The reason is not aesthetic. A script that runs against an existing file operate
 ## Headless invocation
 
 ```bash
-blender --background --python build_crate.py -- --out models/components/props/crate_panel.blend
+blender --background --python build_crate.py -- --out Assets/Models/_Source~/components/props/crate_panel.blend
 ```
 
 Everything after `--` is passed to the script rather than consumed by Blender. Parse it:
@@ -117,7 +117,7 @@ Leave location unapplied — the origin is meaningful.
 Link from the palette rather than creating new materials:
 
 ```python
-palette_path = "models/palette.blend"
+palette_path = "Assets/Models/_Source~/palette.blend"
 with bpy.data.libraries.load(palette_path, link=True) as (src, dst):
     dst.materials = [m for m in src.materials if m in ("Mat_Metal_Steel_Worn",)]
 
@@ -165,7 +165,7 @@ These follow from the `.blend` being the source of truth:
 After generating, inspect the result rather than assuming it worked:
 
 ```bash
-blender --background models/components/props/crate_panel.blend \
+blender --background Assets/Models/_Source~/components/props/crate_panel.blend \
   --python-expr "import bpy; [print(o.name, o.type, tuple(round(d,3) for d in o.dimensions)) for o in bpy.data.objects]"
 ```
 

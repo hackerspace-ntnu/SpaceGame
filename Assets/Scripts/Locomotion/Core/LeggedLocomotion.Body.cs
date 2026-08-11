@@ -24,6 +24,16 @@ namespace SpaceGame.Locomotion
         private Vector3 lastBodyPos;
         private Vector3 velocity;
 
+        /// This frame's commanded velocity turned into world space, once, at the top of the frame
+        /// and after the yaw has been advanced.
+        ///
+        /// Cached rather than recomputed because THREE places need it and they must agree: the path
+        /// integrates it, the gait drifts the feet against it, and the foothold clamp aims at where
+        /// the hip will be a swing later. Two of those deriving travel from `currentYaw` and one
+        /// from a velocity is exactly how the gait and the footholds end up pointing in different
+        /// directions on a machine that is not travelling along its nose.
+        private Vector3 commandedWorldVelocity;
+
         private float smoothedHeight;
         private bool heightPrimed;
         private float fallVelocity;
@@ -52,6 +62,7 @@ namespace SpaceGame.Locomotion
             lastBodyPos = body.position;
             smoothedHeight = body.position.y;
             heightPrimed = false;
+            commandedWorldVelocity = Vector3.zero;
         }
 
         /// Drop the machine so the legs start within reach of the ground.
@@ -76,17 +87,29 @@ namespace SpaceGame.Locomotion
 
         /// Carry the path forward under the commanded twist, and advance the gait clock by the
         /// distance covered rather than by the time taken.
+        ///
+        /// The twist's linear half is a velocity in the BODY's frame, so it is resolved onto the
+        /// machine's own forward AND right here. A machine commanded straight sideways travels
+        /// sideways with its nose where it was; there is no heading change to derive it from.
         private void AdvancePath(float dt)
         {
             currentYaw += CommandedYawRate * dt;
 
-            Vector3 forward = Quaternion.AngleAxis(currentYaw, Vector3.up) * Vector3.forward;
-            Vector3 moved = forward * (CommandedSpeed * dt);
+            Quaternion heading = Quaternion.AngleAxis(currentYaw, Vector3.up);
+            Vector3 forward = heading * Vector3.forward;
+            Vector3 right = heading * Vector3.right;
+
+            Vector2 v = CommandedVelocity;
+            commandedWorldVelocity = forward * v.y + right * v.x;
+
+            Vector3 moved = forward * (v.y * dt) + right * (v.x * dt);
             pathPos += moved;
 
             gait.Advance(Pace * dt, WalkerGait.CycleDistance(cycleStride, CurrentDuty));
 
-            diagnostics.AchievedSpeed = moved.magnitude / dt * Mathf.Sign(CommandedSpeed);
+            // Signed by the FORWARD channel, since that is the only one an "is it reversing?" reader
+            // can mean; a purely lateral command reports its ground speed as positive.
+            diagnostics.AchievedSpeed = v.y < 0f ? -moved.magnitude / dt : moved.magnitude / dt;
         }
 
         /// Survey the feet, let gravity have its say, then let the body motion pose what is left.

@@ -48,6 +48,17 @@ namespace SpaceGame.Locomotion
             diagnostics.WorstReachFraction = worst;
         }
 
+        /// Poses every arm at whatever target it is currently carrying.
+        ///
+        /// Deliberately NOT part of `Step`. The base owns the frame order for the things that move
+        /// the body, and an arm moves nothing -- it is posed onto a target the subclass wrote, so
+        /// the subclass is what says when the targets are ready. Calling this before they are
+        /// written poses the arms at their rest contact, which is inert rather than wrong.
+        protected void SolveArms()
+        {
+            for (int i = 0; i < arms.Count; i++) arms[i].Solve();
+        }
+
         private void OnDrawGizmosSelected()
         {
             if (!drawGizmos || !Application.isPlaying || !ready) return;

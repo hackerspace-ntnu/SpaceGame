@@ -10,9 +10,27 @@ namespace SpaceGame.Locomotion
 {
     public static partial class WalkerRig
     {
+        /// What a limb is FOR, taken from the prefix its root bone carries. Discovery and
+        /// measurement are identical either way -- a limb is a limb -- but the locomotion walks on
+        /// one and not the other, so the rig has to say which is which. Before this existed an arm
+        /// named `Arm_L` was not found at all and an arm named `Limb_L` was found and then walked on.
+        public enum LimbRole
+        {
+            /// Carries the machine. Gets a LegState, a gait slot and a foothold.
+            Leg,
+            /// Everything else that hangs off the body and is posed by IK. Gets a WalkerArm: a
+            /// world target and a tip direction, and nothing to do with the gait.
+            Arm,
+        }
+
         public class Limb
         {
             public string Id;
+
+            /// Leg unless the root bone said otherwise. Defaulting to Leg is deliberate: every rig
+            /// that existed before roles did carries `Limb_`/`Coxa_`/`Hip_` roots and must keep
+            /// meaning exactly what it meant.
+            public LimbRole Role;
 
             /// The yaw joint at the base of the chain. Null on a planar limb, which has none.
             public Transform Root;

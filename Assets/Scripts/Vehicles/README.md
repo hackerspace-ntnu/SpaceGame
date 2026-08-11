@@ -259,3 +259,234 @@ there waiting for a path that is not coming.
 
 Arrival is measured **flat** throughout, for that same reason — a 3D distance from the deck to a
 corner never drops below the ride height.
+
+---
+
+# Dune Foil
+
+`Assets/Prefabs/agents/vehicle/DuneFoil.prefab` — an 18 m wind-driven hydrofoil sand craft, built
+from `Assets/Models/Vehicles/DuneFoil/dune_foil_rig.fbx` by
+[`DuneFoilBuilder`](../../Editor/Vehicles/DuneFoilBuilder.cs) — **Tools ▸ Vehicles ▸ Build Dune
+Foil Prefab**.
+
+There is no cockpit, no mount and no rudder. You walk onto the deck in normal first person and
+sail it by working the rigging. Sail balance is the entire control scheme.
+
+Design: [`docs/superpowers/specs/2026-08-11-dune-foil-sailer-design.md`](../../../docs/superpowers/specs/2026-08-11-dune-foil-sailer-design.md).
+
+## The deck controls
+
+Look at a winch and work it. **E is the "more" direction, left click is the "less" direction** —
+two buttons rather than one toggle, because every control here runs both ways.
+
+| Station | E | Left click |
+|---|---|---|
+| `Station_Hoist` (forward winch) | set every sail | furl every sail |
+| `Station_MainSheet` (aft winch) | pay out main sheet | haul main in |
+| `Station_JibSheet` | pay out jib sheet | haul jib in |
+| `Station_MastRake` (centre console) | rake the mast aft | rake it forward |
+
+`ISecondaryInteractable` is what gives an interactable that second button; `Interactor` raycasts
+for both through the same path, so anything else in the project can opt in the same way. Ordinary
+`IInteractable`s are unaffected — a click on one still falls through to the weapon.
+
+Three details that make these actually usable:
+
+- **What you aim at is a `Handle`**, a child sphere a metre above the deck, not a collider around
+  the winch. The winches are modelled at and below deck level, so a collider centred on the mesh is
+  half-buried and you have to find the sliver poking through.
+- **Handle radius is derived from the spacing** between winches. A fixed radius large enough to
+  make the isolated ones easy to hit makes the close pair (1.3 m apart) overlap, and then aiming at
+  the far one silently hits the near one. Measured after: each control is usable from ~48 deck
+  positions, closest working spot ~0.85 m. Sighting down the row past another handle is still
+  blocked, which is just occlusion doing its job.
+- **A press acts immediately**, then continues while held. Deferring the whole effect to the next
+  `Update` makes a tap do nothing if anything interrupts the frame, and the control feels dead.
+
+There is deliberately **no distance check on the station**. An earlier version measured from
+`Camera.main` and refused beyond a few metres; `Camera.main` is whatever camera happens to be
+tagged, and when it is not the player's — a spectator camera, an editor preview camera — every
+control on the craft silently refuses. Range belongs to `Interactor`, which already limits its ray
+to 5 m from the player actually interacting.
+
+## Rope length is the control, not sail angle
+
+Nothing ever sets a sail's angle. Each `SailSurface` **weathervanes** to trail the apparent wind
+and the sheet stops it, exactly as on a boat: paying rope out lets the sail swing further off the
+centreline, hauling in pins it closer. Measured on the built prefab, the main sweeps 5° → 90° as
+its rope runs out.
+
+That one rule is what makes the winches real controls, and it is also the helm — see below.
+
+## Steering
+
+| Sail | Lever arm | Effect when it makes force |
+|---|---|---|
+| Main, 99 m² | −1.76 m (aft of the foil) | luffs the bow **up** into the wind |
+| Jib, 17 m² | +8.01 m (forward of it) | bears the bow **away** |
+
+Trim one against the other and the craft turns. Sheet the main in and it rounds up; let the main
+right out until it flags and the jib takes over and the bow falls off.
+
+**The lever arms are placed, not measured.** Taken literally the modelled strut sits aft of every
+sail, so every sail would bear away and the craft would be unsteerable. `RebalanceLevers` puts the
+centre of lateral resistance a fixed fraction of the way from the main toward the jib
+(`mainShare`), which is what a real designer does when setting the lead between centre of effort
+and centre of lateral resistance. `mainShare` is the knob that decides how much helm each sail
+has; at 0.25 the main out-torqued the jib 2:1 and no amount of jib could answer it.
+
+The main's `maxSheetAngle` is **90°, and it has to be**. Stopped at 80 the main still makes
+lateral force fully eased, and with six times the jib's area it then dominates at every trim — the
+craft rounds up and can never bear away.
+
+## Getting aboard
+
+Four things have to line up, and each of them was wrong the first time:
+
+- **The craft starts moored, sails furled.** With sails set it catches the wind on the frame the
+  scene loads and leaves — measured 293 m from the player spawn within seconds, foiling, gangway
+  stowed, unreachable. Furled, it waits. `DuneFoilBuilder` calls `SetHoisted(false)` on every sail.
+- **A `WindField` must exist in the scene.** `SailRig` reads `WindField.Active`; with no wind field
+  there is no wind, no force, and every control appears dead even though it is wired correctly.
+  `Assets/Prefabs/environment/Wind.prefab`, one per scene.
+- **The deck collider is measured from the deck plates**, not the hull's overall height — see
+  below. Getting this wrong put an invisible floor 2.4 m above the planks with every control
+  underneath it.
+- **A gangway, not a ladder.** The player is a Rigidbody capsule with no step offset: it cannot
+  climb a stack of rungs, so the original ladder was scenery. `BoardingRamp` puts a 28° slope down
+  from the sand to the deck and stows it once the craft lifts onto the foil. The starboard rail is
+  split around it — a continuous rail there is a wall across the top of the ramp.
+
+## The deck is measured from the deck plates
+
+`FindDeckPlates` picks the hull parts big enough and flat enough to stand on, and the walking
+surface is the dominant one — 27.8 m² against 3–4 m² for the rest, at y 1.96.
+
+**Never derive it from the hull's max Y.** The tallest thing on this hull is a winch, so that puts
+the deck at 4.36 — an invisible platform 2.4 m above the planks, standing the player in mid-air
+with all four controls hanging below their feet. That single mistake made the craft look both
+unboardable and unsailable.
+
+One flat surface, not a box per plate: the plates sit at 1.96, 2.16, 2.29 and 2.37, and the same
+capsule that cannot climb rungs cannot climb a 0.4 m ledge either. `COL_Hull` is capped just below
+the deck for the same reason — top it out any higher and the player is standing inside it.
+
+## Ride height
+
+`FoilLift` — lift goes as v², so there is a take-off speed below which the hull simply sits on the
+sand.
+
+Measured on the built prefab in a beam wind, sheets at 0.4:
+
+| True wind | Speed | Ride height |
+|---|---|---|
+| 4–8 m/s | 2.2–4.3 m/s | 0 m — ploughing, hull on the sand |
+| 12 m/s | 7.5 m/s | 10.0 m (76%) |
+| 16 m/s | 10.6 m/s | 11.8 m (90%) |
+| 20 m/s | 13.3 m/s | 12.4 m (94%) |
+
+**`takeoffSpeed` has to sit below the speed the craft reaches while still ploughing**, or it can
+never get up at all: hull drag caps it just short and the drag only falls once it is up. The
+`climbRate` constant in `FoilPhysics.RideHeight` is the other half of that trap — too gradual and
+the craft is stuck at a third of its height with drag it cannot out-accelerate.
+
+## Ownership
+
+`DuneFoilLocomotion` is the sole writer of the hull transform, the same rule
+`SpiderWalkerLocomotion` follows. `SailRig` reports a force and a torque and never moves anything.
+Execution order: `SailRig` 50 → `DuneFoilLocomotion` 100 → `WalkerPlatformCarrier` 200, which is
+reused unchanged to carry a player standing on a transform-driven deck.
+
+## Wind
+
+`Assets/Prefabs/environment/Wind.prefab` — one `WindField` per scene, and everything (sails and
+the cloth shader alike) reads it rather than keeping its own idea. Base bearing and speed, a slow
+Perlin drift so it is never quite constant, and a gust field advected downwind so gusts arrive
+from windward. `[ExecuteAlways]`, so a rig in the scene trims itself while you author it.
+
+## The model
+
+`Assets/Models/_Source~/models/vehicles/dune_foil_rig.py` derives `dune_foil_rig.blend` from the hand-modelled
+`dune_foil.blend`, which it **never writes to**. It dedupes 61 materials to 5 (one per colour),
+builds the pivot hierarchy, subdivides the 13-poly sail planes into billowable grids, and UVs them
+luff → leech.
+
+Three things there are load-bearing:
+
+- **Transforms are applied.** The artist built the sails by scaling planes, so they arrived with
+  scales like (114, 242, 114). Anything working in object space then sees a space 100× smaller
+  than the world — the cloth shader displaces by metres and threw the sails 150 m sideways.
+- **Export uses `FBX_SCALE_ALL` and `use_triangles`.** `FBX_SCALE_NONE` bakes a ×100 onto every
+  transform; the n-gons get rejected by Unity's importer as self-intersecting and silently dropped.
+- **The model faces the wrong way.** Blender +Y maps to Unity −Z, so the builder yaws it 180°.
+  That rotation is *composed* with the importer's own Z-up correction, never assigned over it.
+
+## Why the spar swings with the sail
+
+The obvious reading of "rotate the sail, not the post" is to leave the spar on the rake node and
+rotate only the cloth. That does not survive this model. The spars bow 7.5% of their length and the
+sail is laced along that curve, so rotating the cloth rigidly about any straight axis peels the luff
+off the spar at about **0.09 m per degree** — measured flush at the authored pose, 1.9 m adrift at
+15° of sheet, 5.1 m at 60°. The sail visibly tears off its own mast.
+
+So `Main_Post` hangs off `Main_Yaw` and swings with the sail: the gap is then a constant 0.05 m at
+every sheet angle. It is also what the geometry depicts — a single curved spar with a sail laced to
+it is a yard, and a yard turns with its sail. The spar still sits *outside* the `Sail_` node, so
+furling takes the cloth and battens and leaves the spar standing.
+
+If you want a genuinely fixed vertical mast with the sail rotating against it, that needs a bone
+chain along the spar with the sail skinned to it, twisting each bone about its own local tangent.
+`best_spar_axis` in the rig script still computes the fitted rotation axis and would become that
+rig's rest pose.
+
+## Sailcloth shader
+
+`Assets/Shaders/SailCloth.shader` + `SailCloth.hlsl`. Billow is a vertex displacement to leeward
+with the draft at 40% of the chord and the luff, foot and head pinned; flutter is two octaves of
+scrolling noise weighted to the free leech. `SailSurface` writes `_Billow`, `_Luff`, `_Hoist` and
+`_WindDirection` per sail through a `MaterialPropertyBlock`, so all four sails share one material.
+The shadow and depth passes run the same displacement — otherwise a billowing sail casts a flat
+shadow.
+
+The displacement is converted out of object units, so a mesh that arrives with a scaled transform
+cannot blow the sail up again.
+
+## Physics, and where the rules live
+
+`SailAerodynamics` and `FoilPhysics` are static classes of pure functions with no scene
+dependency, covered by `Assets/Tests/EditMode/SailAerodynamicsTests.cs` and `FoilPhysicsTests.cs`.
+
+Points of sail are tested by **terminal speed**, not instantaneous force. At equal apparent wind a
+dead run actually makes the most force — a stalled sail is a parachute and its drag coefficient
+beats any lift coefficient. A reach is faster because running away from the wind kills the
+apparent wind while reaching builds it.
+
+**Induced drag is what creates the no-go zone.** Drag grows as the square of the lift, so close to
+the wind the drive is a small difference between large opposing terms and goes negative. Without
+that term pointing high is free and the craft happily sails 20° off the wind, which nothing can.
+`NoGoHalfAngle` is advisory, for UI only — the collapse is smooth: ~2/3 speed at 45°, ~1/3 at 25°,
+stopped by 15°.
+
+---
+
+# Dune Ornithopter
+
+`Assets/Prefabs/agents/vehicle/DuneOrnithopter.prefab` — a 10 m flapping-wing flyer, built from
+`Assets/Models/Vehicles/Ornithopter/dune_ornithopter.fbx` by
+[`OrnithopterBuilder`](../../Editor/Vehicles/OrnithopterBuilder.cs) — **Tools ▸ Vehicles ▸ Build
+Dune Ornithopter Prefab**.
+
+Unlike everything else here it is **not placed in the world**. The player carries it folded as an
+inventory item (`WingPackItem`, built by **Tools ▸ Vehicles ▸ Build Wing Pack Item**) and uses it in
+mid-air; the craft spawns already mounted, with the rider prone in the cradle, and despawns on
+landing or bail-out. `mountableByDirectInteraction` is off for that reason — there is nothing to
+walk up to.
+
+W/S pitch, A/D roll, **Space** flap, **Left Ctrl** tuck and dive, **Escape** bail out.
+
+Flight is an energy model rather than a throttle: airspeed is bought with altitude or with
+stamina-limited flapping, and the wing stalls if asked for too much. The physics and the 30-bone
+wing articulation live in `SpaceGame.Vehicles.Ornithopter`; the motor is in Assembly-CSharp because
+`IRiderControllable` is. **See
+[`Assets/Scripts/Vehicles/Ornithopter/README.md`](Ornithopter/README.md)** — in particular the
+per-side axis-sign table, which is the one part of the rig that is easy to get silently wrong.

@@ -52,10 +52,15 @@ See `references/scripting.md` for the bpy patterns this workflow depends on.
 
 ## Library layout
 
-Find the models folder at the repository root. If it does not exist, create it.
+Find the source library at `Assets/Models/_Source~/`. If it does not exist, create it.
+
+The trailing `~` is load-bearing: Unity's importer skips any folder whose name
+ends in it, so the `.blend` masters and build scripts live inside `Assets/`
+without being imported as game assets. The exported `.fbx` files that the game
+actually references live in the sibling category folders under `Assets/Models/`.
 
 ```
-models/
+Assets/Models/_Source~/
 ├── PALETTE.md            # documented material list — read before every build
 ├── palette.blend         # the actual material datablocks, linked from everywhere
 ├── LIBRARY.md            # generated index of everything below

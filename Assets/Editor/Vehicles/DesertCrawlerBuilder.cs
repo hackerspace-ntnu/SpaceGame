@@ -15,8 +15,8 @@
 //     cannot make the walker plant its feet on itself.
 //   * Locomotion, driver, and the mount/carry rig that makes it rideable, matching rig_walker.
 //
-// The model is generated from models/models/vehicles/desert_crawler.py — see that file and
-// models/models/vehicles/desert_crawler_BUILD.md.
+// The model is generated from Assets/Models/_Source~/models/vehicles/desert_crawler.py — see that file and
+// Assets/Models/_Source~/models/vehicles/desert_crawler_BUILD.md.
 //
 // Model orientation: authored −Y forward in Blender, which the default FBX axis conversion lands
 // on Unity's +Z. There is deliberately no ModelYaw here, unlike ShipRVBuilder.
@@ -78,7 +78,7 @@ public static class DesertCrawlerBuilder
         if (model == null)
         {
             Debug.LogError($"[DesertCrawler] No model at {ModelPath}. Run " +
-                           "models/models/vehicles/desert_crawler_export.py first.");
+                           "Assets/Models/_Source~/models/vehicles/desert_crawler_export.py first.");
             return;
         }
 

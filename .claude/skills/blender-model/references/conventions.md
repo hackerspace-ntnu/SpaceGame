@@ -53,7 +53,7 @@ Descriptors are PascalCase, meaningful, and describe the thing rather than its h
 
 ## File organization
 
-**Components** — `models/components/<category>/<component_name>.blend`
+**Components** — `Assets/Models/_Source~/components/<category>/<component_name>.blend`
 
 One component per file. Variations of that same component live in the same file, each in its own top-level collection:
 
@@ -68,7 +68,7 @@ Variations are versions of one thing. A crate panel and a crate lid are two thin
 
 Build several variations per component as a matter of course, not only when asked — see the variation section in `SKILL.md`. They must differ in silhouette, structure, or condition; naming them `_A`, `_B`, `_C` is a sign they do not differ enough to deserve separate collections. Name them after what makes them different: `Coll_Tent_Ridge`, `Coll_Tent_LeanTo`, `Coll_Tent_Collapsed`.
 
-**Models** — `models/models/<category>/<subcategory>/<model_name>.blend`
+**Models** — `Assets/Models/_Source~/models/<category>/<subcategory>/<model_name>.blend`
 
 Nest categories as deeply as the content warrants. Prefer placing a model in an existing category over inventing a new one; create a category only when nothing existing is a reasonable home.
 

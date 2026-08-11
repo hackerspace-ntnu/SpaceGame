@@ -35,6 +35,11 @@ public partial class SteerModule : BehaviourModuleBase
     [Tooltip("Optional Vector2 action whose Y axis is used as ascend/descend input for flying motors. " +
              "Leave blank if this vehicle doesn't fly.")]
     [SerializeField] private string verticalActionName = "";
+    [Tooltip("Optional turn axis for a machine whose Move X means something other than turning — a " +
+             "lateral traveller like the crab spends Move X on strafe and takes its heading from " +
+             "here. Accepts a float action or a Vector2 (X axis is used). Leave blank on anything " +
+             "that turns with the stick, which is every machine built before the crab.")]
+    [SerializeField] private string turnActionName = "";
     [SerializeField] private float steeringOverrideThreshold = 0.1f;
 
     [Header("Input Smoothing")]
@@ -68,14 +73,17 @@ public partial class SteerModule : BehaviourModuleBase
     private InputAction jumpAction;
     private InputAction verticalAction;
     private InputAction runAction;
+    private InputAction turnAction;
 
     private Vector2 currentMoveInput;
     private float currentVerticalInput;
+    private float currentTurnInput;
     private bool hasSteeringOverride;
 
     private float moveInputVelocityX;
     private float moveInputVelocityY;
     private float verticalInputVelocity;
+    private float turnInputVelocity;
     private float currentLean;
     private float leanVelocity;
 
@@ -95,6 +103,7 @@ public partial class SteerModule : BehaviourModuleBase
     private bool forcedJumpActionEnabled;
     private bool forcedVerticalActionEnabled;
     private bool forcedRunActionEnabled;
+    private bool forcedTurnActionEnabled;
     private bool runtimeMovementPathEnsured;
 
     // ─────────── Public API ───────────
@@ -193,7 +202,7 @@ public partial class SteerModule : BehaviourModuleBase
         if (riderMotor != null)
         {
             bool running = runAction != null && runAction.IsPressed();
-            RiderInput input = new RiderInput(currentMoveInput, currentVerticalInput, running && riderCanRun);
+            RiderInput input = new RiderInput(currentMoveInput, currentVerticalInput, running && riderCanRun, currentTurnInput);
             riderMotor.ApplyRiderInput(input, deltaTime);
         }
 

@@ -19,17 +19,22 @@ public partial class SteerModule
         runAction = string.IsNullOrEmpty(runActionName)
             ? null
             : InputSystem.actions.FindAction(runActionName);
+        turnAction = string.IsNullOrEmpty(turnActionName)
+            ? null
+            : InputSystem.actions.FindAction(turnActionName);
     }
 
     private void EnsureMountedInputActionsEnabled()
     {
-        if (moveAction == null && jumpAction == null && verticalAction == null && runAction == null)
+        if (moveAction == null && jumpAction == null && verticalAction == null && runAction == null
+            && turnAction == null)
             ResolveInputActions();
 
         EnsureActionEnabled(moveAction, ref forcedMoveActionEnabled);
         EnsureActionEnabled(jumpAction, ref forcedJumpActionEnabled);
         EnsureActionEnabled(verticalAction, ref forcedVerticalActionEnabled);
         EnsureActionEnabled(runAction, ref forcedRunActionEnabled);
+        EnsureActionEnabled(turnAction, ref forcedTurnActionEnabled);
     }
 
     private void RestoreMountedInputActions()
@@ -38,6 +43,7 @@ public partial class SteerModule
         RestoreActionEnabledState(jumpAction, ref forcedJumpActionEnabled);
         RestoreActionEnabledState(verticalAction, ref forcedVerticalActionEnabled);
         RestoreActionEnabledState(runAction, ref forcedRunActionEnabled);
+        RestoreActionEnabledState(turnAction, ref forcedTurnActionEnabled);
     }
 
     private static void EnsureActionEnabled(InputAction action, ref bool forcedEnabled)
@@ -70,8 +76,26 @@ public partial class SteerModule
         float rawVertical = ReadMountedVerticalInput();
         currentVerticalInput = Mathf.SmoothDamp(currentVerticalInput, rawVertical, ref verticalInputVelocity, turnSmoothTime);
 
-        float overrideMag = Mathf.Max(raw.sqrMagnitude, rawVertical * rawVertical);
+        float rawTurn = ReadMountedTurnInput();
+        currentTurnInput = Mathf.SmoothDamp(currentTurnInput, rawTurn, ref turnInputVelocity, turnSmoothTime);
+
+        // Turn counts toward claiming the frame. Without it a rider who only turns — the crab's
+        // whole point, since it can pivot without translating — would fall through to the AI channel.
+        float overrideMag = Mathf.Max(raw.sqrMagnitude, Mathf.Max(rawVertical * rawVertical, rawTurn * rawTurn));
         hasSteeringOverride = overrideMag >= steeringOverrideThreshold * steeringOverrideThreshold;
+    }
+
+    private float ReadMountedTurnInput()
+    {
+        if (turnAction == null)
+            return 0f;
+
+        // Accept either a float or a Vector2 action. For Vector2 we use the X axis, matching the
+        // stick axis a turn would otherwise have come from.
+        if (turnAction.expectedControlType == "Vector2")
+            return Mathf.Clamp(turnAction.ReadValue<Vector2>().x, -1f, 1f);
+
+        return Mathf.Clamp(turnAction.ReadValue<float>(), -1f, 1f);
     }
 
     private Vector2 ReadMountedMoveInput()
@@ -149,9 +173,11 @@ public partial class SteerModule
     {
         currentMoveInput = Vector2.zero;
         currentVerticalInput = 0f;
+        currentTurnInput = 0f;
         moveInputVelocityX = 0f;
         moveInputVelocityY = 0f;
         verticalInputVelocity = 0f;
+        turnInputVelocity = 0f;
         hasSteeringOverride = false;
         jumpHeld = false;
         jumpHoldDuration = 0f;

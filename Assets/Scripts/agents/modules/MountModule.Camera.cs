@@ -193,7 +193,15 @@ public partial class MountModule
             pivot = transform;
 
         // Position: behind+above the pivot, rotated around by cameraYaw (rider's look-stick yaw).
-        Quaternion yawRot = Quaternion.Euler(0f, cameraYaw, 0f);
+        //
+        // followMountPitch swaps the yaw-only orbit for one built on the mount's full attitude,
+        // with the rider's look yaw applied on top of it. A ground vehicle wants the yaw-only
+        // form: the horizon stays level however the hull tilts over rough terrain. A flying
+        // machine needs the full form, or the camera holds a level horizon through a dive and the
+        // pilot sees the ground rise instead of feeling the nose drop.
+        Quaternion yawRot = followMountPitch
+            ? transform.rotation * Quaternion.Euler(0f, cameraYawOffset, 0f)
+            : Quaternion.Euler(0f, cameraYaw, 0f);
         Vector3 targetPosition = pivot.position + yawRot * GetThirdPersonCameraOffset();
         Transform camTransform = runtimeThirdPersonCamera.transform;
 
@@ -226,6 +234,10 @@ public partial class MountModule
 
         Vector3 aimDir = smoothedAimPoint - camTransform.position;
         if (aimDir.sqrMagnitude > 1e-4f)
-            camTransform.rotation = Quaternion.LookRotation(aimDir);
+            // World up, deliberately, even when followMountPitch is on: the camera follows the
+            // mount's pitch but never its ROLL. Rolling the view with a banking aircraft is a
+            // reliable way to make people motion-sick, and holding the horizon level is what makes
+            // the wings visibly bank against it.
+            camTransform.rotation = Quaternion.LookRotation(aimDir, Vector3.up);
     }
 }

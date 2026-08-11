@@ -156,9 +156,22 @@ public class WalkerFootholdTests
     public void HipAtTouchdownLeadsTheSwingByTheDistanceTheBodyWillCover()
     {
         Vector3 now = Vector3.zero;
-        Vector3 later = WalkerFoothold.HipAtTouchdown(now, 0f, 8f, 0.3f);
+        Vector3 later = WalkerFoothold.HipAtTouchdown(now, new Vector3(0f, 0f, 8f), 0.3f);
 
         Assert.AreEqual(2.4f, later.z, 1e-4f);
+    }
+
+    /// The same lead, on a machine going sideways. This is the whole reason the hip's travel is a
+    /// VECTOR rather than a heading and a speed: a crab's nose points north while it goes east, so
+    /// there is no yaw the old signature could have been handed that would put the hip in the right
+    /// place.
+    [Test]
+    public void HipAtTouchdownLeadsSidewaysTravelSideways()
+    {
+        Vector3 later = WalkerFoothold.HipAtTouchdown(Vector3.zero, new Vector3(8f, 0f, 0f), 0.3f);
+
+        Assert.AreEqual(2.4f, later.x, 1e-4f);
+        Assert.AreEqual(0f, later.z, 1e-4f);
     }
 
     [Test]

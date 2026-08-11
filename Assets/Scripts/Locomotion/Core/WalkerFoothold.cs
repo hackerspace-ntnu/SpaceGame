@@ -61,7 +61,14 @@ namespace SpaceGame.Locomotion
 
         /// Where the hip will be when this swing lands. The leg is aimed at that, not at where the
         /// hip is at lift-off.
-        public static Vector3 HipAtTouchdown(Vector3 hipNow, float yaw, float speed, float swing)
-            => hipNow + Quaternion.AngleAxis(yaw, Vector3.up) * Vector3.forward * (speed * swing);
+        ///
+        /// `travel` is the machine's commanded WORLD velocity, not a speed along its nose. A crab
+        /// walks sideways with its body square to the direction it is going, so a heading plus a
+        /// scalar cannot express where its hips will be -- and a foothold aimed down the nose while
+        /// the body slides sideways is a foothold the leg spends its whole stance dragging away
+        /// from. Everything that reads the commanded twist has to read the same vector or the gait
+        /// and the footholds disagree.
+        public static Vector3 HipAtTouchdown(Vector3 hipNow, Vector3 travel, float swing)
+            => hipNow + travel * swing;
     }
 }

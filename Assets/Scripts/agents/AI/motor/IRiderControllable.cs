@@ -16,12 +16,20 @@ public readonly struct RiderInput
     public readonly float Vertical;
     // Rider asked for a "running" speed (sprint) this frame.
     public readonly bool IsRunning;
+    // Dedicated yaw axis, -1..1, for a machine whose Move.x means something other than turning.
+    // A lateral traveller (the crab) spends Move.x on strafe and steers from this instead; every
+    // machine that turns with Move.x ignores it, and it stays 0 when no turn action is bound.
+    public readonly float Turn;
 
     public RiderInput(Vector2 move, float vertical, bool isRunning)
+        : this(move, vertical, isRunning, 0f) { }
+
+    public RiderInput(Vector2 move, float vertical, bool isRunning, float turn)
     {
         Move = move;
         Vertical = vertical;
         IsRunning = isRunning;
+        Turn = turn;
     }
 }
 

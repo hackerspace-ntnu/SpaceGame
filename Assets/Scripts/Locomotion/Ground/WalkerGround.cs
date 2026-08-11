@@ -74,12 +74,35 @@ namespace SpaceGame.Locomotion
             {
                 Collider col = buffer[i].collider;
                 if (col == null || col.transform.IsChildOf(self)) continue;
+                if (IsLooseBody(col)) continue;
                 if (buffer[i].distance >= nearest) continue;
                 nearest = buffer[i].distance;
                 best = buffer[i];
                 found = true;
             }
             return found;
+        }
+
+        /// Whether a hit belongs to something standing on the world rather than being the world.
+        ///
+        /// Rejecting only the machine's OWN colliders is not enough, because the machine also
+        /// CARRIES things. A player standing on the deck is not parented to the walker -- it is
+        /// moved along by WalkerPlatformCarrier -- so the body's height probe found the rider's
+        /// capsule, called it the ground, and set the body to "rider + ride height". The deck went
+        /// up, the carrier took the rider up with it, and the probe found them higher still: the
+        /// machine climbed into the sky at a steady rate for as long as somebody stood under the
+        /// probe. Only under the probe, which is one central ray, which is why it happened when
+        /// the player stood in the MIDDLE of the deck and nowhere else.
+        ///
+        /// The rule is the general one rather than a test for the player specifically: ground is
+        /// terrain and buildings, which are static colliders. Anything under its own physics is
+        /// cargo, and a walking machine does not stand on its cargo. A mounted rider is made
+        /// kinematic AND parented to the mount, so this does not reject the rider of the machine
+        /// casting the ray -- that case is already covered by the IsChildOf test above.
+        private static bool IsLooseBody(Collider col)
+        {
+            Rigidbody rb = col.attachedRigidbody;
+            return rb != null && !rb.isKinematic;
         }
 
         /// Ground below `at`, using the configured start height and length.

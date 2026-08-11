@@ -228,7 +228,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInventoryComponent
   inventorySize: 4
-  startingItems: []
+  startingItems:
+  - {fileID: 11400000, guid: 0207e5d6f86434fdb90e2a0dcb5038ae, type: 2}
 --- !u!114 &1264622234854504379
 MonoBehaviour:
   m_ObjectHideFlags: 0

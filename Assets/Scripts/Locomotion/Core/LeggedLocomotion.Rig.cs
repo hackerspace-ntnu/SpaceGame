@@ -19,6 +19,12 @@ namespace SpaceGame.Locomotion
     public abstract partial class LeggedLocomotion
     {
         protected readonly List<LegState> legs = new List<LegState>();
+
+        /// Limbs the machine does NOT walk on. Discovered, measured and given a solver exactly as a
+        /// leg is, then handed to the subclass to drive: they have no gait slot, no foothold and no
+        /// share of the load, and nothing in the frame below touches them.
+        protected readonly List<WalkerArm> arms = new List<WalkerArm>();
+
         private readonly List<LegMeasurement> measurements = new List<LegMeasurement>();
 
         private WalkerGround ground;
@@ -38,6 +44,7 @@ namespace SpaceGame.Locomotion
         public void Initialise()
         {
             legs.Clear();
+            arms.Clear();
             measurements.Clear();
 
             if (body == null) body = transform;
@@ -52,6 +59,14 @@ namespace SpaceGame.Locomotion
 
             foreach (WalkerRig.Limb rig in WalkerRig.Build(armatureRoot, body))
             {
+                // Not every limb is a leg. An arm gets the same discovery, the same measurement and
+                // the same solver -- and none of the gait, which is the entire seam.
+                if (rig.Role == WalkerRig.LimbRole.Arm)
+                {
+                    arms.Add(new WalkerArm(rig, body, BuildArmLimits(rig.Geometry)));
+                    continue;
+                }
+
                 Vector3 contact = rig.ContactPoint;
                 legs.Add(new LegState
                 {
@@ -71,8 +86,9 @@ namespace SpaceGame.Locomotion
             if (!ready)
             {
                 Debug.LogWarning(
-                    $"[{GetType().Name}] No limb chains found; disabled. The rig needs a " +
-                    "Limb_/Coxa_/Hip_ root with a *Pin* mesh at each joint.", this);
+                    $"[{GetType().Name}] No leg chains found ({arms.Count} arm(s) were); disabled. " +
+                    "A leg needs a Limb_/Coxa_/Hip_ root with a *Pin* mesh at each joint -- an " +
+                    "Arm_ root is discovered but never walked on.", this);
                 return;
             }
 

@@ -16,9 +16,9 @@ So the discipline is: **the palette is a shared resource, and adding to it is a 
 
 ## Structure
 
-`models/palette.blend` holds the material datablocks. Models **link** from it rather than defining copies, so palette edits propagate.
+`Assets/Models/_Source~/palette.blend` holds the material datablocks. Models **link** from it rather than defining copies, so palette edits propagate.
 
-`models/PALETTE.md` is generated from `palette.blend` and documents every material: name, hex, roughness, metallic, and what it is intended for. Read it before every build — it is the fastest way to find the material you should be reusing.
+`Assets/Models/_Source~/PALETTE.md` is generated from `palette.blend` and documents every material: name, hex, roughness, metallic, and what it is intended for. Read it before every build — it is the fastest way to find the material you should be reusing.
 
 The metadata lives as custom properties on the material datablocks, so the documentation is regenerated from the file and can never drift away from it. Never hand-edit `PALETTE.md`.
 

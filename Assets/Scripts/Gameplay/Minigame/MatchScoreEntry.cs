@@ -6,40 +6,43 @@
 using Unity.Collections;
 using Unity.Netcode;
 
-public struct MatchScoreEntry : INetworkSerializable
+namespace SpaceGame.Gameplay
 {
-    // ClientId value used for bots, which have no owning peer.
-    public const ulong NoClient = ulong.MaxValue;
-
-    // Display name assigned at spawn ("Bot 07", "Player 2"). Deliberately not "You" — each peer
-    // resolves that itself by comparing ClientId, so one table is correct for everyone.
-    public FixedString32Bytes Name;
-    public int Kills;
-    public int Deaths;
-    public int Team;
-    public ulong ClientId;
-
-    public bool IsBot => ClientId == NoClient;
-
-    public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+    public struct MatchScoreEntry : INetworkSerializable
     {
-        serializer.SerializeValue(ref Name);
-        serializer.SerializeValue(ref Kills);
-        serializer.SerializeValue(ref Deaths);
-        serializer.SerializeValue(ref Team);
-        serializer.SerializeValue(ref ClientId);
-    }
+        // ClientId value used for bots, which have no owning peer.
+        public const ulong NoClient = ulong.MaxValue;
 
-    // Best first: kills descending, then fewest deaths, then name so the order is stable between
-    // rebuilds instead of flickering between entries that tied.
-    public static int Compare(MatchScoreEntry a, MatchScoreEntry b)
-    {
-        int byKills = b.Kills.CompareTo(a.Kills);
-        if (byKills != 0) return byKills;
+        // Display name assigned at spawn ("Bot 07", "Player 2"). Deliberately not "You" — each peer
+        // resolves that itself by comparing ClientId, so one table is correct for everyone.
+        public FixedString32Bytes Name;
+        public int Kills;
+        public int Deaths;
+        public int Team;
+        public ulong ClientId;
 
-        int byDeaths = a.Deaths.CompareTo(b.Deaths);
-        if (byDeaths != 0) return byDeaths;
+        public bool IsBot => ClientId == NoClient;
 
-        return string.CompareOrdinal(a.Name.ToString(), b.Name.ToString());
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref Name);
+            serializer.SerializeValue(ref Kills);
+            serializer.SerializeValue(ref Deaths);
+            serializer.SerializeValue(ref Team);
+            serializer.SerializeValue(ref ClientId);
+        }
+
+        // Best first: kills descending, then fewest deaths, then name so the order is stable between
+        // rebuilds instead of flickering between entries that tied.
+        public static int Compare(MatchScoreEntry a, MatchScoreEntry b)
+        {
+            int byKills = b.Kills.CompareTo(a.Kills);
+            if (byKills != 0) return byKills;
+
+            int byDeaths = a.Deaths.CompareTo(b.Deaths);
+            if (byDeaths != 0) return byDeaths;
+
+            return string.CompareOrdinal(a.Name.ToString(), b.Name.ToString());
+        }
     }
 }

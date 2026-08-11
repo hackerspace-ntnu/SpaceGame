@@ -1,18 +1,19 @@
-
 using Unity.Netcode;
 using UnityEngine;
 
-public class WorldService : IWorldService
+namespace SpaceGame.Core
 {
-    public void Despawn(GameObject gameObject)
+    public class WorldService : IWorldService
     {
-        var networkObject = gameObject.GetComponent<NetworkObject>();
-        if (Network.IsNetworked && networkObject && networkObject.IsSpawned)
+        public void Despawn(GameObject gameObject)
         {
-            networkObject.Despawn(false);
-        }
+            var networkObject = gameObject.GetComponent<NetworkObject>();
+            if (Network.IsNetworked && networkObject && networkObject.IsSpawned)
+            {
+                networkObject.Despawn(false);
+            }
         
-        Object.Destroy(gameObject);
+            Object.Destroy(gameObject);
+        }
     }
 }
-

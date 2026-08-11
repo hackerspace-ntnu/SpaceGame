@@ -1,17 +1,20 @@
 using UnityEditor;
 
-/// <summary>
-/// Automatically enables Read/Write on all imported meshes so the runtime
-/// NavMesh builder can use their actual geometry instead of box approximations.
-/// </summary>
-public class MeshReadablePostprocessor : AssetPostprocessor
+namespace SpaceGame.EditorTools
 {
-    private void OnPreprocessModel()
+    /// <summary>
+    /// Automatically enables Read/Write on all imported meshes so the runtime
+    /// NavMesh builder can use their actual geometry instead of box approximations.
+    /// </summary>
+    public class MeshReadablePostprocessor : AssetPostprocessor
     {
-        var importer = (ModelImporter)assetImporter;
-        if (!importer.isReadable)
+        private void OnPreprocessModel()
         {
-            importer.isReadable = true;
+            var importer = (ModelImporter)assetImporter;
+            if (!importer.isReadable)
+            {
+                importer.isReadable = true;
+            }
         }
     }
 }

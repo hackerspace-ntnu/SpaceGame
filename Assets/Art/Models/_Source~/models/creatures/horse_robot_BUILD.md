@@ -1,8 +1,8 @@
 # horse_robot — build notes
 
-**Source:** `Assets/Models/_Source~/models/creatures/horse_robot.py` → `horse_robot.blend`
-**Export:** `Assets/Models/_Source~/models/creatures/horse_robot_export.py` →
-`Assets/Models/Creatures/Robotic/Horse/horse_robot.fbx`
+**Source:** `Assets/Art/Models/_Source~/models/creatures/horse_robot.py` → `horse_robot.blend`
+**Export:** `Assets/Art/Models/_Source~/models/creatures/horse_robot_export.py` →
+`Assets/Art/Models/Creatures/Robotic/Horse/horse_robot.fbx`
 **Unity prefab:** Tools ▸ Creatures ▸ Build Horse Robot Prefab
 (`Assets/Editor/Creatures/HorseBuilder.cs`) → `Assets/Prefabs/agents/creatures/HorseRobot.prefab`
 

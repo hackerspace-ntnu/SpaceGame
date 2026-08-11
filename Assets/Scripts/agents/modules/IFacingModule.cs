@@ -10,9 +10,12 @@
 // Implement alongside IBehaviourModule on the same component. Return false to pass.
 using UnityEngine;
 
-public interface IFacingModule
+namespace SpaceGame.Agents
 {
-    int FacingPriority { get; }
-    bool IsActive { get; }
-    bool TryGetFacing(in AgentContext context, out Vector3 facePosition);
+    public interface IFacingModule
+    {
+        int FacingPriority { get; }
+        bool IsActive { get; }
+        bool TryGetFacing(in AgentContext context, out Vector3 facePosition);
+    }
 }

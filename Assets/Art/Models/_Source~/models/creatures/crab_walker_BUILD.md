@@ -12,10 +12,10 @@ then **Tools ▸ Creatures ▸ Build Crab Walker Prefabs** in Unity
 
 | | file |
 | --- | --- |
-| models | `Assets/Models/_Source~/models/creatures/crab_walker_{4,6,8}.blend` |
-| generator | `Assets/Models/_Source~/models/creatures/crab_walker.py` |
-| export | `Assets/Models/_Source~/models/creatures/crab_walker_export.py` |
-| FBX | `Assets/Models/Creatures/Robotic/Crab/crab_walker_{4,6,8}.fbx` |
+| models | `Assets/Art/Models/_Source~/models/creatures/crab_walker_{4,6,8}.blend` |
+| generator | `Assets/Art/Models/_Source~/models/creatures/crab_walker.py` |
+| export | `Assets/Art/Models/_Source~/models/creatures/crab_walker_export.py` |
+| FBX | `Assets/Art/Models/Creatures/Robotic/Crab/crab_walker_{4,6,8}.fbx` |
 | prefabs | `Assets/Prefabs/agents/creatures/CrabWalker{4,6,8}.prefab` |
 | runtime | `Assets/Scripts/Creatures/Crab/` + `Assets/Scripts/Creatures/CrabDriver.cs` |
 

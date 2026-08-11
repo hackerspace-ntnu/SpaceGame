@@ -1,196 +1,204 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using SpaceGame.Core;
+using SpaceGame.Gameplay;
+using SpaceGame.Items;
+using SpaceGame.Presentation;
+using SpaceGame.World;
 
-public class PlayerController : MonoBehaviour
+namespace SpaceGame.Characters
 {
-    public PlayerInputManager Input   { get; private set; }
-    public IPlayerInventory PlayerInventory {get; private set; }
-    
-    [SerializeField] private GameObject playerCamera;
-    [SerializeField] private GameObject playerHUD;
-    
-    [SerializeField] private PlayerMovement playerMovement;
-    [SerializeField] private PlayerLook playerLook;
-    [SerializeField] private DamageFeedback damageFeedback;
-    
-    [SerializeField] private HealthComponent playerHealth;
-    
-    // High level player events
-    public event Action OnPlayerDeath;
-    
-
-    private void Awake()
+    public class PlayerController : MonoBehaviour
     {
-        Input = GetComponent<PlayerInputManager>();
-        PlayerInventory = GetComponent<IPlayerInventory>();
+        public PlayerInputManager Input   { get; private set; }
+        public IPlayerInventory PlayerInventory {get; private set; }
+    
+        [SerializeField] private GameObject playerCamera;
+        [SerializeField] private GameObject playerHUD;
+    
+        [SerializeField] private PlayerMovement playerMovement;
+        [SerializeField] private PlayerLook playerLook;
+        [SerializeField] private DamageFeedback damageFeedback;
+    
+        [SerializeField] private HealthComponent playerHealth;
+    
+        // High level player events
+        public event Action OnPlayerDeath;
+    
 
-        DisablePlayer();
-        if (!Network.IsNetworked)
+        private void Awake()
         {
-            EnablePlayer();
+            Input = GetComponent<PlayerInputManager>();
+            PlayerInventory = GetComponent<IPlayerInventory>();
+
+            DisablePlayer();
+            if (!Network.IsNetworked)
+            {
+                EnablePlayer();
+            }
         }
-    }
 
-    private void Start()
-    {
-        var streamer = FindFirstObjectByType<WorldStreamer>();
-        if (streamer == null) return;
-
-        streamer.RegisterTrackedTransform(transform);
-
-        if (!Network.IsNetworked)
-            StartCoroutine(WaitForStreamerThenPreload(streamer));
-    }
-
-    private IEnumerator WaitForStreamerThenPreload(WorldStreamer streamer)
-    {
-        while (!streamer.IsReady)
-            yield return null;
-
-        streamer.PreloadChunksAroundPosition(transform.position);
-    }
-
-    private void OnDestroy()
-    {
-        var streamer = FindFirstObjectByType<WorldStreamer>();
-        if (streamer != null)
-            streamer.UnregisterTrackedTransform(transform);
-    }
-    public void EnablePlayer()
-    {
-        Input.enabled = true;
-        playerCamera.gameObject.SetActive(true);
-        playerHUD.gameObject.SetActive(true);
-        playerMovement.enabled = true;
-        playerLook.enabled = true;
-        damageFeedback.enabled = true;
-
-        playerHealth.OnDeath += OnDeath;
-        playerHealth.OnRevive += OnRevive;
-
-        var rangedCombat = GetComponent<PlayerRangedCombat>();
-        if (rangedCombat != null)
-            Input.OnUsePressed += rangedCombat.TryFire;
-    }
-
-    public void DisablePlayer()
-    {
-        Input.enabled = false;
-        playerCamera.gameObject.SetActive(false);
-        playerHUD.gameObject.SetActive(false);
-        playerMovement.enabled = false;
-        playerLook.enabled = false;
-        damageFeedback.enabled = false;
-
-        playerHealth.OnDeath -= OnDeath;
-        playerHealth.OnRevive -= OnRevive;
-
-        var rangedCombat = GetComponent<PlayerRangedCombat>();
-        if (rangedCombat != null)
-            Input.OnUsePressed -= rangedCombat.TryFire;
-    }
-
-    public Camera PlayerCamera => playerCamera != null ? playerCamera.GetComponent<Camera>() : null;
-    public Transform PlayerCameraTransform => playerCamera != null ? playerCamera.transform : null;
-
-    // Cutscene handover: lock input/look/movement but keep the camera GameObject active so a
-    // cutscene can drive its transform. Prior enabled-state is captured so the same call is
-    // safe whether the player is on foot, mounted, or already had something disabled.
-    private bool inCutsceneMode;
-    private bool savedInputEnabled;
-    private bool savedMovementEnabled;
-    private bool savedLookEnabled;
-    private bool savedDamageFeedbackEnabled;
-    private bool savedHudActive;
-
-    public bool InCutsceneMode => inCutsceneMode;
-
-    public void EnterCutsceneMode()
-    {
-        if (inCutsceneMode) return;
-        inCutsceneMode = true;
-
-        savedInputEnabled = Input.enabled;
-        savedMovementEnabled = playerMovement.enabled;
-        savedLookEnabled = playerLook.enabled;
-        savedDamageFeedbackEnabled = damageFeedback.enabled;
-        savedHudActive = playerHUD.activeSelf;
-
-        Input.enabled = false;
-        playerMovement.enabled = false;
-        playerLook.enabled = false;
-        damageFeedback.enabled = false;
-        playerHUD.SetActive(false);
-    }
-
-    public void ExitCutsceneMode()
-    {
-        if (!inCutsceneMode) return;
-        inCutsceneMode = false;
-
-        Input.enabled = savedInputEnabled;
-        playerMovement.enabled = savedMovementEnabled;
-        playerLook.enabled = savedLookEnabled;
-        damageFeedback.enabled = savedDamageFeedbackEnabled;
-        playerHUD.SetActive(savedHudActive);
-    }
-
-    private void OnDeath()
-    {
-        OnPlayerDeath?.Invoke();
-        playerMovement.enabled = false;
-        playerLook.enabled = false;
-
-        // TODO: ragdoll
-    }
-
-    // Paired with OnDeath: without this a respawned player keeps the frozen
-    // movement/look from the death that preceded it. HealthComponent raises
-    // OnRevive when health is restored from zero, which is what MatchManager's
-    // respawn does, so this is the natural place to hand control back.
-    private void OnRevive()
-    {
-        ExitSpectatorMode();
-
-        if (!inCutsceneMode)
+        private void Start()
         {
+            var streamer = FindFirstObjectByType<WorldStreamer>();
+            if (streamer == null) return;
+
+            streamer.RegisterTrackedTransform(transform);
+
+            if (!Network.IsNetworked)
+                StartCoroutine(WaitForStreamerThenPreload(streamer));
+        }
+
+        private IEnumerator WaitForStreamerThenPreload(WorldStreamer streamer)
+        {
+            while (!streamer.IsReady)
+                yield return null;
+
+            streamer.PreloadChunksAroundPosition(transform.position);
+        }
+
+        private void OnDestroy()
+        {
+            var streamer = FindFirstObjectByType<WorldStreamer>();
+            if (streamer != null)
+                streamer.UnregisterTrackedTransform(transform);
+        }
+        public void EnablePlayer()
+        {
+            Input.enabled = true;
+            playerCamera.gameObject.SetActive(true);
+            playerHUD.gameObject.SetActive(true);
             playerMovement.enabled = true;
             playerLook.enabled = true;
+            damageFeedback.enabled = true;
+
+            playerHealth.OnDeath += OnDeath;
+            playerHealth.OnRevive += OnRevive;
+
+            var rangedCombat = GetComponent<PlayerRangedCombat>();
+            if (rangedCombat != null)
+                Input.OnUsePressed += rangedCombat.TryFire;
         }
-    }
 
-    private SpectatorCamera spectator;
-
-    // Called (via MatchManager, on the owning client) only when this player is
-    // out of the match for good — not on a death they'll respawn from, which
-    // would swap the player camera out and never hand it back.
-    public void EnterSpectatorMode()
-    {
-        if (spectator != null) return;
-
-        var spectatorGo = new GameObject("SpectatorCamera");
-        if (PlayerCameraTransform != null)
+        public void DisablePlayer()
         {
-            spectatorGo.transform.SetPositionAndRotation(
-                PlayerCameraTransform.position, PlayerCameraTransform.rotation);
+            Input.enabled = false;
+            playerCamera.gameObject.SetActive(false);
+            playerHUD.gameObject.SetActive(false);
+            playerMovement.enabled = false;
+            playerLook.enabled = false;
+            damageFeedback.enabled = false;
+
+            playerHealth.OnDeath -= OnDeath;
+            playerHealth.OnRevive -= OnRevive;
+
+            var rangedCombat = GetComponent<PlayerRangedCombat>();
+            if (rangedCombat != null)
+                Input.OnUsePressed -= rangedCombat.TryFire;
         }
 
-        spectatorGo.AddComponent<Camera>();
-        spectator = spectatorGo.AddComponent<SpectatorCamera>();
+        public Camera PlayerCamera => playerCamera != null ? playerCamera.GetComponent<Camera>() : null;
+        public Transform PlayerCameraTransform => playerCamera != null ? playerCamera.transform : null;
 
-        if (playerCamera != null)
-            playerCamera.SetActive(false);
-    }
+        // Cutscene handover: lock input/look/movement but keep the camera GameObject active so a
+        // cutscene can drive its transform. Prior enabled-state is captured so the same call is
+        // safe whether the player is on foot, mounted, or already had something disabled.
+        private bool inCutsceneMode;
+        private bool savedInputEnabled;
+        private bool savedMovementEnabled;
+        private bool savedLookEnabled;
+        private bool savedDamageFeedbackEnabled;
+        private bool savedHudActive;
 
-    public void ExitSpectatorMode()
-    {
-        if (spectator == null) return;
+        public bool InCutsceneMode => inCutsceneMode;
 
-        Destroy(spectator.gameObject);
-        spectator = null;
+        public void EnterCutsceneMode()
+        {
+            if (inCutsceneMode) return;
+            inCutsceneMode = true;
 
-        if (playerCamera != null)
-            playerCamera.SetActive(true);
+            savedInputEnabled = Input.enabled;
+            savedMovementEnabled = playerMovement.enabled;
+            savedLookEnabled = playerLook.enabled;
+            savedDamageFeedbackEnabled = damageFeedback.enabled;
+            savedHudActive = playerHUD.activeSelf;
+
+            Input.enabled = false;
+            playerMovement.enabled = false;
+            playerLook.enabled = false;
+            damageFeedback.enabled = false;
+            playerHUD.SetActive(false);
+        }
+
+        public void ExitCutsceneMode()
+        {
+            if (!inCutsceneMode) return;
+            inCutsceneMode = false;
+
+            Input.enabled = savedInputEnabled;
+            playerMovement.enabled = savedMovementEnabled;
+            playerLook.enabled = savedLookEnabled;
+            damageFeedback.enabled = savedDamageFeedbackEnabled;
+            playerHUD.SetActive(savedHudActive);
+        }
+
+        private void OnDeath()
+        {
+            OnPlayerDeath?.Invoke();
+            playerMovement.enabled = false;
+            playerLook.enabled = false;
+
+            // TODO: ragdoll
+        }
+
+        // Paired with OnDeath: without this a respawned player keeps the frozen
+        // movement/look from the death that preceded it. HealthComponent raises
+        // OnRevive when health is restored from zero, which is what MatchManager's
+        // respawn does, so this is the natural place to hand control back.
+        private void OnRevive()
+        {
+            ExitSpectatorMode();
+
+            if (!inCutsceneMode)
+            {
+                playerMovement.enabled = true;
+                playerLook.enabled = true;
+            }
+        }
+
+        private SpectatorCamera spectator;
+
+        // Called (via MatchManager, on the owning client) only when this player is
+        // out of the match for good — not on a death they'll respawn from, which
+        // would swap the player camera out and never hand it back.
+        public void EnterSpectatorMode()
+        {
+            if (spectator != null) return;
+
+            var spectatorGo = new GameObject("SpectatorCamera");
+            if (PlayerCameraTransform != null)
+            {
+                spectatorGo.transform.SetPositionAndRotation(
+                    PlayerCameraTransform.position, PlayerCameraTransform.rotation);
+            }
+
+            spectatorGo.AddComponent<Camera>();
+            spectator = spectatorGo.AddComponent<SpectatorCamera>();
+
+            if (playerCamera != null)
+                playerCamera.SetActive(false);
+        }
+
+        public void ExitSpectatorMode()
+        {
+            if (spectator == null) return;
+
+            Destroy(spectator.gameObject);
+            spectator = null;
+
+            if (playerCamera != null)
+                playerCamera.SetActive(true);
+        }
     }
 }

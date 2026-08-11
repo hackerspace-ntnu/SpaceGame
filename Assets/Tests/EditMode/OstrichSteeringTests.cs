@@ -8,60 +8,63 @@
 using NUnit.Framework;
 using SpaceGame.Locomotion;
 
-public class OstrichSteeringTests
+namespace SpaceGame.Tests
 {
-    private const float TurnInPlaceAngle = 60f;
-
-    [Test]
-    public void TurnsTowardTheTarget()
+    public class OstrichSteeringTests
     {
-        Assert.Greater(WalkerSteering.Turn(30f), 0f, "a target to the right should yaw right");
-        Assert.Less(WalkerSteering.Turn(-30f), 0f, "a target to the left should yaw left");
-        Assert.AreEqual(0f, WalkerSteering.Turn(0f), 1e-4f, "dead ahead needs no yaw");
-    }
+        private const float TurnInPlaceAngle = 60f;
 
-    [Test]
-    public void TurnCommandSaturates()
-    {
-        Assert.AreEqual(1f, WalkerSteering.Turn(180f), 1e-4f);
-        Assert.AreEqual(-1f, WalkerSteering.Turn(-180f), 1e-4f);
-    }
+        [Test]
+        public void TurnsTowardTheTarget()
+        {
+            Assert.Greater(WalkerSteering.Turn(30f), 0f, "a target to the right should yaw right");
+            Assert.Less(WalkerSteering.Turn(-30f), 0f, "a target to the left should yaw left");
+            Assert.AreEqual(0f, WalkerSteering.Turn(0f), 1e-4f, "dead ahead needs no yaw");
+        }
 
-    /// A bird this leggy pivots before committing rather than carving a wide arc around every
-    /// waypoint.
-    [Test]
-    public void PivotsInPlaceWhenBadlyMisaligned()
-    {
-        Assert.AreEqual(0f, WalkerSteering.Throttle(90f, TurnInPlaceAngle, 1f), 1e-4f,
-                        "90 degrees off, the bird should turn on the spot");
-        Assert.Greater(WalkerSteering.Throttle(10f, TurnInPlaceAngle, 1f), 0f,
-                       "roughly aligned, the bird should run on");
-    }
+        [Test]
+        public void TurnCommandSaturates()
+        {
+            Assert.AreEqual(1f, WalkerSteering.Turn(180f), 1e-4f);
+            Assert.AreEqual(-1f, WalkerSteering.Turn(-180f), 1e-4f);
+        }
 
-    /// A wandering bird should walk, not sprint. The driver used to throw the throttle wide open
-    /// for any MoveToPosition intent, so a module asking for a gentle roam got a bird at a dead run
-    /// -- and walkThrottle, the field that exists to describe exactly this, went unread.
-    [Test]
-    public void ThrottleFollowsTheSpeedMultiplier()
-    {
-        Assert.AreEqual(0.45f, WalkerSteering.Throttle(0f, TurnInPlaceAngle, 0.45f), 1e-4f,
-                        "a 45% intent should ask for 45% throttle");
-        Assert.AreEqual(1f, WalkerSteering.Throttle(0f, TurnInPlaceAngle, 1f), 1e-4f);
-    }
+        /// A bird this leggy pivots before committing rather than carving a wide arc around every
+        /// waypoint.
+        [Test]
+        public void PivotsInPlaceWhenBadlyMisaligned()
+        {
+            Assert.AreEqual(0f, WalkerSteering.Throttle(90f, TurnInPlaceAngle, 1f), 1e-4f,
+                            "90 degrees off, the bird should turn on the spot");
+            Assert.Greater(WalkerSteering.Throttle(10f, TurnInPlaceAngle, 1f), 0f,
+                           "roughly aligned, the bird should run on");
+        }
 
-    /// The multiplier scales the throttle; it is not a way to ask for more than the legs were ever
-    /// going to give. AgentController already multiplies a ±10% speed variation into every intent.
-    [Test]
-    public void ThrottleNeverExceedsFull()
-    {
-        Assert.AreEqual(1f, WalkerSteering.Throttle(0f, TurnInPlaceAngle, 3f), 1e-4f);
-    }
+        /// A wandering bird should walk, not sprint. The driver used to throw the throttle wide open
+        /// for any MoveToPosition intent, so a module asking for a gentle roam got a bird at a dead run
+        /// -- and walkThrottle, the field that exists to describe exactly this, went unread.
+        [Test]
+        public void ThrottleFollowsTheSpeedMultiplier()
+        {
+            Assert.AreEqual(0.45f, WalkerSteering.Throttle(0f, TurnInPlaceAngle, 0.45f), 1e-4f,
+                            "a 45% intent should ask for 45% throttle");
+            Assert.AreEqual(1f, WalkerSteering.Throttle(0f, TurnInPlaceAngle, 1f), 1e-4f);
+        }
 
-    /// A pivot is a pivot however fast the intent wanted to go.
-    [Test]
-    public void PivotingIgnoresTheSpeedMultiplier()
-    {
-        Assert.AreEqual(0f, WalkerSteering.Throttle(90f, TurnInPlaceAngle, 1f), 1e-4f);
-        Assert.AreEqual(0f, WalkerSteering.Throttle(90f, TurnInPlaceAngle, 0.45f), 1e-4f);
+        /// The multiplier scales the throttle; it is not a way to ask for more than the legs were ever
+        /// going to give. AgentController already multiplies a ±10% speed variation into every intent.
+        [Test]
+        public void ThrottleNeverExceedsFull()
+        {
+            Assert.AreEqual(1f, WalkerSteering.Throttle(0f, TurnInPlaceAngle, 3f), 1e-4f);
+        }
+
+        /// A pivot is a pivot however fast the intent wanted to go.
+        [Test]
+        public void PivotingIgnoresTheSpeedMultiplier()
+        {
+            Assert.AreEqual(0f, WalkerSteering.Throttle(90f, TurnInPlaceAngle, 1f), 1e-4f);
+            Assert.AreEqual(0f, WalkerSteering.Throttle(90f, TurnInPlaceAngle, 0.45f), 1e-4f);
+        }
     }
 }

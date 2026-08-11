@@ -1,51 +1,56 @@
 using Unity.Netcode;
 using UnityEngine;
+using SpaceGame.Agents;
+using SpaceGame.Gameplay;
 
-// Player-side equivalent of AgentRangedCombatModule's FireOne(), reusing the same
-// AgentWeaponDefinition/AgentProjectile pair bots use so damage and friendly-fire
-// behavior (AgentProjectile.IsAlliedWith check) are identical for players and bots
-// in a mixed deathmatch. Server-authoritative: firing is requested via RPC and the
-// projectile is spawned only on the server, matching NetworkedHealthComponent's
-// server-owns-truth pattern elsewhere on this prefab.
-[RequireComponent(typeof(NetworkObject))]
-public class PlayerRangedCombat : NetworkBehaviour
+namespace SpaceGame.Characters
 {
-    [SerializeField] private AgentWeaponDefinition weapon;
-    [SerializeField] private AimProvider aimProvider;
-    [SerializeField] private Transform muzzle;
-    [SerializeField] private float fireCooldown = 0.3f;
-
-    private float nextFireTime;
-
-    public void TryFire()
+    // Player-side equivalent of AgentRangedCombatModule's FireOne(), reusing the same
+    // AgentWeaponDefinition/AgentProjectile pair bots use so damage and friendly-fire
+    // behavior (AgentProjectile.IsAlliedWith check) are identical for players and bots
+    // in a mixed deathmatch. Server-authoritative: firing is requested via RPC and the
+    // projectile is spawned only on the server, matching NetworkedHealthComponent's
+    // server-owns-truth pattern elsewhere on this prefab.
+    [RequireComponent(typeof(NetworkObject))]
+    public class PlayerRangedCombat : NetworkBehaviour
     {
-        if (!IsOwner) return;
-        if (Time.time < nextFireTime) return;
-        if (weapon == null || aimProvider == null || muzzle == null) return;
+        [SerializeField] private AgentWeaponDefinition weapon;
+        [SerializeField] private AimProvider aimProvider;
+        [SerializeField] private Transform muzzle;
+        [SerializeField] private float fireCooldown = 0.3f;
 
-        nextFireTime = Time.time + fireCooldown;
+        private float nextFireTime;
 
-        Vector3 aimDirection = aimProvider.GetAimRay().direction;
-        FireServerRpc(muzzle.position, aimDirection);
-    }
+        public void TryFire()
+        {
+            if (!IsOwner) return;
+            if (Time.time < nextFireTime) return;
+            if (weapon == null || aimProvider == null || muzzle == null) return;
 
-    [Rpc(SendTo.Server)]
-    private void FireServerRpc(Vector3 spawnPosition, Vector3 aimDirection)
-    {
-        if (weapon == null || weapon.projectilePrefab == null) return;
+            nextFireTime = Time.time + fireCooldown;
 
-        GameObject projectile = Instantiate(weapon.projectilePrefab, spawnPosition, Quaternion.LookRotation(aimDirection));
+            Vector3 aimDirection = aimProvider.GetAimRay().direction;
+            FireServerRpc(muzzle.position, aimDirection);
+        }
 
-        AgentProjectile agentProjectile = projectile.GetComponent<AgentProjectile>();
-        if (agentProjectile != null)
-            agentProjectile.Init(weapon.damagePerHit, null, gameObject);
+        [Rpc(SendTo.Server)]
+        private void FireServerRpc(Vector3 spawnPosition, Vector3 aimDirection)
+        {
+            if (weapon == null || weapon.projectilePrefab == null) return;
 
-        Rigidbody rb = projectile.GetComponent<Rigidbody>();
-        if (rb != null)
-            rb.linearVelocity = aimDirection * weapon.projectileSpeed;
+            GameObject projectile = Instantiate(weapon.projectilePrefab, spawnPosition, Quaternion.LookRotation(aimDirection));
 
-        NetworkObject projectileNetObj = projectile.GetComponent<NetworkObject>();
-        if (projectileNetObj != null)
-            projectileNetObj.Spawn();
+            AgentProjectile agentProjectile = projectile.GetComponent<AgentProjectile>();
+            if (agentProjectile != null)
+                agentProjectile.Init(weapon.damagePerHit, null, gameObject);
+
+            Rigidbody rb = projectile.GetComponent<Rigidbody>();
+            if (rb != null)
+                rb.linearVelocity = aimDirection * weapon.projectileSpeed;
+
+            NetworkObject projectileNetObj = projectile.GetComponent<NetworkObject>();
+            if (projectileNetObj != null)
+                projectileNetObj.Spawn();
+        }
     }
 }

@@ -1,7 +1,8 @@
-
-public enum GameMode
+namespace SpaceGame.Gameplay
 {
-    Singleplayer,
-    Multiplayer
+    public enum GameMode
+    {
+        Singleplayer,
+        Multiplayer
+    }
 }
-

@@ -1,18 +1,21 @@
 using UnityEngine;
 
-[DisallowMultipleComponent]
-public class BillboardFaceCamera : MonoBehaviour
+namespace SpaceGame.Weapons
 {
-    [SerializeField] private Camera targetCamera;
-
-    private void LateUpdate()
+    [DisallowMultipleComponent]
+    public class BillboardFaceCamera : MonoBehaviour
     {
-        Camera cam = targetCamera != null ? targetCamera : Camera.main;
-        if (cam == null)
-        {
-            return;
-        }
+        [SerializeField] private Camera targetCamera;
 
-        transform.forward = cam.transform.forward;
+        private void LateUpdate()
+        {
+            Camera cam = targetCamera != null ? targetCamera : Camera.main;
+            if (cam == null)
+            {
+                return;
+            }
+
+            transform.forward = cam.transform.forward;
+        }
     }
 }

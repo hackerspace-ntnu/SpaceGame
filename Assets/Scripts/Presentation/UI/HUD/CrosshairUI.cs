@@ -1,33 +1,37 @@
 using UnityEngine;
 using UnityEngine.UI;
+using SpaceGame.Gameplay;
 
-public class CrosshairUI : MonoBehaviour
+namespace SpaceGame.Presentation
 {
-    [Header("References")]
-    [SerializeField] private Interactor playerInteractor;
-    [SerializeField] private RawImage crosshairImage;
-
-    [Header("Alpha")]
-    [Range(0f, 1f)] public float idleAlpha = 0.25f;
-    [Range(0f, 1f)] public float activeAlpha = 1f;
-    public float fadeSpeed = 10f;
-
-    private float _currentAlpha;
-
-    void Update()
+    public class CrosshairUI : MonoBehaviour
     {
-        if(!playerInteractor) return;
-        if (!crosshairImage) return;
+        [Header("References")]
+        [SerializeField] private Interactor playerInteractor;
+        [SerializeField] private RawImage crosshairImage;
 
-        float targetAlpha = (playerInteractor && playerInteractor.IsHoveringInteractable)
-            ? activeAlpha
-            : idleAlpha;
+        [Header("Alpha")]
+        [Range(0f, 1f)] public float idleAlpha = 0.25f;
+        [Range(0f, 1f)] public float activeAlpha = 1f;
+        public float fadeSpeed = 10f;
 
-        _currentAlpha = Mathf.Lerp(_currentAlpha, targetAlpha, Time.deltaTime * fadeSpeed);
+        private float _currentAlpha;
 
-        Color color = crosshairImage.color;
-        color.a = _currentAlpha;
-        crosshairImage.color = color;
-    }
+        void Update()
+        {
+            if(!playerInteractor) return;
+            if (!crosshairImage) return;
+
+            float targetAlpha = (playerInteractor && playerInteractor.IsHoveringInteractable)
+                ? activeAlpha
+                : idleAlpha;
+
+            _currentAlpha = Mathf.Lerp(_currentAlpha, targetAlpha, Time.deltaTime * fadeSpeed);
+
+            Color color = crosshairImage.color;
+            color.a = _currentAlpha;
+            crosshairImage.color = color;
+        }
     
+    }
 }

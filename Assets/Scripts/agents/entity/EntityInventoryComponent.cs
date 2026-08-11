@@ -4,48 +4,53 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Characters;
+using SpaceGame.Items;
 
-public class EntityInventoryComponent : MonoBehaviour
+namespace SpaceGame.Agents
 {
-    [SerializeField] private int inventorySize = 4;
-    [SerializeField] private List<InventoryItem> startingItems;
-
-    private Inventory inventory;
-
-    public event Action<int, InventorySlot> OnSlotChanged;
-
-    public int Size => inventorySize;
-
-    private void Awake()
+    public class EntityInventoryComponent : MonoBehaviour
     {
-        inventory = new Inventory(inventorySize);
+        [SerializeField] private int inventorySize = 4;
+        [SerializeField] private List<InventoryItem> startingItems;
 
-        if (startingItems != null)
+        private Inventory inventory;
+
+        public event Action<int, InventorySlot> OnSlotChanged;
+
+        public int Size => inventorySize;
+
+        private void Awake()
         {
-            foreach (InventoryItem item in startingItems)
-                inventory.TryAddItem(item);
+            inventory = new Inventory(inventorySize);
+
+            if (startingItems != null)
+            {
+                foreach (InventoryItem item in startingItems)
+                    inventory.TryAddItem(item);
+            }
+
+            inventory.OnSlotChanged += (index, slot) => OnSlotChanged?.Invoke(index, slot);
         }
 
-        inventory.OnSlotChanged += (index, slot) => OnSlotChanged?.Invoke(index, slot);
-    }
+        public bool TryAddItem(InventoryItem item) => inventory.TryAddItem(item);
+        public bool TryAddItem(InventoryItem item, out int index) => inventory.TryAddItem(item, out index);
+        public bool TryRemoveItem(int index) => inventory.TryRemoveItem(index);
+        public InventorySlot GetSlot(int index) => inventory.GetSlot(index);
+        public int FindEmptySlot() => inventory.FindEmptySlot();
+        public List<string> GetItemIDs() => inventory.GetItemIDs();
 
-    public bool TryAddItem(InventoryItem item) => inventory.TryAddItem(item);
-    public bool TryAddItem(InventoryItem item, out int index) => inventory.TryAddItem(item, out index);
-    public bool TryRemoveItem(int index) => inventory.TryRemoveItem(index);
-    public InventorySlot GetSlot(int index) => inventory.GetSlot(index);
-    public int FindEmptySlot() => inventory.FindEmptySlot();
-    public List<string> GetItemIDs() => inventory.GetItemIDs();
-
-    // Returns all non-empty items — used by EntityLootTable on death.
-    public List<InventoryItem> GetAllItems()
-    {
-        List<InventoryItem> result = new List<InventoryItem>();
-        for (int i = 0; i < inventory.GetSize(); i++)
+        // Returns all non-empty items — used by EntityLootTable on death.
+        public List<InventoryItem> GetAllItems()
         {
-            InventorySlot slot = inventory.GetSlot(i);
-            if (!slot.IsEmpty)
-                result.Add(slot.Item);
+            List<InventoryItem> result = new List<InventoryItem>();
+            for (int i = 0; i < inventory.GetSize(); i++)
+            {
+                InventorySlot slot = inventory.GetSlot(i);
+                if (!slot.IsEmpty)
+                    result.Add(slot.Item);
+            }
+            return result;
         }
-        return result;
     }
 }

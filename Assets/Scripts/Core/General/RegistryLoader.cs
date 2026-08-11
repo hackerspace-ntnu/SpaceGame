@@ -1,21 +1,25 @@
 using UnityEngine;
+using SpaceGame.Items;
 
-public class RegistryLoader : MonoBehaviour
+namespace SpaceGame.Core
 {
-    void Awake()
+    public class RegistryLoader : MonoBehaviour
     {
-        LoadItems();
-    }
-
-    void LoadItems()
-    {
-        InventoryItem[] items = Resources.LoadAll<InventoryItem>("Items");
-
-        foreach (var item in items)
+        void Awake()
         {
-            Registry<InventoryItem>.Register(item);
+            LoadItems();
         }
 
-        Debug.Log($"Registered {items.Length} items.");
+        void LoadItems()
+        {
+            InventoryItem[] items = Resources.LoadAll<InventoryItem>("Items");
+
+            foreach (var item in items)
+            {
+                Registry<InventoryItem>.Register(item);
+            }
+
+            Debug.Log($"Registered {items.Length} items.");
+        }
     }
 }

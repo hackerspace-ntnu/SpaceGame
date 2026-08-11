@@ -1,24 +1,28 @@
 using Unity.VisualScripting;
 using UnityEngine;
+using SpaceGame.Gameplay;
 
-public class Ship : MonoBehaviour
+namespace SpaceGame.World
 {
-    private int scrapAmount = 0;
-    private int scrapToWin = 3;
-
-    public void AddScrap()
+    public class Ship : MonoBehaviour
     {
-        scrapAmount +=1;
-        Debug.Log("Scrap added");
-        CheckWin();
-    }
+        private int scrapAmount = 0;
+        private int scrapToWin = 3;
 
-    private void CheckWin()
-    {
-        if(scrapAmount < scrapToWin) return;
-        if(!GameManager.Instance) return;
+        public void AddScrap()
+        {
+            scrapAmount +=1;
+            Debug.Log("Scrap added");
+            CheckWin();
+        }
+
+        private void CheckWin()
+        {
+            if(scrapAmount < scrapToWin) return;
+            if(!GameManager.Instance) return;
             
-        GameManager.Instance.WinGame();
-    }
+            GameManager.Instance.WinGame();
+        }
 
+    }
 }

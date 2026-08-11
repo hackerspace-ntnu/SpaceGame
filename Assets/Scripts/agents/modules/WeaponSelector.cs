@@ -2,26 +2,29 @@
 // Activates the correct weapon model based on which combat module the agent has.
 using UnityEngine;
 
-public class WeaponSelector : MonoBehaviour
+namespace SpaceGame.Agents
 {
-    [SerializeField] private GameObject meleeWeapon;
-    [SerializeField] private GameObject rangedWeapon;
-
-    private void Awake()
+    public class WeaponSelector : MonoBehaviour
     {
-        bool hasMelee = HasActiveModule<CloseCombatModule>();
-        bool hasRanged = HasActiveModule<AgentRangedCombatModule>();
+        [SerializeField] private GameObject meleeWeapon;
+        [SerializeField] private GameObject rangedWeapon;
 
-        if (meleeWeapon) meleeWeapon.SetActive(hasMelee && !hasRanged);
-        if (rangedWeapon) rangedWeapon.SetActive(hasRanged);
-    }
+        private void Awake()
+        {
+            bool hasMelee = HasActiveModule<CloseCombatModule>();
+            bool hasRanged = HasActiveModule<AgentRangedCombatModule>();
 
-    private bool HasActiveModule<T>() where T : BehaviourModuleBase
-    {
-        foreach (T module in GetComponentsInParent<T>(true))
-            if (module.IsActive)
-                return true;
+            if (meleeWeapon) meleeWeapon.SetActive(hasMelee && !hasRanged);
+            if (rangedWeapon) rangedWeapon.SetActive(hasRanged);
+        }
 
-        return false;
+        private bool HasActiveModule<T>() where T : BehaviourModuleBase
+        {
+            foreach (T module in GetComponentsInParent<T>(true))
+                if (module.IsActive)
+                    return true;
+
+            return false;
+        }
     }
 }

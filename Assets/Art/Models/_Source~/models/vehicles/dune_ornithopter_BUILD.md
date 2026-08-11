@@ -252,7 +252,7 @@ coupling is gone rather than merely unexercised.
 ## Unity
 
 Exported by `dune_ornithopter_export.py` to
-`Assets/Models/Vehicles/Ornithopter/dune_ornithopter.fbx` — 25 meshes, 30 bones, no leaf bones, six
+`Assets/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx` — 25 meshes, 30 bones, no leaf bones, six
 skinned panels each bound to all 30. The export asserts that skinning before it writes, because a
 webbed panel arriving as a rigid mesh means the shoulders flap and the cloth hangs in space behind
 them, and nothing downstream reports it.

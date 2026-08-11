@@ -215,13 +215,13 @@ The rig is for animating in Blender. It is **stripped on export**: see below.
 
 ## Unity wiring
 
-`Assets/Models/_Source~/models/vehicles/ship_rv_export.py` → `Assets/Models/Vehicles/RV/ship_rv.fbx`
+`Assets/Art/Models/_Source~/models/vehicles/ship_rv_export.py` → `Assets/Art/Models/Vehicles/RV/ship_rv.fbx`
 
 The export is re-runnable (unlike the generators) and never writes to the
 `.blend`. It does three things a plain FBX export would not:
 
 1. **Localises the palette materials.** The model links them from
-   `Assets/Models/_Source~/palette.blend`, outside `Assets/`, which would not resolve from a
+   `Assets/Art/Models/_Source~/palette.blend`, outside `Assets/`, which would not resolve from a
    copy inside it.
 2. **Un-parents the meshes and drops the armature.** `ShipRVBuilder` finds parts
    with `Transform.Find` — direct children only — and reparents them into its
@@ -238,7 +238,7 @@ thing that breaks when a file moves.
 Deliberately minimal — the role names on the right of `PartNames` are unchanged,
 so nothing downstream of that table had to move.
 
-- `ModelPath` → `Assets/Models/Vehicles/RV/ship_rv.fbx`
+- `ModelPath` → `Assets/Art/Models/Vehicles/RV/ship_rv.fbx`
 - `PartNames` → maps the model's `Mesh_*` names onto the existing role names
 - `PartLookup.Find` — a lookup that returns null instead of logging, for optional parts
 - `AdoptSteeringWheel` — uses the modelled `Mesh_Bridge_Wheel` and gives it the

@@ -1,9 +1,12 @@
 using Unity.Netcode.Components;
 
-public class ClientNetworkAnimator : NetworkAnimator
+namespace SpaceGame.Core
 {
-    protected override bool OnIsServerAuthoritative()
+    public class ClientNetworkAnimator : NetworkAnimator
     {
-        return false; // Allows the client to send animation data
+        protected override bool OnIsServerAuthoritative()
+        {
+            return false; // Allows the client to send animation data
+        }
     }
 }

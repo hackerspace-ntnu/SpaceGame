@@ -32,74 +32,77 @@
 using SpaceGame.Locomotion;
 using UnityEngine;
 
-public class OstrichLocomotion : LeggedLocomotion
+namespace SpaceGame.Creatures.Ostrich
 {
-    [Header("Ostrich — stride")]
-    [Tooltip("Hip height while walking, as a fraction of its height in the model's rest pose.\n\n" +
-             "This is the single most important number here. The legs are modelled almost " +
-             "straight, which leaves no length spare to swing fore and aft with -- a straight leg " +
-             "can only reach the ground directly beneath it. Standing the bird down slightly bends " +
-             "the hock and buys back the reach the stride is made of. Lower is a longer stride and " +
-             "a more crouched, sprinting look; 1 stands it up and it can barely step at all.")]
-    [Range(0.70f, 1.0f)]
-    [SerializeField] private float hipHeightFraction = 0.86f;
+    public class OstrichLocomotion : LeggedLocomotion
+    {
+        [Header("Ostrich — stride")]
+        [Tooltip("Hip height while walking, as a fraction of its height in the model's rest pose.\n\n" +
+                 "This is the single most important number here. The legs are modelled almost " +
+                 "straight, which leaves no length spare to swing fore and aft with -- a straight leg " +
+                 "can only reach the ground directly beneath it. Standing the bird down slightly bends " +
+                 "the hock and buys back the reach the stride is made of. Lower is a longer stride and " +
+                 "a more crouched, sprinting look; 1 stands it up and it can barely step at all.")]
+        [Range(0.70f, 1.0f)]
+        [SerializeField] private float hipHeightFraction = 0.86f;
 
-    [Header("Ostrich — gait")]
-    [Tooltip("Fraction of the cycle a foot is airborne at a walk. Below 0.5 both feet are down " +
-             "for part of the cycle, which is what makes it a walk.")]
-    [Range(0.30f, 0.49f)]
-    [SerializeField] private float walkSwingDuty = 0.44f;
-    [Tooltip("Same at a run. Above 0.5 the swings overlap and the bird is briefly airborne with " +
-             "no feet down -- the flight phase that makes a run read as a run.")]
-    [Range(0.51f, 0.75f)]
-    [SerializeField] private float runSwingDuty = 0.62f;
+        [Header("Ostrich — gait")]
+        [Tooltip("Fraction of the cycle a foot is airborne at a walk. Below 0.5 both feet are down " +
+                 "for part of the cycle, which is what makes it a walk.")]
+        [Range(0.30f, 0.49f)]
+        [SerializeField] private float walkSwingDuty = 0.44f;
+        [Tooltip("Same at a run. Above 0.5 the swings overlap and the bird is briefly airborne with " +
+                 "no feet down -- the flight phase that makes a run read as a run.")]
+        [Range(0.51f, 0.75f)]
+        [SerializeField] private float runSwingDuty = 0.62f;
 
-    [Header("Ostrich — foot")]
-    [Tooltip("Degrees the sole rolls onto its toe at the ends of a stance: heel up to push off, " +
-             "toe down to reach for the landing, flat through the middle where the weight is.")]
-    [SerializeField] private float toeOffAngle = 18f;
-    [Tooltip("Degrees the toes lift through mid-swing, to clear the ground the foot is crossing. " +
-             "Too much and the bird high-steps like a dressage horse.")]
-    [SerializeField] private float swingToeAngle = 12f;
+        [Header("Ostrich — foot")]
+        [Tooltip("Degrees the sole rolls onto its toe at the ends of a stance: heel up to push off, " +
+                 "toe down to reach for the landing, flat through the middle where the weight is.")]
+        [SerializeField] private float toeOffAngle = 18f;
+        [Tooltip("Degrees the toes lift through mid-swing, to clear the ground the foot is crossing. " +
+                 "Too much and the bird high-steps like a dressage horse.")]
+        [SerializeField] private float swingToeAngle = 12f;
 
-    [Header("Ostrich — body motion")]
-    [Tooltip("Vertical bob, as a fraction of leg reach. Runs at twice the stride frequency: the " +
-             "body dips onto each footfall and rises through mid-stance.")]
-    [SerializeField] private float bobAmount = 0.055f;
-    [Tooltip("How far the body leans over the foot that is carrying it, as a fraction of the " +
-             "stance width. Small, but it is what stops the walk reading as a shopping trolley.")]
-    [SerializeField] private float swayAmount = 0.55f;
-    [Tooltip("Degrees the body pitches toward horizontal at top speed.")]
-    [SerializeField] private float runPitch = 16f;
-    [Tooltip("Degrees the body rolls into a turn at top speed.")]
-    [SerializeField] private float turnRoll = 8f;
-    [SerializeField] private float attitudeSmooth = 8f;
-    [Tooltip("How much of the ground's tilt the body takes on. A bird can afford more of this than " +
-             "a crewed deck can -- nothing is standing on its back -- and a body held rigidly level " +
-             "across a slope strands its downhill leg exactly as a deck does.")]
-    [Range(0f, 1f)]
-    [SerializeField] private float slopeFollow = 0.8f;
-    [Range(0f, 45f)]
-    [SerializeField] private float maxSlopeTilt = 25f;
+        [Header("Ostrich — body motion")]
+        [Tooltip("Vertical bob, as a fraction of leg reach. Runs at twice the stride frequency: the " +
+                 "body dips onto each footfall and rises through mid-stance.")]
+        [SerializeField] private float bobAmount = 0.055f;
+        [Tooltip("How far the body leans over the foot that is carrying it, as a fraction of the " +
+                 "stance width. Small, but it is what stops the walk reading as a shopping trolley.")]
+        [SerializeField] private float swayAmount = 0.55f;
+        [Tooltip("Degrees the body pitches toward horizontal at top speed.")]
+        [SerializeField] private float runPitch = 16f;
+        [Tooltip("Degrees the body rolls into a turn at top speed.")]
+        [SerializeField] private float turnRoll = 8f;
+        [SerializeField] private float attitudeSmooth = 8f;
+        [Tooltip("How much of the ground's tilt the body takes on. A bird can afford more of this than " +
+                 "a crewed deck can -- nothing is standing on its back -- and a body held rigidly level " +
+                 "across a slope strands its downhill leg exactly as a deck does.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float slopeFollow = 0.8f;
+        [Range(0f, 45f)]
+        [SerializeField] private float maxSlopeTilt = 25f;
 
-    [Header("Ostrich — steering")]
-    [Tooltip("Fastest the bird may turn. A biped pivots about its own feet, so this is authored " +
-             "rather than derived -- there is no long outboard leg to be dragged.")]
-    [SerializeField] private float maxYawRate = 120f;
+        [Header("Ostrich — steering")]
+        [Tooltip("Fastest the bird may turn. A biped pivots about its own feet, so this is authored " +
+                 "rather than derived -- there is no long outboard leg to be dragged.")]
+        [SerializeField] private float maxYawRate = 120f;
 
-    protected override IStrideModel CreateStride() => new HipBudgetStride(hipHeightFraction);
-    protected override IGaitPattern CreateGait() => new AlternatingGait(walkSwingDuty, runSwingDuty);
-    protected override IFootStyle CreateFeet() => new ArticulatedSole(toeOffAngle, swingToeAngle);
+        protected override IStrideModel CreateStride() => new HipBudgetStride(hipHeightFraction);
+        protected override IGaitPattern CreateGait() => new AlternatingGait(walkSwingDuty, runSwingDuty);
+        protected override IFootStyle CreateFeet() => new ArticulatedSole(toeOffAngle, swingToeAngle);
 
-    protected override IBodyMotion CreateBody()
-        => new BobbingBody(bobAmount, swayAmount, runPitch, turnRoll, attitudeSmooth,
-                           slopeFollow, maxSlopeTilt);
+        protected override IBodyMotion CreateBody()
+            => new BobbingBody(bobAmount, swayAmount, runPitch, turnRoll, attitudeSmooth,
+                               slopeFollow, maxSlopeTilt);
 
-    protected override float DeriveMaxYawRate() => maxYawRate;
+        protected override float DeriveMaxYawRate() => maxYawRate;
 
-    /// Lower than the walking station's 0.85 on purpose. The station commits a foothold and its
-    /// hull creeps; a bird covers most of a leg-length while the foot is in the air, so a foothold
-    /// that was comfortable at lift-off is at full stretch on landing. The extra margin is what
-    /// stops every step arriving over-extended and triggering the step-early rule.
-    protected override float FootholdReachFraction => 0.72f;
+        /// Lower than the walking station's 0.85 on purpose. The station commits a foothold and its
+        /// hull creeps; a bird covers most of a leg-length while the foot is in the air, so a foothold
+        /// that was comfortable at lift-off is at full stretch on landing. The extra margin is what
+        /// stops every step arriving over-extended and triggering the step-early rule.
+        protected override float FootholdReachFraction => 0.72f;
+    }
 }

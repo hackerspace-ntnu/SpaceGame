@@ -5,66 +5,71 @@
 //
 // Driving several parts from one switch covers double doors: both leaves answer to a single panel.
 using UnityEngine;
+using SpaceGame.Agents;
+using SpaceGame.Gameplay;
 
-public class ArticulatedPartInteraction : MonoBehaviour, IInteractable
+namespace SpaceGame.Vehicles
 {
-    [Tooltip("Parts this switch drives. Leave empty to use the ArticulatedPart on this GameObject.")]
-    [SerializeField] private ArticulatedPart[] parts;
-
-    [Tooltip("Ignore interaction while any driven part is still moving, so it can't be stuttered mid-swing.")]
-    [SerializeField] private bool blockWhileMoving = true;
-
-    [Header("Mount Lock")]
-    [Tooltip("Refuse to open/close while someone is piloting the vehicle — no dropping the ramp mid-flight.")]
-    [SerializeField] private bool lockedWhileMounted = true;
-
-    [Tooltip("Vehicle this door belongs to. Auto-resolved from the parents if left empty.")]
-    [SerializeField] private MountModule mountLock;
-
-    private void Awake()
+    public class ArticulatedPartInteraction : MonoBehaviour, IInteractable
     {
-        if (parts == null || parts.Length == 0)
+        [Tooltip("Parts this switch drives. Leave empty to use the ArticulatedPart on this GameObject.")]
+        [SerializeField] private ArticulatedPart[] parts;
+
+        [Tooltip("Ignore interaction while any driven part is still moving, so it can't be stuttered mid-swing.")]
+        [SerializeField] private bool blockWhileMoving = true;
+
+        [Header("Mount Lock")]
+        [Tooltip("Refuse to open/close while someone is piloting the vehicle — no dropping the ramp mid-flight.")]
+        [SerializeField] private bool lockedWhileMounted = true;
+
+        [Tooltip("Vehicle this door belongs to. Auto-resolved from the parents if left empty.")]
+        [SerializeField] private MountModule mountLock;
+
+        private void Awake()
         {
-            ArticulatedPart own = GetComponent<ArticulatedPart>();
-            parts = own ? new[] { own } : new ArticulatedPart[0];
+            if (parts == null || parts.Length == 0)
+            {
+                ArticulatedPart own = GetComponent<ArticulatedPart>();
+                parts = own ? new[] { own } : new ArticulatedPart[0];
+            }
+
+            if (!mountLock)
+                mountLock = GetComponentInParent<MountModule>();
         }
 
-        if (!mountLock)
-            mountLock = GetComponentInParent<MountModule>();
-    }
-
-    public bool CanInteract()
-    {
-        if (parts == null || parts.Length == 0)
-            return false;
-
-        if (lockedWhileMounted && mountLock && mountLock.IsMounted)
-            return false;
-
-        if (blockWhileMoving)
+        public bool CanInteract()
         {
+            if (parts == null || parts.Length == 0)
+                return false;
+
+            if (lockedWhileMounted && mountLock && mountLock.IsMounted)
+                return false;
+
+            if (blockWhileMoving)
+            {
+                foreach (ArticulatedPart part in parts)
+                    if (part && part.IsMoving)
+                        return false;
+            }
+
+            return true;
+        }
+
+        public void Interact(Interactor interactor)
+        {
+            if (!CanInteract())
+                return;
+
+            // Mixed states resolve toward "close everything" — one press always leaves the
+            // group in a single, predictable state.
+            bool anyOpen = false;
             foreach (ArticulatedPart part in parts)
-                if (part && part.IsMoving)
-                    return false;
+                if (part && part.IsOpen)
+                    anyOpen = true;
+
+            foreach (ArticulatedPart part in parts)
+                if (part)
+                    part.SetOpen(!anyOpen);
         }
-
-        return true;
-    }
-
-    public void Interact(Interactor interactor)
-    {
-        if (!CanInteract())
-            return;
-
-        // Mixed states resolve toward "close everything" — one press always leaves the
-        // group in a single, predictable state.
-        bool anyOpen = false;
-        foreach (ArticulatedPart part in parts)
-            if (part && part.IsOpen)
-                anyOpen = true;
-
-        foreach (ArticulatedPart part in parts)
-            if (part)
-                part.SetOpen(!anyOpen);
     }
 }

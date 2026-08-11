@@ -1,19 +1,23 @@
 using UnityEngine;
+using SpaceGame.Characters;
 
-/// <summary>
-/// ToolItem is for one-time use effects that don't need duration management.
-/// Examples: Heal potion, speed boost, teleport, damage, etc.
-/// These items execute their effect once and don't need cleanup.
-/// </summary>
-public abstract class ToolItem : UsableItem
+namespace SpaceGame.Items
 {
-    protected AimProvider aimProvider;
-
-    protected override void Use()
+    /// <summary>
+    /// ToolItem is for one-time use effects that don't need duration management.
+    /// Examples: Heal potion, speed boost, teleport, damage, etc.
+    /// These items execute their effect once and don't need cleanup.
+    /// </summary>
+    public abstract class ToolItem : UsableItem
     {
-        aimProvider = owner.GetComponent<AimProvider>();
-    }
+        protected AimProvider aimProvider;
 
-    // Tool items use the default UsableItem behavior
-    // Just override Use() to implement your immediate effect
+        protected override void Use()
+        {
+            aimProvider = owner.GetComponent<AimProvider>();
+        }
+
+        // Tool items use the default UsableItem behavior
+        // Just override Use() to implement your immediate effect
+    }
 }

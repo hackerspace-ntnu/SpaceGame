@@ -1,65 +1,67 @@
-
 using UnityEngine;
+using SpaceGame.Weapons;
 
-public class EquipItemSocket
+namespace SpaceGame.Items
 {
-    private Transform socket;
-    private GameObject currentObject;
-
-    public EquipItemSocket(Transform socket)
+    public class EquipItemSocket
     {
-        this.socket = socket;
-    }
+        private Transform socket;
+        private GameObject currentObject;
 
-    public GameObject Equip(GameObject prefab)
-    {
-        Unequip();
-
-        if (!prefab)
-            return null;
-
-        currentObject = Object.Instantiate(
-            prefab,
-            socket.position,
-            socket.rotation,
-            socket
-        );
-
-        Setup(currentObject);
-
-        // If this is a weapon with a Handle1, position the weapon so Handle1 is at the socket
-        Weapon weapon = currentObject.GetComponent<Weapon>();
-        if (weapon != null && weapon.Handle1 != null)
+        public EquipItemSocket(Transform socket)
         {
-            // Offset the weapon's root so that Handle1 aligns with the socket position
-            Vector3 offsetFromRoot = currentObject.transform.position - weapon.Handle1.position;
-            currentObject.transform.position = socket.position + offsetFromRoot;
+            this.socket = socket;
         }
 
-        return currentObject;
-    }
-
-    public void Unequip()
-    {
-        if (currentObject)
+        public GameObject Equip(GameObject prefab)
         {
-            Object.Destroy(currentObject);
-            currentObject = null;
-        }
-    }
+            Unequip();
 
-    private void Setup(GameObject obj)
-    {
-        Rigidbody rb = obj.GetComponent<Rigidbody>();
-        if (rb)
+            if (!prefab)
+                return null;
+
+            currentObject = Object.Instantiate(
+                prefab,
+                socket.position,
+                socket.rotation,
+                socket
+            );
+
+            Setup(currentObject);
+
+            // If this is a weapon with a Handle1, position the weapon so Handle1 is at the socket
+            Weapon weapon = currentObject.GetComponent<Weapon>();
+            if (weapon != null && weapon.Handle1 != null)
+            {
+                // Offset the weapon's root so that Handle1 aligns with the socket position
+                Vector3 offsetFromRoot = currentObject.transform.position - weapon.Handle1.position;
+                currentObject.transform.position = socket.position + offsetFromRoot;
+            }
+
+            return currentObject;
+        }
+
+        public void Unequip()
         {
-            rb.isKinematic = true;
-            rb.useGravity = false;
+            if (currentObject)
+            {
+                Object.Destroy(currentObject);
+                currentObject = null;
+            }
         }
 
-        Collider col = obj.GetComponent<Collider>();
-        if (col)
-            col.enabled = false;
+        private void Setup(GameObject obj)
+        {
+            Rigidbody rb = obj.GetComponent<Rigidbody>();
+            if (rb)
+            {
+                rb.isKinematic = true;
+                rb.useGravity = false;
+            }
+
+            Collider col = obj.GetComponent<Collider>();
+            if (col)
+                col.enabled = false;
+        }
     }
 }
-

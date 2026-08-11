@@ -1,61 +1,65 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using SpaceGame.World;
 
-public class LightningSpawner : MonoBehaviour
+namespace SpaceGame.Characters
 {
-    [Header("Input")]
-    public InputActionReference actionInput;
-
-    [Header("References")]
-    [SerializeField] private Camera playerCamera;
-    [SerializeField] private GameObject lightningVFXPrefab;
-
-    [Header("Settings")]
-    [SerializeField] private float raycastDistance = 500f;
-    [SerializeField] private float spawnHeightOffset = 10f;
-    [SerializeField] private LayerMask raycastMask = ~0;
-    [SerializeField] private Vector3 spawnRotation = new Vector3(90f, 0f, 0f);
-
-    private void OnEnable()
+    public class LightningSpawner : MonoBehaviour
     {
-        actionInput.action.Enable();
-        actionInput.action.performed += OnAction;
-    }
+        [Header("Input")]
+        public InputActionReference actionInput;
 
-    private void OnDisable()
-    {
-        actionInput.action.performed -= OnAction;
-        actionInput.action.Disable();
-    }
+        [Header("References")]
+        [SerializeField] private Camera playerCamera;
+        [SerializeField] private GameObject lightningVFXPrefab;
 
-    private void OnAction(InputAction.CallbackContext context)
-    {
-        if (lightningVFXPrefab == null)
+        [Header("Settings")]
+        [SerializeField] private float raycastDistance = 500f;
+        [SerializeField] private float spawnHeightOffset = 10f;
+        [SerializeField] private LayerMask raycastMask = ~0;
+        [SerializeField] private Vector3 spawnRotation = new Vector3(90f, 0f, 0f);
+
+        private void OnEnable()
         {
-            Debug.LogWarning("LightningSpawner: No Lightning VFX prefab assigned.");
-            return;
+            actionInput.action.Enable();
+            actionInput.action.performed += OnAction;
         }
 
-        if (playerCamera == null)
+        private void OnDisable()
         {
-            Debug.LogWarning("LightningSpawner: No camera assigned.");
-            return;
+            actionInput.action.performed -= OnAction;
+            actionInput.action.Disable();
         }
 
-        Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
-
-        Vector3 spawnPoint;
-
-        if (Physics.Raycast(ray, out RaycastHit hit, raycastDistance, raycastMask))
+        private void OnAction(InputAction.CallbackContext context)
         {
-            spawnPoint = hit.point + Vector3.up * spawnHeightOffset;
-        }
-        else
-        {
-            // Fallback: use a point along the ray at max distance
-            spawnPoint = ray.GetPoint(raycastDistance) + Vector3.up * spawnHeightOffset;
-        }
+            if (lightningVFXPrefab == null)
+            {
+                Debug.LogWarning("LightningSpawner: No Lightning VFX prefab assigned.");
+                return;
+            }
 
-        Instantiate(lightningVFXPrefab, spawnPoint, Quaternion.Euler(spawnRotation));
+            if (playerCamera == null)
+            {
+                Debug.LogWarning("LightningSpawner: No camera assigned.");
+                return;
+            }
+
+            Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
+
+            Vector3 spawnPoint;
+
+            if (Physics.Raycast(ray, out RaycastHit hit, raycastDistance, raycastMask))
+            {
+                spawnPoint = hit.point + Vector3.up * spawnHeightOffset;
+            }
+            else
+            {
+                // Fallback: use a point along the ray at max distance
+                spawnPoint = ray.GetPoint(raycastDistance) + Vector3.up * spawnHeightOffset;
+            }
+
+            Instantiate(lightningVFXPrefab, spawnPoint, Quaternion.Euler(spawnRotation));
+        }
     }
 }

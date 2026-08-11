@@ -4,73 +4,79 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Core;
+using SpaceGame.Gameplay;
+using SpaceGame.Items;
 
-[Serializable]
-public struct LootEntry
+namespace SpaceGame.Agents
 {
-    [Tooltip("Item to potentially drop.")]
-    public InventoryItem item;
-    [Tooltip("0 = never, 1 = always."), Range(0f, 1f)]
-    public float dropChance;
-    [Tooltip("How many to drop if the roll succeeds.")]
-    public int quantity;
-}
-
-public class EntityLootTable : MonoBehaviour
-{
-    [Header("Loot Rolls")]
-    [SerializeField] private List<LootEntry> lootEntries;
-
-    [Header("Drop inventory items on death")]
-    [Tooltip("If true, all items currently in EntityInventoryComponent are also dropped.")]
-    [SerializeField] private bool dropInventoryContents = true;
-
-    private HealthComponent health;
-    private EntityInventoryComponent entityInventory;
-
-    private void Awake()
+    [Serializable]
+    public struct LootEntry
     {
-        health = GetComponent<HealthComponent>();
-        entityInventory = GetComponent<EntityInventoryComponent>();
-
-        if (!health)
-            Debug.LogWarning($"{name}: EntityLootTable needs a HealthComponent.", this);
+        [Tooltip("Item to potentially drop.")]
+        public InventoryItem item;
+        [Tooltip("0 = never, 1 = always."), Range(0f, 1f)]
+        public float dropChance;
+        [Tooltip("How many to drop if the roll succeeds.")]
+        public int quantity;
     }
 
-    private void OnEnable()
+    public class EntityLootTable : MonoBehaviour
     {
-        if (health)
-            health.OnDeath += HandleDeath;
-    }
+        [Header("Loot Rolls")]
+        [SerializeField] private List<LootEntry> lootEntries;
 
-    private void OnDisable()
-    {
-        if (health)
-            health.OnDeath -= HandleDeath;
-    }
+        [Header("Drop inventory items on death")]
+        [Tooltip("If true, all items currently in EntityInventoryComponent are also dropped.")]
+        [SerializeField] private bool dropInventoryContents = true;
 
-    private void HandleDeath()
-    {
-        Transform dropOrigin = transform;
+        private HealthComponent health;
+        private EntityInventoryComponent entityInventory;
 
-        if (dropInventoryContents && entityInventory != null)
+        private void Awake()
         {
-            foreach (InventoryItem item in entityInventory.GetAllItems())
-                GameServices.ItemDropService.DropItem(dropOrigin, item);
+            health = GetComponent<HealthComponent>();
+            entityInventory = GetComponent<EntityInventoryComponent>();
+
+            if (!health)
+                Debug.LogWarning($"{name}: EntityLootTable needs a HealthComponent.", this);
         }
 
-        if (lootEntries == null)
-            return;
-
-        foreach (LootEntry entry in lootEntries)
+        private void OnEnable()
         {
-            if (!entry.item)
-                continue;
+            if (health)
+                health.OnDeath += HandleDeath;
+        }
 
-            for (int i = 0; i < entry.quantity; i++)
+        private void OnDisable()
+        {
+            if (health)
+                health.OnDeath -= HandleDeath;
+        }
+
+        private void HandleDeath()
+        {
+            Transform dropOrigin = transform;
+
+            if (dropInventoryContents && entityInventory != null)
             {
-                if (UnityEngine.Random.value <= entry.dropChance)
-                    GameServices.ItemDropService.DropItem(dropOrigin, entry.item);
+                foreach (InventoryItem item in entityInventory.GetAllItems())
+                    GameServices.ItemDropService.DropItem(dropOrigin, item);
+            }
+
+            if (lootEntries == null)
+                return;
+
+            foreach (LootEntry entry in lootEntries)
+            {
+                if (!entry.item)
+                    continue;
+
+                for (int i = 0; i < entry.quantity; i++)
+                {
+                    if (UnityEngine.Random.value <= entry.dropChance)
+                        GameServices.ItemDropService.DropItem(dropOrigin, entry.item);
+                }
             }
         }
     }

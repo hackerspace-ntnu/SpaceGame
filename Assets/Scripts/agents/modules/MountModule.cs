@@ -10,253 +10,259 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using SpaceGame.Characters;
+using SpaceGame.Gameplay;
+using SpaceGame.Vehicles;
 
-// Late execution order so our LateUpdate runs after any other LateUpdate in the scene —
-// guarantees the mounted third-person camera transform isn't overwritten afterwards.
-[DefaultExecutionOrder(1000)]
-public partial class MountModule : BehaviourModuleBase, IInteractable
+namespace SpaceGame.Agents
 {
-    public enum CameraPerspective
+    // Late execution order so our LateUpdate runs after any other LateUpdate in the scene —
+    // guarantees the mounted third-person camera transform isn't overwritten afterwards.
+    [DefaultExecutionOrder(1000)]
+    public partial class MountModule : BehaviourModuleBase, IInteractable
     {
-        FirstPerson,
-        ThirdPerson
-    }
-
-    [Header("Mount Points")]
-    [SerializeField] private Transform seatPoint;
-    [SerializeField] private Transform dismountPoint;
-
-    [Header("Interaction")]
-    [Tooltip("Allow mounting by interacting with this entity's own colliders. Turn off for large " +
-             "vehicles that should only be boarded from a dedicated control — Interactor resolves " +
-             "IInteractable by walking up from the collider it hit, so otherwise every hull collider " +
-             "becomes a mount point. Use a MountStation on the cockpit control instead.")]
-    [SerializeField] private bool mountableByDirectInteraction = true;
-
-    [Header("Player Components To Toggle")]
-    [SerializeField] private bool disablePlayerMovement = true;
-    [SerializeField] private bool disablePlayerLook = true;
-    [SerializeField] private bool disablePlayerInteractor = true;
-
-    [Header("Dismount")]
-    [SerializeField] private float mountCooldown = 0.25f;
-    [SerializeField] private float fallbackDismountDistance = 1.6f;
-
-    [Header("Mounted Camera")]
-    [SerializeField] private CameraPerspective defaultPerspective = CameraPerspective.ThirdPerson;
-    [Tooltip("Prefab spawned and parented to the mount when entering third-person view. Falls back " +
-             "to a clone of Camera.main if null. Leave default unless this vehicle needs custom render settings.")]
-    [SerializeField] private Camera thirdPersonCameraPrefab;
-    [SerializeField] private Transform thirdPersonPivot;
-    [SerializeField] private Vector3 thirdPersonOffset = new Vector3(0f, 2.2f, -3.8f);
-    [SerializeField] private float thirdPersonDistance = 3.8f;
-    [SerializeField] private float thirdPersonFollowLerp = 14f;
-    [Tooltip("How fast the camera's aim catches up. Slightly below thirdPersonFollowLerp so the " +
-             "framing settles after the position does rather than fighting it.")]
-    [SerializeField] private float thirdPersonAimLerp = 18f;
-    [Tooltip("How fast the camera's orbit yaw follows the vehicle's heading. Lower = the vehicle " +
-             "can rotate a little within frame before the camera swings round behind it.")]
-    [SerializeField] private float thirdPersonYawLerp = 16f;
-    [Tooltip("Meters ahead of the pivot the camera aims at. Higher = camera tilts further down, shows more ground ahead.")]
-    [SerializeField] private float thirdPersonLookAhead = 6f;
-    [Tooltip("Orbit the camera on the mount's FULL rotation rather than its yaw alone. Off for " +
-             "ground vehicles, which stay level and want a level horizon however the hull tilts. " +
-             "On for anything that pitches or rolls in flight — otherwise the camera stays level " +
-             "through a dive and the manoeuvre reads as the ground rising rather than the pilot " +
-             "pitching over.")]
-    [SerializeField] private bool followMountPitch = false;
-
-    [Header("Mounted Look")]
-    [SerializeField] private string lookActionName = "Look";
-    [SerializeField] private float lookSensitivity = 1f;
-    [SerializeField] private float lookPitchClamp = 75f;
-    [SerializeField] private float defaultMountedPitch = -15f;
-    [SerializeField] private float cameraAutoAlignSpeed = 90f;
-    [SerializeField] private float cameraAutoAlignDelay = 0.5f;
-
-    [Header("While Mounted")]
-    [Tooltip("If true, the mount keeps running its own AI modules (wander, patrol, etc.) between rider inputs. " +
-             "If false, all non-mount modules are disabled while mounted — the mount stands still when the rider isn't steering.")]
-    [SerializeField] private bool allowAISelfMovementWhenMounted = false;
-
-    // Camera / look runtime state
-    private InputAction lookAction;
-    private bool forcedLookActionEnabled;
-    private Camera runtimeThirdPersonCamera;
-    private bool thirdPersonCameraNeedsSnap;
-    private float mountedPitch;
-    private float cameraYaw;
-    private float cameraYawOffset;
-    // Aim target is smoothed in world space and persists between frames, so the camera's
-    // rotation is driven by a filtered point rather than recomputed from raw vehicle pose.
-    private Vector3 smoothedAimPoint;
-    private float timeSinceLastLookInput;
-    private CameraPerspective activePerspective;
-
-    // Rider state
-    private Transform mountedPlayer;
-    private PlayerMovement mountedPlayerMovement;
-    private PlayerLook mountedPlayerLook;
-    private Interactor mountedInteractor;
-    private Rigidbody mountedPlayerRigidbody;
-    private bool playerRigidbodyWasKinematic;
-    private bool playerRigidbodyHadGravity;
-    private RigidbodyInterpolation playerRigidbodyInterpolation;
-    private float lastMountChangeTime;
-
-    private Transform activeSeatPoint;
-    private Camera mountedFirstPersonCamera;
-    private Transform mountedFirstPersonCameraRoot;
-
-    private MonoBehaviour[] suppressibleModules;
-
-    // Animator state captured at mount time so root-motion-driven drift is suppressed while
-    // ridden and restored on dismount.
-    private Animator[] suppressibleAnimators;
-    private bool[] suppressibleAnimatorRootMotion;
-
-    // Rigidbody constraints captured at mount time so physics can't spin the mount via
-    // contact forces (notably the rider's own collider overlapping the seat point).
-    private Rigidbody ownRigidbody;
-    private RigidbodyConstraints ownRigidbodyConstraints;
-    private bool ownRigidbodyConstraintsCaptured;
-
-    // Rider<->mount collider pairs ignored while mounted so the rider's kinematic collider
-    // doesn't push the mount around. Restored on dismount.
-    private (Collider a, Collider b)[] ignoredCollisionPairs;
-
-    public event Action<PlayerMovement> Mounted;
-    public event Action<PlayerMovement> Dismounted;
-
-    // ─────────── Public API ───────────
-    public bool IsMounted => mountedPlayer != null;
-    public bool IsAvailableForMount => !IsMounted && Time.time >= lastMountChangeTime + mountCooldown;
-    public bool AllowAISelfMovementWhenMounted => allowAISelfMovementWhenMounted;
-    public Transform ActiveSeatPoint => activeSeatPoint != null ? activeSeatPoint : seatPoint;
-    public Transform MountedPlayerTransform => mountedPlayer;
-    public PlayerMovement MountedPlayerMovement => mountedPlayerMovement;
-    public PlayerLook MountedPlayerLook => mountedPlayerLook;
-    public Interactor MountedInteractor => mountedInteractor;
-    public Rigidbody MountedPlayerRigidbody => mountedPlayerRigidbody;
-    public Camera MountedFirstPersonCamera => mountedFirstPersonCamera;
-    public Transform MountedFirstPersonCameraRoot => mountedFirstPersonCameraRoot;
-    public Camera MountedThirdPersonCamera => runtimeThirdPersonCamera;
-    public CameraPerspective ActivePerspective => activePerspective;
-    public float CameraYaw => cameraYaw;
-    public float CameraYawOffset => cameraYawOffset;
-    public float MountedPitch => mountedPitch;
-
-    public override string ModuleDescription =>
-        "Mount lifecycle + interaction surface + AI suppression. Drop this + SteerModule to make anything mountable.\n\n" +
-        "• Implements IInteractable — players mount by interacting.\n" +
-        "• Fires Mounted/Dismounted events.\n" +
-        "• When allowAISelfMovementWhenMounted = false, disables non-mount IBehaviourModules for the duration.";
-
-    private void Reset() => SetPriorityDefault(ModulePriority.Fallback);
-
-    // ─────────── Lifecycle ───────────
-    private void Awake()
-    {
-        if (!seatPoint)
-            seatPoint = transform;
-        activeSeatPoint = seatPoint;
-        CacheSuppressibleModules();
-    }
-
-    private void OnEnable()
-    {
-        ResolveCameraInputActions();
-    }
-
-    private void OnDisable()
-    {
-        if (IsMounted)
-            Dismount();
-
-        if (forcedLookActionEnabled && lookAction != null)
+        public enum CameraPerspective
         {
-            lookAction.Disable();
-            forcedLookActionEnabled = false;
+            FirstPerson,
+            ThirdPerson
         }
-    }
 
-    private void Update()
-    {
-        if (!IsMounted)
-            return;
+        [Header("Mount Points")]
+        [SerializeField] private Transform seatPoint;
+        [SerializeField] private Transform dismountPoint;
 
-        EnsureLookActionEnabled();
-        HandleLookInput(Time.deltaTime);
-    }
+        [Header("Interaction")]
+        [Tooltip("Allow mounting by interacting with this entity's own colliders. Turn off for large " +
+                 "vehicles that should only be boarded from a dedicated control — Interactor resolves " +
+                 "IInteractable by walking up from the collider it hit, so otherwise every hull collider " +
+                 "becomes a mount point. Use a MountStation on the cockpit control instead.")]
+        [SerializeField] private bool mountableByDirectInteraction = true;
 
-    protected override void OnValidate()
-    {
-        base.OnValidate();
-        mountCooldown = Mathf.Max(0f, mountCooldown);
-        fallbackDismountDistance = Mathf.Max(0.1f, fallbackDismountDistance);
-        lookSensitivity = Mathf.Max(0f, lookSensitivity);
-        lookPitchClamp = Mathf.Clamp(lookPitchClamp, 0f, 89f);
-        thirdPersonDistance = Mathf.Max(0.1f, thirdPersonDistance);
-        thirdPersonFollowLerp = Mathf.Max(0.01f, thirdPersonFollowLerp);
-        thirdPersonAimLerp = Mathf.Max(0.01f, thirdPersonAimLerp);
-        thirdPersonYawLerp = Mathf.Max(0.01f, thirdPersonYawLerp);
-        thirdPersonLookAhead = Mathf.Max(0.1f, thirdPersonLookAhead);
-        cameraAutoAlignSpeed = Mathf.Max(0f, cameraAutoAlignSpeed);
-        cameraAutoAlignDelay = Mathf.Max(0f, cameraAutoAlignDelay);
-    }
+        [Header("Player Components To Toggle")]
+        [SerializeField] private bool disablePlayerMovement = true;
+        [SerializeField] private bool disablePlayerLook = true;
+        [SerializeField] private bool disablePlayerInteractor = true;
 
-    // MountModule never produces movement. Null → AgentController falls through to other modules
-    // (or to MoveIntent.Idle() if none matched).
-    public override MoveIntent? Tick(in AgentContext context, float deltaTime) => null;
+        [Header("Dismount")]
+        [SerializeField] private float mountCooldown = 0.25f;
+        [SerializeField] private float fallbackDismountDistance = 1.6f;
 
-    // ─────────── IInteractable ───────────
-    // MountStation calls TryMount directly, so switching this off closes the "look at any part
-    // of the hull and press E" path without disabling dedicated cockpit controls.
-    public bool CanInteract() => mountableByDirectInteraction && IsAvailableForMount;
+        [Header("Mounted Camera")]
+        [SerializeField] private CameraPerspective defaultPerspective = CameraPerspective.ThirdPerson;
+        [Tooltip("Prefab spawned and parented to the mount when entering third-person view. Falls back " +
+                 "to a clone of Camera.main if null. Leave default unless this vehicle needs custom render settings.")]
+        [SerializeField] private Camera thirdPersonCameraPrefab;
+        [SerializeField] private Transform thirdPersonPivot;
+        [SerializeField] private Vector3 thirdPersonOffset = new Vector3(0f, 2.2f, -3.8f);
+        [SerializeField] private float thirdPersonDistance = 3.8f;
+        [SerializeField] private float thirdPersonFollowLerp = 14f;
+        [Tooltip("How fast the camera's aim catches up. Slightly below thirdPersonFollowLerp so the " +
+                 "framing settles after the position does rather than fighting it.")]
+        [SerializeField] private float thirdPersonAimLerp = 18f;
+        [Tooltip("How fast the camera's orbit yaw follows the vehicle's heading. Lower = the vehicle " +
+                 "can rotate a little within frame before the camera swings round behind it.")]
+        [SerializeField] private float thirdPersonYawLerp = 16f;
+        [Tooltip("Meters ahead of the pivot the camera aims at. Higher = camera tilts further down, shows more ground ahead.")]
+        [SerializeField] private float thirdPersonLookAhead = 6f;
+        [Tooltip("Orbit the camera on the mount's FULL rotation rather than its yaw alone. Off for " +
+                 "ground vehicles, which stay level and want a level horizon however the hull tilts. " +
+                 "On for anything that pitches or rolls in flight — otherwise the camera stays level " +
+                 "through a dive and the manoeuvre reads as the ground rising rather than the pilot " +
+                 "pitching over.")]
+        [SerializeField] private bool followMountPitch = false;
 
-    public void Interact(Interactor interactor)
-    {
-        TryMount(interactor, transform);
-    }
+        [Header("Mounted Look")]
+        [SerializeField] private string lookActionName = "Look";
+        [SerializeField] private float lookSensitivity = 1f;
+        [SerializeField] private float lookPitchClamp = 75f;
+        [SerializeField] private float defaultMountedPitch = -15f;
+        [SerializeField] private float cameraAutoAlignSpeed = 90f;
+        [SerializeField] private float cameraAutoAlignDelay = 0.5f;
 
-    // ─────────── Suppressor ───────────
-    public void RefreshModuleCache() => CacheSuppressibleModules();
+        [Header("While Mounted")]
+        [Tooltip("If true, the mount keeps running its own AI modules (wander, patrol, etc.) between rider inputs. " +
+                 "If false, all non-mount modules are disabled while mounted — the mount stands still when the rider isn't steering.")]
+        [SerializeField] private bool allowAISelfMovementWhenMounted = false;
 
-    private void CacheSuppressibleModules()
-    {
-        List<MonoBehaviour> list = new List<MonoBehaviour>();
-        MonoBehaviour[] all = GetComponentsInChildren<MonoBehaviour>(true);
-        foreach (MonoBehaviour mb in all)
+        // Camera / look runtime state
+        private InputAction lookAction;
+        private bool forcedLookActionEnabled;
+        private Camera runtimeThirdPersonCamera;
+        private bool thirdPersonCameraNeedsSnap;
+        private float mountedPitch;
+        private float cameraYaw;
+        private float cameraYawOffset;
+        // Aim target is smoothed in world space and persists between frames, so the camera's
+        // rotation is driven by a filtered point rather than recomputed from raw vehicle pose.
+        private Vector3 smoothedAimPoint;
+        private float timeSinceLastLookInput;
+        private CameraPerspective activePerspective;
+
+        // Rider state
+        private Transform mountedPlayer;
+        private PlayerMovement mountedPlayerMovement;
+        private PlayerLook mountedPlayerLook;
+        private Interactor mountedInteractor;
+        private Rigidbody mountedPlayerRigidbody;
+        private bool playerRigidbodyWasKinematic;
+        private bool playerRigidbodyHadGravity;
+        private RigidbodyInterpolation playerRigidbodyInterpolation;
+        private float lastMountChangeTime;
+
+        private Transform activeSeatPoint;
+        private Camera mountedFirstPersonCamera;
+        private Transform mountedFirstPersonCameraRoot;
+
+        private MonoBehaviour[] suppressibleModules;
+
+        // Animator state captured at mount time so root-motion-driven drift is suppressed while
+        // ridden and restored on dismount.
+        private Animator[] suppressibleAnimators;
+        private bool[] suppressibleAnimatorRootMotion;
+
+        // Rigidbody constraints captured at mount time so physics can't spin the mount via
+        // contact forces (notably the rider's own collider overlapping the seat point).
+        private Rigidbody ownRigidbody;
+        private RigidbodyConstraints ownRigidbodyConstraints;
+        private bool ownRigidbodyConstraintsCaptured;
+
+        // Rider<->mount collider pairs ignored while mounted so the rider's kinematic collider
+        // doesn't push the mount around. Restored on dismount.
+        private (Collider a, Collider b)[] ignoredCollisionPairs;
+
+        public event Action<PlayerMovement> Mounted;
+        public event Action<PlayerMovement> Dismounted;
+
+        // ─────────── Public API ───────────
+        public bool IsMounted => mountedPlayer != null;
+        public bool IsAvailableForMount => !IsMounted && Time.time >= lastMountChangeTime + mountCooldown;
+        public bool AllowAISelfMovementWhenMounted => allowAISelfMovementWhenMounted;
+        public Transform ActiveSeatPoint => activeSeatPoint != null ? activeSeatPoint : seatPoint;
+        public Transform MountedPlayerTransform => mountedPlayer;
+        public PlayerMovement MountedPlayerMovement => mountedPlayerMovement;
+        public PlayerLook MountedPlayerLook => mountedPlayerLook;
+        public Interactor MountedInteractor => mountedInteractor;
+        public Rigidbody MountedPlayerRigidbody => mountedPlayerRigidbody;
+        public Camera MountedFirstPersonCamera => mountedFirstPersonCamera;
+        public Transform MountedFirstPersonCameraRoot => mountedFirstPersonCameraRoot;
+        public Camera MountedThirdPersonCamera => runtimeThirdPersonCamera;
+        public CameraPerspective ActivePerspective => activePerspective;
+        public float CameraYaw => cameraYaw;
+        public float CameraYawOffset => cameraYawOffset;
+        public float MountedPitch => mountedPitch;
+
+        public override string ModuleDescription =>
+            "Mount lifecycle + interaction surface + AI suppression. Drop this + SteerModule to make anything mountable.\n\n" +
+            "• Implements IInteractable — players mount by interacting.\n" +
+            "• Fires Mounted/Dismounted events.\n" +
+            "• When allowAISelfMovementWhenMounted = false, disables non-mount IBehaviourModules for the duration.";
+
+        private void Reset() => SetPriorityDefault(ModulePriority.Fallback);
+
+        // ─────────── Lifecycle ───────────
+        private void Awake()
         {
-            // Suppress anything that could produce movement or a MoveIntent while mounted:
-            // IBehaviourModule (except Mount/Steer themselves) and legacy IAgentBrain fallbacks.
-            // Without this, e.g. a legacy NpcBrain/EnemyBrain would keep feeding intents to the
-            // motor and make the mount drift/circle while the rider is idle.
-            if ((mb is IBehaviourModule || mb is IAgentBrain) && !IsMountAware(mb))
-                list.Add(mb);
+            if (!seatPoint)
+                seatPoint = transform;
+            activeSeatPoint = seatPoint;
+            CacheSuppressibleModules();
         }
-        suppressibleModules = list.ToArray();
-    }
 
-    // Modules that must keep running while mounted so the rider can actually drive.
-    private static bool IsMountAware(MonoBehaviour mb)
-    {
-        return mb is MountModule || mb is SteerModule;
-    }
+        private void OnEnable()
+        {
+            ResolveCameraInputActions();
+        }
 
-    private void ApplyModuleSuppression()
-    {
-        if (allowAISelfMovementWhenMounted || suppressibleModules == null)
-            return;
-        foreach (MonoBehaviour mb in suppressibleModules)
-            if (mb) mb.enabled = false;
-    }
+        private void OnDisable()
+        {
+            if (IsMounted)
+                Dismount();
 
-    private void RestoreModuleSuppression()
-    {
-        if (suppressibleModules == null)
-            return;
-        foreach (MonoBehaviour mb in suppressibleModules)
-            if (mb) mb.enabled = true;
+            if (forcedLookActionEnabled && lookAction != null)
+            {
+                lookAction.Disable();
+                forcedLookActionEnabled = false;
+            }
+        }
+
+        private void Update()
+        {
+            if (!IsMounted)
+                return;
+
+            EnsureLookActionEnabled();
+            HandleLookInput(Time.deltaTime);
+        }
+
+        protected override void OnValidate()
+        {
+            base.OnValidate();
+            mountCooldown = Mathf.Max(0f, mountCooldown);
+            fallbackDismountDistance = Mathf.Max(0.1f, fallbackDismountDistance);
+            lookSensitivity = Mathf.Max(0f, lookSensitivity);
+            lookPitchClamp = Mathf.Clamp(lookPitchClamp, 0f, 89f);
+            thirdPersonDistance = Mathf.Max(0.1f, thirdPersonDistance);
+            thirdPersonFollowLerp = Mathf.Max(0.01f, thirdPersonFollowLerp);
+            thirdPersonAimLerp = Mathf.Max(0.01f, thirdPersonAimLerp);
+            thirdPersonYawLerp = Mathf.Max(0.01f, thirdPersonYawLerp);
+            thirdPersonLookAhead = Mathf.Max(0.1f, thirdPersonLookAhead);
+            cameraAutoAlignSpeed = Mathf.Max(0f, cameraAutoAlignSpeed);
+            cameraAutoAlignDelay = Mathf.Max(0f, cameraAutoAlignDelay);
+        }
+
+        // MountModule never produces movement. Null → AgentController falls through to other modules
+        // (or to MoveIntent.Idle() if none matched).
+        public override MoveIntent? Tick(in AgentContext context, float deltaTime) => null;
+
+        // ─────────── IInteractable ───────────
+        // MountStation calls TryMount directly, so switching this off closes the "look at any part
+        // of the hull and press E" path without disabling dedicated cockpit controls.
+        public bool CanInteract() => mountableByDirectInteraction && IsAvailableForMount;
+
+        public void Interact(Interactor interactor)
+        {
+            TryMount(interactor, transform);
+        }
+
+        // ─────────── Suppressor ───────────
+        public void RefreshModuleCache() => CacheSuppressibleModules();
+
+        private void CacheSuppressibleModules()
+        {
+            List<MonoBehaviour> list = new List<MonoBehaviour>();
+            MonoBehaviour[] all = GetComponentsInChildren<MonoBehaviour>(true);
+            foreach (MonoBehaviour mb in all)
+            {
+                // Suppress anything that could produce movement or a MoveIntent while mounted:
+                // IBehaviourModule (except Mount/Steer themselves) and legacy IAgentBrain fallbacks.
+                // Without this, e.g. a legacy NpcBrain/EnemyBrain would keep feeding intents to the
+                // motor and make the mount drift/circle while the rider is idle.
+                if ((mb is IBehaviourModule || mb is IAgentBrain) && !IsMountAware(mb))
+                    list.Add(mb);
+            }
+            suppressibleModules = list.ToArray();
+        }
+
+        // Modules that must keep running while mounted so the rider can actually drive.
+        private static bool IsMountAware(MonoBehaviour mb)
+        {
+            return mb is MountModule || mb is SteerModule;
+        }
+
+        private void ApplyModuleSuppression()
+        {
+            if (allowAISelfMovementWhenMounted || suppressibleModules == null)
+                return;
+            foreach (MonoBehaviour mb in suppressibleModules)
+                if (mb) mb.enabled = false;
+        }
+
+        private void RestoreModuleSuppression()
+        {
+            if (suppressibleModules == null)
+                return;
+            foreach (MonoBehaviour mb in suppressibleModules)
+                if (mb) mb.enabled = true;
+        }
     }
 }

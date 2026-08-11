@@ -185,7 +185,7 @@ will snap if the implied tension is too high.
 3. Set:
    - `Item Name` = "Leash"
    - `Item Prefab` = the prefab from §6.1
-   - `Icon` = a sprite. Placeholder: reuse `Assets/Sprites/Items/RocketArtifact.png`.
+   - `Icon` = a sprite. Placeholder: reuse `Assets/Art/Sprites/Items/RocketArtifact.png`.
 4. Make sure the asset is loaded by the inventory registry the same way the
    other artifacts (`RocketTurret.asset`, `Lasso.asset`) are loaded. They live
    under `Resources/` so `Resources.Load`-style registry lookups will see it.

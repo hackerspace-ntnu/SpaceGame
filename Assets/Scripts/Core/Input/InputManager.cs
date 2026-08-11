@@ -2,23 +2,26 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class InputManager : MonoBehaviour
+namespace SpaceGame.Core
 {
-
-    public event Action OnUsePressed;
-
-    private InputAction useAction;
-
-    private void Awake()
+    public class InputManager : MonoBehaviour
     {
-        useAction = InputSystem.actions.FindAction("Attack");
-    }
 
-    private void Update()
-    {
-        if (useAction != null && useAction.WasPressedThisFrame())
+        public event Action OnUsePressed;
+
+        private InputAction useAction;
+
+        private void Awake()
         {
-            OnUsePressed?.Invoke();
+            useAction = InputSystem.actions.FindAction("Attack");
+        }
+
+        private void Update()
+        {
+            if (useAction != null && useAction.WasPressedThisFrame())
+            {
+                OnUsePressed?.Invoke();
+            }
         }
     }
 }

@@ -3,52 +3,55 @@
 // Receivers wake up and chase the alerted target position even without independent detection.
 using UnityEngine;
 
-public class AlertBroadcaster : MonoBehaviour
+namespace SpaceGame.Agents
 {
-    [SerializeField] private float alertRadius = 20f;
-    [SerializeField] private LayerMask receiverLayers;
-    [Tooltip("If true, only alert entities of the same faction.")]
-    [SerializeField] private bool alliedOnly = true;
-
-    private readonly Collider[] hitBuffer = new Collider[32];
-    private EntityFaction myFaction;
-
-    private void Awake()
+    public class AlertBroadcaster : MonoBehaviour
     {
-        myFaction = GetComponent<EntityFaction>();
+        [SerializeField] private float alertRadius = 20f;
+        [SerializeField] private LayerMask receiverLayers;
+        [Tooltip("If true, only alert entities of the same faction.")]
+        [SerializeField] private bool alliedOnly = true;
 
-        if (receiverLayers == 0)
-            Debug.LogWarning($"{name}: AlertBroadcaster.receiverLayers is Nothing — alerts will never reach any receiver. Set the layer mask in the Inspector.", this);
-    }
+        private readonly Collider[] hitBuffer = new Collider[32];
+        private EntityFaction myFaction;
 
-    public void Broadcast(Transform alertTarget, Vector3 lastKnownPosition)
-    {
-        int count = Physics.OverlapSphereNonAlloc(transform.position, alertRadius, hitBuffer, receiverLayers);
-        for (int i = 0; i < count; i++)
+        private void Awake()
         {
-            if (hitBuffer[i].transform == transform)
-                continue;
+            myFaction = GetComponent<EntityFaction>();
 
-            AlertReceiverModule receiver = hitBuffer[i].GetComponent<AlertReceiverModule>();
-            if (!receiver)
-                continue;
-
-            if (alliedOnly && myFaction != null)
-            {
-                EntityFaction theirFaction = hitBuffer[i].GetComponent<EntityFaction>();
-                if (!myFaction.IsAlliedWith(theirFaction))
-                    continue;
-            }
-
-            receiver.ReceiveAlert(alertTarget, lastKnownPosition);
+            if (receiverLayers == 0)
+                Debug.LogWarning($"{name}: AlertBroadcaster.receiverLayers is Nothing — alerts will never reach any receiver. Set the layer mask in the Inspector.", this);
         }
-    }
 
-    private void OnValidate() => alertRadius = Mathf.Max(0f, alertRadius);
+        public void Broadcast(Transform alertTarget, Vector3 lastKnownPosition)
+        {
+            int count = Physics.OverlapSphereNonAlloc(transform.position, alertRadius, hitBuffer, receiverLayers);
+            for (int i = 0; i < count; i++)
+            {
+                if (hitBuffer[i].transform == transform)
+                    continue;
 
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = new Color(1f, 0.5f, 0f, 0.2f);
-        Gizmos.DrawWireSphere(transform.position, alertRadius);
+                AlertReceiverModule receiver = hitBuffer[i].GetComponent<AlertReceiverModule>();
+                if (!receiver)
+                    continue;
+
+                if (alliedOnly && myFaction != null)
+                {
+                    EntityFaction theirFaction = hitBuffer[i].GetComponent<EntityFaction>();
+                    if (!myFaction.IsAlliedWith(theirFaction))
+                        continue;
+                }
+
+                receiver.ReceiveAlert(alertTarget, lastKnownPosition);
+            }
+        }
+
+        private void OnValidate() => alertRadius = Mathf.Max(0f, alertRadius);
+
+        private void OnDrawGizmosSelected()
+        {
+            Gizmos.color = new Color(1f, 0.5f, 0f, 0.2f);
+            Gizmos.DrawWireSphere(transform.position, alertRadius);
+        }
     }
 }

@@ -13,31 +13,35 @@
 // This is the shape `OstrichSpineMotion` uses for the same reason, and for the same reason it is
 // tiny: everything worth testing is in the plain class underneath it.
 using UnityEngine;
+using SpaceGame.Locomotion;
 
-[DefaultExecutionOrder(150)]
-[RequireComponent(typeof(CrabLocomotion))]
-public class CrabClaws : MonoBehaviour
+namespace SpaceGame.Creatures.Crab
 {
-    [Tooltip("Hold the claws up from the moment the machine spawns. For a display piece; the " +
-             "raise is normally asked for by whatever decided the crab is threatened.")]
-    [SerializeField] private bool raisedOnStart;
-
-    private CrabLocomotion crab;
-
-    private void Awake()
+    [DefaultExecutionOrder(150)]
+    [RequireComponent(typeof(CrabLocomotion))]
+    public class CrabClaws : MonoBehaviour
     {
-        crab = GetComponent<CrabLocomotion>();
-        if (crab != null) crab.RaiseClaws(raisedOnStart);
-    }
+        [Tooltip("Hold the claws up from the moment the machine spawns. For a display piece; the " +
+                 "raise is normally asked for by whatever decided the crab is threatened.")]
+        [SerializeField] private bool raisedOnStart;
 
-    /// Bring the claws up, or put them back down.
-    public void Raise(bool raised)
-    {
-        if (crab != null) crab.RaiseClaws(raised);
-    }
+        private CrabLocomotion crab;
 
-    private void LateUpdate()
-    {
-        if (crab != null) crab.PoseClaws(Time.deltaTime);
+        private void Awake()
+        {
+            crab = GetComponent<CrabLocomotion>();
+            if (crab != null) crab.RaiseClaws(raisedOnStart);
+        }
+
+        /// Bring the claws up, or put them back down.
+        public void Raise(bool raised)
+        {
+            if (crab != null) crab.RaiseClaws(raised);
+        }
+
+        private void LateUpdate()
+        {
+            if (crab != null) crab.PoseClaws(Time.deltaTime);
+        }
     }
 }

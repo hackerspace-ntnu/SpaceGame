@@ -1,8 +1,10 @@
-
 using UnityEngine;
+using SpaceGame.Items;
 
-public interface IItemDropService
+namespace SpaceGame.Core
 {
-    void DropItem(Transform origin, InventoryItem item);
+    public interface IItemDropService
+    {
+        void DropItem(Transform origin, InventoryItem item);
+    }
 }
-

@@ -21,262 +21,265 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[DisallowMultipleComponent]
-[RequireComponent(typeof(MountModule))]
-[RequireComponent(typeof(AgentController))]
-public partial class SteerModule : BehaviourModuleBase
+namespace SpaceGame.Agents
 {
-    [Header("References")]
-    [SerializeField] private MountModule mountModule;
-
-    [Header("Input Action Names")]
-    [SerializeField] private string moveActionName = "Move";
-    [SerializeField] private string jumpActionName = "Jump";
-    [Tooltip("Optional Vector2 action whose Y axis is used as ascend/descend input for flying motors. " +
-             "Leave blank if this vehicle doesn't fly.")]
-    [SerializeField] private string verticalActionName = "";
-    [Tooltip("Optional turn axis for a machine whose Move X means something other than turning — a " +
-             "lateral traveller like the crab spends Move X on strafe and takes its heading from " +
-             "here. Accepts a float action or a Vector2 (X axis is used). Leave blank on anything " +
-             "that turns with the stick, which is every machine built before the crab.")]
-    [SerializeField] private string turnActionName = "";
-    [SerializeField] private float steeringOverrideThreshold = 0.1f;
-
-    [Header("Input Smoothing")]
-    [SerializeField] private float turnSmoothTime = 0.12f;
-
-    [Header("Running")]
-    [SerializeField] private bool riderCanRun = false;
-    [SerializeField] private string runActionName = "Sprint";
-
-    [Header("Jump")]
-    [SerializeField] private bool jumpEnabled = true;
-
-    [Header("Leap (hold jump to charge, release to leap)")]
-    [SerializeField] private bool leapEnabled = true;
-    [Tooltip("Seconds the jump button must be held before release triggers a leap instead of a jump.")]
-    [SerializeField] private float leapHoldTime = 0.4f;
-    [Tooltip("Horizontal distance of a leap, in meters.")]
-    [SerializeField] private float leapHorizontal = 8f;
-    [Tooltip("Peak vertical height of a leap, in meters.")]
-    [SerializeField] private float leapVertical = 3f;
-    [Tooltip("Seconds the leap animation takes.")]
-    [SerializeField] private float leapDuration = 0.9f;
-
-    [Header("Visual Lean")]
-    [SerializeField] private Transform visualTiltRoot;
-    [SerializeField] private float leanAmount = 10f;
-    [SerializeField] private float leanSmoothTime = 0.18f;
-
-    // ─────────── Runtime state ───────────
-    private InputAction moveAction;
-    private InputAction jumpAction;
-    private InputAction verticalAction;
-    private InputAction runAction;
-    private InputAction turnAction;
-
-    private Vector2 currentMoveInput;
-    private float currentVerticalInput;
-    private float currentTurnInput;
-    private bool hasSteeringOverride;
-
-    private float moveInputVelocityX;
-    private float moveInputVelocityY;
-    private float verticalInputVelocity;
-    private float turnInputVelocity;
-    private float currentLean;
-    private float leanVelocity;
-
-    private Quaternion visualTiltBaseLocalRotation;
-
-    // Jump/leap input tracking
-    private bool jumpHeld;
-    private float jumpHoldDuration;
-
-    private AgentController agentController;
-    private IMovementMotor controllerMotor;
-    private IRiderControllable riderMotor;
-    private IMountJumpMotor jumpMotor;
-    private IMountLeapMotor leapMotor;
-
-    private bool forcedMoveActionEnabled;
-    private bool forcedJumpActionEnabled;
-    private bool forcedVerticalActionEnabled;
-    private bool forcedRunActionEnabled;
-    private bool forcedTurnActionEnabled;
-    private bool runtimeMovementPathEnsured;
-
-    // ─────────── Public API ───────────
-    public bool IsMounted => mountModule && mountModule.IsMounted;
-    public Vector2 CurrentMoveInput => currentMoveInput;
-    public bool HasSteeringOverride => hasSteeringOverride;
-    public bool IsLeaping => leapMotor != null && leapMotor.IsLeaping;
-
-    public override string ModuleDescription =>
-        "Universal rider steering. Reads input, forwards to motor.ApplyRiderInput(), claims the frame.\n\n" +
-        "• Works with any motor implementing IRiderControllable (ground, flight, custom).\n" +
-        "• Jump = tap, Leap = hold-and-release (uses IMountJumpMotor / IMountLeapMotor if present).\n" +
-        "• Set verticalActionName for flying vehicles.\n" +
-        "• Pair with MountModule for the mount lifecycle.";
-
-    private void Reset() => SetPriorityDefault(ModulePriority.Scripted);
-
-    // ─────────── Lifecycle ───────────
-    private void Awake()
+    [DisallowMultipleComponent]
+    [RequireComponent(typeof(MountModule))]
+    [RequireComponent(typeof(AgentController))]
+    public partial class SteerModule : BehaviourModuleBase
     {
-        if (!mountModule)
-            mountModule = GetComponent<MountModule>();
+        [Header("References")]
+        [SerializeField] private MountModule mountModule;
 
-        EnsureRuntimeMovementPath();
-        agentController = GetComponent<AgentController>();
-        ResolveMotorReferences();
+        [Header("Input Action Names")]
+        [SerializeField] private string moveActionName = "Move";
+        [SerializeField] private string jumpActionName = "Jump";
+        [Tooltip("Optional Vector2 action whose Y axis is used as ascend/descend input for flying motors. " +
+                 "Leave blank if this vehicle doesn't fly.")]
+        [SerializeField] private string verticalActionName = "";
+        [Tooltip("Optional turn axis for a machine whose Move X means something other than turning — a " +
+                 "lateral traveller like the crab spends Move X on strafe and takes its heading from " +
+                 "here. Accepts a float action or a Vector2 (X axis is used). Leave blank on anything " +
+                 "that turns with the stick, which is every machine built before the crab.")]
+        [SerializeField] private string turnActionName = "";
+        [SerializeField] private float steeringOverrideThreshold = 0.1f;
 
-        if (visualTiltRoot)
-            visualTiltBaseLocalRotation = visualTiltRoot.localRotation;
-    }
+        [Header("Input Smoothing")]
+        [SerializeField] private float turnSmoothTime = 0.12f;
 
-    private void OnEnable()
-    {
-        ResolveInputActions();
+        [Header("Running")]
+        [SerializeField] private bool riderCanRun = false;
+        [SerializeField] private string runActionName = "Sprint";
 
-        if (mountModule != null)
+        [Header("Jump")]
+        [SerializeField] private bool jumpEnabled = true;
+
+        [Header("Leap (hold jump to charge, release to leap)")]
+        [SerializeField] private bool leapEnabled = true;
+        [Tooltip("Seconds the jump button must be held before release triggers a leap instead of a jump.")]
+        [SerializeField] private float leapHoldTime = 0.4f;
+        [Tooltip("Horizontal distance of a leap, in meters.")]
+        [SerializeField] private float leapHorizontal = 8f;
+        [Tooltip("Peak vertical height of a leap, in meters.")]
+        [SerializeField] private float leapVertical = 3f;
+        [Tooltip("Seconds the leap animation takes.")]
+        [SerializeField] private float leapDuration = 0.9f;
+
+        [Header("Visual Lean")]
+        [SerializeField] private Transform visualTiltRoot;
+        [SerializeField] private float leanAmount = 10f;
+        [SerializeField] private float leanSmoothTime = 0.18f;
+
+        // ─────────── Runtime state ───────────
+        private InputAction moveAction;
+        private InputAction jumpAction;
+        private InputAction verticalAction;
+        private InputAction runAction;
+        private InputAction turnAction;
+
+        private Vector2 currentMoveInput;
+        private float currentVerticalInput;
+        private float currentTurnInput;
+        private bool hasSteeringOverride;
+
+        private float moveInputVelocityX;
+        private float moveInputVelocityY;
+        private float verticalInputVelocity;
+        private float turnInputVelocity;
+        private float currentLean;
+        private float leanVelocity;
+
+        private Quaternion visualTiltBaseLocalRotation;
+
+        // Jump/leap input tracking
+        private bool jumpHeld;
+        private float jumpHoldDuration;
+
+        private AgentController agentController;
+        private IMovementMotor controllerMotor;
+        private IRiderControllable riderMotor;
+        private IMountJumpMotor jumpMotor;
+        private IMountLeapMotor leapMotor;
+
+        private bool forcedMoveActionEnabled;
+        private bool forcedJumpActionEnabled;
+        private bool forcedVerticalActionEnabled;
+        private bool forcedRunActionEnabled;
+        private bool forcedTurnActionEnabled;
+        private bool runtimeMovementPathEnsured;
+
+        // ─────────── Public API ───────────
+        public bool IsMounted => mountModule && mountModule.IsMounted;
+        public Vector2 CurrentMoveInput => currentMoveInput;
+        public bool HasSteeringOverride => hasSteeringOverride;
+        public bool IsLeaping => leapMotor != null && leapMotor.IsLeaping;
+
+        public override string ModuleDescription =>
+            "Universal rider steering. Reads input, forwards to motor.ApplyRiderInput(), claims the frame.\n\n" +
+            "• Works with any motor implementing IRiderControllable (ground, flight, custom).\n" +
+            "• Jump = tap, Leap = hold-and-release (uses IMountJumpMotor / IMountLeapMotor if present).\n" +
+            "• Set verticalActionName for flying vehicles.\n" +
+            "• Pair with MountModule for the mount lifecycle.";
+
+        private void Reset() => SetPriorityDefault(ModulePriority.Scripted);
+
+        // ─────────── Lifecycle ───────────
+        private void Awake()
         {
-            mountModule.Mounted += HandleMounted;
-            mountModule.Dismounted += HandleDismounted;
+            if (!mountModule)
+                mountModule = GetComponent<MountModule>();
 
-            if (mountModule.IsMounted)
-                HandleMounted(mountModule.MountedPlayerMovement);
-        }
-    }
-
-    private void OnDisable()
-    {
-        if (mountModule != null)
-        {
-            mountModule.Mounted -= HandleMounted;
-            mountModule.Dismounted -= HandleDismounted;
-        }
-
-        SetVisualLean(0f);
-        RestoreMountedInputActions();
-        ResetMountedInputState();
-    }
-
-    private void Update()
-    {
-        if (!IsMounted)
-        {
-            ResetMountedInputState();
-            DampVisualLeanToNeutral(Time.deltaTime);
-            return;
-        }
-
-        EnsureMountedInputActionsEnabled();
-        ReadMountedInput();
-        HandleJumpAndLeap(Time.deltaTime);
-        UpdateVisualLean(Time.deltaTime);
-
-        if (mountModule.MountedPlayerMovement != null)
-            mountModule.MountedPlayerMovement.ForceIdleAnimation();
-
-        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-            mountModule.Dismount();
-    }
-
-    // ─────────── AgentController Tick ───────────
-    public override MoveIntent? Tick(in AgentContext context, float deltaTime)
-    {
-        if (!IsMounted)
-            return null;
-
-        // While a leap is active the motor owns position; keep other modules off it.
-        if (IsLeaping)
-            return MoveIntent.Idle();
-
-        if (!hasSteeringOverride)
-            return null;
-
-        ResolveMotorReferences();
-
-        // Rider is driving — forward input to the motor and claim the frame.
-        if (riderMotor != null)
-        {
-            bool running = runAction != null && runAction.IsPressed();
-            RiderInput input = new RiderInput(currentMoveInput, currentVerticalInput, running && riderCanRun, currentTurnInput);
-            riderMotor.ApplyRiderInput(input, deltaTime);
-        }
-
-        return MoveIntent.Idle();
-    }
-
-    private void ResolveMotorReferences()
-    {
-        EnsureRuntimeMovementPath();
-
-        if (!agentController)
+            EnsureRuntimeMovementPath();
             agentController = GetComponent<AgentController>();
+            ResolveMotorReferences();
 
-        IMovementMotor selectedMotor = agentController != null ? agentController.Motor : null;
-        if (selectedMotor != null)
+            if (visualTiltRoot)
+                visualTiltBaseLocalRotation = visualTiltRoot.localRotation;
+        }
+
+        private void OnEnable()
         {
-            if (!ReferenceEquals(controllerMotor, selectedMotor))
+            ResolveInputActions();
+
+            if (mountModule != null)
             {
-                controllerMotor = selectedMotor;
-                riderMotor = selectedMotor as IRiderControllable;
-                jumpMotor = selectedMotor as IMountJumpMotor;
-                leapMotor = selectedMotor as IMountLeapMotor;
+                mountModule.Mounted += HandleMounted;
+                mountModule.Dismounted += HandleDismounted;
+
+                if (mountModule.IsMounted)
+                    HandleMounted(mountModule.MountedPlayerMovement);
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (mountModule != null)
+            {
+                mountModule.Mounted -= HandleMounted;
+                mountModule.Dismounted -= HandleDismounted;
             }
 
-            return;
+            SetVisualLean(0f);
+            RestoreMountedInputActions();
+            ResetMountedInputState();
         }
 
-        riderMotor = GetComponent<IRiderControllable>();
-        jumpMotor = GetComponent<IMountJumpMotor>();
-        leapMotor = GetComponent<IMountLeapMotor>();
-    }
-
-    private void EnsureRuntimeMovementPath()
-    {
-        if (runtimeMovementPathEnsured)
-            return;
-
-        if (!HasMovementMotor() && GetComponent<Rigidbody>() != null)
-            gameObject.AddComponent<RigidbodyMotor>();
-
-        if (!agentController && !TryGetComponent(out agentController))
-            agentController = gameObject.AddComponent<AgentController>();
-
-        if (agentController != null)
+        private void Update()
         {
-            agentController.RefreshMotor();
-            agentController.RefreshModules();
+            if (!IsMounted)
+            {
+                ResetMountedInputState();
+                DampVisualLeanToNeutral(Time.deltaTime);
+                return;
+            }
+
+            EnsureMountedInputActionsEnabled();
+            ReadMountedInput();
+            HandleJumpAndLeap(Time.deltaTime);
+            UpdateVisualLean(Time.deltaTime);
+
+            if (mountModule.MountedPlayerMovement != null)
+                mountModule.MountedPlayerMovement.ForceIdleAnimation();
+
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+                mountModule.Dismount();
         }
 
-        runtimeMovementPathEnsured = true;
-    }
-
-    private bool HasMovementMotor()
-    {
-        foreach (MonoBehaviour mb in GetComponentsInChildren<MonoBehaviour>(true))
+        // ─────────── AgentController Tick ───────────
+        public override MoveIntent? Tick(in AgentContext context, float deltaTime)
         {
-            if (mb is IMovementMotor)
-                return true;
+            if (!IsMounted)
+                return null;
+
+            // While a leap is active the motor owns position; keep other modules off it.
+            if (IsLeaping)
+                return MoveIntent.Idle();
+
+            if (!hasSteeringOverride)
+                return null;
+
+            ResolveMotorReferences();
+
+            // Rider is driving — forward input to the motor and claim the frame.
+            if (riderMotor != null)
+            {
+                bool running = runAction != null && runAction.IsPressed();
+                RiderInput input = new RiderInput(currentMoveInput, currentVerticalInput, running && riderCanRun, currentTurnInput);
+                riderMotor.ApplyRiderInput(input, deltaTime);
+            }
+
+            return MoveIntent.Idle();
         }
 
-        return false;
-    }
+        private void ResolveMotorReferences()
+        {
+            EnsureRuntimeMovementPath();
 
-    // ─────────── OnValidate ───────────
-    protected override void OnValidate()
-    {
-        base.OnValidate();
-        turnSmoothTime = Mathf.Max(0.01f, turnSmoothTime);
-        leapHoldTime = Mathf.Max(0.05f, leapHoldTime);
-        leapHorizontal = Mathf.Max(0f, leapHorizontal);
-        leapVertical = Mathf.Max(0f, leapVertical);
-        leapDuration = Mathf.Max(0.05f, leapDuration);
-        steeringOverrideThreshold = Mathf.Max(0.01f, steeringOverrideThreshold);
-        leanAmount = Mathf.Max(0f, leanAmount);
-        leanSmoothTime = Mathf.Max(0.01f, leanSmoothTime);
+            if (!agentController)
+                agentController = GetComponent<AgentController>();
+
+            IMovementMotor selectedMotor = agentController != null ? agentController.Motor : null;
+            if (selectedMotor != null)
+            {
+                if (!ReferenceEquals(controllerMotor, selectedMotor))
+                {
+                    controllerMotor = selectedMotor;
+                    riderMotor = selectedMotor as IRiderControllable;
+                    jumpMotor = selectedMotor as IMountJumpMotor;
+                    leapMotor = selectedMotor as IMountLeapMotor;
+                }
+
+                return;
+            }
+
+            riderMotor = GetComponent<IRiderControllable>();
+            jumpMotor = GetComponent<IMountJumpMotor>();
+            leapMotor = GetComponent<IMountLeapMotor>();
+        }
+
+        private void EnsureRuntimeMovementPath()
+        {
+            if (runtimeMovementPathEnsured)
+                return;
+
+            if (!HasMovementMotor() && GetComponent<Rigidbody>() != null)
+                gameObject.AddComponent<RigidbodyMotor>();
+
+            if (!agentController && !TryGetComponent(out agentController))
+                agentController = gameObject.AddComponent<AgentController>();
+
+            if (agentController != null)
+            {
+                agentController.RefreshMotor();
+                agentController.RefreshModules();
+            }
+
+            runtimeMovementPathEnsured = true;
+        }
+
+        private bool HasMovementMotor()
+        {
+            foreach (MonoBehaviour mb in GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                if (mb is IMovementMotor)
+                    return true;
+            }
+
+            return false;
+        }
+
+        // ─────────── OnValidate ───────────
+        protected override void OnValidate()
+        {
+            base.OnValidate();
+            turnSmoothTime = Mathf.Max(0.01f, turnSmoothTime);
+            leapHoldTime = Mathf.Max(0.05f, leapHoldTime);
+            leapHorizontal = Mathf.Max(0f, leapHorizontal);
+            leapVertical = Mathf.Max(0f, leapVertical);
+            leapDuration = Mathf.Max(0.05f, leapDuration);
+            steeringOverrideThreshold = Mathf.Max(0.01f, steeringOverrideThreshold);
+            leanAmount = Mathf.Max(0f, leanAmount);
+            leanSmoothTime = Mathf.Max(0.01f, leanSmoothTime);
+        }
     }
 }

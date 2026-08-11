@@ -1,6 +1,6 @@
 """components/mechanical/neck_column — robot neck vertebrae and head.
 
-Lifted from the ostrich's neck (`Assets/Models/Creatures/Robotic/
+Lifted from the ostrich's neck (`Assets/Art/Models/Creatures/Robotic/
 Ostrich/ostrich_neck.blend`) so the crawler's tail can end in a head that bites
 rather than a pincer. The skinned muscles, drive tendons and elastic bands are
 deliberately left behind — they are weighted to an eleven-bone chain and this

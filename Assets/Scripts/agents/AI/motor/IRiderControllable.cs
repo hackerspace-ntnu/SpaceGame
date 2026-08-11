@@ -8,32 +8,35 @@
 // so the AI channel can't fight the rider. Arc/cooldown updates should still run.
 using UnityEngine;
 
-public readonly struct RiderInput
+namespace SpaceGame.Agents
 {
-    // x = yaw (turn left/right), y = throttle (forward/back). Already smoothed by SteerModule.
-    public readonly Vector2 Move;
-    // Ascend/descend axis for flying motors. Ground motors ignore it.
-    public readonly float Vertical;
-    // Rider asked for a "running" speed (sprint) this frame.
-    public readonly bool IsRunning;
-    // Dedicated yaw axis, -1..1, for a machine whose Move.x means something other than turning.
-    // A lateral traveller (the crab) spends Move.x on strafe and steers from this instead; every
-    // machine that turns with Move.x ignores it, and it stays 0 when no turn action is bound.
-    public readonly float Turn;
-
-    public RiderInput(Vector2 move, float vertical, bool isRunning)
-        : this(move, vertical, isRunning, 0f) { }
-
-    public RiderInput(Vector2 move, float vertical, bool isRunning, float turn)
+    public readonly struct RiderInput
     {
-        Move = move;
-        Vertical = vertical;
-        IsRunning = isRunning;
-        Turn = turn;
-    }
-}
+        // x = yaw (turn left/right), y = throttle (forward/back). Already smoothed by SteerModule.
+        public readonly Vector2 Move;
+        // Ascend/descend axis for flying motors. Ground motors ignore it.
+        public readonly float Vertical;
+        // Rider asked for a "running" speed (sprint) this frame.
+        public readonly bool IsRunning;
+        // Dedicated yaw axis, -1..1, for a machine whose Move.x means something other than turning.
+        // A lateral traveller (the crab) spends Move.x on strafe and steers from this instead; every
+        // machine that turns with Move.x ignores it, and it stays 0 when no turn action is bound.
+        public readonly float Turn;
 
-public interface IRiderControllable
-{
-    void ApplyRiderInput(in RiderInput input, float deltaTime);
+        public RiderInput(Vector2 move, float vertical, bool isRunning)
+            : this(move, vertical, isRunning, 0f) { }
+
+        public RiderInput(Vector2 move, float vertical, bool isRunning, float turn)
+        {
+            Move = move;
+            Vertical = vertical;
+            IsRunning = isRunning;
+            Turn = turn;
+        }
+    }
+
+    public interface IRiderControllable
+    {
+        void ApplyRiderInput(in RiderInput input, float deltaTime);
+    }
 }

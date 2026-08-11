@@ -3,12 +3,15 @@
 // or as the base layer before running a more specific profile on top.
 using UnityEngine;
 
-public class EntityProfile_BaseAgent : MonoBehaviour
+namespace SpaceGame.Agents
 {
-    [TextArea(2, 4)]
-    public string description = "Base agent.";
+    public class EntityProfile_BaseAgent : MonoBehaviour
+    {
+        [TextArea(2, 4)]
+        public string description = "Base agent.";
 
-    [Header("Health")]
-    public int maxHealth = 100;
-    public float despawnDelay = 10f;
+        [Header("Health")]
+        public int maxHealth = 100;
+        public float despawnDelay = 10f;
+    }
 }

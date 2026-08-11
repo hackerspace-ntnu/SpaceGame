@@ -140,7 +140,7 @@ and was kept: painted metal against fabric, and both appear on this model.
 ## Unity
 
     desert_crawler.py  →  desert_crawler.blend  →  desert_crawler_export.py
-      →  Assets/Models/Vehicles/Crawler/desert_crawler.fbx
+      →  Assets/Art/Models/Vehicles/Crawler/desert_crawler.fbx
       →  Tools ▸ Vehicles ▸ Build Desert Crawler Prefab
       →  Assets/Prefabs/agents/vehicle/DesertCrawler.prefab
 

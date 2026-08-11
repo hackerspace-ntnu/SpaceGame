@@ -13,8 +13,8 @@ Unity-ready copy without ever writing to the original:
   7. save the .blend and export the FBX
 
 Run:
-  blender --background Assets/Models/_Source~/models/vehicles/dune_foil.blend \
-          --python Assets/Models/_Source~/models/vehicles/dune_foil_rig.py
+  blender --background Assets/Art/Models/_Source~/models/vehicles/dune_foil.blend \
+          --python Assets/Art/Models/_Source~/models/vehicles/dune_foil_rig.py
 """
 
 import os

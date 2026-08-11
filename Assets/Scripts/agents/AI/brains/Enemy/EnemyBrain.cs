@@ -3,101 +3,104 @@
 // This brain still works — AgentController picks it up as a legacy IAgentBrain fallback.
 using UnityEngine;
 
-public class EnemyBrain : MonoBehaviour, IAgentBrain
+namespace SpaceGame.Agents
 {
-    [Header("Behaviours")]
-    [SerializeField] private WanderBehaviour wanderBehaviour;
-
-    [Header("Targeting")]
-    [SerializeField] private Transform target;
-    [Tooltip("Faction relationship the nearest candidate must have. Requires EntityFaction on both entities.")]
-    [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Hostile;
-    [SerializeField] private float detectRange = 10f;
-    [SerializeField] private float loseTargetRange = 14f;
-
-    private EntityFaction selfFaction;
-
-    [Header("Combat Movement")]
-    [SerializeField] private float attackRange = 1.8f;
-    [SerializeField] private float chaseStopDistance = 1.3f;
-    [SerializeField] private float wanderSpeedMultiplier = 1f;
-    [SerializeField] private float chaseSpeedMultiplier = 1.3f;
-
-    private bool hasTarget;
-
-    private void Awake()
+    public class EnemyBrain : MonoBehaviour, IAgentBrain
     {
-        if (!wanderBehaviour)
+        [Header("Behaviours")]
+        [SerializeField] private WanderBehaviour wanderBehaviour;
+
+        [Header("Targeting")]
+        [SerializeField] private Transform target;
+        [Tooltip("Faction relationship the nearest candidate must have. Requires EntityFaction on both entities.")]
+        [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Hostile;
+        [SerializeField] private float detectRange = 10f;
+        [SerializeField] private float loseTargetRange = 14f;
+
+        private EntityFaction selfFaction;
+
+        [Header("Combat Movement")]
+        [SerializeField] private float attackRange = 1.8f;
+        [SerializeField] private float chaseStopDistance = 1.3f;
+        [SerializeField] private float wanderSpeedMultiplier = 1f;
+        [SerializeField] private float chaseSpeedMultiplier = 1.3f;
+
+        private bool hasTarget;
+
+        private void Awake()
         {
-            wanderBehaviour = GetComponent<WanderBehaviour>();
+            if (!wanderBehaviour)
+            {
+                wanderBehaviour = GetComponent<WanderBehaviour>();
+            }
+            selfFaction = GetComponent<EntityFaction>();
         }
-        selfFaction = GetComponent<EntityFaction>();
-    }
 
-    private void OnEnable()
-    {
-        hasTarget = false;
-        wanderBehaviour?.ResetState();
-    }
-
-    public MoveIntent Tick(in AgentContext context, float deltaTime)
-    {
-        TryResolveTarget();
-
-        if (target)
+        private void OnEnable()
         {
-            float distance = Vector3.Distance(context.Position, target.position);
+            hasTarget = false;
+            wanderBehaviour?.ResetState();
+        }
 
-            if (!hasTarget && distance <= detectRange)
-            {
-                hasTarget = true;
-            }
-            else if (hasTarget && distance > loseTargetRange)
-            {
-                hasTarget = false;
-            }
+        public MoveIntent Tick(in AgentContext context, float deltaTime)
+        {
+            TryResolveTarget();
 
-            if (hasTarget)
+            if (target)
             {
-                if (distance <= attackRange)
+                float distance = Vector3.Distance(context.Position, target.position);
+
+                if (!hasTarget && distance <= detectRange)
                 {
-                    return MoveIntent.StopAndFace(target.position);
+                    hasTarget = true;
+                }
+                else if (hasTarget && distance > loseTargetRange)
+                {
+                    hasTarget = false;
                 }
 
-                return MoveIntent.MoveTo(target.position, chaseStopDistance, chaseSpeedMultiplier);
+                if (hasTarget)
+                {
+                    if (distance <= attackRange)
+                    {
+                        return MoveIntent.StopAndFace(target.position);
+                    }
+
+                    return MoveIntent.MoveTo(target.position, chaseStopDistance, chaseSpeedMultiplier);
+                }
             }
+
+            if (!wanderBehaviour)
+            {
+                return MoveIntent.Idle();
+            }
+
+            if (!wanderBehaviour.Tick(context.Position, context.HasReachedDestination, deltaTime, out Vector3 destination))
+            {
+                return MoveIntent.Idle();
+            }
+
+            return MoveIntent.MoveTo(destination, 0.2f, wanderSpeedMultiplier);
         }
 
-        if (!wanderBehaviour)
+        private void TryResolveTarget()
         {
-            return MoveIntent.Idle();
+            if (target)
+            {
+                return;
+            }
+
+            target = EntityTargetRegistry.ResolveNearest(selfFaction, requiredRelationship, transform.position);
         }
 
-        if (!wanderBehaviour.Tick(context.Position, context.HasReachedDestination, deltaTime, out Vector3 destination))
+        private void OnValidate()
         {
-            return MoveIntent.Idle();
+            detectRange = Mathf.Max(0.1f, detectRange);
+            loseTargetRange = Mathf.Max(detectRange, loseTargetRange);
+            attackRange = Mathf.Max(0.1f, attackRange);
+            chaseStopDistance = Mathf.Max(0.1f, chaseStopDistance);
+            wanderSpeedMultiplier = Mathf.Max(0.01f, wanderSpeedMultiplier);
+            chaseSpeedMultiplier = Mathf.Max(0.01f, chaseSpeedMultiplier);
         }
-
-        return MoveIntent.MoveTo(destination, 0.2f, wanderSpeedMultiplier);
-    }
-
-    private void TryResolveTarget()
-    {
-        if (target)
-        {
-            return;
-        }
-
-        target = EntityTargetRegistry.ResolveNearest(selfFaction, requiredRelationship, transform.position);
-    }
-
-    private void OnValidate()
-    {
-        detectRange = Mathf.Max(0.1f, detectRange);
-        loseTargetRange = Mathf.Max(detectRange, loseTargetRange);
-        attackRange = Mathf.Max(0.1f, attackRange);
-        chaseStopDistance = Mathf.Max(0.1f, chaseStopDistance);
-        wanderSpeedMultiplier = Mathf.Max(0.01f, wanderSpeedMultiplier);
-        chaseSpeedMultiplier = Mathf.Max(0.01f, chaseSpeedMultiplier);
     }
 }

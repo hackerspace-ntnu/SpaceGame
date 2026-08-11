@@ -29,110 +29,113 @@
 using SpaceGame.Locomotion;
 using UnityEngine;
 
-public class HorseLocomotion : LeggedLocomotion
+namespace SpaceGame.Creatures.Horse
 {
-    [Header("Horse — stride")]
-    [Tooltip("Hip height while walking, as a fraction of its height in the model's rest pose.\n\n" +
-             "This buys the stride. A leg carrying the body at height h out of a linkage of length " +
-             "L can only reach the ground within sqrt(L^2 - h^2) of its hip; the rest is spent " +
-             "reaching down. The rig is posed at about 86% extension in front and 83% behind, so " +
-             "there is already some bend to work with and this stands it down far less than the " +
-             "ostrich's 0.86 has to.")]
-    [Range(0.80f, 1.0f)]
-    [SerializeField] private float hipHeightFraction = 0.95f;
+    public class HorseLocomotion : LeggedLocomotion
+    {
+        [Header("Horse — stride")]
+        [Tooltip("Hip height while walking, as a fraction of its height in the model's rest pose.\n\n" +
+                 "This buys the stride. A leg carrying the body at height h out of a linkage of length " +
+                 "L can only reach the ground within sqrt(L^2 - h^2) of its hip; the rest is spent " +
+                 "reaching down. The rig is posed at about 86% extension in front and 83% behind, so " +
+                 "there is already some bend to work with and this stands it down far less than the " +
+                 "ostrich's 0.86 has to.")]
+        [Range(0.80f, 1.0f)]
+        [SerializeField] private float hipHeightFraction = 0.95f;
 
-    [Tooltip("How much of the available horizontal reach a stride is sized against. Higher is a " +
-             "longer stride on a straighter leg, with less left over when the ground is not where " +
-             "the foothold search expected it.")]
-    [Range(0.55f, 0.85f)]
-    [SerializeField] private float strideFraction = 0.72f;
+        [Tooltip("How much of the available horizontal reach a stride is sized against. Higher is a " +
+                 "longer stride on a straighter leg, with less left over when the ground is not where " +
+                 "the foothold search expected it.")]
+        [Range(0.55f, 0.85f)]
+        [SerializeField] private float strideFraction = 0.72f;
 
-    [Tooltip("How far inside its horizontal reach a fresh foothold is pulled. A machine that " +
-             "covers most of a leg-length while the hoof is in the air lands on a foothold that " +
-             "was comfortable at lift-off and is at full stretch on arrival; this margin is what " +
-             "stops every step arriving over-extended and firing the step-early rule.\n\n" +
-             "Serialized rather than a constant because it trades directly against reach at a " +
-             "gallop, which is the one speed where this machine runs out of leg.")]
-    [Range(0.5f, 0.9f)]
-    [SerializeField] private float footholdReachFraction = 0.72f;
+        [Tooltip("How far inside its horizontal reach a fresh foothold is pulled. A machine that " +
+                 "covers most of a leg-length while the hoof is in the air lands on a foothold that " +
+                 "was comfortable at lift-off and is at full stretch on arrival; this margin is what " +
+                 "stops every step arriving over-extended and firing the step-early rule.\n\n" +
+                 "Serialized rather than a constant because it trades directly against reach at a " +
+                 "gallop, which is the one speed where this machine runs out of leg.")]
+        [Range(0.5f, 0.9f)]
+        [SerializeField] private float footholdReachFraction = 0.72f;
 
-    [Header("Horse — gait")]
-    [Tooltip("Fraction of the cycle a hoof is airborne at a walk. Below 0.5 there is always at " +
-             "least one diagonal on the ground, which is what makes it a walk.")]
-    [Range(0.30f, 0.49f)]
-    [SerializeField] private float walkSwingDuty = 0.38f;
+        [Header("Horse — gait")]
+        [Tooltip("Fraction of the cycle a hoof is airborne at a walk. Below 0.5 there is always at " +
+                 "least one diagonal on the ground, which is what makes it a walk.")]
+        [Range(0.30f, 0.49f)]
+        [SerializeField] private float walkSwingDuty = 0.38f;
 
-    [Tooltip("Same at a gallop. This is what buys the suspension: the gallop's four footfalls are " +
-             "spread over half a cycle, so everything above 0.5 is time with no hoof on the ground.")]
-    [Range(0.51f, 0.75f)]
-    [SerializeField] private float runSwingDuty = 0.62f;
+        [Tooltip("Same at a gallop. This is what buys the suspension: the gallop's four footfalls are " +
+                 "spread over half a cycle, so everything above 0.5 is time with no hoof on the ground.")]
+        [Range(0.51f, 0.75f)]
+        [SerializeField] private float runSwingDuty = 0.62f;
 
-    [Tooltip("Which foreleg leads at a canter. Fixed rather than switched with the turn: changing " +
-             "lead is a table swap by another name, and swapping mid-stride teleports whichever " +
-             "hoof is in the air.")]
-    [SerializeField] private bool leadRight = true;
+        [Tooltip("Which foreleg leads at a canter. Fixed rather than switched with the turn: changing " +
+                 "lead is a table swap by another name, and swapping mid-stride teleports whichever " +
+                 "hoof is in the air.")]
+        [SerializeField] private bool leadRight = true;
 
-    [Tooltip("Fraction of top speed at which the walk has fully become a trot.")]
-    [Range(0.2f, 0.8f)]
-    [SerializeField] private float walkToTrot = 0.45f;
+        [Tooltip("Fraction of top speed at which the walk has fully become a trot.")]
+        [Range(0.2f, 0.8f)]
+        [SerializeField] private float walkToTrot = 0.45f;
 
-    [Tooltip("Fraction of top speed at which the trot starts becoming a canter. The gap between " +
-             "this and the one above is the trot, and it is a plateau on purpose: a horse holds a " +
-             "trot over a range of speeds rather than passing through it.")]
-    [Range(0.3f, 0.95f)]
-    [SerializeField] private float trotToCanter = 0.55f;
+        [Tooltip("Fraction of top speed at which the trot starts becoming a canter. The gap between " +
+                 "this and the one above is the trot, and it is a plateau on purpose: a horse holds a " +
+                 "trot over a range of speeds rather than passing through it.")]
+        [Range(0.3f, 0.95f)]
+        [SerializeField] private float trotToCanter = 0.55f;
 
-    [Header("Horse — foot")]
-    [Tooltip("Degrees the hoof breaks over its toe at the ends of a stance: heel up to push off, " +
-             "toe down to reach for the landing, flat through the middle where the weight is.")]
-    [SerializeField] private float toeOffAngle = 14f;
-    [Tooltip("Degrees the toe lifts through mid-swing. Too much and it high-steps like a dressage " +
-             "horse, which is a different animal from the one this is.")]
-    [SerializeField] private float swingToeAngle = 9f;
+        [Header("Horse — foot")]
+        [Tooltip("Degrees the hoof breaks over its toe at the ends of a stance: heel up to push off, " +
+                 "toe down to reach for the landing, flat through the middle where the weight is.")]
+        [SerializeField] private float toeOffAngle = 14f;
+        [Tooltip("Degrees the toe lifts through mid-swing. Too much and it high-steps like a dressage " +
+                 "horse, which is a different animal from the one this is.")]
+        [SerializeField] private float swingToeAngle = 9f;
 
-    [Header("Horse — body motion")]
-    [Tooltip("Vertical bob, as a fraction of the shortest leg's reach. Runs at twice the stride " +
-             "frequency: the body dips onto each footfall and rises through mid-stance.")]
-    [SerializeField] private float bobAmount = 0.035f;
-    [Tooltip("How far the body leans over the loaded side. Small on a quadruped — it has a foot " +
-             "on each corner and nothing like a biped's need to get its mass over one of them.")]
-    [SerializeField] private float swayAmount = 0.25f;
-    [Tooltip("Degrees the body pitches nose-down at top speed. A horse's back stays near level, " +
-             "which is the whole reason it is worth sitting on; the ostrich's 16 is what NOT to do.")]
-    [SerializeField] private float runPitch = 5f;
-    [Tooltip("Degrees the body rolls into a turn at top speed.")]
-    [SerializeField] private float turnRoll = 6f;
-    [SerializeField] private float attitudeSmooth = 8f;
-    [Tooltip("How much of the ground's tilt the body takes on. A body held rigidly level across a " +
-             "hillside strands its downhill legs; a rider can take rather more tilt than that.")]
-    [Range(0f, 1f)]
-    [SerializeField] private float slopeFollow = 0.7f;
-    [Range(0f, 45f)]
-    [SerializeField] private float maxSlopeTilt = 20f;
+        [Header("Horse — body motion")]
+        [Tooltip("Vertical bob, as a fraction of the shortest leg's reach. Runs at twice the stride " +
+                 "frequency: the body dips onto each footfall and rises through mid-stance.")]
+        [SerializeField] private float bobAmount = 0.035f;
+        [Tooltip("How far the body leans over the loaded side. Small on a quadruped — it has a foot " +
+                 "on each corner and nothing like a biped's need to get its mass over one of them.")]
+        [SerializeField] private float swayAmount = 0.25f;
+        [Tooltip("Degrees the body pitches nose-down at top speed. A horse's back stays near level, " +
+                 "which is the whole reason it is worth sitting on; the ostrich's 16 is what NOT to do.")]
+        [SerializeField] private float runPitch = 5f;
+        [Tooltip("Degrees the body rolls into a turn at top speed.")]
+        [SerializeField] private float turnRoll = 6f;
+        [SerializeField] private float attitudeSmooth = 8f;
+        [Tooltip("How much of the ground's tilt the body takes on. A body held rigidly level across a " +
+                 "hillside strands its downhill legs; a rider can take rather more tilt than that.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float slopeFollow = 0.7f;
+        [Range(0f, 45f)]
+        [SerializeField] private float maxSlopeTilt = 20f;
 
-    [Header("Horse — steering")]
-    [Tooltip("Fastest the horse may turn. Authored rather than derived: the default derivation " +
-             "sizes the pivot rate against the outermost foot, and on a machine whose feet are all " +
-             "close in under its body that comes out far faster than anything with this much mass " +
-             "would turn.")]
-    [SerializeField] private float maxYawRate = 90f;
+        [Header("Horse — steering")]
+        [Tooltip("Fastest the horse may turn. Authored rather than derived: the default derivation " +
+                 "sizes the pivot rate against the outermost foot, and on a machine whose feet are all " +
+                 "close in under its body that comes out far faster than anything with this much mass " +
+                 "would turn.")]
+        [SerializeField] private float maxYawRate = 90f;
 
-    protected override IStrideModel CreateStride()
-        => new HipBudgetStride(hipHeightFraction, strideFraction);
+        protected override IStrideModel CreateStride()
+            => new HipBudgetStride(hipHeightFraction, strideFraction);
 
-    protected override IGaitPattern CreateGait()
-        => new CanterGait(walkSwingDuty, runSwingDuty, leadRight, walkToTrot, trotToCanter);
+        protected override IGaitPattern CreateGait()
+            => new CanterGait(walkSwingDuty, runSwingDuty, leadRight, walkToTrot, trotToCanter);
 
-    protected override IFootStyle CreateFeet() => new ArticulatedSole(toeOffAngle, swingToeAngle);
+        protected override IFootStyle CreateFeet() => new ArticulatedSole(toeOffAngle, swingToeAngle);
 
-    protected override IBodyMotion CreateBody()
-        => new BobbingBody(bobAmount, swayAmount, runPitch, turnRoll, attitudeSmooth,
-                           slopeFollow, maxSlopeTilt);
+        protected override IBodyMotion CreateBody()
+            => new BobbingBody(bobAmount, swayAmount, runPitch, turnRoll, attitudeSmooth,
+                               slopeFollow, maxSlopeTilt);
 
-    protected override float DeriveMaxYawRate() => maxYawRate;
+        protected override float DeriveMaxYawRate() => maxYawRate;
 
-    /// Lower than the walking station's 0.85, for the same reason the ostrich's is: this machine
-    /// covers most of a leg-length while a hoof is in the air, so a foothold that was comfortable
-    /// at lift-off is at full stretch on landing.
-    protected override float FootholdReachFraction => footholdReachFraction;
+        /// Lower than the walking station's 0.85, for the same reason the ostrich's is: this machine
+        /// covers most of a leg-length while a hoof is in the air, so a foothold that was comfortable
+        /// at lift-off is at full stretch on landing.
+        protected override float FootholdReachFraction => footholdReachFraction;
+    }
 }

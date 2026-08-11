@@ -9,95 +9,98 @@
 // priority) preempt the frame when they can hit, which is what produces stand-and-fire.
 using UnityEngine;
 
-public class ChaseModule : BehaviourModuleBase
+namespace SpaceGame.Agents
 {
-    [Header("Movement")]
-    [Tooltip("NavMesh stopping distance on the approach. Attack modules gate the actual halt, " +
-             "so this only needs to be inside their range.")]
-    [SerializeField] private float chaseStopDistance = 1.3f;
-    [SerializeField] private float chaseSpeedMultiplier = 1.3f;
-
-    private HerdModule herdModule;
-
-    // Herd slot offset radius. Shrunk to zero for melee agents so they close on the target
-    // instead of parking on a ring outside their own attack range.
-    private float effectiveSpreadRadius;
-
-    public bool HasTarget { get; private set; }
-
-    private void Awake()
+    public class ChaseModule : BehaviourModuleBase
     {
-        herdModule = GetComponent<HerdModule>();
-        ConfigureMeleeMovement();
-    }
+        [Header("Movement")]
+        [Tooltip("NavMesh stopping distance on the approach. Attack modules gate the actual halt, " +
+                 "so this only needs to be inside their range.")]
+        [SerializeField] private float chaseStopDistance = 1.3f;
+        [SerializeField] private float chaseSpeedMultiplier = 1.3f;
 
-    // For agents with a CloseCombatModule: disable the herd ring and tighten chaseStopDistance
-    // so the final arrival position (slot radius + stop distance + nav jitter) lands strictly
-    // inside attackRange. Without this the agent parks at the ring edge and the attackRange
-    // check rejects by half a metre, producing "chases me but never hits".
-    //
-    // Uses the smallest sibling melee range so every CloseCombatModule on the agent can fire.
-    private void ConfigureMeleeMovement()
-    {
-        float meleeAttackRange = float.MaxValue;
-        foreach (CloseCombatModule c in GetComponents<CloseCombatModule>())
-            meleeAttackRange = Mathf.Min(meleeAttackRange, c.AttackRange);
+        private HerdModule herdModule;
 
-        effectiveSpreadRadius = herdModule != null ? herdModule.CombatSpreadRadius : 0f;
+        // Herd slot offset radius. Shrunk to zero for melee agents so they close on the target
+        // instead of parking on a ring outside their own attack range.
+        private float effectiveSpreadRadius;
 
-        if (meleeAttackRange < float.MaxValue)
+        public bool HasTarget { get; private set; }
+
+        private void Awake()
         {
-            // Herd members clustering on a shared target is the correct shape for melee;
-            // spreading them would park everyone outside swing reach.
-            effectiveSpreadRadius = 0f;
-
-            // Stop just inside attackRange: in reach, but with visible daylight between
-            // colliders so agents don't hug and shove each other.
-            float stopCap = Mathf.Max(0.3f, meleeAttackRange - 0.4f);
-            if (chaseStopDistance > stopCap)
-                chaseStopDistance = stopCap;
+            herdModule = GetComponent<HerdModule>();
+            ConfigureMeleeMovement();
         }
-    }
 
-    private void Reset() => SetPriorityDefault(ModulePriority.Reactive);
+        // For agents with a CloseCombatModule: disable the herd ring and tighten chaseStopDistance
+        // so the final arrival position (slot radius + stop distance + nav jitter) lands strictly
+        // inside attackRange. Without this the agent parks at the ring edge and the attackRange
+        // check rejects by half a metre, producing "chases me but never hits".
+        //
+        // Uses the smallest sibling melee range so every CloseCombatModule on the agent can fire.
+        private void ConfigureMeleeMovement()
+        {
+            float meleeAttackRange = float.MaxValue;
+            foreach (CloseCombatModule c in GetComponents<CloseCombatModule>())
+                meleeAttackRange = Mathf.Min(meleeAttackRange, c.AttackRange);
 
-    private void OnEnable() => HasTarget = false;
+            effectiveSpreadRadius = herdModule != null ? herdModule.CombatSpreadRadius : 0f;
 
-    public override string ModuleDescription =>
-        "Drives the agent toward the target chosen by AgentTargeting. Attack modules at higher " +
-        "priority preempt with StopAndFace once they can hit.\n\n" +
-        "• chaseStopDistance — NavMesh stopping distance on the approach (auto-tightened when a " +
-        "CloseCombatModule is present, so the agent ends up inside swing range)\n" +
-        "• chaseSpeedMultiplier — speed scale while closing\n\n" +
-        "Detection ranges, line-of-sight and target choice all live on AgentTargeting — add a " +
-        "TargetingProfile there to tune them.";
+            if (meleeAttackRange < float.MaxValue)
+            {
+                // Herd members clustering on a shared target is the correct shape for melee;
+                // spreading them would park everyone outside swing reach.
+                effectiveSpreadRadius = 0f;
 
-    public override MoveIntent? Tick(in AgentContext context, float deltaTime)
-    {
-        AgentTargeting targeting = context.Targeting;
-        if (targeting == null)
-            return null;
+                // Stop just inside attackRange: in reach, but with visible daylight between
+                // colliders so agents don't hug and shove each other.
+                float stopCap = Mathf.Max(0.3f, meleeAttackRange - 0.4f);
+                if (chaseStopDistance > stopCap)
+                    chaseStopDistance = stopCap;
+            }
+        }
 
-        HasTarget = targeting.HasTarget;
-        if (!HasTarget)
-            return null;
+        private void Reset() => SetPriorityDefault(ModulePriority.Reactive);
 
-        // While the target is out of sight but still acquired, head for where it was last seen.
-        // Once AgentTargeting drops it entirely, SearchModule takes over the investigation.
-        Vector3 chasePosition = targeting.CanSeeTarget || !targeting.HasLastKnownPosition
-            ? targeting.Target.position
-            : targeting.LastKnownPosition;
+        private void OnEnable() => HasTarget = false;
 
-        Vector3 destination = herdModule != null
-            ? herdModule.GetSlotPositionAround(chasePosition, effectiveSpreadRadius)
-            : chasePosition;
+        public override string ModuleDescription =>
+            "Drives the agent toward the target chosen by AgentTargeting. Attack modules at higher " +
+            "priority preempt with StopAndFace once they can hit.\n\n" +
+            "• chaseStopDistance — NavMesh stopping distance on the approach (auto-tightened when a " +
+            "CloseCombatModule is present, so the agent ends up inside swing range)\n" +
+            "• chaseSpeedMultiplier — speed scale while closing\n\n" +
+            "Detection ranges, line-of-sight and target choice all live on AgentTargeting — add a " +
+            "TargetingProfile there to tune them.";
 
-        return MoveIntent.MoveTo(destination, chaseStopDistance, chaseSpeedMultiplier, isRunning: true);
-    }
+        public override MoveIntent? Tick(in AgentContext context, float deltaTime)
+        {
+            AgentTargeting targeting = context.Targeting;
+            if (targeting == null)
+                return null;
 
-    protected override void OnValidate()
-    {
-        chaseStopDistance = Mathf.Max(0.01f, chaseStopDistance);
-        chaseSpeedMultiplier = Mathf.Max(0.01f, chaseSpeedMultiplier);
+            HasTarget = targeting.HasTarget;
+            if (!HasTarget)
+                return null;
+
+            // While the target is out of sight but still acquired, head for where it was last seen.
+            // Once AgentTargeting drops it entirely, SearchModule takes over the investigation.
+            Vector3 chasePosition = targeting.CanSeeTarget || !targeting.HasLastKnownPosition
+                ? targeting.Target.position
+                : targeting.LastKnownPosition;
+
+            Vector3 destination = herdModule != null
+                ? herdModule.GetSlotPositionAround(chasePosition, effectiveSpreadRadius)
+                : chasePosition;
+
+            return MoveIntent.MoveTo(destination, chaseStopDistance, chaseSpeedMultiplier, isRunning: true);
+        }
+
+        protected override void OnValidate()
+        {
+            chaseStopDistance = Mathf.Max(0.01f, chaseStopDistance);
+            chaseSpeedMultiplier = Mathf.Max(0.01f, chaseSpeedMultiplier);
+        }
     }
 }

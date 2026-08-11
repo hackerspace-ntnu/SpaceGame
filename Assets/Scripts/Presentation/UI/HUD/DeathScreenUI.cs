@@ -1,5 +1,6 @@
 using UnityEngine;
-
+using SpaceGame.Characters;
+using SpaceGame.Gameplay;
 public class DeathScreenUI : MonoBehaviour
 {
     

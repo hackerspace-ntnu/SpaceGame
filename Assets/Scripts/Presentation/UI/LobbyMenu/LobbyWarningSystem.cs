@@ -2,15 +2,18 @@ using System;
 using TMPro;
 using UnityEngine;
 
-public class LobbyWarningSystem : MonoBehaviour
+namespace SpaceGame.Presentation
 {
-    public GameObject warningPanel;
-    public TextMeshProUGUI warningPanelErrorMessage;
-
-    public void warn(String errorMessage)
+    public class LobbyWarningSystem : MonoBehaviour
     {
-        //Change warning panel text and set it to active
-        warningPanel.SetActive(true);
-        warningPanelErrorMessage.text = errorMessage;
+        public GameObject warningPanel;
+        public TextMeshProUGUI warningPanelErrorMessage;
+
+        public void warn(String errorMessage)
+        {
+            //Change warning panel text and set it to active
+            warningPanel.SetActive(true);
+            warningPanelErrorMessage.text = errorMessage;
+        }
     }
 }

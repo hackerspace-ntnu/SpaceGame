@@ -7,61 +7,64 @@
 // while still using the seamless mesh whenever the ship is buttoned up.
 using UnityEngine;
 
-public class ShellVariantSwitcher : MonoBehaviour
+namespace SpaceGame.Vehicles
 {
-    [Header("Shell Meshes")]
-    [Tooltip("Seamless shell, shown while every watched part is fully closed.")]
-    [SerializeField] private Renderer closedShell;
-
-    [Tooltip("Shell with the openings cut out, shown as soon as any watched part leaves the closed pose.")]
-    [SerializeField] private Renderer openShell;
-
-    [Header("Watched Parts")]
-    [Tooltip("Panels that sit in the openings. Any of them off the closed pose swaps the shell.")]
-    [SerializeField] private ArticulatedPart[] parts;
-
-    private bool applied;
-    private bool lastAnyOpen;
-
-    private void Awake() => Apply(AnyOpen(), force: true);
-
-    // Polled rather than event-driven: ArticulatedPart raises Settled when it stops, but the swap
-    // has to happen the instant a panel *starts* moving, and there is no "started" event to hang
-    // it on. Four float comparisons a frame is not worth an interface for.
-    private void Update()
+    public class ShellVariantSwitcher : MonoBehaviour
     {
-        bool anyOpen = AnyOpen();
-        if (anyOpen != lastAnyOpen || !applied)
-            Apply(anyOpen, force: false);
-    }
+        [Header("Shell Meshes")]
+        [Tooltip("Seamless shell, shown while every watched part is fully closed.")]
+        [SerializeField] private Renderer closedShell;
 
-    private bool AnyOpen()
-    {
-        if (parts == null)
-            return false;
+        [Tooltip("Shell with the openings cut out, shown as soon as any watched part leaves the closed pose.")]
+        [SerializeField] private Renderer openShell;
 
-        foreach (ArticulatedPart part in parts)
+        [Header("Watched Parts")]
+        [Tooltip("Panels that sit in the openings. Any of them off the closed pose swaps the shell.")]
+        [SerializeField] private ArticulatedPart[] parts;
+
+        private bool applied;
+        private bool lastAnyOpen;
+
+        private void Awake() => Apply(AnyOpen(), force: true);
+
+        // Polled rather than event-driven: ArticulatedPart raises Settled when it stops, but the swap
+        // has to happen the instant a panel *starts* moving, and there is no "started" event to hang
+        // it on. Four float comparisons a frame is not worth an interface for.
+        private void Update()
         {
-            // IsOpen flips as soon as opening is commanded; Openness stays above zero until a
-            // closing panel has fully seated. Together they cover the whole travel both ways.
-            if (part && (part.IsOpen || part.Openness > 0f))
-                return true;
+            bool anyOpen = AnyOpen();
+            if (anyOpen != lastAnyOpen || !applied)
+                Apply(anyOpen, force: false);
         }
 
-        return false;
-    }
+        private bool AnyOpen()
+        {
+            if (parts == null)
+                return false;
 
-    private void Apply(bool anyOpen, bool force)
-    {
-        if (!force && applied && anyOpen == lastAnyOpen)
-            return;
+            foreach (ArticulatedPart part in parts)
+            {
+                // IsOpen flips as soon as opening is commanded; Openness stays above zero until a
+                // closing panel has fully seated. Together they cover the whole travel both ways.
+                if (part && (part.IsOpen || part.Openness > 0f))
+                    return true;
+            }
 
-        if (closedShell)
-            closedShell.enabled = !anyOpen;
-        if (openShell)
-            openShell.enabled = anyOpen;
+            return false;
+        }
 
-        lastAnyOpen = anyOpen;
-        applied = true;
+        private void Apply(bool anyOpen, bool force)
+        {
+            if (!force && applied && anyOpen == lastAnyOpen)
+                return;
+
+            if (closedShell)
+                closedShell.enabled = !anyOpen;
+            if (openShell)
+                openShell.enabled = anyOpen;
+
+            lastAnyOpen = anyOpen;
+            applied = true;
+        }
     }
 }

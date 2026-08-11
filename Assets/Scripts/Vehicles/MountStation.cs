@@ -7,30 +7,35 @@
 // Pair this with MountModule.mountableByDirectInteraction = false to make the cockpit control
 // the only way in.
 using UnityEngine;
+using SpaceGame.Agents;
+using SpaceGame.Gameplay;
 
-[RequireComponent(typeof(Collider))]
-public class MountStation : MonoBehaviour, IInteractable
+namespace SpaceGame.Vehicles
 {
-    [Tooltip("Vehicle this station drives. Auto-resolved from the parents if left empty.")]
-    [SerializeField] private MountModule mount;
-
-    private void Awake()
+    [RequireComponent(typeof(Collider))]
+    public class MountStation : MonoBehaviour, IInteractable
     {
-        if (!mount)
-            mount = GetComponentInParent<MountModule>();
+        [Tooltip("Vehicle this station drives. Auto-resolved from the parents if left empty.")]
+        [SerializeField] private MountModule mount;
 
-        if (!mount)
-            Debug.LogWarning($"[MountStation] No MountModule found above {name}; this control does nothing.", this);
-    }
+        private void Awake()
+        {
+            if (!mount)
+                mount = GetComponentInParent<MountModule>();
 
-    public bool CanInteract() => mount && mount.IsAvailableForMount;
+            if (!mount)
+                Debug.LogWarning($"[MountStation] No MountModule found above {name}; this control does nothing.", this);
+        }
 
-    // Calls TryMount directly rather than mount.Interact() so the station keeps working even
-    // when the vehicle's own direct-interaction surface is switched off.
-    public void Interact(Interactor interactor)
-    {
-        if (!mount)
-            return;
-        mount.TryMount(interactor, null);
+        public bool CanInteract() => mount && mount.IsAvailableForMount;
+
+        // Calls TryMount directly rather than mount.Interact() so the station keeps working even
+        // when the vehicle's own direct-interaction surface is switched off.
+        public void Interact(Interactor interactor)
+        {
+            if (!mount)
+                return;
+            mount.TryMount(interactor, null);
+        }
     }
 }

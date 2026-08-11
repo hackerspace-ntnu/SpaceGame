@@ -9,10 +9,10 @@ Lives on the `Flashlight` child of [Main Camera.prefab](Assets/Prefabs/Camera/Ma
 | Piece | What it does | File |
 |---|---|---|
 | **URP spot light** | Near-field lighting + shadows (short range, ~40m) | Light component on the prefab |
-| **Long-throw layer** | Reaches far surfaces (URP falls off too fast). Uses `flashlightReach` on the script, *not* `Light.range` | [Flashlight.cs](Assets/Scripts/Player/Flashlight.cs) pushes globals → [Flashlight.hlsl](Assets/Shaders/Flashlight.hlsl) |
-| **Visible beam** | Dust cone in the air. Cone mesh is rebuilt each frame from raycasts so it ends at the actual surface. Radial falloff is normalized to the cone's local radius at each axial slice — that's why it reads as a cone, not a spike | [FlashlightBeam.shader](Assets/Shaders/FlashlightBeam.shader) |
+| **Long-throw layer** | Reaches far surfaces (URP falls off too fast). Uses `flashlightReach` on the script, *not* `Light.range` | [Flashlight.cs](Assets/Scripts/Player/Flashlight.cs) pushes globals → [Flashlight.hlsl](Assets/Art/Shaders/Flashlight.hlsl) |
+| **Visible beam** | Dust cone in the air. Cone mesh is rebuilt each frame from raycasts so it ends at the actual surface. Radial falloff is normalized to the cone's local radius at each axial slice — that's why it reads as a cone, not a spike | [FlashlightBeam.shader](Assets/Art/Shaders/FlashlightBeam.shader) |
 
-Consumers: [CaveTriplanar.shader](Assets/Shaders/caves/CaveTriplanar.shader), [StylizedTerrain.shader](Assets/Shaders/StylizedTerrain.shader). Both add `lit += SampleFlashlight(posWS, N, wrap);` on top of URP's normal additional-lights loop.
+Consumers: [CaveTriplanar.shader](Assets/Art/Shaders/caves/CaveTriplanar.shader), [StylizedTerrain.shader](Assets/Art/Shaders/StylizedTerrain.shader). Both add `lit += SampleFlashlight(posWS, N, wrap);` on top of URP's normal additional-lights loop.
 
 **URP `Light.range` is intentionally short** (~40m). The long-throw layer handles distance via `flashlightReach` on the Flashlight script. This split is why intensity tuning works: URP only has to cover near-field, so reasonable intensities (~25) don't blow out objects 1m from the camera.
 
@@ -30,7 +30,7 @@ Consumers: [CaveTriplanar.shader](Assets/Shaders/caves/CaveTriplanar.shader), [S
 
 **"Beam mesh too short on open spaces"** → raise `beamMaxLength` on the script (default 120m, clamped to `flashlightReach`).
 
-**"Can't see the beam in the air"** → raise `_Density` or `_Intensity` on [FlashlightBeam.mat](Assets/Materials/FlashlightBeam.mat).
+**"Can't see the beam in the air"** → raise `_Density` or `_Intensity` on [FlashlightBeam.mat](Assets/Art/Materials/FlashlightBeam.mat).
 
 **"Beam core too tight / too washed out"** → `_AxisFalloff` on the beam material. Higher = tighter bright axis, lower = more uniformly lit cone.
 
@@ -43,7 +43,7 @@ Consumers: [CaveTriplanar.shader](Assets/Shaders/caves/CaveTriplanar.shader), [S
 ## Adding flashlight response to a new shader
 
 ```hlsl
-#include "Assets/Shaders/Flashlight.hlsl"
+#include "Assets/Art/Shaders/Flashlight.hlsl"
 // in fragment, after your normal lighting:
 lit += SampleFlashlight(positionWS, N, wrap); // wrap = 0 if you don't have a wrapped-diffuse term
 ```

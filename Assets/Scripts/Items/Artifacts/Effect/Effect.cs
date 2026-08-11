@@ -1,14 +1,17 @@
 using UnityEngine;
 
-public class Effect
+namespace SpaceGame.Items
 {
-    public float timer;
-    public System.Action<Rigidbody> applyEffect;
-    public System.Action<Rigidbody> onTick;
-    public System.Action<Rigidbody> stopEffect;
-
-    public Effect(float duration)
+    public class Effect
     {
-        timer = duration;
+        public float timer;
+        public System.Action<Rigidbody> applyEffect;
+        public System.Action<Rigidbody> onTick;
+        public System.Action<Rigidbody> stopEffect;
+
+        public Effect(float duration)
+        {
+            timer = duration;
+        }
     }
 }

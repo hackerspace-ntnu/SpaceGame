@@ -1,52 +1,56 @@
 using Unity.Netcode;
 using UnityEngine;
+using SpaceGame.Items;
 
-public class PlayerDropService : IItemDropService
+namespace SpaceGame.Core
 {
-    public void DropItem(Transform origin, InventoryItem item)
+    public class PlayerDropService : IItemDropService
     {
-        Network.Execute(
-            local: () => Drop(origin.position, origin.forward, item),
-            client: () => DropServerRpc(origin.position, origin.forward, item.ID));
-        
-    }
-    
-    [Rpc(SendTo.Server)]
-    private void DropServerRpc(Vector3 position, Vector3 direction, string itemId)
-    {
-        var item = Registry<InventoryItem>.Get(itemId);
-        Drop(position, direction, item);
-    }
-
-    private void Drop(Vector3 position, Vector3 direction, InventoryItem item)
-    {
-        GameObject obj = Object.Instantiate(
-            item.itemPrefab,
-            position,
-            Quaternion.identity
-        );
-        
-        if (Network.IsNetworked)
+        public void DropItem(Transform origin, InventoryItem item)
         {
-            obj.GetComponent<NetworkObject>().Spawn();
+            Network.Execute(
+                local: () => Drop(origin.position, origin.forward, item),
+                client: () => DropServerRpc(origin.position, origin.forward, item.ID));
+        
+        }
+    
+        [Rpc(SendTo.Server)]
+        private void DropServerRpc(Vector3 position, Vector3 direction, string itemId)
+        {
+            var item = Registry<InventoryItem>.Get(itemId);
+            Drop(position, direction, item);
         }
 
-        ApplyForce(direction, obj);
-    }
+        private void Drop(Vector3 position, Vector3 direction, InventoryItem item)
+        {
+            GameObject obj = Object.Instantiate(
+                item.itemPrefab,
+                position,
+                Quaternion.identity
+            );
+        
+            if (Network.IsNetworked)
+            {
+                obj.GetComponent<NetworkObject>().Spawn();
+            }
 
-    private void ApplyForce(Vector3 direction, GameObject droppedItem)
-    {
-        Rigidbody rb = droppedItem.GetComponent<Rigidbody>();
+            ApplyForce(direction, obj);
+        }
 
-        if (rb == null)
-            return;
+        private void ApplyForce(Vector3 direction, GameObject droppedItem)
+        {
+            Rigidbody rb = droppedItem.GetComponent<Rigidbody>();
 
-        rb.isKinematic = false;
+            if (rb == null)
+                return;
 
-        Vector3 force =
-            direction * 1.5f +
-            Vector3.up * 1.0f;
+            rb.isKinematic = false;
 
-        rb.AddForce(force, ForceMode.Impulse);
+            Vector3 force =
+                direction * 1.5f +
+                Vector3.up * 1.0f;
+
+            rb.AddForce(force, ForceMode.Impulse);
+        }
     }
 }

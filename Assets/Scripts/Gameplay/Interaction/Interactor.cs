@@ -2,142 +2,149 @@ using System;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using SpaceGame.Agents;
+using SpaceGame.Characters;
+using SpaceGame.Core;
+using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
 
-/// <summary>
-/// Handles raycasting for object interactions
-/// Sends out a raycast when a button is pressed to detect interactable objects
-/// </summary>
-public class Interactor : MonoBehaviour
+namespace SpaceGame.Gameplay
 {
-    [SerializeField]
-    private float _castDistance = 5f;
-
-    [SerializeField] private Transform lookTransform;
-    
-    
-    public bool IsHoveringInteractable { get; private set; }
-    
-    [Header("Debug")]
-    [SerializeField] private bool _debugRay = true;
-    private Color hitNormalColor = Color.blue;
-     private Color hitInteractableColor = Color.green;
-     private Color missColor = Color.red;
-
-     private RaycastHit hitInfo;
-    private bool rayCastHit;
-
-    private void Start()
-    {
-        PlayerInputManager input = GetComponent<PlayerController>().Input;
-        input.OnInteractPressed += Interact;
-        input.OnUsePressed += SecondaryInteract;
-    }
-
-    private void Update()
-    {
-        if (!DoInteractionTest(out IInteractable interactable))
-        {
-            IsHoveringInteractable = false;
-            return;
-        }
-
-        if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled)
-        {
-            IsHoveringInteractable = false;
-            return;
-        }
-
-        // Match the crosshair to what pressing Interact would actually do. Without the
-        // CanInteract test the crosshair lights up over things that refuse the interaction —
-        // e.g. a whole vehicle hull whose root MountModule is the nearest IInteractable.
-        IsHoveringInteractable = interactable.CanInteract();
-    }
-
-    private void Interact()
-    {
-        if (!DoInteractionTest(out IInteractable interactable)) return;
-
-        if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled) return;
-        if (!interactable.CanInteract()) return;
-        interactable.Interact(this);
-
-    }
-
     /// <summary>
-    /// Use, on whatever the crosshair is on. Only reaches things that opt in by implementing
-    /// <see cref="ISecondaryInteractable"/>, so looking at an ordinary interactable and
-    /// clicking still falls through to the weapon.
+    /// Handles raycasting for object interactions
+    /// Sends out a raycast when a button is pressed to detect interactable objects
     /// </summary>
-    private void SecondaryInteract()
+    public class Interactor : MonoBehaviour
     {
-        if (!DoInteractionTest(out IInteractable interactable)) return;
-        if (interactable is not ISecondaryInteractable secondary) return;
+        [SerializeField]
+        private float _castDistance = 5f;
 
-        if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled) return;
-        if (!secondary.CanSecondaryInteract()) return;
-        secondary.SecondaryInteract(this);
-    }
+        [SerializeField] private Transform lookTransform;
+    
+    
+        public bool IsHoveringInteractable { get; private set; }
+    
+        [Header("Debug")]
+        [SerializeField] private bool _debugRay = true;
+        private Color hitNormalColor = Color.blue;
+         private Color hitInteractableColor = Color.green;
+         private Color missColor = Color.red;
 
-    private bool DoInteractionTest(out IInteractable interactable)
-    {
-        interactable = null;
-        
-        Vector3 origin = lookTransform.position;
-        Vector3 direction = lookTransform.forward;
-        
-        int layerMask = ~LayerMask.GetMask("Player");
+         private RaycastHit hitInfo;
+        private bool rayCastHit;
 
-        Ray ray = new Ray(origin, direction);
-        rayCastHit = Physics.Raycast(ray, out var hit, _castDistance, layerMask);
-        hitInfo = hit;
-        
-        if (rayCastHit)
+        private void Start()
         {
-            interactable = hitInfo.collider.GetComponent<IInteractable>();
-            if (interactable == null)
+            PlayerInputManager input = GetComponent<PlayerController>().Input;
+            input.OnInteractPressed += Interact;
+            input.OnUsePressed += SecondaryInteract;
+        }
+
+        private void Update()
+        {
+            if (!DoInteractionTest(out IInteractable interactable))
             {
-                interactable = hitInfo.collider.GetComponentInParent<IInteractable>();
+                IsHoveringInteractable = false;
+                return;
             }
-            if (interactable != null)
+
+            if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled)
             {
-                return true;
+                IsHoveringInteractable = false;
+                return;
+            }
+
+            // Match the crosshair to what pressing Interact would actually do. Without the
+            // CanInteract test the crosshair lights up over things that refuse the interaction —
+            // e.g. a whole vehicle hull whose root MountModule is the nearest IInteractable.
+            IsHoveringInteractable = interactable.CanInteract();
+        }
+
+        private void Interact()
+        {
+            if (!DoInteractionTest(out IInteractable interactable)) return;
+
+            if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled) return;
+            if (!interactable.CanInteract()) return;
+            interactable.Interact(this);
+
+        }
+
+        /// <summary>
+        /// Use, on whatever the crosshair is on. Only reaches things that opt in by implementing
+        /// <see cref="ISecondaryInteractable"/>, so looking at an ordinary interactable and
+        /// clicking still falls through to the weapon.
+        /// </summary>
+        private void SecondaryInteract()
+        {
+            if (!DoInteractionTest(out IInteractable interactable)) return;
+            if (interactable is not ISecondaryInteractable secondary) return;
+
+            if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled) return;
+            if (!secondary.CanSecondaryInteract()) return;
+            secondary.SecondaryInteract(this);
+        }
+
+        private bool DoInteractionTest(out IInteractable interactable)
+        {
+            interactable = null;
+        
+            Vector3 origin = lookTransform.position;
+            Vector3 direction = lookTransform.forward;
+        
+            int layerMask = ~LayerMask.GetMask("Player");
+
+            Ray ray = new Ray(origin, direction);
+            rayCastHit = Physics.Raycast(ray, out var hit, _castDistance, layerMask);
+            hitInfo = hit;
+        
+            if (rayCastHit)
+            {
+                interactable = hitInfo.collider.GetComponent<IInteractable>();
+                if (interactable == null)
+                {
+                    interactable = hitInfo.collider.GetComponentInParent<IInteractable>();
+                }
+                if (interactable != null)
+                {
+                    return true;
+                }
+                return false;
             }
             return false;
         }
-        return false;
-    }
     
-    private void OnDrawGizmos()
-    {
-        if (!_debugRay)
-            return;
-        
-        Vector3 origin = lookTransform.position;
-        Vector3 direction = lookTransform.forward;
-        Ray ray = new Ray(origin, direction);
-        
-        Vector3 end = ray.origin + ray.direction * _castDistance;
-
-        if (rayCastHit && hitInfo.collider != null)
+        private void OnDrawGizmos()
         {
-            IInteractable interactable = hitInfo.collider.GetComponent<IInteractable>();
-            if (interactable != null)
+            if (!_debugRay)
+                return;
+        
+            Vector3 origin = lookTransform.position;
+            Vector3 direction = lookTransform.forward;
+            Ray ray = new Ray(origin, direction);
+        
+            Vector3 end = ray.origin + ray.direction * _castDistance;
+
+            if (rayCastHit && hitInfo.collider != null)
             {
-                Gizmos.color = hitInteractableColor;
+                IInteractable interactable = hitInfo.collider.GetComponent<IInteractable>();
+                if (interactable != null)
+                {
+                    Gizmos.color = hitInteractableColor;
+                }
+                else
+                {
+                    Gizmos.color = hitNormalColor;
+                }
+
+                Gizmos.DrawSphere(hitInfo.point, 0.03f);
+                Gizmos.DrawLine(origin, hitInfo.point);
             }
             else
             {
-                Gizmos.color = hitNormalColor;
+                Gizmos.color = missColor;
+                Gizmos.DrawLine(origin, end);
             }
+        }
 
-            Gizmos.DrawSphere(hitInfo.point, 0.03f);
-            Gizmos.DrawLine(origin, hitInfo.point);
-        }
-        else
-        {
-            Gizmos.color = missColor;
-            Gizmos.DrawLine(origin, end);
-        }
     }
-
 }

@@ -1,20 +1,23 @@
 using UnityEngine;
 
-public class InventorySlot
+namespace SpaceGame.Items
 {
-    public int Index { get; private set; }
-    public InventoryItem Item { get; set; }
+    public class InventorySlot
+    {
+        public int Index { get; private set; }
+        public InventoryItem Item { get; set; }
     
-    public bool IsEmpty => Item == null;
+        public bool IsEmpty => Item == null;
 
-    public InventorySlot(int index)
-    {
-        Index = index;
-        Item = null;
-    }
+        public InventorySlot(int index)
+        {
+            Index = index;
+            Item = null;
+        }
     
-    public override string ToString()
-    {
-        return "Slot " + (!IsEmpty ? Item.itemName : "Empty");
+        public override string ToString()
+        {
+            return "Slot " + (!IsEmpty ? Item.itemName : "Empty");
+        }
     }
 }

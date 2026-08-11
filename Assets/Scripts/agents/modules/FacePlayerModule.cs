@@ -2,41 +2,44 @@
 // Yields to higher-priority modules (combat, chase) automatically.
 using UnityEngine;
 
-public class FacePlayerModule : BehaviourModuleBase
+namespace SpaceGame.Agents
 {
-    [Tooltip("Faction relationship the nearest candidate must have. Requires EntityFaction on both entities.")]
-    [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Allied;
-    [SerializeField] private float triggerRadius = 6f;
-
-    private Transform target;
-    private EntityFaction selfFaction;
-    private float retargetTimer;
-
-    private void Awake() => selfFaction = GetComponent<EntityFaction>();
-    private void Reset() => SetPriorityDefault(ModulePriority.Ambient);
-    private void OnEnable() => retargetTimer = 0f;
-
-    public override string ModuleDescription =>
-        "Stops and faces the nearest entity of the configured faction relationship when it steps within triggerRadius. " +
-        "Yields to any higher-priority module (chase, combat, etc.) automatically.\n\n" +
-        "• triggerRadius — distance at which the entity turns to face the target\n" +
-        "• requiredRelationship — faction relationship the nearest candidate must have (default: Allied)";
-
-    public override MoveIntent? Tick(in AgentContext context, float deltaTime)
+    public class FacePlayerModule : BehaviourModuleBase
     {
-        target = TargetResolution.Refresh(target, ref retargetTimer, 1f, deltaTime,
-                                          selfFaction, requiredRelationship, context.Position);
-        if (!target)
-            return null;
+        [Tooltip("Faction relationship the nearest candidate must have. Requires EntityFaction on both entities.")]
+        [SerializeField] private FactionRelationship requiredRelationship = FactionRelationship.Allied;
+        [SerializeField] private float triggerRadius = 6f;
 
-        if (Vector3.Distance(context.Position, target.position) > triggerRadius)
-            return null;
+        private Transform target;
+        private EntityFaction selfFaction;
+        private float retargetTimer;
 
-        return MoveIntent.StopAndFace(target.position);
-    }
+        private void Awake() => selfFaction = GetComponent<EntityFaction>();
+        private void Reset() => SetPriorityDefault(ModulePriority.Ambient);
+        private void OnEnable() => retargetTimer = 0f;
 
-    protected override void OnValidate()
-    {
-        triggerRadius = Mathf.Max(0.1f, triggerRadius);
+        public override string ModuleDescription =>
+            "Stops and faces the nearest entity of the configured faction relationship when it steps within triggerRadius. " +
+            "Yields to any higher-priority module (chase, combat, etc.) automatically.\n\n" +
+            "• triggerRadius — distance at which the entity turns to face the target\n" +
+            "• requiredRelationship — faction relationship the nearest candidate must have (default: Allied)";
+
+        public override MoveIntent? Tick(in AgentContext context, float deltaTime)
+        {
+            target = TargetResolution.Refresh(target, ref retargetTimer, 1f, deltaTime,
+                                              selfFaction, requiredRelationship, context.Position);
+            if (!target)
+                return null;
+
+            if (Vector3.Distance(context.Position, target.position) > triggerRadius)
+                return null;
+
+            return MoveIntent.StopAndFace(target.position);
+        }
+
+        protected override void OnValidate()
+        {
+            triggerRadius = Mathf.Max(0.1f, triggerRadius);
+        }
     }
 }

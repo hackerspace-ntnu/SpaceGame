@@ -1,25 +1,28 @@
 using Unity.Netcode;
 using UnityEngine;
 
-[RequireComponent(typeof(PlayerController))]
-public class NetworkPlayerController : NetworkBehaviour
+namespace SpaceGame.Characters
 {
-    private PlayerController controller;
-
-    private void Awake()
+    [RequireComponent(typeof(PlayerController))]
+    public class NetworkPlayerController : NetworkBehaviour
     {
-        controller = GetComponent<PlayerController>();
-    }
+        private PlayerController controller;
 
-    public override void OnNetworkSpawn()
-    {
-        if (IsOwner)
+        private void Awake()
         {
-            controller.EnablePlayer();
+            controller = GetComponent<PlayerController>();
         }
-        else
+
+        public override void OnNetworkSpawn()
         {
-            controller.DisablePlayer();
+            if (IsOwner)
+            {
+                controller.EnablePlayer();
+            }
+            else
+            {
+                controller.DisablePlayer();
+            }
         }
     }
 }

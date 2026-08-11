@@ -1,7 +1,9 @@
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-
+using SpaceGame.Core;
+using SpaceGame.Gameplay;
+using SpaceGame.Presentation;
 public class MainMenuUI : MonoBehaviour
 {
     [SerializeField] private SceneReference gameScene;

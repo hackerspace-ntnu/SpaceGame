@@ -1,11 +1,14 @@
-// Categorises noise events so receivers can react differently to footsteps vs gunshots.
-public enum NoiseType
+namespace SpaceGame.Agents
 {
-    Footstep,
-    Alert,
-    Hurt,
-    Death,
-    Gunshot,
-    Explosion,
-    Custom
+    // Categorises noise events so receivers can react differently to footsteps vs gunshots.
+    public enum NoiseType
+    {
+        Footstep,
+        Alert,
+        Hurt,
+        Death,
+        Gunshot,
+        Explosion,
+        Custom
+    }
 }

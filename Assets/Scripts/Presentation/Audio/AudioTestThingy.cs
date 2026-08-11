@@ -1,17 +1,20 @@
 using FMODUnity;
 using UnityEngine;
 
-public class AudioTestThingy : MonoBehaviour
+namespace SpaceGame.Presentation
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public class AudioTestThingy : MonoBehaviour
     {
-        //RuntimeManager.PlayOneShot("event:/Music/TestSong"); Works!
-    }
+        // Start is called once before the first execution of Update after the MonoBehaviour is created
+        void Start()
+        {
+            //RuntimeManager.PlayOneShot("event:/Music/TestSong"); Works!
+        }
 
-    // Update is called once per frame
-    void Update()
-    {
+        // Update is called once per frame
+        void Update()
+        {
         
+        }
     }
 }

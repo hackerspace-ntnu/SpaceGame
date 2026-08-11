@@ -9,8 +9,13 @@
 //
 // The tunables are all on the base and appear in the inspector as they always did.
 using UnityEngine;
+using SpaceGame.Agents;
+using SpaceGame.Creatures.Crab;
 
-[RequireComponent(typeof(CrabLocomotion))]
-public class CrabDriver : LeggedDriver
+namespace SpaceGame.Creatures
 {
+    [RequireComponent(typeof(CrabLocomotion))]
+    public class CrabDriver : LeggedDriver
+    {
+    }
 }

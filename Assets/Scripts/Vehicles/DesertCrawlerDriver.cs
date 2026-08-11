@@ -7,8 +7,13 @@
 //
 // The tunables are all on the base and appear in the inspector as they always did.
 using UnityEngine;
+using SpaceGame.Agents;
+using SpaceGame.Vehicles.Crawler;
 
-[RequireComponent(typeof(DesertCrawlerLocomotion))]
-public class DesertCrawlerDriver : LeggedDriver
+namespace SpaceGame.Vehicles
 {
+    [RequireComponent(typeof(DesertCrawlerLocomotion))]
+    public class DesertCrawlerDriver : LeggedDriver
+    {
+    }
 }

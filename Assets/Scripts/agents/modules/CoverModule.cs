@@ -3,108 +3,111 @@
 // Pair with AgentRangedCombatModule: entity hides, peeks, shoots.
 using UnityEngine;
 
-public class CoverModule : BehaviourModuleBase
+namespace SpaceGame.Agents
 {
-    [Header("Threat")]
-    [SerializeField] private Transform threat;
-    [Tooltip("Faction relationship the nearest threat must have. Requires EntityFaction on both entities.")]
-    [SerializeField] private FactionRelationship threatRelationship = FactionRelationship.Hostile;
-
-    private EntityFaction selfFaction;
-    private float retargetTimer;
-
-    private void Awake() => selfFaction = GetComponent<EntityFaction>();
-
-    [Header("Cover Seeking")]
-    [SerializeField] private float threatRange = 14f;
-    [SerializeField] private float coverSearchRadius = 12f;
-    [SerializeField] private float stopDistance = 0.5f;
-    [SerializeField] private float speedMultiplier = 1.3f;
-
-    private CoverPoint occupiedCover;
-    private bool arrivedAtCover;
-
-    private void Reset() => SetPriorityDefault(ModulePriority.Reactive + 1); // 21 — beats plain chase
-
-    private void OnEnable() => VacateCover();
-    private void OnDisable() => VacateCover();
-
-    public override string ModuleDescription =>
-        "Finds the nearest available CoverPoint and moves behind it when a threat is within range. Stays in cover until the threat leaves.\n\n" +
-        "• threatRange — threat must be within this distance to trigger cover-seeking\n" +
-        "• coverSearchRadius — only considers CoverPoints within this radius\n" +
-        "• Requires CoverPoint components placed in the scene (behind rocks, crates, walls)\n" +
-        "• Pair with AgentRangedCombatModule to shoot from cover";
-
-    public override MoveIntent? Tick(in AgentContext context, float deltaTime)
+    public class CoverModule : BehaviourModuleBase
     {
-        // Prefer the agent's committed target: taking cover from someone other than whoever is
-        // shooting at you is worse than taking no cover at all.
-        AgentTargeting targeting = context.Targeting;
-        if (targeting != null && targeting.HasTarget)
-            threat = targeting.Target;
-        else
-            threat = TargetResolution.Refresh(threat, ref retargetTimer, 0.5f, deltaTime,
-                                              selfFaction, threatRelationship, context.Position);
+        [Header("Threat")]
+        [SerializeField] private Transform threat;
+        [Tooltip("Faction relationship the nearest threat must have. Requires EntityFaction on both entities.")]
+        [SerializeField] private FactionRelationship threatRelationship = FactionRelationship.Hostile;
 
-        if (!threat)
-        {
-            VacateCover();
-            return null;
-        }
+        private EntityFaction selfFaction;
+        private float retargetTimer;
 
-        float distToThreat = Vector3.Distance(context.Position, threat.position);
-        if (distToThreat > threatRange)
-        {
-            VacateCover();
-            return null;
-        }
+        private void Awake() => selfFaction = GetComponent<EntityFaction>();
 
-        // Already claimed a cover point — move to it, then hold once arrived
-        if (occupiedCover != null)
+        [Header("Cover Seeking")]
+        [SerializeField] private float threatRange = 14f;
+        [SerializeField] private float coverSearchRadius = 12f;
+        [SerializeField] private float stopDistance = 0.5f;
+        [SerializeField] private float speedMultiplier = 1.3f;
+
+        private CoverPoint occupiedCover;
+        private bool arrivedAtCover;
+
+        private void Reset() => SetPriorityDefault(ModulePriority.Reactive + 1); // 21 — beats plain chase
+
+        private void OnEnable() => VacateCover();
+        private void OnDisable() => VacateCover();
+
+        public override string ModuleDescription =>
+            "Finds the nearest available CoverPoint and moves behind it when a threat is within range. Stays in cover until the threat leaves.\n\n" +
+            "• threatRange — threat must be within this distance to trigger cover-seeking\n" +
+            "• coverSearchRadius — only considers CoverPoints within this radius\n" +
+            "• Requires CoverPoint components placed in the scene (behind rocks, crates, walls)\n" +
+            "• Pair with AgentRangedCombatModule to shoot from cover";
+
+        public override MoveIntent? Tick(in AgentContext context, float deltaTime)
         {
-            if (!arrivedAtCover)
+            // Prefer the agent's committed target: taking cover from someone other than whoever is
+            // shooting at you is worse than taking no cover at all.
+            AgentTargeting targeting = context.Targeting;
+            if (targeting != null && targeting.HasTarget)
+                threat = targeting.Target;
+            else
+                threat = TargetResolution.Refresh(threat, ref retargetTimer, 0.5f, deltaTime,
+                                                  selfFaction, threatRelationship, context.Position);
+
+            if (!threat)
             {
-                if (Vector3.Distance(context.Position, occupiedCover.Position) <= stopDistance + 0.1f)
-                    arrivedAtCover = true;
-                else
-                    return MoveIntent.MoveTo(occupiedCover.Position, stopDistance, speedMultiplier);
+                VacateCover();
+                return null;
             }
-            return MoveIntent.StopAndFace(threat.position);
-        }
 
-        // Find best cover
-        CoverPoint best = FindBestCover(context.Position, threat.position);
-        if (best == null)
+            float distToThreat = Vector3.Distance(context.Position, threat.position);
+            if (distToThreat > threatRange)
+            {
+                VacateCover();
+                return null;
+            }
+
+            // Already claimed a cover point — move to it, then hold once arrived
+            if (occupiedCover != null)
+            {
+                if (!arrivedAtCover)
+                {
+                    if (Vector3.Distance(context.Position, occupiedCover.Position) <= stopDistance + 0.1f)
+                        arrivedAtCover = true;
+                    else
+                        return MoveIntent.MoveTo(occupiedCover.Position, stopDistance, speedMultiplier);
+                }
+                return MoveIntent.StopAndFace(threat.position);
+            }
+
+            // Find best cover
+            CoverPoint best = FindBestCover(context.Position, threat.position);
+            if (best == null)
+                return null;
+
+            if (best.TryOccupy())
+            {
+                occupiedCover = best;
+                arrivedAtCover = false;
+                return MoveIntent.MoveTo(best.Position, stopDistance, speedMultiplier);
+            }
+
             return null;
-
-        if (best.TryOccupy())
-        {
-            occupiedCover = best;
-            arrivedAtCover = false;
-            return MoveIntent.MoveTo(best.Position, stopDistance, speedMultiplier);
         }
 
-        return null;
-    }
+        private CoverPoint FindBestCover(Vector3 self, Vector3 threatPos)
+        {
+            return CoverPointRegistry.FindBest(self, threatPos, coverSearchRadius);
+        }
 
-    private CoverPoint FindBestCover(Vector3 self, Vector3 threatPos)
-    {
-        return CoverPointRegistry.FindBest(self, threatPos, coverSearchRadius);
-    }
+        private void VacateCover()
+        {
+            occupiedCover?.Vacate();
+            occupiedCover = null;
+            arrivedAtCover = false;
+        }
 
-    private void VacateCover()
-    {
-        occupiedCover?.Vacate();
-        occupiedCover = null;
-        arrivedAtCover = false;
-    }
-
-    protected override void OnValidate()
-    {
-        threatRange = Mathf.Max(0.1f, threatRange);
-        coverSearchRadius = Mathf.Max(0.1f, coverSearchRadius);
-        stopDistance = Mathf.Max(0.01f, stopDistance);
-        speedMultiplier = Mathf.Max(0.01f, speedMultiplier);
+        protected override void OnValidate()
+        {
+            threatRange = Mathf.Max(0.1f, threatRange);
+            coverSearchRadius = Mathf.Max(0.1f, coverSearchRadius);
+            stopDistance = Mathf.Max(0.01f, stopDistance);
+            speedMultiplier = Mathf.Max(0.01f, speedMultiplier);
+        }
     }
 }

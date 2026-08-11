@@ -2,69 +2,73 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using SpaceGame.Gameplay;
 
-public class HealthUI : MonoBehaviour
+namespace SpaceGame.Presentation
 {
-    [Header("References")]
-    [SerializeField] private HealthComponent health;
-    [SerializeField] private Image healthBar;
-    [SerializeField] private TextMeshProUGUI healthText;
-    [SerializeField] private TextMeshProUGUI maxHealthText;
-
-    private void OnEnable()
+    public class HealthUI : MonoBehaviour
     {
-        if (health == null)
+        [Header("References")]
+        [SerializeField] private HealthComponent health;
+        [SerializeField] private Image healthBar;
+        [SerializeField] private TextMeshProUGUI healthText;
+        [SerializeField] private TextMeshProUGUI maxHealthText;
+
+        private void OnEnable()
         {
-            Debug.LogWarning($"{name}: HealthUI has no HealthComponent assigned.", this);
-            return;
+            if (health == null)
+            {
+                Debug.LogWarning($"{name}: HealthUI has no HealthComponent assigned.", this);
+                return;
+            }
+
+            health.OnDamage += HandleHealthChanged;
+            health.OnHeal += HandleHealthChanged;
+            health.OnDeath += HandleHealthChanged;
+            health.OnRevive += HandleHealthChanged;
+
+            RefreshUI();
         }
 
-        health.OnDamage += HandleHealthChanged;
-        health.OnHeal += HandleHealthChanged;
-        health.OnDeath += HandleHealthChanged;
-        health.OnRevive += HandleHealthChanged;
-
-        RefreshUI();
-    }
-
-    private void OnDisable()
-    {
-        if (health == null) return;
-
-        health.OnDamage -= HandleHealthChanged;
-        health.OnHeal -= HandleHealthChanged;
-        health.OnDeath -= HandleHealthChanged;
-        health.OnRevive -= HandleHealthChanged;
-    }
-
-    private void HandleHealthChanged(int _ = 0)
-    {
-        RefreshUI();
-    }
-
-    private void HandleHealthChanged()
-    {
-        RefreshUI();
-    }
-
-    private void RefreshUI()
-    {
-        if (health == null)
+        private void OnDisable()
         {
-            return;
+            if (health == null) return;
+
+            health.OnDamage -= HandleHealthChanged;
+            health.OnHeal -= HandleHealthChanged;
+            health.OnDeath -= HandleHealthChanged;
+            health.OnRevive -= HandleHealthChanged;
         }
 
-        int current = health.GetHealth;
-        int max = health.GetMaxHealth;
+        private void HandleHealthChanged(int _ = 0)
+        {
+            RefreshUI();
+        }
 
-        float percent = max > 0 ? (float)current / max : 0f;
-        if (healthBar != null)
-            healthBar.fillAmount = percent;
+        private void HandleHealthChanged()
+        {
+            RefreshUI();
+        }
 
-        if (healthText != null)
-            healthText.text = $"{current}";
-        if (maxHealthText != null)
-            maxHealthText.text = $"{max}";
-    }
+        private void RefreshUI()
+        {
+            if (health == null)
+            {
+                return;
+            }
+
+            int current = health.GetHealth;
+            int max = health.GetMaxHealth;
+
+            float percent = max > 0 ? (float)current / max : 0f;
+            if (healthBar != null)
+                healthBar.fillAmount = percent;
+
+            if (healthText != null)
+                healthText.text = $"{current}";
+            if (maxHealthText != null)
+                maxHealthText.text = $"{max}";
+        }
     
+    }
 }

@@ -2,79 +2,83 @@ using FMODUnity;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using SpaceGame.Agents;
 
-[RequireComponent(typeof(Animator))]
-public class UIButton : MonoBehaviour,
-    IPointerEnterHandler,
-    IPointerExitHandler,
-    IPointerDownHandler,
-    IPointerUpHandler
+namespace SpaceGame.Presentation
 {
-    [SerializeField] private Button button;
+    [RequireComponent(typeof(Animator))]
+    public class UIButton : MonoBehaviour,
+        IPointerEnterHandler,
+        IPointerExitHandler,
+        IPointerDownHandler,
+        IPointerUpHandler
+    {
+        [SerializeField] private Button button;
     
-    [Header("Sound")]
-    [SerializeField] private EventReference hoverSound;
-    [SerializeField] private EventReference pressSound;
+        [Header("Sound")]
+        [SerializeField] private EventReference hoverSound;
+        [SerializeField] private EventReference pressSound;
 
-    [SerializeField] private Animator animator;
+        [SerializeField] private Animator animator;
     
-    private static readonly int State = Animator.StringToHash("State");
+        private static readonly int State = Animator.StringToHash("State");
 
-    private enum ButtonState
-    {
-        Normal = 0,
-        Highlighted = 1,
-        Pressed = 2,
-        Disabled = 3
-    }
+        private enum ButtonState
+        {
+            Normal = 0,
+            Highlighted = 1,
+            Pressed = 2,
+            Disabled = 3
+        }
     
-    private bool IsDisabled => button != null && !button.interactable;
+        private bool IsDisabled => button != null && !button.interactable;
     
-    private void SetState(ButtonState state)
-    {
-        animator.SetInteger(State, (int)state);
-    }
+        private void SetState(ButtonState state)
+        {
+            animator.SetInteger(State, (int)state);
+        }
 
-    public void OnPointerEnter(PointerEventData eventData)
-    {
-        if (IsDisabled) return;
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (IsDisabled) return;
         
-        AudioManager.Instance.PlayEvent(hoverSound);
+            AudioManager.Instance.PlayEvent(hoverSound);
         
-        SetState(ButtonState.Highlighted);
-    }
+            SetState(ButtonState.Highlighted);
+        }
 
-    public void OnPointerExit(PointerEventData eventData)
-    {
-        if (IsDisabled) return;
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            if (IsDisabled) return;
         
-        SetState(ButtonState.Normal);
-    }
+            SetState(ButtonState.Normal);
+        }
 
-    public void OnPointerDown(PointerEventData eventData)
-    {
-        if (IsDisabled) return;
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            if (IsDisabled) return;
         
-        AudioManager.Instance.PlayEvent(pressSound);
+            AudioManager.Instance.PlayEvent(pressSound);
         
-        SetState(ButtonState.Pressed);
-    }
+            SetState(ButtonState.Pressed);
+        }
 
-    public void OnPointerUp(PointerEventData eventData)
-    {
-        if (IsDisabled) return;
+        public void OnPointerUp(PointerEventData eventData)
+        {
+            if (IsDisabled) return;
         
-        SetState(ButtonState.Highlighted);
-    }
+            SetState(ButtonState.Highlighted);
+        }
     
-    /// <summary>
-    /// Use this method to change button interactability.
-    /// Automatically triggers the correct animation.
-    /// </summary>
-    public void SetInteractable(bool value)
-    {
-        button.interactable = value;
-        SetState(value ? ButtonState.Normal : ButtonState.Disabled);
-    }
+        /// <summary>
+        /// Use this method to change button interactability.
+        /// Automatically triggers the correct animation.
+        /// </summary>
+        public void SetInteractable(bool value)
+        {
+            button.interactable = value;
+            SetState(value ? ButtonState.Normal : ButtonState.Disabled);
+        }
     
+    }
 }

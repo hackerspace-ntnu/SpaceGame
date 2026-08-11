@@ -31,394 +31,398 @@
 using SpaceGame.Locomotion;
 using UnityEngine;
 using UnityEngine.AI;
+using SpaceGame.World;
 
-[DefaultExecutionOrder(50)]
-public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovementMotor
+namespace SpaceGame.Agents
 {
-    [Header("Speeds")]
-    [Tooltip("Top speed asked for at full throttle. Clamped to what the legs can carry, so raising " +
-             "it past the locomotion's MaxSpeed does nothing.")]
-    [SerializeField] private float moveSpeed = 6f;
-    [SerializeField] private float turnSpeed = 25f;
-    [Tooltip("How quickly the machine reaches commanded speed. Low values feel heavy.")]
-    [SerializeField] private float acceleration = 2.5f;
-
-    [Header("AI steering")]
-    [Tooltip("How close to a MoveIntent destination counts as arrived, when no stop distance is given.")]
-    [SerializeField] private float defaultStopDistance = 6f;
-    [Tooltip("Heading error, in degrees, above which the machine turns on the spot instead of driving on.")]
-    [SerializeField] private float turnInPlaceAngle = 50f;
-
-    [Header("AI pathfinding")]
-    [Tooltip("Seconds between route recalculations while following a NavMesh path.")]
-    [SerializeField] private float repathInterval = 0.5f;
-    [Tooltip("How far a destination must move before the route is rebuilt early.")]
-    [SerializeField] private float repathTolerance = 2f;
-    [Tooltip("How close to a path corner counts as rounded. Size this to the machine: too small " +
-             "and one that cannot turn sharply grinds against the corner it is standing on.")]
-    [SerializeField] private float cornerArriveRadius = 6f;
-    [Tooltip("How far from the machine and from the destination to search for the NavMesh. A deck " +
-             "that rides metres above the ground needs this to clear the ride height.")]
-    [SerializeField] private float navMeshSampleDistance = 20f;
-
-    [Header("Lateral travel")]
-    [Tooltip("This machine may travel across its own nose.\n\nOFF is what every machine built " +
-             "before this did and what most of them still want: a bird and a walking station point " +
-             "at what they are walking toward, so the whole steering problem is one heading and a " +
-             "throttle.\n\nON turns the drive into a planar one. The AI translates straight at its " +
-             "destination whatever way the body is facing, and turns only to keep the target ABEAM " +
-             "— which for a crab is the direction it covers ground fastest in. A rider's stick " +
-             "becomes a two-axis translation: left and right STRAFE rather than turn, and the " +
-             "heading moves to SteerModule's separate turn action (Turn Action Name). Leave that " +
-             "action unbound and the machine strafes but cannot be turned by its rider.")]
-    [SerializeField] private bool lateralSteering;
-
-    /// Throttle and yaw for this frame, both -1..1. A subclass writes these from its own idle
-    /// behaviour; everything else here is what fills them from a rider or an intent.
-    protected float forward;
-    protected float turn;
-
-    /// Sideways throttle, -1..1, positive to the machine's right. Stays 0 on every machine that
-    /// left `lateralSteering` off, and the twist is then handed over through the scalar overload —
-    /// so a machine that cannot strafe takes literally the same path it always did.
-    protected float strafe;
-
-    private float speedScale = 1f;
-    private float currentSpeed;
-    private float currentStrafe;
-    private int riderFrame = -1;
-    private int commandFrame = -1;
-
-    private LeggedLocomotion locomotion;
-    private Vector3? destination;
-    private float stopDistance;
-
-    // Pathfinding state. The buffer is reused across recalculations; `path` reports how much of it
-    // is real, so a stale tail from a longer route is never steered at.
-    //
-    // navPath is built in Awake rather than in a field initializer: NavMeshPath's constructor calls
-    // into native code, which Unity forbids during deserialisation.
-    private NavMeshPath navPath;
-    private readonly Vector3[] cornerBuffer = new Vector3[64];
-    private readonly WalkerPath path = new WalkerPath();
-    private Vector3? pathTarget;
-    private float repathTimer;
-    private bool hasPath;
-
-    protected LeggedLocomotion Locomotion => locomotion;
-
-    protected virtual void Awake()
+    [DefaultExecutionOrder(50)]
+    public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovementMotor
     {
-        locomotion = GetComponent<LeggedLocomotion>();
-        stopDistance = defaultStopDistance;
-        navPath = new NavMeshPath();
-    }
+        [Header("Speeds")]
+        [Tooltip("Top speed asked for at full throttle. Clamped to what the legs can carry, so raising " +
+                 "it past the locomotion's MaxSpeed does nothing.")]
+        [SerializeField] private float moveSpeed = 6f;
+        [SerializeField] private float turnSpeed = 25f;
+        [Tooltip("How quickly the machine reaches commanded speed. Low values feel heavy.")]
+        [SerializeField] private float acceleration = 2.5f;
 
-    /// True on any frame a mounted rider supplied input.
-    public bool IsRiderDriven => riderFrame == Time.frameCount;
+        [Header("AI steering")]
+        [Tooltip("How close to a MoveIntent destination counts as arrived, when no stop distance is given.")]
+        [SerializeField] private float defaultStopDistance = 6f;
+        [Tooltip("Heading error, in degrees, above which the machine turns on the spot instead of driving on.")]
+        [SerializeField] private float turnInPlaceAngle = 50f;
 
-    /// True while an AI route is being followed rather than a straight line to the destination.
-    public bool IsFollowingPath => hasPath && path.HasPath;
+        [Header("AI pathfinding")]
+        [Tooltip("Seconds between route recalculations while following a NavMesh path.")]
+        [SerializeField] private float repathInterval = 0.5f;
+        [Tooltip("How far a destination must move before the route is rebuilt early.")]
+        [SerializeField] private float repathTolerance = 2f;
+        [Tooltip("How close to a path corner counts as rounded. Size this to the machine: too small " +
+                 "and one that cannot turn sharply grinds against the corner it is standing on.")]
+        [SerializeField] private float cornerArriveRadius = 6f;
+        [Tooltip("How far from the machine and from the destination to search for the NavMesh. A deck " +
+                 "that rides metres above the ground needs this to clear the ride height.")]
+        [SerializeField] private float navMeshSampleDistance = 20f;
 
-    /// True while this machine is being steered as a planar drive rather than a heading.
-    public bool CanStrafe => lateralSteering;
+        [Header("Lateral travel")]
+        [Tooltip("This machine may travel across its own nose.\n\nOFF is what every machine built " +
+                 "before this did and what most of them still want: a bird and a walking station point " +
+                 "at what they are walking toward, so the whole steering problem is one heading and a " +
+                 "throttle.\n\nON turns the drive into a planar one. The AI translates straight at its " +
+                 "destination whatever way the body is facing, and turns only to keep the target ABEAM " +
+                 "— which for a crab is the direction it covers ground fastest in. A rider's stick " +
+                 "becomes a two-axis translation: left and right STRAFE rather than turn, and the " +
+                 "heading moves to SteerModule's separate turn action (Turn Action Name). Leave that " +
+                 "action unbound and the machine strafes but cannot be turned by its rider.")]
+        [SerializeField] private bool lateralSteering;
 
-    /// Drive externally: both in -1..1. For debug tools and cutscenes.
-    public void SetInput(float forwardInput, float turnInput)
-        => SetInput(forwardInput, turnInput, 0f);
+        /// Throttle and yaw for this frame, both -1..1. A subclass writes these from its own idle
+        /// behaviour; everything else here is what fills them from a rider or an intent.
+        protected float forward;
+        protected float turn;
 
-    /// The same, with a sideways channel. Ignored by a machine that is not a lateral traveller,
-    /// rather than quietly steering one that cannot honour it.
-    public void SetInput(float forwardInput, float turnInput, float strafeInput)
-    {
-        commandFrame = Time.frameCount;
-        forward = Mathf.Clamp(forwardInput, -1f, 1f);
-        turn = Mathf.Clamp(turnInput, -1f, 1f);
-        strafe = lateralSteering ? Mathf.Clamp(strafeInput, -1f, 1f) : 0f;
-    }
+        /// Sideways throttle, -1..1, positive to the machine's right. Stays 0 on every machine that
+        /// left `lateralSteering` off, and the twist is then handed over through the scalar overload —
+        /// so a machine that cannot strafe takes literally the same path it always did.
+        protected float strafe;
 
-    // ─────────── IRiderControllable ───────────
-    // SteerModule calls this each frame the rider is steering. Stamp the frame so the AI channel
-    // stands down, matching the rider-frame guard the other motors use.
-    public void ApplyRiderInput(in RiderInput input, float deltaTime)
-    {
-        riderFrame = Time.frameCount;
-        commandFrame = Time.frameCount;
-        forward = Mathf.Clamp(input.Move.y, -1f, 1f);
+        private float speedScale = 1f;
+        private float currentSpeed;
+        private float currentStrafe;
+        private int riderFrame = -1;
+        private int commandFrame = -1;
 
-        // On a lateral traveller the stick's X means STRAFE, so the heading comes off RiderInput's
-        // dedicated Turn axis instead. That axis is 0 unless SteerModule has a turn action bound,
-        // which is why a crab with nothing bound still strafes exactly as it did before.
-        if (lateralSteering)
+        private LeggedLocomotion locomotion;
+        private Vector3? destination;
+        private float stopDistance;
+
+        // Pathfinding state. The buffer is reused across recalculations; `path` reports how much of it
+        // is real, so a stale tail from a longer route is never steered at.
+        //
+        // navPath is built in Awake rather than in a field initializer: NavMeshPath's constructor calls
+        // into native code, which Unity forbids during deserialisation.
+        private NavMeshPath navPath;
+        private readonly Vector3[] cornerBuffer = new Vector3[64];
+        private readonly WalkerPath path = new WalkerPath();
+        private Vector3? pathTarget;
+        private float repathTimer;
+        private bool hasPath;
+
+        protected LeggedLocomotion Locomotion => locomotion;
+
+        protected virtual void Awake()
         {
-            strafe = Mathf.Clamp(input.Move.x, -1f, 1f);
-            turn = Mathf.Clamp(input.Turn, -1f, 1f);
-        }
-        else
-        {
-            turn = Mathf.Clamp(input.Move.x, -1f, 1f);
-            strafe = 0f;
+            locomotion = GetComponent<LeggedLocomotion>();
+            stopDistance = defaultStopDistance;
+            navPath = new NavMeshPath();
         }
 
-        speedScale = 1f;
-    }
+        /// True on any frame a mounted rider supplied input.
+        public bool IsRiderDriven => riderFrame == Time.frameCount;
 
-    // ─────────── IMovementMotor ───────────
-    // Being the machine's motor is what lets SteerModule find the rider channel: it resolves
-    // riderMotor as (AgentController.Motor as IRiderControllable) and returns early, so a driver
-    // that is not the motor would never be reached.
-    public Vector3 Velocity => locomotion != null ? locomotion.MeasuredVelocity : Vector3.zero;
-    public bool IsImmobile => false;
-    public Vector3? CurrentDestination => destination;
+        /// True while an AI route is being followed rather than a straight line to the destination.
+        public bool IsFollowingPath => hasPath && path.HasPath;
 
-    public bool HasReachedDestination =>
-        !destination.HasValue || FlatDistanceTo(destination.Value) <= stopDistance;
+        /// True while this machine is being steered as a planar drive rather than a heading.
+        public bool CanStrafe => lateralSteering;
 
-    public void Tick(in MoveIntent intent, float deltaTime)
-    {
-        // Rider owns the frame; skip the AI channel so the two cannot fight.
-        if (IsRiderDriven) return;
+        /// Drive externally: both in -1..1. For debug tools and cutscenes.
+        public void SetInput(float forwardInput, float turnInput)
+            => SetInput(forwardInput, turnInput, 0f);
 
-        commandFrame = Time.frameCount;
-
-        switch (intent.Type)
+        /// The same, with a sideways channel. Ignored by a machine that is not a lateral traveller,
+        /// rather than quietly steering one that cannot honour it.
+        public void SetInput(float forwardInput, float turnInput, float strafeInput)
         {
-            case AgentIntentType.MoveToPosition:
-                destination = intent.TargetPosition;
-                stopDistance = intent.StopDistance > 0f ? intent.StopDistance : defaultStopDistance;
-                // A machine with one heading cannot strafe, so intent.OverrideFacing is not honoured
-                // while moving -- the body faces where it is going. A lateral traveller keeps its
-                // heading independently of its course, which is what SteerTowards does below.
-                speedScale = Mathf.Clamp(
-                    intent.SpeedMultiplier <= 0f ? 1f : intent.SpeedMultiplier, 0f, 1f);
-                break;
-            case AgentIntentType.StopAndFacePosition:
+            commandFrame = Time.frameCount;
+            forward = Mathf.Clamp(forwardInput, -1f, 1f);
+            turn = Mathf.Clamp(turnInput, -1f, 1f);
+            strafe = lateralSteering ? Mathf.Clamp(strafeInput, -1f, 1f) : 0f;
+        }
+
+        // ─────────── IRiderControllable ───────────
+        // SteerModule calls this each frame the rider is steering. Stamp the frame so the AI channel
+        // stands down, matching the rider-frame guard the other motors use.
+        public void ApplyRiderInput(in RiderInput input, float deltaTime)
+        {
+            riderFrame = Time.frameCount;
+            commandFrame = Time.frameCount;
+            forward = Mathf.Clamp(input.Move.y, -1f, 1f);
+
+            // On a lateral traveller the stick's X means STRAFE, so the heading comes off RiderInput's
+            // dedicated Turn axis instead. That axis is 0 unless SteerModule has a turn action bound,
+            // which is why a crab with nothing bound still strafes exactly as it did before.
+            if (lateralSteering)
+            {
+                strafe = Mathf.Clamp(input.Move.x, -1f, 1f);
+                turn = Mathf.Clamp(input.Turn, -1f, 1f);
+            }
+            else
+            {
+                turn = Mathf.Clamp(input.Move.x, -1f, 1f);
+                strafe = 0f;
+            }
+
+            speedScale = 1f;
+        }
+
+        // ─────────── IMovementMotor ───────────
+        // Being the machine's motor is what lets SteerModule find the rider channel: it resolves
+        // riderMotor as (AgentController.Motor as IRiderControllable) and returns early, so a driver
+        // that is not the motor would never be reached.
+        public Vector3 Velocity => locomotion != null ? locomotion.MeasuredVelocity : Vector3.zero;
+        public bool IsImmobile => false;
+        public Vector3? CurrentDestination => destination;
+
+        public bool HasReachedDestination =>
+            !destination.HasValue || FlatDistanceTo(destination.Value) <= stopDistance;
+
+        public void Tick(in MoveIntent intent, float deltaTime)
+        {
+            // Rider owns the frame; skip the AI channel so the two cannot fight.
+            if (IsRiderDriven) return;
+
+            commandFrame = Time.frameCount;
+
+            switch (intent.Type)
+            {
+                case AgentIntentType.MoveToPosition:
+                    destination = intent.TargetPosition;
+                    stopDistance = intent.StopDistance > 0f ? intent.StopDistance : defaultStopDistance;
+                    // A machine with one heading cannot strafe, so intent.OverrideFacing is not honoured
+                    // while moving -- the body faces where it is going. A lateral traveller keeps its
+                    // heading independently of its course, which is what SteerTowards does below.
+                    speedScale = Mathf.Clamp(
+                        intent.SpeedMultiplier <= 0f ? 1f : intent.SpeedMultiplier, 0f, 1f);
+                    break;
+                case AgentIntentType.StopAndFacePosition:
+                    ClearPath();
+                    destination = null;
+                    FaceTowards(intent.FacePosition);
+                    return;
+                default:
+                    ClearPath();
+                    destination = null;
+                    forward = 0f;
+                    turn = 0f;
+                    strafe = 0f;
+                    return;
+            }
+
+            if (HasReachedDestination)
+            {
                 ClearPath();
-                destination = null;
-                FaceTowards(intent.FacePosition);
-                return;
-            default:
-                ClearPath();
-                destination = null;
                 forward = 0f;
                 turn = 0f;
                 strafe = 0f;
                 return;
+            }
+
+            SteerAlongPath(destination.Value, deltaTime);
         }
 
-        if (HasReachedDestination)
+        public void ForceStop()
         {
             ClearPath();
+            destination = null;
             forward = 0f;
             turn = 0f;
             strafe = 0f;
-            return;
+            currentSpeed = 0f;
+            currentStrafe = 0f;
+            // Cancel the standing order immediately rather than waiting for the next Update, so a stop
+            // requested mid-frame cannot leak one more frame of travel into the legs.
+            if (locomotion != null) locomotion.SetTwist(0f, 0f);
         }
 
-        SteerAlongPath(destination.Value, deltaTime);
-    }
-
-    public void ForceStop()
-    {
-        ClearPath();
-        destination = null;
-        forward = 0f;
-        turn = 0f;
-        strafe = 0f;
-        currentSpeed = 0f;
-        currentStrafe = 0f;
-        // Cancel the standing order immediately rather than waiting for the next Update, so a stop
-        // requested mid-frame cannot leak one more frame of travel into the legs.
-        if (locomotion != null) locomotion.SetTwist(0f, 0f);
-    }
-
-    public void NudgeDestination(Vector3 offset)
-    {
-        if (destination.HasValue) destination = destination.Value + offset;
-    }
-
-    public void SuggestDestination(Vector3 position) => destination = position;
-
-    private float FlatDistanceTo(Vector3 p)
-    {
-        Vector3 d = p - transform.position;
-        d.y = 0f;
-        return d.magnitude;
-    }
-
-    // ─────────── AI pathfinding ───────────
-
-    /// Follow the NavMesh route to `target`, rebuilding it when it goes stale. Falls back to
-    /// steering straight at the destination whenever no route can be had -- an unbaked test scene, a
-    /// chunk the streamer has not finished, a destination off the mesh -- so the machine still moves
-    /// rather than standing there waiting for a path that is not coming.
-    private void SteerAlongPath(Vector3 target, float deltaTime)
-    {
-        repathTimer -= deltaTime;
-        bool targetMoved = !pathTarget.HasValue ||
-                           Vector3.Distance(pathTarget.Value, target) > repathTolerance;
-
-        if (targetMoved || repathTimer <= 0f)
+        public void NudgeDestination(Vector3 offset)
         {
-            repathTimer = repathInterval;
-            pathTarget = target;
-            hasPath = TryBuildPath(target);
+            if (destination.HasValue) destination = destination.Value + offset;
         }
 
-        // Once the corners are spent the machine is within the last leg of the route; steer at the
-        // destination itself, which is where the stop distance is measured from anyway.
-        Vector3 steerAt = target;
-        if (hasPath && path.TryGetSteerTarget(transform.position, cornerArriveRadius, out Vector3 corner))
-            steerAt = corner;
+        public void SuggestDestination(Vector3 position) => destination = position;
 
-        SteerTowards(steerAt);
-    }
-
-    private bool TryBuildPath(Vector3 target)
-    {
-        if (!TrySampleNavMesh(transform.position, out Vector3 from)) return false;
-        if (!TrySampleNavMesh(target, out Vector3 to)) return false;
-
-        if (!NavMesh.CalculatePath(from, to, NavMesh.AllAreas, navPath)) return false;
-        // A partial path is kept: it is the best route toward a destination the mesh cannot fully
-        // reach, and the repath timer will pick up the rest once the streamer bakes it.
-        if (navPath.status == NavMeshPathStatus.PathInvalid) return false;
-
-        int corners = navPath.GetCornersNonAlloc(cornerBuffer);
-        if (corners < 2) return false;
-
-        path.Set(cornerBuffer, corners);
-        return true;
-    }
-
-    private bool TrySampleNavMesh(Vector3 around, out Vector3 onMesh)
-    {
-        if (NavMesh.SamplePosition(around, out NavMeshHit hit, navMeshSampleDistance, NavMesh.AllAreas))
+        private float FlatDistanceTo(Vector3 p)
         {
-            onMesh = hit.position;
+            Vector3 d = p - transform.position;
+            d.y = 0f;
+            return d.magnitude;
+        }
+
+        // ─────────── AI pathfinding ───────────
+
+        /// Follow the NavMesh route to `target`, rebuilding it when it goes stale. Falls back to
+        /// steering straight at the destination whenever no route can be had -- an unbaked test scene, a
+        /// chunk the streamer has not finished, a destination off the mesh -- so the machine still moves
+        /// rather than standing there waiting for a path that is not coming.
+        private void SteerAlongPath(Vector3 target, float deltaTime)
+        {
+            repathTimer -= deltaTime;
+            bool targetMoved = !pathTarget.HasValue ||
+                               Vector3.Distance(pathTarget.Value, target) > repathTolerance;
+
+            if (targetMoved || repathTimer <= 0f)
+            {
+                repathTimer = repathInterval;
+                pathTarget = target;
+                hasPath = TryBuildPath(target);
+            }
+
+            // Once the corners are spent the machine is within the last leg of the route; steer at the
+            // destination itself, which is where the stop distance is measured from anyway.
+            Vector3 steerAt = target;
+            if (hasPath && path.TryGetSteerTarget(transform.position, cornerArriveRadius, out Vector3 corner))
+                steerAt = corner;
+
+            SteerTowards(steerAt);
+        }
+
+        private bool TryBuildPath(Vector3 target)
+        {
+            if (!TrySampleNavMesh(transform.position, out Vector3 from)) return false;
+            if (!TrySampleNavMesh(target, out Vector3 to)) return false;
+
+            if (!NavMesh.CalculatePath(from, to, NavMesh.AllAreas, navPath)) return false;
+            // A partial path is kept: it is the best route toward a destination the mesh cannot fully
+            // reach, and the repath timer will pick up the rest once the streamer bakes it.
+            if (navPath.status == NavMeshPathStatus.PathInvalid) return false;
+
+            int corners = navPath.GetCornersNonAlloc(cornerBuffer);
+            if (corners < 2) return false;
+
+            path.Set(cornerBuffer, corners);
             return true;
         }
 
-        onMesh = around;
-        return false;
-    }
-
-    private void ClearPath()
-    {
-        path.Clear();
-        hasPath = false;
-        pathTarget = null;
-        repathTimer = 0f;
-    }
-
-    private void FaceTowards(Vector3 worldPoint)
-    {
-        Vector3 to = worldPoint - transform.position;
-        to.y = 0f;
-        if (to.sqrMagnitude < 1e-4f) { turn = 0f; return; }
-        turn = WalkerSteering.Turn(HeadingErrorTo(to));
-        forward = 0f;
-        strafe = 0f;
-    }
-
-    private void SteerTowards(Vector3 worldPoint)
-    {
-        Vector3 to = worldPoint - transform.position;
-        to.y = 0f;
-        if (to.sqrMagnitude < 1e-4f) { forward = 0f; turn = 0f; strafe = 0f; return; }
-
-        if (lateralSteering) { SteerLaterally(to.normalized); return; }
-
-        float error = HeadingErrorTo(to);
-        turn = WalkerSteering.Turn(error);
-        forward = WalkerSteering.Throttle(error, turnInPlaceAngle, speedScale);
-    }
-
-    /// Steering for a machine that travels across its own nose.
-    ///
-    /// The course is resolved straight into the body frame, so the machine sets off toward its
-    /// destination on frame one whatever way it happens to be pointing -- there is no turn-in-place
-    /// phase, because there is nothing to turn in place FOR.
-    ///
-    /// The heading is then a separate, slower question, and the answer is to keep the destination
-    /// ABEAM. A crab's legs sweep their yaw arcs along its X, so that is the axis it covers ground
-    /// fastest on; putting the course on it is the difference between scuttling and shuffling.
-    /// Either beam will do -- the nearest one wins, so the machine never spins 180 degrees to
-    /// present the other side.
-    private void SteerLaterally(Vector3 course)
-    {
-        Vector3 local = transform.InverseTransformDirection(course);
-        forward = Mathf.Clamp(local.z, -1f, 1f) * speedScale;
-        strafe = Mathf.Clamp(local.x, -1f, 1f) * speedScale;
-
-        float abeam = Vector3.SignedAngle(transform.right, course, Vector3.up);
-        if (abeam > 90f) abeam -= 180f;
-        else if (abeam < -90f) abeam += 180f;
-        turn = WalkerSteering.Turn(abeam);
-    }
-
-    private float HeadingErrorTo(Vector3 flatDirection) =>
-        Vector3.SignedAngle(transform.forward, flatDirection.normalized, Vector3.up);
-
-    // ─────────── the frame ───────────
-
-    /// What to do on a frame nobody claimed the machine. Stopping is the default and the right
-    /// answer: repeating the last order forever is how an unmounted machine wanders off.
-    protected virtual void Idle()
-    {
-        forward = 0f;
-        turn = 0f;
-        strafe = 0f;
-    }
-
-    private void Update()
-    {
-        // Nobody claimed the machine this frame -- no rider steering it, no AgentController ticking
-        // a MoveIntent into it.
-        if (commandFrame != Time.frameCount) Idle();
-
-        float dt = Time.deltaTime;
-        float k = 1f - Mathf.Exp(-acceleration * dt);
-        currentSpeed = Mathf.Lerp(currentSpeed, forward * moveSpeed, k);
-        currentStrafe = Mathf.Lerp(currentStrafe, strafe * moveSpeed, k);
-
-        // Hand over the request and let the legs answer it. Every write to the machine's transform
-        // lives in the locomotion so there is exactly one owner of the pose.
-        //
-        // The scalar overload for a machine that does not strafe, deliberately: it is the call the
-        // shipping machines have always made, so nothing about their path changes here. (It forwards
-        // to the planar one with a zero X, so the two agree — this is belt and braces on a file
-        // three machines now share.)
-        if (locomotion == null) return;
-        if (lateralSteering) locomotion.SetTwist(new Vector2(currentStrafe, currentSpeed), turn * turnSpeed);
-        else locomotion.SetTwist(currentSpeed, turn * turnSpeed);
-    }
-
-    protected virtual void OnValidate()
-    {
-        moveSpeed = Mathf.Max(0f, moveSpeed);
-        turnSpeed = Mathf.Max(0f, turnSpeed);
-        acceleration = Mathf.Max(0.01f, acceleration);
-        defaultStopDistance = Mathf.Max(0.1f, defaultStopDistance);
-        turnInPlaceAngle = Mathf.Clamp(turnInPlaceAngle, 1f, 179f);
-        repathInterval = Mathf.Max(0.05f, repathInterval);
-        repathTolerance = Mathf.Max(0.1f, repathTolerance);
-        cornerArriveRadius = Mathf.Max(0.1f, cornerArriveRadius);
-        navMeshSampleDistance = Mathf.Max(0.5f, navMeshSampleDistance);
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        if (!Application.isPlaying || !IsFollowingPath) return;
-
-        Gizmos.color = new Color(0.2f, 0.9f, 1f, 0.9f);
-        Gizmos.DrawLine(transform.position, path.CurrentCorner);
-        Gizmos.DrawWireSphere(path.CurrentCorner, cornerArriveRadius);
-
-        if (destination.HasValue)
+        private bool TrySampleNavMesh(Vector3 around, out Vector3 onMesh)
         {
-            Gizmos.color = new Color(1f, 0.9f, 0.2f, 0.9f);
-            Gizmos.DrawWireSphere(destination.Value, stopDistance);
+            if (NavMesh.SamplePosition(around, out NavMeshHit hit, navMeshSampleDistance, NavMesh.AllAreas))
+            {
+                onMesh = hit.position;
+                return true;
+            }
+
+            onMesh = around;
+            return false;
+        }
+
+        private void ClearPath()
+        {
+            path.Clear();
+            hasPath = false;
+            pathTarget = null;
+            repathTimer = 0f;
+        }
+
+        private void FaceTowards(Vector3 worldPoint)
+        {
+            Vector3 to = worldPoint - transform.position;
+            to.y = 0f;
+            if (to.sqrMagnitude < 1e-4f) { turn = 0f; return; }
+            turn = WalkerSteering.Turn(HeadingErrorTo(to));
+            forward = 0f;
+            strafe = 0f;
+        }
+
+        private void SteerTowards(Vector3 worldPoint)
+        {
+            Vector3 to = worldPoint - transform.position;
+            to.y = 0f;
+            if (to.sqrMagnitude < 1e-4f) { forward = 0f; turn = 0f; strafe = 0f; return; }
+
+            if (lateralSteering) { SteerLaterally(to.normalized); return; }
+
+            float error = HeadingErrorTo(to);
+            turn = WalkerSteering.Turn(error);
+            forward = WalkerSteering.Throttle(error, turnInPlaceAngle, speedScale);
+        }
+
+        /// Steering for a machine that travels across its own nose.
+        ///
+        /// The course is resolved straight into the body frame, so the machine sets off toward its
+        /// destination on frame one whatever way it happens to be pointing -- there is no turn-in-place
+        /// phase, because there is nothing to turn in place FOR.
+        ///
+        /// The heading is then a separate, slower question, and the answer is to keep the destination
+        /// ABEAM. A crab's legs sweep their yaw arcs along its X, so that is the axis it covers ground
+        /// fastest on; putting the course on it is the difference between scuttling and shuffling.
+        /// Either beam will do -- the nearest one wins, so the machine never spins 180 degrees to
+        /// present the other side.
+        private void SteerLaterally(Vector3 course)
+        {
+            Vector3 local = transform.InverseTransformDirection(course);
+            forward = Mathf.Clamp(local.z, -1f, 1f) * speedScale;
+            strafe = Mathf.Clamp(local.x, -1f, 1f) * speedScale;
+
+            float abeam = Vector3.SignedAngle(transform.right, course, Vector3.up);
+            if (abeam > 90f) abeam -= 180f;
+            else if (abeam < -90f) abeam += 180f;
+            turn = WalkerSteering.Turn(abeam);
+        }
+
+        private float HeadingErrorTo(Vector3 flatDirection) =>
+            Vector3.SignedAngle(transform.forward, flatDirection.normalized, Vector3.up);
+
+        // ─────────── the frame ───────────
+
+        /// What to do on a frame nobody claimed the machine. Stopping is the default and the right
+        /// answer: repeating the last order forever is how an unmounted machine wanders off.
+        protected virtual void Idle()
+        {
+            forward = 0f;
+            turn = 0f;
+            strafe = 0f;
+        }
+
+        private void Update()
+        {
+            // Nobody claimed the machine this frame -- no rider steering it, no AgentController ticking
+            // a MoveIntent into it.
+            if (commandFrame != Time.frameCount) Idle();
+
+            float dt = Time.deltaTime;
+            float k = 1f - Mathf.Exp(-acceleration * dt);
+            currentSpeed = Mathf.Lerp(currentSpeed, forward * moveSpeed, k);
+            currentStrafe = Mathf.Lerp(currentStrafe, strafe * moveSpeed, k);
+
+            // Hand over the request and let the legs answer it. Every write to the machine's transform
+            // lives in the locomotion so there is exactly one owner of the pose.
+            //
+            // The scalar overload for a machine that does not strafe, deliberately: it is the call the
+            // shipping machines have always made, so nothing about their path changes here. (It forwards
+            // to the planar one with a zero X, so the two agree — this is belt and braces on a file
+            // three machines now share.)
+            if (locomotion == null) return;
+            if (lateralSteering) locomotion.SetTwist(new Vector2(currentStrafe, currentSpeed), turn * turnSpeed);
+            else locomotion.SetTwist(currentSpeed, turn * turnSpeed);
+        }
+
+        protected virtual void OnValidate()
+        {
+            moveSpeed = Mathf.Max(0f, moveSpeed);
+            turnSpeed = Mathf.Max(0f, turnSpeed);
+            acceleration = Mathf.Max(0.01f, acceleration);
+            defaultStopDistance = Mathf.Max(0.1f, defaultStopDistance);
+            turnInPlaceAngle = Mathf.Clamp(turnInPlaceAngle, 1f, 179f);
+            repathInterval = Mathf.Max(0.05f, repathInterval);
+            repathTolerance = Mathf.Max(0.1f, repathTolerance);
+            cornerArriveRadius = Mathf.Max(0.1f, cornerArriveRadius);
+            navMeshSampleDistance = Mathf.Max(0.5f, navMeshSampleDistance);
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (!Application.isPlaying || !IsFollowingPath) return;
+
+            Gizmos.color = new Color(0.2f, 0.9f, 1f, 0.9f);
+            Gizmos.DrawLine(transform.position, path.CurrentCorner);
+            Gizmos.DrawWireSphere(path.CurrentCorner, cornerArriveRadius);
+
+            if (destination.HasValue)
+            {
+                Gizmos.color = new Color(1f, 0.9f, 0.2f, 0.9f);
+                Gizmos.DrawWireSphere(destination.Value, stopDistance);
+            }
         }
     }
 }

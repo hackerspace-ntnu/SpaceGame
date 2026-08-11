@@ -1,47 +1,51 @@
 using Unity.Netcode;
 using UnityEngine;
+using SpaceGame.Core;
 
-[RequireComponent(typeof(EquipmentController))]
-public class EquipmentNetworkSync : NetworkBehaviour
+namespace SpaceGame.Items
 {
-    private EquipmentController controller;
-
-    private void Awake()
+    [RequireComponent(typeof(EquipmentController))]
+    public class EquipmentNetworkSync : NetworkBehaviour
     {
-        controller = GetComponent<EquipmentController>();
-    }
+        private EquipmentController controller;
 
-    private void OnEnable()
-    {
-        controller.OnEquipRequested += RequestEquip;
-    }
+        private void Awake()
+        {
+            controller = GetComponent<EquipmentController>();
+        }
 
-    private void OnDisable()
-    {
-        controller.OnEquipRequested -= RequestEquip;
-    }
+        private void OnEnable()
+        {
+            controller.OnEquipRequested += RequestEquip;
+        }
 
-    private void RequestEquip(InventoryItem item)
-    {
-        if (!IsOwner) return;
+        private void OnDisable()
+        {
+            controller.OnEquipRequested -= RequestEquip;
+        }
 
-        EquipServerRpc(item.ID);
-    }
+        private void RequestEquip(InventoryItem item)
+        {
+            if (!IsOwner) return;
 
-    [Rpc(SendTo.Server)]
-    private void EquipServerRpc(string itemID)
-    {
-        var item = Registry<InventoryItem>.Get(itemID);
-        EquipClientRpc(itemID);
-    }
+            EquipServerRpc(item.ID);
+        }
 
-    [Rpc(SendTo.ClientsAndHost)]
-    private void EquipClientRpc(string itemID)
-    {
-        var item = Registry<InventoryItem>.Get(itemID);
+        [Rpc(SendTo.Server)]
+        private void EquipServerRpc(string itemID)
+        {
+            var item = Registry<InventoryItem>.Get(itemID);
+            EquipClientRpc(itemID);
+        }
+
+        [Rpc(SendTo.ClientsAndHost)]
+        private void EquipClientRpc(string itemID)
+        {
+            var item = Registry<InventoryItem>.Get(itemID);
         
-        if (IsOwner) return;
+            if (IsOwner) return;
 
-        controller.Equip(item);
+            controller.Equip(item);
+        }
     }
 }

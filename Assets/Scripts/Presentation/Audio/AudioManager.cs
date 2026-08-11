@@ -2,79 +2,83 @@ using FMOD.Studio;
 using FMODUnity;
 using UnityEngine;
 using UnityEngine.Audio;
+using SpaceGame.World;
 
-public class AudioManager : MonoBehaviour
+namespace SpaceGame.Presentation
 {
-    public static AudioManager Instance;
-    
-    [Header("Volume Settings")]
-    [SerializeField, Range(0f, 1f)] private float musicVolume =  1f;
-    [SerializeField, Range(0f, 1f)] private float sfxVolume =    1f;
-    [SerializeField, Range(0f, 1f)] private float reverbVolume = 1f;
-    [SerializeField, Range(0f, 1f)] private float uiVolume =     1f;
-
-    public float SfxVolume { get => sfxVolume; set => sfxVolume = value; }
-    public float MusicVolume { get => musicVolume; set => musicVolume = value; }
-    public float ReverbVolume { get => reverbVolume; set => reverbVolume = value; }
-    public float UIVolume { get => uiVolume; set => uiVolume = value; }
-    
-
-    [Header("Audio Busses")]
-    private Bus music;
-    private Bus sfx;
-    private Bus ui;
-    private Bus reverb;
-
-
-    private void Awake()
+    public class AudioManager : MonoBehaviour
     {
-        if (Instance != null)
+        public static AudioManager Instance;
+    
+        [Header("Volume Settings")]
+        [SerializeField, Range(0f, 1f)] private float musicVolume =  1f;
+        [SerializeField, Range(0f, 1f)] private float sfxVolume =    1f;
+        [SerializeField, Range(0f, 1f)] private float reverbVolume = 1f;
+        [SerializeField, Range(0f, 1f)] private float uiVolume =     1f;
+
+        public float SfxVolume { get => sfxVolume; set => sfxVolume = value; }
+        public float MusicVolume { get => musicVolume; set => musicVolume = value; }
+        public float ReverbVolume { get => reverbVolume; set => reverbVolume = value; }
+        public float UIVolume { get => uiVolume; set => uiVolume = value; }
+    
+
+        [Header("Audio Busses")]
+        private Bus music;
+        private Bus sfx;
+        private Bus ui;
+        private Bus reverb;
+
+
+        private void Awake()
         {
-            Destroy(gameObject);
+            if (Instance != null)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            DontDestroyOnLoad(gameObject);
+
+            Instance = this;
+
+            music = RuntimeManager.GetBus("bus:/Music");
+            sfx = RuntimeManager.GetBus("bus:/SFX");
+            ui = RuntimeManager.GetBus("bus:/UI");
+            reverb = RuntimeManager.GetBus("bus:/Reverb");
+
             return;
         }
-        DontDestroyOnLoad(gameObject);
 
-        Instance = this;
-
-        music = RuntimeManager.GetBus("bus:/Music");
-        sfx = RuntimeManager.GetBus("bus:/SFX");
-        ui = RuntimeManager.GetBus("bus:/UI");
-        reverb = RuntimeManager.GetBus("bus:/Reverb");
-
-        return;
-    }
-
-    public void PlayTestMusic()
-    {
-        RuntimeManager.PlayOneShot("event:/Music/TestSong");
-    } //Todo: Make more flexible
+        public void PlayTestMusic()
+        {
+            RuntimeManager.PlayOneShot("event:/Music/TestSong");
+        } //Todo: Make more flexible
     
-    public void PlayEvent(EventReference myevent) {
-        RuntimeManager.PlayOneShot(myevent);
-    }
+        public void PlayEvent(EventReference myevent) {
+            RuntimeManager.PlayOneShot(myevent);
+        }
 
-    public void PlayEvent(EventReference myevent, Vector3 position) {
-        RuntimeManager.PlayOneShot(myevent, position);
-    }
+        public void PlayEvent(EventReference myevent, Vector3 position) {
+            RuntimeManager.PlayOneShot(myevent, position);
+        }
 
-    public void PlaySFX(string sound)
-    {
-        RuntimeManager.PlayOneShot(sound);
-    } //Todo: Find easy way to hear and assign sound effects:
+        public void PlaySFX(string sound)
+        {
+            RuntimeManager.PlayOneShot(sound);
+        } //Todo: Find easy way to hear and assign sound effects:
     
-    public void PlaySFX3d(string sound, Vector3 worldPos)
-    {
-        RuntimeManager.PlayOneShot(sound, worldPos);
-    }
+        public void PlaySFX3d(string sound, Vector3 worldPos)
+        {
+            RuntimeManager.PlayOneShot(sound, worldPos);
+        }
     
-    private void OnValidate()
-    {
-        if (!Application.isPlaying) return; //Todo: Når spiller endrer på volume sliders, oppdater disse;
+        private void OnValidate()
+        {
+            if (!Application.isPlaying) return; //Todo: Når spiller endrer på volume sliders, oppdater disse;
         
-        music.setVolume(musicVolume);
-        sfx.setVolume(sfxVolume);
-        reverb.setVolume(reverbVolume);
-        ui.setVolume(uiVolume);
+            music.setVolume(musicVolume);
+            sfx.setVolume(sfxVolume);
+            reverb.setVolume(reverbVolume);
+            ui.setVolume(uiVolume);
+        }
     }
 }

@@ -1,11 +1,12 @@
-
 using UnityEngine;
 
-public class GameServiceLoader : MonoBehaviour
+namespace SpaceGame.Core
 {
-    void Awake()
+    public class GameServiceLoader : MonoBehaviour
     {
-        GameServices.Initialize();
+        void Awake()
+        {
+            GameServices.Initialize();
+        }
     }
 }
-

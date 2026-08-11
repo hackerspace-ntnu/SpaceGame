@@ -3,45 +3,49 @@ using System;
 using System.Linq;
 using Unity.Netcode;
 using UnityEngine.SceneManagement;
+using SpaceGame.Core;
 
-public class GameManager : MonoBehaviour
+namespace SpaceGame.Gameplay
 {
-    public static GameManager Instance { get; private set; }
+    public class GameManager : MonoBehaviour
+    {
+        public static GameManager Instance { get; private set; }
 
-    public enum GameState { Playing, Paused, Won }
-    public GameState CurrentState { get; private set; } = GameState.Playing;
+        public enum GameState { Playing, Paused, Won }
+        public GameState CurrentState { get; private set; } = GameState.Playing;
 
-    public float GameTimer { get; private set; } = 0f;
+        public float GameTimer { get; private set; } = 0f;
 
-    public event Action<GameState> OnStateChanged;
+        public event Action<GameState> OnStateChanged;
     
-    [SerializeField] private SceneReference onWinScene;
+        [SerializeField] private SceneReference onWinScene;
 
-    private void Awake()
-    {
-        if (Instance != null && Instance != this)
+        private void Awake()
         {
-            Destroy(gameObject);
-            return;
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            Instance = this;
         }
-        Instance = this;
-    }
 
-    private void Update()
-    {
-        if (CurrentState == GameState.Playing)
-            GameTimer += Time.deltaTime;
-    }
+        private void Update()
+        {
+            if (CurrentState == GameState.Playing)
+                GameTimer += Time.deltaTime;
+        }
 
-    public void SetState(GameState state)
-    {
-        CurrentState = state;
-        OnStateChanged?.Invoke(state);
-    }
+        public void SetState(GameState state)
+        {
+            CurrentState = state;
+            OnStateChanged?.Invoke(state);
+        }
 
-    public void WinGame()
-    {
-        SetState(GameState.Won);
-        SceneManager.LoadScene(onWinScene.SceneName, LoadSceneMode.Single);
+        public void WinGame()
+        {
+            SetState(GameState.Won);
+            SceneManager.LoadScene(onWinScene.SceneName, LoadSceneMode.Single);
+        }
     }
 }

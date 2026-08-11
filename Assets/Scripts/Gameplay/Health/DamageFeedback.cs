@@ -1,39 +1,43 @@
 using FirstGearGames.SmoothCameraShaker;
 using FMODUnity;
 using UnityEngine;
+using SpaceGame.Presentation;
 
-public class DamageFeedback : MonoBehaviour
+namespace SpaceGame.Gameplay
 {
-    [Header("References")]
-    [SerializeField] private HealthComponent health;
-    [SerializeField] private ShakeData shakeData;
-
-    [Header("Audio")]
-    [SerializeField] private EventReference damageSound; 
-
-    private void Awake()
+    public class DamageFeedback : MonoBehaviour
     {
-        if (health == null)
-            health = GetComponent<HealthComponent>();
-    }
+        [Header("References")]
+        [SerializeField] private HealthComponent health;
+        [SerializeField] private ShakeData shakeData;
 
-    private void OnEnable()
-    {
-        if (health == null) return;
-        health.OnDamage += OnDamaged;
-    }
+        [Header("Audio")]
+        [SerializeField] private EventReference damageSound; 
 
-    private void OnDisable()
-    {
-        if (health == null) return;
-        health.OnDamage -= OnDamaged;
-    }
+        private void Awake()
+        {
+            if (health == null)
+                health = GetComponent<HealthComponent>();
+        }
 
-    private void OnDamaged(int amount)
-    {
-        CameraShakerHandler.Shake(shakeData);
+        private void OnEnable()
+        {
+            if (health == null) return;
+            health.OnDamage += OnDamaged;
+        }
 
-        // Play sound through your AudioManager
-        AudioManager.Instance.PlayEvent(damageSound);
+        private void OnDisable()
+        {
+            if (health == null) return;
+            health.OnDamage -= OnDamaged;
+        }
+
+        private void OnDamaged(int amount)
+        {
+            CameraShakerHandler.Shake(shakeData);
+
+            // Play sound through your AudioManager
+            AudioManager.Instance.PlayEvent(damageSound);
+        }
     }
 }

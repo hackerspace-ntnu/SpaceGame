@@ -3,196 +3,201 @@ using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
+using SpaceGame.Characters;
+using SpaceGame.Core;
 
-public class PlayerInventoryNetwork : NetworkBehaviour, IPlayerInventory
+namespace SpaceGame.Items
 {
-    [SerializeField] private int inventorySize = 4;
-    [SerializeField] private List<InventoryItem> startingItems;
-    
-    
-    private PlayerInventory inventory;
-    PlayerController player;
-    
-    private NetworkList<FixedString64Bytes> networkItems = new();
-    private NetworkVariable<int> networkSelectedSlot = new(-1);
-
-    public int SelectedSlotIndex => networkSelectedSlot.Value;
-    
-    public event Action<InventorySlot> OnSlotSelected;
-    public event Action<int, InventorySlot> OnSlotChanged;
-
-    public event Action<InventoryItem> OnItemDropped;
-
-    private void Awake()
+    public class PlayerInventoryNetwork : NetworkBehaviour, IPlayerInventory
     {
-        player = GetComponent<PlayerController>();
-    }
+        [SerializeField] private int inventorySize = 4;
+        [SerializeField] private List<InventoryItem> startingItems;
+    
+    
+        private PlayerInventory inventory;
+        PlayerController player;
+    
+        private NetworkList<FixedString64Bytes> networkItems = new();
+        private NetworkVariable<int> networkSelectedSlot = new(-1);
 
-    public override void OnNetworkSpawn()
-    {
-        inventory = new PlayerInventory(inventorySize, startingItems);
-        
-        networkItems.OnListChanged += HandleNetworkListChanged;
-        networkSelectedSlot.OnValueChanged += HandleSelectedSlotChanged;
-        
-        if (IsServer)
+        public int SelectedSlotIndex => networkSelectedSlot.Value;
+    
+        public event Action<InventorySlot> OnSlotSelected;
+        public event Action<int, InventorySlot> OnSlotChanged;
+
+        public event Action<InventoryItem> OnItemDropped;
+
+        private void Awake()
         {
-            InitializeNetworkState();
+            player = GetComponent<PlayerController>();
         }
-    }
-    
-    private void Start()
-    {
-        if (!IsOwner) return;
-        player.Input.OnHotbarPressed += SelectSlot;
-        player.Input.OnDropPressed += DropItem;
-    }
 
-    public override void OnDestroy()
-    {
-        networkItems.OnListChanged -= HandleNetworkListChanged;
-        networkSelectedSlot.OnValueChanged -= HandleSelectedSlotChanged;
-    }
-
-    private void HandleNetworkListChanged(NetworkListEvent<FixedString64Bytes> changeEvent)
-    {
-        int index = changeEvent.Index;
+        public override void OnNetworkSpawn()
+        {
+            inventory = new PlayerInventory(inventorySize, startingItems);
         
-        if (index < 0 || index >= networkItems.Count)
-            return;
+            networkItems.OnListChanged += HandleNetworkListChanged;
+            networkSelectedSlot.OnValueChanged += HandleSelectedSlotChanged;
         
-        var id = networkItems[index];
-
-        InventoryItem item = string.IsNullOrEmpty(id.Value)
-            ? null
-            : Registry<InventoryItem>.Get(id.Value);
-
-        inventory.SetItem(index, item);
-        OnSlotChanged?.Invoke(index, inventory.GetSlot(index));
-    }
-
-    private void HandleSelectedSlotChanged(int oldValue, int newValue)
-    {
-        inventory.SelectSlot(newValue);
-        OnSlotSelected?.Invoke(GetSelectedSlot());
-    }
+            if (IsServer)
+            {
+                InitializeNetworkState();
+            }
+        }
     
-    private void InitializeNetworkState()
-    {
-        networkItems.Clear();
+        private void Start()
+        {
+            if (!IsOwner) return;
+            player.Input.OnHotbarPressed += SelectSlot;
+            player.Input.OnDropPressed += DropItem;
+        }
 
-        // Fill with empty slots first
-        for (int i = 0; i < inventorySize; i++)
-            networkItems.Add(default);
+        public override void OnDestroy()
+        {
+            networkItems.OnListChanged -= HandleNetworkListChanged;
+            networkSelectedSlot.OnValueChanged -= HandleSelectedSlotChanged;
+        }
 
-        // Add starting items
-        foreach (var item in startingItems)
+        private void HandleNetworkListChanged(NetworkListEvent<FixedString64Bytes> changeEvent)
+        {
+            int index = changeEvent.Index;
+        
+            if (index < 0 || index >= networkItems.Count)
+                return;
+        
+            var id = networkItems[index];
+
+            InventoryItem item = string.IsNullOrEmpty(id.Value)
+                ? null
+                : Registry<InventoryItem>.Get(id.Value);
+
+            inventory.SetItem(index, item);
+            OnSlotChanged?.Invoke(index, inventory.GetSlot(index));
+        }
+
+        private void HandleSelectedSlotChanged(int oldValue, int newValue)
+        {
+            inventory.SelectSlot(newValue);
+            OnSlotSelected?.Invoke(GetSelectedSlot());
+        }
+    
+        private void InitializeNetworkState()
+        {
+            networkItems.Clear();
+
+            // Fill with empty slots first
+            for (int i = 0; i < inventorySize; i++)
+                networkItems.Add(default);
+
+            // Add starting items
+            foreach (var item in startingItems)
+            {
+                int index = inventory.FindEmptySlot();
+                if (index != -1)
+                    networkItems[index] = item.ID;
+            }
+        }
+
+        // --- Client requests selection ---
+        public void SelectSlot(int slotIndex)
+        {
+            if(!IsOwner) return;
+            SelectSlotServerRpc(slotIndex);
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        private void SelectSlotServerRpc(int slotIndex)
+        {
+            networkSelectedSlot.Value =
+                networkSelectedSlot.Value == slotIndex ? -1 : slotIndex;
+        }
+
+        // --- Client requests add ---
+        public bool TryAddItem(InventoryItem item)
+        {
+            Network.Execute(
+                local: () => AddItem(item),
+                client: () => TryAddItemServerRpc(item.ID));
+        
+            return true;
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        private void TryAddItemServerRpc(string itemId)
+        {
+            var item = Registry<InventoryItem>.Get(itemId);
+            AddItem(item);
+        }
+
+        private void AddItem(InventoryItem item)
         {
             int index = inventory.FindEmptySlot();
-            if (index != -1)
-                networkItems[index] = item.ID;
+            if (index == -1) return;
+
+            networkItems[index] = item.ID;
         }
-    }
 
-    // --- Client requests selection ---
-    public void SelectSlot(int slotIndex)
-    {
-        if(!IsOwner) return;
-        SelectSlotServerRpc(slotIndex);
-    }
-
-    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    private void SelectSlotServerRpc(int slotIndex)
-    {
-        networkSelectedSlot.Value =
-            networkSelectedSlot.Value == slotIndex ? -1 : slotIndex;
-    }
-
-    // --- Client requests add ---
-    public bool TryAddItem(InventoryItem item)
-    {
-        Network.Execute(
-            local: () => AddItem(item),
-            client: () => TryAddItemServerRpc(item.ID));
+        // --- Client requests remove ---
+        public bool TryRemoveItem(int index)
+        {
+            Network.Execute(
+                local: () => RemoveItem(index),
+                client: () => TryRemoveItemServerRpc(index));
         
-        return true;
-    }
+            return true;
+        }
 
-    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    private void TryAddItemServerRpc(string itemId)
-    {
-        var item = Registry<InventoryItem>.Get(itemId);
-        AddItem(item);
-    }
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        private void TryRemoveItemServerRpc(int index)
+        {
+            RemoveItem(index);
+        }
 
-    private void AddItem(InventoryItem item)
-    {
-        int index = inventory.FindEmptySlot();
-        if (index == -1) return;
+        private void RemoveItem(int index)
+        {
+            if (index < 0 || index >= networkItems.Count) return;
 
-        networkItems[index] = item.ID;
-    }
+            networkItems[index] = default;
+        }
 
-    // --- Client requests remove ---
-    public bool TryRemoveItem(int index)
-    {
-        Network.Execute(
-            local: () => RemoveItem(index),
-            client: () => TryRemoveItemServerRpc(index));
-        
-        return true;
-    }
+        private void DropItem()
+        {
+            if (!IsOwner) return;
+            DropItemServerRpc(networkSelectedSlot.Value);
+        }
 
-    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    private void TryRemoveItemServerRpc(int index)
-    {
-        RemoveItem(index);
-    }
+        [Rpc(SendTo.Server)]
+        private void DropItemServerRpc(int slotIndex)
+        {
+            if (slotIndex < 0 || slotIndex >= networkItems.Count) return;
 
-    private void RemoveItem(int index)
-    {
-        if (index < 0 || index >= networkItems.Count) return;
+            var id = networkItems[slotIndex];
+            if (string.IsNullOrEmpty(id.Value)) return;
 
-        networkItems[index] = default;
-    }
+            var item = Registry<InventoryItem>.Get(id.Value);
 
-    private void DropItem()
-    {
-        if (!IsOwner) return;
-        DropItemServerRpc(networkSelectedSlot.Value);
-    }
+            networkItems[slotIndex] = default;
+            networkSelectedSlot.Value = -1;
 
-    [Rpc(SendTo.Server)]
-    private void DropItemServerRpc(int slotIndex)
-    {
-        if (slotIndex < 0 || slotIndex >= networkItems.Count) return;
-
-        var id = networkItems[slotIndex];
-        if (string.IsNullOrEmpty(id.Value)) return;
-
-        var item = Registry<InventoryItem>.Get(id.Value);
-
-        networkItems[slotIndex] = default;
-        networkSelectedSlot.Value = -1;
-
-        OnItemDropped?.Invoke(item);
-    }
+            OnItemDropped?.Invoke(item);
+        }
     
-    public InventorySlot GetSlot(int index)
-    {
-        return inventory.GetSlot(index);
-    }
+        public InventorySlot GetSlot(int index)
+        {
+            return inventory.GetSlot(index);
+        }
 
-    public InventorySlot GetSelectedSlot()
-    {
-        return GetSlot(networkSelectedSlot.Value);
-    }
+        public InventorySlot GetSelectedSlot()
+        {
+            return GetSlot(networkSelectedSlot.Value);
+        }
     
-    public InventoryItem GetSelectedItem()
-    {
-        var slot = GetSelectedSlot();
-        return slot.IsEmpty ? null : slot.Item;
-    }
+        public InventoryItem GetSelectedItem()
+        {
+            var slot = GetSelectedSlot();
+            return slot.IsEmpty ? null : slot.Item;
+        }
 
-    public int GetInventorySize() => inventorySize;
+        public int GetInventorySize() => inventorySize;
+    }
 }

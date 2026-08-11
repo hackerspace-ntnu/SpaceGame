@@ -27,39 +27,42 @@
 using SpaceGame.Locomotion;
 using UnityEngine;
 
-public class DesertCrawlerLocomotion : LeggedLocomotion
+namespace SpaceGame.Vehicles.Crawler
 {
-    /// Feet that must stay down for the hull to be statically supported.
-    private const int MinPlantedLegs = 3;
+    public class DesertCrawlerLocomotion : LeggedLocomotion
+    {
+        /// Feet that must stay down for the hull to be statically supported.
+        private const int MinPlantedLegs = 3;
 
-    [Header("Crawler — gait")]
-    [Tooltip("Legs allowed in the air at once. 1 is a ripple wave (five feet always down); " +
-             "3 is an alternating tripod, twice as fast and still statically stable.")]
-    [Range(1, 3)]
-    [SerializeField] private int swingLegs = 1;
+        [Header("Crawler — gait")]
+        [Tooltip("Legs allowed in the air at once. 1 is a ripple wave (five feet always down); " +
+                 "3 is an alternating tripod, twice as fast and still statically stable.")]
+        [Range(1, 3)]
+        [SerializeField] private int swingLegs = 1;
 
-    [Header("Crawler — deck")]
-    [Tooltip("How much of the ground's tilt the deck takes on.\n\n" +
-             "0 holds it rigidly level, which is what it did originally and what strands the " +
-             "downhill legs on any real slope: every hip sits at one height while the feet do not, " +
-             "so the low side has to span the ride height plus the whole drop and simply runs out " +
-             "of leg. 1 lies the deck flat on the hillside and tips the crew off. This is the " +
-             "compromise, and it is a suspension rather than a pose.")]
-    [Range(0f, 1f)]
-    [SerializeField] private float slopeFollow = 0.6f;
+        [Header("Crawler — deck")]
+        [Tooltip("How much of the ground's tilt the deck takes on.\n\n" +
+                 "0 holds it rigidly level, which is what it did originally and what strands the " +
+                 "downhill legs on any real slope: every hip sits at one height while the feet do not, " +
+                 "so the low side has to span the ride height plus the whole drop and simply runs out " +
+                 "of leg. 1 lies the deck flat on the hillside and tips the crew off. This is the " +
+                 "compromise, and it is a suspension rather than a pose.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float slopeFollow = 0.6f;
 
-    [Tooltip("Hard cap on the deck's tilt, however steep the ground under it gets. This is what " +
-             "keeps the deck walkable when the machine crosses something it should have gone " +
-             "around; the legs take whatever the cap refuses.")]
-    [Range(0f, 45f)]
-    [SerializeField] private float maxDeckTilt = 12f;
+        [Tooltip("Hard cap on the deck's tilt, however steep the ground under it gets. This is what " +
+                 "keeps the deck walkable when the machine crosses something it should have gone " +
+                 "around; the legs take whatever the cap refuses.")]
+        [Range(0f, 45f)]
+        [SerializeField] private float maxDeckTilt = 12f;
 
-    protected override IStrideModel CreateStride() => new YawArcStride(YawRange);
-    protected override IGaitPattern CreateGait() => new RippleGait(swingLegs, MinPlantedLegs);
-    protected override IBodyMotion CreateBody() => new LevelDeckBody(slopeFollow, maxDeckTilt);
-    protected override IFootStyle CreateFeet() => new FlatSole();
+        protected override IStrideModel CreateStride() => new YawArcStride(YawRange);
+        protected override IGaitPattern CreateGait() => new RippleGait(swingLegs, MinPlantedLegs);
+        protected override IBodyMotion CreateBody() => new LevelDeckBody(slopeFollow, maxDeckTilt);
+        protected override IFootStyle CreateFeet() => new FlatSole();
 
-    /// The hull creeps while a foothold is committed, so a step does not arrive at full stretch the
-    /// way a bird's does and this can sit closer to the limit than the ostrich's 0.72.
-    protected override float FootholdReachFraction => 0.85f;
+        /// The hull creeps while a foothold is committed, so a step does not arrive at full stretch the
+        /// way a bird's does and this can sit closer to the limit than the ostrich's 0.72.
+        protected override float FootholdReachFraction => 0.85f;
+    }
 }

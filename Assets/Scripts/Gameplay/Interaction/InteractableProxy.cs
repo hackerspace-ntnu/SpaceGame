@@ -1,40 +1,43 @@
 using System.Linq;
 using UnityEngine;
 
-/// <summary>
-/// Delegates interaction to another IInteractable component on a different GameObject.
-/// Useful for when you want to have an interactable that is not on the same GameObject as the collider that detects the interaction.
-/// </summary>
-public class InteractableProxy : MonoBehaviour, IInteractable
+namespace SpaceGame.Gameplay
 {
-    [SerializeField] Transform target;
-    private IInteractable targetInteractable;
-
-    private void Awake()
+    /// <summary>
+    /// Delegates interaction to another IInteractable component on a different GameObject.
+    /// Useful for when you want to have an interactable that is not on the same GameObject as the collider that detects the interaction.
+    /// </summary>
+    public class InteractableProxy : MonoBehaviour, IInteractable
     {
-        if (target == null)
+        [SerializeField] Transform target;
+        private IInteractable targetInteractable;
+
+        private void Awake()
         {
-            Debug.LogWarning($"[InteractableProxy] target not assigned on {name}, searching children.", this);
-            foreach (var c in GetComponentsInChildren<IInteractable>(true))
+            if (target == null)
             {
-                if (c is not InteractableProxy)
+                Debug.LogWarning($"[InteractableProxy] target not assigned on {name}, searching children.", this);
+                foreach (var c in GetComponentsInChildren<IInteractable>(true))
                 {
-                    targetInteractable = c;
-                    return;
+                    if (c is not InteractableProxy)
+                    {
+                        targetInteractable = c;
+                        return;
+                    }
                 }
+                return;
             }
-            return;
+            targetInteractable = target.GetComponent<IInteractable>();
         }
-        targetInteractable = target.GetComponent<IInteractable>();
-    }
 
-    public bool CanInteract()
-    {
-        return targetInteractable != null && targetInteractable.CanInteract();
-    }
+        public bool CanInteract()
+        {
+            return targetInteractable != null && targetInteractable.CanInteract();
+        }
 
-    public void Interact(Interactor interactor)
-    {
-        targetInteractable?.Interact(interactor);
+        public void Interact(Interactor interactor)
+        {
+            targetInteractable?.Interact(interactor);
+        }
     }
 }

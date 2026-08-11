@@ -1,6 +1,7 @@
-
-public interface IRegistryEntry
-{ 
-    public string ID { get; }
+namespace SpaceGame.Core
+{
+    public interface IRegistryEntry
+    { 
+        public string ID { get; }
+    }
 }
-

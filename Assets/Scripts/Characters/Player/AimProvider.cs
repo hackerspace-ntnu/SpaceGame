@@ -1,23 +1,26 @@
 using UnityEngine;
 
-public class AimProvider : MonoBehaviour
+namespace SpaceGame.Characters
 {
-
-    [SerializeField] private Camera playerCamera;
-
-    public Ray GetAimRay()
+    public class AimProvider : MonoBehaviour
     {
-        return new Ray(playerCamera.transform.position, playerCamera.transform.forward);
-    }
 
-    public RaycastHit? GetRayCast(float maxDistance = 100f)
-    {
-        Ray ray = GetAimRay();
-        if (Physics.Raycast(ray, out RaycastHit hit, maxDistance))
+        [SerializeField] private Camera playerCamera;
+
+        public Ray GetAimRay()
         {
-            return hit;
+            return new Ray(playerCamera.transform.position, playerCamera.transform.forward);
         }
-        Debug.LogWarning("Raycast did not hit anything.");
-        return null;
+
+        public RaycastHit? GetRayCast(float maxDistance = 100f)
+        {
+            Ray ray = GetAimRay();
+            if (Physics.Raycast(ray, out RaycastHit hit, maxDistance))
+            {
+                return hit;
+            }
+            Debug.LogWarning("Raycast did not hit anything.");
+            return null;
+        }
     }
 }

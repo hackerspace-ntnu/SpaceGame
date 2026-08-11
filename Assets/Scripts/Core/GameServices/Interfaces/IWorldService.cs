@@ -1,8 +1,9 @@
-
 using UnityEngine;
 
-public interface IWorldService
+namespace SpaceGame.Core
 {
-    public void Despawn(GameObject gameObject);
+    public interface IWorldService
+    {
+        public void Despawn(GameObject gameObject);
+    }
 }
-

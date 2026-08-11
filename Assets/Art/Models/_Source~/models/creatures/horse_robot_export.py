@@ -11,7 +11,7 @@ armature and there is no horse, just a pile of legs.
 Three things it does that a plain export would not:
 
   * **Localises the palette materials.** The model links them from
-    `Assets/Models/_Source~/palette.blend`, outside `Assets/`, which would not resolve from a
+    `Assets/Art/Models/_Source~/palette.blend`, outside `Assets/`, which would not resolve from a
     copy inside it.
   * **Turns off leaf bones.** Blender otherwise appends a `<bone>_end` child to
     every chain tip, and `WalkerRig` walks a joint's direct children looking for

@@ -1,7 +1,8 @@
-
-public interface IDamageable
+namespace SpaceGame.Gameplay
 {
-    void Damage(int amount);
-    bool Alive { get; }
+    public interface IDamageable
+    {
+        void Damage(int amount);
+        bool Alive { get; }
+    }
 }
-

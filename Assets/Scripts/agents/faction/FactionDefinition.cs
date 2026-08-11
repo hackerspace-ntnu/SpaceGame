@@ -2,12 +2,15 @@
 // Create via Assets > Create > Factions > Faction Definition.
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "Factions/Faction Definition")]
-public class FactionDefinition : ScriptableObject
+namespace SpaceGame.Agents
 {
-    [Tooltip("Display name for this faction.")]
-    public string factionName = "Unnamed Faction";
+    [CreateAssetMenu(menuName = "Factions/Faction Definition")]
+    public class FactionDefinition : ScriptableObject
+    {
+        [Tooltip("Display name for this faction.")]
+        public string factionName = "Unnamed Faction";
 
-    [Tooltip("Colour used in debug gizmos and editor tools.")]
-    public Color debugColor = Color.white;
+        [Tooltip("Colour used in debug gizmos and editor tools.")]
+        public Color debugColor = Color.white;
+    }
 }

@@ -1,49 +1,53 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Gameplay;
 
-[RequireComponent(typeof(Collider))]
-public class Cactus : MonoBehaviour
+namespace SpaceGame.World
 {
-    [SerializeField] private int damagePerTick = 5;
-    [SerializeField] private float tickInterval = 1f;
-
-    private readonly Dictionary<HealthComponent, Coroutine> active = new();
-
-    private void Reset()
+    [RequireComponent(typeof(Collider))]
+    public class Cactus : MonoBehaviour
     {
-        GetComponent<Collider>().isTrigger = true;
-    }
+        [SerializeField] private int damagePerTick = 5;
+        [SerializeField] private float tickInterval = 1f;
 
-    private void OnTriggerEnter(Collider other)
-    {
-        var health = other.GetComponentInParent<HealthComponent>();
-        if (health == null || !health.Alive || active.ContainsKey(health)) return;
+        private readonly Dictionary<HealthComponent, Coroutine> active = new();
 
-        Coroutine c = StartCoroutine(DamageOverTime(health));
-        active.Add(health, c);
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        var health = other.GetComponentInParent<HealthComponent>();
-        if (health == null) return;
-
-        if (active.TryGetValue(health, out Coroutine c))
+        private void Reset()
         {
-            StopCoroutine(c);
-            active.Remove(health);
-        }
-    }
-
-    private IEnumerator DamageOverTime(HealthComponent healthComponent)
-    {
-        while (healthComponent && healthComponent.Alive)
-        {
-            healthComponent.Damage(damagePerTick);
-            yield return new WaitForSeconds(tickInterval);
+            GetComponent<Collider>().isTrigger = true;
         }
 
-        active.Remove(healthComponent);
+        private void OnTriggerEnter(Collider other)
+        {
+            var health = other.GetComponentInParent<HealthComponent>();
+            if (health == null || !health.Alive || active.ContainsKey(health)) return;
+
+            Coroutine c = StartCoroutine(DamageOverTime(health));
+            active.Add(health, c);
+        }
+
+        private void OnTriggerExit(Collider other)
+        {
+            var health = other.GetComponentInParent<HealthComponent>();
+            if (health == null) return;
+
+            if (active.TryGetValue(health, out Coroutine c))
+            {
+                StopCoroutine(c);
+                active.Remove(health);
+            }
+        }
+
+        private IEnumerator DamageOverTime(HealthComponent healthComponent)
+        {
+            while (healthComponent && healthComponent.Alive)
+            {
+                healthComponent.Damage(damagePerTick);
+                yield return new WaitForSeconds(tickInterval);
+            }
+
+            active.Remove(healthComponent);
+        }
     }
 }

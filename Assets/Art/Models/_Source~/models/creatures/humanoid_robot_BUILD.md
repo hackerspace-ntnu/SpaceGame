@@ -1,8 +1,8 @@
 # humanoid_robot — build record
 
-**File:** `Assets/Models/_Source~/models/creatures/humanoid_robot.blend`
+**File:** `Assets/Art/Models/_Source~/models/creatures/humanoid_robot.blend`
 **Generator:** `humanoid_robot.py` · **Export:** `humanoid_robot_export.py`
-**Unity:** `Assets/Models/Creatures/Robotic/Humanoid/humanoid_robot.fbx`
+**Unity:** `Assets/Art/Models/Creatures/Robotic/Humanoid/humanoid_robot.fbx`
 → `Assets/Prefabs/agents/creatures/HumanoidRobot.prefab`
 
 An upright two-legged, two-armed robot, ~1.90 m to the top of its head. Built for

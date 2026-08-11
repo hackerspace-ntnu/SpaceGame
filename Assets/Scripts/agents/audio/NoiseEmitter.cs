@@ -3,35 +3,38 @@
 // Uses OverlapSphereNonAlloc — no allocations per emission.
 using UnityEngine;
 
-public class NoiseEmitter : MonoBehaviour
+namespace SpaceGame.Agents
 {
-    [SerializeField] private LayerMask receiverLayers;
-
-    private readonly Collider[] hitBuffer = new Collider[64];
-
-    private void Awake()
+    public class NoiseEmitter : MonoBehaviour
     {
-        if (receiverLayers == 0)
-            Debug.LogWarning($"{name}: NoiseEmitter.receiverLayers is Nothing — noise will never reach any receiver. Set the layer mask in the Inspector.", this);
-    }
+        [SerializeField] private LayerMask receiverLayers;
 
-    public void Emit(NoiseType type, float radius, Transform instigator = null)
-    {
-        if (instigator == null)
-            instigator = transform;
+        private readonly Collider[] hitBuffer = new Collider[64];
 
-        int count = Physics.OverlapSphereNonAlloc(transform.position, radius, hitBuffer, receiverLayers);
-        for (int i = 0; i < count; i++)
+        private void Awake()
         {
-            NoiseReceiverModule receiver = hitBuffer[i].GetComponent<NoiseReceiverModule>();
-            if (receiver && hitBuffer[i].transform != transform)
-                receiver.OnNoiseHeard(type, transform.position, radius, instigator);
+            if (receiverLayers == 0)
+                Debug.LogWarning($"{name}: NoiseEmitter.receiverLayers is Nothing — noise will never reach any receiver. Set the layer mask in the Inspector.", this);
         }
-    }
 
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = new Color(0f, 1f, 1f, 0.1f);
-        Gizmos.DrawWireSphere(transform.position, 10f); // preview radius only
+        public void Emit(NoiseType type, float radius, Transform instigator = null)
+        {
+            if (instigator == null)
+                instigator = transform;
+
+            int count = Physics.OverlapSphereNonAlloc(transform.position, radius, hitBuffer, receiverLayers);
+            for (int i = 0; i < count; i++)
+            {
+                NoiseReceiverModule receiver = hitBuffer[i].GetComponent<NoiseReceiverModule>();
+                if (receiver && hitBuffer[i].transform != transform)
+                    receiver.OnNoiseHeard(type, transform.position, radius, instigator);
+            }
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            Gizmos.color = new Color(0f, 1f, 1f, 0.1f);
+            Gizmos.DrawWireSphere(transform.position, 10f); // preview radius only
+        }
     }
 }

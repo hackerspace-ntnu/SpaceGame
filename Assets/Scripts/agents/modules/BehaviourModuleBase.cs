@@ -13,57 +13,60 @@
 //   ModulePriority.Fallback    =   0  — wander, patrol (always last)
 using UnityEngine;
 
-public static class ModulePriority
+namespace SpaceGame.Agents
 {
-    public const int Scripted     = 100;
-    public const int Override     =  30;
-    public const int MeleeAttack  =  23;
-    public const int RangedAttack =  22;
-    public const int Reactive     =  20;
-    public const int Social       =  15;
-    public const int Ambient      =  10;
-    public const int Personality  =   5;
-    public const int Fallback     =   0;
-}
-
-public abstract class BehaviourModuleBase : MonoBehaviour, IBehaviourModule
-{
-    [Header("Module")]
-    [Tooltip(
-        "Higher priority modules are evaluated first. First non-null result wins.\n" +
-        "Recommended scale:\n" +
-        "  100 = Scripted (cutscenes)\n" +
-        "   30 = Override (danger flee)\n" +
-        "   20 = Reactive (chase, flee)\n" +
-        "   15 = Social (flocking)\n" +
-        "   10 = Ambient (watch, approach)\n" +
-        "    5 = Personality (look-around)\n" +
-        "    0 = Fallback (wander, patrol)"
-    )]
-    [SerializeField] private int priority = ModulePriority.Fallback;
-    [SerializeField] private bool active = true;
-
-    public int Priority => priority;
-    public bool IsActive => active && enabled && gameObject.activeInHierarchy;
-    // Override to false in modules that only fire side effects and never return a MoveIntent.
-    public virtual bool ClaimsMovement => true;
-
-    public abstract MoveIntent? Tick(in AgentContext context, float deltaTime);
-
-    // Override in subclasses to show a description + feature hints in the Inspector.
-    public virtual string ModuleDescription => string.Empty;
-
-    // Call from Reset() in subclasses to set the recommended default when first added in the Inspector.
-    protected void SetPriorityDefault(int defaultPriority)
+    public static class ModulePriority
     {
-        priority = defaultPriority;
+        public const int Scripted     = 100;
+        public const int Override     =  30;
+        public const int MeleeAttack  =  23;
+        public const int RangedAttack =  22;
+        public const int Reactive     =  20;
+        public const int Social       =  15;
+        public const int Ambient      =  10;
+        public const int Personality  =   5;
+        public const int Fallback     =   0;
     }
 
-    // Call from OnValidate() to enforce a floor on priority (fixes existing prefabs after recompile).
-    protected void SetMinPriority(int min)
+    public abstract class BehaviourModuleBase : MonoBehaviour, IBehaviourModule
     {
-        if (priority < min) priority = min;
-    }
+        [Header("Module")]
+        [Tooltip(
+            "Higher priority modules are evaluated first. First non-null result wins.\n" +
+            "Recommended scale:\n" +
+            "  100 = Scripted (cutscenes)\n" +
+            "   30 = Override (danger flee)\n" +
+            "   20 = Reactive (chase, flee)\n" +
+            "   15 = Social (flocking)\n" +
+            "   10 = Ambient (watch, approach)\n" +
+            "    5 = Personality (look-around)\n" +
+            "    0 = Fallback (wander, patrol)"
+        )]
+        [SerializeField] private int priority = ModulePriority.Fallback;
+        [SerializeField] private bool active = true;
 
-    protected virtual void OnValidate() { }
+        public int Priority => priority;
+        public bool IsActive => active && enabled && gameObject.activeInHierarchy;
+        // Override to false in modules that only fire side effects and never return a MoveIntent.
+        public virtual bool ClaimsMovement => true;
+
+        public abstract MoveIntent? Tick(in AgentContext context, float deltaTime);
+
+        // Override in subclasses to show a description + feature hints in the Inspector.
+        public virtual string ModuleDescription => string.Empty;
+
+        // Call from Reset() in subclasses to set the recommended default when first added in the Inspector.
+        protected void SetPriorityDefault(int defaultPriority)
+        {
+            priority = defaultPriority;
+        }
+
+        // Call from OnValidate() to enforce a floor on priority (fixes existing prefabs after recompile).
+        protected void SetMinPriority(int min)
+        {
+            if (priority < min) priority = min;
+        }
+
+        protected virtual void OnValidate() { }
+    }
 }

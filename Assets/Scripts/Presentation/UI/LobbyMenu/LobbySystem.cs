@@ -15,7 +15,9 @@ using System;
 using UnityEngine.SceneManagement;
 using Unity.VisualScripting;
 using NUnit.Framework;
-
+using SpaceGame.Agents;
+using SpaceGame.Core;
+using SpaceGame.Presentation;
 public class LobbySystem : NetworkBehaviour
 {
     [SerializeField] SceneReference gameScene;

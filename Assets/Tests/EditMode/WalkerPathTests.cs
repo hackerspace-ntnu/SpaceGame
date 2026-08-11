@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using SpaceGame.Walker;
+using SpaceGame.Locomotion;
 using UnityEngine;
 
 public class WalkerPathTests

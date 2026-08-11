@@ -1,10 +1,15 @@
-// Builds Assets/Prefabs/agents/vehicle/ShipRV.prefab from Assets/Models/Vehicles/RV/ship_model.fbx.
+// Builds Assets/Prefabs/agents/vehicle/ShipRV.prefab from Assets/Models/Vehicles/RV/ship_rv.fbx.
 //
-// The FBX arrives as ~20 flat, unnamed meshes ("Cube.007", "Cylinder.001", …) with no rig and no
-// interior. This script turns that into a mountable vehicle: it renames the parts, yaws the model
-// so the nose points down +Z (Unity's forward — the model is authored nose-along -X), hangs the two
-// doors and the two engine pylons off hinge pivots, boxes in a walkable interior, and drops a
-// steering wheel in the cockpit.
+// The FBX arrives as ~60 flat meshes with no rig: hull shells, six openable panels, engine pods,
+// and a modelled interior. This script turns that into a mountable vehicle: it maps the model's
+// part names onto the roles below, yaws the model so the nose points down +Z (Unity's forward),
+// hangs the doors and the two engine pylons off hinge pivots, boxes in a walkable interior, and
+// wires up the cockpit controls.
+//
+// The model is generated from models/models/vehicles/ship_rv.blend — see that file and
+// models/models/vehicles/ship_rv_BUILD.md. It replaced a hand-built model whose meshes carried
+// Blender's default names; the source .blend for that older model is still in
+// Assets/Prefabs/agents/vehicle/ and is no longer read by this script.
 //
 // Everything geometric is measured from the meshes at build time rather than hardcoded, so
 // re-exporting the FBX with tweaked proportions and re-running this still lands in the right place.
@@ -18,48 +23,60 @@ using UnityEngine;
 
 public static class ShipRVBuilder
 {
-    private const string ModelPath = "Assets/Prefabs/agents/vehicle/ship_model 1.blend";
+    private const string ModelPath = "Assets/Models/Vehicles/RV/ship_rv.fbx";
     private const string PrefabPath = "Assets/Prefabs/agents/vehicle/ShipRV.prefab";
 
     // Model is authored with the nose along -X; vehicles in this project drive along +Z.
     private static readonly Quaternion ModelYaw = Quaternion.Euler(0f, 90f, 0f);
 
-    // Source mesh name → what it actually is. The artist names the moving parts and the two shell
-    // variants directly, so those pass through untouched; only the structural meshes still carrying
-    // Blender defaults get renamed, and the four openable wall panels get names that say which is
-    // which. Identified by measuring bounds and rendering the model colour-coded — see
-    // Assets/Scripts/Vehicles/README.md.
+    // Model mesh name → the role name the rest of this script measures from.
     //
-    // The wall panels all arrive as "cockpit_door.NNN". The four openable ones are the four
-    // largest, unambiguously so: 5.11 m long with 188 triangles each, against 1.91 m or less and
-    // 44 triangles for every other panel in that group.
+    // The model names every part deliberately (no "Cube.007" left anywhere), so this table is a
+    // straight mapping rather than the archaeology it used to be. The role names on the right are
+    // unchanged from the previous model, which is why nothing below this table had to move.
     //
-    // Despite the naming, the cockpit bulkhead door is *not* one of the "cockpit_door" meshes —
-    // it is "Cube.020", the only thin full-height slab standing in the bulkhead plane (2.31 x 2.80
-    // x 0.23 at z ~ 3.4, where the cockpit shell meets the cabin). Nothing else in the model is
-    // shaped or placed like it.
+    // If the model gains or loses a part, this is the only table to touch — VerifyParts refuses to
+    // build when a name here does not resolve, so a renamed mesh fails loudly instead of quietly
+    // collapsing a hinge or a collision box to zero.
     private static readonly (string raw, string name)[] PartNames =
     {
-        ("Cube",             "CockpitShell"),
-        ("Cube.003",         "TailShell"),
-        ("Cube.004",         "WingRootBlock"),
-        ("Cube.009",         "DeckPlate"),
-        ("Cube.013",         "CeilingPlate"),
-        ("Cube.020",         "CockpitDoorPanel"),
-        ("baggage_door",     "GarageDoorPanel"),
-        ("cockpit_door.001", "WallPortLowerPanel"),
-        ("cockpit_door.002", "WallPortUpperPanel"),
-        ("cockpit_door.004", "WallStarboardUpperPanel"),
-        ("cockpit_door.005", "WallStarboardLowerPanel"),
+        ("Mesh_HullShell_Cockpit",            "CockpitShell"),
+        ("Mesh_HullShell_Tail",               "TailShell"),
+        ("Mesh_WingRoot_Block",               "WingRootBlock"),
+        ("Mesh_Deck_Plate",                   "DeckPlate"),
+        ("Mesh_Ceiling_Plate",                "CeilingPlate"),
+        ("Mesh_DoorPanel_Bulkhead",           "CockpitDoorPanel"),
+        ("Mesh_DoorPanel_CargoRamp",          "GarageDoorPanel"),
+        ("Mesh_DoorPanel_SideLowerPort",      "WallPortLowerPanel"),
+        ("Mesh_DoorPanel_SideUpperPort",      "WallPortUpperPanel"),
+        ("Mesh_DoorPanel_SideUpperStarboard", "WallStarboardUpperPanel"),
+        ("Mesh_DoorPanel_SideLowerStarboard", "WallStarboardLowerPanel"),
+
+        // The wing group and the two shell variants keep the lower-case role names the rest of the
+        // script already used, so BuildWing's `side + "_wing"` lookups still resolve.
+        ("Mesh_HullShell_Closed",             "shell_closed"),
+        ("Mesh_HullShell_Open",               "shell_open"),
+        ("Mesh_Wing_Port",                    "left_wing"),
+        ("Mesh_WingAxle_Port",                "left_wing_axel"),
+        ("Mesh_Thruster_MainPort",            "left_motor"),
+        ("Mesh_Wing_Starboard",               "right_wing"),
+        ("Mesh_WingAxle_Starboard",           "right_wing_axel"),
+        ("Mesh_Thruster_MainStarboard",       "right_motor"),
     };
 
-    // Named meshes the build reads without renaming them first.
+    // Role names the build reads. All of them are produced by the rename above; listing them
+    // separately keeps VerifyParts honest if the table and the code ever drift apart.
     private static readonly string[] RequiredRawParts =
     {
         "shell_closed", "shell_open",
         "left_wing", "left_motor", "left_wing_axel",
         "right_wing", "right_motor", "right_wing_axel",
     };
+
+    // Cockpit fittings that are modelled now rather than assembled from primitives. Optional: the
+    // build falls back to the old primitive wheel if the model does not carry them.
+    private const string WheelMeshName = "Mesh_Bridge_Wheel";
+    private const string PilotSeatMeshName = "Mesh_Bridge_SeatPilot";
 
     // The four openable wall panels, as (renamed part, hinge edge, swing sign).
     // Each side of the cabin is one large opening split into a stacked pair. They open as a
@@ -231,6 +248,9 @@ public static class ShipRVBuilder
                 Debug.LogError($"[ShipRVBuilder] Missing part '{name}'");
             return t;
         }
+
+        /// <summary>Like <see cref="T"/>, but for parts the build can do without.</summary>
+        public Transform Find(string name) => model.Find(name);
 
         public Renderer R(string name)
         {
@@ -577,12 +597,23 @@ public static class ShipRVBuilder
         GameObject group = new GameObject("Cockpit");
         group.transform.SetParent(root, false);
 
-        Transform wheel = BuildSteeringWheel(group.transform, new Vector3(centreX, floorTop + 1.05f, noseZ - 1.35f));
+        // The model now carries a modelled helm wheel and a pilot's chair. Use them when they are
+        // there, and keep the primitive wheel as a fallback so an older model still builds.
+        Transform wheel = AdoptSteeringWheel(group.transform, parts)
+                          ?? BuildSteeringWheel(group.transform,
+                                                new Vector3(centreX, floorTop + 1.05f, noseZ - 1.35f));
 
-        Transform seat = Empty(group.transform, "SeatPoint", new Vector3(centreX, floorTop + 0.02f, noseZ - 2.15f));
+        // Seat the pilot on the modelled chair rather than at a guessed offset from the nose.
+        Renderer pilotSeat = parts.R(PilotSeatMeshName);
+        Vector3 seatCentre = pilotSeat != null
+            ? new Vector3(pilotSeat.bounds.center.x, floorTop + 0.02f, pilotSeat.bounds.center.z)
+            : new Vector3(centreX, floorTop + 0.02f, noseZ - 2.15f);
+
+        Transform seat = Empty(group.transform, "SeatPoint", seatCentre);
         // Standing beside the wheel rather than outside the hull — stepping out of the chair at
         // 3000 m would otherwise drop the pilot through the sky.
-        Transform dismount = Empty(group.transform, "DismountPoint", new Vector3(centreX + 0.75f, floorTop + 0.02f, noseZ - 2.15f));
+        Transform dismount = Empty(group.transform, "DismountPoint",
+                                   seatCentre + new Vector3(0.75f, 0f, -0.30f));
         Transform cameraPivot = Empty(root, "CameraPivot", new Vector3(0f, hull.center.y + 1.2f, hull.center.z));
 
         MountStation station = wheel.gameObject.AddComponent<MountStation>();
@@ -598,8 +629,39 @@ public static class ShipRVBuilder
         return go.transform;
     }
 
-    // Placeholder geometry built from primitives — swap the children for a modelled yoke whenever
-    // one exists; only the collider and MountStation on "SteeringWheel" itself matter.
+    /// <summary>
+    /// Move the modelled helm wheel out of the mesh soup and into the Cockpit group, giving it the
+    /// interaction collider the primitive placeholder used to carry. Returns null when the model
+    /// has no such mesh, so the caller can fall back.
+    /// </summary>
+    private static Transform AdoptSteeringWheel(Transform cockpit, PartLookup parts)
+    {
+        Transform wheel = parts.Find(WheelMeshName);
+        if (wheel == null)
+            return null;
+
+        wheel.name = "SteeringWheel";
+        wheel.SetParent(cockpit, worldPositionStays: true);
+
+        // Local mesh bounds rather than world Renderer.bounds: the wheel is raked back toward the
+        // pilot, and a world-space AABB would give a box far larger than the wheel it wraps.
+        MeshFilter filter = wheel.GetComponent<MeshFilter>();
+        BoxCollider box = wheel.gameObject.AddComponent<BoxCollider>();
+        if (filter != null && filter.sharedMesh != null)
+        {
+            box.center = filter.sharedMesh.bounds.center;
+            box.size = filter.sharedMesh.bounds.size * 1.15f;
+        }
+        else
+        {
+            box.size = new Vector3(0.8f, 0.8f, 0.3f);
+        }
+
+        return wheel;
+    }
+
+    // Fallback only — used when the model carries no modelled yoke. Kept because it is the one
+    // thing that lets this script still build against an older export.
     private static Transform BuildSteeringWheel(Transform parent, Vector3 localPosition)
     {
         GameObject wheel = new GameObject("SteeringWheel");

@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using SpaceGame.Walker;
+using SpaceGame.Locomotion;
 using UnityEngine;
 
 public class WalkerAxleTests
@@ -117,7 +117,7 @@ public class WalkerAxleTests
     [Test]
     public void PlaneForward_BuildsTheRightHandedFrameTheSolverAssumes()
     {
-        // WalkerLegSolver measures angles as atan2(up, fwd) and applies them as rotations about the
+        // WalkerLimbSolver measures angles as atan2(up, fwd) and applies them as rotations about the
         // axle. That only agrees on a sign if cross(fwd, up) == axle. Every leg angle depends on it.
         foreach (float yaw in new[] { 0f, 35f, -35f, 90f, 143f })
         {

@@ -3,8 +3,9 @@
     "rootNamespace": "",
     "references": [
         "SpaceGame.Minigame.Core",
-        "SpaceGame.Walker",
-        "SpaceGame.Vehicles.Ostrich",
+        "SpaceGame.Locomotion",
+        "SpaceGame.Creatures.Ostrich",
+        "SpaceGame.Vehicles.Crawler",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

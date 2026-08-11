@@ -1,6 +1,6 @@
 // Carries Rigidbodies that are standing on the walker along with it.
 //
-// The walker moves by writing transform.position/rotation directly (SpiderWalkerLocomotion),
+// The walker moves by writing transform.position/rotation directly (DesertCrawlerLocomotion),
 // not through physics. A transform-driven collider imparts NO friction or momentum to a
 // Rigidbody resting on it, so a player standing on the deck is simply left behind as the
 // deck slides out from under them — nothing to do with the player's own movement code.
@@ -9,7 +9,7 @@
 // inside the carry volume, including the rotation about the platform's pivot so riders turn
 // with the hull instead of being flung sideways.
 //
-// Runs after SpiderWalkerLocomotion (order 100) so the platform has already moved.
+// Runs after DesertCrawlerLocomotion (order 100) so the platform has already moved.
 using System.Collections.Generic;
 using UnityEngine;
 

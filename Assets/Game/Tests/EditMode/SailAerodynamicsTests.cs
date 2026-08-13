@@ -292,15 +292,162 @@ namespace SpaceGame.Tests
             Assert.Greater(far, near * 3f, "Torque must scale with the lever arm.");
         }
 
+        [Test]
+        public void ASailForwardOfTheFoil_BearsTheBowAwayFromTheWind()
+        {
+            // The absolute sign, which nothing pinned before — and it was inverted, so every trim
+            // did the opposite of what the rig is shaped to do. The pair test above passes just as
+            // happily when both are backwards.
+            //
+            // Wind on the port side pushes the sail to starboard. A jib, forward of the centre of
+            // resistance, then pushes the BOW to starboard: away from the wind. Positive is
+            // starboard, the same sense as a positive rotation about world up.
+            Vector3 toStarboard = new Vector3(500f, 0f, 0f);
+
+            float jib = SailAerodynamics.YawTorque(toStarboard, Vector3.forward, leverArm: 6f);
+            Assert.Greater(jib, 0f, "A headsail must bear the bow away from the wind.");
+
+            float main = SailAerodynamics.YawTorque(toStarboard, Vector3.forward, leverArm: -4f);
+            Assert.Less(main, 0f, "A main aft of the foil must round the craft up into the wind.");
+        }
+
+        // --- canting the post ---------------------------------------------------
+
+        [Test]
+        public void CantingThePost_CostsDrive()
+        {
+            Assert.AreEqual(1f, SailAerodynamics.CantDriveFactor(0f), 1e-4f,
+                "An upright post loses nothing.");
+
+            float leaned = SailAerodynamics.CantDriveFactor(32f);
+            Assert.Less(leaned, 1f, "A leaning sail presents less of itself to the wind.");
+            Assert.Greater(leaned, 0.7f, "But a 32 degree lean must not gut the rig.");
+        }
+
+        [Test]
+        public void CantingIntoTheWind_StandsTheCraftUp()
+        {
+            // Wind on the port side, so the sail pushes to starboard and the craft heels that way.
+            // Leaning the post to PORT — into the wind — hangs the rig's weight up to windward and
+            // takes the heel back out. That trade is the whole reason the control exists.
+            Vector3 push = new Vector3(6000f, 0f, 0f);
+            const float rigMoment = 7000f;
+            const float righting = 1500f;
+
+            float upright = SailAerodynamics.HeelAngle(push, Vector3.forward, 0f, rigMoment,
+                                                       righting, 25f);
+            float toWindward = SailAerodynamics.HeelAngle(push, Vector3.forward, -32f, rigMoment,
+                                                         righting, 25f);
+            float toLeeward = SailAerodynamics.HeelAngle(push, Vector3.forward, 32f, rigMoment,
+                                                        righting, 25f);
+
+            Assert.Greater(upright, 0f, "The craft heels to leeward under sail.");
+            Assert.Less(toWindward, upright, "Leaning the post to windward must stand it up.");
+            Assert.Greater(toLeeward, upright, "Leaning it to leeward must lay it further over.");
+        }
+
+        [Test]
+        public void ACantedPost_YawsTheCraft()
+        {
+            // Drive applied off the centreline turns the craft: push the starboard side forward
+            // and the bow swings to port. This is the second half of what makes the cant a
+            // control rather than a slider.
+            Vector3 drive = new Vector3(0f, 0f, 4000f);
+
+            float offset = SailAerodynamics.CantLateralOffset(32f, centreOfEffortHeight: 8f);
+            Assert.Greater(offset, 0f, "Leaning to starboard puts the centre of effort to starboard.");
+
+            float torque = SailAerodynamics.YawTorque(drive, Vector3.forward, 0f, offset);
+            Assert.Less(torque, 0f, "Drive on the starboard side must swing the bow to port.");
+        }
+
         // --- the sheet is the control -----------------------------------------
 
         [Test]
         public void FreeSail_WeathervanesDownwind()
         {
+            // A boom points AFT and the free one trails away downwind, so the angle is measured
+            // off the stern. Air going to port means leeward is to port and the boom goes with it.
             Vector3 heading = Vector3.forward;
             Vector3 apparent = new Vector3(-10f, 0f, 0f);   // going to port
             float vane = SailAerodynamics.WeathervaneAngle(heading, apparent);
-            Assert.AreEqual(-90f, vane, 1f, "A free sail trails the apparent wind.");
+            Assert.AreEqual(90f, vane, 1f, "A free sail trails the apparent wind, to leeward.");
+        }
+
+        [Test]
+        public void FreeSail_OnARun_SquaresRightOut()
+        {
+            // The case the old bow-relative measurement got exactly backwards: running downwind,
+            // the boom should be square across the craft, not lying on the centreline.
+            Vector3 heading = Vector3.forward;
+            Vector3 apparent = new Vector3(0f, 0f, 8f);     // air overtaking from astern
+            float vane = SailAerodynamics.WeathervaneAngle(heading, apparent);
+            Assert.AreEqual(180f, Mathf.Abs(vane), 1f,
+                "On a run the sail wants to go right out; the sheet is what stops it at 90.");
+        }
+
+        [Test]
+        public void FreeSail_HeadToWind_LiesOnTheCentreline()
+        {
+            Vector3 heading = Vector3.forward;
+            Vector3 apparent = new Vector3(0f, 0f, -8f);    // straight at the bow
+            Assert.AreEqual(0f, SailAerodynamics.WeathervaneAngle(heading, apparent), 1f,
+                "Head to wind the boom lies fore and aft, flogging.");
+        }
+
+        // --- the force model ---------------------------------------------------
+
+        [Test]
+        public void ASailBroadsideToTheWind_IsStalled_NotLuffing()
+        {
+            // The inversion that stopped the craft sailing. Broadside is 90 degrees of angle of
+            // attack — a parachute — and edge-on is zero. It used to report the complement of
+            // both, so every coefficient was read off the curve backwards.
+            Vector3 wind = new Vector3(10f, 0f, 0f);
+
+            SailAerodynamics.SailForce(wind, SailNormalAt(0f), Area, Rho, out float broadside);
+            SailAerodynamics.SailForce(wind, SailNormalAt(90f), Area, Rho, out float edgeOn);
+
+            Assert.AreEqual(90f, broadside, 1f, "A sail across the wind is stalled.");
+            Assert.AreEqual(0f, edgeOn, 1f, "A sail along the wind is flogging.");
+        }
+
+        [Test]
+        public void ASailBroadsideToTheWind_MakesFarMoreForceThanOneEdgeOn()
+        {
+            Vector3 wind = new Vector3(10f, 0f, 0f);
+
+            float broadside = SailAerodynamics
+                .SailForce(wind, SailNormalAt(0f), Area, Rho, out _).magnitude;
+            float edgeOn = SailAerodynamics
+                .SailForce(wind, SailNormalAt(90f), Area, Rho, out _).magnitude;
+
+            Assert.Greater(broadside, edgeOn * 8f,
+                "A sail held across the breeze must catch it. This is the whole of a dead run.");
+        }
+
+        [Test]
+        public void CloseHauled_TheBestTrimDrivesForward()
+        {
+            // Wind 60 degrees off the bow, from starboard. There must be a trim that drives, and
+            // it must be on the leeward side. With the lift direction taken square across the
+            // flow rather than off the sail's own normal, the whole close-hauled band produced
+            // NEGATIVE drive and the craft sailed backwards out of every tack.
+            Vector3 windFrom = Quaternion.Euler(0f, 60f, 0f) * Vector3.forward;
+            Vector3 apparent = -windFrom * 12f;
+
+            float best = float.NegativeInfinity;
+            float bestTrim = 0f;
+            for (float a = -90f; a <= 90f; a += 1f)
+            {
+                float drive = DriveAt(a, apparent);
+                if (drive > best) { best = drive; bestTrim = a; }
+            }
+
+            Assert.Greater(best, 0f, "A close reach must produce forward drive at some trim.");
+            Assert.Greater(bestTrim, 0f,
+                "Wind from starboard means the sail draws on the port side. " +
+                $"Best trim came out at {bestTrim:F0} degrees.");
         }
 
         [Test]

@@ -24,9 +24,9 @@ namespace SpaceGame.EditorTools
         // expose them in the UI; changing them rebuilds the world on a different grid
         // and orphans every existing chunk asset.
         private static readonly Vector2 chunkSize = new Vector2(500f, 500f);
-        private const string outputFolder = "Assets/Scenes/World/Chunks";
-        private const string terrainDataFolder = "Assets/Terrain/ChunkData";
-        private const string configOutputPath = "Assets/Settings/WorldStreamingConfig.asset";
+        private const string outputFolder = "Assets/Game/Scenes/World/Chunks";
+        private const string terrainDataFolder = "Assets/Game/Terrain/ChunkData";
+        private const string configOutputPath = "Assets/Game/Settings/WorldStreamingConfig.asset";
 
         private int loadRadius = 1;
         private float unloadGracePeriod = 10f;

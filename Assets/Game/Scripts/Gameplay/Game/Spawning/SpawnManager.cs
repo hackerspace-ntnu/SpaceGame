@@ -5,6 +5,7 @@ using UnityEngine.SceneManagement;
 using Random = UnityEngine.Random;
 using SpaceGame.Agents;
 using SpaceGame.Core;
+using SpaceGame.World.Safety;
 
 namespace SpaceGame.Gameplay
 {
@@ -54,28 +55,74 @@ namespace SpaceGame.Gameplay
             return FindSpawnPoints().Length > 0;
         }
 
-        public Vector3 GetSpawnPoint()
+        /// <summary>
+        /// The active spawn point's authored position, for choosing which chunks to preload.
+        /// Available before any world geometry exists, which is exactly when the streamer needs it
+        /// and exactly why it is not validated. Not a spawn position — see <see cref="SpawnPoint.Anchor"/>.
+        /// </summary>
+        public bool TryGetSpawnAnchor(out Vector3 anchor)
+        {
+            var spawnPoints = FindSpawnPoints();
+            if (spawnPoints.Length == 0)
+            {
+                anchor = Vector3.zero;
+                return false;
+            }
+
+            anchor = spawnPoints[0].Anchor;
+            return true;
+        }
+
+        /// <summary>
+        /// A validated spawn position, or false when no spawn point can currently vouch for one —
+        /// which in the streamed world means the chunk there has not loaded yet. Callers must wait
+        /// and ask again rather than substitute a position of their own.
+        /// </summary>
+        public bool TryGetSpawnPoint(out Vector3 spawnPosition)
         {
             var spawnPoints = FindSpawnPoints();
             if (spawnPoints.Length == 0)
             {
                 Debug.LogError("No SpawnPoint found in scene!");
-                return Vector3.zero;
+                spawnPosition = Vector3.zero;
+                return false;
             }
 
-            return spawnPoints[0].GetSpawnPoint();
+            return spawnPoints[0].TryGetSpawnPoint(out spawnPosition);
         }
-    
+
+        /// <summary>
+        /// Last check before a body exists at this position. Everything upstream has already
+        /// validated it, so this only catches the gap between validation and use — a chunk that
+        /// finished loading in between, raising the ground above a position that was fine when it
+        /// was chosen.
+        /// </summary>
+        private static Vector3 ClampAboveTerrain(Vector3 spawnPosition)
+        {
+            if (!TerrainProbe.TryGetTerrainHeight(spawnPosition, out float terrainY))
+                return spawnPosition;
+
+            if (spawnPosition.y >= terrainY)
+                return spawnPosition;
+
+            Debug.LogWarning($"[SpawnManager] spawn position {spawnPosition} resolved below the " +
+                             $"terrain surface (y={terrainY:F1}) — clamped above it.");
+
+            return new Vector3(spawnPosition.x, terrainY + SpawnSurfaceClearance, spawnPosition.z);
+        }
+
+        /// <summary>Matches SpawnPoint.groundClearance — see the note there on the player capsule.</summary>
+        private const float SpawnSurfaceClearance = 1.2f;
+
         private void SpawnPlayer()
         {
-            if (!SpawnPointsAvailable())
+            if (!TryGetSpawnPoint(out Vector3 spawnPosition))
             {
-                Debug.LogError("Cannot spawn player: No SpawnPoint found!");
+                Debug.LogError("Cannot spawn player: no valid SpawnPoint position!");
                 return;
             }
 
-            Vector3 spawnPosition = GetSpawnPoint();
-            GameObject player = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+            GameObject player = Instantiate(playerPrefab, ClampAboveTerrain(spawnPosition), Quaternion.identity);
             EntityFaction.Ensure(player, playerFaction, relationshipTable);
         }
 
@@ -112,8 +159,27 @@ namespace SpaceGame.Gameplay
     
         public void SpawnPlayerForClient(ulong clientId)
         {
+            if (!TryGetSpawnPoint(out Vector3 spawnPosition))
+            {
+                Debug.LogError($"Cannot spawn client {clientId}: no valid SpawnPoint position!");
+                return;
+            }
 
-            Vector3 spawnPosition = GetSpawnPoint();
+            SpawnPlayerForClient(clientId, spawnPosition);
+        }
+
+        /// <summary>
+        /// Spawns at a position the caller already resolved.
+        ///
+        /// This overload exists because resolving twice is a bug, not a convenience. SpawnPoint
+        /// scatters its result inside a radius, so two calls return two different positions —
+        /// NetworkGameManager used to preload the world's chunks around the first and then spawn
+        /// the player at the second, which is how a player ends up standing in a chunk that was
+        /// never loaded and falls straight through it.
+        /// </summary>
+        public void SpawnPlayerForClient(ulong clientId, Vector3 spawnPosition)
+        {
+            spawnPosition = ClampAboveTerrain(spawnPosition);
             GameObject playerObj = Instantiate(networkPlayerPrefab, spawnPosition, Quaternion.identity);
 
             // Before the network spawn, so the entity is registered for targeting from its first

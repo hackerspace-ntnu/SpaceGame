@@ -252,13 +252,13 @@ coupling is gone rather than merely unexercised.
 ## Unity
 
 Exported by `dune_ornithopter_export.py` to
-`Assets/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx` — 25 meshes, 30 bones, no leaf bones, six
+`Assets/Game/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx` — 25 meshes, 30 bones, no leaf bones, six
 skinned panels each bound to all 30. The export asserts that skinning before it writes, because a
 webbed panel arriving as a rigid mesh means the shoulders flap and the cloth hangs in space behind
 them, and nothing downstream reports it.
 
-The prefab is built from that FBX by `Assets/Editor/Vehicles/OrnithopterBuilder.cs`. See
-`Assets/Scripts/Vehicles/Ornithopter/README.md` for the flight model and the articulation.
+The prefab is built from that FBX by `Assets/Game/Editor/Vehicles/OrnithopterBuilder.cs`. See
+`Assets/Game/Scripts/Vehicles/Ornithopter/README.md` for the flight model and the articulation.
 
 ## Scale, and one open problem
 

@@ -6,7 +6,7 @@ an export, not a generator. It never writes to the .blend it opens.
 Three things it does that a plain FBX export would not:
 
   * Localises the palette materials. The model links them from
-    Assets/Art/Models/_Source~/palette.blend, which sits outside Assets/ and would not resolve from
+    Assets/Game/Art/Models/_Source~/palette.blend, which sits outside Assets/ and would not resolve from
     a copy inside it.
   * Un-parents the meshes from the armature and drops the rig. ShipRVBuilder
     finds parts with Transform.Find, which only searches direct children, and

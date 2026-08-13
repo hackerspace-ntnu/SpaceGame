@@ -20,7 +20,7 @@ Take control of the player camera + input for a scripted moment, then give it ba
 
 ## Triggering a cutscene
 
-Cutscenes are wired through the generic [trigger seam](Assets/Scripts/InteractionSystem/README.md): a `CutsceneAction` component on a GameObject implements `ITriggerable`, and a separate trigger component decides how it fires.
+Cutscenes are wired through the generic [trigger seam](Assets/Game/Scripts/InteractionSystem/README.md): a `CutsceneAction` component on a GameObject implements `ITriggerable`, and a separate trigger component decides how it fires.
 
 | Trigger | Component | Use case |
 |---|---|---|
@@ -29,7 +29,7 @@ Cutscenes are wired through the generic [trigger seam](Assets/Scripts/Interactio
 | Click → cutscene → go somewhere | `InteractableTrigger` + `SceneTransition` + `WalkThroughCutsceneEffect` + a destination | Doors. See [INTERIORS.md](INTERIORS.md). |
 | From code | `CutsceneDirector.Instance.Play(myCutscene, subject)` | Story beats, death, etc. |
 
-For doors, prefer the [`SceneTransition`](Assets/Scripts/SceneManagement/Transitions/SceneTransition.cs) stack — it composes a cutscene effect with a fade effect and a destination so you can mix and match.
+For doors, prefer the [`SceneTransition`](Assets/Game/Scripts/SceneManagement/Transitions/SceneTransition.cs) stack — it composes a cutscene effect with a fade effect and a destination so you can mix and match.
 
 ## Writing a new cutscene
 
@@ -71,7 +71,7 @@ Four stations in front of the player spawn:
 ## Files
 
 ```
-Assets/Scripts/Cutscenes/
+Assets/Game/Scripts/Cutscenes/
 ├── Cutscene.cs                          base + CutsceneContext (Player, Camera, Subject)
 ├── CutsceneDirector.cs                  singleton; Play(cutscene, subject)
 ├── CutsceneRunner.cs                    PlayAndAwait helper

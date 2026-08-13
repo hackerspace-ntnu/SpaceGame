@@ -13,8 +13,8 @@ Unity-ready copy without ever writing to the original:
   7. save the .blend and export the FBX
 
 Run:
-  blender --background Assets/Art/Models/_Source~/models/vehicles/dune_foil.blend \
-          --python Assets/Art/Models/_Source~/models/vehicles/dune_foil_rig.py
+  blender --background Assets/Game/Art/Models/_Source~/models/vehicles/dune_foil.blend \
+          --python Assets/Game/Art/Models/_Source~/models/vehicles/dune_foil_rig.py
 """
 
 import os
@@ -32,8 +32,26 @@ REPO = HERE
 while REPO != os.path.dirname(REPO) and not os.path.isdir(os.path.join(REPO, "ProjectSettings")):
     REPO = os.path.dirname(REPO)
 RIG_BLEND = os.path.join(HERE, "dune_foil_rig.blend")
-FBX_DIR = os.path.join(REPO, "Assets", "Models", "Vehicles", "DuneFoil")
+# Assets/Game/Art/Models, not Assets/Models: the repo was restructured domain-first after
+# this script was written and every model moved under Assets/Game/Art. Left stale, a re-run
+# quietly creates a SECOND DuneFoil folder at the old path, Unity imports the duplicate, and
+# the game goes on rendering the original — an edit that appears to do nothing.
+FBX_DIR = os.path.join(REPO, "Assets", "Game", "Art", "Models", "Vehicles", "DuneFoil")
 FBX_PATH = os.path.join(FBX_DIR, "dune_foil_rig.fbx")
+
+# The helm. Appended from the shared component library rather than modelled into
+# dune_foil.blend, because dune_foil.blend is hand-made and this script only ever reads it —
+# and because a ship's wheel is the last thing that should exist only inside one vessel.
+HELM_BLEND = os.path.join(REPO, "Assets", "Game", "Art", "Models", "_Source~",
+                          "components", "mechanical", "ships_wheel.blend")
+HELM_COLLECTION = "Coll_ShipsWheel_Spoked"
+HELM_WHEEL = "Mesh_ShipsWheel_Spoked_Wheel"
+HELM_COLUMN = "Mesh_ShipsWheel_Spoked_Column"
+
+# Where the wheel stands: this far aft of the aftmost winch, on the centreline. Aft because
+# that is where a helm goes and because the four rope stations already crowd amidships —
+# the whole point of the wheel is that it is somewhere you can find it.
+HELM_AFT_OFFSET = 1.30
 
 # ---------------------------------------------------------------------------
 # 1. materials: one per colour
@@ -358,6 +376,89 @@ def spar_rotation(direction):
     return direction.normalized().to_track_quat("Z", "Y").to_euler()
 
 
+def build_helm(hull_node, assigned):
+    """Append the ship's wheel from the component library and stand it on the deck aft.
+
+    Two objects, and the split is load-bearing: Helm_Column never moves, Helm_Wheel is spun
+    by DuneFoilHelm. They share an origin at the hub, so the node placed here is the hub and
+    the pedestal hangs 1.02 m below it — which is what lets the Unity builder seat the whole
+    assembly by writing one Y.
+
+    The wheel's materials are remapped onto the craft's own five. The library palette is a
+    different set (Mat_Metal_Steel_Worn and friends) and a helm in a visibly different metal
+    from the rest of the hull reads as a bolted-on asset, which is exactly what it is and
+    exactly what it must not look like.
+    """
+    if not os.path.exists(HELM_BLEND):
+        print(f"[helm] no component at {HELM_BLEND}; skipping the wheel")
+        return None
+
+    stations = [bpy.data.objects[n] for n in STATION_PARTS if n in bpy.data.objects]
+    if not stations:
+        print("[helm] no station nodes to measure against; skipping the wheel")
+        return None
+
+    # Aft is -Y on this hull: the jib winch, which is necessarily forward, sits at +3.57.
+    aftmost = min(s.matrix_world.translation.y for s in stations)
+    deck_z = sum(s.matrix_world.translation.z for s in stations) / len(stations)
+
+    with bpy.data.libraries.load(HELM_BLEND, link=False) as (src, dst):
+        dst.objects = [n for n in (HELM_WHEEL, HELM_COLUMN) if n in src.objects]
+
+    appended = {}
+    for name in (HELM_WHEEL, HELM_COLUMN):
+        o = bpy.data.objects.get(name)
+        if o is None:
+            print(f"[helm] {HELM_BLEND} has no {name}; skipping the wheel")
+            return None
+        # libraries.load appends the datablock but links it to nothing.
+        if not o.users_collection:
+            bpy.context.scene.collection.objects.link(o)
+        appended[name] = o
+
+    helm_y = aftmost - HELM_AFT_OFFSET
+    node = make_empty("Station_Helm", Vector((0.0, helm_y, deck_z)), parent=hull_node,
+                      size=0.6)
+
+    for src_name, new_name in ((HELM_COLUMN, "Helm_Column"), (HELM_WHEEL, "Helm_Wheel")):
+        o = appended[src_name]
+        o.name = new_name
+        o.data.name = new_name
+        o.location = (0.0, helm_y, deck_z)
+        o.rotation_euler = (0.0, 0.0, 0.0)
+        bpy.context.view_layer.update()
+        reparent(o, node)
+        assigned.add(o.name)
+        remap_to_foil_palette(o)
+
+    print(f"[helm] Station_Helm at y={helm_y:.2f} z={deck_z:.2f} "
+          f"({HELM_AFT_OFFSET:.2f} m aft of the aftmost winch)")
+    return node
+
+
+# The library palette maps onto the craft's own five by role. Anything unlisted falls back to
+# the mid wood, which is the hull's dominant material and the least conspicuous wrong answer.
+HELM_MATERIAL_MAP = {
+    "Mat_Wood_Ply_Worn": "Mat_Foil_Wood_Mid",
+    "Mat_Metal_Brass_Tarnished": "Mat_Foil_Metal_Grey",
+    "Mat_Metal_Steel_Worn": "Mat_Foil_Metal_Slate",
+    "Mat_Metal_Steel_Dark": "Mat_Foil_Metal_Slate",
+    "Mat_Metal_Rust_Heavy": "Mat_Foil_Wood_Dark",
+    "Mat_Plastic_Rubber_Black": "Mat_Foil_Wood_Dark",
+}
+
+
+def remap_to_foil_palette(o):
+    """Swap an appended object's materials for the craft's own, in place."""
+    fallback = bpy.data.materials.get("Mat_Foil_Wood_Mid")
+    for slot in o.material_slots:
+        if slot.material is None:
+            continue
+        target = HELM_MATERIAL_MAP.get(slot.material.name)
+        replacement = bpy.data.materials.get(target) if target else None
+        slot.material = replacement or fallback or slot.material
+
+
 def build():
     # scene furniture the source still carries; a stray camera inside a prefab hijacks rendering
     for junk in ("Camera", "Light"):
@@ -496,6 +597,8 @@ def build():
             reparent(o, node)
             assigned.add(o.name)
             o.name = f"{station}_Part_{i:02d}"
+
+    build_helm(hull_node, assigned)
 
     # --- running rigging anchors -----------------------------------------
     rig_node = make_empty("Rigging", root_loc, parent=hull_node, size=0.6)

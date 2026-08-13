@@ -1,5 +1,5 @@
-// Builds Assets/Prefabs/agents/creatures/HorseRobot.prefab from
-// Assets/Art/Models/Creatures/Robotic/Horse/horse_robot.fbx.
+// Builds Assets/Game/Prefabs/agents/creatures/HorseRobot.prefab from
+// Assets/Game/Art/Models/Creatures/Robotic/Horse/horse_robot.fbx.
 //
 // The FBX arrives WITH its rig -- HORSE_Rig, a Root plus four Coxa/Hip/Knee/Ankle/Foot chains, a
 // neck ending in a head and jaw, and a tail -- because `HorseLocomotion` measures that hierarchy
@@ -15,8 +15,8 @@
 //     is PREFAB WIRING, not code: `LeggedDriver` already implements `IRiderControllable`, so a
 //     `MountModule` + `SteerModule` pair is the whole of it.
 //
-// The model is generated from Assets/Art/Models/_Source~/models/creatures/horse_robot.py and exported by
-// horse_robot_export.py -- see Assets/Art/Models/_Source~/models/creatures/horse_robot_BUILD.md.
+// The model is generated from Assets/Game/Art/Models/_Source~/models/creatures/horse_robot.py and exported by
+// horse_robot_export.py -- see Assets/Game/Art/Models/_Source~/models/creatures/horse_robot_BUILD.md.
 //
 // Model orientation: authored -Y forward in Blender, which the default FBX axis conversion lands on
 // Unity's +Z. There is deliberately no yaw correction here.
@@ -37,8 +37,8 @@ namespace SpaceGame.EditorTools
     public static class HorseBuilder
     {
         private const string ModelPath =
-            "Assets/Art/Models/Creatures/Robotic/Horse/horse_robot.fbx";
-        private const string PrefabPath = "Assets/Prefabs/agents/creatures/HorseRobot.prefab";
+            "Assets/Game/Art/Models/Creatures/Robotic/Horse/horse_robot.fbx";
+        private const string PrefabPath = "Assets/Game/Prefabs/agents/creatures/HorseRobot.prefab";
 
         private static readonly string[] LegIds = { "FL", "FR", "HL", "HR" };
 
@@ -65,7 +65,7 @@ namespace SpaceGame.EditorTools
             if (model == null)
             {
                 Debug.LogError($"[Horse] No model at {ModelPath}. Run " +
-                               "Assets/Art/Models/_Source~/models/creatures/horse_robot_export.py first.");
+                               "Assets/Game/Art/Models/_Source~/models/creatures/horse_robot_export.py first.");
                 return;
             }
 

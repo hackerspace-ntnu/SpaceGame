@@ -37,8 +37,22 @@ namespace SpaceGame.Vehicles.DuneFoil
         /// <summary>Total force from all sails, world space.</summary>
         public Vector3 TotalForce { get; private set; }
 
-        /// <summary>Total yaw torque about the craft's vertical axis.</summary>
+        /// <summary>Total yaw torque about the craft's vertical axis. Positive turns to starboard.</summary>
         public float TotalTorque { get; private set; }
+
+        /// <summary>
+        /// Total heeling moment, N·m, positive laying the craft over to starboard.
+        ///
+        /// Summed from the sails rather than worked out from <see cref="TotalForce"/>, because
+        /// each post can be canted independently and how far a post leans is half of what decides
+        /// the moment it makes. A rig with its post laid into the wind stands up under a load
+        /// that would otherwise have the craft on its ear, and no amount of looking at the total
+        /// force will tell you that.
+        /// </summary>
+        public float TotalHeelMoment { get; private set; }
+
+        /// <summary>Drive along the craft's heading this frame, newtons. Negative is sternway.</summary>
+        public float Drive { get; private set; }
 
         /// <summary>Apparent wind the rig saw this frame.</summary>
         public Vector3 ApparentWind { get; private set; }
@@ -53,22 +67,33 @@ namespace SpaceGame.Vehicles.DuneFoil
         public SailSurface MainSail => mainSail;
         public SailSurface Jib => jib;
 
-        /// <summary>Combined sail area currently set, m².</summary>
+        /// <summary>
+        /// Combined sail area actually working, m². Counts what is hoisted, foreshortened by
+        /// however far each post is leaned over — which is the area that makes the force.
+        /// </summary>
         public float SetArea
         {
             get
             {
                 float total = 0f;
                 foreach (SailSurface s in sails)
-                    if (s != null) total += s.Area * s.Hoist01;
+                    if (s != null) total += s.EffectiveArea;
                 return total;
             }
         }
 
         private void Reset() => CollectSails();
 
-        private void Awake()
+        private bool initialised;
+
+        private void Awake() => Initialise();
+
+        /// <summary>Idempotent, and called from <see cref="Tick"/> so a harness can step a rig
+        /// that Unity never woke. See <c>SailSurface.Initialise</c>.</summary>
+        private void Initialise()
         {
+            if (initialised) return;
+            initialised = true;
             if (sails.Count == 0) CollectSails();
         }
 
@@ -85,6 +110,7 @@ namespace SpaceGame.Vehicles.DuneFoil
         /// </summary>
         public void Tick(Vector3 velocity, Vector3 heading, float deltaTime)
         {
+            Initialise();
             craftVelocity = velocity;
 
             WindField field = wind != null ? wind : WindField.Active;
@@ -95,6 +121,7 @@ namespace SpaceGame.Vehicles.DuneFoil
 
             Vector3 force = Vector3.zero;
             float torque = 0f;
+            float heel = 0f;
 
             foreach (SailSurface sail in sails)
             {
@@ -102,32 +129,73 @@ namespace SpaceGame.Vehicles.DuneFoil
                 sail.Tick(ApparentWind, heading, airDensity, deltaTime);
                 force += sail.Force;
                 torque += sail.Torque;
+                heel += sail.HeelMoment;
             }
 
             TotalForce = force;
             TotalTorque = torque;
+            TotalHeelMoment = heel;
+            Drive = Vector3.Dot(SailAerodynamics.Flatten(force), heading);
+        }
+
+        /// <summary>
+        /// How hard the rig is flogging, 0..1: the worst-behaved sail on the craft.
+        ///
+        /// The one number worth putting in front of the player, because a luffing sail is the
+        /// difference between a trim that is nearly right and one that is doing nothing, and it
+        /// is not otherwise visible from the helm at the far end of a seventeen-metre hull.
+        /// </summary>
+        public float Luffing
+        {
+            get
+            {
+                float worst = 0f;
+                foreach (SailSurface s in sails)
+                    if (s != null && s.IsHoisted) worst = Mathf.Max(worst, s.Luffing);
+                return worst;
+            }
         }
 
         // --- rig-wide controls ------------------------------------------------
 
-        /// <summary>Set every sail. The hoist station's Interact.</summary>
+        /// <summary>
+        /// Work every halyard up while the player holds the control. The hoist station's Interact.
+        /// </summary>
+        public void RaiseHalyards(float deltaTime)
+        {
+            foreach (SailSurface s in sails)
+                if (s != null) s.RaiseHalyard(deltaTime);
+        }
+
+        /// <summary>Work every halyard down. The hoist station's Use.</summary>
+        public void LowerHalyards(float deltaTime)
+        {
+            foreach (SailSurface s in sails)
+                if (s != null) s.LowerHalyard(deltaTime);
+        }
+
+        /// <summary>
+        /// Run every sail all the way up over its hoist duration.
+        ///
+        /// Scripted only — no input reaches this. It and <see cref="FurlAll"/> used to be the
+        /// hoist station's two buttons, and a single mis-click on FurlAll struck the whole rig
+        /// mid-passage; the station now works the halyards continuously instead. Kept for
+        /// spawning, cutscenes and tests, where "set everything, now" is what is actually meant.
+        /// </summary>
         public void HoistAll()
         {
             foreach (SailSurface s in sails)
                 if (s != null) s.Hoist();
         }
 
-        /// <summary>Take every sail down. The hoist station's Use.</summary>
+        /// <summary>Run every sail down. Scripted only — see <see cref="HoistAll"/>.</summary>
         public void FurlAll()
         {
             foreach (SailSurface s in sails)
                 if (s != null) s.Furl();
         }
 
-        /// <summary>
-        /// True when any sail is set. Mixed states resolve toward furling everything, so one
-        /// press always leaves the rig in a state the player can predict.
-        /// </summary>
+        /// <summary>True when any sail has cloth showing.</summary>
         public bool AnyHoisted
         {
             get
@@ -135,6 +203,26 @@ namespace SpaceGame.Vehicles.DuneFoil
                 foreach (SailSurface s in sails)
                     if (s != null && s.IsHoisted) return true;
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Mean hoist across the rig, 0..1. What the hoist station shows on its readout, since a
+        /// single number is what the player is actually working when they hold the halyard.
+        /// </summary>
+        public float Hoist01
+        {
+            get
+            {
+                float total = 0f;
+                int counted = 0;
+                foreach (SailSurface s in sails)
+                {
+                    if (s == null) continue;
+                    total += s.Hoist01;
+                    counted++;
+                }
+                return counted == 0 ? 0f : total / counted;
             }
         }
 

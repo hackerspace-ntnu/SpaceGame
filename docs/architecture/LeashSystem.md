@@ -32,11 +32,11 @@ supported.
 
 | File | Role |
 |---|---|
-| [Assets/Scripts/Artifacts/Leash/Leash.cs](Assets/Scripts/Artifacts/Leash/Leash.cs) | Runtime `MonoBehaviour`. One instance per active leash. Owns endpoints, runs the spring/damper constraint in `FixedUpdate`, draws the rope in `LateUpdate`, snaps under load, self-disposes. |
-| [Assets/Scripts/Artifacts/Leash/LeashAttachable.cs](Assets/Scripts/Artifacts/Leash/LeashAttachable.cs) | Marker added at runtime to any leashed GameObject. Holds a `List<Leash>` and disposes all referencing leashes when the object is destroyed. |
-| [Assets/Scripts/Artifacts/Leash/LeashArtifact.cs](Assets/Scripts/Artifacts/Leash/LeashArtifact.cs) | The `ToolItem` the player equips. Routes left-click into "create new" vs "terminate existing", handles right-click drop, and disposes held leashes when the artifact is unequipped. |
-| `Assets/Prefabs/Item/Artifacts/LeashArtifact.prefab` *(create in Editor — see §6)* | Held prefab with a muzzle Transform and the `LeashArtifact` script. |
-| `Assets/Resources/Items/Artifacts/Leash.asset` *(create in Editor — see §6)* | `InventoryItem` ScriptableObject pointing at the prefab + icon. |
+| [Assets/Game/Scripts/Artifacts/Leash/Leash.cs](Assets/Game/Scripts/Artifacts/Leash/Leash.cs) | Runtime `MonoBehaviour`. One instance per active leash. Owns endpoints, runs the spring/damper constraint in `FixedUpdate`, draws the rope in `LateUpdate`, snaps under load, self-disposes. |
+| [Assets/Game/Scripts/Artifacts/Leash/LeashAttachable.cs](Assets/Game/Scripts/Artifacts/Leash/LeashAttachable.cs) | Marker added at runtime to any leashed GameObject. Holds a `List<Leash>` and disposes all referencing leashes when the object is destroyed. |
+| [Assets/Game/Scripts/Artifacts/Leash/LeashArtifact.cs](Assets/Game/Scripts/Artifacts/Leash/LeashArtifact.cs) | The `ToolItem` the player equips. Routes left-click into "create new" vs "terminate existing", handles right-click drop, and disposes held leashes when the artifact is unequipped. |
+| `Assets/Game/Prefabs/Item/Artifacts/LeashArtifact.prefab` *(create in Editor — see §6)* | Held prefab with a muzzle Transform and the `LeashArtifact` script. |
+| `Assets/Game/Resources/Items/Artifacts/Leash.asset` *(create in Editor — see §6)* | `InventoryItem` ScriptableObject pointing at the prefab + icon. |
 
 ---
 
@@ -149,7 +149,7 @@ will snap if the implied tension is too high.
 ### 6.1 Create the prefab
 
 1. In the Hierarchy, **create an empty GameObject** named `LeashArtifact`.
-2. Add the **`LeashArtifact`** component (drag from `Assets/Scripts/Artifacts/Leash/LeashArtifact.cs`).
+2. Add the **`LeashArtifact`** component (drag from `Assets/Game/Scripts/Artifacts/Leash/LeashArtifact.cs`).
 3. Inside it, add a child empty named `Muzzle` — position it at the spot the rope
    should visually start (e.g. just in front of the player's hand). Drag this
    into the `Muzzle` field on the `LeashArtifact` component.
@@ -157,7 +157,7 @@ will snap if the implied tension is too high.
    or just a primitive). Children of the artifact that have colliders should be
    on a layer NOT included in `Leashable Layers`, otherwise the player will
    target their own leash. Easiest: remove colliders from these children.
-5. Drag the GameObject into `Assets/Prefabs/Item/Artifacts/LeashArtifact.prefab`.
+5. Drag the GameObject into `Assets/Game/Prefabs/Item/Artifacts/LeashArtifact.prefab`.
 6. Delete the scene instance.
 
 ### 6.2 Configure inspector fields on `LeashArtifact`
@@ -180,12 +180,12 @@ will snap if the implied tension is too high.
 
 ### 6.3 Create the inventory ScriptableObject
 
-1. In `Assets/Resources/Items/Artifacts/`, right-click → `Create → Items → Item`.
+1. In `Assets/Game/Resources/Items/Artifacts/`, right-click → `Create → Items → Item`.
 2. Name it `Leash`.
 3. Set:
    - `Item Name` = "Leash"
    - `Item Prefab` = the prefab from §6.1
-   - `Icon` = a sprite. Placeholder: reuse `Assets/Art/Sprites/Items/RocketArtifact.png`.
+   - `Icon` = a sprite. Placeholder: reuse `Assets/Game/Art/Sprites/Items/RocketArtifact.png`.
 4. Make sure the asset is loaded by the inventory registry the same way the
    other artifacts (`RocketTurret.asset`, `Lasso.asset`) are loaded. They live
    under `Resources/` so `Resources.Load`-style registry lookups will see it.

@@ -1770,6 +1770,7 @@ GameObject:
   - component: {fileID: 7332977462342065972}
   - component: {fileID: 1330686208677846921}
   - component: {fileID: 953034273079448755}
+  - component: {fileID: 6701513993374996420}
   m_Layer: 0
   m_Name: DuneOrnithopter
   m_TagString: Untagged
@@ -1989,6 +1990,24 @@ MonoBehaviour:
   visualTiltRoot: {fileID: 0}
   leanAmount: 10
   leanSmoothTime: 0.18
+--- !u!114 &6701513993374996420
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3241331717362755362}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
+  bodyRoot: {fileID: 0}
+  checkInterval: 0.25
+  depthTolerance: 0.5
+  surfaceClearance: 1.2
+  absoluteFloorY: -500
+  logRecoveries: 1
 --- !u!1 &3426127597216960582
 GameObject:
   m_ObjectHideFlags: 0

@@ -17,7 +17,7 @@ namespace SpaceGame.EditorTools
     /// transforms are synced.
     public class SpiderWalkerGroundingTests
     {
-        private const string PrefabPath = "Assets/Prefabs/agents/vehicle/rig_walker.prefab";
+        private const string PrefabPath = "Assets/Game/Prefabs/Agents/Vehicles/Ground/RigWalker.prefab";
 
         private GameObject world;
         private GameObject walker;
@@ -67,6 +67,49 @@ namespace SpaceGame.EditorTools
             go.transform.SetParent(world.transform);
             go.transform.SetPositionAndRotation(centre, rotation);
             go.transform.localScale = size;
+        }
+
+        /// A ramp rising along +z at `degrees`, whose surface meets the level ground at z = `baseZ`.
+        ///
+        /// +z because THAT IS WHERE THE RIG'S NOSE POINTS. A ramp built across the machine's path
+        /// is not a climb test — it walks placidly along the foot of it forever, gains no height,
+        /// is never refused, and every assertion reads as though the limit were broken.
+        ///
+        /// Built by the climb tests rather than in SetUp, so each owns the one piece of terrain it
+        /// is about. They sit well clear of the shared world, whose own ramp faces the other way.
+        ///
+        /// LONG, and that is not arbitrary either. This machine's legs are fifteen metres and it
+        /// looks a full thirty metres ahead, so a ramp of the size a person would sketch is a BUMP
+        /// to it: the far probe lands back on the flat ground beyond the ramp, the grade averages
+        /// to nothing, and again the test proves the opposite of what it was written to prove. It
+        /// has to outrun the probe in every direction the machine might look, which is why it is
+        /// wide as well as long — CanTravel is asked about headings ACROSS the face.
+        private void Ramp(float baseZ, float laneX, float degrees)
+        {
+            const float length = 300f;
+            const float width = 120f;
+            const float thickness = 2f;
+
+            float e = degrees * Mathf.Deg2Rad;
+
+            // Laid so its TOP surface passes through (z = baseZ, y = 0): half its length along
+            // world z puts the centre there, and the height follows from the surface standing one
+            // half thickness out along the tilted normal.
+            float half = length * 0.5f * Mathf.Cos(e);
+            float cy = -Mathf.Cos(e) + Mathf.Tan(e) * (half - Mathf.Sin(e));
+
+            Slab(new Vector3(laneX, cy, baseZ + half), new Vector3(width, thickness, length),
+                 Quaternion.Euler(-degrees, 0f, 0f));
+            Physics.SyncTransforms();
+        }
+
+        /// Drop the machine somewhere else in the world and let it find the ground again.
+        private void PlaceAt(Vector3 position)
+        {
+            walker.transform.position = position;
+            Physics.SyncTransforms();
+            locomotion.SnapToGround();
+            Physics.SyncTransforms();
         }
 
         /// Walks the machine across the whole test world, checking every frame.
@@ -172,6 +215,80 @@ namespace SpaceGame.EditorTools
                 fewest = Mathf.Min(fewest, locomotion.LastFrame.StanceLegs));
 
             Assert.GreaterOrEqual(fewest, 3, "the walker was standing on fewer than three feet");
+        }
+
+        // ─────────── the climb limit ───────────
+
+        /// The limit has to leave normal ground alone. A slope well inside it is still climbed, and
+        /// this is the test that fails first if the gate is ever tightened into a machine that will
+        /// not go uphill at all.
+        [Test]
+        public void ASlopeInsideTheLimitIsStillClimbed()
+        {
+            Ramp(-120f, -60f, 20f);
+            PlaceAt(new Vector3(-60f, 20f, -140f));
+
+            Vector3 start = walker.transform.position;
+            Walk(4f, 0f, 900, () => { });
+            Vector3 end = walker.transform.position;
+
+            Assert.Greater(end.y - start.y, 2f,
+                $"the machine would not climb a 20 degree slope, well inside its 35 degree limit " +
+                $"(start {start:F1} end {end:F1} blocked={locomotion.ClimbBlocked} " +
+                $"scale={locomotion.ClimbScale:F2})");
+        }
+
+        /// And the limit has to actually bite. Driven flat out at a face half again as steep as it
+        /// will walk up, the machine must not end up on top of it.
+        [Test]
+        public void ASlopePastTheLimitIsRefused()
+        {
+            Ramp(-120f, -60f, 55f);
+            PlaceAt(new Vector3(-60f, 20f, -140f));
+
+            float startY = walker.transform.position.y;
+            bool everBlocked = false;
+            Walk(4f, 0f, 900, () => everBlocked |= locomotion.ClimbBlocked);
+
+            Assert.IsTrue(everBlocked, "the machine never reported being refused by the slope");
+            Assert.Less(walker.transform.position.y - startY, 2f,
+                "the machine climbed a 55 degree face it should have refused");
+        }
+
+        /// The one that matters most, and the reason the gate reads the COMMAND rather than the
+        /// machine's own motion. A gate that latches is worse than no gate: the clock is advanced by
+        /// distance travelled, so a machine that has stopped itself can never reopen a phase slice
+        /// to get going again. Backing off has to remain available at all times.
+        [Test]
+        public void AMachineRefusedByASlopeCanStillBackAway()
+        {
+            Ramp(-120f, -60f, 55f);
+            PlaceAt(new Vector3(-60f, 20f, -140f));
+
+            Walk(4f, 0f, 900, () => { });
+            Assert.IsTrue(locomotion.ClimbBlocked,
+                "the machine was not standing refused at the slope, so this proves nothing");
+
+            Vector3 stuck = walker.transform.position;
+            Walk(-4f, 0f, 300, () => { });
+
+            Assert.Greater(Vector3.Distance(stuck, walker.transform.position), 5f,
+                "the machine could not reverse away from a slope that had refused it");
+        }
+
+        /// What the AI's detour is built on: asking about a heading the machine has not taken.
+        [Test]
+        public void CanTravelAnswersForAHeadingNotYetTaken()
+        {
+            Ramp(-120f, -60f, 55f);
+            PlaceAt(new Vector3(-60f, 20f, -120f));
+
+            Assert.IsFalse(locomotion.CanTravel(Vector3.forward),
+                "straight up the 55 degree face");
+            Assert.IsTrue(locomotion.CanTravel(Vector3.back),
+                "away from the face, over the level ground it just crossed");
+            Assert.IsTrue(locomotion.CanTravel(Vector3.right),
+                "along the foot of the face, which is the way around it");
         }
     }
 }

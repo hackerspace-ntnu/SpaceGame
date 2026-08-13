@@ -107,21 +107,30 @@ namespace SpaceGame.EditorTools
 
         /// The deck turning under the rider has to swing them around the hull's pivot, or a craft
         /// that yaws slides everyone off the side.
+        ///
+        /// Turned a frame at a time rather than in one 90-degree jump, because that is the only way
+        /// it ever happens: the craft is capped at 28 deg/s, which is under half a degree per frame.
+        /// A single huge step would land the rider outside the carry volume before anyone asked who
+        /// was aboard, and would be testing teleportation rather than turning.
         [Test]
         public void SwingsRiderAboutThePivotWhenThePlatformTurns()
         {
             WalkerPlatformCarrier carrier = BuildPlatform(withRigidbody: false);
             Rigidbody body = BuildRider(new Vector3(0f, 1f, 4f));
             Physics.SyncTransforms();
-
             carrier.Prime();
-            platform.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
-            Physics.SyncTransforms();
-            carrier.CarryRiders();
+
+            for (int step = 1; step <= 60; step++)
+            {
+                platform.transform.rotation = Quaternion.Euler(0f, step * 1.5f, 0f);
+                Physics.SyncTransforms();
+                carrier.CarryRiders();
+            }
 
             // 4 m ahead of the pivot, yawed 90 degrees, lands 4 m to starboard.
             Assert.AreEqual(4f, body.position.x, 1e-2f, "rider was not swung about the pivot");
             Assert.AreEqual(0f, body.position.z, 1e-2f);
+            Assert.AreEqual(1, carrier.RiderCount, "rider was dropped part way through the turn");
         }
 
         /// Somebody who has walked off the deck must be dropped, or they get towed through the air.

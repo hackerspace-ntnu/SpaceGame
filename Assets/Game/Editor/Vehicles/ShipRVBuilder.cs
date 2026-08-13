@@ -1,4 +1,4 @@
-// Builds Assets/Prefabs/agents/vehicle/ShipRV.prefab from Assets/Art/Models/Vehicles/RV/ship_rv.fbx.
+// Builds Assets/Game/Prefabs/agents/vehicle/ShipRV.prefab from Assets/Game/Art/Models/Vehicles/RV/ship_rv.fbx.
 //
 // The FBX arrives as ~60 flat meshes with no rig: hull shells, six openable panels, engine pods,
 // and a modelled interior. This script turns that into a mountable vehicle: it maps the model's
@@ -6,10 +6,10 @@
 // hangs the doors and the two engine pylons off hinge pivots, boxes in a walkable interior, and
 // wires up the cockpit controls.
 //
-// The model is generated from Assets/Art/Models/_Source~/models/vehicles/ship_rv.blend — see that file and
-// Assets/Art/Models/_Source~/models/vehicles/ship_rv_BUILD.md. It replaced a hand-built model whose meshes carried
+// The model is generated from Assets/Game/Art/Models/_Source~/models/vehicles/ship_rv.blend — see that file and
+// Assets/Game/Art/Models/_Source~/models/vehicles/ship_rv_BUILD.md. It replaced a hand-built model whose meshes carried
 // Blender's default names; the source .blend for that older model is still in
-// Assets/Prefabs/agents/vehicle/ and is no longer read by this script.
+// Assets/Game/Prefabs/agents/vehicle/ and is no longer read by this script.
 //
 // Everything geometric is measured from the meshes at build time rather than hardcoded, so
 // re-exporting the FBX with tweaked proportions and re-running this still lands in the right place.
@@ -29,11 +29,15 @@ namespace SpaceGame.EditorTools
 {
     public static class ShipRVBuilder
     {
-        private const string ModelPath = "Assets/Art/Models/Vehicles/RV/ship_rv.fbx";
-        private const string PrefabPath = "Assets/Prefabs/agents/vehicle/ShipRV.prefab";
+        private const string ModelPath = "Assets/Game/Art/Models/Vehicles/RV/ship_rv.fbx";
+        private const string PrefabPath = "Assets/Game/Prefabs/Agents/Vehicles/Spacecraft/ShipRV.prefab";
 
         // Model is authored with the nose along -X; vehicles in this project drive along +Z.
         private static readonly Quaternion ModelYaw = Quaternion.Euler(0f, 90f, 0f);
+
+        // Ground clearance the ship hovers at. "A couple of inches" — it never lands and it never
+        // climbs; see HoverRigidbodyMotor.
+        private const float HoverClearance = 0.15f;
 
         // Model mesh name → the role name the rest of this script measures from.
         //
@@ -224,6 +228,20 @@ namespace SpaceGame.EditorTools
                            "build measures from. The export has most likely renumbered its meshes; " +
                            $"update PartNames to match.\n  {string.Join("\n  ", missing)}");
             return false;
+        }
+
+        /// <summary>
+        /// Extent of everything solid on the ship. Call it after the collision has been built —
+        /// this is what the ship can actually bump into the world with, which is not the same thing
+        /// as what it looks like.
+        /// </summary>
+        private static Bounds MeasureCollision(Transform root)
+        {
+            Collider[] colliders = root.GetComponentsInChildren<Collider>(true);
+            Bounds b = colliders[0].bounds;
+            for (int i = 1; i < colliders.Length; i++)
+                b.Encapsulate(colliders[i].bounds);
+            return b;
         }
 
         private static Bounds MeasureAll(Transform model)
@@ -422,7 +440,7 @@ namespace SpaceGame.EditorTools
         // it, so a cull flag written onto them would silently revert on the next import. These
         // generated copies live beside the prefab instead and are refreshed from their source on every
         // build, so re-running this after a re-texture still picks up the new look.
-        private const string GeneratedMaterialFolder = "Assets/Prefabs/agents/vehicle/Materials";
+        private const string GeneratedMaterialFolder = "Assets/Game/Art/Materials/Vehicles";
         private const string DoubleSidedSuffix = " (DoubleSided)";
 
         private static void MakeDoubleSided(Transform model)
@@ -492,7 +510,7 @@ namespace SpaceGame.EditorTools
         }
 
         // ─────────── Cargo bay fittings ───────────
-        private const string WorkstationPath = "Assets/Prefabs/Environment/RepairWorkstation.prefab";
+        private const string WorkstationPath = "Assets/Game/Prefabs/Environment/Structures/Facilities/RepairWorkstation.prefab";
 
         // The scrap-fed repair workstation, backed against the port cabin wall and facing starboard
         // across the bay. Kept as a nested prefab instance so edits to the workstation itself still
@@ -731,31 +749,50 @@ namespace SpaceGame.EditorTools
         }
 
         // ─────────── Root components ───────────
-        private static MountModule BuildRootComponents(GameObject root, Transform seat, Transform dismount, Transform cameraPivot)
+        private static MountModule BuildRootComponents(GameObject root, Transform seat, Transform dismount,
+                                                       Transform cameraPivot)
         {
             Rigidbody body = root.AddComponent<Rigidbody>();
             body.mass = 4000f;
-            // Low linear damping: FlyingRigidbodyMotor owns the rider's velocity outright and has its
+            // Low linear damping: HoverRigidbodyMotor owns the rider's velocity outright and has its
             // own deceleration, so drag here only fights the throttle when coasting.
             body.linearDamping = 0.3f;
             body.angularDamping = 4f;
-            body.useGravity = false; // FlyingRigidbodyMotor owns altitude
+            body.useGravity = false; // the hover servo owns the vertical axis
             body.interpolation = RigidbodyInterpolation.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             // The motor writes rotation through the transform; letting physics also spin an 11 m hull
             // that the player walks around inside only produces drift.
             body.constraints = RigidbodyConstraints.FreezeRotation;
 
-            FlyingRigidbodyMotor motor = root.AddComponent<FlyingRigidbodyMotor>();
+            // Ground-effect craft, not an aircraft: the ship skims the dunes at a fixed clearance and
+            // has no vertical axis at all. maxFollowGrade is what enforces that — a slope shallower
+            // than it gets climbed, and a wall steeper than it gets hit.
+            //
+            // rideHeight is measured from the root origin, which Build seats at the model's lowest
+            // point, so it is clearance under the belly directly. The belly is what has to clear the
+            // sand in both poses: the wings swing past horizontal on deployment (WingDeployAngle) but
+            // the engine pods still bottom out about 1.9 m up, well clear of the hull line.
+            //
+            // The probe ring is sized off the COLLISION, not the hull mesh. The two are not the same
+            // ship: the boxes run out to the boarding ramp, a good two metres past the shell either
+            // end. Probing to the shell instead left the nose digging into rising ground the probes
+            // never saw, and the ship jammed itself into a slope it was well able to climb.
+            Bounds collision = MeasureCollision(root.transform);
+            HoverRigidbodyMotor motor = root.AddComponent<HoverRigidbodyMotor>();
             Serialize.Apply(motor,
                 ("body", body),
                 ("maxSpeed", 45f),
-                ("maxVerticalSpeed", 20f),
                 ("acceleration", 30f),
                 ("deceleration", 22f),
                 ("faceRotateSpeed", 2.5f),
                 ("riderTurnSpeed", 100f),
-                ("altitudeHold", false));
+                ("rideHeight", HoverClearance),
+                ("heightGain", 4f),
+                ("maxFollowGrade", 35f),
+                ("minClimbRate", 3f),
+                ("maxSinkRate", 8f),
+                ("groundSensor.footprintExtents", new Vector2(collision.extents.x, collision.extents.z)));
 
             root.AddComponent<AgentController>();
 
@@ -779,7 +816,9 @@ namespace SpaceGame.EditorTools
             Serialize.Apply(steer,
                 ("mountModule", mount),
                 ("moveActionName", "Move"),
-                ("verticalActionName", "Vertical"),
+                // No vertical action: the hover servo owns the altitude and the pilot cannot take it
+                // off them. Binding one anyway would leave a live input the motor silently discards.
+                ("verticalActionName", string.Empty),
                 ("jumpEnabled", false),
                 ("leapEnabled", false),
                 ("riderCanRun", false),
@@ -828,6 +867,7 @@ namespace SpaceGame.EditorTools
                         case float f: p.floatValue = f; break;
                         case bool b: p.boolValue = b; break;
                         case string s: p.stringValue = s; break;
+                        case Vector2 v2: p.vector2Value = v2; break;
                         case Vector3 v: p.vector3Value = v; break;
                         case Component c: p.objectReferenceValue = c; break;
                         case Object o: p.objectReferenceValue = o; break;

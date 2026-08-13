@@ -38,6 +38,16 @@ namespace SpaceGame.Items
           IPlayerInventory inventory = interactor.GetComponent<IPlayerInventory>();
           if (inventory == null) return;
           bool added = inventory.TryAddItem(item);
+
+          // Hotbar first, then the pack. Without the overflow a four-slot hotbar means the backpack
+          // never fills from the world, and the only way to put anything in it is the inspector.
+          if (!added)
+          {
+             BackpackController backpack = interactor.GetComponent<BackpackController>();
+             if (backpack != null && backpack.Pack != null)
+                added = backpack.Pack.Container.TryAddToMain(item, out _);
+          }
+
           if (added)
           {
              GameServices.World.Despawn(gameObject);

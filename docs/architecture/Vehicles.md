@@ -83,8 +83,8 @@ It polls in `Update` rather than using `Settled`, because the swap has to happen
 
 # ShipRV
 
-`Assets/Prefabs/agents/vehicle/ShipRV.prefab`, built from
-`Assets/Prefabs/agents/vehicle/ship_model 1.blend` by
+`Assets/Game/Prefabs/agents/vehicle/ShipRV.prefab`, built from
+`Assets/Game/Prefabs/agents/vehicle/ship_model 1.blend` by
 [`ShipRVBuilder`](../../Editor/Vehicles/ShipRVBuilder.cs) — **Tools ▸ Vehicles ▸ Build ShipRV
 Prefab**. Re-running it rebuilds the prefab from scratch; every hinge position and collider is
 measured off the meshes at build time, so re-exporting the model with tweaked proportions and
@@ -132,9 +132,9 @@ panel and the skin.
 
 ## Model-side notes
 
-- The model is `ship_model 1.blend`, which lives in `Assets/Prefabs/agents/vehicle/` alongside an
+- The model is `ship_model 1.blend`, which lives in `Assets/Game/Prefabs/agents/vehicle/` alongside an
   older `ship_model.blend` and a Blender autosave (`ship_model 1.blend1`), with a third copy still
-  in `Assets/Art/Models/Vehicles/RV/`. Only `ship_model 1.blend` is used. Worth consolidating — if the
+  in `Assets/Game/Art/Models/Vehicles/RV/`. Only `ship_model 1.blend` is used. Worth consolidating — if the
   file is renamed or moved, update `ShipRVBuilder.ModelPath`.
 - The artist names the moving parts (`baggage_door`, `left_wing`, `right_motor`,
   `left_wing_axel`, `shell_open`, `shell_closed`), and the builder passes those through untouched.
@@ -177,7 +177,7 @@ own that span. See "The cabin walls" above.
 
 # Spider Walker
 
-`Assets/Prefabs/agents/vehicle/rig_walker.prefab` — the six-legged walking station.
+`Assets/Game/Prefabs/agents/vehicle/rig_walker.prefab` — the six-legged walking station.
 
 | Component | Job |
 |---|---|
@@ -243,7 +243,7 @@ The AI channel routes over the NavMesh with `NavMesh.CalculatePath`, **not** a `
 component. An agent moves the transform it sits on, and `SpiderWalkerLocomotion` is the single
 owner of the hull's pose — the two would fight every frame. Here the NavMesh is asked for a route
 and nothing else; the legs still carry the machine along it. `WalkerPath` holds the cursor into
-the returned corners and is unit-tested in `Assets/Tests/EditMode/WalkerPathTests.cs`.
+the returned corners and is unit-tested in `Assets/Game/Tests/EditMode/WalkerPathTests.cs`.
 
 If no route can be had — unbaked test scene, a chunk `WorldStreamer` has not finished, a
 destination off the mesh — the driver steers straight at the destination instead of standing
@@ -264,8 +264,8 @@ corner never drops below the ride height.
 
 # Dune Foil
 
-`Assets/Prefabs/agents/vehicle/DuneFoil.prefab` — an 18 m wind-driven hydrofoil sand craft, built
-from `Assets/Art/Models/Vehicles/DuneFoil/dune_foil_rig.fbx` by
+`Assets/Game/Prefabs/agents/vehicle/DuneFoil.prefab` — an 18 m wind-driven hydrofoil sand craft, built
+from `Assets/Game/Art/Models/Vehicles/DuneFoil/dune_foil_rig.fbx` by
 [`DuneFoilBuilder`](../../Editor/Vehicles/DuneFoilBuilder.cs) — **Tools ▸ Vehicles ▸ Build Dune
 Foil Prefab**.
 
@@ -348,7 +348,7 @@ Four things have to line up, and each of them was wrong the first time:
   stowed, unreachable. Furled, it waits. `DuneFoilBuilder` calls `SetHoisted(false)` on every sail.
 - **A `WindField` must exist in the scene.** `SailRig` reads `WindField.Active`; with no wind field
   there is no wind, no force, and every control appears dead even though it is wired correctly.
-  `Assets/Prefabs/environment/Wind.prefab`, one per scene.
+  `Assets/Game/Prefabs/environment/Wind.prefab`, one per scene.
 - **The deck collider is measured from the deck plates**, not the hull's overall height — see
   below. Getting this wrong put an invisible floor 2.4 m above the planks with every control
   underneath it.
@@ -399,14 +399,14 @@ reused unchanged to carry a player standing on a transform-driven deck.
 
 ## Wind
 
-`Assets/Prefabs/environment/Wind.prefab` — one `WindField` per scene, and everything (sails and
+`Assets/Game/Prefabs/environment/Wind.prefab` — one `WindField` per scene, and everything (sails and
 the cloth shader alike) reads it rather than keeping its own idea. Base bearing and speed, a slow
 Perlin drift so it is never quite constant, and a gust field advected downwind so gusts arrive
 from windward. `[ExecuteAlways]`, so a rig in the scene trims itself while you author it.
 
 ## The model
 
-`Assets/Art/Models/_Source~/models/vehicles/dune_foil_rig.py` derives `dune_foil_rig.blend` from the hand-modelled
+`Assets/Game/Art/Models/_Source~/models/vehicles/dune_foil_rig.py` derives `dune_foil_rig.blend` from the hand-modelled
 `dune_foil.blend`, which it **never writes to**. It dedupes 61 materials to 5 (one per colour),
 builds the pivot hierarchy, subdivides the 13-poly sail planes into billowable grids, and UVs them
 luff → leech.
@@ -441,7 +441,7 @@ rig's rest pose.
 
 ## Sailcloth shader
 
-`Assets/Art/Shaders/SailCloth.shader` + `SailCloth.hlsl`. Billow is a vertex displacement to leeward
+`Assets/Game/Art/Shaders/SailCloth.shader` + `SailCloth.hlsl`. Billow is a vertex displacement to leeward
 with the draft at 40% of the chord and the luff, foot and head pinned; flutter is two octaves of
 scrolling noise weighted to the free leech. `SailSurface` writes `_Billow`, `_Luff`, `_Hoist` and
 `_WindDirection` per sail through a `MaterialPropertyBlock`, so all four sails share one material.
@@ -454,7 +454,7 @@ cannot blow the sail up again.
 ## Physics, and where the rules live
 
 `SailAerodynamics` and `FoilPhysics` are static classes of pure functions with no scene
-dependency, covered by `Assets/Tests/EditMode/SailAerodynamicsTests.cs` and `FoilPhysicsTests.cs`.
+dependency, covered by `Assets/Game/Tests/EditMode/SailAerodynamicsTests.cs` and `FoilPhysicsTests.cs`.
 
 Points of sail are tested by **terminal speed**, not instantaneous force. At equal apparent wind a
 dead run actually makes the most force — a stalled sail is a parachute and its drag coefficient
@@ -471,8 +471,8 @@ stopped by 15°.
 
 # Dune Ornithopter
 
-`Assets/Prefabs/agents/vehicle/DuneOrnithopter.prefab` — a 10 m flapping-wing flyer, built from
-`Assets/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx` by
+`Assets/Game/Prefabs/agents/vehicle/DuneOrnithopter.prefab` — a 10 m flapping-wing flyer, built from
+`Assets/Game/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx` by
 [`OrnithopterBuilder`](../../Editor/Vehicles/OrnithopterBuilder.cs) — **Tools ▸ Vehicles ▸ Build
 Dune Ornithopter Prefab**.
 
@@ -488,5 +488,5 @@ Flight is an energy model rather than a throttle: airspeed is bought with altitu
 stamina-limited flapping, and the wing stalls if asked for too much. The physics and the 30-bone
 wing articulation live in `SpaceGame.Vehicles.Ornithopter`; the motor is in Assembly-CSharp because
 `IRiderControllable` is. **See
-[`Assets/Scripts/Vehicles/Ornithopter/README.md`](Ornithopter/README.md)** — in particular the
+[`Assets/Game/Scripts/Vehicles/Ornithopter/README.md`](Ornithopter/README.md)** — in particular the
 per-side axis-sign table, which is the one part of the rig that is easy to get silently wrong.

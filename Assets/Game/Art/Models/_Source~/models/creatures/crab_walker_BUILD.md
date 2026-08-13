@@ -8,16 +8,16 @@ blender --background --python crab_walker_export.py            # all three -> FB
 ```
 
 then **Tools ▸ Creatures ▸ Build Crab Walker Prefabs** in Unity
-(`Assets/Editor/Creatures/CrabWalkerBuilder.cs`).
+(`Assets/Game/Editor/Creatures/CrabWalkerBuilder.cs`).
 
 | | file |
 | --- | --- |
-| models | `Assets/Art/Models/_Source~/models/creatures/crab_walker_{4,6,8}.blend` |
-| generator | `Assets/Art/Models/_Source~/models/creatures/crab_walker.py` |
-| export | `Assets/Art/Models/_Source~/models/creatures/crab_walker_export.py` |
-| FBX | `Assets/Art/Models/Creatures/Robotic/Crab/crab_walker_{4,6,8}.fbx` |
-| prefabs | `Assets/Prefabs/agents/creatures/CrabWalker{4,6,8}.prefab` |
-| runtime | `Assets/Scripts/Creatures/Crab/` + `Assets/Scripts/Creatures/CrabDriver.cs` |
+| models | `Assets/Game/Art/Models/_Source~/models/creatures/crab_walker_{4,6,8}.blend` |
+| generator | `Assets/Game/Art/Models/_Source~/models/creatures/crab_walker.py` |
+| export | `Assets/Game/Art/Models/_Source~/models/creatures/crab_walker_export.py` |
+| FBX | `Assets/Game/Art/Models/Creatures/Robotic/Crab/crab_walker_{4,6,8}.fbx` |
+| prefabs | `Assets/Game/Prefabs/agents/creatures/CrabWalker{4,6,8}.prefab` |
+| runtime | `Assets/Game/Scripts/Creatures/Crab/` + `Assets/Game/Scripts/Creatures/CrabDriver.cs` |
 
 ## What it is
 

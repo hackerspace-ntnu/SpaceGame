@@ -13,7 +13,7 @@ namespace SpaceGame.Gameplay
     // Server-authoritative match orchestrator for the minigame arena. Owns bot
     // spawning, faction assignment, kill/lives tracking, and win detection. Lives
     // in MinigameArena.unity, separate from SpawnManager/SpawnPoint
-    // (Assets/Scripts/Game/), which remain untouched — this does its own
+    // (Assets/Game/Scripts/Game/), which remain untouched — this does its own
     // independent spawn-point collection for match entities per design spec §3.
     //
     // All three gamemodes run through the same machinery: entities are grouped by a
@@ -141,11 +141,14 @@ namespace SpaceGame.Gameplay
             // the arena and carries the main game's own SpawnPoint ~17km away, so an
             // unfiltered sweep hands roughly one entity per match a position outside
             // the arena entirely — it spawns in the main world and never joins the fight.
+            // A spawn point that cannot vouch for a position is skipped rather than substituted
+            // for: the arena is a single loaded scene, so a failure here means that point genuinely
+            // has no ground under it, and the surviving points are all better answers.
             var positions = new List<Vector3>(points.Length);
             foreach (var p in points)
             {
-                if (p.gameObject.scene == gameObject.scene)
-                    positions.Add(p.GetSpawnPoint());
+                if (p.gameObject.scene == gameObject.scene && p.TryGetSpawnPoint(out var position))
+                    positions.Add(position);
             }
 
             // Fallback for a MatchManager placed somewhere without its own spawn
@@ -153,7 +156,10 @@ namespace SpaceGame.Gameplay
             if (positions.Count == 0)
             {
                 foreach (var p in points)
-                    positions.Add(p.GetSpawnPoint());
+                {
+                    if (p.TryGetSpawnPoint(out var position))
+                        positions.Add(position);
+                }
             }
 
             positions = KeepMutuallyReachable(positions);

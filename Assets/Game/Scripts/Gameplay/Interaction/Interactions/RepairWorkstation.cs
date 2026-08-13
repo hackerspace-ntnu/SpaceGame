@@ -18,7 +18,7 @@ namespace SpaceGame.Gameplay
     public class RepairWorkstation : NetworkBehaviour, IInteractable
     {
         [Header("Repair")]
-        [Tooltip("Item the workstation accepts, e.g. Assets/Resources/Items/Scraps.asset.")]
+        [Tooltip("Item the workstation accepts, e.g. Assets/Game/Resources/Items/Scraps.asset.")]
         [SerializeField] private InventoryItem requiredItem;
 
         [Tooltip("How many of the required item a full repair takes.")]

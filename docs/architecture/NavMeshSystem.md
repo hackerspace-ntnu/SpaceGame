@@ -5,7 +5,7 @@ the main thread.
 
 ## The problem
 
-Earlier versions of [WorldStreamer.cs](Assets/Scripts/WorldStreaming/WorldStreamer.cs)
+Earlier versions of [WorldStreamer.cs](Assets/Game/Scripts/WorldStreaming/WorldStreamer.cs)
 rebuilt the NavMesh whenever a chunk loaded or unloaded. The bake itself was
 asynchronous (`NavMeshBuilder.UpdateNavMeshDataAsync`), but every rebuild was
 preceded by a synchronous setup that scaled with scene size:
@@ -60,7 +60,7 @@ chunk**, **cached**, and **incremental**.
 
 ## Components
 
-### [NavMeshSourceCache.cs](Assets/Scripts/WorldStreaming/NavMeshSourceCache.cs)
+### [NavMeshSourceCache.cs](Assets/Game/Scripts/WorldStreaming/NavMeshSourceCache.cs)
 
 A standalone helper (not a MonoBehaviour, lives inside `WorldStreamer`).
 
@@ -89,7 +89,7 @@ Sources are derived from:
   the budget on its own — but yields immediately after, so the worst-case
   per-frame cost is one large mesh per frame.
 
-### [WorldStreamer.cs](Assets/Scripts/WorldStreaming/WorldStreamer.cs)
+### [WorldStreamer.cs](Assets/Game/Scripts/WorldStreaming/WorldStreamer.cs)
 
 Owns one `NavMeshSourceCache`. Hooks:
 
@@ -109,7 +109,7 @@ Owns one `NavMeshSourceCache`. Hooks:
 
 When a chunk is about to be swapped in or out, agents inside that chunk are
 disabled and their target positions cached
-([WorldStreamer.cs `ParkAgentsForChunk`](Assets/Scripts/WorldStreaming/WorldStreamer.cs)).
+([WorldStreamer.cs `ParkAgentsForChunk`](Assets/Game/Scripts/WorldStreaming/WorldStreamer.cs)).
 After the async bake completes, `ReleaseParkedAgents()` re-enables them and
 `NavMesh.SamplePosition`s them onto the new surface.
 
@@ -151,14 +151,14 @@ Inside `NavMeshSourceCache`:
 ## Cave generation (separate freeze surface)
 
 Cave interiors (e.g. `SandstoneCaveInterior.unity`) generate procedural meshes
-through [CaveSpawner.cs](Assets/Scripts/ProceduralGeneration/Cave/CaveSpawner.cs).
+through [CaveSpawner.cs](Assets/Game/Scripts/ProceduralGeneration/Cave/CaveSpawner.cs).
 That generation is still synchronous on `Start()` and is unrelated to the
 streamed world's NavMesh.
 
 The cave already supports a **baked path**: assign `bakedMesh` and
 `bakedNavMeshData` on the inspector and the runtime just instantiates them
 (`SpawnBaked()`). Pre-baked assets currently exist in
-[Assets/Scenes/Interiors/CaveBakes/](Assets/Scenes/Interiors/CaveBakes/).
+[Assets/Game/Scenes/Interiors/CaveBakes/](Assets/Game/Scenes/Interiors/CaveBakes/).
 
 If a runtime cave is loaded by `WorldStreamer` (e.g. baked into a chunk
 scene), its mesh enters the source cache through the normal per-chunk path

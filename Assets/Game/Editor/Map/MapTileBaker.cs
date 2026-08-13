@@ -12,7 +12,7 @@ namespace SpaceGame.EditorTools
     /// Bakes one stylized top-down PNG per chunk by reading the chunk's
     /// TerrainData heightmap directly. No camera or render pass needed.
     ///
-    /// Output: Assets/Resources/MapTiles/Tile_{cx}_{cy}.png
+    /// Output: Assets/Game/Resources/MapTiles/Tile_{cx}_{cy}.png
     /// Runtime loads via Resources.Load&lt;Texture2D&gt;($"MapTiles/Tile_{cx}_{cy}").
     ///
     /// The look is a sci-fi schematic: dark base + glowing cyan contour lines
@@ -27,7 +27,7 @@ namespace SpaceGame.EditorTools
         private Color baseColor = new Color(0.04f, 0.10f, 0.16f, 1f);
         private Color lineColor = new Color(0.20f, 0.85f, 1.00f, 1f);
         private Color highColor = new Color(0.55f, 0.95f, 1.00f, 1f);
-        private string outputFolder = "Assets/Resources/MapTiles";
+        private string outputFolder = "Assets/Game/Resources/MapTiles";
 
         private readonly HashSet<Vector2Int> selectedChunks = new HashSet<Vector2Int>();
         private bool selectiveExpanded;

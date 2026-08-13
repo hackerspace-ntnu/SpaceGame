@@ -26,8 +26,8 @@ namespace SpaceGame.EditorTools
 {
     public static class CrabWalkerBuilder
     {
-        private const string ModelDir = "Assets/Art/Models/Creatures/Robotic/Crab";
-        private const string PrefabDir = "Assets/Prefabs/agents/creatures";
+        private const string ModelDir = "Assets/Game/Art/Models/Creatures/Robotic/Crab";
+        private const string PrefabDir = "Assets/Game/Prefabs/agents/creatures";
 
         /// The variants. A leg count is the only thing that differs.
         private static readonly int[] Legs = { 4, 6, 8 };
@@ -66,7 +66,7 @@ namespace SpaceGame.EditorTools
             if (model == null)
             {
                 Debug.LogError($"[Crab] No model at {modelPath}. Run " +
-                               "Assets/Art/Models/_Source~/models/creatures/crab_walker_export.py first.");
+                               "Assets/Game/Art/Models/_Source~/models/creatures/crab_walker_export.py first.");
                 return;
             }
 

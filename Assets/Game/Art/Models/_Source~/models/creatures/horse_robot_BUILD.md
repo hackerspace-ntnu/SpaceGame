@@ -1,10 +1,10 @@
 # horse_robot — build notes
 
-**Source:** `Assets/Art/Models/_Source~/models/creatures/horse_robot.py` → `horse_robot.blend`
-**Export:** `Assets/Art/Models/_Source~/models/creatures/horse_robot_export.py` →
-`Assets/Art/Models/Creatures/Robotic/Horse/horse_robot.fbx`
+**Source:** `Assets/Game/Art/Models/_Source~/models/creatures/horse_robot.py` → `horse_robot.blend`
+**Export:** `Assets/Game/Art/Models/_Source~/models/creatures/horse_robot_export.py` →
+`Assets/Game/Art/Models/Creatures/Robotic/Horse/horse_robot.fbx`
 **Unity prefab:** Tools ▸ Creatures ▸ Build Horse Robot Prefab
-(`Assets/Editor/Creatures/HorseBuilder.cs`) → `Assets/Prefabs/agents/creatures/HorseRobot.prefab`
+(`Assets/Game/Editor/Creatures/HorseBuilder.cs`) → `Assets/Game/Prefabs/agents/creatures/HorseRobot.prefab`
 
 A rideable quadruped robot horse. 2.44 m at the withers, 3.30 m to the poll, 4.6 m nose to tail,
 100 k triangles. Prefab origin sits on the hip plane at 1.781 m; that is also the ride height the

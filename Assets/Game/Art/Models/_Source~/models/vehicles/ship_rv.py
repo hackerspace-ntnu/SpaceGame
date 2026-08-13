@@ -1,6 +1,6 @@
 """ShipRV — the rundown RV spacecraft.
 
-A rebuild of Assets/Prefabs/agents/vehicle/"ship_model 1.blend" at a much higher
+A rebuild of Assets/Game/Prefabs/agents/vehicle/"ship_model 1.blend" at a much higher
 detail level, keeping the original's overall dimensions and shape so the ship
 still reads as the same vessel and still fits the Unity prefab built from it.
 

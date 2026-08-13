@@ -12,7 +12,7 @@ namespace SpaceGame.Agents
     // ── FIRST-TIME SETUP ──────────────────────────────────────
     //
     // 1. PLAYER
-    //    - Open Assets/Prefabs/Player/PlayerCharacterNetworked.prefab
+    //    - Open Assets/Game/Prefabs/Player/PlayerCharacterNetworked.prefab
     //    - Add component: EntityFaction     (assign PlayerFaction asset + GlobalRelationships)
     //    - Add component: NoiseEmitter      (set receiverLayers to include enemy layer)
     //    (EntityFaction self-registers the player in EntityTargetRegistry — all AI targeting
@@ -31,7 +31,7 @@ namespace SpaceGame.Agents
     // ── ROBOT BAND ────────────────────────────────────────────
     //
     // 3. Phil (charger):
-    //    - Open Assets/Prefabs/entities/Robots/Phil.prefab
+    //    - Open Assets/Game/Prefabs/entities/Robots/Phil.prefab
     //    - Add component: EntityProfile_RobotPhil
     //    - Set AgentController.nearbyAgentScanRadius = 12
     //    - Set AgentController.nearbyAgentLayer = [entity layer]
@@ -47,7 +47,7 @@ namespace SpaceGame.Agents
     //
     // ── NPC ───────────────────────────────────────────────────
     //
-    // 7. Open Assets/Prefabs/entities/NPC/NPC.prefab
+    // 7. Open Assets/Game/Prefabs/entities/NPC/NPC.prefab
     //    - Add component: EntityProfile_NPC
     //    - Set EntityFaction.faction = NPCFaction
     //    - Set EntityFaction.relationshipTable = GlobalRelationships
@@ -57,7 +57,7 @@ namespace SpaceGame.Agents
     //
     // ── GENERIC ENEMY ─────────────────────────────────────────
     //
-    // 8. Open Assets/Prefabs/entities/hostiles/enemy.prefab
+    // 8. Open Assets/Game/Prefabs/entities/hostiles/enemy.prefab
     //    - Add component: EntityProfile_HostileRobot (or copy one of the robot profiles)
     //    - Wire faction + layers same as robots
     //
@@ -70,7 +70,7 @@ namespace SpaceGame.Agents
     //
     // ── MOUNTABLE ANT ─────────────────────────────────────────
     //
-    // 10. Open Assets/Prefabs/entities/MountableAnt.prefab
+    // 10. Open Assets/Game/Prefabs/entities/MountableAnt.prefab
     //     - Add component: EntityProfile_MountableAnt
     //     - Modular path: just MountModule + SteerModule (plus AgentController + NavMeshAgentMotor + AI modules
     //       if you want AI behaviour between rider inputs).

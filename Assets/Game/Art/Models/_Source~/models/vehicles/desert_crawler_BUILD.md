@@ -82,7 +82,7 @@ crawler's service band and vehicle bay needed. That is the library working.
 
 `components/mechanical/walker_leg.blend` is **new as a component but not as
 art**. The four legs were hand-built in
-`Assets/Prefabs/agents/vehicle/walker_legs.blend`; that file is read and never
+`Assets/Game/Prefabs/agents/vehicle/walker_legs.blend`; that file is read and never
 written. The component adds three things:
 
 1. **One mesh per limb segment.** The source is 60–80 loose parts per leg hung
@@ -140,9 +140,9 @@ and was kept: painted metal against fabric, and both appear on this model.
 ## Unity
 
     desert_crawler.py  →  desert_crawler.blend  →  desert_crawler_export.py
-      →  Assets/Art/Models/Vehicles/Crawler/desert_crawler.fbx
+      →  Assets/Game/Art/Models/Vehicles/Crawler/desert_crawler.fbx
       →  Tools ▸ Vehicles ▸ Build Desert Crawler Prefab
-      →  Assets/Prefabs/agents/vehicle/DesertCrawler.prefab
+      →  Assets/Game/Prefabs/agents/vehicle/DesertCrawler.prefab
 
 **The export keeps the armature, which is the opposite of `ship_rv_export.py`.**
 `ShipRVBuilder` finds parts by name and reparents them into hinges it makes

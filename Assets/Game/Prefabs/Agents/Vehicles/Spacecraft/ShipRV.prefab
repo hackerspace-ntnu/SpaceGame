@@ -4562,12 +4562,12 @@ GameObject:
   m_Component:
   - component: {fileID: 8892000217540182618}
   - component: {fileID: 2423400347388224576}
-  - component: {fileID: 1161131478159526826}
   - component: {fileID: 4586280668807433832}
   - component: {fileID: 8394758353742391048}
   - component: {fileID: 4672144642176679408}
   - component: {fileID: 4412200623486324511}
   - component: {fileID: 1441245301138034987}
+  - component: {fileID: 4840416790700281607}
   m_Layer: 0
   m_Name: ShipRV
   m_TagString: Untagged
@@ -4622,29 +4622,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 2
---- !u!114 &1161131478159526826
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4311070154887600435}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ca7ba5a805ba44ccb6f65d44d1d0d9ae, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FlyingRigidbodyMotor
-  body: {fileID: 2423400347388224576}
-  maxSpeed: 45
-  maxVerticalSpeed: 20
-  acceleration: 30
-  deceleration: 22
-  faceRotateSpeed: 2.5
-  riderTurnSpeed: 100
-  altitudeHold: 0
-  cruiseAltitude: 40
-  altitudeHoldGain: 0.5
-  gravityWhenIdle: 1
 --- !u!114 &4586280668807433832
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4721,7 +4698,7 @@ MonoBehaviour:
   mountModule: {fileID: 8394758353742391048}
   moveActionName: Move
   jumpActionName: Jump
-  verticalActionName: Vertical
+  verticalActionName: 
   turnActionName: 
   steeringOverrideThreshold: 0.1
   turnSmoothTime: 0.25
@@ -4779,6 +4756,38 @@ MonoBehaviour:
   - {fileID: 4372049624476367786}
   - {fileID: 7870286094787483630}
   - {fileID: 6096223396675389003}
+--- !u!114 &4840416790700281607
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4311070154887600435}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ef3399ff72dc4e07a20122f74c32843, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.HoverRigidbodyMotor
+  body: {fileID: 2423400347388224576}
+  maxSpeed: 45
+  acceleration: 30
+  deceleration: 22
+  faceRotateSpeed: 2.5
+  riderTurnSpeed: 100
+  rideHeight: 0.15
+  heightGain: 4
+  maxFollowGrade: 35
+  minClimbRate: 3
+  maxSinkRate: 8
+  groundSensor:
+    groundMask:
+      serializedVersion: 2
+      m_Bits: 4294967295
+    footprintExtents: {x: 2.372561, y: 5.8833036}
+    probeStartHeight: 0.5
+    probeDistance: 80
+    recoveryProbeHeight: 60
+    groundFollowSpeed: 8
 --- !u!1 &4456266824167829280
 GameObject:
   m_ObjectHideFlags: 0

@@ -13,7 +13,7 @@ Import it by path, since the scripts run under `blender --background` where the
 library root is not on sys.path:
 
     import sys, os
-    sys.path.insert(0, "<repo>/Assets/Art/Models/_Source~")
+    sys.path.insert(0, "<repo>/Assets/Game/Art/Models/_Source~")
     from _buildlib import *
 """
 
@@ -36,7 +36,7 @@ def repo_root(start=None):
     Found by walking up rather than by counting `os.path.dirname()` calls, so
     scripts that reach into `Assets/` keep working no matter how deep in the
     tree this library lives. Counting levels is what broke when the library
-    moved from `<repo>/models` to `<repo>/Assets/Art/Models/_Source~`.
+    moved from `<repo>/models` to `<repo>/Assets/Game/Art/Models/_Source~`.
     """
     d = os.path.dirname(os.path.abspath(start or __file__))
     while d != os.path.dirname(d):

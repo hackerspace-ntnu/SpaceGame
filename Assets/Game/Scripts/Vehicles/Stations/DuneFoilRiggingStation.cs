@@ -25,19 +25,28 @@ namespace SpaceGame.Vehicles
     // height above the deck, not one wrapped around this node. Requiring it here would also break
     // AddComponent outright — Collider is abstract, so Unity cannot satisfy the requirement and
     // returns null instead of the component.
-    public class DuneFoilRiggingStation : MonoBehaviour, IInteractable, ISecondaryInteractable
+    public class DuneFoilRiggingStation : MonoBehaviour, IInteractable, ISecondaryInteractable,
+                                          IInteractionReadout
     {
         /// <summary>What this station does.</summary>
         public enum StationFunction
         {
-            /// <summary>E pays out sheet, click hauls it in. The steering controls.</summary>
+            /// <summary>E pays out sheet, click hauls it in. Sets how hard the sail drives.</summary>
             Sheet,
 
-            /// <summary>E sets every sail, click furls the lot.</summary>
+            /// <summary>E works every halyard up, click works them down. Held, not tapped.</summary>
             Hoist,
 
-            /// <summary>E rakes the post aft, click rakes it forward.</summary>
-            MastRake,
+            /// <summary>
+            /// E leans the post to starboard, click leans it to port.
+            ///
+            /// The post leans ACROSS the hull, not fore and aft. Leaning it into the wind stands
+            /// the craft up under a press of sail that would otherwise have it on its ear;
+            /// leaning it to leeward lies the craft down and bears the bow away. Either way it
+            /// costs drive, because a leaning sail presents less of itself to the wind — which is
+            /// the trade the control exists to offer.
+            /// </summary>
+            MastCant,
         }
 
         [Header("Station")]
@@ -73,12 +82,54 @@ namespace SpaceGame.Vehicles
         /// <summary>The sail it works, if it works one.</summary>
         public SailSurface Sail => sail;
 
-        /// <summary>Prompt text, if anything ever wants to show one.</summary>
+        // --- IInteractionReadout ----------------------------------------------
+        // Drawn by InteractionPromptUI whenever the crosshair is on this handle. Four winches within
+        // a couple of metres of each other, all answering the same two buttons, are unusable
+        // without this — which is how the rig shipped.
+
+        /// <summary>Which control this is.</summary>
+        public string Label => function switch
+        {
+            StationFunction.Sheet => sail != null && rig != null && sail == rig.Jib
+                ? "Jib sheet"
+                : "Main sheet",
+            StationFunction.Hoist => "Halyards",
+            StationFunction.MastCant => "Mast cant",
+            _ => "Rigging",
+        };
+
+        /// <summary>What the two buttons do here.</summary>
         public string Prompt => function switch
         {
-            StationFunction.Sheet => "E: ease sheet   LMB: haul in",
-            StationFunction.Hoist => "E: set sail   LMB: furl",
-            StationFunction.MastRake => "E: rake aft   LMB: rake forward",
+            StationFunction.Sheet => "E: ease sheet   LMB: haul in   (hold)",
+            StationFunction.Hoist => "E: raise sail   LMB: lower sail   (hold)",
+            StationFunction.MastCant => "E: lean to starboard   LMB: lean to port   (hold)",
+            _ => string.Empty,
+        };
+
+        /// <summary>Where this control currently sits, for the HUD's fill bar.</summary>
+        public float? Value01 => function switch
+        {
+            StationFunction.Sheet => sail != null ? sail.SheetOut : (float?)null,
+            StationFunction.Hoist => rig != null ? rig.Hoist01 : (float?)null,
+            // Upright reads as half, so the bar sits in the middle and both directions are
+            // visible on it — the same convention the rudder gauge uses.
+            StationFunction.MastCant => sail != null ? sail.Cant01 : (float?)null,
+            _ => null,
+        };
+
+        /// <summary>The same, in units the player thinks in.</summary>
+        public string ValueText => function switch
+        {
+            StationFunction.Sheet => sail == null ? string.Empty
+                : sail.SheetOut < 0.02f ? "hard in"
+                : sail.SheetOut > 0.98f ? "right out"
+                : $"{sail.SheetOut * 100f:F0}% out ({sail.BoomAngle:F0}°)",
+            StationFunction.Hoist => rig == null ? string.Empty : $"{rig.Hoist01 * 100f:F0}% set",
+            StationFunction.MastCant => sail == null ? string.Empty
+                : Mathf.Abs(sail.CantAngle) < 1f ? "upright"
+                : sail.CantAngle < 0f ? $"{-sail.CantAngle:F0}° to port"
+                                      : $"{sail.CantAngle:F0}° to starboard",
             _ => string.Empty,
         };
 
@@ -147,15 +198,19 @@ namespace SpaceGame.Vehicles
                     break;
 
                 case StationFunction.Hoist:
-                    // Discrete, so the hold adds nothing; the press is the whole action.
-                    if (more) rig.HoistAll();
-                    else rig.FurlAll();
+                    // Continuous, and deliberately so. This was a one-press toggle whose "down"
+                    // half called rig.FurlAll() — every sail struck instantly, from a winch 1.5 m
+                    // from the jib sheet winch, on the same mouse button, with 0.6 m interaction
+                    // spheres. One stray click mid-passage and the cloth was simply gone. Now a
+                    // mis-click costs a few centimetres of hoist and you watch it happen.
+                    if (more) rig.RaiseHalyards(seconds);
+                    else rig.LowerHalyards(seconds);
                     break;
 
-                case StationFunction.MastRake:
+                case StationFunction.MastCant:
                     if (sail == null) return;
-                    if (more) sail.RakeAft(seconds);
-                    else sail.RakeForward(seconds);
+                    if (more) sail.CantToStarboard(seconds);
+                    else sail.CantToPort(seconds);
                     break;
             }
         }

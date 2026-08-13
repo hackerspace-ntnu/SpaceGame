@@ -173,6 +173,46 @@ namespace SpaceGame.Locomotion
             return true;
         }
 
+        /// Ground heights along a run out from `from`, for asking how steep the way ahead is.
+        ///
+        /// Distinct from `HighestAlong` because the two want different answers from the same rays:
+        /// a swing wants the single tallest thing between two footholds, and a climb test wants the
+        /// PROFILE -- where the rise sits along the run is the whole difference between a hillside
+        /// and a wall.
+        ///
+        /// `lift` is how far above `from` the rays start, and it has to clear everything the machine
+        /// might legitimately walk up: a ray started below the ground it is probing is fired from
+        /// inside the mesh and reports nothing, which is the failure BelowUnder's comment already
+        /// documents from the other end. Ground standing higher than the lift comes back as not
+        /// found, and not found is not a refusal -- so the caller sizes this generously.
+        ///
+        /// Fills exactly `into.Length` samples, evenly spaced, the last one at `run`.
+        public void SampleAlong(Vector3 from, Vector3 direction, float run, float lift,
+                                WalkerClimb.Sample[] into)
+        {
+            if (into == null || into.Length == 0) return;
+
+            float originY = from.y + Mathf.Max(lift, 0f);
+
+            for (int i = 0; i < into.Length; i++)
+            {
+                float distance = run * (i + 1) / into.Length;
+                Vector3 at = from + direction * distance;
+
+                // Reaches at least `length` below the probe point however far the origin was
+                // lifted, so a tall lift never shortens how deep the query can see.
+                var origin = new Vector3(at.x, originY, at.z);
+                bool found = Ray(origin, length + (originY - at.y), out RaycastHit hit);
+
+                into[i] = new WalkerClimb.Sample
+                {
+                    Distance = distance,
+                    Height = found ? hit.point.y : 0f,
+                    Found = found,
+                };
+            }
+        }
+
         /// Highest ground anywhere along a step, so a swing can be lifted over what is actually
         /// under it rather than following a fixed arc through a rock. The ends are included, since
         /// they are where the foot has to leave from and arrive at.

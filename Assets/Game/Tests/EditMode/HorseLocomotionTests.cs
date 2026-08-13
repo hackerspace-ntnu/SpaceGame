@@ -15,7 +15,7 @@ namespace SpaceGame.Tests
 {
     public class HorseLocomotionTests
     {
-        private const string PrefabPath = "Assets/Prefabs/agents/creatures/HorseRobot.prefab";
+        private const string PrefabPath = "Assets/Game/Prefabs/agents/creatures/HorseRobot.prefab";
         private const float Dt = 1f / 60f;
         private const int Frames = 600;
 
@@ -434,7 +434,7 @@ namespace SpaceGame.Tests
         }
 
         // The mount rig and the driver's two channels are asserted in
-        // Assets/Editor/Tests/HorseRigWiringTests.cs instead: MountModule, SteerModule and
+        // Assets/Game/Editor/Tests/HorseRigWiringTests.cs instead: MountModule, SteerModule and
         // LeggedDriver all live in Assembly-CSharp, and an asmdef may not reference the predefined
         // assemblies. That test runs in Assembly-CSharp-Editor, which can see all of them.
     }

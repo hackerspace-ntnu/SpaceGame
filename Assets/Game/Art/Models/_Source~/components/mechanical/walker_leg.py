@@ -1,7 +1,7 @@
 """components/mechanical/walker_leg — the mech leg, promoted into the library.
 
 These legs are not new geometry. They were hand-built in
-`Assets/Prefabs/agents/vehicle/walker_legs.blend`, which holds four of them in
+`Assets/Game/Prefabs/agents/vehicle/walker_legs.blend`, which holds four of them in
 collections `Leg_01`..`Leg_04` as 60-80 loose parts each, hung off a chain of
 empties (`LEG_Root -> LEG_JNT_Hip -> LEG_JNT_Knee -> LEG_JNT_Ankle`). That file
 is the art; this script imports it and never writes back to it.

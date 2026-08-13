@@ -12,14 +12,14 @@ namespace SpaceGame.EditorTools
     /// TerrainData heightmap. The runtime hologram (MapHologramTerrain) loads
     /// these meshes from Resources and assembles a real 3D terrain hologram.
     ///
-    /// Output: Assets/Resources/MapMeshes/MapMesh_{cx}_{cy}.asset
+    /// Output: Assets/Game/Resources/MapMeshes/MapMesh_{cx}_{cy}.asset
     /// </summary>
     public class MapMeshBaker : EditorWindow
     {
         private WorldStreamingConfig config;
         [Tooltip("Mesh resolution per chunk (verts per side). 65 = 64x64 quads = 8192 tris/chunk.")]
         private int meshResolution = 65;
-        private string outputFolder = "Assets/Resources/MapMeshes";
+        private string outputFolder = "Assets/Game/Resources/MapMeshes";
 
         [MenuItem("Tools/World Streaming/Bake Map Meshes")]
         public static void ShowWindow() => GetWindow<MapMeshBaker>("Map Mesh Baker");

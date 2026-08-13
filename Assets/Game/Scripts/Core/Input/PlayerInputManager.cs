@@ -26,6 +26,8 @@ namespace SpaceGame.Core
     
         public event Action OnDashPressed;
 
+        public event Action OnBackpackPressed;
+
         private void Awake()
         {
             inputs = new InputControls();
@@ -51,6 +53,7 @@ namespace SpaceGame.Core
             inputs.Player.Jump.performed     += _ => OnJumpPressed?.Invoke();
             inputs.Player.Dash.performed   += _ => OnDashPressed?.Invoke();
             inputs.Player.Use.performed   += _ => OnUsePressed?.Invoke();
+            inputs.Player.Backpack.performed += _ => OnBackpackPressed?.Invoke();
 
             inputs.Enable();
         }

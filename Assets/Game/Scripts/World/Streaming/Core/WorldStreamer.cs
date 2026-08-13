@@ -88,6 +88,37 @@ namespace SpaceGame.World
         }
 
         /// <summary>
+        /// Sample the chunk terrain's own surface height at <paramref name="worldPos"/> — terrain
+        /// only, never a raycast. Returns false when the chunk under the position is not loaded or
+        /// carries no Terrain.
+        ///
+        /// Deliberately not <see cref="TrySampleGroundHeight"/>: that one raycasts from 200 m up and
+        /// takes the first hit, so standing inside a building it reports the roof, and standing on a
+        /// vehicle it reports the vehicle. Both are correct answers to "what is the ground here" and
+        /// both are wrong answers to "am I under the terrain", which is a question strictly about
+        /// the terrain surface.
+        /// </summary>
+        public bool TryGetTerrainHeight(Vector3 worldPos, out float terrainY)
+        {
+            // IsWithinGrid, not WorldToChunkCoord alone: that clamps anything outside the grid to
+            // the nearest edge chunk, so without this a position in the minigame arena 16.5 km east
+            // of the world would be answered with the height of the world's corner terrain.
+            if (config != null && config.IsWithinGrid(worldPos))
+            {
+                var coord = config.WorldToChunkCoord(worldPos);
+                if (GetChunkState(coord) == ChunkState.Loaded
+                    && loadedTerrains.TryGetValue(coord, out var terrain) && terrain != null)
+                {
+                    terrainY = terrain.SampleHeight(worldPos) + terrain.transform.position.y;
+                    return true;
+                }
+            }
+
+            terrainY = 0f;
+            return false;
+        }
+
+        /// <summary>
         /// Re-collect a chunk's NavMesh sources and schedule a rebuild. Call this after geometry
         /// is added to or changed inside an already-loaded chunk at runtime — e.g. a
         /// TerrainFeatureSpawner that generates its mesh in Awake/Start, AFTER the chunk's load
@@ -134,6 +165,20 @@ namespace SpaceGame.World
         private readonly Dictionary<NavMeshAgent, Vector3> parkedAgentPositions = new();
         private readonly Dictionary<Vector2Int, float> unloadTimers = new();
         private readonly List<Transform> trackedTransforms = new();
+
+        // Per-tracker history, so the streamer knows how fast each anchor is travelling and can
+        // load ahead of it instead of behind it.
+        private struct AnchorSample
+        {
+            public Vector3 Position;
+            public Vector3 Velocity;
+            public bool OffWorld;
+            public int Pass;
+        }
+
+        private readonly Dictionary<Transform, AnchorSample> anchorHistory = new();
+        private readonly List<Transform> anchorPruneBuffer = new();
+        private int anchorPass;
 
         // Queue for sequential scene operations (Netcode only allows one at a time)
         private readonly Queue<SceneOperation> operationQueue = new();
@@ -238,6 +283,7 @@ namespace SpaceGame.World
             parkedAgentsByChunk.Clear();
             parkedAgentPositions.Clear();
             unloadTimers.Clear();
+            anchorHistory.Clear();
             operationQueue.Clear();
             operationInProgress = false;
             retryOperation = null;
@@ -383,12 +429,11 @@ namespace SpaceGame.World
 
             foreach (var worldPos in worldPositions)
             {
-                // Positions outside the grid (e.g. a minigame scene placed off-grid on purpose)
-                // must not be clamped into a real edge chunk here — WorldToChunkCoord clamps,
-                // so the bounds check has to happen before calling it.
-                if (!config.IsWithinGrid(worldPos)) continue;
+                // Positions that belong to a deliberately off-grid scene (the minigame arena)
+                // must not be clamped into a real edge chunk here — WorldToChunkCoord clamps, so
+                // the off-world test has to happen before calling it.
+                if (!config.TryGetStreamingCoord(worldPos, out var coord)) continue;
 
-                var coord = config.WorldToChunkCoord(worldPos);
                 foreach (var chunk in GetChunksInRadius(coord, config.loadRadius))
                 {
                     if (GetChunkState(chunk) == ChunkState.NotLoaded)
@@ -421,32 +466,19 @@ namespace SpaceGame.World
         private void UpdateChunkLoading()
         {
             var requiredChunks = new HashSet<Vector2Int>();
+            anchorPass++;
 
             if (Network.IsNetworked)
             {
                 foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
                 {
                     if (client.PlayerObject == null) continue;
-
-                    var playerPos = client.PlayerObject.transform.position;
-                    // Players outside the grid (e.g. in an off-grid minigame scene) don't pull in
-                    // any chunks — WorldToChunkCoord clamps, so this must be checked first or every
-                    // off-grid player would continuously request the nearest edge chunk.
-                    if (!config.IsWithinGrid(playerPos)) continue;
-                    var playerChunk = config.WorldToChunkCoord(playerPos);
-                    foreach (var coord in GetChunksInRadius(playerChunk, config.loadRadius))
-                        requiredChunks.Add(coord);
+                    AddAnchor(requiredChunks, client.PlayerObject.transform, config.loadRadius);
                 }
             }
 
             foreach (var t in trackedTransforms)
-            {
-                if (t == null) continue;
-                if (!config.IsWithinGrid(t.position)) continue;
-                var playerChunk = config.WorldToChunkCoord(t.position);
-                foreach (var coord in GetChunksInRadius(playerChunk, config.loadRadius))
-                    requiredChunks.Add(coord);
-            }
+                AddAnchor(requiredChunks, t, config.loadRadius);
 
             // SceneTracked entities with keepChunksLoaded=true also pull chunks in around them.
             // Pin'd entities (mounts) need their surroundings loaded so the world doesn't vanish
@@ -455,10 +487,7 @@ namespace SpaceGame.World
             foreach (var entity in s_trackedEntities)
             {
                 if (!entity.KeepChunksLoaded) continue;
-                if (!config.IsWithinGrid(entity.TrackedTransform.position)) continue;
-                var entityChunk = config.WorldToChunkCoord(entity.TrackedTransform.position);
-                foreach (var coord in GetChunksInRadius(entityChunk, config.loadRadius))
-                    requiredChunks.Add(coord);
+                AddAnchor(requiredChunks, entity.TrackedTransform, config.loadRadius);
             }
 
             // Chunks that contain a tracker which would be destroyed by the unload (Pin/Migrate)
@@ -468,11 +497,10 @@ namespace SpaceGame.World
             foreach (var entity in s_trackedEntities)
             {
                 if (entity.Policy == SceneTracked.UnloadPolicy.Despawn) continue;
-                if (!config.IsWithinGrid(entity.TrackedTransform.position)) continue;
-                var coord = config.WorldToChunkCoord(entity.TrackedTransform.position);
-                if (config.IsValidCoord(coord))
-                    requiredChunks.Add(coord);
+                AddAnchor(requiredChunks, entity.TrackedTransform, 0);
             }
+
+            PruneAnchorHistory();
 
             // Load required chunks that aren't loaded
             foreach (var coord in requiredChunks)
@@ -501,6 +529,104 @@ namespace SpaceGame.World
                     unloadTimers.Remove(kvp.Key);
                 }
             }
+        }
+
+        // ─────────────────────────────────────────────
+        //  Anchors — every tracker that pulls chunks in around itself
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Require the chunks around <paramref name="t"/>, and around where it is heading.
+        ///
+        /// Every streaming decision goes through here so there is exactly one answer to "does
+        /// this thing keep the world loaded". A tracker only stops requiring chunks when it is
+        /// genuinely off-world (see <see cref="WorldStreamingConfig.offWorldDistance"/>); being
+        /// past the edge of the grid is not enough, because sailing off the map is something a
+        /// player does at speed and they still need the ground behind them to exist.
+        /// </summary>
+        private void AddAnchor(HashSet<Vector2Int> required, Transform t, int radius)
+        {
+            if (t == null) return;
+
+            Vector3 position = t.position;
+            Vector3 velocity = SampleVelocity(t, position);
+
+            bool anchored = AddAnchorAt(required, position, radius);
+            ReportOffWorld(t, !anchored);
+            if (!anchored) return;
+
+            // Start on the ground the tracker is about to arrive on, not just the ground already
+            // under it. At walking pace the predicted position is metres away and lands in the
+            // same chunk; on something fast enough to cross a chunk between scene loads it pulls
+            // the next one in a tick early.
+            if (velocity.sqrMagnitude > 1f)
+                AddAnchorAt(required, config.PredictAhead(position, velocity), radius);
+        }
+
+        private bool AddAnchorAt(HashSet<Vector2Int> required, Vector3 position, int radius)
+        {
+            if (!config.TryGetStreamingCoord(position, out var coord)) return false;
+
+            AddChunksInRadius(required, coord, radius);
+            return true;
+        }
+
+        /// <summary>
+        /// Speed of a tracker in world units per second, measured between chunk-loading passes.
+        /// Sampled from the transform rather than a Rigidbody because a tracker can be anything —
+        /// a player, a vehicle, a plain marker object like the interior return pin — and a player
+        /// riding a deck is moved by the platform writing their pose, not by their own velocity.
+        /// </summary>
+        private Vector3 SampleVelocity(Transform t, Vector3 position)
+        {
+            if (!anchorHistory.TryGetValue(t, out var sample))
+            {
+                anchorHistory[t] = new AnchorSample { Position = position, Pass = anchorPass };
+                return Vector3.zero;
+            }
+
+            // Several anchor rules can ask about the same transform in one pass; only the first
+            // advances the sample, or the rest would all measure a zero delta.
+            if (sample.Pass == anchorPass) return sample.Velocity;
+
+            sample.Velocity = (position - sample.Position) / Mathf.Max(updateInterval, 1e-3f);
+            sample.Position = position;
+            sample.Pass = anchorPass;
+            anchorHistory[t] = sample;
+            return sample.Velocity;
+        }
+
+        /// <summary>
+        /// Say so once when a tracker leaves the streamed world and once when it returns. Silence
+        /// here is what made this hard to see from the outside: chunks simply stopped arriving.
+        /// </summary>
+        private void ReportOffWorld(Transform t, bool offWorld)
+        {
+            if (!anchorHistory.TryGetValue(t, out var sample) || sample.OffWorld == offWorld) return;
+
+            sample.OffWorld = offWorld;
+            anchorHistory[t] = sample;
+
+            if (offWorld)
+                Debug.LogWarning($"[WorldStreamer] '{t.name}' is more than {config.offWorldDistance:0} m " +
+                                 $"outside the chunk grid at {t.position} — it no longer keeps any chunk loaded.");
+            else
+                Debug.Log($"[WorldStreamer] '{t.name}' is back inside the streamed world at {t.position}.");
+        }
+
+        private void PruneAnchorHistory()
+        {
+            anchorPruneBuffer.Clear();
+
+            foreach (var kvp in anchorHistory)
+            {
+                // Stale by several passes means the tracker was unregistered or destroyed.
+                if (kvp.Key == null || anchorPass - kvp.Value.Pass > 4)
+                    anchorPruneBuffer.Add(kvp.Key);
+            }
+
+            foreach (var t in anchorPruneBuffer)
+                anchorHistory.Remove(t);
         }
 
         // ─────────────────────────────────────────────
@@ -775,8 +901,13 @@ namespace SpaceGame.World
 
         public string DebugDumpState()
         {
+            // trackedTransforms/anchors are in here because "no chunk ever loads" and "nothing is
+            // anchoring the world" look identical from the outside, and only one of them is a
+            // streaming fault.
             return $"operationInProgress={operationInProgress} queueCount={operationQueue.Count} " +
                    $"pendingCoord={pendingCoord} pendingSceneName={pendingSceneName} " +
+                   $"trackedTransforms={trackedTransforms.Count} sceneTracked={s_trackedEntities.Count} " +
+                   $"anchors=[{string.Join(", ", anchorHistory.Where(kv => kv.Key != null).Select(kv => $"{kv.Key.name}@{kv.Value.Position}{(kv.Value.OffWorld ? " OFF-WORLD" : "")}"))}] " +
                    $"chunkStates=[{string.Join(", ", chunkStates.Select(kv => $"{kv.Key}:{kv.Value}"))}]";
         }
 
@@ -909,18 +1040,21 @@ namespace SpaceGame.World
         private HashSet<Vector2Int> GetChunksInRadius(Vector2Int center, int radius)
         {
             var result = new HashSet<Vector2Int>();
+            AddChunksInRadius(result, center, radius);
+            return result;
+        }
 
+        private void AddChunksInRadius(HashSet<Vector2Int> into, Vector2Int center, int radius)
+        {
             for (int x = center.x - radius; x <= center.x + radius; x++)
             {
                 for (int y = center.y - radius; y <= center.y + radius; y++)
                 {
                     var coord = new Vector2Int(x, y);
                     if (config.IsValidCoord(coord))
-                        result.Add(coord);
+                        into.Add(coord);
                 }
             }
-
-            return result;
         }
 
         private ChunkState GetChunkState(Vector2Int coord)

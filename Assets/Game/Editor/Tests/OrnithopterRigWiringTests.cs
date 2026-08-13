@@ -21,9 +21,9 @@ namespace SpaceGame.EditorTools
 {
     public class OrnithopterRigWiringTests
     {
-        private const string CraftPath = "Assets/Prefabs/agents/vehicle/DuneOrnithopter.prefab";
-        private const string PackPath = "Assets/Prefabs/items/WingPack.prefab";
-        private const string ItemPath = "Assets/Resources/Items/Artifacts/WingPack.asset";
+        private const string CraftPath = "Assets/Game/Prefabs/agents/vehicle/DuneOrnithopter.prefab";
+        private const string PackPath = "Assets/Game/Prefabs/items/WingPack.prefab";
+        private const string ItemPath = "Assets/Game/Resources/Items/Artifacts/WingPack.asset";
 
         private GameObject craft;
 
@@ -77,7 +77,7 @@ namespace SpaceGame.EditorTools
             var rig = new OrnithopterWingRig();
             Assert.DoesNotThrow(() => rig.Build(craft.transform),
                 "The rig failed to bind. The FBX must be exported WITH its armature — see " +
-                "Assets/Art/Models/_Source~/models/vehicles/dune_ornithopter_export.py.");
+                "Assets/Game/Art/Models/_Source~/models/vehicles/dune_ornithopter_export.py.");
 
             Assert.IsTrue(rig.IsBuilt);
             Assert.IsNotNull(rig.Cradle, "No cradle bone — the rider has nowhere to lie.");

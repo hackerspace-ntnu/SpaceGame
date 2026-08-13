@@ -109,6 +109,8 @@ GameObject:
   - component: {fileID: 9030159979122590365}
   - component: {fileID: 3989894493323827061}
   - component: {fileID: 2678120570083281304}
+  - component: {fileID: 4739590490079316722}
+  - component: {fileID: 6607317269232638770}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Player
@@ -125,7 +127,7 @@ Transform:
   m_GameObject: {fileID: 4516265153368369930}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.1218733, y: 1, z: -1.3710114}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -383,6 +385,54 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EntityFaction
   faction: {fileID: 11400000, guid: e60e1b5fdd5ac4c0187e288640201cf6, type: 2}
   relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
+--- !u!114 &4739590490079316722
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
+  bodyRoot: {fileID: 0}
+  checkInterval: 0.25
+  depthTolerance: 0.5
+  surfaceClearance: 1.2
+  absoluteFloorY: -500
+  logRecoveries: 1
+--- !u!114 &6607317269232638770
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e5473d57746244b7abd7d59d6ce4fee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BackpackController
+  backpackPrefab: {fileID: 4425010704611178764, guid: d8d638f784bab472cb1b48e4679fcb08, type: 3}
+  backBone: 7
+  backBoneNameHints:
+  - Spine
+  - Chest
+  - Torso
+  backSocketOverride: {fileID: 0}
+  wornLocalPosition: {x: 0.0030106734, y: -0.17255704, z: -0.36850843}
+  wornLocalEuler: {x: 358.96542, y: 180, z: 0}
+  aimTransform: {fileID: 0}
+  deploySeconds: 0.9
+  deployDistance: 1.15
+  arcHeight: 0.6
+  arcOutward: 0.45
+  groundLift: 0.01
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1001 &2677432995988726931
 PrefabInstance:
   m_ObjectHideFlags: 0

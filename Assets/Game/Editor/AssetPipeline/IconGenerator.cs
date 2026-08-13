@@ -11,7 +11,7 @@ namespace SpaceGame.EditorTools
         private GameObject prefab;
 
         private int resolution = 256;
-        private string savePath = "Assets/Art/Sprites/";
+        private string savePath = "Assets/Game/Art/Sprites/";
 
         private RenderTexture previewRT;
         private GameObject previewInstance;

@@ -102,6 +102,24 @@ namespace SpaceGame.Locomotion
         [Tooltip("On Start, drop the machine onto the ground so the legs begin within reach.")]
         [SerializeField] private bool snapToGroundOnStart = true;
 
+        [Header("Climb")]
+        [Tooltip("Steepest sustained grade the machine will walk UP, in degrees. Kept below the " +
+                 "NavMesh's own bake-time slope limit on purpose: an AI routed over ground its " +
+                 "legs then refuse grinds against a hill the path says is fine.\n\nDownhill is " +
+                 "never limited, and turning is never limited, so a machine stopped by this can " +
+                 "always back off or turn away.")]
+        [Range(0f, 89f)]
+        [SerializeField] private float maxClimbAngle = 35f;
+        [Tooltip("Band below the limit over which travel falls off to nothing. Without it the " +
+                 "machine meets a hillside as if it were glass; with it, it slows into it.")]
+        [Range(0f, 20f)]
+        [SerializeField] private float climbTaperAngle = 5f;
+        [Tooltip("How far ahead the grade is measured, as a multiple of leg reach. Long enough " +
+                 "that a boulder does not read as a cliff, short enough that the answer is about " +
+                 "the ground the machine is next putting feet on.")]
+        [Range(0.5f, 6f)]
+        [SerializeField] private float climbProbeRun = 2f;
+
         [Header("Debug")]
         [SerializeField] private bool drawGizmos = true;
 
@@ -110,6 +128,17 @@ namespace SpaceGame.Locomotion
         /// nose -- a crab goes sideways with its body square to the direction of motion, and a
         /// scalar plus a heading cannot say that.
         private Vector2 commandedVelocity;
+
+        /// What the machine is actually being carried by this frame: the command above with the
+        /// climb gate applied. EVERYTHING downstream reads this rather than the raw request.
+        ///
+        /// The two are separate fields because a single decision has to reach three readers that
+        /// must agree -- the path integrates travel, the gait clock is advanced by it, and the
+        /// foothold clamp aims a swing's worth of it ahead. Scaling one and not the others leaves a
+        /// clock turning while the body stands still, so the feet drift against travel that never
+        /// happens. That is a thrash, not a stall.
+        private Vector2 travelVelocity;
+
         private float commandedYawRate;
         private bool ready;
         private Diagnostics diagnostics;
@@ -177,6 +206,16 @@ namespace SpaceGame.Locomotion
 
         /// True while nothing is carrying the machine and gravity owns its height.
         public bool IsFalling { get; private set; }
+
+        /// True on any frame the ground ahead was too steep to walk up and travel was cut short
+        /// because of it. What a driver watches to know it should be going another way.
+        ///
+        /// Only ever true while something is ASKING the machine to move. A machine standing at the
+        /// foot of a cliff with no orders is not blocked, it is parked.
+        public bool ClimbBlocked { get; private set; }
+
+        /// How much of the last commanded travel survived the climb gate, 0..1.
+        public float ClimbScale { get; private set; } = 1f;
 
         /// Height the body rides above its planted feet, measured from the rest pose.
         public float RideHeight => rideHeight;
@@ -253,6 +292,14 @@ namespace SpaceGame.Locomotion
             if (sq > max * max && sq > 1e-12f) velocityLocal *= max / Mathf.Sqrt(sq);
 
             commandedVelocity = velocityLocal;
+
+            // Travel starts out as the whole command, and the climb gate takes from it at the top
+            // of the next frame. Seeded here rather than left at zero so the machine's state
+            // between an order and the frame that acts on it is "about to travel at this", not
+            // "stopped" -- a reader that catches it in that window, a test included, should see the
+            // order it just gave rather than a gate verdict that has not been reached yet.
+            travelVelocity = velocityLocal;
+
             commandedYawRate = Mathf.Clamp(yawRate, -MaxYawRate, MaxYawRate);
         }
 
@@ -265,13 +312,13 @@ namespace SpaceGame.Locomotion
         /// one walking forwards at the same ground speed. Reading the forward component alone would
         /// leave a purely lateral command with a pace of zero, which stops the clock (I1).
         protected float Pace =>
-            commandedVelocity.magnitude + Mathf.Abs(commandedYawRate) * Mathf.Deg2Rad * maxFootRadius;
+            travelVelocity.magnitude + Mathf.Abs(commandedYawRate) * Mathf.Deg2Rad * maxFootRadius;
 
         /// How far into "running" the current speed is, 0..1. Drives duty, pitch and bob together
         /// so the whole machine changes character at once instead of in pieces.
         protected float RunBlend => MaxSpeed <= 1e-4f
             ? 0f
-            : Mathf.Clamp01(commandedVelocity.magnitude / MaxSpeed);
+            : Mathf.Clamp01(travelVelocity.magnitude / MaxSpeed);
 
         protected float CurrentDuty => gaitPattern.Duty(RunBlend);
 
@@ -279,13 +326,15 @@ namespace SpaceGame.Locomotion
         /// standing machine is still rather than idling up and down on the spot.
         protected float Effort => Mathf.Clamp01(Pace / Mathf.Max(MaxSpeed, 1e-4f));
 
-        /// The commanded planar velocity in body space: x right, y forward.
-        protected Vector2 CommandedVelocity => commandedVelocity;
+        /// The planar velocity the machine is travelling at in body space: x right, y forward.
+        /// Post-gate, so a machine refused by a hillside leans and bobs like the standing machine
+        /// it is rather than like one walking into a wall.
+        protected Vector2 CommandedVelocity => travelVelocity;
 
         /// The forward component only. Kept for the body motions, which lean and pitch against the
         /// nose; anything that cares how fast the machine is actually going wants `Pace` or
         /// `CommandedVelocity.magnitude` instead, both of which count sideways travel.
-        protected float CommandedSpeed => commandedVelocity.y;
+        protected float CommandedSpeed => travelVelocity.y;
         protected float CommandedYawRate => commandedYawRate;
         protected Transform Body => body;
 

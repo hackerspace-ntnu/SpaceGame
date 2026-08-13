@@ -462,6 +462,7 @@ GameObject:
   - component: {fileID: 3356187354412459737}
   - component: {fileID: 5304271532457206036}
   - component: {fileID: 3954543622703053586}
+  - component: {fileID: 479055108098795435}
   m_Layer: 5
   m_Name: CrosshairUI
   m_TagString: Untagged
@@ -540,6 +541,28 @@ MonoBehaviour:
   idleAlpha: 0.25
   activeAlpha: 1
   fadeSpeed: 10
+--- !u!114 &479055108098795435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2044693841844573824}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c8a4f92d3f0d4082827e29e29638df7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.InteractionPromptUI
+  playerInteractor: {fileID: 0}
+  screenAnchor: {x: 0.5, y: 0.34}
+  panelSize: {x: 340, y: 96}
+  panelColor: {r: 0.04, g: 0.05, b: 0.07, a: 0.72}
+  labelColor: {r: 1, g: 0.85, b: 0.5, a: 1}
+  promptColor: {r: 0.85, g: 0.9, b: 0.95, a: 1}
+  barColor: {r: 0.35, g: 0.8, b: 1, a: 1}
+  barTrackColor: {r: 1, g: 1, b: 1, a: 0.15}
+  fadeDuration: 0.12
+  fillLerpDuration: 0.08
 --- !u!1 &2081217750597334166
 GameObject:
   m_ObjectHideFlags: 0
@@ -961,8 +984,6 @@ MonoBehaviour:
   playerHealth: {fileID: 0}
   referenceCamera: {fileID: 0}
   damageForFullFlash: 25
-  lowHealthThreshold: 0.3
-  lowHealthMaxPulse: 0.85
   dangerVignette: {fileID: 0}
   navMarkers: {fileID: 0}
 --- !u!1 &6839097502737550306

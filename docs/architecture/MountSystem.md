@@ -12,8 +12,8 @@ Every mountable entity needs:
 
 | Component | File | Responsibility |
 |---|---|---|
-| `MountModule` | `Assets/Scripts/agents/modules/MountModule.cs` | Mount/dismount lifecycle, `IInteractable` surface, AI suppression while ridden, mounted camera (FP/TP), look input. |
-| `SteerModule` | `Assets/Scripts/agents/modules/SteerModule.cs` | Reads rider input each frame, forwards it to the motor as a `RiderInput`, handles jump/hold-to-leap, optional visual lean. |
+| `MountModule` | `Assets/Game/Scripts/agents/modules/MountModule.cs` | Mount/dismount lifecycle, `IInteractable` surface, AI suppression while ridden, mounted camera (FP/TP), look input. |
+| `SteerModule` | `Assets/Game/Scripts/agents/modules/SteerModule.cs` | Reads rider input each frame, forwards it to the motor as a `RiderInput`, handles jump/hold-to-leap, optional visual lean. |
 
 Both are `IBehaviourModule`s — they sit on the entity alongside its normal AI modules and an `AgentController` resolves them automatically.
 

@@ -6,7 +6,7 @@ edit the palette and regenerate, or the two will disagree.
 Every model and component in this repository links its materials from here.
 Before adding anything, search this table for something that would serve.
 
-**29 material(s)** across 8 categor(ies).
+**32 material(s)** across 8 categor(ies).
 
 ## Emissive
 
@@ -24,6 +24,7 @@ Before adding anything, search this table for something that would serve.
 | `Mat_Fabric_Canvas_Faded` | `#6E6A5A` | 0.92 | 0.0 | Bunk bedding, cargo netting, curtains, awning cloth, strapping. |
 | `Mat_Fabric_Flag_Bleached` | `#D8D2C2` | 0.9 | 0.0 | Off-white sun-bleached flag and pennant cloth, awnings, sun shades. Much lighter than Canvas_Faded, which is dirty webbing. |
 | `Mat_Fabric_Seat_Ochre` | `#8A5A2B` | 0.85 | 0.0 | Crew seat upholstery - cracked ochre vinyl, matches the hull family. |
+| `Mat_Fabric_Tarp_Azure` | `#3E9AD0` | 0.9 | 0.0 | Saturated azure tarpaulin: shade sails and awnings pitched over field workspaces. The only strong colour note on a desert outpost, and nothing in the palette was within deltaE 20. Mat_Fabric_Flag_Bleached is its sun-killed counterpart. |
 | `Mat_Fabric_Wing_Beige` | `#CBB68E` | 0.88 | 0.0 | Sun-cured beige sailcloth stretched over wing blade frames. The ornithopter's primary wing surface - warmer and dirtier than Flag_Bleached, lighter than Canvas_Faded. |
 | `Mat_Fabric_Wing_Ochre` | `#C98551` | 0.88 | 0.0 | Sun-cured orange sailcloth stretched over the ornithopter's wing spars. The warmer, dustier counterpart to Wing_Beige - reads as canvas soaked in desert iron rather than bleached out by it. |
 
@@ -57,6 +58,8 @@ Before adding anything, search this table for something that would serve.
 
 | Name | Hex | Roughness | Metallic | Intended for |
 |---|---|---|---|---|
+| `Mat_Paint_Blue_Station` | `#9FB8CE` | 0.6 | 0.35 | Pale powder-blue enamel over steel: the desert outpost's prefab hull skin, tower shaft and sensor cupola. The cool blue member of the painted-hull family alongside Mat_Paint_White_Arctic (arctic off-white) and Mat_Paint_Hull_Bleached (warm desert sun-bleach). Distinct from Mat_Glass_Canopy_Tinted despite a close hue - that is glazing at roughness 0.05, this is chalky paint. |
+| `Mat_Paint_Coral_Faded` | `#D9705E` | 0.62 | 0.25 | Sun-faded coral enamel over steel: the outpost tower's habitat blocks, control cab roof band and machine module skins. The warm mass colour that reads against the grey-blue steelwork of the lattice, matching the reference print's duotone. Distinct from Mat_Paint_Safety_Orange, which is fresh high-vis construction paint, and from Mat_Metal_HullRust_Orange, which is oxidised bare steel rather than a painted surface. |
 | `Mat_Paint_Hull_Bleached` | `#AAA499` | 0.68 | 0.6 | Sun-bleached olive-white paint over steel. The desert crawler's body panels, leg shrouds and container modules. |
 | `Mat_Paint_Olive_Deep` | `#3F4A3A` | 0.62 | 0.4 | Deep olive shadow panels and recesses - the contrast tone that keeps large bleached surfaces from flattening out. |
 | `Mat_Paint_Roof_Green` | `#6E7A5E` | 0.6 | 0.4 | Faded military green: roof caps, banded accent panels, hatch covers. Reads as the older paint layer under the bleached topcoat. |

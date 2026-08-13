@@ -1,5 +1,5 @@
-// Builds Assets/Prefabs/agents/vehicle/DuneOrnithopter.prefab from
-// Assets/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx.
+// Builds Assets/Game/Prefabs/agents/vehicle/DuneOrnithopter.prefab from
+// Assets/Game/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx.
 //
 // The FBX arrives WITH its rig -- Arm_DuneOrnithopter, 30 bones -- because OrnithopterWingRig
 // walks that hierarchy live at Initialise and OrnithopterWingAnimator poses it every frame. This
@@ -13,8 +13,8 @@
 //   * Collision, measured off the meshes rather than hardcoded.
 //   * The flight motor, the mount rig and a camera boom sized for a 10 m machine.
 //
-// The model is generated from Assets/Art/Models/_Source~/models/vehicles/dune_ornithopter.py and exported by
-// dune_ornithopter_export.py -- see Assets/Art/Models/_Source~/models/vehicles/dune_ornithopter_BUILD.md.
+// The model is generated from Assets/Game/Art/Models/_Source~/models/vehicles/dune_ornithopter.py and exported by
+// dune_ornithopter_export.py -- see Assets/Game/Art/Models/_Source~/models/vehicles/dune_ornithopter_BUILD.md.
 //
 // Model orientation: authored -Y forward in Blender, which the default FBX axis conversion lands
 // on Unity's +Z. There is deliberately no yaw correction here.
@@ -32,9 +32,9 @@ namespace SpaceGame.EditorTools
     public static class OrnithopterBuilder
     {
         private const string ModelPath =
-            "Assets/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx";
+            "Assets/Game/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx";
         private const string PrefabPath =
-            "Assets/Prefabs/agents/vehicle/DuneOrnithopter.prefab";
+            "Assets/Game/Prefabs/agents/vehicle/DuneOrnithopter.prefab";
 
         /// Meshes that get a collision box. Everything else -- wings, cloth, gears -- is decoration:
         /// a 10 m wingspan of collider would snag on terrain the craft should be flying past.
@@ -62,7 +62,7 @@ namespace SpaceGame.EditorTools
             if (model == null)
             {
                 Debug.LogError($"[Ornithopter] No model at {ModelPath}. Run " +
-                               "Assets/Art/Models/_Source~/models/vehicles/dune_ornithopter_export.py first.");
+                               "Assets/Game/Art/Models/_Source~/models/vehicles/dune_ornithopter_export.py first.");
                 return;
             }
 

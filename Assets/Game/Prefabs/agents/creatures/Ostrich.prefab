@@ -81,6 +81,7 @@ GameObject:
   - component: {fileID: 3801814614457810647}
   - component: {fileID: 1597688279667040944}
   - component: {fileID: 7957510637586956417}
+  - component: {fileID: 63085288324650649}
   m_Layer: 0
   m_Name: Ostrich
   m_TagString: Untagged
@@ -152,23 +153,12 @@ MonoBehaviour:
   kneeRange: 75
   ankleRange: 45
   rollRange: 25
-  walkSwingDuty: 0.44
-  runSwingDuty: 0.62
   stepDuration: 0.3
   stepClearance: 0.22
   obstacleClearance: 0.25
-  toeOffAngle: 18
-  swingToeAngle: 12
   autoCalibrateRideHeight: 1
   rideHeight: 0.020607233
-  hipHeightFraction: 0.86
-  bobAmount: 0.055
-  swayAmount: 0.55
-  runPitch: 16
-  turnRoll: 8
   heightSmooth: 12
-  attitudeSmooth: 8
-  maxYawRate: 120
   fallGravity: 20
   maxFallSpeed: 40
   footGroundTolerance: 0.25
@@ -179,7 +169,23 @@ MonoBehaviour:
   rayStartAbove: 3
   rayLength: 60
   snapToGroundOnStart: 1
+  maxClimbAngle: 35
+  climbTaperAngle: 5
+  climbProbeRun: 2
   drawGizmos: 1
+  hipHeightFraction: 0.86
+  walkSwingDuty: 0.44
+  runSwingDuty: 0.62
+  toeOffAngle: 18
+  swingToeAngle: 12
+  bobAmount: 0.055
+  swayAmount: 0.55
+  runPitch: 16
+  turnRoll: 8
+  attitudeSmooth: 8
+  slopeFollow: 0.8
+  maxSlopeTilt: 25
+  maxYawRate: 120
 --- !u!114 &6583689627051378568
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -195,10 +201,16 @@ MonoBehaviour:
   moveSpeed: 9
   turnSpeed: 90
   acceleration: 4
-  walkThrottle: 0.45
-  autoWalk: 0
   defaultStopDistance: 2
   turnInPlaceAngle: 60
+  repathInterval: 0.5
+  repathTolerance: 2
+  cornerArriveRadius: 6
+  navMeshSampleDistance: 20
+  detourHoldTime: 2
+  lateralSteering: 0
+  walkThrottle: 0.45
+  autoWalk: 0
 --- !u!114 &2230501290558576735
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -252,6 +264,7 @@ MonoBehaviour:
   thirdPersonAimLerp: 18
   thirdPersonYawLerp: 16
   thirdPersonLookAhead: 6
+  followMountPitch: 0
   lookActionName: Look
   lookSensitivity: 1
   lookPitchClamp: 75
@@ -316,6 +329,7 @@ MonoBehaviour:
   moveActionName: Move
   jumpActionName: Jump
   verticalActionName: 
+  turnActionName: 
   steeringOverrideThreshold: 0.1
   turnSmoothTime: 0.12
   riderCanRun: 0
@@ -396,6 +410,24 @@ MonoBehaviour:
   minJawInterval: 3.5
   maxJawInterval: 11
   jawOpenDuration: 0.45
+--- !u!114 &63085288324650649
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8793624777589779848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
+  bodyRoot: {fileID: 0}
+  checkInterval: 0.25
+  depthTolerance: 0.5
+  surfaceClearance: 1.2
+  absoluteFloorY: -500
+  logRecoveries: 1
 --- !u!1001 &7659642805198663154
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -1,8 +1,8 @@
 // Builds the inventory side of the ornithopter: the folded pack the player carries, and the
 // InventoryItem that puts it in their hotbar.
 //
-//   Assets/Prefabs/items/WingPack.prefab            the thing held in hand
-//   Assets/Resources/Items/Artifacts/WingPack.asset the InventoryItem that references it
+//   Assets/Game/Prefabs/items/WingPack.prefab            the thing held in hand
+//   Assets/Game/Resources/Items/Artifacts/WingPack.asset the InventoryItem that references it
 //
 // The held pack is assembled from primitives rather than from the model. The ornithopter's own
 // meshes are no use here: the wings are SKINNED, so at rest they are spread across a six-metre
@@ -22,10 +22,10 @@ namespace SpaceGame.EditorTools
 {
     public static class WingPackBuilder
     {
-        private const string CraftPath = "Assets/Prefabs/agents/vehicle/DuneOrnithopter.prefab";
-        private const string PrefabPath = "Assets/Prefabs/items/WingPack.prefab";
-        private const string ItemPath = "Assets/Resources/Items/Artifacts/WingPack.asset";
-        private const string ModelPath = "Assets/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx";
+        private const string CraftPath = "Assets/Game/Prefabs/agents/vehicle/DuneOrnithopter.prefab";
+        private const string PrefabPath = "Assets/Game/Prefabs/items/WingPack.prefab";
+        private const string ItemPath = "Assets/Game/Resources/Items/Artifacts/WingPack.asset";
+        private const string ModelPath = "Assets/Game/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx";
 
         [MenuItem("Tools/Vehicles/Build Wing Pack Item")]
         public static void Build()

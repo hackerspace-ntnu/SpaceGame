@@ -1,8 +1,8 @@
-// Builds Assets/Prefabs/agents/vehicle/DuneFoil.prefab from
-// Assets/Art/Models/Vehicles/DuneFoil/dune_foil_rig.fbx, and the Wind prefab that drives it.
+// Builds Assets/Game/Prefabs/agents/vehicle/DuneFoil.prefab from
+// Assets/Game/Art/Models/Vehicles/DuneFoil/dune_foil_rig.fbx, and the Wind prefab that drives it.
 //
 // The FBX already carries the rig — pivots, named parts, subdivided sails — because
-// Assets/Art/Models/_Source~/models/vehicles/dune_foil_rig.py put them there. What this script adds is everything
+// Assets/Game/Art/Models/_Source~/models/vehicles/dune_foil_rig.py put them there. What this script adds is everything
 // Unity-side: components on the right nodes, colliders, sail areas and lever arms measured off
 // the meshes, the rope stations, the running rigging, and the sailcloth material.
 //
@@ -29,28 +29,36 @@ namespace SpaceGame.EditorTools
         // sign from it, so the model is yawed here before a single measurement is taken.
         private static readonly Quaternion ModelYaw = Quaternion.Euler(0f, 180f, 0f);
 
-        private const string ModelPath = "Assets/Art/Models/Vehicles/DuneFoil/dune_foil_rig.fbx";
-        private const string PrefabPath = "Assets/Prefabs/agents/vehicle/DuneFoil.prefab";
-        private const string WindPrefabPath = "Assets/Prefabs/environment/Wind.prefab";
-        private const string MaterialFolder = "Assets/Art/Models/Vehicles/DuneFoil/Materials";
+        private const string ModelPath = "Assets/Game/Art/Models/Vehicles/DuneFoil/dune_foil_rig.fbx";
+        // Both paths were left behind by the domain-first restructure, and both fail silently
+        // rather than loudly: SaveAsPrefabAsset happily creates the folder it is given, so a
+        // rebuild wrote a brand-new prefab at the old path while the world instance in
+        // persistentScene went on referencing the real one, untouched. The build log said it had
+        // succeeded. Anything here that names a folder is worth re-checking against disk.
+        private const string PrefabPath =
+            "Assets/Game/Prefabs/Agents/Vehicles/Ground/DuneFoil.prefab";
+        private const string WindPrefabPath = "Assets/Game/Prefabs/Environment/Sky/Wind.prefab";
+        private const string MaterialFolder = "Assets/Game/Art/Models/Vehicles/DuneFoil/Materials";
         private const string SailMaterialPath = MaterialFolder + "/SailCloth_Foil.mat";
         private const string RopeMaterialPath = MaterialFolder + "/Rope_Foil.mat";
 
         // The four sails, and how each is rigged. Node names come from dune_foil_rig.py.
         //
-        // `invert` exists because the two wing sails mirror each other: the same positive sheet
-        // angle swings one outboard and the other inboard, so one of the pair has to be flipped.
+        // Only two of them have a winch. The wing panels are part of the main's sail plan and are
+        // trimmed with it — see the sheet slaving in BuildSails — so the craft has exactly the
+        // three controls it is meant to have: the helm, the main (sheet and post cant), and the
+        // jib. A sail with no control that still makes force is a rig that fights the player for
+        // reasons they can neither see nor change.
         private readonly struct SailSpec
         {
             public readonly string Group;
             public readonly string Label;
             public readonly float MinSheet;
             public readonly float MaxSheet;
-            public readonly bool Invert;
 
-            public SailSpec(string group, string label, float minSheet, float maxSheet, bool invert)
+            public SailSpec(string group, string label, float minSheet, float maxSheet)
             {
-                Group = group; Label = label; MinSheet = minSheet; MaxSheet = maxSheet; Invert = invert;
+                Group = group; Label = label; MinSheet = minSheet; MaxSheet = maxSheet;
             }
         }
 
@@ -63,13 +71,26 @@ namespace SpaceGame.EditorTools
             // out lets the main flag, the jib takes over, and the bow falls off the wind. That is
             // both how a real boat is steered on sail balance and what makes the rope a two-way
             // control rather than a throttle.
-            new SailSpec("Main",  "Main",          5f, 90f, false),
+            new SailSpec("Main",  "Main",          5f, 90f),
             // A jib is sheeted much closer; let it out past about 45 degrees and it just flogs.
-            new SailSpec("Jib",   "Jib",           3f, 45f, false),
+            new SailSpec("Jib",   "Jib",           3f, 45f),
             // The wing sails feather rather than sheet, so they travel a narrow range.
-            new SailSpec("WingS", "WingStarboard", 2f, 35f, false),
-            new SailSpec("WingP", "WingPort",      2f, 35f, true),
+            new SailSpec("WingS", "WingStarboard", 2f, 35f),
+            new SailSpec("WingP", "WingPort",      2f, 35f),
         };
+
+        /// <summary>How far the main's post lays down at full lean, degrees.</summary>
+        private const float MaxCantAngle = 32f;
+
+        /// <summary>
+        /// Righting moment the rig's own weight makes at full lean, per square metre of sail.
+        ///
+        /// Tuned so that leaning the main's post right into the wind removes roughly half the
+        /// heel it would otherwise carry in a good breeze. Much less and the control is a
+        /// decoration; much more and leaning the post becomes a way to sail the craft on its
+        /// other ear, which is neither useful nor what a canting rig does.
+        /// </summary>
+        private const float CantRightingPerSquareMetre = 70f;
 
         [MenuItem("Tools/Vehicles/Build Dune Foil Prefab")]
         public static void Build()
@@ -78,9 +99,9 @@ namespace SpaceGame.EditorTools
             if (source == null)
             {
                 Debug.LogError($"[DuneFoilBuilder] No model at {ModelPath}. Run " +
-                               "Assets/Art/Models/_Source~/models/vehicles/dune_foil_rig.py first:\n" +
-                               "  blender --background Assets/Art/Models/_Source~/models/vehicles/dune_foil.blend " +
-                               "--python Assets/Art/Models/_Source~/models/vehicles/dune_foil_rig.py");
+                               "Assets/Game/Art/Models/_Source~/models/vehicles/dune_foil_rig.py first:\n" +
+                               "  blender --background Assets/Game/Art/Models/_Source~/models/vehicles/dune_foil.blend " +
+                               "--python Assets/Game/Art/Models/_Source~/models/vehicles/dune_foil_rig.py");
                 return;
             }
 
@@ -114,6 +135,7 @@ namespace SpaceGame.EditorTools
 
             SailRig rig = root.AddComponent<SailRig>();
             FoilLift foil = root.AddComponent<FoilLift>();
+            FoilRudder rudder = root.AddComponent<FoilRudder>();
             DuneFoilLocomotion locomotion = root.AddComponent<DuneFoilLocomotion>();
 
             // The foil is the centre of lateral resistance. Every sail's steering lever is measured
@@ -121,9 +143,24 @@ namespace SpaceGame.EditorTools
             float foilZ = MeasureBounds(foilStrut).center.z;
             float strutLength = MeasureStrutLength(foilRoot, foilStrut);
 
-            List<SailSurface> surfaces = BuildSails(foilRoot, rig, foilZ, out SailSurface main,
-                                                    out SailSurface jib);
+            // The wheel turns the strut. Its own node is the pivot — that is where the strut meets
+            // the hull — so all this has to do is hand FoilRudder the transform and tell it how
+            // long the craft is.
+            //
+            // The wheelbase is the hull, NOT the blade's lever arm off the pivot. Taken literally
+            // the blade sits 3.6 m aft of its own pivot, which would put an eighteen-metre hull on
+            // a ten-metre turning circle at half lock — a craft that pirouettes. The hull resists
+            // sliding sideways along its whole length and that is what actually sets the circle.
+            Bounds hullBounds = MeasureBounds(hull);
+            rudder.Bind(foilStrut, hullBounds.size.z);
+
+            List<SailSurface> surfaces = BuildSails(root.transform, foilRoot, rig, foilZ,
+                                                    out SailSurface main, out SailSurface jib);
             rig.Bind(surfaces, main, jib);
+
+            // The wing panels answer the main's winch. Done after the rig is bound so the whole
+            // set exists to point at.
+            BindWingsToMain(surfaces, main, jib);
 
             // Place the centre of lateral resistance for a rig that balances.
             //
@@ -145,6 +182,7 @@ namespace SpaceGame.EditorTools
 
             float deckLevel = BuildColliders(root, hull, foilStrut, out BoxCollider carryVolume);
             BuildStations(foilRoot, rig, main, jib, deckLevel);
+            BuildHelm(foilRoot, locomotion, deckLevel);
             BuildRigging(root, foilRoot, surfaces);
             BuildBoardingRamp(root, hull, foil, deckLevel);
 
@@ -154,9 +192,28 @@ namespace SpaceGame.EditorTools
             // "carried" comes to include anybody standing on the sand alongside. Walking up to a
             // parked craft then dragged the player about with the hull.
             WalkerPlatformCarrier carrier = root.AddComponent<WalkerPlatformCarrier>();
-            var carrierSo = new SerializedObject(carrier);
-            carrierSo.FindProperty("carryVolume").objectReferenceValue = carryVolume;
-            carrierSo.ApplyModifiedPropertiesWithoutUndo();
+            carrier.BindCarryVolume(carryVolume);
+
+            // Looking at the hull and pressing E puts you on the deck. The gangway is still there and
+            // still walkable; this is the way aboard that does not depend on being on the one side of
+            // an eighteen-metre hull the plank happens to be on.
+            BoxCollider deckCollider = null;
+            foreach (BoxCollider box in root.GetComponentsInChildren<BoxCollider>(true))
+                if (box.name == "COL_Deck") deckCollider = box;
+
+            DeckBoarding boarding = root.AddComponent<DeckBoarding>();
+            boarding.Bind(deckCollider, carryVolume, foil);
+
+            // The sails are shipped set, so the hull has to be held or the craft leaves its berth
+            // on the frame the scene loads. Released the moment somebody stands on the deck.
+            DuneFoilMooring mooring = root.AddComponent<DuneFoilMooring>();
+            mooring.Bind(locomotion, carrier);
+
+            // Where the wind is, how fast the craft is going, and whether the sails are drawing.
+            // Drawn only for somebody standing in the carry volume; see DuneFoilHUD for why a
+            // wind indicator is not optional on a vessel steered by an invisible force.
+            DuneFoilHUD hud = root.AddComponent<DuneFoilHUD>();
+            hud.Bind(locomotion, rig, carryVolume);
 
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PrefabPath));
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
@@ -173,8 +230,9 @@ namespace SpaceGame.EditorTools
 
         // ---------------------------------------------------------------- sails
 
-        private static List<SailSurface> BuildSails(Transform foilRoot, SailRig rig, float foilZ,
-                                                    out SailSurface main, out SailSurface jib)
+        private static List<SailSurface> BuildSails(Transform craft, Transform foilRoot, SailRig rig,
+                                                    float foilZ, out SailSurface main,
+                                                    out SailSurface jib)
         {
             List<SailSurface> surfaces = new List<SailSurface>();
             main = null;
@@ -182,37 +240,50 @@ namespace SpaceGame.EditorTools
 
             foreach (SailSpec spec in Sails)
             {
-                Transform rake = FindDeep(foilRoot, spec.Group + "_Rake");
-                Transform yaw = FindDeep(foilRoot, spec.Group + "_Yaw");
+                Transform cantPivot = FindDeep(foilRoot, spec.Group + "_Rake");
+                Transform spar = FindDeep(foilRoot, spec.Group + "_Yaw");
                 Transform cloth = FindDeep(foilRoot, "Sail_" + spec.Group);
                 Transform clew = FindDeep(foilRoot, "Anchor_" + spec.Group + "_Clew");
+                Transform post = FindDeep(foilRoot, spec.Group + "_Post");
 
-                if (rake == null || yaw == null || cloth == null)
+                if (cantPivot == null || spar == null || cloth == null)
                 {
                     Debug.LogWarning($"[DuneFoilBuilder] Sail '{spec.Group}' is missing rig nodes " +
                                      "and was skipped.");
                     continue;
                 }
 
-                // The component goes on the rake pivot, so one sail is one object in the hierarchy.
-                SailSurface sail = rake.gameObject.AddComponent<SailSurface>();
+                // The component goes on the cant pivot, so one sail is one object in the hierarchy.
+                SailSurface sail = cantPivot.gameObject.AddComponent<SailSurface>();
 
                 float area = MeasureSailArea(cloth);
-                float lever = MeasureBounds(cloth).center.z - foilZ;
+                Bounds clothBounds = MeasureBounds(cloth);
+                float lever = clothBounds.center.z - foilZ;
 
-                sail.Bind(rake, yaw, cloth.gameObject, clew, area, lever);
-                sail.ConfigureSheet(spec.MinSheet, spec.MaxSheet, spec.Invert);
+                sail.Bind(cantPivot, spar, cloth.gameObject, clew, craft, area, lever);
+                sail.ConfigureSheet(spec.MinSheet, spec.MaxSheet);
 
-                // Ship it moored: sails furled.
+                Vector3 sparAxis = MeasureSparAxis(spar, post);
+                float centreHeight = Mathf.Max(0.5f, clothBounds.center.y - cantPivot.position.y);
+                sail.ConfigurePost(sparAxis, centreHeight, area * CantRightingPerSquareMetre,
+                                   MaxCantAngle);
+
+                Debug.Log($"[DuneFoilBuilder] Sail '{spec.Group}': {area:F1} m², lever " +
+                          $"{lever:F2} m, centre of effort {centreHeight:F2} m up the post, " +
+                          $"spar axis {sparAxis}.");
+
+                // Ship it with the sails SET, so the craft is ready to sail the moment you step
+                // aboard rather than making you find the hoist station first.
                 //
-                // With sails set, a craft dropped into the world simply leaves. It catches the wind
-                // on the frame the scene loads and sails off — measured at 293 m from the player
-                // spawn within seconds of pressing play, foiling, with the gangway stowed and no way
-                // to reach it. Furled, it sits on the sand with the gangway down until somebody
-                // boards and hoists, which is also how a real craft is left.
-                sail.SetHoisted(false);
+                // What used to stop this: with sails set, a craft dropped into the world simply
+                // leaves. It catches the wind on the frame the scene loads and sails off — measured
+                // at 293 m from the player spawn within seconds of pressing play, foiling, with the
+                // gangway stowed and no way to reach it. That is now handled at the other end, by
+                // DuneFoilMooring holding the hull still until somebody is actually on the deck, so
+                // the rig can be left drawing without the craft running away from its berth.
+                sail.SetHoisted(true);
 
-                rake.name = spec.Label + "_Rig";
+                cantPivot.name = spec.Label + "_Rig";
                 surfaces.Add(sail);
 
                 if (spec.Group == "Main") main = sail;
@@ -220,6 +291,73 @@ namespace SpaceGame.EditorTools
             }
 
             return surfaces;
+        }
+
+        /// <summary>
+        /// Which of the spar pivot's own axes the post actually runs along.
+        ///
+        /// Worth measuring rather than assuming, and the shipped rig is the argument: the sail
+        /// trim used to turn the spar pivot about its local Y, on the stated reasoning that
+        /// "Blender +Z exports to Unity +Y". That holds for the imported ROOT, which carries the
+        /// axis correction, and is false for every node under it — those keep Blender-native local
+        /// axes. So the trim control was swinging the whole mast a hundred and twenty degrees off
+        /// its own line instead of rotating the sail about it. Turning about the post's real
+        /// direction moves the post by five degrees, which is the rounding on a curved yard.
+        ///
+        /// Snapped to the nearest local axis when it is close to one, because the rig script fitted
+        /// that axis over the whole bowed spar and a two-point measurement here should not
+        /// second-guess it. Falls back to the measured direction otherwise.
+        /// </summary>
+        private static Vector3 MeasureSparAxis(Transform spar, Transform post)
+        {
+            if (post == null) return Vector3.forward;
+
+            Vector3 direction = MeasureBounds(post).center - spar.position;
+            if (direction.sqrMagnitude < 1e-6f) return Vector3.forward;
+
+            Vector3 local = spar.InverseTransformDirection(direction).normalized;
+
+            Vector3[] candidates =
+            {
+                Vector3.right, Vector3.left, Vector3.up, Vector3.down,
+                Vector3.forward, Vector3.back,
+            };
+
+            Vector3 best = local;
+            float bestAngle = 15f;      // only snap when it is genuinely the same axis
+            foreach (Vector3 candidate in candidates)
+            {
+                float angle = Vector3.Angle(local, candidate);
+                if (angle < bestAngle) { bestAngle = angle; best = candidate; }
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// Put the wing panels on the main's sheet.
+        ///
+        /// They have no winch of their own and they never did, which meant two sails on the craft
+        /// were making force at whatever trim they were serialised with and biasing the helm for
+        /// reasons the player could neither see nor change. Slaving them is also what the model
+        /// depicts: they flank the main at half a metre of lever, panels of one sail plan rather
+        /// than sails in their own right.
+        /// </summary>
+        private static void BindWingsToMain(List<SailSurface> surfaces, SailSurface main,
+                                            SailSurface jib)
+        {
+            if (main == null) return;
+
+            List<SailSurface> slaves = new List<SailSurface>();
+            foreach (SailSurface sail in surfaces)
+                if (sail != null && sail != main && sail != jib) slaves.Add(sail);
+
+            main.BindSheetSlaves(slaves);
+
+            // Put them where the main is now, so the craft starts coherently trimmed rather than
+            // waiting for the first touch of the winch to pull them into line.
+            main.SetSheet(main.SheetOut);
+
+            Debug.Log($"[DuneFoilBuilder] Main sheet also works {slaves.Count} wing panel(s).");
         }
 
         /// <summary>
@@ -434,12 +572,21 @@ namespace SpaceGame.EditorTools
             }
 
             // --- the strut ------------------------------------------------------
+            // Hung off the strut NODE rather than off the collision root, because the strut is
+            // steerable now: the wheel swings it about the vertical and the collider has to go
+            // with it, or the craft turns while its collision stands still.
+            //
+            // Parented keeping the world transform and then squared up to the world, so the box
+            // is axis-aligned with the measured bounds. Every scale on this model is 1, so the
+            // box stays undistorted as the parent turns.
             GameObject strut = new GameObject("COL_Strut");
-            strut.transform.SetParent(collision.transform, false);
             Bounds sb = MeasureBounds(foilStrut);
+            strut.transform.SetParent(foilStrut, true);
+            strut.transform.position = sb.center;
+            strut.transform.rotation = Quaternion.identity;
             BoxCollider strutBox = strut.AddComponent<BoxCollider>();
             strutBox.size = sb.size;
-            strutBox.center = root.transform.InverseTransformPoint(sb.center);
+            strutBox.center = Vector3.zero;
 
             // --- carry volume ---------------------------------------------------
             // Head height over the deck and no further. Deliberately not the whole craft: this is
@@ -543,40 +690,87 @@ namespace SpaceGame.EditorTools
             "Station_Hoist", "Station_MainSheet", "Station_JibSheet", "Station_MastRake",
         };
 
+        /// <summary>
+        /// One colour per control, so four winches on one deck stop being four grey spheres.
+        /// The grip mesh built on each handle wears this, and it is the only way to tell the
+        /// halyard from the jib sheet from across the deck rather than by aiming at it.
+        /// </summary>
+        private static readonly Dictionary<string, Color> StationColours =
+            new Dictionary<string, Color>
+            {
+                { "Station_Hoist",     new Color(0.95f, 0.78f, 0.25f) },   // amber: halyards
+                { "Station_MainSheet", new Color(0.30f, 0.72f, 0.95f) },   // blue: the main
+                { "Station_JibSheet",  new Color(0.35f, 0.85f, 0.45f) },   // green: the jib
+                { "Station_MastRake",  new Color(0.85f, 0.40f, 0.85f) },   // violet: the mast cant
+                { "Station_Helm",      new Color(0.95f, 0.35f, 0.30f) },   // red: the wheel
+            };
+
         private static void BuildStations(Transform foilRoot, SailRig rig, SailSurface main,
                                           SailSurface jib, float deckLevel)
         {
-            // Size the handles from how far apart the winches actually are.
+            // Size each handle against its OWN nearest neighbour, not against the closest pair
+            // on the whole deck.
             //
-            // A fixed radius does not work: these four sit between 1.3 m and 6 m apart along the
-            // deck, so a radius chosen to make the lonely ones easy to hit makes the close pair
-            // overlap — and then aiming at the far one of the pair just hits the near one, and a
-            // control the player is looking straight at silently refuses.
-            float nearest = float.MaxValue;
+            // The old rule took one global radius from the tightest pair and gave it to all four.
+            // That pair is Hoist and JibSheet, 1.50 m apart, so every handle became a 0.60 m
+            // sphere — leaving 30 cm of clear air between those two at chest height. Both answer
+            // left click; on the jib that hauls in, and on the hoist it used to strike the entire
+            // rig instantly. A crosshair a few degrees off while trimming the jib and the sails
+            // simply vanished mid-passage. The halyard is no longer destructive, but the aiming
+            // problem was real on its own and this is the half of the fix that belongs here.
+            // Measured where the handles END UP, not where the winches are.
+            //
+            // AddStation lifts every handle to one common deck height, so two winches that sit
+            // 1.50 m apart on a curved deck — most of it a height difference — leave handles only
+            // 1.33 m apart once they are levelled. Sizing off the nodes quietly overstates the
+            // room available and hands back the crowding this is meant to remove.
             List<Vector3> spots = new List<Vector3>();
             foreach (string n in StationNodes)
             {
                 Transform t = FindDeep(foilRoot, n);
-                if (t != null) spots.Add(t.position);
+                spots.Add(t != null
+                    ? new Vector3(t.position.x, deckLevel + HandleHeight, t.position.z)
+                    : Vector3.positiveInfinity);
             }
-            for (int i = 0; i < spots.Count; i++)
-                for (int j = i + 1; j < spots.Count; j++)
+
+            float[] radii = new float[StationNodes.Length];
+            for (int i = 0; i < StationNodes.Length; i++)
+            {
+                if (float.IsInfinity(spots[i].x)) { radii[i] = 0.45f; continue; }
+
+                float nearest = float.MaxValue;
+                for (int j = 0; j < StationNodes.Length; j++)
+                {
+                    if (i == j || float.IsInfinity(spots[j].x)) continue;
                     nearest = Mathf.Min(nearest, Vector3.Distance(spots[i], spots[j]));
+                }
 
-            // Comfortably inside half the gap, so neighbours never touch.
-            float radius = spots.Count < 2 ? 0.7f : Mathf.Clamp(nearest * 0.40f, 0.30f, 0.70f);
+                // A third of the gap rather than 40%, so neighbouring spheres are separated by at
+                // least as much air as they occupy. Two handles that nearly touch are two handles
+                // the player will confuse.
+                radii[i] = nearest == float.MaxValue
+                    ? 0.55f
+                    : Mathf.Clamp(nearest * 0.33f, 0.26f, 0.55f);
+            }
 
-            AddStation(foilRoot, "Station_Hoist", DuneFoilRiggingStation.StationFunction.Hoist,
-                       rig, null, deckLevel, radius);
-            AddStation(foilRoot, "Station_MainSheet", DuneFoilRiggingStation.StationFunction.Sheet,
-                       rig, main, deckLevel, radius);
-            AddStation(foilRoot, "Station_JibSheet", DuneFoilRiggingStation.StationFunction.Sheet,
-                       rig, jib, deckLevel, radius);
-            AddStation(foilRoot, "Station_MastRake", DuneFoilRiggingStation.StationFunction.MastRake,
-                       rig, main, deckLevel, radius);
+            // Four handles, three controls plus the halyards: the main's sheet, the main's post
+            // cant, the jib's sheet, and the hoist that depowers the whole rig. The wing panels
+            // ride on the main's sheet, so nothing on the craft is unreachable.
+            var functions = new[]
+            {
+                DuneFoilRiggingStation.StationFunction.Hoist,
+                DuneFoilRiggingStation.StationFunction.Sheet,
+                DuneFoilRiggingStation.StationFunction.Sheet,
+                DuneFoilRiggingStation.StationFunction.MastCant,
+            };
+            var sails = new[] { null, main, jib, main };
 
-            Debug.Log($"[DuneFoilBuilder] Stations: closest pair {nearest:F2} m apart -> " +
-                      $"handle radius {radius:F2} m.");
+            for (int i = 0; i < StationNodes.Length; i++)
+            {
+                AddStation(foilRoot, StationNodes[i], functions[i], rig, sails[i], deckLevel,
+                           radii[i]);
+                Debug.Log($"[DuneFoilBuilder] {StationNodes[i]}: handle radius {radii[i]:F2} m.");
+            }
         }
 
         /// <summary>
@@ -588,13 +782,14 @@ namespace SpaceGame.EditorTools
         /// has to find the sliver of it that pokes through. A handle at a known height above the
         /// walking surface is something you can just look at.
         /// </summary>
+        /// <summary>Above the deck: roughly chest height. Every handle is levelled to this.</summary>
+        private const float HandleHeight = 1.0f;
+
         private static void AddStation(Transform foilRoot, string nodeName,
                                        DuneFoilRiggingStation.StationFunction function,
                                        SailRig rig, SailSurface sail, float deckLevel,
                                        float handleRadius)
         {
-            const float handleHeight = 1.0f;      // above the deck: roughly chest height
-
             Transform node = FindDeep(foilRoot, nodeName);
             if (node == null)
             {
@@ -609,7 +804,7 @@ namespace SpaceGame.EditorTools
             GameObject handle = new GameObject("Handle");
             handle.transform.SetParent(node, false);
             // Keep the winch's own x/z, lift it to a height the player can see and aim at.
-            Vector3 world = new Vector3(node.position.x, deckLevel + handleHeight, node.position.z);
+            Vector3 world = new Vector3(node.position.x, deckLevel + HandleHeight, node.position.z);
             handle.transform.position = world;
 
             SphereCollider hit = handle.AddComponent<SphereCollider>();
@@ -618,6 +813,146 @@ namespace SpaceGame.EditorTools
 
             // Interactor resolves IInteractable by GetComponent then GetComponentInParent, so the
             // collider on this child finds the station on the node above it.
+
+            AddGrip(handle.transform, nodeName, handleRadius);
+        }
+
+        /// <summary>
+        /// A visible, colour-coded grip on the handle.
+        ///
+        /// Until now the interaction volume was an invisible sphere floating a metre above a winch
+        /// that is itself modelled at and below deck level. There was nothing to look at, nothing
+        /// to distinguish one control from another, and no way to learn the rig except by pressing
+        /// buttons and watching what happened — which on the hoist meant losing every sail. The
+        /// grip is small, so it does not clutter a deck that is also a walking surface, but it is
+        /// lit and coloured so it reads instantly from the far end of the hull.
+        /// </summary>
+        private static void AddGrip(Transform handle, string nodeName, float handleRadius)
+        {
+            if (!StationColours.TryGetValue(nodeName, out Color colour))
+                colour = new Color(0.85f, 0.85f, 0.85f);
+
+            // Scaled off the handle so a tight-packed pair gets small grips and a lonely control
+            // gets a big one — the grip always looks like the thing you can actually hit.
+            float shaft = Mathf.Clamp(handleRadius * 0.45f, 0.17f, 0.24f);
+
+            GameObject grip = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            grip.name = "Grip";
+            grip.transform.SetParent(handle, false);
+            grip.transform.localPosition = Vector3.zero;
+
+            // Upright in WORLD space, and scaled UNIFORMLY, both for the same reason.
+            //
+            // Everything under the imported model inherits the FBX importer's Blender Z-up to
+            // Unity Y-up correction, so this node's local axes are not the world's. A capsule
+            // stretched along its local Y therefore lay flat on the planks — the first attempt
+            // produced a 0.43 m disc 0.14 m thick, which from a standing player reads as a coin
+            // someone dropped rather than as a control. Uniform scale cannot be skewed by that
+            // rotation at all, and a capsule is already 2:1, so this stands up on its own.
+            grip.transform.rotation = Quaternion.identity;
+            grip.transform.localScale = Vector3.one * shaft;
+
+            // No collider: the sphere above is the interaction volume, and a second collider here
+            // would be one more thing for the player's own capsule to catch on while walking the
+            // deck. Interactor hits the sphere; this is purely something to look at.
+            Object.DestroyImmediate(grip.GetComponent<Collider>());
+
+            grip.GetComponent<MeshRenderer>().sharedMaterial = EnsureGripMaterial(nodeName, colour);
+        }
+
+        private const string GripMaterialFolder =
+            "Assets/Game/Art/Models/Vehicles/DuneFoil/Materials";
+
+        /// <summary>
+        /// Load the grip material or create it. Reused rather than recreated, so rebuilding the
+        /// prefab does not orphan a fresh material asset every time and leave the old ones behind
+        /// referenced by nothing.
+        /// </summary>
+        private static Material EnsureGripMaterial(string nodeName, Color colour)
+        {
+            System.IO.Directory.CreateDirectory(GripMaterialFolder);
+            string path = $"{GripMaterialFolder}/Mat_Grip_{nodeName}.mat";
+
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            bool isNew = material == null;
+            if (isNew) material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+
+            material.color = colour;
+            material.SetFloat("_Smoothness", 0.35f);
+            material.EnableKeyword("_EMISSION");
+            material.SetColor("_EmissionColor", colour * 0.55f);
+
+            if (isNew) AssetDatabase.CreateAsset(material, path);
+            else EditorUtility.SetDirty(material);
+
+            return material;
+        }
+
+        // ----------------------------------------------------------------- helm
+
+        /// <summary>
+        /// Makes the ship's wheel steerable: E takes the helm, A and D turn it.
+        ///
+        /// The craft was designed with no rudder — heading came only from trimming main against
+        /// jib — which is an honest model of a sand yacht and close to unusable as a control. The
+        /// wheel comes in from the shared component library through dune_foil_rig.py, on a
+        /// Station_Helm node whose origin is the wheel's hub with the pedestal hanging below it.
+        /// All this has to do is seat that node at standing height and wire the pieces up.
+        /// </summary>
+        /// <summary>How far abaft the wheel the helmsman stands, metres.</summary>
+        private const float HelmStanceOffset = 0.85f;
+
+        private static void BuildHelm(Transform foilRoot, DuneFoilLocomotion locomotion,
+                                      float deckLevel)
+        {
+            Transform node = FindDeep(foilRoot, "Station_Helm");
+            if (node == null)
+            {
+                Debug.LogWarning("[DuneFoilBuilder] No 'Station_Helm' node in the model, so the " +
+                                 "craft has no wheel and can only be steered by sail balance. " +
+                                 "Re-export the rig with dune_foil_rig.py.");
+                return;
+            }
+
+            Transform wheel = FindDeep(node, "Helm_Wheel");
+
+            // Seat the assembly on the deck. The node IS the hub and the pedestal is modelled
+            // hanging below it, so one Y places the whole thing with its foot on the planks.
+            const float hubHeight = 1.02f;      // matches the pedestal in ships_wheel.py
+            node.position = new Vector3(node.position.x, deckLevel + hubHeight, node.position.z);
+
+            // Where the helmsman stands: on the planks, a pace abaft the wheel, facing forward.
+            // Their feet are held here for as long as they have the helm — see the pin in
+            // DuneFoilHelm.LateUpdate for why a heeling deck makes that necessary.
+            GameObject stance = new GameObject("HelmStance");
+            stance.transform.SetParent(node, true);
+            stance.transform.position = new Vector3(node.position.x,
+                                                    deckLevel,
+                                                    node.position.z - HelmStanceOffset);
+            stance.transform.rotation = Quaternion.identity;
+
+            DuneFoilHelm helm = node.gameObject.AddComponent<DuneFoilHelm>();
+            helm.Bind(locomotion, wheel, stance.transform);
+
+            // The wheel itself is what you look at and press E on, so the interaction volume goes
+            // on the wheel rather than on the pedestal — aiming at a post to steer would be the
+            // same "where do I click" problem the rope stations had.
+            GameObject handle = new GameObject("Handle");
+            handle.transform.SetParent(node, false);
+            handle.transform.localPosition = Vector3.zero;
+
+            SphereCollider hit = handle.AddComponent<SphereCollider>();
+            hit.radius = 0.46f;                 // a little inside the 0.62 m rim
+            hit.isTrigger = false;
+
+            // No coloured grip here, unlike the rope stations. A ship's wheel already announces
+            // what it is and where to stand; a marker pinned to the hub would either be swallowed
+            // by the boss or sit still while the wheel turned past it.
+
+            Debug.Log($"[DuneFoilBuilder] Helm seated at y {node.position.y:F2} " +
+                      $"(deck {deckLevel:F2} + {hubHeight:F2}); wheel " +
+                      $"{(wheel != null ? "bound" : "MISSING")}, spin axis " +
+                      $"{DuneFoilHelm.MeasureSpinAxis(wheel)}.");
         }
 
         // -------------------------------------------------------------- rigging
@@ -792,7 +1127,7 @@ namespace SpaceGame.EditorTools
         {
             if (AssetDatabase.LoadAssetAtPath<GameObject>(WindPrefabPath) != null) return;
 
-            EnsureFolder("Assets/Prefabs/environment");
+            EnsureFolder("Assets/Game/Prefabs/environment");
 
             GameObject wind = new GameObject("Wind");
             wind.AddComponent<WindField>();

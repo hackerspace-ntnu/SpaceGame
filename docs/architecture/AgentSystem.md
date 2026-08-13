@@ -1,6 +1,6 @@
 # AGENT.CLAUDE — Claude Reference for the Agent System
 
-Purpose: a single file Claude can read to answer any question about the agent/AI system in `Assets/Scripts/agents/` — how components fit together, what every module does, and how to assemble new agents from parts.
+Purpose: a single file Claude can read to answer any question about the agent/AI system in `Assets/Game/Scripts/agents/` — how components fit together, what every module does, and how to assemble new agents from parts.
 
 The system is a modular **drag-and-drop behaviour architecture**. One `AgentController` ticks a set of `IBehaviourModule` components each frame. Each module can return a `MoveIntent` or pass. Priority-based arbitration picks the winner; side-effect modules run unconditionally.
 
@@ -29,7 +29,7 @@ The system is a modular **drag-and-drop behaviour architecture**. One `AgentCont
  are ticked every frame regardless of who owns movement.
 ```
 
-**Per-frame flow** (inside `AgentController.Update`, see [AgentController.cs](Assets/Scripts/agents/controller/AgentController.cs)):
+**Per-frame flow** (inside `AgentController.Update`, see [AgentController.cs](Assets/Game/Scripts/agents/controller/AgentController.cs)):
 
 1. Build an `AgentContext` snapshot (position, velocity, reached destination, nearby agents if enabled).
 2. Tick every `ClaimsMovement == false` module (side effects — never returns a MoveIntent).
@@ -42,33 +42,33 @@ Key contracts:
 
 | Interface / struct | File | Purpose |
 |---|---|---|
-| `IBehaviourModule` | [IBehaviourModule.cs](Assets/Scripts/agents/modules/IBehaviourModule.cs) | Module contract: `Priority`, `IsActive`, `ClaimsMovement`, `Tick()` |
-| `BehaviourModuleBase` | [BehaviourModuleBase.cs](Assets/Scripts/agents/modules/BehaviourModuleBase.cs) | Abstract base; exposes priority + active toggle in Inspector |
+| `IBehaviourModule` | [IBehaviourModule.cs](Assets/Game/Scripts/agents/modules/IBehaviourModule.cs) | Module contract: `Priority`, `IsActive`, `ClaimsMovement`, `Tick()` |
+| `BehaviourModuleBase` | [BehaviourModuleBase.cs](Assets/Game/Scripts/agents/modules/BehaviourModuleBase.cs) | Abstract base; exposes priority + active toggle in Inspector |
 | `ModulePriority` | same file | Named priority constants (`Scripted=100`, `Override=30`, `MeleeAttack=23`, `RangedAttack=22`, `Reactive=20`, `Social=15`, `Ambient=10`, `Personality=5`, `Fallback=0`) |
-| `AgentContext` | [AgentContext.cs](Assets/Scripts/agents/AI/AgentContext.cs) | Frame snapshot passed to every module |
-| `MoveIntent` | [MoveIntent.cs](Assets/Scripts/agents/AI/MoveIntent.cs) | `Idle` / `MoveTo` / `StopAndFace`; carries speed, facing override, stop distance |
-| `IMovementMotor` | [IMovementMotor.cs](Assets/Scripts/agents/AI/motor/IMovementMotor.cs) | Applies a `MoveIntent` (NavMesh, rigidbody, or any motor) |
-| `IAgentBrain` (legacy) | [IAgentBrain.cs](Assets/Scripts/agents/AI/brains/IAgentBrain.cs) | Old single-brain fallback — still supported; don't extend |
+| `AgentContext` | [AgentContext.cs](Assets/Game/Scripts/agents/AI/AgentContext.cs) | Frame snapshot passed to every module |
+| `MoveIntent` | [MoveIntent.cs](Assets/Game/Scripts/agents/AI/MoveIntent.cs) | `Idle` / `MoveTo` / `StopAndFace`; carries speed, facing override, stop distance |
+| `IMovementMotor` | [IMovementMotor.cs](Assets/Game/Scripts/agents/AI/motor/IMovementMotor.cs) | Applies a `MoveIntent` (NavMesh, rigidbody, or any motor) |
+| `IAgentBrain` (legacy) | [IAgentBrain.cs](Assets/Game/Scripts/agents/AI/brains/IAgentBrain.cs) | Old single-brain fallback — still supported; don't extend |
 
 ---
 
 ## 2. Required Unity components on every agent
 
-Every agent **must** have this baseline. The editor's `Generate` button on any `EntityProfile_*` wires all of them via `EntityProfileEditorUtils.SetupBaseComponents` ([EntityProfileEditors.cs:86](Assets/Editor/EntityProfileEditors.cs#L86)).
+Every agent **must** have this baseline. The editor's `Generate` button on any `EntityProfile_*` wires all of them via `EntityProfileEditorUtils.SetupBaseComponents` ([EntityProfileEditors.cs:86](Assets/Game/Editor/EntityProfileEditors.cs#L86)).
 
 | Component | Role | Notes |
 |---|---|---|
 | `Rigidbody` | Collision layer queries | **Kinematic + no gravity**. NavMeshAgent owns movement; the rigidbody is only for `OverlapSphere`/layer lookups. |
 | `CapsuleCollider` | Physics/collision shape | Required for hits (projectile impacts, interaction raycasts). |
 | `NavMeshAgent` | Unity pathfinding | Requires a baked NavMesh in the scene. Set speed, radius, height here. |
-| `NavMeshAgentMotor` | `IMovementMotor` impl | Translates `MoveIntent` → `NavMeshAgent.SetDestination` / `isStopped` / facing. Also implements `IMountJumpMotor` and `IMountLeapMotor`. See [NavMeshAgentMotor.cs](Assets/Scripts/agents/AI/motor/NavMeshAgentMotor.cs). |
+| `NavMeshAgentMotor` | `IMovementMotor` impl | Translates `MoveIntent` → `NavMeshAgent.SetDestination` / `isStopped` / facing. Also implements `IMountJumpMotor` and `IMountLeapMotor`. See [NavMeshAgentMotor.cs](Assets/Game/Scripts/agents/AI/motor/NavMeshAgentMotor.cs). |
 | `AgentController` | Module coordinator | Main tick loop. Auto-resolves motor + animator if the Inspector slots are empty. |
 | `Animator` | Unity's animator | Usually on a child mesh; needs params `SpeedX`, `SpeedY`, `FallSpeed`, `IsGrounded`, `IsImmobalized`, and optional triggers (`Hurt`, `Death`, `Meele`, `AssualtShoot`, `IsAiming`). |
-| `AgentAnimatorDriver` | Animator bridge | Converts motor `Velocity` → local-space `SpeedX/Y`. Walk speed is boosted with `walkAnimBoost` so walk anims don't look sluggish. [File](Assets/Scripts/agents/animation/AgentAnimatorDriver.cs). |
+| `AgentAnimatorDriver` | Animator bridge | Converts motor `Velocity` → local-space `SpeedX/Y`. Walk speed is boosted with `walkAnimBoost` so walk anims don't look sluggish. [File](Assets/Game/Scripts/agents/animation/AgentAnimatorDriver.cs). |
 | `HealthComponent` | HP tracking | Standard damage/death events. |
-| `HealthReactionModule` | Reacts to damage | Plays `Hurt`/`Death` triggers, emits `NoiseType.Hurt`/`Death`, runs threshold reactions (e.g. enable `FleeModule` at 30% HP), despawn timer. [File](Assets/Scripts/agents/entity/HealthReactionModule.cs). |
-| `EntityFaction` | Faction tag | Without it, the agent **cannot target or be targeted correctly**. Assign a `FactionDefinition` + `FactionRelationshipTable`. [File](Assets/Scripts/agents/faction/EntityFaction.cs). |
-| `EntityAudioModule` | Footstep/aggro/ambient | Plays FMOD + emits `NoiseType.Footstep` on each step, `NoiseType.Alert` on aggro transition. [File](Assets/Scripts/agents/audio/EntityAudioModule.cs). |
+| `HealthReactionModule` | Reacts to damage | Plays `Hurt`/`Death` triggers, emits `NoiseType.Hurt`/`Death`, runs threshold reactions (e.g. enable `FleeModule` at 30% HP), despawn timer. [File](Assets/Game/Scripts/agents/entity/HealthReactionModule.cs). |
+| `EntityFaction` | Faction tag | Without it, the agent **cannot target or be targeted correctly**. Assign a `FactionDefinition` + `FactionRelationshipTable`. [File](Assets/Game/Scripts/agents/faction/EntityFaction.cs). |
+| `EntityAudioModule` | Footstep/aggro/ambient | Plays FMOD + emits `NoiseType.Footstep` on each step, `NoiseType.Alert` on aggro transition. [File](Assets/Game/Scripts/agents/audio/EntityAudioModule.cs). |
 | `NoiseEmitter` | Sound propagation | `Emit(type, radius)` calls `OverlapSphere` and pokes `NoiseReceiverModule`s. Footsteps, hurt, gunshots all route through this. |
 | `EntityInventoryComponent` | Inventory slots | Same underlying `Inventory` the player uses. Required for loot drops and equipment. |
 | `EntityLootTable` | Death drops | Drops starting inventory + weighted `lootEntries` when `HealthComponent.OnDeath` fires. |
@@ -85,9 +85,9 @@ Optional baseline extras:
 
 Three overlapping systems are in play — modules use all three:
 
-1. **`EntityTargetRegistry`** (static) — tag-keyed registry. `RegisterAsTarget` on the player adds it under `"Player"`. Modules call `EntityTargetRegistry.Resolve("Player", position)` to get the nearest live transform. Faster than `GameObject.FindWithTag` and survives respawn without stale references. [File](Assets/Scripts/agents/EntityTargetRegistry.cs).
+1. **`EntityTargetRegistry`** (static) — tag-keyed registry. `RegisterAsTarget` on the player adds it under `"Player"`. Modules call `EntityTargetRegistry.Resolve("Player", position)` to get the nearest live transform. Faster than `GameObject.FindWithTag` and survives respawn without stale references. [File](Assets/Game/Scripts/agents/EntityTargetRegistry.cs).
 2. **`EntityFaction` + `FactionRelationshipTable`** — every targeting module has a `requiredRelationship` field (`Hostile` / `Neutral` / `Allied`). `EntityFaction.IsValidTarget(owner, candidate, required)` is the shared gate. Unfactioned entities can never be Allied and cannot target at all.
-3. **`CoverPointRegistry`** (static, in [CoverPoint.cs](Assets/Scripts/agents/modules/CoverPoint.cs)) — self-registering cover markers. `CoverModule` asks `CoverPointRegistry.FindBest(self, threat, radius)`.
+3. **`CoverPointRegistry`** (static, in [CoverPoint.cs](Assets/Game/Scripts/agents/modules/CoverPoint.cs)) — self-registering cover markers. `CoverModule` asks `CoverPointRegistry.FindBest(self, threat, radius)`.
 
 **All module target fields resolve in this order**: serialized `target` Transform → `EntityTargetRegistry.Resolve(targetTag)` → faction check → accept.
 
@@ -147,7 +147,7 @@ These inherit `BehaviourModuleBase` and override `ClaimsMovement => false`, or a
 
 | Component | Type | What it does |
 |---|---|---|
-| `PerceptionModule` | plain MB | Authoritative FoV + LoS. `CanSee(t)` (FoV + LoS from eye, updates last-known), `HasLineOfSight(t)` (LoS only), `HasLineOfSightFrom(origin, t)` (from a muzzle). Tracks `LastKnownPosition`, `TimeSinceLastSeen`, `memoryDuration`. Emits `NoiseType.Alert` when spotting. Needs `eyeTransform` (bone), `occlusionLayers`, `fieldOfViewAngle`. [File](Assets/Scripts/agents/perception/PerceptionModule.cs). |
+| `PerceptionModule` | plain MB | Authoritative FoV + LoS. `CanSee(t)` (FoV + LoS from eye, updates last-known), `HasLineOfSight(t)` (LoS only), `HasLineOfSightFrom(origin, t)` (from a muzzle). Tracks `LastKnownPosition`, `TimeSinceLastSeen`, `memoryDuration`. Emits `NoiseType.Alert` when spotting. Needs `eyeTransform` (bone), `occlusionLayers`, `fieldOfViewAngle`. [File](Assets/Game/Scripts/agents/perception/PerceptionModule.cs). |
 | `AlertBroadcaster` | plain MB | `Broadcast(target, lastKnown)` calls `OverlapSphere` within `alertRadius` on `receiverLayers` and pokes every `AlertReceiverModule` belonging to an allied `EntityFaction` (when `alliedOnly`). Call from `ChaseModule` on first spot. |
 | `NoiseEmitter` | plain MB | `Emit(NoiseType, radius)` → `OverlapSphereNonAlloc` on `receiverLayers` → `NoiseReceiverModule.OnNoiseHeard`. |
 | `EntityAudioModule` | plain MB | Auto-emits `NoiseType.Footstep` while moving; `NoiseType.Alert` on the Chase aggro edge; plays FMOD ambient SFX on a random interval. |
@@ -173,7 +173,7 @@ These inherit `BehaviourModuleBase` and override `ClaimsMovement => false`, or a
 
 ## 7. MoveIntent semantics (the module→motor contract)
 
-`MoveIntent` ([MoveIntent.cs](Assets/Scripts/agents/AI/MoveIntent.cs)):
+`MoveIntent` ([MoveIntent.cs](Assets/Game/Scripts/agents/AI/MoveIntent.cs)):
 
 - `Idle()` — claim the frame but request no movement. Use when waiting, paused, or intentionally holding.
 - `MoveTo(pos, stopDistance, speedMultiplier, overrideFacingDirection, facingDirection, isRunning)` — path to `pos`. `isRunning=true` tells the motor to use full NavMesh speed (walking uses `walkSpeedMultiplier`, default 0.65). `overrideFacingDirection` disables NavMesh auto-rotation so another system (e.g. `MountController`) can own facing.
@@ -185,14 +185,14 @@ Returning `null` from `Tick()` means "pass" — arbitration proceeds to the next
 
 ## 8. Profile → Generate workflow
 
-`EntityProfile_*` MonoBehaviours are data-only. The custom editor at [EntityProfileEditors.cs](Assets/Editor/EntityProfileEditors.cs) draws a big green "Generate" button that:
+`EntityProfile_*` MonoBehaviours are data-only. The custom editor at [EntityProfileEditors.cs](Assets/Game/Editor/EntityProfileEditors.cs) draws a big green "Generate" button that:
 
 1. Calls `EntityProfileEditorUtils.SetupBaseComponents` — adds Rigidbody, CapsuleCollider, NavMeshAgent, NavMeshAgentMotor, AgentController, AgentAnimatorDriver, HealthComponent, HealthReactionModule.
 2. Calls `GetOrAdd<>` for every behaviour module this archetype needs.
 3. Writes profile fields into those modules via `SerializedObject` (`SetFloat`, `SetInt`, `SetObject`, `SetLayerMask`, `SetString`, `SetBool`).
 4. `SetModuleActive` toggles which modules start enabled (e.g. disables `WatchModule` on NPCs that shouldn't auto-track the player).
 
-Existing profiles (all in [Assets/Scripts/agents/profiles/](Assets/Scripts/agents/profiles/)):
+Existing profiles (all in [Assets/Game/Scripts/agents/profiles/](Assets/Game/Scripts/agents/profiles/)):
 
 - `EntityProfile_BaseAgent` — minimal (HP, despawn). Does not add any behaviour modules; use as a starting baseline.
 - `EntityProfile_NPC` — friendly wanderer. Adds `FleeModule`+`WanderModule`+`WatchModule`+`ApproachModule`+`KeepDistanceModule`+`InteractionFocusModule` (latter three inactive by default).
@@ -206,7 +206,7 @@ After Generate the profile component can be deleted — all modules are fully wi
 
 **Option A — fastest, use a profile**
 
-1. Duplicate a mesh/prefab in `Assets/Prefabs/entities/` and rename.
+1. Duplicate a mesh/prefab in `Assets/Game/Prefabs/entities/` and rename.
 2. Add the matching `EntityProfile_*` component.
 3. Fill in the Inspector fields (HP, ranges, patrol base, `targetTag`, layer masks, projectile prefab…).
 4. Click **⚙ Generate**. All modules appear.
@@ -364,7 +364,7 @@ Implement `IMovementMotor` and drop on the agent. `AgentController.ResolveMotor(
 ## 15. File map
 
 ```
-Assets/Scripts/agents/
+Assets/Game/Scripts/agents/
 ├── AI/
 │   ├── AgentContext.cs           frame snapshot struct
 │   ├── MoveIntent.cs             Idle/MoveTo/StopAndFace
@@ -423,7 +423,7 @@ Assets/Scripts/agents/
 ├── EntityTargetRegistry.cs       static tag registry
 └── RegisterAsTarget.cs           add on Player et al.
 
-Assets/Editor/EntityProfileEditors.cs   generator buttons for every profile
+Assets/Game/Editor/EntityProfileEditors.cs   generator buttons for every profile
 ```
 
 ---
@@ -448,4 +448,4 @@ Assets/Editor/EntityProfileEditors.cs   generator buttons for every profile
 
 ---
 
-*When in doubt, read [BehaviourModuleBase.cs](Assets/Scripts/agents/modules/BehaviourModuleBase.cs) and any module — each one has a `ModuleDescription` string explaining its fields and behaviour inline.*
+*When in doubt, read [BehaviourModuleBase.cs](Assets/Game/Scripts/agents/modules/BehaviourModuleBase.cs) and any module — each one has a `ModuleDescription` string explaining its fields and behaviour inline.*

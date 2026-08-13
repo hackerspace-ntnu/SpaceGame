@@ -1,5 +1,5 @@
-// Builds Assets/Prefabs/agents/vehicle/DesertCrawler.prefab from
-// Assets/Art/Models/Vehicles/Crawler/desert_crawler.fbx.
+// Builds Assets/Game/Prefabs/agents/vehicle/DesertCrawler.prefab from
+// Assets/Game/Art/Models/Vehicles/Crawler/desert_crawler.fbx.
 //
 // The crawler is a six-legged habitat: a chassis on six mech legs, two container modules with a
 // vehicle bay in the slot between them, and a mast gantry over their roofs. Unlike ShipRV, the FBX
@@ -13,10 +13,11 @@
 //   * Per-limb collision parented to the meshes themselves, so the boxes ride the legs as the
 //     solver moves them. WalkerGround rejects any collider under the machine's own root, so these
 //     cannot make the walker plant its feet on itself.
-//   * Locomotion, driver, and the mount/carry rig that makes it rideable, matching rig_walker.
+//   * Locomotion, driver, AI and the carry volume that lets a player ride the deck. Not a mount
+//     rig: the crawler is autonomous and is neither mountable nor steerable.
 //
-// The model is generated from Assets/Art/Models/_Source~/models/vehicles/desert_crawler.py — see that file and
-// Assets/Art/Models/_Source~/models/vehicles/desert_crawler_BUILD.md.
+// The model is generated from Assets/Game/Art/Models/_Source~/models/vehicles/desert_crawler.py — see that file and
+// Assets/Game/Art/Models/_Source~/models/vehicles/desert_crawler_BUILD.md.
 //
 // Model orientation: authored −Y forward in Blender, which the default FBX axis conversion lands
 // on Unity's +Z. There is deliberately no ModelYaw here, unlike ShipRVBuilder.
@@ -35,8 +36,11 @@ namespace SpaceGame.EditorTools
 {
     public static class DesertCrawlerBuilder
     {
-        private const string ModelPath = "Assets/Art/Models/Vehicles/Crawler/desert_crawler.fbx";
-        private const string PrefabPath = "Assets/Prefabs/agents/vehicle/DesertCrawler.prefab";
+        private const string ModelPath = "Assets/Game/Art/Models/Vehicles/Crawler/desert_crawler.fbx";
+        // The live prefab, the one persistentScene references. Was left pointing at the pre-restructure
+        // path, where a rebuild wrote a second, orphaned prefab and reported success.
+        private const string PrefabPath =
+            "Assets/Game/Prefabs/Agents/Vehicles/Ground/DesertCrawler.prefab";
 
         private static readonly string[] LegIds = { "P1", "P2", "P3", "N1", "N2", "N3" };
 
@@ -83,7 +87,7 @@ namespace SpaceGame.EditorTools
             if (model == null)
             {
                 Debug.LogError($"[DesertCrawler] No model at {ModelPath}. Run " +
-                               "Assets/Art/Models/_Source~/models/vehicles/desert_crawler_export.py first.");
+                               "Assets/Game/Art/Models/_Source~/models/vehicles/desert_crawler_export.py first.");
                 return;
             }
 
@@ -125,8 +129,7 @@ namespace SpaceGame.EditorTools
             BoxCollider carry = BuildGantryDeck(root, parts, ref boxes);
             BuildBayFloor(root, parts, ref boxes);
 
-            MountModule mount = WireLocomotion(root, armature, carry);
-            BuildMountStation(root, parts, mount);
+            WireLocomotion(root, armature, carry);
 
             // Read anything wanted for the report BEFORE the scratch hierarchy goes away: `armature`
             // points into `root`, and a destroyed Transform throws on `.name`, not returns null.
@@ -257,6 +260,15 @@ namespace SpaceGame.EditorTools
         /// while that mesh was the walkway bridging the two container modules — but the modules are
         /// gone and that object now sits 21 m below the machine's feet, so the rails and the carry
         /// volume were being built underground.
+        ///
+        /// Two things about the chassis node make the obvious version of this wrong, and both used to
+        /// bite. It is rotated −90° about X — the FBX conversion of a Z-up mesh — so in ITS local
+        /// space +z is world up and +y runs fore-aft; building the rails "upward" along local +y laid
+        /// four slabs out behind the machine instead. And it carries the FBX's ~80-90x import scale,
+        /// so a metre typed straight into a size or an offset arrives ninety times too big: the 1.2 m
+        /// rails were 108 m tall towers and the 2.2 m carry volume a 198 m column, both of which the
+        /// Interactor happily raycast, which is how the machine could be mounted by aiming at empty
+        /// sky. Every metre below therefore goes through `Metres`, which divides by the local scale.
         private static BoxCollider BuildGantryDeck(GameObject root, Dictionary<string, Transform> parts,
                                                    ref int boxes)
         {
@@ -265,20 +277,28 @@ namespace SpaceGame.EditorTools
             if (mf == null) return null;
 
             Bounds b = mf.sharedMesh.bounds;
-            float top = b.max.y;
+            Vector3 scale = gantry.lossyScale;
+            // Local axes of the chassis node: x = beam, y = fore-aft, z = up.
+            float railHeight = Metres(1.2f, scale.z);
+            float railThickBeam = Metres(0.2f, scale.x);
+            float railThickLong = Metres(0.2f, scale.y);
+            float insetBeam = Metres(0.1f, scale.x);
+            float insetLong = Metres(0.1f, scale.y);
+            float top = b.max.z;
+            float railZ = top + railHeight * 0.5f;
 
             // Rails: four thin walls round the deck, so a rider cannot walk off a machine that is
             // twenty metres up. Sized off the deck itself rather than typed in.
             (string name, Vector3 centre, Vector3 size)[] rails =
             {
-                ("COL_Rail_Fore", new Vector3(b.center.x, top + 0.6f, b.min.z + 0.1f),
-                    new Vector3(b.size.x, 1.2f, 0.2f)),
-                ("COL_Rail_Aft", new Vector3(b.center.x, top + 0.6f, b.max.z - 0.1f),
-                    new Vector3(b.size.x, 1.2f, 0.2f)),
-                ("COL_Rail_Port", new Vector3(b.min.x + 0.1f, top + 0.6f, b.center.z),
-                    new Vector3(0.2f, 1.2f, b.size.z)),
-                ("COL_Rail_Starboard", new Vector3(b.max.x - 0.1f, top + 0.6f, b.center.z),
-                    new Vector3(0.2f, 1.2f, b.size.z)),
+                ("COL_Rail_Fore", new Vector3(b.center.x, b.min.y + insetLong, railZ),
+                    new Vector3(b.size.x, railThickLong, railHeight)),
+                ("COL_Rail_Aft", new Vector3(b.center.x, b.max.y - insetLong, railZ),
+                    new Vector3(b.size.x, railThickLong, railHeight)),
+                ("COL_Rail_Port", new Vector3(b.min.x + insetBeam, b.center.y, railZ),
+                    new Vector3(railThickBeam, b.size.y, railHeight)),
+                ("COL_Rail_Starboard", new Vector3(b.max.x - insetBeam, b.center.y, railZ),
+                    new Vector3(railThickBeam, b.size.y, railHeight)),
             };
             foreach ((string name, Vector3 centre, Vector3 size) in rails)
             {
@@ -293,11 +313,16 @@ namespace SpaceGame.EditorTools
             var carryGo = new GameObject("CARRY_Gantry").transform;
             carryGo.SetParent(gantry, false);
             BoxCollider carry = carryGo.gameObject.AddComponent<BoxCollider>();
-            carry.center = new Vector3(b.center.x, top + 1.1f, b.center.z);
-            carry.size = new Vector3(b.size.x, 2.2f, b.size.z);
+            float carryHeight = Metres(2.2f, scale.z);
+            carry.center = new Vector3(b.center.x, b.center.y, top + carryHeight * 0.5f);
+            carry.size = new Vector3(b.size.x, b.size.y, carryHeight);
             carry.isTrigger = true;
             return carry;
         }
+
+        /// A distance in metres expressed in the local units of a node carrying `scale` on that axis.
+        private static float Metres(float metres, float scale) =>
+            Mathf.Approximately(scale, 0f) ? metres : metres / Mathf.Abs(scale);
 
         /// The vehicle bay floor — the one interior surface that has to hold something up.
         private static void BuildBayFloor(GameObject root, Dictionary<string, Transform> parts,
@@ -316,7 +341,7 @@ namespace SpaceGame.EditorTools
             boxes++;
         }
 
-        private static MountModule WireLocomotion(GameObject root, Transform armature, BoxCollider carry)
+        private static void WireLocomotion(GameObject root, Transform armature, BoxCollider carry)
         {
             DesertCrawlerLocomotion loco = root.AddComponent<DesertCrawlerLocomotion>();
             var so = new SerializedObject(loco);
@@ -374,9 +399,9 @@ namespace SpaceGame.EditorTools
             body.interpolation = RigidbodyInterpolation.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
 
-            MountModule mount = root.AddComponent<MountModule>();
-            root.AddComponent<SteerModule>();
-
+            // Deliberately NO MountModule / SteerModule. The crawler is an autonomous scrap collector,
+            // not a vehicle: it wanders and works its tools under its own AI and the player never
+            // drives it. WalkerPlatformCarrier stays — riding the deck as cargo is not steering it.
             WalkerPlatformCarrier carrier = root.AddComponent<WalkerPlatformCarrier>();
             if (carry != null)
             {
@@ -386,7 +411,6 @@ namespace SpaceGame.EditorTools
             }
 
             WireBrain(root, armature);
-            return mount;
         }
 
         /// The AI stack, and the tool rig it drives.
@@ -402,9 +426,9 @@ namespace SpaceGame.EditorTools
         /// its life turning on the spot.
         private static void WireBrain(GameObject root, Transform armature)
         {
-            // Get-or-add, not add. `SteerModule` carries [RequireComponent(MountModule,
-            // AgentController)], so adding it above has already put an AgentController on the root —
-            // a second AddComponent gives the prefab two of them, and the one that answers
+            // Get-or-add, not add. Nothing added above requires an AgentController today, but the
+            // agent components carry [RequireComponent] attributes that come and go; a second
+            // AddComponent would give the prefab two controllers, and the one that answers
             // GetComponent is then a coin toss between a controller that has the modules and one that
             // does not.
             Ensure<AgentController>(root);
@@ -431,32 +455,6 @@ namespace SpaceGame.EditorTools
             var mso = new SerializedObject(toolBrain);
             SetInt(mso, "priority", ModulePriority.Ambient);
             mso.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        /// The interaction point a player walks up to in order to board, at the bay mouth.
-        private static void BuildMountStation(GameObject root, Dictionary<string, Transform> parts,
-                                              MountModule mount)
-        {
-            Transform anchor = parts.TryGetValue("Mesh_Crawler_Bay", out Transform bay)
-                ? bay : root.transform;
-
-            var go = new GameObject("DOOR_MountStation");
-            go.transform.SetParent(anchor, false);
-            MeshFilter mf = anchor.GetComponent<MeshFilter>();
-            if (mf != null)
-            {
-                Bounds b = mf.sharedMesh.bounds;
-                go.transform.localPosition = new Vector3(b.center.x, b.min.y + 1.2f, b.min.z + 0.4f);
-            }
-
-            BoxCollider trigger = go.AddComponent<BoxCollider>();
-            trigger.size = new Vector3(3.0f, 2.4f, 1.2f);
-            trigger.isTrigger = true;
-
-            MountStation station = go.AddComponent<MountStation>();
-            var so = new SerializedObject(station);
-            Set(so, "mount", mount);
-            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// Add a component only if a [RequireComponent] attribute has not already brought one along.

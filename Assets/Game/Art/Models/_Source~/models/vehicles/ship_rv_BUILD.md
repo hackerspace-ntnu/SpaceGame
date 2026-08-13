@@ -1,7 +1,7 @@
 # ShipRV — build record
 
 A rebuild of the RV spacecraft at a much higher detail level, replacing
-`Assets/Prefabs/agents/vehicle/ship_model 1.blend` as the source the Unity
+`Assets/Game/Prefabs/agents/vehicle/ship_model 1.blend` as the source the Unity
 prefab is generated from. The original is untouched and still on disk.
 
 Built 2026-08-09/10. **Hull reshaped 2026-08-10** — see "Reshape" below. This is
@@ -215,13 +215,13 @@ The rig is for animating in Blender. It is **stripped on export**: see below.
 
 ## Unity wiring
 
-`Assets/Art/Models/_Source~/models/vehicles/ship_rv_export.py` → `Assets/Art/Models/Vehicles/RV/ship_rv.fbx`
+`Assets/Game/Art/Models/_Source~/models/vehicles/ship_rv_export.py` → `Assets/Game/Art/Models/Vehicles/RV/ship_rv.fbx`
 
 The export is re-runnable (unlike the generators) and never writes to the
 `.blend`. It does three things a plain FBX export would not:
 
 1. **Localises the palette materials.** The model links them from
-   `Assets/Art/Models/_Source~/palette.blend`, outside `Assets/`, which would not resolve from a
+   `Assets/Game/Art/Models/_Source~/palette.blend`, outside `Assets/`, which would not resolve from a
    copy inside it.
 2. **Un-parents the meshes and drops the armature.** `ShipRVBuilder` finds parts
    with `Transform.Find` — direct children only — and reparents them into its
@@ -238,7 +238,7 @@ thing that breaks when a file moves.
 Deliberately minimal — the role names on the right of `PartNames` are unchanged,
 so nothing downstream of that table had to move.
 
-- `ModelPath` → `Assets/Art/Models/Vehicles/RV/ship_rv.fbx`
+- `ModelPath` → `Assets/Game/Art/Models/Vehicles/RV/ship_rv.fbx`
 - `PartNames` → maps the model's `Mesh_*` names onto the existing role names
 - `PartLookup.Find` — a lookup that returns null instead of logging, for optional parts
 - `AdoptSteeringWheel` — uses the modelled `Mesh_Bridge_Wheel` and gives it the

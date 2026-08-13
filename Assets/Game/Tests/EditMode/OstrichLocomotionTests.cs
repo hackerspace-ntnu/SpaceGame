@@ -13,7 +13,7 @@ namespace SpaceGame.Tests
 {
     public class OstrichLocomotionTests
     {
-        private const string PrefabPath = "Assets/Prefabs/agents/creatures/Ostrich.prefab";
+        private const string PrefabPath = "Assets/Game/Prefabs/agents/creatures/Ostrich.prefab";
         private const float Dt = 1f / 60f;
         private const int Frames = 600;
 

@@ -129,7 +129,28 @@ namespace SpaceGame.Vehicles.DuneFoil
         /// </param>
         /// <param name="area">Sail area in square metres.</param>
         /// <param name="airDensity">Air density. Tuning knob as much as a physical constant.</param>
-        /// <param name="angleOfAttack">Reported back for the caller's shader and UI.</param>
+        /// <param name="angleOfAttack">
+        /// Reported back for the caller's shader and UI. Zero is a sail edge-on to the flow and
+        /// flogging; ninety is one held broadside to it, stalled, working as a parachute.
+        /// </param>
+        /// <remarks>
+        /// This was wrong in two ways at once, and between them the craft could not sail.
+        ///
+        /// The angle of attack was the COMPLEMENT of the real one — a sail held broadside to the
+        /// breeze reported 0 degrees and was treated as luffing, while one lying edge-on to it
+        /// reported 90 and was treated as stalled. Every coefficient below was then read off the
+        /// curve backwards. Nothing caught it because the tests search across all trims for the
+        /// best one, and a model that is inverted end to end still has a best trim; it is just in
+        /// the wrong place.
+        ///
+        /// And lift was pushed square across the flow with its side chosen by which face the wind
+        /// was on, rather than along the sail's own normal resolved across the flow. That is right
+        /// for a plate at small incidence and wrong everywhere else, and it is what made a
+        /// close-hauled sail push the craft backwards.
+        ///
+        /// The coefficient curves themselves were always right. They just had to be given the
+        /// angle they were drawn for.
+        /// </remarks>
         public static Vector3 SailForce(Vector3 apparentWind, Vector3 sailNormal, float area,
                                         float airDensity, out float angleOfAttack)
         {
@@ -143,23 +164,32 @@ namespace SpaceGame.Vehicles.DuneFoil
             Vector3 windDir = apparentWind / windSpeed;
             sailNormal.Normalize();
 
-            // Chord lies perpendicular to the normal. The angle of attack is between the chord
-            // and the flow; measuring off the normal and folding to +/-90 gets there directly
-            // and stays continuous as the sail passes head to wind.
-            float normalToWind = Vector3.Angle(sailNormal, windDir);
-            angleOfAttack = 90f - Mathf.Abs(90f - normalToWind);
+            // Face the normal downwind. `sailNormal` names a plane, and a plane has two normals;
+            // the one pointing away from the wind is the sail's low-pressure side, which is the
+            // side lift pulls toward.
+            float alongWind = Vector3.Dot(sailNormal, windDir);
+            if (alongWind < 0f)
+            {
+                sailNormal = -sailNormal;
+                alongWind = -alongWind;
+            }
 
-            // Which side is the wind hitting? That decides which way lift points.
-            float side = Mathf.Sign(Vector3.Dot(sailNormal, windDir));
-            if (Mathf.Approximately(side, 0f)) side = 1f;
+            // With the normal faced downwind, `alongWind` is the cosine of the angle between the
+            // normal and the flow — and the chord is square to the normal, so the sail's own angle
+            // of attack is the complement of that. Broadside is 90, edge-on is 0.
+            angleOfAttack = 90f - Mathf.Acos(Mathf.Clamp01(alongWind)) * Mathf.Rad2Deg;
 
             float q = 0.5f * airDensity * windSpeed * windSpeed * area;
             float cl = LiftCoefficient(angleOfAttack);
             float cd = TotalDragCoefficient(angleOfAttack);
 
-            // Lift acts perpendicular to the flow, in the plane, on the low-pressure side.
-            Vector3 liftDir = Vector3.Cross(Vector3.up, windDir).normalized * -side;
-            return liftDir * (cl * q) + windDir * (cd * q);
+            // Lift is square to the flow, drag runs with it. The lift direction is what is left of
+            // the sail's normal once the along-flow part is taken out — which puts it on the
+            // correct side automatically, on either tack, without a sign to get wrong.
+            Vector3 across = sailNormal - windDir * alongWind;
+            Vector3 lift = across.sqrMagnitude > 1e-8f ? across.normalized * (cl * q) : Vector3.zero;
+
+            return lift + windDir * (cd * q);
         }
 
         /// <summary>
@@ -173,16 +203,50 @@ namespace SpaceGame.Vehicles.DuneFoil
 
         /// <summary>
         /// The angle the sail wants to sit at if left free: it weathervanes to trail the wind.
-        /// Returned as a signed angle off the craft's heading, so a sheet limit can clamp it.
         ///
-        /// This is why a rope length is a real control. The sail is never positioned directly;
-        /// it is let out until the sheet stops it, exactly as on a boat.
+        /// Returned as a signed angle of the BOOM off the craft's stern — 0 is a boom lying down
+        /// the centreline, +90 is one right out to port, -90 right out to starboard — so a sheet
+        /// limit can clamp it. This is why a rope length is a real control: the sail is never
+        /// positioned directly, it is let out until the sheet stops it, exactly as on a boat.
+        ///
+        /// Measured off the stern rather than the bow, which is a 180 degree correction and was
+        /// the second half of why this craft would not sail. A boom points aft; the free one
+        /// trails away downwind. Measured off the bow instead, the rig chose a trim 90 degrees
+        /// wrong on every point of sail — hard out on a beam reach, where it made no drive at all,
+        /// and hard in on a run, where it made none either. The clamp then hid the worst of it by
+        /// pinning the sail at its sheet limit, so the craft looked trimmed and went nowhere.
         /// </summary>
         public static float WeathervaneAngle(Vector3 heading, Vector3 apparentWind)
         {
             Vector3 downwind = Flatten(apparentWind);
             if (downwind.sqrMagnitude < 1e-6f) return 0f;
-            return SignedAngle(heading, downwind);
+            return SignedAngle(-Flatten(heading), downwind);
+        }
+
+        /// <summary>
+        /// The chord-plane normal of a sail whose boom sits <paramref name="boomAngle"/> off the
+        /// centreline. One place, so the trim the player sets and the force it makes cannot drift
+        /// apart.
+        /// </summary>
+        public static Vector3 NormalFromBoomAngle(float boomAngle, Vector3 heading)
+        {
+            Vector3 flat = Flatten(heading);
+            if (flat.sqrMagnitude < 1e-8f) return Vector3.right;
+            Vector3 chord = Quaternion.AngleAxis(boomAngle, Vector3.up) * flat.normalized;
+            return Vector3.Cross(Vector3.up, chord).normalized;
+        }
+
+        /// <summary>
+        /// Signed angle of a boom that physically points <paramref name="boomDirection"/>, off the
+        /// craft's stern. The inverse of <see cref="NormalFromBoomAngle"/>'s input, used to read a
+        /// trim back off the model's own geometry instead of trusting a number to describe it.
+        /// </summary>
+        public static float BoomAngle(Vector3 boomDirection, Vector3 heading)
+        {
+            Vector3 boom = Flatten(boomDirection);
+            Vector3 flat = Flatten(heading);
+            if (boom.sqrMagnitude < 1e-8f || flat.sqrMagnitude < 1e-8f) return 0f;
+            return SignedAngle(-flat.normalized, boom.normalized);
         }
 
         /// <summary>
@@ -195,18 +259,54 @@ namespace SpaceGame.Vehicles.DuneFoil
         }
 
         /// <summary>
-        /// Yaw torque one sail contributes, about the craft's vertical axis.
+        /// Yaw torque one sail contributes, about the craft's vertical axis. Positive turns the
+        /// bow to starboard, which is the same sense as a positive rotation about world up.
         ///
-        /// This is the entire steering mechanism. <paramref name="leverArm"/> is measured from
-        /// the centre of lateral resistance — the foil — along the heading, positive forward.
-        /// A sail forward of the foil bears the bow away from the wind; a sail aft of it luffs
-        /// the bow up into the wind. Trimming main against jib is therefore the helm.
+        /// <paramref name="leverArm"/> is measured from the centre of lateral resistance — the
+        /// foil — along the heading, positive forward. A sail forward of the foil bears the bow
+        /// away from the wind; a sail aft of it luffs the bow up into the wind. Trimming main
+        /// against jib is therefore a helm, and it works alongside the wheel rather than instead
+        /// of it.
+        ///
+        /// The sign used to be inverted, and it made both of those sentences false on screen: a
+        /// jib forward of the resistance rounded the craft UP into the wind and a main aft of it
+        /// bore AWAY, so every trim did the opposite of what the rig is shaped to do and of what
+        /// the readouts said. Nothing caught it because the tests only pinned that main and jib
+        /// disagree with each other, which an inverted pair does perfectly well.
+        ///
+        /// Two ways to talk yourself back into the minus sign, and why neither survives: a force
+        /// to starboard applied ahead of the pivot pushes the BOW to starboard, and a positive
+        /// rotation about <c>Vector3.up</c> swings +Z toward +X — forward toward starboard. Both
+        /// are positive, so the product is.
         /// </summary>
         public static float YawTorque(Vector3 sailForce, Vector3 heading, float leverArm)
         {
-            Vector3 right = Vector3.Cross(Vector3.up, Flatten(heading).normalized);
-            float lateral = Vector3.Dot(Flatten(sailForce), right);
-            return -lateral * leverArm;
+            return YawTorque(sailForce, heading, leverArm, 0f);
+        }
+
+        /// <summary>
+        /// The same, for a sail whose centre of effort has been swung off the centreline by
+        /// canting its post.
+        ///
+        /// <paramref name="lateralOffset"/> is how far the centre of effort now sits to
+        /// starboard. Drive applied off the centreline yaws the craft: push the starboard side
+        /// forward and the bow swings to port. That is real, it is how anything with a canting
+        /// rig steers, and it is what makes leaning the post a control rather than a decoration.
+        /// </summary>
+        public static float YawTorque(Vector3 sailForce, Vector3 heading, float leverArm,
+                                      float lateralOffset)
+        {
+            Vector3 flatHeading = Flatten(heading);
+            if (flatHeading.sqrMagnitude < 1e-8f) return 0f;
+            flatHeading.Normalize();
+
+            Vector3 right = Vector3.Cross(Vector3.up, flatHeading);
+            Vector3 force = Flatten(sailForce);
+
+            float lateral = Vector3.Dot(force, right);
+            float drive = Vector3.Dot(force, flatHeading);
+
+            return lateral * leverArm - drive * lateralOffset;
         }
 
         /// <summary>
@@ -216,10 +316,66 @@ namespace SpaceGame.Vehicles.DuneFoil
         public static float HeelAngle(Vector3 sailForce, Vector3 heading, float rightingMoment,
                                       float maxHeel)
         {
+            return HeelAngle(sailForce, heading, 0f, 0f, rightingMoment, maxHeel);
+        }
+
+        /// <summary>
+        /// Heel with the post canted over.
+        ///
+        /// Two effects, and they pull in opposite directions, which is the whole point of being
+        /// able to lean the mast:
+        ///
+        /// - the sail's sideways push acts on a shorter arm as the post lays down, by cos(cant);
+        /// - the weight of the rig itself now hangs out to one side, by sin(cant).
+        ///
+        /// Lean the post INTO the wind and the second term cancels the first: the craft stands up,
+        /// carries its full sail plan in a breeze that would otherwise have it on its ear, and
+        /// keeps driving. Lean it to leeward and it lies down. That trade — depower by leaning to
+        /// windward, or accept the heel — is what a canting rig is for.
+        /// </summary>
+        /// <param name="cantDegrees">Post lean, positive to starboard.</param>
+        /// <param name="rigWeightMoment">Moment the rig's own mass makes at full lay-down.</param>
+        public static float HeelAngle(Vector3 sailForce, Vector3 heading, float cantDegrees,
+                                      float rigWeightMoment, float rightingMoment, float maxHeel)
+        {
             if (rightingMoment <= 1e-4f) return 0f;
-            Vector3 right = Vector3.Cross(Vector3.up, Flatten(heading).normalized);
+
+            Vector3 flatHeading = Flatten(heading);
+            if (flatHeading.sqrMagnitude < 1e-8f) return 0f;
+
+            Vector3 right = Vector3.Cross(Vector3.up, flatHeading.normalized);
             float lateral = Vector3.Dot(Flatten(sailForce), right);
-            return Mathf.Clamp(lateral / rightingMoment, -maxHeel, maxHeel);
+
+            float cant = cantDegrees * Mathf.Deg2Rad;
+            float moment = lateral * Mathf.Cos(cant) + rigWeightMoment * Mathf.Sin(cant);
+
+            return Mathf.Clamp(moment / rightingMoment, -maxHeel, maxHeel);
+        }
+
+        // --- canting the post -------------------------------------------------
+
+        /// <summary>
+        /// What a canted post costs in drive, 0..1.
+        ///
+        /// A sail leaned over presents less of itself to a horizontal wind — the cloth is still
+        /// all there, but the part of it standing across the breeze goes as the cosine of the
+        /// lean. So laying the post down to stand the craft up is paid for in speed, which is
+        /// exactly the bargain the control is meant to offer.
+        /// </summary>
+        public static float CantDriveFactor(float cantDegrees)
+        {
+            return Mathf.Max(0f, Mathf.Cos(cantDegrees * Mathf.Deg2Rad));
+        }
+
+        /// <summary>
+        /// How far a canted sail's centre of effort swings off the centreline, metres to starboard.
+        /// Feed to <see cref="YawTorque(Vector3,Vector3,float,float)"/>.
+        /// </summary>
+        /// <param name="cantDegrees">Post lean, positive to starboard.</param>
+        /// <param name="centreOfEffortHeight">How far the centre of effort sits up the post.</param>
+        public static float CantLateralOffset(float cantDegrees, float centreOfEffortHeight)
+        {
+            return centreOfEffortHeight * Mathf.Sin(cantDegrees * Mathf.Deg2Rad);
         }
 
         /// <summary>

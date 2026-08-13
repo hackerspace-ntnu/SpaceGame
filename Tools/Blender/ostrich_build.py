@@ -25,7 +25,7 @@ from mathutils import Vector, Matrix
 LEG_SRC = os.environ.get(
     "OSTRICH_LEG_SRC",
     "/Users/ferdinandfremming/Documents/hackerspace/spillgruppen/SpaceGame/"
-    "Assets/Prefabs/agents/vehicle/walker_legs.blend",
+    "Assets/Game/Prefabs/agents/vehicle/walker_legs.blend",
 )
 OUT = os.environ.get("OSTRICH_OUT", "")
 

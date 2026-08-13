@@ -64,6 +64,13 @@ namespace SpaceGame.Agents
                  "that rides metres above the ground needs this to clear the ride height.")]
         [SerializeField] private float navMeshSampleDistance = 20f;
 
+        [Header("Steep ground")]
+        [Tooltip("Seconds to commit to a way around ground the legs refused to climb.\n\nA machine " +
+                 "that re-decides every frame at the edge of a slope oscillates against it instead " +
+                 "of leaving; the detour is dropped early anyway, the moment the direct course is " +
+                 "passable again.")]
+        [SerializeField] private float detourHoldTime = 2f;
+
         [Header("Lateral travel")]
         [Tooltip("This machine may travel across its own nose.\n\nOFF is what every machine built " +
                  "before this did and what most of them still want: a bird and a walking station point " +
@@ -107,6 +114,15 @@ namespace SpaceGame.Agents
         private Vector3? pathTarget;
         private float repathTimer;
         private bool hasPath;
+
+        // The way around steep ground, once one has been found, and how long it is committed to.
+        private Vector3 detourDirection;
+        private float detourHold;
+
+        /// Headings tried when the legs refuse the course, in the order they are tried: nearest the
+        /// goal first, so the machine gives up as little ground as the hill allows. Both signs at
+        /// each angle, since which side a hill opens on is not something the machine can know.
+        private static readonly float[] DetourAngles = { 30f, -30f, 60f, -60f, 90f, -90f, 135f, -135f };
 
         protected LeggedLocomotion Locomotion => locomotion;
 
@@ -274,7 +290,60 @@ namespace SpaceGame.Agents
             if (hasPath && path.TryGetSteerTarget(transform.position, cornerArriveRadius, out Vector3 corner))
                 steerAt = corner;
 
-            SteerTowards(steerAt);
+            SteerTowards(ApplyClimbDetour(steerAt, deltaTime));
+        }
+
+        /// Go another way when the legs will not climb what is in front of them.
+        ///
+        /// The locomotion refuses the climb on its own and refuses it for everybody -- a rider gets
+        /// nothing but a machine that declines, which is the honest answer, since a rider already
+        /// holds full turn authority and anything cleverer would be fighting them for the stick.
+        /// This is the AI's half: having been refused, pick a heading that is not refused.
+        ///
+        /// Two steps, in this order, because they answer different questions. A repath asks whether
+        /// the ROUTE was wrong; usually it was not, and the machine was merely cutting the corner
+        /// between two waypoints across a spur the NavMesh went around. Only once a fresh route is
+        /// on its way is it worth asking the second question, which is which way the hill opens.
+        private Vector3 ApplyClimbDetour(Vector3 steerAt, float deltaTime)
+        {
+            if (locomotion == null || !locomotion.IsReady) return steerAt;
+
+            Vector3 direct = steerAt - transform.position;
+            direct.y = 0f;
+            if (direct.sqrMagnitude < 1e-4f) { detourHold = 0f; return steerAt; }
+            direct.Normalize();
+
+            if (detourHold > 0f)
+            {
+                detourHold -= deltaTime;
+                // Dropped the moment the goal is reachable again, rather than run to its timeout.
+                // The hold is there to stop the machine dithering on the boundary, not to make it
+                // walk a fixed distance away from a hill it has already cleared.
+                if (detourHold > 0f && !locomotion.CanTravel(direct))
+                    return transform.position + detourDirection * cornerArriveRadius;
+
+                detourHold = 0f;
+            }
+
+            if (!locomotion.ClimbBlocked) return steerAt;
+
+            // The route may well be fine. Ask for a fresh one before committing to going around.
+            repathTimer = 0f;
+
+            foreach (float angle in DetourAngles)
+            {
+                Vector3 candidate = Quaternion.AngleAxis(angle, Vector3.up) * direct;
+                if (!locomotion.CanTravel(candidate)) continue;
+
+                detourDirection = candidate;
+                detourHold = detourHoldTime;
+                return transform.position + candidate * cornerArriveRadius;
+            }
+
+            // Hemmed in on every heading tried. Keep steering at the goal rather than inventing a
+            // direction: the machine stands, which is what it should do in a hole, and the next
+            // repath is already scheduled.
+            return steerAt;
         }
 
         private bool TryBuildPath(Vector3 target)
@@ -312,6 +381,9 @@ namespace SpaceGame.Agents
             hasPath = false;
             pathTarget = null;
             repathTimer = 0f;
+            // A detour belongs to the route it was taken from. Carrying one across a new order is
+            // how a machine sets off at right angles to a destination it was never blocked from.
+            detourHold = 0f;
         }
 
         private void FaceTowards(Vector3 worldPoint)
@@ -408,11 +480,24 @@ namespace SpaceGame.Agents
             repathTolerance = Mathf.Max(0.1f, repathTolerance);
             cornerArriveRadius = Mathf.Max(0.1f, cornerArriveRadius);
             navMeshSampleDistance = Mathf.Max(0.5f, navMeshSampleDistance);
+            detourHoldTime = Mathf.Max(0f, detourHoldTime);
         }
 
         private void OnDrawGizmosSelected()
         {
-            if (!Application.isPlaying || !IsFollowingPath) return;
+            if (!Application.isPlaying) return;
+
+            // Drawn before the path test, and in its own colour: the detour is most worth seeing on
+            // exactly the frames there is no route to draw, when the machine has been refused a
+            // climb and is picking its way around by itself.
+            if (detourHold > 0f)
+            {
+                Gizmos.color = new Color(1f, 0.4f, 0.1f, 0.9f);
+                Gizmos.DrawLine(transform.position,
+                                transform.position + detourDirection * cornerArriveRadius);
+            }
+
+            if (!IsFollowingPath) return;
 
             Gizmos.color = new Color(0.2f, 0.9f, 1f, 0.9f);
             Gizmos.DrawLine(transform.position, path.CurrentCorner);

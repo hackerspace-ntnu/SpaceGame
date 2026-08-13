@@ -45,22 +45,22 @@ The weapon shown in player's hand needs:
 ## File References
 
 **Weapon System Foundation:**
-- `Assets/Scripts/Weapons/Weapon.cs` – Abstract base (extends UsableItem)
-- `Assets/Scripts/Weapons/Magazine.cs` – Ammo container
-- `Assets/Scripts/Weapons/Projectiles/Projectile.cs` – Abstract projectile base
+- `Assets/Game/Scripts/Weapons/Weapon.cs` – Abstract base (extends UsableItem)
+- `Assets/Game/Scripts/Weapons/Magazine.cs` – Ammo container
+- `Assets/Game/Scripts/Weapons/Projectiles/Projectile.cs` – Abstract projectile base
 
 **Implementation:**
-- `Assets/Scripts/Weapons/BallLightningWeapon.cs` – Extends Weapon, spawns projectiles
-- `Assets/Scripts/Weapons/Projectiles/BallLightningProjectile.cs` – Extends Projectile
-- `Assets/Scripts/Weapons/EnergyRifle.cs` – Alternative weapon example
+- `Assets/Game/Scripts/Weapons/BallLightningWeapon.cs` – Extends Weapon, spawns projectiles
+- `Assets/Game/Scripts/Weapons/Projectiles/BallLightningProjectile.cs` – Extends Projectile
+- `Assets/Game/Scripts/Weapons/EnergyRifle.cs` – Alternative weapon example
 
 **Inventory Integration:**
-- `Assets/Scripts/Items/PickupableItem.cs` – Makes items pickupable
-- `Assets/Scripts/Inventory/Components/EquipmentController.cs` – Equips items in player hand
-- `Assets/Scripts/Items/InventoryItem.cs` – ScriptableObject for inventory items
+- `Assets/Game/Scripts/Items/PickupableItem.cs` – Makes items pickupable
+- `Assets/Game/Scripts/Inventory/Components/EquipmentController.cs` – Equips items in player hand
+- `Assets/Game/Scripts/Items/InventoryItem.cs` – ScriptableObject for inventory items
 
 **References:**
-- `Assets/Prefabs/cixinGunFinal.prefab` – Visual model for BallLightning weapon
+- `Assets/Game/Prefabs/cixinGunFinal.prefab` – Visual model for BallLightning weapon
 
 ---
 

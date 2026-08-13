@@ -700,8 +700,9 @@ GameObject:
   - component: {fileID: 9043400717057734922}
   - component: {fileID: 62669566447615563}
   - component: {fileID: 4084164097783051441}
+  - component: {fileID: 6206505380693021621}
   m_Layer: 0
-  m_Name: RoverNoHirarchy
+  m_Name: RoverNoHierarchy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -740,7 +741,6 @@ MonoBehaviour:
   moveSpeed: 5
   rotationSpeed: 45
   acceleration: 5
-  stoppingDistance: 0.5
 --- !u!65 &8201878865021766641
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -928,9 +928,39 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NavMeshAgentMotor
   agent: {fileID: 0}
   navMeshSnapDistance: 6
+  walkSpeedMultiplier: 0.65
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 8
+  enableMountedJump: 1
+  mountedJumpHeight: 1.25
+  mountedJumpDuration: 0.55
+  mountedJumpCooldown: 0.45
+  enableMountedLeap: 1
+  mountedLeapCooldown: 0.6
+  mountedLeapSampleRadius: 6
+  riderTurnSpeed: 120
+  riderForwardTargetDistance: 2
+  riderStopDistance: 0.15
+  riderNavMeshSampleDistance: 4
+--- !u!114 &6206505380693021621
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104903636770483098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
+  bodyRoot: {fileID: 0}
+  checkInterval: 0.25
+  depthTolerance: 0.5
+  surfaceClearance: 1.2
+  absoluteFloorY: -500
+  logRecoveries: 1
 --- !u!1 &2169529945073363033
 GameObject:
   m_ObjectHideFlags: 0

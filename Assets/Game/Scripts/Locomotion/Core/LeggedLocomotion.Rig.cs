@@ -39,6 +39,10 @@ namespace SpaceGame.Locomotion
         private float shortestLegReach;
         private float maxFootRadius;
 
+        /// The tallest step any one leg can take, measured from the rig. What the climb limit uses
+        /// to tell a ledge from a wall.
+        private float stepUpHeight;
+
         /// Discovers and measures the rig. Separated from Awake so the whole locomotion can be
         /// driven deterministically from a test, where Unity's callbacks never fire.
         public void Initialise()
@@ -138,6 +142,7 @@ namespace SpaceGame.Locomotion
             cycleStride = float.MaxValue;
             shortestLegReach = float.MaxValue;
             maxFootRadius = 0f;
+            stepUpHeight = 0f;
 
             for (int i = 0; i < legs.Count; i++)
             {
@@ -170,6 +175,13 @@ namespace SpaceGame.Locomotion
                 cycleStride = Mathf.Min(cycleStride, m.StrideLength);
                 shortestLegReach = Mathf.Min(shortestLegReach, m.LegReach);
                 maxFootRadius = Mathf.Max(maxFootRadius, m.FootRadiusFromCentre);
+
+                // The TALLEST leg lift, not the shortest: any leg that can pick its foot up that
+                // far can make the step, and it is the climb limit's answer to "is that a ledge or
+                // a wall?". Leg reach is the wrong number for it -- this machine's legs are twenty
+                // times its step height, and a ceiling set from reach would have it stepping onto
+                // things taller than itself.
+                stepUpHeight = Mathf.Max(stepUpHeight, m.StepHeight);
             }
         }
 

@@ -29,9 +29,9 @@ Should be placed on the player (or any actor that can interact).
 
 ### `RepairWorkstation` (item-gated interaction)
 
-`Assets/Prefabs/Environment/RepairWorkstation.prefab` — a motor that is repaired by feeding it ship scrap.
+`Assets/Game/Prefabs/Environment/RepairWorkstation.prefab` — a motor that is repaired by feeding it ship scrap.
 
-Interacting checks the player's **selected hotbar slot**: if it holds `requiredItem` (`Assets/Resources/Items/Scraps.asset`) the item is consumed and progress advances by one; anything else fires `onScrapRejected`. Progress lives in a server-owned `NetworkVariable`, so the gauge matches on every client, and the whole thing still works with no session running.
+Interacting checks the player's **selected hotbar slot**: if it holds `requiredItem` (`Assets/Game/Resources/Items/Scraps.asset`) the item is consumed and progress advances by one; anything else fires `onScrapRejected`. Progress lives in a server-owned `NetworkVariable`, so the gauge matches on every client, and the whole thing still works with no session running.
 
 Feedback, all driven off the same progress value:
 
@@ -95,7 +95,7 @@ Use this when implementing NPC dialogue quickly.
 
 On your object:
 
-1. Add `DialogInteraction` (`Assets/Scripts/InteractionSystem/Interactions/DialogInteraction.cs`).
+1. Add `DialogInteraction` (`Assets/Game/Scripts/InteractionSystem/Interactions/DialogInteraction.cs`).
 2. Make sure the NPC has a collider so the player raycast can hit it.
 3. Optional: add `NpcBrain` if you want the NPC to stop and face the player during dialogue.
 
@@ -103,7 +103,7 @@ On your object:
 
 In your UI canvas:
 
-1. Drag in `Assets/Prefabs/UI/dialoge/DialogePanel.prefab`.
+1. Drag in `Assets/Game/Prefabs/UI/dialoge/DialogePanel.prefab`.
 2. Ensure there is exactly one active `NpcDialogPopupUI` in the scene.
 3. In `NpcDialogPopupUI`, verify references:
 - `popupRoot`

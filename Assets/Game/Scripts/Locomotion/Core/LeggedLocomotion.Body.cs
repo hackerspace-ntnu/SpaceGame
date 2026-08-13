@@ -52,6 +52,16 @@ namespace SpaceGame.Locomotion
         /// Initialise: invariant I3, nothing in the per-frame path allocates.
         private Vector3[] supportPoints;
 
+        /// Ground profile ahead, for the climb gate. Allocated once, same invariant, and reused by
+        /// the driver's detour scan -- both callers are on the main thread and never nested.
+        private readonly WalkerClimb.Sample[] climbSamples = new WalkerClimb.Sample[4];
+
+        /// Below this much of the commanded travel surviving, the machine is reported as BLOCKED
+        /// rather than merely slowed. The taper means a hillside just under the limit still lets a
+        /// trickle through, and a driver that waited for an exact zero would sit there creeping up
+        /// it forever instead of going around.
+        private const float BlockedBelow = 0.25f;
+
         /// Puts the body's own state back where a freshly measured rig expects it. Called at the
         /// end of Initialise, so the rig file does not have to reach in and set half a dozen fields
         /// it does not own.
@@ -99,10 +109,17 @@ namespace SpaceGame.Locomotion
             Vector3 forward = heading * Vector3.forward;
             Vector3 right = heading * Vector3.right;
 
-            Vector2 v = CommandedVelocity;
+            // The gate runs HERE, once, on the raw request, and everything downstream reads the
+            // result through CommandedVelocity. It is deliberately the first thing the frame does
+            // with the command: the clock, the foot drift and the foothold clamp all derive from
+            // this vector, and they have to derive from the same one.
+            Vector2 request = commandedVelocity;
+            travelVelocity = ApplyClimbGate(request, forward * request.y + right * request.x);
+
+            Vector2 v = travelVelocity;
             commandedWorldVelocity = forward * v.y + right * v.x;
 
-            Vector3 moved = forward * (v.y * dt) + right * (v.x * dt);
+            Vector3 moved = commandedWorldVelocity * dt;
             pathPos += moved;
 
             gait.Advance(Pace * dt, WalkerGait.CycleDistance(cycleStride, CurrentDuty));
@@ -110,6 +127,84 @@ namespace SpaceGame.Locomotion
             // Signed by the FORWARD channel, since that is the only one an "is it reversing?" reader
             // can mean; a purely lateral command reports its ground speed as positive.
             diagnostics.AchievedSpeed = v.y < 0f ? -moved.magnitude / dt : moved.magnitude / dt;
+        }
+
+        /// Cut the commanded travel down to what the ground ahead will actually let the legs walk
+        /// up. The measurement itself is WalkerClimb; this is the wiring.
+        ///
+        /// ─────────── why this does not break invariant I1 ───────────
+        ///
+        /// I1 forbids gating motion on the machine's OWN output, because the clock is advanced by
+        /// distance travelled and a machine that stops itself can never re-open a phase slice to
+        /// un-stick itself. That latch cost a session once. This gate is a function of the terrain
+        /// and of the COMMANDED DIRECTION -- both of them inputs, neither of them anything the
+        /// machine produced -- so there is no loop to close. Three things keep it that way, and all
+        /// three are load-bearing:
+        ///
+        ///   1. THE YAW CHANNEL IS NEVER TOUCHED. A machine stopped against a hillside can always
+        ///      turn, and Pace counts yaw rate, so the clock keeps turning while it does.
+        ///   2. THE PROBE FOLLOWS THE SIGN OF TRAVEL. Reversing probes BEHIND the machine, which is
+        ///      downhill, which always passes. Backing off is always available.
+        ///   3. DOWNHILL IS NEVER GATED, in WalkerClimb.GradeScale.
+        ///
+        /// A gate written against the machine's measured velocity instead of its command would have
+        /// all three of these and still latch, which is the distinction worth keeping hold of.
+        private Vector2 ApplyClimbGate(Vector2 request, Vector3 worldRequest)
+        {
+            ClimbScale = 1f;
+            ClimbBlocked = false;
+
+            // Nobody is asking it to go anywhere, so there is nothing to refuse. Stated as a
+            // standing machine rather than a blocked one so a parked machine does not send its
+            // driver hunting for a detour it never wanted.
+            Vector3 flat = worldRequest;
+            flat.y = 0f;
+            if (flat.sqrMagnitude < 1e-6f) return request;
+
+            ClimbScale = ClimbScaleTowards(flat.normalized);
+            ClimbBlocked = ClimbScale < BlockedBelow;
+            return request * ClimbScale;
+        }
+
+        /// How much travel survives in one world direction. Public through `CanTravel` so a driver
+        /// can ask the same question of a heading it is considering rather than one it has already
+        /// committed to.
+        private float ClimbScaleTowards(Vector3 flatDirection)
+        {
+            if (maxClimbAngle >= 89f) return 1f;
+
+            // No ground under the machine is no information -- an unloaded chunk, or a fall in
+            // progress -- and the rule everywhere else in this file is that missing terrain never
+            // refuses anything.
+            if (!ground.Below(pathPos, out RaycastHit under)) return 1f;
+
+            float run = Mathf.Max(shortestLegReach * climbProbeRun, 0.1f);
+
+            // The probe rays start clear of anything the machine could legitimately be walking up:
+            // the whole run taken at 45 degrees, plus a leg reach for a step, plus the usual
+            // margin. A ray started below the ground it is probing fires from inside the mesh and
+            // reports nothing, which is precisely how the foothold search once went blind while
+            // trying to climb.
+            float lift = run + shortestLegReach + rayStartAbove;
+
+            ground.SampleAlong(under.point, flatDirection, run, lift, climbSamples);
+
+            return WalkerClimb.TravelScale(under.point.y, climbSamples, climbSamples.Length,
+                                           maxClimbAngle, climbTaperAngle, stepUpHeight);
+        }
+
+        /// Whether the machine would get anywhere travelling in `worldDirection`. For a driver
+        /// looking for a way around; costs one probe run of rays per call, so ask it about a
+        /// handful of candidate headings, not about every heading.
+        public bool CanTravel(Vector3 worldDirection)
+        {
+            if (!ready) return true;
+
+            Vector3 flat = worldDirection;
+            flat.y = 0f;
+            if (flat.sqrMagnitude < 1e-6f) return true;
+
+            return ClimbScaleTowards(flat.normalized) >= BlockedBelow;
         }
 
         /// Survey the feet, let gravity have its say, then let the body motion pose what is left.

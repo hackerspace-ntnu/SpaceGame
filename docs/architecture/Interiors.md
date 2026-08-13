@@ -6,13 +6,13 @@ Server-authoritative additive scene loading. Click a door, the interior scene lo
 
 | Piece | What it is |
 |---|---|
-| `InteriorScene` (ScriptableObject) | Names a scene + a spawn anchor id. Lives in `Assets/Resources/Interiors/`. |
+| `InteriorScene` (ScriptableObject) | Names a scene + a spawn anchor id. Lives in `Assets/Game/Resources/Interiors/`. |
 | `InteriorAnchor` (component) | A spawn / exit marker inside a scene. Self-registers by `(scene, id)`. Also usable for same-scene teleports. |
 | `InteriorManager` (singleton) | Loads/unloads interior scenes additively. Refcounts so multiple players don't fight. NetCode-aware. Lives in `persistentScene`. |
 
 ## The transition stack (recommended)
 
-Interior doors are wired through the generic [`SceneTransition`](Assets/Scripts/SceneManagement/Transitions/SceneTransition.cs) orchestrator. It composes three plug-points:
+Interior doors are wired through the generic [`SceneTransition`](Assets/Game/Scripts/SceneManagement/Transitions/SceneTransition.cs) orchestrator. It composes three plug-points:
 
 ```
 GameObject (the door)
@@ -40,11 +40,11 @@ Effects use distinct `TransitionChannel`s (Screen / Audio / Camera / Time). `Sce
 
 ## Adding a new interior
 
-1. **New Scene** → save as `Assets/Scenes/Interiors/MyInterior.unity`. Build the room.
+1. **New Scene** → save as `Assets/Game/Scenes/Interiors/MyInterior.unity`. Build the room.
 2. Drop an empty GameObject named `EntranceAnchor`, position + rotate it where the player should spawn. Add `InteriorAnchor`, set `anchorId = "entrance"`.
 3. Add an exit door (any GO with `SceneTransition` + `InteractableTrigger` + `ExitInteriorDestination` + `FadeToBlackEffect`).
 4. **File → Build Profiles → Add Open Scenes** (otherwise `LoadSceneAsync` returns null).
-5. **Create → Scene Management → Interior Scene** in `Assets/Resources/Interiors/`. Drag the scene asset in; `OnValidate` syncs the name. Set `spawnAnchorId = "entrance"`.
+5. **Create → Scene Management → Interior Scene** in `Assets/Game/Resources/Interiors/`. Drag the scene asset in; `OnValidate` syncs the name. Set `spawnAnchorId = "entrance"`.
 6. In your exterior, place the entrance door (GO with `SceneTransition` + `InteractableTrigger` + an `InteriorSceneDestination` pointing at your `InteriorScene`, plus any effects you want).
 
 ## Multiplayer
@@ -66,14 +66,14 @@ Door A in the persistentScene showcase plaza targets the ruin interior via `Dest
 ## Files
 
 ```
-Assets/Scripts/SceneManagement/Interiors/
+Assets/Game/Scripts/SceneManagement/Interiors/
 ├── InteriorManager.cs              singleton loader (NetCode-aware)
 ├── InteriorScene.cs                ScriptableObject (sceneName + anchorId)
 ├── InteriorAnchor.cs               spawn/exit marker; FindAnywhere/TeleportPlayer helpers
 ├── InteriorEntrance.cs             minimal IInteractable (no fade, no cutscene)
 └── InteriorTestBootstrap.cs        test-only auto-spawner (off by default)
 
-Assets/Scripts/SceneManagement/Transitions/
+Assets/Game/Scripts/SceneManagement/Transitions/
 ├── SceneTransition.cs              orchestrator (ITriggerable)
 ├── TransitionRunner.cs             DontDestroyOnLoad coroutine host
 ├── Destinations/
@@ -88,8 +88,8 @@ Assets/Scripts/SceneManagement/Transitions/
 
 Triggers live in the InteractionSystem (InteractableTrigger, VolumeTrigger).
 
-Assets/Resources/Interiors/         InteriorScene + Destination + Effect assets
-Assets/Scenes/Interiors/            the .unity scenes
+Assets/Game/Resources/Interiors/         InteriorScene + Destination + Effect assets
+Assets/Game/Scenes/Interiors/            the .unity scenes
 ```
 
 ## Limitations

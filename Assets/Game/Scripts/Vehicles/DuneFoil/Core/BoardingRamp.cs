@@ -22,6 +22,14 @@ namespace SpaceGame.Vehicles.DuneFoil
                  "the moment the hull is clear of the sand there is nothing to step onto.")]
         [SerializeField, Range(0f, 1f)] private float stowAboveRideHeight = 0.05f;
 
+        [Tooltip("How far the hull has to settle back below that before the ramp comes down " +
+                 "again. Two thresholds rather than one, because a craft hovering right on a " +
+                 "single one flickers the gangway on and off every frame — and the gangway is a " +
+                 "collider under a walking player, so a flicker is a player dropped through it.")]
+        [SerializeField, Range(0f, 1f)] private float deployBelowRideHeight = 0.02f;
+
+        private bool down = true;
+
         /// <summary>Whether the gangway is currently down.</summary>
         public bool IsDown => ramp != null && ramp.activeSelf;
 
@@ -41,7 +49,18 @@ namespace SpaceGame.Vehicles.DuneFoil
 
             // No foil to ask means the craft is not moving under its own power — leave it down
             // so the prefab is boardable when dropped into a scene as scenery.
-            bool down = foil == null || foil.RideHeight01 <= stowAboveRideHeight;
+            if (foil == null)
+            {
+                down = true;
+            }
+            else
+            {
+                float height = foil.RideHeight01;
+                if (down && height > stowAboveRideHeight) down = false;
+                else if (!down && height <= Mathf.Min(deployBelowRideHeight, stowAboveRideHeight))
+                    down = true;
+            }
+
             if (ramp.activeSelf != down) ramp.SetActive(down);
         }
 

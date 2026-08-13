@@ -15,6 +15,11 @@ namespace SpaceGame.Core
         [Header("World Streaming (optional)")]
         [SerializeField] private WorldStreamer worldStreamer;
 
+        [Tooltip("Seconds to keep asking for a ground-backed spawn position after the chunks around " +
+                 "the spawn point have loaded, before giving up and using the spawn point's own " +
+                 "position (clamped above the terrain).")]
+        [SerializeField] private float spawnResolveTimeout = 10f;
+
         /// <summary>
         /// Set by a launcher (e.g. MainMenuUI.StartMinigame) that additively loads a second scene
         /// with its own SpawnPoint on top of persistentScene right after starting the host. Without
@@ -138,8 +143,42 @@ namespace SpaceGame.Core
                 {
                     yield return new WaitForSeconds(1f);
                 }
-                var pos = SpawnManager.Instance.GetSpawnPoint();
-                yield return WaitForWorldReady(new[] { pos });
+
+                // Two different questions, deliberately asked in this order.
+                //
+                // First, WHICH CHUNKS to load. That only needs the spawn point's authored position,
+                // and it must not need anything more: no ground has loaded yet, so nothing here can
+                // be validated against terrain, and a call that insisted on a validated position
+                // would wait forever for a world that this very preload is responsible for loading.
+                SpawnManager.Instance.TryGetSpawnAnchor(out Vector3 anchor);
+                yield return WaitForWorldReady(new[] { anchor });
+
+                // Only now, with the terrain in, WHERE TO STAND. This is the position the player is
+                // actually spawned at, resolved once and carried through to the spawn call.
+                // Resolving twice is what put players underground: SpawnPoint scatters inside a
+                // radius, so a second call returns a different position from the one the world was
+                // prepared around.
+                Vector3 spawnPos = anchor;
+                float deadline = Time.time + spawnResolveTimeout;
+
+                while (!SpawnManager.Instance.TryGetSpawnPoint(out spawnPos))
+                {
+                    if (Time.time >= deadline)
+                    {
+                        // Chunks are loaded and the spawn point still cannot find ground. Spawning
+                        // at the anchor is not safe by itself, but SpawnPlayerForClient clamps it
+                        // above the terrain, and stranding the client unspawned is worse.
+                        Debug.LogError($"[NGM] No valid spawn position after {spawnResolveTimeout}s — " +
+                                       "falling back to the spawn point's own position.");
+                        spawnPos = anchor;
+                        break;
+                    }
+
+                    yield return null;
+                }
+
+                SpawnManager.Instance.SpawnPlayerForClient(clientId, spawnPos);
+                yield break;
             }
 
             SpawnManager.Instance.SpawnPlayerForClient(clientId);

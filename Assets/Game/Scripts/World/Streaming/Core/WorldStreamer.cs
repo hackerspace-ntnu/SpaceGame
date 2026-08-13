@@ -1,0 +1,1255 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Unity.AI.Navigation;
+using Unity.Netcode;
+using UnityEngine;
+using UnityEngine.AI;
+using UnityEngine.SceneManagement;
+using SpaceGame.Core;
+
+namespace SpaceGame.World
+{
+    /// <summary>
+    /// Server-authoritative world chunk streamer.
+    /// Lives in the persistent/base game scene. Loads and unloads chunk scenes
+    /// additively based on all connected players' positions.
+    /// Netcode only allows one scene operation at a time, so all loads/unloads are queued.
+    /// </summary>
+    public class WorldStreamer : NetworkBehaviour
+    {
+        [SerializeField] private WorldStreamingConfig config;
+
+        [Header("NavMesh")]
+        [Tooltip("Single NavMeshSurface in the persistent scene. Rebuilt at runtime when chunks load/unload so NPCs can navigate across chunk boundaries.")]
+        [SerializeField] private NavMeshSurface navMeshSurface;
+        [Tooltip("Delay in seconds after the last chunk load/unload before rebuilding the NavMesh. Prevents multiple rebuilds when loading a batch of chunks.")]
+        [SerializeField] private float navMeshRebuildDelay = 0.5f;
+        [Tooltip("How far from a parked agent to search when reattaching it to the rebuilt NavMesh.")]
+        [SerializeField] private float parkedAgentActivationDistance = 32f;
+        [Tooltip("Per-frame time budget (milliseconds) for incremental NavMesh source collection. Lower = less per-frame cost but slower source readiness after a chunk loads.")]
+        [SerializeField] private float navMeshSourceCollectionBudgetMs = 1.0f;
+
+        [Header("Debug")]
+        [SerializeField] private bool showDebugGizmos = true;
+
+        /// <summary>
+        /// Fired on the server once all initial chunks (around spawn points) are loaded.
+        /// Subscribe to this before spawning players.
+        /// </summary>
+        public event Action OnInitialChunksReady;
+
+        public bool InitialChunksLoaded => initialChunksLoaded;
+        public bool IsReady => isReady;
+
+        public void RegisterTrackedTransform(Transform t)
+        {
+            if (t != null && !trackedTransforms.Contains(t))
+                trackedTransforms.Add(t);
+        }
+
+        public void UnregisterTrackedTransform(Transform t) => trackedTransforms.Remove(t);
+
+        /// <summary>True if the chunk under <paramref name="worldPos"/> is fully loaded (state == Loaded).</summary>
+        public bool IsChunkLoadedAt(Vector3 worldPos)
+        {
+            if (config == null) return false;
+            var coord = config.WorldToChunkCoord(worldPos);
+            return GetChunkState(coord) == ChunkState.Loaded;
+        }
+
+        /// <summary>
+        /// Sample the ground height at <paramref name="worldPos"/> using a downward raycast first,
+        /// then the chunk's terrain as fallback. Returns false if neither is available.
+        /// </summary>
+        public bool TrySampleGroundHeight(Vector3 worldPos, out float groundY)
+        {
+            // Raycast against any collider above ground level — works for terrain and structures.
+            var rayOrigin = new Vector3(worldPos.x, worldPos.y + 200f, worldPos.z);
+            if (Physics.Raycast(rayOrigin, Vector3.down, out var hit, 1000f, ~0, QueryTriggerInteraction.Ignore))
+            {
+                groundY = hit.point.y;
+                return true;
+            }
+
+            // Fallback: sample the chunk's terrain directly.
+            if (config != null)
+            {
+                var coord = config.WorldToChunkCoord(worldPos);
+                if (loadedTerrains.TryGetValue(coord, out var terrain) && terrain != null)
+                {
+                    groundY = terrain.SampleHeight(worldPos) + terrain.transform.position.y;
+                    return true;
+                }
+            }
+
+            groundY = 0f;
+            return false;
+        }
+
+        /// <summary>
+        /// Sample the chunk terrain's own surface height at <paramref name="worldPos"/> — terrain
+        /// only, never a raycast. Returns false when the chunk under the position is not loaded or
+        /// carries no Terrain.
+        ///
+        /// Deliberately not <see cref="TrySampleGroundHeight"/>: that one raycasts from 200 m up and
+        /// takes the first hit, so standing inside a building it reports the roof, and standing on a
+        /// vehicle it reports the vehicle. Both are correct answers to "what is the ground here" and
+        /// both are wrong answers to "am I under the terrain", which is a question strictly about
+        /// the terrain surface.
+        /// </summary>
+        public bool TryGetTerrainHeight(Vector3 worldPos, out float terrainY)
+        {
+            // IsWithinGrid, not WorldToChunkCoord alone: that clamps anything outside the grid to
+            // the nearest edge chunk, so without this a position in the minigame arena 16.5 km east
+            // of the world would be answered with the height of the world's corner terrain.
+            if (config != null && config.IsWithinGrid(worldPos))
+            {
+                var coord = config.WorldToChunkCoord(worldPos);
+                if (GetChunkState(coord) == ChunkState.Loaded
+                    && loadedTerrains.TryGetValue(coord, out var terrain) && terrain != null)
+                {
+                    terrainY = terrain.SampleHeight(worldPos) + terrain.transform.position.y;
+                    return true;
+                }
+            }
+
+            terrainY = 0f;
+            return false;
+        }
+
+        /// <summary>
+        /// Re-collect a chunk's NavMesh sources and schedule a rebuild. Call this after geometry
+        /// is added to or changed inside an already-loaded chunk at runtime — e.g. a
+        /// TerrainFeatureSpawner that generates its mesh in Awake/Start, AFTER the chunk's load
+        /// callback already scanned the scene. Without this the new geometry is never baked into
+        /// the NavMesh and agents standing on it cannot path.
+        /// </summary>
+        public void NotifyChunkGeometryChanged(Vector3 worldPos)
+        {
+            if (!isReady || config == null) return;
+
+            var coord = config.WorldToChunkCoord(worldPos);
+            if (GetChunkState(coord) != ChunkState.Loaded) return;
+
+            // BeginCollect is safe to call again for the same coord — it re-scans from scratch.
+            BeginChunkSourceCollection(coord);
+            ScheduleNavMeshRebuild();
+        }
+
+        // ─────────────────────────────────────────────
+        //  SceneTracked registry (static so components can self-register from OnEnable
+        //  without a FindFirstObjectByType call, and survives WorldStreamer respawn).
+        // ─────────────────────────────────────────────
+
+        private static readonly HashSet<SceneTracked> s_trackedEntities = new();
+
+        public static void RegisterTracked(SceneTracked entity)
+        {
+            if (entity != null)
+                s_trackedEntities.Add(entity);
+        }
+
+        public static void UnregisterTracked(SceneTracked entity)
+        {
+            if (entity != null)
+                s_trackedEntities.Remove(entity);
+        }
+
+        private enum ChunkState { NotLoaded, Loading, Loaded, Unloading }
+
+        private readonly Dictionary<Vector2Int, ChunkState> chunkStates = new();
+        private readonly Dictionary<Vector2Int, Scene> loadedScenes = new();
+        private readonly Dictionary<Vector2Int, Terrain> loadedTerrains = new();
+        private readonly Dictionary<Vector2Int, List<NavMeshAgent>> parkedAgentsByChunk = new();
+        private readonly Dictionary<NavMeshAgent, Vector3> parkedAgentPositions = new();
+        private readonly Dictionary<Vector2Int, float> unloadTimers = new();
+        private readonly List<Transform> trackedTransforms = new();
+
+        // Per-tracker history, so the streamer knows how fast each anchor is travelling and can
+        // load ahead of it instead of behind it.
+        private struct AnchorSample
+        {
+            public Vector3 Position;
+            public Vector3 Velocity;
+            public bool OffWorld;
+            public int Pass;
+        }
+
+        private readonly Dictionary<Transform, AnchorSample> anchorHistory = new();
+        private readonly List<Transform> anchorPruneBuffer = new();
+        private int anchorPass;
+
+        // Queue for sequential scene operations (Netcode only allows one at a time)
+        private readonly Queue<SceneOperation> operationQueue = new();
+        private bool operationInProgress;
+
+        // Set when NetworkManager.SceneManager.LoadScene/UnloadScene rejects our call with
+        // SceneEventInProgress. Netcode's "a scene event is active" flag is global to the whole
+        // NetworkSceneManager, not per-scene, so this can happen even for the very first operation
+        // in our own queue — e.g. another, unrelated scene load (the minigame scene itself, or one
+        // kicked off by other game code) is still finishing on Netcode's side even though it may
+        // already look complete from a plain UnityEngine.SceneManager perspective. Failing the
+        // operation outright would silently drop chunk loads; instead we retry the SAME operation
+        // after a short cooldown rather than moving on to the next queued op (which would just hit
+        // the same busy flag and cascade-fail every other queued operation in the same frame).
+        private SceneOperation? retryOperation;
+        private float retryTime;
+        private const float SceneEventRetryDelay = 0.2f;
+
+        private bool isReady;
+        private bool initialChunksLoaded;
+        private float updateInterval = 0.5f;
+        private float nextUpdateTime;
+
+        // Scene this WorldStreamer lives in — used as the migration target for Pin'd entities.
+        private Scene persistentScene;
+
+        private bool navMeshDirty;
+        // Set when RebuildNavMesh had to bail because a previous async bake was still running.
+        // The source cache's own dirty flag may already be consumed by then, so this flag is
+        // what guarantees the deferred rebuild actually re-fires once the bake completes.
+        private bool navMeshRebuildPending;
+        private float navMeshRebuildTime;
+        private float nextParkedAgentRetryTime;
+        private NavMeshDataInstance navMeshDataInstance;
+        private AsyncOperation navMeshBuildOperation;
+        private readonly NavMeshSourceCache sourceCache = new();
+        private readonly List<NavMeshBuildSource> reusableSourceBuffer = new();
+
+        private struct SceneOperation
+        {
+            public enum Type { Load, Unload }
+            public Type OperationType;
+            public Vector2Int Coord;
+            public Action OnComplete;
+        }
+
+        private void Start()
+        {
+            persistentScene = gameObject.scene;
+
+            // Offline: initialize immediately without waiting for Netcode
+            if (!Network.IsNetworked)
+                InitializeOffline();
+        }
+
+        private void InitializeOffline()
+        {
+            if (config == null)
+            {
+                Debug.LogError("[WorldStreamer] Missing WorldStreamingConfig reference.");
+                return;
+            }
+
+            InitializeChunkStates();
+            isReady = true;
+            Debug.Log("[WorldStreamer] Initialized in offline mode.");
+        }
+
+        public override void OnNetworkSpawn()
+        {
+            if (!IsServer) return;
+
+            if (config == null)
+            {
+                Debug.LogError("[WorldStreamer] Missing WorldStreamingConfig reference.");
+                return;
+            }
+
+            if (!persistentScene.IsValid())
+                persistentScene = gameObject.scene;
+
+            NetworkManager.Singleton.SceneManager.OnSceneEvent += HandleSceneEvent;
+            InitializeChunkStates();
+            isReady = true;
+        }
+
+        public override void OnNetworkDespawn()
+        {
+            if (!IsServer) return;
+
+            if (NetworkManager.Singleton != null && NetworkManager.Singleton.SceneManager != null)
+                NetworkManager.Singleton.SceneManager.OnSceneEvent -= HandleSceneEvent;
+
+            if (navMeshDataInstance.valid)
+                navMeshDataInstance.Remove();
+
+            sourceCache.Clear();
+            isReady = false;
+            chunkStates.Clear();
+            loadedScenes.Clear();
+            loadedTerrains.Clear();
+            parkedAgentsByChunk.Clear();
+            parkedAgentPositions.Clear();
+            unloadTimers.Clear();
+            anchorHistory.Clear();
+            operationQueue.Clear();
+            operationInProgress = false;
+            retryOperation = null;
+        }
+
+        private void Update()
+        {
+            // Run if we're the server (online) or in offline mode
+            if (!isReady) return;
+            if (Network.IsNetworked && !IsServer) return;
+
+            // Retry an operation Netcode previously rejected with SceneEventInProgress. Nothing
+            // else pokes ProcessNextOperation() once the retry cooldown elapses, since the retry
+            // isn't triggered by an Enqueue call or a FinishOperation completion.
+            if (retryOperation.HasValue && !operationInProgress && Time.time >= retryTime)
+            {
+                ProcessNextOperation();
+            }
+
+            // Advance any in-flight per-chunk source collection. Budgeted to never exceed
+            // navMeshSourceCollectionBudgetMs per frame, so this can't cause a stall.
+            sourceCache.perFrameBudgetMs = navMeshSourceCollectionBudgetMs;
+            sourceCache.Tick();
+
+            // Rebuild when the cache changed (or a previous rebuild was deferred), source
+            // collection is idle, and the post-load debounce window has elapsed.
+            //
+            // navMeshRebuildPending covers the case where RebuildNavMesh bailed because an
+            // async bake was still in flight: the cache's dirty flag may already be consumed,
+            // so we must not gate the retry on ConsumeDirty(). When it IS a fresh cache change
+            // we still consume the flag — but only after the timer check, since ConsumeDirty()
+            // clears the flag as a side effect and would otherwise swallow it on an early frame.
+            if (navMeshDirty && !sourceCache.HasPendingWork
+                && Time.time >= navMeshRebuildTime)
+            {
+                if (navMeshRebuildPending || sourceCache.ConsumeDirty())
+                {
+                    navMeshDirty = false;
+                    navMeshRebuildPending = false;
+                    RebuildNavMesh();
+                }
+            }
+
+            if (parkedAgentsByChunk.Count > 0
+                && (navMeshBuildOperation == null || navMeshBuildOperation.isDone)
+                && Time.time >= nextParkedAgentRetryTime)
+            {
+                nextParkedAgentRetryTime = Time.time + 0.5f;
+                ReleaseParkedAgents();
+            }
+
+            if (Time.time < nextUpdateTime) return;
+            nextUpdateTime = Time.time + updateInterval;
+
+            UpdateChunkLoading();
+            UpdateSceneMembership();
+        }
+
+        private void InitializeChunkStates()
+        {
+            if (config == null || config.chunks == null) return;
+
+            foreach (var chunk in config.chunks)
+            {
+                // A chunk scene may already be open when we enter Play mode — this happens
+                // whenever someone keeps the chunk scenes loaded additively in the editor for
+                // editing. If we blindly mark it NotLoaded the streamer never collects its
+                // NavMesh sources (BeginChunkSourceCollection only runs from the load callbacks),
+                // so the runtime NavMesh bakes from an empty cache and no agent can ever activate.
+                // Adopt the already-open scene instead.
+                var existing = SceneManager.GetSceneByName(chunk.sceneName);
+                if (existing.IsValid() && existing.isLoaded)
+                {
+                    AdoptLoadedChunk(chunk.gridCoord, existing);
+                }
+                else
+                {
+                    chunkStates[chunk.gridCoord] = ChunkState.NotLoaded;
+                }
+            }
+        }
+
+        // Register a chunk scene that was already loaded before the streamer took over
+        // (e.g. left open additively in the editor). Mirrors the work the load callbacks do.
+        private void AdoptLoadedChunk(Vector2Int coord, Scene scene)
+        {
+            chunkStates[coord] = ChunkState.Loaded;
+            loadedScenes[coord] = scene;
+            CacheTerrainForChunk(coord);
+            ParkAgentsForChunk(coord);
+            RefreshTerrainNeighborsAround(coord);
+            BeginChunkSourceCollection(coord);
+            ScheduleNavMeshRebuild();
+            Debug.Log($"[WorldStreamer] Adopted pre-loaded chunk {coord} ({scene.name})");
+        }
+
+        public void PreloadChunksAroundPosition(Vector3 worldPos, Action onComplete = null)
+        {
+            if (!isReady)
+            {
+                Debug.LogError("[WorldStreamer] PreloadChunksAroundPosition called before OnNetworkSpawn. Ensure WorldStreamer spawns before callers.");
+                onComplete?.Invoke();
+                return;
+            }
+
+            var coord = config.WorldToChunkCoord(worldPos);
+            var chunks = GetChunksInRadius(coord, config.loadRadius);
+            var toLoad = chunks.Where(c => GetChunkState(c) == ChunkState.NotLoaded).ToList();
+
+            if (toLoad.Count == 0)
+            {
+                MarkInitialChunksLoaded();
+                onComplete?.Invoke();
+                return;
+            }
+
+            int remaining = toLoad.Count;
+            foreach (var c in toLoad)
+            {
+                EnqueueLoad(c, () =>
+                {
+                    remaining--;
+                    if (remaining <= 0)
+                    {
+                        MarkInitialChunksLoaded();
+                        onComplete?.Invoke();
+                    }
+                });
+            }
+        }
+
+        public void PreloadChunksAroundPositions(IEnumerable<Vector3> worldPositions, Action onComplete = null)
+        {
+            if (!isReady || config == null)
+            {
+                if (!isReady)
+                    Debug.LogError("[WorldStreamer] PreloadChunksAroundPositions called before OnNetworkSpawn. Ensure WorldStreamer spawns before callers.");
+                onComplete?.Invoke();
+                return;
+            }
+
+            var chunksToLoad = new HashSet<Vector2Int>();
+
+            foreach (var worldPos in worldPositions)
+            {
+                // Positions that belong to a deliberately off-grid scene (the minigame arena)
+                // must not be clamped into a real edge chunk here — WorldToChunkCoord clamps, so
+                // the off-world test has to happen before calling it.
+                if (!config.TryGetStreamingCoord(worldPos, out var coord)) continue;
+
+                foreach (var chunk in GetChunksInRadius(coord, config.loadRadius))
+                {
+                    if (GetChunkState(chunk) == ChunkState.NotLoaded)
+                        chunksToLoad.Add(chunk);
+                }
+            }
+
+            if (chunksToLoad.Count == 0)
+            {
+                MarkInitialChunksLoaded();
+                onComplete?.Invoke();
+                return;
+            }
+
+            int remaining = chunksToLoad.Count;
+            foreach (var chunk in chunksToLoad)
+            {
+                EnqueueLoad(chunk, () =>
+                {
+                    remaining--;
+                    if (remaining <= 0)
+                    {
+                        MarkInitialChunksLoaded();
+                        onComplete?.Invoke();
+                    }
+                });
+            }
+        }
+
+        private void UpdateChunkLoading()
+        {
+            var requiredChunks = new HashSet<Vector2Int>();
+            anchorPass++;
+
+            if (Network.IsNetworked)
+            {
+                foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
+                {
+                    if (client.PlayerObject == null) continue;
+                    AddAnchor(requiredChunks, client.PlayerObject.transform, config.loadRadius);
+                }
+            }
+
+            foreach (var t in trackedTransforms)
+                AddAnchor(requiredChunks, t, config.loadRadius);
+
+            // SceneTracked entities with keepChunksLoaded=true also pull chunks in around them.
+            // Pin'd entities (mounts) need their surroundings loaded so the world doesn't vanish
+            // beneath them when the player drives further than the player's own load radius.
+            s_trackedEntities.RemoveWhere(e => e == null);
+            foreach (var entity in s_trackedEntities)
+            {
+                if (!entity.KeepChunksLoaded) continue;
+                AddAnchor(requiredChunks, entity.TrackedTransform, config.loadRadius);
+            }
+
+            // Chunks that contain a tracker which would be destroyed by the unload (Pin/Migrate)
+            // get pinned even if they're outside the load radius. Despawn-policy trackers don't pin.
+            // Without this guard a Migrate'd vehicle could still get yanked out from under itself
+            // if it idled at the very edge of a chunk for the grace period.
+            foreach (var entity in s_trackedEntities)
+            {
+                if (entity.Policy == SceneTracked.UnloadPolicy.Despawn) continue;
+                AddAnchor(requiredChunks, entity.TrackedTransform, 0);
+            }
+
+            PruneAnchorHistory();
+
+            // Load required chunks that aren't loaded
+            foreach (var coord in requiredChunks)
+            {
+                var state = GetChunkState(coord);
+                if (state == ChunkState.NotLoaded)
+                {
+                    EnqueueLoad(coord);
+                }
+                unloadTimers.Remove(coord);
+            }
+
+            // Start unload timers for chunks no longer needed
+            foreach (var kvp in chunkStates.ToList())
+            {
+                if (kvp.Value != ChunkState.Loaded) continue;
+                if (requiredChunks.Contains(kvp.Key)) continue;
+
+                if (!unloadTimers.ContainsKey(kvp.Key))
+                {
+                    unloadTimers[kvp.Key] = Time.time + config.unloadGracePeriod;
+                }
+                else if (Time.time >= unloadTimers[kvp.Key])
+                {
+                    EnqueueUnload(kvp.Key);
+                    unloadTimers.Remove(kvp.Key);
+                }
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        //  Anchors — every tracker that pulls chunks in around itself
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Require the chunks around <paramref name="t"/>, and around where it is heading.
+        ///
+        /// Every streaming decision goes through here so there is exactly one answer to "does
+        /// this thing keep the world loaded". A tracker only stops requiring chunks when it is
+        /// genuinely off-world (see <see cref="WorldStreamingConfig.offWorldDistance"/>); being
+        /// past the edge of the grid is not enough, because sailing off the map is something a
+        /// player does at speed and they still need the ground behind them to exist.
+        /// </summary>
+        private void AddAnchor(HashSet<Vector2Int> required, Transform t, int radius)
+        {
+            if (t == null) return;
+
+            Vector3 position = t.position;
+            Vector3 velocity = SampleVelocity(t, position);
+
+            bool anchored = AddAnchorAt(required, position, radius);
+            ReportOffWorld(t, !anchored);
+            if (!anchored) return;
+
+            // Start on the ground the tracker is about to arrive on, not just the ground already
+            // under it. At walking pace the predicted position is metres away and lands in the
+            // same chunk; on something fast enough to cross a chunk between scene loads it pulls
+            // the next one in a tick early.
+            if (velocity.sqrMagnitude > 1f)
+                AddAnchorAt(required, config.PredictAhead(position, velocity), radius);
+        }
+
+        private bool AddAnchorAt(HashSet<Vector2Int> required, Vector3 position, int radius)
+        {
+            if (!config.TryGetStreamingCoord(position, out var coord)) return false;
+
+            AddChunksInRadius(required, coord, radius);
+            return true;
+        }
+
+        /// <summary>
+        /// Speed of a tracker in world units per second, measured between chunk-loading passes.
+        /// Sampled from the transform rather than a Rigidbody because a tracker can be anything —
+        /// a player, a vehicle, a plain marker object like the interior return pin — and a player
+        /// riding a deck is moved by the platform writing their pose, not by their own velocity.
+        /// </summary>
+        private Vector3 SampleVelocity(Transform t, Vector3 position)
+        {
+            if (!anchorHistory.TryGetValue(t, out var sample))
+            {
+                anchorHistory[t] = new AnchorSample { Position = position, Pass = anchorPass };
+                return Vector3.zero;
+            }
+
+            // Several anchor rules can ask about the same transform in one pass; only the first
+            // advances the sample, or the rest would all measure a zero delta.
+            if (sample.Pass == anchorPass) return sample.Velocity;
+
+            sample.Velocity = (position - sample.Position) / Mathf.Max(updateInterval, 1e-3f);
+            sample.Position = position;
+            sample.Pass = anchorPass;
+            anchorHistory[t] = sample;
+            return sample.Velocity;
+        }
+
+        /// <summary>
+        /// Say so once when a tracker leaves the streamed world and once when it returns. Silence
+        /// here is what made this hard to see from the outside: chunks simply stopped arriving.
+        /// </summary>
+        private void ReportOffWorld(Transform t, bool offWorld)
+        {
+            if (!anchorHistory.TryGetValue(t, out var sample) || sample.OffWorld == offWorld) return;
+
+            sample.OffWorld = offWorld;
+            anchorHistory[t] = sample;
+
+            if (offWorld)
+                Debug.LogWarning($"[WorldStreamer] '{t.name}' is more than {config.offWorldDistance:0} m " +
+                                 $"outside the chunk grid at {t.position} — it no longer keeps any chunk loaded.");
+            else
+                Debug.Log($"[WorldStreamer] '{t.name}' is back inside the streamed world at {t.position}.");
+        }
+
+        private void PruneAnchorHistory()
+        {
+            anchorPruneBuffer.Clear();
+
+            foreach (var kvp in anchorHistory)
+            {
+                // Stale by several passes means the tracker was unregistered or destroyed.
+                if (kvp.Key == null || anchorPass - kvp.Value.Pass > 4)
+                    anchorPruneBuffer.Add(kvp.Key);
+            }
+
+            foreach (var t in anchorPruneBuffer)
+                anchorHistory.Remove(t);
+        }
+
+        // ─────────────────────────────────────────────
+        //  Scene membership pass — keep SceneTracked entities in the right scene
+        // ─────────────────────────────────────────────
+
+        private void UpdateSceneMembership()
+        {
+            if (!persistentScene.IsValid() || !persistentScene.isLoaded)
+                return;
+
+            s_trackedEntities.RemoveWhere(e => e == null);
+
+            foreach (var entity in s_trackedEntities)
+            {
+                Scene desired = ResolveDesiredScene(entity);
+                if (!desired.IsValid() || !desired.isLoaded) continue;
+
+                var go = entity.gameObject;
+                if (go.scene == desired) continue;
+
+                // Only move root objects — Unity rejects MoveGameObjectToScene on a child.
+                // Anything parented elsewhere (e.g. rider parented to mount) follows automatically.
+                if (go.transform.parent != null) continue;
+
+                // Hand off through Netcode when this is a NetworkObject so all clients agree on
+                // the new scene assignment. Non-networked or offline path falls through to the
+                // direct SceneManager call.
+                // TODO: when NetworkObject support lands on vehicles, route this through
+                // NetworkManager.Singleton.SceneManager.MoveObjectToScene (Netcode-for-GameObjects
+                // adds this in 1.x via NetworkObject.SceneMigrationSynchronization).
+                SceneManager.MoveGameObjectToScene(go, desired);
+            }
+        }
+
+        private Scene ResolveDesiredScene(SceneTracked entity)
+        {
+            switch (entity.Policy)
+            {
+                case SceneTracked.UnloadPolicy.Pin:
+                    return persistentScene;
+
+                case SceneTracked.UnloadPolicy.Migrate:
+                {
+                    var coord = config.WorldToChunkCoord(entity.TrackedTransform.position);
+                    if (loadedScenes.TryGetValue(coord, out var scene) && scene.IsValid() && scene.isLoaded)
+                        return scene;
+                    // Chunk under the entity isn't loaded yet — leave the entity where it is.
+                    // The unload guard in UpdateChunkLoading prevents its current scene from being
+                    // ripped out, and the next tick will re-evaluate once the chunk loads.
+                    return entity.gameObject.scene;
+                }
+
+                case SceneTracked.UnloadPolicy.Despawn:
+                default:
+                    return entity.gameObject.scene;
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        //  Sequential operation queue
+        // ─────────────────────────────────────────────
+
+        private void EnqueueLoad(Vector2Int coord, Action onComplete = null)
+        {
+            if (GetChunkState(coord) != ChunkState.NotLoaded)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            chunkStates[coord] = ChunkState.Loading;
+
+            operationQueue.Enqueue(new SceneOperation
+            {
+                OperationType = SceneOperation.Type.Load,
+                Coord = coord,
+                OnComplete = onComplete
+            });
+
+            ProcessNextOperation();
+        }
+
+        private void EnqueueUnload(Vector2Int coord, Action onComplete = null)
+        {
+            if (GetChunkState(coord) != ChunkState.Loaded)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            chunkStates[coord] = ChunkState.Unloading;
+
+            operationQueue.Enqueue(new SceneOperation
+            {
+                OperationType = SceneOperation.Type.Unload,
+                Coord = coord,
+                OnComplete = onComplete
+            });
+
+            ProcessNextOperation();
+        }
+
+        private void ProcessNextOperation()
+        {
+            if (operationInProgress) return;
+
+            SceneOperation op;
+            if (retryOperation.HasValue)
+            {
+                if (Time.time < retryTime) return;
+                op = retryOperation.Value;
+                retryOperation = null;
+            }
+            else if (operationQueue.Count > 0)
+            {
+                op = operationQueue.Dequeue();
+            }
+            else
+            {
+                return;
+            }
+
+            operationInProgress = true;
+
+            if (op.OperationType == SceneOperation.Type.Load)
+            {
+                ExecuteLoad(op);
+            }
+            else
+            {
+                ExecuteUnload(op);
+            }
+        }
+
+        private void ExecuteLoad(SceneOperation op)
+        {
+            var chunkInfo = config.GetChunk(op.Coord);
+            if (chunkInfo == null)
+            {
+                Debug.LogWarning($"[WorldStreamer] No chunk data for {op.Coord}");
+                chunkStates[op.Coord] = ChunkState.NotLoaded;
+                FinishOperation(op.OnComplete);
+                return;
+            }
+
+            string sceneName = chunkInfo.Value.sceneName;
+            string scenePath = chunkInfo.Value.scenePath;
+            Debug.Log($"[WorldStreamer] Loading chunk {op.Coord} ({sceneName}){(string.IsNullOrEmpty(scenePath) ? "" : $" from {scenePath}")}");
+
+            pendingCallback = op.OnComplete;
+            pendingCoord = op.Coord;
+            pendingSceneName = sceneName;
+
+            if (Network.IsNetworked)
+            {
+                var status = NetworkManager.Singleton.SceneManager.LoadScene(sceneName, LoadSceneMode.Additive);
+                if (status == SceneEventProgressStatus.SceneEventInProgress)
+                {
+                    RetryOperation(op);
+                }
+                else if (status != SceneEventProgressStatus.Started)
+                {
+                    Debug.LogError($"[WorldStreamer] Failed to load {sceneName}: {status}");
+                    chunkStates[op.Coord] = ChunkState.NotLoaded;
+                    FinishOperation(op.OnComplete);
+                }
+                // Completion handled in HandleSceneEvent
+            }
+            else
+            {
+                var asyncOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+                if (asyncOp == null)
+                {
+                    Debug.LogError($"[WorldStreamer] Failed to load {sceneName} (offline).");
+                    chunkStates[op.Coord] = ChunkState.NotLoaded;
+                    FinishOperation(op.OnComplete);
+                    return;
+                }
+                asyncOp.completed += _ => OnOfflineSceneLoaded(op.Coord, sceneName, op.OnComplete);
+            }
+        }
+
+        // Netcode rejected the scene event because ITS OWN internal "event active" flag — which is
+        // global to the whole NetworkSceneManager, not per-scene — is still set from an unrelated
+        // scene event elsewhere in the game. Re-attempt the exact same operation shortly instead of
+        // dropping it; leaves chunkStates/pendingXxx untouched since nothing actually started.
+        private void RetryOperation(SceneOperation op)
+        {
+            retryOperation = op;
+            retryTime = Time.time + SceneEventRetryDelay;
+            pendingCallback = null;
+            pendingSceneName = null;
+            operationInProgress = false;
+        }
+
+        private void OnOfflineSceneLoaded(Vector2Int coord, string sceneName, Action onComplete)
+        {
+            chunkStates[coord] = ChunkState.Loaded;
+            loadedScenes[coord] = SceneManager.GetSceneByName(sceneName);
+            CacheTerrainForChunk(coord);
+            ParkAgentsForChunk(coord);
+            RefreshTerrainNeighborsAround(coord);
+            BeginChunkSourceCollection(coord);
+            ScheduleNavMeshRebuild();
+            Debug.Log($"[WorldStreamer] Chunk {coord} loaded (offline)");
+            FinishOperation(onComplete);
+        }
+
+        private void ExecuteUnload(SceneOperation op)
+        {
+            if (!loadedScenes.TryGetValue(op.Coord, out var scene))
+            {
+                Debug.LogWarning($"[WorldStreamer] No loaded scene for {op.Coord}");
+                chunkStates[op.Coord] = ChunkState.NotLoaded;
+                FinishOperation(op.OnComplete);
+                return;
+            }
+
+            Debug.Log($"[WorldStreamer] Unloading chunk {op.Coord}");
+
+            pendingCallback = op.OnComplete;
+            pendingCoord = op.Coord;
+            pendingSceneName = null;
+
+            if (Network.IsNetworked)
+            {
+                var status = NetworkManager.Singleton.SceneManager.UnloadScene(scene);
+                if (status == SceneEventProgressStatus.SceneEventInProgress)
+                {
+                    RetryOperation(op);
+                }
+                else if (status != SceneEventProgressStatus.Started)
+                {
+                    Debug.LogError($"[WorldStreamer] Failed to unload chunk {op.Coord}: {status}");
+                    chunkStates[op.Coord] = ChunkState.Loaded;
+                    FinishOperation(op.OnComplete);
+                }
+                // Completion handled in HandleSceneEvent
+            }
+            else
+            {
+                var asyncOp = SceneManager.UnloadSceneAsync(scene);
+                if (asyncOp == null)
+                {
+                    Debug.LogError($"[WorldStreamer] Failed to unload chunk {op.Coord} (offline).");
+                    chunkStates[op.Coord] = ChunkState.Loaded;
+                    FinishOperation(op.OnComplete);
+                    return;
+                }
+                asyncOp.completed += _ => OnOfflineSceneUnloaded(op.Coord, op.OnComplete);
+            }
+        }
+
+        private void OnOfflineSceneUnloaded(Vector2Int coord, Action onComplete)
+        {
+            loadedTerrains.Remove(coord);
+            parkedAgentsByChunk.Remove(coord);
+            chunkStates[coord] = ChunkState.NotLoaded;
+            loadedScenes.Remove(coord);
+            RefreshTerrainNeighborsAround(coord);
+            sourceCache.Drop(coord);
+            ScheduleNavMeshRebuild();
+            Debug.Log($"[WorldStreamer] Chunk {coord} unloaded (offline)");
+            FinishOperation(onComplete);
+        }
+
+        // Pending operation tracking
+        private Action pendingCallback;
+        private Vector2Int pendingCoord;
+        private string pendingSceneName;
+
+        public string DebugDumpState()
+        {
+            // trackedTransforms/anchors are in here because "no chunk ever loads" and "nothing is
+            // anchoring the world" look identical from the outside, and only one of them is a
+            // streaming fault.
+            return $"operationInProgress={operationInProgress} queueCount={operationQueue.Count} " +
+                   $"pendingCoord={pendingCoord} pendingSceneName={pendingSceneName} " +
+                   $"trackedTransforms={trackedTransforms.Count} sceneTracked={s_trackedEntities.Count} " +
+                   $"anchors=[{string.Join(", ", anchorHistory.Where(kv => kv.Key != null).Select(kv => $"{kv.Key.name}@{kv.Value.Position}{(kv.Value.OffWorld ? " OFF-WORLD" : "")}"))}] " +
+                   $"chunkStates=[{string.Join(", ", chunkStates.Select(kv => $"{kv.Key}:{kv.Value}"))}]";
+        }
+
+        private void HandleSceneEvent(SceneEvent sceneEvent)
+        {
+            if (!operationInProgress) return;
+
+            if (sceneEvent.SceneEventType == SceneEventType.LoadEventCompleted
+                && pendingSceneName != null
+                && sceneEvent.SceneName == pendingSceneName)
+            {
+                chunkStates[pendingCoord] = ChunkState.Loaded;
+                loadedScenes[pendingCoord] = SceneManager.GetSceneByName(pendingSceneName);
+                CacheTerrainForChunk(pendingCoord);
+                ParkAgentsForChunk(pendingCoord);
+                RefreshTerrainNeighborsAround(pendingCoord);
+                BeginChunkSourceCollection(pendingCoord);
+                ScheduleNavMeshRebuild();
+                Debug.Log($"[WorldStreamer] Chunk {pendingCoord} loaded");
+                FinishOperation(pendingCallback);
+            }
+            else if (sceneEvent.SceneEventType == SceneEventType.UnloadEventCompleted
+                     && pendingSceneName == null)
+            {
+                loadedTerrains.Remove(pendingCoord);
+                parkedAgentsByChunk.Remove(pendingCoord);
+                chunkStates[pendingCoord] = ChunkState.NotLoaded;
+                loadedScenes.Remove(pendingCoord);
+                RefreshTerrainNeighborsAround(pendingCoord);
+                sourceCache.Drop(pendingCoord);
+                ScheduleNavMeshRebuild();
+                Debug.Log($"[WorldStreamer] Chunk {pendingCoord} unloaded");
+                FinishOperation(pendingCallback);
+            }
+        }
+
+        private void FinishOperation(Action callback)
+        {
+            operationInProgress = false;
+            pendingCallback = null;
+            pendingSceneName = null;
+            callback?.Invoke();
+            ProcessNextOperation();
+        }
+
+        // ─────────────────────────────────────────────
+        //  NavMesh
+        // ─────────────────────────────────────────────
+
+        private void ScheduleNavMeshRebuild()
+        {
+            navMeshDirty = true;
+            navMeshRebuildTime = Time.time + navMeshRebuildDelay;
+            nextParkedAgentRetryTime = navMeshRebuildTime;
+        }
+
+        private void RebuildNavMesh()
+        {
+            if (navMeshSurface == null)
+            {
+                Debug.LogWarning("[WorldStreamer] NavMeshSurface not assigned — NPCs will not be able to navigate.");
+                return;
+            }
+
+            // Skip if a previous async build is still running — it will be replaced next cycle.
+            // Mark navMeshRebuildPending so the Update gate re-fires this even though the source
+            // cache's dirty flag has already been consumed for this attempt.
+            if (navMeshBuildOperation != null && !navMeshBuildOperation.isDone)
+            {
+                navMeshDirty = true;
+                navMeshRebuildPending = true;
+                navMeshRebuildTime = Time.time + navMeshRebuildDelay;
+                return;
+            }
+
+            // Agents in chunks that just changed are already parked at load time. We don't
+            // run a global FindObjectsByType scan here — that was the second source of stalls
+            // and is unnecessary because the NavMesh swap is atomic at the engine level. Any
+            // agent we miss simply waits for the next ReleaseParkedAgents retry in Update().
+
+            var settings = navMeshSurface.GetBuildSettings();
+            settings.agentSlope = 60f;
+            settings.agentClimb = 0.8f;
+
+            // Pull the union of cached per-chunk sources. No synchronous scene walk happens here.
+            reusableSourceBuffer.Clear();
+            sourceCache.BuildFlatSourceList(reusableSourceBuffer);
+
+            var bounds = new Bounds(navMeshSurface.center, navMeshSurface.size);
+            if (navMeshSurface.collectObjects != CollectObjects.Volume)
+            {
+                bounds = new Bounds(Vector3.zero, new Vector3(10000f, 500f, 10000f));
+            }
+
+            if (navMeshSurface.navMeshData == null)
+                navMeshSurface.navMeshData = new NavMeshData(settings.agentTypeID);
+
+            if (!navMeshDataInstance.valid)
+                navMeshDataInstance = NavMesh.AddNavMeshData(navMeshSurface.navMeshData);
+
+            navMeshBuildOperation = NavMeshBuilder.UpdateNavMeshDataAsync(
+                navMeshSurface.navMeshData,
+                settings,
+                reusableSourceBuffer,
+                bounds
+            );
+
+            navMeshBuildOperation.completed += _ =>
+            {
+                if (!this || !isReady)
+                    return;
+
+                ReleaseParkedAgents();
+            };
+
+            Debug.Log($"[WorldStreamer] NavMesh async rebuild started ({reusableSourceBuffer.Count} sources, cache covers {sourceCache.TotalSourceCount} total)");
+        }
+
+        private void BeginChunkSourceCollection(Vector2Int coord)
+        {
+            if (!loadedScenes.TryGetValue(coord, out var scene) || !scene.IsValid() || !scene.isLoaded) return;
+            if (navMeshSurface == null) return;
+            sourceCache.BeginCollect(coord, scene, navMeshSurface.layerMask, navMeshSurface.useGeometry, navMeshSurface.defaultArea);
+        }
+
+        // ─────────────────────────────────────────────
+        //  Helpers
+        // ─────────────────────────────────────────────
+
+        private HashSet<Vector2Int> GetChunksInRadius(Vector2Int center, int radius)
+        {
+            var result = new HashSet<Vector2Int>();
+            AddChunksInRadius(result, center, radius);
+            return result;
+        }
+
+        private void AddChunksInRadius(HashSet<Vector2Int> into, Vector2Int center, int radius)
+        {
+            for (int x = center.x - radius; x <= center.x + radius; x++)
+            {
+                for (int y = center.y - radius; y <= center.y + radius; y++)
+                {
+                    var coord = new Vector2Int(x, y);
+                    if (config.IsValidCoord(coord))
+                        into.Add(coord);
+                }
+            }
+        }
+
+        private ChunkState GetChunkState(Vector2Int coord)
+        {
+            return chunkStates.TryGetValue(coord, out var state) ? state : ChunkState.NotLoaded;
+        }
+
+        private void CacheTerrainForChunk(Vector2Int coord)
+        {
+            loadedTerrains.Remove(coord);
+
+            if (!loadedScenes.TryGetValue(coord, out var scene) || !scene.IsValid() || !scene.isLoaded)
+                return;
+
+            Vector3 expectedPosition = config.ChunkToWorldPosition(coord);
+            Terrain primaryTerrain = null;
+
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                var terrains = root.GetComponentsInChildren<Terrain>(true);
+                foreach (var terrain in terrains)
+                {
+                    // Preserve baked terrain elevation while aligning chunk X/Z to the grid.
+                    Vector3 terrainPosition = terrain.transform.position;
+                    terrain.transform.position = new Vector3(expectedPosition.x, terrainPosition.y, expectedPosition.z);
+
+                    if (primaryTerrain == null)
+                        primaryTerrain = terrain;
+                }
+            }
+
+            if (primaryTerrain != null)
+            {
+                loadedTerrains[coord] = primaryTerrain;
+                Physics.SyncTransforms();
+            }
+        }
+
+        private void ParkAgentsForChunk(Vector2Int coord)
+        {
+            if (!loadedScenes.TryGetValue(coord, out var scene) || !scene.IsValid() || !scene.isLoaded)
+                return;
+
+            if (!parkedAgentsByChunk.TryGetValue(coord, out var agents))
+            {
+                agents = new List<NavMeshAgent>();
+                parkedAgentsByChunk[coord] = agents;
+            }
+
+            agents.RemoveAll(agent => agent == null);
+
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                foreach (var agent in root.GetComponentsInChildren<NavMeshAgent>(true))
+                {
+                    if (agent == null)
+                        continue;
+
+                    if (!agents.Contains(agent))
+                        agents.Add(agent);
+
+                    ParkAgent(agent);
+                }
+            }
+        }
+
+        private void ParkAgent(NavMeshAgent agent)
+        {
+            if (!parkedAgentPositions.ContainsKey(agent))
+                parkedAgentPositions[agent] = agent.transform.position;
+
+            agent.enabled = false;
+
+            if (agent.TryGetComponent<Rigidbody>(out var rb))
+            {
+                if (!rb.isKinematic)
+                {
+                    rb.linearVelocity = Vector3.zero;
+                    rb.angularVelocity = Vector3.zero;
+                }
+
+                rb.Sleep();
+            }
+        }
+
+        private void ReleaseParkedAgents()
+        {
+            foreach (var kvp in parkedAgentsByChunk.ToList())
+            {
+                var remaining = new List<NavMeshAgent>();
+
+                foreach (var agent in kvp.Value)
+                {
+                    if (agent == null)
+                        continue;
+
+                    if (!TryActivateAgent(agent))
+                        remaining.Add(agent);
+                }
+
+                if (remaining.Count > 0)
+                    parkedAgentsByChunk[kvp.Key] = remaining;
+                else
+                    parkedAgentsByChunk.Remove(kvp.Key);
+            }
+        }
+
+        private bool TryActivateAgent(NavMeshAgent agent)
+        {
+            Vector3 sampleOrigin = parkedAgentPositions.TryGetValue(agent, out var cached)
+                ? cached
+                : agent.transform.position;
+            float sampleDistance = Mathf.Max(agent.radius * 4f, agent.height * 2f, parkedAgentActivationDistance);
+
+            if (!NavMesh.SamplePosition(sampleOrigin, out var hit, sampleDistance, NavMesh.AllAreas))
+            {
+                Debug.LogWarning($"[WorldStreamer] Failed to activate NavMeshAgent '{agent.name}' near {sampleOrigin} (distance {sampleDistance:0.##}).");
+                return false;
+            }
+
+            agent.transform.position = hit.position;
+            agent.enabled = true;
+
+            // Warp snaps the agent's internal state to the navmesh position. It must run after
+            // enabled=true. Warp itself places the agent onto the NavMesh, so we call it
+            // unconditionally — gating on isOnNavMesh would skip it on the activation frame
+            // (the agent has not registered onto the mesh yet right after enabled=true), leaving
+            // the agent enabled but detached. If Warp fails the motor's TrySnapToNavMesh recovers.
+            if (!agent.Warp(hit.position))
+            {
+                Debug.LogWarning($"[WorldStreamer] NavMeshAgent '{agent.name}' enabled but Warp to {hit.position} failed; motor will retry snap.");
+            }
+
+            if (agent.TryGetComponent<Rigidbody>(out var rb))
+            {
+                if (!rb.isKinematic)
+                {
+                    rb.linearVelocity = Vector3.zero;
+                    rb.angularVelocity = Vector3.zero;
+                }
+            }
+
+            parkedAgentPositions.Remove(agent);
+
+            return true;
+        }
+
+        private void RefreshTerrainNeighborsAround(Vector2Int centerCoord)
+        {
+            for (int x = centerCoord.x - 1; x <= centerCoord.x + 1; x++)
+            {
+                for (int y = centerCoord.y - 1; y <= centerCoord.y + 1; y++)
+                {
+                    var coord = new Vector2Int(x, y);
+                    if (!config.IsValidCoord(coord))
+                        continue;
+
+                    RefreshTerrainNeighbors(coord);
+                }
+            }
+        }
+
+        private void RefreshTerrainNeighbors(Vector2Int coord)
+        {
+            if (!loadedTerrains.TryGetValue(coord, out var terrain) || terrain == null)
+                return;
+
+            loadedTerrains.TryGetValue(new Vector2Int(coord.x - 1, coord.y), out var left);
+            loadedTerrains.TryGetValue(new Vector2Int(coord.x, coord.y + 1), out var top);
+            loadedTerrains.TryGetValue(new Vector2Int(coord.x + 1, coord.y), out var right);
+            loadedTerrains.TryGetValue(new Vector2Int(coord.x, coord.y - 1), out var bottom);
+
+            terrain.SetNeighbors(left, top, right, bottom);
+        }
+
+        private void MarkInitialChunksLoaded()
+        {
+            if (initialChunksLoaded) return;
+
+            initialChunksLoaded = true;
+            OnInitialChunksReady?.Invoke();
+        }
+
+    #if UNITY_EDITOR
+        private void OnValidate()
+        {
+            navMeshRebuildDelay = Mathf.Max(0.05f, navMeshRebuildDelay);
+            parkedAgentActivationDistance = Mathf.Max(1f, parkedAgentActivationDistance);
+        }
+
+        private void OnDrawGizmos()
+        {
+            if (!showDebugGizmos || config == null || config.chunks == null) return;
+        }
+    #endif
+
+    }
+}

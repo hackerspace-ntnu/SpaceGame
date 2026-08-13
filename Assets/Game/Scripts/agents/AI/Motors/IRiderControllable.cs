@@ -1,0 +1,42 @@
+// Rider-driven continuous steering channel for motors. Parallels IMovementMotor (AI goal channel)
+// but carries raw per-frame rider input instead of a goal. SteerModule forwards one of these to
+// the motor each frame while the rider is steering; the motor interprets it in its own physics
+// model (tank steer on ground, throttle/yaw/vertical in flight, etc.).
+//
+// A motor that implements IRiderControllable must stamp Time.frameCount inside ApplyRiderInput
+// and, in its Tick(MoveIntent) implementation, skip MoveIntent interpretation on the same frame
+// so the AI channel can't fight the rider. Arc/cooldown updates should still run.
+using UnityEngine;
+
+namespace SpaceGame.Agents
+{
+    public readonly struct RiderInput
+    {
+        // x = yaw (turn left/right), y = throttle (forward/back). Already smoothed by SteerModule.
+        public readonly Vector2 Move;
+        // Ascend/descend axis for flying motors. Ground motors ignore it.
+        public readonly float Vertical;
+        // Rider asked for a "running" speed (sprint) this frame.
+        public readonly bool IsRunning;
+        // Dedicated yaw axis, -1..1, for a machine whose Move.x means something other than turning.
+        // A lateral traveller (the crab) spends Move.x on strafe and steers from this instead; every
+        // machine that turns with Move.x ignores it, and it stays 0 when no turn action is bound.
+        public readonly float Turn;
+
+        public RiderInput(Vector2 move, float vertical, bool isRunning)
+            : this(move, vertical, isRunning, 0f) { }
+
+        public RiderInput(Vector2 move, float vertical, bool isRunning, float turn)
+        {
+            Move = move;
+            Vertical = vertical;
+            IsRunning = isRunning;
+            Turn = turn;
+        }
+    }
+
+    public interface IRiderControllable
+    {
+        void ApplyRiderInput(in RiderInput input, float deltaTime);
+    }
+}

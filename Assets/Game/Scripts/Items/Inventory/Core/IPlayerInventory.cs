@@ -1,0 +1,21 @@
+using System;
+using UnityEngine;
+
+namespace SpaceGame.Items
+{
+    public interface IPlayerInventory
+    {
+        int SelectedSlotIndex { get; }
+        event Action<InventorySlot> OnSlotSelected;
+        event Action<int, InventorySlot> OnSlotChanged;
+        event Action<InventoryItem> OnItemDropped;
+
+        bool TryAddItem(InventoryItem item);
+        bool TryRemoveItem(int index);
+        void SelectSlot(int slotIndex);
+        int GetInventorySize();
+        InventorySlot GetSlot(int index);
+        InventorySlot GetSelectedSlot();
+        InventoryItem GetSelectedItem();
+    }
+}

@@ -1,0 +1,32 @@
+{
+    "name": "SpaceGame.Tests.EditMode",
+    "rootNamespace": "",
+    "references": [
+        "SpaceGame.Minigame.Core",
+        "SpaceGame.World.Streaming",
+        "SpaceGame.World.Safety",
+        "SpaceGame.Locomotion",
+        "SpaceGame.Creatures.Ostrich",
+        "SpaceGame.Creatures.Horse",
+        "SpaceGame.Creatures.Crab",
+        "SpaceGame.Creatures.Humanoid",
+        "SpaceGame.Vehicles.Crawler",
+        "SpaceGame.Vehicles.DuneFoil",
+        "SpaceGame.Vehicles.Ornithopter",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -3,6 +3,10 @@
 # Get latest from https://github.com/github/gitignore/blob/main/Unity.gitignore
 #
 .utmp/
+
+# macOS Finder metadata
+.DS_Store
+
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/
@@ -15,6 +19,10 @@
 # By default unity supports Blender asset imports, *.blend1 blender files do not need to be commited to version control.
 *.blend1
 *.blend1.meta
+
+# Bytecode from the Blender model-library build scripts under Assets/Models/_Source~/
+__pycache__/
+*.pyc
 
 # MemoryCaptures can get excessive in size.
 # They also could contain extremely sensitive data

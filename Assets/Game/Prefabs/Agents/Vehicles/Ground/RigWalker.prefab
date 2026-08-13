@@ -508,7 +508,7 @@ GameObject:
   - component: {fileID: 3309043911650918597}
   - component: {fileID: 2521900777554416718}
   m_Layer: 0
-  m_Name: rig_walker
+  m_Name: RigWalker
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -550,20 +550,29 @@ MonoBehaviour:
   kneeRange: 60
   ankleRange: 45
   rollRange: 30
-  swingLegs: 1
   stepDuration: 0.4
   stepClearance: 0.08
   obstacleClearance: 1.5
+  autoCalibrateRideHeight: 1
+  rideHeight: 11.5
+  heightSmooth: 5
+  fallGravity: 20
+  maxFallSpeed: 40
+  footGroundTolerance: 0.25
+  fallThresholdFraction: 0.5
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
   rayStartAbove: 8
   rayLength: 400
   snapToGroundOnStart: 1
-  autoCalibrateRideHeight: 1
-  rideHeight: 11.5
-  heightSmooth: 5
+  maxClimbAngle: 35
+  climbTaperAngle: 5
+  climbProbeRun: 2
   drawGizmos: 1
+  swingLegs: 1
+  slopeFollow: 0.6
+  maxDeckTilt: 12
 --- !u!114 &7332066043784660593
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -585,6 +594,8 @@ MonoBehaviour:
   repathTolerance: 2
   cornerArriveRadius: 6
   navMeshSampleDistance: 20
+  detourHoldTime: 2
+  lateralSteering: 0
 --- !u!114 &5328152956152328182
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -600,6 +611,7 @@ MonoBehaviour:
   priority: 0
   active: 1
   seatPoint: {fileID: 3339686153467259185}
+  seatOffset: {x: 0, y: 0, z: 0}
   dismountPoint: {fileID: 8627492122224892146}
   mountableByDirectInteraction: 0
   disablePlayerMovement: 1
@@ -616,12 +628,15 @@ MonoBehaviour:
   thirdPersonAimLerp: 18
   thirdPersonYawLerp: 16
   thirdPersonLookAhead: 6
+  followMountPitch: 0
   lookActionName: Look
-  lookSensitivity: 1
+  lookSensitivity: 20
   lookPitchClamp: 75
   defaultMountedPitch: -15
-  cameraAutoAlignSpeed: 90
-  cameraAutoAlignDelay: 0.5
+  orbitPitchMin: -25
+  orbitPitchMax: 60
+  cameraAutoAlignSpeed: 8
+  cameraAutoAlignDelay: 3
   allowAISelfMovementWhenMounted: 0
 --- !u!114 &3231969840429547935
 MonoBehaviour:
@@ -661,6 +676,7 @@ MonoBehaviour:
   moveActionName: Move
   jumpActionName: Jump
   verticalActionName: 
+  turnActionName: 
   steeringOverrideThreshold: 0.1
   turnSmoothTime: 0.12
   riderCanRun: 0

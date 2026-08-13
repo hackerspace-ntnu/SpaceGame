@@ -29,6 +29,13 @@ namespace SpaceGame.Agents
 
         [Header("Mount Points")]
         [SerializeField] private Transform seatPoint;
+        [Tooltip("How deep the rider sits into the seat point, in the seat point's local space. " +
+                 "A player's transform origin is at their FEET, so with the default zero the feet " +
+                 "land on the seat and the body stands above it — fine for a deck, wrong for a " +
+                 "saddle. Push this down by roughly the rider's leg length to seat them by the " +
+                 "pelvis instead. Kept separate from the seat point's own position so the marker " +
+                 "can stay where the saddle actually is.")]
+        [SerializeField] private Vector3 seatOffset = Vector3.zero;
         [SerializeField] private Transform dismountPoint;
 
         [Header("Interaction")]
@@ -53,8 +60,12 @@ namespace SpaceGame.Agents
                  "to a clone of Camera.main if null. Leave default unless this vehicle needs custom render settings.")]
         [SerializeField] private Camera thirdPersonCameraPrefab;
         [SerializeField] private Transform thirdPersonPivot;
-        [SerializeField] private Vector3 thirdPersonOffset = new Vector3(0f, 2.2f, -3.8f);
-        [SerializeField] private float thirdPersonDistance = 3.8f;
+        [Tooltip("Boom offset from the pivot. X biases the camera off the mount's centreline " +
+                 "(over-the-shoulder), Y raises it, Z only picks which side of the pivot it sits " +
+                 "on — the length comes from thirdPersonDistance. Defaults are a riding framing: " +
+                 "close, roughly level with the rider's head, a few degrees down.")]
+        [SerializeField] private Vector3 thirdPersonOffset = new Vector3(0.35f, 1.7f, -1f);
+        [SerializeField] private float thirdPersonDistance = 4.5f;
         [SerializeField] private float thirdPersonFollowLerp = 14f;
         [Tooltip("How fast the camera's aim catches up. Slightly below thirdPersonFollowLerp so the " +
                  "framing settles after the position does rather than fighting it.")]
@@ -62,8 +73,10 @@ namespace SpaceGame.Agents
         [Tooltip("How fast the camera's orbit yaw follows the vehicle's heading. Lower = the vehicle " +
                  "can rotate a little within frame before the camera swings round behind it.")]
         [SerializeField] private float thirdPersonYawLerp = 16f;
-        [Tooltip("Meters ahead of the pivot the camera aims at. Higher = camera tilts further down, shows more ground ahead.")]
-        [SerializeField] private float thirdPersonLookAhead = 6f;
+        [Tooltip("Meters ahead of the pivot the camera aims at. The downward angle works out as " +
+                 "atan(offset.y / (distance + this)), so RAISING this FLATTENS the view — it does " +
+                 "not tilt further down.")]
+        [SerializeField] private float thirdPersonLookAhead = 7f;
         [Tooltip("Orbit the camera on the mount's FULL rotation rather than its yaw alone. Off for " +
                  "ground vehicles, which stay level and want a level horizon however the hull tilts. " +
                  "On for anything that pitches or rolls in flight — otherwise the camera stays level " +
@@ -73,11 +86,27 @@ namespace SpaceGame.Agents
 
         [Header("Mounted Look")]
         [SerializeField] private string lookActionName = "Look";
-        [SerializeField] private float lookSensitivity = 1f;
+        [Tooltip("Match PlayerLook's sensitivity on the player prefab (20) unless this mount wants " +
+                 "a deliberately heavier or lighter view. This sat at 1 against PlayerLook's 20, " +
+                 "which made the mounted camera twenty times slower than the on-foot one — the " +
+                 "whole reason looking around while riding felt like dragging something heavy.")]
+        [SerializeField] private float lookSensitivity = 20f;
+        [Tooltip("Pitch limit for the FIRST-PERSON head. The third-person boom has its own, below.")]
         [SerializeField] private float lookPitchClamp = 75f;
         [SerializeField] private float defaultMountedPitch = -15f;
-        [SerializeField] private float cameraAutoAlignSpeed = 90f;
-        [SerializeField] private float cameraAutoAlignDelay = 0.5f;
+        [Tooltip("Lowest the third-person boom swings, in degrees. Negative drops the camera and " +
+                 "looks up at the mount; going much past this digs it into the ground.")]
+        [SerializeField] private float orbitPitchMin = -25f;
+        [Tooltip("Highest the third-person boom swings. Positive lifts the camera into a view " +
+                 "down over the mount.")]
+        [SerializeField] private float orbitPitchMax = 60f;
+        [Tooltip("Degrees per second the view drifts back behind the mount once the rider has " +
+                 "stopped looking around. Deliberately slow: a rider who parks the camera out on " +
+                 "the mount's flank to watch it run should keep that view for as long as they " +
+                 "want it, and get it back to normal without having to steer the camera home.")]
+        [SerializeField] private float cameraAutoAlignSpeed = 8f;
+        [Tooltip("Seconds of no look input before that drift starts.")]
+        [SerializeField] private float cameraAutoAlignDelay = 3f;
 
         [Header("While Mounted")]
         [Tooltip("If true, the mount keeps running its own AI modules (wander, patrol, etc.) between rider inputs. " +
@@ -90,6 +119,10 @@ namespace SpaceGame.Agents
         private Camera runtimeThirdPersonCamera;
         private bool thirdPersonCameraNeedsSnap;
         private float mountedPitch;
+        // Third-person boom elevation. Separate from mountedPitch because the two have different
+        // neutrals (the head rests at defaultMountedPitch, the boom rests at whatever
+        // thirdPersonOffset already describes) and different limits.
+        private float orbitPitch;
         private float cameraYaw;
         private float cameraYawOffset;
         // Aim target is smoothed in world space and persists between frames, so the camera's
@@ -150,6 +183,8 @@ namespace SpaceGame.Agents
         public float CameraYaw => cameraYaw;
         public float CameraYawOffset => cameraYawOffset;
         public float MountedPitch => mountedPitch;
+        public float OrbitPitch => orbitPitch;
+        public Vector3 SeatOffset => seatOffset;
 
         public override string ModuleDescription =>
             "Mount lifecycle + interaction surface + AI suppression. Drop this + SteerModule to make anything mountable.\n\n" +
@@ -201,6 +236,8 @@ namespace SpaceGame.Agents
             fallbackDismountDistance = Mathf.Max(0.1f, fallbackDismountDistance);
             lookSensitivity = Mathf.Max(0f, lookSensitivity);
             lookPitchClamp = Mathf.Clamp(lookPitchClamp, 0f, 89f);
+            orbitPitchMin = Mathf.Clamp(orbitPitchMin, -89f, 0f);
+            orbitPitchMax = Mathf.Clamp(orbitPitchMax, 0f, 89f);
             thirdPersonDistance = Mathf.Max(0.1f, thirdPersonDistance);
             thirdPersonFollowLerp = Mathf.Max(0.01f, thirdPersonFollowLerp);
             thirdPersonAimLerp = Mathf.Max(0.01f, thirdPersonAimLerp);

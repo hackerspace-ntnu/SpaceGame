@@ -51282,41 +51282,618 @@
     ],
     "auto_suffixed_names": []
   },
-  "components/props/field_backpack.blend": {
+  "components/props/expedition_backpack.blend": {
     "collections": [
       {
-        "name": "Coll_Backpack_Field",
+        "name": "Coll_Backpack_Expedition",
         "objects": [
-          "Mesh_Backpack_Frame",
-          "Mesh_Backpack_ShellBase",
-          "Mesh_Backpack_ShellLid",
-          "PIVOT_Clamshell",
-          "Mesh_Backpack_Buckle_L",
-          "Mesh_Backpack_Buckle_R",
-          "SOCK_Strap_0",
-          "SOCK_Strap_1",
-          "SOCK_Strap_2",
-          "SOCK_Pocket_0",
-          "SOCK_Pocket_1",
-          "SOCK_Pocket_2",
-          "SOCK_Pocket_3",
-          "SOCK_Pocket_4",
-          "SOCK_Pocket_5",
-          "SOCK_Pocket_6",
-          "SOCK_Pocket_7",
-          "SOCK_Pocket_8"
+          "Mesh_ExpeditionPack_Frame",
+          "PIVOT_Panel",
+          "Mesh_ExpeditionPack_Panel",
+          "PIVOT_Lid",
+          "Mesh_ExpeditionPack_Lid",
+          "SOCK_Ext_0",
+          "SOCK_Ext_1",
+          "SOCK_Ext_2",
+          "SOCK_Ext_4",
+          "SOCK_Ext_6",
+          "SOCK_Ext_3",
+          "SOCK_Ext_5",
+          "SOCK_Ext_7",
+          "SOCK_Ext_8",
+          "SOCK_Ext_9",
+          "SOCK_Int_0",
+          "SOCK_Int_1",
+          "SOCK_Int_2",
+          "SOCK_Int_3",
+          "SOCK_Int_4",
+          "SOCK_Int_5",
+          "SOCK_Int_6",
+          "SOCK_Int_7",
+          "SOCK_Int_8",
+          "SOCK_Int_9",
+          "SOCK_Int_10",
+          "SOCK_Int_11"
         ],
         "children": []
       }
     ],
     "objects": [
       {
-        "name": "Mesh_Backpack_Buckle_L",
+        "name": "Mesh_ExpeditionPack_Frame",
         "type": "MESH",
         "location": [
-          -0.152,
-          -0.024,
-          0.264
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          1.1731,
+          0.5921,
+          1.5513
+        ],
+        "vertices": 5718,
+        "polygons": 4302,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ExpeditionPack_Lid",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.836,
+          0.5405,
+          0.431
+        ],
+        "vertices": 970,
+        "polygons": 754,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ExpeditionPack_Panel",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.881,
+          0.2155,
+          1.1189
+        ],
+        "vertices": 1996,
+        "polygons": 1582,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "PIVOT_Lid",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.238,
+          1.238
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "PIVOT_Panel",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          -0.244,
+          0.104
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_0",
+        "type": "EMPTY",
+        "location": [
+          -0.185,
+          -0.218,
+          0.318
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_1",
+        "type": "EMPTY",
+        "location": [
+          0.185,
+          -0.218,
+          0.318
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_2",
+        "type": "EMPTY",
+        "location": [
+          -0.5701,
+          0.04,
+          0.33
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_3",
+        "type": "EMPTY",
+        "location": [
+          0.5701,
+          0.04,
+          0.33
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_4",
+        "type": "EMPTY",
+        "location": [
+          -0.4811,
+          0.048,
+          0.588
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_5",
+        "type": "EMPTY",
+        "location": [
+          0.4811,
+          0.048,
+          0.588
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_6",
+        "type": "EMPTY",
+        "location": [
+          -0.506,
+          -0.09,
+          0.958
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_7",
+        "type": "EMPTY",
+        "location": [
+          0.506,
+          -0.09,
+          0.958
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_8",
+        "type": "EMPTY",
+        "location": [
+          -0.205,
+          -0.086,
+          0.416
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_9",
+        "type": "EMPTY",
+        "location": [
+          0.205,
+          -0.086,
+          0.416
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Int_0",
+        "type": "EMPTY",
+        "location": [
+          -0.28,
+          0.02,
+          0.12
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Int_1",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.02,
+          0.12
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Int_10",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.02,
+          1.258
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Int_11",
+        "type": "EMPTY",
+        "location": [
+          0.25,
+          0.02,
+          1.258
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Int_2",
+        "type": "EMPTY",
+        "location": [
+          0.28,
+          0.02,
+          0.12
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Int_3",
+        "type": "EMPTY",
+        "location": [
+          -0.28,
+          0.02,
+          0.5
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Int_4",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.02,
+          0.5
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Int_5",
+        "type": "EMPTY",
+        "location": [
+          0.28,
+          0.02,
+          0.5
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Int_6",
+        "type": "EMPTY",
+        "location": [
+          -0.28,
+          0.02,
+          0.88
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Int_7",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.02,
+          0.88
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Int_8",
+        "type": "EMPTY",
+        "location": [
+          0.28,
+          0.02,
+          0.88
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      },
+      {
+        "name": "SOCK_Int_9",
+        "type": "EMPTY",
+        "location": [
+          -0.25,
+          0.02,
+          1.258
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ]
+      }
+    ],
+    "materials": [
+      "Mat_Emissive_Amber",
+      "Mat_Fabric_Canvas_Faded",
+      "Mat_Fabric_Wing_Ochre",
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Rust_Heavy",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Paint_Safety_Orange",
+      "Mat_Plastic_Rubber_Black"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
+  "components/props/field_backpack.blend": {
+    "collections": [
+      {
+        "name": "Coll_Backpack_Field",
+        "objects": [
+          "Mesh_Backpack_Frame",
+          "PIVOT_Door_L",
+          "Mesh_Backpack_DoorL",
+          "Mesh_Backpack_Latch_L",
+          "PIVOT_Door_R",
+          "Mesh_Backpack_DoorR",
+          "Mesh_Backpack_Latch_R",
+          "SOCK_Ext_0",
+          "SOCK_Ext_1",
+          "SOCK_Ext_2",
+          "SOCK_Ext_3",
+          "SOCK_Ext_4",
+          "SOCK_Ext_5",
+          "SOCK_Ext_6",
+          "SOCK_Ext_7",
+          "SOCK_Ext_8",
+          "SOCK_Ext_9",
+          "SOCK_Int_0",
+          "SOCK_Int_1",
+          "SOCK_Int_2",
+          "SOCK_Int_3",
+          "SOCK_Int_4",
+          "SOCK_Int_5",
+          "SOCK_Int_6",
+          "SOCK_Int_7",
+          "SOCK_Int_8",
+          "SOCK_Int_9",
+          "SOCK_Int_10",
+          "SOCK_Int_11"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_Backpack_DoorL",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
         ],
         "scale": [
           1.0,
@@ -51327,12 +51904,12 @@
           "Coll_Backpack_Field"
         ],
         "dimensions": [
-          0.024,
-          0.0955,
-          0.07
+          0.713,
+          0.3495,
+          1.26
         ],
-        "vertices": 456,
-        "polygons": 444,
+        "vertices": 6698,
+        "polygons": 6481,
         "materials": [
           "Mat_Fabric_Canvas_Faded",
           "Mat_Metal_Steel_Worn",
@@ -51344,12 +51921,12 @@
         "modifiers": []
       },
       {
-        "name": "Mesh_Backpack_Buckle_R",
+        "name": "Mesh_Backpack_DoorR",
         "type": "MESH",
         "location": [
-          0.152,
-          -0.024,
-          0.264
+          0.0,
+          0.0,
+          0.0
         ],
         "scale": [
           1.0,
@@ -51360,12 +51937,12 @@
           "Coll_Backpack_Field"
         ],
         "dimensions": [
-          0.024,
-          0.0955,
-          0.07
+          0.713,
+          0.3495,
+          1.26
         ],
-        "vertices": 456,
-        "polygons": 444,
+        "vertices": 6698,
+        "polygons": 6481,
         "materials": [
           "Mat_Fabric_Canvas_Faded",
           "Mat_Metal_Steel_Worn",
@@ -51393,12 +51970,12 @@
           "Coll_Backpack_Field"
         ],
         "dimensions": [
-          0.345,
-          0.2282,
-          0.5283
+          0.8877,
+          0.6065,
+          1.3638
         ],
-        "vertices": 7896,
-        "polygons": 7280,
+        "vertices": 12632,
+        "polygons": 11882,
         "materials": [
           "Mat_Fabric_Canvas_Faded",
           "Mat_Metal_Steel_Worn",
@@ -51410,7 +51987,7 @@
         "modifiers": []
       },
       {
-        "name": "Mesh_Backpack_ShellBase",
+        "name": "Mesh_Backpack_Latch_L",
         "type": "MESH",
         "location": [
           0.0,
@@ -51426,12 +52003,12 @@
           "Coll_Backpack_Field"
         ],
         "dimensions": [
-          0.3177,
-          0.128,
-          0.4652
+          0.12,
+          0.198,
+          0.4469
         ],
-        "vertices": 4496,
-        "polygons": 4408,
+        "vertices": 696,
+        "polygons": 650,
         "materials": [
           "Mat_Fabric_Canvas_Faded",
           "Mat_Metal_Steel_Worn",
@@ -51443,7 +52020,7 @@
         "modifiers": []
       },
       {
-        "name": "Mesh_Backpack_ShellLid",
+        "name": "Mesh_Backpack_Latch_R",
         "type": "MESH",
         "location": [
           0.0,
@@ -51459,12 +52036,12 @@
           "Coll_Backpack_Field"
         ],
         "dimensions": [
-          0.3,
-          0.075,
-          0.448
+          0.12,
+          0.198,
+          0.4469
         ],
-        "vertices": 5316,
-        "polygons": 5084,
+        "vertices": 696,
+        "polygons": 650,
         "materials": [
           "Mat_Fabric_Canvas_Faded",
           "Mat_Metal_Steel_Worn",
@@ -51476,12 +52053,233 @@
         "modifiers": []
       },
       {
-        "name": "PIVOT_Clamshell",
+        "name": "PIVOT_Door_L",
+        "type": "EMPTY",
+        "location": [
+          -0.365,
+          0.07,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "PIVOT_Door_R",
+        "type": "EMPTY",
+        "location": [
+          0.365,
+          0.07,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_0",
+        "type": "EMPTY",
+        "location": [
+          0.105,
+          -0.326,
+          0.31
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_1",
+        "type": "EMPTY",
+        "location": [
+          0.255,
+          -0.326,
+          0.52
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_2",
+        "type": "EMPTY",
+        "location": [
+          0.105,
+          -0.326,
+          0.73
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_3",
+        "type": "EMPTY",
+        "location": [
+          0.255,
+          -0.326,
+          0.94
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_4",
+        "type": "EMPTY",
+        "location": [
+          -0.105,
+          -0.326,
+          0.31
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_5",
+        "type": "EMPTY",
+        "location": [
+          -0.255,
+          -0.326,
+          0.52
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_6",
+        "type": "EMPTY",
+        "location": [
+          -0.105,
+          -0.326,
+          0.73
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_7",
+        "type": "EMPTY",
+        "location": [
+          -0.255,
+          -0.326,
+          0.94
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_8",
+        "type": "EMPTY",
+        "location": [
+          -0.412,
+          -0.15,
+          0.52
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Ext_9",
+        "type": "EMPTY",
+        "location": [
+          0.412,
+          -0.15,
+          0.52
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Int_0",
+        "type": "EMPTY",
+        "location": [
+          -0.222,
+          0.15,
+          0.106
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Int_1",
         "type": "EMPTY",
         "location": [
           0.0,
-          -0.024,
-          0.036
+          0.15,
+          0.106
         ],
         "scale": [
           1.0,
@@ -51493,131 +52291,12 @@
         ]
       },
       {
-        "name": "SOCK_Pocket_0",
-        "type": "EMPTY",
-        "location": [
-          -0.071,
-          0.064,
-          0.398
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_Backpack_Field"
-        ]
-      },
-      {
-        "name": "SOCK_Pocket_1",
-        "type": "EMPTY",
-        "location": [
-          0.071,
-          0.064,
-          0.398
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_Backpack_Field"
-        ]
-      },
-      {
-        "name": "SOCK_Pocket_2",
-        "type": "EMPTY",
-        "location": [
-          -0.071,
-          0.064,
-          0.254
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_Backpack_Field"
-        ]
-      },
-      {
-        "name": "SOCK_Pocket_3",
-        "type": "EMPTY",
-        "location": [
-          0.071,
-          0.064,
-          0.254
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_Backpack_Field"
-        ]
-      },
-      {
-        "name": "SOCK_Pocket_4",
-        "type": "EMPTY",
-        "location": [
-          -0.071,
-          0.064,
-          0.11
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_Backpack_Field"
-        ]
-      },
-      {
-        "name": "SOCK_Pocket_5",
-        "type": "EMPTY",
-        "location": [
-          0.071,
-          0.064,
-          0.11
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_Backpack_Field"
-        ]
-      },
-      {
-        "name": "SOCK_Pocket_6",
-        "type": "EMPTY",
-        "location": [
-          -0.0947,
-          -0.04,
-          0.168
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_Backpack_Field"
-        ]
-      },
-      {
-        "name": "SOCK_Pocket_7",
+        "name": "SOCK_Int_10",
         "type": "EMPTY",
         "location": [
           0.0,
-          -0.04,
-          0.168
+          0.15,
+          1.036
         ],
         "scale": [
           1.0,
@@ -51629,12 +52308,12 @@
         ]
       },
       {
-        "name": "SOCK_Pocket_8",
+        "name": "SOCK_Int_11",
         "type": "EMPTY",
         "location": [
-          0.0947,
-          -0.04,
-          0.168
+          0.222,
+          0.15,
+          1.036
         ],
         "scale": [
           1.0,
@@ -51646,12 +52325,46 @@
         ]
       },
       {
-        "name": "SOCK_Strap_0",
+        "name": "SOCK_Int_2",
+        "type": "EMPTY",
+        "location": [
+          0.222,
+          0.15,
+          0.106
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Int_3",
+        "type": "EMPTY",
+        "location": [
+          -0.222,
+          0.15,
+          0.416
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Int_4",
         "type": "EMPTY",
         "location": [
           0.0,
-          -0.098,
-          0.5
+          0.15,
+          0.416
         ],
         "scale": [
           1.0,
@@ -51663,12 +52376,12 @@
         ]
       },
       {
-        "name": "SOCK_Strap_1",
+        "name": "SOCK_Int_5",
         "type": "EMPTY",
         "location": [
-          -0.152,
-          -0.094,
-          0.2
+          0.222,
+          0.15,
+          0.416
         ],
         "scale": [
           1.0,
@@ -51680,12 +52393,63 @@
         ]
       },
       {
-        "name": "SOCK_Strap_2",
+        "name": "SOCK_Int_6",
         "type": "EMPTY",
         "location": [
-          0.152,
-          -0.094,
-          0.2
+          -0.222,
+          0.15,
+          0.726
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Int_7",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.15,
+          0.726
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Int_8",
+        "type": "EMPTY",
+        "location": [
+          0.222,
+          0.15,
+          0.726
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Field"
+        ]
+      },
+      {
+        "name": "SOCK_Int_9",
+        "type": "EMPTY",
+        "location": [
+          -0.222,
+          0.15,
+          1.036
         ],
         "scale": [
           1.0,

@@ -248,6 +248,84 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 81588ed703dd6e24ea08c454204dfc80, type: 3}
+--- !u!1 &118567313
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 118567317}
+  - component: {fileID: 118567316}
+  - component: {fileID: 118567315}
+  - component: {fileID: 118567314}
+  m_Layer: 0
+  m_Name: '[SaveSystem]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &118567314
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 118567313}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4915069bcedd246af995e6bd62b8d5dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveHotkeys
+  worldSceneName: persistentScene
+  quickSaveKey: 98
+  quickLoadKey: 102
+  enabledInBuilds: 1
+--- !u!114 &118567315
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 118567313}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05e275843528747b48e25368dc118dec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.GameStateSaveable
+--- !u!114 &118567316
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 118567313}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56b3ae5cc399e4d24aafdaabe04aeb9b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveManager
+  autoSaveIntervalSeconds: 300
+  saveOnQuit: 1
+  prettyPrint: 1
+  verbose: 0
+--- !u!4 &118567317
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 118567313}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &135571990 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1001130551400491267, guid: 81588ed703dd6e24ea08c454204dfc80, type: 3}
@@ -1458,6 +1536,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1015801413}
   - component: {fileID: 1015801414}
+  - component: {fileID: 1015801415}
   m_Layer: 0
   m_Name: NavMesh
   m_TagString: Untagged
@@ -1487,7 +1566,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1015801412}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7a5ac11cc976e418e8d13136b07e1f52, type: 3}
   m_Name: 
@@ -1512,6 +1591,19 @@ MonoBehaviour:
   m_MinRegionArea: 2
   m_NavMeshData: {fileID: 0}
   m_BuildHeightMesh: 0
+--- !u!114 &1015801415
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1015801412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 216e4e575ecf74db69475722c64116df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.WorldNavMeshProvider
+  worldNavMesh: {fileID: 11400000, guid: cd17455d77d914ef7a2a5165b6c96c79, type: 2}
 --- !u!1 &1025981450
 GameObject:
   m_ObjectHideFlags: 0
@@ -1889,10 +1981,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WorldStreamer
   ShowTopMostFoldoutHeaderGroup: 1
   config: {fileID: 11400000, guid: 303234dac994845669b13bb8047213be, type: 2}
-  navMeshSurface: {fileID: 1015801414}
-  navMeshRebuildDelay: 0.5
-  parkedAgentActivationDistance: 32
-  navMeshSourceCollectionBudgetMs: 1
+  agentSnapDistance: 32
+  chunkActivationBudgetMs: 2
   showDebugGizmos: 1
 --- !u!4 &1236054303
 Transform:
@@ -2904,3 +2994,4 @@ SceneRoots:
   - {fileID: 1791746189}
   - {fileID: 777496760}
   - {fileID: 1601737051}
+  - {fileID: 118567317}

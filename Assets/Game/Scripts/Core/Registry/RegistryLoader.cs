@@ -1,5 +1,6 @@
 using UnityEngine;
 using SpaceGame.Items;
+using SpaceGame.Core.Persistence;
 
 namespace SpaceGame.Core
 {
@@ -8,6 +9,9 @@ namespace SpaceGame.Core
         void Awake()
         {
             LoadItems();
+
+            // After the items, never before: half the saveable-prefab table is derived from them.
+            SaveablePrefabRegistry.LoadAll();
         }
 
         void LoadItems()

@@ -1,480 +1,667 @@
-using UnityEngine;
-using Unity.Services.Core;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Unity.Netcode;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
-using System.Collections.Generic;
-using Unity.Services.Relay;
-using Unity.Services.Relay.Models;
-using System.Threading.Tasks;
-using UnityEngine.Rendering;
-using Unity.Netcode;
-using Unity.Netcode.Transports.UTP;
-using Unity.Networking.Transport.Relay;
-using System;
+using UnityEngine;
 using UnityEngine.SceneManagement;
-using Unity.VisualScripting;
-using NUnit.Framework;
-using SpaceGame.Agents;
 using SpaceGame.Core;
 using SpaceGame.Presentation;
-public class LobbySystem : NetworkBehaviour
+
+/// <summary>
+/// The lobby menu's controller: create, list, join, leave, and hand off into the game.
+///
+/// Deliberately in the global namespace and named exactly as before — the LobbyMenu scene binds six
+/// button events to these method names by string, and UnityEvent resolves them by string at runtime
+/// with no compile-time link. Renaming or namespacing any of them turns its button into a silent
+/// no-op with nothing logged.
+///
+/// This is a MonoBehaviour, not a NetworkBehaviour. Deriving from NetworkBehaviour required a
+/// NetworkObject on this GameObject, which sat in a scene loaded by plain SceneManager rather than
+/// Netcode's. Starting a host from that scene made Netcode try to spawn an in-scene object the
+/// joining client had no matching copy of, which is a synchronization failure, not a warning.
+/// Nothing here ever needed to replicate: it drives a menu and then hands off.
+///
+/// Connection work lives in <see cref="SessionLauncher"/>. This class only decides WHEN to connect.
+/// </summary>
+public class LobbySystem : MonoBehaviour
 {
     [SerializeField] SceneReference gameScene;
-    
+
     private const string KEY_RELAY_JOIN_CODE = "RelayJoinCode";
+    private const string KEY_PLAYER_NAME = "PlayerName";
+
+    /// <summary>Lobby requires a heartbeat inside 30s or it delists. 15s leaves room for a hiccup.</summary>
+    private const float HeartbeatInterval = 15f;
+
+    /// <summary>Lobby's GET rate limit is one call per second per lobby; 2s stays clear of it.</summary>
+    private const float PollInterval = 2f;
+
+    /// <summary>
+    /// How long Start waits for every lobby member to also finish the Netcode handshake.
+    ///
+    /// Joining is two independent handshakes — the Lobby service roster and the Relay/Netcode
+    /// connection — and they settle at different times. The old code compared the two counts once
+    /// and refused to start on any mismatch, which rejected perfectly good sessions because the
+    /// roster is only re-read every couple of seconds. Waiting for them to converge is the fix.
+    /// </summary>
+    private const float StartConvergenceTimeout = 10f;
+
+    public static int maxPlayers = 4;
+
+    /// <summary>
+    /// The scene the lobby hands off to. Exposed so the Relay-free direct path loads the same one
+    /// rather than keeping a second copy of the name that can drift.
+    /// </summary>
+    public string GameSceneName => gameScene != null ? gameScene.SceneName : null;
+
     private Lobby hostLobby;
     private Lobby joinedLobby;
+
     private float heartBeatTimer;
     private float lobbyUpdateTimer;
-    private float refreshLobbyListTimer;
-    public static int maxPlayers = 4;
+
     private LobbyListSystem lobbyList;
+    private LobbyWarningSystem warningSystem;
     private string playerName;
 
-    private LobbyWarningSystem warningSystem;
+    // In-flight guards. Update() fires these on a timer, and a slow request would otherwise be
+    // reissued every frame until it returned, tripping the service's rate limiter and burying the
+    // real response under a pile of 429s.
+    private bool heartbeatInFlight;
+    private bool pollInFlight;
+    private bool busy;
 
-    
-    public async void Start()
+    /// <summary>
+    /// The code the player last tried, so a password prompt can retry the same lobby.
+    ///
+    /// A private lobby is excluded from query results, so it can only ever be reached by code —
+    /// there is no listed entry to click and no id to look up. The previous implementation passed
+    /// the literal string "lobbyId" to JoinLobbyByIdAsync, so joining a password-protected lobby
+    /// could not succeed under any circumstances.
+    /// </summary>
+    private string lastAttemptedJoinCode;
+
+    // ─────────────────────────────────────────────
+    //  Lifecycle
+    // ─────────────────────────────────────────────
+
+    private void Awake()
     {
-        playerName = "Player" + UnityEngine.Random.Range(10, 99);
+        // Before any await. These were resolved after `await UnityServices.InitializeAsync()`, so a
+        // failed initialisation left warningSystem null — and every error path in this class
+        // reports through it, so the one situation that most needed a message on screen instead
+        // threw a NullReferenceException inside an async void and vanished.
         lobbyList = GetComponent<LobbyListSystem>();
-        await UnityServices.InitializeAsync();
-        
         warningSystem = GetComponent<LobbyWarningSystem>();
 
-        AuthenticationService.Instance.SignedIn += () =>
-        {
-        Debug.Log("Signed in " + AuthenticationService.Instance.PlayerId);
-        };
-
-        await AuthenticationService.Instance.SignInAnonymouslyAsync();
-
-        NetworkManager.Singleton.OnClientConnectedCallback += (id) =>
-        {
-            Debug.Log($"[NETCODE] Successfully Connected! ID: {id}");
-        };
-
-        NetworkManager.Singleton.OnClientDisconnectCallback += (id) =>
-        {
-            Debug.Log(id);
-            if(!NetworkManager.Singleton.IsHost && id == NetworkManager.Singleton.LocalClientId)
-            {
-                string dcReason = NetworkManager.Singleton.DisconnectReason;
-
-                if(dcReason == "Disconnected due to host shutting down.")
-                {
-                    LeaveLobby();
-                    warningSystem.warn("Host left! Leaving lobby...");
-                }
-
-                //Server disconnect (restart network)
-                //restartNetwork();
-            }
-            // This is the most important debug line!
-            Debug.Log($"[NETCODE] Disconnected. Reason: {NetworkManager.Singleton.DisconnectReason}");
-        };
-
+        playerName = "Player" + UnityEngine.Random.Range(10, 99);
     }
 
-    private void restartNetwork()
+    private async void Start()
     {
-        // Find new host (use Lobby service auto migration)
-        // Restart network with new host as host
-        // Connect all clients to same network
-        /*if(joinedLobby != null)
+        try
         {
-            await LobbyService.Instance.
+            SessionResult services = await SessionLauncher.EnsureServicesAsync();
+            if (!services.Success)
+            {
+                Warn(services.Error);
+                return;
+            }
+
+            Debug.Log($"[Lobby] Signed in as {AuthenticationService.Instance.PlayerId}");
+
+            if (NetworkManager.Singleton != null)
+            {
+                NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnect;
+                NetworkBootstrap.LogRegisteredPrefabCount();
+            }
+
+            listLobbies();
         }
-        warningSystem.warn("Host left the game!");*/
+        catch (Exception e)
+        {
+            // Start is `async void` because Unity's message loop requires it. That makes this catch
+            // mandatory rather than defensive: an exception escaping here is swallowed by the
+            // runtime with no stack trace attached to anything the player or developer can see.
+            Debug.LogException(e);
+            Warn($"Lobby failed to start.\n({e.GetType().Name}: {e.Message})");
+        }
     }
 
-    private void Update() {
-        //HandleLobbyRefreshList();
+    private void OnDestroy()
+    {
+        if (NetworkManager.Singleton != null)
+            NetworkManager.Singleton.OnClientDisconnectCallback -= HandleClientDisconnect;
+    }
+
+    private void Update()
+    {
         HandleLobbyHeartBeat();
         HandleLobbyPollForUpdates();
     }
 
-    private async void HandleLobbyHeartBeat() {
-        if(hostLobby != null && joinedLobby != null) {
-            heartBeatTimer -= Time.deltaTime;
-            if(heartBeatTimer <= 0f) {
-                float heartBeatTimerMax = 15f;
-                heartBeatTimer = heartBeatTimerMax;
-                await LobbyService.Instance.SendHeartbeatPingAsync(hostLobby.Id);
-            }
-        }
-    }
-
-    private async void HandleLobbyPollForUpdates()
+    private void HandleClientDisconnect(ulong clientId)
     {
-        if (joinedLobby != null)
-        {
-            lobbyUpdateTimer -= Time.deltaTime;
-            if (lobbyUpdateTimer <= 0f)
-            {
-                float lobbyUpdateTimerMax = 2f;
-                lobbyUpdateTimer = lobbyUpdateTimerMax;
-                Lobby lobby = await LobbyService.Instance.GetLobbyAsync(joinedLobby.Id);
-                joinedLobby = lobby;
-                UpdatePlayerListInLobby();
-                if (isPlayerLobbyHost())
-                {
-                    lobbyList.setStartGameButtonState(true);
-                }
-                else
-                {
-                    lobbyList.setStartGameButtonState(false);
-                }
-            }
-        }
-    }
-    private void HandleLobbyRefreshList()
-    {
-        if(UnityServices.State == ServicesInitializationState.Initialized && AuthenticationService.Instance.IsSignedIn)
-        {
-            refreshLobbyListTimer -= Time.deltaTime;
-            if(refreshLobbyListTimer < 0f )
-            {
-                float refreshLobbyListTimerMax = 5f;
-                refreshLobbyListTimer = refreshLobbyListTimerMax;
-                listLobbies();
-            }
-        }
+        NetworkManager networkManager = NetworkManager.Singleton;
+        if (networkManager == null) return;
+        if (networkManager.IsHost) return;
+        if (clientId != networkManager.LocalClientId) return;
+
+        string reason = networkManager.DisconnectReason;
+        Debug.Log($"[Lobby] Disconnected. Reason: '{reason}'");
+
+        // Any disconnect strands us, not just a clean host shutdown. Matching on the exact reason
+        // string meant a host crash, a dropped connection or a Relay timeout left the player
+        // sitting in a lobby screen for a session that no longer existed.
+        Warn(string.IsNullOrEmpty(reason) ? "Lost connection to the host." : reason);
+        ForgetLobbyLocally();
     }
 
-    private async Task<Allocation> AllocateRelay()
-    {
-        try
-        {
-            Allocation allocation = await RelayService.Instance.CreateAllocationAsync(maxPlayers - 1);
-            return allocation;
-        } catch (RelayServiceException e)
-        {
-            warningSystem.warn(e.Message);
-            return default;
-        }
-        
-    }
+    // ─────────────────────────────────────────────
+    //  Create
+    // ─────────────────────────────────────────────
 
-
-    private async Task<String> GetRelayJoinCode(Allocation allocation)
-    {
-        try
-        {
-            string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
-            return joinCode;
-        } catch (RelayServiceException e)
-        {
-            warningSystem.warn(e.Message);
-            return default;
-        }
-        
-    }
-
-
-    private async Task<JoinAllocation> JoinRelay(string joinCode)
-    {
-        try
-        {
-            JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
-            return joinAllocation;
-        } catch (RelayServiceException e)
-        {
-            warningSystem.warn(e.Message);
-            return default;
-        }
-        
-    }
     public async void createLobbyWithGivenOptions()
     {
+        if (!TryBeginOperation()) return;
+
         try
         {
-            string lobbyName = lobbyList.getLobbyNameInputText();
-            
-            CreateLobbyOptions createLobbyOptions = new CreateLobbyOptions
+            SessionResult services = await SessionLauncher.EnsureServicesAsync();
+            if (!services.Success) { Warn(services.Error); return; }
+
+            // Relay first. If it fails there is no lobby to clean up — the old order created the
+            // lobby, then allocated Relay, and on an allocation failure left an orphan lobby
+            // advertised to everyone with a join code that led nowhere.
+            SessionResult host = await SessionLauncher.HostRelayAsync(maxPlayers);
+            if (!host.Success) { Warn(host.Error); return; }
+
+            string lobbyName = string.IsNullOrWhiteSpace(lobbyList.getLobbyNameInputText())
+                ? $"{playerName}'s game"
+                : lobbyList.getLobbyNameInputText();
+
+            bool isPrivate = lobbyList.getLobbyPrivate();
+
+            var options = new CreateLobbyOptions
             {
-                IsPrivate = false,
+                IsPrivate = isPrivate,
                 Player = GetPlayer(),
-            };
-
-            if(lobbyList.getLobbyPrivate())
-            {
-                createLobbyOptions.IsPrivate = true;
-                createLobbyOptions.Password = lobbyList.getLobbyPasswordInputText();
-            }
-
-            Allocation allocation = await AllocateRelay();
-            string relayJoinCode = await GetRelayJoinCode(allocation);
-
-            Lobby testLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayers, createLobbyOptions);
-
-            hostLobby = testLobby;
-            joinedLobby = hostLobby;
-
-            await LobbyService.Instance.UpdateLobbyAsync(joinedLobby.Id, new UpdateLobbyOptions
-            {
                 Data = new Dictionary<string, DataObject>
                 {
-                    {KEY_RELAY_JOIN_CODE, new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode)}
+                    // Written at creation rather than by a follow-up UpdateLobbyAsync. A client that
+                    // polled in the gap between the two saw a lobby with no join code and read
+                    // straight past the missing key.
+                    { KEY_RELAY_JOIN_CODE, new DataObject(DataObject.VisibilityOptions.Member, host.JoinCode) }
                 }
-            });
-
-            
-            RelayServerData relayData = new RelayServerData(allocation.RelayServer.IpV4, (ushort)allocation.RelayServer.Port,
-            allocation.AllocationIdBytes, allocation.ConnectionData, allocation.ConnectionData, allocation.Key, false);
-
-            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayData);
-
-            await AuthenticationService.Instance.UpdatePlayerNameAsync("Player_1");
-
-            
-            NetworkManager.Singleton.StartHost();
-            List<string> playerNames = new List<string>
-            {
-                hostLobby.Players[0].Data["PlayerName"].Value,
             };
+
+            if (isPrivate)
+                options.Password = NullIfBlank(lobbyList.getLobbyPasswordInputText());
+
+            hostLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, maxPlayers, options);
+            joinedLobby = hostLobby;
+
             lobbyList.openLobbyScreen(joinedLobby.Name, joinedLobby.LobbyCode);
-            lobbyList.showPlayerElements(playerNames.ToArray());
-            listLobbies();
             lobbyList.setStartGameButtonState(true);
+            UpdatePlayerListInLobby();
+
+            Debug.Log($"[Lobby] Hosting '{joinedLobby.Name}' code={joinedLobby.LobbyCode} relay={host.JoinCode}");
         }
-        catch (LobbyServiceException e)
+        catch (Exception e)
         {
-            warningSystem.warn(e.Message);
+            Debug.LogException(e);
+            Warn(Describe(e, "Could not create the lobby."));
+            SessionLauncher.Shutdown();
+        }
+        finally
+        {
+            EndOperation();
         }
     }
+
+    // ─────────────────────────────────────────────
+    //  List / Join
+    // ─────────────────────────────────────────────
 
     public async void listLobbies()
     {
         try
         {
-        QueryLobbiesOptions queryLobbiesOptions = new QueryLobbiesOptions
-        {
-            Count = 25,
-            Filters = new List<QueryFilter>
+            var query = new QueryLobbiesOptions
             {
-            new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT)
-            },
-            Order = new List<QueryOrder>
-            {
-            new QueryOrder(false, QueryOrder.FieldOptions.Created)
-            }
-        };
+                Count = 25,
+                Filters = new List<QueryFilter>
+                {
+                    new(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT)
+                },
+                Order = new List<QueryOrder>
+                {
+                    new(false, QueryOrder.FieldOptions.Created)
+                }
+            };
 
-        QueryResponse queryResponse = await LobbyService.Instance.QueryLobbiesAsync(queryLobbiesOptions);
-        //Debug.Log("Lobbies found: " + queryResponse.Results.Count);
+            QueryResponse response = await LobbyService.Instance.QueryLobbiesAsync(query);
 
-        lobbyList.clearPrevList();
+            if (lobbyList == null) return;
 
-        foreach (Lobby lobby in queryResponse.Results)
-        {
-            lobbyList.listNewLobby(lobby);
-            //Debug.Log(lobby.Name + " " + lobby.MaxPlayers);
+            lobbyList.clearPrevList();
+            foreach (Lobby lobby in response.Results)
+                lobbyList.listNewLobby(lobby);
         }
-        } catch (LobbyServiceException e) {
-            warningSystem.warn(e.Message);
+        catch (Exception e)
+        {
+            Debug.LogException(e);
+            Warn(Describe(e, "Could not fetch the lobby list."));
         }
     }
 
-    public async void JoinLobbyById(string id) {
-        Debug.Log("Joining lobby: " + id);
-        var joinOptions = new JoinLobbyByIdOptions
+    public async void JoinLobbyById(string id)
+    {
+        if (!TryBeginOperation()) return;
+
+        try
         {
-            Player = GetPlayer()
-        };
-        try {
-            LobbyJoinRelayLayer(await LobbyService.Instance.JoinLobbyByIdAsync(id, joinOptions));
+            Lobby lobby = await LobbyService.Instance.JoinLobbyByIdAsync(id, new JoinLobbyByIdOptions
+            {
+                Player = GetPlayer()
+            });
+
+            await ConnectToJoinedLobby(lobby);
         }
-        catch (LobbyServiceException e)
+        catch (Exception e)
         {
-            warningSystem.warn(e.Message);
+            Debug.LogException(e);
+            Warn(Describe(e, "Could not join that lobby."));
+        }
+        finally
+        {
+            EndOperation();
         }
     }
 
     public async void JoinLobbyByCode(string lobbyCode)
     {
-        var joinOptions = new JoinLobbyByCodeOptions
-        {
-            Player = GetPlayer()
-        };
+        if (!TryBeginOperation()) return;
+
         try
         {
-            LobbyJoinRelayLayer(await LobbyService.Instance.JoinLobbyByCodeAsync(lobbyCode, joinOptions));
+            lastAttemptedJoinCode = SessionLauncher.NormalizeJoinCode(lobbyCode);
+
+            if (string.IsNullOrEmpty(lastAttemptedJoinCode))
+            {
+                Warn("Enter a lobby code first.");
+                return;
+            }
+
+            Lobby lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lastAttemptedJoinCode,
+                new JoinLobbyByCodeOptions { Player = GetPlayer() });
+
+            await ConnectToJoinedLobby(lobby);
         }
-        catch (LobbyServiceException e)
+        catch (Exception e)
         {
-            warningSystem.warn(e.Message);
+            Debug.LogException(e);
+            Warn(Describe(e, "Could not join with that code."));
+        }
+        finally
+        {
+            EndOperation();
         }
     }
 
+    /// <summary>
+    /// Retries the last code with a password, for a lobby that turned out to be protected.
+    /// </summary>
     public async void JoinLobbyByPassword(string lobbyPassword)
     {
-        var idOptions = new JoinLobbyByIdOptions{
-            Password = lobbyPassword,
-            Player = GetPlayer()
-        };
-        //Debug.Log("Joining lobby: " + lobbyPassword);
+        if (!TryBeginOperation()) return;
 
         try
         {
-            LobbyJoinRelayLayer(await LobbyService.Instance.JoinLobbyByIdAsync("lobbyId", idOptions));
+            if (string.IsNullOrWhiteSpace(lobbyPassword))
+            {
+                Warn("Enter the lobby password first.");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(lastAttemptedJoinCode))
+            {
+                Warn("Enter the lobby code first, then the password.");
+                return;
+            }
+
+            Lobby lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(lastAttemptedJoinCode,
+                new JoinLobbyByCodeOptions
+                {
+                    Player = GetPlayer(),
+                    Password = lobbyPassword
+                });
+
+            await ConnectToJoinedLobby(lobby);
         }
-        catch (LobbyServiceException e)
+        catch (Exception e)
         {
-            warningSystem.warn(e.Message);
+            Debug.LogException(e);
+            Warn(Describe(e, "Could not join with that password."));
+        }
+        finally
+        {
+            EndOperation();
         }
     }
 
-    private async void LobbyJoinRelayLayer(Lobby lobby)
+    /// <summary>
+    /// Reads the Relay code off a lobby we are already a member of and connects to it.
+    ///
+    /// The lobby membership is rolled back if the Relay connection fails. Otherwise a failed
+    /// connection leaves a ghost occupying a slot in a lobby it is not in, which is how a
+    /// four-player lobby ends up refusing a third player.
+    /// </summary>
+    private async Task ConnectToJoinedLobby(Lobby lobby)
     {
-        try
+        if (lobby == null)
         {
-            JoinAllocation joinAllocation = await JoinRelay(lobby.Data[KEY_RELAY_JOIN_CODE].Value);
-            
-            RelayServerData relayData = new RelayServerData(joinAllocation.RelayServer.IpV4, (ushort)joinAllocation.RelayServer.Port,
-            joinAllocation.AllocationIdBytes, joinAllocation.ConnectionData, joinAllocation.HostConnectionData, joinAllocation.Key, false);
-
-            NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayData);
-            NetworkManager.Singleton.StartClient();
-            JoinLobby(lobby);
-        } catch(RelayServiceException e)
-        {
-            warningSystem.warn(e.Message);
+            Warn("The lobby service returned nothing.");
+            return;
         }
 
-    }
-    private void JoinLobby(Lobby lobby)
-    {
-        Debug.Log("Succesfully joined Lobby!");
+        if (!lobby.Data.TryGetValue(KEY_RELAY_JOIN_CODE, out DataObject relayCode)
+            || string.IsNullOrEmpty(relayCode.Value))
+        {
+            await LeaveLobbyQuietly(lobby.Id);
+            Warn("That lobby has no Relay server attached. The host may still be setting it up.");
+            return;
+        }
+
+        SessionResult join = await SessionLauncher.JoinRelayAsync(relayCode.Value);
+        if (!join.Success)
+        {
+            await LeaveLobbyQuietly(lobby.Id);
+            Warn(join.Error);
+            return;
+        }
+
         joinedLobby = lobby;
-        AuthenticationService.Instance.UpdatePlayerNameAsync("Player_" + (lobby.Players.Count + 1));
+        hostLobby = null;
+
         lobbyList.openLobbyScreen(joinedLobby.Name, joinedLobby.LobbyCode);
         lobbyList.setStartGameButtonState(false);
         UpdatePlayerListInLobby();
 
+        Debug.Log($"[Lobby] Joined '{joinedLobby.Name}' and connected to its Relay server.");
     }
 
-    private void UpdatePlayerListInLobby()
+    // ─────────────────────────────────────────────
+    //  Leave / Start
+    // ─────────────────────────────────────────────
+
+    public async void LeaveLobby()
     {
-        if(joinedLobby != null)
+        try
         {
-            List<string> playerNames = new List<string>();
-            foreach (Player p in joinedLobby.Players)
-            {
-                playerNames.Add(p.Data["PlayerName"].Value);
-            }
-            lobbyList.showPlayerElements(playerNames.ToArray());
-        }
-    }
+            string lobbyId = joinedLobby?.Id;
 
-    private Player GetPlayer()
-    {
-        return new Player
-        {
-            Data = new Dictionary<string, PlayerDataObject>
-            {
-                {"PlayerName", new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName)}
-            }
-        };
-    }
+            // Local state first, so the UI responds even if the service call fails or hangs.
+            ForgetLobbyLocally();
+            SessionLauncher.Shutdown();
 
-    public async void LeaveLobby() {
-        try {
-            await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, AuthenticationService.Instance.PlayerId);
-            joinedLobby = null;
-            if (NetworkManager.Singleton.IsConnectedClient)
-            {
-                NetworkManager.Singleton.Shutdown();
-                /*
-                if (isPlayerLobbyHost())
-                {
-                    
-                    foreach (Player p in joinedLobby.Players)
-                    {
-                        if(p.Id != AuthenticationService.Instance.PlayerId)
-                        {
-                            await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, p.Id);
-                        }
-                    }
-                }
-                else
-                {
-                    NetworkManager.Singleton.DisconnectClient(NetworkManager.Singleton.LocalClientId);
-                }
-                */
-            }
-            
-            lobbyList.hideLobbyScreen();
-            lobbyList.setStartGameButtonState(false);
+            if (!string.IsNullOrEmpty(lobbyId))
+                await LeaveLobbyQuietly(lobbyId);
+
             listLobbies();
-        } catch (LobbyServiceException e) {
-            warningSystem.warn(e.Message);
         }
-    }
-
-    public async void KickPlayer(string playerId)
-    {
-        try
+        catch (Exception e)
         {
-            await LobbyService.Instance.RemovePlayerAsync(joinedLobby.Id, playerId);
-            joinedLobby = null;
+            Debug.LogException(e);
+            Warn(Describe(e, "Could not leave cleanly."));
         }
-        catch (LobbyServiceException e)
-        {
-            warningSystem.warn(e.Message);
-        }
-    }
-
-    public async void MigrateLobbyHost(string newHostId)
-    {
-        try
-        {
-            hostLobby = await LobbyService.Instance.UpdateLobbyAsync(hostLobby.Id, new UpdateLobbyOptions
-            {
-                HostId = newHostId
-            });
-            joinedLobby = hostLobby;
-        }
-        catch (LobbyServiceException e)
-        {
-            warningSystem.warn(e.Message);
-        }
-    }
-
-    private bool isPlayerLobbyHost()
-    {
-        //Checks if the player is the host of the lobby.
-        return joinedLobby.HostId == AuthenticationService.Instance.PlayerId;
     }
 
     public async void StartLobbyGame()
     {
-        if (joinedLobby.HostId != AuthenticationService.Instance.PlayerId)
-        {
-            warningSystem.warn("Only the host can start the game!");
-            return;
-        }
+        if (!TryBeginOperation()) return;
 
-        if(NetworkManager.Singleton.ConnectedClientsIds.Count != joinedLobby.Players.Count)
-        {
-            warningSystem.warn("Amount of clients dont match amount of lobby members!" + " " + NetworkManager.Singleton.ConnectedClientsIds.Count + " client(s), but " + joinedLobby.Players.Count + " lobby member(s)!");
-            return;
-        }
         try
         {
-            UpdateLobbyOptions options = new UpdateLobbyOptions
+            if (joinedLobby == null)
             {
-                IsLocked = true
-            };
-            await LobbyService.Instance.UpdateLobbyAsync(joinedLobby.Id, options);
+                Warn("You are not in a lobby.");
+                return;
+            }
+
+            if (!IsPlayerLobbyHost())
+            {
+                Warn("Only the host can start the game!");
+                return;
+            }
+
+            NetworkManager networkManager = NetworkManager.Singleton;
+            if (networkManager == null || !networkManager.IsServer)
+            {
+                Warn("The host is not running a server. Try recreating the lobby.");
+                return;
+            }
+
+            if (!await WaitForEveryoneToConnect())
+            {
+                Warn($"Only {networkManager.ConnectedClientsIds.Count} of {joinedLobby.Players.Count} " +
+                     "players finished connecting. Wait a moment and try again.");
+                return;
+            }
+
+            // Lock before loading so nobody joins the lobby during the handoff and lands in a menu
+            // scene the rest of the session has already left.
+            await LobbyService.Instance.UpdateLobbyAsync(joinedLobby.Id, new UpdateLobbyOptions { IsLocked = true });
+
             joinedLobby = null;
             hostLobby = null;
-            NetworkManager.Singleton.SceneManager.LoadScene(gameScene.SceneName, LoadSceneMode.Single);
+
+            Debug.Log($"[Lobby] Starting game — loading '{gameScene.SceneName}' for " +
+                      $"{networkManager.ConnectedClientsIds.Count} client(s).");
+
+            networkManager.SceneManager.LoadScene(gameScene.SceneName, LoadSceneMode.Single);
         }
-        catch (LobbyServiceException e)
+        catch (Exception e)
         {
-            warningSystem.warn(e.Message);
+            Debug.LogException(e);
+            Warn(Describe(e, "Could not start the game."));
+        }
+        finally
+        {
+            EndOperation();
         }
     }
+
+    /// <summary>
+    /// True once as many Netcode clients are connected as the lobby has members, or on timeout.
+    /// </summary>
+    private async Task<bool> WaitForEveryoneToConnect()
+    {
+        NetworkManager networkManager = NetworkManager.Singleton;
+        float deadline = Time.realtimeSinceStartup + StartConvergenceTimeout;
+
+        while (Time.realtimeSinceStartup < deadline)
+        {
+            if (joinedLobby == null || networkManager == null) return false;
+
+            if (networkManager.ConnectedClientsIds.Count >= joinedLobby.Players.Count)
+                return true;
+
+            await Task.Yield();
+        }
+
+        return networkManager != null
+               && joinedLobby != null
+               && networkManager.ConnectedClientsIds.Count >= joinedLobby.Players.Count;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Polling
+    // ─────────────────────────────────────────────
+
+    private async void HandleLobbyHeartBeat()
+    {
+        if (hostLobby == null || heartbeatInFlight) return;
+
+        heartBeatTimer -= Time.deltaTime;
+        if (heartBeatTimer > 0f) return;
+
+        heartBeatTimer = HeartbeatInterval;
+        heartbeatInFlight = true;
+
+        try
+        {
+            await LobbyService.Instance.SendHeartbeatPingAsync(hostLobby.Id);
+        }
+        catch (Exception e)
+        {
+            // Not surfaced to the player: a missed heartbeat only delists the lobby from search,
+            // and the session itself keeps working. A warning popup here would fire repeatedly
+            // over a flaky connection and bury messages that actually need acting on.
+            Debug.LogWarning($"[Lobby] Heartbeat failed: {e.Message}");
+        }
+        finally
+        {
+            heartbeatInFlight = false;
+        }
+    }
+
+    private async void HandleLobbyPollForUpdates()
+    {
+        if (joinedLobby == null || pollInFlight) return;
+
+        lobbyUpdateTimer -= Time.deltaTime;
+        if (lobbyUpdateTimer > 0f) return;
+
+        lobbyUpdateTimer = PollInterval;
+        pollInFlight = true;
+
+        try
+        {
+            Lobby lobby = await LobbyService.Instance.GetLobbyAsync(joinedLobby.Id);
+
+            // The handoff to the game scene nulls joinedLobby while this request is in flight;
+            // writing the stale result back would resurrect a lobby we have already left.
+            if (joinedLobby == null) return;
+
+            joinedLobby = lobby;
+            if (hostLobby != null) hostLobby = lobby;
+
+            UpdatePlayerListInLobby();
+            lobbyList.setStartGameButtonState(IsPlayerLobbyHost());
+        }
+        catch (LobbyServiceException e) when (e.Reason == LobbyExceptionReason.LobbyNotFound)
+        {
+            Warn("The host closed the lobby.");
+            ForgetLobbyLocally();
+            SessionLauncher.Shutdown();
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[Lobby] Poll failed: {e.Message}");
+        }
+        finally
+        {
+            pollInFlight = false;
+        }
+    }
+
+    private void UpdatePlayerListInLobby()
+    {
+        if (joinedLobby?.Players == null || lobbyList == null) return;
+
+        var names = new List<string>(joinedLobby.Players.Count);
+
+        foreach (Player p in joinedLobby.Players)
+        {
+            // Defensive on both the dictionary and the entry: a player object written by an older
+            // build, or one still mid-join, may not carry the name key at all, and an unguarded
+            // indexer here threw KeyNotFoundException every poll and killed the whole roster.
+            names.Add(p?.Data != null && p.Data.TryGetValue(KEY_PLAYER_NAME, out PlayerDataObject value)
+                ? value.Value
+                : "Player");
+        }
+
+        lobbyList.showPlayerElements(names.ToArray());
+    }
+
+    // ─────────────────────────────────────────────
+    //  Helpers
+    // ─────────────────────────────────────────────
+
+    private Player GetPlayer() => new()
+    {
+        Data = new Dictionary<string, PlayerDataObject>
+        {
+            { KEY_PLAYER_NAME, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName) }
+        }
+    };
+
+    private bool IsPlayerLobbyHost() =>
+        joinedLobby != null
+        && AuthenticationService.Instance.IsSignedIn
+        && joinedLobby.HostId == AuthenticationService.Instance.PlayerId;
+
+    private void ForgetLobbyLocally()
+    {
+        joinedLobby = null;
+        hostLobby = null;
+
+        if (lobbyList == null) return;
+
+        lobbyList.hideLobbyScreen();
+        lobbyList.setStartGameButtonState(false);
+    }
+
+    /// <summary>Best-effort removal from a lobby. Never reports — callers are already handling a failure.</summary>
+    private async Task LeaveLobbyQuietly(string lobbyId)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(lobbyId) && AuthenticationService.Instance.IsSignedIn)
+                await LobbyService.Instance.RemovePlayerAsync(lobbyId, AuthenticationService.Instance.PlayerId);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[Lobby] Could not remove self from {lobbyId}: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// One button-press at a time. Double-clicking Create used to allocate two Relay servers and
+    /// two lobbies, then leave the second pair orphaned when the first finished last.
+    /// </summary>
+    private bool TryBeginOperation()
+    {
+        if (busy)
+        {
+            Debug.Log("[Lobby] Ignoring input — an operation is already running.");
+            return false;
+        }
+
+        busy = true;
+        return true;
+    }
+
+    private void EndOperation() => busy = false;
+
+    private void Warn(string message)
+    {
+        Debug.LogWarning($"[Lobby] {message}");
+
+        // Still useful without the popup wired up: this class is reachable from scenes that have no
+        // warning panel, and losing the message entirely is how the original failed silently.
+        if (warningSystem != null) warningSystem.warn(message);
+    }
+
+    private static string Describe(Exception e, string headline) =>
+        e is LobbyServiceException lobbyException
+            ? $"{headline}\n({lobbyException.Reason}: {lobbyException.Message})"
+            : $"{headline}\n({e.GetType().Name}: {e.Message})";
+
+    private static string NullIfBlank(string value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value;
 }

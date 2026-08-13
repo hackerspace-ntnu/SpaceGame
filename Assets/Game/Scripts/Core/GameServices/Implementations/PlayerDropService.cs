@@ -1,5 +1,6 @@
 using Unity.Netcode;
 using UnityEngine;
+using SpaceGame.Core.Persistence;
 using SpaceGame.Items;
 
 namespace SpaceGame.Core
@@ -28,7 +29,12 @@ namespace SpaceGame.Core
                 position,
                 Quaternion.identity
             );
-        
+
+            // Stamped with the ITEM's registry id rather than the prefab's own, because that is the
+            // key SaveablePrefabRegistry derives from the item table — so a dropped item persists
+            // without its prefab having been touched in the editor at all.
+            SaveableEntity.EnsureRuntime(obj, item.ID);
+
             if (Network.IsNetworked)
             {
                 obj.GetComponent<NetworkObject>().Spawn();

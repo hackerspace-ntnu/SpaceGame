@@ -49,18 +49,37 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f5143ff601f504c72995e51afbceb9fe, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MountModule
   priority: 0
   active: 1
   seatPoint: {fileID: 1200799986661571085}
+  seatOffset: {x: 0, y: 0, z: 0}
   dismountPoint: {fileID: 1200799986661571085}
+  mountableByDirectInteraction: 1
   disablePlayerMovement: 1
   disablePlayerLook: 1
   disablePlayerInteractor: 1
   mountCooldown: 0.25
   fallbackDismountDistance: 1.6
+  defaultPerspective: 1
   thirdPersonCameraPrefab: {fileID: 0}
+  thirdPersonPivot: {fileID: 0}
+  thirdPersonOffset: {x: 0.35, y: 1.7, z: -1}
+  thirdPersonDistance: 4.5
+  thirdPersonFollowLerp: 14
+  thirdPersonAimLerp: 18
+  thirdPersonYawLerp: 16
+  thirdPersonLookAhead: 7
+  followMountPitch: 0
+  lookActionName: Look
+  lookSensitivity: 20
+  lookPitchClamp: 75
+  defaultMountedPitch: -15
+  orbitPitchMin: -25
+  orbitPitchMax: 60
+  cameraAutoAlignSpeed: 8
+  cameraAutoAlignDelay: 3
   allowAISelfMovementWhenMounted: 0
 --- !u!114 &3356956819541256607
 MonoBehaviour:
@@ -72,44 +91,25 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c7c257d806b8c467abd0f18840dfdfe5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SteerModule
   priority: 100
   active: 1
   mountModule: {fileID: 3160118474156310209}
   moveActionName: Move
-  lookActionName: Look
   jumpActionName: Jump
-  togglePerspectiveActionName: Next
+  verticalActionName: 
+  turnActionName: 
   steeringOverrideThreshold: 0.1
-  moveSpeed: 2.4
-  turnSpeed: 120
   turnSmoothTime: 0.12
-  momentumDamping: 7
-  acceleration: 4
-  mountedMoveDistance: 2
-  mountedStopDistance: 0.15
-  mountedNavMeshSampleDistance: 4
-  faceMoveDirection: 1
+  riderCanRun: 0
+  runActionName: Sprint
   jumpEnabled: 1
-  selfDriveJumpHeight: 1.2
-  selfDriveJumpDuration: 0.45
   leapEnabled: 1
   leapHoldTime: 0.4
   leapHorizontal: 8
   leapVertical: 3
   leapDuration: 0.9
-  defaultPerspective: 1
-  thirdPersonCamera: {fileID: 0}
-  thirdPersonPivot: {fileID: 1200799986661571085}
-  thirdPersonOffset: {x: 0, y: 2.2, z: -3.8}
-  thirdPersonDistance: 3.8
-  thirdPersonFollowLerp: 14
-  lookSensitivity: 1
-  lookPitchClamp: 75
-  defaultMountedPitch: -15
-  cameraAutoAlignSpeed: 90
-  cameraAutoAlignDelay: 0.5
   visualTiltRoot: {fileID: 0}
   leanAmount: 10
   leanSmoothTime: 0.18
@@ -186,7 +186,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f9f3daeabc7b5491097940d9275e8162, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AgentController
   MotorComponent: {fileID: 7242184591122700102}
   animatorDriver: {fileID: 0}
@@ -206,7 +206,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 93332eec514f24714b313e241062bc1c, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RigidbodyMotor
   body: {fileID: 3937059897492907912}
   maxSpeed: 8

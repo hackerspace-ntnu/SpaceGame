@@ -82,6 +82,7 @@ GameObject:
   - component: {fileID: 1597688279667040944}
   - component: {fileID: 7957510637586956417}
   - component: {fileID: 63085288324650649}
+  - component: {fileID: 6967080318531699131}
   m_Layer: 0
   m_Name: Ostrich
   m_TagString: Untagged
@@ -248,6 +249,7 @@ MonoBehaviour:
   priority: 0
   active: 1
   seatPoint: {fileID: 3987795919156751077}
+  seatOffset: {x: 0, y: -0.4, z: 0}
   dismountPoint: {fileID: 3680777552004377387}
   mountableByDirectInteraction: 1
   disablePlayerMovement: 1
@@ -258,19 +260,21 @@ MonoBehaviour:
   defaultPerspective: 1
   thirdPersonCameraPrefab: {fileID: 0}
   thirdPersonPivot: {fileID: 0}
-  thirdPersonOffset: {x: 0, y: 3, z: -3.8}
-  thirdPersonDistance: 7
+  thirdPersonOffset: {x: 0.45, y: 1.8, z: -1}
+  thirdPersonDistance: 5.5
   thirdPersonFollowLerp: 14
   thirdPersonAimLerp: 18
   thirdPersonYawLerp: 16
-  thirdPersonLookAhead: 6
+  thirdPersonLookAhead: 7
   followMountPitch: 0
   lookActionName: Look
-  lookSensitivity: 1
+  lookSensitivity: 20
   lookPitchClamp: 75
   defaultMountedPitch: -15
-  cameraAutoAlignSpeed: 90
-  cameraAutoAlignDelay: 0.5
+  orbitPitchMin: -25
+  orbitPitchMax: 60
+  cameraAutoAlignSpeed: 8
+  cameraAutoAlignDelay: 3
   allowAISelfMovementWhenMounted: 0
 --- !u!114 &5148683325862739237
 MonoBehaviour:
@@ -428,6 +432,36 @@ MonoBehaviour:
   surfaceClearance: 1.2
   absoluteFloorY: -500
   logRecoveries: 1
+--- !u!114 &6967080318531699131
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8793624777589779848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd7acca8877904c148d3b9c0494ea961, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.MountedRiderPose
+  mountModule: {fileID: 1302922438473089728}
+  upperLegRotation: {x: -55, y: 0, z: 12}
+  lowerLegRotation: {x: 65, y: 0, z: 0}
+  footRotation: {x: -10, y: 0, z: 0}
+  spineRotation: {x: 8, y: 0, z: 0}
+  chestRotation: {x: 6, y: 0, z: 0}
+  upperArmRotation: {x: -40, y: 0, z: 8}
+  lowerArmRotation: {x: 35, y: 0, z: 0}
+  gains:
+    bounceGain: 2.5
+    bounceMax: 9
+    speedGain: 0.7
+    speedMax: 12
+    turnGain: 6
+    turnMax: 10
+  motionSmooth: 9
+  motionRejectThreshold: 60
+  blendDuration: 0.25
 --- !u!1001 &7659642805198663154
 PrefabInstance:
   m_ObjectHideFlags: 0

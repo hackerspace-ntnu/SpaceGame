@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using SpaceGame.Characters;
 using SpaceGame.Core;
 
 namespace SpaceGame.Items
@@ -35,14 +36,18 @@ namespace SpaceGame.Items
         [SerializeField] private Vector3 wornLocalEuler = new(0f, 0f, 0f);
 
         [Header("Deploy")]
-        [Tooltip("What the drop point is measured from. Left empty it resolves to the player camera, " +
-                 "which is what you want in first person: the body and the view can disagree for a " +
-                 "frame after a fast turn, and the pack must land where the player is LOOKING.")]
+        [Tooltip("What the drop point is measured from. Left empty it resolves through the project's " +
+                 "own aim source — PlayerController's camera, then AimProvider's — because the pack " +
+                 "must land where the player is LOOKING, and it must agree with what every other " +
+                 "system in the game calls 'forward'.")]
         [SerializeField] private Transform aimTransform;
 
         [SerializeField, Min(0.05f)] private float deploySeconds = 0.9f;
-        [Tooltip("Metres in front of the player the pack is set down.")]
-        [SerializeField, Min(0.2f)] private float deployDistance = 0.9f;
+
+        [Tooltip("Metres in front of the player the pack is set down. Measured to the pack's ORIGIN, " +
+                 "which is the bottom centre of its footprint — so half its depth is nearer than " +
+                 "this number, and a value near the pack's own depth puts it against your chest.")]
+        [SerializeField, Min(0.2f)] private float deployDistance = 1.6f;
         [SerializeField] private float arcHeight = 0.6f;
         [Tooltip("Metres the pack bows sideways mid-flight so it clears the player's own body.")]
         [SerializeField] private float arcOutward = 0.35f;
@@ -55,12 +60,21 @@ namespace SpaceGame.Items
 
         [SerializeField] private LayerMask groundMask = ~0;
 
+        [Tooltip("Log where the pack was actually placed relative to the player's facing, every " +
+                 "deploy. On while the drop direction is under suspicion; off once it is proven.")]
+        [SerializeField] private bool verboseDeploy;
+
         public State CurrentState { get; private set; } = State.Shouldered;
         public BackpackObject Pack { get; private set; }
 
         private PlayerInputManager input;
         private Transform backSocket;
         private Coroutine arcRoutine;
+
+        // Where the deploy currently in flight is headed. Held so an interrupted arc can land the
+        // pack at its destination instead of wherever it had reached — see OnDisable.
+        private Pose pendingDeployPose;
+        private bool hasPendingDeploy;
 
         // Sized for the clutter a 3 m downward probe plausibly crosses on the way to the sand: the
         // player's own capsule, their pack, a doorway lip, then ground.
@@ -70,11 +84,7 @@ namespace SpaceGame.Items
         {
             input = GetComponent<PlayerInputManager>();
 
-            if (aimTransform == null)
-            {
-                var cam = GetComponentInChildren<Camera>(true);
-                aimTransform = cam != null ? cam.transform : transform;
-            }
+            if (aimTransform == null) aimTransform = ResolveAimTransform();
 
             backSocket = ResolveBackSocket();
             if (backSocket == null)
@@ -102,6 +112,34 @@ namespace SpaceGame.Items
 
             Pack.Bind(this);
             SnapToWorn();
+        }
+
+        /// <summary>
+        /// The transform the drop direction is measured from, resolved through the project's OWN
+        /// aim source rather than by hunting for a camera.
+        ///
+        /// This is the fix for a bug that kept coming back: the pack landed behind the player.
+        /// The old resolve was `GetComponentInChildren&lt;Camera&gt;(true)`, which takes the first
+        /// camera in hierarchy order INCLUDING INACTIVE ONES and never checks that it is the camera
+        /// the player is looking through. PlayerCharacter.prefab carries its Main Camera as a
+        /// deactivated nested prefab that PlayerController switches on at spawn, so what that
+        /// search returned had no relationship to where anyone was aiming.
+        ///
+        /// Order: PlayerController's camera (what the player sees through) → AimProvider's (what
+        /// every weapon aims along) → the body. The body is last and can never be null, so this
+        /// always returns something usable.
+        /// </summary>
+        private Transform ResolveAimTransform()
+        {
+            var player = GetComponent<PlayerController>();
+            if (player != null && player.PlayerCameraTransform != null)
+                return player.PlayerCameraTransform;
+
+            var aim = GetComponent<AimProvider>();
+            if (aim != null && aim.AimTransform != null)
+                return aim.AimTransform;
+
+            return transform;
         }
 
         /// <summary>
@@ -150,7 +188,19 @@ namespace SpaceGame.Items
                 StopCoroutine(arcRoutine);
                 arcRoutine = null;
 
-                if (CurrentState == State.Deploying) FinishDeploy(CurrentWorldPose(Pack));
+                // The pack lands where it was GOING, never where it had got to.
+                //
+                // This is the "it deploys behind me" bug, and it is why fixing the drop direction
+                // never made it go away. The arc starts on the player's back, so a deploy
+                // interrupted in its first frames leaves the pack a few centimetres behind them —
+                // unparented, IsWorn false, state Open. Everything reports a completed deploy and
+                // the pack is behind the player, every time.
+                //
+                // It fires constantly rather than rarely because this is a streaming world: the
+                // player is disabled and re-enabled as scenes load, migrate and respawn around
+                // them, and each of those lands mid-flight.
+                if (CurrentState == State.Deploying)
+                    FinishDeploy(hasPendingDeploy ? pendingDeployPose : CurrentWorldPose(Pack));
                 else if (CurrentState == State.Stowing) SnapToWorn();
             }
         }
@@ -177,7 +227,21 @@ namespace SpaceGame.Items
                 return;
             }
 
+            if (verboseDeploy)
+            {
+                // The one number that settles "it deployed behind me": how far along the player's
+                // own facing the pack ended up. Positive is in front. Reported as metres rather
+                // than a normalised dot so the distance is legible in the same line.
+                float ahead = Vector3.Dot(grounded.position - transform.position, transform.forward);
+                Debug.Log($"Backpack deploy: {ahead:F2} m along the player's facing " +
+                          $"(aim '{(aimTransform != null ? aimTransform.name : "none")}'), " +
+                          $"drop {grounded.position}.", this);
+            }
+
             Pose start = CurrentWorldPose(Pack);
+
+            pendingDeployPose = grounded;
+            hasPendingDeploy = true;
 
             CurrentState = State.Deploying;
             Pack.SetWorn(false);
@@ -219,6 +283,8 @@ namespace SpaceGame.Items
 
         private void FinishDeploy(Pose grounded)
         {
+            hasPendingDeploy = false;
+
             Pack.transform.SetParent(null, true);
             Pack.transform.SetPositionAndRotation(grounded.position, grounded.rotation);
             Pack.SetWorn(false);
@@ -228,6 +294,8 @@ namespace SpaceGame.Items
 
         private void SnapToWorn()
         {
+            hasPendingDeploy = false;
+
             Pack.SetOpen(false);
             Pack.SetWorn(true);
             Pack.transform.SetParent(backSocket, false);
@@ -250,16 +318,51 @@ namespace SpaceGame.Items
         /// </summary>
         private Vector3 AimForward()
         {
-            Vector3 forward = aimTransform != null ? aimTransform.forward : transform.forward;
-            forward.y = 0f;
+            Vector3 aim = aimTransform != null ? aimTransform.forward : transform.forward;
+            Vector3 forward = DeployDirection(aim, transform.forward, out bool inverted);
 
-            if (forward.sqrMagnitude < 1e-6f)
-            {
-                forward = transform.forward;
-                forward.y = 0f;
-            }
+            if (inverted)
+                Debug.LogError(
+                    $"BackpackController: aim source '{(aimTransform != null ? aimTransform.name : "none")}' " +
+                    "points opposite the body, so the pack would have been set down BEHIND the " +
+                    "player. Deploying along the body instead — assign aimTransform to the camera " +
+                    "the player actually looks through.", this);
 
-            return forward.sqrMagnitude > 1e-6f ? forward.normalized : Vector3.forward;
+            return forward;
+        }
+
+        /// <summary>
+        /// The ground-plane direction the pack is set down along, given where the player is looking
+        /// and which way their body faces. Pure, so the guard below can be tested without a scene.
+        ///
+        /// `inverted` reports that the aim disagreed with the body and was overridden. In a
+        /// first-person rig those two cannot legitimately disagree — PlayerLook yaws the body's
+        /// Rigidbody and writes Euler(pitch, 0, 0) into the camera's LOCAL rotation, so the camera
+        /// contributes pitch and nothing else. A negative dot therefore never means "the player is
+        /// looking backwards"; it means the aim source is not the camera they are looking through,
+        /// which is exactly how the pack kept ending up behind them.
+        ///
+        /// The test is `&lt; 0` rather than a tight tolerance on purpose: any disagreement short of
+        /// an actual inversion still puts the pack in front, and a future third-person camera that
+        /// legitimately trails the body should not trip this.
+        /// </summary>
+        public static Vector3 DeployDirection(Vector3 aimForward, Vector3 bodyForward, out bool inverted)
+        {
+            Vector3 body = Flatten(bodyForward, Vector3.forward);
+            Vector3 forward = Flatten(aimForward, body);
+
+            inverted = Vector3.Dot(forward, body) < 0f;
+            return inverted ? body : forward;
+        }
+
+        /// <summary>Flatten to the ground plane, falling back when the horizontal part vanishes.</summary>
+        private static Vector3 Flatten(Vector3 primary, Vector3 fallback)
+        {
+            primary.y = 0f;
+            if (primary.sqrMagnitude > 1e-6f) return primary.normalized;
+
+            fallback.y = 0f;
+            return fallback.sqrMagnitude > 1e-6f ? fallback.normalized : Vector3.forward;
         }
 
         /// <summary>
@@ -315,5 +418,35 @@ namespace SpaceGame.Items
                             Quaternion.LookRotation(toPlayer.normalized, best.normal));
             return true;
         }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// The drop direction, visible without pressing Play. Green is the body's facing, cyan the
+        /// resolved aim, and the sphere is where the pack would be set down — so an aim source that
+        /// disagrees with the body shows up as two lines pointing opposite ways in the Scene view
+        /// rather than as a pack found behind you ten minutes into a playtest.
+        /// </summary>
+        private void OnDrawGizmosSelected()
+        {
+            Transform aim = aimTransform != null ? aimTransform : ResolveAimTransform();
+            Vector3 eye = transform.position + Vector3.up * 1.2f;
+
+            Gizmos.color = Color.green;
+            Gizmos.DrawRay(eye, transform.forward * deployDistance);
+
+            if (aim != null && aim != transform)
+            {
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawRay(eye, DeployDirection(aim.forward, transform.forward, out _) * deployDistance);
+            }
+
+            Vector3 drop = transform.position +
+                           DeployDirection(aim != null ? aim.forward : transform.forward,
+                                           transform.forward, out _) * deployDistance;
+
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(drop, 0.25f);
+        }
+#endif
     }
 }

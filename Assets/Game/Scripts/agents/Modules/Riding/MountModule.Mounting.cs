@@ -277,7 +277,7 @@ namespace SpaceGame.Agents
         {
             Transform rideParent = seatPoint ? seatPoint : transform;
             mountedPlayer.SetParent(rideParent, true);
-            mountedPlayer.localPosition = Vector3.zero;
+            mountedPlayer.localPosition = seatOffset;
             mountedPlayer.localRotation = Quaternion.identity;
         }
 

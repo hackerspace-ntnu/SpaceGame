@@ -73,6 +73,16 @@ namespace SpaceGame.Presentation
                 if (playerInteractor == null) { Hide(); return; }
             }
 
+            // An Interactor that isn't running isn't hovering anything, whatever it last recorded.
+            // Interactor clears its own hover state on disable, so this is belt and braces — but it
+            // is the belt that holds if some future path stops the Interactor updating without
+            // disabling it. Mounting takes exactly that route today.
+            if (!playerInteractor.isActiveAndEnabled)
+            {
+                Hide();
+                return;
+            }
+
             if (!InteractionPromptResolver.TryResolve(playerInteractor.HoveredInteractable,
                                                      out InteractionDisplay display))
             {

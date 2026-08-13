@@ -177,10 +177,18 @@ namespace SpaceGame.Gameplay
         /// the player at the second, which is how a player ends up standing in a chunk that was
         /// never loaded and falls straight through it.
         /// </summary>
-        public void SpawnPlayerForClient(ulong clientId, Vector3 spawnPosition)
+        public void SpawnPlayerForClient(ulong clientId, Vector3 spawnPosition) =>
+            SpawnPlayerForClient(clientId, spawnPosition, Quaternion.identity);
+
+        /// <summary>
+        /// As above, but facing a specific direction. Loading a save is the only caller that has an
+        /// opinion about it — a spawn point deliberately does not, since it scatters its position
+        /// and an authored facing would put every player in a group looking the same way.
+        /// </summary>
+        public void SpawnPlayerForClient(ulong clientId, Vector3 spawnPosition, Quaternion spawnRotation)
         {
             spawnPosition = ClampAboveTerrain(spawnPosition);
-            GameObject playerObj = Instantiate(networkPlayerPrefab, spawnPosition, Quaternion.identity);
+            GameObject playerObj = Instantiate(networkPlayerPrefab, spawnPosition, spawnRotation);
 
             // Before the network spawn, so the entity is registered for targeting from its first
             // frame. MatchManager reassigns the faction below when a match is running.

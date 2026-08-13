@@ -271,13 +271,10 @@ namespace SpaceGame.EditorTools
         /// <summary>
         /// Draws the area footprint block: Width / Height / Breadth, the Polygon vs Noise mode toggle,
         /// the explicit noise knobs (shown only in Noise mode) and the authoring buttons. The outline
-        /// itself is never shown as raw vertex fields — it is edited visually in the Scene view. Linear
-        /// features skip this entirely; they use the spline path.
+        /// itself is never shown as raw vertex fields — it is edited visually in the Scene view.
         /// </summary>
         void DrawFootprintBlock(TerrainFeatureSpawner spawner)
         {
-            if (spawner.UsesPath) return;
-
             SerializedProperty areaProp = serializedObject.FindProperty("area");
             if (areaProp == null) return;
 
@@ -417,23 +414,12 @@ namespace SpaceGame.EditorTools
 
                 string folder = TerrainFeatureBakeUtility.ResolveBakeFolder(spawner);
 
-                if (result.IsMultiMesh)
-                {
-                    // MULTI-MESH feature (e.g. ArchingCave): one saved asset per chunked sub-mesh.
-                    Mesh[] saved = TerrainFeatureBakeUtility.SaveSubMeshes(result.SubMeshes, folder, spawner);
-                    spawner.AssignBakedSubMeshes(saved);
-                    Debug.Log($"[TerrainFeatureSpawnerEditor] baked {spawner.FeatureType} " +
-                              $"seed {spawner.Seed} → {saved.Length} sub-meshes.");
-                }
-                else
-                {
-                    Mesh saved = TerrainFeatureBakeUtility.SaveSingle(result.Mesh, folder, spawner);
-                    spawner.AssignBakedMesh(saved);
-                    Debug.Log($"[TerrainFeatureSpawnerEditor] baked {spawner.FeatureType} " +
-                              $"seed {spawner.Seed} ({result.Mesh.vertexCount} verts).");
-                }
+                Mesh saved = TerrainFeatureBakeUtility.SaveSingle(result.Mesh, folder, spawner);
+                spawner.AssignBakedMesh(saved);
+                Debug.Log($"[TerrainFeatureSpawnerEditor] baked {spawner.FeatureType} " +
+                          $"seed {spawner.Seed} ({result.Mesh.vertexCount} verts).");
 
-                // Spawn the saved asset(s) so the scene shows the persistent mesh, not the temporary.
+                // Spawn the saved asset so the scene shows the persistent mesh, not the temporary.
                 spawner.SpawnBaked();
                 EditorUtility.SetDirty(spawner);
                 MarkSceneDirty(spawner);

@@ -111,6 +111,11 @@ GameObject:
   - component: {fileID: 2678120570083281304}
   - component: {fileID: 4739590490079316722}
   - component: {fileID: 6607317269232638770}
+  - component: {fileID: 1378113935866583304}
+  - component: {fileID: 8160784556367248615}
+  - component: {fileID: 7578012767945001410}
+  - component: {fileID: 1655312470547217303}
+  - component: {fileID: 6462769725498312612}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Player
@@ -217,6 +222,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 301463f3fc6943e1a8dfb1491f2a83db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInputManager
+  invertHotbarScroll: 0
+  scrollUnitsPerSlot: 0
 --- !u!114 &5205092769686626828
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -415,24 +422,89 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e5473d57746244b7abd7d59d6ce4fee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BackpackController
-  backpackPrefab: {fileID: 4425010704611178764, guid: d8d638f784bab472cb1b48e4679fcb08, type: 3}
+  backpackPrefab: {fileID: 8899938055073642016, guid: e620a964e38054ee89e0fc465134b264, type: 3}
   backBone: 7
   backBoneNameHints:
   - Spine
   - Chest
   - Torso
   backSocketOverride: {fileID: 0}
-  wornLocalPosition: {x: 0.0030106734, y: -0.17255704, z: -0.36850843}
+  wornLocalPosition: {x: 0.003, y: -0.255, z: -0.415}
   wornLocalEuler: {x: 358.96542, y: 180, z: 0}
   aimTransform: {fileID: 0}
   deploySeconds: 0.9
-  deployDistance: 1.15
+  deployDistance: 1.6
   arcHeight: 0.6
   arcOutward: 0.45
   groundLift: 0.01
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  verboseDeploy: 1
+--- !u!114 &1378113935866583304
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 
+  instanceId: 
+  authored: 0
+  scope: 1
+--- !u!114 &8160784556367248615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c18a9adbe9734a35aee1b80b9c4bcda, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthSaveable
+--- !u!114 &7578012767945001410
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d73b5354c23cc4449ae10e3b67184b5d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.PlayerInventorySaveable
+--- !u!114 &1655312470547217303
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e0ceabb7dd374aefb07731d79b4adac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.BackpackSaveable
+--- !u!114 &6462769725498312612
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35dbcb7976a2147008d9579d90a1cfea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.PlayerSaveBinder
 --- !u!1001 &2677432995988726931
 PrefabInstance:
   m_ObjectHideFlags: 0

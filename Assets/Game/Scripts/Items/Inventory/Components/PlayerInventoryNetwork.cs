@@ -49,6 +49,7 @@ namespace SpaceGame.Items
         {
             if (!IsOwner) return;
             player.Input.OnHotbarPressed += SelectSlot;
+            player.Input.OnHotbarScrolled += ScrollSlot;
             player.Input.OnDropPressed += DropItem;
         }
 
@@ -105,11 +106,46 @@ namespace SpaceGame.Items
             SelectSlotServerRpc(slotIndex);
         }
 
+        private void ScrollSlot(int direction)
+        {
+            int target = HotbarNavigation.GetScrollTarget(SelectedSlotIndex, direction, inventorySize);
+            if (target == HotbarNavigation.NoChange) return;
+
+            SelectSlot(target);
+        }
+
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         private void SelectSlotServerRpc(int slotIndex)
         {
             networkSelectedSlot.Value =
                 networkSelectedSlot.Value == slotIndex ? -1 : slotIndex;
+        }
+
+        /// <summary>
+        /// Server-side hotbar assignment for a load. Writes through the NetworkList rather than
+        /// into the local Inventory, so the owning client's own copy is rebuilt by the same
+        /// replication path every other change uses — restoring the local inventory directly would
+        /// leave the server's authoritative list saying something else.
+        /// </summary>
+        public void RestoreSlots(IReadOnlyList<InventoryItem> items, int selectedSlot)
+        {
+            if (!IsServer)
+            {
+                Debug.LogWarning("[Save] RestoreSlots ignored on a client — the hotbar is server state.", this);
+                return;
+            }
+
+            // The list is sized in InitializeNetworkState, which runs in OnNetworkSpawn. A restore
+            // that beats it would index past the end.
+            if (networkItems.Count < inventorySize) InitializeNetworkState();
+
+            for (int i = 0; i < networkItems.Count; i++)
+            {
+                InventoryItem item = items != null && i < items.Count ? items[i] : null;
+                networkItems[i] = item != null ? item.ID : default;
+            }
+
+            networkSelectedSlot.Value = selectedSlot >= 0 && selectedSlot < networkItems.Count ? selectedSlot : -1;
         }
 
         // --- Client requests add ---

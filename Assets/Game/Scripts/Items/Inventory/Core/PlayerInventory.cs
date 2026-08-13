@@ -46,6 +46,25 @@ namespace SpaceGame.Items
            inventory.SetItem(index, item);
         }
 
+        /// <summary>
+        /// Assigns the whole hotbar and the selection at once, as a load does. Bypasses SelectSlot
+        /// because that toggles, and a restore is an assignment of a known state rather than a
+        /// player pressing a key.
+        /// </summary>
+        public void RestoreSlots(IReadOnlyList<InventoryItem> items, int selectedSlot)
+        {
+            int size = inventory.GetSize();
+
+            for (int i = 0; i < size; i++)
+            {
+                InventoryItem item = items != null && i < items.Count ? items[i] : null;
+                inventory.RestoreSlot(i, item);
+            }
+
+            SelectedSlotIndex = selectedSlot >= 0 && selectedSlot < size ? selectedSlot : -1;
+            OnSlotSelected?.Invoke(GetSlot(SelectedSlotIndex));
+        }
+
         public void SelectSlot(int slotIndex)
         {
             if (slotIndex == SelectedSlotIndex)

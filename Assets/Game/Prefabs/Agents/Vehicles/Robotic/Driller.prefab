@@ -274,7 +274,9 @@ MonoBehaviour:
   priority: 0
   active: 1
   seatPoint: {fileID: 7649302396544023437}
+  seatOffset: {x: 0, y: 0, z: 0}
   dismountPoint: {fileID: 3774713645148464471}
+  mountableByDirectInteraction: 1
   disablePlayerMovement: 1
   disablePlayerLook: 1
   disablePlayerInteractor: 1
@@ -286,13 +288,18 @@ MonoBehaviour:
   thirdPersonOffset: {x: 0, y: 10, z: -3.8}
   thirdPersonDistance: 15
   thirdPersonFollowLerp: 14
+  thirdPersonAimLerp: 18
+  thirdPersonYawLerp: 16
   thirdPersonLookAhead: 15
+  followMountPitch: 0
   lookActionName: Look
-  lookSensitivity: 1
+  lookSensitivity: 20
   lookPitchClamp: 75
   defaultMountedPitch: -15
-  cameraAutoAlignSpeed: 90
-  cameraAutoAlignDelay: 0.5
+  orbitPitchMin: -25
+  orbitPitchMax: 60
+  cameraAutoAlignSpeed: 8
+  cameraAutoAlignDelay: 3
   allowAISelfMovementWhenMounted: 1
 --- !u!114 &-6914386319407262388
 MonoBehaviour:
@@ -312,6 +319,7 @@ MonoBehaviour:
   moveActionName: Move
   jumpActionName: Jump
   verticalActionName: 
+  turnActionName: 
   steeringOverrideThreshold: 0.1
   turnSmoothTime: 0.12
   riderCanRun: 1

@@ -55,32 +55,14 @@ namespace SpaceGame.World
         }
 
         /// <summary>
-        /// Draws the passive footprint gizmo for a spawner — the spline curve for linear features, the
-        /// editable polygon outline for area features (or the seeding box when no polygon exists yet).
-        /// The interactive handles are drawn separately by the editor; this is the always-on outline.
+        /// Draws the passive footprint gizmo for a spawner — the editable polygon outline, or the
+        /// seeding box when no polygon exists yet. The interactive handles are drawn separately by the
+        /// editor; this is the always-on outline.
         /// </summary>
         public static void DrawFootprintGizmo(TerrainFeatureSpawner spawner)
         {
             if (spawner == null) return;
             Gizmos.matrix = spawner.transform.localToWorldMatrix;
-
-            if (spawner.UsesPath)
-            {
-                FeaturePath path = spawner.Path;
-                Gizmos.color = new Color(1f, 0.7f, 0.2f, 0.9f);
-                if (path != null && path.IsValid)
-                {
-                    var spline = new FeatureSpline(path);
-                    Vector3 prev = spline.Evaluate(0f);
-                    for (int i = 1; i <= 48; i++)
-                    {
-                        Vector3 cur = spline.Evaluate(i / 48f);
-                        Gizmos.DrawLine(prev, cur);
-                        prev = cur;
-                    }
-                }
-                return;
-            }
 
             Gizmos.color = new Color(0.5f, 0.85f, 1f, 0.6f);
             FeaturePolygon footprint = spawner.Footprint;

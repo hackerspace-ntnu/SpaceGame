@@ -2,6 +2,7 @@
     "name": "SpaceGame.Tests.EditMode",
     "rootNamespace": "",
     "references": [
+        "SpaceGame.Persistence",
         "SpaceGame.Minigame.Core",
         "SpaceGame.World.Streaming",
         "SpaceGame.World.Safety",

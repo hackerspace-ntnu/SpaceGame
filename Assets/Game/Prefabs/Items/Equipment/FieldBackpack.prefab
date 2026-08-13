@@ -815,8 +815,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f8278c537f48042c1b38b019811f0df5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BackpackObject
-  doorPivotLeft: {fileID: 3873427004790034437}
-  doorPivotRight: {fileID: 5606513274920563802}
+  hinges:
+  - pivot: {fileID: 3873427004790034437}
+    localAxis: {x: 0, y: 0, z: 1}
+    openAngle: 135
+  - pivot: {fileID: 5606513274920563802}
+    localAxis: {x: 0, y: 0, z: 1}
+    openAngle: -135
   strapSockets:
   - {fileID: 5778782390414257298}
   - {fileID: 7422099753998168104}
@@ -841,10 +846,9 @@ MonoBehaviour:
   - {fileID: 2258168038821690734}
   - {fileID: 63563224221353826}
   - {fileID: 3448892315517696711}
-  openAngle: 135
   openSeconds: 0.5
-  pocketFitSize: 0.19
-  strapFitSize: 0.3
+  pocketFitSize: 0.3
+  strapFitSize: 0.44
   startingStrapItems:
   - {fileID: 11400000, guid: ff50fe643e8c148cbb4a91c3a3f189bf, type: 2}
   - {fileID: 11400000, guid: 314d21b5690f74cbaa829991e7678802, type: 2}

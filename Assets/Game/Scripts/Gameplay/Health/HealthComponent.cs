@@ -10,6 +10,14 @@ namespace SpaceGame.Gameplay
         public event Action OnDeath;
         public event Action OnRevive;
 
+        /// <summary>
+        /// Raised when health is assigned rather than changed by gameplay — currently only by a
+        /// save being loaded. Replication listens to this; damage feedback deliberately does not,
+        /// because loading at half health should not flash the screen red as though you were just
+        /// hit.
+        /// </summary>
+        public event Action OnRestored;
+
         [SerializeField] private int maxHealth = 100;
         public int GetMaxHealth => maxHealth;
 
@@ -49,6 +57,31 @@ namespace SpaceGame.Gameplay
 
             OnHeal?.Invoke(restored);
             if (wasDead) OnRevive?.Invoke();
+        }
+
+        /// <summary>
+        /// Assigns health directly, as a load does. Clamped to the prefab's current maxHealth, so a
+        /// save written when the prefab allowed 200 does not leave an entity above a ceiling that
+        /// has since dropped to 100.
+        ///
+        /// Not expressible as Damage/Heal: those model events with consequences — Damage records a
+        /// damage source and fires the feedback flash, Heal refuses to raise the dead. Restoring is
+        /// neither. It raises <see cref="OnRestored"/>, plus OnDeath or OnRevive when the assignment
+        /// crosses zero, since a listener that tracks alive/dead must not be left holding the wrong
+        /// answer.
+        /// </summary>
+        public void RestoreHealth(int value)
+        {
+            int clamped = Math.Clamp(value, 0, maxHealth);
+            if (clamped == currentHealth) return;
+
+            bool wasAlive = Alive;
+            currentHealth = clamped;
+
+            OnRestored?.Invoke();
+
+            if (wasAlive && !Alive) OnDeath?.Invoke();
+            else if (!wasAlive && Alive) OnRevive?.Invoke();
         }
 
         public void Heal(int amount)

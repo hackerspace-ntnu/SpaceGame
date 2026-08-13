@@ -3,11 +3,9 @@ using UnityEngine;
 namespace SpaceGame.World
 {
     /// <summary>
-    /// The single, footprint-agnostic input bundle handed to every <see cref="TerrainFeature"/> when
-    /// it builds. One context type for ALL nine features — area and linear alike — because maximum
-    /// interchangeability is the #1 design priority. A feature simply reads the parts it needs:
-    ///   • Area features (dunes, mesas, buttes, cliffs) read <see cref="LocalBounds"/> (the box).
-    ///   • Linear features (canyons, paths, ridges, bridges, arches, cave entrances) read <see cref="Path"/>.
+    /// The single input bundle handed to every <see cref="TerrainFeature"/> when it builds. One context
+    /// type for all features, so they stay interchangeable — a feature simply reads the parts it needs,
+    /// principally <see cref="LocalBounds"/> (the box) and <see cref="Area"/> (the outline).
     ///
     /// All geometry in here is in the spawner's LOCAL space unless a field name says "World". Working
     /// local keeps the feature deterministic regardless of where the spawner sits, and lets the bake
@@ -22,26 +20,14 @@ namespace SpaceGame.World
         public readonly int Seed;
 
         /// <summary>Axis-aligned local-space bounds of the footprint — the bounding box of
-        /// <see cref="Footprint"/> for area features, or of <see cref="Path"/> for linear features.
-        /// The mesher uses this for its voxel-walk extent; features should prefer
-        /// <see cref="FootprintDistanceInside"/> over reading this box directly for their silhouette.</summary>
+        /// <see cref="Area"/>. The mesher uses this for its voxel-walk extent; features should
+        /// prefer <see cref="FootprintDistanceInside"/> over reading this box directly for their
+        /// silhouette.</summary>
         public readonly Bounds LocalBounds;
 
-        /// <summary>The resolved AREA footprint — box dimensions, mode and outline polygon. Area
-        /// features read it only through <see cref="FootprintDistanceInside"/>; the area is null for
-        /// linear features. See <see cref="FeatureFootprint"/>.</summary>
+        /// <summary>The resolved footprint — box dimensions, mode and outline polygon. Features read it
+        /// only through <see cref="FootprintDistanceInside"/>. See <see cref="FeatureFootprint"/>.</summary>
         public readonly FeatureFootprint Area;
-
-        /// <summary>The CLOSED polygon outline of the area footprint, in feature-local space. Valid
-        /// (≥3 vertices) for AREA features. Convenience accessor onto <see cref="Area"/> — kept so
-        /// existing features and docs that reference <c>context.Footprint</c> still compile. Empty
-        /// for linear features.</summary>
-        public FeaturePolygon Footprint => Area != null ? Area.polygon : _emptyPolygon;
-        static readonly FeaturePolygon _emptyPolygon = new FeaturePolygon();
-
-        /// <summary>The editable poly-line path, in feature-local space. Valid (≥2 points) for linear
-        /// features; empty for area features. Wrap it in a <see cref="FeatureSpline"/> to sample.</summary>
-        public readonly FeaturePath Path;
 
         /// <summary>The four shared tuning knobs (noise / overlap / height / jaggedness) plus
         /// walkability controls. A feature may also carry its own extra per-feature settings.</summary>
@@ -64,7 +50,6 @@ namespace SpaceGame.World
             int seed,
             Bounds localBounds,
             FeatureFootprint area,
-            FeaturePath path,
             TerrainFeatureTuning tuning,
             ITerrainHeightSampler ground,
             Matrix4x4 localToWorld,
@@ -73,7 +58,6 @@ namespace SpaceGame.World
             Seed = seed;
             LocalBounds = localBounds;
             Area = area;
-            Path = path ?? new FeaturePath();
             Tuning = tuning ?? new TerrainFeatureTuning();
             Ground = ground ?? new UnityTerrainHeightSampler(null);
             LocalToWorld = localToWorld;
@@ -81,10 +65,10 @@ namespace SpaceGame.World
         }
 
         /// <summary>
-        /// Signed distance from a feature-local (x, z) point to the area footprint boundary: POSITIVE
-        /// metres inside, NEGATIVE outside. This is the single shared call every AREA feature should
+        /// Signed distance from a feature-local (x, z) point to the footprint boundary: POSITIVE
+        /// metres inside, NEGATIVE outside. This is the single shared call every feature should
         /// feed into <see cref="TerrainNoiseHelper.OverlapWeight"/> — it makes the feature's silhouette
-        /// follow the designer-drawn <see cref="Footprint"/> polygon instead of a hardcoded rectangle.
+        /// follow the designer-drawn <see cref="Area"/> polygon instead of a hardcoded rectangle.
         ///
         /// Falls back to the axis-aligned <see cref="LocalBounds"/> rectangle when the polygon has
         /// fewer than 3 vertices, so a feature works even before a footprint is drawn.
@@ -94,8 +78,7 @@ namespace SpaceGame.World
             if (Area != null)
                 return Area.SignedDistanceInside(localX, localZ);
 
-            // Box fallback (no area footprint — e.g. a linear feature querying defensively):
-            // distance into the axis-aligned bounds rectangle.
+            // Box fallback (no footprint yet): distance into the axis-aligned bounds rectangle.
             float dx = LocalBounds.extents.x - Mathf.Abs(localX - LocalBounds.center.x);
             float dz = LocalBounds.extents.z - Mathf.Abs(localZ - LocalBounds.center.z);
             return Mathf.Min(dx, dz);

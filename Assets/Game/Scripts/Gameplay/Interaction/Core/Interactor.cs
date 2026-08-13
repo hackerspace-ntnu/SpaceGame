@@ -58,6 +58,28 @@ namespace SpaceGame.Gameplay
             input.OnUsePressed += SecondaryInteract;
         }
 
+        /// <summary>
+        /// Hover state must not outlive the component that maintains it.
+        ///
+        /// Mounting disables this Interactor (MountModule.DisableRiderComponentsForMount), which
+        /// stops Update — and the hover fields then FREEZE at whatever the player was looking at
+        /// when they pressed the key, which is by definition the thing they just mounted. Both HUD
+        /// readers poll those fields every frame regardless, so the interaction panel sat on screen
+        /// reading "Press E" for the entire ride and the crosshair stayed lit with it. Neither could
+        /// tell the difference between "still hovering" and "no longer being asked".
+        /// </summary>
+        private void OnDisable() => ClearHoverState();
+
+        /// <summary>
+        /// Stop reporting a hover. Called on disable; public so the state can be dropped by anything
+        /// that takes the player's attention away without tearing this component down.
+        /// </summary>
+        public void ClearHoverState()
+        {
+            IsHoveringInteractable = false;
+            HoveredInteractable = null;
+        }
+
         private void Update()
         {
             if (!DoInteractionTest(out IInteractable interactable))

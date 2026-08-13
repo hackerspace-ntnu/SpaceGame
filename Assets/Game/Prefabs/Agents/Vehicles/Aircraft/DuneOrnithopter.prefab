@@ -1914,6 +1914,7 @@ MonoBehaviour:
   priority: 0
   active: 1
   seatPoint: {fileID: 3476141279942136556}
+  seatOffset: {x: 0, y: 0, z: 0}
   dismountPoint: {fileID: 6831350177410187085}
   mountableByDirectInteraction: 0
   disablePlayerMovement: 1
@@ -1932,11 +1933,13 @@ MonoBehaviour:
   thirdPersonLookAhead: 14.093478
   followMountPitch: 1
   lookActionName: Look
-  lookSensitivity: 1
+  lookSensitivity: 20
   lookPitchClamp: 75
   defaultMountedPitch: -8
-  cameraAutoAlignSpeed: 90
-  cameraAutoAlignDelay: 0.5
+  orbitPitchMin: -25
+  orbitPitchMax: 60
+  cameraAutoAlignSpeed: 8
+  cameraAutoAlignDelay: 3
   allowAISelfMovementWhenMounted: 0
 --- !u!114 &1330686208677846921
 MonoBehaviour:

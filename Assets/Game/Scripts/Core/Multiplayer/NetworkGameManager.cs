@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
 using SpaceGame.World;
 
@@ -37,6 +38,15 @@ namespace SpaceGame.Core
         /// </summary>
         private readonly HashSet<ulong> handledClients = new();
 
+        /// <summary>
+        /// Server-side copy of <see cref="PendingSceneNameToWaitFor"/>, taken once when this object
+        /// spawns. The static is a one-shot, and reading it per client meant the first client's
+        /// coroutine consumed it and every later client proceeded as if no scene were pending —
+        /// spawning them into persistentScene's own SpawnPoint instead of the additively loaded
+        /// one. Every client in a session waits for the same scene, so it is captured once here.
+        /// </summary>
+        private string pendingSceneForSession;
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -52,8 +62,24 @@ namespace SpaceGame.Core
             Debug.Log($"[NGM DEBUG] OnNetworkSpawn called on instance {GetInstanceID()}, IsServer={IsServer}, PendingSceneNameToWaitFor='{PendingSceneNameToWaitFor}'");
             if (!IsServer) return;
 
+            pendingSceneForSession = PendingSceneNameToWaitFor;
+            PendingSceneNameToWaitFor = null;
+
             NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
-            OnClientConnected(OwnerClientId);
+
+            // Every client ALREADY CONNECTED, not just the owner.
+            //
+            // OwnerClientId on a scene-placed NetworkObject is always the server, so spawning only
+            // that spawned the host and nobody else. Everyone who joined through the lobby
+            // connected while the menu scene was up — long before this object existed — so their
+            // OnClientConnectedCallback fired with no listener attached and will never fire again.
+            // They arrived in the world with no player object at all.
+            //
+            // Copied to a list first: OnClientConnected starts a coroutine, and a disconnect
+            // landing mid-loop would otherwise mutate the collection being iterated.
+            // handledClients keeps this idempotent against the callback subscribed above.
+            foreach (ulong clientId in new List<ulong>(NetworkManager.Singleton.ConnectedClientsIds))
+                OnClientConnected(clientId);
         }
 
         private void OnClientConnected(ulong clientId)
@@ -74,8 +100,10 @@ namespace SpaceGame.Core
             // has fully unwound.
             yield return null;
 
-            string pendingScene = PendingSceneNameToWaitFor;
-            PendingSceneNameToWaitFor = null;
+            // Read, never consumed: this coroutine runs once per client and they all wait for the
+            // same scene. Nulling a shared one-shot here made every client after the first skip
+            // the wait entirely.
+            string pendingScene = pendingSceneForSession;
             Debug.Log($"[NGM DEBUG] SpawnWhenReady({clientId}) started, pendingScene='{pendingScene}'");
 
             if (!string.IsNullOrEmpty(pendingScene))
@@ -151,7 +179,22 @@ namespace SpaceGame.Core
                 // be validated against terrain, and a call that insisted on a validated position
                 // would wait forever for a world that this very preload is responsible for loading.
                 SpawnManager.Instance.TryGetSpawnAnchor(out Vector3 anchor);
+
+                // A loaded save overrides the spawn point — and it has to do so HERE, before the
+                // preload, not later at the spawn call. The preload decides which chunks exist; a
+                // player restored to the far side of the map after the world was prepared around
+                // the spawn point would drop through ground that was never loaded.
+                bool restoringPlayer = TryGetSavedSpawn(clientId, out Vector3 savedPosition, out Quaternion savedRotation);
+                if (restoringPlayer) anchor = savedPosition;
+
                 yield return WaitForWorldReady(new[] { anchor });
+
+                if (restoringPlayer)
+                {
+                    Debug.Log($"[NGM] Restoring client {clientId} to its saved position {savedPosition}.");
+                    SpawnManager.Instance.SpawnPlayerForClient(clientId, savedPosition, savedRotation);
+                    yield break;
+                }
 
                 // Only now, with the terrain in, WHERE TO STAND. This is the position the player is
                 // actually spawned at, resolved once and carried through to the spawn call.
@@ -184,6 +227,31 @@ namespace SpaceGame.Core
             SpawnManager.Instance.SpawnPlayerForClient(clientId);
         }
     
+        /// <summary>
+        /// The saved position for a client, when one is known before it spawns.
+        ///
+        /// Only the host qualifies. A profile id lives on the player's own machine, and with
+        /// connection approval switched off the server has no way to learn a remote client's
+        /// profile until that client's player object exists and reports it — by which time this
+        /// decision is long past. Remote clients are therefore restored after spawn, by
+        /// <see cref="PlayerSaveSync"/>. The host is the singleplayer case and the common co-op
+        /// case, and it is the one that must be right, because the host's position is also what the
+        /// world streams around.
+        /// </summary>
+        private bool TryGetSavedSpawn(ulong clientId, out Vector3 position, out Quaternion rotation)
+        {
+            position = Vector3.zero;
+            rotation = Quaternion.identity;
+
+            if (NetworkManager.Singleton == null || clientId != NetworkManager.Singleton.LocalClientId)
+                return false;
+
+            PlayerSaveService players = SaveManager.Instance?.Players;
+            if (players == null) return false;
+
+            return players.TryGetSpawnPosition(PlayerProfile.LocalId, out position, out rotation);
+        }
+
         IEnumerator WaitForWorldReady(IEnumerable<Vector3> positions)
         {
             bool done = false;

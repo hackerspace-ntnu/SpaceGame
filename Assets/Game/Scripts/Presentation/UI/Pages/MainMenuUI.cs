@@ -2,7 +2,9 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using SpaceGame.Core;
+using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
+using SpaceGame.Persistence;
 using SpaceGame.Presentation;
 public class MainMenuUI : MonoBehaviour
 {
@@ -11,6 +13,46 @@ public class MainMenuUI : MonoBehaviour
     [SerializeField] private SceneReference minigameScene;
 
     public void StartSinglePlayer()
+    {
+        // A stale staged document would otherwise be picked up by the SaveManager in the world
+        // scene and quietly turn "New Game" into "Continue".
+        SaveManager.ClearStagedLoad();
+
+        EnterWorld();
+    }
+
+    /// <summary>
+    /// Resumes the most recently written save. Safe to wire to a button that is always visible:
+    /// with nothing to load it says so and stays on the menu rather than starting a new game the
+    /// player did not ask for.
+    /// </summary>
+    public void ContinueGame()
+    {
+        var slots = new SaveSlots(SaveManager.DefaultRoot);
+
+        if (!slots.TryGetMostRecent(out SaveSlotInfo slot))
+        {
+            Debug.LogWarning("[Save] Continue pressed with no readable save on disk.");
+            return;
+        }
+
+        LoadGame(slot.SlotId);
+    }
+
+    /// <summary>Loads a named slot. Stays on the menu when the slot cannot be read.</summary>
+    public void LoadGame(string slotId)
+    {
+        if (!SaveManager.StageLoad(slotId, out string error))
+        {
+            Debug.LogError($"[Save] Could not load '{slotId}': {error}");
+            return;
+        }
+
+        EnterWorld();
+    }
+
+    /// <summary>Does the two things every route into the world does, in the order they must happen.</summary>
+    private void EnterWorld()
     {
         // Up before the load starts, and held until terrain streaming and the NavMesh bake have
         // finished — those run after the scene reports loaded and are what makes the first few

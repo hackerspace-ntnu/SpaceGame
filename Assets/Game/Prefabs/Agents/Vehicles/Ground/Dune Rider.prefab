@@ -49,29 +49,37 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f5143ff601f504c72995e51afbceb9fe, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MountModule
   priority: 0
   active: 1
   seatPoint: {fileID: 1000000001000000011}
+  seatOffset: {x: 0, y: 0, z: 0}
   dismountPoint: {fileID: 1000000001000000013}
+  mountableByDirectInteraction: 1
   disablePlayerMovement: 1
   disablePlayerLook: 1
   disablePlayerInteractor: 1
   mountCooldown: 0.25
   fallbackDismountDistance: 2
   defaultPerspective: 1
+  thirdPersonCameraPrefab: {fileID: 0}
   thirdPersonPivot: {fileID: 1000000001000000015}
   thirdPersonOffset: {x: 0, y: 2.8, z: -5.2}
   thirdPersonDistance: 5.2
   thirdPersonFollowLerp: 16
+  thirdPersonAimLerp: 18
+  thirdPersonYawLerp: 16
   thirdPersonLookAhead: 7
+  followMountPitch: 0
   lookActionName: Look
-  lookSensitivity: 1
+  lookSensitivity: 20
   lookPitchClamp: 75
   defaultMountedPitch: -12
-  cameraAutoAlignSpeed: 120
-  cameraAutoAlignDelay: 0.35
+  orbitPitchMin: -25
+  orbitPitchMax: 60
+  cameraAutoAlignSpeed: 8
+  cameraAutoAlignDelay: 3
   allowAISelfMovementWhenMounted: 0
 --- !u!114 &1000000001000000003
 MonoBehaviour:
@@ -83,7 +91,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a842f97cf85b4dd9b5750c47d0182946, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DuneRiderController
   mountModule: {fileID: 1000000001000000002}
   body: {fileID: 1000000001000000004}
@@ -365,6 +373,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &1000000001000000040
 GameObject:
@@ -454,6 +463,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &1000000001000000050
 GameObject:
@@ -543,6 +553,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &1000000001000000060
 GameObject:
@@ -632,4 +643,5 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}

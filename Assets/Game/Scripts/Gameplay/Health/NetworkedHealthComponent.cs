@@ -21,6 +21,7 @@ namespace SpaceGame.Gameplay
                 health.OnDamage += SyncHealth;
                 health.OnHeal += SyncHealth;
                 health.OnDeath += SyncHealth;
+                health.OnRestored += SyncHealth;
             }
 
             if (IsOwner)
@@ -38,6 +39,7 @@ namespace SpaceGame.Gameplay
                 health.OnDamage -= SyncHealth;
                 health.OnHeal -= SyncHealth;
                 health.OnDeath -= SyncHealth;
+                health.OnRestored -= SyncHealth;
             }
 
             if (IsOwner)

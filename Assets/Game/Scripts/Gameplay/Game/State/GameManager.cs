@@ -36,6 +36,12 @@ namespace SpaceGame.Gameplay
                 GameTimer += Time.deltaTime;
         }
 
+        /// <summary>Re-seeds the timer from a save so a loaded session continues counting where it stopped.</summary>
+        public void RestoreTimer(float seconds)
+        {
+            GameTimer = Mathf.Max(0f, seconds);
+        }
+
         public void SetState(GameState state)
         {
             CurrentState = state;

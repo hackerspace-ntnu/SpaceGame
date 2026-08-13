@@ -2945,6 +2945,9 @@ MonoBehaviour:
   rayStartAbove: 3
   rayLength: 60
   snapToGroundOnStart: 1
+  maxClimbAngle: 35
+  climbTaperAngle: 5
+  climbProbeRun: 2
   drawGizmos: 1
   hipHeightFraction: 0.95
   strideFraction: 0.72
@@ -2985,6 +2988,8 @@ MonoBehaviour:
   repathTolerance: 2
   cornerArriveRadius: 3
   navMeshSampleDistance: 8
+  detourHoldTime: 2
+  lateralSteering: 0
   walkThrottle: 0.35
   autoWalk: 0
 --- !u!114 &2801890969417666921
@@ -3059,6 +3064,7 @@ MonoBehaviour:
   priority: 0
   active: 1
   seatPoint: {fileID: 790253949836621735}
+  seatOffset: {x: 0, y: 0, z: 0}
   dismountPoint: {fileID: 0}
   mountableByDirectInteraction: 1
   disablePlayerMovement: 1
@@ -3075,12 +3081,15 @@ MonoBehaviour:
   thirdPersonAimLerp: 18
   thirdPersonYawLerp: 16
   thirdPersonLookAhead: 6
+  followMountPitch: 0
   lookActionName: Look
-  lookSensitivity: 1
+  lookSensitivity: 20
   lookPitchClamp: 75
   defaultMountedPitch: -15
-  cameraAutoAlignSpeed: 90
-  cameraAutoAlignDelay: 0.5
+  orbitPitchMin: -25
+  orbitPitchMax: 60
+  cameraAutoAlignSpeed: 8
+  cameraAutoAlignDelay: 3
   allowAISelfMovementWhenMounted: 0
 --- !u!114 &154029422312803950
 MonoBehaviour:
@@ -3120,6 +3129,7 @@ MonoBehaviour:
   moveActionName: Move
   jumpActionName: Jump
   verticalActionName: 
+  turnActionName: 
   steeringOverrideThreshold: 0.1
   turnSmoothTime: 0.12
   riderCanRun: 0

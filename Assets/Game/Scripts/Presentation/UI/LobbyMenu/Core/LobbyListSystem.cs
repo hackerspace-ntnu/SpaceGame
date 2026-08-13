@@ -33,6 +33,52 @@ public class LobbyListSystem : MonoBehaviour
     [SerializeField]
     private GameObject startGameButton;
 
+    [SerializeField]
+    [Tooltip("The 'enter the password' panel. Left unassigned it is located by name at runtime.")]
+    private GameObject joinPrivateLobbyPanel;
+
+    /// <summary>
+    /// Hides the password prompt.
+    ///
+    /// The password field's OnEndEdit in LobbyMenu.unity has always called this, but the method did
+    /// not exist on this class. UnityEvent resolves targets by name at runtime and silently drops
+    /// any it cannot find — no exception, no console entry — so the prompt simply never closed and
+    /// nothing anywhere said why.
+    /// </summary>
+    public void closeJoinPrivateLobbyScreen()
+    {
+        GameObject panel = ResolveJoinPrivateLobbyPanel();
+
+        if (panel == null)
+        {
+            Debug.LogWarning("[LobbyListSystem] No JoinLobbyByPasswordPanel to close — assign " +
+                             "joinPrivateLobbyPanel in the inspector.");
+            return;
+        }
+
+        panel.SetActive(false);
+    }
+
+    /// <summary>
+    /// Falls back to a name lookup so the button works whether or not the field was ever wired.
+    /// Inactive objects are included: this panel is usually already hidden when first asked for.
+    /// </summary>
+    private GameObject ResolveJoinPrivateLobbyPanel()
+    {
+        if (joinPrivateLobbyPanel != null) return joinPrivateLobbyPanel;
+
+        foreach (Transform t in Resources.FindObjectsOfTypeAll<Transform>())
+        {
+            if (t.name != "JoinLobbyByPasswordPanel") continue;
+            if (t.gameObject.scene != gameObject.scene) continue;
+
+            joinPrivateLobbyPanel = t.gameObject;
+            return joinPrivateLobbyPanel;
+        }
+
+        return null;
+    }
+
     public void listNewLobby(Lobby lobby)
     {
         GameObject newLobbyElement = Instantiate(lobbyElement);
@@ -83,7 +129,9 @@ public class LobbyListSystem : MonoBehaviour
         {
             return;
         }
-        Transform playerList = lobbyScreen.transform.GetChild(3).GetChild(0).GetChild(0);
+        Transform playerList = FindPlayerListContainer();
+        if (playerList == null) return;
+
         for (int i = 0; i < playerList.childCount; i++)
         {
             Destroy(playerList.GetChild(i).gameObject);
@@ -94,6 +142,27 @@ public class LobbyListSystem : MonoBehaviour
             GameObject pNameInstance = Instantiate(playerDisplayElement, playerList);
             pNameInstance.transform.GetChild(1).GetComponent<TextMeshProUGUI>().text = pName;
         }
+    }
+
+    /// <summary>
+    /// The scroll content the player name entries go into.
+    ///
+    /// Located by name rather than by walking GetChild(3).GetChild(0).GetChild(0). That chain is
+    /// re-evaluated on every lobby poll, so reordering the lobby screen's children in the inspector
+    /// — a thing anyone editing this menu will do — turned it into an IndexOutOfRangeException
+    /// twice a second, which killed the poll and froze the roster rather than shifting it.
+    /// </summary>
+    private Transform FindPlayerListContainer()
+    {
+        if (lobbyScreen == null) return null;
+
+        foreach (Transform t in lobbyScreen.GetComponentsInChildren<Transform>(true))
+            if (t.name == "PlayerList")
+                return t;
+
+        Debug.LogWarning("[LobbyListSystem] No 'PlayerList' object under the lobby screen — " +
+                         "the player roster cannot be shown.");
+        return null;
     }
 
     public void changeStateOfPasswordInputFieldCreateLobby()

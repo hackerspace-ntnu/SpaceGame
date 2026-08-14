@@ -11,10 +11,13 @@
 *.asset text eol=lf
 *.meta text eol=lf
 
-# Unity terrain assets are binary despite the .asset extension.
+# Some Unity .asset files are binary despite the .asset extension. Letting the
+# `*.asset text eol=lf` rule above touch them rewrites 0x0A bytes inside the
+# payload on CRLF platforms, and Unity then fails to load them.
 Assets/Terrain/ChunkData/*.asset binary
 Assets/TerrainData_*.asset binary
 Assets/*Terrain.asset binary
+Assets/Game/Settings/WorldNavMesh.asset binary
 
 # JSON / config
 *.json text eol=lf

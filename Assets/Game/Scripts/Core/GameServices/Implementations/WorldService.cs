@@ -19,8 +19,48 @@ namespace SpaceGame.Core
             {
                 networkObject.Despawn(false);
             }
-        
+
             Object.Destroy(gameObject);
+        }
+
+        public GameObject Spawn(GameObject prefab, Vector3 position, Quaternion rotation,
+                                ulong ownerClientId = NetworkSpawn.NoOwner)
+        {
+            if (prefab == null)
+                return null;
+
+            GameObject instance = Object.Instantiate(prefab, position, rotation);
+
+            if (!Network.IsNetworked)
+                return instance;
+
+            // Offline-shaped call arriving on a client. Spawning here would throw, and returning the
+            // local instance would resurrect the very bug this method exists to prevent, so say so.
+            if (!Network.Server)
+            {
+                Debug.LogError($"[WorldService] Spawn('{prefab.name}') called on a client. Route it " +
+                               "through a ServerRpc — the object would otherwise exist only here.");
+                Object.Destroy(instance);
+                return null;
+            }
+
+            var networkObject = instance.GetComponent<NetworkObject>();
+            if (networkObject == null)
+            {
+                // A prefab with no NetworkObject can never replicate. It still works locally, which is
+                // why this goes unnoticed until a second player joins.
+                Debug.LogError($"[WorldService] Prefab '{prefab.name}' has no NetworkObject, so it will " +
+                               "only ever exist on the server. Add one and register it in DefaultNetworkPrefabs.",
+                               instance);
+                return instance;
+            }
+
+            if (ownerClientId == NetworkSpawn.NoOwner)
+                networkObject.Spawn(true);
+            else
+                networkObject.SpawnWithOwnership(ownerClientId, true);
+
+            return instance;
         }
     }
 }

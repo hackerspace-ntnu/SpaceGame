@@ -258,6 +258,14 @@ namespace SpaceGame.Agents
 
         public void Interact(Interactor interactor)
         {
+            // Route through the network sync when this mount has one, so the server decides who gets
+            // the seat. Falls back to a direct mount for un-networked mounts and offline play.
+            if (TryGetComponent(out MountNetworkSync sync))
+            {
+                sync.RequestMount(interactor);
+                return;
+            }
+
             TryMount(interactor, transform);
         }
 

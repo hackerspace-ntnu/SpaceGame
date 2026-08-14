@@ -1,6 +1,8 @@
 using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Characters;
+using SpaceGame.Core;
 
 namespace SpaceGame.Items
 {
@@ -67,6 +69,10 @@ namespace SpaceGame.Items
 
             EnableRope();
 
+            // Tell the other players where the rope landed. The pull itself stays local — this is
+            // client-predicted, so the swing never waits on a round trip.
+            NetworkSync?.ReportAttached(_hookPoint);
+
             _pullCoroutine = StartCoroutine(ShootThenPullRoutine());
         }
 
@@ -112,6 +118,12 @@ namespace SpaceGame.Items
         {
             var rb = owner.GetComponent<Rigidbody>();
 
+            // Only the player who owns this body may drive it. On a remote peer the swing arrives
+            // through that player's NetworkTransform instead; running the constraint here too would
+            // have two authorities writing the same Rigidbody.
+            if (!OwnsMovement())
+                yield break;
+
             while (_isGrappling && rb != null)
             {
                 // Shorten rope over time
@@ -149,6 +161,8 @@ namespace SpaceGame.Items
 
         private void StopGrapple()
         {
+            bool wasOut = _isGrappling || _isShooting;
+
             _isGrappling = false;
             _isShooting = false;
 
@@ -160,6 +174,58 @@ namespace SpaceGame.Items
 
             DisableRope();
             owner.GetComponent<PlayerMovement>()?.DisableGroundSnap(0.15f);
+
+            if (wasOut)
+                NetworkSync?.ReportReleased();
+        }
+
+        /// <summary>
+        /// The server rejected this anchor (out of range). Drop the rope without re-reporting the
+        /// release — the sync already knows, and it owns the anchor state that triggered this.
+        /// </summary>
+        public void CancelFromNetwork()
+        {
+            _isGrappling = false;
+            _isShooting = false;
+
+            if (_pullCoroutine != null)
+            {
+                StopCoroutine(_pullCoroutine);
+                _pullCoroutine = null;
+            }
+
+            DisableRope();
+            if (owner != null)
+                owner.GetComponent<PlayerMovement>()?.DisableGroundSnap(0.15f);
+        }
+
+        // Resolved from the player rather than this item: the held gun has no NetworkObject, so the
+        // RPC channel lives on the body holding it.
+        private GrappleNetworkSync NetworkSync
+        {
+            get
+            {
+                if (_networkSync == null && owner != null)
+                    _networkSync = owner.GetComponentInChildren<GrappleNetworkSync>(true);
+                return _networkSync;
+            }
+        }
+
+        private GrappleNetworkSync _networkSync;
+
+        /// <summary>
+        /// True when this machine is allowed to move the grappling player's Rigidbody: offline, or
+        /// networked and this is the owning client.
+        /// </summary>
+        private bool OwnsMovement()
+        {
+            if (!Network.IsNetworked)
+                return true;
+
+            if (owner != null && owner.TryGetComponent(out NetworkObject netObj))
+                return netObj.IsOwner;
+
+            return true;
         }
 
         private void EnableRope()

@@ -182,7 +182,20 @@ namespace SpaceGame.Agents
                 mountModule.MountedPlayerMovement.ForceIdleAnimation();
 
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-                mountModule.Dismount();
+                RequestDismount();
+        }
+
+        // Dismount has to go through the server when this mount is networked, or the rider stands up
+        // on their own screen and stays welded to the saddle on everyone else's.
+        private void RequestDismount()
+        {
+            if (mountModule.TryGetComponent(out MountNetworkSync sync))
+            {
+                sync.RequestDismount();
+                return;
+            }
+
+            mountModule.Dismount();
         }
 
         // ─────────── AgentController Tick ───────────

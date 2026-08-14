@@ -1,5 +1,6 @@
 // Mount/dismount flow, rider state caching, rigidbody handoff, and third-person camera spawn/cleanup.
 // Split off MountModule.cs purely for readability.
+using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Characters;
 using SpaceGame.Gameplay;
@@ -150,7 +151,7 @@ namespace SpaceGame.Agents
                 return;
 
             Transform rider = mountedPlayer;
-            rider.SetParent(null, true);
+            UnparentRider(rider);
 
             Vector3 dismountPosition = dismountPoint
                 ? dismountPoint.position
@@ -273,12 +274,69 @@ namespace SpaceGame.Agents
             mountedPlayerRigidbody.angularVelocity = Vector3.zero;
         }
 
+        // Netcode refuses to let a NetworkObject sit under a plain transform, and seatPoint is a bare
+        // child marker — parenting straight to it throws InvalidParentException and leaves the rider
+        // unparented mid-mount. So when both sides are networked, parent to the mount's NetworkObject
+        // (the only legal parent) and carry the seat marker's offset in local space instead.
         private void ParentRiderToMount()
         {
             Transform rideParent = seatPoint ? seatPoint : transform;
+
+            NetworkObject riderNetObj = mountedPlayer.GetComponent<NetworkObject>();
+            bool riderIsNetworked = riderNetObj != null && riderNetObj.IsSpawned;
+
+            if (riderIsNetworked)
+            {
+                NetworkObject mountNetObj = GetComponentInParent<NetworkObject>();
+                if (mountNetObj == null || !mountNetObj.IsSpawned)
+                {
+                    // Nothing legal to parent to. Seat the rider by world pose and let SteerModule
+                    // keep them there rather than throwing and half-mounting them.
+                    SeatRiderWithoutParenting(rideParent);
+                    return;
+                }
+
+                if (!riderNetObj.TrySetParent(mountNetObj, true))
+                {
+                    SeatRiderWithoutParenting(rideParent);
+                    return;
+                }
+
+                // Local space is now the mount root's, not the seat marker's, so fold the marker's
+                // offset in by hand to land in the same place the offline path does.
+                Vector3 seatLocal = mountNetObj.transform.InverseTransformPoint(
+                    rideParent.TransformPoint(seatOffset));
+                mountedPlayer.localPosition = seatLocal;
+                mountedPlayer.localRotation =
+                    Quaternion.Inverse(mountNetObj.transform.rotation) * rideParent.rotation;
+                return;
+            }
+
             mountedPlayer.SetParent(rideParent, true);
             mountedPlayer.localPosition = seatOffset;
             mountedPlayer.localRotation = Quaternion.identity;
+        }
+
+        // Mirror of ParentRiderToMount: a spawned NetworkObject has to be detached through netcode so
+        // the change replicates, rather than by a raw SetParent(null) that only happens locally.
+        private static void UnparentRider(Transform rider)
+        {
+            NetworkObject riderNetObj = rider.GetComponent<NetworkObject>();
+            if (riderNetObj != null && riderNetObj.IsSpawned)
+            {
+                if (riderNetObj.TryRemoveParent(true))
+                    return;
+            }
+
+            rider.SetParent(null, true);
+        }
+
+        // Fallback for a networked rider with no legal NetworkObject parent: place them on the seat in
+        // world space. Their Rigidbody is kinematic while mounted, so they stay put relative to a
+        // stationary mount; a moving mount will drag them only as far as SteerModule re-seats them.
+        private void SeatRiderWithoutParenting(Transform rideParent)
+        {
+            mountedPlayer.SetPositionAndRotation(rideParent.TransformPoint(seatOffset), rideParent.rotation);
         }
 
         private void ClearMountedReferences()

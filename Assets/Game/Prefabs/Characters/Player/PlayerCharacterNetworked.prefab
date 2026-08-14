@@ -60,10 +60,6 @@ PrefabInstance:
       value: PlayerCharacterNetworked
       objectReference: {fileID: 0}
     - target: {fileID: 5061754052965954174, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: playerHead
-      value: 
-      objectReference: {fileID: 7956194765726399654}
-    - target: {fileID: 5061754052965954174, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       propertyPath: playerCamera
       value: 
       objectReference: {fileID: 5273050518976504355}
@@ -152,6 +148,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5445014062365625110}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5097771532970405486}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1978382712116631820}
   m_SourcePrefab: {fileID: 100100000, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
 --- !u!1 &582217690245548981 stripped
 GameObject:
@@ -481,6 +483,38 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.PlayerSaveSync
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &5097771532970405486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2744b7f5c51044c7da55a8286e21466e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.WingPackNetworkSync
+  ShowTopMostFoldoutHeaderGroup: 1
+  launchableCraft:
+  - {fileID: 3241331717362755362, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+--- !u!114 &1978382712116631820
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66628c8e6a1ec404288f2dd7fa84b114, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.GrappleNetworkSync
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxAnchorRange: 75
+  remoteRope: {fileID: 0}
+  remoteRopeSegments: 12
+  remoteRopeGravity: 4
 --- !u!4 &1885774286167179584 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3211930088316101119, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
@@ -505,11 +539,6 @@ MonoBehaviour:
 --- !u!4 &7613136204026731662 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6854416886719462449, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-  m_PrefabInstance: {fileID: 3943056354594775231}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &7956194765726399654 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6400345289391496217, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
   m_PrefabInstance: {fileID: 3943056354594775231}
   m_PrefabAsset: {fileID: 0}
 --- !u!95 &8862626371871872524 stripped

@@ -21,7 +21,7 @@ namespace SpaceGame.Tests
 {
     public class HumanoidArmSwingTests
     {
-        private const string PrefabPath = "Assets/Game/Prefabs/agents/creatures/HumanoidRobot.prefab";
+        private const string PrefabPath = "Assets/Game/Prefabs/Agents/Creatures/HumanoidRobot.prefab";
         private const float Dt = 1f / 60f;
         private const int Settle = 200;
         private const int Sample = 300;

@@ -42,7 +42,10 @@ namespace SpaceGame.Presentation
         {
             if (IsDisabled) return;
         
-            AudioManager.Instance.PlayEvent(hoverSound);
+            // AudioManager only exists on Bootstrap.unity and survives via DontDestroyOnLoad, so
+            // pressing Play directly in MainMenu.unity left this null. The NRE aborted the handler
+            // before SetState below, so the visible symptom was "buttons don't highlight".
+            AudioManager.Instance?.PlayEvent(hoverSound);
         
             SetState(ButtonState.Highlighted);
         }
@@ -58,7 +61,7 @@ namespace SpaceGame.Presentation
         {
             if (IsDisabled) return;
         
-            AudioManager.Instance.PlayEvent(pressSound);
+            AudioManager.Instance?.PlayEvent(pressSound);
         
             SetState(ButtonState.Pressed);
         }

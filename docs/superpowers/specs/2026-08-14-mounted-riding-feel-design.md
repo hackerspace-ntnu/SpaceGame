@@ -169,19 +169,37 @@ through, and degrades to "the standing pose" rather than to garbage if a rig dis
 `SteerModule.Update` already calls `ForceIdleAnimation()` every frame while mounted, so the
 only thing underneath is a static idle. Nothing fights the writes.
 
+### Two rotation frames, not one
+
+Ball joints (hips, shoulders, spine) rotate about the **rider's** axes, so "lean forward" and
+"open outward" mean the same thing whatever the artist left the bone's local axes as, and
+mirroring is just negating Y and Z.
+
+Hinge joints (knees, elbows, ankles) rotate about their **own parent-relative** frame. This is
+not a refinement — applying a knee bend in the rider's frame after the thigh has been abducted
+out around the barrel swings the shin out sideways instead of folding it down, and the leg ends
+up held out in a mid-air split. The bend has to happen in the frame the thigh is now in.
+
 ### The pose
 
-Serialized Euler offsets, one per bone group, mirrored left/right:
+Solved numerically against the ostrich's measured barrel rather than guessed: the thigh
+abduction is swept until the knee lands **on** the barrel's edge (x ≈ ±0.43 against an edge at
+−0.441/+0.565) instead of inside it, and the knee bend until the foot sits below the knee and
+tucked back.
 
-| bone | offset | reads as |
-|---|---|---|
-| UpperLeg | `(-55, 0, ±12)` | thighs forward, splayed round the barrel |
-| LowerLeg | `(65, 0, 0)` | knees bent back under the rider |
-| Foot | `(-10, 0, 0)` | toes up in the stirrup |
-| Spine | `(8, 0, 0)` | slight forward lean |
-| Chest | `(6, 0, 0)` | ditto, split so the curve is not one hinge |
-| UpperArm | `(-40, 0, ±8)` | arms forward |
-| LowerArm | `(35, 0, 0)` | forearms level, on the reins |
+| bone | offset | frame | reads as |
+|---|---|---|---|
+| UpperLeg | `(-50, 0, ∓26)` | rider | thighs forward and opened round the barrel |
+| LowerLeg | `(-90, 0, 0)` | hinge | knees closed, shins down the flanks |
+| Foot | `(25, 0, 0)` | hinge | toes up |
+| Spine | `(8, 0, 0)` | rider | slight forward lean |
+| Chest | `(6, 0, 0)` | rider | ditto, split so the curve is not one hinge |
+| UpperArm | `(15, 0, ±8)` | rider | arms down off the leaned chest |
+| LowerArm | `(35, 0, 0)` | hinge | forearms forward, on the reins |
+
+Two sign traps this rig sprang, both recorded because nothing about them is guessable:
+**negative** Z abducts (positive drives each leg across to the far side), and **negative** X
+closes the knee (positive kicks the shin up behind like a hamstring curl).
 
 ### Motion response
 

@@ -1,7 +1,6 @@
 using TMPro;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class LobbyListSystem : MonoBehaviour
@@ -26,6 +25,14 @@ public class LobbyListSystem : MonoBehaviour
 
     [SerializeField]
     private GameObject lobbyScreen;
+
+    [SerializeField]
+    [Tooltip("The lobby name shown on the in-lobby screen.")]
+    private TextMeshProUGUI lobbyScreenTitle;
+
+    [SerializeField]
+    [Tooltip("The 'Code: ABC123' line on the in-lobby screen.")]
+    private TextMeshProUGUI lobbyScreenCode;
 
     [SerializeField]
     private GameObject playerDisplayElement;
@@ -81,22 +88,30 @@ public class LobbyListSystem : MonoBehaviour
 
     public void listNewLobby(Lobby lobby)
     {
-        GameObject newLobbyElement = Instantiate(lobbyElement);
+        if (lobbyElementContainer == null || lobbyElement == null) return;
+
+        GameObject newLobbyElement = Instantiate(lobbyElement, lobbyElementContainer.transform, false);
+
+        // Through the controller only. The previous version ALSO wrote the same two labels by
+        // child index, so a row had two sources of truth that could disagree — and the index walk
+        // broke the moment anyone reordered the prefab's children.
         LobbyElementController controller = newLobbyElement.GetComponent<LobbyElementController>();
         controller.setlobbyName(lobby.Name);
         controller.setLobbyId(lobby.Id);
-        controller.setMaxPlayers(lobby.MaxPlayers);
-        newLobbyElement.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = lobby.Name;
-        newLobbyElement.transform.GetChild(1).GetComponent<TextMeshProUGUI>().text = lobby.MaxPlayers - lobby.AvailableSlots + "/" + lobby.MaxPlayers;
-        newLobbyElement.transform.SetParent(lobbyElementContainer.transform, false);
+        controller.setOccupancy(lobby.MaxPlayers, lobby.AvailableSlots);
+        controller.setPlaying(SpaceGame.Core.LobbySession.IsPlaying(lobby));
     }
 
     public void clearPrevList()
     {
-        foreach (Transform t in lobbyElementContainer.GetComponentInChildren<Transform>())
-        {
+        if (lobbyElementContainer == null) return;
+
+        // Iterating the container's own Transform yields its children. The previous version went
+        // through GetComponentInChildren<Transform>(), which returns the container's own transform
+        // — so it happened to work, by accident, through a call that reads as if it does something
+        // else entirely.
+        foreach (Transform t in lobbyElementContainer.transform)
             Destroy(t.gameObject);
-        }
     }
 
     public string getLobbyNameInputText()
@@ -114,21 +129,32 @@ public class LobbyListSystem : MonoBehaviour
         return passwordInputField.text;
     }
 
+    /// <summary>
+    /// Shows the in-lobby screen.
+    ///
+    /// The title and code are serialized rather than reached through lobbyScreen.GetChild(0) and
+    /// GetChild(1). That chain ran on every lobby poll, so reordering the screen's children in the
+    /// inspector — a thing anyone editing this menu will do — turned it into an exception twice a
+    /// second. FindPlayerListContainer below already documents the same fault.
+    /// </summary>
     public void openLobbyScreen(string lobbyName, string lobbyCode)
     {
-        TextMeshProUGUI lobbyScreenTitle = lobbyScreen.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
-        TextMeshProUGUI lobbyScreenId = lobbyScreen.transform.GetChild(1).GetComponent<TextMeshProUGUI>();
+        if (lobbyScreen == null) return;
+
         lobbyScreen.SetActive(true);
-        lobbyScreenTitle.text = lobbyName;
-        lobbyScreenId.text = "Code: " + lobbyCode;
+
+        if (lobbyScreenTitle != null) lobbyScreenTitle.text = lobbyName;
+        if (lobbyScreenCode != null) lobbyScreenCode.text = "Code: " + lobbyCode;
     }
 
     public void showPlayerElements(string[] playerNames)
     {
-        if(SceneManager.GetActiveScene().name != "LobbyMenu")
-        {
-            return;
-        }
+        // The session outlives this scene, so it can still push a roster after the canvas has been
+        // destroyed. A destroyed GameObject compares equal to null, which makes this both the
+        // liveness check and the null check — and unlike the scene-name test it replaced, it does
+        // not break when the scene is renamed.
+        if (lobbyScreen == null || playerDisplayElement == null) return;
+
         Transform playerList = FindPlayerListContainer();
         if (playerList == null) return;
 
@@ -178,15 +204,13 @@ public class LobbyListSystem : MonoBehaviour
 
     public void setStartGameButtonState(bool state)
     {
-        if (SceneManager.GetActiveScene().name != "LobbyMenu")
-        {
-            return;
-        }
+        if (startGameButton == null) return;
         startGameButton.SetActive(state);
     }
 
     public void hideLobbyScreen()
     {
+        if (lobbyScreen == null) return;
         lobbyScreen.SetActive(false);
     }
 }

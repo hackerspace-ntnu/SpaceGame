@@ -57,6 +57,11 @@ namespace SpaceGame.Items
         {
             networkItems.OnListChanged -= HandleNetworkListChanged;
             networkSelectedSlot.OnValueChanged -= HandleSelectedSlotChanged;
+
+            // NetworkBehaviour.OnDestroy disposes this behaviour's NetworkVariables -- including
+            // networkItems, a NetworkList backed by a native container -- and deregisters it from
+            // its NetworkObject. Without this the native allocation leaks on every despawn.
+            base.OnDestroy();
         }
 
         private void HandleNetworkListChanged(NetworkListEvent<FixedString64Bytes> changeEvent)

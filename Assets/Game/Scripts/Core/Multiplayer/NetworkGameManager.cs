@@ -178,7 +178,16 @@ namespace SpaceGame.Core
                 // and it must not need anything more: no ground has loaded yet, so nothing here can
                 // be validated against terrain, and a call that insisted on a validated position
                 // would wait forever for a world that this very preload is responsible for loading.
-                SpawnManager.Instance.TryGetSpawnAnchor(out Vector3 anchor);
+                // The result is checked, not discarded. On failure `anchor` is Vector3.zero, and
+                // proceeding with it streams the world around the grid's corner and spawns the
+                // player there — which is how a save came back recording a player at (0,0,0)
+                // instead of where they were standing.
+                if (!SpawnManager.Instance.TryGetSpawnAnchor(out Vector3 anchor))
+                {
+                    Debug.LogError("[NGM] No spawn anchor available — refusing to stream and spawn " +
+                                   "around the world origin. Is a SpawnPoint present in the scene?");
+                    yield break;
+                }
 
                 // A loaded save overrides the spawn point — and it has to do so HERE, before the
                 // preload, not later at the spawn call. The preload decides which chunks exist; a

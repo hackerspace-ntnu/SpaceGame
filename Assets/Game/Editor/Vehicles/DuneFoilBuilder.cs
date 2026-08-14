@@ -1127,8 +1127,6 @@ namespace SpaceGame.EditorTools
         {
             if (AssetDatabase.LoadAssetAtPath<GameObject>(WindPrefabPath) != null) return;
 
-            EnsureFolder("Assets/Game/Prefabs/environment");
-
             GameObject wind = new GameObject("Wind");
             wind.AddComponent<WindField>();
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(WindPrefabPath));

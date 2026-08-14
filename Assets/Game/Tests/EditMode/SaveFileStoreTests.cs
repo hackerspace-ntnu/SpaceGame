@@ -173,6 +173,71 @@ namespace SpaceGame.Tests.EditMode
             Assert.IsTrue(SaveFileStore.Exists(path));
         }
 
+        // ─────────────────────────────────────────────
+        //  Never trade a save with players for one without
+        // ─────────────────────────────────────────────
+
+        private static SaveDocument WithPlayers(int count)
+        {
+            var document = new SaveDocument();
+            for (int i = 0; i < count; i++)
+                document.Players.Add(new PlayerRecord { ProfileId = "p" + i });
+
+            return document;
+        }
+
+        /// <summary>
+        /// The regression this guard exists for: a half-initialised SaveManager captured nothing,
+        /// produced a valid but player-less document, and would have written it over a good
+        /// autosave — ending the session's progress with no error anywhere.
+        /// </summary>
+        [Test]
+        public void WouldDiscardAllPlayers_IsTrueWhenReplacingPlayersWithNone()
+        {
+            SaveFileStore.Write(path, WithPlayers(1));
+
+            Assert.IsTrue(SaveFileStore.WouldDiscardAllPlayers(path, WithPlayers(0)));
+        }
+
+        [Test]
+        public void WouldDiscardAllPlayers_IsFalseWhenTheNewSaveKeepsAPlayer()
+        {
+            SaveFileStore.Write(path, WithPlayers(2));
+
+            Assert.IsFalse(SaveFileStore.WouldDiscardAllPlayers(path, WithPlayers(1)));
+        }
+
+        /// <summary>A first save must never be blocked — there is no progress to protect yet.</summary>
+        [Test]
+        public void WouldDiscardAllPlayers_IsFalseWhenNoSaveExistsYet()
+        {
+            Assert.IsFalse(SaveFileStore.WouldDiscardAllPlayers(path, WithPlayers(0)));
+        }
+
+        /// <summary>An existing save that had no players either is not progress worth protecting.</summary>
+        [Test]
+        public void WouldDiscardAllPlayers_IsFalseWhenTheExistingSaveHasNoPlayers()
+        {
+            SaveFileStore.Write(path, WithPlayers(0));
+
+            Assert.IsFalse(SaveFileStore.WouldDiscardAllPlayers(path, WithPlayers(0)));
+        }
+
+        [Test]
+        public void WouldDiscardAllPlayers_IsTrueForANullDocument()
+        {
+            Assert.IsTrue(SaveFileStore.WouldDiscardAllPlayers(path, null));
+        }
+
+        /// <summary>A corrupt file on disk must not block the write that would replace it.</summary>
+        [Test]
+        public void WouldDiscardAllPlayers_IsFalseWhenTheExistingSaveIsUnreadable()
+        {
+            File.WriteAllText(path, "garbage");
+
+            Assert.IsFalse(SaveFileStore.WouldDiscardAllPlayers(path, WithPlayers(0)));
+        }
+
         [Test]
         public void TryReadHeader_ReadsThroughToTheBackup()
         {

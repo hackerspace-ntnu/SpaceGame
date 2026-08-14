@@ -38,7 +38,7 @@ namespace SpaceGame.EditorTools
     {
         private const string ModelPath =
             "Assets/Game/Art/Models/Creatures/Robotic/Horse/horse_robot.fbx";
-        private const string PrefabPath = "Assets/Game/Prefabs/agents/creatures/HorseRobot.prefab";
+        private const string PrefabPath = "Assets/Game/Prefabs/Agents/Creatures/HorseRobot.prefab";
 
         private static readonly string[] LegIds = { "FL", "FR", "HL", "HR" };
 

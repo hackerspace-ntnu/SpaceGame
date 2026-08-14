@@ -15,7 +15,11 @@ namespace SpaceGame.Items
         {     
             base.Use();
         
-            spawnPoint = aimProvider.GetRayCast(raycastDistance)?.point + Vector3.up * spawnHeightOffset ?? Vector3.zero;
+            // `?? Vector3.zero` used to swallow a miss, so aiming at open sky struck the world
+            // origin instead of doing nothing. A miss means there is nowhere to put the bolt.
+            RaycastHit? aim = aimProvider.GetRayCast(raycastDistance);
+            if (aim == null) return;
+            spawnPoint = aim.Value.point + Vector3.up * spawnHeightOffset;
 
             if (lightningVFXPrefab != null)
             {

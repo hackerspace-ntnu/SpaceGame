@@ -32,20 +32,27 @@ namespace SpaceGame.Gameplay
 
         public override void OnDestroy()
         {
-            if (health == null) return;
-
-            if (IsServer)
+            // Only the unsubscribes are conditional. The early `return` used to skip
+            // base.OnDestroy() as well, and NetworkBehaviour.OnDestroy is what disposes this
+            // behaviour's NetworkVariables and drops it from its NetworkObject's
+            // ChildNetworkBehaviours list -- so every destroy leaked both.
+            if (health != null)
             {
-                health.OnDamage -= SyncHealth;
-                health.OnHeal -= SyncHealth;
-                health.OnDeath -= SyncHealth;
-                health.OnRestored -= SyncHealth;
+                if (IsServer)
+                {
+                    health.OnDamage -= SyncHealth;
+                    health.OnHeal -= SyncHealth;
+                    health.OnDeath -= SyncHealth;
+                    health.OnRestored -= SyncHealth;
+                }
+
+                if (IsOwner)
+                {
+                    networkHealth.OnValueChanged -= ApplyHealth;
+                }
             }
 
-            if (IsOwner)
-            {
-                networkHealth.OnValueChanged -= ApplyHealth;
-            }
+            base.OnDestroy();
         }
     
         private void SyncHealth(int _)

@@ -12,7 +12,7 @@ namespace SpaceGame.Presentation
 {
     /// <summary>
     /// The in-game pause screen: settings, the session's player list, and the ways out. Opened with
-    /// M (also Escape, also Start on a pad).
+    /// M (also Start on a pad). Deliberately not Escape.
     /// <para>
     /// Bootstrapped from a static rather than placed in a scene. Gameplay is spread over a
     /// persistent scene, streamed world chunks and an additively loaded arena, none of which is

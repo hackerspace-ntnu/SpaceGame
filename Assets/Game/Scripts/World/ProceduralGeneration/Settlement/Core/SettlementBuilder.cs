@@ -3,11 +3,10 @@ using UnityEngine;
 using UnityEngine.Rendering;
 #if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 namespace SpaceGame.World
 {
-    #endif
-
     /// <summary>
     /// Instantiates prefabs from a List&lt;TilePlacement&gt; produced by SettlementGenerator.
     ///

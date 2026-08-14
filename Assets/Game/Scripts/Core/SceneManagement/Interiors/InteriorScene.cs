@@ -1,12 +1,10 @@
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
-using SpaceGame.World;
+#endif
 
 namespace SpaceGame.Core
 {
-    #endif
-
     /// <summary>
     /// Designer-facing definition of an interior space.
     /// Points to a Unity scene asset and names the spawn/exit anchors inside it.

@@ -34,7 +34,7 @@ namespace SpaceGame.EditorTools
         private const string ModelPath =
             "Assets/Game/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx";
         private const string PrefabPath =
-            "Assets/Game/Prefabs/agents/vehicle/DuneOrnithopter.prefab";
+            "Assets/Game/Prefabs/Agents/Vehicles/Aircraft/DuneOrnithopter.prefab";
 
         /// Meshes that get a collision box. Everything else -- wings, cloth, gears -- is decoration:
         /// a 10 m wingspan of collider would snag on terrain the craft should be flying past.

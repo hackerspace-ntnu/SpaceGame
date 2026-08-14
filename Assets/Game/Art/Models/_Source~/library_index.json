@@ -14,6 +14,9 @@
       "Mat_Fabric_Wing_Beige",
       "Mat_Fabric_Wing_Ochre",
       "Mat_Glass_Canopy_Tinted",
+      "Mat_Hide_Claw_Horn",
+      "Mat_Hide_Plate_Tan",
+      "Mat_Hide_Sand_Pale",
       "Mat_Metal_Brass_Tarnished",
       "Mat_Metal_Chrome_Scuffed",
       "Mat_Metal_Copper_Oxide",
@@ -1280,8 +1283,6 @@
           "Riser_Junction",
           "Lamp_Strip_0",
           "Lamp_Strip_1",
-          "Stencil_Danger_0",
-          "Stencil_Danger_1",
           "Stencil_Roundel",
           "Stencil_Chevron",
           "Stencil_Placard"
@@ -6405,7 +6406,7 @@
         "type": "MESH",
         "location": [
           -6.2,
-          8.92,
+          11.7595,
           7.79
         ],
         "scale": [
@@ -6456,72 +6457,6 @@
         ],
         "vertices": 112,
         "polygons": 92,
-        "materials": [
-          "Mat_Paint_Hull_Bleached",
-          "Mat_Paint_Warn_Red",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Metal_Rust_Heavy"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Stencil_Danger_0",
-        "type": "MESH",
-        "location": [
-          -7.5,
-          -7.42,
-          14.9
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_LatticeOutpost"
-        ],
-        "dimensions": [
-          6.0852,
-          0.0196,
-          0.5418
-        ],
-        "vertices": 151,
-        "polygons": 114,
-        "materials": [
-          "Mat_Paint_Hull_Bleached",
-          "Mat_Paint_Warn_Red",
-          "Mat_Neutral_Black_Matte",
-          "Mat_Metal_Steel_Dark",
-          "Mat_Metal_Chrome_Scuffed",
-          "Mat_Metal_Rust_Heavy"
-        ],
-        "modifiers": []
-      },
-      {
-        "name": "Stencil_Danger_1",
-        "type": "MESH",
-        "location": [
-          7.5,
-          -7.42,
-          11.6
-        ],
-        "scale": [
-          1.0,
-          1.0,
-          1.0
-        ],
-        "collections": [
-          "Coll_LatticeOutpost"
-        ],
-        "dimensions": [
-          6.0852,
-          0.0196,
-          0.5418
-        ],
-        "vertices": 151,
-        "polygons": 114,
         "materials": [
           "Mat_Paint_Hull_Bleached",
           "Mat_Paint_Warn_Red",
@@ -19952,9 +19887,9 @@
         "name": "Mesh_Anchor_0",
         "type": "MESH",
         "location": [
-          -5.4,
+          -5.4092,
           -24.2,
-          0.0
+          -0.0042
         ],
         "scale": [
           1.0,
@@ -20090,7 +20025,7 @@
         "type": "MESH",
         "location": [
           4.4,
-          -3.6,
+          -3.605,
           60.2
         ],
         "scale": [
@@ -20126,7 +20061,7 @@
         "location": [
           1.6,
           4.4,
-          60.2
+          60.205
         ],
         "scale": [
           1.0,
@@ -20173,7 +20108,7 @@
         ],
         "dimensions": [
           6.2,
-          3.6755,
+          3.6805,
           4.2382
         ],
         "vertices": 1086,
@@ -20206,7 +20141,7 @@
         ],
         "dimensions": [
           6.2,
-          3.6755,
+          3.6805,
           4.2382
         ],
         "vertices": 1086,
@@ -20239,7 +20174,7 @@
         ],
         "dimensions": [
           6.2,
-          3.6755,
+          3.6805,
           4.2382
         ],
         "vertices": 1086,
@@ -20272,7 +20207,7 @@
         ],
         "dimensions": [
           6.2,
-          3.6755,
+          3.6805,
           4.2382
         ],
         "vertices": 1086,
@@ -20293,7 +20228,7 @@
         "location": [
           0.0,
           0.0,
-          8.0
+          7.984
         ],
         "scale": [
           1.0,
@@ -20343,7 +20278,7 @@
         "dimensions": [
           14.9,
           14.15,
-          9.0
+          9.005
         ],
         "vertices": 1792,
         "polygons": 1892,
@@ -20380,7 +20315,7 @@
         "dimensions": [
           14.9,
           12.9,
-          9.0
+          9.005
         ],
         "vertices": 976,
         "polygons": 1032,
@@ -20454,7 +20389,7 @@
         "dimensions": [
           14.9,
           13.344,
-          9.0
+          9.005
         ],
         "vertices": 1472,
         "polygons": 1578,
@@ -20491,7 +20426,7 @@
         "dimensions": [
           14.9,
           12.9,
-          11.45
+          11.455
         ],
         "vertices": 1252,
         "polygons": 1256,
@@ -20515,7 +20450,7 @@
         "location": [
           6.5,
           -2.0,
-          16.2
+          16.205
         ],
         "scale": [
           1.0,
@@ -20941,7 +20876,7 @@
         "location": [
           -42.59,
           -7.0,
-          -0.4
+          -0.395
         ],
         "scale": [
           1.0,
@@ -21062,7 +20997,7 @@
         "dimensions": [
           5.16,
           7.65,
-          6.6042
+          6.6142
         ],
         "vertices": 6332,
         "polygons": 6116,
@@ -21098,8 +21033,8 @@
         ],
         "dimensions": [
           5.8303,
-          7.96,
-          8.54
+          7.965,
+          8.55
         ],
         "vertices": 5104,
         "polygons": 4884,
@@ -21136,7 +21071,7 @@
         "dimensions": [
           5.14,
           7.5,
-          7.66
+          7.67
         ],
         "vertices": 4576,
         "polygons": 4330,
@@ -21205,7 +21140,7 @@
         "dimensions": [
           0.97,
           0.97,
-          0.06
+          0.065
         ],
         "vertices": 352,
         "polygons": 390,
@@ -21269,7 +21204,7 @@
         "dimensions": [
           0.97,
           0.97,
-          0.06
+          0.065
         ],
         "vertices": 352,
         "polygons": 390,
@@ -21301,7 +21236,7 @@
         "dimensions": [
           0.97,
           0.97,
-          0.06
+          0.065
         ],
         "vertices": 352,
         "polygons": 390,
@@ -21365,7 +21300,7 @@
         "dimensions": [
           0.97,
           0.97,
-          0.06
+          0.065
         ],
         "vertices": 352,
         "polygons": 390,
@@ -21451,9 +21386,9 @@
         "name": "Mesh_Deck_Rail_0",
         "type": "MESH",
         "location": [
-          16.6,
-          -9.4,
-          16.2
+          16.5717,
+          -9.4108,
+          16.1498
         ],
         "scale": [
           1.0,
@@ -21484,9 +21419,9 @@
         "name": "Mesh_Deck_Rail_1",
         "type": "MESH",
         "location": [
-          22.6,
-          -9.4,
-          16.2
+          22.5678,
+          -9.4453,
+          16.1842
         ],
         "scale": [
           1.0,
@@ -21517,9 +21452,9 @@
         "name": "Mesh_Deck_Rail_2",
         "type": "MESH",
         "location": [
-          28.6,
-          -9.4,
-          16.2
+          28.5644,
+          -9.4117,
+          16.1958
         ],
         "scale": [
           1.0,
@@ -21550,9 +21485,9 @@
         "name": "Mesh_Deck_Rail_3",
         "type": "MESH",
         "location": [
-          34.6,
-          -9.4,
-          16.2
+          34.5844,
+          -9.4057,
+          16.2156
         ],
         "scale": [
           1.0,
@@ -21696,7 +21631,7 @@
         "location": [
           22.0,
           -8.2,
-          16.3
+          16.292
         ],
         "scale": [
           1.0,
@@ -21709,7 +21644,7 @@
         "dimensions": [
           5.9,
           5.59,
-          2.8174
+          2.8224
         ],
         "vertices": 1204,
         "polygons": 1026,
@@ -22536,7 +22471,7 @@
         ],
         "dimensions": [
           0.26,
-          2.4,
+          2.405,
           0.322
         ],
         "vertices": 672,
@@ -22571,7 +22506,7 @@
         ],
         "dimensions": [
           0.26,
-          2.4,
+          2.405,
           0.322
         ],
         "vertices": 672,
@@ -22606,7 +22541,7 @@
         ],
         "dimensions": [
           0.26,
-          2.4,
+          2.405,
           0.322
         ],
         "vertices": 672,
@@ -22641,7 +22576,7 @@
         ],
         "dimensions": [
           0.26,
-          2.4,
+          2.405,
           0.322
         ],
         "vertices": 672,
@@ -23152,9 +23087,9 @@
         "name": "Mesh_Pipe_Elbow_0",
         "type": "MESH",
         "location": [
-          -12.6,
+          -12.5738,
           7.2,
-          9.4
+          9.3738
         ],
         "scale": [
           1.0,
@@ -23167,7 +23102,7 @@
         "dimensions": [
           2.3579,
           0.528,
-          1.782
+          1.787
         ],
         "vertices": 1616,
         "polygons": 1528,
@@ -23200,7 +23135,7 @@
         "dimensions": [
           2.3579,
           0.528,
-          1.782
+          1.787
         ],
         "vertices": 1616,
         "polygons": 1528,
@@ -23252,7 +23187,7 @@
         "type": "MESH",
         "location": [
           -12.6,
-          -6.0,
+          -6.005,
           9.4
         ],
         "scale": [
@@ -23266,7 +23201,7 @@
         "dimensions": [
           2.2,
           0.748,
-          0.517
+          0.522
         ],
         "vertices": 2028,
         "polygons": 1974,
@@ -23299,7 +23234,7 @@
         "dimensions": [
           2.2,
           0.748,
-          0.517
+          0.522
         ],
         "vertices": 2028,
         "polygons": 1974,
@@ -23332,7 +23267,7 @@
         "dimensions": [
           2.2,
           0.748,
-          0.517
+          0.522
         ],
         "vertices": 2028,
         "polygons": 1974,
@@ -23365,7 +23300,7 @@
         "dimensions": [
           2.2,
           0.748,
-          0.517
+          0.522
         ],
         "vertices": 2028,
         "polygons": 1974,
@@ -23383,9 +23318,9 @@
         "name": "Mesh_Pipe_Run_4",
         "type": "MESH",
         "location": [
-          -12.6,
+          -12.6092,
           6.0,
-          9.4
+          9.3616
         ],
         "scale": [
           1.0,
@@ -23398,7 +23333,7 @@
         "dimensions": [
           2.2,
           0.748,
-          0.517
+          0.522
         ],
         "vertices": 2028,
         "polygons": 1974,
@@ -23416,9 +23351,9 @@
         "name": "Mesh_Rail_Ground_0",
         "type": "MESH",
         "location": [
-          -14.0,
-          -12.4,
-          0.9
+          -13.9971,
+          -12.3654,
+          0.8868
         ],
         "scale": [
           1.0,
@@ -23449,9 +23384,9 @@
         "name": "Mesh_Rail_Ground_1",
         "type": "MESH",
         "location": [
-          -11.76,
-          -12.4,
-          0.9
+          -11.7571,
+          -12.3654,
+          0.8868
         ],
         "scale": [
           1.0,
@@ -23482,9 +23417,9 @@
         "name": "Mesh_Rail_Ground_2",
         "type": "MESH",
         "location": [
-          -9.52,
-          -12.4,
-          0.9
+          -9.5171,
+          -12.3654,
+          0.8868
         ],
         "scale": [
           1.0,
@@ -23515,9 +23450,9 @@
         "name": "Mesh_Rail_Ground_3",
         "type": "MESH",
         "location": [
-          -14.0,
-          -12.4,
-          0.9
+          -13.9596,
+          -12.3919,
+          0.905
         ],
         "scale": [
           1.0,
@@ -23548,9 +23483,9 @@
         "name": "Mesh_Rail_Ground_4",
         "type": "MESH",
         "location": [
-          -11.76,
-          -12.4,
-          0.9
+          -11.7196,
+          -12.3919,
+          0.905
         ],
         "scale": [
           1.0,
@@ -23581,9 +23516,9 @@
         "name": "Mesh_Rail_Ground_5",
         "type": "MESH",
         "location": [
-          -9.52,
-          -12.4,
-          0.9
+          -9.4796,
+          -12.3919,
+          0.905
         ],
         "scale": [
           1.0,
@@ -23616,7 +23551,7 @@
         "location": [
           -10.6,
           -11.2,
-          0.0
+          0.005
         ],
         "scale": [
           1.0,
@@ -23661,7 +23596,7 @@
         ],
         "dimensions": [
           7.8,
-          9.0,
+          9.005,
           8.2
         ],
         "vertices": 2556,
@@ -23687,7 +23622,7 @@
         "location": [
           0.0,
           0.0,
-          59.8
+          59.792
         ],
         "scale": [
           1.0,
@@ -23700,7 +23635,7 @@
         "dimensions": [
           5.2,
           3.0,
-          15.2
+          15.205
         ],
         "vertices": 992,
         "polygons": 922,
@@ -23738,7 +23673,7 @@
         "dimensions": [
           26.6,
           22.6,
-          9.8376
+          9.8426
         ],
         "vertices": 2256,
         "polygons": 2444,
@@ -23843,7 +23778,7 @@
         ],
         "dimensions": [
           6.3,
-          1.84,
+          1.8421,
           6.4106
         ],
         "vertices": 1124,
@@ -23876,7 +23811,7 @@
         ],
         "dimensions": [
           6.3,
-          1.84,
+          1.8421,
           6.4106
         ],
         "vertices": 1124,
@@ -24130,9 +24065,9 @@
         "name": "Mesh_Walk_L1_C0",
         "type": "MESH",
         "location": [
-          -7.95,
-          -6.95,
-          16.6
+          -7.9357,
+          -6.9387,
+          16.5886
         ],
         "scale": [
           1.0,
@@ -24143,7 +24078,7 @@
           "Refinery_Access"
         ],
         "dimensions": [
-          4.02,
+          4.0321,
           3.7,
           1.835
         ],
@@ -24163,9 +24098,9 @@
         "name": "Mesh_Walk_L1_C1",
         "type": "MESH",
         "location": [
-          7.95,
+          7.9502,
           -6.95,
-          16.6
+          16.5929
         ],
         "scale": [
           1.0,
@@ -24176,7 +24111,7 @@
           "Refinery_Access"
         ],
         "dimensions": [
-          4.02,
+          4.0321,
           3.7,
           1.835
         ],
@@ -24196,9 +24131,9 @@
         "name": "Mesh_Walk_L1_C2",
         "type": "MESH",
         "location": [
-          7.95,
-          6.95,
-          16.6
+          7.9138,
+          6.9309,
+          16.5995
         ],
         "scale": [
           1.0,
@@ -24209,7 +24144,7 @@
           "Refinery_Access"
         ],
         "dimensions": [
-          4.02,
+          4.0321,
           3.7,
           1.835
         ],
@@ -24229,9 +24164,9 @@
         "name": "Mesh_Walk_L1_C3",
         "type": "MESH",
         "location": [
-          -7.95,
+          -7.9399,
           6.95,
-          16.6
+          16.605
         ],
         "scale": [
           1.0,
@@ -24242,7 +24177,7 @@
           "Refinery_Access"
         ],
         "dimensions": [
-          4.02,
+          4.0321,
           3.7,
           1.835
         ],
@@ -24262,9 +24197,9 @@
         "name": "Mesh_Walk_L1_E0",
         "type": "MESH",
         "location": [
-          7.95,
-          -5.6,
-          16.6
+          7.9232,
+          -5.6237,
+          16.5692
         ],
         "scale": [
           1.0,
@@ -24295,9 +24230,9 @@
         "name": "Mesh_Walk_L1_E1",
         "type": "MESH",
         "location": [
-          7.95,
-          0.4,
-          16.6
+          7.9427,
+          0.4021,
+          16.5937
         ],
         "scale": [
           1.0,
@@ -24328,9 +24263,9 @@
         "name": "Mesh_Walk_L1_N0",
         "type": "MESH",
         "location": [
-          -6.6,
-          -6.95,
-          16.6
+          -6.6042,
+          -6.955,
+          16.5958
         ],
         "scale": [
           1.0,
@@ -24361,9 +24296,9 @@
         "name": "Mesh_Walk_L1_N1",
         "type": "MESH",
         "location": [
-          -0.6,
-          -6.95,
-          16.6
+          -0.598,
+          -6.9429,
+          16.605
         ],
         "scale": [
           1.0,
@@ -24394,9 +24329,9 @@
         "name": "Mesh_Walk_L1_S0",
         "type": "MESH",
         "location": [
-          6.6,
-          6.95,
-          16.6
+          6.6077,
+          6.9679,
+          16.5958
         ],
         "scale": [
           1.0,
@@ -24427,9 +24362,9 @@
         "name": "Mesh_Walk_L1_S1",
         "type": "MESH",
         "location": [
-          0.6,
-          6.95,
-          16.6
+          0.595,
+          6.9521,
+          16.605
         ],
         "scale": [
           1.0,
@@ -24460,9 +24395,9 @@
         "name": "Mesh_Walk_L1_W0",
         "type": "MESH",
         "location": [
-          -7.95,
-          5.6,
-          16.6
+          -7.9423,
+          5.6049,
+          16.5958
         ],
         "scale": [
           1.0,
@@ -24493,9 +24428,9 @@
         "name": "Mesh_Walk_L1_W1",
         "type": "MESH",
         "location": [
-          -7.95,
-          -0.4,
-          16.6
+          -7.955,
+          -0.3979,
+          16.605
         ],
         "scale": [
           1.0,
@@ -24526,9 +24461,9 @@
         "name": "Mesh_Walk_L2_C1",
         "type": "MESH",
         "location": [
-          7.95,
+          7.9509,
           -6.95,
-          25.6
+          25.6036
         ],
         "scale": [
           1.0,
@@ -24539,7 +24474,7 @@
           "Refinery_Access"
         ],
         "dimensions": [
-          4.02,
+          4.0321,
           3.7,
           1.835
         ],
@@ -24559,9 +24494,9 @@
         "name": "Mesh_Walk_L2_E0",
         "type": "MESH",
         "location": [
-          7.95,
-          -5.6,
-          25.6
+          7.9488,
+          -5.6237,
+          25.5958
         ],
         "scale": [
           1.0,
@@ -24592,9 +24527,9 @@
         "name": "Mesh_Walk_L2_E1",
         "type": "MESH",
         "location": [
-          7.95,
-          0.4,
-          25.6
+          7.9427,
+          0.4021,
+          25.5937
         ],
         "scale": [
           1.0,
@@ -24625,9 +24560,9 @@
         "name": "Mesh_Walk_L2_N0",
         "type": "MESH",
         "location": [
-          -6.6,
-          -6.95,
-          25.6
+          -6.5972,
+          -6.9401,
+          25.5958
         ],
         "scale": [
           1.0,
@@ -24658,9 +24593,9 @@
         "name": "Mesh_Walk_L2_N1",
         "type": "MESH",
         "location": [
-          -0.6,
-          -6.95,
-          25.6
+          -0.6163,
+          -6.9479,
+          25.5937
         ],
         "scale": [
           1.0,
@@ -24691,9 +24626,9 @@
         "name": "Mesh_Walk_L3_C0",
         "type": "MESH",
         "location": [
-          -7.95,
-          -6.95,
-          34.6
+          -7.9345,
+          -6.9463,
+          34.6051
         ],
         "scale": [
           1.0,
@@ -24704,7 +24639,7 @@
           "Refinery_Access"
         ],
         "dimensions": [
-          4.02,
+          4.0321,
           3.7,
           1.835
         ],
@@ -24724,9 +24659,9 @@
         "name": "Mesh_Walk_L3_C1",
         "type": "MESH",
         "location": [
-          7.95,
+          7.9509,
           -6.95,
-          34.6
+          34.6036
         ],
         "scale": [
           1.0,
@@ -24737,7 +24672,7 @@
           "Refinery_Access"
         ],
         "dimensions": [
-          4.02,
+          4.0321,
           3.7,
           1.835
         ],
@@ -24757,9 +24692,9 @@
         "name": "Mesh_Walk_L3_E0",
         "type": "MESH",
         "location": [
-          7.95,
-          -5.6,
-          34.6
+          7.9488,
+          -5.6237,
+          34.5958
         ],
         "scale": [
           1.0,
@@ -24790,9 +24725,9 @@
         "name": "Mesh_Walk_L3_E1",
         "type": "MESH",
         "location": [
-          7.95,
-          0.4,
-          34.6
+          7.9427,
+          0.4021,
+          34.5937
         ],
         "scale": [
           1.0,
@@ -24823,9 +24758,9 @@
         "name": "Mesh_Walk_L3_N0",
         "type": "MESH",
         "location": [
-          -6.6,
-          -6.95,
-          34.6
+          -6.5972,
+          -6.9631,
+          34.5958
         ],
         "scale": [
           1.0,
@@ -24856,9 +24791,9 @@
         "name": "Mesh_Walk_L3_N1",
         "type": "MESH",
         "location": [
-          -0.6,
-          -6.95,
-          34.6
+          -0.6163,
+          -6.9124,
+          34.6022
         ],
         "scale": [
           1.0,
@@ -24889,9 +24824,9 @@
         "name": "Mesh_Walk_L3_W0",
         "type": "MESH",
         "location": [
-          -7.95,
-          5.6,
-          34.6
+          -7.9508,
+          5.6134,
+          34.5958
         ],
         "scale": [
           1.0,
@@ -24922,9 +24857,9 @@
         "name": "Mesh_Walk_L3_W1",
         "type": "MESH",
         "location": [
-          -7.95,
-          -0.4,
-          34.6
+          -7.955,
+          -0.4057,
+          34.6138
         ],
         "scale": [
           1.0,
@@ -24955,9 +24890,9 @@
         "name": "Mesh_Walk_L4_C0",
         "type": "MESH",
         "location": [
-          -7.95,
-          -6.95,
-          43.6
+          -7.9345,
+          -6.972,
+          43.5995
         ],
         "scale": [
           1.0,
@@ -24968,7 +24903,7 @@
           "Refinery_Access"
         ],
         "dimensions": [
-          4.02,
+          4.0321,
           3.7,
           1.835
         ],
@@ -24988,9 +24923,9 @@
         "name": "Mesh_Walk_L4_N0",
         "type": "MESH",
         "location": [
-          -6.6,
+          -6.6101,
           -6.95,
-          43.6
+          43.5794
         ],
         "scale": [
           1.0,
@@ -25022,8 +24957,8 @@
         "type": "MESH",
         "location": [
           -0.6,
-          -6.95,
-          43.6
+          -6.9324,
+          43.5993
         ],
         "scale": [
           1.0,
@@ -25054,9 +24989,9 @@
         "name": "Mesh_Walk_L4_W0",
         "type": "MESH",
         "location": [
-          -7.95,
-          5.6,
-          43.6
+          -7.9423,
+          5.6049,
+          43.5958
         ],
         "scale": [
           1.0,
@@ -25087,9 +25022,9 @@
         "name": "Mesh_Walk_L4_W1",
         "type": "MESH",
         "location": [
-          -7.95,
-          -0.4,
-          43.6
+          -7.9714,
+          -0.405,
+          43.5816
         ],
         "scale": [
           1.0,
@@ -25120,9 +25055,9 @@
         "name": "Mesh_Walk_L5_C0",
         "type": "MESH",
         "location": [
-          -7.95,
-          -6.95,
-          52.6
+          -7.9345,
+          -6.9463,
+          52.6051
         ],
         "scale": [
           1.0,
@@ -25133,7 +25068,7 @@
           "Refinery_Access"
         ],
         "dimensions": [
-          4.02,
+          4.0321,
           3.7,
           1.835
         ],
@@ -25153,9 +25088,9 @@
         "name": "Mesh_Walk_L5_C1",
         "type": "MESH",
         "location": [
-          7.95,
+          7.9509,
           -6.95,
-          52.6
+          52.6036
         ],
         "scale": [
           1.0,
@@ -25166,7 +25101,7 @@
           "Refinery_Access"
         ],
         "dimensions": [
-          4.02,
+          4.0321,
           3.7,
           1.835
         ],
@@ -25186,9 +25121,9 @@
         "name": "Mesh_Walk_L5_C2",
         "type": "MESH",
         "location": [
-          7.95,
-          6.95,
-          52.6
+          7.9138,
+          6.9309,
+          52.5995
         ],
         "scale": [
           1.0,
@@ -25199,7 +25134,7 @@
           "Refinery_Access"
         ],
         "dimensions": [
-          4.02,
+          4.0321,
           3.7,
           1.835
         ],
@@ -25219,9 +25154,9 @@
         "name": "Mesh_Walk_L5_C3",
         "type": "MESH",
         "location": [
-          -7.95,
+          -7.9037,
           6.95,
-          52.6
+          52.5818
         ],
         "scale": [
           1.0,
@@ -25232,7 +25167,7 @@
           "Refinery_Access"
         ],
         "dimensions": [
-          4.02,
+          4.0321,
           3.7,
           1.835
         ],
@@ -25252,9 +25187,9 @@
         "name": "Mesh_Walk_L5_E0",
         "type": "MESH",
         "location": [
-          7.95,
-          -5.6,
-          52.6
+          7.9488,
+          -5.6237,
+          52.5958
         ],
         "scale": [
           1.0,
@@ -25285,9 +25220,9 @@
         "name": "Mesh_Walk_L5_E1",
         "type": "MESH",
         "location": [
-          7.95,
-          0.4,
-          52.6
+          7.9427,
+          0.4021,
+          52.5937
         ],
         "scale": [
           1.0,
@@ -25318,9 +25253,9 @@
         "name": "Mesh_Walk_L5_N0",
         "type": "MESH",
         "location": [
-          -6.6,
-          -6.95,
-          52.6
+          -6.5972,
+          -6.9631,
+          52.5958
         ],
         "scale": [
           1.0,
@@ -25351,9 +25286,9 @@
         "name": "Mesh_Walk_L5_N1",
         "type": "MESH",
         "location": [
-          -0.6,
-          -6.95,
-          52.6
+          -0.6163,
+          -6.9124,
+          52.6022
         ],
         "scale": [
           1.0,
@@ -25384,9 +25319,9 @@
         "name": "Mesh_Walk_L5_S0",
         "type": "MESH",
         "location": [
-          6.6,
-          6.95,
-          52.6
+          6.6077,
+          6.9679,
+          52.5958
         ],
         "scale": [
           1.0,
@@ -25417,9 +25352,9 @@
         "name": "Mesh_Walk_L5_S1",
         "type": "MESH",
         "location": [
-          0.6,
-          6.95,
-          52.6
+          0.595,
+          6.9521,
+          52.605
         ],
         "scale": [
           1.0,
@@ -25450,9 +25385,9 @@
         "name": "Mesh_Walk_L5_W0",
         "type": "MESH",
         "location": [
-          -7.95,
-          5.6,
-          52.6
+          -7.9508,
+          5.6134,
+          52.5958
         ],
         "scale": [
           1.0,
@@ -25483,9 +25418,9 @@
         "name": "Mesh_Walk_L5_W1",
         "type": "MESH",
         "location": [
-          -7.95,
-          -0.4,
-          52.6
+          -7.955,
+          -0.4057,
+          52.6138
         ],
         "scale": [
           1.0,
@@ -25517,8 +25452,8 @@
         "type": "MESH",
         "location": [
           -11.0,
-          -6.4,
-          8.95
+          -6.405,
+          8.942
         ],
         "scale": [
           1.0,
@@ -37657,6 +37592,90 @@
     "linked_libraries": [
       "//../../palette.blend"
     ],
+    "auto_suffixed_names": []
+  },
+  "models/creatures/OrkhenRhot.blend": {
+    "collections": [
+      {
+        "name": "Collection",
+        "objects": [
+          "Cube",
+          "Light",
+          "Camera"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Camera",
+        "type": "CAMERA",
+        "location": [
+          7.3589,
+          -6.9258,
+          4.9583
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ]
+      },
+      {
+        "name": "Cube",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          5.4041,
+          3.1167,
+          5.7502
+        ],
+        "vertices": 156,
+        "polygons": 150,
+        "materials": [
+          "Material"
+        ],
+        "modifiers": [
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Light",
+        "type": "LIGHT",
+        "location": [
+          4.0762,
+          1.0055,
+          5.9039
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ]
+      }
+    ],
+    "materials": [
+      "Material"
+    ],
+    "linked_libraries": [],
     "auto_suffixed_names": []
   },
   "models/creatures/crab_walker_4.blend": {
@@ -50755,6 +50774,1664 @@
     ],
     "auto_suffixed_names": []
   },
+  "models/creatures/vrescal.blend": {
+    "collections": [
+      {
+        "name": "Coll_Vrescal_Limbs",
+        "objects": [
+          "Mesh_Vrescal_FrontP_Upper",
+          "Mesh_Vrescal_FrontP_Lower",
+          "Mesh_Vrescal_FrontP_Foot",
+          "Mesh_Vrescal_FrontP_Claw_1",
+          "Mesh_Vrescal_FrontP_Claw_2",
+          "Mesh_Vrescal_FrontP_Claw_3",
+          "Mesh_Vrescal_FrontP_Claw_4",
+          "Mesh_Vrescal_FrontP_Haunch",
+          "Mesh_Vrescal_FrontS_Upper",
+          "Mesh_Vrescal_FrontS_Lower",
+          "Mesh_Vrescal_FrontS_Foot",
+          "Mesh_Vrescal_FrontS_Claw_1",
+          "Mesh_Vrescal_FrontS_Claw_2",
+          "Mesh_Vrescal_FrontS_Claw_3",
+          "Mesh_Vrescal_FrontS_Claw_4",
+          "Mesh_Vrescal_FrontS_Haunch",
+          "Mesh_Vrescal_RearP_Upper",
+          "Mesh_Vrescal_RearP_Lower",
+          "Mesh_Vrescal_RearP_Foot",
+          "Mesh_Vrescal_RearP_Haunch",
+          "Mesh_Vrescal_RearS_Upper",
+          "Mesh_Vrescal_RearS_Lower",
+          "Mesh_Vrescal_RearS_Foot",
+          "Mesh_Vrescal_RearS_Haunch"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Vrescal_Rig",
+        "objects": [
+          "Arm_Vrescal"
+        ],
+        "children": []
+      },
+      {
+        "name": "Collection",
+        "objects": [
+          "Mesh_Vrescal_Skull",
+          "Light",
+          "Camera",
+          "Mesh_Vrescal_EyeS",
+          "Mesh_Vrescal_EyeP",
+          "Mesh_Vrescal_Jaw",
+          "Mesh_Vrescal_Thorax",
+          "Mesh_Vrescal_Plate_01",
+          "Mesh_Vrescal_Plate_02",
+          "Mesh_Vrescal_Plate_03",
+          "Mesh_Vrescal_Plate_04",
+          "Mesh_Vrescal_Plate_05",
+          "Mesh_Vrescal_Plate_06",
+          "Mesh_Vrescal_Plate_07",
+          "Mesh_Vrescal_Plate_10",
+          "Mesh_Vrescal_Plate_11",
+          "Mesh_Vrescal_Plate_12",
+          "Mesh_Vrescal_Plate_13",
+          "Mesh_Vrescal_Plate_14",
+          "Mesh_Vrescal_TailKeel",
+          "Mesh_Vrescal_Spike_01",
+          "Mesh_Vrescal_Spike_02",
+          "Mesh_Vrescal_Spike_03",
+          "Mesh_Vrescal_Spike_04",
+          "Mesh_Vrescal_Spike_05",
+          "Mesh_Vrescal_Spike_06",
+          "Mesh_Vrescal_Plate_09",
+          "Mesh_Vrescal_Plate_08",
+          "Mesh_Vrescal_Spike_07"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Arm_Vrescal",
+        "type": "ARMATURE",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Rig"
+        ],
+        "bones": [
+          "Bone_Root",
+          "Bone_Spine_01",
+          "Bone_Spine_02",
+          "Bone_Spine_03",
+          "Bone_Neck",
+          "Bone_Head",
+          "Bone_Jaw",
+          "Bone_LimbFrontP_Upper",
+          "Bone_LimbFrontP_Lower",
+          "Bone_LimbFrontP_Foot",
+          "Bone_LimbFrontS_Upper",
+          "Bone_LimbFrontS_Lower",
+          "Bone_LimbFrontS_Foot",
+          "Bone_Tail_01",
+          "Bone_Tail_02",
+          "Bone_Tail_03",
+          "Bone_Tail_04",
+          "Bone_Tail_05",
+          "Bone_LimbRearP_Upper",
+          "Bone_LimbRearP_Lower",
+          "Bone_LimbRearP_Foot",
+          "Bone_LimbRearS_Upper",
+          "Bone_LimbRearS_Lower",
+          "Bone_LimbRearS_Foot"
+        ]
+      },
+      {
+        "name": "Camera",
+        "type": "CAMERA",
+        "location": [
+          7.3589,
+          -6.9258,
+          4.9583
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ]
+      },
+      {
+        "name": "Light",
+        "type": "LIGHT",
+        "location": [
+          4.0762,
+          1.0055,
+          5.9039
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ]
+      },
+      {
+        "name": "Mesh_Vrescal_EyeP",
+        "type": "MESH",
+        "location": [
+          -0.6695,
+          -0.8872,
+          -0.1154
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          0.4899,
+          0.3988,
+          0.3988
+        ],
+        "vertices": 482,
+        "polygons": 512,
+        "materials": [],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_EyeS",
+        "type": "MESH",
+        "location": [
+          0.6786,
+          -0.8872,
+          -0.2074
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          0.5463,
+          0.4447,
+          0.4447
+        ],
+        "vertices": 482,
+        "polygons": 512,
+        "materials": [],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontP_Claw_1",
+        "type": "MESH",
+        "location": [
+          0.5355,
+          -0.3038,
+          -0.1085
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          0.4495,
+          0.261,
+          0.2017
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontP_Claw_2",
+        "type": "MESH",
+        "location": [
+          0.2051,
+          -0.1561,
+          -0.0329
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          0.4495,
+          0.261,
+          0.2017
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontP_Claw_3",
+        "type": "MESH",
+        "location": [
+          -0.1617,
+          -0.1471,
+          0.0156
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          0.4495,
+          0.261,
+          0.2017
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontP_Claw_4",
+        "type": "MESH",
+        "location": [
+          -0.5071,
+          -0.2783,
+          0.0292
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          0.4495,
+          0.261,
+          0.2017
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontP_Foot",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -1.0817,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          1.5272,
+          1.295,
+          0.4223
+        ],
+        "vertices": 670,
+        "polygons": 606,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontP_Haunch",
+        "type": "MESH",
+        "location": [
+          -2.6205,
+          -1.3792,
+          -0.8723
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          2.8273,
+          2.8128,
+          2.6859
+        ],
+        "vertices": 135,
+        "polygons": 124,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontP_Lower",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -1.55,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          2.1066,
+          0.8409,
+          0.9296
+        ],
+        "vertices": 260,
+        "polygons": 254,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontP_Upper",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -2.119,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          2.6287,
+          1.1454,
+          1.291
+        ],
+        "vertices": 204,
+        "polygons": 202,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontS_Claw_1",
+        "type": "MESH",
+        "location": [
+          0.4544,
+          -0.2783,
+          -0.2272
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          0.4495,
+          0.261,
+          0.2017
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontS_Claw_2",
+        "type": "MESH",
+        "location": [
+          0.148,
+          -0.1471,
+          -0.067
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          0.4495,
+          0.261,
+          0.2017
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontS_Claw_3",
+        "type": "MESH",
+        "location": [
+          -0.1942,
+          -0.1561,
+          0.0736
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          0.4495,
+          0.261,
+          0.2017
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontS_Claw_4",
+        "type": "MESH",
+        "location": [
+          -0.5184,
+          -0.3038,
+          0.1725
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          0.4495,
+          0.261,
+          0.2017
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontS_Foot",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -1.0817,
+          -0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          1.5272,
+          1.295,
+          0.4223
+        ],
+        "vertices": 670,
+        "polygons": 606,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontS_Haunch",
+        "type": "MESH",
+        "location": [
+          2.5782,
+          -1.3792,
+          -0.9904
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          2.8273,
+          2.8128,
+          2.6859
+        ],
+        "vertices": 135,
+        "polygons": 124,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontS_Lower",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -1.55,
+          -0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          2.1066,
+          0.8409,
+          0.9296
+        ],
+        "vertices": 260,
+        "polygons": 254,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_FrontS_Upper",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -2.119,
+          -0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          2.6287,
+          1.1454,
+          1.291
+        ],
+        "vertices": 204,
+        "polygons": 202,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_Jaw",
+        "type": "MESH",
+        "location": [
+          -0.0561,
+          -1.4469,
+          -0.3086
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          3.2649,
+          1.9515,
+          1.2689
+        ],
+        "vertices": 366,
+        "polygons": 361,
+        "materials": [
+          "Mat_Hide_Sand_Pale"
+        ],
+        "modifiers": [
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Mesh_Vrescal_Plate_01",
+        "type": "MESH",
+        "location": [
+          -0.2773,
+          -0.5229,
+          -0.0446
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          1.7711,
+          4.3801,
+          3.3307
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": [
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Mesh_Vrescal_Plate_02",
+        "type": "MESH",
+        "location": [
+          -0.3432,
+          -1.57,
+          0.3479
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          2.9527,
+          5.5676,
+          3.6462
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": [
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Mesh_Vrescal_Plate_03",
+        "type": "MESH",
+        "location": [
+          -0.4035,
+          -0.484,
+          0.7122
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          3.2362,
+          6.1524,
+          4.0493
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": [
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Mesh_Vrescal_Plate_04",
+        "type": "MESH",
+        "location": [
+          -0.3607,
+          -1.4854,
+          0.7349
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          2.8677,
+          5.4657,
+          3.6031
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_Plate_05",
+        "type": "MESH",
+        "location": [
+          -0.4175,
+          -2.4019,
+          0.0853
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          3.458,
+          6.5907,
+          4.3448
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_Plate_06",
+        "type": "MESH",
+        "location": [
+          -0.2659,
+          -1.3098,
+          -0.2081
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          3.1249,
+          5.9359,
+          4.1124
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_Plate_07",
+        "type": "MESH",
+        "location": [
+          -0.2832,
+          -1.9827,
+          0.1321
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          2.4897,
+          4.1824,
+          2.5583
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_Plate_08",
+        "type": "MESH",
+        "location": [
+          0.2733,
+          -1.264,
+          0.1652
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          2.4897,
+          4.1824,
+          2.5583
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_Plate_09",
+        "type": "MESH",
+        "location": [
+          0.2433,
+          -0.0164,
+          0.0924
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          2.2448,
+          3.771,
+          2.3067
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_Plate_10",
+        "type": "MESH",
+        "location": [
+          0.2398,
+          -1.4712,
+          -0.5746
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          2.112,
+          3.5479,
+          2.1702
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_Plate_11",
+        "type": "MESH",
+        "location": [
+          0.2248,
+          -0.0634,
+          -0.3227
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          2.037,
+          3.4219,
+          2.0932
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_Plate_12",
+        "type": "MESH",
+        "location": [
+          0.1967,
+          -0.6528,
+          -0.3424
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          1.7662,
+          2.9671,
+          1.8149
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_Plate_13",
+        "type": "MESH",
+        "location": [
+          0.1891,
+          -1.2961,
+          -0.2848
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          1.7052,
+          2.8645,
+          1.7522
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_Plate_14",
+        "type": "MESH",
+        "location": [
+          0.1645,
+          -0.2893,
+          -0.2558
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          1.4818,
+          2.4892,
+          1.5226
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_RearP_Foot",
+        "type": "MESH",
+        "location": [
+          -0.0,
+          -1.0817,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          1.7859,
+          1.6596,
+          0.4726
+        ],
+        "vertices": 796,
+        "polygons": 722,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_RearP_Haunch",
+        "type": "MESH",
+        "location": [
+          -2.102,
+          -2.3997,
+          -0.8942
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          3.2065,
+          2.994,
+          3.0388
+        ],
+        "vertices": 130,
+        "polygons": 119,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_RearP_Lower",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -1.5935,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          2.102,
+          0.8989,
+          0.9461
+        ],
+        "vertices": 588,
+        "polygons": 578,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_RearP_Upper",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -2.276,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          2.9378,
+          1.4789,
+          1.6392
+        ],
+        "vertices": 140,
+        "polygons": 124,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_RearS_Foot",
+        "type": "MESH",
+        "location": [
+          -0.0,
+          -1.0817,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          1.7859,
+          1.6596,
+          0.4726
+        ],
+        "vertices": 796,
+        "polygons": 722,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_RearS_Haunch",
+        "type": "MESH",
+        "location": [
+          2.261,
+          -2.3997,
+          -0.3251
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          3.2065,
+          2.994,
+          3.0388
+        ],
+        "vertices": 130,
+        "polygons": 119,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_RearS_Lower",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -1.5935,
+          -0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          2.102,
+          0.8989,
+          0.9461
+        ],
+        "vertices": 588,
+        "polygons": 578,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_RearS_Upper",
+        "type": "MESH",
+        "location": [
+          -0.0,
+          -2.276,
+          -0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Vrescal_Limbs"
+        ],
+        "dimensions": [
+          2.9378,
+          1.4789,
+          1.6392
+        ],
+        "vertices": 140,
+        "polygons": 124,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_Skull",
+        "type": "MESH",
+        "location": [
+          -0.0147,
+          -1.6898,
+          -0.2149
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          4.6326,
+          3.927,
+          3.1316
+        ],
+        "vertices": 268,
+        "polygons": 433,
+        "materials": [
+          "Mat_Hide_Sand_Pale"
+        ],
+        "modifiers": [
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Mesh_Vrescal_Spike_01",
+        "type": "MESH",
+        "location": [
+          0.1135,
+          -1.2177,
+          0.7888
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          0.9885,
+          1.332,
+          0.6073
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": [
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Mesh_Vrescal_Spike_02",
+        "type": "MESH",
+        "location": [
+          -0.5441,
+          -1.3642,
+          0.7163
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          0.9885,
+          1.2394,
+          0.7318
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": [
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Mesh_Vrescal_Spike_03",
+        "type": "MESH",
+        "location": [
+          -1.1698,
+          -1.1899,
+          0.0547
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          0.9885,
+          0.7729,
+          1.2547
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": [
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Mesh_Vrescal_Spike_04",
+        "type": "MESH",
+        "location": [
+          0.6965,
+          -1.2106,
+          0.568
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          0.9885,
+          1.0976,
+          0.9663
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": [
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Mesh_Vrescal_Spike_05",
+        "type": "MESH",
+        "location": [
+          0.9644,
+          -1.1401,
+          0.0409
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          0.9885,
+          0.6879,
+          1.275
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": [
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Mesh_Vrescal_Spike_06",
+        "type": "MESH",
+        "location": [
+          -2.4308,
+          -0.8399,
+          -0.5529
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          1.1312,
+          0.7334,
+          1.1076
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": [
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Mesh_Vrescal_Spike_07",
+        "type": "MESH",
+        "location": [
+          2.4032,
+          -0.8399,
+          -0.6628
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          1.1312,
+          0.7334,
+          1.1076
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Plate_Tan"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_TailKeel",
+        "type": "MESH",
+        "location": [
+          0.0081,
+          1.7365,
+          -0.2912
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          6.6268,
+          1.3193,
+          1.1266
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Sand_Pale"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Vrescal_Thorax",
+        "type": "MESH",
+        "location": [
+          0.0006,
+          -0.687,
+          -0.0288
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Collection"
+        ],
+        "dimensions": [
+          7.8455,
+          4.4069,
+          3.9985
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Hide_Sand_Pale"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Hide_Claw_Horn",
+      "Mat_Hide_Plate_Tan",
+      "Mat_Hide_Sand_Pale"
+    ],
+    "linked_libraries": [
+      "/Users/ferdinandfremming/Documents/hackerspace/spillgruppen/SpaceGame/Assets/Game/Art/Models/_Source~/palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "components/props/bunk.blend": {
     "collections": [
       {
@@ -51287,11 +52964,50 @@
       {
         "name": "Coll_Backpack_Expedition",
         "objects": [
-          "Mesh_ExpeditionPack_Frame",
           "PIVOT_Panel",
-          "Mesh_ExpeditionPack_Panel",
           "PIVOT_Lid",
-          "Mesh_ExpeditionPack_Lid",
+          "Mesh_Pack_Carcass",
+          "Mesh_Pack_Shelf_0",
+          "Mesh_Pack_Shelf_1",
+          "Mesh_Pack_Shelf_2",
+          "Mesh_Pack_BrainDeck",
+          "Mesh_Pack_Collar",
+          "Mesh_Pack_Exoframe",
+          "Mesh_Pack_OutriggerLoop_L",
+          "Mesh_Pack_OutriggerLoop_R",
+          "Mesh_Pack_SkidPlate",
+          "Mesh_Pack_Harness_L",
+          "Mesh_Pack_HipBelt_L",
+          "Mesh_Pack_Harness_R",
+          "Mesh_Pack_HipBelt_R",
+          "Mesh_Pack_HaulHandle",
+          "Mesh_Pack_RepairPatch",
+          "Mesh_Pack_Lacing_L",
+          "Mesh_Pack_Lacing_R",
+          "Mesh_Pack_Pouch_L",
+          "Mesh_Pack_PouchFlap_L",
+          "Mesh_Pack_PouchNet_L",
+          "Mesh_Pack_Pouch_R",
+          "Mesh_Pack_PouchFlap_R",
+          "Mesh_Pack_PouchNet_R",
+          "Mesh_Pack_OxygenTank_L",
+          "Mesh_Pack_OxygenTube_L",
+          "Mesh_Pack_OxygenTank_R",
+          "Mesh_Pack_OxygenTube_R",
+          "Mesh_Pack_Manifold",
+          "Mesh_Pack_Antenna",
+          "Mesh_Pack_Bedroll",
+          "Mesh_Pack_Panel",
+          "Mesh_Pack_PanelPocket_L0",
+          "Mesh_Pack_PanelPocket_R0",
+          "Mesh_Pack_PanelPocket_L1",
+          "Mesh_Pack_PanelPocket_R1",
+          "Mesh_Pack_PanelNet",
+          "Mesh_Pack_PanelHardware",
+          "Mesh_Pack_Lid",
+          "Mesh_Pack_LidPocket",
+          "Mesh_Pack_LidNet",
+          "Mesh_Pack_LidHardware",
           "SOCK_Ext_0",
           "SOCK_Ext_1",
           "SOCK_Ext_2",
@@ -51320,7 +53036,112 @@
     ],
     "objects": [
       {
-        "name": "Mesh_ExpeditionPack_Frame",
+        "name": "Mesh_Pack_Antenna",
+        "type": "MESH",
+        "location": [
+          0.086,
+          0.246,
+          1.32
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.0473,
+          0.0651,
+          0.2177
+        ],
+        "vertices": 192,
+        "polygons": 190,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_Bedroll",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.078,
+          0.078
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.7,
+          0.1698,
+          0.1855
+        ],
+        "vertices": 424,
+        "polygons": 384,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_BrainDeck",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          1.22
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.784,
+          0.388,
+          0.25
+        ],
+        "vertices": 210,
+        "polygons": 228,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_Carcass",
         "type": "MESH",
         "location": [
           0.0,
@@ -51336,12 +53157,12 @@
           "Coll_Backpack_Expedition"
         ],
         "dimensions": [
-          1.1731,
-          0.5921,
-          1.5513
+          0.9,
+          0.49,
+          1.16
         ],
-        "vertices": 5718,
-        "polygons": 4302,
+        "vertices": 216,
+        "polygons": 214,
         "materials": [
           "Mat_Fabric_Canvas_Faded",
           "Mat_Metal_Steel_Worn",
@@ -51355,7 +53176,42 @@
         "modifiers": []
       },
       {
-        "name": "Mesh_ExpeditionPack_Lid",
+        "name": "Mesh_Pack_Collar",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          1.285
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.8614,
+          0.4516,
+          0.079
+        ],
+        "vertices": 384,
+        "polygons": 336,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_Exoframe",
         "type": "MESH",
         "location": [
           0.0,
@@ -51371,12 +53227,12 @@
           "Coll_Backpack_Expedition"
         ],
         "dimensions": [
-          0.836,
-          0.5405,
-          0.431
+          1.0097,
+          0.5624,
+          1.4464
         ],
-        "vertices": 970,
-        "polygons": 754,
+        "vertices": 2568,
+        "polygons": 2228,
         "materials": [
           "Mat_Fabric_Canvas_Faded",
           "Mat_Metal_Steel_Worn",
@@ -51390,7 +53246,637 @@
         "modifiers": []
       },
       {
-        "name": "Mesh_ExpeditionPack_Panel",
+        "name": "Mesh_Pack_Harness_L",
+        "type": "MESH",
+        "location": [
+          -0.15,
+          0.216,
+          1.246
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.2824,
+          0.1454,
+          1.1313
+        ],
+        "vertices": 1776,
+        "polygons": 1748,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_Harness_R",
+        "type": "MESH",
+        "location": [
+          0.15,
+          0.216,
+          1.246
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.2824,
+          0.1454,
+          1.1313
+        ],
+        "vertices": 1776,
+        "polygons": 1748,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_HaulHandle",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.19,
+          1.33
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.2557,
+          0.0957,
+          0.0848
+        ],
+        "vertices": 168,
+        "polygons": 162,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_HipBelt_L",
+        "type": "MESH",
+        "location": [
+          -0.3667,
+          0.2542,
+          0.235
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.2256,
+          0.1714,
+          0.1606
+        ],
+        "vertices": 112,
+        "polygons": 108,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_HipBelt_R",
+        "type": "MESH",
+        "location": [
+          0.3667,
+          0.2542,
+          0.235
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.2256,
+          0.1714,
+          0.1606
+        ],
+        "vertices": 112,
+        "polygons": 108,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_Lacing_L",
+        "type": "MESH",
+        "location": [
+          -0.4468,
+          0.0,
+          0.7
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.0972,
+          0.1734,
+          1.1112
+        ],
+        "vertices": 1480,
+        "polygons": 1450,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_Lacing_R",
+        "type": "MESH",
+        "location": [
+          0.4468,
+          0.0,
+          0.7
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.0972,
+          0.1734,
+          1.1112
+        ],
+        "vertices": 1480,
+        "polygons": 1450,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_Lid",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.8342,
+          0.5274,
+          0.38
+        ],
+        "vertices": 152,
+        "polygons": 136,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_LidHardware",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.508,
+          -0.038
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.446,
+          0.0355,
+          0.0937
+        ],
+        "vertices": 516,
+        "polygons": 540,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_LidNet",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.223,
+          0.279
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.6277,
+          0.362,
+          0.038
+        ],
+        "vertices": 700,
+        "polygons": 540,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_LidPocket",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.218,
+          0.232
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.38,
+          0.29,
+          0.086
+        ],
+        "vertices": 118,
+        "polygons": 86,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_Manifold",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.232,
+          1.286
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.18,
+          0.094,
+          0.094
+        ],
+        "vertices": 306,
+        "polygons": 268,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_OutriggerLoop_L",
+        "type": "MESH",
+        "location": [
+          -0.45,
+          0.0,
+          0.949
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.0933,
+          0.5062,
+          0.2658
+        ],
+        "vertices": 540,
+        "polygons": 468,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_OutriggerLoop_R",
+        "type": "MESH",
+        "location": [
+          0.45,
+          0.0,
+          0.949
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.0933,
+          0.5062,
+          0.2658
+        ],
+        "vertices": 540,
+        "polygons": 468,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_OxygenTank_L",
+        "type": "MESH",
+        "location": [
+          -0.5025,
+          0.02,
+          0.86
+        ],
+        "scale": [
+          1.8694,
+          1.8694,
+          1.8694
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.3141,
+          0.3062,
+          0.9422
+        ],
+        "vertices": 760,
+        "polygons": 712,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Material",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_OxygenTank_R",
+        "type": "MESH",
+        "location": [
+          0.5025,
+          0.02,
+          0.86
+        ],
+        "scale": [
+          1.6331,
+          1.6331,
+          1.6331
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.2744,
+          0.2675,
+          0.8231
+        ],
+        "vertices": 760,
+        "polygons": 712,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Material",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_OxygenTube_L",
+        "type": "MESH",
+        "location": [
+          -0.5025,
+          0.02,
+          1.128
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.4106,
+          0.248,
+          0.1805
+        ],
+        "vertices": 528,
+        "polygons": 462,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_OxygenTube_R",
+        "type": "MESH",
+        "location": [
+          0.5025,
+          0.02,
+          1.128
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.4106,
+          0.248,
+          0.1805
+        ],
+        "vertices": 528,
+        "polygons": 462,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_Panel",
         "type": "MESH",
         "location": [
           0.0,
@@ -51407,11 +53893,606 @@
         ],
         "dimensions": [
           0.881,
-          0.2155,
-          1.1189
+          0.2394,
+          1.066
         ],
-        "vertices": 1996,
-        "polygons": 1582,
+        "vertices": 84,
+        "polygons": 72,
+        "materials": [
+          "Material.001",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_PanelHardware",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.078,
+          0.586
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.742,
+          0.1411,
+          0.9404
+        ],
+        "vertices": 1200,
+        "polygons": 1224,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_PanelNet",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.2489,
+          0.3451
+        ],
+        "scale": [
+          0.6141,
+          0.6141,
+          0.6141
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.424,
+          0.0396,
+          0.5635
+        ],
+        "vertices": 1048,
+        "polygons": 784,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_PanelPocket_L0",
+        "type": "MESH",
+        "location": [
+          -0.19,
+          -0.134,
+          0.636
+        ],
+        "scale": [
+          1.4905,
+          1.4905,
+          1.4905
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.3249,
+          0.1304,
+          0.4051
+        ],
+        "vertices": 362,
+        "polygons": 352,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_PanelPocket_L1",
+        "type": "MESH",
+        "location": [
+          -0.19,
+          -0.134,
+          0.906
+        ],
+        "scale": [
+          1.3918,
+          1.3918,
+          1.3918
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.2477,
+          0.1218,
+          0.3783
+        ],
+        "vertices": 370,
+        "polygons": 368,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_PanelPocket_R0",
+        "type": "MESH",
+        "location": [
+          0.19,
+          -0.134,
+          0.636
+        ],
+        "scale": [
+          1.4563,
+          1.4563,
+          1.4563
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.3175,
+          0.1274,
+          0.3958
+        ],
+        "vertices": 362,
+        "polygons": 352,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_PanelPocket_R1",
+        "type": "MESH",
+        "location": [
+          0.19,
+          -0.134,
+          0.906
+        ],
+        "scale": [
+          1.3913,
+          1.3913,
+          1.3913
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.2477,
+          0.1217,
+          0.3781
+        ],
+        "vertices": 370,
+        "polygons": 368,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_Pouch_L",
+        "type": "MESH",
+        "location": [
+          -0.4308,
+          0.05,
+          0.34
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.1848,
+          0.334,
+          0.4
+        ],
+        "vertices": 94,
+        "polygons": 76,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_Pouch_R",
+        "type": "MESH",
+        "location": [
+          0.4308,
+          0.05,
+          0.34
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.1848,
+          0.334,
+          0.4
+        ],
+        "vertices": 94,
+        "polygons": 76,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_PouchFlap_L",
+        "type": "MESH",
+        "location": [
+          -0.5002,
+          0.05,
+          0.548
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.1072,
+          0.236,
+          0.141
+        ],
+        "vertices": 314,
+        "polygons": 324,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_PouchFlap_R",
+        "type": "MESH",
+        "location": [
+          0.5002,
+          0.05,
+          0.548
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.1072,
+          0.236,
+          0.141
+        ],
+        "vertices": 314,
+        "polygons": 324,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_PouchNet_L",
+        "type": "MESH",
+        "location": [
+          -0.5002,
+          0.05,
+          0.578
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.0821,
+          0.2308,
+          0.0309
+        ],
+        "vertices": 496,
+        "polygons": 396,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_PouchNet_R",
+        "type": "MESH",
+        "location": [
+          0.5002,
+          0.05,
+          0.578
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.0821,
+          0.2308,
+          0.0309
+        ],
+        "vertices": 496,
+        "polygons": 396,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_RepairPatch",
+        "type": "MESH",
+        "location": [
+          0.12,
+          0.27,
+          0.86
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.24,
+          0.0185,
+          0.211
+        ],
+        "vertices": 668,
+        "polygons": 630,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_Shelf_0",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.11
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.7483,
+          0.3948,
+          0.062
+        ],
+        "vertices": 112,
+        "polygons": 108,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_Shelf_1",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.49
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.8221,
+          0.4427,
+          0.062
+        ],
+        "vertices": 112,
+        "polygons": 108,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_Shelf_2",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.87
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.8203,
+          0.4409,
+          0.062
+        ],
+        "vertices": 112,
+        "polygons": 108,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Fabric_Wing_Ochre"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Pack_SkidPlate",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.06
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Backpack_Expedition"
+        ],
+        "dimensions": [
+          0.66,
+          0.385,
+          0.033
+        ],
+        "vertices": 1400,
+        "polygons": 1334,
         "materials": [
           "Mat_Fabric_Canvas_Faded",
           "Mat_Metal_Steel_Worn",
@@ -51841,7 +54922,9 @@
       "Mat_Metal_Rust_Heavy",
       "Mat_Metal_Steel_Worn",
       "Mat_Paint_Safety_Orange",
-      "Mat_Plastic_Rubber_Black"
+      "Mat_Plastic_Rubber_Black",
+      "Material",
+      "Material.001"
     ],
     "linked_libraries": [
       "//../../palette.blend"
@@ -54547,6 +57630,732 @@
       "Mat_Neutral_Panel_Grey",
       "Mat_Plastic_Cream_Aged",
       "Mat_Wood_Ply_Worn"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
+  "components/organic/claw_talon.blend": {
+    "collections": [
+      {
+        "name": "Coll_ClawTalon_Blunt",
+        "objects": [
+          "Mesh_ClawTalon_Blunt"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_ClawTalon_Dewclaw",
+        "objects": [
+          "Mesh_ClawTalon_Dewclaw"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_ClawTalon_Digging",
+        "objects": [
+          "Mesh_ClawTalon_Digging"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_ClawTalon_Hooked",
+        "objects": [
+          "Mesh_ClawTalon_Hooked"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_ClawTalon_Blunt",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_ClawTalon_Blunt"
+        ],
+        "dimensions": [
+          0.07,
+          0.0598,
+          0.0516
+        ],
+        "vertices": 72,
+        "polygons": 62,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ClawTalon_Dewclaw",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_ClawTalon_Dewclaw"
+        ],
+        "dimensions": [
+          0.05,
+          0.0299,
+          0.0388
+        ],
+        "vertices": 67,
+        "polygons": 58,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ClawTalon_Digging",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_ClawTalon_Digging"
+        ],
+        "dimensions": [
+          0.124,
+          0.072,
+          0.0556
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ClawTalon_Hooked",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_ClawTalon_Hooked"
+        ],
+        "dimensions": [
+          0.11,
+          0.0439,
+          0.09
+        ],
+        "vertices": 85,
+        "polygons": 76,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Hide_Claw_Horn",
+      "Mat_Hide_Plate_Tan",
+      "Mat_Hide_Sand_Pale"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
+  "components/organic/foot_splayed.blend": {
+    "collections": [
+      {
+        "name": "Coll_FootSplayed_Fringed",
+        "objects": [
+          "Mesh_FootSplayed_Fringed"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_FootSplayed_Manus4",
+        "objects": [
+          "Mesh_FootSplayed_Manus4"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_FootSplayed_Pes5",
+        "objects": [
+          "Mesh_FootSplayed_Pes5"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_FootSplayed_Spade",
+        "objects": [
+          "Mesh_FootSplayed_Spade"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_FootSplayed_Fringed",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_FootSplayed_Fringed"
+        ],
+        "dimensions": [
+          0.4085,
+          0.346,
+          0.111
+        ],
+        "vertices": 1154,
+        "polygons": 1118,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_FootSplayed_Manus4",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_FootSplayed_Manus4"
+        ],
+        "dimensions": [
+          0.4213,
+          0.3573,
+          0.1165
+        ],
+        "vertices": 670,
+        "polygons": 606,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_FootSplayed_Pes5",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_FootSplayed_Pes5"
+        ],
+        "dimensions": [
+          0.4927,
+          0.4579,
+          0.1304
+        ],
+        "vertices": 796,
+        "polygons": 722,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_FootSplayed_Spade",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_FootSplayed_Spade"
+        ],
+        "dimensions": [
+          0.3625,
+          0.379,
+          0.1278
+        ],
+        "vertices": 263,
+        "polygons": 230,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Hide_Claw_Horn",
+      "Mat_Hide_Plate_Tan",
+      "Mat_Hide_Sand_Pale"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
+  "components/organic/haunch.blend": {
+    "collections": [
+      {
+        "name": "Coll_Haunch_HipHeavy",
+        "objects": [
+          "Mesh_Haunch_HipHeavy"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Haunch_HipLean",
+        "objects": [
+          "Mesh_Haunch_HipLean"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Haunch_ShoulderBroad",
+        "objects": [
+          "Mesh_Haunch_ShoulderBroad"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Haunch_ShoulderPlated",
+        "objects": [
+          "Mesh_Haunch_ShoulderPlated"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_Haunch_HipHeavy",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Haunch_HipHeavy"
+        ],
+        "dimensions": [
+          0.8846,
+          0.826,
+          0.8383
+        ],
+        "vertices": 130,
+        "polygons": 119,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Haunch_HipLean",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Haunch_HipLean"
+        ],
+        "dimensions": [
+          0.7248,
+          0.806,
+          0.648
+        ],
+        "vertices": 138,
+        "polygons": 127,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Haunch_ShoulderBroad",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Haunch_ShoulderBroad"
+        ],
+        "dimensions": [
+          0.78,
+          0.776,
+          0.741
+        ],
+        "vertices": 135,
+        "polygons": 124,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Haunch_ShoulderPlated",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Haunch_ShoulderPlated"
+        ],
+        "dimensions": [
+          0.79,
+          0.776,
+          0.8344
+        ],
+        "vertices": 226,
+        "polygons": 224,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Hide_Claw_Horn",
+      "Mat_Hide_Plate_Tan",
+      "Mat_Hide_Sand_Pale"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
+  "components/organic/limb_segment.blend": {
+    "collections": [
+      {
+        "name": "Coll_LimbSegment_AntebrachialPlated",
+        "objects": [
+          "Mesh_LimbSegment_AntebrachialPlated"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_LimbSegment_BrachialHeavy",
+        "objects": [
+          "Mesh_LimbSegment_BrachialHeavy"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_LimbSegment_BrachialSlim",
+        "objects": [
+          "Mesh_LimbSegment_BrachialSlim"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_LimbSegment_CruralRibbed",
+        "objects": [
+          "Mesh_LimbSegment_CruralRibbed"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_LimbSegment_FemoralHeavy",
+        "objects": [
+          "Mesh_LimbSegment_FemoralHeavy"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_LimbSegment_Stub",
+        "objects": [
+          "Mesh_LimbSegment_Stub"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_LimbSegment_AntebrachialPlated",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_LimbSegment_AntebrachialPlated"
+        ],
+        "dimensions": [
+          0.5812,
+          0.232,
+          0.2565
+        ],
+        "vertices": 260,
+        "polygons": 254,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_LimbSegment_BrachialHeavy",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_LimbSegment_BrachialHeavy"
+        ],
+        "dimensions": [
+          0.7252,
+          0.316,
+          0.3562
+        ],
+        "vertices": 204,
+        "polygons": 202,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_LimbSegment_BrachialSlim",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_LimbSegment_BrachialSlim"
+        ],
+        "dimensions": [
+          0.6816,
+          0.2212,
+          0.2494
+        ],
+        "vertices": 108,
+        "polygons": 98,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_LimbSegment_CruralRibbed",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_LimbSegment_CruralRibbed"
+        ],
+        "dimensions": [
+          0.5799,
+          0.248,
+          0.261
+        ],
+        "vertices": 588,
+        "polygons": 578,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_LimbSegment_FemoralHeavy",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_LimbSegment_FemoralHeavy"
+        ],
+        "dimensions": [
+          0.8105,
+          0.408,
+          0.4522
+        ],
+        "vertices": 140,
+        "polygons": 124,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_LimbSegment_Stub",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_LimbSegment_Stub"
+        ],
+        "dimensions": [
+          0.3942,
+          0.268,
+          0.2898
+        ],
+        "vertices": 144,
+        "polygons": 140,
+        "materials": [
+          "Mat_Hide_Sand_Pale",
+          "Mat_Hide_Plate_Tan",
+          "Mat_Hide_Claw_Horn"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Hide_Claw_Horn",
+      "Mat_Hide_Plate_Tan",
+      "Mat_Hide_Sand_Pale"
     ],
     "linked_libraries": [
       "//../../palette.blend"

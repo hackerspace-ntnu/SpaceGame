@@ -99,6 +99,67 @@ namespace SpaceGame.Tests
             Assert.AreEqual(0f, r.Yaw, 1e-3f);
         }
 
+        /// The one that made a biped's legs swing sideways.
+        ///
+        /// A hinge plane is a PLANE, not a half-plane: turning it 180 degrees gives the same plane
+        /// back, and the 2D solve inside it takes a negative in-plane coordinate quite happily. Stage
+        /// 1 used to measure the yaw as the full azimuth from RestFwd, so a foothold BEHIND the hip
+        /// read as "turn the leg 180 degrees" rather than "reach backwards". A splayed-leg machine
+        /// never notices -- its targets stay in a narrow cone around the outboard rest direction --
+        /// but a leg that hangs straight down has its foothold sweep from ahead of the hip to behind
+        /// it every single stride, so it crossed that boundary twice per step. The yaw limit then cut
+        /// the 180 down to its stop, the out-of-plane residual was dropped as unreachable, and the
+        /// foot was thrown a third of a metre out to the side.
+        [Test]
+        public void Yaw_ReachesBehindTheHip_RatherThanTurningTheLegAroundToFaceIt()
+        {
+            // Three equal segments hanging under the hip: a leg, not an outrigger.
+            WalkerLimbGeometry g = WalkerTestRig.Chain(3);
+            Vector3 hip = new Vector3(0f, 12f, 0f);
+            WalkerLimbSolver.Frame f = WalkerTestRig.Frame(hip);
+            Vector3 lateral = Vector3.Cross(Vector3.up, f.RestFwd).normalized;
+
+            // Behind the hip, dead in the leg's own plane. Nothing about this target is off-plane, so
+            // the yaw has nothing to answer and the pitch chain alone should reach it.
+            Vector3 target = hip + f.RestFwd * -4f + Vector3.up * -10f;
+
+            WalkerLimbSolver.Result r = WalkerLimbSolver.Solve(
+                f, g, WalkerLimbSolver.Limits.Default, target, Vector3.up);
+            Vector3 achieved = WalkerLimbSolver.SoleFromResult(f, g, r);
+
+            Assert.Less(Mathf.Abs(r.Yaw), 1f,
+                        "a foothold in the leg's own plane must not turn the coxa, however far back " +
+                        "it is; the yaw came out at " + r.Yaw.ToString("F1") + " degrees");
+            Assert.Less(Mathf.Abs(Vector3.Dot(achieved - target, lateral)), 1e-3f,
+                        "the foot was placed " +
+                        Vector3.Dot(achieved - target, lateral).ToString("F3") +
+                        " units to the SIDE of a target that is straight behind the hip");
+        }
+
+        /// The same property swept through a whole stride, which is what the gait actually asks for.
+        /// The interesting part is the crossing: as the foothold passes under the hip the azimuth
+        /// swings through 90 degrees and the old solve flipped the coxa from one stop to the other.
+        [Test]
+        public void Yaw_StaysPutWhileTheFootholdSweepsFromAheadOfTheHipToBehindIt()
+        {
+            WalkerLimbGeometry g = WalkerTestRig.Chain(3);
+            Vector3 hip = new Vector3(0f, 12f, 0f);
+            WalkerLimbSolver.Frame f = WalkerTestRig.Frame(hip);
+            Vector3 lateral = Vector3.Cross(Vector3.up, f.RestFwd).normalized;
+
+            for (float along = 4f; along >= -4f; along -= 0.5f)
+            {
+                Vector3 target = hip + f.RestFwd * along + Vector3.up * -10f;
+                WalkerLimbSolver.Result r = WalkerLimbSolver.Solve(
+                    f, g, WalkerLimbSolver.Limits.Default, target, Vector3.up);
+                Vector3 achieved = WalkerLimbSolver.SoleFromResult(f, g, r);
+
+                Assert.Less(Mathf.Abs(r.Yaw), 1f, "coxa turned at along=" + along);
+                Assert.Less(Mathf.Abs(Vector3.Dot(achieved - target, lateral)), 1e-3f,
+                            "foot thrown sideways at along=" + along);
+            }
+        }
+
         // ─────────── joint limits ───────────
 
         [Test]

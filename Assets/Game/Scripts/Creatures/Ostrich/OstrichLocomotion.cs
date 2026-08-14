@@ -69,8 +69,17 @@ namespace SpaceGame.Creatures.Ostrich
                  "body dips onto each footfall and rises through mid-stance.")]
         [SerializeField] private float bobAmount = 0.055f;
         [Tooltip("How far the body leans over the foot that is carrying it, as a fraction of the " +
-                 "stance width. Small, but it is what stops the walk reading as a shopping trolley.")]
-        [SerializeField] private float swayAmount = 0.55f;
+                 "stance width. Small, but it is what stops the walk reading as a shopping trolley.\n\n" +
+                 "BOUNDED BY THE LEGS, not by taste. A sway moves the HIPS sideways, and this rig " +
+                 "has no joint that can answer that: the coxa turns the leg's plane about a vertical " +
+                 "axis, which lets the leg reach sideways only by twisting the hock out of line. So " +
+                 "whatever the hips are swayed by, the planted foot is dragged with them -- measured " +
+                 "at very nearly the whole of it. At 0.55 that was 16 cm of the foot sliding sideways " +
+                 "every stride at a run; 0.12 keeps it inside 4 cm, which is under the width of the " +
+                 "sole. Raising it costs about 3.5 cm of foot slide per 0.1. Getting the full waddle " +
+                 "back needs an abduction joint modelled at the hip, not a bigger number here.")]
+        [Range(0f, 0.6f)]
+        [SerializeField] private float swayAmount = 0.12f;
         [Tooltip("Degrees the body pitches toward horizontal at top speed.")]
         [SerializeField] private float runPitch = 16f;
         [Tooltip("Degrees the body rolls into a turn at top speed.")]

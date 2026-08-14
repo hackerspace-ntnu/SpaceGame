@@ -102,13 +102,21 @@ namespace SpaceGame.Core.Persistence
         {
             if (Instance != null && Instance != this)
             {
+                // A second SaveManager — this project produces them during scene transitions (the
+                // same session's log carries Netcode's own "more than one NetworkManager instance"
+                // complaint). It must not take over Instance or subscribe to anything.
+                //
+                // But it MUST still be safe to call. Destroy is deferred to the end of the frame,
+                // and Unity delivers OnApplicationQuit to whatever is alive when the app closes.
+                // This branch used to return with null stores, so a quit answered by this instance
+                // died with a NullReferenceException inside BuildDocument and wrote nothing at all
+                // — the bug that made quit-saves silently stop appearing.
+                EnsureStores(null);
                 Destroy(gameObject);
                 return;
             }
 
             Instance = this;
-
-            slots ??= new SaveSlots(DefaultRoot);
 
             // Consuming the pending document here — before any chunk has loaded and before
             // NetworkGameManager spawns anyone — is what makes a load work at all. Both stores must
@@ -116,8 +124,7 @@ namespace SpaceGame.Core.Persistence
             SaveDocument document = PendingLoad;
             PendingLoad = null;
 
-            worldStore = new WorldSaveStore(document?.World);
-            playerService = new PlayerSaveService(document?.Players);
+            EnsureStores(document);
 
             loadedFromSave = document != null;
             sessionStartTime = Time.realtimeSinceStartup;
@@ -135,6 +142,20 @@ namespace SpaceGame.Core.Persistence
             WorldStreamer.OnChunkUnloaded += HandleChunkUnloaded;
 
             nextAutoSaveTime = Time.time + Mathf.Max(1f, autoSaveIntervalSeconds);
+        }
+
+        /// <summary>
+        /// Builds the stores if they are not there yet, so no code path can ever find them null.
+        ///
+        /// Idempotent and safe to call from anywhere. <paramref name="document"/> seeds them on the
+        /// first call only — a later call never re-reads a save, so a duplicate instance calling
+        /// this cannot swallow a staged load or wipe live state.
+        /// </summary>
+        private void EnsureStores(SaveDocument document)
+        {
+            slots ??= new SaveSlots(DefaultRoot);
+            worldStore ??= new WorldSaveStore(document?.World);
+            playerService ??= new PlayerSaveService(document?.Players);
         }
 
         private void Start()
@@ -241,6 +262,17 @@ namespace SpaceGame.Core.Persistence
         /// </summary>
         public bool Save(string slotId, string label = null, bool synchronous = false)
         {
+            // Whichever instance Unity happens to call, the save is taken by the one holding the
+            // session's state. A doomed duplicate answering a quit would otherwise write its own
+            // empty stores over a good file.
+            if (Instance != null && Instance != this)
+                return Instance.Save(slotId, label, synchronous);
+
+            // Belt and braces. Everything above should make this impossible; a save is the one
+            // operation where "should be impossible" is not good enough, because the cost of being
+            // wrong is the player's session.
+            EnsureStores(null);
+
             if (Network.IsNetworked && !Network.Server)
             {
                 Log("Save ignored: only the server owns world state.");
@@ -270,12 +302,21 @@ namespace SpaceGame.Core.Persistence
 
             string path = Slots.PathFor(slotId);
 
+            if (SaveFileStore.WouldDiscardAllPlayers(path, document))
+            {
+                Fail($"Refused to save '{slotId}': the capture found no players, and the file " +
+                     "already there has some. Overwriting it would end the session's progress. " +
+                     "This usually means the save ran before anyone spawned, or after they were " +
+                     "torn down.");
+                return false;
+            }
+
             if (synchronous)
             {
                 try
                 {
                     SaveFileStore.Write(path, json);
-                    Log($"Saved '{slotId}' to {path}");
+                    Announce(slotId, path, document);
                     OnSaved?.Invoke(slotId);
                 }
                 catch (Exception e)
@@ -289,16 +330,32 @@ namespace SpaceGame.Core.Persistence
             }
 
             activeWrite = Task.Run(() => SaveFileStore.Write(path, json))
-                .ContinueWith(task => CompleteWrite(task, slotId, path),
+                .ContinueWith(task => CompleteWrite(task, slotId, path, document),
                               TaskScheduler.FromCurrentSynchronizationContext());
 
             return true;
         }
 
+        /// <summary>
+        /// Reports a completed save, always — not behind <see cref="verbose"/>.
+        ///
+        /// A save is a rare, meaningful event, and with the files under persistentDataPath and no
+        /// UI listing them there is otherwise NOTHING telling anyone whether saving works. That is
+        /// how a quit-save could throw for two sessions running without being noticed. The counts
+        /// are here because "saved" and "saved something worth having" are different claims.
+        /// </summary>
+        private void Announce(string slotId, string path, SaveDocument document)
+        {
+            int players = document?.Players?.Count ?? 0;
+            int scenes = document?.World?.Scenes?.Count ?? 0;
+
+            Debug.Log($"[Save] Wrote '{slotId}' — {players} player(s), {scenes} scene record(s) → {path}", this);
+        }
+
         /// <summary>Writes to the quicksave slot.</summary>
         public bool QuickSave() => Save(SaveSlots.QuickSaveSlotId, "Quicksave");
 
-        private void CompleteWrite(Task task, string slotId, string path)
+        private void CompleteWrite(Task task, string slotId, string path, SaveDocument document)
         {
             if (task.IsFaulted)
             {
@@ -308,7 +365,7 @@ namespace SpaceGame.Core.Persistence
                 return;
             }
 
-            Log($"Saved '{slotId}' to {path}");
+            Announce(slotId, path, document);
             OnSaved?.Invoke(slotId);
         }
 

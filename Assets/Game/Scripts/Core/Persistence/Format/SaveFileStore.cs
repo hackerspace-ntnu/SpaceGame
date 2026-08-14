@@ -163,6 +163,31 @@ namespace SpaceGame.Persistence
 
         public static bool Exists(string path) => File.Exists(path) || File.Exists(path + BackupSuffix);
 
+        /// <summary>
+        /// True when writing <paramref name="candidate"/> over the save at <paramref name="path"/>
+        /// would trade a file that remembers players for one that does not.
+        ///
+        /// This is a last line of defence against a whole family of faults rather than one bug: any
+        /// path that produces a technically-valid but player-less document — a half-initialised
+        /// manager, a capture that ran after the player was torn down, a session that quit before
+        /// anyone spawned — writes a file that loads into an empty world and silently ends the
+        /// player's progress. There is no legitimate reason to replace a save containing players
+        /// with one containing none, so the write is refused instead.
+        ///
+        /// Deliberately narrow: a first save, or one that keeps at least one player, is never
+        /// blocked. Only the strict downgrade is.
+        /// </summary>
+        public static bool WouldDiscardAllPlayers(string path, SaveDocument candidate)
+        {
+            if (candidate == null) return true;
+            if (candidate.Players is { Count: > 0 }) return false;
+            if (!Exists(path)) return false;
+
+            // Header-only read would not do — the player list lives in the body.
+            ReadResult existing = Read(path);
+            return existing.HasDocument && existing.Document.Players is { Count: > 0 };
+        }
+
         private static bool TryReadFile(string path, out SaveDocument document, out string error)
         {
             document = null;

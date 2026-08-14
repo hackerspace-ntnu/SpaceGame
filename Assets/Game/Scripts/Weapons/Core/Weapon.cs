@@ -45,7 +45,6 @@ namespace SpaceGame.Weapons
         protected IChargeable chargedProjectile; // Reference to currently charging projectile
 
         public event Action<int> OnAmmoChanged;
-        public event Action OnFireRateReady;
 
         public Magazine Magazine => magazine;
         public int CurrentAmmo => magazine != null ? magazine.CurrentAmmo : 0;
@@ -116,12 +115,6 @@ namespace SpaceGame.Weapons
 
         protected virtual void Update()
         {
-            // Check if ready to fire
-            if (Time.time >= nextFireTime && !IsReadyToFire)
-            {
-                OnFireRateReady?.Invoke();
-            }
-
             // Update charging if active
             if (isCharging && chargedProjectile != null)
             {

@@ -24,9 +24,16 @@ namespace SpaceGame.Core.Persistence
 
         private void Start()
         {
-            // The networked path owns its own binding, and doing it twice would leave two objects
-            // claiming one profile record.
-            if (Network.IsNetworked && GetComponent<PlayerSaveSync>() != null) return;
+            // In a networked session — which includes every hosted singleplayer game — the real
+            // player is the one Netcode spawns, and PlayerSaveSync binds it. Nothing else may.
+            //
+            // The earlier version only stepped aside for objects that HAD a PlayerSaveSync, which
+            // let persistentScene's authored PlayerCharacter (an offline placeholder with no
+            // NetworkObject, sitting at its authored position with its components switched off by
+            // PlayerController.DisablePlayer) claim the same profile as the spawned player. Whoever
+            // bound last won, so a save could record the placeholder's position instead of where
+            // the player actually stood.
+            if (Network.IsNetworked) return;
 
             SaveManager manager = SaveManager.Instance;
             if (manager?.Players == null) return;

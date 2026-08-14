@@ -27,6 +27,10 @@ namespace SpaceGame.Agents
         [SerializeField] private NavMeshAgent agent;
         [SerializeField] private float navMeshSnapDistance = 6f;
 
+        // How often a parked agent re-checks for a NavMesh underneath it. One NavMesh query per
+        // parked agent per frame is pure waste while the world mesh is still streaming in.
+        private const float ReattachInterval = 0.5f;
+
         [Header("Speeds")]
         [Tooltip("Fraction of the NavMeshAgent speed used when walking (not running). 1 = same as run speed.")]
         [SerializeField] [Range(0.01f, 1f)] private float walkSpeedMultiplier = 0.65f;
@@ -58,6 +62,7 @@ namespace SpaceGame.Agents
         [SerializeField] private float riderNavMeshSampleDistance = 4f;
 
         private float stuckTimer;
+        private float reattachTimer;
         private bool defaultUpdateRotation;
         private bool defaultUpdatePosition;
         private float defaultStoppingDistance;
@@ -135,6 +140,7 @@ namespace SpaceGame.Agents
         private void OnEnable()
         {
             stuckTimer = 0f;
+            reattachTimer = 0f;
             jumpCooldownTimer = 0f;
             jumpElapsed = -1f;
             leapCooldownTimer = 0f;
@@ -146,8 +152,25 @@ namespace SpaceGame.Agents
             UpdateMountedJump(deltaTime);
             UpdateMountedLeap(deltaTime);
 
-            if (!agent || !agent.isActiveAndEnabled)
+            if (!agent)
             {
+                return;
+            }
+
+            // Awake parks this agent when it wakes before a NavMesh exists beneath it, on the
+            // promise that something will switch it back on. WorldStreamer.SnapAgentsToNavMesh
+            // keeps that promise only for agents that live in a *chunk* scene — it walks the roots
+            // of the chunk it just loaded and nothing else. An agent placed in the persistent
+            // scene (or an interior, or a test scene) wakes before the world mesh is up, gets
+            // parked, is never visited, and stays motionless for the rest of the session with
+            // nothing logged. Recover here so the promise no longer depends on which scene the
+            // agent happens to live in.
+            //
+            // Safe against corpses: HealthReactionModule disables the AgentController on death,
+            // so a dead agent stops calling Tick long before this runs.
+            if (!agent.isActiveAndEnabled)
+            {
+                TryReattachToNavMesh(deltaTime);
                 return;
             }
 
@@ -159,9 +182,11 @@ namespace SpaceGame.Agents
 
             if (!agent.isOnNavMesh)
             {
-                TrySnapToNavMesh();
+                TrySnapToNavMesh(deltaTime);
                 return;
             }
+
+            NoteNavMeshFound();
 
             // Rider is driving this frame via ApplyRiderInput — don't re-interpret a MoveIntent.
             if (riderDriveFrame == Time.frameCount)
@@ -439,15 +464,89 @@ namespace SpaceGame.Agents
             stuckTimer = 0f;
         }
 
-        private void TrySnapToNavMesh()
+        // Un-park an agent this component disabled in Awake, once a NavMesh has appeared under it.
+        // Mirrors WorldStreamer.SnapAgentsToNavMesh, including the ordering: Warp only takes effect
+        // on an enabled agent, so position first, then enable, then Warp.
+        private void TryReattachToNavMesh(float deltaTime)
+        {
+            // Only our own parking is recoverable here. An agent whose GameObject is inactive never
+            // reaches this method, so a disabled component is the parked case by elimination.
+            if (agent.enabled)
+            {
+                return;
+            }
+
+            reattachTimer -= deltaTime;
+            if (reattachTimer > 0f)
+            {
+                return;
+            }
+            reattachTimer = ReattachInterval;
+
+            if (!NavMesh.SamplePosition(transform.position, out NavMeshHit hit,
+                                        navMeshSnapDistance, NavMesh.AllAreas))
+            {
+                NoteNavMeshMissing(ReattachInterval);
+                return;
+            }
+
+            transform.position = hit.position;
+            agent.enabled = true;
+            agent.Warp(hit.position);
+            stuckTimer = 0f;
+            NoteNavMeshFound();
+        }
+
+        private void TrySnapToNavMesh(float deltaTime)
         {
             if (!NavMesh.SamplePosition(transform.position, out NavMeshHit hit, navMeshSnapDistance, NavMesh.AllAreas))
             {
+                NoteNavMeshMissing(deltaTime);
                 return;
             }
 
             agent.Warp(hit.position);
             stuckTimer = 0f;
+            NoteNavMeshFound();
+        }
+
+        // Both searches above give up silently when nothing is found, and an agent with no NavMesh
+        // under it then stands still for the rest of the session with nothing logged. That is
+        // indistinguishable from a broken prefab, a dead animator or a brain returning no intent,
+        // and it is the failure people actually hit — dropping a creature into a scene that was
+        // never baked, or onto terrain the mesh floats several metres above.
+        //
+        // The delay matters: in a streamed world an agent legitimately wakes before its chunk's
+        // mesh exists, so warning immediately would fire on every spawn. Warn once per agent, name
+        // the position, and stay quiet forever after — a per-frame warning is its own bug.
+        private const float NoNavMeshWarnDelay = 3f;
+        private float noNavMeshTimer;
+        private bool loggedNoNavMesh;
+
+        private void NoteNavMeshMissing(float deltaTime)
+        {
+            if (loggedNoNavMesh)
+            {
+                return;
+            }
+
+            noNavMeshTimer += deltaTime;
+            if (noNavMeshTimer < NoNavMeshWarnDelay)
+            {
+                return;
+            }
+
+            loggedNoNavMesh = true;
+            Debug.LogWarning(
+                $"{name}: no NavMesh within {navMeshSnapDistance} m of {transform.position} after " +
+                $"{NoNavMeshWarnDelay:0.#}s — this agent cannot move and will stand still. Bake a " +
+                "NavMesh for this scene, or place the agent on one.", this);
+        }
+
+        private void NoteNavMeshFound()
+        {
+            noNavMeshTimer = 0f;
+            loggedNoNavMesh = false;
         }
 
         private void UpdateMountedLeap(float deltaTime)

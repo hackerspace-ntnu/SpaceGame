@@ -15,7 +15,7 @@ namespace SpaceGame.Tests
 {
     public class HorseLocomotionTests
     {
-        private const string PrefabPath = "Assets/Game/Prefabs/agents/creatures/HorseRobot.prefab";
+        private const string PrefabPath = "Assets/Game/Prefabs/Agents/Creatures/HorseRobot.prefab";
         private const float Dt = 1f / 60f;
         private const int Frames = 600;
 

@@ -17,7 +17,14 @@
 //     rig: the crawler is autonomous and is neither mountable nor steerable.
 //
 // The model is generated from Assets/Game/Art/Models/_Source~/models/vehicles/desert_crawler.py — see that file and
-// Assets/Game/Art/Models/_Source~/models/vehicles/desert_crawler_BUILD.md.
+// Assets/Game/Art/Models/_Source~/models/vehicles/desert_crawler_BUILD.md. It has since been hand-edited,
+// so re-running the generator would destroy work: refresh with desert_crawler_export.py instead.
+//
+// KNOWN GAP IN THE MODEL: the collector bucket's sieve, `Grid`, is not parented to anything in the
+// .blend, so it arrives as a loose child of the FBX root rather than under `Collector_Bucket`. It
+// looks right at rest and is wrong the instant CrawlerToolRig tips the bucket — the lip plate swings
+// away and the sieve stays put. The fix belongs in the .blend (bone-parent `Grid` to
+// `Collector_Bucket`, as the retired `Cube.001` was), not here.
 //
 // Model orientation: authored −Y forward in Blender, which the default FBX axis conversion lands
 // on Unity's +Z. There is deliberately no ModelYaw here, unlike ShipRVBuilder.
@@ -59,8 +66,12 @@ namespace SpaceGame.EditorTools
             ("Mesh_Dig_ArmP",           "COL_DigArmStarboard"),
             ("Mesh_Dig_ArmN",           "COL_DigArmPort"),
             ("Mesh_Dig_Brace",          "COL_DigBrace"),
-            // The collector bucket, hand-modelled and still carrying its authored name.
-            ("Cube.001",                "COL_CollectorBucket"),
+            // The collector bucket, hand-modelled and still carrying its authored name. It was
+            // `Cube.001` until the bucket was rebuilt as a wireframe sieve (`Grid`) plus this lip
+            // plate. The box goes on the plate and NOT on the sieve, because the plate is the piece
+            // parented to the `Collector_Bucket` bone — a box on the sieve would be left behind the
+            // moment CrawlerToolRig tips the bucket. See the note in the header about `Grid`.
+            ("Cube.002",                "COL_CollectorBucket"),
         };
 
         // Meshes the habitat build used to have and no longer does — the container modules, the deck

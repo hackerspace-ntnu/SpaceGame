@@ -250,7 +250,13 @@ namespace SpaceGame.Vehicles.DuneFoil
             // No acceptance window on the lookahead. A wall ahead SHOULD read as an unclimbable
             // grade and stop the craft; that is the feature. It is only the probe the hull flies
             // off that must refuse to latch onto scenery.
-            if (ProbeGround(ahead, float.NegativeInfinity, out float aheadY, out _))
+            //
+            // "No window" is +infinity, not -infinity: `ceiling` is an UPPER bound, so every
+            // finite hit clears a -infinity ceiling and is diverted into the lowest-above-ceiling
+            // bucket. That made the lookahead return the LOWEST surface ahead, so a rock or a
+            // floor slab under the dune face read as a downhill grade and the climb braking
+            // switched itself off. SampleGround uses +infinity for this same meaning.
+            if (ProbeGround(ahead, float.PositiveInfinity, out float aheadY, out _))
             {
                 GroundYAhead = aheadY;
                 raw = FoilPhysics.ClimbGrade(aheadY - GroundY, slopeLookahead);

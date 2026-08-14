@@ -24,17 +24,28 @@ namespace SpaceGame.Agents
         [Tooltip("Mount this poses the rider of. Found on this GameObject when empty.")]
         [SerializeField] private MountModule mountModule;
 
-        [Header("Saddle Pose (degrees, in the rider's own frame)")]
-        [Tooltip("X leans the bone forward, Y turns it, Z rolls it outward. Mirrored automatically " +
-                 "for the rider's left and right sides.")]
-        [SerializeField] private Vector3 upperLegRotation = new Vector3(-55f, 0f, 12f);
-        [SerializeField] private Vector3 lowerLegRotation = new Vector3(65f, 0f, 0f);
-        [SerializeField] private Vector3 footRotation = new Vector3(-10f, 0f, 0f);
+        [Header("Saddle Pose (degrees)")]
+        [Tooltip("Hip: X swings the thigh forward (negative), Z abducts it out around the mount's " +
+                 "barrel (negative opens the legs). Applied in the RIDER's frame and mirrored for " +
+                 "the two sides. Defaults are solved against the ostrich: the knee lands on the " +
+                 "barrel's edge rather than inside it, which is the difference between a rider " +
+                 "gripping the animal and one standing in it.")]
+        [SerializeField] private Vector3 upperLegRotation = new Vector3(-50f, 0f, -26f);
+        [Tooltip("Knee, hinged in the THIGH's frame so the bend follows the abducted leg. NEGATIVE " +
+                 "closes the knee on this rig — positive kicks the shin up behind like a hamstring " +
+                 "curl and lifts the foot above the knee.")]
+        [SerializeField] private Vector3 lowerLegRotation = new Vector3(-90f, 0f, 0f);
+        [SerializeField] private Vector3 footRotation = new Vector3(25f, 0f, 0f);
         [SerializeField] private Vector3 spineRotation = new Vector3(8f, 0f, 0f);
         [Tooltip("Split from the spine so the rider's back curves over two joints instead of " +
                  "hinging at one.")]
         [SerializeField] private Vector3 chestRotation = new Vector3(6f, 0f, 0f);
-        [SerializeField] private Vector3 upperArmRotation = new Vector3(-40f, 0f, 8f);
+        [Tooltip("Shoulder, in the rider's frame. Positive X drops the arm — the arms hang off the " +
+                 "already-leaned chest, so a negative swing here puts the hands up around the " +
+                 "rider's own head instead of down on the reins.")]
+        [SerializeField] private Vector3 upperArmRotation = new Vector3(15f, 0f, 8f);
+        [Tooltip("Elbow, hinged in the UPPER ARM's frame so the forearm folds wherever the shoulder " +
+                 "has put it.")]
         [SerializeField] private Vector3 lowerArmRotation = new Vector3(35f, 0f, 0f);
 
         [Header("Motion Response")]
@@ -238,15 +249,42 @@ namespace SpaceGame.Agents
 
             Bone(HumanBodyBones.LeftUpperArm, upperArmRotation, false);
             Bone(HumanBodyBones.RightUpperArm, upperArmRotation, true);
-            Bone(HumanBodyBones.LeftLowerArm, lowerArmRotation, false);
-            Bone(HumanBodyBones.RightLowerArm, lowerArmRotation, true);
+            // Elbows and knees hinge about the limb they are ON, not about the rider's torso. Once
+            // the thigh has been swung out around the barrel, "bend down and back" is a rotation in
+            // the THIGH's frame; asking for it in the rider's frame swings the shin out sideways
+            // instead and leaves the leg held out in a mid-air split.
+            BoneLocal(HumanBodyBones.LeftLowerArm, lowerArmRotation, false);
+            BoneLocal(HumanBodyBones.RightLowerArm, lowerArmRotation, true);
 
             Bone(HumanBodyBones.LeftUpperLeg, upperLegRotation, false);
             Bone(HumanBodyBones.RightUpperLeg, upperLegRotation, true);
-            Bone(HumanBodyBones.LeftLowerLeg, lowerLegRotation, false);
-            Bone(HumanBodyBones.RightLowerLeg, lowerLegRotation, true);
-            Bone(HumanBodyBones.LeftFoot, footRotation, false);
-            Bone(HumanBodyBones.RightFoot, footRotation, true);
+            BoneLocal(HumanBodyBones.LeftLowerLeg, lowerLegRotation, false);
+            BoneLocal(HumanBodyBones.RightLowerLeg, lowerLegRotation, true);
+            BoneLocal(HumanBodyBones.LeftFoot, footRotation, false);
+            BoneLocal(HumanBodyBones.RightFoot, footRotation, true);
+        }
+
+        /// <summary>
+        /// Rotate a hinge joint about its OWN parent-relative frame, so the bend follows wherever
+        /// the limb has already been swung to.
+        ///
+        /// X is the hinge axis. Which SIGN closes the joint is a property of the rig, not of this
+        /// code — on the Mixamo-derived astronaut it is negative, and a positive knee value kicks
+        /// the shin up behind the rider instead of folding it down. Measure before trusting a sign
+        /// here. Mirroring negates Y and Z only, exactly as in <see cref="Bone"/>, so a symmetric
+        /// pair stays symmetric.
+        /// </summary>
+        private void BoneLocal(HumanBodyBones bone, Vector3 euler, bool mirror)
+        {
+            Transform target = riderAnimator.GetBoneTransform(bone);
+            if (target == null)
+                return;
+
+            if (mirror)
+                euler = new Vector3(euler.x, -euler.y, -euler.z);
+
+            Quaternion offset = Quaternion.Slerp(Quaternion.identity, Quaternion.Euler(euler), weight);
+            target.localRotation = target.localRotation * offset;
         }
 
         /// <summary>

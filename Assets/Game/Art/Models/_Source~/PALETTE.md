@@ -6,7 +6,7 @@ edit the palette and regenerate, or the two will disagree.
 Every model and component in this repository links its materials from here.
 Before adding anything, search this table for something that would serve.
 
-**32 material(s)** across 8 categor(ies).
+**35 material(s)** across 9 categor(ies).
 
 ## Emissive
 
@@ -33,6 +33,14 @@ Before adding anything, search this table for something that would serve.
 | Name | Hex | Roughness | Metallic | Intended for |
 |---|---|---|---|---|
 | `Mat_Glass_Canopy_Tinted` | `#AEC4CC` | 0.05 | 0.0 | Cockpit canopy, side viewports, gauge covers. Lightly tinted, scratched. |
+
+## Hide
+
+| Name | Hex | Roughness | Metallic | Intended for |
+|---|---|---|---|---|
+| `Mat_Hide_Claw_Horn` | `#4A3D2E` | 0.34 | 0.0 | Dark polished keratin: digging claws, tooth enamel, beak edges and horn tips on organic creatures. Lower roughness than the hide family because worn claw takes a shine. Distinct from Mat_Paint_Olive_Deep, which is enamel on steel. |
+| `Mat_Hide_Plate_Tan` | `#987340` | 0.62 | 0.0 | Darker tan keratin: the Vrescal's overlapping dorsal armour plates and scutes. Reads as hardened shell against the softer Mat_Hide_Sand_Pale skin. Distinct from Mat_Wood_Ply_Worn, which is scavenged plywood, not a body surface. |
+| `Mat_Hide_Sand_Pale` | `#E7B345` | 0.72 | 0.0 | Pale sand-yellow creature hide: the Vrescal's head, belly, limbs and tail keel. The soft skin tone the darker keratin plates sit on. Distinct from Mat_Emissive_Amber, which is a lamp, not a surface. |
 
 ## Metal
 

@@ -2,7 +2,6 @@
 // Each one draws the default inspector fields plus a Generate button.
 // Clicking Generate adds all required modules to the GameObject and sets their values.
 // After generating you can remove the profile component — the modules are fully configured.
-#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
@@ -104,7 +103,10 @@ namespace SpaceGame.EditorTools
             EditorUtility.SetDirty(rb);
 
             SetObject(motor,      "agent",          navAgent);
-            SetObject(controller, "motorComponent", motor);
+            // AgentController declares this field as `MotorComponent`. FindProperty is
+            // case-sensitive and SetObject swallows a null property, so the lowercase spelling
+            // silently left the motor slot empty on every generated prefab.
+            SetObject(controller, "MotorComponent", motor);
             SetObject(controller, "animatorDriver", animDriver);
             SetInt   (health,     "maxHealth",      maxHealth);
             SetInt   (health,     "currentHealth",  maxHealth);
@@ -372,6 +374,4 @@ namespace SpaceGame.EditorTools
             });
         }
     }
-
-    #endif
 }

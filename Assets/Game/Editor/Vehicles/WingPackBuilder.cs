@@ -22,8 +22,9 @@ namespace SpaceGame.EditorTools
 {
     public static class WingPackBuilder
     {
-        private const string CraftPath = "Assets/Game/Prefabs/agents/vehicle/DuneOrnithopter.prefab";
-        private const string PrefabPath = "Assets/Game/Prefabs/items/WingPack.prefab";
+        private const string CraftPath =
+            "Assets/Game/Prefabs/Agents/Vehicles/Aircraft/DuneOrnithopter.prefab";
+        private const string PrefabPath = "Assets/Game/Prefabs/Items/Equipment/WingPack.prefab";
         private const string ItemPath = "Assets/Game/Resources/Items/Artifacts/WingPack.asset";
         private const string ModelPath = "Assets/Game/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx";
 

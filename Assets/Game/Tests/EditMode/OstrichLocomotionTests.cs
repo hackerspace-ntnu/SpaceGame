@@ -13,7 +13,7 @@ namespace SpaceGame.Tests
 {
     public class OstrichLocomotionTests
     {
-        private const string PrefabPath = "Assets/Game/Prefabs/agents/creatures/Ostrich.prefab";
+        private const string PrefabPath = "Assets/Game/Prefabs/Agents/Creatures/Ostrich.prefab";
         private const float Dt = 1f / 60f;
         private const int Frames = 600;
 
@@ -313,6 +313,91 @@ namespace SpaceGame.Tests
             Trace t = March(Spawn(), 0.35f, yawRate);
             Assert.Less(t.WorstPlantedSlip, 0.01f,
                         "a planted foot was dragged " + t.WorstPlantedSlip.ToString("F4") + " m through a turn");
+        }
+
+        // ─────────── the legs swing fore-and-aft, not sideways ───────────
+
+        /// Walking forwards, a leg must stay in its own sagittal plane.
+        ///
+        /// It did not. The gait aimed each foothold within an eight-centimetre lateral band -- it is
+        /// the rest position plus travel down the nose, so there is nothing sideways in it -- and the
+        /// foot arrived up to half a metre out to the side, the left one swinging clear across the
+        /// body's centreline. The cause was in the shared IK rather than here: see
+        /// WalkerLimbSolverTests.Yaw_ReachesBehindTheHip_RatherThanTurningTheLegAroundToFaceIt.
+        ///
+        /// Measured on the POSED BONES, not on the foothold. The gait believes a foot is wherever it
+        /// put it, so a foot the linkage could not honour looks perfect from the gait's side.
+        ///
+        /// Measured in the WORLD frame too, which matters more than it looks. The bird is set walking
+        /// down +Z with its heading fixed, so world X is purely lateral for the whole run -- while its
+        /// body-space X is not, because the body rolls and sways over the stance foot by design. A
+        /// stationary foot read in body space appears to swing a tenth of a metre from the body's roll
+        /// alone, which is the bob doing its job rather than the legs going sideways.
+        [Test]
+        public void FeetSwingForeAndAft_NotSideways([Values(0.25f, 0.5f, 0.95f)] float speedFraction)
+        {
+            OstrichLocomotion loco = Spawn();
+            bird.transform.rotation = Quaternion.identity;
+            loco.SnapToGround();
+            loco.SetTwist(loco.MaxSpeed * speedFraction, 0f);
+
+            var minX = new[] { float.MaxValue, float.MaxValue };
+            var maxX = new[] { float.MinValue, float.MinValue };
+            float worstMiss = 0f;
+
+            for (int i = 0; i < Frames; i++)
+            {
+                loco.Step(Dt);
+                if (i < 120) continue;      // the first stride is spent finding the ground
+
+                for (int leg = 0; leg < 2; leg++)
+                {
+                    Assert.IsTrue(loco.TryGetSole(leg, out Vector3 sole));
+                    Assert.IsTrue(loco.TryGetFoot(leg, out Vector3 foothold, out _));
+
+                    minX[leg] = Mathf.Min(minX[leg], sole.x);
+                    maxX[leg] = Mathf.Max(maxX[leg], sole.x);
+                    worstMiss = Mathf.Max(worstMiss, Mathf.Abs(foothold.x - sole.x));
+                }
+            }
+
+            for (int leg = 0; leg < 2; leg++)
+                Assert.Less(maxX[leg] - minX[leg], 0.06f,
+                            "leg " + leg + "'s sole swung " + (maxX[leg] - minX[leg]).ToString("F3") +
+                            " m sideways while the bird walked straight ahead");
+
+            Assert.Less(worstMiss, 0.03f,
+                        "a foot was placed " + worstMiss.ToString("F3") +
+                        " m to the side of the foothold the gait chose");
+        }
+
+        /// The legs must not cross. Half a metre of lateral throw put the left foot past the body's
+        /// centreline and under the right leg, which is the part that reads as broken rather than
+        /// merely loose.
+        [Test]
+        public void TheLegsNeverCrossTheBodysCentreline()
+        {
+            OstrichLocomotion loco = Spawn();
+            bird.transform.rotation = Quaternion.identity;
+            loco.SnapToGround();
+            loco.SetTwist(loco.MaxSpeed * 0.5f, 0f);
+
+            for (int i = 0; i < Frames; i++)
+            {
+                loco.Step(Dt);
+                if (i < 120) continue;
+
+                Assert.IsTrue(loco.TryGetSole(0, out Vector3 left));
+                Assert.IsTrue(loco.TryGetSole(1, out Vector3 right));
+
+                float centre = bird.transform.position.x;
+                Assert.Less(left.x, centre,
+                            "the left foot crossed " + (left.x - centre).ToString("F3") +
+                            " m past the centreline on frame " + i);
+                Assert.Greater(right.x, centre,
+                               "the right foot crossed " + (right.x - centre).ToString("F3") +
+                               " m past the centreline on frame " + i);
+            }
         }
     }
 }

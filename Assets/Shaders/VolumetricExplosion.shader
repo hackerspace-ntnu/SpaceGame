@@ -5,8 +5,14 @@ Shader "Custom/VolumetricExplosion"
         _MainTex ("Noise Texture", 2D) = "white" {}
         _Speed ("Explosion Speed", Float) = 1.0
         _Scale ("Explosion Scale", Float) = 1.0
-        _ExplosionIntensity ("Explosion Intensity", Float) = 1.0
-        _CustomTime ("Custom Time", Float) = 0.0
+        _IsActive ("Is Active (0=off, 1=on)", Float) = 0.0
+        
+        _BaseColor ("Base Color", Color) = (0.82, 0.07, 0.00, 1.0)
+        _HighlightColor ("Highlight Color", Color) = (1.0, 0.78, 0.18, 1.0)
+        _SootColor ("Soot Color", Color) = (0.02, 0.018, 0.016, 1.0)
+        
+        _Intensity ("Overall Intensity", Float) = 1.0
+        _NoiseScale ("Noise Scale", Float) = 1.0
     }
     SubShader
     {
@@ -39,8 +45,14 @@ Shader "Custom/VolumetricExplosion"
             float4 _MainTex_ST;
             float _Speed;
             float _Scale;
-            float _ExplosionIntensity;
-            float _CustomTime;
+            float _IsActive;
+            
+            float3 _BaseColor;
+            float3 _HighlightColor;
+            float3 _SootColor;
+            
+            float _Intensity;
+            float _NoiseScale;
 
             v2f vert (appdata v)
             {
@@ -84,7 +96,7 @@ Shader "Custom/VolumetricExplosion"
 
                 for (int i = 0; i < 6; i++)
                 {
-                    v += a * noise(p);
+                    v += a * noise(p * _NoiseScale);
                     p = mul(m, p) * 2.02 + 17.3;
                     a *= 0.5;
                 }
@@ -94,7 +106,7 @@ Shader "Custom/VolumetricExplosion"
 
             float texNoise(float2 p)
             {
-                return tex2D(_MainTex, frac(p)).r;
+                return tex2D(_MainTex, frac(p * _NoiseScale)).r;
             }
 
             float texFbm(float2 p)
@@ -117,16 +129,31 @@ Shader "Custom/VolumetricExplosion"
 
             fixed4 frag (v2f i) : SV_Target
             {
+                // Return transparent if explosion is off
+                if (_IsActive < 0.5)
+                    return fixed4(0, 0, 0, 0);
+
                 float2 uv = i.uv;
                 float2 p = uv * 6.0 - 3.0;
                 p.x *= 1.0;
 
-                float t = _CustomTime * _Speed;  // Time from controller - never decreases
+                float t = fmod(_Time.y * _Speed, 8.0);
                 float life = t / 8.0;
                 float2 q = p;
 
-                // Cap time growth at 6 seconds - don't grow after that
-                float tGrowth = min(t, 6.0);
+                // Explosive growth curve: quick at start, slows down, then holds size while fading
+                float tGrowth;
+                if (t < 0.5)
+                {
+                    // Explosive start: very fast growth
+                    tGrowth = t * 4.0;  // 0 to 2.0 in first 0.5s
+                }
+                else
+                {
+                    // Slower continued growth to max, then hold constant
+                    tGrowth = 2.0 + (t - 0.5) * 0.4;  // Continues growing
+                    tGrowth = min(tGrowth, 4.2);  // Cap at max size
+                }
 
                 float dist = length(q);
                 float2 dir = normalize(q + 1e-5);
@@ -164,10 +191,10 @@ Shader "Custom/VolumetricExplosion"
                 float d2 = fbm(wp * 7.5 + float2(0.0, tGrowth * 0.6));
                 float d3 = fbm(wp * 12.0 - float2(tGrowth * 0.8, -tGrowth * 0.3));
 
-                // Texture noise for richer cloudy breakup
-                float2 tp1 = wp * 0.22 + float2(t * 0.025, -t * 0.018);
-                float2 tp2 = wp * 0.40 + warp * 0.08 + float2(-t * 0.014, t * 0.021);
-                float2 tp3 = wp * 0.75 - dir * t * 0.03;
+                // Texture noise for richer cloudy breakup - now scaled by _NoiseScale
+                float2 tp1 = wp * 0.22 * _NoiseScale + float2(t * 0.025, -t * 0.018);
+                float2 tp2 = wp * 0.40 * _NoiseScale + warp * 0.08 + float2(-t * 0.014, t * 0.021);
+                float2 tp3 = wp * 0.75 * _NoiseScale - dir * t * 0.03;
 
                 float td1 = texFbm(tp1);
                 float td2 = texFbm(tp2);
@@ -258,14 +285,14 @@ Shader "Custom/VolumetricExplosion"
                     0.0, 1.0
                 );
 
-                // Color
-                float3 darkRed  = float3(0.16, 0.02, 0.00);
-                float3 red      = float3(0.82, 0.07, 0.00);
-                float3 orange   = float3(1.00, 0.34, 0.03);
-                float3 yellow   = float3(1.00, 0.78, 0.18);
-                float3 white    = float3(1.00, 0.96, 0.82);
+                // Color - derive from controller properties
+                float3 darkRed  = _BaseColor * 0.2;
+                float3 red      = _BaseColor;
+                float3 orange   = lerp(_BaseColor, _HighlightColor, 0.5);
+                float3 yellow   = _HighlightColor;
+                float3 white    = _HighlightColor * 1.5;
                 float3 smokeCol = float3(0.08, 0.075, 0.07);
-                float3 sootCol  = float3(0.02, 0.018, 0.016);
+                float3 sootCol  = _SootColor;
 
                 float3 col = float3(0.0, 0.0, 0.0);
 
@@ -278,7 +305,7 @@ Shader "Custom/VolumetricExplosion"
                 col += yellow * core * 1.2;
 
                 col += orange * edge * 1.2;
-                col += float3(1.0, 0.45, 0.12) * sparks * 1.7;
+                col += yellow * sparks * 1.7;
 
                 col *= 1.0 - sootAmt * 0.65;
 
@@ -302,7 +329,7 @@ Shader "Custom/VolumetricExplosion"
                 alpha *= (1.0 - endFade);
                 
                 // Apply overall intensity from controller
-                alpha *= _ExplosionIntensity;
+                alpha *= _Intensity;
 
                 return fixed4(col, alpha);
             }

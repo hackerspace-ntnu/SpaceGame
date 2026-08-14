@@ -37,11 +37,17 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _CustomTime: 0
     - _ExplosionIntensity: 1
     - _Intensity: 1
+    - _IsActive: 0
+    - _NoiseScale: 46.79
     - _Scale: 1
-    - _Speed: 5
+    - _Speed: 1
     - _Zoom: 1
-    m_Colors: []
+    m_Colors:
+    - _BaseColor: {r: 1, g: 0.63080287, b: 0, a: 1}
+    - _HighlightColor: {r: 1, g: 0.78, b: 0.17999998, a: 1}
+    - _SootColor: {r: 0.02, g: 0.018, b: 0.016, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -55,7 +55,7 @@ namespace SpaceGame.Tests
         {
             string ip = SessionLauncher.GetLocalIPv4();
 
-            Assert.IsFalse(string.IsNullOrWhiteSpace(ip), "Direct Connect shows this to the player.");
+            Assert.IsFalse(string.IsNullOrWhiteSpace(ip), "HostDirect binds the test host to this.");
             Assert.IsTrue(IPAddress.TryParse(ip, out IPAddress parsed), $"'{ip}' is not an IP address.");
             Assert.AreEqual(System.Net.Sockets.AddressFamily.InterNetwork, parsed.AddressFamily,
                 "UnityTransport's direct path expects IPv4.");

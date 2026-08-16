@@ -57,7 +57,7 @@ namespace SpaceGame.Core
         /// <summary>How long a client waits for the handshake before calling it a failure.</summary>
         public const float ConnectTimeoutSeconds = 15f;
 
-        /// <summary>Default port for the Relay-free direct path.</summary>
+        /// <summary>Default port for the Relay-free direct path. TEST ONLY — see HostDirect.</summary>
         public const ushort DefaultDirectPort = 7777;
 
         /// <summary>
@@ -109,9 +109,11 @@ namespace SpaceGame.Core
             catch (Exception e)
             {
                 Debug.LogError($"[SessionLauncher] Unity Services unavailable: {e}");
+                // Deliberately offers no fallback route: Relay is the only way into a session, so
+                // suggesting one would point the player at a screen that does not exist.
                 return SessionResult.Fail(
-                    "Could not reach Unity Gaming Services. Check your internet connection, or use " +
-                    $"Direct Connect instead.\n({e.GetType().Name}: {e.Message})");
+                    "Could not reach Unity Gaming Services. Check your internet connection and try " +
+                    $"again.\n({e.GetType().Name}: {e.Message})");
             }
         }
 
@@ -186,13 +188,26 @@ namespace SpaceGame.Core
         }
 
         // ─────────────────────────────────────────────
-        //  Direct — no Unity Gaming Services involved
+        //  Direct — TEST ONLY. Not a way into the game.
+        //
+        //  Relay is the only route a player can take. These two methods exist solely so
+        //  MultiplayerAutotest can stand up a host and a client in two separate processes on
+        //  127.0.0.1, which is the only way the client half of the netcode can be tested at all:
+        //  this codebase asks NetworkManager.Singleton who it is, so a second manager in the same
+        //  process is invisible to Network.IsNetworked/Simulates/Owns.
+        //
+        //  Relay cannot serve that test. It needs UGS auth, a live allocation, and a join code that
+        //  only exists at runtime on the host — and two -batchmode processes have no channel to
+        //  pass that code between them. A fixed loopback address needs no coordination.
+        //
+        //  The player-facing half of this path — DirectConnectController, the retired lobby's
+        //  "Direct" tab — was deleted. Do not wire these to a menu; that reintroduces the second
+        //  route that deletion existed to remove.
         // ─────────────────────────────────────────────
 
         /// <summary>
-        /// Hosts on a plain UDP socket. This path touches no Unity service, so it keeps working when
-        /// Relay or Lobby is down, unconfigured for the project, or blocked by a network — which is
-        /// exactly when the Relay path is least able to tell you what went wrong.
+        /// TEST ONLY — see the section comment above. Hosts on a plain UDP socket, touching no Unity
+        /// service. Called by <see cref="MultiplayerAutotest"/>; not reachable from any menu.
         /// </summary>
         public static SessionResult HostDirect(ushort port = DefaultDirectPort)
         {
@@ -260,7 +275,10 @@ namespace SpaceGame.Core
             }
         }
 
-        /// <summary>Connects straight to an address, then waits for the handshake.</summary>
+        /// <summary>
+        /// TEST ONLY — see the section comment above. Connects straight to an address, then waits
+        /// for the handshake. Called by <see cref="MultiplayerAutotest"/>; not reachable from any menu.
+        /// </summary>
         public static async Task<SessionResult> JoinDirectAsync(string address, ushort port = DefaultDirectPort)
         {
             if (string.IsNullOrWhiteSpace(address))
@@ -361,7 +379,10 @@ namespace SpaceGame.Core
         public static string NormalizeJoinCode(string code) =>
             string.IsNullOrEmpty(code) ? string.Empty : code.Trim().ToUpperInvariant();
 
-        /// <summary>This machine's LAN address, for showing a friend what to type. Loopback if offline.</summary>
+        /// <summary>
+        /// This machine's LAN address, or loopback if offline. Only <see cref="HostDirect"/> uses it,
+        /// to bind the test host's advertised address — no player is ever shown an IP.
+        /// </summary>
         public static string GetLocalIPv4()
         {
             try

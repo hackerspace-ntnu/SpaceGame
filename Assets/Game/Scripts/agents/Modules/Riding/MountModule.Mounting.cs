@@ -25,6 +25,7 @@ namespace SpaceGame.Agents
             // Arm before anything parents the rider: the beacon is the only thing that can tell a
             // later Dismount that the rider is being destroyed rather than merely leaving.
             RiderTeardownBeacon.Arm(mountedPlayer);
+            SubscribeToRiderDeath();
             DisableRiderComponentsForMount();
             EnterMountedRigidbodyState();
             ParentRiderToMount();
@@ -153,6 +154,26 @@ namespace SpaceGame.Agents
             if (!IsMounted)
                 return;
 
+            // Re-entrancy guard. IsMounted alone does not close this: mountedPlayer is not cleared
+            // until ClearMountedReferences at the very end, but Dismounted fires before it, and
+            // listeners routinely dismount in response (WingPackItem tears the craft down, which
+            // reaches Dismount again). Death added a seventh path in, so this stops relying on
+            // every listener remembering to unsubscribe before it calls back.
+            if (dismounting)
+                return;
+            dismounting = true;
+            try
+            {
+                DismountInternal();
+            }
+            finally
+            {
+                dismounting = false;
+            }
+        }
+
+        private void DismountInternal()
+        {
             Transform rider = mountedPlayer;
 
             // The rider is going away underneath us — they died, or whatever owns them is being
@@ -274,6 +295,16 @@ namespace SpaceGame.Agents
 
         private void RestoreRiderComponentsAfterDismount()
         {
+            // A dead rider gets nothing back. Death freezes movement, look and input and releases
+            // the cursor for the death screen; dying mid-ride then tears the mount down, and this
+            // restore runs AFTER that freeze. Re-enabling PlayerLook here is not just a stray flag:
+            // PlayerLook.OnEnable re-locks the cursor and its LateUpdate keeps re-locking it every
+            // frame, which is what makes the respawn button unclickable after dying while flying.
+            //
+            // The head stays hidden and the freeze stands until OnRevive hands control back.
+            if (RiderIsDead())
+                return;
+
             if (disablePlayerMovement && mountedPlayerMovement)
                 mountedPlayerMovement.enabled = true;
 
@@ -285,6 +316,52 @@ namespace SpaceGame.Agents
 
             if (disablePlayerInteractor && mountedInteractor)
                 mountedInteractor.enabled = true;
+        }
+
+        /// <summary>
+        /// Whether the rider being dismounted is dead — asked of PlayerController, which owns the
+        /// death state, rather than inferred from the component flags this method is about to write.
+        /// </summary>
+        private bool RiderIsDead()
+        {
+            if (!mountedPlayer)
+                return false;
+
+            var controller = mountedPlayer.GetComponent<PlayerController>();
+            return controller != null && controller.IsDead;
+        }
+
+        // Dying in the saddle used to leave the corpse strapped in and the mount still flying:
+        // nothing between HealthComponent and MountModule knew the rider had died, and the only
+        // things that ever dismount are landing, bailing out and teardown. The rider's death is a
+        // dismount like any other, so it goes through the same single path.
+        private void SubscribeToRiderDeath()
+        {
+            UnsubscribeFromRiderDeath();
+            if (!mountedPlayer)
+                return;
+
+            mountedRiderHealth = mountedPlayer.GetComponent<HealthComponent>();
+            if (mountedRiderHealth != null)
+                mountedRiderHealth.OnDeath += HandleRiderDied;
+        }
+
+        private void UnsubscribeFromRiderDeath()
+        {
+            if (mountedRiderHealth != null)
+                mountedRiderHealth.OnDeath -= HandleRiderDied;
+            mountedRiderHealth = null;
+        }
+
+        // Ordering matters: PlayerController.OnDeath applies the freeze, and this runs off the same
+        // OnDeath event, so the dismount that follows already sees IsDead and leaves the freeze
+        // alone. Subscription order between the two listeners is not relied on — the guard in
+        // RestoreRiderComponentsAfterDismount reads the flag, and if this somehow ran first the
+        // freeze would simply be applied afterwards, which lands in the same place.
+        private void HandleRiderDied()
+        {
+            if (IsMounted)
+                Dismount();
         }
 
         private void EnterMountedRigidbodyState()
@@ -384,6 +461,10 @@ namespace SpaceGame.Agents
 
         private void ClearMountedReferences()
         {
+            // Both teardown paths (Dismount and AbandonRider) end here, which makes this the one
+            // place guaranteed to run whichever way the rider left.
+            UnsubscribeFromRiderDeath();
+
             mountedPlayer = null;
             mountedPlayerMovement = null;
             mountedPlayerLook = null;

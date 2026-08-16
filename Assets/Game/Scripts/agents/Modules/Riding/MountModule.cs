@@ -137,6 +137,13 @@ namespace SpaceGame.Agents
         private PlayerLook mountedPlayerLook;
         private Interactor mountedInteractor;
         private Rigidbody mountedPlayerRigidbody;
+
+        // Held so the death subscription can be undone on the exact instance it was made against,
+        // even once mountedPlayer has been cleared.
+        private SpaceGame.Gameplay.HealthComponent mountedRiderHealth;
+
+        /// <summary>Set for the duration of a dismount, so a listener calling back in is ignored.</summary>
+        private bool dismounting;
         private bool playerRigidbodyWasKinematic;
         private bool playerRigidbodyHadGravity;
         private RigidbodyInterpolation playerRigidbodyInterpolation;

@@ -1,0 +1,122 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39bf313ec092248f3803ae25e6ddcb56, type: 3}
+  m_Name: RuinCave
+  m_EditorClassIdentifier: Assembly-CSharp::CaveProfile
+  description: Faithful recreation of the Ruin Cave cave generation parameters captured
+    from the pre-refactor inline settings in the original scene. All new shape modifiers
+    (cathedrals/slot canyons/shafts), the noise-type selector, and mesh smoothing
+    are left at their defaults so this profile produces the same geometry the legacy
+    code did.
+  shape:
+    seed: 0
+    halfExtents: {x: 60, y: 35, z: 60}
+    voxelSize: 1.5
+    boundsPadding: 2
+    roomCount: 40
+    roomRadius: {x: 5, y: 9}
+    bigRoomChance: 0.25
+    maxCorridorLength: 40
+    minConnectionsPerRoom: 2
+    extraConnectionRatio: 0.25
+    corridorRadius: {x: 1.4, y: 3}
+    wideCorridorChance: 0.3
+    verticalRange: 50
+    verticalWalkBias: 0.245
+    perRoomVerticalJitter: 4
+    maxCorridorSlope: 0.6
+    noiseType: 0
+    noiseAmplitude: 1.4
+    noiseFrequency: 0.08
+    domainWarpStrength: 2.5
+    smoothUnionRadius: 1.8
+    enableCathedralChambers: 0
+    cathedralCeilingLift: 10
+    enableSlotCanyons: 0
+    slotCanyonChance: 0.3
+    slotCanyonHeightStretch: 2.5
+    enableVerticalShafts: 0
+    verticalShaftChance: 0.25
+    verticalShaftMinDrop: 8
+    verticalShaftRadius: 2.5
+    flattenFloors: 1
+    floorFlattenDepth: 1.5
+    floorFlattenStrength: 0.65
+    floorSlopeAmount: 0.18
+    floorRoughness: 0.55
+    floorRoughnessFrequency: 0.35
+    floorClampY: -16
+    use32BitIndices: 1
+    flatShade: 0
+    recalculateTangents: 0
+    smoothingIterations: 3
+    smoothingStrength: 0.5
+    smoothingPreserveVolume: 1
+    useGradientNormals: 1
+    gradientEpsilon: 0.75
+    bakeNavMeshOnGenerate: 1
+  decoration:
+    enabled: 1
+    floorCeilingThreshold: 0.7
+    globalInstanceCap: 4000
+    rules:
+    - name: 
+      enabled: 1
+      prefabs:
+      - {fileID: 919132149155446097, guid: 2cc258338d3e049e386c74e497109512, type: 3}
+      - {fileID: 919132149155446097, guid: 5475276684ee94426a275b7e270c5682, type: 3}
+      - {fileID: 919132149155446097, guid: 3974b222a3762484484d3ec610cdb65b, type: 3}
+      - {fileID: 919132149155446097, guid: 15dbe324844354c10b8d44c1c1f4cdc9, type: 3}
+      - {fileID: 919132149155446097, guid: 11698ae43d32545eaa0e2bfdf07112c3, type: 3}
+      - {fileID: 919132149155446097, guid: 074557fc7437549589c7460d9bb92b78, type: 3}
+      fallbackColor: {r: 0, g: 0, b: 0, a: 0}
+      fallbackEmission: {r: 0, g: 0, b: 0, a: 0}
+      fallbackPrimitive: 0
+      surfaceType: 1
+      allowedRoomKinds: 00000000030000000200000001000000
+      minWorldY: -200
+      maxWorldY: 300
+      maxSurfaceTilt: 0.207
+      liquidProximityBoost: 0
+      densityPerSqM: 0.03
+      minSpacing: 0
+      maxInstances: 0
+      densityNoiseScale: 0.161
+      densityNoiseContrast: 0
+      scaleRange: {x: 0.05, y: 0.6}
+      normalAlignment: 0.462
+      yawRange: {x: 0.5, y: 2}
+      surfaceEmbed: 0
+      attachedLightRange: 0
+      attachedLightIntensity: 0
+      seedSalt: 0
+  liquid:
+    enabled: 1
+    fillFraction: 0.18
+    minPoolVolume: 4
+    maxPoolCount: 16
+    liquidMaterial: {fileID: 0}
+    liquidTag: Untagged
+    spawnTriggerVolume: 1
+    triggerDepth: 3
+  material:
+    primaryMaterial: {fileID: 2100000, guid: 963133962477432bb203ae0bc868cd34, type: 2}
+    chamberMaterial: {fileID: 0}
+    clusterLightCount: 5
+    clusterLightColor: {r: 0.35, g: 0.75, b: 1, a: 1}
+    clusterLightIntensity: 0.8
+    clusterLightRange: 5
+    clusterLightMaxNormalY: 0.7
+    overrideFog: 0
+    fogColor: {r: 0.05, g: 0.08, b: 0.1, a: 1}
+    fogDensity: 0.025
+    caveLayer: Interior

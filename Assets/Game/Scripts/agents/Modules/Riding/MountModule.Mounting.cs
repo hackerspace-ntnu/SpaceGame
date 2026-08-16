@@ -22,6 +22,9 @@ namespace SpaceGame.Agents
                 return false;
 
             CacheMountedPlayerReferences(playerMovement, mountPointOverride);
+            // Arm before anything parents the rider: the beacon is the only thing that can tell a
+            // later Dismount that the rider is being destroyed rather than merely leaving.
+            RiderTeardownBeacon.Arm(mountedPlayer);
             DisableRiderComponentsForMount();
             EnterMountedRigidbodyState();
             ParentRiderToMount();
@@ -151,6 +154,22 @@ namespace SpaceGame.Agents
                 return;
 
             Transform rider = mountedPlayer;
+
+            // The rider is going away underneath us — they died, or whatever owns them is being
+            // destroyed and took the seat with it. Every restore below reaches into that doomed
+            // object, and the reparent is outright illegal, so there is nothing useful left to do
+            // but forget them. Same reasoning as the mount-side case in OnDisable, mirrored.
+            //
+            // This lives HERE, not at the call sites, because six independent paths reach Dismount
+            // (SteerModule, MountNetworkSync, DuneRiderController, WingPackItem, OnDisable, and
+            // anything added later) and each one would otherwise need the same guard.
+            if (!RiderTeardownBeacon.CanReparent(rider))
+            {
+                AbandonRider();
+                lastMountChangeTime = Time.time;
+                return;
+            }
+
             UnparentRider(rider);
 
             Vector3 dismountPosition = dismountPoint
@@ -179,8 +198,11 @@ namespace SpaceGame.Agents
             lastMountChangeTime = Time.time;
         }
 
-        // The teardown counterpart to Dismount, for when the mount is going away underneath the rider
-        // and reparenting is illegal (see OnDisable). Everything Dismount restores — the rider's
+        // The teardown counterpart to Dismount, for when reparenting is illegal because one side of
+        // the pairing is going away. Two ways in, and they are mirror images:
+        //   • the MOUNT is going away underneath the rider  (OnDisable, activeInHierarchy == false)
+        //   • the RIDER is going away underneath the mount  (Dismount, beacon says being destroyed)
+        // Everything Dismount restores — the rider's
         // components, its Rigidbody, the ignored collision pairs, the third-person camera — belongs
         // to objects being deactivated or destroyed alongside this one, and the Dismounted event
         // would hand a doomed rider to listeners in the same state. So the only useful thing left is

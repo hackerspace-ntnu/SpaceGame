@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Core.Persistence;
 
 namespace SpaceGame.Presentation
 {
@@ -776,6 +777,12 @@ namespace SpaceGame.Presentation
             // finishes its own startup coroutines.
             ForceClose();
             GameSettings.Save();
+
+            // The world, not just the settings. Before the shutdown below, which tears down the
+            // stores the save reads from — leaving to the menu is otherwise indistinguishable
+            // from losing the session.
+            SaveManager.SaveOnExit();
+            WorldSession.Clear();
 
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;

@@ -179,6 +179,27 @@ namespace SpaceGame.Agents
             lastMountChangeTime = Time.time;
         }
 
+        // The teardown counterpart to Dismount, for when the mount is going away underneath the rider
+        // and reparenting is illegal (see OnDisable). Everything Dismount restores — the rider's
+        // components, its Rigidbody, the ignored collision pairs, the third-person camera — belongs
+        // to objects being deactivated or destroyed alongside this one, and the Dismounted event
+        // would hand a doomed rider to listeners in the same state. So the only useful thing left is
+        // to forget the rider, which is what stops anything here acting on a dead reference.
+        //
+        // The rider stays parented. That is correct while the whole hierarchy is going down; a mount
+        // that is deactivated and later reactivated with a rider aboard would come back mounted but
+        // untracked, so pooling a ridden mount would need a real dismount before the SetActive call.
+        private void AbandonRider()
+        {
+            runtimeThirdPersonCamera = null;
+            ignoredCollisionPairs = null;
+            suppressibleAnimators = null;
+            suppressibleAnimatorRootMotion = null;
+            ownRigidbodyConstraintsCaptured = false;
+            ClearMountedReferences();
+            activeSeatPoint = seatPoint;
+        }
+
         // Writing the transform alone isn't enough to place the rider. Physics.autoSyncTransforms is
         // off project-wide, so a direct transform write doesn't reach the Rigidbody until the next
         // physics step — until then the body still holds the pose it last synced, which is the mount's,

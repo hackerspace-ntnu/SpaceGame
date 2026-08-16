@@ -71,14 +71,15 @@ SRC = os.path.join(HERE, "vrescal.blend")
 DST = os.path.join(REPO, "Assets", "Game", "Art", "Models", "Creatures",
                    "Organic", "Vrescal", "vrescal.fbx")
 
-SHIP_LENGTH = 5.5       # metres, nose to tail tip
-SCULPT_LENGTH = 19.936  # working units, measured off the .blend
-GROUND = -3.35          # the sole plane in the .blend, from vrescal_legs.py
+SHIP_LENGTH = 8.31      # metres, nose to tail tip
+SCULPT_LENGTH = 30.11   # working units, measured off the .blend
+GROUND = -13.0          # the sole plane in the .blend, from vrescal_rebuild.py
 
-# The point in the .blend that becomes Unity's origin: on the sole plane,
-# midway between the shoulder (x = -3.4) and the hip (x = -8.8) and a little
-# forward of it, which is where a crocodilian actually carries its mass.
-PIVOT = (-5.60, 0.0, GROUND)
+# The point in the .blend that becomes Unity's origin: on the sole plane, under
+# the middle of the trunk, between the shoulder (x = -11.8) and the hip
+# (x = -21.6). Same value as `vrescal_rebuild.PIVOT_X`, which is where
+# `Bone_Root` sits -- they have to agree or the root bone is not at the origin.
+PIVOT = (-16.20, 0.0, GROUND)
 
 
 def main():

@@ -1,6 +1,7 @@
 using UnityEngine;
 using FMODUnity;
 using SpaceGame.Characters;
+using SpaceGame.Core;
 using SpaceGame.Presentation;
 
 namespace SpaceGame.Items
@@ -72,17 +73,20 @@ namespace SpaceGame.Items
         [Tooltip("Sound played when the pulse exposes at least one secret (in addition to the base useSound).")]
         [SerializeField] private EventReference discoverySound;
 
-        protected override void Use()
+        /// <summary>
+        /// Owner-side: settle which way the scanner is pointed, and send it.
+        ///
+        /// Every machine has to sweep the same cone, and only the scanning player's machine knows
+        /// which one that is — the sources below are all local views. A peer resolving its own
+        /// Camera.main would sweep from wherever ITS player happens to be looking.
+        /// </summary>
+        public override void OnRequestUse(ref NetArg arg)
         {
-            base.Use();
-            nextUseTime = Time.time + cooldown;
-
-            // ---- Aim direction ----
             // Prefer the *currently active* main camera (handles mount/unmount and
             // third-person swaps where the AimProvider's serialized camera ref can
             // be stale or disabled). Fall back to AimProvider, then player forward.
-            Vector3 rawAimDir = Vector3.zero;
-            string aimSource = "none";
+            Vector3 rawAimDir;
+            string aimSource;
             var activeCam = Camera.main;
             if (activeCam != null && activeCam.isActiveAndEnabled)
             {
@@ -104,7 +108,23 @@ namespace SpaceGame.Items
                 rawAimDir = transform.forward;
                 aimSource = "self.forward";
             }
+
             if (rawAimDir.sqrMagnitude < 0.0001f) rawAimDir = Vector3.forward;
+            arg.P = rawAimDir.normalized;
+
+            if (debugLogAim) Debug.Log($"[RuinScanner] aim source={aimSource} dir={arg.P}");
+        }
+
+        // Scanning is a way of looking at the world, not a change to it: nothing is spawned, moved
+        // or damaged, only revealed. So every machine runs the whole sweep on its own copy, from
+        // the one aim direction the scanning player sent. That also keeps the beam and the reveal
+        // in step, which is the property the class was built around.
+        protected override void Present()
+        {
+            nextUseTime = Time.time + cooldown;
+
+            Vector3 rawAimDir = UseArg.P;
+            if (rawAimDir.sqrMagnitude < 0.0001f) rawAimDir = transform.forward;
             rawAimDir.Normalize();
 
             // ---- Beam origin = raised top-down scan pose ----
@@ -117,7 +137,7 @@ namespace SpaceGame.Items
 
             if (debugLogAim)
             {
-                Debug.Log($"[RuinScanner] source={aimSource} rawAim={rawAimDir} scanAim={aimDir} scanOrigin={beamOrigin} muzzle={(muzzle != null ? muzzle.name : "<self>")}");
+                Debug.Log($"[RuinScanner] rawAim={rawAimDir} scanAim={aimDir} scanOrigin={beamOrigin} muzzle={(muzzle != null ? muzzle.name : "<self>")}");
             }
 
             // ---- Per-direction ray expansion ----

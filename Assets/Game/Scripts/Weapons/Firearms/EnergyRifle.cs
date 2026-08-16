@@ -74,13 +74,9 @@ namespace SpaceGame.Weapons
             if (Physics.Raycast(ray, out RaycastHit hit, rayDistance, aimMask, QueryTriggerInteraction.Ignore))
             {
                 // Apply damage to hit target
-                HealthComponent targetHealth = hit.collider.GetComponent<HealthComponent>();
-                if (targetHealth != null)
-                {
-                    float distanceFactor = Mathf.Max(0f, 1f - (hit.distance * damageDropoff / 100f));
-                    int actualDamage = Mathf.RoundToInt(25f * distanceFactor); // Base energy rifle damage
-                    targetHealth.Damage(actualDamage);
-                }
+                float distanceFactor = Mathf.Max(0f, 1f - (hit.distance * damageDropoff / 100f));
+                int actualDamage = Mathf.RoundToInt(25f * distanceFactor); // Base energy rifle damage
+                NetDamage.Apply(hit.collider.gameObject, actualDamage, transform);
 
                 // Spawn impact effect
                 if (impactEffectPrefab != null)

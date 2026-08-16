@@ -1,5 +1,6 @@
 using UnityEngine;
 using SpaceGame.Agents;
+using SpaceGame.Core;
 
 namespace SpaceGame.Items
 {
@@ -52,7 +53,12 @@ namespace SpaceGame.Items
             }
 
             Quaternion spawnRot = Quaternion.LookRotation(forwardFlat, Vector3.up);
-            GameObject launcher = Instantiate(launcherPrefab, spawnPos, spawnRot);
+
+            // Through the world service, not Instantiate: a turret placed by a plain Instantiate
+            // exists only on the machine that placed it. Use() is server-only (UseAuthority.Server
+            // is the default), so this always runs where spawning is allowed.
+            GameObject launcher = GameServices.World.Spawn(launcherPrefab, spawnPos, spawnRot);
+            if (launcher == null) return;
 
             // Freeze on landing so the launcher doesn't drift after spawning.
             if (launcher.GetComponent<GroundAnchorOnLand>() == null)

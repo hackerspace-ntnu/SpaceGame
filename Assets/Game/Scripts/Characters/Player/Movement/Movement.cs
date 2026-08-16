@@ -112,7 +112,9 @@ namespace SpaceGame.Characters
             var health = GetComponent<HealthComponent>();
             if (health)
             {
-                health.Damage(damage);
+                // Only the owner measures its own fall, but the server owns the health that
+                // results — otherwise a client's landing hurts nobody but their own screen.
+                NetDamage.Apply(health.gameObject, damage);
             }
         }
 

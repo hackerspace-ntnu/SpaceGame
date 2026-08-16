@@ -218,6 +218,48 @@ namespace SpaceGame.Core
             }
         }
 
+        /// <summary>
+        /// Hosts a session nobody else will join: singleplayer, which runs as a host of one.
+        ///
+        /// Deliberately does NOT call SetConnectionData. The transport keeps whatever the
+        /// NetworkManager prefab was authored with — including its port, which is set to a value
+        /// the project has already had to move once because Unity leaks the UDP socket on every
+        /// Play session. Overriding it here would both re-break that workaround and bind the
+        /// LAN interface for a session that only ever talks to itself.
+        ///
+        /// What it DOES do is clear stale Relay data. UnityTransport keeps its last configuration,
+        /// so starting singleplayer after a Relay attempt in the same process would otherwise host
+        /// on a dead allocation — the bug this exists to prevent.
+        /// </summary>
+        public static SessionResult HostLocal()
+        {
+            if (!TryGetTransport(out UnityTransport transport, out string transportError))
+                return SessionResult.Fail(transportError);
+
+            try
+            {
+                // Back to plain UDP on the prefab's own address and port, undoing any Relay setup
+                // from earlier in this process.
+                transport.UseWebSockets = false;
+                transport.SetConnectionData(transport.ConnectionData.Address,
+                                            transport.ConnectionData.Port,
+                                            transport.ConnectionData.ServerListenAddress);
+
+                Shutdown();
+
+                return NetworkManager.Singleton.StartHost()
+                    ? SessionResult.Ok()
+                    : SessionResult.Fail($"Could not start a local session on port " +
+                                         $"{transport.ConnectionData.Port}. Another program — or a " +
+                                         $"leaked socket from a previous Play session — may be using it.");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[SessionLauncher] Local host failed: {e}");
+                return SessionResult.Fail($"Could not start a local session.\n({e.GetType().Name}: {e.Message})");
+            }
+        }
+
         /// <summary>Connects straight to an address, then waits for the handshake.</summary>
         public static async Task<SessionResult> JoinDirectAsync(string address, ushort port = DefaultDirectPort)
         {

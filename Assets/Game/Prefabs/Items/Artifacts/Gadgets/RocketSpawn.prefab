@@ -147,13 +147,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5297612529235281477}
     m_Modifications:
+    - target: {fileID: -7739272878008330699, guid: 71e26f7af36ae4341b4b01af26218b13, type: 3}
+      propertyPath: prefabId
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: -2842588991396322943, guid: 71e26f7af36ae4341b4b01af26218b13, type: 3}
       propertyPath: launcherPrefab
       value: 
       objectReference: {fileID: 431438388529227558}
     - target: {fileID: 1658652824083233469, guid: 71e26f7af36ae4341b4b01af26218b13, type: 3}
       propertyPath: GlobalObjectIdHash
-      value: 2062233860
+      value: 2557897774
       objectReference: {fileID: 0}
     - target: {fileID: 1927238415056691221, guid: 71e26f7af36ae4341b4b01af26218b13, type: 3}
       propertyPath: rb

@@ -66,12 +66,9 @@ namespace SpaceGame.Weapons
         /// </summary>
         protected virtual void HandleHit(RaycastHit hit)
         {
-            // Apply damage if target has health
-            HealthComponent health = hit.collider.GetComponentInParent<HealthComponent>();
-            if (health != null)
-            {
-                health.Damage(damage);
-            }
+            // Through NetDamage, so the hit registers on the server rather than only on the
+            // machine that fired. GetComponentInParent is left to NetDamage's own lookup.
+            NetDamage.Apply(hit.collider.gameObject, damage, transform);
 
             OnImpact(hit.point, hit.normal, hit.collider);
 

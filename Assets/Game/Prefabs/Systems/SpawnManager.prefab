@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 8107463345724233620}
   - component: {fileID: 2695878871070744353}
   - component: {fileID: 2898248287040262098}
+  - component: {fileID: 7894972872286690108}
   m_Layer: 0
   m_Name: SpawnManager
   m_TagString: Untagged
@@ -75,3 +76,16 @@ MonoBehaviour:
   networkPlayerPrefab: {fileID: 582217690245548981, guid: 29c12f19fe277234e8f077d5c15501c2, type: 3}
   playerFaction: {fileID: 11400000, guid: e60e1b5fdd5ac4c0187e288640201cf6, type: 2}
   relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
+--- !u!114 &7894972872286690108
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2654249992394927116}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1

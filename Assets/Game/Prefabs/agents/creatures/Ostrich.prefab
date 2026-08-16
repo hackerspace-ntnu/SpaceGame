@@ -83,6 +83,10 @@ GameObject:
   - component: {fileID: 7957510637586956417}
   - component: {fileID: 63085288324650649}
   - component: {fileID: 6967080318531699131}
+  - component: {fileID: 5796015618132791183}
+  - component: {fileID: 4576948183610380697}
+  - component: {fileID: 2530989371770357047}
+  - component: {fileID: 1803145275838590515}
   m_Layer: 0
   m_Name: Ostrich
   m_TagString: Untagged
@@ -462,6 +466,105 @@ MonoBehaviour:
   motionSmooth: 9
   motionRejectThreshold: 60
   blendDuration: 0.25
+--- !u!114 &5796015618132791183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8793624777589779848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 0
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &4576948183610380697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8793624777589779848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73c6ec310cb4245338056b26c04d3d64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.ClientNetworkTransform
+  ShowTopMostFoldoutHeaderGroup: 1
+  NetworkTransformExpanded: 0
+  AutoOwnerAuthorityTickOffset: 1
+  PositionInterpolationType: 0
+  RotationInterpolationType: 0
+  ScaleInterpolationType: 0
+  PositionLerpSmoothing: 1
+  PositionMaxInterpolationTime: 0.1
+  RotationLerpSmoothing: 1
+  RotationMaxInterpolationTime: 0.1
+  ScaleLerpSmoothing: 1
+  ScaleMaxInterpolationTime: 0.1
+  AuthorityMode: 0
+  TickSyncChildren: 0
+  UseUnreliableDeltas: 0
+  SyncPositionX: 1
+  SyncPositionY: 1
+  SyncPositionZ: 1
+  SyncRotAngleX: 1
+  SyncRotAngleY: 1
+  SyncRotAngleZ: 1
+  SyncScaleX: 1
+  SyncScaleY: 1
+  SyncScaleZ: 1
+  PositionThreshold: 0.001
+  RotAngleThreshold: 0.01
+  ScaleThreshold: 0.01
+  UseQuaternionSynchronization: 0
+  UseQuaternionCompression: 0
+  UseHalfFloatPrecision: 0
+  InLocalSpace: 0
+  SwitchTransformSpaceWhenParented: 0
+  Interpolate: 1
+  SlerpPosition: 0
+--- !u!114 &2530989371770357047
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8793624777589779848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &1803145275838590515
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8793624777589779848}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3b25237342c04c47915e023e8de3489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetAuthority
+  ShowTopMostFoldoutHeaderGroup: 1
+  simulationDrivers: []
+  freezePhysicsOnRemote: 1
 --- !u!1001 &7659642805198663154
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -655,8 +758,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.51234024, y: 0.11448323, z: 1.1460512}
-  m_Center: {x: 0.14506467, y: 0.14915223, z: 0.93167118}
+  m_Size: {x: 0.51234025, y: 0.11448323, z: 1.1460512}
+  m_Center: {x: 0.14506467, y: 0.14915223, z: 0.9316712}
 --- !u!1 &4543526385161291379 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -3080077724994671743, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
@@ -681,8 +784,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.51234024, y: 0.11448323, z: 1.1460512}
-  m_Center: {x: 0.14506467, y: -0.16691377, z: 0.93167118}
+  m_Size: {x: 0.51234025, y: 0.11448323, z: 1.1460512}
+  m_Center: {x: 0.14506467, y: -0.16691376, z: 0.9316712}
 --- !u!1 &6445737725688036721 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3692767814021943427, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
@@ -707,8 +810,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.3047742, y: 0.2020074, z: 0.19100555}
-  m_Center: {x: -1.187932, y: -0.0001154328, z: 2.7009626}
+  m_Size: {x: 0.3047742, y: 0.2020074, z: 0.19100554}
+  m_Center: {x: -1.187932, y: -0.0001154328, z: 2.7009625}
 --- !u!1 &7553094965059110269 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -9034925269200279409, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
@@ -733,8 +836,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.6684203, y: 0.67085008, z: 0.77395494}
-  m_Center: {x: 0.076535382, y: -0.041397088, z: 1.4876856}
+  m_Size: {x: 1.6684203, y: 0.6708501, z: 0.7739549}
+  m_Center: {x: 0.07653538, y: -0.041397087, z: 1.4876856}
 --- !u!4 &7910077900827871769 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
@@ -764,8 +867,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.52058131, y: 0.12620241, z: 0.71575482}
-  m_Center: {x: 0.17768612, y: 0.14460638, z: 0.53095378}
+  m_Size: {x: 0.5205813, y: 0.1262024, z: 0.7157548}
+  m_Center: {x: 0.17768613, y: 0.14460638, z: 0.53095376}
 --- !u!1 &8176360115579106400 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1960403634503915922, guid: 97ea118a0e184c21a51c7ee1fa32ec7f, type: 3}
@@ -790,5 +893,5 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.52058131, y: 0.12620241, z: 0.71575482}
-  m_Center: {x: 0.17768612, y: -0.17145962, z: 0.53095378}
+  m_Size: {x: 0.5205813, y: 0.1262024, z: 0.7157548}
+  m_Center: {x: 0.17768613, y: -0.17145962, z: 0.53095376}

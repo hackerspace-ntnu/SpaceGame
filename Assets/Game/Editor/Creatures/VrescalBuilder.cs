@@ -42,9 +42,15 @@ namespace SpaceGame.EditorTools
         private const string PlayerPath = FactionDir + "/PlayerFaction.asset";
         private const string RelationshipsPath = FactionDir + "/GlobalRelationships.asset";
 
-        // Movement speeds, in metres per second, for a 5.5 m animal. The walk is
-        // deliberately slow -- it crawls -- and the run is the sprint a
-        // crocodilian can only hold in a straight line for a few seconds.
+        // Movement speeds, in metres per second, for a 4.3 m animal standing
+        // 3.9 m at the hump. The walk is a heavy lateral-sequence walk and the
+        // run is an amble -- a rocking, ipsilateral gait, not a gallop, which is
+        // as fast as something this size credibly moves.
+        //
+        // These are not free numbers: vrescal_anim.py derives its stride lengths
+        // from them so that a planted foot travels backwards at exactly the
+        // speed the agent moves forwards. Change one here and the feet skate
+        // until the Blender side is re-run to match.
         private const float RunSpeed = 4.2f;
         private const float WalkSpeed = 1.6f;
 
@@ -63,12 +69,16 @@ namespace SpaceGame.EditorTools
 
         private static readonly Clip[] Clips =
         {
-            new Clip { Name = "Vrescal_Idle",   Take = "Arm_Vrescal|Vrescal_Idle",   First = 1, Last = 95, Loop = true },
-            new Clip { Name = "Vrescal_Walk",   Take = "Arm_Vrescal|Vrescal_Walk",   First = 1, Last = 39, Loop = true },
+            // Frame ranges are the contract with vrescal_anim.py, which prints
+            // them on every run. The looping three each bake one extra frame
+            // identical to their first, so the range below closes the cycle
+            // exactly and the animal does not hitch once per stride.
+            new Clip { Name = "Vrescal_Idle",   Take = "Arm_Vrescal|Vrescal_Idle",   First = 1, Last = 91, Loop = true },
+            new Clip { Name = "Vrescal_Walk",   Take = "Arm_Vrescal|Vrescal_Walk",   First = 1, Last = 37, Loop = true },
             new Clip { Name = "Vrescal_Run",    Take = "Arm_Vrescal|Vrescal_Run",    First = 1, Last = 25, Loop = true },
-            new Clip { Name = "Vrescal_Attack", Take = "Arm_Vrescal|Vrescal_Attack", First = 1, Last = 34, Loop = false },
-            new Clip { Name = "Vrescal_Hurt",   Take = "Arm_Vrescal|Vrescal_Hurt",   First = 1, Last = 18, Loop = false },
-            new Clip { Name = "Vrescal_Death",  Take = "Arm_Vrescal|Vrescal_Death",  First = 1, Last = 56, Loop = false },
+            new Clip { Name = "Vrescal_Attack", Take = "Arm_Vrescal|Vrescal_Attack", First = 1, Last = 40, Loop = false },
+            new Clip { Name = "Vrescal_Hurt",   Take = "Arm_Vrescal|Vrescal_Hurt",   First = 1, Last = 20, Loop = false },
+            new Clip { Name = "Vrescal_Death",  Take = "Arm_Vrescal|Vrescal_Death",  First = 1, Last = 64, Loop = false },
         };
 
         [MenuItem("Tools/Creatures/Build Vrescal Prefab")]
@@ -100,9 +110,10 @@ namespace SpaceGame.EditorTools
         {
             var importer = (ModelImporter)AssetImporter.GetAtPath(Fbx);
 
-            // Generic, not Humanoid: the skeleton is a crocodilian, and there is
-            // no sane mapping onto a humanoid avatar. The avatar has to come from
-            // this model because nothing else in the project shares its rig.
+            // Generic, not Humanoid: the skeleton is a 32-bone quadruped, and
+            // there is no sane mapping onto a humanoid avatar. The avatar has to
+            // come from this model because nothing else in the project shares
+            // its rig.
             importer.animationType = ModelImporterAnimationType.Generic;
             importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
             importer.importAnimation = true;
@@ -110,10 +121,12 @@ namespace SpaceGame.EditorTools
             importer.globalScale = 1f;
             importer.importNormals = ModelImporterNormals.Import;
 
-            // The limb and body meshes are parented to bones rather than skinned,
-            // so they exist as real child transforms of the skeleton. Optimising
-            // the hierarchy away would delete the very transforms the clips
-            // animate, and the creature would import as a motionless heap.
+            // The body is a single skinned mesh, but the author's skull, jaw and
+            // eyes are still parented to bones rather than weighted -- they are
+            // rigid and skinning them would only smear them. Those four objects
+            // are real child transforms of the skeleton, and optimising the
+            // hierarchy away would delete the very transforms the clips animate,
+            // leaving a head that never turns on a body that does.
             importer.optimizeGameObjects = false;
             importer.optimizeBones = false;
 
@@ -418,11 +431,23 @@ namespace SpaceGame.EditorTools
 
             // -- physical presence ------------------------------------------
             // A box, not the capsule the generic-enemy profile uses: this animal
-            // is 5.5 m long and 1.8 m wide, and a capsule around it would either
+            // is 4.3 m long and 1.9 m wide, and a capsule around it would either
             // miss the tail or swallow half the dune.
+            //
+            // Sized to the trunk, neck base and legs rather than to the full
+            // nose-to-tail extent: the origin sits under the middle of the trunk
+            // (vrescal_sculpt_export.PIVOT), the nose reaches +2.8 m and the tail
+            // tip -1.4 m, and a box that honest would have the player colliding
+            // with most of a metre of empty air past the snout.
+            //
+            // Re-measured for the 2026-08 image-to-3D rebuild, which is a
+            // smaller animal than the lofted one it replaces: 3.85 m at the hump
+            // against 4.68, and 4.25 m nose to tail against 8.31. The old
+            // numbers left a collider a full metre taller than the model and
+            // 1.4 m longer, which reads in game as being blocked by nothing.
             var box = root.AddComponent<BoxCollider>();
-            box.center = new Vector3(0f, 0.78f, -0.30f);
-            box.size = new Vector3(1.65f, 1.45f, 4.30f);
+            box.center = new Vector3(0f, 1.93f, 0.20f);
+            box.size = new Vector3(1.95f, 3.85f, 3.60f);
 
             var body = root.AddComponent<Rigidbody>();
             body.isKinematic = true;
@@ -432,9 +457,18 @@ namespace SpaceGame.EditorTools
             agent.speed = RunSpeed;
             agent.angularSpeed = 190f;
             agent.acceleration = 9f;
-            agent.radius = 0.95f;
-            agent.height = 1.7f;
-            agent.stoppingDistance = 1.1f;
+            // Radius and height are the animal's real half-width and hump height
+            // plus a little margin, re-measured for the image-to-3D rebuild:
+            // 0.96 m half-width and 3.85 m at the hump, against the lofted
+            // build's 1.03 m and 4.68 m.
+            //
+            // Still far larger than the generic enemy profile. A 1.05 m radius
+            // agent needs 2.1 m of clearance to path, so this animal still will
+            // not fit between settlement buildings -- slightly better than the
+            // 2.3 m the previous build needed, but the same problem.
+            agent.radius = 1.05f;
+            agent.height = 3.85f;
+            agent.stoppingDistance = 2.8f;
             agent.autoBraking = true;
 
             // -- motor and controller ---------------------------------------

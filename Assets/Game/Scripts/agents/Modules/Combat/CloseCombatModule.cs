@@ -103,7 +103,7 @@ namespace SpaceGame.Agents
         {
             var health = target.GetComponentInChildren<HealthComponent>();
             if (health != null && health.Alive)
-                health.Damage(attackDamage, transform);
+                NetDamage.Apply(health.gameObject, attackDamage, transform);
 
             if (!attackSound.IsNull)
                 RuntimeManager.PlayOneShot(attackSound, transform.position);

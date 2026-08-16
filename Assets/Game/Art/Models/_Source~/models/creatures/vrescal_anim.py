@@ -1,521 +1,726 @@
-"""Bind the Vrescal's sculpted body to its rig and author its movement clips.
+"""Author the Vrescal's action set against the rebuilt rig.
 
-Run after `vrescal_legs.py`, which builds the armature and binds the limbs.
-This second pass does the two things the first deliberately left alone:
+Replaces the six hand-posed actions the old sprawling model carried. Those were
+built for a crocodile whose limbs swung through a horizontal arc; this animal
+stands on columns 2.4 m tall and needs a different set of ideas entirely.
 
-  1. **Binds the sculpted body** -- skull, jaw, eyes, neck spikes, the armour
-     plate stack, the thorax and the tail keel -- to the spine, neck, head, jaw
-     and tail bones. Rigid bone parenting, not weighted deformation: the armour
-     is a stack of separate hard plates and skinning them would smear the
-     overlaps. Nothing about the geometry changes, only who moves it.
+**Everything is solved, not posed.** Each frame is computed: the body's motion
+is a small stack of sinusoids, the feet are placed on an explicit gait schedule,
+and the legs are then solved backwards from the feet with closed-form two-bone
+IK. Nothing uses Blender constraints, so nothing has to be baked and the result
+is identical every run.
 
-  2. **Authors six actions**, which `vrescal_export.py` bakes into the FBX as
-     separate takes for Unity to slice into clips:
+That choice is what fixes the thing the author complained about. Hand-posed
+quadruped legs slide: the foot is keyed at a few positions and interpolates
+between them, and because the interpolation does not know the body is also
+moving, the planted foot drifts under the animal by a few centimetres every
+frame. The eye reads that as skating, and no amount of secondary motion hides
+it. Here a planted foot is given a *fixed world position* for the whole of its
+stance and the leg bends to whatever the body does above it, so the contact is
+exact by construction.
 
-       Vrescal_Idle    96f  loop   breathing, tail sway, occasional weight shift
-       Vrescal_Walk    40f  loop   lateral-sequence crawl
-       Vrescal_Run     26f  loop   diagonal couplets, longer stride, more bob
-       Vrescal_Attack  34f  once   lunge and jaw snap
-       Vrescal_Hurt    18f  once   flinch and drop
-       Vrescal_Death   56f  once   legs splay, body settles onto the sand
+## The gaits
 
-## Why the gait is built the way it is
+**Walk** is a lateral-sequence walk -- left hind, left fore, right hind, right
+fore, evenly quartered -- at duty 0.72, so three feet are down almost all the
+time. This is what heavy animals actually use, and it is the gait the reference
+animal is standing in.
 
-A sprawling reptile does not walk like a mammal. Two things carry the read and
-everything else is detail:
+**Run** is an *amble*: the ipsilateral pair moves almost together (0.12 apart
+rather than 0.25), which throws the body into a pronounced side-to-side rock.
+Camels, giraffes and elephants all move like this at speed, and it reads far
+better on something this tall than a trot -- a trot on a 4.5 m animal looks like
+a horse costume.
 
-  * **The limb swings in a mostly horizontal arc**, pivoting around a near-
-    vertical axis at the shoulder or hip, rather than swinging fore-aft under
-    the body. So protraction/retraction here is a rotation about world Z, and
-    only the lift during swing phase is a rotation in the limb's own plane.
+## Why the body crouches
 
-  * **The trunk undulates side to side**, and the wave travels back along the
-    spine into the tail. Without it the animal reads as a table walking. The
-    body bends *toward* the side whose forelimb is reaching, which is what
-    lengthens the stride.
+The rest pose stands with its legs 99.5 % extended, which is correct for a
+columnar animal and leaves the IK no headroom at all: a foot placed half a
+stride forward is simply out of reach, and the solver would straighten the leg
+and let the foot float. Every locomotion clip therefore drops the root by
+`CROUCH` first, which buys the bend room the stride needs. Animals do this too.
 
-Footfall order is lateral sequence for the walk (hind, then fore, same side,
-then the other side) and diagonal couplets for the run, which is the real gait
-change crocodilians make when they stop crawling and start moving.
+## Layering
 
-## The one compromise
+Nothing that moves runs at the same period as anything else, except where it
+must. The body bobs twice per cycle, sways once, the spine's counter-rotation
+lags the pelvis progressively down its length, and the neck lags further still
+and partly cancels the body's motion the way a real animal stabilises its head.
+The tail is a damped follower with no period of its own. Getting these to share
+a period is the single fastest way to make an animation look mechanical.
 
-`Mesh_Vrescal_TailKeel` is a single 6.6-unit sculpted piece spanning most of the
-tail, so it can only be parented to one tail bone and cannot bend with the
-chain. Tail amplitude is capped low enough that it does not visibly separate
-from the plates. Splitting the keel per segment -- or skinning the tail -- is
-the proper fix and is the author's call, since it means cutting hand-modelled
-geometry.
-
-    blender --background --python vrescal_anim.py
+    blender --background vrescal.blend --python vrescal_anim.py
 """
 
 import math
 import os
+import sys
 
 import bpy
 from mathutils import Matrix, Quaternion, Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = os.path.join(HERE, "vrescal.blend")
+sys.path.insert(0, HERE)
+
+import vrescal_rebuild as R  # noqa: E402  -- the geometry constants live there
 
 FPS = 30
-ARM = "Arm_Vrescal"
+GROUND = R.GROUND
+UNITS_PER_M = R.UNITS_PER_M
 
-# Which bone owns which stretch of the body, by the x span the bone covers.
-# Read in order; the first whose range contains the mesh centroid wins.
-BODY_SPANS = [
-    ("Bone_Head", -0.60, 99.0),
-    ("Bone_Neck", -2.00, -0.60),
-    ("Bone_Spine_03", -4.20, -2.00),
-    ("Bone_Spine_02", -6.50, -4.20),
-    ("Bone_Spine_01", -8.80, -6.50),
-    ("Bone_Tail_01", -10.60, -8.80),
-    ("Bone_Tail_02", -12.40, -10.60),
-    ("Bone_Tail_03", -14.20, -12.40),
-    ("Bone_Tail_04", -15.90, -14.20),
-    ("Bone_Tail_05", -99.0, -15.90),
-]
+LEGS = ["FrontP", "FrontS", "RearP", "RearS"]
 
-# Meshes whose centroid lies in the wrong place for what they actually are.
-BODY_OVERRIDES = {
-    "Mesh_Vrescal_Jaw": "Bone_Jaw",
-    # The keel spans four tail bones; anchor it near the base so the tip of the
-    # tail swings past it rather than through it.
-    "Mesh_Vrescal_TailKeel": "Bone_Tail_02",
-}
+# Which way each knee bends, as a world direction the joint is pushed toward.
+# Fore limbs fold their elbow backwards, hind limbs their knee forwards; on a
+# columnar animal both are shallow, but getting the sign wrong inverts the joint
+# and is instantly, comically wrong.
+POLE = {"FrontP": Vector((-1, 0, 0)), "FrontS": Vector((-1, 0, 0)),
+        "RearP": Vector((1, 0, 0)), "RearS": Vector((1, 0, 0))}
 
-LIMBS = ["FrontP", "FrontS", "RearP", "RearS"]
-SIGN = {"FrontP": 1.0, "FrontS": -1.0, "RearP": 1.0, "RearS": -1.0}   # port = +y
-FRONT = {"FrontP": True, "FrontS": True, "RearP": False, "RearS": False}
-
-# Footfall phase within the stride, 0..1.
-WALK_PHASE = {"RearP": 0.00, "FrontP": 0.25, "RearS": 0.50, "FrontS": 0.75}
-RUN_PHASE = {"FrontP": 0.00, "RearS": 0.00, "FrontS": 0.50, "RearP": 0.50}
-
-SPINE_CHAIN = ["Bone_Spine_01", "Bone_Spine_02", "Bone_Spine_03", "Bone_Neck"]
-TAIL_CHAIN = ["Bone_Tail_0%d" % i for i in range(1, 6)]
+SPINE_BONES = ["Bone_Spine_01", "Bone_Spine_02", "Bone_Spine_03"]
+NECK_BONES = ["Bone_Neck_01", "Bone_Neck_02", "Bone_Neck_03", "Bone_Neck_04"]
+TAIL_BONES = ["Bone_Tail_%02d" % i for i in range(1, 6)]
 
 
-# ---------------------------------------------------------------------------
-# Binding
-# ---------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Rig access
+# --------------------------------------------------------------------------
 
-def centroid_x(obj):
-    xs = [(obj.matrix_world @ v.co).x for v in obj.data.vertices]
-    return (min(xs) + max(xs)) * 0.5
+class Rig:
+    """Rest-pose bookkeeping plus the world <-> pose-basis conversion.
 
-
-def bone_for(obj):
-    if obj.name in BODY_OVERRIDES:
-        return BODY_OVERRIDES[obj.name]
-    x = centroid_x(obj)
-    for name, lo, hi in BODY_SPANS:
-        if lo <= x < hi:
-            return name
-    return "Bone_Spine_02"
-
-
-def bind(obj, arm_obj, bone_name):
-    """Rigid-parent an object to a bone without moving it.
-
-    Bone parenting measures from the bone's tail, so the transform has to be
-    resolved after the parent is set; assigning `matrix_world` back does that.
+    `matrix_basis` is what actually gets keyed, and it lives in the space of
+    (parent pose) x (rest offset). Everything below computes the pose it wants
+    in *world* space -- which is the only space a gait can sensibly be described
+    in -- and this converts at the end.
     """
-    world = obj.matrix_world.copy()
-    obj.parent = arm_obj
-    obj.parent_type = 'BONE'
-    obj.parent_bone = bone_name
-    obj.matrix_parent_inverse = Matrix.Identity(4)
-    bpy.context.view_layer.update()
-    obj.matrix_world = world
+
+    def __init__(self, arm):
+        self.arm = arm
+        self.bones = arm.data.bones
+        self.rest = {b.name: b.matrix_local.copy() for b in self.bones}
+        self.parent = {b.name: (b.parent.name if b.parent else None)
+                       for b in self.bones}
+        self.order = [b.name for b in self.bones]          # already hierarchical
+        self.length = {b.name: b.length for b in self.bones}
+        self.rest_rel = {}
+        for name in self.order:
+            p = self.parent[name]
+            self.rest_rel[name] = (self.rest[p].inverted() @ self.rest[name]
+                                   if p else self.rest[name])
+
+    def head(self, world, name):
+        """World position of a bone's head given the solved parents.
+
+        Independent of the bone's own rotation, which is what lets the leg
+        solver ask where the hip is before it has decided anything else.
+        """
+        p = self.parent[name]
+        base = (world[p] @ self.rest_rel[name]) if p else self.rest[name]
+        return base.translation.copy()
+
+    def basis_from_world(self, world, name, desired):
+        p = self.parent[name]
+        base = (world[p] @ self.rest_rel[name]) if p else self.rest[name]
+        return base.inverted() @ desired
 
 
-def bind_body(arm_obj):
-    bound = []
-    for obj in bpy.data.objects:
-        if obj.type != 'MESH' or obj.parent is not None:
-            continue
-        name = bone_for(obj)
-        bind(obj, arm_obj, name)
-        bound.append((obj.name, name))
-    return bound
+def aim(rest, head, tail):
+    """Bone world matrix pointing head -> tail, carrying the rest roll with it.
 
+    Blender bone space is +Y along the bone with the origin at the head, so
+    pointing a bone is a statement about its Y axis only -- the roll about that
+    axis is free, and choosing it badly is a silent disaster.
 
-# ---------------------------------------------------------------------------
-# Posing helpers
-# ---------------------------------------------------------------------------
+    Building a fresh orthonormal frame from some reference vector is the obvious
+    implementation and it is wrong: the frame it produces does not agree with
+    the bone's *rest* roll, so even a bone left in its rest direction comes out
+    twisted about its own axis. On the leg shafts that is invisible, being
+    circular. On the foot it rotated a pad that hangs 1.4 units below the ankle,
+    and every clip in the set drove a toe a quarter of a metre into the sand.
 
-def world_axis_rot(pbone, axis, angle):
-    """A local-space quaternion equal to rotating `angle` about a world axis.
-
-    Lets the gait be written in terms the body actually has -- "swing the hip
-    about vertical", "yaw the spine" -- instead of in whatever frame each bone's
-    roll happened to land in. `matrix_local` is the bone's rest orientation in
-    armature space, so conjugating by it moves a world rotation into the bone.
+    So: take the shortest arc from the rest direction to the wanted one and
+    apply it to the whole rest matrix. Twist-free by construction, and a bone
+    asked for its rest direction gets its rest matrix back exactly.
     """
-    if abs(angle) < 1e-9:
-        return Quaternion((1.0, 0.0, 0.0, 0.0))
-    rest = pbone.bone.matrix_local.to_3x3()
-    rot = Matrix.Rotation(angle, 3, axis)
-    return (rest.inverted() @ rot @ rest).to_quaternion()
+    y = tail - head
+    if y.length < 1e-7:
+        m = rest.copy()
+        m.translation = head
+        return m
+    q = rest.col[1].xyz.normalized().rotation_difference(y.normalized())
+    m = q.to_matrix().to_4x4() @ rest
+    m.translation = head
+    return m
 
 
-def local_axis_rot(axis, angle):
-    """Rotation about one of the bone's own axes.
+def two_bone_ik(root, target, l1, l2, pole):
+    """Elbow position for a two-link chain, by the law of cosines.
 
-    Used for joint flexion. A knee or an elbow bends in the plane that contains
-    the bone and the vertical, and a bone built head-to-tail with default roll
-    has its local X perpendicular to exactly that plane -- so local X is the
-    hinge, in any pose, without needing to know which way the limb points.
+    Clamps the target inside reach rather than letting the chain straighten and
+    the foot float: at this animal's proportions the legs run at 95 % extension
+    through the whole stride, so 'just out of reach' is a routine case, not an
+    error.
     """
-    q = Quaternion((1.0, 0.0, 0.0, 0.0))
-    if abs(angle) > 1e-9:
-        q = Quaternion({'X': (1, 0, 0), 'Y': (0, 1, 0), 'Z': (0, 0, 1)}[axis],
-                       angle)
-    return q
+    d = Vector(target) - Vector(root)
+    dist = min(max(d.length, 1e-4), (l1 + l2) * 0.999)
+    if d.length > 1e-7:
+        d = d.normalized()
+    else:
+        d = Vector((0, 0, -1))
+    cos_a = (l1 * l1 + dist * dist - l2 * l2) / (2.0 * l1 * dist)
+    a = math.acos(min(1.0, max(-1.0, cos_a)))
+
+    n = d.cross(Vector(pole))
+    if n.length < 1e-6:
+        n = d.cross(Vector((0, 1, 0)))
+    n.normalize()
+    perp = n.cross(d).normalized()
+    return Vector(root) + (d * math.cos(a) + perp * math.sin(a)) * l1
 
 
-def pose(pbone, *quats):
-    pbone.rotation_mode = 'QUATERNION'
-    q = Quaternion((1.0, 0.0, 0.0, 0.0))
-    for extra in quats:
-        q = q @ extra
-    pbone.rotation_quaternion = q
+def smoothstep(t):
+    t = min(1.0, max(0.0, t))
+    return t * t * (3.0 - 2.0 * t)
 
 
-def key(pbone, frame, loc=False):
-    pbone.keyframe_insert("rotation_quaternion", frame=frame)
-    if loc:
-        pbone.keyframe_insert("location", frame=frame)
+def curve(p, keys):
+    """Smoothstep through `[(phase, value), ...]`, wrapping at 1.0.
+
+    Foot roll and the like are far easier to read and tune as a handful of
+    labelled instants than as a sum of sines, and wrapping means a looping clip
+    cannot develop a seam at frame 0.
+    """
+    p = p % 1.0
+    for i in range(len(keys)):
+        p0, v0 = keys[i]
+        p1, v1 = keys[(i + 1) % len(keys)]
+        span = (p1 - p0) % 1.0
+        if span <= 0.0:
+            span = 1.0
+        rel = (p - p0) % 1.0
+        if rel <= span:
+            return v0 + (v1 - v0) * smoothstep(rel / span)
+    return keys[0][1]
 
 
-def new_action(arm_obj, name, length, loop):
-    action = bpy.data.actions.new(name)
-    action.use_fake_user = True          # survives the save with no NLA strip
-    arm_obj.animation_data.action = action
-    action.frame_start, action.frame_end = 1, length
-    action["loop"] = loop                # read back by the exporter's manifest
-    return action
-
-
-def rest(arm_obj):
-    for pbone in arm_obj.pose.bones:
-        pbone.rotation_mode = 'QUATERNION'
-        pbone.rotation_quaternion = Quaternion((1.0, 0.0, 0.0, 0.0))
-        pbone.location = (0.0, 0.0, 0.0)
-
-
-# ---------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # Gait
-# ---------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
-def limb_pose(arm_obj, limb, t, cfg):
-    """Place one limb at normalised stride time `t` (0..1).
+class Gait:
+    """One locomotion cycle's parameters, in working units and radians."""
 
-    Stance runs from 0 to `duty` with the limb sweeping from fully protracted to
-    fully retracted at a constant rate -- it is planted, so it must track the
-    ground. Swing takes it back the other way over the remainder, lifting on a
-    sine so the foot clears.
+    def __init__(self, frames, speed_ms, duty, phases, lift, crouch,
+                 bob, sway, roll, pitch, yaw, spine_yaw, neck_nod, stab):
+        self.frames = frames
+        self.duty = duty
+        self.phases = phases
+        self.lift = lift
+        self.crouch = crouch
+        self.bob, self.sway = bob, sway
+        self.roll, self.pitch, self.yaw = roll, pitch, yaw
+        self.spine_yaw = spine_yaw
+        self.neck_nod = neck_nod
+        self.stab = stab
+        # A planted foot must travel backwards at exactly the speed the creature
+        # is meant to be moving, or it skates. Stance lasts duty x cycle, so the
+        # stride follows from the speed rather than being chosen.
+        self.period = frames / float(FPS)
+        self.stride = speed_ms * duty * self.period * UNITS_PER_M
+
+
+# Toe-off and touch-down roll, as a fraction of the cycle. Phase 0 is the
+# instant the foot is set down; `duty` is the instant it leaves.
+def foot_roll_keys(duty):
+    return [(0.0, -0.10),                       # touch down slightly toe-high
+            (duty * 0.25, 0.0),                 # sole flat, taking load
+            (duty * 0.80, 0.10),
+            (duty, 0.62),                       # heel up, pushing off
+            (duty + (1 - duty) * 0.35, -0.34),  # toe up, clearing the sand
+            (duty + (1 - duty) * 0.80, -0.16)]
+
+
+def foot_track(p, g):
+    """Where one foot is, relative to its neutral stance position.
+
+    Returns (fore-aft offset, height above the sole plane, roll, planted).
+    Stance is *linear* on purpose: any easing there is foot slide.
     """
-    duty = cfg["duty"]
-    swing_amp = cfg["swing"] * (1.0 if FRONT[limb] else cfg["rear_swing"])
-    side = SIGN[limb]
-
-    if t < duty:                                  # planted
-        u = t / duty
-        protract = swing_amp * (1.0 - 2.0 * u)
-        lift = 0.0
-        crouch = math.sin(math.pi * u) * cfg["stance_crouch"]
-    else:                                         # airborne
-        u = (t - duty) / (1.0 - duty)
-        protract = swing_amp * (2.0 * u - 1.0)
-        lift = math.sin(math.pi * u) * cfg["lift"]
-        crouch = 0.0
-
-    upper = arm_obj.pose.bones["Bone_Limb%s_Upper" % limb]
-    lower = arm_obj.pose.bones["Bone_Limb%s_Lower" % limb]
-    foot = arm_obj.pose.bones["Bone_Limb%s_Foot" % limb]
-
-    # Protraction is a yaw about vertical: a sprawling limb swings through a
-    # near-horizontal arc, not fore-aft under the body.
-    pose(upper,
-         world_axis_rot(upper, 'Z', math.radians(protract) * side),
-         local_axis_rot('X', math.radians(-lift - crouch * 0.4)))
-    # The elbow and knee flex hardest just after the foot leaves the ground.
-    pose(lower, local_axis_rot('X', math.radians(
-        cfg["flex"] * (lift / max(cfg["lift"], 1e-6)) + crouch * 0.6)))
-    # The foot stays flat while planted and toes down through the swing.
-    pose(foot, local_axis_rot('X', math.radians(
-        -cfg["ankle"] * (lift / max(cfg["lift"], 1e-6)))))
+    p = p % 1.0
+    roll = curve(p, foot_roll_keys(g.duty))
+    if p < g.duty:
+        u = p / g.duty
+        return g.stride * (0.5 - u), 0.0, roll, True
+    u = (p - g.duty) / (1.0 - g.duty)
+    # Lift fast, set down slow: the weight comes off quickly and goes on gently.
+    h = g.lift * math.sin(math.pi * (u ** 0.82))
+    return g.stride * (-0.5 + smoothstep(u)), h, roll, False
 
 
-def body_wave(arm_obj, t, cfg):
-    """Lateral undulation travelling from shoulder to tail tip.
+def body_delta(t, g):
+    """World-space transform applied to the root for one cycle phase."""
+    tau = math.tau
+    bob = g.bob * math.sin(2.0 * tau * t)
+    sway = g.sway * math.sin(tau * t)
+    roll = g.roll * math.sin(tau * t + 0.35)
+    pitch = g.pitch * math.sin(2.0 * tau * t + 0.9)
+    yaw = g.yaw * math.sin(tau * t + 1.6)
+    return (Matrix.Translation(Vector((0.0, sway, bob - g.crouch)))
+            @ Matrix.Rotation(roll, 4, 'X')
+            @ Matrix.Rotation(pitch, 4, 'Y')
+            @ Matrix.Rotation(yaw, 4, 'Z'))
 
-    The phase lag down the chain is what makes it a wave rather than the whole
-    animal wagging as one rigid piece; the amplitude ramp is what keeps the tail
-    the loudest part of it.
+
+# --------------------------------------------------------------------------
+# Solving one frame
+# --------------------------------------------------------------------------
+
+class Skeleton:
+    """Rest measurements the solver needs, read off the armature once."""
+
+    def __init__(self, rig):
+        self.rig = rig
+        self.seg = {}      # leg -> (l_upper, l_lower, l_cannon)
+        self.ankle = {}    # leg -> rest world ankle position
+        self.foot_dir = {}  # leg -> rest world ankle->toe direction
+        self.lateral = {}  # leg -> outboard unit vector
+        self.pad_h = {}
+        self.pad_r = {}
+        for leg in LEGS:
+            b = ["Bone_%s_%s" % (leg, s)
+                 for s in ("Upper", "Lower", "Cannon", "Foot")]
+            self.seg[leg] = tuple(rig.length[n] for n in b[:3])
+            ank = rig.rest[b[3]].translation.copy()
+            self.ankle[leg] = ank
+            toe = (rig.rest[b[3]] @ Matrix.Translation(
+                (0, rig.length[b[3]], 0))).translation
+            self.foot_dir[leg] = (toe - ank).normalized()
+            self.lateral[leg] = Vector((0, 1 if leg.endswith("P") else -1, 0))
+            variant = R.LIMBS["%sP" % leg[:-1]]["foot"]
+            self.pad_h[leg] = R.FOOT_HEIGHT_M[variant] * R.FOOT_SCALE
+            self.pad_r[leg] = R.FOOT_SOLE_M[variant] * R.FOOT_SCALE
+
+    def target(self, leg, dx=0.0, dz=0.0, roll=0.0, dy=0.0):
+        """World ankle position, with the roll pivoted on the sole's contact edge.
+
+        Rolling the foot about the *ankle* swings the pad -- which hangs 1.4
+        units below it and reaches 1.6 forward -- straight through the sand: at
+        the 0.62 rad of toe-off this clip uses, that buried the foot 0.2 m deep.
+        Real animals pivot on the toe going into push-off and on the heel coming
+        out of it, so the ankle has to rise by exactly enough to keep the lowest
+        point of the rotated sole on the ground. That rise *is* the heel lifting.
+        """
+        a = self.ankle[leg]
+        lift = (abs(self.pad_r[leg] * math.sin(roll))
+                - self.pad_h[leg] * (1.0 - math.cos(roll)))
+        return Vector((a.x + dx, a.y + dy, a.z + dz + lift))
+
+
+def solve(rig, sk, root_delta, locals_, targets, rolls):
+    """World matrix per bone for one frame.
+
+    `locals_` carries body-bone rotations as (rx, ry, rz) in bone-local space;
+    `targets` and `rolls` carry each leg's world ankle position and foot roll.
+    The legs are solved after the body because the hip's position is whatever
+    the spine above it ended up doing.
     """
-    for i, name in enumerate(SPINE_CHAIN):
-        pbone = arm_obj.pose.bones[name]
-        phase = t + cfg["wave_lag"] * i
-        amp = cfg["yaw"] * (1.0 - 0.15 * i)
-        pose(pbone,
-             world_axis_rot(pbone, 'Z', math.radians(amp) * math.sin(
-                 2.0 * math.pi * phase)),
-             world_axis_rot(pbone, 'X', math.radians(cfg["roll"]) * math.sin(
-                 2.0 * math.pi * phase + math.pi * 0.5)))
-    for i, name in enumerate(TAIL_CHAIN):
-        pbone = arm_obj.pose.bones[name]
-        phase = t + cfg["wave_lag"] * (len(SPINE_CHAIN) + i)
-        amp = cfg["tail_yaw"] * (0.5 + 0.16 * i)
-        pose(pbone, world_axis_rot(pbone, 'Z', math.radians(amp) * math.sin(
-            2.0 * math.pi * phase)))
+    world = {}
+    leg_bones = {"Bone_%s_%s" % (leg, s)
+                 for leg in LEGS for s in ("Upper", "Lower", "Cannon", "Foot")}
 
-    # Two bobs per stride: one for each diagonal pair landing.
-    root = arm_obj.pose.bones["Bone_Root"]
-    pose(root, world_axis_rot(root, 'Y', math.radians(cfg["pitch"]) * math.sin(
-        4.0 * math.pi * t)))
-    root.location = (0.0, 0.0, cfg["bob"] * math.sin(4.0 * math.pi * t))
+    for name in rig.order:
+        if name in leg_bones:
+            continue
+        p = rig.parent[name]
+        base = (world[p] @ rig.rest_rel[name]) if p else rig.rest[name]
+        if name == "Bone_Root":
+            # The root's delta is expressed in world space; conjugating by the
+            # rest matrix moves it into the bone's own space.
+            base = rig.rest[name] @ (rig.rest[name].inverted() @ root_delta
+                                     @ rig.rest[name])
+        rx, ry, rz = locals_.get(name, (0.0, 0.0, 0.0))
+        if rx or ry or rz:
+            base = base @ (Matrix.Rotation(rx, 4, 'X')
+                           @ Matrix.Rotation(ry, 4, 'Y')
+                           @ Matrix.Rotation(rz, 4, 'Z'))
+        world[name] = base
 
-    head = arm_obj.pose.bones["Bone_Head"]
-    pose(head, world_axis_rot(head, 'Z', math.radians(-cfg["yaw"] * 0.8)
-                              * math.sin(2.0 * math.pi * (t + cfg["wave_lag"]
-                                                          * len(SPINE_CHAIN)))))
+    for leg in LEGS:
+        up, lo, ca, ft = ["Bone_%s_%s" % (leg, s)
+                          for s in ("Upper", "Lower", "Cannon", "Foot")]
+        l1, l2, l3 = sk.seg[leg]
+        hip = rig.head(world, up)
+        ankle = Vector(targets[leg])
 
+        # Two links: the femur, and the shank plus cannon treated as one. The
+        # hock is then placed back on that line at its rest proportion, with a
+        # small backward kick so it does not read as a single straight bone.
+        knee = two_bone_ik(hip, ankle, l1, l2 + l3, POLE[leg])
+        shank = ankle - knee
+        f = l2 / (l2 + l3)
+        bend = POLE[leg] * (0.10 * shank.length * (1.0 - shank.length
+                                                   / max(l2 + l3, 1e-6)))
+        hock = knee + shank * f + bend
 
-def build_locomotion(arm_obj, name, length, cfg):
-    rest(arm_obj)
-    new_action(arm_obj, name, length, loop=True)
-    # Frame `length` repeats frame 1 exactly, so the clip closes on itself.
-    for frame in range(1, length + 1):
-        t = (frame - 1) / float(length - 1)
-        body_wave(arm_obj, t, cfg)
-        for limb in LIMBS:
-            limb_pose(arm_obj, limb, (t + cfg["phase"][limb]) % 1.0, cfg)
-        for pbone in arm_obj.pose.bones:
-            key(pbone, frame, loc=(pbone.name == "Bone_Root"))
+        lat = sk.lateral[leg]
+        world[up] = aim(rig.rest[up], hip, knee)
+        world[lo] = aim(rig.rest[lo], knee, hock)
+        world[ca] = aim(rig.rest[ca], hock, ankle)
 
+        d = Matrix.Rotation(rolls[leg], 4, lat).to_3x3() @ sk.foot_dir[leg]
+        world[ft] = aim(rig.rest[ft], ankle, ankle + d * rig.length[ft])
 
-WALK = dict(phase=WALK_PHASE, duty=0.65, swing=17.0, rear_swing=1.15,
-            lift=13.0, flex=26.0, ankle=20.0, stance_crouch=4.0,
-            yaw=5.5, tail_yaw=5.0, roll=3.0, pitch=1.6, bob=0.16,
-            wave_lag=0.085)
-
-RUN = dict(phase=RUN_PHASE, duty=0.45, swing=26.0, rear_swing=1.25,
-           lift=22.0, flex=42.0, ankle=28.0, stance_crouch=7.0,
-           yaw=8.5, tail_yaw=7.0, roll=5.5, pitch=3.2, bob=0.42,
-           wave_lag=0.075)
+    return world
 
 
-# ---------------------------------------------------------------------------
-# One-shot actions
-# ---------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Writing keys
+# --------------------------------------------------------------------------
 
-def build_idle(arm_obj, length=96):
-    """Breathing, a slow tail sway and one weight shift, all on different
-    periods so the loop never looks like it is ticking."""
-    rest(arm_obj)
-    new_action(arm_obj, "Vrescal_Idle", length, loop=True)
-    for frame in range(1, length + 1):
-        t = (frame - 1) / float(length - 1)
-        breathe = math.sin(2.0 * math.pi * t)
-        shift = math.sin(2.0 * math.pi * t - math.pi * 0.35)
+def write_action(rig, sk, name, frames, frame_fn, loop=False):
+    """Build one action by solving and keying every frame.
 
-        root = arm_obj.pose.bones["Bone_Root"]
-        pose(root, world_axis_rot(root, 'X', math.radians(1.1) * shift))
-        root.location = (0.0, 0.0, 0.055 * breathe)
+    Every frame is keyed rather than a sparse set with interpolation between,
+    because the whole point of solving the legs is that the contact is exact --
+    letting Blender interpolate between solved frames would put the slide back.
 
-        for i, name in enumerate(SPINE_CHAIN):
-            pbone = arm_obj.pose.bones[name]
-            pose(pbone, world_axis_rot(pbone, 'Z', math.radians(1.4) * math.sin(
-                2.0 * math.pi * t - 0.5 * i)))
-        for i, name in enumerate(TAIL_CHAIN):
-            pbone = arm_obj.pose.bones[name]
-            pose(pbone, world_axis_rot(pbone, 'Z', math.radians(
-                2.2 + 1.1 * i) * math.sin(2.0 * math.pi * t - 0.45 * (i + 3))))
-
-        head = arm_obj.pose.bones["Bone_Head"]
-        pose(head,
-             world_axis_rot(head, 'Z', math.radians(3.5) * math.sin(
-                 2.0 * math.pi * t * 0.5)),
-             world_axis_rot(head, 'Y', math.radians(1.8) * breathe))
-        pose(arm_obj.pose.bones["Bone_Jaw"],
-             local_axis_rot('X', math.radians(1.2 * (1.0 + breathe))))
-
-        for limb in LIMBS:
-            upper = arm_obj.pose.bones["Bone_Limb%s_Upper" % limb]
-            pose(upper, local_axis_rot('X', math.radians(1.3) * breathe))
-        for pbone in arm_obj.pose.bones:
-            key(pbone, frame, loc=(pbone.name == "Bone_Root"))
-
-
-def _hold(arm_obj, frame):
-    for pbone in arm_obj.pose.bones:
-        key(pbone, frame, loc=(pbone.name == "Bone_Root"))
-
-
-def build_attack(arm_obj):
-    """Coil, lunge, snap, recover. The jaw leads the lunge and closes late, so
-    the bite lands rather than arriving with the head."""
-    rest(arm_obj)
-    new_action(arm_obj, "Vrescal_Attack", 34, loop=False)
-    stages = [
-        # frame, coil(-)/lunge(+), jaw open deg, head pitch deg, root x
-        (1, 0.0, 2.0, 0.0, 0.0),
-        (8, -1.0, 26.0, -9.0, -0.35),     # coil back, gape
-        (14, 0.7, 34.0, 6.0, 0.55),       # drive forward
-        (17, 1.0, 3.0, 10.0, 0.80),       # snap shut at full reach
-        (24, 0.35, 6.0, 2.0, 0.30),
-        (34, 0.0, 2.0, 0.0, 0.0),
-    ]
-    for frame, drive, gape, pitch, reach in stages:
-        rest(arm_obj)
-        root = arm_obj.pose.bones["Bone_Root"]
-        root.location = (reach, 0.0, -0.10 * abs(drive))
-        pose(root, world_axis_rot(root, 'Y', math.radians(-3.0 * drive)))
-        for i, name in enumerate(SPINE_CHAIN):
-            pbone = arm_obj.pose.bones[name]
-            pose(pbone, world_axis_rot(pbone, 'Y', math.radians(
-                -4.5 * drive * (1.0 + 0.3 * i))))
-        for i, name in enumerate(TAIL_CHAIN):
-            pbone = arm_obj.pose.bones[name]
-            pose(pbone, world_axis_rot(pbone, 'Y', math.radians(3.0 * drive)))
-        head = arm_obj.pose.bones["Bone_Head"]
-        pose(head, world_axis_rot(head, 'Y', math.radians(pitch)))
-        pose(arm_obj.pose.bones["Bone_Jaw"],
-             local_axis_rot('X', math.radians(gape)))
-        for limb in LIMBS:
-            upper = arm_obj.pose.bones["Bone_Limb%s_Upper" % limb]
-            lower = arm_obj.pose.bones["Bone_Limb%s_Lower" % limb]
-            pose(upper, local_axis_rot('X', math.radians(-7.0 * drive)))
-            pose(lower, local_axis_rot('X', math.radians(12.0 * abs(drive))))
-        _hold(arm_obj, frame)
-
-
-def build_hurt(arm_obj):
-    """A short flinch: the head snaps down and away, the body drops, recover."""
-    rest(arm_obj)
-    new_action(arm_obj, "Vrescal_Hurt", 18, loop=False)
-    stages = [(1, 0.0), (4, 1.0), (9, 0.55), (18, 0.0)]
-    for frame, k in stages:
-        rest(arm_obj)
-        root = arm_obj.pose.bones["Bone_Root"]
-        root.location = (-0.25 * k, 0.0, -0.30 * k)
-        pose(root, world_axis_rot(root, 'X', math.radians(7.0 * k)))
-        for i, name in enumerate(SPINE_CHAIN):
-            pbone = arm_obj.pose.bones[name]
-            pose(pbone,
-                 world_axis_rot(pbone, 'Z', math.radians(6.0 * k)),
-                 world_axis_rot(pbone, 'Y', math.radians(4.0 * k)))
-        for i, name in enumerate(TAIL_CHAIN):
-            pbone = arm_obj.pose.bones[name]
-            pose(pbone, world_axis_rot(pbone, 'Z', math.radians(-9.0 * k)))
-        head = arm_obj.pose.bones["Bone_Head"]
-        pose(head,
-             world_axis_rot(head, 'Y', math.radians(14.0 * k)),
-             world_axis_rot(head, 'Z', math.radians(-10.0 * k)))
-        pose(arm_obj.pose.bones["Bone_Jaw"],
-             local_axis_rot('X', math.radians(16.0 * k)))
-        for limb in LIMBS:
-            lower = arm_obj.pose.bones["Bone_Limb%s_Lower" % limb]
-            pose(lower, local_axis_rot('X', math.radians(15.0 * k)))
-        _hold(arm_obj, frame)
-
-
-def build_death(arm_obj):
-    """The legs give out sideways and the body settles onto the sand.
-
-    Ends on a dead-still hold so the clip can be left playing on its last frame
-    rather than needing a separate corpse pose.
+    A looping clip gets one extra frame, at cycle phase exactly 1.0 and so
+    identical to its first. Unity then has a range whose last frame equals its
+    first and the loop closes with no jump; without it the clip is a frame short
+    and the animal hitches once per stride.
     """
-    rest(arm_obj)
-    new_action(arm_obj, "Vrescal_Death", 56, loop=False)
-    stages = [(1, 0.0), (7, 0.18), (20, 0.62), (34, 0.95), (44, 1.0),
-              (56, 1.0)]
-    for frame, k in stages:
-        rest(arm_obj)
-        root = arm_obj.pose.bones["Bone_Root"]
-        # The sole plane is 3.35 below the body, so a full collapse is most of
-        # the standing clearance -- the belly ends up on the ground.
-        root.location = (0.0, 0.0, -1.35 * k)
-        pose(root,
-             world_axis_rot(root, 'X', math.radians(16.0 * k)),
-             world_axis_rot(root, 'Y', math.radians(4.0 * k)))
-        for i, name in enumerate(SPINE_CHAIN):
-            pbone = arm_obj.pose.bones[name]
-            pose(pbone, world_axis_rot(pbone, 'Z', math.radians(
-                7.0 * k * (1.0 - 0.2 * i))))
-        for i, name in enumerate(TAIL_CHAIN):
-            pbone = arm_obj.pose.bones[name]
-            pose(pbone, world_axis_rot(pbone, 'Z', math.radians(
-                -6.0 * k * (1.0 + 0.35 * i))))
-        head = arm_obj.pose.bones["Bone_Head"]
-        pose(head,
-             world_axis_rot(head, 'Y', math.radians(19.0 * k)),
-             world_axis_rot(head, 'Z', math.radians(12.0 * k)))
-        pose(arm_obj.pose.bones["Bone_Jaw"],
-             local_axis_rot('X', math.radians(11.0 * k)))
-        for limb in LIMBS:
-            side = SIGN[limb]
-            upper = arm_obj.pose.bones["Bone_Limb%s_Upper" % limb]
-            lower = arm_obj.pose.bones["Bone_Limb%s_Lower" % limb]
-            foot = arm_obj.pose.bones["Bone_Limb%s_Foot" % limb]
-            pose(upper,
-                 world_axis_rot(upper, 'Z', math.radians(20.0 * k) * side),
-                 local_axis_rot('X', math.radians(26.0 * k)))
-            pose(lower, local_axis_rot('X', math.radians(-30.0 * k)))
-            pose(foot, local_axis_rot('X', math.radians(18.0 * k)))
-        _hold(arm_obj, frame)
+    if loop:
+        frames = frames + 1
+    arm = rig.arm
+    if arm.animation_data is None:
+        arm.animation_data_create()
+    act = bpy.data.actions.new(name)
+    act.use_fake_user = True
+    arm.animation_data.action = act
+    # Blender 4.4+ stores curves under a slot; keyframe_insert makes one, but
+    # the action has to be the active one first for it to be bound.
+    if hasattr(arm.animation_data, "action_slot") and act.slots:
+        arm.animation_data.action_slot = act.slots[0]
+
+    for pb in arm.pose.bones:
+        pb.rotation_mode = 'QUATERNION'
+
+    cycle = float(frames - 1) if loop else float(frames)
+    for f in range(1, frames + 1):
+        t = (f - 1) / cycle
+        root_delta, locals_, targets, rolls = frame_fn(t, f)
+        world = solve(rig, sk, root_delta, locals_, targets, rolls)
+
+        for bone_name, wm in world.items():
+            pb = arm.pose.bones[bone_name]
+            basis = rig.basis_from_world(world, bone_name, wm)
+            loc, rot, _scale = basis.decompose()
+            pb.location = loc
+            pb.rotation_quaternion = rot
+            pb.keyframe_insert("rotation_quaternion", frame=f)
+            if bone_name == "Bone_Root":
+                pb.keyframe_insert("location", frame=f)
+
+    for fc in _fcurves(act):
+        for kp in fc.keyframe_points:
+            kp.interpolation = 'LINEAR'
+    return act
 
 
-# ---------------------------------------------------------------------------
+def _fcurves(act):
+    """F-curves of an action, across Blender's slotted and flat layouts."""
+    if hasattr(act, "fcurves"):
+        return list(act.fcurves)
+    out = []
+    for lay in act.layers:
+        for st in lay.strips:
+            for cb in st.channelbags:
+                out += list(cb.fcurves)
+    return out
+
+
+# --------------------------------------------------------------------------
+# Clips
+# --------------------------------------------------------------------------
+
+WALK = Gait(frames=36, speed_ms=1.6, duty=0.72,
+            phases={"RearP": 0.00, "FrontP": 0.25,
+                    "RearS": 0.50, "FrontS": 0.75},
+            lift=1.15, crouch=0.75,
+            bob=0.22, sway=0.30, roll=math.radians(3.2),
+            pitch=math.radians(1.4), yaw=math.radians(1.5),
+            spine_yaw=math.radians(2.6), neck_nod=math.radians(4.2), stab=0.55)
+
+# An amble, not a trot: the ipsilateral pair is 0.12 apart rather than a
+# quarter cycle, which is what produces the heavy side-to-side rock.
+RUN = Gait(frames=24, speed_ms=4.2, duty=0.48,
+           phases={"RearP": 0.00, "FrontP": 0.12,
+                   "RearS": 0.50, "FrontS": 0.62},
+           lift=2.05, crouch=1.10,
+           bob=0.55, sway=0.62, roll=math.radians(6.5),
+           pitch=math.radians(3.0), yaw=math.radians(2.6),
+           spine_yaw=math.radians(4.4), neck_nod=math.radians(8.0), stab=0.45)
+
+
+def locomotion_frame(rig, sk, g):
+    """Frame function for a gait clip."""
+    def fn(t, _f):
+        root = body_delta(t, g)
+        targets, rolls = {}, {}
+        for leg in LEGS:
+            dx, dz, roll, _planted = foot_track(t + g.phases[leg], g)
+            targets[leg] = sk.target(leg, dx=dx, dz=dz, roll=roll)
+            rolls[leg] = roll
+
+        locals_ = {}
+        # Spine counter-rotation, lagging further the further forward it is.
+        for i, name in enumerate(SPINE_BONES):
+            lag = 0.08 * (i + 1)
+            locals_[name] = (0.0, 0.0,
+                             g.spine_yaw * math.sin(math.tau * (t - lag)))
+        # The neck partly cancels the body's roll and bob -- animals hold their
+        # heads still -- and adds a nod of its own, one per cycle.
+        for i, name in enumerate(NECK_BONES):
+            lag = 0.10 + 0.05 * i
+            nod = g.neck_nod * math.sin(math.tau * (t - lag)) / len(NECK_BONES)
+            cancel = -g.stab * g.roll * math.sin(math.tau * (t - lag)) \
+                / len(NECK_BONES)
+            locals_[name] = (cancel * 3.0, 0.0, nod * 0.55)
+        locals_["Bone_Head"] = (
+            -g.stab * g.roll * math.sin(math.tau * (t - 0.30)) * 1.5,
+            0.0,
+            -g.neck_nod * 0.30 * math.sin(math.tau * (t - 0.30)))
+        # Tail: a damped follower. No period of its own, just the pelvis's,
+        # delayed a little more at every joint.
+        for i, name in enumerate(TAIL_BONES):
+            lag = 0.09 * (i + 1)
+            amp = (0.55 + 0.22 * i)
+            locals_[name] = (
+                g.pitch * 0.9 * amp * math.sin(2.0 * math.tau * (t - lag)),
+                0.0,
+                -g.spine_yaw * amp * math.sin(math.tau * (t - lag)))
+        locals_["Bone_Jaw"] = (0.0, 0.0, 0.0)
+        return root, locals_, targets, rolls
+    return fn
+
+
+def planted(sk, drop=0.0, spread=0.0, roll=0.0):
+    """Feet at their rest positions -- the base every non-gait clip starts from."""
+    targets, rolls = {}, {}
+    for leg in LEGS:
+        dy = spread * (1 if leg.endswith("P") else -1)
+        targets[leg] = sk.target(leg, dz=drop, dy=dy, roll=roll)
+        rolls[leg] = roll
+    return targets, rolls
+
+
+def idle_frame(rig, sk):
+    """Breathing, a slow weight shift, a head scan and a tail sway.
+
+    Four periods that do not divide into each other -- 1, 1/3, 1/2 and 2/5 of
+    the clip -- so nothing lines up twice and the loop does not announce itself
+    over a three-second cycle.
+    """
+    def fn(t, _f):
+        tau = math.tau
+        breathe = 0.085 * math.sin(tau * t * 3.0)
+        shift = 0.30 * math.sin(tau * t)
+        root = (Matrix.Translation(Vector((0.0, shift, breathe - 0.08)))
+                @ Matrix.Rotation(math.radians(1.5) * math.sin(tau * t), 4, 'X')
+                @ Matrix.Rotation(math.radians(0.8)
+                                  * math.sin(tau * t * 3.0), 4, 'Y'))
+        targets, rolls = planted(sk)
+
+        locals_ = {}
+        for i, name in enumerate(SPINE_BONES):
+            locals_[name] = (0.0, 0.0,
+                             math.radians(0.9) * math.sin(tau * (t - 0.1 * i)))
+        for i, name in enumerate(NECK_BONES):
+            lag = 0.12 * i
+            locals_[name] = (
+                math.radians(1.3) * math.sin(tau * (t * 2.0 - lag)),
+                0.0,
+                math.radians(2.6) * math.sin(tau * (t * 0.5 - lag)))
+        locals_["Bone_Head"] = (math.radians(2.0) * math.sin(tau * t * 2.0),
+                                0.0,
+                                math.radians(4.5) * math.sin(tau * t * 0.5))
+        for i, name in enumerate(TAIL_BONES):
+            amp = math.radians(2.2) * (0.6 + 0.3 * i)
+            locals_[name] = (0.0, 0.0, amp * math.sin(tau * (t * 2.5 - 0.1 * i)))
+        # The jaw only opens on the exhale, and not very far.
+        locals_["Bone_Jaw"] = (0.0, 0.0, 0.0)
+        locals_["Bone_Jaw"] = (math.radians(3.0)
+                               * max(0.0, math.sin(tau * t * 3.0)), 0.0, 0.0)
+        return root, locals_, targets, rolls
+    return fn
+
+
+def attack_frame(rig, sk, frames):
+    """Rear back, drop the whole mass forward, snap the jaw at full reach.
+
+    A tall animal cannot lunge the way the old crocodile did -- it has no
+    forward reach at ground level. It attacks by *falling* at the target:
+    weight back on the hind legs, then the chest drops and the head comes down
+    and forward on a long neck, which is the only thing on this body plan with
+    any speed at the end of it.
+    """
+    def fn(t, _f):
+        rear = curve(t, [(0.0, 0.0), (0.26, 1.0), (0.42, 0.85),
+                         (0.58, -1.0), (0.80, -0.35), (0.999, 0.0)])
+        drop = curve(t, [(0.0, 0.0), (0.26, -0.55), (0.55, 0.95),
+                         (0.78, 0.25), (0.999, 0.0)])
+        jaw = curve(t, [(0.0, 0.0), (0.30, 0.85), (0.52, 0.95),
+                        (0.58, 0.0), (0.999, 0.0)])
+
+        root = (Matrix.Translation(Vector((rear * 1.5, 0.0, drop * -0.9 - 0.1)))
+                @ Matrix.Rotation(math.radians(-7.0) * rear, 4, 'Y'))
+        targets, rolls = planted(sk)
+        # The forefeet leave the ground as the animal rocks back.
+        lift = max(0.0, rear) * 1.6
+        for leg in ("FrontP", "FrontS"):
+            rolls[leg] = -0.5 * max(0.0, rear)
+            targets[leg] = sk.target(leg, dz=lift, roll=rolls[leg])
+
+        locals_ = {}
+        for i, name in enumerate(SPINE_BONES):
+            locals_[name] = (math.radians(4.0) * rear, 0.0, 0.0)
+        for i, name in enumerate(NECK_BONES):
+            locals_[name] = (math.radians(-13.0) * rear
+                             + math.radians(9.0) * drop, 0.0, 0.0)
+        locals_["Bone_Head"] = (math.radians(-8.0) * rear
+                                + math.radians(14.0) * drop, 0.0, 0.0)
+        locals_["Bone_Jaw"] = (math.radians(34.0) * jaw, 0.0, 0.0)
+        for i, name in enumerate(TAIL_BONES):
+            locals_[name] = (math.radians(-5.0) * rear * (0.5 + 0.2 * i),
+                             0.0, 0.0)
+        return root, locals_, targets, rolls
+    return fn
+
+
+def hurt_frame(rig, sk):
+    """A flinch: the mass drops on to the forelegs and the head recoils up."""
+    def fn(t, _f):
+        hit = curve(t, [(0.0, 0.0), (0.22, 1.0), (0.55, 0.35), (0.999, 0.0)])
+        root = (Matrix.Translation(Vector((-0.9 * hit, 0.35 * hit,
+                                           -1.15 * hit - 0.08)))
+                @ Matrix.Rotation(math.radians(5.0) * hit, 4, 'X')
+                @ Matrix.Rotation(math.radians(6.0) * hit, 4, 'Y'))
+        targets, rolls = planted(sk)
+        locals_ = {}
+        for name in SPINE_BONES:
+            locals_[name] = (math.radians(-5.0) * hit, 0.0,
+                             math.radians(4.0) * hit)
+        for name in NECK_BONES:
+            locals_[name] = (math.radians(-9.0) * hit, 0.0,
+                             math.radians(3.0) * hit)
+        locals_["Bone_Head"] = (math.radians(-16.0) * hit, 0.0, 0.0)
+        locals_["Bone_Jaw"] = (math.radians(22.0) * hit, 0.0, 0.0)
+        for i, name in enumerate(TAIL_BONES):
+            locals_[name] = (0.0, 0.0, math.radians(7.0) * hit * (0.5 + 0.2 * i))
+        return root, locals_, targets, rolls
+    return fn
+
+
+def death_frame(rig, sk):
+    """The legs give way, the body comes down, the neck follows it and settles.
+
+    Held flat for the last fifth so the clip can stop on its final frame and
+    leave a corpse pose rather than snapping back.
+    """
+    def fn(t, _f):
+        buckle = curve(t, [(0.0, 0.0), (0.16, 0.15), (0.44, 1.0),
+                           (0.66, 1.0), (0.999, 1.0)])
+        settle = curve(t, [(0.0, 0.0), (0.50, 0.0), (0.72, 1.0),
+                           (0.86, 0.92), (0.999, 1.0)])
+        lean = curve(t, [(0.0, 0.0), (0.30, 0.3), (0.62, 1.0), (0.999, 1.0)])
+
+        # 5.05 units settles the animal without driving its folded knees
+        # through the sand -- the limiting part of a collapse is the knee, not
+        # the belly, once the legs splay.
+        # the sole plane, and the roll below takes up the rest. Dropping the
+        # full 8.7 buried the trunk, and the roll then put the tail half a metre
+        # under.
+        root = (Matrix.Translation(Vector((0.0, 1.1 * lean,
+                                           -5.05 * buckle - 0.1)))
+                @ Matrix.Rotation(math.radians(13.0) * lean, 4, 'X')
+                @ Matrix.Rotation(math.radians(-6.0) * settle, 4, 'Y'))
+
+        # Feet splay outward and forward as the legs fold under the weight.
+        targets, rolls = {}, {}
+        for leg in LEGS:
+            fwd = 1.5 if leg.startswith("Front") else -1.2
+            rolls[leg] = 0.45 * buckle
+            targets[leg] = sk.target(
+                leg, dx=fwd * buckle, roll=rolls[leg],
+                dy=1.9 * buckle * (1 if leg.endswith("P") else -1))
+
+        locals_ = {}
+        for i, name in enumerate(SPINE_BONES):
+            locals_[name] = (math.radians(-6.0) * lean, 0.0,
+                             math.radians(5.0) * lean)
+        for i, name in enumerate(NECK_BONES):
+            locals_[name] = (math.radians(11.0) * settle, 0.0,
+                             math.radians(6.0) * lean)
+        locals_["Bone_Head"] = (math.radians(15.0) * settle, 0.0,
+                                math.radians(9.0) * lean)
+        locals_["Bone_Jaw"] = (math.radians(15.0) * settle, 0.0, 0.0)
+        # The tail curls up as the body comes down. Without this the rolled
+        # trunk swings a tail that already droops 42 degrees straight through
+        # the sand -- it is the one part of the animal the root drop moves
+        # further from the ground plane rather than toward it.
+        for i, name in enumerate(TAIL_BONES):
+            locals_[name] = (math.radians(4.0) * buckle * (0.4 + 0.2 * i),
+                             0.0,
+                             math.radians(-9.0) * lean * (0.4 + 0.25 * i))
+            locals_[name] = (locals_[name][0] - math.radians(36.0) * buckle,
+                             locals_[name][1], locals_[name][2])
+        return root, locals_, targets, rolls
+    return fn
+
 
 def main():
-    if not os.path.exists(SRC):
-        raise SystemExit("No model at %s -- run vrescal_legs.py first." % SRC)
-    bpy.ops.wm.open_mainfile(filepath=SRC)
+    arm = bpy.data.objects.get("Arm_Vrescal")
+    if arm is None:
+        raise SystemExit("No Arm_Vrescal -- run vrescal_rebuild.py first.")
+    if "Mesh_Vrescal_Body" not in bpy.data.objects:
+        raise SystemExit("No Mesh_Vrescal_Body -- this is the old rig. Run "
+                         "vrescal_rebuild.py first.")
 
-    arm_obj = bpy.data.objects.get(ARM)
-    if arm_obj is None:
-        raise SystemExit("No %s in the file -- run vrescal_legs.py first." % ARM)
-    if bpy.data.actions:
-        raise SystemExit(
-            "vrescal.blend already carries %d action(s). This script authors "
-            "them from scratch and would leave duplicates; delete them first, "
-            "or restore from _backups~ and re-run vrescal_legs.py."
-            % len(bpy.data.actions))
+    for a in list(bpy.data.actions):
+        bpy.data.actions.remove(a)
 
-    scene = bpy.context.scene
-    scene.render.fps = FPS
+    rig = Rig(arm)
+    sk = Skeleton(rig)
 
-    bound = bind_body(arm_obj)
-    print("Bound %d sculpted meshes to the rig:" % len(bound))
-    for obj_name, bone_name in sorted(bound):
-        print("    %-30s -> %s" % (obj_name, bone_name))
+    built = []
+    for name, frames, loop, fn in (
+            ("Vrescal_Idle", 90, True, idle_frame(rig, sk)),
+            ("Vrescal_Walk", WALK.frames, True,
+             locomotion_frame(rig, sk, WALK)),
+            ("Vrescal_Run", RUN.frames, True, locomotion_frame(rig, sk, RUN)),
+            ("Vrescal_Attack", 40, False, None),
+            ("Vrescal_Hurt", 20, False, hurt_frame(rig, sk)),
+            ("Vrescal_Death", 64, False, death_frame(rig, sk))):
+        if fn is None:
+            fn = attack_frame(rig, sk, frames)
+        act = write_action(rig, sk, name, frames, fn, loop=loop)
+        built.append("%s %d-%d%s" % (name, 1, int(act.frame_range[1]),
+                                     " loop" if loop else ""))
 
-    bpy.context.view_layer.objects.active = arm_obj
-    arm_obj.animation_data_create()
+    # Leave the rig at rest so the .blend opens looking like the model, not
+    # like whatever the last frame of the death clip was.
+    arm.animation_data.action = None
+    for pb in arm.pose.bones:
+        pb.location = (0.0, 0.0, 0.0)
+        pb.rotation_quaternion = Quaternion((1.0, 0.0, 0.0, 0.0))
 
-    build_idle(arm_obj)
-    build_locomotion(arm_obj, "Vrescal_Walk", 40, WALK)
-    build_locomotion(arm_obj, "Vrescal_Run", 26, RUN)
-    build_attack(arm_obj)
-    build_hurt(arm_obj)
-    build_death(arm_obj)
-
-    # Leave the file on the idle pose rather than whatever the last action ended
-    # on, so opening it shows the creature standing.
-    arm_obj.animation_data.action = bpy.data.actions["Vrescal_Idle"]
-    scene.frame_set(1)
-
-    print("Authored %d actions: %s"
-          % (len(bpy.data.actions),
-             ", ".join(sorted(a.name for a in bpy.data.actions))))
-
-    bpy.ops.wm.save_as_mainfile(filepath=SRC)
-    print("Saved %s" % SRC)
+    print("Vrescal actions: %s" % ", ".join(built))
+    print("  walk stride %.2f m, run stride %.2f m"
+          % (WALK.stride / UNITS_PER_M, RUN.stride / UNITS_PER_M))
+    bpy.ops.wm.save_mainfile()
+    print("Saved %s" % bpy.data.filepath)
 
 
-main()
+if __name__ == "__main__":
+    main()

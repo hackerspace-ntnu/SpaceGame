@@ -38,15 +38,6 @@ namespace SpaceGame.Core.Persistence
         [Header("Debug")]
         [SerializeField] private bool verbose;
 
-        /// <summary>
-        /// A document read from disk that the next world load should start from, handed across the
-        /// scene load that stands between pressing Continue and the world existing.
-        ///
-        /// Static because nothing survives that load: the menu's SaveManager is destroyed with the
-        /// menu scene, and the world's has not been created yet.
-        /// </summary>
-        public static SaveDocument PendingLoad { get; private set; }
-
         /// <summary>Fired after a save has been written. The argument is the slot id.</summary>
         public static event Action<string> OnSaved;
 
@@ -94,6 +85,16 @@ namespace SpaceGame.Core.Persistence
         /// <summary>Where saves live. Under persistentDataPath so it survives reinstalls and is writable on every platform.</summary>
         public static string DefaultRoot => Path.Combine(Application.persistentDataPath, "Saves");
 
+        /// <summary>
+        /// The slot a save with no explicit target goes to: the active world.
+        ///
+        /// Falls back to the autosave slot only when no world has been chosen — a world scene
+        /// opened directly in the editor, with no menu run behind it. That fallback is what keeps
+        /// the existing editor workflow working; in normal play a world is always active.
+        /// </summary>
+        private static string DefaultSlotId =>
+            WorldSession.IsActive ? WorldSession.WorldId : SaveSlots.AutoSaveSlotId;
+
         // ─────────────────────────────────────────────
         //  Lifecycle
         // ─────────────────────────────────────────────
@@ -121,8 +122,7 @@ namespace SpaceGame.Core.Persistence
             // Consuming the pending document here — before any chunk has loaded and before
             // NetworkGameManager spawns anyone — is what makes a load work at all. Both stores must
             // be holding the saved state by the time the first OnChunkLoaded fires.
-            SaveDocument document = PendingLoad;
-            PendingLoad = null;
+            SaveDocument document = WorldSession.Consume();
 
             EnsureStores(document);
 
@@ -134,7 +134,7 @@ namespace SpaceGame.Core.Persistence
             {
                 RestoreGlobals(document);
                 Log($"Loaded save from {document.Header.SavedAtUtc:u} " +
-                    $"({document.Players.Count} player record(s), {document.World.Scenes.Count} scene record(s)).");
+                    $"({document.Players.Count} player record(s), {document.World.Count} entity record(s)).");
             }
 
             WorldStreamer.OnChunkLoaded += HandleChunkLoaded;
@@ -158,6 +158,24 @@ namespace SpaceGame.Core.Persistence
             playerService ??= new PlayerSaveService(document?.Players);
         }
 
+        /// <summary>
+        /// Writes the world's file the moment it is entered, before anything can go wrong.
+        ///
+        /// Without this a brand-new world exists only in memory until the first autosave 300 s
+        /// later, so a player who creates a world, looks around and returns to the menu finds no
+        /// world in the list — the session is simply gone. A save here also means the world shows
+        /// up in the list immediately, which is what makes "I made a world" and "I have a world"
+        /// the same statement.
+        /// </summary>
+        private void SaveNewWorld()
+        {
+            if (!WorldSession.IsActive || !WorldSession.IsNew) return;
+            if (Network.IsNetworked && !Network.Server) return;
+
+            // Not synchronous: nothing is waiting on it, and the world has only just loaded.
+            Save(WorldSession.WorldId, WorldSession.DisplayName);
+        }
+
         private void Start()
         {
             // The persistent scene gets no streaming events — it is never loaded or unloaded — so
@@ -171,6 +189,11 @@ namespace SpaceGame.Core.Persistence
             Scene persistent = gameObject.scene;
             if (persistent.IsValid() && persistent.isLoaded)
                 worldStore.Hydrate(SceneKey.Persistent, persistent);
+
+            // After hydration, so the file records the world as it actually is. Safe this early
+            // even though no player has spawned yet: WouldDiscardAllPlayers only refuses when the
+            // file already on disk has players, and a new world has no file at all.
+            SaveNewWorld();
         }
 
         private void OnDestroy()
@@ -189,7 +212,28 @@ namespace SpaceGame.Core.Persistence
             if (Time.time < nextAutoSaveTime) return;
 
             nextAutoSaveTime = Time.time + autoSaveIntervalSeconds;
-            Save(SaveSlots.AutoSaveSlotId, "Autosave");
+            Save(DefaultSlotId, "Autosave");
+        }
+
+        /// <summary>
+        /// Writes the active world before the session is torn down.
+        ///
+        /// Returning to the main menu is not OnApplicationQuit — it shuts the network down and
+        /// loads a scene — so without this the whole session since the last autosave is lost, and
+        /// a world younger than the autosave interval is lost entirely. Synchronous because the
+        /// scene load that follows destroys the stores this reads from.
+        ///
+        /// Safe to call from anywhere; does nothing when no world is active or this peer is not
+        /// the server.
+        /// </summary>
+        public static void SaveOnExit()
+        {
+            SaveManager manager = Instance;
+            if (manager == null) return;
+            if (!WorldSession.IsActive) return;
+            if (Network.IsNetworked && !Network.Server) return;
+
+            manager.Save(WorldSession.WorldId, WorldSession.DisplayName, synchronous: true);
         }
 
         private void OnApplicationQuit()
@@ -199,7 +243,7 @@ namespace SpaceGame.Core.Persistence
 
             // Synchronously. Unity gives the process no frames after this, so a background write
             // would be killed with it — which is the one moment a save is most needed.
-            Save(SaveSlots.AutoSaveSlotId, "Autosave", synchronous: true);
+            Save(DefaultSlotId, "Autosave", synchronous: true);
         }
 
         // ─────────────────────────────────────────────
@@ -347,13 +391,18 @@ namespace SpaceGame.Core.Persistence
         private void Announce(string slotId, string path, SaveDocument document)
         {
             int players = document?.Players?.Count ?? 0;
-            int scenes = document?.World?.Scenes?.Count ?? 0;
+            int entities = document?.World?.Count ?? 0;
 
-            Debug.Log($"[Save] Wrote '{slotId}' — {players} player(s), {scenes} scene record(s) → {path}", this);
+            Debug.Log($"[Save] Wrote '{slotId}' — {players} player(s), {entities} entity record(s) → {path}", this);
         }
 
-        /// <summary>Writes to the quicksave slot.</summary>
-        public bool QuickSave() => Save(SaveSlots.QuickSaveSlotId, "Quicksave");
+        /// <summary>
+        /// Writes to the active world.
+        ///
+        /// Not to a separate quicksave file: with more than one world a global quicksave slot is
+        /// silently cross-world — F5 in one world and F9 in another would load the wrong session.
+        /// </summary>
+        public bool QuickSave() => Save(DefaultSlotId, "Quicksave");
 
         private void CompleteWrite(Task task, string slotId, string path, SaveDocument document)
         {
@@ -381,11 +430,6 @@ namespace SpaceGame.Core.Persistence
             playerService.CaptureAll();
             CaptureLoadedScenes();
 
-            // After the capture, never before: a chunk that has just been re-read may have gone
-            // empty, and a chunk that is about to be read is empty only because nothing has looked
-            // at it yet.
-            worldStore.PruneEmpty();
-
             var document = new SaveDocument
             {
                 Header = new SaveHeader
@@ -395,6 +439,8 @@ namespace SpaceGame.Core.Persistence
                     PlaytimeSeconds = TotalPlaytime,
                     GameVersion = Application.version,
                     SlotLabel = string.IsNullOrEmpty(label) ? slotId : label,
+                    WorldName = WorldSession.IsActive ? WorldSession.DisplayName : slotId,
+                    WorldConfigId = WorldSession.WorldConfigId ?? string.Empty,
                 },
                 Players = playerService.Snapshot(),
                 World = worldStore.Record,
@@ -472,42 +518,9 @@ namespace SpaceGame.Core.Persistence
         //  Loading
         // ─────────────────────────────────────────────
 
-        /// <summary>
-        /// Reads a slot and stages it for the next world load. Does NOT itself change scenes —
-        /// the caller decides how the world is entered, and the staged document is picked up by
-        /// whichever SaveManager wakes up in it.
-        /// </summary>
-        public static bool StageLoad(string slotId, out string error)
-        {
-            var slots = new SaveSlots(DefaultRoot);
-            SaveFileStore.ReadResult result = SaveFileStore.Read(slots.PathFor(slotId));
-
-            switch (result.Outcome)
-            {
-                case SaveFileStore.ReadOutcome.Ok:
-                    error = null;
-                    PendingLoad = result.Document;
-                    return true;
-
-                case SaveFileStore.ReadOutcome.RecoveredFromBackup:
-                    error = result.Error;
-                    PendingLoad = result.Document;
-                    Debug.LogWarning($"[Save] {result.Error}");
-                    return true;
-
-                case SaveFileStore.ReadOutcome.Missing:
-                    error = $"There is no save in slot '{slotId}'.";
-                    return false;
-
-                default:
-                    error = result.Error ?? $"Save slot '{slotId}' could not be read.";
-                    OnSaveError?.Invoke(error);
-                    return false;
-            }
-        }
-
-        /// <summary>Drops any staged document, so an abandoned load does not leak into the next session.</summary>
-        public static void ClearStagedLoad() => PendingLoad = null;
+        // Staging a load lives on WorldSession: what to load is a property of which world is being
+        // entered, and keeping it here meant "new game" could only be expressed as the absence of
+        // a staged document.
 
         // ─────────────────────────────────────────────
         //  Streaming
@@ -536,8 +549,12 @@ namespace SpaceGame.Core.Persistence
         /// every load — so a looted crate needs an explicit tombstone or it refills itself the next
         /// time the player walks away and returns.
         ///
-        /// Safe to call for anything; non-authored objects and objects outside the streamed world
-        /// fall straight through.
+        /// Safe to call for anything; non-authored objects fall straight through.
+        ///
+        /// No longer asks which scene the object was in. The tombstone is keyed by the object's own
+        /// identity, so a creature killed in a chunk it had wandered into stays dead when the scene
+        /// it was authored in loads it again — and an object whose scene the store had not been told
+        /// about is no longer silently un-buriable.
         /// </summary>
         public static void NotifyDestroyed(GameObject target)
         {
@@ -549,9 +566,7 @@ namespace SpaceGame.Core.Persistence
             var entity = target.GetComponent<SaveableEntity>();
             if (entity == null || !entity.IsAuthored || !entity.BelongsToWorld) return;
 
-            if (!manager.worldStore.TryGetSceneKey(target.scene, out string sceneKey)) return;
-
-            manager.worldStore.RecordDestroyed(sceneKey, entity);
+            manager.worldStore.RecordDestroyed(entity);
         }
 
         // ─────────────────────────────────────────────

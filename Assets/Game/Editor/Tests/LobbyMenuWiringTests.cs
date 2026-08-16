@@ -1,62 +1,89 @@
 using System.Reflection;
 using NUnit.Framework;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Tests
 {
     /// <summary>
-    /// Pins the method names LobbyMenu.unity binds its controls to.
+    /// Pins what is still resolved by string rather than by the compiler.
     ///
-    /// UnityEvent resolves targets by string at runtime and silently drops any it cannot find — no
-    /// exception, no console entry — so renaming one of these turns its button into a dead control
-    /// that nothing anywhere reports. The compiler cannot see the binding; this can.
+    /// This file used to be much longer, because LobbyMenu.unity bound every control in the lobby
+    /// to a method name through a UnityEvent — which resolves at runtime and silently drops any
+    /// target it cannot find, no exception and no console entry. Those bindings are gone with the
+    /// scene: <see cref="LobbyUI"/> calls <c>LobbySession</c> directly, so a rename is a build
+    /// error and needs no test to catch it.
     ///
-    /// The lowercase names are deliberate. They are what the scene already contains.
+    /// What is left is the boundary that is still authored in a scene. MainMenu.unity binds its
+    /// entries to MainMenuUI by name, and the multiplayer routes are reached through a chain where
+    /// only the first link is compiled.
     /// </summary>
     public class LobbyMenuWiringTests
     {
         private const BindingFlags Public = BindingFlags.Public | BindingFlags.Instance;
 
-        [TestCase("createLobbyWithGivenOptions")]
-        [TestCase("listLobbies")]
-        [TestCase("JoinLobbyById")]
-        [TestCase("JoinLobbyByCode")]
-        [TestCase("JoinLobbyByPassword")]
-        [TestCase("LeaveLobby")]
-        [TestCase("StartLobbyGame")]
-        public void LobbySystem_KeepsItsSceneBoundMethods(string methodName)
+        [TestCase("StartMultiPlayer")]
+        [TestCase("StartSinglePlayer")]
+        [TestCase("StartMinigame")]
+        [TestCase("QuitGame")]
+        public void MainMenuUI_KeepsItsSceneBoundMethods(string methodName)
         {
-            Assert.IsNotNull(typeof(LobbySystem).GetMethod(methodName, Public),
-                $"LobbyMenu.unity binds a control to LobbySystem.{methodName} by name. " +
-                "Removing or renaming it makes that control silently do nothing.");
+            Assert.IsNotNull(typeof(MainMenuUI).GetMethod(methodName, Public),
+                $"MainMenu.unity binds a menu entry to MainMenuUI.{methodName} by name. " +
+                "Removing or renaming it makes that entry silently do nothing.");
         }
 
-        [TestCase("closeJoinPrivateLobbyScreen")]
-        [TestCase("changeStateOfPasswordInputFieldCreateLobby")]
-        [TestCase("openLobbyScreen")]
-        [TestCase("hideLobbyScreen")]
-        [TestCase("showPlayerElements")]
-        [TestCase("setStartGameButtonState")]
-        [TestCase("clearPrevList")]
-        [TestCase("listNewLobby")]
-        public void LobbyListSystem_KeepsItsViewContract(string methodName)
+        /// <summary>
+        /// The host/join split is a chain of three calls, and only the first is by name.
+        /// MainMenu.unity → StartMultiPlayer (string) → MultiplayerChoiceUI (compiled) →
+        /// HostMultiplayer/JoinMultiplayer (compiled). Pinning the two endpoints is what keeps a
+        /// rename from turning "Multiplayer" back into a button that opens the world list.
+        /// </summary>
+        [TestCase("HostMultiplayer")]
+        [TestCase("JoinMultiplayer")]
+        public void MainMenuUI_KeepsTheMultiplayerRoutes(string methodName)
         {
-            Assert.IsNotNull(typeof(LobbyListSystem).GetMethod(methodName, Public),
-                $"LobbySystem or LobbyMenu.unity calls LobbyListSystem.{methodName}.");
+            Assert.IsNotNull(typeof(MainMenuUI).GetMethod(methodName, Public),
+                $"MultiplayerChoiceUI calls MainMenuUI.{methodName}.");
         }
 
+        /// <summary>
+        /// Both multiplayer screens read these off the menu. They are properties rather than
+        /// serialized fields on each screen because the screens are built at runtime and have no
+        /// Inspector of their own — so the menu is the only place the references can live.
+        /// </summary>
+        [TestCase("MenuButtonPrefab")]
+        [TestCase("GameSceneName")]
+        [TestCase("WorldConfig")]
+        public void MainMenuUI_LendsWhatTheRuntimeScreensNeed(string propertyName)
+        {
+            Assert.IsNotNull(typeof(MainMenuUI).GetProperty(propertyName, Public),
+                $"The screens MainMenuUI opens read {propertyName} from it. Without it they build " +
+                "unstyled entries, or load the wrong scene.");
+        }
+
+        /// <summary>
+        /// The lobby is a page over the menu, not a scene. EnterLobby is what routes into it and is
+        /// called from two places — MainMenuUI.JoinMultiplayer and WorldSelectUI's host route.
+        /// </summary>
         [Test]
-        public void LobbySystem_ExposesTheGameSceneNameTheDirectPathAlsoUses()
+        public void MainMenuUI_KeepsTheLobbyEntryPoint()
         {
-            Assert.IsNotNull(typeof(LobbySystem).GetProperty("GameSceneName", Public),
-                "DirectConnectController reads the game scene from here so the two paths cannot drift.");
+            Assert.IsNotNull(typeof(MainMenuUI).GetMethod("EnterLobby", Public),
+                "WorldSelectUI finishes the host route by calling MainMenuUI.EnterLobby.");
         }
 
+        /// <summary>
+        /// The one thing about the lobby that is still not compile-checked: which page it opens on
+        /// is decided by whether a world is staged, not by an argument. If WorldSession stops being
+        /// the source of that answer, a joiner lands on the host's page and hosts a session with no
+        /// world behind it — which is the exact fault the host/join split exists to prevent.
+        /// </summary>
         [Test]
-        public void LobbyElementController_KeepsTheJoinEntryPoint()
+        public void LobbyUI_ReadsItsModeFromTheStagedWorld()
         {
-            // LobbyElement.prefab wires its row button to this by name.
-            Assert.IsNotNull(typeof(LobbyElementController).GetMethod("attemptJoin", Public),
-                "LobbyElement.prefab binds its Join button to attemptJoin by name.");
+            Assert.IsNotNull(typeof(SpaceGame.Core.Persistence.WorldSession).GetProperty("IsActive",
+                    BindingFlags.Public | BindingFlags.Static),
+                "LobbyUI decides host vs join from WorldSession.IsActive.");
         }
     }
 }

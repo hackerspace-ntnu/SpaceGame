@@ -141,6 +141,78 @@ namespace SpaceGame.Core.Persistence
             return entity;
         }
 
+        /// <summary>
+        /// An identity for an authored object that was never stamped at edit time, derived from
+        /// where it sits rather than from a GUID.
+        ///
+        /// A random GUID cannot be used for these: it would be a different value every session, so
+        /// the object would save state under an id nothing ever looks up again — persistence that
+        /// silently does nothing. The scene name plus the hierarchy path, with each step's sibling
+        /// index, is the same string on every load of an unchanged scene, which is exactly the
+        /// property an identity needs.
+        ///
+        /// Stable across sessions, NOT across scene edits: renaming the object or moving it in the
+        /// hierarchy produces a new id and orphans its record. That is the cost of not having to
+        /// remember an editor step, and it is why the baked GUID is still preferred where one exists
+        /// — see <see cref="SaveablePolicy"/>.
+        /// </summary>
+        public static string DeriveAuthoredId(GameObject go)
+        {
+            if (go == null) return string.Empty;
+
+            var path = new System.Text.StringBuilder(go.scene.name);
+
+            // Built root-first so the string reads like the hierarchy, and includes the sibling
+            // index so two identically named children of one parent stay distinguishable.
+            var steps = new List<string>();
+            for (Transform t = go.transform; t != null; t = t.parent)
+                steps.Add($"{t.GetSiblingIndex()}:{t.name}");
+
+            for (int i = steps.Count - 1; i >= 0; i--)
+                path.Append('/').Append(steps[i]);
+
+            return "auto" + Hash(path.ToString());
+        }
+
+        /// <summary>
+        /// FNV-1a, written out rather than taken from <c>string.GetHashCode</c>, which Unity does
+        /// not guarantee to be stable between runs or platforms — and an identity that changes
+        /// between runs is not an identity.
+        /// </summary>
+        private static string Hash(string value)
+        {
+            const ulong offset = 14695981039346656037;
+            const ulong prime = 1099511628211;
+
+            ulong hash = offset;
+            foreach (char c in value)
+            {
+                hash ^= c;
+                hash *= prime;
+            }
+
+            return hash.ToString("x16");
+        }
+
+        /// <summary>
+        /// Takes on a derived identity as an authored object, for something wired at runtime rather
+        /// than at edit time. Replaces the random id <see cref="OnEnable"/> just handed out.
+        /// </summary>
+        public void AdoptAuthoredIdentity(string derivedId)
+        {
+            if (string.IsNullOrEmpty(derivedId)) return;
+
+            if (!string.IsNullOrEmpty(instanceId) &&
+                Live.TryGetValue(instanceId, out SaveableEntity registered) && registered == this)
+            {
+                Live.Remove(instanceId);
+            }
+
+            instanceId = derivedId;
+            authored = true;
+            Live[instanceId] = this;
+        }
+
         /// <summary>Adopts an identity from a save record, so the restored object owns the record it came from.</summary>
         public void AdoptIdentity(string savedPrefabId, string savedInstanceId)
         {
@@ -286,7 +358,39 @@ namespace SpaceGame.Core.Persistence
 
                 if (string.IsNullOrEmpty(instanceId) || IsIdTakenBySomeoneElseInScene())
                     AssignIfChanged(ref instanceId, Guid.NewGuid().ToString("N"));
+
+                // On a PREFAB INSTANCE the assignments above are not enough. Writing the field and
+                // calling SetDirty leaves the value matching the prefab's own, so Unity records no
+                // override and writes nothing into the scene file — the identity is regenerated,
+                // differently, every single time the scene is opened, and no saved record can ever
+                // be matched back to the object it belongs to.
+                //
+                // Registering the values through SerializedObject is what makes them overrides, and
+                // therefore what makes them survive in the scene at all.
+                if (PrefabUtility.IsPartOfPrefabInstance(this))
+                    RecordAsPrefabOverrides();
             }
+        }
+
+        /// <summary>
+        /// Forces this instance's identity fields to be stored as prefab overrides, so they persist
+        /// in the scene file rather than falling back to the prefab's (empty) values.
+        /// </summary>
+        private void RecordAsPrefabOverrides()
+        {
+            var so = new SerializedObject(this);
+
+            SerializedProperty instanceProp = so.FindProperty(nameof(instanceId));
+            SerializedProperty authoredProp = so.FindProperty(nameof(authored));
+            SerializedProperty prefabProp = so.FindProperty(nameof(prefabId));
+
+            if (instanceProp != null) instanceProp.stringValue = instanceId;
+            if (authoredProp != null) authoredProp.boolValue = authored;
+            if (prefabProp != null) prefabProp.stringValue = prefabId;
+
+            // WithoutUndo: OnValidate can run during import and asset postprocessing, where pushing
+            // entries onto the undo stack is both meaningless and expensive.
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>The GUID of the prefab this scene instance came from, or empty for a plain GameObject.</summary>

@@ -128,7 +128,7 @@ namespace SpaceGame.Core
         /// lobby, then allocated Relay, and on an allocation failure left an orphan lobby
         /// advertised to everyone with a join code that led nowhere.
         /// </summary>
-        public async Task<bool> CreateAsync(string lobbyName, bool isPrivate, string password)
+        public async Task<bool> CreateAsync(string lobbyName, bool isPrivate)
         {
             if (!TryBegin()) return false;
 
@@ -142,7 +142,7 @@ namespace SpaceGame.Core
                 string name = string.IsNullOrWhiteSpace(lobbyName) ? $"{PlayerName}'s game" : lobbyName;
 
                 Current = await LobbyService.Instance.CreateLobbyAsync(name, MaxPlayers,
-                    BuildCreateOptions(isPrivate, password, host.JoinCode, PlayerName));
+                    BuildCreateOptions(isPrivate, host.JoinCode, PlayerName));
 
                 State = LobbyState.InLobby;
                 Changed?.Invoke();
@@ -190,7 +190,7 @@ namespace SpaceGame.Core
                 new JoinLobbyByIdOptions { Player = BuildPlayer(PlayerName) }),
             "Could not join that lobby.");
 
-        public Task<bool> JoinByCodeAsync(string lobbyCode, string password = null)
+        public Task<bool> JoinByCodeAsync(string lobbyCode)
         {
             string code = SessionLauncher.NormalizeJoinCode(lobbyCode);
 
@@ -201,11 +201,8 @@ namespace SpaceGame.Core
             }
 
             return JoinAsync(
-                () => LobbyService.Instance.JoinLobbyByCodeAsync(code, new JoinLobbyByCodeOptions
-                {
-                    Player = BuildPlayer(PlayerName),
-                    Password = NullIfBlank(password)
-                }),
+                () => LobbyService.Instance.JoinLobbyByCodeAsync(code,
+                    new JoinLobbyByCodeOptions { Player = BuildPlayer(PlayerName) }),
                 "Could not join with that code.");
         }
 
@@ -261,6 +258,42 @@ namespace SpaceGame.Core
                 return false;
             }
             finally { busy = false; }
+        }
+
+        /// <summary>
+        /// Turns the lobby private or public.
+        ///
+        /// Private delists it: it stops appearing in the browser and is reachable only by its code.
+        /// That is the whole of it — the code still works, which is what makes this the control a
+        /// host actually wants when they only meant to keep strangers out.
+        ///
+        /// Not routed through <see cref="TryBegin"/>. That guard exists to stop a double-click
+        /// allocating two Relay servers; this allocates nothing, and blocking it would mean a host
+        /// who toggles privacy while the roster is mid-poll gets silently ignored.
+        /// </summary>
+        public async Task<bool> SetPrivacyAsync(bool isPrivate)
+        {
+            try
+            {
+                if (Current == null) { Failed?.Invoke("You are not in a lobby."); return false; }
+                if (!IsHost) { Failed?.Invoke("Only the host can change this."); return false; }
+
+                Current = await LobbyService.Instance.UpdateLobbyAsync(Current.Id,
+                    BuildPrivacyOptions(isPrivate));
+
+                Changed?.Invoke();
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                Failed?.Invoke(Describe(e, "Could not change the session's privacy."));
+
+                // The screen renders from Current, so a failed update has to be announced or the
+                // toggle keeps showing the state the host asked for rather than the one in force.
+                Changed?.Invoke();
+                return false;
+            }
         }
 
         /// <summary>The names to show in the roster, in lobby order.</summary>

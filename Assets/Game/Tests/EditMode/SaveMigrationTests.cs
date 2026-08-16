@@ -89,20 +89,27 @@ namespace SpaceGame.Tests.EditMode
         }
 
         /// <summary>
-        /// Exercises the ladder with temporary steps against an explicit target, so the mechanism is
-        /// proven now rather than on the day the first real migration depends on it.
+        /// Exercises the ladder with temporary steps against an explicit target.
+        ///
+        /// Every test below builds ABOVE <see cref="SaveDocument.CurrentVersion"/> rather than at
+        /// version 1. The shipped list now has a real step out of 1, and
+        /// <c>Migrations.FirstOrDefault</c> would hand these files to it instead of to the marker —
+        /// so pinning them to 1 only worked while nothing had ever been migrated, and would break on
+        /// each future bump. The rungs past the top of the ladder are always empty.
         /// </summary>
+        private static int Top => SaveDocument.CurrentVersion;
+
         [Test]
         public void RegisteredSteps_RunInOrderAndAdvanceTheVersion()
         {
-            using (SaveMigrator.RegisterScoped(new MarkerMigration(1, "first")))
-            using (SaveMigrator.RegisterScoped(new MarkerMigration(2, "second")))
+            using (SaveMigrator.RegisterScoped(new MarkerMigration(Top, "first")))
+            using (SaveMigrator.RegisterScoped(new MarkerMigration(Top + 1, "second")))
             {
-                JObject root = FileAtVersion(1);
+                JObject root = FileAtVersion(Top);
 
-                SaveMigrator.MigrateTo(root, 3);
+                SaveMigrator.MigrateTo(root, Top + 2);
 
-                Assert.AreEqual(3, SaveMigrator.ReadVersion(root));
+                Assert.AreEqual(Top + 2, SaveMigrator.ReadVersion(root));
                 Assert.AreEqual(new[] { "first", "second" }, root["trail"]?.ToObject<string[]>());
             }
         }
@@ -110,14 +117,14 @@ namespace SpaceGame.Tests.EditMode
         [Test]
         public void RegisteredSteps_StopAtTheTargetVersion()
         {
-            using (SaveMigrator.RegisterScoped(new MarkerMigration(1, "first")))
-            using (SaveMigrator.RegisterScoped(new MarkerMigration(2, "second")))
+            using (SaveMigrator.RegisterScoped(new MarkerMigration(Top, "first")))
+            using (SaveMigrator.RegisterScoped(new MarkerMigration(Top + 1, "second")))
             {
-                JObject root = FileAtVersion(1);
+                JObject root = FileAtVersion(Top);
 
-                SaveMigrator.MigrateTo(root, 2);
+                SaveMigrator.MigrateTo(root, Top + 1);
 
-                Assert.AreEqual(2, SaveMigrator.ReadVersion(root));
+                Assert.AreEqual(Top + 1, SaveMigrator.ReadVersion(root));
                 Assert.AreEqual(new[] { "first" }, root["trail"]?.ToObject<string[]>());
             }
         }
@@ -125,12 +132,12 @@ namespace SpaceGame.Tests.EditMode
         [Test]
         public void MissingStep_ThrowsRatherThanLoadingAnUnmigratedFile()
         {
-            // Only the step out of 2 exists, so a file at version 1 cannot reach 3.
-            using (SaveMigrator.RegisterScoped(new MarkerMigration(2, "second")))
+            // Only the step out of Top+1 exists, so a file at Top cannot reach Top+2.
+            using (SaveMigrator.RegisterScoped(new MarkerMigration(Top + 1, "second")))
             {
-                JObject root = FileAtVersion(1);
+                JObject root = FileAtVersion(Top);
 
-                var error = Assert.Throws<SaveFormatException>(() => SaveMigrator.MigrateTo(root, 3));
+                var error = Assert.Throws<SaveFormatException>(() => SaveMigrator.MigrateTo(root, Top + 2));
                 StringAssert.Contains("no migration is", error.Message);
             }
         }
@@ -138,10 +145,77 @@ namespace SpaceGame.Tests.EditMode
         [Test]
         public void RegisteredSteps_AreRemovedWhenTheirScopeEnds()
         {
-            using (SaveMigrator.RegisterScoped(new MarkerMigration(1, "temporary"))) { }
+            using (SaveMigrator.RegisterScoped(new MarkerMigration(Top, "temporary"))) { }
 
-            JObject root = FileAtVersion(1);
-            Assert.Throws<SaveFormatException>(() => SaveMigrator.MigrateTo(root, 2));
+            JObject root = FileAtVersion(Top);
+            Assert.Throws<SaveFormatException>(() => SaveMigrator.MigrateTo(root, Top + 1));
+        }
+
+        // ─────────────────────────────────────────────
+        //  v1 → v2: per-scene records become one global, id-keyed registry
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// The lift that lets an existing world keep its contents. Proven against the shape real v1
+        /// files actually hold — checked against the save files on this machine before it was
+        /// written, where four of five authored creatures were filed under a chunk they had wandered
+        /// into while all of them are authored in persistentScene.
+        /// </summary>
+        [Test]
+        public void V1Records_BecomeGlobalEntitiesKeyedByIdentity()
+        {
+            JObject root = JObject.Parse(@"{
+              ""header"": { ""version"": 1 },
+              ""world"": {
+                ""scenes"": {
+                  ""chunk:7,5"": {
+                    ""entities"": [{ ""instanceId"": ""item-1"", ""prefabId"": ""p"", ""state"": {} }],
+                    ""authored"": {
+                      ""golem-1"": { ""entries"": { ""transform"": {
+                          ""position"": { ""x"": 10.0, ""y"": 2.0, ""z"": 30.0 },
+                          ""scale"": { ""x"": 1.0, ""y"": 1.0, ""z"": 1.0 } } } }
+                    },
+                    ""destroyedAuthored"": [""dead-1""]
+                  }
+                }
+              }
+            }");
+
+            SaveMigrator.Migrate(root);
+
+            Assert.IsNull(root["world"]["scenes"], "the per-scene partition should be gone");
+
+            JToken item = root["world"]["entities"]["item-1"];
+            Assert.AreEqual("chunk:7,5", (string)item["scene"], "routing information was lost");
+            Assert.IsFalse((bool)item["authored"]);
+
+            JToken golem = root["world"]["entities"]["golem-1"];
+            Assert.IsTrue((bool)golem["authored"], "a migrated authored object would be respawned as a duplicate");
+            Assert.AreEqual(10.0, (double)golem["position"]["x"], 0.001,
+                            "the pose was not lifted out of the transform payload");
+
+            Assert.AreEqual("dead-1", (string)root["world"]["destroyed"][0]);
+        }
+
+        /// <summary>
+        /// The subtle half. A v1 authored record held no pose of its own, so one whose object had no
+        /// transform saver has nowhere for a position to come from — and a defaulted zero is
+        /// indistinguishable from an object that belongs at the origin. Left unmarked, the first load
+        /// after the update would teleport every such object to (0,0,0).
+        /// </summary>
+        [Test]
+        public void V1AuthoredRecordWithNoTransform_IsMarkedAsHavingNoPose()
+        {
+            JObject root = JObject.Parse(@"{
+              ""header"": { ""version"": 1 },
+              ""world"": { ""scenes"": { ""persistent"": {
+                ""authored"": { ""crate-1"": { ""entries"": { ""health"": { ""current"": 5 } } } }
+              } } }
+            }");
+
+            SaveMigrator.Migrate(root);
+
+            Assert.IsFalse((bool)root["world"]["entities"]["crate-1"]["hasPose"]);
         }
 
         /// <summary>

@@ -16,7 +16,7 @@ namespace SpaceGame.Persistence
         /// <see cref="StateBag.TryGet{T}"/> returning false — and add the matching
         /// <see cref="ISaveMigration"/> in the same commit. See <see cref="SaveMigrator"/>.
         /// </summary>
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
 
         [JsonProperty("header")] public SaveHeader Header = new();
         [JsonProperty("players")] public List<PlayerRecord> Players = new();
@@ -56,6 +56,16 @@ namespace SpaceGame.Persistence
         [JsonProperty("playtimeSeconds")] public double PlaytimeSeconds;
         [JsonProperty("gameVersion")] public string GameVersion = string.Empty;
         [JsonProperty("slotLabel")] public string SlotLabel = string.Empty;
+
+        /// <summary>The world's player-facing name. Empty on saves written before world selection.</summary>
+        [JsonProperty("worldName")] public string WorldName = string.Empty;
+
+        /// <summary>
+        /// The GUID of the WorldStreamingConfig this world's chunk deltas were recorded against.
+        /// Empty on legacy saves, which are taken to belong to the main world. Checked on load by
+        /// <see cref="WorldIdentity.AcceptsConfig"/>.
+        /// </summary>
+        [JsonProperty("worldConfigId")] public string WorldConfigId = string.Empty;
     }
 
     /// <summary>
@@ -80,78 +90,99 @@ namespace SpaceGame.Persistence
         [JsonProperty("global")] public StateBag Global = new();
 
         /// <summary>
-        /// Keyed by <see cref="SceneKey"/>, not by scene name alone, so a chunk coordinate, an
-        /// interior scene and the persistent scene can share one dictionary without colliding.
+        /// Every persisted world object, keyed by its own stable instance id.
+        ///
+        /// Flat and global, NOT partitioned by scene — and that is the whole point. The scene an
+        /// object stands in is not a property of the object, it is a property of where it happens to
+        /// be RIGHT NOW: <c>WorldStreamer.UpdateSceneMembership</c> moves every SceneTracked entity
+        /// between the persistent scene and whichever chunk it has wandered into. Filing an object's
+        /// record under that scene meant a creature captured in the chunk it walked to was looked
+        /// for, on load, in the chunk it walked to — while the scene file had put it back where it
+        /// was authored. The lookup missed, the record was dropped, and every creature in the world
+        /// reappeared at its authored position while the player (keyed by profile, not by scene)
+        /// restored perfectly.
+        ///
+        /// Identity is the only thing about an object that does not move, so identity is the key.
+        /// <see cref="EntityRecord.Scene"/> keeps the routing information that streaming still needs,
+        /// as a field that can be re-stamped rather than as the address of the record.
         /// </summary>
-        [JsonProperty("scenes")] public Dictionary<string, SceneRecord> Scenes = new();
+        [JsonProperty("entities")] public Dictionary<string, EntityRecord> Entities = new();
+
+        /// <summary>
+        /// Authored objects the player destroyed for good.
+        ///
+        /// Global for the same reason <see cref="Entities"/> is: a creature killed in a chunk it had
+        /// wandered into must stay dead when its home scene loads it again.
+        /// </summary>
+        [JsonProperty("destroyed")] public List<string> Destroyed = new();
+
+        [JsonIgnore] public int Count => Entities?.Count ?? 0;
 
         public void Normalize()
         {
             Global ??= new StateBag();
-            Scenes ??= new Dictionary<string, SceneRecord>();
+            Entities ??= new Dictionary<string, EntityRecord>();
+            Destroyed ??= new List<string>();
 
-            foreach (SceneRecord record in Scenes.Values)
-                record?.Normalize();
+            foreach (KeyValuePair<string, EntityRecord> entry in Entities)
+            {
+                if (entry.Value == null) continue;
+                entry.Value.EnsureState();
+
+                // The key is the identity. A record whose own field disagrees with it — hand-edited
+                // file, a migration that moved records around — would spawn under one id and be
+                // looked up under another.
+                if (entry.Value.InstanceId != entry.Key) entry.Value.InstanceId = entry.Key;
+            }
         }
 
-        /// <summary>The record for a key, created empty on first use.</summary>
-        public SceneRecord GetOrCreate(string sceneKey)
+        /// <summary>The record for an id, created empty on first use.</summary>
+        public EntityRecord GetOrCreate(string instanceId)
         {
-            Scenes ??= new Dictionary<string, SceneRecord>();
+            Entities ??= new Dictionary<string, EntityRecord>();
 
-            if (!Scenes.TryGetValue(sceneKey, out SceneRecord record) || record == null)
+            if (!Entities.TryGetValue(instanceId, out EntityRecord record) || record == null)
             {
-                record = new SceneRecord();
-                Scenes[sceneKey] = record;
+                record = new EntityRecord { InstanceId = instanceId };
+                Entities[instanceId] = record;
             }
 
-            return record.Normalize();
+            return record;
         }
 
-        public bool TryGet(string sceneKey, out SceneRecord record)
+        public bool TryGet(string instanceId, out EntityRecord record)
         {
             record = null;
-            if (Scenes == null || sceneKey == null) return false;
-            if (!Scenes.TryGetValue(sceneKey, out record) || record == null) return false;
-
-            record.Normalize();
-            return true;
+            if (Entities == null || instanceId == null) return false;
+            return Entities.TryGetValue(instanceId, out record) && record != null;
         }
+
+        /// <summary>
+        /// The records currently routed to one scene. Used to decide what a scene load has to spawn,
+        /// which is the one question that still needs the scene partition.
+        /// </summary>
+        public IEnumerable<EntityRecord> InScene(string sceneKey)
+        {
+            if (Entities == null || sceneKey == null) yield break;
+
+            foreach (EntityRecord record in Entities.Values)
+                if (record != null && record.Scene == sceneKey)
+                    yield return record;
+        }
+
+        public bool IsDestroyed(string instanceId) =>
+            !string.IsNullOrEmpty(instanceId) && Destroyed != null && Destroyed.Contains(instanceId);
     }
 
     /// <summary>
-    /// One scene's worth of persisted world state.
+    /// One persisted world object — authored or runtime-spawned.
     ///
-    /// The three collections exist because a scene holds two populations that behave differently.
-    /// Runtime objects (<see cref="Entities"/>) do not exist until something spawns them, so their
-    /// record carries everything needed to recreate them. Authored objects are already in the scene
-    /// file when it loads, so their record carries only the delta — the state they were left in
-    /// (<see cref="Authored"/>), or the fact that they are gone (<see cref="DestroyedAuthored"/>).
-    /// Recreating an authored object from a record would duplicate it; recording an authored object
-    /// as destroyed is the only way to keep the scene file from putting it back.
+    /// Both populations share this shape but are restored differently, which is what
+    /// <see cref="Authored"/> selects. A runtime object does not exist until something spawns it, so
+    /// its record carries everything needed to recreate it. An authored object is already in the
+    /// scene file when it loads, so re-creating it would duplicate it — its record is a delta applied
+    /// to the object already standing there.
     /// </summary>
-    public class SceneRecord
-    {
-        [JsonProperty("entities")] public List<EntityRecord> Entities = new();
-        [JsonProperty("authored")] public Dictionary<string, StateBag> Authored = new();
-        [JsonProperty("destroyedAuthored")] public List<string> DestroyedAuthored = new();
-
-        [JsonIgnore]
-        public bool IsEmpty =>
-            (Entities == null || Entities.Count == 0) &&
-            (Authored == null || Authored.Count == 0) &&
-            (DestroyedAuthored == null || DestroyedAuthored.Count == 0);
-
-        public SceneRecord Normalize()
-        {
-            Entities ??= new List<EntityRecord>();
-            Authored ??= new Dictionary<string, StateBag>();
-            DestroyedAuthored ??= new List<string>();
-            return this;
-        }
-    }
-
-    /// <summary>A runtime-spawned object: what to instantiate, where to put it, and how to set it up.</summary>
     public class EntityRecord
     {
         /// <summary>Asset GUID of the prefab, resolved through the saveable-prefab registry.</summary>
@@ -160,15 +191,39 @@ namespace SpaceGame.Persistence
         /// <summary>Identity of this particular instance, stable across save/load.</summary>
         [JsonProperty("instanceId")] public string InstanceId = string.Empty;
 
+        /// <summary>
+        /// The <see cref="SceneKey"/> this object was in when it was last captured. Routing, not
+        /// identity: it decides which scene load spawns a runtime object, and is re-stamped every
+        /// time the object is captured somewhere else. Authored objects ignore it entirely — they
+        /// are restored wherever the scene file puts them.
+        /// </summary>
+        [JsonProperty("scene")] public string Scene = string.Empty;
+
+        /// <summary>True for objects the scene file already contains. Restored in place, never spawned.</summary>
+        [JsonProperty("authored")] public bool Authored;
+
         [JsonProperty("position")] public Vector3 Position;
         [JsonProperty("rotation")] public Quaternion Rotation = Quaternion.identity;
+        [JsonProperty("scale")] public Vector3 Scale = Vector3.one;
+
+        /// <summary>
+        /// Whether <see cref="Position"/> means anything.
+        ///
+        /// True for everything this build writes — a capture always records where the object was.
+        /// It exists for the one case that cannot: a v1 authored record whose object had no
+        /// transform saver never stored a pose anywhere, and a zero <see cref="Position"/> is
+        /// indistinguishable from an object that really was at the origin. Without this the
+        /// migration would teleport every such object to (0,0,0) on the first load.
+        /// </summary>
+        [JsonProperty("hasPose")] public bool HasPose = true;
+
         [JsonProperty("state")] public StateBag State = new();
 
         public StateBag EnsureState() => State ??= new StateBag();
     }
 
     /// <summary>
-    /// Builds the keys of <see cref="WorldRecord.Scenes"/>. Centralised because the key is written
+    /// Builds the values of <see cref="EntityRecord.Scene"/>. Centralised because the key is written
     /// into save files: changing how one is spelled orphans every record already stored under it.
     /// </summary>
     public static class SceneKey

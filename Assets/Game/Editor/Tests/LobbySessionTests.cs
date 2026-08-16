@@ -20,7 +20,7 @@ namespace SpaceGame.Tests
             // Written at creation rather than by a follow-up UpdateLobbyAsync. A client that polled
             // in the gap between the two saw a lobby with no join code and read straight past the
             // missing key.
-            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, null, "RELAY99", "Ferdinand");
+            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand");
 
             Assert.IsTrue(options.Data.ContainsKey(LobbySession.KeyRelayJoinCode));
             Assert.AreEqual("RELAY99", options.Data[LobbySession.KeyRelayJoinCode].Value);
@@ -29,7 +29,7 @@ namespace SpaceGame.Tests
         [Test]
         public void CreateOptions_StartsInTheWaitingState()
         {
-            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, null, "RELAY99", "Ferdinand");
+            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand");
 
             Assert.AreEqual(LobbySession.StateWaiting, options.Data[LobbySession.KeyGameState].Value);
         }
@@ -39,7 +39,7 @@ namespace SpaceGame.Tests
         {
             // The lobby browser labels rows the player has not joined, so this key has to be
             // visible to non-members. Member visibility would render every row blank.
-            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, null, "RELAY99", "Ferdinand");
+            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand");
 
             Assert.AreEqual(DataObject.VisibilityOptions.Public,
                 options.Data[LobbySession.KeyGameState].Visibility);
@@ -48,29 +48,30 @@ namespace SpaceGame.Tests
         [Test]
         public void CreateOptions_CarriesThePlayerName()
         {
-            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, null, "RELAY99", "Ferdinand");
+            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand");
 
             Assert.AreEqual("Ferdinand", options.Player.Data[LobbySession.KeyPlayerName].Value);
         }
 
-        [TestCase("")]
-        [TestCase("   ")]
-        [TestCase(null)]
-        public void CreateOptions_TreatsABlankPasswordAsNoPassword(string blank)
+        [TestCase(true)]
+        [TestCase(false)]
+        public void CreateOptions_NeverSetAPassword(bool isPrivate)
         {
-            // Lobby rejects an empty-string password outright rather than ignoring it, so a private
-            // lobby created with the password field untouched failed to create at all.
-            CreateLobbyOptions options = LobbySession.BuildCreateOptions(true, blank, "RELAY99", "Ferdinand");
+            // Sessions are reached by their code or from the browser, never by a password. Lobby
+            // also rejects an empty-string password outright rather than ignoring it, so the only
+            // safe value to send is none at all.
+            CreateLobbyOptions options = LobbySession.BuildCreateOptions(isPrivate, "RELAY99", "Ferdinand");
 
             Assert.IsNull(options.Password);
         }
 
         [Test]
-        public void CreateOptions_KeepsARealPassword()
+        public void CreateOptions_DelistAPrivateLobby()
         {
-            CreateLobbyOptions options = LobbySession.BuildCreateOptions(true, "hunter2", "RELAY99", "Ferdinand");
-
-            Assert.AreEqual("hunter2", options.Password);
+            // Compared against true/false rather than asserted directly: IsPrivate is a bool?, and
+            // spelling the comparison out keeps this off NUnit's nullable overloads.
+            Assert.IsTrue(LobbySession.BuildCreateOptions(true, "RELAY99", "Ferdinand").IsPrivate == true);
+            Assert.IsTrue(LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand").IsPrivate == false);
         }
 
         [Test]
@@ -91,6 +92,32 @@ namespace SpaceGame.Tests
             UpdateLobbyOptions options = LobbySession.BuildBeginGameOptions();
 
             Assert.AreEqual(LobbySession.StateInGame, options.Data[LobbySession.KeyGameState].Value);
+        }
+
+        [Test]
+        public void PrivacyOptions_DelistTheLobbyWhenTurnedPrivate()
+        {
+            UpdateLobbyOptions options = LobbySession.BuildPrivacyOptions(true);
+
+            Assert.IsTrue(options.IsPrivate == true);
+        }
+
+        [Test]
+        public void PrivacyOptions_ListTheLobbyAgainWhenTurnedPublic()
+        {
+            UpdateLobbyOptions options = LobbySession.BuildPrivacyOptions(false);
+
+            Assert.IsTrue(options.IsPrivate == false);
+        }
+
+        [Test]
+        public void PrivacyOptions_NeverSendAPassword()
+        {
+            // There are no passwords in this flow. Sending one here would be worse than useless:
+            // UpdateLobbyOptions reads null as "leave it alone", so a stray value would lock a lobby
+            // behind a secret nothing in the UI can collect and nothing in the UI can clear.
+            Assert.IsNull(LobbySession.BuildPrivacyOptions(true).Password);
+            Assert.IsNull(LobbySession.BuildPrivacyOptions(false).Password);
         }
 
         [Test]

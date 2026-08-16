@@ -158,19 +158,19 @@ namespace SpaceGame.Tests.EditMode
             player.EnsureState().Set("health", new Payload { number = 55 });
             document.Players.Add(player);
 
-            SceneRecord chunk = document.World.GetOrCreate(SceneKey.ForChunk(new Vector2Int(3, 2)));
+            string chunkKey = SceneKey.ForChunk(new Vector2Int(3, 2));
 
-            var entity = new EntityRecord
-            {
-                PrefabId = "prefab-guid",
-                InstanceId = "instance-guid",
-                Position = new Vector3(1f, 2f, 3f),
-            };
+            EntityRecord entity = document.World.GetOrCreate("instance-guid");
+            entity.PrefabId = "prefab-guid";
+            entity.Scene = chunkKey;
+            entity.Position = new Vector3(1f, 2f, 3f);
             entity.EnsureState().Set("rigidbody", new Payload { number = 7 });
-            chunk.Entities.Add(entity);
 
-            chunk.Authored["authored-guid"] = new StateBag();
-            chunk.DestroyedAuthored.Add("gone-guid");
+            EntityRecord authored = document.World.GetOrCreate("authored-guid");
+            authored.Scene = chunkKey;
+            authored.Authored = true;
+
+            document.World.Destroyed.Add("gone-guid");
 
             SaveDocument restored = SaveSerializer.FromJson(SaveSerializer.ToJson(document));
 
@@ -183,12 +183,15 @@ namespace SpaceGame.Tests.EditMode
             Assert.IsTrue(restoredPlayer.State.TryGet("health", out Payload health));
             Assert.AreEqual(55, health.number);
 
-            Assert.IsTrue(restored.World.TryGet(SceneKey.ForChunk(new Vector2Int(3, 2)), out SceneRecord restoredChunk));
-            Assert.AreEqual(1, restoredChunk.Entities.Count);
-            Assert.AreEqual("instance-guid", restoredChunk.Entities[0].InstanceId);
-            Assert.AreEqual(new Vector3(1f, 2f, 3f), restoredChunk.Entities[0].Position);
-            Assert.Contains("gone-guid", restoredChunk.DestroyedAuthored);
-            Assert.IsTrue(restoredChunk.Authored.ContainsKey("authored-guid"));
+            Assert.IsTrue(restored.World.TryGet("instance-guid", out EntityRecord restoredEntity));
+            Assert.AreEqual(chunkKey, restoredEntity.Scene);
+            Assert.IsFalse(restoredEntity.Authored);
+            Assert.AreEqual(new Vector3(1f, 2f, 3f), restoredEntity.Position);
+
+            Assert.IsTrue(restored.World.TryGet("authored-guid", out EntityRecord restoredAuthored));
+            Assert.IsTrue(restoredAuthored.Authored);
+
+            Assert.Contains("gone-guid", restored.World.Destroyed);
         }
 
         /// <summary>
@@ -215,7 +218,7 @@ namespace SpaceGame.Tests.EditMode
 
             Assert.IsNotNull(restored.Players);
             Assert.IsNotNull(restored.World);
-            Assert.IsNotNull(restored.World.Scenes);
+            Assert.IsNotNull(restored.World.Entities);
             Assert.IsNotNull(restored.World.Global);
         }
 
@@ -227,7 +230,7 @@ namespace SpaceGame.Tests.EditMode
 
             Assert.IsNotNull(restored.Players);
             Assert.AreEqual(0, restored.Players.Count);
-            Assert.IsNotNull(restored.World.Scenes);
+            Assert.IsNotNull(restored.World.Entities);
         }
 
         [Test]

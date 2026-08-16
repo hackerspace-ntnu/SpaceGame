@@ -6,7 +6,7 @@ edit the palette and regenerate, or the two will disagree.
 Every model and component in this repository links its materials from here.
 Before adding anything, search this table for something that would serve.
 
-**35 material(s)** across 9 categor(ies).
+**40 material(s)** across 9 categor(ies).
 
 ## Emissive
 
@@ -39,8 +39,13 @@ Before adding anything, search this table for something that would serve.
 | Name | Hex | Roughness | Metallic | Intended for |
 |---|---|---|---|---|
 | `Mat_Hide_Claw_Horn` | `#4A3D2E` | 0.34 | 0.0 | Dark polished keratin: digging claws, tooth enamel, beak edges and horn tips on organic creatures. Lower roughness than the hide family because worn claw takes a shine. Distinct from Mat_Paint_Olive_Deep, which is enamel on steel. |
+| `Mat_Hide_Dune_Tan` | `#C9BC9A` | 0.74 | 0.0 | Mid dune-tan creature hide: the Vrescal flanks, humps, neck and the kept head sculpt. Deliberately close in value to Mat_Hide_Scute_Umber so the armour mosaic reads as one hide. Started life as a much paler Bone_Cream, which against the dark plates turned the animal into cow markings and made the head look like a bare skull. |
+| `Mat_Hide_Eye_Amber` | `#B8912F` | 0.12 | 0.0 | Wet gold-amber iris with a slit pupil: the Vrescal eye. Low roughness because an eye is the only glossy thing on an otherwise matte animal. Distinct from Mat_Emissive_Amber, which is a lamp. |
+| `Mat_Hide_Ivory_Spine` | `#E2D8C0` | 0.38 | 0.0 | Pale ivory keratin: the Vrescal jaw spines, cheek horns and teeth. The Hide family had dark keratin (Mat_Hide_Claw_Horn) but no pale keratin, and the spines must read brighter than the hide they grow out of or they vanish into the flank. Forced past Mat_Fabric_Flag_Bleached (deltaE 5.6), which is cloth, and Mat_Hide_Dune_Tan (deltaE 8.0), which is the body colour the spines have to contrast against. |
 | `Mat_Hide_Plate_Tan` | `#987340` | 0.62 | 0.0 | Darker tan keratin: the Vrescal's overlapping dorsal armour plates and scutes. Reads as hardened shell against the softer Mat_Hide_Sand_Pale skin. Distinct from Mat_Wood_Ply_Worn, which is scavenged plywood, not a body surface. |
 | `Mat_Hide_Sand_Pale` | `#E7B345` | 0.72 | 0.0 | Pale sand-yellow creature hide: the Vrescal's head, belly, limbs and tail keel. The soft skin tone the darker keratin plates sit on. Distinct from Mat_Emissive_Amber, which is a lamp, not a surface. |
+| `Mat_Hide_Scute_Umber` | `#6E5B47` | 0.58 | 0.0 | Dark desaturated umber keratin: the Vrescal's cracked armour mosaic. Deliberately close in value to Mat_Hide_Bone_Cream so the plate field reads as one hide rather than as cow markings - Mat_Hide_Plate_Tan is a mid orange-brown that blew out against the pale body. |
+| `Mat_Hide_Slate_Teal` | `#5E7B7A` | 0.68 | 0.0 | Cold blue-green creature hide: the Vrescal's throat, belly, inner limbs and foot pads. The desaturated counter-tone the warm Mat_Hide_Sand_Pale flank reads against, and the only cool note on the animal. Distinct from Mat_Metal_Copper_Oxide, which is verdigris on metal rather than skin. |
 
 ## Metal
 

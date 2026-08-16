@@ -54,13 +54,68 @@ namespace SpaceGame.EditorTests
             Assert.AreEqual("scene:AlgeaCave", SceneKey.ForScene("AlgeaCave"));
         }
 
+        /// <summary>
+        /// The contract this fixture actually defends is not that the format never moves — it is
+        /// that a file written by ANY shipped build still opens in this one. So it asserts the
+        /// ladder reaches the top from every rung below it, rather than pinning a version literal
+        /// that has to be edited on each bump (and, being edited, stops meaning anything).
+        ///
+        /// The whole-document sample below is a real version-1 file and is read through the
+        /// migration. Add another beside it whenever a version changes the SHAPE of the document,
+        /// so the new shape is pinned too.
+        /// </summary>
         [Test]
-        public void CurrentVersion_MatchesTheGoldenSamplesBelow()
+        public void AFileFromEveryShippedVersion_CanStillBeRead()
         {
-            // The samples in this fixture were written at version 1. If this fails, the samples are
-            // stale: add a migration, then add a version-N literal beside each version-1 one.
-            Assert.AreEqual(1, SaveDocument.CurrentVersion,
-                "Format version moved past the golden samples in this fixture.");
+            for (int version = 1; version <= SaveDocument.CurrentVersion; version++)
+            {
+                JObject root = JObject.Parse($@"{{""header"":{{""version"":{version}}}}}");
+
+                Assert.DoesNotThrow(() => SaveMigrator.Migrate(root),
+                    $"a save written at version {version} can no longer be read — the migration " +
+                    "ladder has a gap, and every player still on that version loses their world");
+            }
+        }
+
+        /// <summary>
+        /// The version-2 shape, pinned the same way the version-1 body below is: one global,
+        /// id-keyed entity registry, with the scene as a field rather than as the address.
+        /// </summary>
+        [Test]
+        public void Version2Document_ReadsWithoutMigration()
+        {
+            const string Json = @"{
+              ""header"": { ""version"": 2, ""slotLabel"": ""Quicksave"", ""worldName"": ""zombies"" },
+              ""players"": [],
+              ""world"": {
+                ""global"": { ""entries"": {} },
+                ""entities"": {
+                  ""golem-1"": {
+                    ""prefabId"": """",
+                    ""instanceId"": ""golem-1"",
+                    ""scene"": ""chunk:7,5"",
+                    ""authored"": true,
+                    ""position"": { ""x"": 3791.0, ""y"": 88.0, ""z"": 1562.0 },
+                    ""rotation"": { ""x"": 0.0, ""y"": 0.0, ""z"": 0.0, ""w"": 1.0 },
+                    ""scale"": { ""x"": 1.0, ""y"": 1.0, ""z"": 1.0 },
+                    ""hasPose"": true,
+                    ""state"": { ""entries"": { ""health"": { ""current"": 90, ""max"": 420 } } }
+                  }
+                },
+                ""destroyed"": [ ""dead-1"" ]
+              }
+            }";
+
+            SaveDocument doc = SaveSerializer.FromJson(Json);
+
+            Assert.AreEqual(2, doc.Header.Version);
+            Assert.IsTrue(doc.World.TryGet("golem-1", out EntityRecord golem));
+            Assert.IsTrue(golem.Authored);
+            Assert.AreEqual("chunk:7,5", golem.Scene);
+            Assert.AreEqual(new Vector3(3791f, 88f, 1562f), golem.Position);
+            Assert.IsTrue(golem.State.TryGet(HealthSaveable.Key, out HealthSaveable.State health));
+            Assert.AreEqual(90, health.current);
+            Assert.IsTrue(doc.World.IsDestroyed("dead-1"));
         }
 
         // ─────────────────────────────────────────────
@@ -179,7 +234,10 @@ namespace SpaceGame.EditorTests
 
             SaveDocument doc = SaveSerializer.FromJson(Json);
 
-            Assert.AreEqual(1, doc.Header.Version);
+            // Read through the v1 → v2 migration, which is the point: this payload is a real file
+            // written by the shipped build, and a player with one must not lose their world to a
+            // format change.
+            Assert.AreEqual(2, doc.Header.Version);
             Assert.AreEqual("Quicksave", doc.Header.SlotLabel);
             Assert.AreEqual(3600.0, doc.Header.PlaytimeSeconds, 0.001);
 
@@ -192,12 +250,23 @@ namespace SpaceGame.EditorTests
             Assert.IsTrue(doc.World.Global.TryGet(GameStateSaveable.Key, out GameStateSaveable.State game));
             Assert.AreEqual(60f, game.gameTimer, 0.001f);
 
-            Assert.IsTrue(doc.World.TryGet("chunk:3,2", out SceneRecord chunk));
-            Assert.AreEqual(1, chunk.Entities.Count);
-            Assert.AreEqual("instance-guid", chunk.Entities[0].InstanceId);
-            Assert.AreEqual(new Vector3(1f, 2f, 3f), chunk.Entities[0].Position);
-            Assert.IsTrue(chunk.Authored.ContainsKey("authored-guid"));
-            Assert.Contains("gone-guid", chunk.DestroyedAuthored);
+            // The v1 per-scene record has become one global entry per object, with the scene it was
+            // filed under preserved as routing information rather than as the address.
+            Assert.IsTrue(doc.World.TryGet("instance-guid", out EntityRecord runtime),
+                          "a v1 runtime entity did not survive the migration");
+            Assert.AreEqual("chunk:3,2", runtime.Scene);
+            Assert.IsFalse(runtime.Authored);
+            Assert.AreEqual("prefab-guid", runtime.PrefabId);
+            Assert.AreEqual(new Vector3(1f, 2f, 3f), runtime.Position);
+            Assert.IsTrue(runtime.State.TryGet(RigidbodySaveable.Key, out RigidbodySaveable.State body));
+            Assert.IsTrue(body.isKinematic, "the runtime entity's payload was lost in the migration");
+
+            Assert.IsTrue(doc.World.TryGet("authored-guid", out EntityRecord authored),
+                          "a v1 authored record did not survive the migration");
+            Assert.IsTrue(authored.Authored, "a migrated authored object would be respawned as a duplicate");
+            Assert.AreEqual("chunk:3,2", authored.Scene);
+
+            Assert.Contains("gone-guid", doc.World.Destroyed);
         }
 
         /// <summary>

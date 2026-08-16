@@ -21,6 +21,7 @@ namespace SpaceGame.EditorTests
     public class WorldSaveStoreTests
     {
         private const string ChunkKey = "chunk:3,2";
+        private const string PersistentKey = SceneKey.Persistent;
 
         private Scene scene;
         private GameObject prefab;
@@ -140,17 +141,21 @@ namespace SpaceGame.EditorTests
             GameObject second = RuntimeEntity("picked-up", "prefab-a", Vector3.one, 2);
 
             store.Dehydrate(ChunkKey, scene);
-            Assert.AreEqual(2, store.Record.Scenes[ChunkKey].Entities.Count);
+            Assert.AreEqual(2, RuntimeIn(store, ChunkKey).Count);
 
             Object.DestroyImmediate(second);
             spawned.Remove(second);
 
             store.Dehydrate(ChunkKey, scene);
 
-            Assert.AreEqual(1, store.Record.Scenes[ChunkKey].Entities.Count);
+            Assert.AreEqual(1, RuntimeIn(store, ChunkKey).Count);
             Assert.AreEqual(first.GetComponent<SaveableEntity>().InstanceId,
-                            store.Record.Scenes[ChunkKey].Entities[0].InstanceId);
+                            RuntimeIn(store, ChunkKey)[0].InstanceId);
         }
+
+        /// <summary>The runtime records routed to one scene, which is what a scene load has to spawn.</summary>
+        private static List<EntityRecord> RuntimeIn(WorldSaveStore store, string sceneKey) =>
+            store.Record.InScene(sceneKey).Where(r => !r.Authored).ToList();
 
         /// <summary>Hydrating a chunk whose objects are already live must not double them.</summary>
         [Test]
@@ -212,10 +217,10 @@ namespace SpaceGame.EditorTests
 
             store.Dehydrate(ChunkKey, scene);
 
-            Assert.AreEqual(1, store.Record.Scenes[ChunkKey].Entities.Count,
+            Assert.AreEqual(1, RuntimeIn(store, ChunkKey).Count,
                             "an externally-owned entity was captured into the world record");
-            Assert.AreEqual("prefab-a", store.Record.Scenes[ChunkKey].Entities[0].PrefabId);
-            Assert.AreEqual(1, store.Record.Scenes[ChunkKey].Entities[0].State
+            Assert.AreEqual("prefab-a", RuntimeIn(store, ChunkKey)[0].PrefabId);
+            Assert.AreEqual(1, RuntimeIn(store, ChunkKey)[0].State
                                    .TryGet("counter", out CounterSaver.Payload p) ? p.value : -1);
         }
 
@@ -297,7 +302,7 @@ namespace SpaceGame.EditorTests
             GameObject authored = InScene("authored-crate");
             SaveableEntity entity = AuthoredEntity(authored, "authored-1");
 
-            store.RecordDestroyed(ChunkKey, entity);
+            store.RecordDestroyed(entity);
             store.Hydrate(ChunkKey, scene);
 
             Assert.IsTrue(authored == null, "the destroyed authored object came back with the scene");
@@ -314,14 +319,14 @@ namespace SpaceGame.EditorTests
             var store = new WorldSaveStore();
 
             GameObject authored = InScene("authored-crate");
-            store.RecordDestroyed(ChunkKey, AuthoredEntity(authored, "authored-1"));
+            store.RecordDestroyed(AuthoredEntity(authored, "authored-1"));
 
             Object.DestroyImmediate(authored);
             spawned.Remove(authored);
 
             store.Dehydrate(ChunkKey, scene);
 
-            Assert.Contains("authored-1", store.Record.Scenes[ChunkKey].DestroyedAuthored);
+            Assert.Contains("authored-1", store.Record.Destroyed);
         }
 
         [Test]
@@ -336,7 +341,7 @@ namespace SpaceGame.EditorTests
             counter.Value = 55;
 
             store.Dehydrate(ChunkKey, scene);
-            Assert.IsEmpty(store.Record.Scenes[ChunkKey].Entities,
+            Assert.IsEmpty(RuntimeIn(store, ChunkKey),
                            "an authored object must never be recorded as something to instantiate");
 
             counter.Value = 0;
@@ -344,6 +349,100 @@ namespace SpaceGame.EditorTests
 
             Assert.AreEqual(55, counter.Value);
             Assert.AreEqual(1, WorldSaveStore.EntitiesIn(scene).Count(), "the authored object was duplicated");
+        }
+
+        // ─────────────────────────────────────────────
+        //  Objects that change scene while the game runs
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// The bug this whole rewrite exists for.
+        ///
+        /// WorldStreamer.UpdateSceneMembership moves every SceneTracked entity into whichever chunk
+        /// it has wandered into, so a creature is routinely captured in a scene it was not authored
+        /// in. Records used to be filed under that scene and looked up there on load — but the scene
+        /// file puts the creature back in its HOME scene, so the lookup missed, the record was
+        /// dropped with a warning, and every creature in the world reappeared at its authored
+        /// position. Reported as "the player's position is the same, the other entities restart".
+        /// </summary>
+        [Test]
+        public void AuthoredState_SurvivesTheObjectHavingWanderedIntoAnotherScene()
+        {
+            var store = new WorldSaveStore();
+
+            GameObject creature = InScene("golem");
+            AuthoredEntity(creature, "authored-golem");
+            CounterSaver counter = creature.AddComponent<CounterSaver>();
+            creature.GetComponent<SaveableEntity>().InvalidateSavers();
+            counter.Value = 33;
+            creature.transform.position = new Vector3(120f, 4f, -60f);
+
+            // It wanders out of the scene it was authored in and into a streamed chunk, which is
+            // where the save catches it.
+            Scene wandered = EditorSceneManager.NewPreviewScene();
+            try
+            {
+                SceneManager.MoveGameObjectToScene(creature, wandered);
+                store.Dehydrate(ChunkKey, wandered);
+
+                // Reload: the scene file puts it back where it was authored, at its authored pose.
+                SceneManager.MoveGameObjectToScene(creature, scene);
+                counter.Value = 0;
+                creature.transform.position = Vector3.zero;
+
+                store.Hydrate(PersistentKey, scene);
+
+                Assert.AreEqual(33, counter.Value,
+                    "state captured in the chunk the creature wandered into was dropped when its " +
+                    "home scene loaded");
+                Assert.AreEqual(new Vector3(120f, 4f, -60f), creature.transform.position,
+                    "the creature was left at its authored position instead of where it was left");
+            }
+            finally
+            {
+                if (wandered.IsValid()) EditorSceneManager.ClosePreviewScene(wandered);
+            }
+        }
+
+        /// <summary>
+        /// Position is recorded for authored objects too, not only for the runtime ones that need it
+        /// to be spawned at all — so an object persists where it was left whether or not anyone
+        /// remembered to give it a TransformSaveable.
+        /// </summary>
+        [Test]
+        public void AuthoredPosition_IsRestoredWithoutATransformSaver()
+        {
+            var store = new WorldSaveStore();
+
+            GameObject prop = InScene("pushed-crate");
+            AuthoredEntity(prop, "authored-crate");
+            prop.transform.position = new Vector3(9f, 0f, 4f);
+
+            store.Dehydrate(ChunkKey, scene);
+
+            prop.transform.position = Vector3.zero;
+            store.Hydrate(ChunkKey, scene);
+
+            Assert.AreEqual(new Vector3(9f, 0f, 4f), prop.transform.position);
+        }
+
+        /// <summary>
+        /// A creature killed in a chunk it had wandered into must stay dead when the scene it was
+        /// authored in loads it again. Tombstones used to be filed per scene, so it did not.
+        /// </summary>
+        [Test]
+        public void ATombstoneAppliesInWhicheverSceneTheObjectTurnsUp()
+        {
+            var store = new WorldSaveStore();
+
+            GameObject creature = InScene("golem");
+            store.RecordDestroyed(AuthoredEntity(creature, "authored-golem"));
+
+            // Killed while it was three chunks away; the scene that re-creates it is its home one.
+            store.Hydrate(PersistentKey, scene);
+
+            Assert.IsTrue(creature == null, "the destroyed creature came back in its home scene");
+            spawned.Remove(creature);
         }
 
         /// <summary>

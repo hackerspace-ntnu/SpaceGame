@@ -1,4 +1,5 @@
 using UnityEngine;
+using SpaceGame.Core;
 
 namespace SpaceGame.Items
 {
@@ -7,29 +8,39 @@ namespace SpaceGame.Items
         [SerializeField] private GameObject lightningVFXPrefab;
         [SerializeField] private float spawnHeightOffset = 10f;
         [SerializeField] private float raycastDistance = 500f;
-        Vector3 spawnPoint;
 
+        /// <summary>
+        /// Where the bolt lands, decided by the player who cast it.
+        ///
+        /// Every machine has to strike the same spot, and only the caster's machine can work out
+        /// which spot that is — it is the one holding their camera. So the aim travels with the
+        /// use instead of each peer raycasting from its own copy of a remote player and striking
+        /// somewhere slightly different.
+        /// </summary>
+        public override void OnRequestUse(ref NetArg arg)
+        {
+            RaycastHit? hit = aimProvider != null ? aimProvider.GetRayCast(raycastDistance) : null;
 
+            // Zero means "aimed at open sky" — see Present. `?? Vector3.zero` used to be read as a
+            // position, so aiming at nothing struck the world origin.
+            arg.P = hit.HasValue ? hit.Value.point + Vector3.up * spawnHeightOffset : Vector3.zero;
+        }
 
-        protected override void Use()
-        {     
-            base.Use();
-        
-            // `?? Vector3.zero` used to swallow a miss, so aiming at open sky struck the world
-            // origin instead of doing nothing. A miss means there is nowhere to put the bolt.
-            RaycastHit? aim = aimProvider.GetRayCast(raycastDistance);
-            if (aim == null) return;
-            spawnPoint = aim.Value.point + Vector3.up * spawnHeightOffset;
+        // The bolt is a visual, drawn by every machine from the caster's aim point, so there is
+        // nothing here for the server alone to do. ToolItem.Use is already empty.
 
-            if (lightningVFXPrefab != null)
+        protected override void Present()
+        {
+            Vector3 strike = UseArg.P;
+            if (strike == Vector3.zero) return;
+
+            if (lightningVFXPrefab == null)
             {
-                Instantiate(lightningVFXPrefab, spawnPoint, Quaternion.Euler(90f, 0f, 0f));
-            }
-            else
-            {
-                Debug.LogWarning("LightningSpell: No Lightning VFX prefab assigned.");
+                Debug.LogWarning("LightningSpell: No Lightning VFX prefab assigned.", this);
+                return;
             }
 
+            Instantiate(lightningVFXPrefab, strike, Quaternion.Euler(90f, 0f, 0f));
         }
     }
 }

@@ -1,10 +1,9 @@
 // Replicates mount/dismount across the network.
 //
 // MountModule can't be a NetworkBehaviour itself — it extends BehaviourModuleBase (a MonoBehaviour)
-// so the agent module system can tick it. So this sits alongside it and owns the networked half,
-// the same split EquipmentNetworkSync/EquipmentController already uses.
+// so the agent module system can tick it. So this sits alongside it and owns the networked half.
 //
-// Authority model (minimum viable sync):
+// Authority model:
 //   • Mounting is server-decided. A client asks; the server runs the real TryMount and, if it took,
 //     tells everyone. This keeps two players from mounting the same animal on the same frame.
 //   • Ownership of the mount transfers to the rider so their SteerModule can drive it and have the
@@ -13,26 +12,39 @@
 //     but MountModule.OnEnable/Update only drives cameras and input for the local owner anyway.
 using Unity.Netcode;
 using UnityEngine;
-using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
 
 namespace SpaceGame.Agents
 {
     [RequireComponent(typeof(MountModule))]
-    [RequireComponent(typeof(NetworkObject))]
-    public class MountNetworkSync : NetworkBehaviour
+    public class MountNetworkSync : MonoBehaviour
     {
         private MountModule mount;
 
         // Set while a replicated mount/dismount is being applied, so the local events those raise
-        // don't bounce straight back out as another RPC.
+        // don't bounce straight back out as another request.
         private bool applyingRemote;
 
-        private void Awake()
+        private void Awake() => mount = GetComponent<MountModule>();
+
+        private void OnEnable()
         {
-            mount = GetComponent<MountModule>();
+            this.NetOn(NetMsg.Mount, OnMountRequested);
+            this.NetOn(NetMsg.Dismount, OnDismountRequested);
+            this.NetOn(NetMsg.Mounted, OnMountedElsewhere);
+            this.NetOn(NetMsg.Dismounted, OnDismountedElsewhere);
         }
+
+        private void OnDisable()
+        {
+            this.NetOff(NetMsg.Mount, OnMountRequested);
+            this.NetOff(NetMsg.Dismount, OnDismountRequested);
+            this.NetOff(NetMsg.Mounted, OnMountedElsewhere);
+            this.NetOff(NetMsg.Dismounted, OnDismountedElsewhere);
+        }
+
+        // ─────────── Requests ───────────
 
         /// <summary>
         /// Entry point for interaction. Replaces a direct MountModule.TryMount call so the request
@@ -40,102 +52,77 @@ namespace SpaceGame.Agents
         /// </summary>
         public void RequestMount(Interactor interactor)
         {
-            if (interactor == null)
-                return;
+            if (interactor == null) return;
 
-            NetworkObject rider = interactor.GetComponentInParent<NetworkObject>();
-
-            Network.Execute(
-                local: () => ServerMount(rider),
-                client: () =>
-                {
-                    if (rider != null)
-                        RequestMountServerRpc(rider);
-                });
+            // The rider is whatever body the interactor belongs to — its NetworkObject when there
+            // is one, the interactor itself offline. NetArg.With covers both.
+            Component rider = (Component)interactor.GetComponentInParent<NetworkObject>() ?? interactor;
+            this.NetToServer(NetMsg.Mount, new NetArg().With(rider));
         }
 
-        public void RequestDismount()
-        {
-            Network.Execute(
-                local: ServerDismount,
-                client: RequestDismountServerRpc);
-        }
-
-        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        private void RequestMountServerRpc(NetworkObjectReference riderRef)
-        {
-            if (!riderRef.TryGet(out NetworkObject rider))
-                return;
-            ServerMount(rider);
-        }
-
-        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        private void RequestDismountServerRpc() => ServerDismount();
+        public void RequestDismount() => this.NetToServer(NetMsg.Dismount);
 
         // ─────────── Server-side truth ───────────
 
-        private void ServerMount(NetworkObject rider)
+        private void OnMountRequested(in NetArg arg, ulong sender)
         {
-            if (rider == null || mount.IsMounted)
-                return;
+            if (!Network.Simulates(this) || mount.IsMounted) return;
 
-            Interactor interactor = rider.GetComponentInChildren<Interactor>(true);
-            if (interactor == null || !mount.CanMount(interactor))
-                return;
+            // Offline the rider never travelled as an id, because there is no spawn manager to
+            // resolve it against. Falling back to the local interactor keeps single-player on the
+            // same path rather than a second one that can rot.
+            GameObject riderObject = arg.Resolve();
+            Interactor interactor = riderObject != null
+                ? riderObject.GetComponentInChildren<Interactor>(true)
+                : null;
 
-            if (!ApplyMount(interactor))
-                return;
+            if (interactor == null || !mount.CanMount(interactor)) return;
+            if (!ApplyMount(interactor)) return;
 
             // Hand the mount to the rider so their local SteerModule input moves it and the motion
             // replicates outward from them. Without this the rider steers a body they don't own and
             // the server's NetworkTransform overwrites it every tick.
-            if (Network.IsNetworked && NetworkObject.OwnerClientId != rider.OwnerClientId)
-                NetworkObject.ChangeOwnership(rider.OwnerClientId);
+            NetworkObject mountObject = GetComponentInParent<NetworkObject>();
+            NetworkObject riderNet = riderObject != null ? riderObject.GetComponent<NetworkObject>() : null;
 
-            if (Network.IsNetworked)
-                MountClientRpc(rider);
+            if (Network.IsNetworked && mountObject != null && riderNet != null
+                && mountObject.IsSpawned && mountObject.OwnerClientId != riderNet.OwnerClientId)
+            {
+                mountObject.ChangeOwnership(riderNet.OwnerClientId);
+            }
+
+            this.NetToOthers(NetMsg.Mounted, arg, except: sender);
         }
 
-        private void ServerDismount()
+        private void OnDismountRequested(in NetArg arg, ulong sender)
         {
-            if (!mount.IsMounted)
-                return;
+            if (!Network.Simulates(this) || !mount.IsMounted) return;
 
             ApplyDismount();
 
-            if (Network.IsNetworked)
+            NetworkObject mountObject = GetComponentInParent<NetworkObject>();
+            if (Network.IsNetworked && mountObject != null && mountObject.IsSpawned
+                && mountObject.OwnerClientId != NetworkManager.ServerClientId)
             {
-                if (NetworkObject.OwnerClientId != NetworkManager.ServerClientId)
-                    NetworkObject.ChangeOwnership(NetworkManager.ServerClientId);
-
-                DismountClientRpc();
+                mountObject.ChangeOwnership(NetworkManager.ServerClientId);
             }
+
+            this.NetToOthers(NetMsg.Dismounted, arg, except: sender);
         }
 
         // ─────────── Replication to peers ───────────
 
-        [Rpc(SendTo.ClientsAndHost)]
-        private void MountClientRpc(NetworkObjectReference riderRef)
+        private void OnMountedElsewhere(in NetArg arg, ulong sender)
         {
-            // The server already ran the real thing.
-            if (IsServer) return;
+            GameObject riderObject = arg.Resolve();
+            Interactor interactor = riderObject != null
+                ? riderObject.GetComponentInChildren<Interactor>(true)
+                : null;
 
-            if (!riderRef.TryGet(out NetworkObject rider))
-                return;
-
-            Interactor interactor = rider.GetComponentInChildren<Interactor>(true);
-            if (interactor == null)
-                return;
-
-            ApplyMount(interactor);
+            if (interactor != null) ApplyMount(interactor);
         }
 
-        [Rpc(SendTo.ClientsAndHost)]
-        private void DismountClientRpc()
-        {
-            if (IsServer) return;
-            ApplyDismount();
-        }
+        private void OnDismountedElsewhere(in NetArg arg, ulong sender) => ApplyDismount();
 
         // ─────────── Local application ───────────
 
@@ -166,7 +153,7 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
-        /// True while a server/RPC-driven change is being applied locally. MountModule raises its
+        /// True while a server/relayed change is being applied locally. MountModule raises its
         /// Mounted/Dismounted events during that window; anything listening and re-requesting should
         /// check this to avoid a feedback loop.
         /// </summary>

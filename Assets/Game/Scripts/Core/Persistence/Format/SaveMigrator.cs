@@ -34,8 +34,9 @@ namespace SpaceGame.Persistence
     {
         private static readonly List<ISaveMigration> Migrations = new()
         {
-            // Version 1 is the first published format, so there is nothing below it to migrate
-            // from. When CurrentVersion goes to 2, the step that reads a v1 file goes here.
+            // v1 filed world state under the scene an object happened to be in. v2 keys it by the
+            // object's own identity, because the scene moves and the identity does not.
+            new V1GlobalEntities(),
         };
 
         /// <summary>

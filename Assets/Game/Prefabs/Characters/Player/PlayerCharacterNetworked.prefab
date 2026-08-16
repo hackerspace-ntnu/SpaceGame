@@ -138,9 +138,6 @@ PrefabInstance:
       addedObject: {fileID: 5672382752206130132}
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 6009078263795696338}
-    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 151938354145788327}
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
@@ -154,6 +151,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1978382712116631820}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8322261034424985255}
   m_SourcePrefab: {fileID: 100100000, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
 --- !u!1 &582217690245548981 stripped
 GameObject:
@@ -427,19 +427,6 @@ MonoBehaviour:
   - Hand_R
   - R_Hand
   - hand.R
---- !u!114 &6009078263795696338
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 582217690245548981}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: be5266324de24d97b4792239bd49360e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NetworkEquipmentComponent
-  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!114 &151938354145788327
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -495,7 +482,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2744b7f5c51044c7da55a8286e21466e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.WingPackNetworkSync
-  ShowTopMostFoldoutHeaderGroup: 1
   launchableCraft:
   - {fileID: 3241331717362755362, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
 --- !u!114 &1978382712116631820
@@ -515,6 +501,19 @@ MonoBehaviour:
   remoteRope: {fileID: 0}
   remoteRopeSegments: 12
   remoteRopeGravity: 4
+--- !u!114 &8322261034424985255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!4 &1885774286167179584 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3211930088316101119, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}

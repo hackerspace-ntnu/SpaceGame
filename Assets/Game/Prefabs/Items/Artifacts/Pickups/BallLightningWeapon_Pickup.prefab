@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 3800289735842447720}
   - component: {fileID: 2099833231919087239}
   - component: {fileID: 3080665807913633163}
+  - component: {fileID: 1389046972220485742}
   m_Layer: 0
   m_Name: BallLightningWeapon_Pickup
   m_TagString: Untagged
@@ -140,6 +141,19 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!114 &1389046972220485742
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5420671718850216553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1001 &4332673557954807269
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -228,6 +242,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 4f1ef37ae953c484bbc5d5e4049147e5, type: 2}
+    - target: {fileID: 6190829195219333636, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: prefabId
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 7122486407198757050, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: m_Enabled
       value: 0

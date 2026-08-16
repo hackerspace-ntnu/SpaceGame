@@ -17,6 +17,12 @@ namespace SpaceGame.Items
     /// </summary>
     public class GrapplingHookArtifact : ToolItem
     {
+        /// <summary>
+        /// Owner-run: the swing IS the item. A round trip through the server would sit inside
+        /// every jump. GrappleNetworkSync replicates the anchor so peers see the rope.
+        /// </summary>
+        public override UseAuthority Authority => UseAuthority.Owner;
+
         [Header("Firing")]
         [SerializeField] private float maxRange = 60f;
         [SerializeField] private LayerMask hookableLayers = ~0;

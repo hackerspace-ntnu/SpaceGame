@@ -26,21 +26,31 @@ namespace SpaceGame.Presentation
         [SerializeField] private TextMeshProUGUI titleText;
         [SerializeField] private TextMeshProUGUI statusText;
 
+        // Renders the backdrop colour while no gameplay camera exists. Without it Unity draws its
+        // own "No cameras rendering" notice during the gap between the old scene unloading and the
+        // new scene's camera spawning — the overlay canvas is ScreenSpaceOverlay, so it does not
+        // count as something rendering.
+        [SerializeField] private Camera fallbackCamera;
+
         // Shared with the other minigame screens so the whole flow reads as one set.
         private static readonly Color Backdrop = new(0.02f, 0.03f, 0.06f, 1f);
         private static readonly Color Accent = new(0.239f, 0.549f, 0.949f, 1f);
         private static readonly Color Muted = new(0.62f, 0.70f, 0.82f, 1f);
 
-        // Hard ceiling on the whole wait. A streaming failure should drop the player into a rough
-        // first few seconds, not strand them on a loading screen with no way out.
-        private const float DefaultTimeoutSeconds = 30f;
-
-        // Separate, shorter budget for the terrain/NavMesh wait — see step 3 in WaitForReady.
-        private const float StreamingBudgetSeconds = 15f;
+        // How long a step may stall before it is reported. The overlay does NOT come down when this
+        // elapses — dropping a player into a half-built world is worse than a long load — it only
+        // logs, so a hang is diagnosable from the console instead of being silently shipped to the
+        // player as a stutter.
+        private const float StallWarningSeconds = 30f;
 
         // Frames to let render after everything reports ready, so the first-frame shader compile
         // hitch happens behind the overlay instead of in front of the player.
         private const int WarmupFrames = 4;
+
+        // Grace period for a WorldStreamer to appear before the terrain wait is skipped. The
+        // streamer spawns with the scene, so it is null for the first frames after the load and
+        // looking once would skip the wait that matters most.
+        private const float StreamerAppearSeconds = 5f;
 
         private static LoadingScreenUI instance;
         private Coroutine watching;
@@ -58,14 +68,17 @@ namespace SpaceGame.Presentation
 
         /// <summary>
         /// Puts the overlay up and holds it until <paramref name="sceneToWaitFor"/> is loaded and
-        /// active, the local player exists, world streaming reports its initial chunks are in, and a
-        /// few frames have rendered. Pass null for the scene name to skip the scene wait.
+        /// active, the local player exists, world streaming reports its initial chunks are in, a
+        /// camera is rendering, and a few frames have gone by. Pass null for the scene name to skip
+        /// the scene wait.
+        ///
+        /// Deliberately takes no caption: the screen says "Loading" for every route into the game,
+        /// singleplayer or multiplayer, so loading never reads as a mode the player did not pick.
         /// </summary>
-        public static void ShowUntilReady(string sceneToWaitFor, string title = "Loading",
-                                          float timeoutSeconds = DefaultTimeoutSeconds)
+        public static void ShowUntilReady(string sceneToWaitFor)
         {
             LoadingScreenUI screen = Ensure();
-            screen.Begin(sceneToWaitFor, title, timeoutSeconds);
+            screen.Begin(sceneToWaitFor);
         }
 
         // Escape hatch for callers that decide the wait is no longer wanted (a failed host start, a
@@ -92,87 +105,107 @@ namespace SpaceGame.Presentation
             SetVisible(false);
         }
 
-        private void Begin(string sceneToWaitFor, string title, float timeoutSeconds)
+        private void Begin(string sceneToWaitFor)
         {
             if (watching != null)
                 StopCoroutine(watching);
 
             SetVisible(true);
-            if (titleText != null)
-                titleText.text = title;
-
-            SetStage("Loading world");
-            watching = StartCoroutine(WaitForReady(sceneToWaitFor, timeoutSeconds));
+            SetStage();
+            watching = StartCoroutine(WaitForReady(sceneToWaitFor));
         }
 
-        private IEnumerator WaitForReady(string sceneToWaitFor, float timeoutSeconds)
+        // Every step below holds the overlay up until it genuinely passes. Nothing here dismisses
+        // early on a timer: the screen coming down is the promise that the game is ready, so a slow
+        // machine waits longer rather than being shown a world still assembling itself.
+        private IEnumerator WaitForReady(string sceneToWaitFor)
         {
-            float deadline = Time.realtimeSinceStartup + Mathf.Max(1f, timeoutSeconds);
-
             // 1. The scene itself.
             if (!string.IsNullOrEmpty(sceneToWaitFor))
             {
-                SetStage("Loading world");
-                while (!IsSceneReady(sceneToWaitFor))
-                {
-                    if (TimedOut(deadline)) yield break;
-                    yield return null;
-                }
+                yield return WaitUntil(() => IsSceneReady(sceneToWaitFor), "scene load");
             }
 
             // 2. The local player object. Skipped entirely offline, where nothing spawns through
-            //    Netcode and waiting would burn the whole timeout for nothing.
+            //    Netcode and waiting would hang on something that is never coming.
             if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
             {
-                SetStage("Joining match");
-                while (NetworkManager.Singleton.SpawnManager == null ||
-                       NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject() == null)
-                {
-                    if (TimedOut(deadline)) yield break;
-                    yield return null;
-                }
+                yield return WaitUntil(
+                    () => NetworkManager.Singleton == null ||
+                          !NetworkManager.Singleton.IsListening ||
+                          (NetworkManager.Singleton.SpawnManager != null &&
+                           NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject() != null),
+                    "player spawn");
             }
 
             // 3. Terrain chunks and the NavMesh bake. This is the step that actually removes the
             //    stutter; the ones above only get us to a point where it can be measured.
             //
-            //    Given its own shorter budget, and giving up here means "carry on", not "abort":
-            //    steps 1 and 2 already passed, so the game is playable. A WorldStreamer that never
-            //    reports its initial chunks should cost a rough first few seconds, not the full
-            //    timeout spent staring at a black screen.
-            var streamer = FindFirstObjectByType<WorldStreamer>();
-            if (streamer != null && !streamer.InitialChunksLoaded)
+            //    The streamer spawns with the scene, so it is briefly null here — look for a few
+            //    seconds before concluding this world has no streaming at all.
+            WorldStreamer streamer = null;
+            float appearDeadline = Time.realtimeSinceStartup + StreamerAppearSeconds;
+            while (streamer == null && Time.realtimeSinceStartup < appearDeadline)
             {
-                SetStage("Generating terrain");
-                float streamingDeadline = Mathf.Min(deadline, Time.realtimeSinceStartup + StreamingBudgetSeconds);
-
-                while (!streamer.InitialChunksLoaded && Time.realtimeSinceStartup < streamingDeadline)
-                    yield return null;
-
-                if (!streamer.InitialChunksLoaded)
-                    Debug.LogWarning($"[LoadingScreen] World streaming did not report its initial chunks " +
-                                     $"within {StreamingBudgetSeconds:0}s. Continuing anyway — expect a " +
-                                     "stutter while terrain and the NavMesh finish in the background.");
+                streamer = FindFirstObjectByType<WorldStreamer>();
+                if (streamer == null) yield return null;
             }
 
-            // 4. Let a few frames render behind the overlay to absorb shader compilation.
-            SetStage("Warming up");
+            if (streamer != null)
+            {
+                yield return WaitUntil(() => streamer == null || streamer.InitialChunksLoaded,
+                                       "terrain streaming");
+            }
+
+            // 4. A camera actually rendering. Until one exists Unity paints its own "no cameras
+            //    rendering" screen, and handing control over at that point shows it to the player.
+            yield return WaitUntil(HasGameplayCamera, "camera");
+
+            // 5. Let a few frames render behind the overlay to absorb shader compilation.
             for (int i = 0; i < WarmupFrames; i++)
                 yield return new WaitForEndOfFrame();
 
             Hide();
         }
 
-        private bool TimedOut(float deadline)
+        /// <summary>
+        /// Blocks until <paramref name="condition"/> holds, logging once if it takes longer than
+        /// <see cref="StallWarningSeconds"/> so a hang is visible in the console. Never gives up —
+        /// see the note on WaitForReady.
+        /// </summary>
+        private IEnumerator WaitUntil(System.Func<bool> condition, string what)
         {
-            if (Time.realtimeSinceStartup < deadline)
-                return false;
+            stage = what;
+            float warnAt = Time.realtimeSinceStartup + StallWarningSeconds;
+            bool warned = false;
 
-            Debug.LogWarning($"[LoadingScreen] Timed out waiting on '{stage}'. Dismissing so the game " +
-                             "stays playable — expect a stutter, and check whether world streaming " +
-                             "finished at all.");
-            Hide();
-            return true;
+            while (!condition())
+            {
+                if (!warned && Time.realtimeSinceStartup >= warnAt)
+                {
+                    warned = true;
+                    Debug.LogWarning($"[LoadingScreen] Still waiting on {what} after " +
+                                     $"{StallWarningSeconds:0}s. Holding the loading screen up — the " +
+                                     "game is not ready yet.");
+                }
+
+                yield return null;
+            }
+        }
+
+        // Any enabled camera rendering to the screen counts. The overlay's own fallback is excluded:
+        // it exists precisely to cover the gap, so treating it as "a camera is up" would let the
+        // screen come down while the real one is still missing.
+        private bool HasGameplayCamera()
+        {
+            foreach (Camera cam in Camera.allCameras)
+            {
+                if (cam == fallbackCamera) continue;
+                if (cam.isActiveAndEnabled && cam.targetTexture == null)
+                    return true;
+            }
+
+            return false;
         }
 
         private static bool IsSceneReady(string sceneName)
@@ -181,11 +214,13 @@ namespace SpaceGame.Presentation
             return scene.IsValid() && scene.isLoaded;
         }
 
-        private void SetStage(string value)
+        // The status line is a fixed caption, not a running commentary: the player is told the game
+        // is loading, and nothing about which mode, scene or step it happens to be on.
+        private void SetStage()
         {
-            stage = value;
+            stage = "loading";
             if (statusText != null)
-                statusText.text = value + "…";
+                statusText.text = "Please wait…";
         }
 
         private void Hide()
@@ -203,6 +238,11 @@ namespace SpaceGame.Presentation
         {
             if (panel != null && panel.activeSelf != visible)
                 panel.SetActive(visible);
+
+            // Tied to the overlay: it must cover the camera gap while loading, and must not linger
+            // afterwards where it would render on top of the real scene camera.
+            if (fallbackCamera != null && fallbackCamera.gameObject.activeSelf != visible)
+                fallbackCamera.gameObject.SetActive(visible);
         }
 
         // ──────────────────────────────────────────────
@@ -211,6 +251,8 @@ namespace SpaceGame.Presentation
 
         private void BuildOverlay()
         {
+            BuildFallbackCamera();
+
             var canvasGo = new GameObject("LoadingCanvas", typeof(Canvas), typeof(CanvasScaler));
             canvasGo.transform.SetParent(transform, false);
 
@@ -238,15 +280,16 @@ namespace SpaceGame.Presentation
             titleRect.anchoredPosition = new Vector2(0f, 40f);
             titleRect.sizeDelta = new Vector2(1200f, 140f);
             titleText = NewLabel(titleGo, "Loading", 96, Color.white);
+            // Left at the built-in caption on purpose — see ShowUntilReady.
 
             var statusGo = CreateChild("Status", panel.transform, out RectTransform statusRect);
             statusRect.anchorMin = new Vector2(0.5f, 0.5f);
             statusRect.anchorMax = new Vector2(0.5f, 0.5f);
             statusRect.anchoredPosition = new Vector2(0f, -50f);
             statusRect.sizeDelta = new Vector2(1200f, 60f);
-            // The stage name rather than a progress bar: none of these steps report real progress,
-            // and a bar that jumps 0 → 100 is worse than an honest label.
-            statusText = NewLabel(statusGo, "", 30, Muted);
+            // A fixed caption rather than a progress bar: none of these steps report real progress,
+            // and a bar that jumps 0 → 100 is worse than saying nothing.
+            statusText = NewLabel(statusGo, "Please wait…", 30, Muted);
 
             var ruleGo = CreateChild("Rule", panel.transform, out RectTransform ruleRect);
             ruleRect.anchorMin = new Vector2(0.5f, 0.5f);
@@ -254,6 +297,25 @@ namespace SpaceGame.Presentation
             ruleRect.anchoredPosition = new Vector2(0f, -10f);
             ruleRect.sizeDelta = new Vector2(360f, 3f);
             ruleGo.AddComponent<Image>().color = Accent;
+        }
+
+        // Renders nothing but the backdrop colour. Its whole job is to exist, so that Unity never
+        // finds itself with zero enabled cameras and draws its own no-camera notice over the load.
+        private void BuildFallbackCamera()
+        {
+            var camGo = new GameObject("LoadingFallbackCamera");
+            camGo.transform.SetParent(transform, false);
+
+            fallbackCamera = camGo.AddComponent<Camera>();
+            fallbackCamera.clearFlags = CameraClearFlags.SolidColor;
+            fallbackCamera.backgroundColor = Backdrop;
+            // Nothing in the world should reach it — the overlay canvas draws on top regardless.
+            fallbackCamera.cullingMask = 0;
+            // Below any gameplay camera, so the real one takes over the moment it appears.
+            fallbackCamera.depth = -100f;
+            // A plain camera on an object that also has no AudioListener; adding one would fight the
+            // scene's listener and log a duplicate-listener warning during every load.
+            fallbackCamera.orthographic = true;
         }
 
         private static TextMeshProUGUI NewLabel(GameObject host, string text, int size, Color color)

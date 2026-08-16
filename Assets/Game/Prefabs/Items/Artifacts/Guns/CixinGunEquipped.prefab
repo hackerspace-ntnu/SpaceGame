@@ -134,7 +134,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2490650498845839401, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: m_Name
-      value: cixinGunEquipped
+      value: CixinGunEquipped
       objectReference: {fileID: 0}
     - target: {fileID: 3016076678442732179, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: m_LocalPosition.x
@@ -176,6 +176,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6190829195219333636, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      propertyPath: prefabId
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 6649430028773198538, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       propertyPath: m_LocalPosition.y
       value: -0.63
@@ -209,6 +213,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2490650498845839401, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2631065810766223839}
+    - targetCorrespondingSourceObject: {fileID: 2490650498845839401, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5276326449323464433}
   m_SourcePrefab: {fileID: 100100000, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
 --- !u!54 &2250821488904886895 stripped
 Rigidbody:
@@ -285,6 +292,19 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 0
+--- !u!114 &5276326449323464433
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6060401903264006024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!4 &8283341453566841463 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 323723913112813014, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}

@@ -97,37 +97,32 @@ namespace SpaceGame.Items
             return dropAhead;
         }
 
-        protected override void Use()
+        /// <summary>
+        /// Owner-side: record the heading and the speed being carried into the launch.
+        ///
+        /// Both are measured on the pilot's own machine because both are theirs. The server has a
+        /// replicated copy of the player's rotation and a Rigidbody it is not the one simulating,
+        /// so a launch resolved there would come out a frame stale and a jump's worth of speed
+        /// short — and that speed is the whole reward for running at the edge.
+        /// </summary>
+        public override void OnRequestUse(ref NetArg arg)
         {
-            Transform player = owner.transform;
+            if (owner == null) return;
 
-            Vector3 forward = player.forward;
+            Vector3 forward = owner.transform.forward;
             forward.y = 0f;
             if (forward.sqrMagnitude < 1e-4f) forward = Vector3.forward;
-            forward.Normalize();
 
-            Quaternion facing = Quaternion.LookRotation(forward, Vector3.up);
-
-            // Spawn on the server so the craft exists for every player. A client-side Instantiate
-            // here is why the ornithopter used to be invisible to everyone but the pilot.
-            if (Network.IsNetworked && !Network.Server)
-            {
-                WingPackNetworkSync sync = owner.GetComponentInChildren<WingPackNetworkSync>(true);
-                if (sync == null)
-                {
-                    Debug.LogError("WingPackItem: networked play needs a WingPackNetworkSync on the " +
-                                   "player. Without it the craft would only exist on this machine.", this);
-                    return;
-                }
-
-                // The server spawns the craft, mounts this player into it, and the pilot's own
-                // MountModule takes over from there.
-                sync.RequestLaunch(ornithopterPrefab, facing, LaunchSpeed());
-                return;
-            }
-
-            SpawnAndMountCraft(owner, facing, LaunchSpeed());
+            arg.R = Quaternion.LookRotation(forward.normalized, Vector3.up);
+            arg.P = new Vector3(LaunchSpeed(), 0f, 0f);
         }
+
+        // Server-authoritative (the UsableItem default), so this only ever runs where spawning is
+        // allowed. The pilot never names a prefab: the server reads ornithopterPrefab off its own
+        // copy of the pack, which is why no whitelist is needed to stop a client asking for
+        // something else.
+        protected override void Use() =>
+            SpawnAndMountCraft(owner, UseArg.R, UseArg.P.x);
 
         /// <summary>How much of the player's current speed carries into the launch.</summary>
         private float LaunchSpeed()
@@ -141,11 +136,9 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// The whole launch, from spawning the craft to handing the pilot the controls. Shared by the
-        /// offline/host path and the server side of the networked path, so both produce an identical
-        /// craft — the difference is only WHERE it runs, never WHAT it does.
-        ///
-        /// Public because WingPackNetworkSync drives it on the server on behalf of a remote pilot.
+        /// The whole launch, from spawning the craft to handing the pilot the controls. One path for
+        /// offline, host and a remote pilot's launch running on the server — the difference is only
+        /// WHERE it runs, never WHAT it does.
         /// </summary>
         public bool SpawnAndMountCraft(GameObject pilot, Quaternion facing, float carriedSpeed)
         {

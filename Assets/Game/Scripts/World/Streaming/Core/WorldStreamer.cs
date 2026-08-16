@@ -19,6 +19,9 @@ namespace SpaceGame.World
     {
         [SerializeField] private WorldStreamingConfig config;
 
+        /// <summary>The world this streamer is running, for code that needs the world's identity.</summary>
+        public WorldStreamingConfig Config => config;
+
         [Header("NavMesh")]
         [Tooltip("How far to search when snapping an agent onto the pre-baked world NavMesh as its " +
                  "chunk loads. The NavMesh is always present (see WorldNavMeshProvider), so this " +

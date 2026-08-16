@@ -9,7 +9,7 @@ namespace SpaceGame.Core
     /// The only NetworkManager in the project lives in the Bootstrap scene, and it survives later
     /// scene loads because NetworkManager calls DontDestroyOnLoad on itself. In a build that is
     /// enough — Bootstrap is scene 0, so it always runs. In the editor it is not: pressing Play with
-    /// LobbyMenu open (the obvious way to work on the lobby) skips Bootstrap entirely, leaving
+    /// MainMenu open (the obvious way to work on the menus) skips Bootstrap entirely, leaving
     /// NetworkManager.Singleton null. The lobby's Start() then threw a NullReferenceException on its
     /// first line, before it could wire up a single button — so every button on the screen silently
     /// did nothing, and nothing in the console pointed at the lobby.
@@ -57,14 +57,15 @@ namespace SpaceGame.Core
         /// A NetworkObject with no NetworkBehaviour beside it has no state to synchronise, but
         /// Netcode does not know that: on server start it sweeps every loaded scene and spawns each
         /// in-scene NetworkObject it finds, then expects joining clients to hold a matching copy.
-        /// A menu scene loaded by plain SceneManager — which is how LobbyMenu loads — is not part
-        /// of that agreement, so the host spawns an object the client cannot account for, and the
-        /// mismatch surfaces during client synchronisation rather than as anything naming the
+        /// A menu scene loaded by plain SceneManager — which is how every menu scene loads — is not
+        /// part of that agreement, so the host spawns an object the client cannot account for, and
+        /// the mismatch surfaces during client synchronisation rather than as anything naming the
         /// scene or object responsible.
         ///
-        /// LobbySystem left one behind by deriving from NetworkBehaviour purely to reach
-        /// NetworkManager.Singleton, which needed no networking at all. Cleaning up here rather
-        /// than by hand in the scene means the same mistake anywhere else also cannot bite.
+        /// The retired lobby scene left one behind, from a controller that derived from
+        /// NetworkBehaviour purely to reach NetworkManager.Singleton and needed no networking at
+        /// all. Cleaning up here rather than by hand in a scene means the same mistake anywhere
+        /// else also cannot bite.
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void RemoveOrphanSceneNetworkObjects()

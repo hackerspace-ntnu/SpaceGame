@@ -316,16 +316,16 @@ Variations / collections: `Coll_RefineryTower`
 | `Mesh_Antenna_0` | 5.9734 x 5.9734 x 11.056 | 2171 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Fabric_Flag_Bleached, Mat_Paint_Warn_Red, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black, Mat_Emissive_Amber, Mat_Paint_Roof_Green |
 | `Mesh_Antenna_1` | 5.9734 x 5.9734 x 11.056 | 2171 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Fabric_Flag_Bleached, Mat_Paint_Warn_Red, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black, Mat_Emissive_Amber, Mat_Paint_Roof_Green |
 | `Mesh_Antenna_2` | 5.9734 x 5.9734 x 11.056 | 2171 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Fabric_Flag_Bleached, Mat_Paint_Warn_Red, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black, Mat_Emissive_Amber, Mat_Paint_Roof_Green |
-| `Mesh_Balcony_0` | 6.2 x 3.6755 x 4.2382 | 1174 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Balcony_1` | 6.2 x 3.6755 x 4.2382 | 1174 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Balcony_2` | 6.2 x 3.6755 x 4.2382 | 1174 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Balcony_3` | 6.2 x 3.6755 x 4.2382 | 1174 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Balcony_0` | 6.2 x 3.6805 x 4.2382 | 1174 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Balcony_1` | 6.2 x 3.6805 x 4.2382 | 1174 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Balcony_2` | 6.2 x 3.6805 x 4.2382 | 1174 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Balcony_3` | 6.2 x 3.6805 x 4.2382 | 1174 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Bay_0_Ribbed` | 14.93 x 13.2 x 9.2564 | 1292 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Black_Matte, Mat_Neutral_Slate_Dark, Mat_Glass_Canopy_Tinted, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Paint_Warn_Red |
-| `Mesh_Bay_1_Buttressed` | 14.9 x 14.15 x 9.0 | 1892 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Black_Matte, Mat_Neutral_Slate_Dark, Mat_Glass_Canopy_Tinted, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Paint_Warn_Red |
-| `Mesh_Bay_2_Plain` | 14.9 x 12.9 x 9.0 | 1032 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Black_Matte, Mat_Neutral_Slate_Dark, Mat_Glass_Canopy_Tinted, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Paint_Warn_Red |
+| `Mesh_Bay_1_Buttressed` | 14.9 x 14.15 x 9.005 | 1892 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Black_Matte, Mat_Neutral_Slate_Dark, Mat_Glass_Canopy_Tinted, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Paint_Warn_Red |
+| `Mesh_Bay_2_Plain` | 14.9 x 12.9 x 9.005 | 1032 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Black_Matte, Mat_Neutral_Slate_Dark, Mat_Glass_Canopy_Tinted, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Paint_Warn_Red |
 | `Mesh_Bay_3_Shoulder` | 20.3 x 12.9 x 10.7278 | 1084 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Black_Matte, Mat_Neutral_Slate_Dark, Mat_Glass_Canopy_Tinted, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Paint_Warn_Red |
-| `Mesh_Bay_4_Windowed` | 14.9 x 13.344 x 9.0 | 1578 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Black_Matte, Mat_Neutral_Slate_Dark, Mat_Glass_Canopy_Tinted, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Paint_Warn_Red |
-| `Mesh_Bay_5_Crown` | 14.9 x 12.9 x 11.45 | 1256 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Black_Matte, Mat_Neutral_Slate_Dark, Mat_Glass_Canopy_Tinted, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Paint_Warn_Red |
+| `Mesh_Bay_4_Windowed` | 14.9 x 13.344 x 9.005 | 1578 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Black_Matte, Mat_Neutral_Slate_Dark, Mat_Glass_Canopy_Tinted, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Paint_Warn_Red |
+| `Mesh_Bay_5_Crown` | 14.9 x 12.9 x 11.455 | 1256 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Black_Matte, Mat_Neutral_Slate_Dark, Mat_Glass_Canopy_Tinted, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Paint_Warn_Red |
 | `Mesh_Bridge_Outrigger` | 12.2 x 1.84 x 2.9472 | 2204 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Cab_Prop_0` | 1.3 x 6.8509 x 11.4561 | 240 | Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_White_Arctic, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Cab_Prop_1` | 1.3 x 6.8509 x 11.4561 | 240 | Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_White_Arctic, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
@@ -341,16 +341,16 @@ Variations / collections: `Coll_RefineryTower`
 | `Mesh_Conveyor_Hopper` | 7.8 x 8.3 x 5.75 | 766 | Mat_Paint_Safety_Orange, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_White_Arctic, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black, Mat_Emissive_Amber, Mat_Paint_Warn_Red |
 | `Mesh_Conveyor_Ramp` | 27.6901 x 6.9 x 15.4653 | 4312 | Mat_Paint_Safety_Orange, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_White_Arctic, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black, Mat_Emissive_Amber, Mat_Paint_Warn_Red |
 | `Mesh_Conveyor_Trestle` | 5.3 x 5.3 x 9.7407 | 572 | Mat_Paint_Safety_Orange, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_White_Arctic, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black, Mat_Emissive_Amber, Mat_Paint_Warn_Red |
-| `Mesh_Deck_Module_0_Cargo` | 5.16 x 7.65 x 6.6042 | 6116 | Mat_Paint_Hull_Bleached, Mat_Paint_Roof_Green, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Warn_Red, Mat_Metal_Rust_Heavy, Mat_Glass_Canopy_Tinted, Mat_Neutral_Black_Matte, Mat_Emissive_Cabin_Warm, Mat_Paint_Olive_Deep |
-| `Mesh_Deck_Module_1_Workshop` | 5.8303 x 7.96 x 8.54 | 4884 | Mat_Paint_Hull_Bleached, Mat_Paint_Roof_Green, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Warn_Red, Mat_Metal_Rust_Heavy, Mat_Glass_Canopy_Tinted, Mat_Neutral_Black_Matte, Mat_Emissive_Cabin_Warm, Mat_Paint_Olive_Deep |
-| `Mesh_Deck_Module_2_Comms` | 5.14 x 7.5 x 7.66 | 4330 | Mat_Paint_Hull_Bleached, Mat_Paint_Roof_Green, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Warn_Red, Mat_Metal_Rust_Heavy, Mat_Glass_Canopy_Tinted, Mat_Neutral_Black_Matte, Mat_Emissive_Cabin_Warm, Mat_Paint_Olive_Deep |
+| `Mesh_Deck_Module_0_Cargo` | 5.16 x 7.65 x 6.6142 | 6116 | Mat_Paint_Hull_Bleached, Mat_Paint_Roof_Green, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Warn_Red, Mat_Metal_Rust_Heavy, Mat_Glass_Canopy_Tinted, Mat_Neutral_Black_Matte, Mat_Emissive_Cabin_Warm, Mat_Paint_Olive_Deep |
+| `Mesh_Deck_Module_1_Workshop` | 5.8303 x 7.965 x 8.55 | 4884 | Mat_Paint_Hull_Bleached, Mat_Paint_Roof_Green, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Warn_Red, Mat_Metal_Rust_Heavy, Mat_Glass_Canopy_Tinted, Mat_Neutral_Black_Matte, Mat_Emissive_Cabin_Warm, Mat_Paint_Olive_Deep |
+| `Mesh_Deck_Module_2_Comms` | 5.14 x 7.5 x 7.67 | 4330 | Mat_Paint_Hull_Bleached, Mat_Paint_Roof_Green, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Warn_Red, Mat_Metal_Rust_Heavy, Mat_Glass_Canopy_Tinted, Mat_Neutral_Black_Matte, Mat_Emissive_Cabin_Warm, Mat_Paint_Olive_Deep |
 | `Mesh_Deck_Plate_0_Worn` | 0.971 x 0.97 x 0.1124 | 700 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte, Mat_Emissive_Amber |
-| `Mesh_Deck_Plate_1_Grate` | 0.97 x 0.97 x 0.06 | 390 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte, Mat_Emissive_Amber |
+| `Mesh_Deck_Plate_1_Grate` | 0.97 x 0.97 x 0.065 | 390 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte, Mat_Emissive_Amber |
 | `Mesh_Deck_Plate_2_Worn` | 0.971 x 0.97 x 0.1124 | 700 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte, Mat_Emissive_Amber |
-| `Mesh_Deck_Plate_3_Grate` | 0.97 x 0.97 x 0.06 | 390 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte, Mat_Emissive_Amber |
-| `Mesh_Deck_Plate_4_Grate` | 0.97 x 0.97 x 0.06 | 390 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte, Mat_Emissive_Amber |
+| `Mesh_Deck_Plate_3_Grate` | 0.97 x 0.97 x 0.065 | 390 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte, Mat_Emissive_Amber |
+| `Mesh_Deck_Plate_4_Grate` | 0.97 x 0.97 x 0.065 | 390 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte, Mat_Emissive_Amber |
 | `Mesh_Deck_Plate_5_Worn` | 0.971 x 0.97 x 0.1124 | 700 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte, Mat_Emissive_Amber |
-| `Mesh_Deck_Plate_6_Grate` | 0.97 x 0.97 x 0.06 | 390 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte, Mat_Emissive_Amber |
+| `Mesh_Deck_Plate_6_Grate` | 0.97 x 0.97 x 0.065 | 390 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte, Mat_Emissive_Amber |
 | `Mesh_Deck_Plate_7_Worn` | 0.971 x 0.97 x 0.1124 | 700 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte, Mat_Emissive_Amber |
 | `Mesh_Deck_Pod` | 3.78 x 5.35 x 4.4578 | 872 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Glass_Canopy_Tinted, Mat_Neutral_Black_Matte, Mat_Neutral_Slate_Dark, Mat_Emissive_Amber, Mat_Paint_Warn_Red, Mat_Metal_Rust_Heavy |
 | `Mesh_Deck_Rail_0` | 6.2 x 1.84 x 1.575 | 962 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
@@ -360,7 +360,7 @@ Variations / collections: `Coll_RefineryTower`
 | `Mesh_Deck_Tank` | 6.7326 x 12.87 x 8.95 | 1562 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Glass_Canopy_Tinted, Mat_Neutral_Black_Matte, Mat_Neutral_Slate_Dark, Mat_Emissive_Amber, Mat_Paint_Warn_Red, Mat_Metal_Rust_Heavy |
 | `Mesh_Derrick_Mast_Deck` | 7.7 x 7.7 x 18.3875 | 3272 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Paint_White_Arctic, Mat_Emissive_Red_Warn, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Metal_Chrome_Scuffed, Mat_Paint_Warn_Red |
 | `Mesh_Derrick_PipeRack` | 5.88 x 4.11 x 12.77 | 2364 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Paint_White_Arctic, Mat_Emissive_Red_Warn, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Metal_Chrome_Scuffed, Mat_Paint_Warn_Red |
-| `Mesh_Derrick_Winch` | 5.9 x 5.59 x 2.8174 | 1026 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Paint_White_Arctic, Mat_Emissive_Red_Warn, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Metal_Chrome_Scuffed, Mat_Paint_Warn_Red |
+| `Mesh_Derrick_Winch` | 5.9 x 5.59 x 2.8224 | 1026 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Paint_White_Arctic, Mat_Emissive_Red_Warn, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Metal_Chrome_Scuffed, Mat_Paint_Warn_Red |
 | `Mesh_Flare_Stack` | 3.0 x 3.0 x 15.99 | 1186 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Paint_White_Arctic, Mat_Emissive_Red_Warn, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Metal_Chrome_Scuffed, Mat_Paint_Warn_Red |
 | `Mesh_Flood_0_Quad` | 2.736 x 1.3686 x 2.2158 | 3546 | Mat_Metal_Steel_Dark, Mat_Emissive_Amber, Mat_Metal_Steel_Worn, Mat_Paint_Hull_Bleached, Mat_Plastic_Rubber_Black, Mat_Metal_Chrome_Scuffed, Mat_Metal_Rust_Heavy |
 | `Mesh_Flood_1_Quad` | 2.736 x 1.3686 x 2.2158 | 3546 | Mat_Metal_Steel_Dark, Mat_Emissive_Amber, Mat_Metal_Steel_Worn, Mat_Paint_Hull_Bleached, Mat_Plastic_Rubber_Black, Mat_Metal_Chrome_Scuffed, Mat_Metal_Rust_Heavy |
@@ -384,10 +384,10 @@ Variations / collections: `Coll_RefineryTower`
 | `Mesh_Lamp_Clamp_7` | 1.0 x 0.3743 x 0.7469 | 748 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
 | `Mesh_Lamp_Clamp_8` | 1.0 x 0.3743 x 0.7469 | 748 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
 | `Mesh_Lamp_Clamp_9` | 1.0 x 0.3743 x 0.7469 | 748 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
-| `Mesh_Lamp_Strip_0` | 0.26 x 2.4 x 0.322 | 644 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
-| `Mesh_Lamp_Strip_1` | 0.26 x 2.4 x 0.322 | 644 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
-| `Mesh_Lamp_Strip_2` | 0.26 x 2.4 x 0.322 | 644 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
-| `Mesh_Lamp_Strip_3` | 0.26 x 2.4 x 0.322 | 644 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
+| `Mesh_Lamp_Strip_0` | 0.26 x 2.405 x 0.322 | 644 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
+| `Mesh_Lamp_Strip_1` | 0.26 x 2.405 x 0.322 | 644 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
+| `Mesh_Lamp_Strip_2` | 0.26 x 2.405 x 0.322 | 644 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
+| `Mesh_Lamp_Strip_3` | 0.26 x 2.405 x 0.322 | 644 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Cream_Aged, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
 | `Mesh_Leg_Raked_P` | 6.15 x 18.0653 x 21.83 | 1456 | Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_White_Arctic, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Leg_Raked_S` | 6.15 x 18.0653 x 21.83 | 1456 | Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_White_Arctic, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Leg_Splayed_W` | 15.05 x 12.9688 x 18.08 | 1470 | Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_White_Arctic, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
@@ -403,14 +403,14 @@ Variations / collections: `Coll_RefineryTower`
 | `Mesh_Outrigger_Col_3` | 4.6 x 4.6 x 14.2439 | 2158 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte |
 | `Mesh_Outrigger_Deck` | 20.2441 x 16.442 x 2.85 | 2146 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte |
 | `Mesh_Outrigger_Portal` | 18.5 x 3.0 x 12.9946 | 1846 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Metal_Rust_Heavy, Mat_Neutral_Black_Matte |
-| `Mesh_Pipe_Elbow_0` | 2.3579 x 0.528 x 1.782 | 1528 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
-| `Mesh_Pipe_Elbow_1` | 2.3579 x 0.528 x 1.782 | 1528 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
+| `Mesh_Pipe_Elbow_0` | 2.3579 x 0.528 x 1.787 | 1528 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
+| `Mesh_Pipe_Elbow_1` | 2.3579 x 0.528 x 1.787 | 1528 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
 | `Mesh_Pipe_Junction` | 2.244 x 0.7172 x 1.4916 | 1092 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
-| `Mesh_Pipe_Run_0` | 2.2 x 0.748 x 0.517 | 1974 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
-| `Mesh_Pipe_Run_1` | 2.2 x 0.748 x 0.517 | 1974 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
-| `Mesh_Pipe_Run_2` | 2.2 x 0.748 x 0.517 | 1974 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
-| `Mesh_Pipe_Run_3` | 2.2 x 0.748 x 0.517 | 1974 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
-| `Mesh_Pipe_Run_4` | 2.2 x 0.748 x 0.517 | 1974 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
+| `Mesh_Pipe_Run_0` | 2.2 x 0.748 x 0.522 | 1974 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
+| `Mesh_Pipe_Run_1` | 2.2 x 0.748 x 0.522 | 1974 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
+| `Mesh_Pipe_Run_2` | 2.2 x 0.748 x 0.522 | 1974 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
+| `Mesh_Pipe_Run_3` | 2.2 x 0.748 x 0.522 | 1974 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
+| `Mesh_Pipe_Run_4` | 2.2 x 0.748 x 0.522 | 1974 | Mat_Metal_Copper_Oxide, Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Plastic_Rubber_Black, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber |
 | `Mesh_Rail_Ground_0` | 0.24 x 2.24 x 1.105 | 692 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Warn_Red, Mat_Paint_Hull_Bleached, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
 | `Mesh_Rail_Ground_1` | 0.24 x 2.24 x 1.105 | 692 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Warn_Red, Mat_Paint_Hull_Bleached, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
 | `Mesh_Rail_Ground_2` | 0.24 x 2.24 x 1.105 | 692 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Warn_Red, Mat_Paint_Hull_Bleached, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
@@ -418,13 +418,13 @@ Variations / collections: `Coll_RefineryTower`
 | `Mesh_Rail_Ground_4` | 0.24 x 2.24 x 1.105 | 692 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Warn_Red, Mat_Paint_Hull_Bleached, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
 | `Mesh_Rail_Ground_5` | 0.24 x 2.24 x 1.105 | 692 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Warn_Red, Mat_Paint_Hull_Bleached, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
 | `Mesh_Rail_Stair_Podium` | 1.019 x 2.0406 x 2.4668 | 1008 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Warn_Red, Mat_Paint_Hull_Bleached, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black |
-| `Mesh_Refinery_CapsuleCradle` | 7.8 x 9.0 x 8.2 | 2706 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Slate_Dark, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Paint_Warn_Red, Mat_Glass_Canopy_Tinted |
-| `Mesh_Refinery_CrownMasts` | 5.2 x 3.0 x 15.2 | 922 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Slate_Dark, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Paint_Warn_Red, Mat_Glass_Canopy_Tinted |
-| `Mesh_Refinery_Podium` | 26.6 x 22.6 x 9.8376 | 2444 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Slate_Dark, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Paint_Warn_Red, Mat_Glass_Canopy_Tinted |
+| `Mesh_Refinery_CapsuleCradle` | 7.8 x 9.005 x 8.2 | 2706 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Slate_Dark, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Paint_Warn_Red, Mat_Glass_Canopy_Tinted |
+| `Mesh_Refinery_CrownMasts` | 5.2 x 3.0 x 15.205 | 922 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Slate_Dark, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Paint_Warn_Red, Mat_Glass_Canopy_Tinted |
+| `Mesh_Refinery_Podium` | 26.6 x 22.6 x 9.8426 | 2444 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Neutral_Slate_Dark, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Emissive_Amber, Mat_Emissive_Red_Warn, Mat_Paint_Warn_Red, Mat_Glass_Canopy_Tinted |
 | `Mesh_Short_Prop_0` | 1.3 x 6.8509 x 11.4561 | 240 | Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_White_Arctic, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Short_Prop_1` | 1.3 x 6.8509 x 11.4561 | 240 | Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_White_Arctic, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Stair_0` | 6.3 x 1.84 x 6.4106 | 1222 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Stair_1` | 6.3 x 1.84 x 6.4106 | 1222 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Stair_0` | 6.3 x 1.8421 x 6.4106 | 1222 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Stair_1` | 6.3 x 1.8421 x 6.4106 | 1222 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Tank_Ground` | 6.7326 x 12.87 x 8.95 | 1562 | Mat_Paint_White_Arctic, Mat_Paint_Safety_Orange, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Glass_Canopy_Tinted, Mat_Neutral_Black_Matte, Mat_Neutral_Slate_Dark, Mat_Emissive_Amber, Mat_Paint_Warn_Red, Mat_Metal_Rust_Heavy |
 | `Mesh_Vent_0` | 1.44 x 0.6217 x 1.44 | 1504 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Neutral_Panel_Grey, Mat_Emissive_Amber |
 | `Mesh_Vent_1` | 1.44 x 0.6217 x 1.44 | 1504 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Neutral_Panel_Grey, Mat_Emissive_Amber |
@@ -432,10 +432,10 @@ Variations / collections: `Coll_RefineryTower`
 | `Mesh_Vent_3` | 1.44 x 0.6217 x 1.44 | 1504 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Neutral_Panel_Grey, Mat_Emissive_Amber |
 | `Mesh_Vent_Fan_0` | 1.44 x 0.684 x 1.44 | 898 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Neutral_Panel_Grey, Mat_Emissive_Amber |
 | `Mesh_Vent_Fan_1` | 1.44 x 0.684 x 1.44 | 898 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Neutral_Panel_Grey, Mat_Emissive_Amber |
-| `Mesh_Walk_L1_C0` | 4.02 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Walk_L1_C1` | 4.02 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Walk_L1_C2` | 4.02 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Walk_L1_C3` | 4.02 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Walk_L1_C0` | 4.0321 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Walk_L1_C1` | 4.0321 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Walk_L1_C2` | 4.0321 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Walk_L1_C3` | 4.0321 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L1_E0` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L1_E1` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L1_N0` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
@@ -444,28 +444,28 @@ Variations / collections: `Coll_RefineryTower`
 | `Mesh_Walk_L1_S1` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L1_W0` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L1_W1` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Walk_L2_C1` | 4.02 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Walk_L2_C1` | 4.0321 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L2_E0` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L2_E1` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L2_N0` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L2_N1` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Walk_L3_C0` | 4.02 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Walk_L3_C1` | 4.02 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Walk_L3_C0` | 4.0321 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Walk_L3_C1` | 4.0321 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L3_E0` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L3_E1` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L3_N0` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L3_N1` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L3_W0` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L3_W1` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Walk_L4_C0` | 4.02 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Walk_L4_C0` | 4.0321 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L4_N0` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L4_N1` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L4_W0` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L4_W1` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Walk_L5_C0` | 4.02 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Walk_L5_C1` | 4.02 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Walk_L5_C2` | 4.02 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
-| `Mesh_Walk_L5_C3` | 4.02 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Walk_L5_C0` | 4.0321 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Walk_L5_C1` | 4.0321 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Walk_L5_C2` | 4.0321 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
+| `Mesh_Walk_L5_C3` | 4.0321 x 3.7 x 1.835 | 676 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L5_E0` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L5_E1` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Mesh_Walk_L5_N0` | 6.2 x 1.9112 x 2.919 | 858 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
@@ -639,8 +639,6 @@ Variations / collections: `Coll_LatticeOutpost`, `Coll_LatticeOutpost_Unique`
 | `Roof_Windvane_Cab` | 2.2276 x 2.2276 x 3.8755 | 1797 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Fabric_Flag_Bleached, Mat_Paint_Warn_Red, Mat_Metal_Rust_Heavy, Mat_Plastic_Rubber_Black, Mat_Emissive_Amber, Mat_Paint_Roof_Green |
 | `Stair_Lower` | 6.3 x 1.84 x 6.4106 | 1222 | Mat_Metal_Steel_Worn, Mat_Metal_Steel_Dark, Mat_Paint_Safety_Orange, Mat_Neutral_Black_Matte, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red |
 | `Stencil_Chevron` | 2.52 x 0.0168 x 2.05 | 92 | Mat_Paint_Hull_Bleached, Mat_Paint_Warn_Red, Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Chrome_Scuffed, Mat_Metal_Rust_Heavy |
-| `Stencil_Danger_0` | 6.0852 x 0.0196 x 0.5418 | 114 | Mat_Paint_Hull_Bleached, Mat_Paint_Warn_Red, Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Chrome_Scuffed, Mat_Metal_Rust_Heavy |
-| `Stencil_Danger_1` | 6.0852 x 0.0196 x 0.5418 | 114 | Mat_Paint_Hull_Bleached, Mat_Paint_Warn_Red, Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Chrome_Scuffed, Mat_Metal_Rust_Heavy |
 | `Stencil_Placard` | 0.62 x 0.037 x 0.44 | 68 | Mat_Paint_Hull_Bleached, Mat_Paint_Warn_Red, Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Chrome_Scuffed, Mat_Metal_Rust_Heavy |
 | `Stencil_Roundel` | 2.24 x 0.0252 x 1.72 | 222 | Mat_Paint_Hull_Bleached, Mat_Paint_Warn_Red, Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Chrome_Scuffed, Mat_Metal_Rust_Heavy |
 
@@ -780,6 +778,14 @@ Variations / collections: `Collection`
 | `Cylinder.002` | 13.3151 x 13.3151 x 20.6303 | 34 | — |
 
 > Unfinished: auto-suffixed names present — `Camera.001`, `Cube.002`, `Cube.012`, `Cube.013`, `Cube.014`, `Cube.015`, `Cube.021`, `Cube.024`, `Cube.025`, `Cube.026`, `Cube.027`, `Cube.028`, `Cube.029`, `Cube.030`, `Cube.031`, `Cube.032`, `Cube.033`, `Cube.034`, `Cube.035`, `Cube.036`, `Cube.037`, `Cube.038`, `Cube.039`, `Cube.044`, `Cube.077`, `Cube.078`, `Cube.079`, `Cube.080`, `Cube.081`, `Cylinder.001`, `Cylinder.002`, `Light.001`
+
+### `creatures/OrkhenRhot.blend`
+
+Variations / collections: `Collection`
+
+| Object | Dimensions (m) | Polys | Materials |
+|---|---|---|---|
+| `Cube` | 5.4041 x 3.1167 x 5.7502 | 150 | Material |
 
 ### `creatures/crab_walker_4.blend`
 
@@ -1039,6 +1045,53 @@ Variations / collections: `Crab_Body`, `Crab_Claws`, `Crab_Fittings`, `Crab_Legs
 
 Armature `CRAB_Rig`: 49 bone(s) — `Root`, `Coxa_F1`, `Hip_F1`, `Knee_F1`, `Ankle_F1`, `Foot_F1`, `Coxa_F2`, `Hip_F2`, `Knee_F2`, `Ankle_F2`, `Foot_F2`, `Coxa_F3`, `Hip_F3`, `Knee_F3`, `Ankle_F3`, `Foot_F3`, `Coxa_F4`, `Hip_F4`, `Knee_F4`, `Ankle_F4`, `Foot_F4`, `Coxa_A1`, `Hip_A1`, `Knee_A1`, `Ankle_A1`, `Foot_A1`, `Coxa_A2`, `Hip_A2`, `Knee_A2`, `Ankle_A2`, `Foot_A2`, `Coxa_A3`, `Hip_A3`, `Knee_A3`, `Ankle_A3`, `Foot_A3`, `Coxa_A4`, `Hip_A4`, `Knee_A4`, `Ankle_A4`, `Foot_A4`, `Arm_P`, `Shoulder_P`, `Elbow_P`, `Wrist_P`, `Arm_N`, `Shoulder_N`, `Elbow_N`, `Wrist_N`
 
+### `creatures/dune_rat.blend`
+
+| Object | Dimensions (m) | Polys | Materials |
+|---|---|---|---|
+| `Mesh_DuneRat` | 0.8634 x 2.6017 x 1.2644 | 1836 | Mat_Hide_Sand_Pale |
+
+Armature `Arm_DuneRat`: 40 bone(s) — `root`, `spine1`, `femur.L`, `fibula.L`, `metarsal.L`, `spine2`, `spine3`, `spine4`, `scapula.L`, `humerus.L`, `radius.L`, `metacarpal.L`, `neck1`, `neck2`, `head`, `ear.L`, `ear.R`, `scapula.R`, `humerus.R`, `radius.R`, `metacarpal.R`, `tail1`, `tail2`, `tail3`, `tail4`, `femur.R`, `fibula.R`, `metarsal.R`, `IK_back.R`, `hoof_B.R`, `pole_back.R`, `IK_back.L`, `hoof_B.L`, `pole_back.L`, `IK_front.L`, `hoof_F.L`, `pole_fromt.L`, `IK_front.R`, `hoof_F.R`, `pole_fromt.R`
+
+### `creatures/golem.blend`
+
+Variations / collections: `Coll_Golem_Rig`
+
+| Object | Dimensions (m) | Polys | Materials |
+|---|---|---|---|
+| `Mesh_Golem_Back_Crown` | 4.2791 x 5.0453 x 3.7894 | 24 | Mat_Stone_Pale |
+| `Mesh_Golem_Back_Hump` | 5.2166 x 4.4751 x 2.529 | 24 | Mat_Stone_Pale |
+| `Mesh_Golem_Back_Rock_L` | 1.3587 x 1.9393 x 2.131 | 24 | Mat_Stone_Shadow |
+| `Mesh_Golem_Back_Rock_Top` | 2.0783 x 2.6047 x 1.0935 | 24 | Mat_Stone_Shadow |
+| `Mesh_Golem_Chest_Lower_L` | 2.3658 x 1.767 x 1.3861 | 24 | Mat_Stone_Shadow |
+| `Mesh_Golem_Chest_Lower_R` | 2.3516 x 1.6468 x 1.3467 | 24 | Mat_Stone_Shadow |
+| `Mesh_Golem_Chest_Rock_L` | 1.4067 x 1.0815 x 1.0789 | 24 | Mat_Stone_Shadow |
+| `Mesh_Golem_Chest_Upper_R` | 2.055 x 2.4229 x 1.8198 | 24 | Mat_Stone_Shadow |
+| `Mesh_Golem_Fist_L` | 3.8266 x 3.9285 x 3.3772 | 137 | Mat_Stone_Grit |
+| `Mesh_Golem_Fist_Plate_L` | 2.2583 x 1.41 x 1.845 | 24 | Mat_Stone_Grit |
+| `Mesh_Golem_Fist_R` | 3.8266 x 3.9285 x 3.3772 | 137 | Mat_Stone_Grit |
+| `Mesh_Golem_Foot_L` | 2.9404 x 3.4383 x 1.8811 | 96 | Mat_Stone_Grit |
+| `Mesh_Golem_Foot_R` | 2.7004 x 3.6592 x 1.8811 | 96 | Mat_Stone_Grit |
+| `Mesh_Golem_Forearm_L` | 2.6161 x 2.356 x 3.0244 | 128 | Mat_Stone_Shadow |
+| `Mesh_Golem_Forearm_Plate_L` | 2.2444 x 0.8927 x 1.8294 | 24 | Mat_Stone_Shadow |
+| `Mesh_Golem_Forearm_R` | 2.6161 x 2.356 x 3.0244 | 128 | Mat_Stone_Shadow |
+| `Mesh_Golem_Head` | 3.5673 x 3.5022 x 3.1061 | 640 | Mat_Stone_Pale |
+| `Mesh_Golem_Pauldron_L` | 2.0947 x 1.9276 x 1.9549 | 128 | Mat_Stone_Shadow |
+| `Mesh_Golem_Pauldron_R` | 2.0947 x 1.9276 x 1.9549 | 128 | Mat_Stone_Shadow |
+| `Mesh_Golem_Pelvis` | 3.9241 x 3.3281 x 2.7606 | 238 | Mat_Stone_Pale |
+| `Mesh_Golem_Shin_L` | 2.57 x 3.5759 x 3.1895 | 128 | Mat_Stone_Pale |
+| `Mesh_Golem_Shin_R` | 2.6146 x 3.6095 x 3.2163 | 128 | Mat_Stone_Pale |
+| `Mesh_Golem_Shoulder_Cap_L` | 2.2422 x 3.1151 x 2.1598 | 24 | Mat_Stone_Pale |
+| `Mesh_Golem_Shoulder_Cap_R` | 2.1999 x 3.1151 x 2.1598 | 24 | Mat_Stone_Pale |
+| `Mesh_Golem_Shoulder_Rock_R` | 1.9744 x 2.9928 x 2.1378 | 24 | Mat_Stone_Pale |
+| `Mesh_Golem_Thigh_L` | 2.1661 x 2.0339 x 1.8389 | 128 | Mat_Stone_Pale |
+| `Mesh_Golem_Thigh_R` | 2.2856 x 2.0788 x 1.7999 | 128 | Mat_Stone_Pale |
+| `Mesh_Golem_Torso_Core` | 7.3651 x 6.5036 x 4.6229 | 238 | Mat_Stone_Pale |
+| `Mesh_Golem_UpperArm_L` | 2.5528 x 2.185 x 2.6324 | 128 | Mat_Stone_Pale |
+| `Mesh_Golem_UpperArm_R` | 2.5528 x 2.185 x 2.6324 | 128 | Mat_Stone_Pale |
+
+Armature `Arm_Golem`: 19 bone(s) — `Bone_Root`, `Bone_Hips`, `Bone_Spine`, `Bone_Chest`, `Bone_Head`, `Bone_Clav_R`, `Bone_UpArm_R`, `Bone_LoArm_R`, `Bone_Hand_R`, `Bone_Clav_L`, `Bone_UpArm_L`, `Bone_LoArm_L`, `Bone_Hand_L`, `Bone_Thigh_R`, `Bone_Shin_R`, `Bone_Foot_R`, `Bone_Thigh_L`, `Bone_Shin_L`, `Bone_Foot_L`
+
 ### `creatures/horse_robot.blend`
 
 Variations / collections: `Horse_Body`, `Horse_Legs`, `Horse_Neck`, `Horse_Rig`
@@ -1156,6 +1209,89 @@ Variations / collections: `Humanoid_Body`, `Humanoid_Limbs`, `Humanoid_Rig`
 
 Armature `HUMANOID_Rig`: 23 bone(s) — `Root`, `Chest`, `Arm_L`, `Shoulder_L`, `Elbow_L`, `Wrist_L`, `Arm_R`, `Shoulder_R`, `Elbow_R`, `Wrist_R`, `Neck_01`, `Neck_02`, `Head`, `Coxa_L`, `Hip_L`, `Knee_L`, `Ankle_L`, `Foot_L`, `Coxa_R`, `Hip_R`, `Knee_R`, `Ankle_R`, `Foot_R`
 
+### `creatures/vrescal.blend`
+
+Variations / collections: `Coll_Vrescal_Limbs`, `Coll_Vrescal_Rig`, `Collection`
+
+| Object | Dimensions (m) | Polys | Materials |
+|---|---|---|---|
+| `Mesh_Vrescal_Body` | 26.4572 x 7.5309 x 17.0628 | 62664 | Mat_Hide_Dune_Tan, Mat_Hide_Scute_Umber, Mat_Hide_Slate_Teal, Mat_Hide_Claw_Horn |
+| `Mesh_Vrescal_EyeP` | 0.4899 x 0.3988 x 0.3988 | 512 | — |
+| `Mesh_Vrescal_EyeS` | 0.5463 x 0.4447 x 0.4447 | 512 | — |
+| `Mesh_Vrescal_Jaw` | 3.2649 x 1.9515 x 1.2689 | 361 | Mat_Hide_Dune_Tan |
+| `Mesh_Vrescal_Skull` | 4.6326 x 3.927 x 3.1316 | 433 | Mat_Hide_Dune_Tan |
+
+Armature `Arm_Vrescal`: 32 bone(s) — `Bone_Root`, `Bone_Pelvis`, `Bone_Spine_01`, `Bone_Spine_02`, `Bone_Spine_03`, `Bone_Neck_01`, `Bone_Neck_02`, `Bone_Neck_03`, `Bone_Neck_04`, `Bone_Head`, `Bone_Jaw`, `Bone_FrontP_Upper`, `Bone_FrontP_Lower`, `Bone_FrontP_Cannon`, `Bone_FrontP_Foot`, `Bone_FrontS_Upper`, `Bone_FrontS_Lower`, `Bone_FrontS_Cannon`, `Bone_FrontS_Foot`, `Bone_Tail_01`, `Bone_Tail_02`, `Bone_Tail_03`, `Bone_Tail_04`, `Bone_Tail_05`, `Bone_RearP_Upper`, `Bone_RearP_Lower`, `Bone_RearP_Cannon`, `Bone_RearP_Foot`, `Bone_RearS_Upper`, `Bone_RearS_Lower`, `Bone_RearS_Cannon`, `Bone_RearS_Foot`
+
+### `creatures/vrescal/parts/body.blend`
+
+Variations / collections: `Coll_Vrescal_Body`
+
+| Object | Dimensions (m) | Polys | Materials |
+|---|---|---|---|
+| `Mesh_Vrescal_Body` | 3.6335 x 1.8576 x 2.4693 | 5824 | Mat_Hide_Dune_Tan, Mat_Hide_Slate_Teal, Mat_Hide_Scute_Umber |
+
+### `creatures/vrescal/vrescal_hexapod_rigged.blend`
+
+Variations / collections: `Coll_Vrescal_Rigged`
+
+| Object | Dimensions (m) | Polys | Materials |
+|---|---|---|---|
+| `Mesh_Vrescal_Sculpt` | 15.248 x 6.8102 x 13.7905 | 6010 | Mat_Hide_Vrescal_LowPoly |
+
+Armature `Arm_Vrescal`: 40 bone(s) — `Bone_Root`, `Bone_Pelvis`, `Bone_Spine_01`, `Bone_Spine_02`, `Bone_Spine_03`, `Bone_Neck_01`, `Bone_Neck_02`, `Bone_Neck_03`, `Bone_Neck_04`, `Bone_Head`, `Bone_Jaw`, `Bone_FrontP_Upper`, `Bone_FrontP_Lower`, `Bone_FrontP_Cannon`, `Bone_FrontP_Foot`, `Bone_FrontS_Upper`, `Bone_FrontS_Lower`, `Bone_FrontS_Cannon`, `Bone_FrontS_Foot`, `Bone_MidP_Upper`, `Bone_MidP_Lower`, `Bone_MidP_Cannon`, `Bone_MidP_Foot`, `Bone_MidS_Upper`, `Bone_MidS_Lower`, `Bone_MidS_Cannon`, `Bone_MidS_Foot`, `Bone_Tail_01`, `Bone_Tail_02`, `Bone_Tail_03`, `Bone_Tail_04`, `Bone_Tail_05`, `Bone_RearP_Upper`, `Bone_RearP_Lower`, `Bone_RearP_Cannon`, `Bone_RearP_Foot`, `Bone_RearS_Upper`, `Bone_RearS_Lower`, `Bone_RearS_Cannon`, `Bone_RearS_Foot`
+
+### `creatures/vrescal/vrescal_lowpoly.blend`
+
+Variations / collections: `Coll_Vrescal_LowPoly`
+
+| Object | Dimensions (m) | Polys | Materials |
+|---|---|---|---|
+| `Mesh_Vrescal_Sculpt` | 4.2487 x 1.9078 x 3.8327 | 6010 | Mat_Hide_Vrescal_LowPoly |
+
+### `creatures/vrescal/vrescal_lowpoly_rigged.blend`
+
+Variations / collections: `Coll_Vrescal_Rigged`
+
+| Object | Dimensions (m) | Polys | Materials |
+|---|---|---|---|
+| `Mesh_Vrescal_Sculpt` | 15.248 x 6.8102 x 13.7905 | 6010 | Mat_Hide_Vrescal_LowPoly |
+
+Armature `Arm_Vrescal`: 32 bone(s) — `Bone_Root`, `Bone_Pelvis`, `Bone_Spine_01`, `Bone_Spine_02`, `Bone_Spine_03`, `Bone_Neck_01`, `Bone_Neck_02`, `Bone_Neck_03`, `Bone_Neck_04`, `Bone_Head`, `Bone_Jaw`, `Bone_FrontP_Upper`, `Bone_FrontP_Lower`, `Bone_FrontP_Cannon`, `Bone_FrontP_Foot`, `Bone_FrontS_Upper`, `Bone_FrontS_Lower`, `Bone_FrontS_Cannon`, `Bone_FrontS_Foot`, `Bone_Tail_01`, `Bone_Tail_02`, `Bone_Tail_03`, `Bone_Tail_04`, `Bone_Tail_05`, `Bone_RearP_Upper`, `Bone_RearP_Lower`, `Bone_RearP_Cannon`, `Bone_RearP_Foot`, `Bone_RearS_Upper`, `Bone_RearS_Lower`, `Bone_RearS_Cannon`, `Bone_RearS_Foot`
+
+### `creatures/vrescal/vrescal_rigged.blend`
+
+Variations / collections: `Coll_Vrescal_Rigged`
+
+| Object | Dimensions (m) | Polys | Materials |
+|---|---|---|---|
+| `Mesh_Vrescal_Sculpt` | 15.4154 x 6.9301 x 13.9372 | 44944 | Mat_Hide_Vrescal_Stylised |
+
+Armature `Arm_Vrescal`: 32 bone(s) — `Bone_Root`, `Bone_Pelvis`, `Bone_Spine_01`, `Bone_Spine_02`, `Bone_Spine_03`, `Bone_Neck_01`, `Bone_Neck_02`, `Bone_Neck_03`, `Bone_Neck_04`, `Bone_Head`, `Bone_Jaw`, `Bone_FrontP_Upper`, `Bone_FrontP_Lower`, `Bone_FrontP_Cannon`, `Bone_FrontP_Foot`, `Bone_FrontS_Upper`, `Bone_FrontS_Lower`, `Bone_FrontS_Cannon`, `Bone_FrontS_Foot`, `Bone_Tail_01`, `Bone_Tail_02`, `Bone_Tail_03`, `Bone_Tail_04`, `Bone_Tail_05`, `Bone_RearP_Upper`, `Bone_RearP_Lower`, `Bone_RearP_Cannon`, `Bone_RearP_Foot`, `Bone_RearS_Upper`, `Bone_RearS_Lower`, `Bone_RearS_Cannon`, `Bone_RearS_Foot`
+
+### `creatures/vrescal/vrescal_sculpt.blend`
+
+Variations / collections: `Coll_Vrescal_Sculpt`
+
+| Object | Dimensions (m) | Polys | Materials |
+|---|---|---|---|
+| `Mesh_Vrescal_Sculpt` | 4.2531 x 1.912 x 3.8453 | 44944 | Mat_Hide_Vrescal_Baked |
+
+### `creatures/vrescal/vrescal_stylised.blend`
+
+Variations / collections: `Coll_Vrescal_Stylised`
+
+| Object | Dimensions (m) | Polys | Materials |
+|---|---|---|---|
+| `Mesh_Vrescal_Sculpt` | 4.2531 x 1.912 x 3.8453 | 44944 | Mat_Hide_Vrescal_Stylised |
+
+### `creatures/vrescal/vrescal_wip.blend`
+
+| Object | Dimensions (m) | Polys | Materials |
+|---|---|---|---|
+| `Mesh_Vrescal_Body` | 26.2951 x 7.9528 x 16.9683 | 4960 | Mat_Hide_Dune_Tan |
+| `Ref_Ground` | 90.0 x 90.0 x 0.0 | 1 | — |
+
 ### `vehicles/desert_crawler.blend`
 
 Variations / collections: `Crawler_Body`, `Crawler_Collector`, `Crawler_Digger`, `Crawler_Fittings`, `Crawler_Legs`, `Crawler_Rig`
@@ -1176,14 +1312,14 @@ Variations / collections: `Crawler_Body`, `Crawler_Collector`, `Crawler_Digger`,
 | `CoxaPin_P2` | 0.4375 x 0.46 x 1.36 | 36 | Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Olive_Deep, Mat_Paint_Roof_Green, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Rubber_Black, Mat_Glass_Canopy_Tinted, Mat_Metal_Copper_Oxide |
 | `CoxaPin_P3` | 0.4375 x 0.46 x 1.36 | 36 | Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Olive_Deep, Mat_Paint_Roof_Green, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Rubber_Black, Mat_Glass_Canopy_Tinted, Mat_Metal_Copper_Oxide |
 | `Cube` | 4.7332 x 8.3435 x 1.9474 | 6 | Mat_Metal_Rust_Heavy |
-| `Cube.001` | 8.7222 x 6.9868 x 5.1349 | 19 | — |
-| `Cube.002` | 8.7499 x 5.6018 x 1.3499 | 16 | Mat_Metal_Steel_Dark |
+| `Cube.002` | 9.2895 x 7.9974 x 1.4331 | 16 | Mat_Metal_Steel_Dark |
 | `FootPin_N1` | 0.4375 x 0.46 x 1.36 | 36 | Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Olive_Deep, Mat_Paint_Roof_Green, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Rubber_Black, Mat_Glass_Canopy_Tinted, Mat_Metal_Copper_Oxide |
 | `FootPin_N2` | 0.4375 x 0.46 x 1.36 | 36 | Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Olive_Deep, Mat_Paint_Roof_Green, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Rubber_Black, Mat_Glass_Canopy_Tinted, Mat_Metal_Copper_Oxide |
 | `FootPin_N3` | 0.4375 x 0.46 x 1.36 | 36 | Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Olive_Deep, Mat_Paint_Roof_Green, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Rubber_Black, Mat_Glass_Canopy_Tinted, Mat_Metal_Copper_Oxide |
 | `FootPin_P1` | 0.4375 x 0.46 x 1.36 | 36 | Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Olive_Deep, Mat_Paint_Roof_Green, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Rubber_Black, Mat_Glass_Canopy_Tinted, Mat_Metal_Copper_Oxide |
 | `FootPin_P2` | 0.4375 x 0.46 x 1.36 | 36 | Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Olive_Deep, Mat_Paint_Roof_Green, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Rubber_Black, Mat_Glass_Canopy_Tinted, Mat_Metal_Copper_Oxide |
 | `FootPin_P3` | 0.4375 x 0.46 x 1.36 | 36 | Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Olive_Deep, Mat_Paint_Roof_Green, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Rubber_Black, Mat_Glass_Canopy_Tinted, Mat_Metal_Copper_Oxide |
+| `Grid` | 9.0425 x 7.8047 x 3.3529 | 100 | Mat_Metal_Chrome_Scuffed |
 | `HipPin_N1` | 0.4375 x 0.46 x 1.36 | 36 | Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Olive_Deep, Mat_Paint_Roof_Green, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Rubber_Black, Mat_Glass_Canopy_Tinted, Mat_Metal_Copper_Oxide |
 | `HipPin_N2` | 0.4375 x 0.46 x 1.36 | 36 | Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Olive_Deep, Mat_Paint_Roof_Green, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Rubber_Black, Mat_Glass_Canopy_Tinted, Mat_Metal_Copper_Oxide |
 | `HipPin_N3` | 0.4375 x 0.46 x 1.36 | 36 | Mat_Neutral_Black_Matte, Mat_Metal_Steel_Dark, Mat_Metal_Steel_Worn, Mat_Paint_Olive_Deep, Mat_Paint_Roof_Green, Mat_Metal_Rust_Heavy, Mat_Paint_Warn_Red, Mat_Emissive_Cabin_Warm, Mat_Emissive_Amber, Mat_Neutral_Black_Matte, Mat_Metal_Chrome_Scuffed, Mat_Plastic_Rubber_Black, Mat_Glass_Canopy_Tinted, Mat_Metal_Copper_Oxide |
@@ -1277,7 +1413,7 @@ Variations / collections: `Crawler_Body`, `Crawler_Collector`, `Crawler_Digger`,
 
 Armature `CRAWLER_Rig`: 42 bone(s) — `Root`, `Coxa_P1`, `Hip_P1`, `Knee_P1`, `Ankle_P1`, `Foot_P1`, `Coxa_P2`, `Hip_P2`, `Knee_P2`, `Ankle_P2`, `Foot_P2`, `Coxa_P3`, `Hip_P3`, `Knee_P3`, `Ankle_P3`, `Foot_P3`, `Coxa_N1`, `Hip_N1`, `Knee_N1`, `Ankle_N1`, `Foot_N1`, `Coxa_N2`, `Hip_N2`, `Knee_N2`, `Ankle_N2`, `Foot_N2`, `Coxa_N3`, `Hip_N3`, `Knee_N3`, `Ankle_N3`, `Foot_N3`, `Dig_Boom`, `Dig_Drum`, `Claw_01`, `Claw_02`, `Claw_03`, `Claw_04`, `Claw_05`, `Claw_06`, `Claw_Grab`, `Collector_Lift`, `Collector_Bucket`
 
-> Unfinished: auto-suffixed names present — `Cube.001`, `Cube.002`, `Mesh_Crawler_Gantry.002`, `Mesh_Crawler_Gantry.003`, `Mesh_Flood_Brow.001`, `Mesh_Leg_N1_Lower.001`, `Mesh_Leg_N1_Lower.002`, `Mesh_Leg_N1_Lower.003`, `Mesh_Leg_N1_Lower.004`, `Mesh_Leg_N1_Shroud.002`, `Mesh_Leg_N1_Upper.001`, `Mesh_Leg_N1_Upper.002`, `Mesh_Leg_P2_Foot.001`, `Mesh_Mast_RP.001`, `Mesh_Mast_RP.003`
+> Unfinished: auto-suffixed names present — `Cube.002`, `Mesh_Crawler_Gantry.002`, `Mesh_Crawler_Gantry.003`, `Mesh_Flood_Brow.001`, `Mesh_Leg_N1_Lower.001`, `Mesh_Leg_N1_Lower.002`, `Mesh_Leg_N1_Lower.003`, `Mesh_Leg_N1_Lower.004`, `Mesh_Leg_N1_Shroud.002`, `Mesh_Leg_N1_Upper.001`, `Mesh_Leg_N1_Upper.002`, `Mesh_Leg_P2_Foot.001`, `Mesh_Mast_RP.001`, `Mesh_Mast_RP.003`
 
 ### `vehicles/dune_foil.blend`
 

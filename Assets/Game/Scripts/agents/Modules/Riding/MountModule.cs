@@ -210,8 +210,25 @@ namespace SpaceGame.Agents
 
         private void OnDisable()
         {
+            // OnDisable arrives for three different reasons and only one of them may dismount.
+            // Dismount reparents the rider, and Unity refuses Transform.SetParent while the parent
+            // GameObject is mid-activation-change — "Cannot set the parent of the GameObject 'X'
+            // while activating or deactivating the parent GameObject 'Y'". Measured: the mount reads
+            // activeInHierarchy = false both when it is SetActive(false) and when its scene is
+            // unloading, and true when only this component was switched off. That flag IS the
+            // condition Unity guards on, so it is the whole test — see MountTeardownTests.
+            //
+            // Returning to the main menu hits the scene-unload case: NetworkManager.Shutdown deliberately
+            // skips deparenting children while shutting down (NetworkSpawnManager.OnDespawnObject),
+            // so the rider is still parented and no longer spawned when the scene tears down — the
+            // networked detach in UnparentRider is unavailable and the raw SetParent is illegal.
             if (IsMounted)
-                Dismount();
+            {
+                if (gameObject.activeInHierarchy)
+                    Dismount();
+                else
+                    AbandonRider();
+            }
 
             if (forcedLookActionEnabled && lookAction != null)
             {

@@ -369,6 +369,7 @@ GameObject:
   - component: {fileID: 6765072375231422700}
   - component: {fileID: 5443714000153548352}
   - component: {fileID: 3634993154862894537}
+  - component: {fileID: 1993580790424341913}
   m_Layer: 0
   m_Name: Ship
   m_TagString: Untagged
@@ -478,6 +479,19 @@ MonoBehaviour:
   OverrideAttenuation: 1
   OverrideMinDistance: 1
   OverrideMaxDistance: 24.26
+--- !u!114 &1993580790424341913
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1250894034931270469}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1 &2876123993442434995
 GameObject:
   m_ObjectHideFlags: 0
@@ -34638,3 +34652,5 @@ MonoBehaviour:
   blockingLayers:
     serializedVersion: 2
     m_Bits: 193
+  groundClearance: 1.2
+  attempts: 20

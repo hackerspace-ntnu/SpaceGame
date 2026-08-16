@@ -9,6 +9,13 @@ namespace SpaceGame.Items
     /// </summary>
     public abstract class EffectItem : UsableItem
     {
+        /// <summary>
+        /// Owner-run. An effect is registered against the holder's own Rigidbody, and that body is
+        /// simulated on the holder's machine — a server that applied the force would be fighting
+        /// the owner-authoritative transform coming back the other way.
+        /// </summary>
+        public override UseAuthority Authority => UseAuthority.Owner;
+
         protected Effect currentEffect;
 
         /// <summary>

@@ -31,13 +31,20 @@ namespace SpaceGame.Core.Persistence
     /// So a crate moved in a far-off chunk survives that chunk unloading mid-session, and a save
     /// written afterwards is a save of the whole world rather than of what happened to be resident.
     ///
+    /// <b>Records are keyed by identity, not by scene.</b> That is the correction that made authored
+    /// objects persist at all. Scene membership is not stable — <c>WorldStreamer</c> moves every
+    /// SceneTracked entity into whichever chunk it has wandered into — so a record filed under the
+    /// scene an object was captured in could not be found from the scene the object is authored in,
+    /// and every creature in the world came back at its authored position. See
+    /// <see cref="WorldRecord.Entities"/>.
+    ///
     /// Server-only. Clients receive world state through the replication that already exists.
     /// </summary>
     public class WorldSaveStore
     {
         private readonly WorldRecord world;
 
-        /// <summary>Scene keys currently live, so a save knows which records to refresh from memory.</summary>
+        /// <summary>Scene keys currently live, so a save knows which scenes to re-read from memory.</summary>
         private readonly Dictionary<string, Scene> loadedScenes = new();
 
         public WorldSaveStore() : this(new WorldRecord()) { }
@@ -58,13 +65,13 @@ namespace SpaceGame.Core.Persistence
         // ─────────────────────────────────────────────
 
         /// <summary>
-        /// Restores <paramref name="sceneKey"/>'s recorded state into a scene that has just loaded.
+        /// Restores the recorded state of everything belonging to a scene that has just loaded.
         ///
-        /// Order matters and is not arbitrary: destroyed authored objects go first, so a runtime
-        /// object standing where one used to be is not deleted along with it; authored state next,
-        /// while the scene still holds only its authored population; runtime spawns last, so the
-        /// entity walk that follows cannot see them and is not asked to match them to an authored
-        /// record they do not have.
+        /// Order matters and is not arbitrary: qualifying objects are wired first, so the passes
+        /// below see the whole scene rather than the part somebody remembered to prepare; destroyed
+        /// authored objects go next, so a runtime object spawned where one used to be is not deleted
+        /// along with it; authored state after that, while the scene still holds only its authored
+        /// population; runtime spawns last, once nothing else will be walking the scene.
         /// </summary>
         public void Hydrate(string sceneKey, Scene scene)
         {
@@ -72,45 +79,35 @@ namespace SpaceGame.Core.Persistence
 
             loadedScenes[sceneKey] = scene;
 
-            if (!world.TryGet(sceneKey, out SceneRecord record))
-            {
-                OnSceneHydrated?.Invoke(sceneKey, scene);
-                return;
-            }
+            SaveablePolicy.EnsureScene(scene);
 
             Dictionary<string, SaveableEntity> authored = CollectAuthored(scene);
 
-            RemoveDestroyed(record, authored);
-            RestoreAuthored(record, authored);
-            SpawnEntities(record, scene);
+            RemoveDestroyed(authored);
+            RestoreAuthored(authored);
+            SpawnEntities(sceneKey, scene);
 
             OnSceneHydrated?.Invoke(sceneKey, scene);
         }
 
         /// <summary>
-        /// Captures a scene's live state into its record. Call before the scene unloads, and again
+        /// Captures a scene's live state into the record. Call before the scene unloads, and again
         /// for every loaded scene when writing a save.
         ///
-        /// The record is rebuilt rather than merged: an entity that was destroyed since the last
-        /// capture has to disappear from the record too, and a merge would keep resurrecting it.
+        /// Each entity's record is overwritten in place rather than the scene's records being
+        /// rebuilt wholesale: an entity may have wandered out of this scene into another one, and
+        /// clearing by scene would throw away a record that another scene is about to re-stamp — or
+        /// has already stamped this same pass.
         /// </summary>
         public void Dehydrate(string sceneKey, Scene scene)
         {
             if (string.IsNullOrEmpty(sceneKey) || !scene.IsValid() || !scene.isLoaded) return;
 
-            SceneRecord record = world.GetOrCreate(sceneKey);
-
-            var previouslyDestroyed = new List<string>(record.DestroyedAuthored);
-
-            record.Entities.Clear();
-            record.Authored.Clear();
-            record.DestroyedAuthored.Clear();
-
-            // An authored object destroyed in an earlier session is not in this scene to be seen
-            // now — the record is the only thing that remembers it, so that memory carries forward.
-            record.DestroyedAuthored.AddRange(previouslyDestroyed);
-
-            var seenAuthored = new HashSet<string>();
+            // No EnsureScene here on purpose. Authored objects only arrive when their scene loads,
+            // which Hydrate already covers, and runtime spawns get their identity from
+            // SaveableEntity.EnsureRuntime — so a second full-scene walk on every chunk unload and
+            // every save would cost the same as the capture itself and find nothing.
+            var seen = new HashSet<string>();
 
             foreach (SaveableEntity entity in EntitiesIn(scene))
             {
@@ -118,61 +115,52 @@ namespace SpaceGame.Core.Persistence
                 // captured here as well as by PlayerSaveService — and then re-instantiated from
                 // their prefab on load, beside the player Netcode spawns.
                 if (!entity.BelongsToWorld) continue;
+                if (string.IsNullOrEmpty(entity.InstanceId)) continue;
 
-                if (entity.IsAuthored)
-                {
-                    if (string.IsNullOrEmpty(entity.InstanceId)) continue;
-
-                    seenAuthored.Add(entity.InstanceId);
-
-                    // Authored objects are already in the scene file, so only the delta is stored.
-                    // An object whose savers all return nothing has no delta and needs no record.
-                    var bag = new StateBag();
-                    entity.Capture(bag);
-                    if (bag.Count > 0) record.Authored[entity.InstanceId] = bag;
-
-                    continue;
-                }
-
-                record.Entities.Add(CaptureEntity(entity));
+                seen.Add(entity.InstanceId);
+                CaptureEntity(entity, sceneKey);
             }
 
-            // An authored object recorded as destroyed that IS present again — because the record
-            // predates a scene edit that re-added it — would otherwise stay marked forever and be
-            // deleted on every subsequent load.
-            record.DestroyedAuthored.RemoveAll(seenAuthored.Contains);
+            DropVanishedRuntime(sceneKey, seen);
         }
 
         /// <summary>
-        /// Drops records that describe nothing, and reports how many went.
+        /// Forgets runtime objects that were in this scene and are not there any more.
         ///
-        /// Without this the store keeps a record for every chunk the player has ever set foot in,
-        /// for the rest of the session and in every save file after it — most of them empty, because
-        /// walking across a chunk creates its record whether or not anything in it changed. On a
-        /// 48-chunk world that is merely untidy; it is the kind of untidy that turns into a
-        /// megabyte of nothing on a world several times the size.
+        /// A runtime object leaves the record by being destroyed, and this is the only place that
+        /// can tell: it is gone from the scene it was recorded in, and it is not alive anywhere else
+        /// either — the second half is what stops an entity that merely migrated to another chunk
+        /// from being deleted on the way past.
         ///
-        /// A record holding only tombstones is NOT empty: that a crate was destroyed is exactly the
-        /// state the scene file would otherwise undo.
+        /// Authored objects are never dropped here. One is missing from its scene whenever that
+        /// scene is not loaded, which is most of the time on a streamed world; the only thing that
+        /// removes an authored record is an explicit tombstone from <see cref="RecordDestroyed"/>.
         /// </summary>
-        public int PruneEmpty()
+        private void DropVanishedRuntime(string sceneKey, HashSet<string> seen)
         {
-            if (world.Scenes == null) return 0;
+            List<string> doomed = null;
 
-            var doomed = new List<string>();
-
-            foreach (KeyValuePair<string, SceneRecord> entry in world.Scenes)
+            foreach (KeyValuePair<string, EntityRecord> entry in world.Entities)
             {
-                if (entry.Value == null || entry.Value.IsEmpty) doomed.Add(entry.Key);
+                EntityRecord record = entry.Value;
+                if (record == null || record.Authored) continue;
+                if (record.Scene != sceneKey || seen.Contains(entry.Key)) continue;
+
+                // Alive somewhere else — it migrated rather than died. The null check matters: a
+                // destroyed object leaves a null behind if its OnDisable never ran.
+                if (SaveableEntity.LiveEntities.TryGetValue(entry.Key, out SaveableEntity live) && live != null)
+                    continue;
+
+                (doomed ??= new List<string>()).Add(entry.Key);
             }
 
-            foreach (string key in doomed)
-                world.Scenes.Remove(key);
+            if (doomed == null) return;
 
-            return doomed.Count;
+            foreach (string id in doomed)
+                world.Entities.Remove(id);
         }
 
-        /// <summary>Refreshes every loaded scene's record. The first half of writing a save.</summary>
+        /// <summary>Refreshes every loaded scene's records. The first half of writing a save.</summary>
         public void DehydrateLoaded()
         {
             // Copied, because Dehydrate can drop a scene that has since been unloaded without the
@@ -193,101 +181,111 @@ namespace SpaceGame.Core.Persistence
         public void ForgetLoaded(string sceneKey) => loadedScenes.Remove(sceneKey);
 
         /// <summary>
-        /// The record key for a live scene, so a caller holding only a GameObject can find out which
-        /// record it belongs to. False for a scene the store was never told about — a menu, an
-        /// arena, anything outside the streamed world.
-        /// </summary>
-        public bool TryGetSceneKey(Scene scene, out string sceneKey)
-        {
-            foreach (KeyValuePair<string, Scene> entry in loadedScenes)
-            {
-                if (entry.Value != scene) continue;
-                sceneKey = entry.Key;
-                return true;
-            }
-
-            sceneKey = null;
-            return false;
-        }
-
-        /// <summary>
-        /// Records that an authored object was destroyed, so the chunk scene stops putting it back.
+        /// Records that an authored object was destroyed, so the scene file stops putting it back.
         ///
         /// Only authored objects need this. A runtime object simply stops being captured once it no
         /// longer exists, whereas an authored one is re-created by the scene file on every load and
         /// an explicit tombstone is the only thing that can override that.
+        ///
+        /// Takes no scene: the tombstone is global, because the object may well have been killed in
+        /// a chunk it wandered into rather than the one it was authored in.
         /// </summary>
-        public void RecordDestroyed(string sceneKey, SaveableEntity entity)
+        public void RecordDestroyed(SaveableEntity entity)
         {
             if (entity == null || !entity.IsAuthored || string.IsNullOrEmpty(entity.InstanceId)) return;
 
-            SceneRecord record = world.GetOrCreate(sceneKey);
+            if (!world.Destroyed.Contains(entity.InstanceId))
+                world.Destroyed.Add(entity.InstanceId);
 
-            if (!record.DestroyedAuthored.Contains(entity.InstanceId))
-                record.DestroyedAuthored.Add(entity.InstanceId);
-
-            record.Authored.Remove(entity.InstanceId);
+            world.Entities.Remove(entity.InstanceId);
         }
 
         // ─────────────────────────────────────────────
         //  Capture / restore
         // ─────────────────────────────────────────────
 
-        private static EntityRecord CaptureEntity(SaveableEntity entity)
+        /// <summary>
+        /// Writes one entity into the record, creating it on first sight and overwriting it after.
+        ///
+        /// The pose is stored on the record itself rather than left to a <c>TransformSaveable</c>,
+        /// because where a thing is is the one piece of state every world object has. A runtime
+        /// object needs it before it exists — the position is what it is spawned at — and an
+        /// authored object needs it because the scene file will otherwise put it back where it was
+        /// authored. Storing it once, here, means position persists for every saveable object
+        /// whether or not anyone remembered to add the saver.
+        /// </summary>
+        private void CaptureEntity(SaveableEntity entity, string sceneKey)
         {
-            var record = new EntityRecord
-            {
-                PrefabId = entity.PrefabId,
-                InstanceId = entity.InstanceId,
-                Position = entity.transform.position,
-                Rotation = entity.transform.rotation,
-            };
+            EntityRecord record = world.GetOrCreate(entity.InstanceId);
 
-            entity.Capture(record.EnsureState());
-            return record;
+            record.PrefabId = entity.PrefabId;
+            record.Scene = sceneKey;
+            record.Authored = entity.IsAuthored;
+            record.Position = entity.transform.position;
+            record.Rotation = entity.transform.rotation;
+            record.Scale = entity.transform.localScale;
+
+            // A fresh bag rather than the existing one: a saver removed since the last capture must
+            // drop out of the record, and merging into the old bag would preserve it forever.
+            var bag = new StateBag();
+            entity.Capture(bag);
+            record.State = bag;
         }
 
-        private void SpawnEntities(SceneRecord record, Scene scene)
+        private void SpawnEntities(string sceneKey, Scene scene)
         {
-            foreach (EntityRecord entity in record.Entities)
+            // Materialised first: SpawnIfNetworked and the entity's own Awake can both touch the
+            // store, and mutating the dictionary being walked would throw.
+            var pending = new List<EntityRecord>();
+
+            foreach (EntityRecord record in world.InScene(sceneKey))
             {
-                if (entity == null) continue;
+                if (record.Authored) continue;
 
                 // Already live — the object migrated out of this chunk and back, or the scene was
                 // hydrated twice. Re-instantiating would double it.
-                if (!string.IsNullOrEmpty(entity.InstanceId) &&
-                    SaveableEntity.LiveEntities.TryGetValue(entity.InstanceId, out SaveableEntity existing) &&
+                if (!string.IsNullOrEmpty(record.InstanceId) &&
+                    SaveableEntity.LiveEntities.TryGetValue(record.InstanceId, out SaveableEntity existing) &&
                     existing != null)
                 {
                     continue;
                 }
 
-                if (!SaveablePrefabRegistry.TryGet(entity.PrefabId, out GameObject prefab))
+                pending.Add(record);
+            }
+
+            foreach (EntityRecord record in pending)
+            {
+                if (!SaveablePrefabRegistry.TryGet(record.PrefabId, out GameObject prefab))
                 {
-                    Debug.LogWarning($"[Save] No prefab registered for id '{entity.PrefabId}' — one " +
+                    Debug.LogWarning($"[Save] No prefab registered for id '{record.PrefabId}' — one " +
                                      "saved object could not be restored. Is it missing from " +
                                      $"Resources/{SaveablePrefabRegistry.ResourcesFolder}?");
                     continue;
                 }
 
-                GameObject instance = UnityEngine.Object.Instantiate(prefab, entity.Position, entity.Rotation);
+                GameObject instance = UnityEngine.Object.Instantiate(prefab, record.Position, record.Rotation);
+                if (record.Scale != Vector3.zero) instance.transform.localScale = record.Scale;
 
                 // Into the chunk's own scene, not the active one. Left in the active scene it would
                 // survive that chunk unloading and pile up a duplicate on every reload.
                 if (scene.IsValid() && scene.isLoaded)
                     SceneManager.MoveGameObjectToScene(instance, scene);
 
-                SaveableEntity saveable = SaveableEntity.EnsureRuntime(instance, entity.PrefabId);
-                saveable.AdoptIdentity(entity.PrefabId, entity.InstanceId);
-                saveable.Restore(entity.State);
+                SaveableEntity saveable = SaveableEntity.EnsureRuntime(instance, record.PrefabId);
+                saveable.AdoptIdentity(record.PrefabId, record.InstanceId);
+                saveable.Restore(record.State);
 
                 SaveNetworking.SpawnIfNetworked(instance);
             }
         }
 
-        private static void RemoveDestroyed(SceneRecord record, Dictionary<string, SaveableEntity> authored)
+        /// <summary>
+        /// Deletes the authored objects this scene just re-created that the player had destroyed.
+        /// </summary>
+        private void RemoveDestroyed(Dictionary<string, SaveableEntity> authored)
         {
-            foreach (string instanceId in record.DestroyedAuthored)
+            foreach (string instanceId in world.Destroyed)
             {
                 if (!authored.TryGetValue(instanceId, out SaveableEntity entity) || entity == null) continue;
 
@@ -296,21 +294,35 @@ namespace SpaceGame.Core.Persistence
             }
         }
 
-        private static void RestoreAuthored(SceneRecord record, Dictionary<string, SaveableEntity> authored)
+        /// <summary>
+        /// Puts the recorded state back onto the authored objects this scene contains.
+        ///
+        /// Driven from the objects present rather than from the records — the reverse of how this
+        /// worked when records were filed per scene. That inversion is the fix: a record no longer
+        /// has to know which scene its object will turn up in, so an object that spent last session
+        /// three chunks away is still matched, and a record whose scene is simply not loaded yet
+        /// waits quietly instead of being reported as missing.
+        /// </summary>
+        private void RestoreAuthored(Dictionary<string, SaveableEntity> authored)
         {
-            foreach (KeyValuePair<string, StateBag> entry in record.Authored)
+            foreach (KeyValuePair<string, SaveableEntity> entry in authored)
             {
-                if (!authored.TryGetValue(entry.Key, out SaveableEntity entity) || entity == null)
+                if (!world.TryGet(entry.Key, out EntityRecord record)) continue;
+                if (!record.Authored) continue;
+
+                SaveableEntity entity = entry.Value;
+
+                // Pose before state, so a TransformSaveable in the bag — which holds the same values
+                // — is what lands last and nothing depends on which of the two wins.
+                if (record.HasPose)
                 {
-                    // The scene no longer contains an object with this id — usually because the
-                    // chunk scene was edited since the save. Dropping the record silently would
-                    // hide a real content change, so it is reported and skipped.
-                    Debug.LogWarning($"[Save] Saved state for authored object '{entry.Key}' has no " +
-                                     "matching object in the scene. Was the scene edited since the save?");
-                    continue;
+                    SaveTeleport.Move(entity.gameObject, record.Position, record.Rotation,
+                                      zeroVelocity: entity.GetComponent<RigidbodySaveable>() == null);
+
+                    if (record.Scale != Vector3.zero) entity.transform.localScale = record.Scale;
                 }
 
-                entity.Restore(entry.Value);
+                entity.Restore(record.State);
             }
         }
 

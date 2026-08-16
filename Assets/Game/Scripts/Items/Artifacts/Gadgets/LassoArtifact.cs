@@ -18,6 +18,9 @@ namespace SpaceGame.Items
     /// </summary>
     public class LassoArtifact : ToolItem
     {
+        /// <summary>Owner-run: a local physics throw aimed by the holder's own camera.</summary>
+        public override UseAuthority Authority => UseAuthority.Owner;
+
         [Header("Firing")]
         [SerializeField] private float maxRange = 40f;
         [SerializeField] private LayerMask hookableLayers = ~0;

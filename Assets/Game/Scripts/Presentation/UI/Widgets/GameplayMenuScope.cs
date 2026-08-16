@@ -104,6 +104,10 @@ namespace SpaceGame.Presentation
         {
             Thaw();
 
+            // Whether the player died while this menu was up decides who owns the cursor next, so
+            // read it before ExitCutsceneMode and before the reference is cleared.
+            bool playerIsDead = releasedPlayer != null && releasedPlayer.IsDead;
+
             if (releasedPlayer != null)
             {
                 releasedPlayer.ExitCutsceneMode();
@@ -115,6 +119,10 @@ namespace SpaceGame.Presentation
                 releasedSpectator.enabled = true;
                 releasedSpectator = null;
             }
+
+            // Closing the menu over a death screen must leave the cursor free — re-locking it here
+            // is what makes the respawn button unclickable after pausing during death.
+            if (playerIsDead) return;
 
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;

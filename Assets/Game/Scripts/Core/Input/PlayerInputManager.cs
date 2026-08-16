@@ -52,14 +52,38 @@ namespace SpaceGame.Core
 
         private void Awake()
         {
-            inputs = new InputControls();
+            EnsureInputs();
 
             // The inspector value is the authored default; once the player has touched the
             // settings menu's own switch, that is what the wheel obeys.
             GameSettings.SeedInvertHotbarScroll(invertHotbarScroll);
         }
 
-        private void OnEnable()
+        /// <summary>
+        /// Creates the action asset if it does not exist yet.
+        ///
+        /// OnEnable cannot assume Awake ran first: PlayerController.Awake toggles this component's
+        /// enabled flag, and Unity runs that on whichever component it reached first, so an enable
+        /// can arrive before this object's own Awake. Every entry point that touches `inputs` calls
+        /// this, which is cheaper than the NullReferenceException it replaces.
+        /// </summary>
+        private void EnsureInputs()
+        {
+            if (inputs != null) return;
+
+            inputs = new InputControls();
+            BindActions();
+        }
+
+        /// <summary>
+        /// Binds the action callbacks exactly once, for the lifetime of the asset.
+        ///
+        /// These used to be bound in OnEnable, which is wrong for a component that gets toggled:
+        /// the callbacks are lambdas, so nothing could ever unsubscribe them, and every
+        /// disable/enable round trip — now one per death and respawn — left another copy attached.
+        /// Two copies means one jump keypress fires OnJumpPressed twice.
+        /// </summary>
+        private void BindActions()
         {
             // Hotbar
             inputs.Hotbar.Hotbar1.performed  += _ => OnHotbarPressed?.Invoke(0);
@@ -81,14 +105,31 @@ namespace SpaceGame.Core
             inputs.Player.Dash.performed   += _ => OnDashPressed?.Invoke();
             inputs.Player.Use.performed   += _ => OnUsePressed?.Invoke();
             inputs.Player.Backpack.performed += _ => OnBackpackPressed?.Invoke();
+        }
 
+        private void OnEnable()
+        {
+            EnsureInputs();
             inputs.Enable();
         }
 
         private void OnDisable()
         {
-            inputs.Hotbar.HotbarScroll.performed -= HandleHotbarScroll;
-            inputs.Disable();
+            // Not EnsureInputs: if the asset was never created there is nothing enabled to stop,
+            // and building one here just to disable it would leak it past OnDestroy.
+            inputs?.Disable();
+
+            // Stale axes outlive the disable otherwise — MoveInput and LookInput are only written
+            // by Update, so whatever the stick last read stays latched. On death that is a live
+            // movement vector waiting for the next system that reads it.
+            MoveInput = Vector2.zero;
+            LookInput = Vector2.zero;
+        }
+
+        private void OnDestroy()
+        {
+            inputs?.Dispose();
+            inputs = null;
         }
 
         /// <summary>

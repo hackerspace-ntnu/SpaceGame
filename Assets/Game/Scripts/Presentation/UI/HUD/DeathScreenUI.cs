@@ -19,21 +19,37 @@ public class DeathScreenUI : MonoBehaviour
         deathScreen.gameObject.SetActive(false);
         player.OnPlayerDeath += ShowDeathScreen;
     }
-    
+
+    private void OnDestroy()
+    {
+        if (player != null)
+            player.OnPlayerDeath -= ShowDeathScreen;
+    }
+
     private void ShowDeathScreen()
     {
-        Debug.Log("Show death screen invoked");
         deathScreen.gameObject.SetActive(true);
     }
-    
+
     public void Respawn()
     {
-        if (deathScreen == null)
+        if (deathScreen == null || player == null)
         {
             return;
         }
-        SpawnManager.Instance.RespawnPlayer(player.gameObject);  
-        
+
+        // Hide before respawning, not after: the singleplayer path destroys this player object,
+        // and this HUD hangs off it. Once RespawnPlayer returns, the line after it may be running
+        // on a destroyed object and never reaches the screen — leaving the death overlay up and
+        // swallowing clicks over a player who is alive again.
         deathScreen.gameObject.SetActive(false);
+
+        if (SpawnManager.Instance == null)
+        {
+            Debug.LogError($"{name}: no SpawnManager to respawn through.", this);
+            return;
+        }
+
+        SpawnManager.Instance.RespawnPlayer(player.gameObject);
     }
 }

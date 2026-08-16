@@ -25,6 +25,7 @@ GameObject:
   - component: {fileID: 6148761572980828010}
   - component: {fileID: 1960706781068228793}
   - component: {fileID: 2968502972900080770}
+  - component: {fileID: 8718912130646663783}
   m_Layer: 0
   m_Name: Vrescal
   m_TagString: Untagged
@@ -403,6 +404,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SceneTracked
   keepChunksLoaded: 0
   policy: 1
+--- !u!114 &8718912130646663783
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2563642616604865102}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
+  bodyRoot: {fileID: 0}
+  checkInterval: 0.25
+  depthTolerance: 0.5
+  surfaceClearance: 1.2
+  absoluteFloorY: -500
+  logRecoveries: 1
 --- !u!1001 &3409940362326970143
 PrefabInstance:
   m_ObjectHideFlags: 0

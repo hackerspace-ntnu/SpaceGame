@@ -105,6 +105,7 @@ GameObject:
   - component: {fileID: -6462395892598127413}
   - component: {fileID: 255027174384739894}
   - component: {fileID: -6030621209069603394}
+  - component: {fileID: 1030077096322340542}
   m_Layer: 0
   m_Name: PatrolRobot 2
   m_TagString: Untagged
@@ -822,6 +823,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c18a9adbe9734a35aee1b80b9c4bcda, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthSaveable
+--- !u!114 &1030077096322340542
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
+  bodyRoot: {fileID: 0}
+  checkInterval: 0.25
+  depthTolerance: 0.5
+  surfaceClearance: 1.2
+  absoluteFloorY: -500
+  logRecoveries: 1
 --- !u!1 &1034371811066968702
 GameObject:
   m_ObjectHideFlags: 0

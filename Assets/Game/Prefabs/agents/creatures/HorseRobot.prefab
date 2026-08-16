@@ -2889,6 +2889,7 @@ GameObject:
   - component: {fileID: 2751043888284287442}
   - component: {fileID: 5187380275385136634}
   - component: {fileID: 3353661751089521354}
+  - component: {fileID: 377085403544040029}
   m_Layer: 0
   m_Name: HorseRobot
   m_TagString: Untagged
@@ -3289,6 +3290,24 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   simulationDrivers: []
   freezePhysicsOnRemote: 1
+--- !u!114 &377085403544040029
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3427070709938259358}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
+  bodyRoot: {fileID: 0}
+  checkInterval: 0.25
+  depthTolerance: 0.5
+  surfaceClearance: 1.2
+  absoluteFloorY: -500
+  logRecoveries: 1
 --- !u!1 &3448956392990793619
 GameObject:
   m_ObjectHideFlags: 0

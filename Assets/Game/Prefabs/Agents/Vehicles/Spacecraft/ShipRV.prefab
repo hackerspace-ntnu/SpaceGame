@@ -4575,6 +4575,7 @@ GameObject:
   - component: {fileID: 305929124675464844}
   - component: {fileID: 3573309992756257913}
   - component: {fileID: -8592645260601008083}
+  - component: {fileID: 4222765109031094611}
   m_Layer: 0
   m_Name: ShipRV
   m_TagString: Untagged
@@ -4937,6 +4938,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &4222765109031094611
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4311070154887600435}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
+  bodyRoot: {fileID: 0}
+  checkInterval: 0.25
+  depthTolerance: 0.5
+  surfaceClearance: 1.2
+  absoluteFloorY: -500
+  logRecoveries: 1
 --- !u!1 &4456266824167829280
 GameObject:
   m_ObjectHideFlags: 0

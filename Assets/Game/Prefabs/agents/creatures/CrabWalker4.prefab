@@ -4361,6 +4361,7 @@ GameObject:
   - component: {fileID: 2638929973793743742}
   - component: {fileID: 8548343858392945688}
   - component: {fileID: 7440164409718098201}
+  - component: {fileID: 8719715470327788495}
   m_Layer: 0
   m_Name: CrabWalker4
   m_TagString: Untagged
@@ -4419,6 +4420,9 @@ MonoBehaviour:
   rayStartAbove: 4
   rayLength: 120
   snapToGroundOnStart: 1
+  maxClimbAngle: 35
+  climbTaperAngle: 5
+  climbProbeRun: 2
   drawGizmos: 1
   swingLegs: 0
   minPlantedLegs: -1
@@ -4462,6 +4466,7 @@ MonoBehaviour:
   repathTolerance: 2
   cornerArriveRadius: 5
   navMeshSampleDistance: 12
+  detourHoldTime: 2
   lateralSteering: 1
 --- !u!54 &7440164409718098201
 Rigidbody:
@@ -4490,6 +4495,24 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 3
+--- !u!114 &8719715470327788495
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5979020952959005080}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
+  bodyRoot: {fileID: 0}
+  checkInterval: 0.25
+  depthTolerance: 0.5
+  surfaceClearance: 1.2
+  absoluteFloorY: -500
+  logRecoveries: 1
 --- !u!1 &5997182098613003028
 GameObject:
   m_ObjectHideFlags: 0

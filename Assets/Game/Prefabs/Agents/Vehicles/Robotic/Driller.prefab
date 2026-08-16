@@ -184,6 +184,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d0031200c64b8064d8075dab376b2683, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4441521534038521125}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d0031200c64b8064d8075dab376b2683, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7135158262975452088}
   m_SourcePrefab: {fileID: 100100000, guid: d0031200c64b8064d8075dab376b2683, type: 3}
 --- !u!1 &1474439616740511624 stripped
 GameObject:
@@ -634,6 +637,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &7135158262975452088
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1474439616740511624}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
+  bodyRoot: {fileID: 0}
+  checkInterval: 0.25
+  depthTolerance: 0.5
+  surfaceClearance: 1.2
+  absoluteFloorY: -500
+  logRecoveries: 1
 --- !u!4 &2251117740199023922 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d0031200c64b8064d8075dab376b2683, type: 3}

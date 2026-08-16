@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 4003807239736449149}
   - component: {fileID: 1297631905988173018}
   - component: {fileID: 5840177744915739611}
+  - component: {fileID: 3927799549460923087}
   m_Layer: 0
   m_Name: HumanoidRobot
   m_TagString: Untagged
@@ -99,6 +100,9 @@ MonoBehaviour:
   rayStartAbove: 3
   rayLength: 60
   snapToGroundOnStart: 1
+  maxClimbAngle: 35
+  climbTaperAngle: 5
+  climbProbeRun: 2
   drawGizmos: 1
   hipHeightFraction: 0.9
   walkSwingDuty: 0.42
@@ -137,6 +141,7 @@ MonoBehaviour:
   repathTolerance: 2
   cornerArriveRadius: 6
   navMeshSampleDistance: 20
+  detourHoldTime: 2
   lateralSteering: 0
   walkThrottle: 0.35
   autoWalk: 0
@@ -179,6 +184,24 @@ MonoBehaviour:
   lookSmooth: 6
   maxLookAngle: 60
   effortSmooth: 4
+--- !u!114 &3927799549460923087
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7063367642927654169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
+  bodyRoot: {fileID: 0}
+  checkInterval: 0.25
+  depthTolerance: 0.5
+  surfaceClearance: 1.2
+  absoluteFloorY: -500
+  logRecoveries: 1
 --- !u!1001 &8262891103071106896
 PrefabInstance:
   m_ObjectHideFlags: 0

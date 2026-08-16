@@ -3306,6 +3306,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: PatrolRobot
       objectReference: {fileID: 0}
+    - target: {fileID: 5931576831872468556, guid: 6f593f4d25d19497294983c297687d62, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 701387409
+      objectReference: {fileID: 0}
+    - target: {fileID: 5931576831872468556, guid: 6f593f4d25d19497294983c297687d62, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5931576831872468556, guid: 6f593f4d25d19497294983c297687d62, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 586221429
+      objectReference: {fileID: 0}
     - target: {fileID: 7297848687677989067, guid: 6f593f4d25d19497294983c297687d62, type: 3}
       propertyPath: m_LocalPosition.x
       value: 3632.6697

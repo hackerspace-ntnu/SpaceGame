@@ -26,6 +26,18 @@ namespace SpaceGame.Characters
         // High level player events
         public event Action OnPlayerDeath;
 
+        /// <summary>
+        /// Raised when this player is on their feet again — the counterpart to
+        /// <see cref="OnPlayerDeath"/>.
+        ///
+        /// It exists so the death screen can be closed by the revive that actually happened rather
+        /// than by the click that asked for one. A respawn is a request the server is allowed to
+        /// refuse (no spawn point yet, the chunk under it still streaming), and a screen that hides
+        /// itself on the click leaves a refused player frozen behind nothing, with no button left
+        /// to press.
+        /// </summary>
+        public event Action OnPlayerRevive;
+
         // Death outranks every other control owner. Cutscene mode, mounting and the spectator
         // camera all restore component-enabled flags they captured earlier, so a dead player whose
         // freeze lived only in those flags gets control handed back the moment one of them exits.
@@ -84,6 +96,17 @@ namespace SpaceGame.Characters
             playerHealth.OnRevive -= OnRevive;
             playerHealth.OnDeath += OnDeath;
             playerHealth.OnRevive += OnRevive;
+
+            // Catch up on a death that was announced while nothing was subscribed.
+            //
+            // DisablePlayer drops these two handlers, and Awake calls it before anything spawns, so
+            // in a networked session — which includes solo play, since that is hosted — the gap
+            // between Awake and this call is wide open. It is also exactly when the save system
+            // restores this body: a profile written after dying restores 0 health,
+            // HealthComponent announces OnDeath into an empty delegate, and the announcement is
+            // gone for good. The player then stood up with full control, no freeze and no death
+            // screen, at zero health. An event cannot be replayed; the health behind it can be read.
+            if (!playerHealth.Alive) OnDeath();
 
             // Enabling a player who is still dead (network ownership arriving after death, a scene
             // handover mid-death-screen) must not undo the freeze.
@@ -216,6 +239,9 @@ namespace SpaceGame.Characters
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
             }
+
+            // Last, so a listener that reads IsDead or the cursor sees the finished state.
+            OnPlayerRevive?.Invoke();
         }
 
         private SpectatorCamera spectator;

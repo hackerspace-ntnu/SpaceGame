@@ -92,26 +92,56 @@ the last-attacker bias for every existing hostile agent.
 
 ## Nomad gait
 
-Three things had to agree and only one was ever set:
+Three things decide how he reads, and two of them look like "animation speed" without being it:
 
-| | before | after | what it controls |
-|---|---|---|---|
-| `animationSpeedMultiplier` × `walkAnimBoost` | 1.5 × 2 = 3 | 2.67 × 1 | which clip the blend tree picks |
-| `NavMeshAgent.speed` × `walkSpeedMultiplier` | 2.2 × 0.65 = 1.43 m/s | 1.5 × 1.0 | how fast he travels |
-| `animatorSpeedScale` | *nothing set it* | 0.63 | **how fast the clip plays** |
+| | original | first pass | **final** | what it controls |
+|---|---|---|---|---|
+| `animationSpeedMultiplier` × `walkAnimBoost` | 1.5 × 2 = 3 | 2.67 × 1 | **1.54 × 1** | which clip the blend tree picks |
+| `NavMeshAgent.speed` × `walkSpeedMultiplier` | 2.2 × 0.65 = 1.43 m/s | 1.5 × 1.0 | **4.68 × 0.556 = 2.6 m/s** | how fast he travels |
+| `animatorSpeedScale` | *nothing set it* | 0.63 | **1.09** | **how fast the clips play** |
 
-The third is the one that caused the read of "jogging", and no combination of the first two could
+The third is what caused the original "jogging" read, and no combination of the first two could
 have fixed it: neither changes playback rate, so a character moving slower than his clip's authored
-stride skates on every step. `AgentAnimatorDriver` gained `animatorSpeedScale` (per-Animator, so a
-shared controller can drive a slow amble on one character and a brisk walk on another).
+stride skates on every step. `AgentAnimatorDriver` gained `animatorSpeedScale` for it.
 
-`walkSpeedMultiplier = 1.0` removes the walk/run split outright — the agent's speed is his only
-speed, so `ChaseModule` asking to run when provoked cannot produce a sprint. That is the deliberate
-cost of "always walks": a provoked Nomad closes at walking pace.
+**But it is global** — it scales the attack and every other one-shot along with the walk. The first
+pass set it to 0.63 to match a deliberately slow 1.5 m/s walk, and put the staff swing into slow
+motion as a side effect. That is the coupling to remember:
+
+> Matched feet require `rate = groundSpeed / strideSpeed` **exactly**. So walk speed and animation
+> rate cannot be tuned independently — they move together. Wanting a faster walk *and* a snappier
+> attack is one change, not two.
+
+Final: 2.6 m/s walk (≈1.5 m/s on a human frame; he is 3 m tall) puts the rate at 1.09, so every
+clip now plays slightly *faster* than authored — 73% faster than the first pass.
+
+The **run came back** for one reason: `ChaseModule` asks for it, and with `walkSpeedMultiplier = 1`
+a provoked Nomad closed at walking pace. Its speed is not free — the blend tree samples run at 7.2
+against walk at 4.0, so the run must be exactly 1.8× the walk (4.68 m/s) or the tree lands between
+clips and he shuffles. `ProvocationTests.Nomad_WalkAndRunBothLandOnTheirBlendSamples` asserts both.
 
 The stride is **measured** (`AnimationClip.averageSpeed` × height ratio), not hard-coded, so a
 re-export re-derives it. `walking.fbx` turns out to be authored in place, so it falls back to a
 documented 1.35 m/s and says so in the log.
+
+Attack cadence: cooldown 1.1 s, commit 0.32 s. The commit must not outlast the swing clip, or the
+attack ends with him standing still waiting for a timer.
+
+## Facing you at conversation distance
+
+`WatchModule`, reused rather than written — it already is "stop and face whoever is inside this
+radius", and its default `requiredRelationship` of Neutral is exactly what NPCFaction is toward the
+player. `FacePlayerModule` is the same behaviour with an Allied default and would have needed the
+same override.
+
+- **radius 6 m**, one metre wider than the player's 5 m `Interactor` cast. Turning to face you
+  exactly as the prompt appears reads as reacting to a UI event; being already turned reads as
+  having seen you coming.
+- **priority 10 (Ambient)**, set explicitly. Unity does not call `Reset` for a component added from
+  a script, so it would have kept its serialized default of Fallback (0) — tied with `WanderModule`,
+  resolved by component order, so he would have wandered past you roughly half the time for no
+  visible reason. Ambient also keeps him below Chase (20), so a provoked Nomad does not stop to
+  politely face the person he is fighting.
 
 ## Walking staff
 
@@ -135,11 +165,12 @@ Two things are measured on a real instance rather than dialled in, both after
 
 ## Verification
 
-`ProvocationTests` — 12 tests: the empty-relationship invariant, Wildlife still hostile (so DuneRat
+`ProvocationTests` — 14 tests: the empty-relationship invariant, Wildlife still hostile (so DuneRat
 and Vrescal are unaffected), attribution climbing from a child collider to the entity, the damage
-threshold, self-damage, forgetting, and prefab wiring for both creatures.
+threshold, self-damage, forgetting, prefab wiring for both creatures, both gaits landing on their
+blend samples, a guard against the global slow-motion regression, and the facing radius/priority.
 
-Full EditMode suite: **893 passed, 3 failed, 1 skipped**. The 3 failures are pre-existing persistence
+Full EditMode suite: **895 passed, 3 failed, 1 skipped**. The 3 failures are pre-existing persistence
 wiring on prefabs untouched by this work (DuneRat, PatrolRobot 1–3, DuneOrnithopter, ShipRV, and 8
 creatures/vehicles); the skip is a deliberately-parked contract test.
 

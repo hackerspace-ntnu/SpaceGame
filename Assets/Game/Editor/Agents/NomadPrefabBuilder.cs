@@ -51,15 +51,18 @@ namespace SpaceGame.EditorTools
         private const string WalkClipPath = "Assets/Game/Art/Animations/Player/walking.fbx";
         private const float ReferenceHumanHeight = 1.7f;
 
-        // Where the forward walk clip sits on the AstronautArmature "Move" blend tree
-        // (2-D freeform, walk at y = 4, run at y = 7.2). Feeding SpeedY exactly this at cruise is
-        // what pins the Nomad to the walk clip with no run bleed.
+        // Where the forward walk and run clips sit on the AstronautArmature "Move" blend tree
+        // (2-D freeform: walk at y = 4, run at y = 7.2). Feeding SpeedY exactly these is what puts
+        // the Nomad on one clip or the other with nothing bleeding in between.
         private const float WalkBlendSample = 4.0f;
+        private const float RunBlendSample = 7.2f;
 
-        // Ground speed at cruise. A deliberate amble: he is a 3 m character, so this is slower in
-        // body-lengths than it looks in metres, and it is the one number to change if he should
-        // cover ground differently. Everything else about the gait is derived from it.
-        private const float WalkSpeed = 1.5f;
+        // Ground speed at cruise — the one number to change if he should cover ground differently.
+        // Everything else about the gait is derived from it.
+        //
+        // He is a 3 m character, so this is slower in body-lengths than it reads in metres: 2.6 m/s
+        // on a 3 m frame is the same gait as roughly 1.5 m/s on a person.
+        private const float WalkSpeed = 2.6f;
 
         // Fallback stride speed if the walk clip turns out to be authored in place (root motion
         // stripped), which makes averageSpeed useless. An ordinary human walk.
@@ -182,6 +185,7 @@ namespace SpaceGame.EditorTools
                 ConfigurePerception(root);
                 ConfigureHealth(root);
                 ConfigureFaction(root);
+                ConfigureWatch(root);
                 AttachStaff(model);
                 ConfigureCombat(root);
                 ConfigureProvocation(root);
@@ -622,6 +626,11 @@ namespace SpaceGame.EditorTools
                 "SpaceGame.Agents.PerceptionModule",
                 "SpaceGame.Agents.WanderModule",
                 "SpaceGame.Agents.IdleLookAroundModule",
+                // Turns to face you when you walk up, before you press anything. Reused rather
+                // than written: WatchModule already is "stop and face whoever is inside this
+                // radius", and its Neutral default is exactly what NPCFaction is toward the
+                // player. See ConfigureWatch.
+                "SpaceGame.Agents.WatchModule",
                 // Lets DialogInteraction stop him and turn him to face whoever is talking.
                 "SpaceGame.Agents.InteractionFocusModule",
                 // He is peaceful, so these two never claim a frame — both do nothing at all
@@ -975,6 +984,46 @@ namespace SpaceGame.EditorTools
             return null;
         }
 
+        /// <summary>
+        /// Makes him notice you and turn to face you when you walk up.
+        ///
+        /// <para>
+        /// The player's Interactor casts 5 m, so that is what "conversation distance" means here.
+        /// The radius is set a little wider than that on purpose: turning to face you exactly as
+        /// the interact prompt appears reads as the world reacting to a UI event, whereas being
+        /// already turned by the time you can talk reads as him having seen you coming.
+        /// </para>
+        ///
+        /// <para>
+        /// Priority is set explicitly rather than left to WatchModule's own <c>Reset</c>, which
+        /// Unity does not call for a component added from a script. The serialized default is
+        /// Fallback (0) — the same band as WanderModule — and two modules tied at the same priority
+        /// resolve by component order, so he would have gone on wandering past you about half the
+        /// time depending on nothing anyone could see. Ambient (10) also puts him below Chase (20),
+        /// so a provoked Nomad does not stop to politely face the person he is fighting.
+        /// </para>
+        /// </summary>
+        private static void ConfigureWatch(GameObject root)
+        {
+            var watch = FindComponent(root, "SpaceGame.Agents.WatchModule");
+            if (watch == null)
+            {
+                Debug.LogWarning("[NomadPrefabBuilder] No WatchModule; he will ignore you until " +
+                                 "you actually interact with him.");
+                return;
+            }
+
+            var so = new SerializedObject(watch);
+            SetInt(so, "priority", 10);                 // ModulePriority.Ambient
+            SetEnum(so, "requiredRelationship", 0);     // FactionRelationship.Neutral
+            SetFloat(so, "detectRadius", InteractorCastDistance + 1f);
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // What the player's Interactor casts, from Interactor._castDistance. If that changes, the
+        // Nomad's noticing distance should follow it rather than drifting apart silently.
+        private const float InteractorCastDistance = 5f;
+
         // ------------------------------------------------------------------
         // Temperament and combat
 
@@ -996,11 +1045,14 @@ namespace SpaceGame.EditorTools
                 // Reach is the staff plus the arm, measured off the model rather than guessed:
                 // the staff is 62% of a 3 m character and he swings it from the shoulder.
                 SetFloat(so, "attackRange", TargetHeight * StaffLengthFraction + 0.9f);
-                SetFloat(so, "attackCooldown", 1.8f);
+                SetFloat(so, "attackCooldown", 1.1f);
                 // A stick swung hard by someone who lives outdoors. Less than the Golem's 45 —
                 // this is a warning, not an execution.
                 SetInt(so, "attackDamage", 18);
-                SetFloat(so, "attackCommitDuration", 0.55f);
+                // How long he stays rooted after a swing so Chase cannot walk him out of his own
+                // animation. Short, because the swing itself is short: this must not outlast the
+                // clip, or the attack ends with him standing still waiting for a timer.
+                SetFloat(so, "attackCommitDuration", 0.32f);
                 // The trigger AstronautArmature actually declares, misspelling and all.
                 SetString(so, "attackAnimTrigger", "Meele");
                 so.ApplyModifiedPropertiesWithoutUndo();
@@ -1014,9 +1066,9 @@ namespace SpaceGame.EditorTools
                 // against the melee range at Awake; setting it here means the prefab says what it
                 // means rather than relying on that.
                 SetFloat(so, "chaseStopDistance", 1.6f);
-                // 1.0, not the 1.3 default. ChaseModule asks for isRunning, and the whole point of
-                // the gait work below is that this character has no run gear — a multiplier above
-                // 1 would hand back exactly the sprint the walk retune removed.
+                // 1.0, not the 1.3 default. ChaseModule already asks for isRunning, which gets him
+                // the full agent speed; multiplying on top of that would push him past the run
+                // clip's blend sample and he would skate toward you.
                 SetFloat(so, "chaseSpeedMultiplier", 1f);
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
@@ -1049,30 +1101,37 @@ namespace SpaceGame.EditorTools
         // Gait
 
         /// <summary>
-        /// Makes the Nomad walk, and makes the walk not skate.
+        /// Sets the walk, the run he uses when provoked, and the rate the clips play at.
         ///
         /// <para>
-        /// Three separate things had to agree, and only one of them was ever set:
+        /// Three separate things decide how a character reads, and they are easy to confuse because
+        /// two of them look like "animation speed" and are not:
         /// </para>
         /// <list type="bullet">
         /// <item><b>Which clip plays.</b> AgentAnimatorDriver feeds SpeedY as velocity times
-        /// <c>animationSpeedMultiplier * walkAnimBoost</c>. That was 1.5 x 2 = 3, and against a
-        /// ground speed of 1.43 m/s it put SpeedY at 4.29 — past the blend tree's walk sample at
-        /// 4.0 and bleeding into the run at 7.2.</item>
-        /// <item><b>How fast he travels.</b> NavMeshAgent speed 2.2 scaled by the motor's 0.65
-        /// walk multiplier. He now has no run gear at all: the multiplier is 1 and the agent speed
-        /// IS the walk speed, so nothing — not even ChaseModule asking to run — can make him
-        /// sprint.</item>
-        /// <item><b>How fast the clip plays.</b> Nothing set this, and it is the one that actually
-        /// caused the read of "jogging". Neither field above changes playback rate, so a character
-        /// moving slower than the clip's authored stride slides forward on every step regardless of
-        /// how the blend is tuned. Matching the rate to the ground speed is what turns it into an
-        /// amble.</item>
+        /// <c>animationSpeedMultiplier * walkAnimBoost</c>. The blend tree picks a clip from that
+        /// number; it does not change how fast the clip runs.</item>
+        /// <item><b>How fast he travels.</b> NavMeshAgent speed, scaled by the motor's walk
+        /// multiplier when the intent is a walk.</item>
+        /// <item><b>How fast the clips play.</b> <c>animatorSpeedScale</c>, and it is GLOBAL — it
+        /// scales the attack and every other one-shot along with the walk. That is the trap: this
+        /// was set to 0.63 to stop a slow walk from skating, and it put the staff swing into slow
+        /// motion as a side effect.</item>
         /// </list>
         ///
         /// <para>
-        /// The stride is measured off the clip rather than hard-coded, so a re-export or a change
-        /// to <c>TargetHeight</c> re-derives it instead of silently going back to skating.
+        /// Because the third is global, the walk speed and the animation rate cannot be tuned
+        /// independently — matched feet require <c>rate = groundSpeed / strideSpeed</c> exactly, and
+        /// any other value skates. So they move TOGETHER: walking faster raises the rate, which
+        /// speeds the attack up as well. Wanting a faster walk and a faster swing is therefore one
+        /// change, not two, and <see cref="WalkSpeed"/> is the single knob for both.
+        /// </para>
+        ///
+        /// <para>
+        /// The run comes back for exactly one reason: ChaseModule asks for it, and with no run gear
+        /// a provoked Nomad closed at walking pace. Its speed is not chosen freely — it is fixed by
+        /// the blend tree, which samples the run clip at 7.2 against the walk's 4.0, so the run must
+        /// be 1.8x the walk or the tree lands between clips and he shuffles.
         /// </para>
         /// </summary>
         private static void ConfigureGait(GameObject root)
@@ -1083,16 +1142,20 @@ namespace SpaceGame.EditorTools
             float clipSpeed = MeasureWalkClipSpeed();
             float strideSpeed = clipSpeed * (TargetHeight / ReferenceHumanHeight);
 
+            // Forced by the blend tree's own sample positions, not picked.
+            float runSpeed = WalkSpeed * (RunBlendSample / WalkBlendSample);
+
+            // The agent's speed is the RUN, because the motor derives the walk from it by
+            // multiplying down. Setting the walk here instead is what left him with no top gear.
             var agent = root.GetComponent<NavMeshAgent>();
             if (agent != null)
-                agent.speed = WalkSpeed;
+                agent.speed = runSpeed;
 
             var motor = FindComponent(root, "SpaceGame.Agents.NavMeshAgentMotor");
             if (motor != null)
             {
                 var so = new SerializedObject(motor);
-                // 1.0: no walk/run split. The agent's speed is the only speed he has.
-                SetFloat(so, "walkSpeedMultiplier", 1f);
+                SetFloat(so, "walkSpeedMultiplier", WalkSpeed / runSpeed);
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
 
@@ -1104,15 +1167,14 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
-            // Land SpeedY exactly on the walk sample at cruise. Split across the two fields as
-            // (all, none) rather than shared, because walkAnimBoost only applies when the intent is
-            // not running — and ChaseModule's intent IS running, so anything left in that field
-            // would make the animation change speed the moment he gets angry.
+            // One scale covering both gaits. walkAnimBoost stays at 1 and does no work: it exists to
+            // flatter a walk that travels slower than its clip, and this gait has no such gap. Left
+            // above 1 it would put SpeedY past the run sample the moment he walked.
             float toBlend = WalkBlendSample / Mathf.Max(0.01f, WalkSpeed);
 
-            // Slow the clip to the ground he actually covers. Clamped so a bad measurement can
-            // freeze him or blur him rather than doing so silently.
-            float playback = Mathf.Clamp(WalkSpeed / Mathf.Max(0.01f, strideSpeed), 0.35f, 1.5f);
+            // Match the clip rate to the ground covered. Clamped so a bad stride measurement shows
+            // up as a slightly-off gait rather than a frozen or blurred character.
+            float playback = Mathf.Clamp(WalkSpeed / Mathf.Max(0.01f, strideSpeed), 0.5f, 2f);
 
             var driverSo = new SerializedObject(driver);
             SetFloat(driverSo, "animationSpeedMultiplier", toBlend);
@@ -1120,10 +1182,12 @@ namespace SpaceGame.EditorTools
             SetFloat(driverSo, "animatorSpeedScale", playback);
             driverSo.ApplyModifiedPropertiesWithoutUndo();
 
-            Debug.Log($"[NomadPrefabBuilder] Gait: walks {WalkSpeed:0.##} m/s; the clip's stride " +
-                      $"wants {strideSpeed:0.##} m/s, so it plays at {playback:0.###}x. SpeedY " +
-                      $"reaches the blend tree as {WalkSpeed * toBlend:0.##} (walk sample is " +
-                      $"{WalkBlendSample:0.##}).");
+            Debug.Log($"[NomadPrefabBuilder] Gait: walks {WalkSpeed:0.##} m/s, runs " +
+                      $"{runSpeed:0.##} m/s when provoked. Stride wants {strideSpeed:0.##} m/s, so " +
+                      $"every clip — the staff swing included — plays at {playback:0.###}x. SpeedY " +
+                      $"reaches the tree as {WalkSpeed * toBlend:0.##} walking and " +
+                      $"{runSpeed * toBlend:0.##} running (samples are {WalkBlendSample:0.##} and " +
+                      $"{RunBlendSample:0.##}).");
         }
 
         /// <summary>

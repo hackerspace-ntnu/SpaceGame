@@ -304,19 +304,88 @@ namespace SpaceGame.EditorTools
                 "An equipped visual must not be a network prefab.");
         }
 
+        // Both gaits have to land on the blend tree's own sample positions (walk 4.0, run 7.2 in
+        // the AstronautArmature "Move" tree). Between them the tree blends two clips at once and
+        // the character shuffles; past the top one it clamps and he skates.
+        //
+        // This is a real trap rather than a hypothetical: the three fields involved look like they
+        // do the same job, live on two different components, and only one of them is named after
+        // speed at all.
         [Test]
-        public void Nomad_HasNoRunGear()
+        public void Nomad_WalkAndRunBothLandOnTheirBlendSamples()
         {
             var nomad = Load<GameObject>(NomadPath);
 
+            var agent = nomad.GetComponent<UnityEngine.AI.NavMeshAgent>();
             var motor = nomad.GetComponent<NavMeshAgentMotor>();
+            var driver = nomad.GetComponent<AgentAnimatorDriver>();
+            Assert.IsNotNull(agent);
             Assert.IsNotNull(motor);
+            Assert.IsNotNull(driver);
 
-            var so = new SerializedObject(motor);
-            Assert.AreEqual(1f, so.FindProperty("walkSpeedMultiplier").floatValue, 0.001f,
-                "walkSpeedMultiplier must be 1 so the agent's speed IS his only speed. Anything " +
-                "less reinstates a walk/run split, and ChaseModule asks to run the moment he is " +
-                "provoked.");
+            float walkMultiplier = new SerializedObject(motor)
+                .FindProperty("walkSpeedMultiplier").floatValue;
+
+            var driverSo = new SerializedObject(driver);
+            float toBlend = driverSo.FindProperty("animationSpeedMultiplier").floatValue;
+            float boost = driverSo.FindProperty("walkAnimBoost").floatValue;
+
+            // AgentAnimatorDriver applies walkAnimBoost only when the intent is NOT running.
+            float walkSpeedY = agent.speed * walkMultiplier * toBlend * boost;
+            float runSpeedY = agent.speed * toBlend;
+
+            Assert.AreEqual(4.0f, walkSpeedY, 0.15f,
+                $"Walking feeds SpeedY {walkSpeedY:0.00}; the walk clip sits at 4.0.");
+            Assert.AreEqual(7.2f, runSpeedY, 0.25f,
+                $"Provoked he runs, feeding SpeedY {runSpeedY:0.00}; the run clip sits at 7.2. " +
+                "A walkSpeedMultiplier of 1 leaves him with no run gear at all, and ChaseModule " +
+                "asks to run the moment he is provoked.");
+
+            Assert.Less(walkMultiplier, 1f,
+                "He needs a gear below the agent's speed, or walking and chasing are the same pace.");
+        }
+
+        // The clip rate is GLOBAL — it scales the staff swing along with the walk. This is the
+        // guard on the bug that produced it: matching a deliberately-slow walk to its stride put
+        // every one-shot on the character into slow motion as a side effect.
+        [Test]
+        public void Nomad_DoesNotAnimateInSlowMotion()
+        {
+            var driver = Load<GameObject>(NomadPath).GetComponent<AgentAnimatorDriver>();
+            Assert.IsNotNull(driver);
+
+            float scale = new SerializedObject(driver)
+                .FindProperty("animatorSpeedScale").floatValue;
+
+            Assert.GreaterOrEqual(scale, 0.9f,
+                $"animatorSpeedScale is {scale:0.00}, which slows EVERY clip including the attack. " +
+                "It has to stay near 1, which means the walk speed has to stay near the clip's " +
+                "authored stride — the two cannot be tuned independently.");
+        }
+
+        [Test]
+        public void Nomad_TurnsToFaceYouAtConversationDistance()
+        {
+            var watch = Load<GameObject>(NomadPath).GetComponent<WatchModule>();
+            Assert.IsNotNull(watch, "He should notice you walking up, before you interact.");
+
+            var so = new SerializedObject(watch);
+
+            Assert.AreEqual((int)FactionRelationship.Neutral,
+                            so.FindProperty("requiredRelationship").enumValueIndex,
+                            "NPCFaction is Neutral toward the player; any other setting and he " +
+                            "faces nobody.");
+
+            Assert.GreaterOrEqual(so.FindProperty("detectRadius").floatValue, 5f,
+                "The player's Interactor casts 5 m. A shorter radius means he turns to face you " +
+                "only after the interact prompt is already up.");
+
+            int priority = so.FindProperty("priority").intValue;
+            Assert.Greater(priority, 0,
+                "Tied with WanderModule at Fallback he wanders past you about half the time, " +
+                "decided by component order.");
+            Assert.Less(priority, 20,
+                "Above Chase he would stop to politely face someone he is fighting.");
         }
     }
 }

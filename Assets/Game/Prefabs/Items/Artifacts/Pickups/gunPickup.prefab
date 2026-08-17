@@ -76,9 +76,6 @@ PrefabInstance:
       addedObject: {fileID: 6476097393920747424}
     - targetCorrespondingSourceObject: {fileID: 5032710560570511402, guid: 5f493eb7d5ff2a844a1b855e7d31c2d3, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3541317753044221120}
-    - targetCorrespondingSourceObject: {fileID: 5032710560570511402, guid: 5f493eb7d5ff2a844a1b855e7d31c2d3, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1670513279811356819}
     - targetCorrespondingSourceObject: {fileID: 5032710560570511402, guid: 5f493eb7d5ff2a844a1b855e7d31c2d3, type: 3}
       insertIndex: -1
@@ -165,28 +162,6 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!114 &3541317753044221120
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5693834517083905752}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 57947eec0c4941c9ada21a38d00cea7f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PickupableItem
-  ShowTopMostFoldoutHeaderGroup: 1
-  item: {fileID: 11400000, guid: 4c3ecf8e279975a4985ffafb2b2e4e95, type: 2}
-  pickupId: 503
-  pickupSound:
-    Guid:
-      Data1: 0
-      Data2: 0
-      Data3: 0
-      Data4: 0
-    Path: 
 --- !u!114 &1670513279811356819
 MonoBehaviour:
   m_ObjectHideFlags: 0

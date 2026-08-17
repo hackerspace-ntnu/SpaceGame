@@ -12,6 +12,8 @@ GameObject:
   - component: {fileID: 772067695860630259}
   - component: {fileID: 6771628930532374827}
   - component: {fileID: 5516128578188148355}
+  - component: {fileID: 524663927137529703}
+  - component: {fileID: 5083534296604068297}
   m_Layer: 0
   m_Name: RocketSpawn
   m_TagString: Untagged
@@ -108,6 +110,48 @@ MonoBehaviour:
   fireInterval: 2
   firstShotDelay: 1
   useGravity: 1
+--- !u!114 &524663927137529703
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 431438388529227558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 3663206491
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &5083534296604068297
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 431438388529227558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 387985cc7ee7c40479ac172b934dbf83, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.GroundAnchorOnLand
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  alignToSurface: 0
+  maxFallTime: 5
 --- !u!1 &682282503812588416
 GameObject:
   m_ObjectHideFlags: 0
@@ -209,6 +253,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: -4328227186604002566, guid: 71e26f7af36ae4341b4b01af26218b13, type: 3}
+    - {fileID: 4750310098149301884, guid: 71e26f7af36ae4341b4b01af26218b13, type: 3}
+    - {fileID: -6827613734975699060, guid: 71e26f7af36ae4341b4b01af26218b13, type: 3}
+    - {fileID: -7739272878008330699, guid: 71e26f7af36ae4341b4b01af26218b13, type: 3}
+    - {fileID: -2842588991396322943, guid: 71e26f7af36ae4341b4b01af26218b13, type: 3}
+    - {fileID: 1927238415056691221, guid: 71e26f7af36ae4341b4b01af26218b13, type: 3}
+    - {fileID: 2871196824456471084, guid: 71e26f7af36ae4341b4b01af26218b13, type: 3}
+    - {fileID: 1742137078688939554, guid: 71e26f7af36ae4341b4b01af26218b13, type: 3}
+    - {fileID: 1658652824083233469, guid: 71e26f7af36ae4341b4b01af26218b13, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

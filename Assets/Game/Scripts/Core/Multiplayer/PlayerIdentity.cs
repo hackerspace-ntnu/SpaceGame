@@ -73,6 +73,18 @@ namespace SpaceGame.Core
             }
         }
 
+        /// <summary>
+        /// True once this player's own chosen name has actually replicated, as opposed to
+        /// <see cref="DisplayName"/> still answering with the <c>Player N</c> stand-in.
+        /// <para>
+        /// The two are not distinguishable from <see cref="DisplayName"/> alone, and the difference
+        /// matters to anything that announces a player by name: a connection callback fires long
+        /// before the owner has written this variable, so a join message sent on the callback names
+        /// somebody "Player 3" who is about to become somebody.
+        /// </para>
+        /// </summary>
+        public bool HasPublishedName => displayName.Value.Length > 0;
+
         /// <summary>True for the peer hosting the session, which is worth marking in a player list.</summary>
         public bool IsSessionHost => OwnerClientId == NetworkManager.ServerClientId;
 

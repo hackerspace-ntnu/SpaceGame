@@ -40,6 +40,17 @@ namespace SpaceGame.Agents
         public int FindEmptySlot() => inventory.FindEmptySlot();
         public List<string> GetItemIDs() => inventory.GetItemIDs();
 
+        /// <summary>
+        /// Writes a named slot for a save being loaded, replacing whatever the prefab's starting items
+        /// put there.
+        ///
+        /// TryAddItem will not do: it finds the first free slot, so an NPC whose second slot was emptied
+        /// during play would have everything shift left, and it refuses a null item — which is the
+        /// ordinary contents of a slot the player looted. Raises OnSlotChanged, which is what makes
+        /// <see cref="EntityEquipmentController"/> re-equip a restored weapon without being told.
+        /// </summary>
+        public void RestoreSlot(int index, InventoryItem item) => inventory.RestoreSlot(index, item);
+
         // Returns all non-empty items — used by EntityLootTable on death.
         public List<InventoryItem> GetAllItems()
         {

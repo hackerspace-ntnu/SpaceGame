@@ -76,8 +76,46 @@ namespace SpaceGame.Agents
                 ? riderObject.GetComponentInChildren<Interactor>(true)
                 : null;
 
-            if (interactor == null || !mount.CanMount(interactor)) return;
-            if (!ApplyMount(interactor)) return;
+            if (interactor == null) return;
+
+            SeatOnServer(interactor, riderObject, arg, except: sender);
+        }
+
+        /// <summary>
+        /// Seats a rider on the server's own initiative, with nobody having asked — a save being
+        /// restored.
+        ///
+        /// Deliberately the same code path as a player pressing E. A restore that mounted by calling
+        /// <c>MountModule.TryMount</c> directly would seat the rider on the server and on nothing else:
+        /// no peer would be told, and ownership would stay with the server, so the returning player
+        /// would sit in a seat they cannot steer while every other client saw them standing in the
+        /// sand. Mount replication is not something a loading path may opt out of.
+        ///
+        /// Returns false when the mount refuses — already occupied, rider not viable, this peer not the
+        /// server — all of which are ordinary answers for a saved rider who is no longer here.
+        /// </summary>
+        public bool ServerMount(Interactor interactor)
+        {
+            if (!Network.Simulates(this) || mount.IsMounted || interactor == null) return false;
+
+            NetworkObject riderNet = interactor.GetComponentInParent<NetworkObject>();
+
+            GameObject riderObject = riderNet != null ? riderNet.gameObject : interactor.gameObject;
+
+            // The same NetArg shape RequestMount builds, so peers resolve the rider identically.
+            Component rider = riderNet != null ? riderNet : (Component)interactor;
+
+            return SeatOnServer(interactor, riderObject, new NetArg().With(rider), except: NetTarget.Self);
+        }
+
+        /// <summary>
+        /// The server's half of taking a seat: mount locally, hand ownership to the rider, tell the
+        /// other peers. Shared so a restored mount and an interacted mount cannot drift apart.
+        /// </summary>
+        private bool SeatOnServer(Interactor interactor, GameObject riderObject, NetArg arg, ulong except)
+        {
+            if (!mount.CanMount(interactor)) return false;
+            if (!ApplyMount(interactor)) return false;
 
             // Hand the mount to the rider so their local SteerModule input moves it and the motion
             // replicates outward from them. Without this the rider steers a body they don't own and
@@ -91,7 +129,8 @@ namespace SpaceGame.Agents
                 mountObject.ChangeOwnership(riderNet.OwnerClientId);
             }
 
-            this.NetToOthers(NetMsg.Mounted, arg, except: sender);
+            this.NetToOthers(NetMsg.Mounted, arg, except);
+            return true;
         }
 
         private void OnDismountRequested(in NetArg arg, ulong sender)

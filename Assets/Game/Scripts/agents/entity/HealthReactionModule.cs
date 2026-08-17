@@ -120,6 +120,16 @@ namespace SpaceGame.Agents
 
         private void HandleDeath()
         {
+            // A save being loaded, not a kill. Everything below is a consequence of dying — a sound,
+            // a noise event, a UnityEvent, a despawn countdown — and none of them may happen again on
+            // the load after the one that killed this entity. What must still happen is the resulting
+            // STATE, or the world comes back with a corpse standing up and fighting.
+            if (health && health.IsRestoring)
+            {
+                ApplyDeadState(immediate: true);
+                return;
+            }
+
             if (!string.IsNullOrEmpty(dieAnimTrigger) && animator)
                 animator.SetTrigger(dieAnimTrigger);
 
@@ -130,8 +140,27 @@ namespace SpaceGame.Agents
 
             onDeath?.Invoke();
 
+            ApplyDeadState(immediate: false);
+        }
+
+        /// <summary>
+        /// The lasting part of dying: the agent stops thinking and the body eventually goes away.
+        ///
+        /// Split out so a restored death can reach it without the one-off effects. <paramref
+        /// name="immediate"/> skips the despawn delay, because that delay exists to let a player watch
+        /// something die — a corpse arriving from a save has already been dead for however long the
+        /// player was away, and waiting out the timer would leave it briefly standing.
+        /// </summary>
+        private void ApplyDeadState(bool immediate)
+        {
             if (disableAgentOnDeath && agentController)
                 agentController.enabled = false;
+
+            if (immediate)
+            {
+                if (despawnDelay > 0f) Despawn();
+                return;
+            }
 
             if (despawnDelay > 0f)
                 Invoke(nameof(Despawn), despawnDelay);

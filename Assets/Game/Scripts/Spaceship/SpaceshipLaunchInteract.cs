@@ -1,4 +1,5 @@
 using UnityEngine;
+using SpaceGame.Gameplay;
 
 /// <summary>
 /// Interact script to trigger spaceship launch

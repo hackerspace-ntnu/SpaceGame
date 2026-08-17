@@ -26,6 +26,7 @@ GameObject:
   - component: {fileID: 1960706781068228793}
   - component: {fileID: 2968502972900080770}
   - component: {fileID: 8718912130646663783}
+  - component: {fileID: 1206144029103767492}
   m_Layer: 0
   m_Name: Vrescal
   m_TagString: Untagged
@@ -236,6 +237,7 @@ MonoBehaviour:
   dieAnimTrigger: Death
   emitNoiseOnDamage: 1
   damageNoiseRadius: 15
+  hurtId: 409
   hurtSound:
     Guid:
       Data1: 0
@@ -248,6 +250,7 @@ MonoBehaviour:
       m_Calls: []
   emitNoiseOnDeath: 1
   deathNoiseRadius: 20
+  deathId: 410
   deathSound:
     Guid:
       Data1: 0
@@ -280,6 +283,7 @@ MonoBehaviour:
   emitNoiseOnSpot: 1
   spotNoiseRadius: 12
   playSpotSound: 1
+  spotId: 407
   spotSound:
     Guid:
       Data1: 0
@@ -326,6 +330,7 @@ MonoBehaviour:
   OnAttack:
     m_PersistentCalls:
       m_Calls: []
+  attackId: 412
   attackSound:
     Guid:
       Data1: 0
@@ -422,6 +427,31 @@ MonoBehaviour:
   surfaceClearance: 1.2
   absoluteFloorY: -500
   logRecoveries: 1
+--- !u!114 &1206144029103767492
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2563642616604865102}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 889282069
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!1001 &3409940362326970143
 PrefabInstance:
   m_ObjectHideFlags: 0

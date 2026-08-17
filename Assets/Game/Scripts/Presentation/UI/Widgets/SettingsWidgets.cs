@@ -199,8 +199,8 @@ namespace SpaceGame.Presentation
             var valueLabel = UIBuilder.Label(valueRect, string.Empty, UITheme.ValueSize, UITheme.Bright,
                 TextAlignmentOptions.Center, FontStyles.Bold);
 
-            Arrow(control, -(valueWidth + arrowSize + 20f), arrowSize, flip: true, () => { stepBack(); handle.Refresh(); });
-            Arrow(control, 0f, arrowSize, flip: false, () => { step(); handle.Refresh(); });
+            Arrow(control, -(valueWidth + arrowSize + 20f), arrowSize, prev: true, () => { stepBack(); handle.Refresh(); });
+            Arrow(control, 0f, arrowSize, prev: false, () => { step(); handle.Refresh(); });
 
             handle.RefreshAction = () => valueLabel.text = describe();
             handle.Refresh();
@@ -312,9 +312,17 @@ namespace SpaceGame.Presentation
             return row;
         }
 
-        private static void Arrow(RectTransform parent, float x, float size, bool flip, Action onClick)
+        /// <summary>
+        /// One chevron of a cycler. <paramref name="prev"/> is the left-hand arrow.
+        /// <para>
+        /// <see cref="UITheme.ChevronSprite"/> is drawn already pointing left, so it is the *next*
+        /// arrow that has to be mirrored, not the previous one. Both were the wrong way round while
+        /// this took a `flip` flag that the left arrow passed as true.
+        /// </para>
+        /// </summary>
+        private static void Arrow(RectTransform parent, float x, float size, bool prev, Action onClick)
         {
-            var rect = UIBuilder.Rect(flip ? "Prev" : "Next", parent);
+            var rect = UIBuilder.Rect(prev ? "Prev" : "Next", parent);
             rect.anchorMin = new Vector2(1f, 0.5f);
             rect.anchorMax = new Vector2(1f, 0.5f);
             rect.pivot = new Vector2(1f, 0.5f);
@@ -325,7 +333,7 @@ namespace SpaceGame.Presentation
 
             var glyphRect = UIBuilder.Fill(UIBuilder.Rect("Glyph", rect), 6f, 6f, 6f, 6f);
             Image glyph = UIBuilder.Sprite(glyphRect, UITheme.ChevronSprite, UITheme.Muted, Image.Type.Simple);
-            if (flip) glyphRect.localScale = new Vector3(-1f, 1f, 1f);
+            if (!prev) glyphRect.localScale = new Vector3(-1f, 1f, 1f);
 
             var button = UIBuilder.Clickable(rect, hit, new Color(1f, 1f, 1f, 0f), new Color(1f, 1f, 1f, 0.12f));
             button.onClick.AddListener(() => onClick());

@@ -3113,8 +3113,12 @@ GameObject:
   - component: {fileID: 2836220505037407734}
   - component: {fileID: 700843921746079170}
   - component: {fileID: 2562459118405967823}
+  - component: {fileID: 2587183733707879487}
   - component: {fileID: 2764534341285111010}
+  - component: {fileID: 6703120223454698746}
+  - component: {fileID: 6644259488405611259}
   - component: {fileID: 3767619139010619025}
+  - component: {fileID: 2784538993781851540}
   - component: {fileID: 2347624336876833373}
   - component: {fileID: 7042077159880695061}
   - component: {fileID: 5407795026581029989}
@@ -3127,6 +3131,7 @@ GameObject:
   - component: {fileID: 2826619466492437648}
   - component: {fileID: 8247931229221106744}
   - component: {fileID: 2270952364628288672}
+  - component: {fileID: 6287157655438520214}
   - component: {fileID: 395768770003258362}
   - component: {fileID: 5358777034103139101}
   m_Layer: 0
@@ -3212,7 +3217,7 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.624
-  m_Speed: 2.2
+  m_Speed: 4.68
   m_Acceleration: 8
   avoidancePriority: 50
   m_AngularSpeed: 120
@@ -3238,7 +3243,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NavMeshAgentMotor
   agent: {fileID: 0}
   navMeshSnapDistance: 6
-  walkSpeedMultiplier: 0.65
+  walkSpeedMultiplier: 0.5555556
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 8
@@ -3266,8 +3271,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentAnimatorDriver
   animator: {fileID: 0}
-  animationSpeedMultiplier: 1.5
-  walkAnimBoost: 2
+  animationSpeedMultiplier: 1.5384616
+  walkAnimBoost: 1
+  animatorSpeedScale: 1.0913581
 --- !u!114 &3375535353894040033
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3369,6 +3375,23 @@ MonoBehaviour:
   maxInterval: 4.5
   turnAngle: 70
   lookDuration: 0.75
+--- !u!114 &2587183733707879487
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2578966956616729156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1bdeec069a5e04526a39c07e33fdab7a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.WatchModule
+  priority: 10
+  active: 1
+  target: {fileID: 0}
+  requiredRelationship: 0
+  detectRadius: 6
 --- !u!114 &2764534341285111010
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3383,6 +3406,53 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.InteractionFocusModule
   priority: 100
   active: 1
+--- !u!114 &6703120223454698746
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2578966956616729156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43eff2e021982408cbdc8668fb5d941c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.CloseCombatModule
+  priority: 23
+  active: 1
+  attackRange: 2.76
+  rangeExitFactor: 1.15
+  attackCooldown: 1.1
+  attackDamage: 18
+  attackCommitDuration: 0.32
+  attackAnimTrigger: Meele
+  OnAttack:
+    m_PersistentCalls:
+      m_Calls: []
+  attackId: 412
+  attackSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+--- !u!114 &6644259488405611259
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2578966956616729156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd9dee46351a74db99007706d23b6644, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ChaseModule
+  priority: 20
+  active: 1
+  chaseStopDistance: 1.6
+  chaseSpeedMultiplier: 1
 --- !u!114 &3767619139010619025
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3401,6 +3471,22 @@ MonoBehaviour:
   loseRange: 45
   requireLineOfSightToAcquire: 1
   proximityAcquireRange: 4
+  drawGizmos: 1
+--- !u!114 &2784538993781851540
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2578966956616729156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2dd9811b69a34a4c83ca0e719373f3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ProvocationModule
+  leashRange: 30
+  calmDownDelay: 60
+  damageThreshold: 1
   drawGizmos: 1
 --- !u!114 &2347624336876833373
 MonoBehaviour:
@@ -3532,7 +3618,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1238726435
+  GlobalObjectIdHash: 2496928140
   InScenePlacedSourceGlobalObjectIdHash: 2292324130
   DeferredDespawnTick: 0
   Ownership: 1
@@ -3672,6 +3758,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c18a9adbe9734a35aee1b80b9c4bcda, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthSaveable
+--- !u!114 &6287157655438520214
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2578966956616729156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21911023c0932417c9a2a12b2e7b8fd6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentStateSaveable
 --- !u!114 &395768770003258362
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4216,6 +4314,7 @@ Transform:
   - {fileID: 4221573776797724619}
   - {fileID: 6687998541504740561}
   - {fileID: 3486718214182283245}
+  - {fileID: 8599533399350570635}
   m_Father: {fileID: 5336199986867665872}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3324267009202171143
@@ -5921,6 +6020,99 @@ SkinnedMeshRenderer:
     m_Center: {x: -0.24638206, y: 0.90744025, z: -0.060247518}
     m_Extent: {x: 0.14783451, y: 0.22774893, z: 0.25190738}
   m_DirtyAABB: 0
+--- !u!1 &5071350486455244008
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8599533399350570635}
+  - component: {fileID: 3511071598173740015}
+  - component: {fileID: 6086281821764877473}
+  m_Layer: 0
+  m_Name: WalkingStaff
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8599533399350570635
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5071350486455244008}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.6431393, y: -0.54051936, z: 0.54051924, w: -0.045272883}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 139.49355, y: 139.49355, z: 139.49355}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4465742813376250745}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3511071598173740015
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5071350486455244008}
+  m_Mesh: {fileID: -2120734357659634082, guid: 09ade681d3bdc495eb2511c2eb49c6fa, type: 3}
+--- !u!23 &6086281821764877473
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5071350486455244008}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 1249868079428519977, guid: 09ade681d3bdc495eb2511c2eb49c6fa, type: 3}
+  - {fileID: -3769018009611346151, guid: 09ade681d3bdc495eb2511c2eb49c6fa, type: 3}
+  - {fileID: 2300113638311477113, guid: 09ade681d3bdc495eb2511c2eb49c6fa, type: 3}
+  - {fileID: -5005187626276193878, guid: 09ade681d3bdc495eb2511c2eb49c6fa, type: 3}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &5087315643040237288
 GameObject:
   m_ObjectHideFlags: 0

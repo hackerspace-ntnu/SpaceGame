@@ -38,6 +38,11 @@ namespace SpaceGame.Presentation
         private const float PanelHeight = 780f;
         private const float RailWidth = 330f;
         private const float ContentPadding = 34f;
+
+        /// <summary>Insets of the scroll viewport inside the content pane. The scrollbar matches
+        /// them, so the two stay aligned if either is retuned.</summary>
+        private const float ViewportInsetTop = 112f;
+        private const float ViewportInsetBottom = 30f;
         private const float OpenSeconds = 0.16f;
 
         /// <summary>Seconds a destructive footer button stays armed after its first click.</summary>
@@ -446,10 +451,19 @@ namespace SpaceGame.Presentation
                 UIBuilder.Fill(UIBuilder.Rect("Rule", titleRect), ContentPadding, 0f, ContentPadding, 59f),
                 UITheme.Hairline);
 
-            // Scroll viewport
-            var viewport = UIBuilder.Fill(UIBuilder.Rect("Viewport", content), ContentPadding - 8f, 30f,
-                ContentPadding + 6f, 112f);
+            // Scroll viewport. UIBuilder.Fill's insets read (left, bottom, right, top) — the big
+            // one is the top, clearing the page title and its rule.
+            var viewport = UIBuilder.Fill(UIBuilder.Rect("Viewport", content), ContentPadding - 8f,
+                ViewportInsetBottom, ContentPadding + 6f, ViewportInsetTop);
             viewport.gameObject.AddComponent<RectMask2D>();
+
+            // A wheel event is delivered to whatever the pointer raycast hit and then bubbles up to
+            // the ScrollRect. RectMask2D is not a Graphic, so with a bare viewport the only things
+            // that could catch a scroll were the row labels themselves — the wheel died in every gap
+            // between rows and over the whole empty area below a short page. This invisible target
+            // spans the viewport, so the page scrolls wherever the cursor is over it. Being the
+            // parent it draws under every row, so it takes no clicks off the widgets.
+            UIBuilder.HitArea(viewport);
 
             var scrollContent = UIBuilder.Rect("Pages", viewport);
             scrollContent.anchorMin = new Vector2(0f, 1f);
@@ -471,11 +485,51 @@ namespace SpaceGame.Presentation
             scroll.movementType = ScrollRect.MovementType.Clamped;
             scroll.scrollSensitivity = 32f;
 
+            // Controls is roughly twice the viewport's height, so on a page that long "there is more
+            // below" has to be visible — a clamped ScrollRect with no bar looks exactly like a page
+            // that simply ends. AutoHide, not AutoHideAndExpandViewport: the latter re-lays out the
+            // content every time the tab changes to a page that does not overflow.
+            scroll.verticalScrollbar = BuildScrollbar(content);
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+
             BuildAudioPage(NewPage(Tab.Audio, scrollContent));
             BuildVideoPage(NewPage(Tab.Video, scrollContent));
             BuildControlsPage(NewPage(Tab.Controls, scrollContent));
             BuildPlayersPage(NewPage(Tab.Players, scrollContent));
             BuildDevPage(NewPage(Tab.Dev, scrollContent));
+        }
+
+        /// <summary>
+        /// A slim vertical scrollbar living in the content pane's right-hand padding, so showing it
+        /// never narrows the rows. Sized to match the viewport's own top and bottom insets.
+        /// </summary>
+        private static Scrollbar BuildScrollbar(RectTransform parent)
+        {
+            var bar = UIBuilder.Rect("Scrollbar", parent);
+            bar.anchorMin = new Vector2(1f, 0f);
+            bar.anchorMax = new Vector2(1f, 1f);
+            bar.pivot = new Vector2(1f, 0.5f);
+            bar.sizeDelta = new Vector2(5f, -(ViewportInsetTop + ViewportInsetBottom));
+
+            // Stretched vertically with a centred pivot, y is the offset between this rect's centre
+            // and the parent's — which is half the difference of the two insets, not half their sum.
+            bar.anchoredPosition = new Vector2(-12f, (ViewportInsetBottom - ViewportInsetTop) * 0.5f);
+
+            UIBuilder.Sprite(bar, UITheme.ChipSprite, new Color(1f, 1f, 1f, 0.05f));
+
+            // The Scrollbar rewrites the handle's anchors as it tracks, so the handle needs a
+            // parent of its own to be anchored within — driving the bar's rect directly would
+            // fight the anchors set above.
+            var slidingArea = UIBuilder.Fill(UIBuilder.Rect("Sliding Area", bar));
+
+            var handle = UIBuilder.Fill(UIBuilder.Rect("Handle", slidingArea));
+            Image handleImage = UIBuilder.Sprite(handle, UITheme.ChipSprite, new Color(1f, 1f, 1f, 0.22f));
+
+            var scrollbar = bar.gameObject.AddComponent<Scrollbar>();
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            scrollbar.handleRect = handle;
+            scrollbar.targetGraphic = handleImage;
+            return scrollbar;
         }
 
         /// <summary>
@@ -503,7 +557,8 @@ namespace SpaceGame.Presentation
 
             // The label owns a child rect rather than the positioned one — filling the parent
             // would overwrite the anchors that put it under the panel.
-            TextMeshProUGUI label = UIBuilder.LabelIn(hint, "Text", "M  ·  ESC   RESUME", UITheme.CaptionSize,
+            // M only: Esc is the dismount key, and nothing in the UI map ever bound it to Pause.
+            TextMeshProUGUI label = UIBuilder.LabelIn(hint, "Text", "M   RESUME", UITheme.CaptionSize,
                 UITheme.Faint, TextAlignmentOptions.Center);
             label.characterSpacing = 8f;
         }
@@ -585,17 +640,48 @@ namespace SpaceGame.Presentation
             Track(SettingsWidgets.Toggle(page, "Invert scroll direction",
                 () => GameSettings.InvertHotbarScroll, v => GameSettings.InvertHotbarScroll = v));
 
-            SettingsWidgets.Heading(page, "Bindings");
+            // Every row below mirrors a binding that actually exists — the Player/Hotbar/UI maps in
+            // InputControls, or a key a component reads straight off the keyboard. Anything the
+            // asset declares but no script consumes (Crouch, Previous/Next) is deliberately absent.
+            SettingsWidgets.Heading(page, "On foot");
 
-            Binding(page, "Move", "W A S D");
+            Binding(page, "Move", "W A S D  ·  Arrows");
+            Binding(page, "Look", "Mouse");
             Binding(page, "Jump", "Space");
-            Binding(page, "Sprint", "Left Shift");
-            Binding(page, "Dash", "Left Ctrl");
-            Binding(page, "Interact", "E");
+            Binding(page, "Dash", "Left Shift");
+
+            SettingsWidgets.Heading(page, "Actions");
+
             Binding(page, "Use / fire", "Left Mouse");
+            Binding(page, "Interact", "E");
             Binding(page, "Backpack", "B");
-            Binding(page, "Hotbar", "1 – 0  ·  Scroll");
-            Binding(page, "Pause", "M  ·  Esc");
+            Binding(page, "Flashlight", "L");
+            Binding(page, "Answer a question", "Y  ·  N");
+
+            SettingsWidgets.Heading(page, "Held item");
+
+            Binding(page, "Select slot", "1 – 0");
+            Binding(page, "Cycle slots", "Scroll");
+            Binding(page, "Drop", "G");
+
+            SettingsWidgets.Heading(page, "Riding");
+
+            Binding(page, "Steer", "W A S D");
+            Binding(page, "Hop  ·  hold to leap", "Space");
+            Binding(page, "Ascend / descend", "Space  ·  Left Ctrl");
+            Binding(page, "Run", "Left Shift");
+            Binding(page, "Dismount", "Esc");
+
+            SettingsWidgets.Heading(page, "System");
+
+            Binding(page, "Pause", "M");
+            Binding(page, "Scoreboard (hold)", "Tab");
+            Binding(page, "Skip transition", "Space");
+            Binding(page, "Quicksave", "F5");
+            Binding(page, "Quickload", "F9");
+            Binding(page, "Artifact browser  ·  dev mode", "I");
+
+            SettingsWidgets.Caption(page, "Bindings are fixed for now — this page is a reference, not an editor.");
 
             SettingsWidgets.Heading(page, "Reset");
 

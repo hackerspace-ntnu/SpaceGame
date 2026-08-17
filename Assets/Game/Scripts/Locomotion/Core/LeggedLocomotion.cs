@@ -29,11 +29,20 @@
 //   .Ik.cs    posing the legs onto it    -- the solver call, foot articulation, gizmos
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Persistence;
 
 namespace SpaceGame.Locomotion
 {
+    // IPersistentEntity: this layer OWNS the body's transform (invariant I4 above), so a machine
+    // driven by it has moved by the end of a session and must be saved. Declared on the base rather
+    // than on each robot precisely because the save policy's name matching cannot see base classes —
+    // one line here covers the ostrich, the horse, the crab, the humanoid and the crawler, and every
+    // machine added later.
+    //
+    // It is also the clause that catches these at all: this is a kinematic layer with gravity off, so
+    // every legged machine failed the "non-kinematic Rigidbody" test the policy used to rely on.
     [DefaultExecutionOrder(100)]
-    public abstract partial class LeggedLocomotion : MonoBehaviour
+    public abstract partial class LeggedLocomotion : MonoBehaviour, IPersistentEntity
     {
         [Header("Rig")]
         [Tooltip("Armature holding the limb chains. Auto-found if empty.")]

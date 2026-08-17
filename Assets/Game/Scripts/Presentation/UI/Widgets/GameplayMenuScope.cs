@@ -20,6 +20,18 @@ namespace SpaceGame.Presentation
     {
         private static readonly HashSet<object> owners = new();
 
+        /// <summary>
+        /// The subset of <see cref="owners"/> that wants the clock stopped.
+        /// <para>
+        /// Tracked separately because stopping time is not what every screen holding this scope is
+        /// for. A full-screen menu wants the world to wait; the chat box does not — you type into
+        /// it while the game runs on around you, which is the whole point of chatting mid-game.
+        /// Freezing is therefore decided by whether <em>anyone</em> currently wants it, not by
+        /// whoever happened to enter first.
+        /// </para>
+        /// </summary>
+        private static readonly HashSet<object> freezers = new();
+
         private static PlayerController releasedPlayer;
         private static SpectatorCamera releasedSpectator;
         private static bool frozeTime;
@@ -34,7 +46,14 @@ namespace SpaceGame.Presentation
         /// Claims control for <paramref name="owner"/>. Returns false when there is nothing to
         /// pause — no local player means the main menu or the lobby, which run their own screens.
         /// </summary>
-        public static bool Enter(object owner)
+        public static bool Enter(object owner) => Enter(owner, freezeTime: true);
+
+        /// <summary>
+        /// As <see cref="Enter(object)"/>, but <paramref name="freezeTime"/> false takes input and
+        /// the cursor without stopping the clock — for a screen you are meant to use while the game
+        /// carries on, like the chat box.
+        /// </summary>
+        public static bool Enter(object owner, bool freezeTime)
         {
             if (owner == null) return false;
 
@@ -44,6 +63,9 @@ namespace SpaceGame.Presentation
             if (owners.Add(owner) && owners.Count == 1)
                 TakeControl(player);
 
+            if (freezeTime) freezers.Add(owner);
+            SyncFreeze();
+
             return true;
         }
 
@@ -51,6 +73,12 @@ namespace SpaceGame.Presentation
         public static void Exit(object owner)
         {
             if (owner == null || !owners.Remove(owner)) return;
+
+            // Before the early return: a chat box closing under an open pause menu must not leave
+            // the clock stopped, and a pause menu closing over an open chat box must restart it.
+            freezers.Remove(owner);
+            SyncFreeze();
+
             if (owners.Count > 0) return;
 
             GiveControlBack();
@@ -64,6 +92,7 @@ namespace SpaceGame.Presentation
         public static void Abandon()
         {
             owners.Clear();
+            freezers.Clear();
             releasedPlayer = null;
             releasedSpectator = null;
             Thaw();
@@ -94,8 +123,8 @@ namespace SpaceGame.Presentation
                 releasedSpectator = spectator;
             }
 
-            Freeze();
-
+            // Freezing is not decided here any more — see SyncFreeze, which the caller runs once
+            // the owner sets are up to date.
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }
@@ -126,6 +155,13 @@ namespace SpaceGame.Presentation
 
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
+        }
+
+        /// <summary>Applies the current freeze claims. Idempotent, so it is safe to call on every change.</summary>
+        private static void SyncFreeze()
+        {
+            if (freezers.Count > 0) Freeze();
+            else Thaw();
         }
 
         /// <summary>

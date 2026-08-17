@@ -89,8 +89,20 @@ namespace SpaceGame.Weapons
         {
             // Through NetDamage, so the hit registers on the server rather than only on the
             // machine that fired. GetComponentInParent is left to NetDamage's own lookup.
+            //
+            // The damage source is the SHOOTER, not this projectile. It used to be `transform`,
+            // and that is worse than merely imprecise: HealthComponent stores it as
+            // LastDamageSource, and everything that asks "who hit me" resolves an EntityFaction
+            // from it — AgentTargeting's last-attacker bias, and the provocation that wakes a
+            // peaceful creature. A loose projectile has no EntityFaction above it and is destroyed
+            // on this very frame, so both of those resolved to a dead object and silently gave up.
+            // Shooting a passive creature with a player firearm simply never made it angry.
+            //
+            // ownerRoot is already tracked for the self-hit test; falling back to `transform` keeps
+            // a projectile spawned without an owner behaving exactly as before.
             if (!Cosmetic)
-                NetDamage.Apply(hit.collider.gameObject, damage, transform);
+                NetDamage.Apply(hit.collider.gameObject, damage,
+                                ownerRoot != null ? ownerRoot : transform);
 
             OnImpact(hit.point, hit.normal, hit.collider);
 

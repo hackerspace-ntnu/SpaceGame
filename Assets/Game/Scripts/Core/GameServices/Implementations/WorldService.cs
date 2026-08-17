@@ -31,6 +31,16 @@ namespace SpaceGame.Core
 
             GameObject instance = Object.Instantiate(prefab, position, rotation);
 
+            // Opt the new object in to saving, by the same rule a scene load applies to everything it
+            // hydrates. Without this a runtime-spawned world object persisted only as well as whoever
+            // authored its prefab happened to remember — the ornithopter the wing pack deploys saved
+            // its pose and velocity but not that somebody was flying it, because MountSaveable is
+            // added by the policy and the policy had never been run over a spawn.
+            //
+            // NeedsSaving is what keeps this from being reckless: projectiles are on its transient
+            // blacklist and effects match none of its clauses, so they fall straight through.
+            SaveablePolicy.EnsureSpawned(instance);
+
             if (!Network.IsNetworked)
                 return instance;
 

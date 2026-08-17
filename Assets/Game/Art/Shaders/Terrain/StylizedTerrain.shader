@@ -70,7 +70,7 @@ Shader "SpaceGame/StylizedTerrain"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
-            #include "Flashlight.hlsl"
+            #include "../Effects/Flashlight.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _ColorValley;

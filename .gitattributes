@@ -6,18 +6,31 @@
 *.shader text eol=lf
 *.cginc text eol=lf
 
-*.unity text eol=lf
-*.prefab text eol=lf
-*.asset text eol=lf
 *.meta text eol=lf
 
-# Some Unity .asset files are binary despite the .asset extension. Letting the
-# `*.asset text eol=lf` rule above touch them rewrites 0x0A bytes inside the
-# payload on CRLF platforms, and Unity then fails to load them.
-Assets/Terrain/ChunkData/*.asset binary
-Assets/TerrainData_*.asset binary
-Assets/*Terrain.asset binary
-Assets/Game/Settings/WorldNavMesh.asset binary
+# .unity / .prefab / .asset are DELIBERATELY not forced to text. Unity writes some
+# of them as binary regardless of ForceText serialization (terrain heightmaps, baked
+# NavMesh and lighting data, and any scene saved before ForceText was enabled).
+# Forcing `text` on those extensions overrides git's own binary detection, so the
+# clean filter strips every 0x0D byte that happens to precede a 0x0A inside the
+# payload — silently, a few bytes per commit, until Unity reports
+# "Unknown error occurred while loading <asset>". The `* text=auto eol=lf` rule at
+# the top already normalizes the YAML ones to LF while leaving real binaries alone;
+# do not add `*.asset text` / `*.unity text` / `*.prefab text` rules back.
+#
+# Belt-and-braces for the families that are always binary, matched by filename so
+# they stay protected when the project is restructured (an earlier version of this
+# file pinned full paths, and moving Assets/Terrain -> Assets/Game/Terrain silently
+# unprotected all of them):
+TerrainData*.asset binary
+*[Tt]errain*.asset binary
+*NavMesh*.asset binary
+LightingData.asset binary
+ReflectionProbe*.exr binary
+Lightmap*.exr binary
+
+# ...but ProjectSettings/*.asset is always YAML, so keep NavMeshAreas.asset diffable.
+ProjectSettings/*.asset text eol=lf
 
 # JSON / config
 *.json text eol=lf

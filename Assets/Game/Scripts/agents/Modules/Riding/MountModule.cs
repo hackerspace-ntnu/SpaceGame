@@ -12,14 +12,19 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using SpaceGame.Characters;
 using SpaceGame.Gameplay;
+using SpaceGame.Persistence;
 using SpaceGame.Vehicles;
 
 namespace SpaceGame.Agents
 {
     // Late execution order so our LateUpdate runs after any other LateUpdate in the scene —
     // guarantees the mounted third-person camera transform isn't overwritten afterwards.
+    //
+    // IPersistentEntity: a mount is a world object even when nothing else about it qualifies. The
+    // Ostrich has a kinematic Rigidbody, no NavMeshAgent and no HealthComponent, so before this it
+    // was invisible to the save system entirely. MountSaveable is added from here by SaveablePolicy.
     [DefaultExecutionOrder(1000)]
-    public partial class MountModule : BehaviourModuleBase, IInteractable
+    public partial class MountModule : BehaviourModuleBase, IInteractable, IPersistentEntity
     {
         public enum CameraPerspective
         {

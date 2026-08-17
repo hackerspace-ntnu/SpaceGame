@@ -298,8 +298,9 @@ namespace SpaceGame.Presentation
             {
                 for (int x = 0; x < size; x++)
                 {
-                    // Two mirrored strokes meeting at the right-hand point: distance to the "\/"
-                    // rotated a quarter turn, which is |x - (half - |y - half|)|.
+                    // Two mirrored strokes meeting at the LEFT-hand point — the arm term is
+                    // subtracted, so the vertex sits at the low x of the sweep and the tips at the
+                    // high x. Mirror the transform to get a right-pointing chevron.
                     float arm = half - Mathf.Abs(y - half);
                     float d = Mathf.Abs(x - (half - arm * 0.5f) - size * 0.16f);
                     float a = Mathf.Clamp01(thickness - d);

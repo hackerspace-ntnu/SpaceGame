@@ -4,11 +4,16 @@
 // Also supports the legacy IAgentBrain interface so old prefabs don't break immediately.
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Persistence;
 using SpaceGame.World;
 
 namespace SpaceGame.Agents
 {
-    public class AgentController : MonoBehaviour
+    // IPersistentEntity: anything with an AgentController can end the session somewhere other than
+    // where it started, so it must be saved. This is the clause that covers every agent, every
+    // creature and every AI-capable vehicle in one place — see IPersistentEntity for why the save
+    // policy's component sniffing missed all of them.
+    public class AgentController : MonoBehaviour, IPersistentEntity
     {
         [Header("Dependencies")]
         [SerializeField] private MonoBehaviour MotorComponent;

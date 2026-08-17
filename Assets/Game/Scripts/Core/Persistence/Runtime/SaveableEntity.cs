@@ -73,6 +73,15 @@ namespace SpaceGame.Core.Persistence
         /// Every live entity, so a save can find them without a scene-wide component search per
         /// chunk. Registration is by instanceId; a duplicate id means two objects would fight over
         /// one record, which is worth a warning rather than a silent overwrite.
+        ///
+        /// <b>Membership lasts as long as the object, not as long as it is enabled.</b> That
+        /// distinction is not academic here: <c>HealthReactionModule</c> kills an agent with
+        /// <c>SetActive(false)</c>, so a corpse is a disabled GameObject rather than a destroyed one.
+        /// While registration was tied to OnEnable/OnDisable, every corpse fell out of this
+        /// dictionary — and two things read it as "does this still exist":
+        /// <c>WorldSaveStore.SpawnEntities</c>, which then re-instantiated dead runtime entities on
+        /// every hydrate, and <see cref="SaveRefBinder"/>, which could not resolve a reference to
+        /// anything dead.
         /// </summary>
         private static readonly Dictionary<string, SaveableEntity> Live = new();
 
@@ -81,7 +90,7 @@ namespace SpaceGame.Core.Persistence
         private readonly List<ISaveable> savers = new();
         private bool saversGathered;
 
-        private void OnEnable()
+        private void Awake()
         {
             if (string.IsNullOrEmpty(instanceId))
             {
@@ -104,7 +113,7 @@ namespace SpaceGame.Core.Persistence
             Live[instanceId] = this;
         }
 
-        private void OnDisable()
+        private void OnDestroy()
         {
             if (!string.IsNullOrEmpty(instanceId) &&
                 Live.TryGetValue(instanceId, out SaveableEntity registered) && registered == this)
@@ -134,8 +143,10 @@ namespace SpaceGame.Core.Persistence
 
             if (string.IsNullOrEmpty(entity.instanceId))
             {
+                // No isActiveAndEnabled gate: registration is scoped to the object's lifetime, and a
+                // spawn that arrives disabled (a pooled object, a corpse) still owns its record.
                 entity.instanceId = Guid.NewGuid().ToString("N");
-                if (entity.isActiveAndEnabled) Live[entity.instanceId] = entity;
+                Live[entity.instanceId] = entity;
             }
 
             return entity;

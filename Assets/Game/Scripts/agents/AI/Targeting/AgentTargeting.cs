@@ -207,6 +207,31 @@ namespace SpaceGame.Agents
             DistanceToTarget = float.MaxValue;
         }
 
+        // Puts back what this agent remembered, for a save being loaded.
+        //
+        // Separate from ForceTarget because the two say different things. ForceTarget is an event —
+        // "someone just told you where they are" — and it deliberately resets the re-scoring timer and
+        // treats the target as seen this instant. A restore is not an event: the agent should come back
+        // holding exactly the memory it had, including a target it had LOST sight of seconds ago, so
+        // that a search resumes from where it left off instead of restarting.
+        //
+        // The target is set directly rather than through ForceTarget for that reason, and viability is
+        // still checked — a saved target that has since died must not be re-acquired.
+        public void RestoreMemory(Transform target, Vector3 lastKnownPosition, bool hasLastKnownPosition,
+                                  float timeSinceSeen, Transform lastAttacker)
+        {
+            if (TargetResolution.IsViable(target))
+            {
+                Target = target;
+                DistanceToTarget = Vector3.Distance(transform.position, target.position);
+            }
+
+            LastKnownPosition = lastKnownPosition;
+            HasLastKnownPosition = hasLastKnownPosition;
+            TimeSinceSeen = timeSinceSeen;
+            LastAttacker = lastAttacker;
+        }
+
         private void HandleDamaged(int _)
         {
             if (health == null)

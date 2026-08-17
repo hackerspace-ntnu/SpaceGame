@@ -62,6 +62,29 @@ namespace SpaceGame.Agents
             waypointDirection = 1;
         }
 
+        // ─────────── Patrol progress, for the save system ───────────
+        // Exposed so an agent resumes its route instead of restarting it. Where a patroller is in its
+        // circuit is exactly the kind of state a player notices coming back wrong: a guard that always
+        // stands at waypoint 0 after every reload reads as a route that does not work.
+
+        public int WaypointIndex => waypointIndex;
+
+        /// <summary>+1 or -1 on a ping-pong route; unused on a looping one.</summary>
+        public int WaypointDirection => waypointDirection;
+
+        /// <summary>
+        /// Puts an agent back where it was in its circuit. Clamped rather than trusted: the route is
+        /// authored data and may have had waypoints removed since the save was written.
+        /// </summary>
+        public void RestorePatrolProgress(int index, int direction)
+        {
+            waypointIndex = patrolPoints == null || patrolPoints.Length == 0
+                ? 0
+                : Mathf.Clamp(index, 0, patrolPoints.Length - 1);
+
+            waypointDirection = direction < 0 ? -1 : 1;
+        }
+
         public override string ModuleDescription =>
             "Defines where the agent patrols. Does not control locomotion speed or style.\n\n" +
             "RadiusBased — roams to random NavMesh points within a radius of the base point.\n" +

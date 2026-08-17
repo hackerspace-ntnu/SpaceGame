@@ -68,6 +68,12 @@ namespace SpaceGame.Core.Persistence
         private bool loadAnnounced;
 
         /// <summary>
+        /// Whether the world's deferred pass has already run, so a scene hydrated afterwards knows it
+        /// has to run its own rather than wait for a pass that has been and gone.
+        /// </summary>
+        private bool worldDeferredRan;
+
+        /// <summary>
         /// Playtime carried in from the loaded save. Time.realtimeSinceStartup only counts THIS
         /// process, so without this a twenty-hour save reads as five minutes old the moment it is
         /// loaded and saved again.
@@ -140,6 +146,8 @@ namespace SpaceGame.Core.Persistence
             WorldStreamer.OnChunkLoaded += HandleChunkLoaded;
             WorldStreamer.OnChunkWillUnload += HandleChunkWillUnload;
             WorldStreamer.OnChunkUnloaded += HandleChunkUnloaded;
+            worldStore.OnSceneHydrated += HandleSceneHydrated;
+            playerService.PlayerBound += HandlePlayerBound;
 
             nextAutoSaveTime = Time.time + Mathf.Max(1f, autoSaveIntervalSeconds);
         }
@@ -156,6 +164,12 @@ namespace SpaceGame.Core.Persistence
             slots ??= new SaveSlots(DefaultRoot);
             worldStore ??= new WorldSaveStore(document?.World);
             playerService ??= new PlayerSaveService(document?.Players);
+
+            // Only the instance holding the session's state may answer SaveRefs. A duplicate
+            // SaveManager (this project produces them during scene transitions) installing its own
+            // empty binder would make every rider and target reference in the save unresolvable —
+            // and unresolvable reads as "nobody was riding", which is silent, plausible data loss.
+            if (Instance == this) SaveRefBinding.Active = new SaveRefBinder(playerService);
         }
 
         /// <summary>
@@ -202,7 +216,15 @@ namespace SpaceGame.Core.Persistence
             WorldStreamer.OnChunkWillUnload -= HandleChunkWillUnload;
             WorldStreamer.OnChunkUnloaded -= HandleChunkUnloaded;
 
-            if (Instance == this) Instance = null;
+            if (worldStore != null) worldStore.OnSceneHydrated -= HandleSceneHydrated;
+            if (playerService != null) playerService.PlayerBound -= HandlePlayerBound;
+
+            if (Instance != this) return;
+
+            // Left installed, the binder would answer for a session that no longer exists and hand
+            // out references into a torn-down world.
+            if (SaveRefBinding.Active is SaveRefBinder) SaveRefBinding.Active = null;
+            Instance = null;
         }
 
         private void Update()
@@ -290,7 +312,83 @@ namespace SpaceGame.Core.Persistence
             if (!loadedFromSave || loadAnnounced) return;
 
             loadAnnounced = true;
+
+            // Before the event, not after. Anything listening to OnLoadApplied is entitled to see a
+            // world whose mounts are mounted. Usually a no-op by now — HandlePlayerBound has already
+            // run the pass — but a load with no restored player must not skip it.
+            RunWorldDeferredPass();
+
             OnLoadApplied?.Invoke();
+        }
+
+        /// <summary>
+        /// Runs the world's deferred pass as soon as the first player exists.
+        ///
+        /// The precondition every deferred world saver is waiting on is "a player is here to be
+        /// referenced", and that is what binding means — not that the player had a record to restore.
+        /// Keying this off a successful restore instead (which is what <see cref="NotifyLoadApplied"/>
+        /// reports) would leave a client joining a saved world for the first time in a world whose
+        /// mounts never re-seat anyone: the host's own mount reference resolves to a profile that is
+        /// here, but nothing ever fires the pass that would look.
+        ///
+        /// Run on EVERY bind, not only the first. In multiplayer the players arrive one at a time, and a
+        /// pass that fired once would resolve the first player's mount and permanently give up on the
+        /// second's. Savers that resolved on an earlier pass have consumed their state and do nothing;
+        /// a saver still waiting on an absent player gets another chance each time somebody arrives.
+        /// </summary>
+        private void HandlePlayerBound(string profileId, GameObject player)
+        {
+            if (!loadedFromSave) return;
+
+            RunWorldDeferredPass();
+        }
+
+        /// <summary>
+        /// Runs the deferred pass for every world entity: the second chance a saver gets once the
+        /// whole world exists.
+        ///
+        /// <b>Why world entities need this at all.</b> <see cref="IDeferredSaveable"/> was reachable
+        /// only through <see cref="PlayerSaveService.Bind"/>, so it served players and nothing else.
+        /// But the savers that need it most are on world objects: a mount restored during hydration
+        /// cannot re-seat its rider, because Netcode spawns players at a time this system does not
+        /// control and the rider does not exist yet. Every <see cref="SaveRef"/> resolves here.
+        ///
+        /// Entities are copied out first — a deferred saver may mount, spawn or destroy, and any of
+        /// those mutates the registry being walked.
+        /// </summary>
+        private void RunWorldDeferredPass()
+        {
+            worldDeferredRan = true;
+
+            var entities = new List<SaveableEntity>(SaveableEntity.LiveEntities.Values);
+
+            foreach (SaveableEntity entity in entities)
+            {
+                // Players are served by PlayerSaveService.Bind, which has already run by now; running
+                // them again here would re-apply a restore on top of live state.
+                if (entity == null || !entity.BelongsToWorld) continue;
+
+                entity.NotifyLoadComplete();
+            }
+        }
+
+        /// <summary>
+        /// Gives a late-arriving scene its deferred pass.
+        ///
+        /// Chunks stream in for as long as the session lasts, so entities keep appearing after
+        /// <see cref="RunWorldDeferredPass"/> has already fired. Without this, a mount restored by a
+        /// chunk that loaded a minute into the session would hold a rider reference it never resolves —
+        /// persistence that works only for the chunks that happened to be resident at load.
+        /// </summary>
+        private void HandleSceneHydrated(string sceneKey, Scene scene)
+        {
+            if (!worldDeferredRan) return;
+
+            foreach (SaveableEntity entity in new List<SaveableEntity>(WorldSaveStore.EntitiesIn(scene)))
+            {
+                if (entity == null || !entity.BelongsToWorld) continue;
+                entity.NotifyLoadComplete();
+            }
         }
 
         // ─────────────────────────────────────────────

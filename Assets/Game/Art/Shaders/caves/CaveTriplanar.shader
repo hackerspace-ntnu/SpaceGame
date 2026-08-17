@@ -98,7 +98,7 @@ Shader "SpaceGame/CaveTriplanar"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-            #include "../Flashlight.hlsl"
+            #include "../Effects/Flashlight.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _ColorX, _ColorY, _ColorZ;

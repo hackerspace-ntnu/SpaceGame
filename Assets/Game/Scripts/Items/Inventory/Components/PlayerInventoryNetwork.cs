@@ -153,7 +153,9 @@ namespace SpaceGame.Items
             SelectSlot(target);
         }
 
-        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        // Owner, not Everyone. A hotbar belongs to the player holding it: the default permission let
+        // any client in the session change what anybody else was carrying or holding.
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
         private void SelectSlotServerRpc(int slotIndex)
         {
             networkSelectedSlot.Value =
@@ -197,23 +199,38 @@ namespace SpaceGame.Items
         }
 
         // --- Client requests add ---
+
+        /// <summary>
+        /// Put <paramref name="item"/> in the first free hotbar slot, and say whether it went in.
+        ///
+        /// The answer is only real on the authority, and it has to be: callers act on it. A pickup
+        /// despawns the world object when this returns true, and the backpack decides whether to
+        /// overflow into the pack. An earlier version returned a flat <c>true</c> whatever happened,
+        /// so picking anything up with a full hotbar deleted it.
+        ///
+        /// A client gets an optimistic true. It cannot get a real answer without waiting for a round
+        /// trip, and no caller on the client path consumes one — every caller that acts on the
+        /// result (pickup, backpack transfer) already runs server-side.
+        /// </summary>
         public bool TryAddItem(InventoryItem item)
         {
-            Network.Execute(
-                local: () => AddItem(item),
-                client: () => TryAddItemServerRpc(item.ID));
-        
-            return true;
+            if (!Network.Simulates(this))
+            {
+                TryAddItemServerRpc(item != null ? item.ID : string.Empty);
+                return true;
+            }
+
+            return AddItem(item);
         }
 
-        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
         private void TryAddItemServerRpc(string itemId)
         {
             var item = Registry<InventoryItem>.Get(itemId);
             AddItem(item);
         }
 
-        private void AddItem(InventoryItem item)
+        private bool AddItem(InventoryItem item)
         {
             // Registry<InventoryItem>.Get returns null for an id this build does not know, so the
             // caller above can hand us nothing at all. Assigning its ID would throw inside
@@ -221,36 +238,40 @@ namespace SpaceGame.Items
             if (item == null || string.IsNullOrEmpty(item.ID))
             {
                 Debug.LogWarning("[Inventory] Ignored an add for an item with no id.", this);
-                return;
+                return false;
             }
 
             int index = inventory.FindEmptySlot();
-            if (index == -1) return;
+            if (index == -1) return false;
 
             networkItems[index] = new FixedString64Bytes(item.ID);
+            return true;
         }
 
         // --- Client requests remove ---
         public bool TryRemoveItem(int index)
         {
-            Network.Execute(
-                local: () => RemoveItem(index),
-                client: () => TryRemoveItemServerRpc(index));
-        
-            return true;
+            if (!Network.Simulates(this))
+            {
+                TryRemoveItemServerRpc(index);
+                return true;
+            }
+
+            return RemoveItem(index);
         }
 
-        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
         private void TryRemoveItemServerRpc(int index)
         {
             RemoveItem(index);
         }
 
-        private void RemoveItem(int index)
+        private bool RemoveItem(int index)
         {
-            if (index < 0 || index >= networkItems.Count) return;
+            if (index < 0 || index >= networkItems.Count) return false;
 
             networkItems[index] = default;
+            return true;
         }
 
         private void DropItem()
@@ -259,7 +280,7 @@ namespace SpaceGame.Items
             DropItemServerRpc(networkSelectedSlot.Value);
         }
 
-        [Rpc(SendTo.Server)]
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
         private void DropItemServerRpc(int slotIndex)
         {
             if (slotIndex < 0 || slotIndex >= networkItems.Count) return;

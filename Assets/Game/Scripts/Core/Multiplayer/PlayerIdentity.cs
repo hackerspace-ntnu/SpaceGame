@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
+using SpaceGame.Characters;
 
 namespace SpaceGame.Core
 {
@@ -30,6 +31,26 @@ namespace SpaceGame.Core
         // non-Latin script can run to four bytes a character.
         private readonly NetworkVariable<FixedString64Bytes> displayName = new(
             default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
+        /// <summary>
+        /// The suit colour this player wears, as an index into <c>SuitPalette.Swatches</c>.
+        /// <para>
+        /// An int, not a string. The palette is a static table compiled into every build, so the
+        /// index is all that has to cross the wire — and it sidesteps the FixedString conversion trap
+        /// that the name above has to be careful about.
+        /// </para>
+        /// <para>
+        /// Owner-write like the name, and for the same reason: each client is the authority on its
+        /// own appearance, so changing it needs no RPC round trip. Starts at -1 rather than 0 so
+        /// <see cref="SuitRecolor"/> can tell "nobody has published yet" from "somebody chose
+        /// Ember" — without that, every player flashes orange for a frame on spawn.
+        /// </para>
+        /// </summary>
+        private readonly NetworkVariable<int> suitColor = new(
+            -1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
+        [Tooltip("The component that paints this player's astronaut. Found in children when unset.")]
+        [SerializeField] private SuitRecolor recolor;
 
         private static readonly List<PlayerIdentity> instances = new();
 
@@ -59,12 +80,18 @@ namespace SpaceGame.Core
         {
             instances.Add(this);
             displayName.OnValueChanged += OnNameChanged;
+            suitColor.OnValueChanged += OnSuitColorChanged;
 
             if (IsOwner)
             {
-                PublishLocalName();
-                GameSettings.Changed += PublishLocalName;
+                PublishLocalProfile();
+                GameSettings.Changed += PublishLocalProfile;
             }
+
+            // Applied from whatever has already replicated rather than waiting for a change event:
+            // a client joining a running session receives the current value as part of the spawn
+            // payload, so the change event for it has already been and gone.
+            ApplySuitColor();
 
             RosterChanged?.Invoke();
         }
@@ -73,9 +100,10 @@ namespace SpaceGame.Core
         {
             instances.Remove(this);
             displayName.OnValueChanged -= OnNameChanged;
+            suitColor.OnValueChanged -= OnSuitColorChanged;
 
             if (IsOwner)
-                GameSettings.Changed -= PublishLocalName;
+                GameSettings.Changed -= PublishLocalProfile;
 
             RosterChanged?.Invoke();
         }
@@ -83,23 +111,60 @@ namespace SpaceGame.Core
         // OnNetworkDespawn does not run for an object destroyed without a despawn (a hard
         // disconnect, or a scene unload during shutdown), and a stale entry in a static list
         // outlives the session it belonged to.
-        private void OnDestroy()
+        //
+        // override, not a private OnDestroy. Declared privately this HID NetworkBehaviour.OnDestroy,
+        // which is what disposes this behaviour's NetworkVariables and drops it from its
+        // NetworkObject's ChildNetworkBehaviours list — so the displayName variable's native buffer
+        // leaked on every player despawn, which in a session people join and leave is every time.
+        // NetworkedHealthComponent and PlayerInventoryNetwork carry the same note.
+        public override void OnDestroy()
         {
             if (instances.Remove(this))
                 RosterChanged?.Invoke();
+
+            base.OnDestroy();
         }
 
         private void OnNameChanged(FixedString64Bytes previous, FixedString64Bytes current)
             => RosterChanged?.Invoke();
 
-        private void PublishLocalName()
+        private void OnSuitColorChanged(int previous, int current) => ApplySuitColor();
+
+        /// <summary>
+        /// Pushes this peer's stored name and suit colour onto the wire.
+        ///
+        /// Both live in <see cref="GameSettings"/> and both are published from the same place,
+        /// because they change through the same event — a settings page write, or the lobby's
+        /// cycler. Each is compared before being written so an unrelated settings change (a volume
+        /// slider) does not dirty either variable.
+        /// </summary>
+        private void PublishLocalProfile()
         {
             if (!IsOwner || !IsSpawned) return;
 
             var wanted = new FixedString64Bytes(Truncate(GameSettings.PlayerName));
-            if (wanted.Equals(displayName.Value)) return;
+            if (!wanted.Equals(displayName.Value)) displayName.Value = wanted;
 
-            displayName.Value = wanted;
+            int wantedColor = SuitPalette.Clamp(GameSettings.SuitColorIndex);
+            if (wantedColor != suitColor.Value) suitColor.Value = wantedColor;
+        }
+
+        /// <summary>
+        /// Paints the body from the replicated value.
+        ///
+        /// Runs on every peer, including the owner: the owner is not a special case, because what
+        /// everyone should see is what was actually published rather than what this machine happens
+        /// to have stored. A value of -1 means nothing has been published yet, and is left alone so
+        /// the model keeps its authored colours until the real choice lands.
+        /// </summary>
+        private void ApplySuitColor()
+        {
+            if (suitColor.Value < 0) return;
+
+            if (recolor == null) recolor = GetComponentInChildren<SuitRecolor>(true);
+            if (recolor == null) return;
+
+            recolor.Apply(suitColor.Value);
         }
 
         /// <summary>

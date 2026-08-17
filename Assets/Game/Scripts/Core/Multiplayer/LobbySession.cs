@@ -7,6 +7,7 @@ using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using SpaceGame.Characters;
 
 namespace SpaceGame.Core
 {
@@ -67,6 +68,17 @@ namespace SpaceGame.Core
             && AuthenticationService.Instance.IsSignedIn
             && Current.HostId == AuthenticationService.Instance.PlayerId;
 
+        /// <summary>
+        /// Which row of the current lobby is us, or -1.
+        ///
+        /// The instance half of <see cref="SlotOf"/>: it needs the authentication service, which is
+        /// exactly what the views are kept away from so they stay testable without one.
+        /// </summary>
+        public int LocalSlot =>
+            Current != null && AuthenticationService.Instance.IsSignedIn
+                ? SlotOf(Current, AuthenticationService.Instance.PlayerId)
+                : -1;
+
         /// <summary>Raised whenever the roster, the code or the state moved. The view redraws from this.</summary>
         public event Action Changed;
 
@@ -88,6 +100,15 @@ namespace SpaceGame.Core
         /// </summary>
         private bool busy;
 
+        /// <summary>Long enough to swallow a burst of arrow presses, short enough to feel immediate.</summary>
+        private const float SuitColorDebounce = 0.75f;
+
+        /// <summary>The colour waiting to be published, or -1 when there is nothing pending.</summary>
+        private int pendingSuitColor = -1;
+
+        private float suitColorTimer;
+        private bool suitColorInFlight;
+
         private void Awake()
         {
             if (instance != null && instance != this) { Destroy(gameObject); return; }
@@ -107,6 +128,7 @@ namespace SpaceGame.Core
         {
             Heartbeat();
             Poll();
+            FlushSuitColor();
         }
 
         // ─────────────────────────────────────────────
@@ -142,7 +164,7 @@ namespace SpaceGame.Core
                 string name = string.IsNullOrWhiteSpace(lobbyName) ? $"{PlayerName}'s game" : lobbyName;
 
                 Current = await LobbyService.Instance.CreateLobbyAsync(name, MaxPlayers,
-                    BuildCreateOptions(isPrivate, host.JoinCode, PlayerName));
+                    BuildCreateOptions(isPrivate, host.JoinCode, PlayerName, SuitColor));
 
                 State = LobbyState.InLobby;
                 Changed?.Invoke();
@@ -187,7 +209,7 @@ namespace SpaceGame.Core
 
         public Task<bool> JoinByIdAsync(string lobbyId) => JoinAsync(
             () => LobbyService.Instance.JoinLobbyByIdAsync(lobbyId,
-                new JoinLobbyByIdOptions { Player = BuildPlayer(PlayerName) }),
+                new JoinLobbyByIdOptions { Player = BuildPlayer(PlayerName, SuitColor) }),
             "Could not join that lobby.");
 
         public Task<bool> JoinByCodeAsync(string lobbyCode)
@@ -202,7 +224,7 @@ namespace SpaceGame.Core
 
             return JoinAsync(
                 () => LobbyService.Instance.JoinLobbyByCodeAsync(code,
-                    new JoinLobbyByCodeOptions { Player = BuildPlayer(PlayerName) }),
+                    new JoinLobbyByCodeOptions { Player = BuildPlayer(PlayerName, SuitColor) }),
                 "Could not join with that code.");
         }
 
@@ -296,6 +318,77 @@ namespace SpaceGame.Core
             }
         }
 
+        /// <summary>
+        /// Publishes the local player's suit colour to the lobby, coalescing bursts.
+        ///
+        /// <para>
+        /// Nothing here paints anything — the local figure is repainted by the screen the instant the
+        /// arrow is pressed, and this only tells everyone else. That split is what lets the cycler
+        /// feel immediate while the service call is allowed to be slow.
+        /// </para>
+        ///
+        /// <para>
+        /// Debounced because Lobby rate-limits UpdatePlayer to five calls per five seconds per
+        /// player, and stepping through fourteen swatches to see them all is fourteen presses in
+        /// about two seconds. Without this, a player browsing the list trips the limiter and the
+        /// colour they settle on is the one request that gets refused — leaving everyone else looking
+        /// at whatever they happened to be on when the budget ran out.
+        /// </para>
+        ///
+        /// <para>
+        /// Not routed through <see cref="TryBegin"/>, for the same reason
+        /// <see cref="SetPrivacyAsync"/> is not: that guard exists to stop a double-click allocating
+        /// two Relay servers, and blocking here would silently drop the press.
+        /// </para>
+        /// </summary>
+        public void PublishSuitColor(int suitColor)
+        {
+            pendingSuitColor = SuitPalette.Clamp(suitColor);
+            suitColorTimer = SuitColorDebounce;
+        }
+
+        /// <summary>
+        /// Sends the pending colour once the player has stopped pressing.
+        ///
+        /// Failures are logged, not raised: the local astronaut and the stored preference are
+        /// already correct, so the only casualty is that other people see the previous colour until
+        /// the next press — and a warning pinned over the roster for that would be worse than the
+        /// problem.
+        /// </summary>
+        private async void FlushSuitColor()
+        {
+            if (pendingSuitColor < 0 || suitColorInFlight) return;
+
+            suitColorTimer -= Time.deltaTime;
+            if (suitColorTimer > 0f) return;
+
+            if (Current == null || !AuthenticationService.Instance.IsSignedIn)
+            {
+                // Nothing to publish to. Dropped rather than held, or it would fire at whatever
+                // lobby this peer joins next.
+                pendingSuitColor = -1;
+                return;
+            }
+
+            int sending = pendingSuitColor;
+            pendingSuitColor = -1;
+            suitColorInFlight = true;
+
+            try
+            {
+                Current = await LobbyService.Instance.UpdatePlayerAsync(
+                    Current.Id, AuthenticationService.Instance.PlayerId,
+                    BuildSuitColorOptions(sending));
+
+                Changed?.Invoke();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[LobbySession] Could not publish suit colour {sending}: {e.Message}");
+            }
+            finally { suitColorInFlight = false; }
+        }
+
         /// <summary>The names to show in the roster, in lobby order.</summary>
         public static string[] PlayerNames(Lobby lobby)
         {
@@ -330,6 +423,9 @@ namespace SpaceGame.Core
 
         /// <summary>The name other players see. One identity, shared with PlayerIdentity in-game.</summary>
         private static string PlayerName => GameSettings.PlayerName;
+
+        /// <summary>The suit colour other players see. Same store PlayerIdentity publishes from.</summary>
+        private static int SuitColor => GameSettings.SuitColorIndex;
 
         /// <summary>
         /// Joins, then connects to the Relay server the lobby advertises.

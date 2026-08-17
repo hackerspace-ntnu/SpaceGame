@@ -277,6 +277,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickupableItem
   ShowTopMostFoldoutHeaderGroup: 1
   item: {fileID: 0}
+  pickupId: 503
+  pickupSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
 --- !u!114 &7690567672306401050
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -306,6 +314,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LassoArtifact
   maxUses: -1
+  useSoundId: 0
   useSound:
     Guid:
       Data1: 568073404

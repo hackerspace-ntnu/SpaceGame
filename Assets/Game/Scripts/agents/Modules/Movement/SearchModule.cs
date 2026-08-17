@@ -7,6 +7,7 @@
 // module would have resolved for itself.
 using UnityEngine;
 using FMODUnity;
+using SpaceGame.Audio;
 
 namespace SpaceGame.Agents
 {
@@ -18,6 +19,7 @@ namespace SpaceGame.Agents
         [SerializeField] private float speedMultiplier = 1.1f;
 
         [Header("Audio")]
+        [SerializeField] private SfxId searchId = SfxId.EntitySearch;
         [SerializeField] private EventReference searchSound;
 
         private bool isSearching;
@@ -55,8 +57,7 @@ namespace SpaceGame.Agents
                 isSearching = true;
                 searchTimer = searchDuration;
 
-                if (!searchSound.IsNull)
-                    RuntimeManager.PlayOneShot(searchSound, transform.position);
+                Sfx.Play(searchId, transform.position, searchSound, GetInstanceID());
             }
 
             hadTarget = hasTarget;

@@ -1,6 +1,8 @@
+using FMODUnity;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Events;
+using SpaceGame.Audio;
 using SpaceGame.Core;
 using SpaceGame.Items;
 
@@ -106,21 +108,29 @@ namespace SpaceGame.Gameplay
             networkProgress.OnValueChanged -= HandleNetworkProgressChanged;
         }
 
+        [Header("Audio")]
+        [SerializeField] private SfxId acceptedId = SfxId.InteractWorkstationRepair;
+        [SerializeField] private EventReference acceptedSound;
+        [SerializeField] private SfxId rejectedId = SfxId.InteractDenied;
+
         // Interacting with a finished machine does nothing, so let the crosshair say so.
         public bool CanInteract() => !IsRepaired;
 
         public void Interact(Interactor interactor)
         {
+            if (interactor == null) return;
+
             Network.Execute(
                 local: () => TryInsertScrap(interactor),
-                client: () => InsertScrapServerRpc(interactor.GetComponent<NetworkObject>()));
+                client: () => InteractorRelay.RequestFrom(interactor, InsertScrapServerRpc));
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         private void InsertScrapServerRpc(NetworkObjectReference interactorRef)
         {
-            if (!interactorRef.TryGet(out NetworkObject player)) return;
-            TryInsertScrap(player.GetComponent<Interactor>());
+            if (!InteractorRelay.TryResolve(interactorRef, out Interactor interactor)) return;
+
+            TryInsertScrap(interactor);
         }
 
         /// <summary>Server-side (or offline) authority: validate the held item, consume it, advance.</summary>
@@ -134,7 +144,7 @@ namespace SpaceGame.Gameplay
                 return;
             }
 
-            IPlayerInventory inventory = interactor.GetComponent<IPlayerInventory>();
+            IPlayerInventory inventory = interactor.GetComponentInParent<IPlayerInventory>();
             if (inventory == null) return;
 
             InventorySlot slot = inventory.GetSelectedSlot();
@@ -213,6 +223,12 @@ namespace SpaceGame.Gameplay
 
         private void PlayFeedback(bool accepted)
         {
+            // This already runs on every client — it is the path that exists so accept/reject
+            // feedback is not confined to the deciding server — which makes it the one place the
+            // sound can go and be heard by everyone who is standing there.
+            Sfx.Play(accepted ? acceptedId : rejectedId, transform.position,
+                     accepted ? acceptedSound : default, GetInstanceID());
+
             if (accepted)
             {
                 clunkTimer = clunkDuration;

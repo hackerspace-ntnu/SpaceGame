@@ -1,4 +1,6 @@
+using FMODUnity;
 using UnityEngine;
+using SpaceGame.Audio;
 using SpaceGame.Gameplay;
 
 namespace SpaceGame.Weapons
@@ -21,10 +23,29 @@ namespace SpaceGame.Weapons
         [Header("Damage")]
         [SerializeField] protected int damage = 10;
 
+        [Header("Impact Audio")]
+        [Tooltip("Played when the shot lands on something that can bleed.")]
+        [SerializeField] protected SfxId fleshImpactId = SfxId.ImpactFlesh;
+        [Tooltip("Played when the shot lands on anything else — walls, ground, machinery.")]
+        [SerializeField] protected SfxId hardImpactId = SfxId.ImpactMetal;
+        [Tooltip("Overrides both of the above.")]
+        [SerializeField] protected EventReference impactSound;
+
         protected Transform ownerRoot;
         protected bool initialized;
         protected float spawnTime;
         protected Vector3 direction = Vector3.forward;
+
+        /// <summary>
+        /// True for a projectile that exists only so somebody can watch it.
+        ///
+        /// A shot is resolved once, on the machine with authority, and shown on all the others — so
+        /// every machine has a copy of the same bullet in the air. Exactly one of them may bill the
+        /// target for it. Without this flag each peer's copy would call <see cref="NetDamage"/> on
+        /// impact, which forwards to the server, and a four-player session would deal the damage
+        /// four times.
+        /// </summary>
+        public bool Cosmetic { get; set; }
 
         /// <summary>
         /// Initialize the projectile with owner and direction.
@@ -68,7 +89,8 @@ namespace SpaceGame.Weapons
         {
             // Through NetDamage, so the hit registers on the server rather than only on the
             // machine that fired. GetComponentInParent is left to NetDamage's own lookup.
-            NetDamage.Apply(hit.collider.gameObject, damage, transform);
+            if (!Cosmetic)
+                NetDamage.Apply(hit.collider.gameObject, damage, transform);
 
             OnImpact(hit.point, hit.normal, hit.collider);
 
@@ -80,10 +102,35 @@ namespace SpaceGame.Weapons
 
         /// <summary>
         /// Called when projectile hits something. Override for custom impact effects.
+        ///
+        /// <para>
+        /// The impact sound belongs here rather than beside the NetDamage call above, and
+        /// deliberately outside the <c>Cosmetic</c> check: every peer carries its own copy of the
+        /// shot, and only one of them is allowed to bill the target — but all of them should hear it
+        /// land. Gating this on authority would leave the impact silent for everyone except whoever
+        /// happened to be resolving the damage.
+        /// </para>
         /// </summary>
         protected virtual void OnImpact(Vector3 position, Vector3 normal, Collider hitCollider)
         {
-            // Override in subclasses for particle effects, sounds, etc.
+            SfxId id = HasHealth(hitCollider) ? fleshImpactId : hardImpactId;
+
+            Sfx.Play(id, position, impactSound, GetInstanceID());
+        }
+
+        /// <summary>
+        /// Whether what was hit is a living thing, which decides between the wet and the hard impact.
+        /// <para>
+        /// GetComponentInParent, matching how NetDamage resolves its target — colliders on this
+        /// project's rigs hang off bones well below the object carrying the HealthComponent, so a
+        /// plain GetComponent would call every body shot a wall hit.
+        /// </para>
+        /// </summary>
+        private static bool HasHealth(Collider hitCollider)
+        {
+            if (hitCollider == null) return false;
+
+            return hitCollider.GetComponentInParent<HealthComponent>() != null;
         }
 
         /// <summary>

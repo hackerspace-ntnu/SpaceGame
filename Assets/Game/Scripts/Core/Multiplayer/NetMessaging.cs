@@ -77,6 +77,17 @@ namespace SpaceGame.Core
                 : null;
         }
 
+        /// <summary>
+        /// True when <see cref="R"/> carries a real orientation.
+        ///
+        /// A default-constructed NetArg leaves it all-zero, which is not a rotation — so this is how
+        /// a handler tells "the sender told me where they were aiming" from "nobody filled this in".
+        /// Distinguishing those matters: the alternative is for a peer to fall back on its own
+        /// camera, which on the server means firing along the host's crosshair.
+        /// </summary>
+        public readonly bool HasOrientation =>
+            R.x * R.x + R.y * R.y + R.z * R.z + R.w * R.w > 1e-4f;
+
         /// <summary>The id to put in <see cref="Target"/> for <paramref name="go"/>, or 0.</summary>
         public static ulong IdOf(GameObject go)
         {
@@ -122,6 +133,12 @@ namespace SpaceGame.Core
 
         // (30 was LaunchCraft, retired: a wing-pack launch is just a server-authoritative item use
         //  like any other. Not reused — ids travel between builds.)
+
+        // ── Life cycle ──
+        // No matching "Respawned" id: the server's answer to this is a heal (which the health
+        // NetworkVariable already publishes) plus a placement (which NetworkedTeleport routes to
+        // the owner). Neither needs a message of its own.
+        public const ushort Respawn   = 40; // owner → server, on the PLAYER's relay
     }
 
     /// <summary>Sentinels for the client-id arguments.</summary>

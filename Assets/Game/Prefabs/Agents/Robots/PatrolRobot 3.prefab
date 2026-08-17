@@ -685,6 +685,7 @@ MonoBehaviour:
   emitNoiseOnSpot: 1
   spotNoiseRadius: 12
   playSpotSound: 1
+  spotId: 407
   spotSound:
     Guid:
       Data1: 984865563
@@ -709,6 +710,7 @@ MonoBehaviour:
   searchDuration: 4
   stopDistance: 0.6
   speedMultiplier: 1.1
+  searchId: 408
   searchSound:
     Guid:
       Data1: 0
@@ -798,6 +800,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 056784ad4e16d46cfa8fbc9ad9b7a182, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EntityAudioModule
+  footstepId: 411
   footstepSound:
     Guid:
       Data1: 2109535426
@@ -809,6 +812,7 @@ MonoBehaviour:
   movementThreshold: 0.3
   footstepNoiseRadius: 8
   emitFootstepNoise: 1
+  aggroId: 406
   aggroSound:
     Guid:
       Data1: 0
@@ -817,6 +821,7 @@ MonoBehaviour:
       Data4: 0
     Path: 
   aggroNoiseRadius: 14
+  ambientId: 400
   ambientSound:
     Guid:
       Data1: 244983765
@@ -871,6 +876,7 @@ MonoBehaviour:
   dieAnimTrigger: 
   emitNoiseOnDamage: 1
   damageNoiseRadius: 15
+  hurtId: 409
   hurtSound:
     Guid:
       Data1: 1785186576
@@ -883,6 +889,7 @@ MonoBehaviour:
       m_Calls: []
   emitNoiseOnDeath: 1
   deathNoiseRadius: 20
+  deathId: 410
   deathSound:
     Guid:
       Data1: -1486019807

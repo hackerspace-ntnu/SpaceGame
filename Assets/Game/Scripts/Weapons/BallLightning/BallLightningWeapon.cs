@@ -18,7 +18,7 @@ namespace SpaceGame.Weapons
         private NetworkObject networkOwner;
         private BallLightningProjectile currentProjectile; // Reference to the currently charging projectile
 
-        private void OnEnable()
+        protected override void OnEnable()
         {
             // Call parent OnEnable first
             base.OnEnable();
@@ -57,6 +57,9 @@ namespace SpaceGame.Weapons
                 return;
             }
 
+            // Only the authority's orb may hurt anybody — every other machine runs this to show it.
+            projectile.Cosmetic = !ShotDealsDamage;
+
             // Set owner for damage checks and networking
             Transform ownerRoot = networkOwner != null ? networkOwner.transform : transform.root;
             projectile.Initialize(initialDir, ownerRoot, spawnPos);
@@ -88,12 +91,12 @@ namespace SpaceGame.Weapons
         
             // Tell the projectile to actually launch (enables movement)
             currentProjectile.LaunchCharged();
-        
-            // Play firing sound
-            PlayFireSound();
+
+            // The report belongs to Present(), which runs on every machine — see Weapon.
         }
 
-        private new Vector3 GetSpawnPosition()
+        // override, not `new` — see the same note on BasicGun.
+        protected override Vector3 GetSpawnPosition()
         {
             if (projectileSpawnPoint == null)
             {

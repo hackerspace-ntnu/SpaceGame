@@ -1,5 +1,8 @@
 using UnityEngine;
 using System;
+using FMODUnity;
+using SpaceGame.Audio;
+using SpaceGame.Core;
 using SpaceGame.Items;
 using SpaceGame.Presentation;
 
@@ -26,11 +29,15 @@ namespace SpaceGame.Weapons
         [SerializeField] private Magazine magazine;
         [SerializeField] protected int ammoPerShot = 1;
 
+        // These were plain strings fed to AudioManager.PlaySFX3d, which resolves an FMOD path at call
+        // time and throws EventNotFoundException on a typo — a weapon could take the game down by
+        // being fired. They also required an AudioManager in the scene, which is why every weapon
+        // ran FindObjectOfType on enable. SfxId is checked by the compiler and needs no manager.
         [Header("Audio")]
-        [SerializeField] protected string fireSoundName = ""; // FMOD sound event or name
-        [SerializeField] protected float fireSoundVolume = 1f;
-        [SerializeField] protected string chargeStartSoundName = ""; // Sound played when charging starts
-        [SerializeField] protected float chargeStartSoundVolume = 1f;
+        [SerializeField] protected SfxId fireSoundId = SfxId.WeaponGunFire;
+        [SerializeField] protected EventReference fireSound;
+        [SerializeField] protected SfxId chargeStartSoundId = SfxId.WeaponEnergyChargeLoop;
+        [SerializeField] protected EventReference chargeStartSound;
 
         [Header("Charging")]
         [SerializeField] protected bool enableCharging = false; // Toggle charging mode on/off
@@ -39,7 +46,6 @@ namespace SpaceGame.Weapons
 
         protected float nextFireTime;
         protected bool canFire = true;
-        protected AudioManager audioManager;
         protected bool isCharging = false;
         protected float chargeStartTime;
         protected IChargeable chargedProjectile; // Reference to currently charging projectile
@@ -56,12 +62,6 @@ namespace SpaceGame.Weapons
 
         protected virtual void OnEnable()
         {
-            // Get audio manager
-            if (audioManager == null)
-            {
-                audioManager = FindObjectOfType<AudioManager>();
-            }
-
             // Auto-find camera if not assigned
             if (aimCamera == null)
             {
@@ -141,9 +141,19 @@ namespace SpaceGame.Weapons
 
         /// <summary>
         /// Rotate weapon to point in the direction the camera is looking (pitch only).
+        ///
+        /// Owner only. Camera.main is whatever camera this machine happens to have active, which for
+        /// every OTHER player's weapon is the local player's — so without the ownership test each
+        /// machine swung every gun in the game to follow its own head. A remote copy is left on its
+        /// hand bone, where the replicated animation puts it, which is what it should look like.
         /// </summary>
         protected virtual void UpdateWeaponRotation()
         {
+            if (!Network.Owns(this))
+            {
+                return;
+            }
+
             if (aimCamera == null)
             {
                 aimCamera = Camera.main;
@@ -251,6 +261,27 @@ namespace SpaceGame.Weapons
         /// </summary>
         protected virtual Vector3 GetAimPoint()
         {
+            // What the owner reported wins over anything this machine can work out for itself. On
+            // the server — which is where an item's Use() runs — the local camera belongs to the
+            // host, so a client's shot used to travel along the host's crosshair.
+            if (UseArg.HasOrientation)
+            {
+                return GetSpawnPosition() + UseArg.R * Vector3.forward * 500f;
+            }
+
+            return GetLocalAimPoint();
+        }
+
+        /// <summary>
+        /// Where THIS machine's camera is pointing, ignoring anything a previous use reported.
+        ///
+        /// Split out from <see cref="GetAimPoint"/> because the owner has to be able to ask the
+        /// question afresh: <see cref="OnRequestUse"/> runs before the new UseArg is assigned, so a
+        /// version that consulted UseArg first answered with the aim of the PREVIOUS shot and every
+        /// bullet after the first went where the last one did.
+        /// </summary>
+        protected virtual Vector3 GetLocalAimPoint()
+        {
             if (aimCamera == null)
             {
                 aimCamera = Camera.main;
@@ -274,11 +305,25 @@ namespace SpaceGame.Weapons
 
         /// <summary>
         /// Get the direction the projectile should fire in.
+        ///
+        /// Every subclass routes through here, which is deliberate: fixing the aim in the base class
+        /// fixes every weapon written against it, including the ones nobody has written yet.
         /// </summary>
         protected virtual Vector3 GetFireDirection()
         {
+            if (UseArg.HasOrientation)
+            {
+                return UseArg.R * Vector3.forward;
+            }
+
+            return GetLocalFireDirection();
+        }
+
+        /// <summary>The direction this machine's own camera says. See <see cref="GetLocalAimPoint"/>.</summary>
+        protected virtual Vector3 GetLocalFireDirection()
+        {
             Transform origin = GetFireOrigin();
-            Vector3 aimPoint = GetAimPoint();
+            Vector3 aimPoint = GetLocalAimPoint();
             Vector3 direction = (aimPoint - origin.position).normalized;
 
             if (direction.sqrMagnitude < 0.0001f)
@@ -311,15 +356,83 @@ namespace SpaceGame.Weapons
             return origin.position + origin.forward * spawnOffset;
         }
 
+        // ─────────── Firing across the network ───────────
+        //
+        // A shot is two different things on two different machines, and this is where they split.
+        //
+        // Before this, a weapon's whole effect lived in Use(), which UsableItem runs on the SERVER
+        // and nowhere else. So the projectile existed only on the server (a plain Instantiate, never
+        // network-spawned), the muzzle flash and the report happened only on the server, and the
+        // ammo only ever came off the server's magazine — the owner's own HUD never moved. From a
+        // client, firing a gun produced no bullet, no sound and no visible change: only a health bar
+        // somewhere dropping for no apparent reason.
+
         /// <summary>
-        /// Override Use() from UsableItem - this is called when weapon item is used.
-        /// Should attempt to fire or trigger weapon action.
+        /// Owner side, before the request leaves: say where this shot starts and where it points.
+        ///
+        /// Nobody else can reconstruct it. The server has neither this player's camera nor their
+        /// exact frame, and a peer has neither either.
+        /// </summary>
+        public override void OnRequestUse(ref NetArg arg)
+        {
+            base.OnRequestUse(ref arg);
+
+            // The LOCAL aim, deliberately — this is the moment the owner's own camera is the answer,
+            // and GetFireDirection would hand back whatever the previous shot reported.
+            Vector3 direction = GetLocalFireDirection();
+
+            arg.P = GetSpawnPosition();
+            arg.R = direction.sqrMagnitude > 0.0001f
+                ? Quaternion.LookRotation(direction)
+                : GetFireOrigin().rotation;
+        }
+
+        /// <summary>
+        /// Authority side: the shot that counts. Its projectile deals damage; its hitscan registers.
         /// </summary>
         protected override void Use()
         {
-            // Fire attempt is handled by TryFire()
+            ShotDealsDamage = true;
             TryFire();
         }
+
+        /// <summary>
+        /// Every machine: the shot you can see and hear.
+        ///
+        /// The authority is skipped because it already fired a real one a moment ago — running both
+        /// would put two bullets in the air on the host. Everybody else gets a copy that looks and
+        /// sounds identical and cannot hurt anyone, because the hit was decided on the server.
+        /// </summary>
+        protected override void Present()
+        {
+            PlayFireSound();
+
+            if (Network.Simulates(this)) return;
+
+            // Mirror the round off this machine's own magazine. Equipment is rebuilt locally on
+            // every machine from the replicated hotbar, so each has its own Magazine — and the one
+            // the owner's HUD reads is theirs, not the server's.
+            if (magazine != null) magazine.ConsumeAmmo(ammoPerShot);
+
+            // A charging weapon's shot is a two-press state machine — spawn on the first press,
+            // launch on the second — and a peer never saw the first press, so it has no projectile
+            // to launch. Peers therefore hear a charged shot but do not draw one. Showing it would
+            // mean replicating the charge itself, which is a bigger piece of work than this.
+            if (enableCharging) return;
+
+            ShotDealsDamage = false;
+            Fire();
+        }
+
+        /// <summary>
+        /// Whether the shot currently being produced by <see cref="Fire"/> is the real one.
+        ///
+        /// False on a machine that is only showing what the server already resolved. A subclass that
+        /// spawns a projectile must pass this on to it, and one that resolves its own hits (a
+        /// hitscan) must not apply damage when it is false — otherwise every machine in the session
+        /// bills the target for the same bullet.
+        /// </summary>
+        protected bool ShotDealsDamage { get; private set; } = true;
 
         /// <summary>
         /// Override CanUse() to check ammo.
@@ -396,26 +509,16 @@ namespace SpaceGame.Weapons
             }
         }
 
-        /// <summary>
-        /// Play fire sound via AudioManager.
-        /// </summary>
+        /// <summary>Fires the weapon's shot sound at the muzzle.</summary>
         protected virtual void PlayFireSound()
         {
-            if (!string.IsNullOrEmpty(fireSoundName) && audioManager != null)
-            {
-                audioManager.PlaySFX3d(fireSoundName, GetFireOrigin().position);
-            }
+            Sfx.Play(fireSoundId, GetFireOrigin().position, fireSound, GetInstanceID());
         }
 
-        /// <summary>
-        /// Play charge start sound via AudioManager.
-        /// </summary>
+        /// <summary>Fires the spin-up sound when a chargeable weapon starts charging.</summary>
         protected virtual void PlayChargeStartSound()
         {
-            if (!string.IsNullOrEmpty(chargeStartSoundName) && audioManager != null)
-            {
-                audioManager.PlaySFX3d(chargeStartSoundName, GetFireOrigin().position);
-            }
+            Sfx.Play(chargeStartSoundId, GetFireOrigin().position, chargeStartSound, GetInstanceID());
         }
     }
 }

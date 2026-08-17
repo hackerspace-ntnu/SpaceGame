@@ -1,6 +1,8 @@
 using System.Collections;
+using FMODUnity;
 using UnityEngine;
 using UnityEngine.Events;
+using SpaceGame.Audio;
 
 namespace SpaceGame.Gameplay
 {
@@ -35,6 +37,10 @@ namespace SpaceGame.Gameplay
             restRotation = handle.localRotation;
         }
 
+        [Header("Audio")]
+        [SerializeField] private SfxId pullId = SfxId.InteractLever;
+        [SerializeField] private EventReference pullSound;
+
         public bool CanInteract() => !busy && !(oneShot && pulled);
 
         public void Interact(Interactor interactor)
@@ -46,6 +52,11 @@ namespace SpaceGame.Gameplay
         private IEnumerator PullRoutine()
         {
             busy = true;
+
+            // At the start of the swing rather than the end: the clunk belongs to the moment the
+            // player pulled it, not to whatever the lever eventually triggers.
+            Sfx.Play(pullId, transform.position, pullSound, GetInstanceID());
+
             Quaternion target = restRotation * Quaternion.Euler(pulledLocalEuler);
             float t = 0f;
             float dur = Mathf.Max(0.01f, animDuration);

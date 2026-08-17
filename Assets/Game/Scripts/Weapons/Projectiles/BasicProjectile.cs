@@ -74,9 +74,8 @@ namespace SpaceGame.Weapons
         /// </summary>
         protected override void OnImpact(Vector3 position, Vector3 normal, Collider hitCollider)
         {
-            // Base implementation - can be extended for visual effects
-            // such as impact particles, sounds, etc.
-            Debug.Log($"BasicProjectile hit {hitCollider.gameObject.name} at {position}");
+            // The base picks the flesh or hard impact sound and plays it.
+            base.OnImpact(position, normal, hitCollider);
         }
     }
 }

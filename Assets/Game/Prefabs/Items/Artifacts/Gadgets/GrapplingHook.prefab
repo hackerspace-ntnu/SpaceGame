@@ -55,6 +55,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GrapplingHookArtifact
   maxUses: -1
+  useSoundId: 0
   useSound:
     Guid:
       Data1: 1209704560
@@ -113,6 +114,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickupableItem
   ShowTopMostFoldoutHeaderGroup: 1
   item: {fileID: 11400000, guid: a8ed2d0bd649a40a689b18f4aea02731, type: 2}
+  pickupId: 503
+  pickupSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
 --- !u!114 &4439865540114267824
 MonoBehaviour:
   m_ObjectHideFlags: 0

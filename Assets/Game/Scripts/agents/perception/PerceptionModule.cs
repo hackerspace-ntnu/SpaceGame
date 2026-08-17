@@ -10,6 +10,7 @@
 //   HasLineOfSightFrom(origin, target) — LoS from an arbitrary origin (e.g. a weapon muzzle)
 using UnityEngine;
 using FMODUnity;
+using SpaceGame.Audio;
 
 namespace SpaceGame.Agents
 {
@@ -40,6 +41,7 @@ namespace SpaceGame.Agents
 
         [Header("Audio")]
         [SerializeField] private bool playSpotSound = true;
+        [SerializeField] private SfxId spotId = SfxId.EntityAlert;
         [SerializeField] private EventReference spotSound;
 
         public Vector3 LastKnownPosition { get; private set; }
@@ -177,8 +179,8 @@ namespace SpaceGame.Agents
             if (emitNoiseOnSpot && noiseEmitter)
                 noiseEmitter.Emit(NoiseType.Alert, spotNoiseRadius);
 
-            if (playSpotSound && !spotSound.IsNull)
-                RuntimeManager.PlayOneShot(spotSound, transform.position);
+            if (playSpotSound)
+                Sfx.Play(spotId, transform.position, spotSound, GetInstanceID());
         }
 
         private Vector3 GetForward() => transform.forward;

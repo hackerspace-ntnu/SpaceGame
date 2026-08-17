@@ -55,11 +55,22 @@ namespace SpaceGame.Presentation
         public const float ColumnWidth = 1500f;
 
         /// <summary>
-        /// The horizon, in top-down pixels on the 1080-high reference canvas.
+        /// A conservative horizon, in top-down pixels on the 1080-high reference canvas: everything
+        /// below this is reliably ground.
         ///
-        /// Not a guess: MainMenu.unity's camera sits at zero pitch, and a camera with no pitch puts
-        /// the horizon exactly across the middle of what it sees. So the bottom half of the screen
-        /// is ground and the top half is sky.
+        /// <para>
+        /// This used to claim MainMenu.unity's camera sat at zero pitch, which put the horizon exactly
+        /// across the middle of the frame. It does not — the camera is pitched about 11.6° and the
+        /// measured skyline sits nearer 40% of the way down, so there is MORE ground than this value
+        /// implies. That makes 540 safe for the thing it is used for (keeping dark navy entries off
+        /// the sky) and wrong for the opposite question.
+        /// </para>
+        ///
+        /// <para>
+        /// So do not read it as "above this is sky". Anything that has to be legible <i>above</i> this
+        /// line has to carry its own contrast — see how <c>LobbyPreviewRank</c> builds its nameplates,
+        /// which sit over heads that are below this line and over sand.
+        /// </para>
         /// </summary>
         public const float Horizon = 540f;
 
@@ -116,6 +127,47 @@ namespace SpaceGame.Presentation
             if (onClick != null) button.onClick.AddListener(onClick);
 
             return button;
+        }
+
+        /// <summary>
+        /// Repaints an entry white, for use over sky rather than over sand.
+        ///
+        /// <para>
+        /// The menu's default entry is <see cref="Idle"/>, a dark navy chosen to read against ground.
+        /// An entry placed above the horizon needs the opposite, and it cannot simply be tinted:
+        /// <b>the button prefab's animator rewrites its own label's colour every state change</b>, so
+        /// an assignment lasts exactly one frame. The animator is therefore switched off and the
+        /// colour handed to the Button's own tint block instead.
+        /// </para>
+        ///
+        /// <para>
+        /// Switching the animator off costs the hover scale-up, and nothing else:
+        /// <see cref="UIButton"/> plays both FMOD sounds from its own pointer handlers rather than
+        /// from animation events, so a light entry still clicks and still sounds like the rest of the
+        /// menu. The tint block below puts the hover feedback back as a colour shift.
+        /// </para>
+        /// </summary>
+        public static void MakeLight(Button button, TextMeshProUGUI label)
+        {
+            var animator = button.GetComponent<Animator>();
+            if (animator != null) animator.enabled = false;
+
+            // The tint multiplies the graphic's own colour, so the label goes white and the block
+            // carries every state's actual colour.
+            label.color = Color.white;
+
+            button.transition = Selectable.Transition.ColorTint;
+            button.targetGraphic = label;
+
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.selectedColor = Color.white;
+            colors.highlightedColor = new Color(1f, 0.9f, 0.68f);
+            colors.pressedColor = new Color(0.78f, 0.68f, 0.5f);
+            colors.disabledColor = new Color(1f, 1f, 1f, 0.35f);
+            colors.colorMultiplier = 1f;
+            colors.fadeDuration = 0.09f;
+            button.colors = colors;
         }
 
         /// <summary>Sets an entry's width inside a horizontal layout group.</summary>

@@ -1,7 +1,10 @@
 {
     "name": "SpaceGame.Vehicles.Ornithopter",
     "rootNamespace": "SpaceGame.Vehicles.Ornithopter",
-    "references": [],
+    "references": [
+        "FMODUnity",
+        "SpaceGame.Audio"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

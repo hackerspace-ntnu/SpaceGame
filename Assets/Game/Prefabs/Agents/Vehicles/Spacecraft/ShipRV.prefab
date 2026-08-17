@@ -1320,6 +1320,57 @@ MonoBehaviour:
   blockWhileMoving: 1
   lockedWhileMounted: 1
   mountLock: {fileID: 0}
+--- !u!1 &1122334455667788001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1122334455667788002}
+  - component: {fileID: 1122334455667788003}
+  m_Layer: 0
+  m_Name: SpawnPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1122334455667788002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1122334455667788001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.605, z: -0.85}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8892000217540182618}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1122334455667788003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1122334455667788001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be4ce47048bea6a44bee244d904ff766, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spawnRadius: 0.5
+  blockingLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  groundClearance: 1.2
+  attempts: 20
+  probeHeight: 1
 --- !u!1 &1334416399886850029
 GameObject:
   m_ObjectHideFlags: 0
@@ -4576,6 +4627,7 @@ GameObject:
   - component: {fileID: 3573309992756257913}
   - component: {fileID: -8592645260601008083}
   - component: {fileID: 4222765109031094611}
+  - component: {fileID: 6718964329822956518}
   m_Layer: 0
   m_Name: ShipRV
   m_TagString: Untagged
@@ -4957,6 +5009,30 @@ MonoBehaviour:
   surfaceClearance: 1.2
   absoluteFloorY: -500
   logRecoveries: 1
+--- !u!114 &6718964329822956518
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4311070154887600435}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4592f61cecab4ea7a8196e9152472bd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.AudioLoop
+  loopId: 700
+  loopSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  playOnEnable: 1
+  followTransform: 1
+  fadeOutOnStop: 1
+  intensityParameter: 
 --- !u!1 &4456266824167829280
 GameObject:
   m_ObjectHideFlags: 0
@@ -9832,54 +9908,3 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7100001, guid: 6b4d9c2e8a1f74e3ba5c0d78f1e29435, type: 3}
   m_PrefabInstance: {fileID: 1014701190233929367}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1122334455667788001
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1122334455667788002}
-  - component: {fileID: 1122334455667788003}
-  m_Layer: 0
-  m_Name: SpawnPoint
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1122334455667788002
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1122334455667788001}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.605, z: -0.85}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 8892000217540182618}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1122334455667788003
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1122334455667788001}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: be4ce47048bea6a44bee244d904ff766, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  spawnRadius: 0.5
-  blockingLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  groundClearance: 1.2
-  attempts: 20
-  probeHeight: 1

@@ -1,0 +1,843 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08d564cac316c41afbcd4e223018ae7a, type: 3}
+  m_Name: AudioCatalog
+  m_EditorClassIdentifier:
+  entries:
+  - id: 100
+    eventRef:
+      Guid:
+        Data1: 2109535426
+        Data2: 1125007156
+        Data3: -1137650264
+        Data4: 1632573456
+      Path: event:/SFX/Footstep
+    cooldown: 0.0
+    maxDistance: 30
+    volume: 1.0
+    note: ''
+  - id: 101
+    eventRef:
+      Guid:
+        Data1: 1659851435
+        Data2: 1275323911
+        Data3: -1264550998
+        Data4: -596900393
+      Path: event:/SFX/Jump
+    cooldown: 0.0
+    maxDistance: 30
+    volume: 1.0
+    note: ''
+  - id: 102
+    eventRef:
+      Guid:
+        Data1: 2109535426
+        Data2: 1125007156
+        Data3: -1137650264
+        Data4: 1632573456
+      Path: event:/SFX/Footstep
+    cooldown: 0.05
+    maxDistance: 30
+    volume: 1.0
+    note: 'stand-in: wants a distinct landing thud'
+  - id: 103
+    eventRef:
+      Guid:
+        Data1: 1209704560
+        Data2: 1259274395
+        Data3: -1562606685
+        Data4: 1967096403
+      Path: event:/SFX/Wham
+    cooldown: 0.05
+    maxDistance: 40
+    volume: 0.9
+    note: 'stand-in: wants a heavy landing'
+  - id: 104
+    eventRef:
+      Guid:
+        Data1: -932380174
+        Data2: 1261117791
+        Data3: 1296317367
+        Data4: 440159795
+      Path: event:/SFX/Antigravity
+    cooldown: 0.1
+    maxDistance: 30
+    volume: 0.8
+    note: 'stand-in: wants a dash whoosh'
+  - id: 105
+    eventRef:
+      Guid:
+        Data1: 568073404
+        Data2: 1232003800
+        Data3: -533523275
+        Data4: -1075932117
+      Path: event:/SFX/Hit
+    cooldown: 0.15
+    maxDistance: 25
+    volume: 1.0
+    note: ''
+  - id: 106
+    eventRef:
+      Guid:
+        Data1: -1486019807
+        Data2: 1229043757
+        Data3: -1953646154
+        Data4: -696340387
+      Path: event:/SFX/PlayerDie
+    cooldown: 0.0
+    maxDistance: 0
+    volume: 1.0
+    note: ''
+  - id: 107
+    eventRef:
+      Guid:
+        Data1: -932380174
+        Data2: 1261117791
+        Data3: 1296317367
+        Data4: 440159795
+      Path: event:/SFX/Antigravity
+    cooldown: 0.0
+    maxDistance: 0
+    volume: 0.9
+    note: 'stand-in: wants a respawn sting'
+  - id: 200
+    eventRef:
+      Guid:
+        Data1: 1209704560
+        Data2: 1259274395
+        Data3: -1562606685
+        Data4: 1967096403
+      Path: event:/SFX/Wham
+    cooldown: 0.0
+    maxDistance: 90
+    volume: 0.7
+    note: 'stand-in: wants a real gunshot'
+  - id: 201
+    eventRef:
+      Guid:
+        Data1: 1785186576
+        Data2: 1245510835
+        Data3: -1836278379
+        Data4: 1511765510
+      Path: event:/SFX/MetalPickup
+    cooldown: 0.0
+    maxDistance: 25
+    volume: 0.9
+    note: 'stand-in: wants a reload'
+  - id: 202
+    eventRef:
+      Guid:
+        Data1: -1233848556
+        Data2: 1129232570
+        Data3: 1179256455
+        Data4: 739468870
+      Path: event:/UI/No
+    cooldown: 0.2
+    maxDistance: 20
+    volume: 0.7
+    note: 'stand-in: wants a dry-fire click'
+  - id: 203
+    eventRef:
+      Guid:
+        Data1: 244983765
+        Data2: 1082068725
+        Data3: 1235189431
+        Data4: -2011481048
+      Path: event:/SFX/ElectricHum
+    cooldown: 0.0
+    maxDistance: 90
+    volume: 0.85
+    note: 'stand-in: wants an energy discharge'
+  - id: 204
+    eventRef:
+      Guid:
+        Data1: 244983765
+        Data2: 1082068725
+        Data3: 1235189431
+        Data4: -2011481048
+      Path: event:/SFX/ElectricHum
+    cooldown: 0.0
+    maxDistance: 0
+    volume: 0.7
+    note: ''
+  - id: 205
+    eventRef:
+      Guid:
+        Data1: 244983765
+        Data2: 1082068725
+        Data3: 1235189431
+        Data4: -2011481048
+      Path: event:/SFX/ElectricHum
+    cooldown: 0.0
+    maxDistance: 0
+    volume: 0.8
+    note: ''
+  - id: 206
+    eventRef:
+      Guid:
+        Data1: 984865563
+        Data2: 1210358750
+        Data3: 1245207699
+        Data4: 1455594882
+      Path: event:/SFX/Implosion
+    cooldown: 0.0
+    maxDistance: 90
+    volume: 1.0
+    note: ''
+  - id: 207
+    eventRef:
+      Guid:
+        Data1: 244983765
+        Data2: 1082068725
+        Data3: 1235189431
+        Data4: -2011481048
+      Path: event:/SFX/ElectricHum
+    cooldown: 0.08
+    maxDistance: 45
+    volume: 0.6
+    note: ''
+  - id: 208
+    eventRef:
+      Guid:
+        Data1: -932380174
+        Data2: 1261117791
+        Data3: 1296317367
+        Data4: 440159795
+      Path: event:/SFX/Antigravity
+    cooldown: 0.0
+    maxDistance: 25
+    volume: 0.6
+    note: 'stand-in: wants a swing whoosh'
+  - id: 209
+    eventRef:
+      Guid:
+        Data1: 1209704560
+        Data2: 1259274395
+        Data3: -1562606685
+        Data4: 1967096403
+      Path: event:/SFX/Wham
+    cooldown: 0.0
+    maxDistance: 30
+    volume: 0.9
+    note: ''
+  - id: 210
+    eventRef:
+      Guid:
+        Data1: 1785186576
+        Data2: 1245510835
+        Data3: -1836278379
+        Data4: 1511765510
+      Path: event:/SFX/MetalPickup
+    cooldown: 0.05
+    maxDistance: 20
+    volume: 0.8
+    note: ''
+  - id: 211
+    eventRef:
+      Guid:
+        Data1: -932380174
+        Data2: 1261117791
+        Data3: 1296317367
+        Data4: 440159795
+      Path: event:/SFX/Antigravity
+    cooldown: 0.05
+    maxDistance: 40
+    volume: 0.45
+    note: 'stand-in: wants a projectile pass-by'
+  - id: 300
+    eventRef:
+      Guid:
+        Data1: -1179107196
+        Data2: 1337426091
+        Data3: -1864092773
+        Data4: 339326117
+      Path: event:/SFX/Slurp
+    cooldown: 0.0
+    maxDistance: 40
+    volume: 0.9
+    note: ''
+  - id: 301
+    eventRef:
+      Guid:
+        Data1: 568073404
+        Data2: 1232003800
+        Data3: -533523275
+        Data4: -1075932117
+      Path: event:/SFX/Hit
+    cooldown: 0.0
+    maxDistance: 40
+    volume: 1.0
+    note: ''
+  - id: 302
+    eventRef:
+      Guid:
+        Data1: 244983765
+        Data2: 1082068725
+        Data3: 1235189431
+        Data4: -2011481048
+      Path: event:/SFX/ElectricHum
+    cooldown: 0.05
+    maxDistance: 40
+    volume: 0.8
+    note: 'stand-in: wants a shield deflect'
+  - id: 303
+    eventRef:
+      Guid:
+        Data1: 1209704560
+        Data2: 1259274395
+        Data3: -1562606685
+        Data4: 1967096403
+      Path: event:/SFX/Wham
+    cooldown: 0.0
+    maxDistance: 50
+    volume: 1.0
+    note: ''
+  - id: 304
+    eventRef:
+      Guid:
+        Data1: -257776272
+        Data2: 1083245490
+        Data3: -1733396809
+        Data4: 1766842722
+      Path: event:/SFX/Explosion
+    cooldown: 0.0
+    maxDistance: 200
+    volume: 1.0
+    note: ''
+  - id: 305
+    eventRef:
+      Guid:
+        Data1: 568073404
+        Data2: 1232003800
+        Data3: -533523275
+        Data4: -1075932117
+      Path: event:/SFX/Hit
+    cooldown: 0.0
+    maxDistance: 50
+    volume: 0.8
+    note: ''
+  - id: 400
+    eventRef:
+      Guid:
+        Data1: -1179107196
+        Data2: 1337426091
+        Data3: -1864092773
+        Data4: 339326117
+      Path: event:/SFX/Slurp
+    cooldown: 4.0
+    maxDistance: 18
+    volume: 0.55
+    note: 'stand-in: wants NPC vocalisations'
+  - id: 401
+    eventRef:
+      Guid:
+        Data1: -1179107196
+        Data2: 1337426091
+        Data3: -1864092773
+        Data4: 339326117
+      Path: event:/SFX/Slurp
+    cooldown: 4.0
+    maxDistance: 18
+    volume: 0.55
+    note: 'stand-in: wants NPC vocalisations'
+  - id: 402
+    eventRef:
+      Guid:
+        Data1: -1179107196
+        Data2: 1337426091
+        Data3: -1864092773
+        Data4: 339326117
+      Path: event:/SFX/Slurp
+    cooldown: 3.0
+    maxDistance: 22
+    volume: 0.7
+    note: 'stand-in: wants NPC vocalisations'
+  - id: 403
+    eventRef:
+      Guid:
+        Data1: -1179107196
+        Data2: 1337426091
+        Data3: -1864092773
+        Data4: 339326117
+      Path: event:/SFX/Slurp
+    cooldown: 0.06
+    maxDistance: 0
+    volume: 0.35
+    note: 'stand-in: wants a text blip'
+  - id: 404
+    eventRef:
+      Guid:
+        Data1: 1229374955
+        Data2: 1235063036
+        Data3: -1150132820
+        Data4: 1689648054
+      Path: event:/UI/Yes
+    cooldown: 0.1
+    maxDistance: 0
+    volume: 0.7
+    note: ''
+  - id: 405
+    eventRef:
+      Guid:
+        Data1: -1233848556
+        Data2: 1129232570
+        Data3: 1179256455
+        Data4: 739468870
+      Path: event:/UI/No
+    cooldown: 0.1
+    maxDistance: 0
+    volume: 0.6
+    note: ''
+  - id: 406
+    eventRef:
+      Guid:
+        Data1: 1209704560
+        Data2: 1259274395
+        Data3: -1562606685
+        Data4: 1967096403
+      Path: event:/SFX/Wham
+    cooldown: 0.5
+    maxDistance: 45
+    volume: 0.85
+    note: 'stand-in: wants an aggro roar'
+  - id: 407
+    eventRef:
+      Guid:
+        Data1: -1233848556
+        Data2: 1129232570
+        Data3: 1179256455
+        Data4: 739468870
+      Path: event:/UI/No
+    cooldown: 0.5
+    maxDistance: 35
+    volume: 0.7
+    note: 'stand-in: wants an alert chirp'
+  - id: 408
+    eventRef:
+      Guid:
+        Data1: -1179107196
+        Data2: 1337426091
+        Data3: -1864092773
+        Data4: 339326117
+      Path: event:/SFX/Slurp
+    cooldown: 2.0
+    maxDistance: 25
+    volume: 0.5
+    note: 'stand-in: wants a searching grumble'
+  - id: 409
+    eventRef:
+      Guid:
+        Data1: 568073404
+        Data2: 1232003800
+        Data3: -533523275
+        Data4: -1075932117
+      Path: event:/SFX/Hit
+    cooldown: 0.1
+    maxDistance: 35
+    volume: 0.9
+    note: ''
+  - id: 410
+    eventRef:
+      Guid:
+        Data1: 984865563
+        Data2: 1210358750
+        Data3: 1245207699
+        Data4: 1455594882
+      Path: event:/SFX/Implosion
+    cooldown: 0.0
+    maxDistance: 50
+    volume: 0.95
+    note: 'stand-in: wants an entity death'
+  - id: 411
+    eventRef:
+      Guid:
+        Data1: 2109535426
+        Data2: 1125007156
+        Data3: -1137650264
+        Data4: 1632573456
+      Path: event:/SFX/Footstep
+    cooldown: 0.0
+    maxDistance: 28
+    volume: 0.75
+    note: ''
+  - id: 412
+    eventRef:
+      Guid:
+        Data1: 1209704560
+        Data2: 1259274395
+        Data3: -1562606685
+        Data4: 1967096403
+      Path: event:/SFX/Wham
+    cooldown: 0.0
+    maxDistance: 35
+    volume: 0.8
+    note: ''
+  - id: 500
+    eventRef:
+      Guid:
+        Data1: -932380174
+        Data2: 1261117791
+        Data3: 1296317367
+        Data4: 440159795
+      Path: event:/SFX/Antigravity
+    cooldown: 0.0
+    maxDistance: 25
+    volume: 0.85
+    note: 'stand-in: wants a door'
+  - id: 501
+    eventRef:
+      Guid:
+        Data1: 1209704560
+        Data2: 1259274395
+        Data3: -1562606685
+        Data4: 1967096403
+      Path: event:/SFX/Wham
+    cooldown: 0.0
+    maxDistance: 25
+    volume: 0.7
+    note: 'stand-in: wants a door'
+  - id: 502
+    eventRef:
+      Guid:
+        Data1: 1785186576
+        Data2: 1245510835
+        Data3: -1836278379
+        Data4: 1511765510
+      Path: event:/SFX/MetalPickup
+    cooldown: 0.0
+    maxDistance: 20
+    volume: 0.9
+    note: 'stand-in: wants a lever clunk'
+  - id: 503
+    eventRef:
+      Guid:
+        Data1: 1684328206
+        Data2: 1268091554
+        Data3: 34304681
+        Data4: -849877735
+      Path: event:/SFX/Pickup
+    cooldown: 0.0
+    maxDistance: 20
+    volume: 1.0
+    note: ''
+  - id: 504
+    eventRef:
+      Guid:
+        Data1: 1785186576
+        Data2: 1245510835
+        Data3: -1836278379
+        Data4: 1511765510
+      Path: event:/SFX/MetalPickup
+    cooldown: 0.0
+    maxDistance: 20
+    volume: 1.0
+    note: ''
+  - id: 505
+    eventRef:
+      Guid:
+        Data1: 568073404
+        Data2: 1232003800
+        Data3: -533523275
+        Data4: -1075932117
+      Path: event:/SFX/Hit
+    cooldown: 0.0
+    maxDistance: 20
+    volume: 0.65
+    note: 'stand-in: wants a drop thud'
+  - id: 506
+    eventRef:
+      Guid:
+        Data1: 244983765
+        Data2: 1082068725
+        Data3: 1235189431
+        Data4: -2011481048
+      Path: event:/SFX/ElectricHum
+    cooldown: 0.0
+    maxDistance: 25
+    volume: 0.8
+    note: 'stand-in: wants a repair loop'
+  - id: 507
+    eventRef:
+      Guid:
+        Data1: 1229374955
+        Data2: 1235063036
+        Data3: -1150132820
+        Data4: 1689648054
+      Path: event:/UI/Yes
+    cooldown: 0.0
+    maxDistance: 0
+    volume: 1.0
+    note: ''
+  - id: 508
+    eventRef:
+      Guid:
+        Data1: -1233848556
+        Data2: 1129232570
+        Data3: 1179256455
+        Data4: 739468870
+      Path: event:/UI/No
+    cooldown: 0.3
+    maxDistance: 0
+    volume: 0.8
+    note: ''
+  - id: 509
+    eventRef:
+      Guid:
+        Data1: 1229374955
+        Data2: 1235063036
+        Data3: -1150132820
+        Data4: 1689648054
+      Path: event:/UI/Yes
+    cooldown: 0.25
+    maxDistance: 0
+    volume: 0.4
+    note: 'stand-in: wants a soft prompt tick'
+  - id: 600
+    eventRef:
+      Guid:
+        Data1: 125610606
+        Data2: 1097649424
+        Data3: 1756199559
+        Data4: -145066629
+      Path: event:/SFX/Takeoff
+    cooldown: 0.0
+    maxDistance: 60
+    volume: 0.9
+    note: ''
+  - id: 601
+    eventRef:
+      Guid:
+        Data1: -932380174
+        Data2: 1261117791
+        Data3: 1296317367
+        Data4: 440159795
+      Path: event:/SFX/Antigravity
+    cooldown: 0.0
+    maxDistance: 45
+    volume: 0.55
+    note: 'stand-in: wants a wing flap'
+  - id: 602
+    eventRef:
+      Guid:
+        Data1: -161778425
+        Data2: 1151011309
+        Data3: -584404083
+        Data4: -984381549
+      Path: event:/SFX/Wind Howling
+    cooldown: 0.0
+    maxDistance: 0
+    volume: 1.0
+    note: ''
+  - id: 603
+    eventRef:
+      Guid:
+        Data1: -1233848556
+        Data2: 1129232570
+        Data3: 1179256455
+        Data4: 739468870
+      Path: event:/UI/No
+    cooldown: 1.0
+    maxDistance: 50
+    volume: 0.75
+    note: 'stand-in: wants a stall warning'
+  - id: 604
+    eventRef:
+      Guid:
+        Data1: 1785186576
+        Data2: 1245510835
+        Data3: -1836278379
+        Data4: 1511765510
+      Path: event:/SFX/MetalPickup
+    cooldown: 0.0
+    maxDistance: 40
+    volume: 0.8
+    note: 'stand-in: wants a wing fold'
+  - id: 700
+    eventRef:
+      Guid:
+        Data1: -1680716055
+        Data2: 1212484651
+        Data3: -328738423
+        Data4: -1838393582
+      Path: event:/SFX/ShipHumLoop
+    cooldown: 0.0
+    maxDistance: 0
+    volume: 1.0
+    note: ''
+  - id: 701
+    eventRef:
+      Guid:
+        Data1: 125610606
+        Data2: 1097649424
+        Data3: 1756199559
+        Data4: -145066629
+      Path: event:/SFX/Takeoff
+    cooldown: 0.0
+    maxDistance: 0
+    volume: 1.0
+    note: ''
+  - id: 702
+    eventRef:
+      Guid:
+        Data1: 1209704560
+        Data2: 1259274395
+        Data3: -1562606685
+        Data4: 1967096403
+      Path: event:/SFX/Wham
+    cooldown: 0.0
+    maxDistance: 120
+    volume: 0.9
+    note: 'stand-in: wants a landing'
+  - id: 703
+    eventRef:
+      Guid:
+        Data1: 244983765
+        Data2: 1082068725
+        Data3: 1235189431
+        Data4: -2011481048
+      Path: event:/SFX/ElectricHum
+    cooldown: 0.0
+    maxDistance: 30
+    volume: 0.85
+    note: 'stand-in: wants a repair loop'
+  - id: 704
+    eventRef:
+      Guid:
+        Data1: -1233848556
+        Data2: 1129232570
+        Data3: 1179256455
+        Data4: 739468870
+      Path: event:/UI/No
+    cooldown: 1.0
+    maxDistance: 60
+    volume: 0.85
+    note: 'stand-in: wants an alarm klaxon'
+  - id: 705
+    eventRef:
+      Guid:
+        Data1: 1209704560
+        Data2: 1259274395
+        Data3: -1562606685
+        Data4: 1967096403
+      Path: event:/SFX/Wham
+    cooldown: 0.0
+    maxDistance: 70
+    volume: 0.6
+    note: 'stand-in: wants a heavy mech footfall'
+  - id: 800
+    eventRef:
+      Guid:
+        Data1: -161778425
+        Data2: 1151011309
+        Data3: -584404083
+        Data4: -984381549
+      Path: event:/SFX/Wind Howling
+    cooldown: 0.0
+    maxDistance: 0
+    volume: 1.0
+    note: ''
+  - id: 801
+    eventRef:
+      Guid:
+        Data1: 244983765
+        Data2: 1082068725
+        Data3: 1235189431
+        Data4: -2011481048
+      Path: event:/SFX/ElectricHum
+    cooldown: 0.0
+    maxDistance: 0
+    volume: 0.7
+    note: ''
+  - id: 802
+    eventRef:
+      Guid:
+        Data1: 1963259774
+        Data2: 1243697119
+        Data3: 286972041
+        Data4: -972918384
+      Path: event:/SFX/Thunder
+    cooldown: 0.0
+    maxDistance: 0
+    volume: 1.0
+    note: ''
+  - id: 803
+    eventRef:
+      Guid:
+        Data1: -932380174
+        Data2: 1261117791
+        Data3: 1296317367
+        Data4: 440159795
+      Path: event:/SFX/Antigravity
+    cooldown: 0.0
+    maxDistance: 0
+    volume: 0.8
+    note: ''
+  - id: 900
+    eventRef:
+      Guid:
+        Data1: 1229374955
+        Data2: 1235063036
+        Data3: -1150132820
+        Data4: 1689648054
+      Path: event:/UI/Yes
+    cooldown: 0.05
+    maxDistance: 0
+    volume: 0.45
+    note: ''
+  - id: 901
+    eventRef:
+      Guid:
+        Data1: 1229374955
+        Data2: 1235063036
+        Data3: -1150132820
+        Data4: 1689648054
+      Path: event:/UI/Yes
+    cooldown: 0.0
+    maxDistance: 0
+    volume: 0.85
+    note: ''
+  - id: 902
+    eventRef:
+      Guid:
+        Data1: -1233848556
+        Data2: 1129232570
+        Data3: 1179256455
+        Data4: 739468870
+      Path: event:/UI/No
+    cooldown: 0.0
+    maxDistance: 0
+    volume: 0.75
+    note: ''
+  - id: 903
+    eventRef:
+      Guid:
+        Data1: -1233848556
+        Data2: 1129232570
+        Data3: 1179256455
+        Data4: 739468870
+      Path: event:/UI/No
+    cooldown: 0.2
+    maxDistance: 0
+    volume: 0.9
+    note: ''
+  - id: 904
+    eventRef:
+      Guid:
+        Data1: 1229374955
+        Data2: 1235063036
+        Data3: -1150132820
+        Data4: 1689648054
+      Path: event:/UI/Yes
+    cooldown: 0.1
+    maxDistance: 0
+    volume: 0.8
+    note: ''

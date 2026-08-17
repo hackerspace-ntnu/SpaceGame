@@ -1,8 +1,10 @@
+using FMODUnity;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
 using SpaceGame.Agents;
+using SpaceGame.Audio;
 using SpaceGame.Presentation;
 
 namespace SpaceGame.Gameplay
@@ -102,6 +104,12 @@ namespace SpaceGame.Gameplay
             }
         }
 
+
+        [Header("Voice")]
+        [Tooltip("The vocalisation played each time this character speaks a line. Set to None for " +
+                 "someone who should read as silent — a terminal, or a mute character.")]
+        [SerializeField] private SfxId voiceId = SfxId.NpcMumbleNeutral;
+        [SerializeField] private EventReference voiceSound;
 
         public bool CanInteract()
         {
@@ -216,7 +224,7 @@ namespace SpaceGame.Gameplay
             if (NpcDialogPopupUI.Instance != null)
             {
                 Debug.Log("[DialogInteraction] Found NpcDialogPopupUI instance. Showing popup.");
-                NpcDialogPopupUI.Instance.Show(line, popupDuration);
+                SpeakLine(line);
             }
             else
             {
@@ -258,7 +266,7 @@ namespace SpaceGame.Gameplay
 
             if (NpcDialogPopupUI.Instance != null)
             {
-                NpcDialogPopupUI.Instance.Show(line, popupDuration);
+                SpeakLine(line);
                 randomSentenceActive = true;
                 BeginDialogueSession();
             }
@@ -318,7 +326,7 @@ namespace SpaceGame.Gameplay
 
             if (NpcDialogPopupUI.Instance != null)
             {
-                NpcDialogPopupUI.Instance.Show(step.text, popupDuration);
+                SpeakLine(step.text);
                 BeginDialogueSession();
             }
             else
@@ -584,5 +592,23 @@ namespace SpaceGame.Gameplay
 
             nextDialogueAvailableTime = Time.time + dialogueDelaySeconds;
         }
+
+        /// <summary>
+        /// Shows one line and gives it a voice.
+        ///
+        /// <para>
+        /// Every dialog mode funnels through here. Playing at this transform rather than through the
+        /// popup UI matters: the popup is a screen-space singleton with no position, so a mumble
+        /// emitted there would come from nowhere and would not fall off as the player walks away
+        /// from whoever is talking.
+        /// </para>
+        /// </summary>
+        private void SpeakLine(string line)
+        {
+            NpcDialogPopupUI.Instance.Show(line, popupDuration);
+
+            Sfx.Play(voiceId, transform.position, voiceSound, GetInstanceID());
+        }
+
     }
 }

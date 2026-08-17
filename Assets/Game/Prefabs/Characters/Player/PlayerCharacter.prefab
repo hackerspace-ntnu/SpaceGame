@@ -116,6 +116,8 @@ GameObject:
   - component: {fileID: 7578012767945001410}
   - component: {fileID: 1655312470547217303}
   - component: {fileID: 6462769725498312612}
+  - component: {fileID: 8928276742681544193}
+  - component: {fileID: 8810500734875081020}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Player
@@ -346,6 +348,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   health: {fileID: -6402392480385526436}
   shakeData: {fileID: 11400000, guid: a523fbd6273bf7440b39814a82fdeb28, type: 2}
+  damageId: 105
   damageSound:
     Guid:
       Data1: -1233848556
@@ -505,6 +508,62 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 35dbcb7976a2147008d9579d90a1cfea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.PlayerSaveBinder
+--- !u!114 &8928276742681544193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85b911fa8902d44d3abb378f5b59ce0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.PlayerAudioModule
+  footstepId: 100
+  footstepSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  strideLength: 2.2
+  movementThreshold: 0.6
+  jumpId: 101
+  jumpSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  landId: 102
+  landHeavyId: 103
+  heavyLandSpeed: -8
+  dashId: 104
+  dashSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  hurtId: 105
+  deathId: 106
+  respawnId: 107
+--- !u!114 &8810500734875081020
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3732fdcfce1724c358aa7e7cf0abfe40, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Characters.SuitRecolor
 --- !u!1001 &49105706970176603
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -38,18 +38,22 @@ public class DeathScreenUI : MonoBehaviour
             return;
         }
 
-        // Hide before respawning, not after: the singleplayer path destroys this player object,
-        // and this HUD hangs off it. Once RespawnPlayer returns, the line after it may be running
-        // on a destroyed object and never reaches the screen — leaving the death overlay up and
-        // swallowing clicks over a player who is alive again.
+        // Hide first. The overlay is this player's own HUD, and nothing below is guaranteed to
+        // come back to it — leaving the screen up would swallow clicks over a player who is alive
+        // again.
         deathScreen.gameObject.SetActive(false);
 
-        if (SpawnManager.Instance == null)
+        var respawn = player.GetComponent<PlayerRespawn>();
+        if (respawn == null)
         {
-            Debug.LogError($"{name}: no SpawnManager to respawn through.", this);
+            Debug.LogError($"{name}: '{player.name}' has no PlayerRespawn, so this button cannot " +
+                           "bring them back. Add one to the player prefab.", this);
             return;
         }
 
-        SpawnManager.Instance.RespawnPlayer(player.gameObject);
+        // A request, not an order: the server decides whether the respawn happens and where. The
+        // button is pressed on the machine that owns this body, which is the only one that could
+        // be showing this screen.
+        respawn.Request();
     }
 }

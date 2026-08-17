@@ -3,6 +3,7 @@ using TMPro;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
+using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
 
@@ -117,6 +118,12 @@ namespace SpaceGame.Presentation
         /// </summary>
         private void OnDestroy()
         {
+            // The astronauts are parented to an anchor in the menu scene, not to this screen, so
+            // they outlive it unless they are taken down explicitly. This covers Close() and
+            // HandOff() together — both end in this object being destroyed, and NewPage's own
+            // disposal only covers swapping between pages.
+            if (roster != null) roster.Dispose();
+
             if (session == null) return;
 
             session.Changed -= Render;
@@ -295,6 +302,27 @@ namespace SpaceGame.Presentation
 
         private async void SetPrivacy(bool isPrivate) => await session.SetPrivacyAsync(isPrivate);
 
+        /// <summary>
+        /// Steps the local player's suit colour by one swatch.
+        ///
+        /// Three things happen, in this order and for three different reasons. The preference is
+        /// stored first, because it is the player's outfit and it has to survive them backing out of
+        /// the lobby without starting anything. Our own astronaut is repainted second, synchronously,
+        /// because a cycler that waits on a service call before showing anything feels broken.
+        /// Everyone else is told last, through a debounced publish, because Lobby rate-limits player
+        /// updates and browsing the whole palette is a dozen presses in a couple of seconds.
+        /// </summary>
+        private void StepSuitColor(int direction)
+        {
+            int next = SuitPalette.Step(GameSettings.SuitColorIndex, direction);
+
+            GameSettings.SuitColorIndex = next;
+            GameSettings.Save();
+
+            roster?.SetLocalColor(next);
+            session.PublishSuitColor(next);
+        }
+
         // ───────────────────────────────────────────────────────────────────── render
 
         /// <summary>
@@ -322,7 +350,7 @@ namespace SpaceGame.Presentation
             if (current != Page.Roster) return;
 
             roster.Render(session.Current, session.IsHost,
-                          IsHosting ? WorldSession.DisplayName : null);
+                          IsHosting ? WorldSession.DisplayName : null, session.LocalSlot);
         }
 
         private void Warn(string text)
@@ -467,10 +495,10 @@ namespace SpaceGame.Presentation
             RectTransform root = NewPage(Page.Roster, null);
 
             roster = new LobbyRosterView(root, EntryPrefab,
-                new LobbyRosterView.Actions(StartGame, Leave, CopyCode, SetPrivacy));
+                new LobbyRosterView.Actions(StartGame, Leave, CopyCode, SetPrivacy, StepSuitColor));
 
             roster.Render(session.Current, session.IsHost,
-                          IsHosting ? WorldSession.DisplayName : null);
+                          IsHosting ? WorldSession.DisplayName : null, session.LocalSlot);
         }
 
         // ──────────────────────────────────────────────────────────────────── plumbing
@@ -485,6 +513,11 @@ namespace SpaceGame.Presentation
         /// </summary>
         private RectTransform NewPage(Page which, string title)
         {
+            // Before the page goes, because the roster owns four astronauts standing in the menu
+            // scene rather than in the page's own hierarchy. Destroying the page alone left them
+            // behind, and reopening the roster then built a second rank standing inside the first.
+            if (roster != null) roster.Dispose();
+
             if (page != null)
             {
                 page.gameObject.SetActive(false);

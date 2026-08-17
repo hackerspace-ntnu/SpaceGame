@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using TMPro;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
@@ -8,35 +7,100 @@ using SpaceGame.Core;
 namespace SpaceGame.Presentation
 {
     /// <summary>
-    /// The in-lobby page: who is here, the code to let others in, and the two decisions left.
+    /// The in-lobby page: who is here, the code to let others in, and the decisions left.
     ///
+    /// <para>
     /// Split out of <see cref="LobbyUI"/> because it is the only page in the multiplayer flow that
     /// is <b>live</b> — <see cref="LobbySession"/> polls twice a second and this redraws from
-    /// whatever came back. The join and password pages are static forms that are built once and
-    /// then only read. Keeping the redrawing page apart from the ones that never redraw is what
-    /// stops "rebuild the page" and "update the page" being the same code path.
+    /// whatever came back. The join page is a static form, built once and then only read. Keeping the
+    /// redrawing page apart from the one that never redraws is what stops "rebuild the page" and
+    /// "update the page" being the same code path.
+    /// </para>
     ///
-    /// It performs no service calls of its own. Everything it can do arrives as a callback, which
-    /// is what lets it be built and rendered without a lobby, a network, or Unity Gaming Services.
+    /// <para>
+    /// Who is here is answered by <see cref="LobbyPreviewRank"/> — four astronauts standing in the
+    /// menu scene with their names over their heads — and not by a list of text rows any more. The
+    /// list said exactly what the names above their heads say, and the page had no room for the first
+    /// copy: everything on it has to sit below <see cref="MenuEntry.Horizon"/> to be legible against
+    /// ground, and a title, a code, a copy action, a four-row roster, a privacy toggle, a status line
+    /// and a footer never fitted in the bottom half of the screen. What is left is one narrow column
+    /// of controls and a footer, which does.
+    /// </para>
+    ///
+    /// <para>
+    /// It performs no service calls of its own. Everything it can do arrives as a callback, and the
+    /// two things it cannot work out from a <see cref="Lobby"/> alone — which row is us — is passed
+    /// in. That is what lets it be built and rendered without a lobby, a network, or Unity Gaming
+    /// Services.
+    /// </para>
     /// </summary>
     public class LobbyRosterView
     {
         private const float ColumnX = MenuEntry.ColumnX;
         private const float ColumnWidth = MenuEntry.ColumnWidth;
         private const float ActionHeight = 78f;
-        private const float RowHeight = 62f;
+        // The strip sits over sky, so the on/off state reads in white too — a translucent white for
+        // "off" carries the same "not in force" meaning the navy version did over sand.
+        private static readonly Color PrivacyOn = Color.white;
+        private static readonly Color PrivacyOff = new(1f, 1f, 1f, 0.6f);
 
-        /// <summary>Right-hand column of a roster row, holding "host".</summary>
-        private const float RoleWidth = 260f;
+        /// <summary>
+        /// The session name, at a fraction of a page title's size.
+        ///
+        /// Down from <see cref="MenuEntry.TitleSize"/> because this page is now mostly a picture:
+        /// four astronauts are what the player is looking at, and a 110pt word beside them competes
+        /// with them for no benefit — you already know which session you are in.
+        /// </summary>
+        private const int TitleSize = 44;
 
-        // Two columns, for the same reason the join page has them: everything here has to sit below
-        // MenuEntry.Horizon to be legible over ground, and a code, a four-player roster, a privacy
-        // toggle, a password rule and a footer are about 630px of content stacked — more than the
-        // 540px the bottom half of the screen actually is. Side by side they fit, with the roster
-        // getting the room it needs to show a full lobby without scrolling.
-        private const float LeftWidth = 620f;
-        private const float RightX = 820f;
-        private const float RightWidth = 1000f;
+        private const float TitleHeight = 62f;
+
+        /// <summary>
+        /// The strip of session controls, along the very top of the page.
+        ///
+        /// They used to be a stack down the left, under the horizon, where dark navy reads against
+        /// sand. Up here they are over sky instead — so the two plain labels carry a drop shadow, the
+        /// same trick the nameplates use, and everything is set small. Small is the point: the code
+        /// and the privacy toggle are things you glance at once and then ignore, and the astronauts
+        /// are what the page is actually for.
+        /// </summary>
+        private const float TopBarTop = -36f;
+
+        private const float TopBarHeight = 48f;
+
+        /// <summary>Small. This strip is a caption, not a heading.</summary>
+        private const int TopBarCaptionSize = 24;
+
+        private const int TopBarValueSize = 34;
+
+        // Left-to-right slots inside the strip, measured from the shared column inset.
+        //
+        // Widths are deliberate, not padding. UIBuilder labels are built with word wrap off and
+        // Ellipsis overflow, so a slot narrower than its text does not overflow — it silently
+        // TRUNCATES, which is how "CODE" first shipped reading as "CO…". Each slot below is sized to
+        // its longest possible content: the caption to "CODE", the value to a six-character lobby
+        // code, the privacy slot only just wide enough to hold "Private" and its on/off state, so the
+        // two read as one control rather than as a word and a distant switch.
+        private const float CodeCaptionX = 0f;
+        private const float CodeCaptionWidth = 120f;
+
+        private const float CodeValueX = 124f;
+
+        /// <summary>A lobby code is six characters, which measures 142px at this size.</summary>
+        private const float CodeValueWidth = 160f;
+
+        private const float CopyX = 296f;
+        private const float CopyWidth = 120f;
+
+        private const float PrivacyX = 438f;
+
+        // Sized backwards from the two things inside it. MenuField.Trailing right-ALIGNS the state
+        // against the slot's right edge, so the only way to bring "off" nearer "Private" is to make
+        // the SLOT narrower — widening or narrowing the state band alone moves nothing. The floor is
+        // "Private" at 120px plus Trailing's own 24px inset plus the state band, so 190 is about as
+        // tight as this goes before the word itself starts truncating.
+        private const float PrivacyWidth = 190f;
+        private const float PrivacyStateWidth = 40f;
 
         /// <summary>What the host can do from this page. Supplied by the screen that owns it.</summary>
         public readonly struct Actions
@@ -48,13 +112,17 @@ namespace SpaceGame.Presentation
             /// <summary>Called with the privacy the host just asked for.</summary>
             public readonly System.Action<bool> SetPrivacy;
 
+            /// <summary>Called with -1 or +1 when a suit colour chevron is pressed.</summary>
+            public readonly System.Action<int> StepColor;
+
             public Actions(System.Action start, System.Action leave, System.Action copyCode,
-                System.Action<bool> setPrivacy)
+                System.Action<bool> setPrivacy, System.Action<int> stepColor)
             {
                 Start = start;
                 Leave = leave;
                 CopyCode = copyCode;
                 SetPrivacy = setPrivacy;
+                StepColor = stepColor;
             }
         }
 
@@ -63,15 +131,18 @@ namespace SpaceGame.Presentation
 
         private TextMeshProUGUI title;
         private TextMeshProUGUI code;
+
+        /// <summary>The navy copy behind <see cref="code"/>. Written with it or the shadow goes stale.</summary>
+        private TextMeshProUGUI codeShadow;
+
         private TextMeshProUGUI status;
-        private RectTransform roster;
         private GameObject copyAction;
 
         private GameObject privacyRow;
         private TextMeshProUGUI privacyState;
         private GameObject startAction;
 
-        private readonly List<GameObject> rosterRows = new();
+        private LobbyPreviewRank rank;
 
         /// <summary>Mirrors the lobby's own flag so the toggle knows which way to flip.</summary>
         private bool isPrivate;
@@ -87,105 +158,109 @@ namespace SpaceGame.Presentation
             Build(page);
         }
 
+        /// <summary>
+        /// Tears down the astronauts.
+        ///
+        /// Needed as its own step because they are the only thing this view puts outside the page:
+        /// they hang off an anchor in the scene, so destroying the page leaves them standing in the
+        /// menu. Called by <see cref="LobbyUI"/> when it swaps pages.
+        /// </summary>
+        public void Dispose()
+        {
+            if (rank != null) rank.Dispose();
+            rank = null;
+        }
+
         // ────────────────────────────────────────────────────────────────────── build
 
         private void Build(RectTransform page)
         {
-            RectTransform titleRow = Pinned(page, "Title", MenuEntry.TitleTop, ColumnWidth,
-                                            MenuEntry.TitleHeight);
-            title = UIBuilder.Label(titleRow, string.Empty, MenuEntry.TitleSize, MenuEntry.Title,
+            RectTransform titleRow = Pinned(page, "Title", MenuEntry.TitleTop, ColumnWidth, TitleHeight);
+            title = UIBuilder.Label(titleRow, string.Empty, TitleSize, MenuEntry.Title,
                                     TextAlignmentOptions.Left, FontStyles.Bold);
 
-            BuildCodeRow(page);
+            BuildTopBar(page);
+            BuildFooter(page);
 
-            RectTransform statusRow = Pinned(page, "Status", MenuEntry.ContentTop, RightWidth, 44f,
-                                             fromLeft: RightX);
-            status = UIBuilder.Label(statusRow, string.Empty, MenuEntry.CaptionSize, MenuEntry.Caption);
-
-            BuildRoster(page);
-            BuildControls(page);
-        }
-
-        private void BuildCodeRow(RectTransform page)
-        {
-            RectTransform row = Pinned(page, "Code", MenuEntry.ContentTop, LeftWidth, RowHeight);
-
-            RectTransform caption = UIBuilder.Rect("Caption", row);
-            caption.anchorMin = new Vector2(0f, 0f);
-            caption.anchorMax = new Vector2(0f, 1f);
-            caption.pivot = new Vector2(0f, 0.5f);
-            caption.offsetMin = Vector2.zero;
-            caption.offsetMax = new Vector2(120f, 0f);
-            UIBuilder.Label(caption, "Code", MenuEntry.CaptionSize, MenuEntry.Caption);
-
-            RectTransform value = UIBuilder.Rect("Value", row);
-            value.anchorMin = new Vector2(0f, 0f);
-            value.anchorMax = new Vector2(0f, 1f);
-            value.pivot = new Vector2(0f, 0.5f);
-            value.offsetMin = new Vector2(130f, 0f);
-            value.offsetMax = new Vector2(430f, 0f);
-            code = UIBuilder.Label(value, "—", MenuEntry.RowSize, MenuEntry.Idle,
-                                   TextAlignmentOptions.Left, FontStyles.Bold);
-
-            RectTransform copyRow = UIBuilder.Rect("CopyRow", row);
-            copyRow.anchorMin = new Vector2(0f, 0f);
-            copyRow.anchorMax = new Vector2(0f, 1f);
-            copyRow.pivot = new Vector2(0f, 0.5f);
-            copyRow.offsetMin = new Vector2(450f, 0f);
-            copyRow.offsetMax = new Vector2(LeftWidth, 0f);
-
-            // Wrapped rather than passed straight through: MenuEntry takes a UnityAction and these
-            // are System.Actions, which are a different delegate type and do not convert.
-            copyAction = MenuEntry.Create(entryPrefab, copyRow, "CopyButton", "Copy",
-                                          MenuEntry.CaptionSize, RowHeight,
-                                          () => actions.CopyCode?.Invoke(), out _).gameObject;
-        }
-
-        private void BuildRoster(RectTransform page)
-        {
-            RectTransform frame = UIBuilder.Rect("Roster", page);
-            frame.anchorMin = new Vector2(0f, 0f);
-            frame.anchorMax = new Vector2(0f, 1f);
-            frame.pivot = new Vector2(0f, 0.5f);
-            // The left column, from under the code row down to just above the footer. Sized to hold
-            // a full lobby without scrolling: LobbySession.MaxPlayers is 4, so four rows at
-            // RowHeight is the most this ever has to show.
-            frame.offsetMin = new Vector2(ColumnX, MenuEntry.FooterBottom + ActionHeight + 40f);
-            frame.offsetMax = new Vector2(ColumnX + LeftWidth, MenuEntry.ContentTop - 80f);
-
-            RectTransform viewport = UIBuilder.Fill(UIBuilder.Rect("Viewport", frame));
-            viewport.gameObject.AddComponent<RectMask2D>();
-
-            roster = UIBuilder.Rect("Content", viewport);
-            roster.anchorMin = new Vector2(0f, 1f);
-            roster.anchorMax = new Vector2(1f, 1f);
-            roster.pivot = new Vector2(0.5f, 1f);
-            roster.offsetMin = Vector2.zero;
-            roster.offsetMax = Vector2.zero;
-
-            UIBuilder.Column(roster, 4f);
-            var fitter = roster.gameObject.AddComponent<ContentSizeFitter>();
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            var scroll = frame.gameObject.AddComponent<ScrollRect>();
-            scroll.viewport = viewport;
-            scroll.content = roster;
-            scroll.horizontal = false;
-            scroll.movementType = ScrollRect.MovementType.Clamped;
-            scroll.scrollSensitivity = 32f;
+            rank = LobbyPreviewRank.Create(page, entryPrefab, Step);
         }
 
         /// <summary>
-        /// The host's privacy controls on the right, and the two actions along the bottom.
+        /// The code, the copy action and the privacy toggle, in one small strip across the top.
         ///
-        /// They are separate because they answer to different edges. The footer belongs at the
-        /// bottom of the page whatever else is on it; privacy sits under the status line in the
-        /// right-hand column, where the password rule can appear and disappear beneath it without
-        /// pushing anything around — nothing is stacked below it to push.
+        /// A single row rather than the stack this page used to have down the left. The rank of
+        /// astronauts now occupies the middle and lower half of the frame, and controls sitting in
+        /// front of them competed with the thing the page exists to show.
         /// </summary>
-        private void BuildControls(RectTransform page)
+        private void BuildTopBar(RectTransform page)
         {
-            BuildPrivacy(page);
+            RectTransform bar = Pinned(page, "TopBar", TopBarTop, ColumnWidth, TopBarHeight);
+
+            Shadowed(bar, "CodeCaption", "CODE", CodeCaptionX, CodeCaptionWidth,
+                     TopBarCaptionSize, out _);
+            code = Shadowed(bar, "CodeValue", "—", CodeValueX, CodeValueWidth, TopBarValueSize,
+                            out codeShadow);
+
+            RectTransform copySlot = Slice(bar, "CopySlot", CopyX, CopyWidth);
+            Button copy = MenuEntry.Create(entryPrefab, copySlot, "CopyButton", "Copy",
+                                           TopBarValueSize, TopBarHeight,
+                                           () => actions.CopyCode?.Invoke(),
+                                           out TextMeshProUGUI copyLabel);
+            MenuEntry.MakeLight(copy, copyLabel);
+            copyAction = copy.gameObject;
+
+            RectTransform privacySlot = Slice(bar, "PrivacySlot", PrivacyX, PrivacyWidth);
+            privacyRow = privacySlot.gameObject;
+
+            Button toggle = MenuEntry.Create(entryPrefab, privacySlot, "PrivacyButton", "Private",
+                                             TopBarValueSize, TopBarHeight, TogglePrivacy,
+                                             out TextMeshProUGUI label);
+            MenuEntry.MakeLight(toggle, label);
+
+            privacyState = MenuField.Trailing(toggle, label, "off", PrivacyStateWidth, PrivacyOff);
+        }
+
+        /// <summary>
+        /// A small white label over a navy copy of itself, three pixels off.
+        ///
+        /// The strip sits above the horizon, where the menu's dark navy disappears — but a head can
+        /// pass behind it and the sky is not one brightness, so a plain white label is not safe
+        /// either. Two offset copies read against both, which is exactly why the nameplates over the
+        /// astronauts are built the same way.
+        /// </summary>
+        private static TextMeshProUGUI Shadowed(RectTransform bar, string name, string text,
+            float fromLeft, float width, int size, out TextMeshProUGUI shadowLabel)
+        {
+            RectTransform slot = Slice(bar, name, fromLeft, width);
+
+            RectTransform shadow = UIBuilder.Fill(UIBuilder.Rect("Shadow", slot));
+            shadow.anchoredPosition = new Vector2(2f, -2f);
+            shadowLabel = UIBuilder.Label(shadow, text, size, MenuEntry.Idle,
+                                          TextAlignmentOptions.Left, FontStyles.Bold);
+
+            RectTransform front = UIBuilder.Fill(UIBuilder.Rect("Front", slot));
+            return UIBuilder.Label(front, text, size, MenuEntry.Title, TextAlignmentOptions.Left,
+                                   FontStyles.Bold);
+        }
+
+        /// <summary>A fixed-width column inside the strip, measured from its left edge.</summary>
+        private static RectTransform Slice(RectTransform parent, string name, float fromLeft,
+            float width)
+        {
+            RectTransform rect = UIBuilder.Rect(name, parent);
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 0.5f);
+            rect.offsetMin = new Vector2(fromLeft, 0f);
+            rect.offsetMax = new Vector2(fromLeft + width, 0f);
+            return rect;
+        }
+
+        private void BuildFooter(RectTransform page)
+        {
+            RectTransform statusRow = Pinned(page, "Status", 0f, ColumnWidth, 44f,
+                                             fromBottom: MenuEntry.MessageBottom);
+            status = UIBuilder.Label(statusRow, string.Empty, MenuEntry.CaptionSize, MenuEntry.Caption);
 
             RectTransform footer = Pinned(page, "Footer", 0f, ColumnWidth, ActionHeight,
                                           fromBottom: MenuEntry.FooterBottom);
@@ -208,49 +283,43 @@ namespace SpaceGame.Presentation
                                              () => actions.Leave?.Invoke(), out _), 260f);
         }
 
-        private void BuildPrivacy(RectTransform page)
-        {
-            RectTransform row = Pinned(page, "Privacy", MenuEntry.ContentTop - 60f, RightWidth,
-                                       ActionHeight, fromLeft: RightX);
-            privacyRow = row.gameObject;
-
-            Button toggle = MenuEntry.Create(entryPrefab, row, "PrivacyButton", "Private session",
-                                             MenuEntry.ActionSize, ActionHeight, TogglePrivacy,
-                                             out TextMeshProUGUI label);
-
-            privacyState = MenuField.Trailing(toggle, label, "off", 200f, MenuEntry.Caption);
-        }
-
         // ───────────────────────────────────────────────────────────────────── render
 
         /// <summary>
         /// Redraws from the session's current lobby. Called on every change, so it has to be cheap
-        /// enough to run twice a second — and it is the only thing that writes the privacy label,
-        /// so what the toggle reads is always the lobby's own flag rather than the last thing the
-        /// host clicked.
+        /// enough to run twice a second — and it is the only thing that writes the privacy label, so
+        /// what the toggle reads is always the lobby's own flag rather than the last thing the host
+        /// clicked.
         /// </summary>
-        public void Render(Lobby lobby, bool isHost, string hostTitle)
+        /// <param name="localSlot">
+        /// Which row of the lobby is us, or -1. Passed in rather than worked out here because
+        /// answering it needs the authentication service, and this view is deliberately testable
+        /// without one.
+        /// </param>
+        public void Render(Lobby lobby, bool isHost, string hostTitle, int localSlot)
         {
             if (lobby == null)
             {
                 title.text = (hostTitle ?? "Session").ToUpperInvariant();
-                code.text = "—";
+                SetCode("—");
                 if (copyAction != null) copyAction.SetActive(false);
                 if (privacyRow != null) privacyRow.SetActive(false);
                 if (startAction != null) startAction.SetActive(false);
-                ClearRoster();
+
+                if (rank != null)
+                    rank.Render(System.Array.Empty<string>(), System.Array.Empty<int>(), -1, -1,
+                                GameSettings.SuitColorIndex);
                 return;
             }
 
             title.text = (isHost && !string.IsNullOrEmpty(hostTitle) ? hostTitle : lobby.Name)
                 .ToUpperInvariant();
 
-            code.text = string.IsNullOrEmpty(lobby.LobbyCode) ? "—" : lobby.LobbyCode;
+            SetCode(string.IsNullOrEmpty(lobby.LobbyCode) ? "—" : lobby.LobbyCode);
             if (copyAction != null) copyAction.SetActive(!string.IsNullOrEmpty(lobby.LobbyCode));
 
             // Only the host can start, and only the host can change privacy. A client shown either
-            // gets a control that reports "Only the host can do that" — a button whose whole
-            // behaviour is to refuse.
+            // gets a control whose whole behaviour is to refuse.
             if (startAction != null) startAction.SetActive(isHost);
             if (privacyRow != null) privacyRow.SetActive(isHost);
 
@@ -259,16 +328,25 @@ namespace SpaceGame.Presentation
             if (privacyState != null)
             {
                 privacyState.text = lobby.IsPrivate ? "on" : "off";
-                privacyState.color = lobby.IsPrivate ? MenuEntry.Idle : MenuEntry.Caption;
+                privacyState.color = lobby.IsPrivate ? PrivacyOn : PrivacyOff;
             }
 
+            // Only what has to be read. The old page said "Share the code. Start when everyone is
+            // in." on every redraw, which is a sentence that is true forever and therefore stops
+            // being read — and it took the room the astronauts now stand in. A host is told nothing;
+            // a joiner is told the one thing they cannot see for themselves, which is whether they
+            // are waiting or already being pulled into a running world.
             SetPolledStatus(isHost
-                ? "Share the code. Start when everyone is in."
+                ? string.Empty
                 : LobbySession.IsPlaying(lobby)
                     ? "The host is already playing. Joining the world…"
                     : "Waiting for the host to start.");
 
-            RenderRoster(LobbySession.PlayerNames(lobby), lobby.HostId, lobby.Players);
+            if (rank != null)
+            {
+                rank.Render(LobbySession.PlayerNames(lobby), LobbySession.SuitColors(lobby),
+                            localSlot, LobbySession.HostSlot(lobby), GameSettings.SuitColorIndex);
+            }
         }
 
         /// <summary>A transient line — "Creating session…", "Copied ABC123". The next poll replaces it.</summary>
@@ -298,56 +376,11 @@ namespace SpaceGame.Presentation
             status.text = message ?? string.Empty;
         }
 
-        /// <summary>
-        /// Rebuilds the roster rows.
-        ///
-        /// Destroy does not take effect until the end of the frame, so the outgoing rows are
-        /// unparented as well: without that, a poll landing twice in one frame stacks two rosters
-        /// in the layout group and the list visibly doubles before settling.
-        /// </summary>
-        private void RenderRoster(string[] names, string hostId, List<Player> players)
+        /// <summary>Writes the code to both copies, so the drop shadow cannot fall behind.</summary>
+        private void SetCode(string value)
         {
-            ClearRoster();
-
-            for (int i = 0; i < names.Length; i++)
-            {
-                RectTransform row = UIBuilder.Rect("PlayerRow", roster);
-                UIBuilder.FixedHeight(row, RowHeight);
-
-                UIBuilder.Label(row, names[i], MenuEntry.RowSize, MenuEntry.Idle,
-                                TextAlignmentOptions.Left, FontStyles.Bold);
-
-                bool isHostRow = players != null && i < players.Count && players[i] != null
-                                 && players[i].Id == hostId;
-
-                if (isHostRow)
-                {
-                    RectTransform roleRect = UIBuilder.Rect("Role", row);
-                    roleRect.anchorMin = new Vector2(1f, 0f);
-                    roleRect.anchorMax = new Vector2(1f, 1f);
-                    roleRect.pivot = new Vector2(1f, 0.5f);
-                    roleRect.offsetMin = new Vector2(-RoleWidth, 0f);
-                    roleRect.offsetMax = Vector2.zero;
-
-                    UIBuilder.Label(roleRect, "host", MenuEntry.CaptionSize, MenuEntry.Caption,
-                                    TextAlignmentOptions.Right);
-                }
-
-                rosterRows.Add(row.gameObject);
-            }
-        }
-
-        private void ClearRoster()
-        {
-            foreach (GameObject row in rosterRows)
-            {
-                if (row == null) continue;
-
-                row.transform.SetParent(null, false);
-                Object.Destroy(row);
-            }
-
-            rosterRows.Clear();
+            if (code != null) code.text = value;
+            if (codeShadow != null) codeShadow.text = value;
         }
 
         // ───────────────────────────────────────────────────────────────────── actions
@@ -368,20 +401,33 @@ namespace SpaceGame.Presentation
             actions.SetPrivacy?.Invoke(!isPrivate);
         }
 
+        private void Step(int direction) => actions.StepColor?.Invoke(direction);
+
+        /// <summary>
+        /// Repaints our own astronaut, without waiting for the poll.
+        ///
+        /// The lobby's copy of our colour is a debounce and a poll behind what was just pressed, so
+        /// rendering ours from the poll like everyone else's would make our own figure the last one
+        /// on screen to show our own choice.
+        /// </summary>
+        public void SetLocalColor(int color)
+        {
+            if (rank != null) rank.SetLocalColor(color);
+        }
+
         /// <summary>
         /// A row placed against the page's top-left, or its bottom-left when
-        /// <paramref name="fromBottom"/> is given. <paramref name="fromLeft"/> overrides the shared
-        /// column inset, which is how the right-hand column is placed beside the left one.
+        /// <paramref name="fromBottom"/> is given.
         /// </summary>
         private static RectTransform Pinned(RectTransform parent, string name, float fromTop,
-            float width, float height, float fromBottom = float.NaN, float fromLeft = ColumnX)
+            float width, float height, float fromBottom = float.NaN)
         {
             RectTransform rect = UIBuilder.Rect(name, parent);
             bool bottom = !float.IsNaN(fromBottom);
 
             rect.anchorMin = rect.anchorMax = new Vector2(0f, bottom ? 0f : 1f);
             rect.pivot = new Vector2(0f, bottom ? 0f : 1f);
-            rect.anchoredPosition = new Vector2(fromLeft, bottom ? fromBottom : fromTop);
+            rect.anchoredPosition = new Vector2(ColumnX, bottom ? fromBottom : fromTop);
             rect.sizeDelta = new Vector2(width, height);
             return rect;
         }

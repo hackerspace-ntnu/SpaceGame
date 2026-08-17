@@ -1779,6 +1779,7 @@ GameObject:
   - component: {fileID: 4917675695160102420}
   - component: {fileID: 4096831134557326267}
   - component: {fileID: 112924537384872545}
+  - component: {fileID: 1709380820943153037}
   m_Layer: 0
   m_Name: DuneOrnithopter
   m_TagString: Untagged
@@ -2170,6 +2171,43 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &1709380820943153037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3241331717362755362}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6547c4575aa574991a64c3e0edf8d05a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: SpaceGame.Vehicles.Ornithopter::SpaceGame.Vehicles.Ornithopter.OrnithopterAudio
+  windLoopId: 602
+  windLoopSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  windFullVolumeSpeed: 30
+  windMinVolume: 0.15
+  windSpeedParameter: 
+  flapId: 601
+  flapSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  flapEffortThreshold: 0.12
+  stallId: 603
+  stallRepeatDelay: 2
+  deployId: 600
+  foldId: 604
+  spreadThreshold: 0.5
 --- !u!1 &3426127597216960582
 GameObject:
   m_ObjectHideFlags: 0

@@ -115,3 +115,9 @@ Assets/Scenes/Chunks/
 
 /Assets/_Recovery
 /Assets/_Recovery.meta
+
+# FMOD writes this every editor session; it is a log, not project data
+fmod_editor.log
+
+# Brainstorming mockups — scratch, kept on disk only so they survive a server restart
+.superpowers/

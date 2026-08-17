@@ -338,6 +338,7 @@ MonoBehaviour:
   dieAnimTrigger: Death
   emitNoiseOnDamage: 1
   damageNoiseRadius: 15
+  hurtId: 409
   hurtSound:
     Guid:
       Data1: 0
@@ -350,6 +351,7 @@ MonoBehaviour:
       m_Calls: []
   emitNoiseOnDeath: 1
   deathNoiseRadius: 20
+  deathId: 410
   deathSound:
     Guid:
       Data1: 0
@@ -382,6 +384,7 @@ MonoBehaviour:
   emitNoiseOnSpot: 1
   spotNoiseRadius: 12
   playSpotSound: 1
+  spotId: 407
   spotSound:
     Guid:
       Data1: 0
@@ -428,6 +431,7 @@ MonoBehaviour:
   OnAttack:
     m_PersistentCalls:
       m_Calls: []
+  attackId: 412
   attackSound:
     Guid:
       Data1: 0

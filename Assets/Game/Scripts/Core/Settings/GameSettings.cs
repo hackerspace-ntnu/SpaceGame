@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Characters;
 
 namespace SpaceGame.Core
 {
@@ -43,6 +44,7 @@ namespace SpaceGame.Core
         private static bool loaded;
 
         private static string playerName;
+        private static int suitColorIndex;
         private static float masterVolume;
         private static float musicVolume;
         private static float sfxVolume;
@@ -74,6 +76,32 @@ namespace SpaceGame.Core
                 if (sanitised == playerName) return;
                 playerName = sanitised;
                 PlayerPrefs.SetString(Prefix + "PlayerName", playerName);
+                Raise();
+            }
+        }
+
+        /// <summary>
+        /// The suit colour this player wears, as an index into <c>SuitPalette.Swatches</c>.
+        /// <para>
+        /// Stored rather than picked per session, because it is meant to be recognisably yours:
+        /// friends learn that you are the green one. Seeded once with a random vivid swatch — see
+        /// <see cref="EnsureLoaded"/> for why that beats defaulting everyone to the same colour.
+        /// </para>
+        /// </summary>
+        public static int SuitColorIndex
+        {
+            get { EnsureLoaded(); return suitColorIndex; }
+            set
+            {
+                EnsureLoaded();
+
+                // Clamped against the palette rather than trusted: this value also arrives from
+                // PlayerPrefs written by an older build, where the list may have been longer.
+                int clamped = SuitPalette.Clamp(value);
+                if (clamped == suitColorIndex) return;
+
+                suitColorIndex = clamped;
+                PlayerPrefs.SetInt(Prefix + "SuitColorIndex", suitColorIndex);
                 Raise();
             }
         }
@@ -323,7 +351,7 @@ namespace SpaceGame.Core
         {
             foreach (string key in new[]
             {
-                "PlayerName", "MasterVolume", "MusicVolume", "SfxVolume", "UiVolume", "AmbienceVolume",
+                "PlayerName", "SuitColorIndex", "MasterVolume", "MusicVolume", "SfxVolume", "UiVolume", "AmbienceVolume",
                 "MouseSensitivity", "InvertLookY", "InvertHotbarScroll", "DevMode", "FieldOfView",
                 "QualityLevel", "Fullscreen", "ResolutionIndex", "VSync", "FrameRateCap", "Version",
             })
@@ -355,6 +383,20 @@ namespace SpaceGame.Core
                 // person to everyone else across sessions.
                 playerName = $"Pilot-{UnityEngine.Random.Range(1000, 10000)}";
                 PlayerPrefs.SetString(Prefix + "PlayerName", playerName);
+            }
+
+            // Random, and written down the moment it is drawn, for the same reason as the name
+            // above. Defaulting everyone to swatch 0 would mean a lobby of four people who have
+            // never opened the cycler is four identical astronauts — and so is the game they then
+            // play together, where telling each other apart matters more than in the menu.
+            if (PlayerPrefs.HasKey(Prefix + "SuitColorIndex"))
+            {
+                suitColorIndex = SuitPalette.Clamp(PlayerPrefs.GetInt(Prefix + "SuitColorIndex"));
+            }
+            else
+            {
+                suitColorIndex = SuitPalette.RandomDefault();
+                PlayerPrefs.SetInt(Prefix + "SuitColorIndex", suitColorIndex);
             }
 
             masterVolume = PlayerPrefs.GetFloat(Prefix + "MasterVolume", 1f);

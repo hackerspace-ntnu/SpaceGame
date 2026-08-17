@@ -545,6 +545,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BallLightningWeapon
   maxUses: -1
+  useSoundId: 0
   useSound:
     Guid:
       Data1: 0
@@ -563,10 +564,22 @@ MonoBehaviour:
     m_Bits: 4294967295
   magazine: {fileID: 0}
   ammoPerShot: 1
-  fireSoundName: 
-  fireSoundVolume: 1
-  chargeStartSoundName: 
-  chargeStartSoundVolume: 1
+  fireSoundId: 200
+  fireSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  chargeStartSoundId: 204
+  chargeStartSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
   enableCharging: 0
   chargeDuration: 3
   chargeProgressCurve:

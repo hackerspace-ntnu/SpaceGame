@@ -138,9 +138,6 @@ PrefabInstance:
       addedObject: {fileID: 5672382752206130132}
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 151938354145788327}
-    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 5942945521592415359}
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
@@ -433,23 +430,6 @@ MonoBehaviour:
   - Hand_R
   - R_Hand
   - hand.R
---- !u!114 &151938354145788327
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 582217690245548981}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 495b4576d16e744c6bce371e4e2cdb80, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerRangedCombat
-  ShowTopMostFoldoutHeaderGroup: 1
-  weapon: {fileID: 11400000, guid: e353b7688558a49c7bd8586cda5e8398, type: 2}
-  aimProvider: {fileID: 5469936711292871202}
-  muzzle: {fileID: 4101505935913178216}
-  fireCooldown: 0.3
 --- !u!114 &5942945521592415359
 MonoBehaviour:
   m_ObjectHideFlags: 0

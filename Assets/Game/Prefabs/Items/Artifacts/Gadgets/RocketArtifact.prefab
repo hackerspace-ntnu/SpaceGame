@@ -20,6 +20,7 @@ GameObject:
   - component: {fileID: -7739272878008330699}
   - component: {fileID: -6827613734975699060}
   - component: {fileID: 4750310098149301884}
+  - component: {fileID: 5618849882724117803}
   m_Layer: 0
   m_Name: RocketArtifact
   m_TagString: Untagged
@@ -270,3 +271,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!65 &5618849882724117803
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4378794949726358131}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.5232, y: 0.4096, z: 0.7716}
+  m_Center: {x: -0.0016, y: 0.1391, z: 0}

@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 3593763373973717953}
   - component: {fileID: -4291948383053853301}
   - component: {fileID: 93664208532041063}
+  - component: {fileID: 4076829968045957735}
   m_Layer: 0
   m_Name: GrapplingHook
   m_TagString: Untagged
@@ -134,7 +135,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 237d3ab58014498d88b389d980dd4b87, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DropItemPhysics
-  rb: {fileID: 0}
+  rb: {fileID: 4076829968045957735}
   groundLayer:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -198,6 +199,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!54 &4076829968045957735
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5175360877773462781}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &6369121969140856037
 GameObject:
   m_ObjectHideFlags: 0

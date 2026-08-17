@@ -85,13 +85,6 @@ namespace SpaceGame.Characters
             playerHealth.OnDeath += OnDeath;
             playerHealth.OnRevive += OnRevive;
 
-            var rangedCombat = GetComponent<PlayerRangedCombat>();
-            if (rangedCombat != null)
-            {
-                Input.OnUsePressed -= rangedCombat.TryFire;
-                Input.OnUsePressed += rangedCombat.TryFire;
-            }
-
             // Enabling a player who is still dead (network ownership arriving after death, a scene
             // handover mid-death-screen) must not undo the freeze.
             if (isDead)
@@ -116,10 +109,6 @@ namespace SpaceGame.Characters
 
             playerHealth.OnDeath -= OnDeath;
             playerHealth.OnRevive -= OnRevive;
-
-            var rangedCombat = GetComponent<PlayerRangedCombat>();
-            if (rangedCombat != null)
-                Input.OnUsePressed -= rangedCombat.TryFire;
         }
 
         public Camera PlayerCamera => playerCamera != null ? playerCamera.GetComponent<Camera>() : null;

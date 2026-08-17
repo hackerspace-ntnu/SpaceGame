@@ -37,6 +37,32 @@ namespace SpaceGame.World
                  "changes nothing; it exists for vehicles fast enough to outrun a scene load.")]
         public float streamLookaheadSeconds = 2f;
 
+        [Header("Identity")]
+        [Tooltip("Stable id for this world, stamped from the asset GUID. A save records the id of " +
+                 "the world it was made in and refuses to load into a different one — its chunk " +
+                 "deltas are keyed by scene name and would otherwise scatter into the wrong " +
+                 "scenes. Do not edit by hand.")]
+        [SerializeField] private string configId = string.Empty;
+
+        /// <summary>This world's stable id. Empty only on a config that has never been saved in-editor.</summary>
+        public string ConfigId => configId;
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            // The GUID, not the asset name: names change, and a renamed world must not orphan every
+            // save ever made in it.
+            string path = UnityEditor.AssetDatabase.GetAssetPath(this);
+            if (string.IsNullOrEmpty(path)) return;
+
+            string guid = UnityEditor.AssetDatabase.AssetPathToGUID(path);
+            if (string.IsNullOrEmpty(guid) || guid == configId) return;
+
+            configId = guid;
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+#endif
+
         /// <summary>The grid as pure geometry. All coordinate maths lives there and is unit tested.</summary>
         public ChunkGrid Grid => new ChunkGrid(worldOrigin, chunkSize, gridDimensions);
 

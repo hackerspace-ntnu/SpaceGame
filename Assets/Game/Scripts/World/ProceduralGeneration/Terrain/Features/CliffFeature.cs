@@ -38,10 +38,9 @@ namespace SpaceGame.World
 
     /// <summary>
     /// Escarpment (cliff) terrain feature: a height step — flat low ground on one side, raised plateau
-    /// on the other, with a steep, dramatically eroded rock face between. The cliff edge follows the
-    /// spline <see cref="FeatureContext.Path"/> when a valid path is provided (≥2 points), making it a
-    /// freely-winding escarpment. When no path is present it falls back to a straight step across the
-    /// box <see cref="FeatureContext.LocalBounds"/>, making it an area-wide terrain shelf.
+    /// on the other, with a steep, dramatically eroded rock face between. The cliff edge is a straight
+    /// step across the box <see cref="FeatureContext.LocalBounds"/> — an area-wide terrain shelf —
+    /// perturbed by low-frequency edge noise so it never reads as a straight line.
     ///
     /// Shape contract:
     ///   - LOW side: sits on natural ground (weight-blended at the footprint edge).
@@ -123,10 +122,6 @@ namespace SpaceGame.World
             // so the cliff spans the feature's width, not depth.
             bool stepAlongX     = box.size.z >= box.size.x;
 
-            // Decide whether to use spline mode.
-            var spline          = new FeatureSpline(context.Path);
-            bool useSpline      = spline.IsValid;
-
             // -------------------------------------------------------------------------
             // Height lambda — the only thing this feature implements.
             // -------------------------------------------------------------------------
@@ -141,29 +136,11 @@ namespace SpaceGame.World
 
                 // --- 2. Signed lateral distance from the cliff edge line -------------------------
                 // lateralT in [-1, 1]: -1 = deep low side, +1 = deep high side.
-                float lateralT;
-
-                if (useSpline)
-                {
-                    // Spline path: signed lateral distance from the centre-line, normalised by the
-                    // spline half-width so ±1 maps to the path's designed edge.
-                    float hw = Mathf.Max(0.1f, spline.HalfWidth);
-                    spline.ClosestParam(new Vector3(x, 0f, z), out float latDist, out _);
-                    lateralT = Mathf.Clamp(latDist / hw, -1f, 1f);
-                }
-                else
-                {
-                    // Box fallback: step perpendicular to the longer axis.
-                    if (stepAlongX)
-                    {
-                        // Step runs along X, so lateral is Z.
-                        lateralT = Mathf.Clamp((z - centreXZ.y) / Mathf.Max(0.1f, halfXZ.y), -1f, 1f);
-                    }
-                    else
-                    {
-                        lateralT = Mathf.Clamp((x - centreXZ.x) / Mathf.Max(0.1f, halfXZ.x), -1f, 1f);
-                    }
-                }
+                // The step runs perpendicular to the longer box axis.
+                float lateralT = stepAlongX
+                    // Step runs along X, so lateral is Z.
+                    ? Mathf.Clamp((z - centreXZ.y) / Mathf.Max(0.1f, halfXZ.y), -1f, 1f)
+                    : Mathf.Clamp((x - centreXZ.x) / Mathf.Max(0.1f, halfXZ.x), -1f, 1f);
 
                 // --- 3. Edge irregularity: perturb lateralT with low-frequency noise -------------
                 // A slow fbm in XZ shifts the apparent cliff-edge position locally, breaking any
@@ -193,7 +170,7 @@ namespace SpaceGame.World
 
                 // Striation: tall narrow fbm sampled primarily in X (or Z perpendicular to step) at
                 // higher frequency to simulate eroded vertical channels in the rock face.
-                Vector3 striationP = stepAlongX || useSpline
+                Vector3 striationP = stepAlongX
                     ? new Vector3(x * 2.5f, 0f, z * 0.4f)        // stretch X = vertical channels
                     : new Vector3(x * 0.4f, 0f, z * 2.5f);
                 float striation    = TerrainNoiseHelper.Fbm(striationP, tuning.noiseScale * 1.8f, seed + 97, 4);
@@ -227,17 +204,9 @@ namespace SpaceGame.World
             OverhangSettings oh = Settings != null ? Settings.overhang : null;
             if (oh != null && oh.enableOverhangs)
             {
-                // Resolve the cliff-edge centre-line. Spline mode → first/last spline points; box
-                // fallback → the centre-line across the longer axis.
+                // Resolve the cliff-edge centre-line: across the longer box axis.
                 Vector2 lineA, lineB;
-                if (useSpline)
-                {
-                    Vector3 a3 = spline.Evaluate(0f);
-                    Vector3 b3 = spline.Evaluate(1f);
-                    lineA = new Vector2(a3.x, a3.z);
-                    lineB = new Vector2(b3.x, b3.z);
-                }
-                else if (stepAlongX)
+                if (stepAlongX)
                 {
                     lineA = new Vector2(box.min.x, centreXZ.y);
                     lineB = new Vector2(box.max.x, centreXZ.y);
@@ -251,8 +220,7 @@ namespace SpaceGame.World
                 // Nominal perpendicular reach of the wall body: the face-width fraction of the half
                 // span perpendicular to the line. Stays inside the footprint at the base; the radius
                 // profile lets it bulge OUT higher up (the overhang).
-                float perpHalf = useSpline ? Mathf.Max(0.1f, spline.HalfWidth)
-                                           : (stepAlongX ? halfXZ.y : halfXZ.x);
+                float perpHalf = stepAlongX ? halfXZ.y : halfXZ.x;
                 float nominalReach = Mathf.Max(2f, perpHalf * Mathf.Clamp01(faceWidth + 0.25f));
 
                 float bodyGround = centreGroundY;
@@ -285,21 +253,9 @@ namespace SpaceGame.World
                 if (TerrainNoiseHelper.OverlapWeight(distInside, tuning) <= 0f) return false;
 
                 // Re-derive the cliff-step profile (mirrors the height lambda, steps 2–4).
-                float lateralT;
-                if (useSpline)
-                {
-                    float hw = Mathf.Max(0.1f, spline.HalfWidth);
-                    spline.ClosestParam(new Vector3(x, 0f, z), out float latDist, out _);
-                    lateralT = Mathf.Clamp(latDist / hw, -1f, 1f);
-                }
-                else if (stepAlongX)
-                {
-                    lateralT = Mathf.Clamp((z - centreXZ.y) / Mathf.Max(0.1f, halfXZ.y), -1f, 1f);
-                }
-                else
-                {
-                    lateralT = Mathf.Clamp((x - centreXZ.x) / Mathf.Max(0.1f, halfXZ.x), -1f, 1f);
-                }
+                float lateralT = stepAlongX
+                    ? Mathf.Clamp((z - centreXZ.y) / Mathf.Max(0.1f, halfXZ.y), -1f, 1f)
+                    : Mathf.Clamp((x - centreXZ.x) / Mathf.Max(0.1f, halfXZ.x), -1f, 1f);
                 float edgeWiggle = TerrainNoiseHelper.Fbm(new Vector3(x, 0f, z), edgeFreq, seed + 11, 3);
                 lateralT += edgeWiggle * edgeIrreg * faceWidth * 2f;
                 lateralT  = Mathf.Clamp(lateralT, -1.5f, 1.5f);

@@ -81,14 +81,35 @@ namespace SpaceGame.Core
             return returnInfoByPlayer.ContainsKey(GetPlayerKey(player));
         }
 
-        private int TotalInteriorOccupancy
+        // ─────────────────────────────────────────────
+        //  Local view — this machine's screen only
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Make this machine look like it is inside <paramref name="interiorSceneName"/>.
+        ///
+        /// Called on the machine whose own player just went in, never on the server's behalf. See
+        /// the note on <c>NotifyViewer</c> for why this half is separated from the session half.
+        /// </summary>
+        public void ShowInteriorView(string interiorSceneName)
         {
-            get
-            {
-                int sum = 0;
-                foreach (var n in interiorRefCount.Values) sum += n;
-                return sum;
-            }
+            var scene = SceneManager.GetSceneByName(interiorSceneName);
+            if (scene.IsValid() && scene.isLoaded)
+                SceneManager.SetActiveScene(scene);
+
+            persistentVisibility?.Suspend();
+        }
+
+        /// <summary>Undo <see cref="ShowInteriorView"/> — this machine is back outside.</summary>
+        public void ShowExteriorView(string exteriorSceneName)
+        {
+            var scene = SceneManager.GetSceneByName(exteriorSceneName);
+            if (scene.IsValid() && scene.isLoaded)
+                SceneManager.SetActiveScene(scene);
+            else if (persistentScene.IsValid() && persistentScene.isLoaded)
+                SceneManager.SetActiveScene(persistentScene);
+
+            persistentVisibility?.Restore();
         }
 
         private void Awake()
@@ -125,6 +146,13 @@ namespace SpaceGame.Core
         //  Public API — call from interactables
         // ─────────────────────────────────────────────
 
+        /// <summary>
+        /// Send <paramref name="player"/> into <paramref name="def"/>, from any machine.
+        ///
+        /// The routing lives on the player, not here: this class has no NetworkObject and therefore
+        /// no RPC channel of its own. It used to declare RPC methods anyway — see
+        /// <see cref="PlayerInteriorTransit"/> for what that silently did.
+        /// </summary>
         public void EnterInterior(GameObject player, InteriorScene def)
         {
             if (player == null || def == null || string.IsNullOrEmpty(def.SceneName))
@@ -133,59 +161,37 @@ namespace SpaceGame.Core
                 return;
             }
 
-            Network.Execute(
-                local: () => ServerEnterInterior(player, def.SceneName, def.SpawnAnchorId),
-                client: () =>
-                {
-                    if (!player.TryGetComponent<NetworkObject>(out var netObj))
-                    {
-                        Debug.LogError("[InteriorManager] Player missing NetworkObject — cannot route enter request.");
-                        return;
-                    }
-                    EnterInteriorServerRpc(netObj, def.SceneName, def.SpawnAnchorId);
-                });
+            if (!TryGetTransit(player, out PlayerInteriorTransit transit)) return;
+
+            transit.RequestEnter(def);
         }
 
         public void ExitInterior(GameObject player)
         {
             if (player == null) return;
+            if (!TryGetTransit(player, out PlayerInteriorTransit transit)) return;
 
-            Network.Execute(
-                local: () => ServerExitInterior(player),
-                client: () =>
-                {
-                    if (!player.TryGetComponent<NetworkObject>(out var netObj))
-                    {
-                        Debug.LogError("[InteriorManager] Player missing NetworkObject — cannot route exit request.");
-                        return;
-                    }
-                    ExitInteriorServerRpc(netObj);
-                });
+            transit.RequestExit();
         }
 
-        // ─────────────────────────────────────────────
-        //  RPC entry points
-        // ─────────────────────────────────────────────
-
-        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        private void EnterInteriorServerRpc(NetworkObjectReference playerRef, string sceneName, string anchorId)
+        private bool TryGetTransit(GameObject player, out PlayerInteriorTransit transit)
         {
-            if (!playerRef.TryGet(out var netObj)) return;
-            ServerEnterInterior(netObj.gameObject, sceneName, anchorId);
-        }
+            transit = player.GetComponent<PlayerInteriorTransit>();
+            if (transit != null) return true;
 
-        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        private void ExitInteriorServerRpc(NetworkObjectReference playerRef)
-        {
-            if (!playerRef.TryGet(out var netObj)) return;
-            ServerExitInterior(netObj.gameObject);
+            Debug.LogError($"[InteriorManager] '{player.name}' has no PlayerInteriorTransit, so an " +
+                           "interior transition cannot be routed to the server. Add one to the " +
+                           "player prefab.", player);
+            return false;
         }
 
         // ─────────────────────────────────────────────
         //  Server-side implementation
+        //
+        //  Called only by PlayerInteriorTransit, which is what guarantees these run on the server.
         // ─────────────────────────────────────────────
 
-        private void ServerEnterInterior(GameObject player, string sceneName, string anchorId)
+        public void ServerEnterInterior(GameObject player, string sceneName, string anchorId)
         {
             ulong key = GetPlayerKey(player);
 
@@ -234,7 +240,7 @@ namespace SpaceGame.Core
             LoadInteriorAdditive(sceneName, onLoaded);
         }
 
-        private void ServerExitInterior(GameObject player)
+        public void ServerExitInterior(GameObject player)
         {
             ulong key = GetPlayerKey(player);
             if (!returnInfoByPlayer.TryGetValue(key, out var info))
@@ -287,14 +293,17 @@ namespace SpaceGame.Core
                 yield break;
             }
 
-            // Move player back to exterior so the interior can safely unload.
+            // Move player back to exterior so the interior can safely unload. Scene membership is
+            // session state and stays here; what the exterior LOOKS like is this player's own
+            // machine's business and is handed to them below.
             if (info.ExteriorScene.IsValid() && info.ExteriorScene.isLoaded)
             {
                 if (player.transform.parent != null) player.transform.SetParent(null);
                 SceneManager.MoveGameObjectToScene(player, info.ExteriorScene);
-                SceneManager.SetActiveScene(info.ExteriorScene);
             }
             TeleportPlayer(player, info.Position, info.Rotation);
+
+            NotifyViewer(player, t => t.NotifyExited(info.ExteriorScene.name));
 
             // One frame to let Physics.SyncTransforms-ish settling happen, then ground-clamp
             // so a stale Y (e.g., we entered the interior mid-jump or the terrain changed) can't
@@ -311,11 +320,13 @@ namespace SpaceGame.Core
             CleanupReturnInfo(key, info);
 
             if (string.IsNullOrEmpty(interiorName) || currentInterior == info.ExteriorScene)
-            {
-                if (TotalInteriorOccupancy == 0) persistentVisibility?.Restore();
                 yield break;
-            }
 
+            // The refcount is about the SCENE, not about anybody's screen: it decides when the last
+            // occupant has left and the interior can be unloaded for everyone. The exterior coming
+            // back into view is a separate question, answered per player by NotifyExited above —
+            // tying the two together meant one player leaving a cave while another stayed inside
+            // either un-hid the world for the wrong person or never un-hid it at all.
             int remaining = interiorRefCount.GetValueOrDefault(interiorName) - 1;
             if (remaining <= 0)
             {
@@ -326,8 +337,22 @@ namespace SpaceGame.Core
             {
                 interiorRefCount[interiorName] = remaining;
             }
+        }
 
-            if (TotalInteriorOccupancy == 0) persistentVisibility?.Restore();
+        /// <summary>
+        /// Tell one player's own machine that its view should change.
+        ///
+        /// Everything about an interior transition splits along this line. Which scene an object
+        /// lives in, which scenes are loaded, and where a body stands are session facts and belong
+        /// to the server. Which scene is ACTIVE and whether the exterior's lights are switched off
+        /// are per-machine rendering state, and applying them here — on the server, for whichever
+        /// player happened to walk through a door — is what plunged the host into darkness because
+        /// somebody else entered a cave.
+        /// </summary>
+        private static void NotifyViewer(GameObject player, Action<PlayerInteriorTransit> notify)
+        {
+            var transit = player != null ? player.GetComponent<PlayerInteriorTransit>() : null;
+            if (transit != null) notify(transit);
         }
 
         private void CleanupReturnInfo(ulong key, ReturnInfo info)
@@ -393,34 +418,22 @@ namespace SpaceGame.Core
             SceneManager.MoveGameObjectToScene(player, scene);
             TeleportPlayer(player, position, rotation);
 
-            // Activate the interior scene so its RenderSettings (ambient, fog, skybox) take effect.
-            // Without this, renderers in the interior sample the persistent scene's bright skybox ambient.
-            if (scene.IsValid() && scene.isLoaded)
-                SceneManager.SetActiveScene(scene);
-
-            persistentVisibility?.Suspend();
+            // Activating the interior scene (for its RenderSettings — ambient, fog, skybox) and
+            // switching off the exterior's lights are things one PLAYER's screen needs, not things
+            // the session needs. They are handed to that player's machine rather than done here.
+            NotifyViewer(player, t => t.NotifyEntered(scene.name));
         }
 
-        private static void TeleportPlayer(GameObject player, Vector3 position, Quaternion rotation)
-        {
-            if (player.TryGetComponent<CharacterController>(out var cc))
-            {
-                cc.enabled = false;
-                player.transform.SetPositionAndRotation(position, rotation);
-                cc.enabled = true;
-                return;
-            }
-
-            if (player.TryGetComponent<Rigidbody>(out var rb))
-            {
-                rb.position = position;
-                rb.rotation = rotation;
-                rb.linearVelocity = Vector3.zero;
-                rb.angularVelocity = Vector3.zero;
-            }
-
-            player.transform.SetPositionAndRotation(position, rotation);
-        }
+        /// <summary>
+        /// Places the player, on whichever machine is allowed to.
+        ///
+        /// This used to write the transform here, on the server. The player's NetworkTransform is
+        /// owner-authoritative, so for anyone but the host that write was overwritten by the owner
+        /// within a tick: a remote client walked into a building and stayed exactly where they were,
+        /// while the server believed it had moved them inside.
+        /// </summary>
+        private static void TeleportPlayer(GameObject player, Vector3 position, Quaternion rotation) =>
+            NetworkedTeleport.Move(player, position, rotation);
 
         private static ulong GetPlayerKey(GameObject player)
         {

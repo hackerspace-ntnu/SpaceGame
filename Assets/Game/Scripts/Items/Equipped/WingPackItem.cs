@@ -5,9 +5,11 @@
 // (OrnithopterFlightMotor + MountModule + SteerModule); this class owns the moment of transition
 // and the teardown, which is the part that has three ways to fire and has to survive all of them.
 using SpaceGame.Vehicles.Ornithopter;
+using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Agents;
 using SpaceGame.Characters;
+using SpaceGame.Core;
 using SpaceGame.Gameplay;
 
 namespace SpaceGame.Items
@@ -95,17 +97,69 @@ namespace SpaceGame.Items
             return dropAhead;
         }
 
-        protected override void Use()
+        /// <summary>
+        /// Owner-side: record the heading and the speed being carried into the launch.
+        ///
+        /// Both are measured on the pilot's own machine because both are theirs. The server has a
+        /// replicated copy of the player's rotation and a Rigidbody it is not the one simulating,
+        /// so a launch resolved there would come out a frame stale and a jump's worth of speed
+        /// short — and that speed is the whole reward for running at the edge.
+        /// </summary>
+        public override void OnRequestUse(ref NetArg arg)
         {
-            Transform player = owner.transform;
+            if (owner == null) return;
 
-            Vector3 forward = player.forward;
+            Vector3 forward = owner.transform.forward;
             forward.y = 0f;
             if (forward.sqrMagnitude < 1e-4f) forward = Vector3.forward;
-            forward.Normalize();
 
-            Quaternion facing = Quaternion.LookRotation(forward, Vector3.up);
-            craft = Instantiate(ornithopterPrefab, player.position, facing);
+            arg.R = Quaternion.LookRotation(forward.normalized, Vector3.up);
+            arg.P = new Vector3(LaunchSpeed(), 0f, 0f);
+        }
+
+        // Server-authoritative (the UsableItem default), so this only ever runs where spawning is
+        // allowed. The pilot never names a prefab: the server reads ornithopterPrefab off its own
+        // copy of the pack, which is why no whitelist is needed to stop a client asking for
+        // something else.
+        protected override void Use() =>
+            SpawnAndMountCraft(owner, UseArg.R, UseArg.P.x);
+
+        /// <summary>How much of the player's current speed carries into the launch.</summary>
+        private float LaunchSpeed()
+        {
+            if (!owner.TryGetComponent(out Rigidbody playerBody))
+                return 0f;
+
+            Vector3 flat = playerBody.linearVelocity;
+            flat.y = 0f;
+            return flat.magnitude * speedCarry;
+        }
+
+        /// <summary>
+        /// The whole launch, from spawning the craft to handing the pilot the controls. One path for
+        /// offline, host and a remote pilot's launch running on the server — the difference is only
+        /// WHERE it runs, never WHAT it does.
+        /// </summary>
+        public bool SpawnAndMountCraft(GameObject pilot, Quaternion facing, float carriedSpeed)
+        {
+            if (craft != null)
+                return false;               // already flying
+
+            if (ornithopterPrefab == null || pilot == null)
+                return false;
+
+            Transform player = pilot.transform;
+            Vector3 forward = facing * Vector3.forward;
+
+            ulong pilotOwner = NetworkSpawn.NoOwner;
+            if (Network.IsNetworked && pilot.TryGetComponent(out NetworkObject pilotNetObj))
+                pilotOwner = pilotNetObj.OwnerClientId;
+
+            // Ownership goes to the pilot so their local flight input drives the craft and replicates
+            // outward, rather than the server overwriting it every tick.
+            craft = GameServices.World.Spawn(ornithopterPrefab, player.position, facing, pilotOwner);
+            if (craft == null)
+                return false;
 
             craftMount = craft.GetComponent<MountModule>();
             craftMotor = craft.GetComponent<OrnithopterFlightMotor>();
@@ -113,9 +167,9 @@ namespace SpaceGame.Items
             {
                 Debug.LogError("WingPackItem: prefab needs both MountModule and OrnithopterFlightMotor.",
                                this);
-                Destroy(craft);
+                GameServices.World.Despawn(craft);
                 craft = null;
-                return;
+                return false;
             }
 
             // Place the craft so its SEAT lands where the player already is, rather than its origin.
@@ -132,27 +186,20 @@ namespace SpaceGame.Items
                 craft.transform.position = player.position + Vector3.up * launchLift;
             }
 
-            float carriedSpeed = 0f;
-            if (owner.TryGetComponent(out Rigidbody playerBody))
-            {
-                Vector3 flat = playerBody.linearVelocity;
-                flat.y = 0f;
-                carriedSpeed = flat.magnitude * speedCarry;
-            }
-
             craftMotor.Landed += HandleLanded;
             craftMount.Dismounted += HandleDismounted;
 
-            Interactor interactor = owner.GetComponentInChildren<Interactor>(true);
+            Interactor interactor = pilot.GetComponentInChildren<Interactor>(true);
             if (interactor == null || !craftMount.TryMount(interactor, null))
             {
                 Debug.LogError("WingPackItem: could not mount the player onto the craft.", this);
                 ReleaseCraft(dismountFirst: false);
-                return;
+                return false;
             }
 
             craftMotor.Launch(forward, carriedSpeed);
             SetHeldVisible(false);
+            return true;
         }
 
         private void HandleLanded() => ReleaseCraft(dismountFirst: true);
@@ -186,7 +233,17 @@ namespace SpaceGame.Items
             craftMount = null;
             craftMotor = null;
 
-            Destroy(doomed);
+            // Despawn through the world service so the craft disappears for every player, not just
+            // whoever was flying it. Only the server may retire a networked object; on a client the
+            // authoritative despawn arrives from the server, so don't destroy it out from under that.
+            if (Network.IsNetworked && !Network.Server &&
+                doomed.TryGetComponent(out NetworkObject doomedNetObj) && doomedNetObj.IsSpawned)
+            {
+                SetHeldVisible(true);
+                return;
+            }
+
+            GameServices.World.Despawn(doomed);
             SetHeldVisible(true);
         }
 

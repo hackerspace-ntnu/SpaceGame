@@ -8,15 +8,13 @@ namespace SpaceGame.EditorTools
     /// Scene-view interactive handles for a <see cref="TerrainFeatureSpawner"/>'s footprint. Split out
     /// of <c>TerrainFeatureSpawnerEditor</c> to keep both files small.
     ///
-    /// Three handle sets, picked by the spawner's feature type + footprint mode:
+    /// Two handle sets, picked by the spawner's footprint mode:
     ///
-    ///   • AREA / Polygon mode — the closed outline is hand-authored. Each vertex is a draggable dot;
+    ///   • Polygon mode — the closed outline is hand-authored. Each vertex is a draggable dot;
     ///     a "✕" button beside it deletes it; clicking anywhere on an edge inserts a new vertex at the
     ///     click point. A green arrow sets the feature Height.
-    ///   • AREA / Noise mode — the outline is generated. The designer drags the Width / Breadth box
+    ///   • Noise mode — the outline is generated. The designer drags the Width / Breadth box
     ///     faces and the Height arrow; the outline regenerates live and is drawn read-only.
-    ///   • LINEAR features — an editable Catmull-Rom path: a handle per control point, "+"/"-" buttons,
-    ///     and a half-width slider.
     ///
     /// All edits go through <see cref="Undo"/> and mark the spawner dirty so the scene saves correctly.
     /// </summary>
@@ -28,7 +26,7 @@ namespace SpaceGame.EditorTools
         public static bool Draw(TerrainFeatureSpawner spawner)
         {
             if (spawner == null) return false;
-            return spawner.UsesPath ? DrawPathHandles(spawner) : DrawAreaHandles(spawner);
+            return DrawAreaHandles(spawner);
         }
 
         // =========================================================================
@@ -264,100 +262,6 @@ namespace SpaceGame.EditorTools
                 area.width = newHalf.x * 2f;
                 area.breadth = newHalf.z * 2f;
                 EditorUtility.SetDirty(spawner);
-            }
-            return changed;
-        }
-
-        // =========================================================================
-        // Linear features — editable spline path
-        // =========================================================================
-
-        static bool DrawPathHandles(TerrainFeatureSpawner spawner)
-        {
-            Transform t = spawner.transform;
-            FeaturePath path = spawner.Path;
-            if (path == null) return false;
-            bool changed = false;
-
-            // Auto-seed an empty path so a freshly switched linear feature is editable straight away.
-            if (path.Count < 2)
-            {
-                Undo.RecordObject(spawner, "Init Terrain Feature Path");
-                path.ResetToBoxDiagonal(spawner.BoxHalfExtents);
-                EditorUtility.SetDirty(spawner);
-            }
-
-            // Per-control-point position handles.
-            for (int i = 0; i < path.controlPoints.Count; i++)
-            {
-                Vector3 world = t.TransformPoint(path.controlPoints[i]);
-                EditorGUI.BeginChangeCheck();
-                Handles.color = new Color(1f, 0.7f, 0.2f, 1f);
-                Vector3 moved = Handles.PositionHandle(world, t.rotation);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    Undo.RecordObject(spawner, "Move Terrain Feature Path Point");
-                    path.controlPoints[i] = t.InverseTransformPoint(moved);
-                    EditorUtility.SetDirty(spawner);
-                    changed = true;
-                }
-
-                Handles.BeginGUI();
-                Vector2 gui = HandleUtility.WorldToGUIPoint(world);
-                if (GUI.Button(new Rect(gui.x + 12f, gui.y - 10f, 22f, 20f), "+"))
-                {
-                    Undo.RecordObject(spawner, "Add Terrain Feature Path Point");
-                    Vector3 next = i + 1 < path.controlPoints.Count
-                        ? (path.controlPoints[i] + path.controlPoints[i + 1]) * 0.5f
-                        : path.controlPoints[i] + Vector3.right * 10f;
-                    path.controlPoints.Insert(i + 1, next);
-                    EditorUtility.SetDirty(spawner);
-                    changed = true;
-                }
-                if (path.controlPoints.Count > 2 &&
-                    GUI.Button(new Rect(gui.x + 12f, gui.y + 12f, 22f, 20f), "-"))
-                {
-                    Undo.RecordObject(spawner, "Remove Terrain Feature Path Point");
-                    path.controlPoints.RemoveAt(i);
-                    EditorUtility.SetDirty(spawner);
-                    changed = true;
-                }
-                Handles.EndGUI();
-            }
-
-            // Smooth curve preview between the editable points.
-            if (path.IsValid)
-            {
-                var spline = new FeatureSpline(path);
-                Handles.color = new Color(1f, 0.7f, 0.2f, 0.9f);
-                Vector3 prev = t.TransformPoint(spline.Evaluate(0f));
-                for (int i = 1; i <= 48; i++)
-                {
-                    Vector3 cur = t.TransformPoint(spline.Evaluate(i / 48f));
-                    Handles.DrawLine(prev, cur);
-                    prev = cur;
-                }
-            }
-
-            // Half-width handle at the path midpoint.
-            if (path.IsValid)
-            {
-                var spline = new FeatureSpline(path);
-                Vector3 mid = t.TransformPoint(spline.Evaluate(0.5f));
-                Vector3 side = t.TransformDirection(Vector3.Cross(spline.Tangent(0.5f), Vector3.up).normalized);
-                Vector3 widthWorld = mid + side * path.halfWidth;
-
-                EditorGUI.BeginChangeCheck();
-                Handles.color = Color.yellow;
-                float hs = HandleUtility.GetHandleSize(widthWorld) * 0.16f;
-                Vector3 dragged = Handles.Slider(widthWorld, side, hs, Handles.SphereHandleCap, 0f);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    Undo.RecordObject(spawner, "Resize Terrain Feature Path Width");
-                    path.halfWidth = Mathf.Max(1f, Vector3.Distance(mid, dragged));
-                    EditorUtility.SetDirty(spawner);
-                    changed = true;
-                }
             }
             return changed;
         }

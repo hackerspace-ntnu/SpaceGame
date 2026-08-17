@@ -75,6 +75,15 @@ namespace SpaceGame.Items
         public bool TryAddToMain(InventoryItem item, out int index) =>
             TryAdd(BackpackCompartment.Main, item, out index);
 
+        /// Put an item into one SPECIFIC slot. False if the slot is occupied, out of range, or the
+        /// item is null.
+        ///
+        /// This is what a swap needs and TryAdd cannot give it: TryAdd fills the first free slot,
+        /// so the item handed back by a swap would land somewhere other than the socket the player
+        /// is aiming at — which reads as the pack shuffling its own contents.
+        public bool PlaceAt(BackpackCompartment compartment, int index, InventoryItem item) =>
+            Get(compartment).TryPlaceAt(index, item);
+
         /// Removes and returns the item, or null if the slot was empty.
         public InventoryItem TakeOut(BackpackCompartment compartment, int index)
         {

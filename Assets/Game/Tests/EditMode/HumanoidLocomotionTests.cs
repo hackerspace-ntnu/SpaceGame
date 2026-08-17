@@ -27,8 +27,8 @@ namespace SpaceGame.Tests
 {
     public class HumanoidLocomotionTests
     {
-        private const string PrefabPath = "Assets/Game/Prefabs/agents/creatures/HumanoidRobot.prefab";
-        private const string OstrichPath = "Assets/Game/Prefabs/agents/creatures/Ostrich.prefab";
+        private const string PrefabPath = "Assets/Game/Prefabs/Agents/Creatures/HumanoidRobot.prefab";
+        private const string OstrichPath = "Assets/Game/Prefabs/Agents/Creatures/Ostrich.prefab";
         private const float Dt = 1f / 60f;
         private const int Frames = 600;
         /// Frames given to settling before anything is measured: the first stride is spent finding the

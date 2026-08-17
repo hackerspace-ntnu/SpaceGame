@@ -317,14 +317,12 @@ MonoBehaviour:
   mainWheelMount: {fileID: 752447794026914547}
   secondaryWheelMountA: {fileID: 6187216271750243590}
   secondaryWheelMountB: {fileID: 5735950095543101578}
-  mainJointAxisLocal: {x: 1, y: 0, z: 0}
-  secondaryJointAxisLocal: {x: 1, y: 0, z: 0}
-  mainMinAngle: -20
-  mainMaxAngle: 20
-  secondaryMinAngle: -30
-  secondaryMaxAngle: 30
-  mainJointDegreesPerSecond: 30
-  secondaryJointDegreesPerSecond: 30
+  jointRotationAxis: {x: 1, y: 0, z: 0}
+  jointSpring: 1000
+  jointDamper: 100
+  jointMaxForce: 1000
+  jointMinAngle: -60
+  jointMaxAngle: 60
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -510,6 +508,9 @@ GameObject:
   - component: {fileID: 4206344025444730470}
   - component: {fileID: 8201878865021766641}
   - component: {fileID: 1083282141488559753}
+  - component: {fileID: -5756048732857512741}
+  - component: {fileID: 1000365661039205996}
+  - component: {fileID: -2330253134991838234}
   m_Layer: 0
   m_Name: Rover
   m_TagString: Untagged
@@ -547,21 +548,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5cdaf4928be0f9042b25d9716da44896, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoverController
-  bogies:
-  - {fileID: 7715829000183824406}
-  - {fileID: 698055344340184002}
-  autoCollectBogiesFromChildren: 1
+  thingMount: {fileID: 0}
+  raycastLength: 5
+  raycastMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   movementController: {fileID: 4206344025444730470}
-  useWaypoints: 1
-  waypoints: []
-  autoCollectWaypointsFromChildren: 0
-  loopWaypoints: 1
-  waypointReachDistance: 2
-  waypointWaitTime: 0
-  followGroundHeight: 1
-  bodyHeightOffset: 0.35
-  bodyHeightLerpSpeed: 8
-  minGroundContactCount: 1
+  moveSpeed: 3
+  directionChangeInterval: 5
+  directionCommitTime: 1
+  backupTime: 2
+  explorationRadius: 20
+  waypointStoppingDistance: 1
   drawDebug: 1
 --- !u!114 &4206344025444730470
 MonoBehaviour:
@@ -578,7 +576,6 @@ MonoBehaviour:
   moveSpeed: 10
   rotationSpeed: 45
   acceleration: 5
-  stoppingDistance: 0.5
 --- !u!65 &8201878865021766641
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -627,6 +624,46 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &-5756048732857512741
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104903636770483098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &1000365661039205996
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104903636770483098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &-2330253134991838234
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104903636770483098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
 --- !u!1 &2169529945073363033
 GameObject:
   m_ObjectHideFlags: 0
@@ -1009,14 +1046,12 @@ MonoBehaviour:
   mainWheelMount: {fileID: 2029890539062039487}
   secondaryWheelMountA: {fileID: 538110453675446118}
   secondaryWheelMountB: {fileID: 3546360107838527075}
-  mainJointAxisLocal: {x: 1, y: 0, z: 0}
-  secondaryJointAxisLocal: {x: 1, y: 0, z: 0}
-  mainMinAngle: -20
-  mainMaxAngle: 20
-  secondaryMinAngle: -30
-  secondaryMaxAngle: 30
-  mainJointDegreesPerSecond: 20
-  secondaryJointDegreesPerSecond: 20
+  jointRotationAxis: {x: 1, y: 0, z: 0}
+  jointSpring: 1000
+  jointDamper: 100
+  jointMaxForce: 1000
+  jointMinAngle: -60
+  jointMaxAngle: 60
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295

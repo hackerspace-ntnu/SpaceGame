@@ -63,8 +63,7 @@ namespace SpaceGame.Weapons
                 Instantiate(muzzleFlashPrefab, origin.position, origin.rotation);
             }
 
-            // Play fire sound
-            PlayFireSound();
+            // The report belongs to Present(), which runs on every machine — see Weapon.
         }
 
         private void FireRay(Vector3 startPos, Vector3 direction)
@@ -73,13 +72,14 @@ namespace SpaceGame.Weapons
 
             if (Physics.Raycast(ray, out RaycastHit hit, rayDistance, aimMask, QueryTriggerInteraction.Ignore))
             {
-                // Apply damage to hit target
-                HealthComponent targetHealth = hit.collider.GetComponent<HealthComponent>();
-                if (targetHealth != null)
+                // Damage only where the shot is being resolved. Every machine runs this same trace
+                // to draw its own tracer and impact, and a hitscan that billed the target from all
+                // of them would multiply the rifle's damage by the number of players watching.
+                if (ShotDealsDamage)
                 {
                     float distanceFactor = Mathf.Max(0f, 1f - (hit.distance * damageDropoff / 100f));
                     int actualDamage = Mathf.RoundToInt(25f * distanceFactor); // Base energy rifle damage
-                    targetHealth.Damage(actualDamage);
+                    NetDamage.Apply(hit.collider.gameObject, actualDamage, transform);
                 }
 
                 // Spawn impact effect

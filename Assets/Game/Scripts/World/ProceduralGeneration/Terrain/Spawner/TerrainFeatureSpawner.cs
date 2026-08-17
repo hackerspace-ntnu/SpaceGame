@@ -30,7 +30,7 @@ namespace SpaceGame.World
     {
         [Header("Feature")]
         [Tooltip("Which procedural terrain feature this spawner builds. The editor warns if the chosen type has no implementation registered yet.")]
-        [SerializeField] private TerrainFeatureType featureType = TerrainFeatureType.FlatPad;
+        [SerializeField] private TerrainFeatureType featureType = TerrainFeatureType.Mesa;
 
         [Header("Footprint (area features)")]
         [Tooltip("The area footprint: box dimensions (Width / Height / Breadth), the Polygon/Noise " +
@@ -45,16 +45,12 @@ namespace SpaceGame.World
         [HideInInspector] [SerializeField] private float footprintComplexity = -1f;
         [HideInInspector] [SerializeField] private FeaturePolygon footprint;
 
-        [Header("Footprint — path (linear features)")]
-        [Tooltip("Editable poly-line path, in local space. Linear features (canyons, paths, ridges, bridges, arches, cave entrances) sweep along this. Edit the points with the Scene-view handles.")]
-        [SerializeField] private FeaturePath path = new FeaturePath();
-
         [Header("Per-feature settings")]
         [Tooltip("Extra knobs specific to the chosen feature type (e.g. cliff face width, butte taper). The inspector draws these automatically; switching feature type reseeds them with that feature's defaults.")]
         [SerializeReference] private object featureSettings;
 
         [Tooltip("Tracks which feature type 'featureSettings' was created for, so the inspector can reseed it when the type changes.")]
-        [SerializeField] private TerrainFeatureType featureSettingsType = TerrainFeatureType.FlatPad;
+        [SerializeField] private TerrainFeatureType featureSettingsType = TerrainFeatureType.Mesa;
 
         [Header("Tuning")]
         [Tooltip("The four shared knobs — noise, overlap, height, jaggedness — plus walkability. All nine features read these.")]
@@ -87,10 +83,8 @@ namespace SpaceGame.World
         [SerializeField] private string featureLayer = "Default";
 
         [Header("Baked asset (preferred at runtime)")]
-        [Tooltip("Pre-baked feature mesh (single-mesh features). If set, runtime instantiates it instead of generating.")]
+        [Tooltip("Pre-baked feature mesh. If set, runtime instantiates it instead of generating.")]
         [SerializeField] private Mesh bakedMesh;
-        [Tooltip("Pre-baked sub-meshes for an internally-chunked MULTI-MESH feature (e.g. ArchingCave). If non-empty, runtime instantiates these. Single-mesh features leave this empty.")]
-        [SerializeField] private Mesh[] bakedSubMeshes;
 
         [Header("Lifecycle")]
         [Tooltip("Spawn the feature automatically on Awake. Turn off if another system drives spawning.")]
@@ -99,7 +93,6 @@ namespace SpaceGame.World
         [SerializeField] private bool drawFootprintGizmo = true;
 
         GameObject _featureRoot;
-        TerrainFeatureResult _lastResult;
         /// <summary>Prefix on every spawned feature-root GameObject — used for robust cleanup.</summary>
         const string FeatureRootPrefix = "TerrainFeature_";
 
@@ -142,19 +135,17 @@ namespace SpaceGame.World
 
         /// <summary>The hand-editable / generated outline polygon of the area footprint.</summary>
         public FeaturePolygon Footprint => Area.polygon;
-        public FeaturePath Path => path;
 
         /// <summary>Whether the area footprint is hand-edited (Polygon) or noise-generated (Noise).</summary>
         public FootprintMode FootprintModeValue => Area.mode;
 
         /// <summary>True while the footprint outline is noise-generated — vertex handles are then read-only.</summary>
-        public bool FootprintIsGenerated => !UsesPath && Area.mode == FootprintMode.Noise;
+        public bool FootprintIsGenerated => Area.mode == FootprintMode.Noise;
 
         /// <summary>Rebuilds the noise-generated footprint from the current box + knobs (editor live
-        /// update). No-op for linear features or Polygon mode.</summary>
+        /// update). No-op in Polygon mode.</summary>
         public void RefreshGeneratedFootprint()
         {
-            if (UsesPath) return;
             Area.Refresh(seed);
         }
         public TerrainFeatureTuning Tuning => tuning;
@@ -186,40 +177,42 @@ namespace SpaceGame.World
             return featureSettings;
         }
 
-        /// <summary>True when a baked single mesh OR baked sub-meshes exist.</summary>
-        public bool HasBakedMesh => bakedMesh != null || HasBakedSubMeshes;
+        /// <summary>True when a baked mesh exists.</summary>
+        public bool HasBakedMesh => bakedMesh != null;
 
-        /// <summary>True when pre-baked sub-meshes exist for a multi-mesh feature.</summary>
-        public bool HasBakedSubMeshes => bakedSubMeshes != null && bakedSubMeshes.Length > 0;
-
-        public TerrainFeatureResult LastResult => _lastResult;
-
-        /// <summary>True if the chosen feature type sweeps the spline rather than filling the box.
-        /// ArchingCave is an AREA feature and is deliberately NOT listed here.</summary>
-        public bool UsesPath =>
-            featureType == TerrainFeatureType.Canyon
-            || featureType == TerrainFeatureType.CanyonPath
-            || featureType == TerrainFeatureType.Ridge
-            || featureType == TerrainFeatureType.NaturalBridge
-            || featureType == TerrainFeatureType.StoneArch
-            || featureType == TerrainFeatureType.CaveEntrance;
-
+        // The world NavMesh is baked at author time (see WorldNavMeshBaker), which spawns these
+        // features itself so the bake sees exactly this geometry. Nothing needs telling at runtime.
+        //
+        // This used to end with FindFirstObjectByType<WorldStreamer>() plus a
+        // NotifyChunkGeometryChanged call, which re-scanned the whole chunk scene for NavMesh
+        // sources. With 34 spawners in a chunk that ran 34 times per load and threw 33 of the
+        // results away.
         void Awake()
         {
             if (!spawnOnAwake) return;
+
+            // Deferred, not immediate. Every spawner in a chunk wakes on the same frame Unity
+            // finishes integrating the scene, and building a feature means a GameObject tree plus a
+            // MeshCollider — a synchronous PhysX cook. Thirty-four of those in one frame is a
+            // visible freeze; spread across frames it is a chunk that finishes filling in slightly
+            // later, half a kilometre away from the player.
+            //
+            // Edit mode and explicit calls still spawn immediately: the queue only runs at play time.
+            if (!Application.isPlaying)
+            {
+                SpawnNow();
+                return;
+            }
+
+            ChunkActivationQueue.Shared.Enqueue(SpawnNow, $"TerrainFeature {name}");
+        }
+
+        /// <summary>Builds the feature immediately, from baked meshes when they exist.</summary>
+        void SpawnNow()
+        {
+            if (this == null || gameObject == null) return;
             if (HasBakedMesh) SpawnBaked();
             else GenerateNow();
-
-            // The chunk's load callback scanned the scene for NavMesh sources BEFORE this Awake
-            // ran, so the mesh(es) just spawned were not collected. Tell the streamer to
-            // re-collect this chunk so the new terrain geometry is baked into the world NavMesh.
-            // Without this, agents standing on a runtime-generated feature have no NavMesh.
-            if (Application.isPlaying)
-            {
-                var streamer = FindFirstObjectByType<WorldStreamer>();
-                if (streamer != null)
-                    streamer.NotifyChunkGeometryChanged(transform.position);
-            }
         }
 
         // --- Generation ----------------------------------------------------------
@@ -234,15 +227,9 @@ namespace SpaceGame.World
             area ??= new FeatureFootprint();
 
             // Resolve the area footprint outline (regenerates from noise / seeds an ellipse as needed).
-            // Linear features ignore it but it stays valid so a feature switch is seamless.
             area.Refresh(seed);
 
-            // Meshing bounds: from the footprint for area features, from the path box for linear ones.
-            Bounds bounds = UsesPath
-                ? new Bounds(Vector3.zero, area.BoxHalfExtents * 2f)
-                : area.ComputeLocalBounds();
-
-            return new FeatureContext(seed, bounds, area, path, tuning, ground,
+            return new FeatureContext(seed, area.ComputeLocalBounds(), area, tuning, ground,
                 transform.localToWorldMatrix, meshSettings.voxelSize);
         }
 
@@ -287,8 +274,7 @@ namespace SpaceGame.World
             }
             // Inject the designer-tuned per-feature knobs before the feature describes its shape.
             feature.ApplySettings(SyncFeatureSettings());
-            _lastResult = TerrainFeatureGenerator.Generate(feature, BuildContext(), meshSettings);
-            return _lastResult;
+            return TerrainFeatureGenerator.Generate(feature, BuildContext(), meshSettings);
         }
 
         /// <summary>Live-generation path: generate, then instantiate the mesh(es) into the scene.</summary>
@@ -301,15 +287,12 @@ namespace SpaceGame.World
                 Debug.LogWarning("[TerrainFeatureSpawner] generation produced no mesh.");
                 return;
             }
-            // Multi-mesh feature → spawn one child per sub-mesh; single-mesh → the original path.
-            if (result.IsMultiMesh) SpawnMeshes(result.SubMeshes.ToArray());
-            else SpawnMesh(result.Mesh);
+            SpawnMesh(result.Mesh);
         }
 
-        /// <summary>Runtime path for shipping: instantiate the pre-baked mesh(es), no generation cost.</summary>
+        /// <summary>Runtime path for shipping: instantiate the pre-baked mesh, no generation cost.</summary>
         public void SpawnBaked()
         {
-            if (HasBakedSubMeshes) { SpawnMeshes(bakedSubMeshes); return; }
             if (bakedMesh == null)
             {
                 Debug.LogWarning("[TerrainFeatureSpawner] SpawnBaked called with no baked mesh.");
@@ -324,15 +307,6 @@ namespace SpaceGame.World
             ClearSpawned();
             _featureRoot = TerrainFeatureMeshSpawn.CreateRoot(transform, RootName(), FeatureLayerIndex());
             TerrainFeatureMeshSpawn.AttachMesh(_featureRoot, mesh, "Mesh", ResolveMaterial());
-        }
-
-        /// <summary>Instantiates a MULTI-MESH feature: one feature root with one child per sub-mesh.
-        /// Every sub-mesh collider feeds the world NavMesh as one continuous walkable surface.</summary>
-        void SpawnMeshes(Mesh[] meshes)
-        {
-            ClearSpawned();
-            _featureRoot = TerrainFeatureMeshSpawn.CreateRoot(transform, RootName(), FeatureLayerIndex());
-            TerrainFeatureMeshSpawn.AttachMeshes(_featureRoot, meshes, ResolveMaterial());
         }
 
         string RootName() => $"{FeatureRootPrefix}{featureType}_seed{seed}";
@@ -352,20 +326,10 @@ namespace SpaceGame.World
             _featureRoot = null;
         }
 
-        /// <summary>Assigns the baked single-mesh asset (editor, after a single-mesh bake). Clears any
-        /// baked sub-meshes so the two baked paths never conflict.</summary>
+        /// <summary>Assigns the baked mesh asset (editor, after a bake).</summary>
         public void AssignBakedMesh(Mesh mesh)
         {
             bakedMesh = mesh;
-            if (mesh != null) bakedSubMeshes = null;
-        }
-
-        /// <summary>Assigns the baked sub-mesh assets for a multi-mesh feature (editor, after a
-        /// multi-mesh bake). Clears the single baked mesh so the two paths never conflict.</summary>
-        public void AssignBakedSubMeshes(Mesh[] meshes)
-        {
-            bakedSubMeshes = meshes;
-            if (meshes != null && meshes.Length > 0) bakedMesh = null;
         }
 
         /// <summary>The default desert-rock material if none was assigned (see <see cref="TerrainFeatureSpawnerVisuals"/>).</summary>

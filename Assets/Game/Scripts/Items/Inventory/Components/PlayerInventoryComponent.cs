@@ -40,10 +40,23 @@ namespace SpaceGame.Items
         private void Start()
         {
             player.Input.OnHotbarPressed += SelectSlot;
+            player.Input.OnHotbarScrolled += ScrollSlot;
             player.Input.OnDropPressed += DropItem;
         }
 
         public void SelectSlot(int slotIndex) => playerInventory.SelectSlot(slotIndex);
+
+        public void RestoreSlots(IReadOnlyList<InventoryItem> items, int selectedSlot) =>
+            playerInventory.RestoreSlots(items, selectedSlot);
+
+        private void ScrollSlot(int direction)
+        {
+            int target = HotbarNavigation.GetScrollTarget(SelectedSlotIndex, direction, GetInventorySize());
+            if (target == HotbarNavigation.NoChange) return;
+
+            SelectSlot(target);
+        }
+
         public bool TryAddItem(InventoryItem item) => playerInventory.TryAddItem(item);
         public bool TryRemoveItem(int index) => playerInventory.TryRemoveItem(index);
  

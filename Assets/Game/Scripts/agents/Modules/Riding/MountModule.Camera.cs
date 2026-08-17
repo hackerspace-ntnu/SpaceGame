@@ -2,6 +2,7 @@
 // Lives on MountModule so every mount (steered or not) gets the camera system.
 using UnityEngine;
 using UnityEngine.InputSystem;
+using SpaceGame.Core;
 using SpaceGame.World;
 
 namespace SpaceGame.Agents
@@ -27,16 +28,31 @@ namespace SpaceGame.Agents
         {
             Vector2 lookInput = lookAction != null ? lookAction.ReadValue<Vector2>() : Vector2.zero;
 
-            cameraYawOffset += lookInput.x * lookSensitivity * deltaTime;
-            mountedPitch = Mathf.Clamp(mountedPitch - lookInput.y * lookSensitivity * deltaTime, -lookPitchClamp, lookPitchClamp);
+            // The serialized sensitivity is this mount's own scale and the setting is a multiplier
+            // on top, matching PlayerLook exactly. Mounted look used to read neither the player's
+            // sensitivity preference nor their invert-Y — so every option in the menu silently
+            // stopped applying the moment you climbed on something.
+            float scaled = lookSensitivity * GameSettings.MouseSensitivity * deltaTime;
+            float pitchInput = GameSettings.InvertLookY ? -lookInput.y : lookInput.y;
 
-            if (Mathf.Abs(lookInput.x) > 0.01f)
+            cameraYawOffset = MountLookMath.WrapAngle(cameraYawOffset + lookInput.x * scaled);
+            mountedPitch = Mathf.Clamp(mountedPitch - pitchInput * scaled, -lookPitchClamp, lookPitchClamp);
+            orbitPitch = Mathf.Clamp(orbitPitch - pitchInput * scaled, orbitPitchMin, orbitPitchMax);
+
+            // Any look input counts, not just yaw. Testing the x axis alone meant that tilting the
+            // camera up at the ostrich's head while parked out on its flank left the yaw timer
+            // running, and the side view you were holding crept out from under you mid-look.
+            if (lookInput.sqrMagnitude > 0.0001f)
                 timeSinceLastLookInput = 0f;
             else
                 timeSinceLastLookInput += deltaTime;
 
-            if (timeSinceLastLookInput >= cameraAutoAlignDelay)
-                cameraYawOffset = Mathf.MoveTowards(cameraYawOffset, 0f, cameraAutoAlignSpeed * deltaTime);
+            cameraYawOffset = MountLookMath.StepRecentre(cameraYawOffset, timeSinceLastLookInput,
+                                                         cameraAutoAlignDelay, cameraAutoAlignSpeed,
+                                                         deltaTime);
+            orbitPitch = MountLookMath.StepRecentre(orbitPitch, timeSinceLastLookInput,
+                                                    cameraAutoAlignDelay, cameraAutoAlignSpeed,
+                                                    deltaTime);
 
             if (mountedFirstPersonCameraRoot)
                 mountedFirstPersonCameraRoot.localRotation = Quaternion.Euler(mountedPitch, 0f, 0f);
@@ -68,6 +84,10 @@ namespace SpaceGame.Agents
             cameraYawOffset = 0f;
             timeSinceLastLookInput = 0f;
             mountedPitch = defaultMountedPitch;
+            // Zero, not defaultMountedPitch. That value is the first-person head's resting tilt; the
+            // orbit's neutral is "wherever thirdPersonOffset already puts the camera", so starting
+            // the orbit at 0 keeps the authored framing exactly as authored.
+            orbitPitch = 0f;
         }
 
         private void SetFirstPersonCameraEnabled(bool enabledState)
@@ -207,7 +227,17 @@ namespace SpaceGame.Agents
             Quaternion yawRot = followMountPitch
                 ? transform.rotation * Quaternion.Euler(0f, cameraYawOffset, 0f)
                 : Quaternion.Euler(0f, cameraYaw, 0f);
-            Vector3 targetPosition = pivot.position + yawRot * GetThirdPersonCameraOffset();
+
+            // Elevation. The boom pivots about the rider on the rider's own X axis, so pushing the
+            // mouse up swings the camera down and back and it looks up at the mount; pulling down
+            // lifts it into a high view. Without this the third-person camera ignored the vertical
+            // axis outright — mounted, in the default perspective, you could only look left and
+            // right, which is half a look control.
+            //
+            // Rotating the OFFSET rather than the camera keeps the boom length fixed, so elevation
+            // never dollies the mount towards or away from you.
+            Quaternion orbitRot = yawRot * Quaternion.Euler(orbitPitch, 0f, 0f);
+            Vector3 targetPosition = pivot.position + orbitRot * GetThirdPersonCameraOffset();
             Transform camTransform = runtimeThirdPersonCamera.transform;
 
             // Aim: look at a point ahead of the pivot at pivot height. Because the camera is

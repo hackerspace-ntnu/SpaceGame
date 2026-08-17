@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.AI.Navigation;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
@@ -20,15 +19,20 @@ namespace SpaceGame.World
     {
         [SerializeField] private WorldStreamingConfig config;
 
+        /// <summary>The world this streamer is running, for code that needs the world's identity.</summary>
+        public WorldStreamingConfig Config => config;
+
         [Header("NavMesh")]
-        [Tooltip("Single NavMeshSurface in the persistent scene. Rebuilt at runtime when chunks load/unload so NPCs can navigate across chunk boundaries.")]
-        [SerializeField] private NavMeshSurface navMeshSurface;
-        [Tooltip("Delay in seconds after the last chunk load/unload before rebuilding the NavMesh. Prevents multiple rebuilds when loading a batch of chunks.")]
-        [SerializeField] private float navMeshRebuildDelay = 0.5f;
-        [Tooltip("How far from a parked agent to search when reattaching it to the rebuilt NavMesh.")]
-        [SerializeField] private float parkedAgentActivationDistance = 32f;
-        [Tooltip("Per-frame time budget (milliseconds) for incremental NavMesh source collection. Lower = less per-frame cost but slower source readiness after a chunk loads.")]
-        [SerializeField] private float navMeshSourceCollectionBudgetMs = 1.0f;
+        [Tooltip("How far to search when snapping an agent onto the pre-baked world NavMesh as its " +
+                 "chunk loads. The NavMesh is always present (see WorldNavMeshProvider), so this " +
+                 "only covers agents authored slightly off it.")]
+        [SerializeField] private float agentSnapDistance = 32f;
+
+        [Header("Chunk activation")]
+        [Tooltip("Per-frame budget in milliseconds for building a freshly loaded chunk's deferred " +
+                 "content (terrain features and their mesh colliders). Lower spreads the work over " +
+                 "more frames; the chunk simply finishes filling in slightly later.")]
+        [SerializeField] private float chunkActivationBudgetMs = 2f;
 
         [Header("Debug")]
         [SerializeField] private bool showDebugGizmos = true;
@@ -38,6 +42,27 @@ namespace SpaceGame.World
         /// Subscribe to this before spawning players.
         /// </summary>
         public event Action OnInitialChunksReady;
+
+        /// <summary>
+        /// A chunk scene has finished loading and its contents are addressable.
+        ///
+        /// Static, matching the SceneTracked registry below, so a listener does not need a
+        /// reference to a WorldStreamer that may not exist yet — the save system subscribes long
+        /// before the world scene is loaded.
+        /// </summary>
+        public static event Action<Vector2Int, Scene> OnChunkLoaded;
+
+        /// <summary>
+        /// A chunk scene is about to be unloaded and everything in it destroyed.
+        ///
+        /// Fired BEFORE the unload is issued, which is the whole point: this is the last moment
+        /// anything can read the state of the objects in that chunk. A listener that waited for the
+        /// unload to complete would find nothing left to capture.
+        /// </summary>
+        public static event Action<Vector2Int, Scene> OnChunkWillUnload;
+
+        /// <summary>A chunk scene is gone.</summary>
+        public static event Action<Vector2Int> OnChunkUnloaded;
 
         public bool InitialChunksLoaded => initialChunksLoaded;
         public bool IsReady => isReady;
@@ -118,25 +143,6 @@ namespace SpaceGame.World
             return false;
         }
 
-        /// <summary>
-        /// Re-collect a chunk's NavMesh sources and schedule a rebuild. Call this after geometry
-        /// is added to or changed inside an already-loaded chunk at runtime — e.g. a
-        /// TerrainFeatureSpawner that generates its mesh in Awake/Start, AFTER the chunk's load
-        /// callback already scanned the scene. Without this the new geometry is never baked into
-        /// the NavMesh and agents standing on it cannot path.
-        /// </summary>
-        public void NotifyChunkGeometryChanged(Vector3 worldPos)
-        {
-            if (!isReady || config == null) return;
-
-            var coord = config.WorldToChunkCoord(worldPos);
-            if (GetChunkState(coord) != ChunkState.Loaded) return;
-
-            // BeginCollect is safe to call again for the same coord — it re-scans from scratch.
-            BeginChunkSourceCollection(coord);
-            ScheduleNavMeshRebuild();
-        }
-
         // ─────────────────────────────────────────────
         //  SceneTracked registry (static so components can self-register from OnEnable
         //  without a FindFirstObjectByType call, and survives WorldStreamer respawn).
@@ -161,10 +167,12 @@ namespace SpaceGame.World
         private readonly Dictionary<Vector2Int, ChunkState> chunkStates = new();
         private readonly Dictionary<Vector2Int, Scene> loadedScenes = new();
         private readonly Dictionary<Vector2Int, Terrain> loadedTerrains = new();
-        private readonly Dictionary<Vector2Int, List<NavMeshAgent>> parkedAgentsByChunk = new();
-        private readonly Dictionary<NavMeshAgent, Vector3> parkedAgentPositions = new();
         private readonly Dictionary<Vector2Int, float> unloadTimers = new();
         private readonly List<Transform> trackedTransforms = new();
+
+        // Preload callers waiting for chunk CONTENT, not just the scene load — see WhenChunkContentBuilt.
+        private readonly List<Action> pendingContentCallbacks = new();
+        private readonly List<Action> contentCallbackBuffer = new();
 
         // Per-tracker history, so the streamer knows how fast each anchor is travelling and can
         // load ahead of it instead of behind it.
@@ -205,18 +213,6 @@ namespace SpaceGame.World
         // Scene this WorldStreamer lives in — used as the migration target for Pin'd entities.
         private Scene persistentScene;
 
-        private bool navMeshDirty;
-        // Set when RebuildNavMesh had to bail because a previous async bake was still running.
-        // The source cache's own dirty flag may already be consumed by then, so this flag is
-        // what guarantees the deferred rebuild actually re-fires once the bake completes.
-        private bool navMeshRebuildPending;
-        private float navMeshRebuildTime;
-        private float nextParkedAgentRetryTime;
-        private NavMeshDataInstance navMeshDataInstance;
-        private AsyncOperation navMeshBuildOperation;
-        private readonly NavMeshSourceCache sourceCache = new();
-        private readonly List<NavMeshBuildSource> reusableSourceBuffer = new();
-
         private struct SceneOperation
         {
             public enum Type { Load, Unload }
@@ -228,6 +224,11 @@ namespace SpaceGame.World
         private void Start()
         {
             persistentScene = gameObject.scene;
+
+            // Let Unity time-slice the integration phase of additive scene loads instead of
+            // finishing a whole chunk in one frame. Without this a content-heavy chunk lands its
+            // entire object graph — colliders cooked and all — inside a single Update.
+            Application.backgroundLoadingPriority = ThreadPriority.Low;
 
             // Offline: initialize immediately without waiting for Netcode
             if (!Network.IsNetworked)
@@ -272,16 +273,11 @@ namespace SpaceGame.World
             if (NetworkManager.Singleton != null && NetworkManager.Singleton.SceneManager != null)
                 NetworkManager.Singleton.SceneManager.OnSceneEvent -= HandleSceneEvent;
 
-            if (navMeshDataInstance.valid)
-                navMeshDataInstance.Remove();
-
-            sourceCache.Clear();
             isReady = false;
+            ChunkActivationQueue.Shared.Clear();
             chunkStates.Clear();
             loadedScenes.Clear();
             loadedTerrains.Clear();
-            parkedAgentsByChunk.Clear();
-            parkedAgentPositions.Clear();
             unloadTimers.Clear();
             anchorHistory.Clear();
             operationQueue.Clear();
@@ -303,37 +299,19 @@ namespace SpaceGame.World
                 ProcessNextOperation();
             }
 
-            // Advance any in-flight per-chunk source collection. Budgeted to never exceed
-            // navMeshSourceCollectionBudgetMs per frame, so this can't cause a stall.
-            sourceCache.perFrameBudgetMs = navMeshSourceCollectionBudgetMs;
-            sourceCache.Tick();
+            // The queue drains itself (see ChunkActivationRunner); the streamer only owns the rate.
+            ChunkActivationQueue.Shared.budgetMs = chunkActivationBudgetMs;
 
-            // Rebuild when the cache changed (or a previous rebuild was deferred), source
-            // collection is idle, and the post-load debounce window has elapsed.
-            //
-            // navMeshRebuildPending covers the case where RebuildNavMesh bailed because an
-            // async bake was still in flight: the cache's dirty flag may already be consumed,
-            // so we must not gate the retry on ConsumeDirty(). When it IS a fresh cache change
-            // we still consume the flag — but only after the timer check, since ConsumeDirty()
-            // clears the flag as a side effect and would otherwise swallow it on an early frame.
-            if (navMeshDirty && !sourceCache.HasPendingWork
-                && Time.time >= navMeshRebuildTime)
+            // Never overlap a chunk's construction with the next chunk's load — that is how two
+            // costly phases end up in one frame. The queue is drained every frame regardless, so
+            // this defers the next operation rather than blocking it.
+            if (!operationInProgress && operationQueue.Count > 0
+                && ChunkActivationQueue.Shared.PendingCount == 0)
             {
-                if (navMeshRebuildPending || sourceCache.ConsumeDirty())
-                {
-                    navMeshDirty = false;
-                    navMeshRebuildPending = false;
-                    RebuildNavMesh();
-                }
+                ProcessNextOperation();
             }
 
-            if (parkedAgentsByChunk.Count > 0
-                && (navMeshBuildOperation == null || navMeshBuildOperation.isDone)
-                && Time.time >= nextParkedAgentRetryTime)
-            {
-                nextParkedAgentRetryTime = Time.time + 0.5f;
-                ReleaseParkedAgents();
-            }
+            FlushContentCallbacks();
 
             if (Time.time < nextUpdateTime) return;
             nextUpdateTime = Time.time + updateInterval;
@@ -350,10 +328,9 @@ namespace SpaceGame.World
             {
                 // A chunk scene may already be open when we enter Play mode — this happens
                 // whenever someone keeps the chunk scenes loaded additively in the editor for
-                // editing. If we blindly mark it NotLoaded the streamer never collects its
-                // NavMesh sources (BeginChunkSourceCollection only runs from the load callbacks),
-                // so the runtime NavMesh bakes from an empty cache and no agent can ever activate.
-                // Adopt the already-open scene instead.
+                // editing. Marking it NotLoaded would leave the streamer believing it can load a
+                // scene that is already there, and its terrain would never be aligned to the grid
+                // or registered for height queries. Adopt the already-open scene instead.
                 var existing = SceneManager.GetSceneByName(chunk.sceneName);
                 if (existing.IsValid() && existing.isLoaded)
                 {
@@ -373,11 +350,14 @@ namespace SpaceGame.World
             chunkStates[coord] = ChunkState.Loaded;
             loadedScenes[coord] = scene;
             CacheTerrainForChunk(coord);
-            ParkAgentsForChunk(coord);
             RefreshTerrainNeighborsAround(coord);
-            BeginChunkSourceCollection(coord);
-            ScheduleNavMeshRebuild();
+            SnapAgentsToNavMesh(coord);
             Debug.Log($"[WorldStreamer] Adopted pre-loaded chunk {coord} ({scene.name})");
+
+            // An adopted chunk is as loaded as one the streamer opened itself, and its saved
+            // contents have to be restored the same way — otherwise leaving chunk scenes open in
+            // the editor silently disables persistence for exactly those chunks.
+            RaiseChunkLoaded(coord);
         }
 
         public void PreloadChunksAroundPosition(Vector3 worldPos, Action onComplete = null)
@@ -406,11 +386,7 @@ namespace SpaceGame.World
                 EnqueueLoad(c, () =>
                 {
                     remaining--;
-                    if (remaining <= 0)
-                    {
-                        MarkInitialChunksLoaded();
-                        onComplete?.Invoke();
-                    }
+                    if (remaining <= 0) WhenChunkContentBuilt(onComplete);
                 });
             }
         }
@@ -454,13 +430,54 @@ namespace SpaceGame.World
                 EnqueueLoad(chunk, () =>
                 {
                     remaining--;
-                    if (remaining <= 0)
-                    {
-                        MarkInitialChunksLoaded();
-                        onComplete?.Invoke();
-                    }
+                    if (remaining <= 0) WhenChunkContentBuilt(onComplete);
                 });
             }
+        }
+
+        /// <summary>
+        /// Run <paramref name="onComplete"/> once the loaded chunks have also finished BUILDING —
+        /// not merely finished loading.
+        ///
+        /// Terrain features spawn through <see cref="ChunkActivationQueue"/> now, several frames
+        /// after the scene load reports done, and a feature's MeshCollider is what a player stands
+        /// on. Callers of the preload API use it to decide when it is safe to place a player:
+        /// NetworkGameManager waits on it before spawning, and the loading screen waits on
+        /// InitialChunksLoaded before handing over control. Firing on the load alone drops players
+        /// through cliffs and mesas, or spawns them inside one.
+        /// </summary>
+        private void WhenChunkContentBuilt(Action onComplete)
+        {
+            if (ChunkActivationQueue.Shared.PendingCount == 0)
+            {
+                MarkInitialChunksLoaded();
+                onComplete?.Invoke();
+                return;
+            }
+
+            pendingContentCallbacks.Add(onComplete);
+        }
+
+        /// <summary>
+        /// Fire any preload callbacks that were waiting on chunk content to finish building.
+        /// Called every frame from <c>Update</c>; cheap while the list is empty.
+        /// </summary>
+        private void FlushContentCallbacks()
+        {
+            if (pendingContentCallbacks.Count == 0) return;
+            if (ChunkActivationQueue.Shared.PendingCount > 0) return;
+            if (operationInProgress || operationQueue.Count > 0) return;
+
+            // Copy first: a callback may spawn a player, which can register a tracker and enqueue
+            // more loads, and mutating the list we are iterating would throw.
+            contentCallbackBuffer.Clear();
+            contentCallbackBuffer.AddRange(pendingContentCallbacks);
+            pendingContentCallbacks.Clear();
+
+            MarkInitialChunksLoaded();
+
+            foreach (var callback in contentCallbackBuffer)
+                callback?.Invoke();
         }
 
         private void UpdateChunkLoading()
@@ -734,6 +751,10 @@ namespace SpaceGame.World
         {
             if (operationInProgress) return;
 
+            // Wait for the last chunk to finish building itself before pulling in another. Update()
+            // re-pokes this the frame the queue empties, so nothing is dropped — it is only paced.
+            if (ChunkActivationQueue.Shared.PendingCount > 0) return;
+
             SceneOperation op;
             if (retryOperation.HasValue)
             {
@@ -828,11 +849,10 @@ namespace SpaceGame.World
             chunkStates[coord] = ChunkState.Loaded;
             loadedScenes[coord] = SceneManager.GetSceneByName(sceneName);
             CacheTerrainForChunk(coord);
-            ParkAgentsForChunk(coord);
             RefreshTerrainNeighborsAround(coord);
-            BeginChunkSourceCollection(coord);
-            ScheduleNavMeshRebuild();
+            SnapAgentsToNavMesh(coord);
             Debug.Log($"[WorldStreamer] Chunk {coord} loaded (offline)");
+            RaiseChunkLoaded(coord);
             FinishOperation(onComplete);
         }
 
@@ -847,6 +867,10 @@ namespace SpaceGame.World
             }
 
             Debug.Log($"[WorldStreamer] Unloading chunk {op.Coord}");
+
+            // Before the unload is issued, not after it completes: this is the last frame on which
+            // anything in that scene can still be read. The save system captures the chunk here.
+            RaiseChunkWillUnload(op.Coord, scene);
 
             pendingCallback = op.OnComplete;
             pendingCoord = op.Coord;
@@ -884,13 +908,11 @@ namespace SpaceGame.World
         private void OnOfflineSceneUnloaded(Vector2Int coord, Action onComplete)
         {
             loadedTerrains.Remove(coord);
-            parkedAgentsByChunk.Remove(coord);
             chunkStates[coord] = ChunkState.NotLoaded;
             loadedScenes.Remove(coord);
             RefreshTerrainNeighborsAround(coord);
-            sourceCache.Drop(coord);
-            ScheduleNavMeshRebuild();
             Debug.Log($"[WorldStreamer] Chunk {coord} unloaded (offline)");
+            RaiseChunkUnloaded(coord);
             FinishOperation(onComplete);
         }
 
@@ -922,26 +944,47 @@ namespace SpaceGame.World
                 chunkStates[pendingCoord] = ChunkState.Loaded;
                 loadedScenes[pendingCoord] = SceneManager.GetSceneByName(pendingSceneName);
                 CacheTerrainForChunk(pendingCoord);
-                ParkAgentsForChunk(pendingCoord);
                 RefreshTerrainNeighborsAround(pendingCoord);
-                BeginChunkSourceCollection(pendingCoord);
-                ScheduleNavMeshRebuild();
+                SnapAgentsToNavMesh(pendingCoord);
                 Debug.Log($"[WorldStreamer] Chunk {pendingCoord} loaded");
+                RaiseChunkLoaded(pendingCoord);
                 FinishOperation(pendingCallback);
             }
             else if (sceneEvent.SceneEventType == SceneEventType.UnloadEventCompleted
                      && pendingSceneName == null)
             {
                 loadedTerrains.Remove(pendingCoord);
-                parkedAgentsByChunk.Remove(pendingCoord);
                 chunkStates[pendingCoord] = ChunkState.NotLoaded;
                 loadedScenes.Remove(pendingCoord);
                 RefreshTerrainNeighborsAround(pendingCoord);
-                sourceCache.Drop(pendingCoord);
-                ScheduleNavMeshRebuild();
                 Debug.Log($"[WorldStreamer] Chunk {pendingCoord} unloaded");
+                RaiseChunkUnloaded(pendingCoord);
                 FinishOperation(pendingCallback);
             }
+        }
+
+        // Raised inside a try/catch because these are static events with subscribers outside the
+        // streamer's control. A listener that throws would otherwise leave operationInProgress set
+        // and stall the chunk queue permanently — a save-system bug would look like a world that
+        // simply stops streaming.
+        private void RaiseChunkLoaded(Vector2Int coord)
+        {
+            if (!loadedScenes.TryGetValue(coord, out var scene)) return;
+
+            try { OnChunkLoaded?.Invoke(coord, scene); }
+            catch (Exception e) { Debug.LogError($"[WorldStreamer] OnChunkLoaded listener threw for {coord}: {e}"); }
+        }
+
+        private void RaiseChunkWillUnload(Vector2Int coord, Scene scene)
+        {
+            try { OnChunkWillUnload?.Invoke(coord, scene); }
+            catch (Exception e) { Debug.LogError($"[WorldStreamer] OnChunkWillUnload listener threw for {coord}: {e}"); }
+        }
+
+        private void RaiseChunkUnloaded(Vector2Int coord)
+        {
+            try { OnChunkUnloaded?.Invoke(coord); }
+            catch (Exception e) { Debug.LogError($"[WorldStreamer] OnChunkUnloaded listener threw for {coord}: {e}"); }
         }
 
         private void FinishOperation(Action callback)
@@ -957,80 +1000,50 @@ namespace SpaceGame.World
         //  NavMesh
         // ─────────────────────────────────────────────
 
-        private void ScheduleNavMeshRebuild()
+        /// <summary>
+        /// Attach a freshly loaded chunk's agents to the world NavMesh.
+        ///
+        /// This replaces a park-and-release system that disabled every agent on load and retried
+        /// every half second until a runtime bake finished. With the NavMesh pre-baked and
+        /// permanently present (see <see cref="WorldNavMeshProvider"/>) an agent is normally already
+        /// standing on it the moment its scene loads, so no parking is needed.
+        ///
+        /// Enabling disabled agents is NOT optional cleanup. <c>NavMeshAgentMotor.Awake</c> disables
+        /// its own agent when it finds no NavMesh under itself, on the documented promise that the
+        /// streamer will switch it back on once the chunk's mesh exists. Nothing else in the project
+        /// keeps that promise. Skipping disabled agents here would leave any agent that happened to
+        /// wake before its mesh was reachable dead for the rest of the session, silently.
+        /// </summary>
+        private void SnapAgentsToNavMesh(Vector2Int coord)
         {
-            navMeshDirty = true;
-            navMeshRebuildTime = Time.time + navMeshRebuildDelay;
-            nextParkedAgentRetryTime = navMeshRebuildTime;
-        }
-
-        private void RebuildNavMesh()
-        {
-            if (navMeshSurface == null)
-            {
-                Debug.LogWarning("[WorldStreamer] NavMeshSurface not assigned — NPCs will not be able to navigate.");
+            if (!loadedScenes.TryGetValue(coord, out var scene) || !scene.IsValid() || !scene.isLoaded)
                 return;
-            }
 
-            // Skip if a previous async build is still running — it will be replaced next cycle.
-            // Mark navMeshRebuildPending so the Update gate re-fires this even though the source
-            // cache's dirty flag has already been consumed for this attempt.
-            if (navMeshBuildOperation != null && !navMeshBuildOperation.isDone)
+            foreach (var root in scene.GetRootGameObjects())
             {
-                navMeshDirty = true;
-                navMeshRebuildPending = true;
-                navMeshRebuildTime = Time.time + navMeshRebuildDelay;
-                return;
+                foreach (var agent in root.GetComponentsInChildren<NavMeshAgent>(true))
+                {
+                    if (agent == null) continue;
+                    if (agent.enabled && agent.isOnNavMesh) continue;
+
+                    float distance = Mathf.Max(agent.radius * 4f, agent.height * 2f, agentSnapDistance);
+                    if (!NavMesh.SamplePosition(agent.transform.position, out var hit,
+                                                distance, NavMesh.AllAreas))
+                    {
+                        Debug.LogWarning($"[WorldStreamer] '{agent.name}' in chunk {coord} is over " +
+                                         $"{distance:0} m from any NavMesh, so it cannot be activated. " +
+                                         "Is the world NavMesh baked and does it cover this chunk?", agent);
+                        continue;
+                    }
+
+                    // Order matters: Warp only takes effect on an enabled agent, and an agent
+                    // enabled this frame has not registered onto the mesh yet, so isOnNavMesh is
+                    // not a usable gate here — Warp unconditionally.
+                    agent.transform.position = hit.position;
+                    agent.enabled = true;
+                    agent.Warp(hit.position);
+                }
             }
-
-            // Agents in chunks that just changed are already parked at load time. We don't
-            // run a global FindObjectsByType scan here — that was the second source of stalls
-            // and is unnecessary because the NavMesh swap is atomic at the engine level. Any
-            // agent we miss simply waits for the next ReleaseParkedAgents retry in Update().
-
-            var settings = navMeshSurface.GetBuildSettings();
-            settings.agentSlope = 60f;
-            settings.agentClimb = 0.8f;
-
-            // Pull the union of cached per-chunk sources. No synchronous scene walk happens here.
-            reusableSourceBuffer.Clear();
-            sourceCache.BuildFlatSourceList(reusableSourceBuffer);
-
-            var bounds = new Bounds(navMeshSurface.center, navMeshSurface.size);
-            if (navMeshSurface.collectObjects != CollectObjects.Volume)
-            {
-                bounds = new Bounds(Vector3.zero, new Vector3(10000f, 500f, 10000f));
-            }
-
-            if (navMeshSurface.navMeshData == null)
-                navMeshSurface.navMeshData = new NavMeshData(settings.agentTypeID);
-
-            if (!navMeshDataInstance.valid)
-                navMeshDataInstance = NavMesh.AddNavMeshData(navMeshSurface.navMeshData);
-
-            navMeshBuildOperation = NavMeshBuilder.UpdateNavMeshDataAsync(
-                navMeshSurface.navMeshData,
-                settings,
-                reusableSourceBuffer,
-                bounds
-            );
-
-            navMeshBuildOperation.completed += _ =>
-            {
-                if (!this || !isReady)
-                    return;
-
-                ReleaseParkedAgents();
-            };
-
-            Debug.Log($"[WorldStreamer] NavMesh async rebuild started ({reusableSourceBuffer.Count} sources, cache covers {sourceCache.TotalSourceCount} total)");
-        }
-
-        private void BeginChunkSourceCollection(Vector2Int coord)
-        {
-            if (!loadedScenes.TryGetValue(coord, out var scene) || !scene.IsValid() || !scene.isLoaded) return;
-            if (navMeshSurface == null) return;
-            sourceCache.BeginCollect(coord, scene, navMeshSurface.layerMask, navMeshSurface.useGeometry, navMeshSurface.defaultArea);
         }
 
         // ─────────────────────────────────────────────
@@ -1093,115 +1106,6 @@ namespace SpaceGame.World
             }
         }
 
-        private void ParkAgentsForChunk(Vector2Int coord)
-        {
-            if (!loadedScenes.TryGetValue(coord, out var scene) || !scene.IsValid() || !scene.isLoaded)
-                return;
-
-            if (!parkedAgentsByChunk.TryGetValue(coord, out var agents))
-            {
-                agents = new List<NavMeshAgent>();
-                parkedAgentsByChunk[coord] = agents;
-            }
-
-            agents.RemoveAll(agent => agent == null);
-
-            foreach (var root in scene.GetRootGameObjects())
-            {
-                foreach (var agent in root.GetComponentsInChildren<NavMeshAgent>(true))
-                {
-                    if (agent == null)
-                        continue;
-
-                    if (!agents.Contains(agent))
-                        agents.Add(agent);
-
-                    ParkAgent(agent);
-                }
-            }
-        }
-
-        private void ParkAgent(NavMeshAgent agent)
-        {
-            if (!parkedAgentPositions.ContainsKey(agent))
-                parkedAgentPositions[agent] = agent.transform.position;
-
-            agent.enabled = false;
-
-            if (agent.TryGetComponent<Rigidbody>(out var rb))
-            {
-                if (!rb.isKinematic)
-                {
-                    rb.linearVelocity = Vector3.zero;
-                    rb.angularVelocity = Vector3.zero;
-                }
-
-                rb.Sleep();
-            }
-        }
-
-        private void ReleaseParkedAgents()
-        {
-            foreach (var kvp in parkedAgentsByChunk.ToList())
-            {
-                var remaining = new List<NavMeshAgent>();
-
-                foreach (var agent in kvp.Value)
-                {
-                    if (agent == null)
-                        continue;
-
-                    if (!TryActivateAgent(agent))
-                        remaining.Add(agent);
-                }
-
-                if (remaining.Count > 0)
-                    parkedAgentsByChunk[kvp.Key] = remaining;
-                else
-                    parkedAgentsByChunk.Remove(kvp.Key);
-            }
-        }
-
-        private bool TryActivateAgent(NavMeshAgent agent)
-        {
-            Vector3 sampleOrigin = parkedAgentPositions.TryGetValue(agent, out var cached)
-                ? cached
-                : agent.transform.position;
-            float sampleDistance = Mathf.Max(agent.radius * 4f, agent.height * 2f, parkedAgentActivationDistance);
-
-            if (!NavMesh.SamplePosition(sampleOrigin, out var hit, sampleDistance, NavMesh.AllAreas))
-            {
-                Debug.LogWarning($"[WorldStreamer] Failed to activate NavMeshAgent '{agent.name}' near {sampleOrigin} (distance {sampleDistance:0.##}).");
-                return false;
-            }
-
-            agent.transform.position = hit.position;
-            agent.enabled = true;
-
-            // Warp snaps the agent's internal state to the navmesh position. It must run after
-            // enabled=true. Warp itself places the agent onto the NavMesh, so we call it
-            // unconditionally — gating on isOnNavMesh would skip it on the activation frame
-            // (the agent has not registered onto the mesh yet right after enabled=true), leaving
-            // the agent enabled but detached. If Warp fails the motor's TrySnapToNavMesh recovers.
-            if (!agent.Warp(hit.position))
-            {
-                Debug.LogWarning($"[WorldStreamer] NavMeshAgent '{agent.name}' enabled but Warp to {hit.position} failed; motor will retry snap.");
-            }
-
-            if (agent.TryGetComponent<Rigidbody>(out var rb))
-            {
-                if (!rb.isKinematic)
-                {
-                    rb.linearVelocity = Vector3.zero;
-                    rb.angularVelocity = Vector3.zero;
-                }
-            }
-
-            parkedAgentPositions.Remove(agent);
-
-            return true;
-        }
-
         private void RefreshTerrainNeighborsAround(Vector2Int centerCoord)
         {
             for (int x = centerCoord.x - 1; x <= centerCoord.x + 1; x++)
@@ -1241,8 +1145,7 @@ namespace SpaceGame.World
     #if UNITY_EDITOR
         private void OnValidate()
         {
-            navMeshRebuildDelay = Mathf.Max(0.05f, navMeshRebuildDelay);
-            parkedAgentActivationDistance = Mathf.Max(1f, parkedAgentActivationDistance);
+            agentSnapDistance = Mathf.Max(1f, agentSnapDistance);
         }
 
         private void OnDrawGizmos()

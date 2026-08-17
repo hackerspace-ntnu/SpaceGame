@@ -122,9 +122,53 @@ folds any `Mat_X.001` back onto `Mat_X` after appending from fifteen files.
   than extending `_buildlib`, so every script stays independently runnable as
   the historical record it is.
 
+## Z-fighting pass (Aug 2026)
+
+The assembly shimmered badly. Details were modelled **flush** with their hosts
+throughout — window frames sitting exactly on the tower face, crown louvres on
+the slab, three podium boxes all bottoming out on z=0, catwalk corners
+overlapping the straight spans they meet. Measured exactly, the file held
+**1346 co-facing coplanar overlaps covering 2054 m², of which 1299 pairs
+(2054 m²) were exactly coincident** — surfaces at literally the same depth,
+which is the shimmer.
+
+Fixed with `_zfix.py` (new, at the library root), leaving **zero coincident
+surfaces**. The two pairs the checker still reports are 1.0 mm apart on a
+20 cm² patch — a real gap, not coplanar geometry.
+
+What it does, and why it is safe on hand-modelled work:
+
+- Only **co-facing** pairs are touched. Two coplanar faces with opposing
+  normals are mutually occluded — that is how solids stack — and are left be.
+- Every fix is a **rigid translation** of a whole connected island or a whole
+  object. Nothing is reshaped, so no face is bent and no silhouette changes.
+  The 20 836 non-planar quads already in the file came through untouched,
+  which is the proof.
+- On each plane the competing parts are graph-coloured **largest-first**, so
+  hosts stay where they were put and only the smaller detail moves — outward
+  along its own normal, ending proud of its host rather than buried inside it.
+- A part flush on **all** sides — the winch drum bands, the collars around the
+  octagonal crown masts — cannot be separated by any translation, since its
+  outward demands cancel. Those are grown instead: the collars went 0.800 →
+  0.811 m, 5 mm proud all round.
+
+Cost to the model: 167 objects, 57 mesh datablocks, 378 288 triangles and the
+material list all **unchanged** — instancing survived intact, nothing was
+copied or split. 94 objects moved by more than 1 mm; median 5 mm, mean 8.5 mm,
+worst 50 mm (`Mesh_Deck_Rail_1`). The largest movers are the railings and
+catwalk corners, which is expected — those pieces genuinely overlapped each
+other in the original assembly rather than merely touching.
+
+Re-running the fix is a no-op, and a render before/after is identical to
+0.015% of silhouette pixels.
+
 ## Verification
 
 All eight new `.blend` files pass the production checklist: no auto-suffixed
 names, every object at scale 1.0, metric units, no loose geometry, no empty
-material slots, every material from the palette. The assembly's highest point
-measures 75.00 m.
+material slots, every material from the palette.
+
+The assembly's highest point measured exactly 75.00 m as built; after the
+z-fighting pass it is **74.992 m**, the crown mast having settled 8 mm. Left
+as is deliberately — pinning the tip back to 75.000 would mean re-introducing
+one of the clashes the pass just removed.

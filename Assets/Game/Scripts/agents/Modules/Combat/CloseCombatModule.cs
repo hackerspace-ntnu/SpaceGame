@@ -5,6 +5,7 @@ using System;
 using UnityEngine;
 using UnityEngine.Events;
 using FMODUnity;
+using SpaceGame.Audio;
 using SpaceGame.Gameplay;
 
 namespace SpaceGame.Agents
@@ -32,6 +33,7 @@ namespace SpaceGame.Agents
         public event Action OnAttackEvent;
 
         [Header("Audio")]
+        [SerializeField] private SfxId attackId = SfxId.EntityAttack;
         [SerializeField] private EventReference attackSound;
 
         private float cooldownTimer;
@@ -103,10 +105,9 @@ namespace SpaceGame.Agents
         {
             var health = target.GetComponentInChildren<HealthComponent>();
             if (health != null && health.Alive)
-                health.Damage(attackDamage, transform);
+                NetDamage.Apply(health.gameObject, attackDamage, transform);
 
-            if (!attackSound.IsNull)
-                RuntimeManager.PlayOneShot(attackSound, transform.position);
+            Sfx.Play(attackId, transform.position, attackSound, GetInstanceID());
 
             if (animator && !string.IsNullOrEmpty(attackAnimTrigger))
                 animator.SetTrigger(attackAnimTrigger);

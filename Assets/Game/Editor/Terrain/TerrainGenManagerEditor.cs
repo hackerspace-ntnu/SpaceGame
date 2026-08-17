@@ -164,17 +164,8 @@ namespace SpaceGame.EditorTools
 
                     string folder = TerrainFeatureBakeUtility.ResolveBakeFolder(spawner);
 
-                    if (result.IsMultiMesh)
-                    {
-                        Mesh[] saved = TerrainFeatureBakeUtility.SaveSubMeshes(
-                            result.SubMeshes, folder, spawner);
-                        spawner.AssignBakedSubMeshes(saved);
-                    }
-                    else
-                    {
-                        Mesh saved = TerrainFeatureBakeUtility.SaveSingle(result.Mesh, folder, spawner);
-                        spawner.AssignBakedMesh(saved);
-                    }
+                    Mesh saved = TerrainFeatureBakeUtility.SaveSingle(result.Mesh, folder, spawner);
+                    spawner.AssignBakedMesh(saved);
 
                     spawner.SpawnBaked();
                     EditorUtility.SetDirty(spawner);
@@ -199,7 +190,6 @@ namespace SpaceGame.EditorTools
             {
                 if (spawner == null) continue;
                 spawner.AssignBakedMesh(null);
-                spawner.AssignBakedSubMeshes(null);
                 EditorUtility.SetDirty(spawner);
                 count++;
             }

@@ -13,7 +13,8 @@ namespace SpaceGame.Gameplay
     {
         public static SpawnManager Instance;
 
-        [SerializeField] private GameObject playerPrefab;
+        [Tooltip("The body every player gets. One prefab for every session: singleplayer runs as a " +
+                 "host, so there is no un-networked spawn path to keep a second prefab for.")]
         [SerializeField] private GameObject networkPlayerPrefab;
 
         [Header("Targeting")]
@@ -114,49 +115,26 @@ namespace SpaceGame.Gameplay
         /// <summary>Matches SpawnPoint.groundClearance — see the note there on the player capsule.</summary>
         private const float SpawnSurfaceClearance = 1.2f;
 
-        private void SpawnPlayer()
+        /// <summary>
+        /// A validated position to put a player back on their feet at, terrain-clamped and ready to
+        /// be moved to — as opposed to <see cref="TryGetSpawnPoint"/>, which answers the raw spawn
+        /// point and leaves clamping to whoever is about to instantiate a body there.
+        ///
+        /// Respawning deliberately does NOT go through this class any further than this. An earlier
+        /// version despawned the player's NetworkObject and spawned a fresh one, which round-tripped
+        /// the corpse through the save system: the despawn captured the dead body's health and
+        /// position into the player's profile record, and the replacement body read it straight back
+        /// out — so you respawned dead, at your own grave. Respawn is a state change on a living
+        /// object, not a new object; see <c>PlayerRespawn</c>.
+        /// </summary>
+        public bool TryGetRespawnPosition(out Vector3 respawnPosition)
         {
-            if (!TryGetSpawnPoint(out Vector3 spawnPosition))
-            {
-                Debug.LogError("Cannot spawn player: no valid SpawnPoint position!");
-                return;
-            }
+            if (!TryGetSpawnPoint(out respawnPosition)) return false;
 
-            GameObject player = Instantiate(playerPrefab, ClampAboveTerrain(spawnPosition), Quaternion.identity);
-            EntityFaction.Ensure(player, playerFaction, relationshipTable);
+            respawnPosition = ClampAboveTerrain(respawnPosition);
+            return true;
         }
 
-        public void SpawnNetworkPlayer()
-        {
-            RequestSpawnServerRpc(NetworkManager.Singleton.LocalClientId);
-        }
-    
-    
-        public void RespawnPlayer(GameObject player)
-        {
-            if (Network.IsNetworked)
-            {
-                NetworkObject netObj = player.GetComponent<NetworkObject>();
-                RequestSpawnServerRpc(NetworkManager.Singleton.LocalClientId);
-            }
-            else
-            {
-                Destroy(player);
-                SpawnPlayer();
-            }
-        }
-    
-        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        private void RequestSpawnServerRpc(ulong clientId)
-        {
-            var client = NetworkManager.Singleton.ConnectedClients[clientId];
-            if (client.PlayerObject != null && client.PlayerObject.IsSpawned)
-            {
-                client.PlayerObject.Despawn();
-            }
-            SpawnPlayerForClient(clientId);
-        }
-    
         public void SpawnPlayerForClient(ulong clientId)
         {
             if (!TryGetSpawnPoint(out Vector3 spawnPosition))
@@ -177,10 +155,18 @@ namespace SpaceGame.Gameplay
         /// the player at the second, which is how a player ends up standing in a chunk that was
         /// never loaded and falls straight through it.
         /// </summary>
-        public void SpawnPlayerForClient(ulong clientId, Vector3 spawnPosition)
+        public void SpawnPlayerForClient(ulong clientId, Vector3 spawnPosition) =>
+            SpawnPlayerForClient(clientId, spawnPosition, Quaternion.identity);
+
+        /// <summary>
+        /// As above, but facing a specific direction. Loading a save is the only caller that has an
+        /// opinion about it — a spawn point deliberately does not, since it scatters its position
+        /// and an authored facing would put every player in a group looking the same way.
+        /// </summary>
+        public void SpawnPlayerForClient(ulong clientId, Vector3 spawnPosition, Quaternion spawnRotation)
         {
             spawnPosition = ClampAboveTerrain(spawnPosition);
-            GameObject playerObj = Instantiate(networkPlayerPrefab, spawnPosition, Quaternion.identity);
+            GameObject playerObj = Instantiate(networkPlayerPrefab, spawnPosition, spawnRotation);
 
             // Before the network spawn, so the entity is registered for targeting from its first
             // frame. MatchManager reassigns the faction below when a match is running.

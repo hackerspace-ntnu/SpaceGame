@@ -10,6 +10,7 @@
 //   HasLineOfSightFrom(origin, target) — LoS from an arbitrary origin (e.g. a weapon muzzle)
 using UnityEngine;
 using FMODUnity;
+using SpaceGame.Audio;
 
 namespace SpaceGame.Agents
 {
@@ -40,6 +41,7 @@ namespace SpaceGame.Agents
 
         [Header("Audio")]
         [SerializeField] private bool playSpotSound = true;
+        [SerializeField] private SfxId spotId = SfxId.EntityAlert;
         [SerializeField] private EventReference spotSound;
 
         public Vector3 LastKnownPosition { get; private set; }
@@ -144,17 +146,31 @@ namespace SpaceGame.Agents
                 return true;
 
             Vector3 dir = toTarget / distance;
+
+            // RaycastAll does NOT sort by distance -- Unity returns hits in whatever order the
+            // physics broadphase produced them. Deciding the verdict on the first non-self
+            // element therefore asked "is some arbitrary collider on this line the target?"
+            // rather than "is the target the FIRST thing on this line". With the player on layer
+            // 0, which is inside every agent's occlusion mask, a wall and the player both hit;
+            // whenever the player happened to come back first the agent acquired and fired
+            // straight through the wall. Intermittent, because the order is not stable -- which
+            // is why it read as "the robots sometimes shoot through walls".
             RaycastHit[] hits = Physics.RaycastAll(origin, dir, distance, occlusionLayers);
+            Transform blocker = null;
+            float blockerDistance = float.PositiveInfinity;
             for (int i = 0; i < hits.Length; i++)
             {
                 Transform t = hits[i].transform;
                 if (t == transform || t.IsChildOf(transform))
                     continue;
-                if (t == target || t.IsChildOf(target))
-                    return true;
-                return false;
+                if (hits[i].distance >= blockerDistance)
+                    continue;
+                blockerDistance = hits[i].distance;
+                blocker = t;
             }
-            return true;
+
+            // Nothing in the way, or the nearest thing in the way IS the target.
+            return blocker == null || blocker == target || blocker.IsChildOf(target);
         }
 
         // Call when a target is spotted for the first time to alert nearby allies.
@@ -163,8 +179,8 @@ namespace SpaceGame.Agents
             if (emitNoiseOnSpot && noiseEmitter)
                 noiseEmitter.Emit(NoiseType.Alert, spotNoiseRadius);
 
-            if (playSpotSound && !spotSound.IsNull)
-                RuntimeManager.PlayOneShot(spotSound, transform.position);
+            if (playSpotSound)
+                Sfx.Play(spotId, transform.position, spotSound, GetInstanceID());
         }
 
         private Vector3 GetForward() => transform.forward;

@@ -18,7 +18,10 @@
 // deck sailed out from under anybody standing on it. An overlap query has no such hidden
 // requirement, and it drops riders who walk off without needing an exit message either.
 //
-// Runs after DesertCrawlerLocomotion (order 100) so the platform has already moved.
+// The carry itself runs on the physics clock (see FixedUpdate below), so it is not racing the
+// locomotion for the platform's pose the way a render-loop carry would. The execution order still
+// matters, but for the rider rather than the craft: PlayerMovement writes the player's velocity at
+// the default order 0, and the carry has to be the last word on where that body is going this step.
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Vehicles.Crawler;
@@ -187,7 +190,15 @@ namespace SpaceGame.Vehicles
             }
         }
 
-        private void LateUpdate() => CarryRiders();
+        // On the physics clock, not the render clock, even though the platform moves on the render
+        // clock. Riders are dynamic Rigidbodies, and a Rigidbody may only be posed from FixedUpdate:
+        // driving this from LateUpdate wrote the rider's pose several times per physics step, each
+        // write discarding the interpolation that smooths a 50 Hz simulation over a 240 Hz display.
+        //
+        // Reading the platform's pose a frame late costs nothing, because the carry is a delta.
+        // Whatever the craft moved since the previous physics step is what gets applied at this one,
+        // so nothing is dropped and nothing accumulates.
+        private void FixedUpdate() => CarryRiders();
 
         /// <summary>
         /// Move everyone aboard by the platform's motion since the last call. Public and
@@ -223,6 +234,17 @@ namespace SpaceGame.Vehicles
                     target = transform.position + (deltaRot * offset) + deltaPos;
                 }
 
+                // Still a direct pose write, and still the remaining half of the vibration. It is
+                // NOT fixed by switching to MovePosition: that only defers to the physics step for
+                // KINEMATIC bodies. On a dynamic one -- which every rider is, by the filter in
+                // CollectRiders -- MovePosition applies immediately, exactly like this line, and
+                // discards the interpolation just the same. Measured, not assumed.
+                //
+                // The fix is to express the carry as velocity and let the solver integrate it. That
+                // needs somewhere to keep each rider's own motion apart from the carry, since the
+                // carrier has no way to tell "the player's velocity was rewritten this step" from
+                // "this crate kept the velocity we gave it" without it. See the ignored test in
+                // WalkerPlatformCarrierTests for the contract that work has to satisfy.
                 rb.position = target;
                 if (rotateRiderFacing) rb.MoveRotation(deltaRot * rb.rotation);
             }

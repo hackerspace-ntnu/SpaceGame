@@ -15,7 +15,8 @@ namespace SpaceGame.EditorTools
 {
     public class OrnithopterWingAnimatorTests
     {
-        private const string CraftPath = "Assets/Game/Prefabs/agents/vehicle/DuneOrnithopter.prefab";
+        private const string CraftPath =
+            "Assets/Game/Prefabs/Agents/Vehicles/Aircraft/DuneOrnithopter.prefab";
 
         /// A hand-set flight state. Every field is writable so a test can put the craft in one exact
         /// condition and look at the wings.

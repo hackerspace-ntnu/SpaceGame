@@ -43,6 +43,33 @@ namespace SpaceGame.Characters
         private float lastYVelocity;
         private bool wasGrounded;
 
+        // Movement already computes the exact edges audio needs — the grounded transition, the
+        // successful jump, the dash — and all of it from private state. Exposing them as events is
+        // cheaper and far less brittle than a second component re-deriving grounded-ness with its
+        // own raycast, which would drift from this one the moment either is tuned.
+        /// <summary>Raised when a jump actually leaves the ground, not merely when the key is pressed.</summary>
+        public event Action OnJumped;
+
+        /// <summary>Raised on touchdown, carrying the vertical speed at impact (negative when falling).</summary>
+        public event Action<float> OnLanded;
+
+        /// <summary>Raised on a dash that was allowed to happen.</summary>
+        public event Action OnDashed;
+
+        /// <summary>Horizontal speed in m/s. Used to pace footsteps.</summary>
+        public float HorizontalSpeed
+        {
+            get
+            {
+                if (rb == null) return 0f;
+                Vector3 v = rb.linearVelocity;
+                return new Vector3(v.x, 0f, v.z).magnitude;
+            }
+        }
+
+        /// <summary>Whether the player was on the ground as of the last physics step.</summary>
+        public bool IsOnGround => wasGrounded;
+
         private void Start()
         {
             inputs = GetComponent<PlayerController>().Input;
@@ -96,6 +123,10 @@ namespace SpaceGame.Characters
             // Detect landing (was in air, now grounded)
             if (!wasGrounded && grounded)
             {
+                // Fired for every landing, including harmless ones — audio wants the soft touchdowns
+                // too, and the impact speed lets a listener pick between a step and a thud.
+                OnLanded?.Invoke(lastYVelocity);
+
                 // Only apply if falling fast enough
                 if (lastYVelocity < minFallSpeed)
                 {
@@ -112,7 +143,9 @@ namespace SpaceGame.Characters
             var health = GetComponent<HealthComponent>();
             if (health)
             {
-                health.Damage(damage);
+                // Only the owner measures its own fall, but the server owns the health that
+                // results — otherwise a client's landing hurts nobody but their own screen.
+                NetDamage.Apply(health.gameObject, damage);
             }
         }
 
@@ -163,6 +196,8 @@ namespace SpaceGame.Characters
                 rb.linearVelocity = v;
                 rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
                 jumpOnCooldown = true;
+
+                OnJumped?.Invoke();
             }
         }
 
@@ -185,6 +220,8 @@ namespace SpaceGame.Characters
             Vector3 velocity = rb.linearVelocity;
             velocity = dashDirection * dashSpeed + Vector3.up * velocity.y;
             rb.linearVelocity = velocity;
+
+            OnDashed?.Invoke();
         }
 
         public void DisableGroundSnap(float duration = 0.2f)

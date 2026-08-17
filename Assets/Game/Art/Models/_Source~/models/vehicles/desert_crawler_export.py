@@ -39,7 +39,10 @@ REPO = HERE
 while REPO != os.path.dirname(REPO) and not os.path.isdir(os.path.join(REPO, "ProjectSettings")):
     REPO = os.path.dirname(REPO)
 SRC = os.path.join(HERE, "desert_crawler.blend")
-DST = os.path.join(REPO, "Assets", "Models", "Vehicles", "Crawler",
+# Art moved under Assets/Game/Art in the domain-first restructure; this was left on the old
+# Assets/Models path, where it quietly created a second, orphaned FBX that Unity never imported
+# and DesertCrawlerBuilder never read. Keep this in step with `DesertCrawlerBuilder.ModelPath`.
+DST = os.path.join(REPO, "Assets", "Game", "Art", "Models", "Vehicles", "Crawler",
                    "desert_crawler.fbx")
 
 

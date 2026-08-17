@@ -56,6 +56,12 @@ namespace SpaceGame.Agents
 
         private void HandleDeath()
         {
+            // Only where this entity is simulated. OnDeath fires on every machine, not just the
+            // server: a client's copy raises it the moment the replicated health crosses zero. Every
+            // one of them rolling its own loot would give as many private, unreplicated piles as
+            // there are players — and the dice would disagree. The server's drop replicates in.
+            if (!Network.Simulates(this)) return;
+
             Transform dropOrigin = transform;
 
             if (dropInventoryContents && entityInventory != null)

@@ -30,7 +30,12 @@ namespace SpaceGame.Gameplay
         [Tooltip("How many scattered positions to try before falling back to this point's own X/Z.")]
         [SerializeField] private int attempts = 20;
 
-        private const float ProbeHeight = 50f;
+        [Tooltip("How far above this point the ground probe starts. The default clears any terrain " +
+                 "relief around an outdoor spawn. An indoor spawn must lower it below the ceiling: " +
+                 "the probe takes the first collider it meets, so a ray starting above the roof " +
+                 "lands the player on the roof instead of on the floor beneath it.")]
+        [SerializeField] private float probeHeight = 50f;
+
         private const float ProbeDistance = 100f;
         private const float ClearRadius = 1.5f;
 
@@ -80,7 +85,7 @@ namespace SpaceGame.Gameplay
         private Vector3 GetRandomPoint(Vector3 center, float radius)
         {
             Vector2 randomCircle = Random.insideUnitCircle * radius;
-            return new Vector3(center.x + randomCircle.x, center.y + ProbeHeight, center.z + randomCircle.y);
+            return new Vector3(center.x + randomCircle.x, center.y + probeHeight, center.z + randomCircle.y);
         }
 
         /// <summary>

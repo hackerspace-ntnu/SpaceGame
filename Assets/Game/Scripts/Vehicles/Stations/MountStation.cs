@@ -35,6 +35,15 @@ namespace SpaceGame.Vehicles
         {
             if (!mount)
                 return;
+
+            // Same server-authoritative path as MountModule.Interact — a station is just another
+            // door into the same seat, so it must not bypass the network sync.
+            if (mount.TryGetComponent(out MountNetworkSync sync))
+            {
+                sync.RequestMount(interactor);
+                return;
+            }
+
             mount.TryMount(interactor, null);
         }
     }

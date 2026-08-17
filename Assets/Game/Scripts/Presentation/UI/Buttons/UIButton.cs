@@ -1,4 +1,5 @@
 using FMODUnity;
+using SpaceGame.Audio;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -16,7 +17,9 @@ namespace SpaceGame.Presentation
         [SerializeField] private Button button;
     
         [Header("Sound")]
+        [SerializeField] private SfxId hoverId = SfxId.UiHover;
         [SerializeField] private EventReference hoverSound;
+        [SerializeField] private SfxId pressId = SfxId.UiPress;
         [SerializeField] private EventReference pressSound;
 
         [SerializeField] private Animator animator;
@@ -42,8 +45,12 @@ namespace SpaceGame.Presentation
         {
             if (IsDisabled) return;
         
-            AudioManager.Instance.PlayEvent(hoverSound);
-        
+            // Went through AudioManager, which only exists on Bootstrap.unity — pressing Play
+            // directly in MainMenu.unity left it null and the NRE aborted the handler before
+            // SetState below, so the visible symptom was "buttons don't highlight". Sfx needs no
+            // manager at all, which removes the hazard rather than null-guarding it.
+            Sfx.Play2D(hoverId, hoverSound);
+
             SetState(ButtonState.Highlighted);
         }
 
@@ -58,8 +65,8 @@ namespace SpaceGame.Presentation
         {
             if (IsDisabled) return;
         
-            AudioManager.Instance.PlayEvent(pressSound);
-        
+            Sfx.Play2D(pressId, pressSound);
+
             SetState(ButtonState.Pressed);
         }
 

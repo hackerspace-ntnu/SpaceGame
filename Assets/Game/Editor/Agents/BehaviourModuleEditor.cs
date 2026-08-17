@@ -1,4 +1,3 @@
-#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
 using SpaceGame.Agents;
@@ -78,5 +77,4 @@ namespace SpaceGame.EditorTools
             DrawDefaultInspector();
         }
     }
-    #endif
 }

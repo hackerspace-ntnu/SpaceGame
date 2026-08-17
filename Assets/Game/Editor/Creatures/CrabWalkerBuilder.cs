@@ -27,7 +27,7 @@ namespace SpaceGame.EditorTools
     public static class CrabWalkerBuilder
     {
         private const string ModelDir = "Assets/Game/Art/Models/Creatures/Robotic/Crab";
-        private const string PrefabDir = "Assets/Game/Prefabs/agents/creatures";
+        private const string PrefabDir = "Assets/Game/Prefabs/Agents/Creatures";
 
         /// The variants. A leg count is the only thing that differs.
         private static readonly int[] Legs = { 4, 6, 8 };

@@ -227,6 +227,15 @@ GameObject:
   - component: {fileID: 2551231991027282756}
   - component: {fileID: -5517073708524184881}
   - component: {fileID: 5874760837217864963}
+  - component: {fileID: 5931576831872468556}
+  - component: {fileID: 4909917152254947508}
+  - component: {fileID: 236332013050816756}
+  - component: {fileID: 7977272553321201453}
+  - component: {fileID: 1018769612746197352}
+  - component: {fileID: -2344055356095779957}
+  - component: {fileID: -1028138584694365583}
+  - component: {fileID: -5677031770895591685}
+  - component: {fileID: 3243106154205344910}
   m_Layer: 0
   m_Name: PatrolRobot
   m_TagString: Untagged
@@ -336,13 +345,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ChaseModule
   priority: 20
   active: 1
-  target: {fileID: 0}
-  requiredRelationship: 2
-  detectRange: 30
-  proximityDetectRange: 3
-  loseTargetRange: 40
-  loseTargetRangeAttackBuffer: 4
-  detectRangeAttackBuffer: 1
   chaseStopDistance: 12.8
   chaseSpeedMultiplier: 1.7
 --- !u!114 &3153956235504603033
@@ -368,6 +370,7 @@ MonoBehaviour:
   emitNoiseOnSpot: 1
   spotNoiseRadius: 20
   playSpotSound: 1
+  spotId: 407
   spotSound:
     Guid:
       Data1: 0
@@ -392,6 +395,7 @@ MonoBehaviour:
   searchDuration: 4
   stopDistance: 0.6
   speedMultiplier: 1.1
+  searchId: 408
   searchSound:
     Guid:
       Data1: 0
@@ -481,6 +485,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 056784ad4e16d46cfa8fbc9ad9b7a182, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EntityAudioModule
+  footstepId: 411
   footstepSound:
     Guid:
       Data1: 2109535426
@@ -492,6 +497,7 @@ MonoBehaviour:
   movementThreshold: 0.3
   footstepNoiseRadius: 8
   emitFootstepNoise: 1
+  aggroId: 406
   aggroSound:
     Guid:
       Data1: 0
@@ -500,6 +506,7 @@ MonoBehaviour:
       Data4: 0
     Path: 
   aggroNoiseRadius: 14
+  ambientId: 400
   ambientSound:
     Guid:
       Data1: 244983765
@@ -526,6 +533,7 @@ MonoBehaviour:
   dieAnimTrigger: Death
   emitNoiseOnDamage: 1
   damageNoiseRadius: 15
+  hurtId: 409
   hurtSound:
     Guid:
       Data1: 568073404
@@ -538,6 +546,7 @@ MonoBehaviour:
       m_Calls: []
   emitNoiseOnDeath: 1
   deathNoiseRadius: 20
+  deathId: 410
   deathSound:
     Guid:
       Data1: -1486019807
@@ -561,7 +570,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::KeepDistanceModule
   priority: 10
   active: 1
-  target: {fileID: 0}
   requiredRelationship: 2
   detectRadius: 10
   preferredDistance: 6
@@ -662,8 +670,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AgentRangedCombatModule
   priority: 22
   active: 1
-  target: {fileID: 0}
-  requiredRelationship: 2
+  rangeExitFactor: 1.1
   weapon: {fileID: 11400000, guid: e353b7688558a49c7bd8586cda5e8398, type: 2}
   fireProfile: {fileID: 11400000, guid: c19bbadfc9fe54b1eb3de0bedf171d10, type: 2}
   aimProfile: {fileID: 11400000, guid: 7aa884b8ef85942f18fb0a63102ea09c, type: 2}
@@ -762,6 +769,7 @@ MonoBehaviour:
   minWaitTime: 1
   maxWaitTime: 3
   stopDistance: 0.5
+  holdPositionWhileWaiting: 1
 --- !u!114 &2551231991027282756
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -790,9 +798,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CloseCombatModule
   priority: 23
   active: 1
-  target: {fileID: 0}
-  requiredRelationship: 2
   attackRange: 2.5
+  rangeExitFactor: 1.15
   attackCooldown: 1.2
   attackDamage: 10
   attackCommitDuration: 0.5
@@ -800,6 +807,7 @@ MonoBehaviour:
   OnAttack:
     m_PersistentCalls:
       m_Calls: []
+  attackId: 412
   attackSound:
     Guid:
       Data1: 0
@@ -821,6 +829,176 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SceneTracked
   keepChunksLoaded: 1
   policy: 1
+--- !u!114 &5931576831872468556
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 586221429
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &4909917152254947508
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73c6ec310cb4245338056b26c04d3d64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.ClientNetworkTransform
+  ShowTopMostFoldoutHeaderGroup: 1
+  NetworkTransformExpanded: 0
+  AutoOwnerAuthorityTickOffset: 1
+  PositionInterpolationType: 0
+  RotationInterpolationType: 0
+  ScaleInterpolationType: 0
+  PositionLerpSmoothing: 1
+  PositionMaxInterpolationTime: 0.1
+  RotationLerpSmoothing: 1
+  RotationMaxInterpolationTime: 0.1
+  ScaleLerpSmoothing: 1
+  ScaleMaxInterpolationTime: 0.1
+  AuthorityMode: 0
+  TickSyncChildren: 0
+  UseUnreliableDeltas: 0
+  SyncPositionX: 1
+  SyncPositionY: 1
+  SyncPositionZ: 1
+  SyncRotAngleX: 1
+  SyncRotAngleY: 1
+  SyncRotAngleZ: 1
+  SyncScaleX: 1
+  SyncScaleY: 1
+  SyncScaleZ: 1
+  PositionThreshold: 0.001
+  RotAngleThreshold: 0.01
+  ScaleThreshold: 0.01
+  UseQuaternionSynchronization: 0
+  UseQuaternionCompression: 0
+  UseHalfFloatPrecision: 0
+  InLocalSpace: 0
+  SwitchTransformSpaceWhenParented: 0
+  Interpolate: 1
+  SlerpPosition: 0
+--- !u!114 &236332013050816756
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &7977272553321201453
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3b25237342c04c47915e023e8de3489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetAuthority
+  ShowTopMostFoldoutHeaderGroup: 1
+  simulationDrivers: []
+  freezePhysicsOnRemote: 1
+--- !u!114 &1018769612746197352
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2a140c4cd8644f69b66c4a36ec82f21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.NetworkedHealthComponent
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &-2344055356095779957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &-1028138584694365583
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &-5677031770895591685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c18a9adbe9734a35aee1b80b9c4bcda, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthSaveable
+--- !u!114 &3243106154205344910
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07930ef67777a44578768194c902a1cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Safety.UnderTerrainGuard
+  bodyRoot: {fileID: 0}
+  checkInterval: 0.25
+  depthTolerance: 0.5
+  surfaceClearance: 1.2
+  absoluteFloorY: -500
+  logRecoveries: 1
 --- !u!1 &972329710984439990
 GameObject:
   m_ObjectHideFlags: 0

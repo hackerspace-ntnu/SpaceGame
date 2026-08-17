@@ -24,13 +24,29 @@ namespace SpaceGame.EditorTools
     {
         private GameObject platform;
         private GameObject rider;
+        private SimulationMode originalSimulationMode;
+
+        /// Physics is stepped by hand so a test can watch a carry land. Riders are dynamic bodies,
+        /// so the carry only shows up once the step has run -- see
+        /// <see cref="MovesRiderThroughThePhysicsStepRatherThanTeleportingIt"/> for why it must.
+        [SetUp]
+        public void SetUp()
+        {
+            originalSimulationMode = Physics.simulationMode;
+            Physics.simulationMode = SimulationMode.Script;
+        }
 
         [TearDown]
         public void TearDown()
         {
+            Physics.simulationMode = originalSimulationMode;
             if (platform != null) Object.DestroyImmediate(platform);
             if (rider != null) Object.DestroyImmediate(rider);
         }
+
+        private const float Step = 0.02f;
+
+        private static void StepPhysics() => Physics.Simulate(Step);
 
         /// A hull with the carrier on the root and its trigger volume on a child, the way every
         /// craft in the project is built.
@@ -71,6 +87,42 @@ namespace SpaceGame.EditorTools
             return body;
         }
 
+        /// The carry must reach the rider through the physics step, never as a direct pose write.
+        ///
+        /// Assigning Rigidbody.position teleports the body and throws away Unity's interpolation
+        /// history for it. The craft moves on the render loop, so doing that once per rendered frame
+        /// discarded the interpolation several times per physics step -- and interpolation is the
+        /// only thing smoothing a 50 Hz simulation out over a 240 Hz display. The rider ended up
+        /// rendered somewhere between the pose the carry wrote and the pose the solver last
+        /// produced, which is the vibration felt when standing on a moving deck. Since the camera
+        /// hangs off the player, the whole view shook with them.
+        ///
+        /// So the observable contract is: CarryRiders leaves the body where it is and asks physics
+        /// to put it in the right place, and the rider has arrived once the step has run.
+        [Test]
+        [Ignore("Carry is still a pose write. Deliberate: expressing it as velocity needs the " +
+                "carrier to hold each rider's own motion separately from the carry, and the deck " +
+                "is parked for now. This test is the contract that work has to satisfy.")]
+        public void MovesRiderThroughThePhysicsStepRatherThanTeleportingIt()
+        {
+            WalkerPlatformCarrier carrier = BuildPlatform(withRigidbody: false);
+            Rigidbody body = BuildRider(new Vector3(0f, 1f, 2f));
+            Physics.SyncTransforms();
+
+            carrier.Prime();
+            platform.transform.position += new Vector3(0f, 0f, 5f);
+            Physics.SyncTransforms();
+            carrier.CarryRiders();
+
+            Assert.AreEqual(2f, body.position.z, 1e-3f,
+                "the carry wrote the rider's pose directly instead of leaving it to the physics step");
+
+            StepPhysics();
+
+            Assert.AreEqual(7f, body.position.z, 1e-3f,
+                "the rider did not arrive at the platform's new position after the physics step");
+        }
+
         [Test]
         public void CarriesRiderWhenThePlatformHasNoRigidbody()
         {
@@ -82,6 +134,7 @@ namespace SpaceGame.EditorTools
             platform.transform.position += new Vector3(0f, 0f, 5f);
             Physics.SyncTransforms();
             carrier.CarryRiders();
+            StepPhysics();
 
             Assert.AreEqual(1, carrier.RiderCount,
                 "a platform with no Rigidbody never collected the rider standing on it");
@@ -100,6 +153,7 @@ namespace SpaceGame.EditorTools
             platform.transform.position += new Vector3(0f, 0f, 5f);
             Physics.SyncTransforms();
             carrier.CarryRiders();
+            StepPhysics();
 
             Assert.AreEqual(1, carrier.RiderCount);
             Assert.AreEqual(7f, body.position.z, 1e-3f);
@@ -125,6 +179,7 @@ namespace SpaceGame.EditorTools
                 platform.transform.rotation = Quaternion.Euler(0f, step * 1.5f, 0f);
                 Physics.SyncTransforms();
                 carrier.CarryRiders();
+                StepPhysics();
             }
 
             // 4 m ahead of the pivot, yawed 90 degrees, lands 4 m to starboard.
@@ -145,13 +200,16 @@ namespace SpaceGame.EditorTools
             platform.transform.position += new Vector3(0f, 0f, 1f);
             Physics.SyncTransforms();
             carrier.CarryRiders();
+            StepPhysics();
             Assert.AreEqual(1, carrier.RiderCount, "rider should have been aboard to begin with");
 
             body.position = new Vector3(0f, 1f, 60f);   // stepped off, well clear of the hull
+            body.linearVelocity = Vector3.zero;         // and standing still, not still coasting
             Physics.SyncTransforms();
             platform.transform.position += new Vector3(0f, 0f, 1f);
             Physics.SyncTransforms();
             carrier.CarryRiders();
+            StepPhysics();
 
             Assert.AreEqual(0, carrier.RiderCount, "rider who left the deck is still being carried");
             Assert.AreEqual(60f, body.position.z, 1e-3f, "rider off the deck was still moved");

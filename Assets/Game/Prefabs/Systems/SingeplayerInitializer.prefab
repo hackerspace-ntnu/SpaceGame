@@ -42,6 +42,7 @@ GameObject:
   - component: {fileID: 992589268006526704}
   - component: {fileID: 7382902620327829835}
   - component: {fileID: 2386101899684211332}
+  - component: {fileID: 6820409353306382282}
   m_Layer: 0
   m_Name: SingeplayerInitializer
   m_TagString: Untagged
@@ -105,3 +106,16 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   playerPrefab: {fileID: 582217690245548981, guid: 29c12f19fe277234e8f077d5c15501c2, type: 3}
   spawnPoint: {fileID: 602611542926559647}
+--- !u!114 &6820409353306382282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4895505228537061139}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1

@@ -1,40 +1,36 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.World
 {
     /// <summary>
     /// ====================================================================================
-    /// THE FEATURE CONTRACT — read this before implementing one of the nine terrain features.
+    /// THE FEATURE CONTRACT — read this before implementing a terrain feature.
     /// ====================================================================================
     ///
-    /// One footprint-agnostic abstract base class for ALL terrain features — area and linear alike.
-    /// There is deliberately NO split into "AreaFeature" / "LinearFeature": every feature receives the
-    /// same <see cref="FeatureContext"/> and reads the parts it needs (the box bounds for area
-    /// features, the spline path for linear features). Maximum interchangeability is the #1 priority.
+    /// One abstract base class for all terrain features. Every feature receives the same
+    /// <see cref="FeatureContext"/> and reads the parts it needs, which keeps features
+    /// interchangeable.
     ///
     /// A concrete feature subclass implements exactly THREE members:
     ///
     ///   1. <see cref="FeatureType"/>      — the <see cref="TerrainFeatureType"/> enum entry it builds.
-    ///   2. <see cref="DensityKind"/>      — Heightfield (cheap, surface = f(x,z): dunes, mesas,
-    ///                                       buttes, cliffs, canyons, ridges, paths) or Voxel (real
-    ///                                       overhangs only: arches, bridges, cave entrances).
+    ///   2. <see cref="DensityKind"/>      — Heightfield (cheap, surface = f(x,z)) or Voxel (only when
+    ///                                       the surface genuinely folds back on itself, i.e. real
+    ///                                       overhangs).
     ///   3. <see cref="BuildDensity"/>     — return the <see cref="ITerrainDensity"/> describing the
     ///                                       feature's solid volume. For Heightfield, build a
     ///                                       <see cref="HeightfieldDensity"/> from a height lambda.
-    ///                                       For Voxel, build a <see cref="VoxelSdfDensity"/> from an
-    ///                                       SDF lambda (use the shared <see cref="SdfPrimitives"/>).
+    ///                                       For Voxel, build a <see cref="RockBodySdf"/>.
     ///
     /// A feature NEVER touches marching cubes, smoothing, the skirt blend or asset saving — the shared
     /// <see cref="TerrainFeatureGenerator"/> pipeline does all of that. The feature only describes its
-    /// SHAPE as a density field. This is what keeps the nine features small and interchangeable.
+    /// SHAPE as a density field. This is what keeps features small and interchangeable.
     ///
     /// HELPERS available to every feature (use these, do not reinvent):
     ///   • <see cref="TerrainNoiseHelper"/>  — SurfaceNoise, ApplyJaggedness, Fbm, OverlapWeight,
     ///                                          VariedHeight, Hash01.
-    ///   • <see cref="TerrainProfiles"/>     — Dune, Plateau, Ridge, CliffStep, CanyonCrossSection,
-    ///                                          LimitSlope (walkability).
-    ///   • <see cref="FeatureSpline"/>       — Evaluate, Tangent, ClosestParam (for linear features).
+    ///   • <see cref="TerrainProfiles"/>     — Plateau, CliffStep.
+    ///   • <see cref="RockBodySdf"/>         — eroded rock-body SDF shared by mesa and cliff.
     ///   • <see cref="SdfPrimitives"/>       — Sphere, Capsule, SmoothMin, ApplyFloorFlatten (voxel).
     ///   • <see cref="FeatureContext.Ground"/> + LocalGroundHeight — sample the underlying terrain.
     ///
@@ -61,66 +57,13 @@ namespace SpaceGame.World
         ///       (x, z) => groundHeight + profile(...) * height + TerrainNoiseHelper.SurfaceNoise(...),
         ///       footprintBounds, minY, maxY, bandPadding);
         ///
-        /// Voxel feature pattern:
-        ///   return new VoxelSdfDensity(
-        ///       p => SdfPrimitives.SmoothMin(solidBlock(p), -tunnel(p), k),
-        ///       volumeBounds);
+        /// Voxel feature pattern (real overhangs):
+        ///   return new RockBodySdf(lineA, lineB, reach, ground, summit,
+        ///       context.LocalGroundHeight, volumeBounds, overhangSettings, seed);
         ///
         /// The returned density is fed straight to <see cref="TerrainMarchingCubesMesher"/>.
         /// </summary>
         public abstract ITerrainDensity BuildDensity(FeatureContext context);
-
-        /// <summary>
-        /// Optional hook run AFTER meshing + smoothing + skirt-blend, before the result is returned.
-        /// Default does nothing. Override only if a feature needs a final mesh tweak (e.g. carving a
-        /// flat walkable strip into a canyon path). Most features leave this alone.
-        /// </summary>
-        public virtual void PostProcess(Mesh mesh, FeatureContext context) { }
-
-        /// <summary>
-        /// True if this feature deliberately authors geometry BELOW the terrain surface (e.g. a cave
-        /// entrance whose tunnel descends underground). The generator then SKIPS the terrain skirt
-        /// blend for this feature — the skirt lifts every below-ground vertex up to the ground line,
-        /// which would collapse a descending tunnel and reseal its mouth. Default false: ordinary
-        /// features sit on top of the terrain and want the skirt seam-fix.
-        /// </summary>
-        public virtual bool HasSubTerrainGeometry => false;
-
-        /// <summary>
-        /// Human-readable name for logs / inspector. Defaults to the feature type name; override only
-        /// for a friendlier label.
-        /// </summary>
-        public virtual string DisplayName => FeatureType.ToString();
-
-        // -------------------------------------------------------------------------
-        // Multi-mesh capability (opt-in).
-        //
-        // The default pipeline is SINGLE-mesh: a feature returns one ITerrainDensity from
-        // BuildDensity, the generator meshes it into one Mesh, the spawner spawns one GameObject. All
-        // eleven other features use exactly that path and these two members untouched.
-        //
-        // A large feature (e.g. ArchingCave) whose site must be split into internally-chunked
-        // sub-meshes overrides ProducesMultipleMeshes to true and implements BuildMeshes. The
-        // generator then takes the multi-mesh branch: it ignores BuildDensity and calls BuildMeshes,
-        // and the result carries every sub-mesh. The change is fully backward-compatible — a feature
-        // that does not override these keeps the original single-mesh behaviour.
-        // -------------------------------------------------------------------------
-
-        /// <summary>
-        /// True if this feature produces MULTIPLE sub-meshes instead of one. Default false — the
-        /// generator then uses the standard single-mesh <see cref="BuildDensity"/> path. Override to
-        /// true and implement <see cref="BuildMeshes"/> for an internally-chunked feature.
-        /// </summary>
-        public virtual bool ProducesMultipleMeshes => false;
-
-        /// <summary>
-        /// Builds the feature as a list of finished sub-meshes (each in feature-local space). Called by
-        /// the generator INSTEAD of <see cref="BuildDensity"/> when <see cref="ProducesMultipleMeshes"/>
-        /// is true. A multi-mesh feature owns its own meshing here (typically via an internal chunker)
-        /// because the shape it produces does not fit one voxel volume. Default returns null —
-        /// single-mesh features never implement this.
-        /// </summary>
-        public virtual List<Mesh> BuildMeshes(FeatureContext context, TerrainMeshSettings meshSettings) => null;
 
         // -------------------------------------------------------------------------
         // Per-feature settings hook.

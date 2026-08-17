@@ -231,13 +231,17 @@ namespace SpaceGame.Presentation
             scaler.matchWidthOrHeight = 0.5f;
 
             // Left column, like the menu's own entry list. Nothing behind it — the
-            // scene shows through.
+            // scene shows through, which is exactly why the column is confined to the
+            // bottom half: the menu camera has no pitch, so the horizon runs across the
+            // middle and anything above it is text over open sky. Centred in this band
+            // rather than in the whole screen, the rows land on ground and stay legible.
+            // MenuEntry.Horizon carries the same reasoning for the other menu screens.
             var column = NewRect("Column", canvasGo.transform);
             column.anchorMin = new Vector2(0f, 0f);
             column.anchorMax = new Vector2(0f, 1f);
             column.pivot = new Vector2(0f, 0.5f);
             column.offsetMin = new Vector2(96f, 0f);
-            column.offsetMax = new Vector2(96f + 1100f, 0f);
+            column.offsetMax = new Vector2(96f + 1100f, -SpaceGame.Presentation.MenuEntry.Horizon);
 
             var layout = column.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.padding = new RectOffset(0, 0, 60, 60);

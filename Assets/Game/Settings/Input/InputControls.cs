@@ -874,6 +874,24 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Pause"",
+                    ""type"": ""Button"",
+                    ""id"": ""5a48eaac-7f6f-4468-a92b-dffefc41fd8d"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""DevInventory"",
+                    ""type"": ""Button"",
+                    ""id"": ""c7b04751-9667-4c82-a0d7-3ba7a828abd1"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -1412,7 +1430,29 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
-                    ""action"": ""Map"",
+                    ""action"": ""Pause"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9e80560a-c58b-4898-8bd0-e1ee604d435f"",
+                    ""path"": ""<Gamepad>/start"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Pause"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""3f4500b2-3e44-4367-9dec-afd834211c03"",
+                    ""path"": ""<Keyboard>/i"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""DevInventory"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1520,6 +1560,15 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""HotbarScroll"",
+                    ""type"": ""Value"",
+                    ""id"": ""2f0c4d51-6c1e-4a9d-8f2b-70c9d3a41b65"",
+                    ""expectedControlType"": ""Axis"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -1643,6 +1692,17 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""action"": ""Drop"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""b7d3e0c4-9a52-4f18-a6d7-1c8e5b30f294"",
+                    ""path"": ""<Mouse>/scroll/y"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""HotbarScroll"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -1739,6 +1799,8 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         m_UI_TrackedDeviceOrientation = m_UI.FindAction("TrackedDeviceOrientation", throwIfNotFound: true);
         m_UI_Hotkey = m_UI.FindAction("Hotkey", throwIfNotFound: true);
         m_UI_Map = m_UI.FindAction("Map", throwIfNotFound: true);
+        m_UI_Pause = m_UI.FindAction("Pause", throwIfNotFound: true);
+        m_UI_DevInventory = m_UI.FindAction("DevInventory", throwIfNotFound: true);
         // Hotbar
         m_Hotbar = asset.FindActionMap("Hotbar", throwIfNotFound: true);
         m_Hotbar_Hotbar1 = m_Hotbar.FindAction("Hotbar1", throwIfNotFound: true);
@@ -1752,6 +1814,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         m_Hotbar_Hotbar9 = m_Hotbar.FindAction("Hotbar9", throwIfNotFound: true);
         m_Hotbar_Hotbar10 = m_Hotbar.FindAction("Hotbar10", throwIfNotFound: true);
         m_Hotbar_Drop = m_Hotbar.FindAction("Drop", throwIfNotFound: true);
+        m_Hotbar_HotbarScroll = m_Hotbar.FindAction("HotbarScroll", throwIfNotFound: true);
     }
 
     ~@InputControls()
@@ -2074,6 +2137,8 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_UI_TrackedDeviceOrientation;
     private readonly InputAction m_UI_Hotkey;
     private readonly InputAction m_UI_Map;
+    private readonly InputAction m_UI_Pause;
+    private readonly InputAction m_UI_DevInventory;
     /// <summary>
     /// Provides access to input actions defined in input action map "UI".
     /// </summary>
@@ -2133,6 +2198,14 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "UI/Map".
         /// </summary>
         public InputAction @Map => m_Wrapper.m_UI_Map;
+        /// <summary>
+        /// Provides access to the underlying input action "UI/Pause".
+        /// </summary>
+        public InputAction @Pause => m_Wrapper.m_UI_Pause;
+        /// <summary>
+        /// Provides access to the underlying input action "UI/DevInventory".
+        /// </summary>
+        public InputAction @DevInventory => m_Wrapper.m_UI_DevInventory;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -2195,6 +2268,12 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @Map.started += instance.OnMap;
             @Map.performed += instance.OnMap;
             @Map.canceled += instance.OnMap;
+            @Pause.started += instance.OnPause;
+            @Pause.performed += instance.OnPause;
+            @Pause.canceled += instance.OnPause;
+            @DevInventory.started += instance.OnDevInventory;
+            @DevInventory.performed += instance.OnDevInventory;
+            @DevInventory.canceled += instance.OnDevInventory;
         }
 
         /// <summary>
@@ -2242,6 +2321,12 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @Map.started -= instance.OnMap;
             @Map.performed -= instance.OnMap;
             @Map.canceled -= instance.OnMap;
+            @Pause.started -= instance.OnPause;
+            @Pause.performed -= instance.OnPause;
+            @Pause.canceled -= instance.OnPause;
+            @DevInventory.started -= instance.OnDevInventory;
+            @DevInventory.performed -= instance.OnDevInventory;
+            @DevInventory.canceled -= instance.OnDevInventory;
         }
 
         /// <summary>
@@ -2290,6 +2375,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_Hotbar_Hotbar9;
     private readonly InputAction m_Hotbar_Hotbar10;
     private readonly InputAction m_Hotbar_Drop;
+    private readonly InputAction m_Hotbar_HotbarScroll;
     /// <summary>
     /// Provides access to input actions defined in input action map "Hotbar".
     /// </summary>
@@ -2345,6 +2431,10 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Hotbar/Drop".
         /// </summary>
         public InputAction @Drop => m_Wrapper.m_Hotbar_Drop;
+        /// <summary>
+        /// Provides access to the underlying input action "Hotbar/HotbarScroll".
+        /// </summary>
+        public InputAction @HotbarScroll => m_Wrapper.m_Hotbar_HotbarScroll;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -2404,6 +2494,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @Drop.started += instance.OnDrop;
             @Drop.performed += instance.OnDrop;
             @Drop.canceled += instance.OnDrop;
+            @HotbarScroll.started += instance.OnHotbarScroll;
+            @HotbarScroll.performed += instance.OnHotbarScroll;
+            @HotbarScroll.canceled += instance.OnHotbarScroll;
         }
 
         /// <summary>
@@ -2448,6 +2541,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @Drop.started -= instance.OnDrop;
             @Drop.performed -= instance.OnDrop;
             @Drop.canceled -= instance.OnDrop;
+            @HotbarScroll.started -= instance.OnHotbarScroll;
+            @HotbarScroll.performed -= instance.OnHotbarScroll;
+            @HotbarScroll.canceled -= instance.OnHotbarScroll;
         }
 
         /// <summary>
@@ -2736,6 +2832,20 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnMap(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Pause" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnPause(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "DevInventory" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnDevInventory(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Hotbar" which allows adding and removing callbacks.
@@ -2821,5 +2931,12 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnDrop(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "HotbarScroll" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnHotbarScroll(InputAction.CallbackContext context);
     }
 }

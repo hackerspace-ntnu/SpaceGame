@@ -16,51 +16,59 @@ namespace SpaceGame.Items
     public class BackpackObject : MonoBehaviour, IInteractable
     {
         [Header("Rig")]
-        [Tooltip("PIVOT_Door_L — the left rear vertical hinge on the back-supported frame. " +
-                 "Interior anchors 0-4 are its children, so its gear swings out with it.")]
-        [SerializeField] private Transform doorPivotLeft;
-
-        [Tooltip("PIVOT_Door_R — the right rear vertical hinge. Interior anchors 5-9 are its children.")]
-        [SerializeField] private Transform doorPivotRight;
+        [Tooltip("Every part that moves when the pack opens, in any order. The expedition pack " +
+                 "wires PIVOT_Lid and PIVOT_Panel here; the older clamshell wired PIVOT_Door_L and " +
+                 "PIVOT_Door_R. Leaving this empty is legal — a pack with no moving parts still " +
+                 "shows and gives up its contents.")]
+        [SerializeField] private BackpackHinge[] hinges = new BackpackHinge[0];
 
         [Tooltip("Exterior hang-off points, in index order. Their contents show whether the pack is " +
                  "worn or not, so a loaded pack visibly carries gear on the astronaut's back.")]
         [SerializeField] private Transform[] strapSockets = new Transform[BackpackContainer.StrapSlots];
 
         [Tooltip("Interior stow anchors, in index order. SOCK_Int_0 must be element 0 — a shuffled " +
-                 "array silently scrambles which anchor an item appears on. 0-4 are on the left door, " +
-                 "5-9 on the right.")]
+                 "array silently scrambles which anchor an item appears on. Three across on each " +
+                 "of four STATIC shelves, bottom tier first; they must never be children of a " +
+                 "hinge, or their gear swings out into mid-air on the end of a panel.")]
         [SerializeField] private Transform[] pocketSockets = new Transform[BackpackContainer.MainSlots];
 
         [Header("Opening")]
-        [Tooltip("Degrees each door swings outward. The doors hinge on the REAR edges, so they have to " +
-                 "come past 90 before their inner faces turn toward the player.")]
-        [SerializeField] private float openAngle = 135f;
         [SerializeField, Min(0.01f)] private float openSeconds = 0.5f;
 
         [Header("Item display")]
-        [Tooltip("Metres the longest axis of a pocketed item is scaled to.")]
-        [SerializeField] private float pocketFitSize = 0.13f;
+        [Tooltip("Metres the longest axis of a pocketed item is scaled to. Sized against the " +
+                 "shelf pitch in the model — raise it past that and stowed gear clips the shelf above.")]
+        [SerializeField] private float pocketFitSize = 0.3f;
         [Tooltip("Metres the longest axis of a strapped item is scaled to. Bedrolls read larger than pocket junk.")]
-        [SerializeField] private float strapFitSize = 0.22f;
+        [SerializeField] private float strapFitSize = 0.44f;
 
         [Header("Starting contents")]
         [SerializeField] private List<InventoryItem> startingStrapItems = new();
         [SerializeField] private List<InventoryItem> startingMainItems = new();
 
-        public BackpackContainer Container { get; private set; }
+        /// <summary>
+        /// The pack's contents. Built on first use rather than in Awake, because a pack's storage
+        /// has to exist whenever someone asks for it — and Awake is not one of those moments you
+        /// can count on. The editor never runs it on a component added to an object outside play
+        /// mode, so an EditMode test, an inspector tool, or any code touching a pack before the
+        /// first frame would otherwise be handed a null.
+        /// </summary>
+        public BackpackContainer Container => container ??= new BackpackContainer();
+
         public bool IsOpen { get; private set; }
         public bool IsWorn { get; private set; } = true;
+
+        private BackpackContainer container;
 
         private BackpackController owner;
         private Coroutine doorRoutine;
         private Collider bodyCollider;
 
-        // The hinges' authored rest orientations. The FBX does NOT hand these back at identity, so
-        // the open angle has to be applied RELATIVE to them. Treating it as absolute reorients the
-        // whole door — which, on the previous clamshell, buried it 0.4 m under the ground.
-        private Quaternion closedRotationLeft = Quaternion.identity;
-        private Quaternion closedRotationRight = Quaternion.identity;
+        // The hinges' authored rest orientations, captured once. The FBX does NOT hand empties back
+        // at identity — PIVOT_Clamshell arrived at euler (270.02, 0, 0) — so the open angle has to
+        // be applied RELATIVE to these. Treating it as absolute reorients the whole part, which on
+        // the previous clamshell buried a door 0.4 m under the ground.
+        private Quaternion[] closedRotations;
 
         // One live display object per occupied slot. Kept per compartment so a strap refresh never
         // walks the pocket array looking for something that was never built.
@@ -70,7 +78,6 @@ namespace SpaceGame.Items
         private void Awake()
         {
             bodyCollider = GetComponent<Collider>();
-            Container = new BackpackContainer();
 
             strapVisuals = new GameObject[BackpackContainer.StrapSlots];
             pocketVisuals = new GameObject[BackpackContainer.MainSlots];
@@ -83,16 +90,17 @@ namespace SpaceGame.Items
 
             Container.OnSlotChanged += HandleSlotChanged;
 
-            if (doorPivotLeft != null) closedRotationLeft = doorPivotLeft.localRotation;
-            if (doorPivotRight != null) closedRotationRight = doorPivotRight.localRotation;
+            CaptureClosedRotations();
 
             RefreshCompartment(BackpackCompartment.Strap);
         }
 
         private void OnDestroy()
         {
-            if (Container != null)
-                Container.OnSlotChanged -= HandleSlotChanged;
+            // The field, not the property: a pack destroyed before anything ever asked for its
+            // contents should not build a container on its way out.
+            if (container != null)
+                container.OnSlotChanged -= HandleSlotChanged;
         }
 
         /// <summary>Who is carrying this. Null once it is dropped for good.</summary>
@@ -125,38 +133,66 @@ namespace SpaceGame.Items
             else ClearVisuals(pocketVisuals);
 
             if (doorRoutine != null) StopCoroutine(doorRoutine);
-            doorRoutine = StartCoroutine(SwingDoors(open ? openAngle : 0f));
+            doorRoutine = StartCoroutine(SwingDoors(open));
+        }
+
+        private void CaptureClosedRotations()
+        {
+            closedRotations = new Quaternion[hinges != null ? hinges.Length : 0];
+
+            for (int i = 0; i < closedRotations.Length; i++)
+                closedRotations[i] = hinges[i].pivot != null
+                    ? hinges[i].pivot.localRotation
+                    : Quaternion.identity;
         }
 
         /// <summary>
-        /// Both doors together, mirrored: the left swings -Z and the right +Z, so they open away
-        /// from the centre seam instead of one chasing the other round.
+        /// Every hinge together, each about its own authored axis by its own signed angle. One
+        /// loop rather than a hardcoded pair, so a lid that tips back and a panel that folds down
+        /// are the same code as two doors that mirror each other.
         /// </summary>
-        private IEnumerator SwingDoors(float targetAngle)
+        private IEnumerator SwingDoors(bool open)
         {
-            Quaternion fromL = doorPivotLeft != null ? doorPivotLeft.localRotation : Quaternion.identity;
-            Quaternion fromR = doorPivotRight != null ? doorPivotRight.localRotation : Quaternion.identity;
+            int count = hinges != null ? hinges.Length : 0;
 
-            Quaternion toL = closedRotationLeft * Quaternion.Euler(0f, 0f, targetAngle);
-            Quaternion toR = closedRotationRight * Quaternion.Euler(0f, 0f, -targetAngle);
+            // The pose the parts are in RIGHT NOW, not the closed pose: a press that interrupts a
+            // half-finished swing has to continue from where the parts actually are, or the whole
+            // rig snaps back to closed for one frame before setting off again.
+            var from = new Quaternion[count];
+            var to = new Quaternion[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                Transform pivot = hinges[i].pivot;
+                from[i] = pivot != null ? pivot.localRotation : Quaternion.identity;
+                to[i] = open ? closedRotations[i] * hinges[i].OpenOffset() : closedRotations[i];
+            }
 
             for (float elapsed = 0f; elapsed < openSeconds; elapsed += Time.deltaTime)
             {
                 float t = Mathf.Clamp01(elapsed / openSeconds);
                 float eased = t * t * (3f - 2f * t);
-                if (doorPivotLeft != null) doorPivotLeft.localRotation = Quaternion.Slerp(fromL, toL, eased);
-                if (doorPivotRight != null) doorPivotRight.localRotation = Quaternion.Slerp(fromR, toR, eased);
+
+                for (int i = 0; i < count; i++)
+                    if (hinges[i].pivot != null)
+                        hinges[i].pivot.localRotation = Quaternion.Slerp(from[i], to[i], eased);
+
                 yield return null;
             }
 
-            if (doorPivotLeft != null) doorPivotLeft.localRotation = toL;
-            if (doorPivotRight != null) doorPivotRight.localRotation = toR;
+            for (int i = 0; i < count; i++)
+                if (hinges[i].pivot != null) hinges[i].pivot.localRotation = to[i];
+
             doorRoutine = null;
         }
 
         /// <summary>
-        /// Move one item from the pack into the given hotbar. Returns false and changes nothing if
-        /// the hotbar is full — the item stays visibly in its pocket rather than vanishing.
+        /// Move one item from the pack into the given hotbar.
+        ///
+        /// A full hotbar is not a refusal — it is a SWAP: the pack item goes into the player's
+        /// selected hotbar slot and whatever was in that slot takes its place in the pocket the
+        /// player is aiming at. Refusing instead is what made a full hotbar feel like a broken
+        /// interaction, because the only way out was to drop something on the ground first.
         /// </summary>
         public bool TryTakeToHotbar(BackpackCompartment compartment, int index, IPlayerInventory hotbar)
         {
@@ -167,9 +203,59 @@ namespace SpaceGame.Items
 
             // Tested BEFORE the item leaves the pack. TakeOut-then-add-back would work, but a failed
             // add in between would have already fired a change and destroyed the display object.
-            if (hotbar.TryAddItem(slot.Item) == false) return false;
+            if (hotbar.TryAddItem(slot.Item))
+            {
+                Container.TakeOut(compartment, index);
+                return true;
+            }
+
+            return TrySwapWithHotbar(compartment, index, hotbar, slot.Item);
+        }
+
+        /// <summary>
+        /// The full-hotbar path. Only ever called once TryAddItem has already refused, which is the
+        /// proof that every hotbar slot is occupied — and that is what makes the middle of this
+        /// safe: clearing one slot leaves EXACTLY one empty, so the following TryAddItem can only
+        /// land in the slot just cleared. No IPlayerInventory member has to be added for it, which
+        /// matters because PlayerInventoryNetwork, PickupableItem, ShipInteraction and
+        /// RepairWorkstation all sit on that interface.
+        /// </summary>
+        private bool TrySwapWithHotbar(BackpackCompartment compartment, int index,
+                                       IPlayerInventory hotbar, InventoryItem packItem)
+        {
+            // Nothing selected still has to do something. The player is aiming at an item and
+            // pressing interact; "nothing happened" is the exact failure this method exists to
+            // remove, so the swap falls back to the first slot rather than refusing.
+            int target = hotbar.SelectedSlotIndex;
+            if (target < 0 || target >= hotbar.GetInventorySize()) target = 0;
+
+            InventorySlot heldSlot = hotbar.GetSlot(target);
+            InventoryItem held = heldSlot != null && !heldSlot.IsEmpty ? heldSlot.Item : null;
+
+            // Unreachable on a genuinely full hotbar, but a rogue IPlayerInventory that refuses adds
+            // for its own reasons would otherwise have its item destroyed by the TakeOut below.
+            if (held == null) return false;
+
+            // Clears the slot. It does NOT spawn a world pickup — that is PlayerInventory.DropItem,
+            // a different method — so nothing can leak onto the ground mid-swap.
+            if (!hotbar.TryRemoveItem(target)) return false;
+
+            if (!hotbar.TryAddItem(packItem))
+            {
+                // Cannot happen once a slot has been cleared, but leaving the hotbar a slot short
+                // would be a silent item loss, so put the held item back and abandon the swap.
+                hotbar.TryAddItem(held);
+                hotbar.SelectSlot(target);
+                return false;
+            }
 
             Container.TakeOut(compartment, index);
+            Container.PlaceAt(compartment, index, held);
+
+            // Required, not cosmetic. PlayerInventory.TryRemoveItem nulls SelectedSlotIndex when it
+            // removes the selected slot, so without this the player finishes the swap holding
+            // nothing while the item they just took sits unselected in their hand slot.
+            hotbar.SelectSlot(target);
             return true;
         }
 

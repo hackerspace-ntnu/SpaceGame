@@ -18,6 +18,7 @@
 // OnKill  — fires when a shot kills the target
 using System;
 using FMODUnity;
+using SpaceGame.Audio;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Events;
@@ -343,8 +344,7 @@ namespace SpaceGame.Agents
             if (rb != null)
                 rb.linearVelocity = aimDir * activeWeapon.projectileSpeed;
 
-            if (!activeWeapon.fireSound.IsNull)
-                RuntimeManager.PlayOneShot(activeWeapon.fireSound, muzzle.position);
+            Sfx.Play(activeWeapon.fireId, muzzle.position, activeWeapon.fireSound, GetInstanceID());
 
             if (animator && !string.IsNullOrEmpty(shootAnimTrigger))
                 animator.SetTrigger(shootAnimTrigger);

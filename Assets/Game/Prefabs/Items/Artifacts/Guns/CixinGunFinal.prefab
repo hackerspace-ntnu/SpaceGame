@@ -385,7 +385,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: d837f0bb862ea4447b08a5b51ebcbf89, type: 2}
     - target: {fileID: 919132149155446097, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
       propertyPath: m_Name
-      value: cixinGunFinal
+      value: CixinGunFinal
       objectReference: {fileID: 0}
     - target: {fileID: 1129496810705857465, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -517,6 +517,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7617495984892818894}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6190829195219333636}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -4481982609550097996}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7088141700324678385}
   m_SourcePrefab: {fileID: 100100000, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}
 --- !u!1 &2490650498845839401 stripped
 GameObject:
@@ -536,6 +545,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BallLightningWeapon
   maxUses: -1
+  useSoundId: 0
   useSound:
     Guid:
       Data1: 0
@@ -554,10 +564,22 @@ MonoBehaviour:
     m_Bits: 4294967295
   magazine: {fileID: 0}
   ammoPerShot: 1
-  fireSoundName: 
-  fireSoundVolume: 1
-  chargeStartSoundName: 
-  chargeStartSoundVolume: 1
+  fireSoundId: 200
+  fireSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  chargeStartSoundId: 204
+  chargeStartSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
   enableCharging: 0
   chargeDuration: 3
   chargeProgressCurve:
@@ -634,6 +656,46 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &6190829195219333636
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2490650498845839401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &-4481982609550097996
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2490650498845839401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &7088141700324678385
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2490650498845839401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
 --- !u!4 &3016076678442732179 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 1f637f7d5610b0944b3d4b82b7708ecf, type: 3}

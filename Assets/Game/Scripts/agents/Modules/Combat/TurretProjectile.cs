@@ -76,10 +76,8 @@ namespace SpaceGame.Agents
             IDamageable damageable = hit.GetComponentInParent<IDamageable>();
             if (damageable == null || !damageable.Alive)
                 return;
-            if (damageable is HealthComponent hc)
-                hc.Damage(damage, shooterTransform);
-            else
-                damageable.Damage(damage);
+
+            NetDamage.Apply((damageable as Component)?.gameObject, damage, shooterTransform);
         }
 
         private void ApplySplash(Vector3 center)
@@ -94,10 +92,8 @@ namespace SpaceGame.Agents
                 IDamageable damageable = c.GetComponentInParent<IDamageable>();
                 if (damageable == null || !damageable.Alive)
                     continue;
-                if (damageable is HealthComponent hc)
-                    hc.Damage(damage, shooterTransform);
-                else
-                    damageable.Damage(damage);
+
+                NetDamage.Apply((damageable as Component)?.gameObject, damage, shooterTransform);
             }
         }
     }

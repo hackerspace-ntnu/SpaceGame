@@ -121,6 +121,13 @@ namespace SpaceGame.Items
         // renderer with nothing feeding it draws nothing anyway.
         private static void Strip(GameObject copy)
         {
+            // NetworkBehaviours before the plain pass, because NetworkObject is itself a
+            // MonoBehaviour and every NetworkBehaviour on the item requires it. The retry loop
+            // below does get there eventually, but only after Unity has logged a refusal for each
+            // one — ten warnings per pack refresh, which buries anything real. A stowed copy is
+            // scenery; it has no business owning a network identity either way.
+            DestroyAll<Unity.Netcode.NetworkBehaviour>(copy);
+
             DestroyAll<MonoBehaviour>(copy);
             DestroyAll<ParticleSystemRenderer>(copy);
             DestroyAll<ParticleSystem>(copy);

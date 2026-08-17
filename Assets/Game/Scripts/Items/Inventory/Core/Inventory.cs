@@ -41,6 +41,23 @@ namespace SpaceGame.Items
             var slot = GetSlot(index);
             slot.Item = item;
         }
+
+        /// <summary>
+        /// Puts an item into a named slot, replacing whatever is there, and tells listeners.
+        ///
+        /// Neither neighbour will do for a load. SetItem is deliberately silent — its callers raise
+        /// OnSlotChanged themselves once a multi-slot operation has finished — so a UI restored
+        /// through it never redraws. TryPlaceAt refuses an occupied slot and a null item, both of
+        /// which are ordinary contents of a saved hotbar.
+        /// </summary>
+        public void RestoreSlot(int index, InventoryItem item)
+        {
+            var slot = GetSlot(index);
+            if (slot == null) return;
+
+            slot.Item = item;
+            OnSlotChanged?.Invoke(index, slot);
+        }
     
         public bool TryAddItem(InventoryItem item)
         {
@@ -67,6 +84,26 @@ namespace SpaceGame.Items
             return true;
         }
     
+        /// <summary>
+        /// Put an item into one NAMED slot, rather than into whichever slot happens to be free
+        /// first. Refuses a null item, an out-of-range index and an occupied slot, so it can never
+        /// silently overwrite what is already there.
+        ///
+        /// TryAddItem cannot serve this: it fills FindEmptySlot(), which for a swap would drop the
+        /// outgoing item into a different socket than the one the player is looking at.
+        /// </summary>
+        public bool TryPlaceAt(int index, InventoryItem item)
+        {
+            if (!item) return false;
+
+            InventorySlot slot = GetSlot(index);
+            if (slot == null || !slot.IsEmpty) return false;
+
+            SetItem(index, item);
+            OnSlotChanged?.Invoke(index, GetSlot(index));
+            return true;
+        }
+
         public bool TryMoveItem(int to, int from)
         {
             if (from == to) {return true;}

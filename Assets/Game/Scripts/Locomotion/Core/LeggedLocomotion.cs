@@ -254,6 +254,20 @@ namespace SpaceGame.Locomotion
             return true;
         }
 
+        /// Where leg `index`'s sole ACTUALLY ended up, read off the posed bones.
+        ///
+        /// Not the same question as `TryGetFoot`, which reports the foothold the gait aimed at. The
+        /// two agree only while the linkage can honour the target; the gap between them is exactly
+        /// what a joint running onto its stop looks like from the outside, and it is the only way to
+        /// see it -- a foot thrown off its foothold is still reported as planted, because the gait
+        /// believes it is.
+        public bool TryGetSole(int index, out Vector3 sole)
+        {
+            if (index < 0 || index >= legs.Count) { sole = default; return false; }
+            sole = legs[index].Rig.ContactPoint;
+            return true;
+        }
+
         /// What one leg was measured as. Per leg, not averaged: a machine with shorter front legs
         /// gets a stride that fits each pair rather than neither.
         public bool TryGetMeasurement(int index, out LegMeasurement measurement)

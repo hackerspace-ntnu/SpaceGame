@@ -43,7 +43,7 @@ namespace SpaceGame.World
         {
             while (healthComponent && healthComponent.Alive)
             {
-                healthComponent.Damage(damagePerTick);
+                NetDamage.Apply(healthComponent.gameObject, damagePerTick);
                 yield return new WaitForSeconds(tickInterval);
             }
 

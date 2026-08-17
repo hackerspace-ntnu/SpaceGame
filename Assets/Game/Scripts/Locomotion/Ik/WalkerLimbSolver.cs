@@ -74,6 +74,31 @@ namespace SpaceGame.Locomotion
             return rest.sqrMagnitude > 1e-12f ? Mathf.Atan2(rest.y, rest.x) : a1;
         }
 
+        /// Smallest yaw that puts the limb's PLANE on a target at the given azimuth.
+        ///
+        /// The plane is a plane, not a half-plane. Turning it 180 degrees gives the same plane back,
+        /// and the 2D solve inside it takes a negative in-plane coordinate quite happily -- reaching
+        /// backwards is what the pitch chain is for. So an azimuth past a quarter turn is asking for
+        /// the plane it is already in, read the long way round, and the answer is to fold it.
+        ///
+        /// Without this a leg that hangs straight down cannot walk. Its foothold sweeps from ahead of
+        /// the hip to behind it every stride, so the raw azimuth crosses 180 degrees twice per step;
+        /// the yaw limit cut that to its stop, the out-of-plane residual was dropped as unreachable,
+        /// and the foot was thrown a third of a metre out to the side -- swinging the coxa between
+        /// its two stops as the foothold passed underneath. A splayed-leg machine never reaches this:
+        /// its targets stay in a narrow cone around the outboard rest direction, so nothing folds and
+        /// its yaw arc still sets its stride exactly as before.
+        ///
+        /// At the quarter-turn boundary itself the two readings are equally good and the choice
+        /// flips. That only bites a limb whose target sits square across its own rest plane at a
+        /// distance it cannot reach anyway, and both readings are wrong there by the same amount.
+        private static float FoldIntoPlane(float azimuth)
+        {
+            if (azimuth > 90f) return azimuth - 180f;
+            if (azimuth < -90f) return azimuth + 180f;
+            return azimuth;
+        }
+
         /// 2D cross product of two unit segments given by their angles. Its sign is the bend
         /// direction of the linkage at the shared joint.
         private static float Cross(float a1, float a2)
@@ -116,7 +141,7 @@ namespace SpaceGame.Locomotion
             {
                 Vector3 flat = Vector3.ProjectOnPlane(toTarget, f.YawAxis);
                 float wanted = flat.sqrMagnitude > 1e-10f
-                    ? Vector3.SignedAngle(f.RestFwd, flat, f.YawAxis)
+                    ? FoldIntoPlane(Vector3.SignedAngle(f.RestFwd, flat, f.YawAxis))
                     : 0f;
                 yaw = Mathf.Clamp(wanted, -limits.Yaw, limits.Yaw);
                 yawBound = !Mathf.Approximately(yaw, wanted);

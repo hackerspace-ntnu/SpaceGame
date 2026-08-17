@@ -51,14 +51,14 @@ PrefabInstance:
       propertyPath: InScenePlacedSourceGlobalObjectIdHash
       value: 4236559143
       objectReference: {fileID: 0}
+    - target: {fileID: 1378113935866583304, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      propertyPath: prefabId
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       propertyPath: m_Name
       value: PlayerCharacterNetworked
       objectReference: {fileID: 0}
-    - target: {fileID: 5061754052965954174, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      propertyPath: playerHead
-      value: 
-      objectReference: {fileID: 7956194765726399654}
     - target: {fileID: 5061754052965954174, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       propertyPath: playerCamera
       value: 
@@ -138,10 +138,28 @@ PrefabInstance:
       addedObject: {fileID: 5672382752206130132}
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 6009078263795696338}
+      addedObject: {fileID: 151938354145788327}
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 151938354145788327}
+      addedObject: {fileID: 5942945521592415359}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5445014062365625110}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1978382712116631820}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8322261034424985255}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4410072588391025301}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4410072588391025302}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4410072588391025303}
   m_SourcePrefab: {fileID: 100100000, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
 --- !u!1 &582217690245548981 stripped
 GameObject:
@@ -415,19 +433,6 @@ MonoBehaviour:
   - Hand_R
   - R_Hand
   - hand.R
---- !u!114 &6009078263795696338
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 582217690245548981}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: be5266324de24d97b4792239bd49360e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NetworkEquipmentComponent
-  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!114 &151938354145788327
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -445,6 +450,100 @@ MonoBehaviour:
   aimProvider: {fileID: 5469936711292871202}
   muzzle: {fileID: 4101505935913178216}
   fireCooldown: 0.3
+--- !u!114 &5942945521592415359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ea86119b401c401db86a462efdc4262, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.PlayerIdentity
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &5445014062365625110
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c9963baddcf949e785f862c88c74da1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.PlayerSaveSync
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &1978382712116631820
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66628c8e6a1ec404288f2dd7fa84b114, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.GrappleNetworkSync
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxAnchorRange: 75
+  remoteRope: {fileID: 0}
+  remoteRopeSegments: 12
+  remoteRopeGravity: 4
+--- !u!114 &8322261034424985255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &4410072588391025301
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b521a1acc7a34d8f80d46b5741c371dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetworkedTeleport
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &4410072588391025302
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e072eb5fd7bb446781dccd6037b3bf4d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Characters.PlayerRespawn
+--- !u!114 &4410072588391025303
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a6b2c40d7264a169324f67e1d974241, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.PlayerInteriorTransit
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!4 &1885774286167179584 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3211930088316101119, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
@@ -469,11 +568,6 @@ MonoBehaviour:
 --- !u!4 &7613136204026731662 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6854416886719462449, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-  m_PrefabInstance: {fileID: 3943056354594775231}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &7956194765726399654 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6400345289391496217, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
   m_PrefabInstance: {fileID: 3943056354594775231}
   m_PrefabAsset: {fileID: 0}
 --- !u!95 &8862626371871872524 stripped

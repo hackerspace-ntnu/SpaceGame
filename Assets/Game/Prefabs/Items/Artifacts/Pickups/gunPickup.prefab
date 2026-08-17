@@ -8,6 +8,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1451823203464107279, guid: 5f493eb7d5ff2a844a1b855e7d31c2d3, type: 3}
+      propertyPath: prefabId
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 2580200547161574805, guid: 5f493eb7d5ff2a844a1b855e7d31c2d3, type: 3}
+      propertyPath: rb
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 3296091123077829755, guid: 5f493eb7d5ff2a844a1b855e7d31c2d3, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -69,6 +77,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5032710560570511402, guid: 5f493eb7d5ff2a844a1b855e7d31c2d3, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3541317753044221120}
+    - targetCorrespondingSourceObject: {fileID: 5032710560570511402, guid: 5f493eb7d5ff2a844a1b855e7d31c2d3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1670513279811356819}
+    - targetCorrespondingSourceObject: {fileID: 5032710560570511402, guid: 5f493eb7d5ff2a844a1b855e7d31c2d3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -5930641700718746043}
+    - targetCorrespondingSourceObject: {fileID: 5032710560570511402, guid: 5f493eb7d5ff2a844a1b855e7d31c2d3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5548821961189048998}
   m_SourcePrefab: {fileID: 100100000, guid: 5f493eb7d5ff2a844a1b855e7d31c2d3, type: 3}
 --- !u!1 &5693834517083905752 stripped
 GameObject:
@@ -162,3 +179,51 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickupableItem
   ShowTopMostFoldoutHeaderGroup: 1
   item: {fileID: 11400000, guid: 4c3ecf8e279975a4985ffafb2b2e4e95, type: 2}
+  pickupId: 503
+  pickupSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+--- !u!114 &1670513279811356819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5693834517083905752}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &-5930641700718746043
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5693834517083905752}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &5548821961189048998
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5693834517083905752}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable

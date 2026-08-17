@@ -15,6 +15,9 @@ GameObject:
   - component: {fileID: 5853174620024784953}
   - component: {fileID: -3983425358462769905}
   - component: {fileID: 6594318763532118862}
+  - component: {fileID: 4237377510321010772}
+  - component: {fileID: 4502674394721470622}
+  - component: {fileID: 6797019483312323260}
   m_Layer: 0
   m_Name: SyncedPlayer
   m_TagString: Untagged
@@ -92,6 +95,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!65 &425273743823317811
 BoxCollider:
@@ -212,3 +216,47 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
+--- !u!114 &4237377510321010772
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 838328921935987784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2744b7f5c51044c7da55a8286e21466e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.WingPackNetworkSync
+  launchableCraft:
+  - {fileID: 3241331717362755362, guid: 2b557799a56864a1ab228274d9c710fe, type: 3}
+--- !u!114 &4502674394721470622
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 838328921935987784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66628c8e6a1ec404288f2dd7fa84b114, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.GrappleNetworkSync
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxAnchorRange: 75
+  remoteRope: {fileID: 0}
+  remoteRopeSegments: 12
+  remoteRopeGravity: 4
+--- !u!114 &6797019483312323260
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 838328921935987784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1

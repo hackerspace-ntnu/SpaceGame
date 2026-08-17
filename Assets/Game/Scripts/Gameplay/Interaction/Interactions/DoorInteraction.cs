@@ -1,4 +1,6 @@
+using FMODUnity;
 using UnityEngine;
+using SpaceGame.Audio;
 
 namespace SpaceGame.Gameplay
 {
@@ -71,6 +73,12 @@ namespace SpaceGame.Gameplay
         /// <summary>
         /// Checks if the door can be interacted with (always true for doors)
         /// </summary>
+        [Header("Audio")]
+        [SerializeField] private SfxId openId = SfxId.InteractDoorOpen;
+        [SerializeField] private EventReference openSound;
+        [SerializeField] private SfxId closeId = SfxId.InteractDoorClose;
+        [SerializeField] private EventReference closeSound;
+
         public bool CanInteract()
         {
             return true;
@@ -84,8 +92,13 @@ namespace SpaceGame.Gameplay
             if (!CanInteract() || _isRotating)
                 return;
             
-            Debug.Log("Door interacted with");
             _isOpen = !_isOpen;
+
+            // Played at the leaf that actually swings where there is one, so a wide double door is
+            // heard at the door rather than at the pivot its logic happens to sit on.
+            Vector3 soundAt = _leftDoor != null ? _leftDoor.position : transform.position;
+            Sfx.Play(_isOpen ? openId : closeId, soundAt,
+                     _isOpen ? openSound : closeSound, GetInstanceID());
 
             // Store current rotations as start
             if (_leftDoor != null)

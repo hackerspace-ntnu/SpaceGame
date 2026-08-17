@@ -1,8 +1,7 @@
 namespace SpaceGame.World
 {
     /// <summary>
-    /// How an AREA terrain feature's footprint outline is authored on a <c>TerrainFeatureSpawner</c>.
-    /// Linear features ignore this entirely — they always sweep the spline <see cref="FeaturePath"/>.
+    /// How a terrain feature's footprint outline is authored on a <c>TerrainFeatureSpawner</c>.
     ///
     /// Both modes resolve to the SAME thing: an effective closed polygon that every feature queries
     /// through <see cref="FeatureContext.FootprintDistanceInside"/>. A feature never branches on the

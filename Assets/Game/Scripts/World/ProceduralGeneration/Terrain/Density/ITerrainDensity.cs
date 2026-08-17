@@ -15,11 +15,12 @@ namespace SpaceGame.World
     /// Two implementations exist, picked by a feature's <see cref="TerrainFeature.DensityKind"/>:
     ///   • <see cref="HeightfieldDensity"/> — cheap. Density derives from a 2D surface height f(x, z).
     ///     The mesher only voxelises a thin band straddling that surface.
-    ///   • <see cref="VoxelSdfDensity"/> — full 3D SDF, supports real overhangs (arches, bridges).
+    ///   • <see cref="RockBodySdf"/> — full 3D SDF, supports real overhangs. Used by mesa and cliff
+    ///     when their overhang toggle is on.
     ///
-    /// A feature never implements this interface directly: it supplies either a height function or an
-    /// SDF function, and the generator wraps it in the matching implementation. This keeps all nine
-    /// features writing the same simple lambda and never touching the mesher.
+    /// A heightfield feature never implements this interface directly: it supplies a height function
+    /// and the generator wraps it in <see cref="HeightfieldDensity"/>, so the feature writes one simple
+    /// lambda and never touches the mesher.
     /// </summary>
     public interface ITerrainDensity
     {

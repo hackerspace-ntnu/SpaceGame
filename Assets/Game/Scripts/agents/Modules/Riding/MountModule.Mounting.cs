@@ -1,5 +1,6 @@
 // Mount/dismount flow, rider state caching, rigidbody handoff, and third-person camera spawn/cleanup.
 // Split off MountModule.cs purely for readability.
+using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Characters;
 using SpaceGame.Gameplay;
@@ -21,6 +22,10 @@ namespace SpaceGame.Agents
                 return false;
 
             CacheMountedPlayerReferences(playerMovement, mountPointOverride);
+            // Arm before anything parents the rider: the beacon is the only thing that can tell a
+            // later Dismount that the rider is being destroyed rather than merely leaving.
+            RiderTeardownBeacon.Arm(mountedPlayer);
+            SubscribeToRiderDeath();
             DisableRiderComponentsForMount();
             EnterMountedRigidbodyState();
             ParentRiderToMount();
@@ -149,8 +154,44 @@ namespace SpaceGame.Agents
             if (!IsMounted)
                 return;
 
+            // Re-entrancy guard. IsMounted alone does not close this: mountedPlayer is not cleared
+            // until ClearMountedReferences at the very end, but Dismounted fires before it, and
+            // listeners routinely dismount in response (WingPackItem tears the craft down, which
+            // reaches Dismount again). Death added a seventh path in, so this stops relying on
+            // every listener remembering to unsubscribe before it calls back.
+            if (dismounting)
+                return;
+            dismounting = true;
+            try
+            {
+                DismountInternal();
+            }
+            finally
+            {
+                dismounting = false;
+            }
+        }
+
+        private void DismountInternal()
+        {
             Transform rider = mountedPlayer;
-            rider.SetParent(null, true);
+
+            // The rider is going away underneath us — they died, or whatever owns them is being
+            // destroyed and took the seat with it. Every restore below reaches into that doomed
+            // object, and the reparent is outright illegal, so there is nothing useful left to do
+            // but forget them. Same reasoning as the mount-side case in OnDisable, mirrored.
+            //
+            // This lives HERE, not at the call sites, because six independent paths reach Dismount
+            // (SteerModule, MountNetworkSync, DuneRiderController, WingPackItem, OnDisable, and
+            // anything added later) and each one would otherwise need the same guard.
+            if (!RiderTeardownBeacon.CanReparent(rider))
+            {
+                AbandonRider();
+                lastMountChangeTime = Time.time;
+                return;
+            }
+
+            UnparentRider(rider);
 
             Vector3 dismountPosition = dismountPoint
                 ? dismountPoint.position
@@ -176,6 +217,30 @@ namespace SpaceGame.Agents
             ClearMountedReferences();
             activeSeatPoint = seatPoint;
             lastMountChangeTime = Time.time;
+        }
+
+        // The teardown counterpart to Dismount, for when reparenting is illegal because one side of
+        // the pairing is going away. Two ways in, and they are mirror images:
+        //   • the MOUNT is going away underneath the rider  (OnDisable, activeInHierarchy == false)
+        //   • the RIDER is going away underneath the mount  (Dismount, beacon says being destroyed)
+        // Everything Dismount restores — the rider's
+        // components, its Rigidbody, the ignored collision pairs, the third-person camera — belongs
+        // to objects being deactivated or destroyed alongside this one, and the Dismounted event
+        // would hand a doomed rider to listeners in the same state. So the only useful thing left is
+        // to forget the rider, which is what stops anything here acting on a dead reference.
+        //
+        // The rider stays parented. That is correct while the whole hierarchy is going down; a mount
+        // that is deactivated and later reactivated with a rider aboard would come back mounted but
+        // untracked, so pooling a ridden mount would need a real dismount before the SetActive call.
+        private void AbandonRider()
+        {
+            runtimeThirdPersonCamera = null;
+            ignoredCollisionPairs = null;
+            suppressibleAnimators = null;
+            suppressibleAnimatorRootMotion = null;
+            ownRigidbodyConstraintsCaptured = false;
+            ClearMountedReferences();
+            activeSeatPoint = seatPoint;
         }
 
         // Writing the transform alone isn't enough to place the rider. Physics.autoSyncTransforms is
@@ -230,6 +295,16 @@ namespace SpaceGame.Agents
 
         private void RestoreRiderComponentsAfterDismount()
         {
+            // A dead rider gets nothing back. Death freezes movement, look and input and releases
+            // the cursor for the death screen; dying mid-ride then tears the mount down, and this
+            // restore runs AFTER that freeze. Re-enabling PlayerLook here is not just a stray flag:
+            // PlayerLook.OnEnable re-locks the cursor and its LateUpdate keeps re-locking it every
+            // frame, which is what makes the respawn button unclickable after dying while flying.
+            //
+            // The head stays hidden and the freeze stands until OnRevive hands control back.
+            if (RiderIsDead())
+                return;
+
             if (disablePlayerMovement && mountedPlayerMovement)
                 mountedPlayerMovement.enabled = true;
 
@@ -241,6 +316,52 @@ namespace SpaceGame.Agents
 
             if (disablePlayerInteractor && mountedInteractor)
                 mountedInteractor.enabled = true;
+        }
+
+        /// <summary>
+        /// Whether the rider being dismounted is dead — asked of PlayerController, which owns the
+        /// death state, rather than inferred from the component flags this method is about to write.
+        /// </summary>
+        private bool RiderIsDead()
+        {
+            if (!mountedPlayer)
+                return false;
+
+            var controller = mountedPlayer.GetComponent<PlayerController>();
+            return controller != null && controller.IsDead;
+        }
+
+        // Dying in the saddle used to leave the corpse strapped in and the mount still flying:
+        // nothing between HealthComponent and MountModule knew the rider had died, and the only
+        // things that ever dismount are landing, bailing out and teardown. The rider's death is a
+        // dismount like any other, so it goes through the same single path.
+        private void SubscribeToRiderDeath()
+        {
+            UnsubscribeFromRiderDeath();
+            if (!mountedPlayer)
+                return;
+
+            mountedRiderHealth = mountedPlayer.GetComponent<HealthComponent>();
+            if (mountedRiderHealth != null)
+                mountedRiderHealth.OnDeath += HandleRiderDied;
+        }
+
+        private void UnsubscribeFromRiderDeath()
+        {
+            if (mountedRiderHealth != null)
+                mountedRiderHealth.OnDeath -= HandleRiderDied;
+            mountedRiderHealth = null;
+        }
+
+        // Ordering matters: PlayerController.OnDeath applies the freeze, and this runs off the same
+        // OnDeath event, so the dismount that follows already sees IsDead and leaves the freeze
+        // alone. Subscription order between the two listeners is not relied on — the guard in
+        // RestoreRiderComponentsAfterDismount reads the flag, and if this somehow ran first the
+        // freeze would simply be applied afterwards, which lands in the same place.
+        private void HandleRiderDied()
+        {
+            if (IsMounted)
+                Dismount();
         }
 
         private void EnterMountedRigidbodyState()
@@ -273,16 +394,77 @@ namespace SpaceGame.Agents
             mountedPlayerRigidbody.angularVelocity = Vector3.zero;
         }
 
+        // Netcode refuses to let a NetworkObject sit under a plain transform, and seatPoint is a bare
+        // child marker — parenting straight to it throws InvalidParentException and leaves the rider
+        // unparented mid-mount. So when both sides are networked, parent to the mount's NetworkObject
+        // (the only legal parent) and carry the seat marker's offset in local space instead.
         private void ParentRiderToMount()
         {
             Transform rideParent = seatPoint ? seatPoint : transform;
+
+            NetworkObject riderNetObj = mountedPlayer.GetComponent<NetworkObject>();
+            bool riderIsNetworked = riderNetObj != null && riderNetObj.IsSpawned;
+
+            if (riderIsNetworked)
+            {
+                NetworkObject mountNetObj = GetComponentInParent<NetworkObject>();
+                if (mountNetObj == null || !mountNetObj.IsSpawned)
+                {
+                    // Nothing legal to parent to. Seat the rider by world pose and let SteerModule
+                    // keep them there rather than throwing and half-mounting them.
+                    SeatRiderWithoutParenting(rideParent);
+                    return;
+                }
+
+                if (!riderNetObj.TrySetParent(mountNetObj, true))
+                {
+                    SeatRiderWithoutParenting(rideParent);
+                    return;
+                }
+
+                // Local space is now the mount root's, not the seat marker's, so fold the marker's
+                // offset in by hand to land in the same place the offline path does.
+                Vector3 seatLocal = mountNetObj.transform.InverseTransformPoint(
+                    rideParent.TransformPoint(seatOffset));
+                mountedPlayer.localPosition = seatLocal;
+                mountedPlayer.localRotation =
+                    Quaternion.Inverse(mountNetObj.transform.rotation) * rideParent.rotation;
+                return;
+            }
+
             mountedPlayer.SetParent(rideParent, true);
-            mountedPlayer.localPosition = Vector3.zero;
+            mountedPlayer.localPosition = seatOffset;
             mountedPlayer.localRotation = Quaternion.identity;
+        }
+
+        // Mirror of ParentRiderToMount: a spawned NetworkObject has to be detached through netcode so
+        // the change replicates, rather than by a raw SetParent(null) that only happens locally.
+        private static void UnparentRider(Transform rider)
+        {
+            NetworkObject riderNetObj = rider.GetComponent<NetworkObject>();
+            if (riderNetObj != null && riderNetObj.IsSpawned)
+            {
+                if (riderNetObj.TryRemoveParent(true))
+                    return;
+            }
+
+            rider.SetParent(null, true);
+        }
+
+        // Fallback for a networked rider with no legal NetworkObject parent: place them on the seat in
+        // world space. Their Rigidbody is kinematic while mounted, so they stay put relative to a
+        // stationary mount; a moving mount will drag them only as far as SteerModule re-seats them.
+        private void SeatRiderWithoutParenting(Transform rideParent)
+        {
+            mountedPlayer.SetPositionAndRotation(rideParent.TransformPoint(seatOffset), rideParent.rotation);
         }
 
         private void ClearMountedReferences()
         {
+            // Both teardown paths (Dismount and AbandonRider) end here, which makes this the one
+            // place guaranteed to run whichever way the rider left.
+            UnsubscribeFromRiderDeath();
+
             mountedPlayer = null;
             mountedPlayerMovement = null;
             mountedPlayerLook = null;

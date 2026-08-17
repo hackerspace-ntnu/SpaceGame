@@ -19,21 +19,41 @@ public class DeathScreenUI : MonoBehaviour
         deathScreen.gameObject.SetActive(false);
         player.OnPlayerDeath += ShowDeathScreen;
     }
-    
+
+    private void OnDestroy()
+    {
+        if (player != null)
+            player.OnPlayerDeath -= ShowDeathScreen;
+    }
+
     private void ShowDeathScreen()
     {
-        Debug.Log("Show death screen invoked");
         deathScreen.gameObject.SetActive(true);
     }
-    
+
     public void Respawn()
     {
-        if (deathScreen == null)
+        if (deathScreen == null || player == null)
         {
             return;
         }
-        SpawnManager.Instance.RespawnPlayer(player.gameObject);  
-        
+
+        // Hide first. The overlay is this player's own HUD, and nothing below is guaranteed to
+        // come back to it — leaving the screen up would swallow clicks over a player who is alive
+        // again.
         deathScreen.gameObject.SetActive(false);
+
+        var respawn = player.GetComponent<PlayerRespawn>();
+        if (respawn == null)
+        {
+            Debug.LogError($"{name}: '{player.name}' has no PlayerRespawn, so this button cannot " +
+                           "bring them back. Add one to the player prefab.", this);
+            return;
+        }
+
+        // A request, not an order: the server decides whether the respawn happens and where. The
+        // button is pressed on the machine that owns this body, which is the only one that could
+        // be showing this screen.
+        respawn.Request();
     }
 }

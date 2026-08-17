@@ -63,10 +63,10 @@ namespace SpaceGame.Agents
 
             if (damageable != null && damageable.Alive)
             {
-                if (damageable is HealthComponent hc)
-                    hc.Damage(damage, shooterTransform);
-                else
-                    damageable.Damage(damage);
+                // NetDamage picks the authority: applied here on the server or offline, relayed to
+                // the server when a client's projectile lands. Without it an AI's shot only ever
+                // hurt the copy of the target on the machine that happened to simulate the bullet.
+                NetDamage.Apply((damageable as Component)?.gameObject, damage, shooterTransform);
                 onResult?.Invoke(true, hitPos);
             }
             else

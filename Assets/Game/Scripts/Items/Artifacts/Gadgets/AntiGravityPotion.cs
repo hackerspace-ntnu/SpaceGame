@@ -26,10 +26,6 @@ namespace SpaceGame.Items
                     rb.useGravity = true;
                 }
             );
-            if (useSound.Guid == null) {
-                Debug.LogWarning("Use sound GUID not assigned for AntiGravityPotion!");
-                return;
-            }
             // Removal from inventory and destruction is now handled by base class when maxUses is reached
         }
     }

@@ -1,21 +1,25 @@
 using UnityEngine;
+using SpaceGame.Core;
 
 #if UNITY_EDITOR
 using UnityEditor;
-using SpaceGame.Core;
+#endif
 
 namespace SpaceGame.Items
 {
-    #endif
-
     /// <summary>
     /// ScriptableObject representing an item that can be stored in the inventory. Contains data about the item such as its name, prefab, and icon.
     /// </summary>
     [CreateAssetMenu(menuName = "Items/Item")]
     public class InventoryItem : ScriptableObject, IRegistryEntry
     {
+        /// <summary>
+        /// The asset's GUID, assigned by <see cref="OnValidate"/>. Save files store this rather than
+        /// a name or a list index, so it must stay stable — it is what lets an item asset be renamed
+        /// or moved without emptying that slot in every existing save.
+        /// </summary>
         public string ID { get; set; }
-    
+
         [Tooltip("Display name of the item")]
         public string itemName = "NewItem";
 
@@ -24,8 +28,8 @@ namespace SpaceGame.Items
 
         [Tooltip("Optional icon for UI display.")]
         public Sprite icon;
-    
-    #if UNITY_EDITOR
+
+#if UNITY_EDITOR
         private void OnValidate()
         {
             string path = AssetDatabase.GetAssetPath(this);
@@ -37,6 +41,6 @@ namespace SpaceGame.Items
                 EditorUtility.SetDirty(this);
             }
         }
-    #endif
+#endif
     }
 }

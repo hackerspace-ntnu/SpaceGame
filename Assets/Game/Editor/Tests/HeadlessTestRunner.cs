@@ -29,6 +29,12 @@ namespace SpaceGame.EditorTools
         /// <summary>Run every EditMode test whose fixture name matches, or all of them if null.</summary>
         public static void RunEditMode(string groupName = null)
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Debug.LogWarning("[HeadlessTestRunner] Refusing to start an EditMode run in play mode.");
+                return;
+            }
+
             if (File.Exists(ResultPath)) File.Delete(ResultPath);
 
             var filter = new Filter { testMode = TestMode.EditMode };
@@ -39,6 +45,81 @@ namespace SpaceGame.EditorTools
             listener = new ResultListener();
             api.RegisterCallbacks(listener);
             api.Execute(new ExecutionSettings(filter));
+        }
+
+        /// <summary>Set while a deferred run is pending. Survives the domain reload — see below.</summary>
+        private const string PendingKey = "SpaceGame.HeadlessTests.Pending";
+
+        /// <summary>
+        /// As <see cref="RunEditMode"/>, but started once the editor is next idle.
+        ///
+        /// Two reasons it cannot just be called directly. The MCP bridge refuses a command that
+        /// asks the editor to do something interactive while it is still inside the call, and
+        /// starting a test run counts. And a plain <c>delayCall</c> is not enough either: any
+        /// script edit — including the one being tested — triggers a domain reload that throws the
+        /// pending callback away, so a run scheduled next to a code change silently never happened,
+        /// which reads exactly like a run that is still going.
+        ///
+        /// <see cref="SessionState"/> outlives the reload, so the request is picked up on the far
+        /// side of it by <see cref="ResumeAfterReload"/>.
+        /// </summary>
+        public static void RunEditModeDeferred(string groupName = null)
+        {
+            if (File.Exists(ResultPath)) File.Delete(ResultPath);
+            SessionState.SetString(PendingKey, groupName ?? string.Empty);
+            Schedule();
+        }
+
+        [InitializeOnLoadMethod]
+        private static void ResumeAfterReload() => Schedule();
+
+        /// <summary>
+        /// Arms the pump below.
+        ///
+        /// Not <c>EditorApplication.delayCall</c>, which is what this used to be: that queue is only
+        /// drained by the editor's interactive tick, so with the Unity window in the background —
+        /// the normal state for a headless caller driving it from a terminal — a scheduled run
+        /// simply never started, and a run that never started is indistinguishable from one still
+        /// going. <c>EditorApplication.update</c> keeps ticking, so the request survives being
+        /// unfocused.
+        /// </summary>
+        private static void Schedule()
+        {
+            EditorApplication.update -= Pump;
+            EditorApplication.update += Pump;
+        }
+
+        /// <summary>Waits for the editor to go idle, then starts the run once and unhooks itself.</summary>
+        private static void Pump()
+        {
+            if (EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+
+            EditorApplication.update -= Pump;
+            StartIfPending();
+        }
+
+        private static void StartIfPending()
+        {
+            string pending = SessionState.GetString(PendingKey, null);
+            if (pending == null) return;
+
+            // Entering play mode is itself a domain reload, so a pending request left over from an
+            // earlier session gets re-armed by ResumeAfterReload and lands here mid-Play. The test
+            // framework's first step is SaveCurrentModifiedScenesIfUserWantsTo, which throws in play
+            // mode and then cascades through the teardown tasks. Drop the request instead: an
+            // EditMode run started from inside a play session was never what the caller asked for.
+            if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)
+            {
+                SessionState.EraseString(PendingKey);
+                Debug.LogWarning("[HeadlessTestRunner] Discarded a pending EditMode run because the " +
+                                 "editor entered play mode. Re-request it from the edit-mode editor.");
+                return;
+            }
+
+            // Cleared before starting, not after: a run that itself triggers a reload must not come
+            // back round and start a second one.
+            SessionState.EraseString(PendingKey);
+            RunEditMode(string.IsNullOrEmpty(pending) ? null : pending);
         }
 
         [MenuItem("Tools/Tests/Run EditMode Tests (headless)")]

@@ -209,6 +209,9 @@ namespace SpaceGame.Weapons
 
         protected override void OnImpact(Vector3 position, Vector3 normal, Collider hitCollider)
         {
+            // The base carries the impact sound; without this the ball lightning lands silently.
+            base.OnImpact(position, normal, hitCollider);
+
             if (spawnImpactSpotlight)
             {
                 SpawnImpactSpotlight(position, normal);

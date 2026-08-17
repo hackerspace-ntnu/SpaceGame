@@ -78,8 +78,14 @@ namespace SpaceGame.Agents
             if (!mountModule || !mountModule.IsMounted)
                 return;
 
+            // Server-authoritative when networked, same as SteerModule's Escape handler.
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-                mountModule.Dismount();
+            {
+                if (mountModule.TryGetComponent(out SpaceGame.Agents.MountNetworkSync sync))
+                    sync.RequestDismount();
+                else
+                    mountModule.Dismount();
+            }
 
             if (ReadHopPressed())
                 hopQueued = true;

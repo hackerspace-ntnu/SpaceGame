@@ -24,6 +24,9 @@ namespace SpaceGame.Items
     /// </summary>
     public class LeashArtifact : ToolItem
     {
+        /// <summary>Owner-run: a local physics tether aimed by the holder's own camera.</summary>
+        public override UseAuthority Authority => UseAuthority.Owner;
+
         [Header("Targeting")]
         [SerializeField] private float maxRange = 30f;
         [SerializeField] private LayerMask leashableLayers = ~0;

@@ -21,8 +21,13 @@ namespace SpaceGame.Tests
     /// </summary>
     public class SuitCustomizationTests
     {
+        /// <summary>
+        /// The model actually in use — the one astronaut_export.py writes and both
+        /// PlayerCharacter.prefab and LobbyPreviewAstronaut.prefab are built from. Pointing this at
+        /// a stale second copy would let the test pass while the shipped suit stopped recolouring.
+        /// </summary>
         private const string ModelPath =
-            "Assets/Game/Art/Models/Characters/Astronaut/astronaut_tobb.fbx";
+            "Assets/Game/Art/Models/Characters/Astronaut/astronaut.fbx";
 
         // ─────────────────────────────────────────────────────────────────────── the model
 

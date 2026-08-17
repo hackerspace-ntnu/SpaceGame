@@ -32,8 +32,13 @@ namespace SpaceGame.EditorTools
     {
         private const string ScenePath = "Assets/Game/Scenes/Core/MainMenu.unity";
 
+        /// <summary>
+        /// The player body. Must stay the same file PlayerCharacter.prefab uses, and the one
+        /// astronaut_export.py writes — the menu figure and the player are the same character, so a
+        /// second copy of the model means skinning fixes land on one of them and not the other.
+        /// </summary>
         private const string ModelPath =
-            "Assets/Game/Art/Models/Characters/Astronaut/astronaut_tobb.fbx";
+            "Assets/Game/Art/Models/Characters/Astronaut/astronaut.fbx";
 
         private const string ControllerPath =
             "Assets/Game/Art/Animations/Player/AstronautArmature.controller";
@@ -103,6 +108,11 @@ namespace SpaceGame.EditorTools
             // Unpacked so the saved prefab owns its own hierarchy. Left as a model instance, the
             // Animator and SuitRecolor added below would be overrides on an imported asset, and a
             // reimport of the FBX drops them.
+            //
+            // The cost of unpacking is that this prefab holds its own copy of the mesh hierarchy and
+            // therefore does NOT follow the model: re-exporting the .blend updates PlayerCharacter
+            // but leaves the menu figure on the old geometry until this tool is re-run. If the player
+            // and the lobby astronaut ever look different, that is the reason.
             PrefabUtility.UnpackPrefabInstance(instance, PrefabUnpackMode.Completely,
                                                InteractionMode.AutomatedAction);
 

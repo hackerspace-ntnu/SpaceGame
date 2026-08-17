@@ -16,7 +16,7 @@ namespace SpaceGame.Characters
     ///
     /// <para>
     /// <b>Property blocks, not material instances.</b> The astronaut's materials are embedded in
-    /// astronaut_tobb.fbx and are read-only sub-assets, so they cannot be written to; instancing
+    /// astronaut.fbx and are read-only sub-assets, so they cannot be written to; instancing
     /// them instead would mean 15 clones per astronaut with a lifetime to manage, and a leak on
     /// every despawn in a session people join and leave. A property block has no lifetime at all.
     /// The cost is that these renderers leave the SRP batcher — with at most four astronauts that

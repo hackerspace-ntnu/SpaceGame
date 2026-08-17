@@ -46,9 +46,9 @@ namespace SpaceGame.Characters
         /// Every offset is measured against the harness as it ships today (#E7771C — H 26.9°,
         /// S 0.879, V 0.906), in sRGB HSV. Keeping the relationships rather than flooding every
         /// hued part with the same value is what stops the model collapsing into one block of
-        /// colour: the pack panel stays a step lighter, the scarf darker, the trim brighter, and
-        /// the pack detail lands on the far side of the wheel, so the astronaut still reads as
-        /// two-tone whatever is picked.
+        /// colour: the pack panel stays a step lighter, the scarf darker, and the pack detail
+        /// lands on the far side of the wheel, so the astronaut still reads as two-tone whatever
+        /// is picked.
         /// </summary>
         public readonly struct Relationship
         {
@@ -125,6 +125,15 @@ namespace SpaceGame.Characters
         /// the astronaut is mostly made of, and they are what keeps a bright suit from reading as
         /// a jelly bean.
         /// </para>
+        ///
+        /// <para>
+        /// <b>Material.045 is deliberately absent.</b> It is the helmet glass — the gold visor the
+        /// .blend authors at #FFCA00, and the one part of the astronaut whose colour is a material
+        /// property rather than a paint job. It was in this table because on the previous model
+        /// (astronaut_tobb.fbx) that same name was the scarf trim; the current astronaut.blend
+        /// merged the visor into the scarf object and reused the slot, so the entry silently began
+        /// tinting the glass instead. <see cref="SuitCustomizationTests"/> now pins it out.
+        /// </para>
         /// </summary>
         public static readonly Relationship[] Relationships =
         {
@@ -135,7 +144,6 @@ namespace SpaceGame.Characters
 
             new("Material.049",   7.4f, 0.76f, 1.00f),  // pack panel — a step lighter
             new("Material.048", -11.2f, 0.90f, 0.63f),  // scarf and cubes — darker
-            new("Material.045",  20.6f, 1.14f, 1.10f),  // scarf trim — brighter
             new("Material.046", 198.7f, 0.62f, 0.79f),  // pack detail — the opposite side
         };
 
@@ -161,9 +169,10 @@ namespace SpaceGame.Characters
         /// <summary>
         /// The colour one material takes when <paramref name="chosen"/> is picked.
         ///
-        /// Saturation and value are clamped rather than allowed to overflow, which is why the
-        /// brightest swatches lose a little of the trim's intended lift — the alternative is a
-        /// wrapped value, and a trim that goes dark when the suit goes bright looks like a bug.
+        /// Saturation and value are clamped rather than allowed to overflow. No relationship
+        /// currently scales either above 1, so nothing hits it today; it stays because the
+        /// alternative is a wrapped value, and a part that goes dark the moment the suit goes
+        /// bright looks like a bug rather than like a ceiling.
         /// </summary>
         public static Color Derive(Color chosen, in Relationship relationship)
         {

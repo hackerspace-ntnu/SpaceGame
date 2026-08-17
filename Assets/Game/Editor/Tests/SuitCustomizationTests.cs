@@ -67,6 +67,22 @@ namespace SpaceGame.Tests
         }
 
         [Test]
+        public void TheHelmetGlassIsNeverRecoloured()
+        {
+            // Material.045 is the gold visor, and it is a trap rather than an oversight: on the
+            // previous model (astronaut_tobb.fbx) that name was the scarf trim, so it was a
+            // legitimate entry in the table. The current astronaut.blend merged the visor into the
+            // scarf object and reused the slot, and the entry carried over — the glass started
+            // taking a hue offset off the player's suit colour and stopped matching the .blend.
+            // Nothing about the name says which part it is, so this is the only thing that would
+            // catch it being added back.
+            foreach (SuitPalette.Relationship relationship in SuitPalette.Relationships)
+                Assert.AreNotEqual("Material.045", relationship.MaterialName,
+                    "Material.045 is the helmet glass. It must keep the material the FBX ships " +
+                    "with, not follow the suit colour.");
+        }
+
+        [Test]
         public void TheHeadBoneTheNameHangsOverStillExists()
         {
             // LobbyPreviewRank finds it by name to hang the nameplate on. Without it the name is

@@ -20,8 +20,8 @@ namespace SpaceGame.Characters
     /// them instead would mean 15 clones per astronaut with a lifetime to manage, and a leak on
     /// every despawn in a session people join and leave. A property block has no lifetime at all.
     /// The cost is that these renderers leave the SRP batcher — with at most four astronauts that
-    /// does not matter, and if it ever does the fallback is extracting the seven materials to real
-    /// assets and swapping instances.
+    /// does not matter, and if it ever does the fallback is extracting the recoloured materials to
+    /// real assets and swapping instances.
     /// </para>
     ///
     /// <para>

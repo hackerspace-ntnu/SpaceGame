@@ -64,29 +64,118 @@ namespace SpaceGame.Core.Persistence
         /// Returns true when saved state was applied, false for a profile seen for the first time —
         /// which is not a failure, just a new player who keeps whatever the prefab gave them.
         /// </summary>
+        /// <summary>
+        /// Raised whenever a live player object takes up a profile, whether or not it had saved state.
+        ///
+        /// "A player exists" and "a player was restored" are different facts, and the world's deferred
+        /// pass needs the first. A client joining a saved world for the first time has no record, so
+        /// keying the world pass off a successful restore would leave every mount in that world holding
+        /// a rider reference it never resolves.
+        /// </summary>
+        public event System.Action<string, GameObject> PlayerBound;
+
         public bool Bind(string profileId, GameObject player, bool applyPosition)
         {
             if (string.IsNullOrEmpty(profileId) || player == null) return false;
 
             boundPlayers[profileId] = player;
 
-            if (!records.TryGetValue(profileId, out PlayerRecord record)) return false;
+            EnsureMomentumSaver(player);
 
-            if (applyPosition)
-                SaveTeleport.Move(player, record.Position, record.Rotation);
+            bool hasRecord = records.TryGetValue(profileId, out PlayerRecord record);
 
-            SaveableEntity entity = player.GetComponent<SaveableEntity>();
-
-            if (entity == null)
+            if (hasRecord)
             {
-                Debug.LogWarning($"[Save] Player '{player.name}' has no SaveableEntity, so only its " +
-                                 "position was restored. Add one to the player prefab.", player);
+                if (applyPosition)
+                    SaveTeleport.Move(player, record.Position, record.Rotation);
+
+                SaveableEntity entity = player.GetComponent<SaveableEntity>();
+
+                if (entity == null)
+                {
+                    Debug.LogWarning($"[Save] Player '{player.name}' has no SaveableEntity, so only its " +
+                                     "position was restored. Add one to the player prefab.", player);
+                }
+                else
+                {
+                    // After the teleport, never before. SaveTeleport zeroes the body on arrival — a
+                    // teleported body carrying its old velocity keeps travelling in a direction that no
+                    // longer means anything — so a momentum saver running first would have its work
+                    // wiped by the placement that follows it.
+                    entity.Restore(record.EnsureState());
+                    entity.NotifyLoadComplete();
+                }
+            }
+
+            // Last, and this ordering is load-bearing. The event means "a player is here to be
+            // referenced", which is the precondition every deferred world saver waits on — and the
+            // first thing they do is re-seat riders. Raised before the restore above, a mount would
+            // put this player in its seat and the SaveTeleport a few lines later would drag them back
+            // out of it. Raised for a player with no record too: a client joining a saved world for
+            // the first time still makes every rider reference in that world resolvable.
+            PlayerBound?.Invoke(profileId, player);
+
+            return hasRecord;
+        }
+
+        /// <summary>
+        /// Gives the player a momentum saver if its prefab does not carry one.
+        ///
+        /// <b>Why this is here rather than only on the prefab.</b> The player is
+        /// <see cref="SaveScope.External"/>, so <c>SaveablePolicy</c> steps over it — deliberately,
+        /// since the world store must never capture a player. But that also means the policy's rule
+        /// "a non-kinematic Rigidbody has momentum worth keeping" was never applied to the one object
+        /// in the game most likely to be moving fast when a player quits. Falling, sprinting or
+        /// diving off a cliff, they came back at the right coordinates and completely still.
+        ///
+        /// Wiring it here rather than requiring a prefab edit follows the same principle as
+        /// <c>SaveablePolicy.EnsureScene</c>: forgetting should cost nothing. Adding
+        /// <c>RigidbodySaveable</c> to the player prefab makes this a no-op.
+        /// </summary>
+        private static void EnsureMomentumSaver(GameObject player)
+        {
+            if (!player.TryGetComponent(out Rigidbody body) || body.isKinematic) return;
+            if (player.GetComponent<RigidbodySaveable>() != null) return;
+
+            player.AddComponent<RigidbodySaveable>();
+
+            // The entity caches its saver list on first use, and this player may already have been
+            // captured once this session — a rejoin, or a respawn rebinding the same profile.
+            if (player.TryGetComponent(out SaveableEntity entity)) entity.InvalidateSavers();
+        }
+
+        /// <summary>The live object currently speaking for a profile, if that player is here.</summary>
+        public bool TryGetBoundPlayer(string profileId, out GameObject player)
+        {
+            player = null;
+            if (string.IsNullOrEmpty(profileId)) return false;
+
+            return boundPlayers.TryGetValue(profileId, out player) && player != null;
+        }
+
+        /// <summary>
+        /// The profile a live object speaks for, or false if it is not a player.
+        ///
+        /// The reverse direction of <see cref="TryGetBoundPlayer"/>, needed by
+        /// <see cref="SaveRefBinder"/> to tell "this is the player" from "this is a world entity"
+        /// when describing a reference. A linear walk over the bound players is the right shape here:
+        /// there is one per connected client, and a second dictionary would be one more thing that
+        /// can fall out of step with the first.
+        /// </summary>
+        public bool TryGetProfileFor(GameObject candidate, out string profileId)
+        {
+            profileId = null;
+            if (candidate == null) return false;
+
+            foreach (KeyValuePair<string, GameObject> entry in boundPlayers)
+            {
+                if (entry.Value != candidate) continue;
+
+                profileId = entry.Key;
                 return true;
             }
 
-            entity.Restore(record.EnsureState());
-            entity.NotifyLoadComplete();
-            return true;
+            return false;
         }
 
         public void Unbind(string profileId)

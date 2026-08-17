@@ -5,6 +5,7 @@ using Unity.Netcode;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using SpaceGame.Agents;
 using SpaceGame.Items;
 using SpaceGame.Persistence;
 
@@ -37,6 +38,7 @@ namespace SpaceGame.Core.Persistence.EditorTools
             var report = new Report();
 
             ValidateSaveablePrefabs(report);
+            ValidatePersistentEntityPrefabs(report);
             ValidateItemPrefabs(report);
             ValidateNetworkPrefabRegistration(report);
             ValidateOpenScenes(report);
@@ -80,6 +82,62 @@ namespace SpaceGame.Core.Persistence.EditorTools
                 {
                     report.Warnings.Add($"'{prefab.name}' is saveable but has no ISaveable components, " +
                                         "so only its position and rotation will persist.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Every agent, mount and vehicle prefab must carry a baked identity.
+        ///
+        /// <b>This is the check that would have caught the bug this whole system was rebuilt around.</b>
+        /// The Ostrich, the DuneFoil, the DesertCrawler and the RigWalker all sat in
+        /// <c>persistentScene</c> with no <see cref="SaveableEntity"/> and no complaint from anything —
+        /// the game ran, saves were written, and the mounts and vehicles simply were not in them.
+        ///
+        /// A missing identity is only a WARNING rather than an error, because the runtime pass in
+        /// <see cref="SaveablePolicy.EnsureScene"/> does wire these on load. But it wires them with an
+        /// identity derived from the hierarchy path, which is orphaned the moment anyone renames or
+        /// re-parents the object — so an unwired prefab is a save that works until it quietly stops.
+        /// Run <c>Wire Saveable Prefabs</c> and it becomes a baked GUID.
+        /// </summary>
+        private static void ValidatePersistentEntityPrefabs(Report report)
+        {
+            foreach (string guid in AssetDatabase.FindAssets("t:GameObject", new[] { "Assets/Game/Prefabs" }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+
+                if (prefab == null) continue;
+                if (prefab.GetComponent<IPersistentEntity>() == null) continue;
+
+                report.Checked++;
+
+                // The player is owned by PlayerSaveService and deliberately carries no world identity.
+                if (!SaveablePolicy.NeedsSaving(prefab, out _)) continue;
+
+                if (prefab.GetComponent<SaveableEntity>() == null)
+                {
+                    report.Warnings.Add($"'{prefab.name}' is a world entity ({path}) with no SaveableEntity. " +
+                                        "It will be wired at runtime with a path-derived identity, which " +
+                                        "breaks if the object is ever renamed or re-parented. Run " +
+                                        "Tools ▸ Save System ▸ Wire Saveable Prefabs.");
+                    continue;
+                }
+
+                // A mount with no MountSaveable saves its own position but forgets its rider, which is
+                // the single most visible thing a mount can forget.
+                if (prefab.GetComponent<MountModule>() != null &&
+                    prefab.GetComponent<MountSaveable>() == null)
+                {
+                    report.Warnings.Add($"'{prefab.name}' is a mount with no MountSaveable, so a player " +
+                                        "riding it at save time comes back dismounted.");
+                }
+
+                if (prefab.GetComponent<AgentTargeting>() != null &&
+                    prefab.GetComponent<AgentStateSaveable>() == null)
+                {
+                    report.Warnings.Add($"'{prefab.name}' can fight but has no AgentStateSaveable, so it " +
+                                        "forgets its target and forgets it was in a fight.");
                 }
             }
         }

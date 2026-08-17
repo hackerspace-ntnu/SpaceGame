@@ -272,6 +272,14 @@ namespace SpaceGame.Core.Persistence
                 if (scene.IsValid() && scene.isLoaded)
                     SceneManager.MoveGameObjectToScene(instance, scene);
 
+                // Savers before identity and state, and the order is the whole point: Restore hands
+                // each payload to the saver that owns its key, so a saver added afterwards is handed
+                // nothing. A restored mount would come back riderless not because the record was
+                // missing the rider, but because MountSaveable did not exist at the moment the record
+                // was read. The spawn path adds these too — this covers a prefab that gained a saver
+                // since the save was written.
+                SaveablePolicy.EnsureSpawned(instance);
+
                 SaveableEntity saveable = SaveableEntity.EnsureRuntime(instance, record.PrefabId);
                 saveable.AdoptIdentity(record.PrefabId, record.InstanceId);
                 saveable.Restore(record.State);

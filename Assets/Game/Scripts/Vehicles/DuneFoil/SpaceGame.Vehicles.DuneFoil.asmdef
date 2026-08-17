@@ -1,7 +1,9 @@
 {
     "name": "SpaceGame.Vehicles.DuneFoil",
     "rootNamespace": "SpaceGame.Vehicles.DuneFoil",
-    "references": [],
+    "references": [
+        "SpaceGame.Persistence"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

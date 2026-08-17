@@ -892,6 +892,15 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Chat"",
+                    ""type"": ""Button"",
+                    ""id"": ""0c9a4d21-6f3b-4c58-9a71-5f2e0b8d7a41"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -1455,6 +1464,17 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""action"": ""DevInventory"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""7b1e6f04-2a8d-4e93-bc55-1d6a90f3c827"",
+                    ""path"": ""<Keyboard>/t"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Chat"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -1801,6 +1821,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         m_UI_Map = m_UI.FindAction("Map", throwIfNotFound: true);
         m_UI_Pause = m_UI.FindAction("Pause", throwIfNotFound: true);
         m_UI_DevInventory = m_UI.FindAction("DevInventory", throwIfNotFound: true);
+        m_UI_Chat = m_UI.FindAction("Chat", throwIfNotFound: true);
         // Hotbar
         m_Hotbar = asset.FindActionMap("Hotbar", throwIfNotFound: true);
         m_Hotbar_Hotbar1 = m_Hotbar.FindAction("Hotbar1", throwIfNotFound: true);
@@ -2139,6 +2160,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_UI_Map;
     private readonly InputAction m_UI_Pause;
     private readonly InputAction m_UI_DevInventory;
+    private readonly InputAction m_UI_Chat;
     /// <summary>
     /// Provides access to input actions defined in input action map "UI".
     /// </summary>
@@ -2207,6 +2229,10 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @DevInventory => m_Wrapper.m_UI_DevInventory;
         /// <summary>
+        /// Provides access to the underlying input action "UI/Chat".
+        /// </summary>
+        public InputAction @Chat => m_Wrapper.m_UI_Chat;
+        /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
         public InputActionMap Get() { return m_Wrapper.m_UI; }
@@ -2274,6 +2300,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @DevInventory.started += instance.OnDevInventory;
             @DevInventory.performed += instance.OnDevInventory;
             @DevInventory.canceled += instance.OnDevInventory;
+            @Chat.started += instance.OnChat;
+            @Chat.performed += instance.OnChat;
+            @Chat.canceled += instance.OnChat;
         }
 
         /// <summary>
@@ -2327,6 +2356,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @DevInventory.started -= instance.OnDevInventory;
             @DevInventory.performed -= instance.OnDevInventory;
             @DevInventory.canceled -= instance.OnDevInventory;
+            @Chat.started -= instance.OnChat;
+            @Chat.performed -= instance.OnChat;
+            @Chat.canceled -= instance.OnChat;
         }
 
         /// <summary>
@@ -2846,6 +2878,13 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnDevInventory(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Chat" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnChat(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Hotbar" which allows adding and removing callbacks.

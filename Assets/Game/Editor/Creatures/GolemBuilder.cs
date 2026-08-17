@@ -3,7 +3,7 @@
 // The FBX comes out of Blender via
 // Assets/Game/Art/Models/_Source~/models/creatures/golem_export.py. Everything
 // below that -- import settings, animation clips, the animator controller, the
-// wildlife faction, and the prefab itself -- is generated here rather than
+// Fauna faction, and the prefab itself -- is generated here rather than
 // hand-authored, for the same reason VrescalBuilder, CrabWalkerBuilder and
 // HorseBuilder exist: a prefab wired by hand is a prefab nobody can rebuild
 // after the model changes.
@@ -16,6 +16,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using SpaceGame.Agents;
+using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
 using SpaceGame.World;
 using UnityEditor;
@@ -35,8 +36,7 @@ namespace SpaceGame.EditorTools
             "Assets/Game/Prefabs/Agents/Creatures/Golem.prefab";
         private const string FactionDir =
             "Assets/Game/ScriptableObjects/Factions/Core";
-        private const string WildlifePath = FactionDir + "/WildlifeFaction.asset";
-        private const string PlayerPath = FactionDir + "/PlayerFaction.asset";
+        private const string FaunaPath = FactionDir + "/FaunaFaction.asset";
         private const string RelationshipsPath = FactionDir + "/GlobalRelationships.asset";
 
         // Movement speeds, in metres per second, for a 2.60 m construct.
@@ -90,8 +90,8 @@ namespace SpaceGame.EditorTools
 
             ConfigureImporter();
             AnimatorController controller = BuildController();
-            FactionDefinition wildlife = EnsureWildlifeFaction();
-            GameObject prefab = BuildPrefab(controller, wildlife);
+            FactionDefinition fauna = EnsureFaunaFaction();
+            GameObject prefab = BuildPrefab(controller, fauna);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -284,64 +284,49 @@ namespace SpaceGame.EditorTools
         // 3. Faction
         // -------------------------------------------------------------------
 
-        private static FactionDefinition EnsureWildlifeFaction()
+        /// <summary>
+        /// The faction that makes the Golem peaceful — by having no opinions at all.
+        ///
+        /// <para>
+        /// The Golem used to be Wildlife, and GolemBuilder itself wrote the
+        /// Wildlife/Player = Hostile row that made it attack on sight. It is
+        /// Fauna now, and Fauna is deliberately absent from
+        /// GlobalRelationships: <c>FactionRelationshipTable.Get</c> returns
+        /// Neutral for any pair it has no row for, and AgentTargeting only ever
+        /// queries the registry for candidates it is Hostile toward. A faction
+        /// with no rows can therefore never acquire anyone, which is what
+        /// "peaceful" means here — not a disabled module or a behaviour flag,
+        /// but a creature that has nobody to be angry at until
+        /// ProvocationModule hands it someone.
+        /// </para>
+        ///
+        /// <para>
+        /// This is also why the Golem moved factions rather than Wildlife being
+        /// made peaceful. DuneRat and Vrescal are still Wildlife and are still
+        /// meant to attack on sight; editing the row would have pacified all
+        /// three. Note the corollary: nothing hunts Fauna either, so anything
+        /// that used to treat the Golem as prey no longer sees it.
+        /// </para>
+        ///
+        /// <para>
+        /// The pre-existing Wildlife/Player row is deliberately left alone. It
+        /// is load-bearing for the two creatures still using it.
+        /// </para>
+        /// </summary>
+        private static FactionDefinition EnsureFaunaFaction()
         {
-            var wildlife = AssetDatabase.LoadAssetAtPath<FactionDefinition>(WildlifePath);
-            if (wildlife == null)
-            {
-                EnsureFolder(FactionDir);
-                wildlife = ScriptableObject.CreateInstance<FactionDefinition>();
-                wildlife.factionName = "Wildlife";
-                wildlife.debugColor = new Color(0.85f, 0.70f, 0.27f);
-                AssetDatabase.CreateAsset(wildlife, WildlifePath);
-                Debug.Log($"Created {WildlifePath}");
-            }
+            var fauna = AssetDatabase.LoadAssetAtPath<FactionDefinition>(FaunaPath);
+            if (fauna != null)
+                return fauna;
 
-            var player = AssetDatabase.LoadAssetAtPath<FactionDefinition>(PlayerPath);
-            var table = AssetDatabase.LoadAssetAtPath<FactionRelationshipTable>(
-                RelationshipsPath);
-            if (player == null || table == null)
-            {
-                Debug.LogWarning("PlayerFaction or GlobalRelationships missing — " +
-                                 "the Golem will read as Neutral until a " +
-                                 "Wildlife/Player pair exists.");
-                return wildlife;
-            }
-
-            // `relationships` is private, so the row goes in through
-            // SerializedObject rather than by reflection — it keeps the undo
-            // stack and the .asset's serialisation honest.
-            var so = new SerializedObject(table);
-            SerializedProperty list = so.FindProperty("relationships");
-            if (list == null)
-            {
-                Debug.LogWarning("FactionRelationshipTable.relationships not found " +
-                                 "— was it renamed? Add the Wildlife/Player pair " +
-                                 "by hand.");
-                return wildlife;
-            }
-
-            for (int i = 0; i < list.arraySize; i++)
-            {
-                SerializedProperty row = list.GetArrayElementAtIndex(i);
-                Object a = row.FindPropertyRelative("factionA").objectReferenceValue;
-                Object b = row.FindPropertyRelative("factionB").objectReferenceValue;
-                bool match = (a == wildlife && b == player) ||
-                             (a == player && b == wildlife);
-                if (match)
-                    return wildlife;      // already declared; do not clobber it
-            }
-
-            list.arraySize++;
-            SerializedProperty added = list.GetArrayElementAtIndex(list.arraySize - 1);
-            added.FindPropertyRelative("factionA").objectReferenceValue = wildlife;
-            added.FindPropertyRelative("factionB").objectReferenceValue = player;
-            added.FindPropertyRelative("relationship").enumValueIndex =
-                (int)FactionRelationship.Hostile;
-            so.ApplyModifiedProperties();
-            EditorUtility.SetDirty(table);
-            Debug.Log("Added Wildlife <-> Player = Hostile to GlobalRelationships.");
-            return wildlife;
+            EnsureFolder(FactionDir);
+            fauna = ScriptableObject.CreateInstance<FactionDefinition>();
+            fauna.factionName = "Fauna";
+            fauna.debugColor = new Color(0.42f, 0.78f, 0.45f);
+            AssetDatabase.CreateAsset(fauna, FaunaPath);
+            Debug.Log($"Created {FaunaPath} — peaceful by having no row in " +
+                      "GlobalRelationships. Do not add one.");
+            return fauna;
         }
 
         // -------------------------------------------------------------------
@@ -349,7 +334,7 @@ namespace SpaceGame.EditorTools
         // -------------------------------------------------------------------
 
         private static GameObject BuildPrefab(AnimatorController controller,
-                                              FactionDefinition wildlife)
+                                              FactionDefinition fauna)
         {
             GameObject source = AssetDatabase.LoadAssetAtPath<GameObject>(Fbx);
             GameObject root = (GameObject)PrefabUtility.InstantiatePrefab(source);
@@ -460,7 +445,7 @@ namespace SpaceGame.EditorTools
             SetFloat(wander, "maxWaitTime", 14f);
 
             var faction = root.AddComponent<EntityFaction>();
-            SetField(faction, "faction", wildlife);
+            SetField(faction, "faction", fauna);
             SetField(faction, "relationshipTable",
                      AssetDatabase.LoadAssetAtPath<FactionRelationshipTable>(
                          RelationshipsPath));
@@ -472,10 +457,47 @@ namespace SpaceGame.EditorTools
             if (root.GetComponent<AgentTargeting>() == null)
                 root.AddComponent<AgentTargeting>();
 
+            // -- temperament -------------------------------------------------
+            // The Golem is not a predator. It roams, it ignores you, and it is
+            // strong enough that walking past one should be a choice rather
+            // than a fight. Chase and CloseCombat above are still wired: they
+            // simply never fire, because a Fauna creature is Neutral toward
+            // everything and AgentTargeting only acquires the Hostile. This is
+            // the component that changes its mind.
+            //
+            // The leash matches AgentTargeting's own loseRange (45 m). Holding
+            // a grudge further out than targeting will retain the target means
+            // re-asserting and dropping it on alternate frames.
+            var provocation = root.AddComponent<ProvocationModule>();
+            SetFloat(provocation, "leashRange", 45f);
+            SetFloat(provocation, "calmDownDelay", 60f);
+            // Two tonnes of rock does not turn on the world over a scrape. The
+            // melee it answers with hits for 45, so the bar to start that is
+            // a real hit rather than environmental chip damage.
+            SetInt(provocation, "damageThreshold", 5);
+
             // Roams between chunks, so it has to survive its chunk unloading.
             var tracked = root.AddComponent<SceneTracked>();
             SetEnum(tracked, "policy", (int)SceneTracked.UnloadPolicy.Migrate);
             SetBool(tracked, "keepChunksLoaded", false);
+
+            // -- persistence -------------------------------------------------
+            // These are here rather than left to Tools > Save System > Wire
+            // Saveable Prefabs because this builder OVERWRITES the prefab
+            // wholesale. Anything added to the Golem by hand after a build is
+            // discarded by the next one, with nothing to say so -- which is
+            // exactly what happened: the committed prefab carried a
+            // SaveableEntity, a rebuild dropped it, and the only symptom would
+            // have been a golem that quietly stopped persisting across a save.
+            // A builder that cannot reproduce the prefab it replaces is worse
+            // than no builder.
+            root.AddComponent<SaveableEntity>();
+            root.AddComponent<TransformSaveable>();
+            root.AddComponent<HealthSaveable>();
+            // Required by SaveablePolicy for anything with an AgentTargeting.
+            // Carries the target memory, so a provoked golem stays angry across
+            // a save rather than reloading calm in the middle of a fight.
+            root.AddComponent<AgentStateSaveable>();
 
             EnsureFolder("Assets/Game/Prefabs/Agents/Creatures");
             GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);

@@ -20,7 +20,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
+using SpaceGame.Agents;
 using SpaceGame.Gameplay;
+using SpaceGame.Persistence;
+using SpaceGame.Vehicles;
+using SpaceGame.Vehicles.DuneFoil;
 
 namespace SpaceGame.Core.Persistence
 {
@@ -74,6 +78,14 @@ namespace SpaceGame.Core.Persistence
             }
 
             var reasons = new List<string>();
+
+            // The declared answer, and the one that matters most. Everything below infers "this
+            // moves" from a side effect of movement, and every inference missed the machines this
+            // game is made of: a legged rig is a KINEMATIC Rigidbody with no NavMeshAgent and often no
+            // HealthComponent, and the DuneFoil has no Rigidbody on its root at all. So the mount a
+            // player rides and every vehicle in the world failed all four tests below and were never
+            // captured — which is the whole reason nothing but the player persisted.
+            if (go.GetComponent<IPersistentEntity>() != null) reasons.Add("entity");
 
             if (go.GetComponent<HealthComponent>() != null) reasons.Add("health");
 
@@ -139,8 +151,94 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(RigidbodySaveable));
             }
 
+            // Who was riding this. Chosen by having a MountModule for the same reason health is
+            // chosen by having a HealthComponent: the rule is derivable from the object, so a mount
+            // added later is covered by re-running rather than by remembering a list.
+            if (go.GetComponent<MountModule>() != null && go.GetComponent<MountSaveable>() == null)
+            {
+                go.AddComponent<MountSaveable>();
+                parts.Add(nameof(MountSaveable));
+            }
+
+            // Who this was fighting, and what it remembers. AgentTargeting rather than
+            // AgentController: an agent with no targeting has no combat state to lose, and the saver
+            // would capture an empty bag on every entity in the world.
+            if (go.GetComponent<AgentTargeting>() != null && go.GetComponent<AgentStateSaveable>() == null)
+            {
+                go.AddComponent<AgentStateSaveable>();
+                parts.Add(nameof(AgentStateSaveable));
+            }
+
+            if (go.GetComponent<EntityInventoryComponent>() != null &&
+                go.GetComponent<EntityInventorySaveable>() == null)
+            {
+                go.AddComponent<EntityInventorySaveable>();
+                parts.Add(nameof(EntityInventorySaveable));
+            }
+
+            // Hatches, ramps and canopies anywhere below this object. Asked of the whole subtree
+            // because the parts are children while the saver belongs on the entity that owns them.
+            if (go.GetComponentInChildren<ArticulatedPart>(true) != null &&
+                go.GetComponent<ArticulatedPartsSaveable>() == null)
+            {
+                go.AddComponent<ArticulatedPartsSaveable>();
+                parts.Add(nameof(ArticulatedPartsSaveable));
+            }
+
+            // Vehicle-specific rigs. Each is keyed off the one component that defines the vehicle, so
+            // the rule stays derivable from the object rather than becoming a list of prefab names.
+            if (go.GetComponent<SailRig>() != null && go.GetComponent<DuneFoilSaveable>() == null)
+            {
+                go.AddComponent<DuneFoilSaveable>();
+                parts.Add(nameof(DuneFoilSaveable));
+            }
+
+            if (go.GetComponent<OrnithopterFlightMotor>() != null &&
+                go.GetComponent<OrnithopterSaveable>() == null)
+            {
+                go.AddComponent<OrnithopterSaveable>();
+                parts.Add(nameof(OrnithopterSaveable));
+            }
+
             added = string.Join(", ", parts);
             return parts.Count > 0;
+        }
+
+        /// <summary>
+        /// Gives an object spawned during play the identity and savers it qualifies for.
+        ///
+        /// The runtime-spawn counterpart to <see cref="EnsureScene"/>, and it exists because that
+        /// method only ever sees objects a scene load brought in. Anything created during play — a
+        /// deployed vehicle, a dropped item, a placed structure — went straight into the world with
+        /// whatever savers its prefab happened to carry, so a mount spawned at runtime saved its pose
+        /// and not its rider.
+        ///
+        /// No derived identity here, unlike <see cref="EnsureScene"/>: a runtime object has no
+        /// authored position in a scene file to derive one from, and the random GUID
+        /// <see cref="SaveableEntity"/> assigns itself is the correct answer for something that did
+        /// not exist last session.
+        ///
+        /// Returns false for anything that does not qualify, which is most spawns.
+        /// </summary>
+        public static bool EnsureSpawned(GameObject go)
+        {
+            if (go == null || !NeedsSaving(go, out _)) return false;
+
+            Ensure(go, out _);
+
+            // A prefab whose SaveableEntity was never stamped cannot be resolved back to a prefab on
+            // load, so its record would be captured faithfully and then dropped with a warning. Say so
+            // now, at the spawn, where the prefab responsible is still identifiable.
+            SaveableEntity entity = go.GetComponent<SaveableEntity>();
+            if (entity != null && string.IsNullOrEmpty(entity.PrefabId))
+            {
+                Debug.LogWarning($"[Save] '{go.name}' was spawned at runtime and qualifies for saving, " +
+                                 "but its prefab has no stamped prefab id — so it can be captured and " +
+                                 "never restored. Add a SaveableEntity to the prefab asset (re-import " +
+                                 "stamps the id), or spawn it through a path that supplies one.", go);
+            }
+
+            return true;
         }
 
         /// <summary>

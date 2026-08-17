@@ -202,6 +202,41 @@ namespace SpaceGame.Items
             return true;
         }
 
+        /// <summary>
+        /// Takes ownership of a craft this pack did not spawn — one restored from a save with the
+        /// pilot already strapped in.
+        ///
+        /// <b>Why it is needed.</b> A load rebuilds the craft and re-seats the rider through the save
+        /// system, which knows nothing about wing packs. Without this the pack comes back believing it
+        /// is stowed while its owner is a hundred metres up: the folded pack renders in the pilot's
+        /// hand mid-flight, using it again would deploy a second craft, and — worst — nothing is
+        /// subscribed to <c>Landed</c>, so touching down leaves the ornithopter standing in the sand
+        /// forever with the player walking out of it.
+        ///
+        /// Idempotent, and called on the normal launch path too, where it is a no-op because
+        /// <see cref="SpawnAndMountCraft"/> has already taken the craft. One owner, one teardown path,
+        /// whether the flight began with a keypress or with a save file.
+        /// </summary>
+        public void AdoptCraft(GameObject existing)
+        {
+            if (craft != null || existing == null)
+                return;
+
+            MountModule mount = existing.GetComponent<MountModule>();
+            OrnithopterFlightMotor motor = existing.GetComponent<OrnithopterFlightMotor>();
+            if (mount == null || motor == null)
+                return;
+
+            craft = existing;
+            craftMount = mount;
+            craftMotor = motor;
+
+            craftMotor.Landed += HandleLanded;
+            craftMount.Dismounted += HandleDismounted;
+
+            SetHeldVisible(false);
+        }
+
         private void HandleLanded() => ReleaseCraft(dismountFirst: true);
 
         // The rider bailed out (Escape). The craft goes with them — and because the pack has unlimited

@@ -1,4 +1,5 @@
 using UnityEngine;
+using SpaceGame.Persistence;
 
 namespace SpaceGame.World
 {
@@ -8,8 +9,14 @@ namespace SpaceGame.World
     ///
     /// Attach to vehicles, NPCs, dropped items, anything that moves between chunks at runtime.
     /// Self-registers with WorldStreamer in OnEnable / unregisters in OnDisable.
+    ///
+    /// Also <see cref="IPersistentEntity"/>: "this thing moves between chunks at runtime" and "this
+    /// thing must survive a save" are the same claim, so declaring one declares the other. Scene
+    /// membership is a persistence concern as well as a streaming one — <c>WorldSaveStore.Dehydrate</c>
+    /// is driven per scene, and an entity in a chunk that unloads without this marker is destroyed
+    /// with it.
     /// </summary>
-    public class SceneTracked : MonoBehaviour
+    public class SceneTracked : MonoBehaviour, IPersistentEntity
     {
         public enum UnloadPolicy
         {

@@ -1,4 +1,5 @@
 using UnityEngine;
+using SpaceGame.Persistence;
 
 namespace SpaceGame.Vehicles.DuneFoil
 {
@@ -17,11 +18,17 @@ namespace SpaceGame.Vehicles.DuneFoil
     ///
     /// Transform-driven rather than physics-driven, so a rider standing on the deck needs
     /// <c>WalkerPlatformCarrier</c> to come along with it.
+    ///
+    /// <see cref="IPersistentEntity"/> for that same reason. Being transform-driven means this craft
+    /// has no Rigidbody on its root at all and no AgentController either, so it matched none of the
+    /// clauses the save policy used to infer "this moves" — the DuneFoil was the one vehicle in the
+    /// world that no amount of component sniffing could have found. Sailing it somewhere and reloading
+    /// put it back at its authored berth.
     /// </summary>
     [DefaultExecutionOrder(100)]    // after SailRig (50), before WalkerPlatformCarrier (200)
     [RequireComponent(typeof(SailRig))]
     [RequireComponent(typeof(FoilLift))]
-    public class DuneFoilLocomotion : MonoBehaviour
+    public class DuneFoilLocomotion : MonoBehaviour, IPersistentEntity
     {
         [Header("Mass")]
         [Tooltip("Craft mass in kg. Sail force divided by this is acceleration, so it sets how " +

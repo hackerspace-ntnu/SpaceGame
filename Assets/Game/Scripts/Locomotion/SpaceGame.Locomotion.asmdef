@@ -1,7 +1,9 @@
 {
     "name": "SpaceGame.Locomotion",
     "rootNamespace": "SpaceGame.Locomotion",
-    "references": [],
+    "references": [
+        "SpaceGame.Persistence"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

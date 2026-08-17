@@ -62,6 +62,12 @@ namespace SpaceGame.Agents
             // there are players — and the dice would disagree. The server's drop replicates in.
             if (!Network.Simulates(this)) return;
 
+            // A save being loaded, not a kill. The loot from this death was already dropped in the
+            // session that caused it, and those pickups are in the save as runtime entities of their
+            // own — so rolling again here does not restore the drop, it duplicates it. Reload five
+            // times and the corpse pays out five times.
+            if (health && health.IsRestoring) return;
+
             Transform dropOrigin = transform;
 
             if (dropInventoryContents && entityInventory != null)

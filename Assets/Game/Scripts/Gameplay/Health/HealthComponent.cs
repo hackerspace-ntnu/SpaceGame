@@ -26,6 +26,17 @@ namespace SpaceGame.Gameplay
 
         public bool Alive => currentHealth > 0;
 
+        /// <summary>
+        /// True only while <see cref="RestoreHealth"/> is applying a saved value, so a listener can
+        /// tell "this just died" from "this was already dead when the world loaded".
+        ///
+        /// It has to be askable, because <see cref="OnDeath"/> fires in both cases and the
+        /// consequences of death are not repeatable: <c>HealthReactionModule</c> plays the death
+        /// sound and starts a despawn timer, and <c>EntityLootTable</c> drops the loot table. Without
+        /// this flag, killing one creature and reloading five times dropped five sets of loot.
+        /// </summary>
+        public bool IsRestoring { get; private set; }
+
         public Transform LastDamageSource { get; private set; }
 
         public void Damage(int amount) => Damage(amount, null);
@@ -69,19 +80,40 @@ namespace SpaceGame.Gameplay
         /// neither. It raises <see cref="OnRestored"/>, plus OnDeath or OnRevive when the assignment
         /// crosses zero, since a listener that tracks alive/dead must not be left holding the wrong
         /// answer.
+        ///
+        /// Listeners that act on death rather than merely observing it must check
+        /// <see cref="IsRestoring"/> — see that property.
         /// </summary>
         public void RestoreHealth(int value)
         {
             int clamped = Math.Clamp(value, 0, maxHealth);
-            if (clamped == currentHealth) return;
-
             bool wasAlive = Alive;
-            currentHealth = clamped;
+            bool changed = clamped != currentHealth;
 
-            OnRestored?.Invoke();
+            IsRestoring = true;
 
-            if (wasAlive && !Alive) OnDeath?.Invoke();
-            else if (!wasAlive && Alive) OnRevive?.Invoke();
+            try
+            {
+                if (changed)
+                {
+                    currentHealth = clamped;
+                    OnRestored?.Invoke();
+                }
+
+                // Announced whenever the restored value is lethal, not only when it crosses zero. A
+                // restore's job is to leave the object matching its record, and the two cases the old
+                // crossing test missed both leave a corpse standing up: an entity whose prefab already
+                // reads 0, and one killed by overkill damage whose live value is negative. Repeating
+                // the announcement is safe precisely because IsRestoring suppresses the consequences.
+                if (clamped <= 0) OnDeath?.Invoke();
+                else if (!wasAlive) OnRevive?.Invoke();
+            }
+            finally
+            {
+                // In a finally block because a listener throwing must not leave every later death in
+                // the session looking like a restore — which would silently stop all loot dropping.
+                IsRestoring = false;
+            }
         }
 
         public void Heal(int amount)

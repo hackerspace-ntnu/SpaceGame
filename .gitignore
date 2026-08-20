@@ -16,6 +16,9 @@
 *.blend1
 *.blend1.meta
 
+
+
+
 # MemoryCaptures can get excessive in size.
 # They also could contain extremely sensitive data
 /[Mm]emoryCaptures/
@@ -100,6 +103,8 @@ InitTestScene*.unity*
 
 # Dynamically generated chunk scenes
 Assets/Scenes/Chunks/
+
+/Assets/Terrain/TerrainData_*.asset
 
 .idea/
 .vscode/

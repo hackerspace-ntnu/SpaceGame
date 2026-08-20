@@ -3,6 +3,10 @@
 # Get latest from https://github.com/github/gitignore/blob/main/Unity.gitignore
 #
 .utmp/
+
+# macOS Finder metadata
+.DS_Store
+
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/
@@ -16,8 +20,9 @@
 *.blend1
 *.blend1.meta
 
-
-
+# Bytecode from the Blender model-library build scripts under Assets/Models/_Source~/
+__pycache__/
+*.pyc
 
 # MemoryCaptures can get excessive in size.
 # They also could contain extremely sensitive data
@@ -113,3 +118,9 @@ Assets/Scenes/Chunks/
 
 /Assets/_Recovery
 /Assets/_Recovery.meta
+
+# FMOD writes this every editor session; it is a log, not project data
+fmod_editor.log
+
+# Brainstorming mockups — scratch, kept on disk only so they survive a server restart
+.superpowers/

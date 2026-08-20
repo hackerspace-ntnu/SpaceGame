@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: AlgaeRock
+  m_Shader: {fileID: 4800000, guid: 4dbb1fd14646467f8340ecdbcd63e215, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _AlbedoTintStrength: 0.5
+    - _AmbientBoost: 0.02
+    - _BaselineGlow: 1.2
+    - _BlendSharpness: 4
+    - _BranchDensity: 22
+    - _BranchStrength: 0.6
+    - _BranchWidth: 0.15
+    - _ClusterRadius: 0.32
+    - _ClusterScale: 70
+    - _ClusterStrength: 0.7
+    - _ColorBalance: 0.5
+    - _DistantGlowMul: 0.25
+    - _DotFadeEnd: 16
+    - _DotFadeStart: 5
+    - _DotScale: 201
+    - _DotSize: 0.161
+    - _GlowIntensity: 8
+    - _GlowingDotFraction: 0.3
+    - _GlowingPatchFraction: 0.793
+    - _GlowingSectionFraction: 0.316
+    - _LightWrap: 0
+    - _Metallic: 0
+    - _NetworkDensity: 4.8
+    - _NetworkWarp: 1.8
+    - _NetworkWidth: 0.28
+    - _PatchFalloff: 2
+    - _PatchScale: 0.18
+    - _PatchThreshold: 0.5
+    - _PulseAmount: 0.4
+    - _PulseSpeed: 0.5
+    - _SkyAmbientStrength: 0
+    - _Smoothness: 0
+    m_Colors:
+    - _AlgaeColorA: {r: 0.2, g: 0.55, b: 1, a: 1}
+    - _AlgaeColorB: {r: 0.25, g: 1, b: 0.55, a: 1}
+    - _RockColor: {r: 0.1981132, g: 0.0990566, b: 0, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

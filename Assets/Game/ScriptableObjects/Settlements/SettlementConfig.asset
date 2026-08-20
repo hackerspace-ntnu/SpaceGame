@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4042f343574d84372b492dfa2386e5cc, type: 3}
+  m_Name: SettlementConfig
+  m_EditorClassIdentifier: Assembly-CSharp::RobotSettlementRecipe
+  shieldGeneratorPrefab: {fileID: 0}
+  barracksPrefab: {fileID: 0}
+  barracksCount: {x: 3, y: 8}
+  ecoHubPrefab: {fileID: 0}
+  ecoHubCount: {x: 1, y: 3}
+  satelliteDishPrefab: {fileID: 0}
+  satelliteDishCount: {x: 1, y: 2}
+  turretPrefab: {fileID: 0}
+  turretCount: {x: 2, y: 3}
+  rockPrefabs: []
+  rockCount: {x: 2, y: 6}
+  rockScaleRange: {x: 0.4, y: 0.8}
+  rockMaxTerrainVariance: 0.6
+  rockPlacementAttempts: 30
+  robotPrefabs:
+  - {fileID: 971402422321702955, guid: 20facc26f948b45c8983db130e2a842e, type: 3}
+  - {fileID: 971402422321702955, guid: 7e0f6e012da904eab85a87db6f8f0261, type: 3}
+  - {fileID: 971402422321702955, guid: 334b4e4204a7f4dd6af538ca8b0f165a, type: 3}
+  - {fileID: 971402422321702955, guid: 6f593f4d25d19497294983c297687d62, type: 3}
+  robotGroupCount: {x: 3, y: 5}
+  robotsPerGroup: {x: 3, y: 5}
+  robotGroupSpread: 4
+  vehiclePrefabs:
+  - {fileID: 6204948476149608045, guid: be34622f4b03c4a8d9f7ac99ffe3e218, type: 3}
+  vehicleTotal: 10
+  innerRadius: 50
+  midRadius: 60
+  outerRadius: 100
+  minStructureSpacing: 14
+  buildingFootprint: 25
+  buildingPadding: 0
+  maxPlacementAttempts: 40
+  organizedLayout: 1
+  slotRadialJitter: 0.5
+  slotAngularJitter: 2
+  faceCenter: 1
+  foundationPadThreshold: 0.35
+  foundationPadOverhang: 0.5
+  foundationPadMaterial: {fileID: 2100000, guid: c3e91b7d28a54f6a9b2d5e8c1f4a7d92, type: 2}

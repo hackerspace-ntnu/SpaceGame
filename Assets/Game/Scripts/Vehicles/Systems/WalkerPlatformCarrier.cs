@@ -22,8 +22,14 @@
 // locomotion for the platform's pose the way a render-loop carry would. The execution order still
 // matters, but for the rider rather than the craft: PlayerMovement writes the player's velocity at
 // the default order 0, and the carry has to be the last word on where that body is going this step.
+//
+// In a session the deck is a shared surface, and the carry has to obey the same rule every other
+// system in this project obeys about somebody else's body: their machine moves it and the result
+// replicates here. See CarryRiders for what that costs and CollectRiders for the census that must
+// NOT follow the same rule.
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Core;
 using SpaceGame.Vehicles.Crawler;
 
 namespace SpaceGame.Vehicles
@@ -136,6 +142,15 @@ namespace SpaceGame.Vehicles
         ///
         /// Rebuilt rather than accumulated: it is the same query that adds someone who steps
         /// aboard and drops someone who steps off, so there is no state to get stuck.
+        ///
+        /// This is a CENSUS, not a work list. <see cref="RiderCount"/> is what tells the rest of
+        /// the game somebody is aboard — DuneFoilMooring holds the craft at its berth until it sees
+        /// a crew — so it has to count everyone standing on the planks, including the people this
+        /// machine is not allowed to move. Filtering those out here is what made the craft
+        /// unsailable for a client: NetworkRigidbody makes every remote player's body kinematic, so
+        /// a client who boarded a moored craft was invisible to the host's census, the host went on
+        /// holding the hull still, and the boat simply refused to sail for anybody but the player
+        /// whose machine happened to own it.
         /// </summary>
         private void CollectRiders()
         {
@@ -149,8 +164,15 @@ namespace SpaceGame.Vehicles
                 if (other == null) continue;
 
                 Rigidbody rb = other.attachedRigidbody;
-                if (rb == null || rb.isKinematic) continue;
+                if (rb == null) continue;
                 if (rb.transform.IsChildOf(transform)) continue;   // never carry our own parts
+
+                // Kinematic means furniture — a parked vehicle, a scenery prop, something bolted
+                // down — and furniture is not crew. Unless it is not ours: a body this machine does
+                // not own is kinematic here precisely BECAUSE it is somebody else's to simulate,
+                // which is the definition of another player standing on the deck.
+                if (rb.isKinematic && Network.Owns(rb)) continue;
+
                 riders.Add(rb);
             }
         }
@@ -224,6 +246,15 @@ namespace SpaceGame.Vehicles
             foreach (Rigidbody rb in riders)
             {
                 if (claimed.Contains(rb)) continue;
+
+                // Somebody else's body. Their machine is carrying them on its own copy of this
+                // deck and publishing the result, so carrying them here would be the second half
+                // of a fight this machine cannot win: their NetworkTransform is owner-authoritative
+                // and overwrites whatever is written here within a tick. Network.Owns answers true
+                // offline and for anything unnetworked — a crate, a barrel, a test rig — so the
+                // single-player carry is untouched.
+                if (!Network.Owns(rb)) continue;
+
                 if (rb.linearVelocity.sqrMagnitude > maxCarrySpeed * maxCarrySpeed) continue;
 
                 Vector3 target = rb.position + deltaPos;

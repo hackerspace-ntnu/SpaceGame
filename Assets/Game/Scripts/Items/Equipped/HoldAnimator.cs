@@ -45,10 +45,24 @@ namespace SpaceGame.Items
         [Tooltip("Log resolved animator on equip and Hold transitions while held.")]
         [SerializeField] private bool debugLog;
 
+        /// <summary>
+        /// Whether this instance yields the pose while the holder is moving.
+        ///
+        /// <para>
+        /// Read by tests rather than by gameplay. It matters because the player's controller has
+        /// a single unmasked layer, so the hold state replaces the whole body — a pose held while
+        /// walking freezes the legs and the character glides.
+        /// </para>
+        /// </summary>
+        public bool RequiresStationary => requireStationary;
+
         private Animator resolvedAnimator;
         private GameObject heldByHolder;
         private PlayerInputManager holderInputs;
         private Rigidbody holderRb;
+        private UnityEngine.AI.NavMeshAgent holderAgent;
+        private CharacterController holderCc;
+        private bool canGateMovement;
         private bool equipped;
         private int paramHash;
 
@@ -70,6 +84,10 @@ namespace SpaceGame.Items
                 resolvedAnimator = ResolveAnimator(holder);
                 holderInputs = holder != null ? holder.GetComponent<PlayerInputManager>() : null;
                 holderRb     = holder != null ? holder.GetComponent<Rigidbody>()         : null;
+                holderAgent  = holder != null ? holder.GetComponentInChildren<UnityEngine.AI.NavMeshAgent>(true) : null;
+                holderCc     = holder != null ? holder.GetComponent<CharacterController>() : null;
+                canGateMovement = holderInputs != null || holderRb != null
+                               || holderAgent != null || holderCc != null;
                 // Block immediate Hold = true on equip if already moving — let the
                 // player settle first.
                 earliestReArmTime = Time.time + holdReArmDelay;
@@ -80,6 +98,9 @@ namespace SpaceGame.Items
                 heldByHolder = null;
                 holderInputs = null;
                 holderRb = null;
+                holderAgent = null;
+                holderCc = null;
+                canGateMovement = false;
             }
             ApplyImmediate(false); // start clean
         }
@@ -151,10 +172,28 @@ namespace SpaceGame.Items
     #else
                 Vector3 v = holderRb.velocity;
     #endif
-                v.y = 0f;
-                if (v.sqrMagnitude > velocityThreshold * velocityThreshold) return true;
+                if (Horizontal(v)) return true;
             }
+
+            // NPCs are steered by a NavMeshAgent and have neither of the above. Without this an
+            // NPC reads as permanently stationary, the pose latches on, and because the rig has
+            // one unmasked layer its legs stop moving while it walks.
+            if (holderAgent != null && Horizontal(holderAgent.velocity)) return true;
+            if (holderCc != null && Horizontal(holderCc.velocity)) return true;
+
+            // Nothing on the holder reports motion. Rather than declare it stationary — which
+            // latches the pose on forever for anything this component does not understand — treat
+            // it as moving and simply never pose. A missing pose is a small loss; a body frozen
+            // mid-stride is a visible bug.
+            if (!canGateMovement) return true;
+
             return false;
+        }
+
+        private bool Horizontal(Vector3 v)
+        {
+            v.y = 0f;
+            return v.sqrMagnitude > velocityThreshold * velocityThreshold;
         }
 
         private Animator ResolveAnimator(GameObject holder)

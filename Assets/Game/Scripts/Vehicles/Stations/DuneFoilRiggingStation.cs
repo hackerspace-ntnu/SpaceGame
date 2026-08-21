@@ -1,8 +1,7 @@
 using UnityEngine;
-using SpaceGame.Vehicles.DuneFoil;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
-using SpaceGame.Vehicles.Crawler;
+using SpaceGame.Vehicles.DuneFoil;
 
 namespace SpaceGame.Vehicles
 {
@@ -13,20 +12,31 @@ namespace SpaceGame.Vehicles
     /// Two buttons rather than one toggle, because every control here runs both ways and a toggle
     /// would make the player guess which way the next press goes.
     ///
-    /// Holding either button keeps the control moving, so rope pays out continuously instead of in
-    /// clicks. <see cref="Interactor"/> only fires on the press, so the hold is tracked here: a
-    /// press starts it, and it runs until the button is released or the player looks away.
+    /// A press keeps the control moving for a moment after it, so rope pays out in a smooth run
+    /// rather than a click. <see cref="Interactor"/> only fires on the press, so the run is tracked
+    /// here: a press starts it and it stops itself.
     ///
     /// Lives outside the DuneFoil assembly because <see cref="IInteractable"/> and
     /// <see cref="PlayerInputManager"/> are in the default assembly, the same split
     /// <c>DesertCrawlerDriver</c> uses against <c>DesertCrawlerLocomotion</c>.
+    ///
+    /// ── Crewed by more than one person ──
+    /// A winch is a <see cref="VehicleStation"/>, so a press is a momentary CLAIM: the server runs
+    /// the winch for the length of one press and publishes where it ended up, and every machine puts
+    /// the sail there. That is what makes the trim shared — before it, easing the main moved the
+    /// boom on the easer's screen and nowhere else, and each machine then sailed a differently
+    /// trimmed boat.
+    ///
+    /// Two things about that are deliberate. The claim EXPIRES rather than needing a stand-down, so
+    /// a player who drops mid-haul cannot hold a winch for the rest of the voyage. And the winch is
+    /// not exclusive: two crew both hauling on the same sheet is a crew, not a conflict, and
+    /// refusing the second press would silently eat half of them.
     /// </summary>
     // No [RequireComponent(typeof(Collider))]: the collider is a child "Handle" placed at chest
     // height above the deck, not one wrapped around this node. Requiring it here would also break
     // AddComponent outright — Collider is abstract, so Unity cannot satisfy the requirement and
     // returns null instead of the component.
-    public class DuneFoilRiggingStation : MonoBehaviour, IInteractable, ISecondaryInteractable,
-                                          IInteractionReadout
+    public class DuneFoilRiggingStation : VehicleStation, ISecondaryInteractable, IInteractionReadout
     {
         /// <summary>What this station does.</summary>
         public enum StationFunction
@@ -67,6 +77,8 @@ namespace SpaceGame.Vehicles
                  "the instant the button goes down.")]
         [SerializeField, Min(0.0f)] private float tapStep = 0.08f;
 
+        // The local prediction of the run the server is about to make. Only the machine that pressed
+        // ever runs one; everybody else takes the published value.
         private float easeUntil;
         private float trimUntil;
 
@@ -81,6 +93,21 @@ namespace SpaceGame.Vehicles
 
         /// <summary>The sail it works, if it works one.</summary>
         public SailSurface Sail => sail;
+
+        // --- What kind of station this is -------------------------------------
+
+        /// <summary>Two crew on one sheet is a crew, not a fight over a wheel.</summary>
+        protected override bool Exclusive => false;
+
+        /// <summary>
+        /// The claim lasts exactly as long as the run one press makes, then lapses. No stand-down
+        /// message exists for a winch, which is also why a dropped connection cannot leave one
+        /// turning.
+        /// </summary>
+        protected override float ClaimTimeout => tapDuration;
+
+        /// <summary>The part of a tap that lands the instant the button goes down.</summary>
+        protected override float ImmediateStep => tapStep;
 
         // --- IInteractionReadout ----------------------------------------------
         // Drawn by InteractionPromptUI whenever the crosshair is on this handle. Four winches within
@@ -145,28 +172,58 @@ namespace SpaceGame.Vehicles
 
         // --- E: the "more" direction ------------------------------------------
 
-        public bool CanInteract() => rig != null;
+        public override bool CanInteract() => rig != null;
 
-        public void Interact(Interactor interactor)
-        {
-            easeUntil = Time.time + tapDuration;
-            Apply(more: true, seconds: tapStep);   // act on the press, not on the next frame
-        }
+        public override void Interact(Interactor interactor) => Work(interactor, more: true);
 
         // --- click: the "less" direction --------------------------------------
 
         public bool CanSecondaryInteract() => rig != null;
 
-        public void SecondaryInteract(Interactor interactor)
+        public void SecondaryInteract(Interactor interactor) => Work(interactor, more: false);
+
+        /// <summary>
+        /// One press: predict it here, and ask the server for it.
+        ///
+        /// The prediction is not a nicety. Acting on the press is what the control has always done,
+        /// and deferring it — to the next frame before, to a round trip now — is what makes a winch
+        /// feel dead even when it is wired up correctly. The server's answer arrives a moment later
+        /// carrying an absolute position, so the correction is a few centimetres of sheet on a boom
+        /// that is already swinging toward it: invisible, and self-limiting, because the value on
+        /// the wire never depends on how many messages this machine did or did not see.
+        /// </summary>
+        private void Work(Interactor interactor, bool more)
         {
-            trimUntil = Time.time + tapDuration;
-            Apply(more: false, seconds: tapStep);
+            if (rig == null) return;
+
+            if (more) easeUntil = Time.time + tapDuration;
+            else trimUntil = Time.time + tapDuration;
+
+            // Act on the press, not on the next frame — but only where somebody else is the
+            // authority. On the host and offline the send below is delivered inline on this very
+            // frame and the server path applies the same step, so predicting here as well would
+            // move the winch twice per press and run it at double rate for as long as it is held.
+            if (Predicting) Apply(more, tapStep);
+
+            RequestClaim(interactor, more ? 1f : -1f);
         }
+
+        /// <summary>
+        /// Is this machine guessing rather than deciding?
+        ///
+        /// The authority — the server, or the only machine there is offline — runs this winch in
+        /// <see cref="AdvanceOnServer"/> and must not run it a second time as a prediction.
+        /// Everybody else predicts, and is corrected by the position the authority publishes.
+        /// </summary>
+        private bool Predicting => !Network.Simulates(this);
 
         // ----------------------------------------------------------------------
 
-        private void Update()
+        protected override void Update()
         {
+            // Not optional: the base's Update is what runs the winch on the server and publishes it.
+            base.Update();
+
             if (rig == null) return;
 
             bool easing = Time.time <= easeUntil;
@@ -175,15 +232,79 @@ namespace SpaceGame.Vehicles
             // A press of each in the same frame is a wash rather than a fight.
             if (easing == trimming) return;
 
+            // Prediction only, and only ours to predict. The authority is running the same run for
+            // the same length of time and its answer is the one that lands everywhere, including
+            // here once this run has lapsed — so a machine that IS the authority must not also run
+            // it here, and a machine watching somebody else work the winch must not run it at all.
+            if (!Predicting || !IsMannedByLocalPlayer) return;
+
             Apply(easing, Time.deltaTime);
         }
 
         /// <summary>
-        /// Move this control. Called once on the press and then every frame the press is held.
+        /// Server side: run the winch for one frame and report where it ended up.
         ///
-        /// Acting on the press matters: with the effect deferred to the next <see cref="Update"/>,
-        /// a tap does nothing at all if anything interrupts the frame, and the control feels dead
-        /// even when it is wired up correctly.
+        /// <paramref name="wanted"/> is the direction the presser asked for, +1 or -1, so this is
+        /// the same call the presser is making locally with the same rate — the two only differ by
+        /// however much of the run each machine has got through, which is why the value that travels
+        /// is the position rather than the movement.
+        /// </summary>
+        protected override float AdvanceOnServer(float wanted, float deltaTime)
+        {
+            if (rig != null && Mathf.Abs(wanted) > 0.01f) Apply(wanted > 0f, deltaTime);
+
+            return ReadValue();
+        }
+
+        /// <summary>
+        /// Where this control sits, read off the rig rather than off a number this station is
+        /// holding. It is the same figure <see cref="Value01"/> puts on the HUD bar, so what
+        /// travels is what the player is looking at — and, more importantly, a winch nobody has
+        /// touched all session still answers a joiner's question with where its sail actually is
+        /// rather than with zero.
+        /// </summary>
+        protected override float ReadValue() => Value01 ?? 0f;
+
+        /// <summary>
+        /// Every machine but the presser's: put the control exactly here.
+        ///
+        /// Absolute, so applying it twice is applying it once and a dropped message costs nothing
+        /// but the next tenth of a second. The hoist case sets every sail to the same figure, which
+        /// is true of this rig because the halyard station is the only thing that ever moves a
+        /// hoist and it always moves all of them together.
+        /// </summary>
+        protected override void ApplyValue(float position)
+        {
+            switch (function)
+            {
+                case StationFunction.Sheet:
+                    if (sail != null) sail.SetSheet(position);
+                    break;
+
+                case StationFunction.Hoist:
+                    if (rig == null) break;
+                    foreach (SailSurface s in rig.Sails)
+                        if (s != null) s.SetHoist(position);
+                    break;
+
+                case StationFunction.MastCant:
+                    // Cant01 is the readout's 0..1 form of a -1..1 lean, and it is what travels, so
+                    // the wire carries the same number the HUD bar shows.
+                    if (sail != null) sail.SetCant(position * 2f - 1f);
+                    break;
+            }
+        }
+
+        /// <summary>Stop predicting. The station is somebody else's now, or nobody's.</summary>
+        protected override void OnUnmanned(GameObject player)
+        {
+            easeUntil = 0f;
+            trimUntil = 0f;
+        }
+
+        /// <summary>
+        /// Move this control. Called once on the press and then every frame the run continues, on
+        /// the presser's machine as a prediction and on the server as the truth.
         /// </summary>
         private void Apply(bool more, float seconds)
         {

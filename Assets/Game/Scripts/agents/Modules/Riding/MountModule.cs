@@ -149,6 +149,13 @@ namespace SpaceGame.Agents
 
         /// <summary>Set for the duration of a dismount, so a listener calling back in is ignored.</summary>
         private bool dismounting;
+
+        /// <summary>
+        /// Where the next dismount should put the rider, when something other than the mount has
+        /// worked it out. Set by <see cref="DismountAt"/> and cleared by the dismount that consumes
+        /// it. Null on every ordinary dismount, which is the dismount point's business as before.
+        /// </summary>
+        private Vector3? dismountPositionOverride;
         private bool playerRigidbodyWasKinematic;
         private bool playerRigidbodyHadGravity;
         private RigidbodyInterpolation playerRigidbodyInterpolation;

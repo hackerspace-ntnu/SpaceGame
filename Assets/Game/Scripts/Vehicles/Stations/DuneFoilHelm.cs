@@ -14,6 +14,42 @@
 // camera and the controls, and this craft's controls ARE its deck. Taking the helm plants your feet
 // at the wheel and borrows A/D. You keep your body, your camera and your ability to look around at
 // the sails you are steering by.
+//
+// ── Crewed by more than one person ──
+// The claim is a VehicleStation, so the server decides who got the wheel and every machine hears
+// the same answer. Two things follow from that, and both are load-bearing:
+//
+//   • Taking the helm hands the whole hull's ownership to the helmsman (TakesVehicleOwnership), so
+//     their local input drives the craft and the motion replicates outward from them. Without it
+//     they steer a body they do not own and the server's NetworkTransform overwrites the input
+//     every tick.
+//   • Everything that takes the helmsman's own controls away — their movement script, their input
+//     subscription, the pin that holds their feet at the wheel — happens ONLY on the machine that
+//     owns that player. A remote peer knows who is steering, and draws them standing there because
+//     their own machine puts them there and the position replicates; it must never reach across and
+//     switch off a body it does not own.
+//
+// DuneFoilLocomotion is deliberately NOT switched off on the machines that are only watching — no
+// NetAuthority here, unlike a server-driven creature. Three reasons, and they all matter:
+//
+//   • It cannot fight the replicated pose. A non-authority NetworkTransform writes the transform at
+//     NetworkUpdateStage.PreLateUpdate, which is AFTER every Update and before every LateUpdate, so
+//     the locomotion's write is overwritten before anything reads it or renders it. Nothing on this
+//     craft reads the hull between those two points: the carrier runs in FixedUpdate, the HUD and
+//     the helm's pin run in LateUpdate.
+//   • It is what animates the craft everywhere. The sails, the boom swing, the mast cant, the foil
+//     blade and the ride height are all produced by DuneFoilLocomotion.Step calling into the rig
+//     and the foil. Switched off, a watching machine would see a hull sliding across the sand with
+//     dead cloth on it — and DeckBoarding's "no boarding a craft up on its foil" gate, which reads
+//     FoilLift.RideHeight01, would answer from a foil that never ticked.
+//   • It keeps every machine holding a live velocity for the craft, so the moment the helm changes
+//     hands the new owner carries on from a plausible speed instead of accelerating up from zero.
+//     DuneFoilLocomotion keeps its velocity private and has no way to be told one, so a machine
+//     that had stopped simulating would have no way back in.
+//
+// The one prefab requirement that follows: the ClientNetworkTransform must synchronise every
+// position and rotation axis. An axis left unsynced is one the local prediction writes and nothing
+// ever corrects, and the drift on it accumulates for the whole session.
 using UnityEngine;
 using SpaceGame.Core;
 using SpaceGame.Characters;
@@ -23,7 +59,7 @@ using SpaceGame.Vehicles.DuneFoil;
 namespace SpaceGame.Vehicles
 {
     [DefaultExecutionOrder(80)]     // before DuneFoilLocomotion (100) reads the rudder
-    public class DuneFoilHelm : MonoBehaviour, IInteractable, IInteractionReadout
+    public class DuneFoilHelm : VehicleStation, IInteractionReadout
     {
         [Header("Craft")]
         [Tooltip("The craft this wheel steers. Found in the parents when empty.")]
@@ -68,11 +104,14 @@ namespace SpaceGame.Vehicles
                  "craft when empty.")]
         [SerializeField] private WalkerPlatformCarrier carrier;
 
-        private Transform helmsman;
+        // Local-only cached views of whoever is at the wheel. Only the machine that OWNS that
+        // player fills in the input/movement halves; every other machine keeps the body reference
+        // alone, which is all the carrier claim below needs.
         private Rigidbody helmsmanBody;
         private PlayerInputManager helmsmanInput;
         private PlayerMovement helmsmanMovement;
         private bool restoreMovement;
+        private bool drivingLocally;
         private int tookHelmFrame = -1;
         private Vector3 stanceOffset;
 
@@ -80,19 +119,32 @@ namespace SpaceGame.Vehicles
         private float wheelAngle;
         private Quaternion restRotation = Quaternion.identity;
 
-        /// <summary>True while somebody is steering.</summary>
-        public bool IsManned => helmsman != null;
-
         /// <summary>Rudder the helm is asking for, -1 to 1.</summary>
         public float Rudder => rudder;
+
+        /// <summary>The helmsman's body, or null. Named for what it is; the base calls it the occupant.</summary>
+        public Transform Helmsman => Occupant != null ? Occupant.transform : null;
+
+        // --- What kind of station this is -------------------------------------
+
+        /// <summary>One wheel, one helmsman. This is the whole reason the claim goes to the server.</summary>
+        protected override bool Exclusive => true;
+
+        /// <summary>Held until the helmsman stands down, so no timeout — see the liveness poll instead.</summary>
+        protected override float ClaimTimeout => 0f;
+
+        /// <summary>The helmsman drives the hull, so the hull becomes theirs.</summary>
+        protected override bool TakesVehicleOwnership => true;
 
         // --- IInteractionReadout ----------------------------------------------
 
         public string Label => "Helm";
 
-        public string Prompt => IsManned
-            ? "A / D: steer the foil   E: let go"
-            : "E: take the helm";
+        public string Prompt => !IsManned
+            ? "E: take the helm"
+            : IsMannedByLocalPlayer
+                ? "A / D: steer the foil   E: let go"
+                : "Somebody else is at the wheel";
 
         /// <summary>Centred reads as half, so the bar sits in the middle like a real rudder gauge.</summary>
         public float? Value01 => IsManned ? (rudder + 1f) * 0.5f : (float?)null;
@@ -132,35 +184,58 @@ namespace SpaceGame.Vehicles
                                  "it; this wheel will spin and steer nothing.", this);
         }
 
-        public bool CanInteract() => locomotion != null;
+        public override bool CanInteract() => locomotion != null;
 
-        public void Interact(Interactor interactor)
+        /// <summary>
+        /// The press only ASKS. The server decides and tells everyone, including us.
+        ///
+        /// The stand-down is still refused to anybody but the helmsman, and the refusal is still
+        /// written here — but it is no longer what ENFORCES it. That has moved to
+        /// <see cref="VehicleStation"/>'s server-side handler, because a client that can be asked
+        /// "are you the helmsman" can also be asked to lie about it, and because two clients
+        /// disagreeing about who is steering is precisely what routing this through one machine
+        /// exists to prevent. What is left here is the same courtesy ArticulatedPartInteraction
+        /// pays: do not put a message on the wire the server is only going to refuse and then have
+        /// to correct us about.
+        ///
+        /// Deliberately not an <see cref="IContextualInteractable"/> refusal, which would have been
+        /// the tidier way to say it. That hides the prompt as well as blocking the press, and the
+        /// prompt is the only thing that tells a second player why the wheel will not answer them.
+        /// </summary>
+        public override void Interact(Interactor interactor)
         {
             if (locomotion == null) return;
 
-            if (IsManned)
+            if (!IsManned)
             {
-                // Only the person actually steering can stand down, so a second player looking at
-                // the wheel cannot take it out from under them.
-                if (interactor != null && interactor.transform.root == helmsman) Release();
+                RequestClaim(interactor, rudder);
                 return;
             }
 
-            TakeHelm(interactor);
+            if (ResolvePlayer(interactor) == Occupant) RequestRelease(interactor);
         }
 
-        private void TakeHelm(Interactor interactor)
+        // --- Taking and leaving the wheel --------------------------------------
+
+        protected override void OnManned(GameObject player)
         {
-            if (interactor == null) return;
+            helmsmanBody = player.GetComponent<Rigidbody>();
 
-            Transform player = interactor.transform.root;
-            if (player == null) return;
+            // Every machine: the deck stops carrying them. From here until they stand down, this
+            // component is the only thing that decides where they are — and on the machines that
+            // are only watching, nothing here places them at all, which is exactly right because
+            // their own machine is doing it and the result replicates.
+            if (carrier != null) carrier.ClaimRider(helmsmanBody);
 
-            PlayerController controller = interactor.GetComponentInParent<PlayerController>();
+            // Everything below takes control away from a player, so it may only happen on the
+            // machine that has that control in the first place. A remote peer running it would
+            // switch off a body it does not own and — worse — switch it back on again on release,
+            // handing a remote player's movement to the wrong machine.
+            if (!Network.Owns(player.transform)) return;
+
+            PlayerController controller = player.GetComponentInChildren<PlayerController>(true);
             if (controller == null) return;
 
-            helmsman = player;
-            helmsmanBody = player.GetComponent<Rigidbody>();
             helmsmanInput = controller.Input;
             tookHelmFrame = Time.frameCount;
 
@@ -173,25 +248,51 @@ namespace SpaceGame.Vehicles
             restoreMovement = helmsmanMovement != null && helmsmanMovement.enabled;
             if (restoreMovement) helmsmanMovement.enabled = false;
 
-            // Remember where they are standing relative to the deck, so the pin holds them at the
-            // wheel rather than snapping them to one exact spot on it.
             // Hold them where they are standing, not on one exact spot: pinned to a fixed point
             // the helm would snatch the player off their feet the instant they pressed E, and the
             // craft would have one legal place to stand at the wheel. Only the horizontal reach is
             // clamped — the vertical offset is how far their pivot sits above their own feet, and
             // scaling that down buries them in the planks.
-            Vector3 offset = StanceAnchor().InverseTransformPoint(player.position);
+            //
+            // Measured on the owner's machine alone, and that is fine: nothing else pins them, so
+            // nothing else needs the number.
+            Vector3 offset = StanceAnchor().InverseTransformPoint(player.transform.position);
             Vector3 flat = Vector3.ClampMagnitude(new Vector3(offset.x, 0f, offset.z),
                                                   releaseDistance * 0.5f);
             stanceOffset = new Vector3(flat.x, offset.y, flat.z);
 
-            // The deck stops carrying them: from here until they stand down, this component is
-            // the only thing that decides where they are.
-            if (carrier != null) carrier.ClaimRider(helmsmanBody);
-
             // E anywhere lets go, not just E while looking back at the wheel. Standing at a helm
             // you are looking at the sails, not at your own hands.
             if (helmsmanInput != null) helmsmanInput.OnInteractPressed += OnHelmsmanInteract;
+
+            // Set last, and it gates the pin. Everything above can bail — a body with no
+            // PlayerController is not somebody who can stand at a wheel — and a pin that ran anyway
+            // would have no stance offset to place them by, so it would snatch them onto the wheel
+            // itself and hold them there.
+            drivingLocally = true;
+        }
+
+        /// <summary>
+        /// Give the player their legs back.
+        ///
+        /// <paramref name="player"/> may already be destroyed — this is also the path a
+        /// disconnecting helmsman takes — so everything here works off references captured when
+        /// they took the wheel rather than off the body.
+        /// </summary>
+        protected override void OnUnmanned(GameObject player)
+        {
+            if (helmsmanInput != null) helmsmanInput.OnInteractPressed -= OnHelmsmanInteract;
+            if (restoreMovement && helmsmanMovement != null) helmsmanMovement.enabled = true;
+            if (carrier != null) carrier.ReleaseRider(helmsmanBody);
+
+            helmsmanBody = null;
+            helmsmanInput = null;
+            helmsmanMovement = null;
+            restoreMovement = false;
+            drivingLocally = false;
+
+            // Leave the rudder where it is and let the locomotion centre it, so stepping away
+            // mid-turn finishes the turn rather than snapping the hull straight.
         }
 
         private Transform StanceAnchor() => stance != null ? stance : transform;
@@ -199,39 +300,79 @@ namespace SpaceGame.Vehicles
         private void OnHelmsmanInteract()
         {
             // The press that took the helm must not also release it. Interactor raises this on the
-            // same frame TakeHelm ran, and whether the freshly added handler sees that in-flight
+            // same frame the claim landed, and whether the freshly added handler sees that in-flight
             // invocation is a detail of how the delegate was built — so do not depend on it.
             if (Time.frameCount == tookHelmFrame) return;
             Release();
         }
 
-        /// <summary>Stand down from the wheel and give the player their legs back.</summary>
-        public void Release()
+        /// <summary>
+        /// Ask to stand down from the wheel.
+        ///
+        /// Still public and still called "Release", but it is now a request rather than an act: the
+        /// server owns who is at the helm, and it hands the hull back to itself as part of granting
+        /// this. Offline the whole round trip happens inside this call.
+        /// </summary>
+        public void Release() => RequestRelease(Occupant);
+
+        // --- Steering ----------------------------------------------------------
+
+        /// <summary>
+        /// What the helmsman's machine reports to the server ten times a second: the rudder itself,
+        /// already ramped. The wheel is the one control whose occupant also owns the vehicle, so it
+        /// integrates its own input locally and the server publishes the result rather than the
+        /// other way round — a wheel that waits a round trip for its own input is unsteerable.
+        /// </summary>
+        protected override float LocalRequest() => rudder;
+
+        /// <summary>
+        /// Every machine but the helmsman's: put the blade where the helmsman has it.
+        ///
+        /// Only the blade command, never the hull. The hull's motion arrives through the
+        /// NetworkTransform; this is what makes the strut visibly swing and the wheel visibly turn
+        /// on a machine that is watching somebody else steer.
+        /// </summary>
+        protected override void ApplyValue(float position) => rudder = Mathf.Clamp(position, -1f, 1f);
+
+        /// <summary>
+        /// Server side: has the helmsman gone? Teleported, died, fallen off, or been despawned.
+        ///
+        /// Judged on the server rather than locally, because it ends somebody's claim and only one
+        /// machine may do that. The helmsman's position is on the server like everybody else's, so
+        /// there is nothing here the server cannot see.
+        /// </summary>
+        protected override bool ShouldRelease(GameObject player)
         {
-            if (helmsmanInput != null) helmsmanInput.OnInteractPressed -= OnHelmsmanInteract;
-            if (restoreMovement && helmsmanMovement != null) helmsmanMovement.enabled = true;
-            if (carrier != null) carrier.ReleaseRider(helmsmanBody);
+            if (player == null || !player.activeInHierarchy) return true;
 
-            helmsman = null;
-            helmsmanBody = null;
-            helmsmanInput = null;
-            helmsmanMovement = null;
-            restoreMovement = false;
-
-            // Leave the rudder where it is and let the locomotion centre it, so stepping away
-            // mid-turn finishes the turn rather than snapping the hull straight.
+            return (player.transform.position - transform.position).sqrMagnitude
+                   > releaseDistance * releaseDistance;
         }
 
-        private void OnDisable() => Release();
-
-        private void Update()
+        /// <summary>
+        /// The wheel is read here, at execution order 80, so DuneFoilLocomotion (100) integrates
+        /// this frame's rudder rather than last frame's. <c>base.Update()</c> is not optional — see
+        /// <see cref="VehicleStation.Update"/> for what silently stops working without it.
+        /// </summary>
+        protected override void Update()
         {
+            base.Update();
+
             float dt = Time.deltaTime;
             if (dt <= 0f) return;
 
-            if (IsManned && !StillAboard()) Release();
+            SteerOrCentre(dt);
+            SpinWheel(dt);
+        }
 
-            if (IsManned)
+        // The pin runs after the hull has moved, which is why it is not up in Update with the rest.
+        private void LateUpdate() => HoldHelmsmanAtTheWheel();
+
+        private void SteerOrCentre(float dt)
+        {
+            if (locomotion == null) return;
+
+            if (IsMannedByLocalPlayer)
             {
                 float steer = helmsmanInput != null ? helmsmanInput.MoveInput.x : 0f;
 
@@ -239,18 +380,34 @@ namespace SpaceGame.Vehicles
                 float rate = Mathf.Abs(steer) > 0.01f ? 1f / rudderRampTime : 1f / rudderCentreTime;
                 rudder = Mathf.MoveTowards(rudder, Mathf.Clamp(steer, -1f, 1f), rate * dt);
 
-                if (locomotion != null) locomotion.SetRudder(rudder);
-            }
-            else
-            {
-                rudder = Mathf.MoveTowards(rudder, 0f, dt / rudderCentreTime);
+                locomotion.SetRudder(rudder);
+                return;
             }
 
-            SpinWheel(dt);
+            if (IsManned)
+            {
+                // Somebody else is steering. Their rudder arrives ten times a second and is fed to
+                // the craft EVERY frame in between, not just on the frames a message lands.
+                //
+                // Through SetRudder rather than straight onto the blade, and that is the whole
+                // point: SetRudder is also what tells the locomotion the helm is manned. Written
+                // directly to FoilRudder.Command instead, the locomotion would see an unmanned helm
+                // on every frame between two updates and ease the blade back toward centre at 1.5
+                // per second — a tenth of a second of that is a sixth of full rudder, so the strut
+                // would visibly flutter on every machine that is only watching.
+                locomotion.SetRudder(rudder);
+                return;
+            }
+
+            // Nobody has the helm anywhere. The locomotion centres the blade itself, on every
+            // machine, so read the wheel off the blade rather than easing a number of our own: the
+            // mesh and the strut then cannot disagree about where the helm is.
+            if (locomotion.Rudder != null) rudder = locomotion.Rudder.Command;
+            else rudder = Mathf.MoveTowards(rudder, 0f, dt / rudderCentreTime);
         }
 
         /// <summary>
-        /// Hold the helmsman at the wheel.
+        /// Hold the helmsman at the wheel — on their own machine and nowhere else.
         ///
         /// The hull has already moved this frame — the locomotion writes it in Update — so a spot
         /// measured off the wheel now is a spot on the deck as it currently is. The carrier has
@@ -263,11 +420,17 @@ namespace SpaceGame.Vehicles
         /// itself with its helmsman somewhere astern. Their own body, their own camera and their
         /// own view are all untouched; only their feet are nailed down, which is what standing at
         /// a wheel is.
+        ///
+        /// The ownership gate is not a nicety. The player's transform is owner-authoritative, so a
+        /// peer writing a remote helmsman's position here would be overwritten within the tick
+        /// anyway — after having zeroed a velocity that was not theirs to zero, once per frame,
+        /// which is the same class of mistake as a server-side teleport of a client's body.
         /// </summary>
-        private void LateUpdate()
+        private void HoldHelmsmanAtTheWheel()
         {
-            if (!IsManned) return;
+            if (!drivingLocally || !IsMannedByLocalPlayer) return;
 
+            Transform helmsman = Occupant.transform;
             Vector3 target = StanceAnchor().TransformPoint(stanceOffset);
 
             if (helmsmanBody != null)
@@ -281,14 +444,6 @@ namespace SpaceGame.Vehicles
             // Their movement script is off, so nothing is feeding the animator any more and it
             // would otherwise hold whatever pose they walked up in — usually mid-stride.
             if (helmsmanMovement != null) helmsmanMovement.ForceIdleAnimation();
-        }
-
-        /// <summary>Has the helmsman gone? Teleported, died, fallen off, or been despawned.</summary>
-        private bool StillAboard()
-        {
-            if (helmsman == null || !helmsman.gameObject.activeInHierarchy) return false;
-            return (helmsman.position - transform.position).sqrMagnitude
-                   <= releaseDistance * releaseDistance;
         }
 
         private void SpinWheel(float dt)

@@ -815,6 +815,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Hud",
+                    "type": "Button",
+                    "id": "1d5b8c73-24af-4a1e-9c60-6a83f1e2b904",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -1387,6 +1396,28 @@
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
                     "action": "Chat",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5c2a7d16-9b40-4f8e-8d31-2ab7c04e6193",
+                    "path": "<Keyboard>/n",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "Map",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e9f3b528-70c1-4a6d-b2f4-8c15d7a0e362",
+                    "path": "<Keyboard>/h",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "Hud",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

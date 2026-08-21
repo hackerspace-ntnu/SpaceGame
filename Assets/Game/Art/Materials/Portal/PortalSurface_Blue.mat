@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: PortalSurface_Blue
+  m_Shader: {fileID: 4800000, guid: f617b2bbbf36247efbac218b9fe6c1f8, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _PortalTexture:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Aperture: 0.97
+    - _Boil: 0.028
+    - _BoilSpeed: 1.6
+    - _EdgeGlow: 2.4
+    - _EdgeWidth: 0.13
+    - _Fringe: 0.0035
+    - _HasView: 1
+    - _Open: 1
+    m_Colors:
+    - _EdgeColour: {r: 0.18, g: 0.72, b: 1, a: 1}
+    - _InactiveColour: {r: 0.018000001, g: 0.072000004, b: 0.1, a: 0.1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

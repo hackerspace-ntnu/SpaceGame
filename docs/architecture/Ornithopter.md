@@ -109,11 +109,54 @@ Unlimited uses, and teardown funnels through one method reached four ways: landi
 switching hotbar slot mid-flight, and the item being destroyed. Bailing out at altitude drops you —
 intentionally. The pack is usable while falling, so bailing and redeploying is a move.
 
+## Ending a flight: landing and crashing
+
+Two things end a flight and they share one path, `OrnithopterFlightMotor.ReportTouchdown`:
+
+- **The ground probe** — a short ray under the craft. This is what a landing is: ground appears
+  beneath you and the flight is over before the hull ever touches it.
+- **`OnCollisionEnter`** — you flew into something. A cliff face is not under the craft, so the
+  probe never sees it; without this the machine grinds along the rock with its velocity rewritten
+  from the flight model every step and the flight never ends.
+
+Both raise `Landed` with an `OrnithopterTouchdown`, and the wing pack does three things with it:
+hurts the pilot, stands them somewhere solid, despawns the craft.
+
+**Damage is priced on closing speed, never airspeed.** Closing speed is how fast the craft was
+moving *towards* the surface — `dot(-velocity, surfaceNormal)`. This is the whole reason landing and
+crashing need no special-casing against each other:
+
+| | closing speed | damage |
+|---|---|---|
+| Trimmed glide onto sand, 20 m/s at −6° | 2.1 m/s | 0 |
+| Botched flare, 30 m/s at −30° | 15.0 m/s | 17 |
+| Level into a cliff at 20 m/s | 20.0 m/s | 35 |
+| Held dive into the ground, 42 m/s at −60° | 36.4 m/s | 100 |
+| Wingtip dragged down a rock wall | 0 m/s | 0 |
+
+The curve is energy-proportional (`v²`) between `SafeClosingSpeed` (8 m/s, free) and
+`LethalClosingSpeed` (32 m/s, the player's full 100 health) — a crash has to shed ½mv², so doubling
+the speed quadruples the cost. All of it is in `OrnithopterCrashConfig` on the motor.
+
+**Where the pilot ends up.** The craft's `DismountPoint` is useless after a crash: the wreck is
+embedded in rock at whatever attitude it hit at, and the marker swung with it. So the motor probes
+straight down from the impact (stepped clear of the surface first, and ignoring its own hull and the
+pilot parented into the cradle) and hands the resolved spot to `MountModule.DismountAt`. Nothing
+within `GroundSearchDistance` — a cliff face 200 m up — releases the pilot at the crash site
+instead, and they fall; `PlayerMovement` already prices that.
+
+Two consequences of that ordering are load-bearing: the impact speed is read from the *flight state*
+before `EndFlight` zeroes the body (by the time a collision callback runs, the solver's contact
+response has already eaten the Rigidbody's velocity, which would under-report exactly the hardest
+hits), and the damage lands *after* the dismount, so a fatal crash leaves the body at the wreck
+rather than mid-air.
+
 ## Tests
 
 | Suite | Covers |
 |---|---|
 | `OrnithopterFlightModelTests` (22) | Glide descends, dive gains speed, climbing costs speed, flapping climbs, stall and recovery, banked turns, stamina, NaN-freedom over 2 minutes of varied input. |
+| `OrnithopterCrashTests` (4) | A glide onto sand is free, the same airspeed into a cliff is not, a held dive is fatal, a wingtip scrape is not an impact. |
 | `OrnithopterWingAnimatorTests` (10) | The wings actually move: beat, gear spin, spread, per-side symmetry, tail boom, tail fan asymmetry, roll differential. |
 | `OrnithopterRigWiringTests` (10) | Prefab wiring: bones resolve, panels skinned, seat lays the rider prone, camera boom clears the span, pack points at the craft. |
 

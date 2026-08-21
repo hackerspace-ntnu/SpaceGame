@@ -12,7 +12,7 @@ namespace SpaceGame.Presentation
     /// fires"; the UnityEvent is the "what happens after" — none of them know about each other.
     /// </summary>
     [AddComponentMenu("Cutscenes/Cutscene Action")]
-    public class CutsceneAction : MonoBehaviour, ITriggerable
+    public class CutsceneAction : MonoBehaviour, ITriggerable, SpaceGame.Persistence.IPersistentEntity
     {
         [SerializeField] private Cutscene cutscene;
 
@@ -24,6 +24,19 @@ namespace SpaceGame.Presentation
 
         private bool busy;
         private bool fired;
+
+        /// <summary>Whether a <c>playOnce</c> action has already had its turn.</summary>
+        public bool HasPlayed => fired;
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// The tooltip on <c>playOnce</c> says "once per scene load", and that was literally true —
+        /// so a one-time cutscene played again every time the world was loaded, and any UnityEvent
+        /// hung off <c>onCutsceneEnded</c> fired again with it. Saving the flag is what makes the
+        /// setting mean "once", which is what a designer ticking it intends.
+        /// </summary>
+        public void RestorePlayed(bool played) => fired = played;
 
         public bool CanTrigger(GameObject initiator)
         {

@@ -654,6 +654,9 @@ GameObject:
   - component: {fileID: 3468554466994701478}
   - component: {fileID: 1379343990785495688}
   - component: {fileID: 7685831849849445317}
+  - component: {fileID: 1105699204347584788}
+  - component: {fileID: -4457718330258487030}
+  - component: {fileID: 883259355253247976}
   m_Layer: 0
   m_Name: CowBotRocket
   m_TagString: Untagged
@@ -743,8 +746,50 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 763bd9380ec215049bf92071512b69dc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimpleUpwardFlightController
-  upwardSpeed: 10
+  initialSpeed: 5
+  acceleration: 15
+  maxSpeed: 50
   maxAltitude: 100
+--- !u!114 &1105699204347584788
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7526090167333966417}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 862f7067c13c7df45a8839b871d28e52
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &-4457718330258487030
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7526090167333966417}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &883259355253247976
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7526090167333966417}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 12163e19b6e6f41faaeb7046f9502c6a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SpaceshipSaveable
 --- !u!1 &7593854896839053440
 GameObject:
   m_ObjectHideFlags: 0

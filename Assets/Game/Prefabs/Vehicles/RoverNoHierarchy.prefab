@@ -704,6 +704,7 @@ GameObject:
   - component: {fileID: 8619324421999906601}
   - component: {fileID: 7765917727264791462}
   - component: {fileID: 5280388636385075099}
+  - component: {fileID: -3485245901614485427}
   m_Layer: 0
   m_Name: RoverNoHierarchy
   m_TagString: Untagged
@@ -963,6 +964,8 @@ MonoBehaviour:
   depthTolerance: 0.5
   surfaceClearance: 1.2
   absoluteFloorY: -500
+  groundWaitTimeout: 20
+  structureFloorReach: 1.7
   logRecoveries: 1
 --- !u!114 &8619324421999906601
 MonoBehaviour:
@@ -976,7 +979,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
-  prefabId: 
+  prefabId: 745529dd05e1aab43a62ff50c0c789ce
   instanceId: 
   authored: 0
   scope: 0
@@ -1004,6 +1007,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &-3485245901614485427
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2104903636770483098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b7179e995e114656a7c05b0bf39e686, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MotorStateSaveable
 --- !u!1 &2169529945073363033
 GameObject:
   m_ObjectHideFlags: 0

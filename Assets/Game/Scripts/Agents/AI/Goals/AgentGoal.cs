@@ -107,6 +107,32 @@ namespace SpaceGame.Agents
         }
 
         /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Deliberately not <see cref="Set"/>: the goal is being put back exactly as it was, not
+        /// issued, so it must not be re-sampled onto the NavMesh (the mesh under it may not be
+        /// loaded yet) and an absent goal must come back absent rather than as a goal at the origin.
+        /// </summary>
+        public void RestoreGoal(bool hasGoal, Vector3 position, float arriveRadius, string reason,
+                                string siteId, float speedMultiplier)
+        {
+            if (!hasGoal)
+            {
+                Clear();
+                Position = Vector3.zero;
+                ArriveRadius = 2f;
+                return;
+            }
+
+            Position = position;
+            ArriveRadius = Mathf.Max(0.5f, arriveRadius);
+            Reason = reason ?? string.Empty;
+            SiteId = siteId ?? string.Empty;
+            SpeedMultiplier = Mathf.Max(0.01f, speedMultiplier);
+            HasGoal = true;
+        }
+
+        /// <summary>
         /// Attach or fetch. Used by AgentController so a prefab that predates this component still
         /// gets one, rather than every reader having to null-check a component that is almost
         /// always wanted.

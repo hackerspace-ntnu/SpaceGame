@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using SpaceGame.Core.Persistence;
 
 namespace SpaceGame.Presentation
 {
@@ -34,10 +35,29 @@ namespace SpaceGame.Presentation
         private void Reset()    => EnsureId();
         private void OnValidate() => EnsureId();
 
+        /// <summary>
+        /// Give this POI an id, if it has not been given one already.
+        ///
+        /// <para>
+        /// A blank id used to mean a fresh <c>Guid</c> every session, which is invisible until the
+        /// map is saved: the record of which points of interest a player has FOUND is keyed by this
+        /// id, so an id that changes between sessions is a discovery nothing can ever match again
+        /// and a wreck the player walked to comes back as fog.
+        /// </para>
+        /// <para>
+        /// Derived from the scene and the hierarchy instead — the same shape
+        /// <c>SaveableEntity.DeriveAuthoredId</c> uses — so an unchanged scene gives the same id on
+        /// every load. An id somebody authored is never touched.
+        /// </para>
+        /// </summary>
         private void EnsureId()
         {
-            if (string.IsNullOrEmpty(id))
-                id = System.Guid.NewGuid().ToString("N");
+            if (!string.IsNullOrEmpty(id)) return;
+
+            // No scene means a prefab asset or a prefab stage: nothing to derive a placement from.
+            id = gameObject.scene.IsValid() && !string.IsNullOrEmpty(gameObject.scene.name)
+                ? SaveableEntity.DeriveAuthoredId(gameObject)
+                : System.Guid.NewGuid().ToString("N");
         }
 
         private void OnEnable()

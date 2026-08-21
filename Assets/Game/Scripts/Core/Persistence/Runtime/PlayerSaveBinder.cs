@@ -50,7 +50,21 @@ namespace SpaceGame.Core.Persistence
         {
             if (string.IsNullOrEmpty(boundProfileId)) return;
 
-            SaveManager.Instance?.Players?.Unbind(boundProfileId);
+            PlayerSaveService players = SaveManager.Instance?.Players;
+
+            // Only while this object is still the one speaking for the profile. Unbinding captures
+            // the LIVE player's state into the record and drops them from the bound table, so doing
+            // it on behalf of a profile something else has taken over writes the wrong player's
+            // state down and then stops capturing them at all. Same rule as PlayerSaveSync's.
+            if (players != null &&
+                players.TryGetBoundPlayer(boundProfileId, out GameObject live) &&
+                live != gameObject)
+            {
+                boundProfileId = null;
+                return;
+            }
+
+            players?.Unbind(boundProfileId);
             boundProfileId = null;
         }
     }

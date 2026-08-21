@@ -22,7 +22,7 @@ namespace SpaceGame.EditorTools
     public class OrnithopterRigWiringTests
     {
         private const string CraftPath =
-            "Assets/Game/Prefabs/Agents/Vehicles/Aircraft/DuneOrnithopter.prefab";
+            "Assets/Game/Prefabs/agents/Vehicles/Aircraft/DuneOrnithopter.prefab";
         private const string PackPath = "Assets/Game/Prefabs/Items/Equipment/WingPack.prefab";
         private const string ItemPath = "Assets/Game/Resources/Items/Artifacts/WingPack.asset";
 

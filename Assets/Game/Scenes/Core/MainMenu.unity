@@ -1108,6 +1108,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7186089524042346818, guid: 5c9c4eb0ed40ad64e9208a510dc8957a, type: 3}
+      propertyPath: freezeCycle
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5334017982181810390, guid: 5c9c4eb0ed40ad64e9208a510dc8957a, type: 3}
       propertyPath: m_Name
       value: Sun

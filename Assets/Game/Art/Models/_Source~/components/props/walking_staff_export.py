@@ -33,6 +33,14 @@ from _exportlib import unity_path, _localise_materials  # noqa: E402
 TARGETS = [
     ("walking_staff.blend", "Coll_Staff_Nomad",
      ("Weapons", "WalkingStaff", "walking_staff.fbx")),
+
+    # The Laser Staff artifact. Gnarled rather than the Nomad's stave on
+    # purpose: the two would otherwise be the same object on screen, and the
+    # generated inventory icon would be indistinguishable from a walking stick
+    # every NPC in the desert is already carrying. The forked crown is also
+    # where the beam emitter sits, which none of the other three offer.
+    ("walking_staff.blend", "Coll_Staff_Gnarled",
+     ("Weapons", "LaserStaff", "laser_staff.fbx")),
 ]
 
 

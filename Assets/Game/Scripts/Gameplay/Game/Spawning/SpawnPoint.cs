@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.World.Safety;
 
@@ -67,12 +68,54 @@ namespace SpaceGame.Gameplay
         /// A ground-backed position near this point, or false when the world here cannot yet
         /// vouch for one.
         /// </summary>
-        public bool TryGetSpawnPoint(out Vector3 spawnPosition)
+        public bool TryGetSpawnPoint(out Vector3 spawnPosition) =>
+            TryGetSpawnPoint(null, 0f, out spawnPosition, out _);
+
+        /// <summary>
+        /// As above, but preferring a position clear of everyone already placed.
+        ///
+        /// <para>
+        /// The scatter on its own does not solve four people arriving together, and on this game's
+        /// only spawn point it barely helps at all: it is a child of ShipRV with a 0.5 m radius on a
+        /// cargo bay floor, so every candidate it can produce is within arm's reach of every other
+        /// one. Worse, the geometry test it is judged by deliberately ignores player bodies —
+        /// <see cref="SpawnClearance.HasRoomToStand"/> has to, or the first player to stand there
+        /// would block every position the point can offer and nobody else could spawn indoors at
+        /// all. So the scatter genuinely did not know who was already there, and four players landed
+        /// inside one another.
+        /// </para>
+        ///
+        /// <para>
+        /// Separation is a PREFERENCE layered over validity, never a new way to fail. A candidate
+        /// that clears everyone is taken immediately; a valid but crowded one is remembered, and the
+        /// roomiest of those is the answer when nothing better turns up. Refusing instead would be
+        /// read by the caller as "the chunk has not loaded yet" — the one thing false means here —
+        /// and it would wait out its whole timeout for a bay that is merely full. Two capsules
+        /// briefly overlapping resolve apart on the next physics step; a player with no body does
+        /// not.
+        /// </para>
+        ///
+        /// <para>
+        /// With no occupants and a separation of zero this is exactly the old behaviour: every
+        /// candidate reports infinite clearance, so the first valid one is returned.
+        /// </para>
+        /// </summary>
+        /// <param name="occupied">Positions to stay away from — bodies already standing, and
+        /// positions handed out to players whose bodies do not exist yet. May be null.</param>
+        /// <param name="separation">How far away is far enough to stop looking.</param>
+        /// <param name="clearance">Distance from the answer to the nearest occupant, or infinity
+        /// when there are none. Lets a caller choose between several spawn points.</param>
+        public bool TryGetSpawnPoint(IReadOnlyList<Vector3> occupied, float separation,
+                                     out Vector3 spawnPosition, out float clearance)
         {
             // Asked once, up front, because it decides which rules the candidates below are judged
             // by — not per candidate, which would let two positions a metre apart be governed by
             // different laws.
             bool indoors = SpawnClearance.IsSheltered(transform.position);
+
+            bool found = false;
+            spawnPosition = Vector3.zero;
+            clearance = 0f;
 
             // One attempt past the scattered ones, on this point's own X/Z. Scattering exists so a
             // group does not spawn stacked, but it is a preference, not a requirement, and the
@@ -99,9 +142,27 @@ namespace SpaceGame.Gameplay
                 // catches the floor, which is the point of the whole exercise, so it is not asked.
                 if (!indoors && IsUnderTerrain(candidate)) continue;
 
-                spawnPosition = candidate;
-                return true;
+                float gap = DistanceToNearest(candidate, occupied);
+
+                // Clear of everybody. Nothing later in the loop can beat that, so stop.
+                if (gap >= separation)
+                {
+                    spawnPosition = candidate;
+                    clearance = gap;
+                    return true;
+                }
+
+                // Valid but crowded: kept as the best answer so far rather than returned, and never
+                // discarded — a position on top of somebody is still a position.
+                if (!found || gap > clearance)
+                {
+                    found = true;
+                    spawnPosition = candidate;
+                    clearance = gap;
+                }
             }
+
+            if (found) return true;
 
             // Every probe missed. Outdoors the terrain is still a better answer than this point's
             // authored height, which nothing has verified. Indoors it is the worst answer available
@@ -112,12 +173,39 @@ namespace SpaceGame.Gameplay
                 spawnPosition = new Vector3(transform.position.x,
                                             terrainY + groundClearance,
                                             transform.position.z);
+                clearance = DistanceToNearest(spawnPosition, occupied);
                 return true;
             }
 
             // Nothing to stand on and nothing to measure: the chunk has not loaded. Say so.
             spawnPosition = Vector3.zero;
+            clearance = 0f;
             return false;
+        }
+
+        /// <summary>
+        /// How far <paramref name="position"/> is from the nearest occupant, or infinity when there
+        /// are none — so an empty world reads as "as clear as it is possible to be" and every
+        /// separation test passes without a special case.
+        ///
+        /// Measured in three dimensions rather than on the floor plane. Two decks of a ship are the
+        /// only place that costs anything, and it costs a spawn point being slightly shy of a
+        /// position above or below it, which is a far cheaper mistake than the flat version's:
+        /// counting somebody on the deck below as standing on top of you.
+        /// </summary>
+        private static float DistanceToNearest(Vector3 position, IReadOnlyList<Vector3> occupied)
+        {
+            if (occupied == null || occupied.Count == 0) return float.PositiveInfinity;
+
+            float nearest = float.PositiveInfinity;
+
+            for (int i = 0; i < occupied.Count; i++)
+            {
+                float distance = Vector3.Distance(position, occupied[i]);
+                if (distance < nearest) nearest = distance;
+            }
+
+            return nearest;
         }
 
         private void OnValidate()

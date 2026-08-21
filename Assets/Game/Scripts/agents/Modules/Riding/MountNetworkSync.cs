@@ -133,9 +133,28 @@ namespace SpaceGame.Agents
             return true;
         }
 
+        /// <summary>
+        /// Server side: the only machine allowed to say a dismount happened.
+        ///
+        /// <para>
+        /// Unlike <c>PlayerRespawn.OnRespawnRequested</c>, this one does check the sender, and the
+        /// difference is what the message can be aimed at. A respawn arrives on the player's own
+        /// channel and asks for something that player is already asking for, so the worst a forged
+        /// one can do is resurrect a teammate who wanted resurrecting. A dismount arrives on the
+        /// MOUNT's channel — every client knows every mount's NetworkObjectId, because that is how
+        /// they draw it — so an unchecked handler lets anybody in the session throw anybody else
+        /// off their walker at any moment, from anywhere on the map.
+        /// </para>
+        /// <para>
+        /// The server is allowed through unconditionally: it dismounts riders for reasons no client
+        /// asked for — a death, a teardown, a save being restored — and offline every send is
+        /// attributed to the server id, so single-player takes this path as it always did.
+        /// </para>
+        /// </summary>
         private void OnDismountRequested(in NetArg arg, ulong sender)
         {
             if (!Network.Simulates(this) || !mount.IsMounted) return;
+            if (!MayDismount(sender)) return;
 
             ApplyDismount();
 
@@ -147,6 +166,55 @@ namespace SpaceGame.Agents
             }
 
             this.NetToOthers(NetMsg.Dismounted, arg, except: sender);
+        }
+
+        /// <summary>
+        /// May <paramref name="sender"/> throw the current rider off? Resolves who the rider is and
+        /// hands the decision to <see cref="IsDismountAllowed"/>.
+        /// </summary>
+        private bool MayDismount(ulong sender)
+        {
+            if (!Network.IsNetworked) return true;
+
+            return IsDismountAllowed(sender, NetworkManager.ServerClientId, ResolveRiderOwner());
+        }
+
+        /// <summary>
+        /// The rule itself, with the lookups taken out so it can be tested without a session.
+        ///
+        /// <para>
+        /// Only the rider themselves, or the server. A null <paramref name="riderOwner"/> means
+        /// nobody could be identified — an unnetworked rider, a rider not spawned, a mount seated
+        /// by a save being restored — and that answers true: there is no client id to compare
+        /// against, and refusing would mean nobody could ever get off. The check exists for exactly
+        /// one thing, which is a client naming somebody else's mount, and it should not start
+        /// deciding anything else.
+        /// </para>
+        /// </summary>
+        public static bool IsDismountAllowed(ulong sender, ulong serverClientId, ulong? riderOwner)
+        {
+            if (sender == serverClientId) return true;
+            if (riderOwner == null) return true;
+
+            return sender == riderOwner.Value;
+        }
+
+        /// <summary>The client id of whoever is in the seat, or null if there is no telling.</summary>
+        private ulong? ResolveRiderOwner()
+        {
+            Transform rider = mount.MountedPlayerTransform;
+            if (rider == null) return null;
+
+            NetworkObject riderNet = rider.GetComponentInParent<NetworkObject>();
+            if (riderNet == null || !riderNet.IsSpawned) return null;
+
+            // A rider is parented INTO the seat while mounted, so a rider with no NetworkObject of
+            // its own resolves to the mount's — whose owner is the rider's client, since seating
+            // hands ownership over. Comparing the sender against that is comparing them with
+            // themselves and would wave anybody through. Treat it as "no rider identity" instead.
+            if (riderNet == GetComponentInParent<NetworkObject>()) return null;
+
+            return riderNet.OwnerClientId;
         }
 
         // ─────────── Replication to peers ───────────

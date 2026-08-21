@@ -33,6 +33,7 @@ namespace SpaceGame.Agents
         public IMovementMotor Motor { get; private set; }
         private IBehaviourModule[] movementModules;   // ClaimsMovement == true, sorted by priority
         private IBehaviourModule[] sideEffectModules; // ClaimsMovement == false, ticked every frame
+        private IBehaviourModule[] presentationModules; // IPresentationModule — ticked on every machine
         private IFacingModule[] facingModules;        // separate facing channel, priority-sorted
         private IAgentBrain legacyBrain;
         private HerdModule herdModule;
@@ -45,19 +46,73 @@ namespace SpaceGame.Agents
         private readonly Vector3[] nearbyPositionBuffer = new Vector3[32];
         private readonly Vector3[] nearbyVelocityBuffer = new Vector3[32];
 
+        private AgentAuthority authority;
+
+        // What the last frame concluded, so the switch between deciding and watching is an EVENT
+        // and not a per-frame reassertion. Starts true because that is what an agent has always
+        // been — offline, in a test, in a scene opened from the editor — and because the first
+        // Update on a machine that is only watching then sees a change and parks the motor.
+        private bool simulating = true;
+
+        /// <summary>
+        /// Is this machine the one deciding what this agent does? See <see cref="AgentAuthority"/>.
+        ///
+        /// True offline and in single-player, which runs as a host — so nothing about the solo game
+        /// changes. Read by modules that are reachable from somewhere other than this controller's
+        /// tick, and by tests.
+        /// </summary>
+        public bool SimulatesHere => authority == null || authority.SimulatedHere;
+
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // The phase is why a crowd does not march in step. It is randomised per agent in Awake, so a
+        // load re-rolls it for everybody at once — and a re-roll is not the same as a fresh roll:
+        // every agent's sine is sampled against the same Time.time, so the visible artefact is a
+        // group that was nicely staggered briefly moving as one before drifting apart again.
+        //
+        // `simulating` is deliberately NOT saved. It is a one-frame cache of an answer
+        // RefreshAuthority re-derives every Update, and the question it answers — "does THIS machine
+        // own this agent" — is about the session's network topology, which a load does not carry
+        // over. Restoring a previous session's answer would be restoring a stale reading of a
+        // different world; the field's `true` default is already the correct starting assumption,
+        // and the first Update reconciles it.
+        public float SpeedVariationPhase => speedVariationPhase;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreSpeedVariationPhase(float phase) => speedVariationPhase = phase;
+
         private void Awake()
         {
+            authority = new AgentAuthority(this);
             ResolveMotor();
             ResolveModules();
             speedVariationPhase = Random.Range(0f, Mathf.PI * 2f);
         }
 
+        // Reparenting is the one thing that can move an agent under a different NetworkObject — a
+        // creature carried on a walker's deck, a rider seated on a mount — and it is the only case
+        // the cached lookup cannot see for itself.
+        private void OnTransformParentChanged() => authority?.Invalidate();
+
         private void Update()
         {
+            float deltaTime = Time.deltaTime;
+
+            // Before anything decides or moves. Every module below this line writes shared state —
+            // a target, a path, a bite — and running them on a machine that does not own the entity
+            // is not a smaller version of the same behaviour, it is a second one: two brains
+            // pathing the same body against a server-authoritative NetworkTransform, and every
+            // client's copy of a swing routed to the server as its own damage request. Host plus
+            // two clients used to be three bites per bite.
+            if (!RefreshAuthority())
+            {
+                TickPresentation(deltaTime);
+                return;
+            }
+
             if (Motor == null)
                 return;
 
-            float deltaTime = Time.deltaTime;
             AgentContext context = BuildContext();
             MoveIntent intent = EvaluateModules(in context, deltaTime);
             ApplyFacingOverride(in context, ref intent);
@@ -72,6 +127,75 @@ namespace SpaceGame.Agents
 
             if (animatorDriver)
                 animatorDriver.Tick(Motor.Velocity, Motor.IsImmobile, intent.IsRunning);
+        }
+
+        // ──────────────────────────────────────────────
+        // Authority
+        // ──────────────────────────────────────────────
+
+        /// <summary>
+        /// Answer whether this machine simulates the agent, and act on the moment that changes.
+        ///
+        /// Ownership moves mid-life — every mount and dismount hands a vehicle between machines —
+        /// so this cannot be decided once at spawn. It is cheap to ask every frame (see
+        /// <see cref="AgentAuthority"/>) and expensive to get wrong in either direction, so it is
+        /// asked every frame and only the transitions cost anything.
+        /// </summary>
+        private bool RefreshAuthority()
+        {
+            bool simulatesNow = SimulatesHere;
+            if (simulatesNow == simulating)
+                return simulating;
+
+            simulating = simulatesNow;
+
+            if (simulating) ResumeSimulation();
+            else SuspendSimulation();
+
+            return simulating;
+        }
+
+        // Handing the body over to whoever does own it. Stopping the motor is not the same as
+        // ceasing to tick it: a NavMeshAgent keeps walking its last path forever, and would spend
+        // the rest of the session fighting the replicated transform. See ISelfDrivingMotor.
+        private void SuspendSimulation()
+        {
+            Motor?.ForceStop();
+
+            if (Motor is ISelfDrivingMotor selfDriving)
+                selfDriving.SuspendSelfDrive();
+        }
+
+        private void ResumeSimulation()
+        {
+            if (Motor is ISelfDrivingMotor selfDriving)
+                selfDriving.ResumeSelfDrive();
+        }
+
+        /// <summary>
+        /// The only thing a watching machine still runs: modules that produce local output and
+        /// nothing else. See <see cref="IPresentationModule"/>.
+        ///
+        /// <para>
+        /// Locomotion animation is deliberately NOT driven from here. It is driven by
+        /// <see cref="AgentAnimatorDriver"/> off the replicated transform, because this controller
+        /// is not reliably running at all on a watching machine — NetAuthority disables it outright
+        /// on the prefabs that carry one — and an animation that only plays when the brain happens
+        /// to be enabled is the "creatures slide instead of walking" bug wearing a different hat.
+        /// </para>
+        /// </summary>
+        private void TickPresentation(float deltaTime)
+        {
+            if (presentationModules == null || presentationModules.Length == 0)
+                return;
+
+            AgentContext context = BuildPresentationContext();
+
+            foreach (IBehaviourModule module in presentationModules)
+            {
+                if (module.IsActive)
+                    module.Tick(in context, deltaTime);
+            }
         }
 
         // ──────────────────────────────────────────────
@@ -113,6 +237,23 @@ namespace SpaceGame.Agents
 
             return ctx;
         }
+
+        /// <summary>
+        /// The context a watching machine can honestly fill in.
+        ///
+        /// A separate method rather than a flag on <see cref="BuildContext"/>, because the two are
+        /// not the same query with an option: this one may not touch the motor (it has been parked,
+        /// and its Velocity would be a stale zero dressed up as a measurement) and must not run the
+        /// neighbour OverlapSphere, which is the single most expensive thing an agent does and the
+        /// whole reason a client should not be paying for agents it does not own.
+        /// </summary>
+        private AgentContext BuildPresentationContext() => new AgentContext
+        {
+            Self = transform,
+            Position = transform.position,
+            Targeting = targeting,
+            Goal = goal,
+        };
 
         // ──────────────────────────────────────────────
         // Module evaluation
@@ -186,6 +327,7 @@ namespace SpaceGame.Agents
         {
             List<(IBehaviourModule Module, int Discovery)> movement = new List<(IBehaviourModule, int)>();
             List<IBehaviourModule> sideEffects = new List<IBehaviourModule>();
+            List<IBehaviourModule> presentation = new List<IBehaviourModule>();
             List<(IFacingModule Module, int Discovery)> facing = new List<(IFacingModule, int)>();
 
             int discovered = 0;
@@ -197,6 +339,13 @@ namespace SpaceGame.Agents
                         movement.Add((module, discovered++));
                     else
                         sideEffects.Add(module);
+
+                    // Also, not instead: on the machine that simulates the agent a presentation
+                    // module ticks exactly where it always did, in priority order among its peers.
+                    // This second list is only consulted on machines that are watching, so nothing
+                    // is ever ticked twice in one frame.
+                    if (mb is IPresentationModule)
+                        presentation.Add(module);
                 }
 
                 if (mb is IFacingModule facingModule)
@@ -229,6 +378,7 @@ namespace SpaceGame.Agents
                 facingModules[i] = facing[i].Module;
 
             sideEffectModules = sideEffects.ToArray();
+            presentationModules = presentation.ToArray();
             herdModule = GetComponentInChildren<HerdModule>(true);
             // Auto-added rather than required, so prefabs that predate the component still get one
             // shared target decision instead of every combat module resolving its own.

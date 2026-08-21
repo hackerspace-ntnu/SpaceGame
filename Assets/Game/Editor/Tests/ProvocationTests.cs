@@ -26,8 +26,8 @@ namespace SpaceGame.EditorTools
         private const string PlayerPath = "Assets/Game/ScriptableObjects/Factions/Core/PlayerFaction.asset";
         private const string WildlifePath = "Assets/Game/ScriptableObjects/Factions/Core/WildlifeFaction.asset";
         private const string TablePath = "Assets/Game/ScriptableObjects/Factions/Core/GlobalRelationships.asset";
-        private const string GolemPath = "Assets/Game/Prefabs/Agents/Creatures/Golem.prefab";
-        private const string NomadPath = "Assets/Game/Prefabs/Agents/Characters/Nomad.prefab";
+        private const string GolemPath = "Assets/Game/Prefabs/agents/creatures/Golem.prefab";
+        private const string NomadPath = "Assets/Game/Prefabs/agents/Characters/Nomad.prefab";
 
         private readonly System.Collections.Generic.List<GameObject> spawned = new();
 

@@ -22,6 +22,8 @@ using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 using SpaceGame.Agents;
 using SpaceGame.Gameplay;
+using SpaceGame.Items;
+using SpaceGame.Locomotion;
 using SpaceGame.Persistence;
 using SpaceGame.Vehicles;
 using SpaceGame.Vehicles.DuneFoil;
@@ -43,7 +45,16 @@ namespace SpaceGame.Core.Persistence
             "AgentProjectile",
             "TurretProjectile",
             "Projectile",
-            "RocketLauncherTurret",
+
+            // RocketLauncherTurret is NOT here any more, and never should have been. It is the
+            // launcher, not the rocket — the rocket is TurretProjectile, blacklisted on the line
+            // above — and the entry reads like it was added by name-association with the three real
+            // projectile types around it. The contradiction it produced is visible in the assets:
+            // Assets/Game/Resources/Saveable/RocketSpawn.prefab is the only thing carrying the
+            // component, it already ships SaveableEntity + TransformSaveable + RigidbodySaveable,
+            // and it lives in the folder whose entire purpose is "the save system must be able to
+            // rebuild this". Blacklisting it made EnsureSpawned return false, so a turret a player
+            // deployed got no savers at all and came back re-armed, if it came back.
         };
 
         /// <summary>
@@ -200,8 +211,334 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(OrnithopterSaveable));
             }
 
+            EnsureAgentMind(go, parts);
+            EnsureAgentRoutine(go, parts);
+            EnsureAgentCombat(go, parts);
+            EnsureWorldInteractables(go, parts);
+
             added = string.Join(", ", parts);
             return parts.Count > 0;
+        }
+
+        /// <summary>
+        /// What an agent knows and feels: grudges, searches, alerts, fear, cover.
+        ///
+        /// Split out of <see cref="Ensure"/> only because the list got long enough that one method
+        /// stopped being readable. The rule is unchanged — every clause is derivable from a
+        /// component, so a prefab that gains the component gains the saver by re-running.
+        /// </summary>
+        private static void EnsureAgentMind(GameObject go, List<string> parts)
+        {
+            // The grudge. ProvocationModule is the ONLY thing that can make a Fauna creature
+            // hostile — AgentTargeting.Reevaluate structurally cannot, because Fauna is Neutral to
+            // everything — so without this a creature you provoked is peaceful after one reload and
+            // can never re-acquire you on its own.
+            if (go.GetComponent<ProvocationModule>() != null && go.GetComponent<ProvocationSaveable>() == null)
+            {
+                go.AddComponent<ProvocationSaveable>();
+                parts.Add(nameof(ProvocationSaveable));
+            }
+
+            // What makes AgentStateSaveable's last-known position mean anything. SearchModule starts
+            // on a falling edge (had a target, lost it) and a restored agent's `hadTarget` is always
+            // false — so the position the save went out of its way to keep was never walked to.
+            if (go.GetComponent<SearchModule>() != null && go.GetComponent<SearchSaveable>() == null)
+            {
+                go.AddComponent<SearchSaveable>();
+                parts.Add(nameof(SearchSaveable));
+            }
+
+            if (go.GetComponent<AlertReceiverModule>() != null && go.GetComponent<AlertResponseSaveable>() == null)
+            {
+                go.AddComponent<AlertResponseSaveable>();
+                parts.Add(nameof(AlertResponseSaveable));
+            }
+
+            if (go.GetComponent<NoiseReceiverModule>() != null &&
+                go.GetComponent<NoiseInvestigationSaveable>() == null)
+            {
+                go.AddComponent<NoiseInvestigationSaveable>();
+                parts.Add(nameof(NoiseInvestigationSaveable));
+            }
+
+            // Fleeing is hysteresis — trigger radius in, safe radius out — so it cannot be recomputed
+            // from where things are standing. A creature restored calm inside the gap between the two
+            // never resumes running.
+            if (go.GetComponent<FleeModule>() != null && go.GetComponent<FleeSaveable>() == null)
+            {
+                go.AddComponent<FleeSaveable>();
+                parts.Add(nameof(FleeSaveable));
+            }
+
+            if (go.GetComponent<CoverModule>() != null && go.GetComponent<CoverSaveable>() == null)
+            {
+                go.AddComponent<CoverSaveable>();
+                parts.Add(nameof(CoverSaveable));
+            }
+        }
+
+        /// <summary>
+        /// Where an agent was going and where it belongs: routes, territory, errands, formation.
+        /// </summary>
+        private static void EnsureAgentRoutine(GameObject go, List<string> parts)
+        {
+            // Keyed off PatrolModule rather than AgentTargeting, which is where patrol progress used
+            // to ride. PatrolRobot and DeathmatchBot have the first and not the second, so the one
+            // population whose whole identity IS a route was the population saving nothing about it.
+            if (go.GetComponent<PatrolModule>() != null && go.GetComponent<PatrolSaveable>() == null)
+            {
+                go.AddComponent<PatrolSaveable>();
+                parts.Add(nameof(PatrolSaveable));
+            }
+
+            if (go.GetComponent<BasePatrolModule>() != null && go.GetComponent<BasePatrolSaveable>() == null)
+            {
+                go.AddComponent<BasePatrolSaveable>();
+                parts.Add(nameof(BasePatrolSaveable));
+            }
+
+            // Anchors, not just destinations. These modules re-latch their home from
+            // transform.position after a load, so a guard's patrol circle and a flying creature's
+            // roost silently re-centre wherever the thing was standing when you saved — and drift
+            // a little further on every single save/load cycle.
+            if (go.GetComponent<WanderModule>() != null && go.GetComponent<WanderSaveable>() == null)
+            {
+                go.AddComponent<WanderSaveable>();
+                parts.Add(nameof(WanderSaveable));
+            }
+
+            if (go.GetComponent<AirWanderModule>() != null && go.GetComponent<AirWanderSaveable>() == null)
+            {
+                go.AddComponent<AirWanderSaveable>();
+                parts.Add(nameof(AirWanderSaveable));
+            }
+
+            if (go.GetComponent<WanderBehaviour>() != null &&
+                go.GetComponent<WanderBehaviourSaveable>() == null)
+            {
+                go.AddComponent<WanderBehaviourSaveable>();
+                parts.Add(nameof(WanderBehaviourSaveable));
+            }
+
+            // One saver for the three modules that resolve their own target: an agent almost never
+            // has more than one of them, and they hold the same two fields for the same reason.
+            if ((go.GetComponent<HuntModule>() != null ||
+                 go.GetComponent<KeepDistanceModule>() != null ||
+                 go.GetComponent<ApproachModule>() != null) &&
+                go.GetComponent<PursuitSaveable>() == null)
+            {
+                go.AddComponent<PursuitSaveable>();
+                parts.Add(nameof(PursuitSaveable));
+            }
+
+            // An NPC's errand. The virtual group's task already survived through NpcWorldSaveable;
+            // a live NPC's did not, and EnsureHome would re-resolve their home to whichever site was
+            // nearest the save position — so an NPC could permanently adopt a new home by being saved
+            // somewhere else.
+            if (go.GetComponent<NpcTaskModule>() != null && go.GetComponent<NpcTaskSaveable>() == null)
+            {
+                go.AddComponent<NpcTaskSaveable>();
+                parts.Add(nameof(NpcTaskSaveable));
+            }
+
+            // AgentController attaches an AgentGoal at runtime, so a prefab may not carry one at edit
+            // time. AgentGoalSaveable requires it, so adding the saver adds the goal — which is what
+            // AgentController would have done anyway.
+            if ((go.GetComponent<AgentGoal>() != null || go.GetComponent<AgentController>() != null) &&
+                go.GetComponent<AgentGoalSaveable>() == null)
+            {
+                go.AddComponent<AgentGoalSaveable>();
+                parts.Add(nameof(AgentGoalSaveable));
+            }
+
+            if (go.GetComponent<HerdModule>() != null && go.GetComponent<HerdMemberSaveable>() == null)
+            {
+                go.AddComponent<HerdMemberSaveable>();
+                parts.Add(nameof(HerdMemberSaveable));
+            }
+
+            if (go.GetComponent<FormationModule>() != null && go.GetComponent<FormationSaveable>() == null)
+            {
+                go.AddComponent<FormationSaveable>();
+                parts.Add(nameof(FormationSaveable));
+            }
+
+            // The phase offset that stops a crowd marching in step for a moment after every load.
+            if (go.GetComponent<AgentController>() != null && go.GetComponent<AgentPacingSaveable>() == null)
+            {
+                go.AddComponent<AgentPacingSaveable>();
+                parts.Add(nameof(AgentPacingSaveable));
+            }
+        }
+
+        /// <summary>
+        /// What an agent was in the middle of doing: cooldowns, weapons, allegiance, motion.
+        /// </summary>
+        private static void EnsureAgentCombat(GameObject go, List<string> parts)
+        {
+            // Every cooldown in the game reloaded at zero, which is a free hit for whoever reloads:
+            // a melee creature saved mid-swing struck immediately, a turret two seconds into its
+            // reload was ready. One saver for all three modules because an agent composes them and
+            // they hold the same shape of state.
+            if (go.GetComponent<CombatCadenceSaveable>() == null &&
+                (go.GetComponent<AgentRangedCombatModule>() != null ||
+                 go.GetComponent<CloseCombatModule>() != null ||
+                 go.GetComponent<NpcItemUseModule>() != null))
+            {
+                go.AddComponent<CombatCadenceSaveable>();
+                parts.Add(nameof(CombatCadenceSaveable));
+            }
+
+            // Includes where the barrel pointed, which lives on a CHILD transform and so is invisible
+            // to TransformSaveable.
+            if (go.GetComponent<TurretSaveable>() == null &&
+                (go.GetComponent<TurretModule>() != null || go.GetComponent<RocketLauncherTurret>() != null))
+            {
+                go.AddComponent<TurretSaveable>();
+                parts.Add(nameof(TurretSaveable));
+            }
+
+            // Asked of the subtree: a WeaponMount lives on a hand bone while the saver belongs on the
+            // entity — the same split ArticulatedPartsSaveable makes.
+            if (go.GetComponentInChildren<WeaponMount>(true) != null &&
+                go.GetComponent<WeaponMountSaveable>() == null)
+            {
+                go.AddComponent<WeaponMountSaveable>();
+                parts.Add(nameof(WeaponMountSaveable));
+            }
+
+            // EntityInventorySaveable keeps what is in the bag; this keeps what is in the hand, and
+            // stops Start re-equipping the authored starting slot over a restore.
+            if (go.GetComponent<EntityEquipmentController>() != null &&
+                go.GetComponent<EntityEquipmentSaveable>() == null)
+            {
+                go.AddComponent<EntityEquipmentSaveable>();
+                parts.Add(nameof(EntityEquipmentSaveable));
+            }
+
+            // Which side this entity is on. SetFaction is a runtime reassignment — MatchManager
+            // re-teams every arena spawn — and nothing captured it, so a re-teamed entity reloaded on
+            // its prefab's faction and either turned on its own side or became untargetable.
+            if (go.GetComponent<EntityFaction>() != null && go.GetComponent<EntityFactionSaveable>() == null)
+            {
+                go.AddComponent<EntityFactionSaveable>();
+                parts.Add(nameof(EntityFactionSaveable));
+            }
+
+            // Which health thresholds have already fired. Without it, onThresholdReached re-fires on
+            // the first hit after every load — a badly hurt creature replays its enrage and its
+            // scream — and any module a threshold switched off comes back on.
+            if (go.GetComponent<HealthReactionModule>() != null &&
+                go.GetComponent<HealthReactionSaveable>() == null)
+            {
+                go.AddComponent<HealthReactionSaveable>();
+                parts.Add(nameof(HealthReactionSaveable));
+            }
+
+            // What the motor was in the middle of. Any of the five, because an entity carries exactly
+            // one and the saver writes only the block for the motor it finds. Includes the flag that
+            // says what a mid-arc body's isKinematic should go back to — lose that and an agent saved
+            // mid-leap is permanently kinematic and unpushable.
+            if (go.GetComponent<MotorStateSaveable>() == null &&
+                (go.GetComponent<NavMeshAgentMotor>() != null ||
+                 go.GetComponent<RigidbodyMotor>() != null ||
+                 go.GetComponent<HoverRigidbodyMotor>() != null ||
+                 go.GetComponent<FlyingRigidbodyMotor>() != null ||
+                 go.GetComponent<LeggedDriver>() != null))
+            {
+                go.AddComponent<MotorStateSaveable>();
+                parts.Add(nameof(MotorStateSaveable));
+            }
+
+            // Cosmetic and lowest priority of anything here: it removes the one visible stumble a
+            // legged machine makes on load, as every foot snaps to a default stance and the body
+            // settles from an unprimed ride height.
+            if (go.GetComponent<LeggedLocomotion>() != null && go.GetComponent<LeggedGaitSaveable>() == null)
+            {
+                go.AddComponent<LeggedGaitSaveable>();
+                parts.Add(nameof(LeggedGaitSaveable));
+            }
+        }
+
+        /// <summary>
+        /// Things in the world a player changes and expects to stay changed.
+        ///
+        /// These all reach <see cref="NeedsSaving"/> through <c>IPersistentEntity</c>, which they
+        /// implement for exactly this reason: a door has no health, no NavMeshAgent and no
+        /// non-kinematic Rigidbody, so every inference the policy makes about "this can move" said no
+        /// and none of them were saved at all.
+        /// </summary>
+        private static void EnsureWorldInteractables(GameObject go, List<string> parts)
+        {
+            if (go.GetComponent<DoorInteraction>() != null && go.GetComponent<DoorSaveable>() == null)
+            {
+                go.AddComponent<DoorSaveable>();
+                parts.Add(nameof(DoorSaveable));
+            }
+
+            if (go.GetComponent<LeverInteraction>() != null && go.GetComponent<LeverSaveable>() == null)
+            {
+                go.AddComponent<LeverSaveable>();
+                parts.Add(nameof(LeverSaveable));
+            }
+
+            if (go.GetComponent<RepairWorkstation>() != null &&
+                go.GetComponent<RepairWorkstationSaveable>() == null)
+            {
+                go.AddComponent<RepairWorkstationSaveable>();
+                parts.Add(nameof(RepairWorkstationSaveable));
+            }
+
+            // The game's win condition. Deposit two of three scrap, reload, and it was back at zero.
+            if (go.GetComponent<SpaceGame.World.Ship>() != null && go.GetComponent<ShipSaveable>() == null)
+            {
+                go.AddComponent<ShipSaveable>();
+                parts.Add(nameof(ShipSaveable));
+            }
+
+            if (go.GetComponent<SpaceGame.Gameplay.Trading.TraderInteraction>() != null &&
+                go.GetComponent<TraderSaveable>() == null)
+            {
+                go.AddComponent<TraderSaveable>();
+                parts.Add(nameof(TraderSaveable));
+            }
+
+            if (go.GetComponent<VolumeTrigger>() != null && go.GetComponent<VolumeTriggerSaveable>() == null)
+            {
+                go.AddComponent<VolumeTriggerSaveable>();
+                parts.Add(nameof(VolumeTriggerSaveable));
+            }
+
+            if (go.GetComponent<SpaceGame.Items.RuinSecret>() != null &&
+                go.GetComponent<RuinSecretSaveable>() == null)
+            {
+                go.AddComponent<RuinSecretSaveable>();
+                parts.Add(nameof(RuinSecretSaveable));
+            }
+
+            if (go.GetComponent<SpaceshipManager>() != null && go.GetComponent<SpaceshipSaveable>() == null)
+            {
+                go.AddComponent<SpaceshipSaveable>();
+                parts.Add(nameof(SpaceshipSaveable));
+            }
+
+            // "Once per scene load" was literally what playOnce meant, so a one-time cutscene played
+            // again on every load — and so did whatever its onCutsceneEnded event was wired to.
+            if (go.GetComponent<SpaceGame.Presentation.CutsceneAction>() != null &&
+                go.GetComponent<CutsceneActionSaveable>() == null)
+            {
+                go.AddComponent<CutsceneActionSaveable>();
+                parts.Add(nameof(CutsceneActionSaveable));
+            }
+
+            // A scanner beacon marks a cache the player has already been shown. It has no health, no
+            // pickup, no agent and no loose body, so it qualified for nothing until it declared
+            // itself an entity — which is why a spent beacon lit up again on every load.
+            if (go.GetComponent<ScanBeacon>() != null && go.GetComponent<ScanBeaconSaveable>() == null)
+            {
+                go.AddComponent<ScanBeaconSaveable>();
+                parts.Add(nameof(ScanBeaconSaveable));
+            }
         }
 
         /// <summary>

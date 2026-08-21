@@ -18,7 +18,7 @@
 //
 // ─────────── where everything lives ───────────
 //
-// The class is split across four more files, by the question each one answers. They are partials of
+// The class is split across five more files, by the question each one answers. They are partials of
 // one component, so the serialized fields below are the ONLY ones -- keeping them all here is
 // deliberate, since scattering them across partials leaves their inspector order up to the compiler
 // and their [Header] groups interleaved.
@@ -27,6 +27,7 @@
 //   .Gait.cs  WHEN and WHERE a foot goes -- the clock, swing arcs, footholds, load transfer
 //   .Body.cs  where the BODY goes        -- height, gravity, falling, landing
 //   .Ik.cs    posing the legs onto it    -- the solver call, foot articulation, gizmos
+//   .Save.cs  how it was STANDING        -- the stance snapshot, for save/load. Not part of a frame.
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Persistence;
@@ -367,7 +368,12 @@ namespace SpaceGame.Locomotion
 
         private void Start()
         {
-            if (snapToGroundOnStart) SnapToGround();
+            // A restore that landed before this Start has already said where every foot is and how
+            // high the body is riding. SnapToGround would drop the machine onto the ground and call
+            // GroundFeet, which resets every foot to its rest position under its hip — undoing the
+            // restore for the one hydration order where the two run this way round. See
+            // LeggedLocomotion.Save.cs.
+            if (snapToGroundOnStart && !locomotionRestored) SnapToGround();
         }
 
         private void LateUpdate() => Step(Time.deltaTime);

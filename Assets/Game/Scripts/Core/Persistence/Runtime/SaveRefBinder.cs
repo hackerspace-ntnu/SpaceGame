@@ -73,6 +73,24 @@ namespace SpaceGame.Core.Persistence
                     return players != null && players.TryGetBoundPlayer(id, out target);
 
                 case SaveRef.EntityKind:
+                    // A client cannot answer this, and must not answer it quietly.
+                    //
+                    // LiveEntities is populated by SaveablePolicy.EnsureScene, which runs only from
+                    // WorldSaveStore.Hydrate, which is server-only — so on a client the registry is
+                    // essentially empty and this lookup returns "not here" for entities that plainly
+                    // are. That reads exactly like a legitimately missing referent, which is the
+                    // failure shape this whole system is built to avoid: a mount would come back
+                    // riderless and nothing would say why. Nothing resolves a SaveRef on a client
+                    // today; this makes sure the first thing that tries finds out immediately.
+                    if (Network.IsNetworked && !Network.Server)
+                    {
+                        Debug.LogWarning(
+                            $"[Save] SaveRef '{kind}:{id}' was resolved on a client. Entity references " +
+                            "only resolve on the server — the live-entity registry is filled by " +
+                            "hydration, which never runs here. Move this resolve behind a server check.");
+                        return false;
+                    }
+
                     // Includes disabled objects, because a corpse is a disabled GameObject in this
                     // project and a reference to one is legitimate. SaveableEntity registers for the
                     // object's whole lifetime rather than while it is enabled, which is what makes

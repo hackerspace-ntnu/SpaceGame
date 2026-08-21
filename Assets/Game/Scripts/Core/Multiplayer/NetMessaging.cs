@@ -122,8 +122,35 @@ namespace SpaceGame.Core
         public const ushort UseItem   = 1;  // owner → server: use what I have equipped
         public const ushort ItemUsed  = 2;  // server → peers: play the presentation for it
 
+        // Held use, for items that keep doing something for as long as the button is down. Sent
+        // repeatedly while held and once more on release, with B carrying 1 for "still going" and
+        // 0 for "stop". There is deliberately no separate Start id: the first tick of the stream
+        // is the start, which means one code path can never begin a beam it has no way to end.
+        //
+        // P and R carry the owner's aim RAY — its origin and its rotation — not the point it
+        // landed on. Every machine then traces that same ray for itself, so the server stays the
+        // one deciding what was hit while peers still draw the beam ending exactly where the
+        // damage is being dealt.
+        public const ushort UseItemHold = 4;  // owner → server: I am holding use, and here is my aim
+        public const ushort ItemUseHeld = 5;  // server → peers: sustain the presentation
+
         // ── Combat ──
         public const ushort Damage    = 10; // → server, on the TARGET's relay. A = amount, Target = source
+
+        // server → peers, on the VICTIM's relay. A = amount, Target = the attacking PLAYER.
+        //
+        // Damage above travels towards the server; this is the answer coming back, and it exists
+        // because a client cannot see its own hits land. Weapon.Use() runs on the authority alone,
+        // so a client that pulls the trigger runs only the cosmetic Present() — the amount is
+        // decided on a machine that is not theirs. Anything drawn from the local call would work
+        // for whoever is hosting and silently show nothing to everyone else.
+        //
+        // Broadcast rather than addressed at the shooter, because this layer has no unicast. That
+        // is the same shape NetTo.Others already uses: every machine receives it and each decides
+        // whether it is theirs, here by resolving Target and asking whether that player is owned
+        // locally. Only sent when a player dealt the hit, so NPC-on-NPC fighting — which is most
+        // of the damage in a populated world — puts nothing on the wire at all.
+        public const ushort Damaged   = 11; // server → peers, on the VICTIM's relay
 
         // ── Riding ──
         public const ushort Mount     = 20; // → server, on the MOUNT's relay. Target = rider
@@ -145,6 +172,127 @@ namespace SpaceGame.Core
         // NetworkVariable already publishes) plus a placement (which NetworkedTeleport routes to
         // the owner). Neither needs a message of its own.
         public const ushort Respawn   = 40; // owner → server, on the PLAYER's relay
+
+        // ── Articulated parts (doors, ramps, hatches) ──
+        // A = the switch's index among the ArticulatedPartInteractions on the entity, since one
+        // entity can carry several independent groups (ShipRV has a cockpit door and a garage
+        // door). B is the verb:
+        //
+        //   -1  what is this group's state?   (client → server)
+        //    0  closed, animate               1  open, animate
+        //    2  closed, instantly             3  open, instantly   (server's answer to -1)
+        //
+        // "Instantly" exists for late joiners: a door that was opened before you arrived should
+        // already be open, not swing open in your face the moment you spawn.
+        public const ushort PartToggle = 60; // owner → server: set this group, or ask for it
+        public const ushort PartState  = 61; // server → everyone: this is the group's state
+
+        // ── Ropes ──
+        // Sent to the PLAYER's channel, carrying a velocity delta in P.
+        //
+        // A rope is simulated by the server, but a player's body is owner-authoritative, so a
+        // server-side push on it is overwritten by that owner's next state update — the same way a
+        // server-side teleport is. So the server accumulates what the rope owes that player and
+        // sends it to them; only the owner applies it. Broadcast rather than unicast because the
+        // layer has no unicast, and filtered by ownership on arrival.
+        public const ushort RopeTug   = 62; // server → the roped player's owner
+
+        // ── Latches (doors, levers, and anything else with a held open/closed state) ──
+        // The same shape as PartToggle/PartState above, and deliberately so: a door and a lever
+        // are both "a switch with an index and a state", and one pair of ids serving both is what
+        // lets NetLatch be a single shared helper rather than a class per fixture.
+        //
+        // A = the latch's index among the latches on the entity, since one entity can carry
+        // several (a corridor with two doors). B is the verb, matching PartToggle's vocabulary:
+        //
+        //   -1  what is this latch's state?   (client → server)
+        //    0  off/closed, animate           1  on/open, animate
+        //    2  off/closed, instantly         3  on/open, instantly   (server's answer to -1)
+        //
+        // "Instantly" is the late-joiner case: a door opened before you arrived should already be
+        // open when you walk up to it, not swing open in your face.
+        public const ushort LatchSet   = 63; // owner → server: set this latch, or ask for it
+        public const ushort LatchState = 64; // server → everyone: this is the latch's state
+
+        // ── Vehicle stations (helm, sheet, mooring — anything a player mans) ──
+        // A = the station's index on the vehicle. B is 1 to claim it and 0 to stand down.
+        // Target = the player doing it, so the server can refuse a claim on a manned station and
+        // can reject a stand-down from anyone but the person actually at the wheel.
+        //
+        // Addressed to the VEHICLE's channel rather than the player's: the vehicle owns the fact
+        // that exactly one person is steering it, which is precisely the state two players racing
+        // for the same wheel would otherwise both believe they had won.
+        public const ushort StationClaim = 65; // player → server: I am taking / leaving this station
+        public const ushort StationState = 66; // server → everyone: this station is manned by Target
+
+        // ── Backpacks ──
+        // Sent to the PACK OWNER's channel. A carries the deploy state for PackState
+        // (0 shouldered, 1 deploying, 2 open, 3 stowing); for PackTake, A is the compartment and
+        // B the slot index within it, and Target is the player reaching in.
+        //
+        // A pack is a container two people can reach into at once, so the server has to be the one
+        // deciding which of them got the last water cell — the same rule that puts Trade on the
+        // trader's channel rather than the buyer's.
+        public const ushort PackState = 67; // server → everyone: the pack is in this state
+        public const ushort PackTake  = 68; // player → server: give me what is in this slot
+
+        // ── Agent actions ──
+        // Server → peers, on the AGENT's relay. A is what it did (see AgentAction), P and R carry
+        // the muzzle or strike ORIGIN and the direction it was aimed — the same ray convention
+        // UseItemHold uses, and for the same reason: a peer that re-derives the shot from its own
+        // copy of the world would draw it leaving from wherever its own divergent brain was
+        // pointing.
+        //
+        // There is deliberately no request direction. An NPC's decisions are the authority's alone,
+        // so unlike every player-driven message above this one only ever travels outward.
+        //
+        // It exists because gating the AI to the authority took the swings and muzzle flashes off
+        // every other machine with it. Before the gate peers DID show them — from their own
+        // divergent target and timing, which is the bug — so this is not a new feature but the
+        // honest version of something the desync was providing by accident.
+        public const ushort AgentActed = 69; // server → peers: this agent attacked, here and thus
+
+        // ── Scene transitions ──
+        // Sent to the INITIATOR's channel, because a transition's effects belong to exactly one
+        // pair of eyes: the fade, the audio muffle and the walk-through cutscene are things that
+        // happen to the person going through the door, not to everyone who can see the door.
+        //
+        // Two ids rather than one because the handshake genuinely runs both ways.
+        // SceneEffects travels outward with A carrying the phase (see SceneEffectPhase). Broadcast
+        // and filtered by ownership on arrival, the same shape RopeTug and Damaged use, because
+        // this layer has no unicast.
+        //
+        // SceneEffectsDone is the answer, and it exists because EffectHandle.AwaitOutPhase is
+        // allowed to BLOCK the load — a walk-through cutscene is supposed to finish before the
+        // teleport. The server cannot see a client's cutscene finish, so the client has to say so.
+        // The server must time that wait out rather than trust it: a client that drops mid-fade
+        // would otherwise wedge the transition forever, and SceneTransition already carries a
+        // self-healing busy flag for precisely this class of failure.
+        public const ushort SceneEffects     = 70; // server → the initiator's owner: run this phase
+        public const ushort SceneEffectsDone = 71; // owner → server: my out-phase has finished
+    }
+
+    /// <summary>Which half of a transition <see cref="NetMsg.SceneEffects"/> is asking for.</summary>
+    public static class SceneEffectPhase
+    {
+        /// <summary>Begin the out phase — fade down, muffle, play the cutscene.</summary>
+        public const int Out = 0;
+
+        /// <summary>The destination has landed; run the in phase and finish.</summary>
+        public const int In = 1;
+    }
+
+    /// <summary>
+    /// What an agent did, for <see cref="NetMsg.AgentActed"/>'s <see cref="NetArg.A"/>.
+    ///
+    /// A small enum rather than bare ints so a peer that receives a kind it does not recognise —
+    /// an older build talking to a newer one — can be made to ignore it rather than index into
+    /// something. Append only, like the ids themselves.
+    /// </summary>
+    public static class AgentAction
+    {
+        public const int Melee  = 0;
+        public const int Ranged = 1;
     }
 
     /// <summary>Sentinels for the client-id arguments.</summary>

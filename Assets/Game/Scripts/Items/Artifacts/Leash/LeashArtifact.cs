@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using SpaceGame.Characters;
+using SpaceGame.Core;
 
 namespace SpaceGame.Items
 {
@@ -24,7 +25,14 @@ namespace SpaceGame.Items
     /// </summary>
     public class LeashArtifact : ToolItem
     {
-        /// <summary>Owner-run: a local physics tether aimed by the holder's own camera.</summary>
+        /// <summary>
+        /// Aimed by the holder, simulated by the server.
+        ///
+        /// The authority here is nearly moot — <see cref="Use"/> does nothing, because the rope is
+        /// built by <see cref="Present"/> on every machine and <see cref="Leash"/> decides for
+        /// itself which machine runs the constraint. Left as Owner so the aim, which is the only
+        /// thing this item genuinely owns, stays with the machine that has the camera.
+        /// </summary>
         public override UseAuthority Authority => UseAuthority.Owner;
 
         [Header("Targeting")]
@@ -66,11 +74,25 @@ namespace SpaceGame.Items
         [Tooltip("Log every step of Use() to the Console. Turn on to find out where clicks fail.")]
         [SerializeField] private bool debugLogs = true;
 
-        protected override void Use()
+        /// <summary>
+        /// Owner side: aim, and put the answer in the message.
+        ///
+        /// The raycast has to happen here and only here, because this is the one machine with the
+        /// camera that aimed it. A peer re-running it would trace from its own view and rope
+        /// something else — or, on the host, rope whatever the host happens to be looking at.
+        ///
+        /// <see cref="NetArg.Target"/> carries the object when it is a spawned NetworkObject, and
+        /// <see cref="NetArg.P"/> always carries the world hit point. Between them every endpoint
+        /// that CAN be consistent across machines is addressable: static geometry by its point,
+        /// which is identical everywhere, and networked objects by id. A dynamic prop that nobody
+        /// networked is neither, and ropes to it stay local — its physics already differs per
+        /// machine, so a shared rope to it could not have been made to agree anyway.
+        /// </summary>
+        public override void OnRequestUse(ref NetArg arg)
         {
-            base.Use(); // populates aimProvider
+            base.OnRequestUse(ref arg);
 
-            if (debugLogs) Debug.Log($"[Leash] Use() called. owner={(owner != null ? owner.name : "null")}, aimProvider={aimProvider}");
+            arg.B = MissVerb;
 
             if (aimProvider == null)
             {
@@ -90,8 +112,6 @@ namespace SpaceGame.Items
                 if (debugLogs) Debug.Log("[Leash] Raycast hit had no collider.");
                 return;
             }
-
-            if (debugLogs) Debug.Log($"[Leash] Raycast hit '{hit.collider.name}' on layer '{LayerMask.LayerToName(hit.collider.gameObject.layer)}' ({hit.collider.gameObject.layer}). Mask value: {leashableLayers.value}.");
 
             // Layer filter
             if ((leashableLayers.value & (1 << hit.collider.gameObject.layer)) == 0)
@@ -116,9 +136,64 @@ namespace SpaceGame.Items
                 return;
             }
 
+            arg = arg.With(rootGO);
+            arg.P = hit.point;
+            arg.B = HitVerb;
+        }
+
+        private const int MissVerb = 0;
+        private const int HitVerb = 1;
+
+        /// <summary>
+        /// Nothing. The rope is built by <see cref="Present"/> on every machine, and which machine
+        /// SIMULATES it is decided inside <see cref="Leash"/> — the server, or nobody.
+        ///
+        /// This used to be where the whole feature lived, and that was the bug: Use() is the
+        /// authority-only half of UsableItem, so the rope was constructed on exactly one machine
+        /// and did not exist anywhere else. Everyone but its creator saw objects moving under an
+        /// invisible force.
+        /// </summary>
+        protected override void Use() { }
+
+        /// <summary>Every machine: build the rope the owner aimed.</summary>
+        protected override void Present()
+        {
+            NetArg arg = UseArg;
+            if (arg.B != HitVerb) return;
+
+            GameObject rootGO = arg.Resolve();
+
+            // No id resolved: either we are offline (where the local reference survives in the arg
+            // and Resolve already answered), or the endpoint is static geometry, which has no
+            // NetworkObject and does not need one — the point is the anchor, and it is the same
+            // point on every machine.
+            if (rootGO == null) rootGO = StaticAnchorAt(arg.P);
+            if (rootGO == null) return;
+
+            Apply(rootGO, arg.P);
+        }
+
+        /// <summary>
+        /// A bodyless stand-in for an endpoint that is a place rather than an object.
+        ///
+        /// Leash reads an endpoint with no Rigidbody as Static, so this anchors the rope without
+        /// it needing to know the difference. Parented to the rope's own lifetime by Leash, which
+        /// disposes when an endpoint goes away.
+        /// </summary>
+        private static GameObject StaticAnchorAt(Vector3 worldPoint)
+        {
+            if (worldPoint == Vector3.zero) return null;
+
+            var anchor = new GameObject("LeashAnchor");
+            anchor.transform.position = worldPoint;
+            return anchor;
+        }
+
+        private void Apply(GameObject rootGO, Vector3 hitPoint)
+        {
             var existing = rootGO.GetComponent<LeashAttachable>();
             bool alreadyLeashed = existing != null && existing.HasLeashes;
-            if (debugLogs) Debug.Log($"[Leash] Target='{rootGO.name}', hasRb={rb != null}, alreadyLeashed={alreadyLeashed}, held={_heldLeashes.Count}.");
+            if (debugLogs) Debug.Log($"[Leash] Target='{rootGO.name}', alreadyLeashed={alreadyLeashed}, held={_heldLeashes.Count}.");
 
             if (alreadyLeashed && _heldLeashes.Count > 0)
             {
@@ -133,39 +208,75 @@ namespace SpaceGame.Items
                 }
                 if (leash.ReferencesObject(rootGO)) return;
 
-                leash.TerminateHandEndOnto(rootGO, hit.point);
+                leash.TerminateHandEndOnto(rootGO, hitPoint);
                 _heldLeashes.RemoveAt(_heldLeashes.Count - 1);
                 if (debugLogs) Debug.Log($"[Leash] Terminated held leash onto '{rootGO.name}'. Held now: {_heldLeashes.Count}.");
             }
             else
             {
-                CreateHeldLeash(rootGO, hit.point);
+                CreateHeldLeash(rootGO, hitPoint);
                 if (debugLogs) Debug.Log($"[Leash] Created new held leash on '{rootGO.name}'. Held now: {_heldLeashes.Count}.");
             }
         }
 
+        /// <summary>
+        /// This artifact's rope tuning, as the shared factory takes it.
+        ///
+        /// <para>
+        /// Also what a load builds ropes from — see <see cref="TryResolveSettings"/>. A rope is a
+        /// runtime <c>new GameObject</c> with a material reference in it, and a save file can carry
+        /// neither, so the settings have to come from the prefab that would have made it.
+        /// </para>
+        /// </summary>
+        public Leash.Settings RopeSettings => new()
+        {
+            maxLength = maxLeashLength,
+            stiffness = stiffness,
+            damping = damping,
+            breakForce = breakForce,
+            segments = Mathf.Max(2, ropeSegments),
+            ropeSag = ropeSag,
+            color = ropeColor,
+            width = ropeWidth,
+            material = ropeMaterial,
+        };
+
+        /// <summary>
+        /// The rope tuning to rebuild a saved leash with, read off the leash item's own prefab.
+        ///
+        /// <para>
+        /// The registry rather than a serialized reference on the saver: the item table already
+        /// holds every <c>InventoryItem</c> in the build together with the prefab it equips, so the
+        /// authored numbers and — the part nothing else can supply — the rope MATERIAL are reachable
+        /// without another asset to wire up and keep in step. Falls back to a plain white rope if
+        /// the leash item has been removed from the build, which draws something visible rather than
+        /// nothing at all.
+        /// </para>
+        /// </summary>
+        public static bool TryResolveSettings(out Leash.Settings settings)
+        {
+            foreach (InventoryItem item in Registry<InventoryItem>.All)
+            {
+                if (item == null || item.itemPrefab == null) continue;
+
+                var artifact = item.itemPrefab.GetComponent<LeashArtifact>();
+                if (artifact == null) continue;
+
+                settings = artifact.RopeSettings;
+                return true;
+            }
+
+            settings = new Leash.Settings
+            {
+                maxLength = 8f, stiffness = 600f, damping = 30f, breakForce = 8000f,
+                segments = 18, ropeSag = 0.6f, color = new Color(0.6f, 0.5f, 0.35f), width = 0.04f,
+            };
+            return false;
+        }
+
         private void CreateHeldLeash(GameObject targetRoot, Vector3 worldHit)
         {
-            var go = new GameObject("Leash");
-            var leash = go.AddComponent<Leash>();
-            var lr = go.AddComponent<LineRenderer>();
-
-            if (ropeMaterial != null) lr.material = ropeMaterial;
-            lr.startColor = ropeColor;
-            lr.endColor = ropeColor;
-            lr.startWidth = ropeWidth;
-            lr.endWidth = ropeWidth;
-            lr.useWorldSpace = true;
-            lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            lr.receiveShadows = false;
-
-            leash.line = lr;
-            leash.maxLength = maxLeashLength;
-            leash.stiffness = stiffness;
-            leash.damping = damping;
-            leash.breakForce = breakForce;
-            leash.segments = Mathf.Max(2, ropeSegments);
-            leash.ropeSag = ropeSag;
+            Leash leash = Leash.Create(RopeSettings);
 
             leash.ConfigureEndpointA_OnObject(targetRoot, worldHit);
 

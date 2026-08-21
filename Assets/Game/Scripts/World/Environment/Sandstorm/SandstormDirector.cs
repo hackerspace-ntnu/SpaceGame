@@ -59,7 +59,49 @@ namespace SpaceGame.World.Weather
         private float countdown;
         private int activeStormId;
 
-        private void OnEnable() => countdown = UnityEngine.Random.Range(firstDelayRange.x, firstDelayRange.y);
+        /// <summary>
+        /// True once a save has stated the schedule. Stops <see cref="OnEnable"/> re-rolling it.
+        ///
+        /// <para>
+        /// The order of the two is genuinely undecidable: a global saver registers in its own
+        /// <c>OnEnable</c> and <c>SaveManager</c> applies staged state on the spot, so the restore
+        /// can land either side of this component waking up. A latch is the only version that gives
+        /// the same answer both ways round.
+        /// </para>
+        /// </summary>
+        private bool scheduleRestored;
+
+        /// <summary>Seconds of clear weather left before the next storm is rolled.</summary>
+        public float Countdown => countdown;
+
+        /// <summary>The storm this director started and is waiting out, or 0 when the sky is clear.</summary>
+        public int ActiveStormId => activeStormId;
+
+        private void OnEnable()
+        {
+            if (scheduleRestored) return;
+
+            countdown = UnityEngine.Random.Range(firstDelayRange.x, firstDelayRange.y);
+        }
+
+        /// <summary>
+        /// Restore-only. Puts the weather schedule back where the save left it. Called by the save
+        /// system; do not call from gameplay.
+        ///
+        /// <para>
+        /// Without this, loading a world re-rolled <c>firstDelayRange</c> and reset
+        /// <see cref="activeStormId"/> to zero: the whole schedule restarted, so a player who saved
+        /// twenty minutes into a clear stretch got another three-to-seven-minute wait, and a player
+        /// who saved with a storm overhead had the director immediately conclude nothing was running
+        /// and start counting toward a second one.
+        /// </para>
+        /// </summary>
+        public void RestoreSchedule(float countdown, int activeStormId)
+        {
+            this.countdown = countdown;
+            this.activeStormId = activeStormId;
+            scheduleRestored = true;
+        }
 
         private void Update()
         {

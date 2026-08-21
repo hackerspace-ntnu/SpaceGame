@@ -5,6 +5,7 @@ using UnityEngine.Events;
 using SpaceGame.Audio;
 using SpaceGame.Core;
 using SpaceGame.Items;
+using SpaceGame.Persistence;
 
 namespace SpaceGame.Gameplay
 {
@@ -15,9 +16,16 @@ namespace SpaceGame.Gameplay
     ///
     /// Progress is owned by the server and replicated, so the gauge on every client agrees.
     /// Runs fine offline too — <see cref="Network.Execute"/> keeps the single-player path local.
+    ///
+    /// <para>
+    /// <see cref="IPersistentEntity"/> because four of five scrap fed into a machine is quest
+    /// progress, and a workstation has none of the components <c>SaveablePolicy.NeedsSaving</c>
+    /// otherwise looks for — so without the marker it would never be wired for saving and the
+    /// progress would be back at zero, for everyone, after every load.
+    /// </para>
     /// </summary>
     [DisallowMultipleComponent]
-    public class RepairWorkstation : NetworkBehaviour, IInteractable
+    public class RepairWorkstation : NetworkBehaviour, IInteractable, IPersistentEntity
     {
         [Header("Repair")]
         [Tooltip("Item the workstation accepts, e.g. Assets/Game/Resources/Items/Scraps.asset.")]
@@ -204,6 +212,38 @@ namespace SpaceGame.Gameplay
 
             onScrapAccepted?.Invoke(Progress01);
             if (!wasRepaired && IsRepaired) onRepaired?.Invoke();
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// <para>
+        /// Written through the <c>NetworkVariable</c> when there is a session, so every client gets
+        /// the restored gauge by the same replication that carries an ordinary deposit — a restore
+        /// that only set the local mirror would leave the host repaired and everyone else broken.
+        /// </para>
+        /// <para>
+        /// The local mirror is set FIRST, and that ordering is the whole reason this is not
+        /// <c>SetProgressAuthoritative</c>: the NetworkVariable callback lands back in
+        /// <see cref="SetProgressLocal"/>, which returns early when the value already matches, so
+        /// <c>onScrapAccepted</c> and — the one that matters — <c>onRepaired</c> do not fire a
+        /// second time for work that was already done and already had its consequences.
+        /// </para>
+        /// <para>
+        /// Safe before <c>OnNetworkSpawn</c> too: the mirror is the sole truth until then, and
+        /// spawn publishes it.
+        /// </para>
+        /// </summary>
+        public void RestoreProgress(int amount)
+        {
+            amount = Mathf.Clamp(amount, 0, RequiredAmount);
+
+            progress = amount;
+
+            if (spawned && IsServer) networkProgress.Value = amount;
+
+            ApplyStatusLight();
+            ProgressChanged?.Invoke(Progress01);
         }
 
         /// <summary>Accept/reject feedback has to reach every client, not just the deciding server.</summary>

@@ -20,7 +20,7 @@ namespace SpaceGame.Core.Persistence
     /// can be tested without a controller, a socket and a pack prefab.
     /// </summary>
     [RequireComponent(typeof(BackpackController))]
-    public class BackpackSaveable : MonoBehaviour, ISaveable
+    public class BackpackSaveable : MonoBehaviour, ISaveable, IDeferredSaveable
     {
         public const string Key = BackpackSaveCodec.Key;
 
@@ -43,15 +43,75 @@ namespace SpaceGame.Core.Persistence
         public object CaptureState()
         {
             BackpackContainer container = Container;
-            return container == null ? null : BackpackSaveCodec.Capture(container);
+            if (container == null) return null;
+
+            BackpackSaveCodec.State state = BackpackSaveCodec.Capture(container);
+
+            // Where the pack IS, on top of what is in it. A pack left open on the sand came back on
+            // its owner's shoulders with the right items inside — which reads as the save having
+            // half worked, because it had.
+            //
+            // SavedState is never mid-arc: it is the state the pack is on its way to, for the same
+            // reason a joiner is told that rather than a frame of an animation.
+            if (Controller != null)
+            {
+                state.deployed = Controller.SavedState == BackpackController.State.Open;
+
+                if (state.deployed)
+                {
+                    Pose pose = Controller.SavedPose;
+                    state.packPosition = pose.position;
+                    state.packRotation = pose.rotation;
+                }
+            }
+
+            return state;
         }
 
         public void RestoreState(JObject state)
         {
+            pendingDeployed = false;
+
             BackpackContainer container = Container;
             if (container == null) return;
 
             BackpackSaveCodec.Restore(container, state, this);
+
+            if (state == null) return;
+
+            var restored = state.ToObject<BackpackSaveCodec.State>(SaveSerializer.Serializer);
+            if (!restored.deployed) return;
+
+            pendingDeployed = true;
+            pendingPose = new Pose(restored.packPosition, restored.packRotation);
+        }
+
+        private bool pendingDeployed;
+        private Pose pendingPose;
+
+        /// <summary>
+        /// Set the pack back down, once there is ground under it.
+        ///
+        /// <para>
+        /// Deferred for two reasons. The obvious one is that the chunk the pack was left in may
+        /// still be streaming when the player's record is applied. The other is the trap recorded on
+        /// <c>BackpackController.OnDisable</c>: a deploy that is interrupted lands the pack wherever
+        /// its arc had got to, which during a load — when the player is disabled and re-enabled as
+        /// scenes come and go around them — is a few centimetres behind their back. So the restore
+        /// never starts an arc; it goes straight to the settled pose, and it does it late.
+        /// </para>
+        /// <para>
+        /// Consumed on the first pass: unlike a rider reference, this names nobody. Re-applying it
+        /// on a later pass would pick the pack up off wherever the player has since moved it and put
+        /// it back where the file says.
+        /// </para>
+        /// </summary>
+        public void OnLoadComplete()
+        {
+            if (!pendingDeployed || Controller == null) return;
+
+            pendingDeployed = false;
+            Controller.RestoreDeployState(BackpackController.State.Open, pendingPose);
         }
     }
 
@@ -64,6 +124,19 @@ namespace SpaceGame.Core.Persistence
         {
             public List<string> strapItemIds;
             public List<string> mainItemIds;
+
+            /// <summary>
+            /// True when the pack was standing open on the ground rather than on its owner's back.
+            ///
+            /// Shouldered is the default, so a save written before this field existed reads as
+            /// false and restores a pack that is worn — which is what those saves meant.
+            /// </summary>
+            public bool deployed;
+
+            /// <summary>Where it was set down. Only meaningful with <see cref="deployed"/>.</summary>
+            public Vector3 packPosition;
+
+            public Quaternion packRotation;
         }
 
         public static State Capture(BackpackContainer container) => new()

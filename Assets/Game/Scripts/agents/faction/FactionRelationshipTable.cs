@@ -4,6 +4,11 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Core;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace SpaceGame.Agents
 {
@@ -18,8 +23,16 @@ namespace SpaceGame.Agents
     }
 
     [CreateAssetMenu(menuName = "Factions/Relationship Table")]
-    public class FactionRelationshipTable : ScriptableObject
+    public class FactionRelationshipTable : ScriptableObject, IRegistryEntry
     {
+        /// <summary>
+        /// The asset's GUID. Same mechanism and same reason as <see cref="FactionDefinition.ID"/>:
+        /// <c>EntityFaction.SetFaction</c> can swap the table as well as the faction — arena entities
+        /// are given the match's own table — so which table is in force is state a save must name.
+        /// </summary>
+        [field: SerializeField]
+        public string ID { get; set; }
+
         [SerializeField] private List<FactionPairRelationship> relationships;
 
         // Get() is called per candidate per targeting query, and the table grew to
@@ -29,8 +42,54 @@ namespace SpaceGame.Agents
         private Dictionary<long, FactionRelationship> lookup;
         private int indexedCount = -1;
 
-        private void OnEnable() => lookup = null;
-        private void OnValidate() => lookup = null;
+        /// <summary>
+        /// Drop the index, and put this table — and every faction it names — into the registries the
+        /// save system resolves ids through.
+        ///
+        /// <para>
+        /// Registering the FACTIONS from here is the load-bearing half. A <see cref="ScriptableObject"/>
+        /// only self-registers once Unity has loaded it, and Unity only loads it once something
+        /// referencing it is loaded. A faction assigned at runtime — an arena team, a re-teamed bot —
+        /// may be referenced by nothing else in the session, so its id would be unresolvable on the
+        /// very reload that needed it. A relationship table names every faction it arbitrates
+        /// between, so loading one table seeds the whole roster.
+        /// </para>
+        /// </summary>
+        private void OnEnable()
+        {
+            lookup = null;
+            RegisterRoster();
+        }
+
+        private void OnValidate()
+        {
+            lookup = null;
+
+#if UNITY_EDITOR
+            string path = AssetDatabase.GetAssetPath(this);
+            if (string.IsNullOrEmpty(path)) return;
+
+            string guid = AssetDatabase.AssetPathToGUID(path);
+            if (ID == guid) return;
+
+            ID = guid;
+            EditorUtility.SetDirty(this);
+#endif
+        }
+
+        private void RegisterRoster()
+        {
+            if (!string.IsNullOrEmpty(ID))
+                Registry<FactionRelationshipTable>.Register(this);
+
+            if (relationships == null) return;
+
+            foreach (FactionPairRelationship pair in relationships)
+            {
+                FactionDefinition.Register(pair.factionA);
+                FactionDefinition.Register(pair.factionB);
+            }
+        }
 
         public FactionRelationship Get(FactionDefinition a, FactionDefinition b)
         {

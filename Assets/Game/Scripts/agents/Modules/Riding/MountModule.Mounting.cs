@@ -149,6 +149,27 @@ namespace SpaceGame.Agents
             suppressibleAnimatorRootMotion = null;
         }
 
+        /// <summary>
+        /// Dismount, standing the rider at an explicit world position instead of at the mount's
+        /// dismount point.
+        ///
+        /// For the cases where the mount is in no state to say where its own dismount point is: a
+        /// crashed aircraft is embedded in a cliff at whatever attitude it hit at, and its dismount
+        /// marker is wherever that attitude swung it — inside the rock as often as not. The caller
+        /// has already resolved somewhere solid; this is how it gets used.
+        ///
+        /// Routed through <see cref="Dismount"/> rather than duplicating it, so the re-entrancy
+        /// guard, the teardown beacon and every restore behave identically whoever chose the spot.
+        /// </summary>
+        public void DismountAt(Vector3 position)
+        {
+            if (!IsMounted)
+                return;
+
+            dismountPositionOverride = position;
+            Dismount();
+        }
+
         public void Dismount()
         {
             if (!IsMounted)
@@ -176,6 +197,12 @@ namespace SpaceGame.Agents
         {
             Transform rider = mountedPlayer;
 
+            // Consumed here rather than in DismountAt, and consumed on every path out including the
+            // abandon one: an override left standing would silently relocate the NEXT rider to
+            // wherever the last one crashed.
+            Vector3? requestedPosition = dismountPositionOverride;
+            dismountPositionOverride = null;
+
             // The rider is going away underneath us — they died, or whatever owns them is being
             // destroyed and took the seat with it. Every restore below reaches into that doomed
             // object, and the reparent is outright illegal, so there is nothing useful left to do
@@ -193,9 +220,9 @@ namespace SpaceGame.Agents
 
             UnparentRider(rider);
 
-            Vector3 dismountPosition = dismountPoint
+            Vector3 dismountPosition = requestedPosition ?? (dismountPoint
                 ? dismountPoint.position
-                : transform.position + transform.right * fallbackDismountDistance;
+                : transform.position + transform.right * fallbackDismountDistance);
 
             // Strip any tilt the rider inherited from a tilted mount — keep only yaw so the
             // player stands upright after dismount.

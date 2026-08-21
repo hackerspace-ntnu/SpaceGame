@@ -18,6 +18,50 @@ namespace SpaceGame.Core
     {
         public static InteriorManager Instance { get; private set; }
 
+        // ─────────────────────────────────────────────
+        //  Scene lifecycle, for anything that has to follow an interior in and out
+        //
+        //  Static, and shaped exactly like WorldStreamer's chunk events, because the save system
+        //  consumes both through one code path. Interiors were invisible to it until these existed:
+        //  WorldSaveStore.Hydrate had two callers, the persistent scene and chunks, so a cave was
+        //  never hydrated and never dehydrated and nothing a player did inside one — a looted crate,
+        //  a killed creature — outlived the walk back to the entrance.
+        // ─────────────────────────────────────────────
+
+        /// <summary>An interior scene has finished loading and its contents are addressable.</summary>
+        public static event Action<string, Scene> OnInteriorLoaded;
+
+        /// <summary>
+        /// An interior scene is about to be unloaded and everything in it destroyed.
+        ///
+        /// Fired BEFORE the unload is issued, which is the whole point: this is the last moment
+        /// anything can read the state of the objects in it.
+        /// </summary>
+        public static event Action<string, Scene> OnInteriorWillUnload;
+
+        /// <summary>An interior scene is gone.</summary>
+        public static event Action<string> OnInteriorUnloaded;
+
+        /// <summary>
+        /// Where a player was, and where they came from, while they are inside an interior.
+        ///
+        /// The saveable projection of <see cref="ReturnInfo"/>. The pin is not in it: a pin is a live
+        /// GameObject registered with the streamer, rebuilt on restore rather than stored.
+        /// </summary>
+        public struct InteriorVisit
+        {
+            /// <summary>The interior scene the player is standing in.</summary>
+            public string InteriorScene;
+
+            /// <summary>Where in that interior they were standing.</summary>
+            public Vector3 InsidePosition;
+            public Quaternion InsideRotation;
+
+            /// <summary>Where in the exterior they walked in from, and must be put back.</summary>
+            public Vector3 ReturnPosition;
+            public Quaternion ReturnRotation;
+        }
+
         /// <summary>Where the player was last standing in the exterior, keyed by NetworkObjectId (or 0 in offline).</summary>
         private class ReturnInfo
         {
@@ -455,7 +499,7 @@ namespace SpaceGame.Core
                     if (evt.SceneEventType != SceneEventType.LoadEventCompleted) return;
                     if (evt.SceneName != sceneName) return;
                     NetworkManager.Singleton.SceneManager.OnSceneEvent -= Handler;
-                    onLoaded?.Invoke(SceneManager.GetSceneByName(sceneName));
+                    AnnounceLoaded(sceneName, onLoaded);
                 }
                 NetworkManager.Singleton.SceneManager.OnSceneEvent += Handler;
 
@@ -474,18 +518,161 @@ namespace SpaceGame.Core
                     Debug.LogError($"[InteriorManager] Failed to load interior {sceneName} (offline). Is it in Build Settings?");
                     return;
                 }
-                op.completed += _ => onLoaded?.Invoke(SceneManager.GetSceneByName(sceneName));
+                op.completed += _ => AnnounceLoaded(sceneName, onLoaded);
             }
+        }
+
+        /// <summary>
+        /// Announces a loaded interior, then hands it to whoever was waiting for it.
+        ///
+        /// <para>
+        /// The order is the whole point. <see cref="OnInteriorLoaded"/> is what puts the interior's
+        /// saved state back into it, and <paramref name="onLoaded"/> is what drops a player into the
+        /// middle of it. A player placed first would be standing in the authored cave for the frame
+        /// or two before its record arrived, watching the crate they emptied last session refill and
+        /// then empty again.
+        /// </para>
+        /// </summary>
+        private static void AnnounceLoaded(string sceneName, Action<Scene> onLoaded)
+        {
+            Scene scene = SceneManager.GetSceneByName(sceneName);
+
+            if (scene.IsValid() && scene.isLoaded)
+                OnInteriorLoaded?.Invoke(sceneName, scene);
+
+            onLoaded?.Invoke(scene);
         }
 
         private void UnloadInterior(Scene scene)
         {
             if (!scene.IsValid() || !scene.isLoaded) return;
 
+            string sceneName = scene.name;
+
+            // Before the unload is issued, not after: everything worth capturing in this cave is
+            // about to be destroyed, and a listener that waited for the unload to complete would
+            // find nothing left to read.
+            OnInteriorWillUnload?.Invoke(sceneName, scene);
+
             if (Network.IsNetworked)
                 NetworkManager.Singleton.SceneManager.UnloadScene(scene);
             else
                 SceneManager.UnloadSceneAsync(scene);
+
+            // Announced on issue rather than on completion. The only thing this says is "stop
+            // tracking that scene handle", and the capture that mattered has already happened above;
+            // waiting for the async unload would mean carrying a second completion handler through
+            // two code paths for no additional truth.
+            OnInteriorUnloaded?.Invoke(sceneName);
+        }
+
+        // ─────────────────────────────────────────────
+        //  Interior visits, as saveable state
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Where <paramref name="player"/> is, if they are inside an interior right now.
+        ///
+        /// <para>
+        /// Saved per player rather than per world, because it is a fact about a person and not about
+        /// the map: two players can be in two different caves, and one of them can quit while the
+        /// other stays. Without it a save taken inside a cave records a player at coordinates that
+        /// only exist in a scene the load never opens — they come back inside the terrain, with no
+        /// record of the door they came through.
+        /// </para>
+        /// </summary>
+        public bool TryGetVisit(GameObject player, out InteriorVisit visit)
+        {
+            visit = default;
+            if (player == null) return false;
+
+            if (!returnInfoByPlayer.TryGetValue(GetPlayerKey(player), out ReturnInfo info) || info == null)
+                return false;
+
+            visit = new InteriorVisit
+            {
+                InteriorScene = player.scene.IsValid() ? player.scene.name : null,
+                InsidePosition = player.transform.position,
+                InsideRotation = player.transform.rotation,
+                ReturnPosition = info.Position,
+                ReturnRotation = info.Rotation,
+            };
+
+            return !string.IsNullOrEmpty(visit.InteriorScene);
+        }
+
+        /// <summary>
+        /// Restore-only. Puts a player back inside the interior a save found them in. Called by the
+        /// save system; do not call from gameplay.
+        ///
+        /// <para>
+        /// Idempotent, and it must be: the deferred pass that drives it runs once world-wide, again
+        /// on every player binding and again for every chunk that streams in afterwards. A player who
+        /// already holds a return record is already inside and is left alone.
+        /// </para>
+        /// <para>
+        /// No <c>InteriorAnchor</c> is consulted. The anchor answers "where does a person who has
+        /// just walked through this door appear", and this player did not just walk through it — they
+        /// were somewhere specific in that cave when the world was written, and that is where they go.
+        /// </para>
+        /// </summary>
+        public void RestoreVisit(GameObject player, InteriorVisit visit)
+        {
+            if (player == null || string.IsNullOrEmpty(visit.InteriorScene)) return;
+
+            // Interiors are session state, and session state is the server's. A client that placed
+            // itself inside a cave nobody else had loaded would be alone in a scene that does not
+            // exist for the machine that owns the world.
+            if (Network.IsNetworked && !Network.Server) return;
+
+            ulong key = GetPlayerKey(player);
+            if (returnInfoByPlayer.ContainsKey(key)) return;
+
+            returnInfoByPlayer[key] = new ReturnInfo
+            {
+                Position = visit.ReturnPosition,
+                Rotation = visit.ReturnRotation,
+                ExteriorScene = persistentScene.IsValid() ? persistentScene : player.scene,
+                ReturnPin = CreateReturnPin(visit.ReturnPosition),
+            };
+
+            string sceneName = visit.InteriorScene;
+            Vector3 position = visit.InsidePosition;
+            Quaternion rotation = visit.InsideRotation;
+
+            var existing = SceneManager.GetSceneByName(sceneName);
+            if (existing.IsValid() && existing.isLoaded)
+            {
+                interiorRefCount[sceneName] = interiorRefCount.GetValueOrDefault(sceneName) + 1;
+                PlacePlayerAt(player, existing, position, rotation);
+                return;
+            }
+
+            GameObject pendingPlayer = player;
+
+            LoadInteriorAdditive(sceneName, scene =>
+            {
+                interiorRefCount[sceneName] = interiorRefCount.GetValueOrDefault(sceneName) + 1;
+                if (pendingPlayer == null) return;
+                PlacePlayerAt(pendingPlayer, scene, position, rotation);
+            });
+        }
+
+        /// <summary>Puts a player at an exact spot in an interior, view and all. See <see cref="PlacePlayerAtAnchor"/>.</summary>
+        private void PlacePlayerAt(GameObject player, Scene scene, Vector3 position, Quaternion rotation)
+        {
+            if (!scene.IsValid() || !scene.isLoaded)
+            {
+                Debug.LogWarning($"[InteriorManager] Interior scene for '{player.name}' never loaded; " +
+                                 "leaving them outside.", player);
+                return;
+            }
+
+            if (player.transform.parent != null) player.transform.SetParent(null);
+            SceneManager.MoveGameObjectToScene(player, scene);
+            TeleportPlayer(player, position, rotation);
+
+            NotifyViewer(player, t => t.NotifyEntered(scene.name));
         }
     }
 }

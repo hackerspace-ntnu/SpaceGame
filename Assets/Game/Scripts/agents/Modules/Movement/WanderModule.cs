@@ -27,12 +27,45 @@ namespace SpaceGame.Agents
         private bool hasDestination;
         private Vector3 currentDestination;
         private float waitTimer;
+        /// <summary>
+        /// Set by a restore, consumed by the next <see cref="OnEnable"/>. Hydration does not
+        /// guarantee <see cref="OnEnable"/> runs before the restore — a chunk streaming back in
+        /// re-enables the module afterwards — and without the latch the restored walk is thrown away
+        /// and the creature re-rolls a destination it was already halfway to.
+        /// </summary>
+        private bool restoredThisEnable;
+
         private void Reset() => SetPriorityDefault(ModulePriority.Fallback);
 
         private void OnEnable()
         {
+            if (restoredThisEnable)
+            {
+                restoredThisEnable = false;
+                return;
+            }
+
             hasDestination = false;
             waitTimer = 0f;
+        }
+
+        // ─────────── For the save system ───────────
+
+        public bool HasDestination => hasDestination;
+
+        /// <summary>Meaningless unless <see cref="HasDestination"/>.</summary>
+        public Vector3 CurrentDestination => currentDestination;
+
+        /// <summary>Seconds left of the idle pause after reaching a point.</summary>
+        public float WaitTimer => waitTimer;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreWander(bool destinationSet, Vector3 destination, float wait)
+        {
+            hasDestination = destinationSet;
+            currentDestination = destination;
+            waitTimer = Mathf.Max(0f, wait);
+            restoredThisEnable = true;
         }
 
         public override string ModuleDescription =>

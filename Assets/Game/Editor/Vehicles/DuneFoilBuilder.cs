@@ -215,6 +215,44 @@ namespace SpaceGame.EditorTools
             DuneFoilHUD hud = root.AddComponent<DuneFoilHUD>();
             hud.Bind(locomotion, rig, carryVolume);
 
+            // Networking. This rebuild replaces the prefab wholesale, so anything added by hand in
+            // the Inspector is gone the next time somebody runs the menu item — these three have to
+            // be authored here or the boat silently un-networks itself.
+            //
+            //  • NetworkObject with DontDestroyWithOwner: VehicleStation hands ownership to whoever
+            //    takes the helm, and NGO destroys every object a disconnecting client owned. Without
+            //    this flag a helmsman closing their laptop deletes the craft for everyone,
+            //    permanently — it carries SceneTracked and SaveableEntity.
+            //  • NetRelay: mandatory. Without it every station message falls through to a local
+            //    dispatch and nothing a helmsman or winch hand does replicates.
+            //  • ClientNetworkTransform, not the stock one: the craft is driven by the client at the
+            //    helm, and a server-authoritative transform would fight their input every tick.
+            //
+            // Deliberately absent, both of them:
+            //  • NetworkRigidbody — the DuneFoil has no Rigidbody anywhere. NetworkTransform.OnUpdate
+            //    early-returns on non-authority when UseRigidbodyForMotion is set, which would break
+            //    replication outright.
+            //  • NetAuthority — the local sim must keep running on every machine; see the DuneFoilHelm
+            //    header. A non-authority NetworkTransform applies at PreLateUpdate and nothing on the
+            //    craft reads the hull in that window.
+            Unity.Netcode.NetworkObject netObject = root.AddComponent<Unity.Netcode.NetworkObject>();
+            netObject.DontDestroyWithOwner = true;
+
+            root.AddComponent<SpaceGame.Core.NetRelay>();
+
+            SpaceGame.Core.ClientNetworkTransform netTransform =
+                root.AddComponent<SpaceGame.Core.ClientNetworkTransform>();
+            // Every position and rotation axis, explicitly. An unsynced axis is one the local
+            // prediction writes and nothing ever corrects, so the drift accumulates all session.
+            netTransform.SyncPositionX = true;
+            netTransform.SyncPositionY = true;
+            netTransform.SyncPositionZ = true;
+            netTransform.SyncRotAngleX = true;
+            netTransform.SyncRotAngleY = true;
+            netTransform.SyncRotAngleZ = true;
+            netTransform.InLocalSpace = false;
+            netTransform.Interpolate = true;
+
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PrefabPath));
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
@@ -222,6 +260,14 @@ namespace SpaceGame.EditorTools
             EnsureWindPrefab();
 
             AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            // A NetworkObject created by script ships GlobalObjectIdHash 0, and NGO silently drops
+            // all but one prefab when several share a hash. The hash is filled in by the component's
+            // own OnValidate, which only resolves against the saved ASSET — so the prefab has to be
+            // re-imported and then reserialized, or the corrected value never reaches the YAML.
+            AssetDatabase.ImportAsset(PrefabPath, ImportAssetOptions.ForceUpdate);
+            AssetDatabase.ForceReserializeAssets(new[] { PrefabPath });
             AssetDatabase.Refresh();
 
             Debug.Log($"[DuneFoilBuilder] Built {PrefabPath}: {surfaces.Count} sails, " +

@@ -86,6 +86,37 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &3721130496792806615
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8741004646592600287}
+  m_Layer: 0
+  m_Name: PortalTrackPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8741004646592600287
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3721130496792806615}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6372178186651775710}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4516265153368369930
 GameObject:
   m_ObjectHideFlags: 0
@@ -118,6 +149,13 @@ GameObject:
   - component: {fileID: 6462769725498312612}
   - component: {fileID: 8928276742681544193}
   - component: {fileID: 8810500734875081020}
+  - component: {fileID: 1763784955351260425}
+  - component: {fileID: 9072012641762215819}
+  - component: {fileID: 995803198157979358}
+  - component: {fileID: -1935276263292882041}
+  - component: {fileID: -7011281062608119530}
+  - component: {fileID: -7526851245670682667}
+  - component: {fileID: -6458994778177412634}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Player
@@ -143,6 +181,7 @@ Transform:
   - {fileID: 2277246602996176558}
   - {fileID: 2744553544817745304}
   - {fileID: 4639107970820370342}
+  - {fileID: 8741004646592600287}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &5527306943363674078
@@ -320,6 +359,14 @@ MonoBehaviour:
   - Hand_R
   - R_Hand
   - hand.R
+  offHandBone: 17
+  offHandBoneNameHints:
+  - LeftHand
+  - Hand_L
+  - L_Hand
+  - hand.L
+  gripFrameOverride: {fileID: 0}
+  holdScaleMultiplier: 1
 --- !u!114 &-6402392480385526436
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -458,7 +505,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
-  prefabId: 
+  prefabId: 9ab1ff9f9caaf86469f66c4bd3fb3b2e
   instanceId: 
   authored: 0
   scope: 1
@@ -566,6 +613,98 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3732fdcfce1724c358aa7e7cf0abfe40, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Characters.SuitRecolor
+--- !u!114 &1763784955351260425
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83386e057c2e54108a3bcaf4255e5d1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Portals.PlayerPortalTraveller
+  trackedPoint: {fileID: 8741004646592600287}
+  showClone: 1
+  visualRoot: {fileID: 0}
+  look: {fileID: 0}
+--- !u!114 &9072012641762215819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5aa099e098ffb4812bd320e50e4dad94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.PlayerLookSaveable
+--- !u!114 &995803198157979358
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 926ea1aa408324bb4a8e2d092df35058, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FlashlightSaveable
+--- !u!114 &-1935276263292882041
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44404c12cd6754af29c6aca221f2c609, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SuitColorSaveable
+--- !u!114 &-7011281062608119530
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 007c46970080d4d23ba70040a36b8276, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EffectsSaveable
+--- !u!114 &-7526851245670682667
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a4b2a3ff1443412fb4396d50258ef66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.PortalPairSaveable
+  portalPrefab: {fileID: 0}
+  surfaceMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!114 &-6458994778177412634
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d986d2b9d60bf44f59e2296e9a166530, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.InteriorVisitSaveable
 --- !u!1001 &5142600832843963879
 PrefabInstance:
   m_ObjectHideFlags: 0

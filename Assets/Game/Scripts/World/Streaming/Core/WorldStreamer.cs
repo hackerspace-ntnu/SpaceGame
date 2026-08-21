@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
@@ -85,8 +86,23 @@ namespace SpaceGame.World
         /// unsampleable one means the chunk has not arrived rather than that the place is
         /// terrainless. Deliberately not <see cref="IsChunkLoadedAt"/>: chunk state is only tracked
         /// on the machine that issues the loads, so on a client it reads NotLoaded forever.
+        ///
+        /// "Owed a heightmap" is not the same as "inside the rectangle", which is why the chunk's
+        /// own <see cref="ChunkInfo.hasTerrain"/> has the final say. The grid is 8x6 but its two
+        /// western columns (world x 0-1000, twelve chunk scenes) are deliberately empty padding
+        /// with no terrain authored in them at all. Answering "yes, ground is owed" there makes
+        /// anything standing in that strip wait out the guard's full timeout for a chunk that has
+        /// already loaded and never had a surface, and then drop — which is exactly the fall this
+        /// whole query exists to prevent. Unauthored ground is terrainless ground, and reads the
+        /// same as the arena or an interior.
         /// </summary>
-        public bool IsInsideWorldGrid(Vector3 worldPos) => config != null && config.IsWithinGrid(worldPos);
+        public bool IsInsideWorldGrid(Vector3 worldPos)
+        {
+            if (config == null || !config.IsWithinGrid(worldPos)) return false;
+
+            var chunk = config.GetChunk(config.WorldToChunkCoord(worldPos));
+            return chunk == null || chunk.Value.hasTerrain;
+        }
 
         /// <summary>True if the chunk under <paramref name="worldPos"/> is fully loaded (state == Loaded).</summary>
         public bool IsChunkLoadedAt(Vector3 worldPos)
@@ -183,6 +199,17 @@ namespace SpaceGame.World
         private readonly Dictionary<Vector2Int, float> unloadTimers = new();
         private readonly List<Transform> trackedTransforms = new();
 
+        // ── Scene migration replication (see MoveTracked) ──────────────────────────
+        //
+        // Server side: every in-scene-placed NetworkObject this session has moved, and where to.
+        // Client side: announcements whose object or scene had not arrived yet.
+
+        private readonly Dictionary<ulong, string> announcedMigrations = new();
+        private readonly Dictionary<ulong, string> pendingMigrations = new();
+        private readonly List<ulong> migrationDrainBuffer = new();
+        private readonly List<ulong> migrationReplayBuffer = new();
+        private readonly HashSet<int> unreplicatedWarned = new();
+
         // Preload callers waiting for chunk CONTENT, not just the scene load — see WhenChunkContentBuilt.
         private readonly List<Action> pendingContentCallbacks = new();
         private readonly List<Action> contentCallbackBuffer = new();
@@ -263,7 +290,15 @@ namespace SpaceGame.World
 
         public override void OnNetworkSpawn()
         {
-            if (!IsServer) return;
+            if (!IsServer)
+            {
+                // A client runs none of the streaming logic below — the server drives its scene
+                // loads — but it does have to act on the scene migrations the server announces.
+                pendingMigrations.Clear();
+                return;
+            }
+
+            NetworkManager.Singleton.OnClientConnectedCallback += ReplayMigrationsTo;
 
             if (config == null)
             {
@@ -281,7 +316,15 @@ namespace SpaceGame.World
 
         public override void OnNetworkDespawn()
         {
+            pendingMigrations.Clear();
+
             if (!IsServer) return;
+
+            announcedMigrations.Clear();
+            unreplicatedWarned.Clear();
+
+            if (NetworkManager.Singleton != null)
+                NetworkManager.Singleton.OnClientConnectedCallback -= ReplayMigrationsTo;
 
             if (NetworkManager.Singleton != null && NetworkManager.Singleton.SceneManager != null)
                 NetworkManager.Singleton.SceneManager.OnSceneEvent -= HandleSceneEvent;
@@ -300,9 +343,16 @@ namespace SpaceGame.World
 
         private void Update()
         {
+            // Before the server-only gate: this is the one piece of streaming work a CLIENT has,
+            // and it has it precisely because the server cannot do it for them (see MoveTracked).
+            if (Network.IsNetworked && !IsServer)
+            {
+                DrainPendingMigrations();
+                return;
+            }
+
             // Run if we're the server (online) or in offline mode
             if (!isReady) return;
-            if (Network.IsNetworked && !IsServer) return;
 
             // Retry an operation Netcode previously rejected with SceneEventInProgress. Nothing
             // else pokes ProcessNextOperation() once the retry cooldown elapses, since the retry
@@ -682,14 +732,163 @@ namespace SpaceGame.World
                 // Anything parented elsewhere (e.g. rider parented to mount) follows automatically.
                 if (go.transform.parent != null) continue;
 
-                // Hand off through Netcode when this is a NetworkObject so all clients agree on
-                // the new scene assignment. Non-networked or offline path falls through to the
-                // direct SceneManager call.
-                // TODO: when NetworkObject support lands on vehicles, route this through
-                // NetworkManager.Singleton.SceneManager.MoveObjectToScene (Netcode-for-GameObjects
-                // adds this in 1.x via NetworkObject.SceneMigrationSynchronization).
-                SceneManager.MoveGameObjectToScene(go, desired);
+                MoveTracked(go, desired);
             }
+        }
+
+        /// <summary>
+        /// Moves a tracked entity into <paramref name="desired"/> on every machine, not just here.
+        ///
+        /// <para>
+        /// <b>Why this is not one line.</b> This pass runs on the server alone (see
+        /// <see cref="Update"/>), so a plain <c>MoveGameObjectToScene</c> moves the server's copy and
+        /// nobody else's. The client keeps its copy in the chunk the entity walked OUT of, and when
+        /// the server later unloads that chunk — which it now may, nothing tracked is in it any more —
+        /// the unload is replicated and the client destroys its copy. The host still sees the
+        /// creature, the save file still has it, and every client watches it wink out.
+        /// </para>
+        /// <para>
+        /// Netcode covers exactly one of the three cases by itself. A DYNAMICALLY SPAWNED
+        /// NetworkObject with <c>SceneMigrationSynchronization</c> (on by default) has its scene
+        /// handle watched every tick and the migration replicated for us. An IN-SCENE PLACED one is
+        /// explicitly excluded — <c>NetworkObject.UpdateForSceneChanges</c> returns early for it,
+        /// because an in-scene <c>GlobalObjectIdHash</c> is only unique per scene ASSET and cannot
+        /// name a particular instance — and that is the case every authored vehicle and creature in
+        /// this project falls into. So those are announced by hand below. Nothing announces an entity
+        /// with no NetworkObject at all: the other machines are running their own unshared copy of it
+        /// and there is no id with which to name it.
+        /// </para>
+        /// </summary>
+        private void MoveTracked(GameObject go, Scene desired)
+        {
+            SceneManager.MoveGameObjectToScene(go, desired);
+
+            if (!Network.Server || !IsSpawned) return;
+
+            var netObj = go.GetComponent<NetworkObject>();
+
+            if (netObj == null || !netObj.IsSpawned)
+            {
+                WarnUnreplicatedOnce(go);
+                return;
+            }
+
+            // Dynamically spawned: Netcode has already noticed the handle change.
+            if (!netObj.IsSceneObject.GetValueOrDefault()) return;
+
+            announcedMigrations[netObj.NetworkObjectId] = desired.name;
+            MigrateObjectRpc(netObj.NetworkObjectId, new FixedString64Bytes(desired.name), RpcTarget.NotServer);
+        }
+
+        /// <summary>
+        /// Says once, per object, that its scene membership is this machine's opinion alone.
+        ///
+        /// Once rather than every pass because this runs on a timer and the entity keeps moving; a
+        /// per-pass log would be several a second per creature. Not an error, because a purely local
+        /// prop legitimately has no shared identity — it is a warning that a save-visible entity is
+        /// about to disagree between machines.
+        /// </summary>
+        private void WarnUnreplicatedOnce(GameObject go)
+        {
+            if (!unreplicatedWarned.Add(go.GetInstanceID())) return;
+
+            Debug.LogWarning($"[WorldStreamer] '{go.name}' migrates between chunk scenes but has no " +
+                             "spawned NetworkObject, so only this machine moves it. When its old chunk " +
+                             "unloads, every client will destroy their copy while the server keeps and " +
+                             "saves it. Give it a NetworkObject, or set its SceneTracked policy to Pin.", go);
+        }
+
+        /// <summary>
+        /// Moves one already-spawned object into a named scene on the machines that did not decide it.
+        ///
+        /// <para>
+        /// By scene NAME, not by handle: a scene handle is a per-process number and the same chunk has
+        /// a different one on every machine. By <c>NetworkObjectId</c> rather than by hierarchy path,
+        /// because that is the one name for an object every peer already agrees on.
+        /// </para>
+        /// <para>
+        /// A client may hear this before it has the object or the scene — chunk loads are server-driven
+        /// scene events applied asynchronously, so a client's copy of a chunk routinely arrives after
+        /// the server has finished with it. Unresolvable announcements are parked and retried rather
+        /// than dropped; dropping one is the same desync this whole method exists to remove.
+        /// </para>
+        /// </summary>
+        [Rpc(SendTo.SpecifiedInParams)]
+        private void MigrateObjectRpc(ulong networkObjectId, FixedString64Bytes sceneName, RpcParams rpcParams)
+        {
+            string scene = sceneName.ToString();
+            if (TryApplyMigration(networkObjectId, scene)) return;
+
+            pendingMigrations[networkObjectId] = scene;
+        }
+
+        private static bool TryApplyMigration(ulong networkObjectId, string sceneName)
+        {
+            NetworkManager manager = NetworkManager.Singleton;
+            if (manager == null || manager.SpawnManager == null) return false;
+
+            if (!manager.SpawnManager.SpawnedObjects.TryGetValue(networkObjectId, out NetworkObject netObj) ||
+                netObj == null)
+                return false;
+
+            Scene target = SceneManager.GetSceneByName(sceneName);
+            if (!target.IsValid() || !target.isLoaded) return false;
+
+            GameObject go = netObj.gameObject;
+            if (go.scene == target) return true;
+            if (go.transform.parent != null) return true;   // follows its parent; nothing to do
+
+            SceneManager.MoveGameObjectToScene(go, target);
+            return true;
+        }
+
+        /// <summary>Retries announcements whose object or scene had not arrived yet. Client-side.</summary>
+        private void DrainPendingMigrations()
+        {
+            if (pendingMigrations.Count == 0) return;
+
+            migrationDrainBuffer.Clear();
+
+            foreach (var entry in pendingMigrations)
+            {
+                if (TryApplyMigration(entry.Key, entry.Value))
+                    migrationDrainBuffer.Add(entry.Key);
+            }
+
+            for (int i = 0; i < migrationDrainBuffer.Count; i++)
+                pendingMigrations.Remove(migrationDrainBuffer[i]);
+        }
+
+        /// <summary>
+        /// Replays every migration this session has made, to a client that was not here for them.
+        ///
+        /// A late joiner builds its in-scene objects from its own copy of each chunk scene, so it has
+        /// them exactly where they were AUTHORED — which for anything that has walked since the
+        /// session started is the wrong scene, and is a chunk that may already be gone.
+        /// </summary>
+        private void ReplayMigrationsTo(ulong clientId)
+        {
+            if (!IsSpawned || announcedMigrations.Count == 0) return;
+
+            migrationReplayBuffer.Clear();
+
+            foreach (var entry in announcedMigrations)
+            {
+                if (NetworkManager.Singleton != null &&
+                    NetworkManager.Singleton.SpawnManager != null &&
+                    !NetworkManager.Singleton.SpawnManager.SpawnedObjects.ContainsKey(entry.Key))
+                {
+                    migrationReplayBuffer.Add(entry.Key);
+                    continue;
+                }
+
+                MigrateObjectRpc(entry.Key, new FixedString64Bytes(entry.Value), RpcTarget.Single(clientId, RpcTargetUse.Temp));
+            }
+
+            // Despawned since. Kept until now rather than pruned on despawn because nothing else
+            // needs a hook there, and a replay is the only reader.
+            for (int i = 0; i < migrationReplayBuffer.Count; i++)
+                announcedMigrations.Remove(migrationReplayBuffer[i]);
         }
 
         private Scene ResolveDesiredScene(SceneTracked entity)

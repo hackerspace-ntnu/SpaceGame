@@ -84,11 +84,81 @@ namespace SpaceGame.Agents
             inventory = GetComponent<EntityInventoryComponent>();
         }
 
+        /// <summary>Set by a restore, consumed by the next <see cref="OnEnable"/>.</summary>
+        private bool restoredThisEnable;
+
         private void OnEnable()
         {
+            if (restoredThisEnable)
+            {
+                restoredThisEnable = false;
+                return;
+            }
+
             CurrentPhase = Phase.Choosing;
             phaseTimer = 0f;
             travelElapsed = 0f;
+        }
+
+        // ─────────── For the save system ───────────
+        // A live standalone NPC's errand is state nothing else holds. NpcWorldSaveable covers the
+        // VIRTUAL groups; an NPC that is currently a GameObject has its job only here, and without
+        // this it reloads mid-journey as "Choosing" and re-rolls a different errand on the spot.
+
+        /// <summary>The site this NPC last headed for, which the planner avoids picking twice running.</summary>
+        public string LastSiteId => lastSiteId;
+
+        /// <summary>Seconds left of the current retry delay or dwell, depending on the phase.</summary>
+        public float PhaseTimer => phaseTimer;
+
+        /// <summary>How long this journey has been going, against <c>travelTimeout</c>.</summary>
+        public float TravelElapsed => travelElapsed;
+
+        /// <summary>
+        /// Whether <see cref="HomePosition"/> has been decided.
+        ///
+        /// Load-bearing for persistence: <c>EnsureHome</c> resolves the home to whichever site is
+        /// nearest *the current position*, so an NPC restored 2 km from camp and left to resolve its
+        /// own home permanently adopts a new one. Restoring this flag alongside the position is what
+        /// stops that.
+        /// </summary>
+        public bool HomeResolved => homeResolved;
+
+        /// <summary>-1 unless a <see cref="ForceTask"/> is queued and not yet consumed.</summary>
+        public int ForcedTaskIndex => forcedTaskIndex;
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// <paramref name="homeWasResolved"/> false leaves the home alone rather than clearing it:
+        /// "no home was recorded" must not become "adopt whatever site you are nearest to now".
+        /// </summary>
+        public void RestoreTaskState(Phase phase, int taskIndex, string destinationName, string siteId,
+                                     float timer, float travelTime, int forcedIndex,
+                                     bool homeWasResolved, Vector3 home)
+        {
+            CurrentPhase = phase;
+
+            CurrentTaskIndex = tasks == null || tasks.Length == 0
+                ? -1
+                : Mathf.Clamp(taskIndex, -1, tasks.Length - 1);
+
+            CurrentDestinationName = destinationName ?? string.Empty;
+            lastSiteId = siteId ?? string.Empty;
+            phaseTimer = Mathf.Max(0f, timer);
+            travelElapsed = Mathf.Max(0f, travelTime);
+
+            forcedTaskIndex = tasks != null && forcedIndex >= 0 && forcedIndex < tasks.Length
+                ? forcedIndex
+                : -1;
+
+            if (homeWasResolved)
+            {
+                HomePosition = home;
+                homeResolved = true;
+            }
+
+            restoredThisEnable = true;
         }
 
         public override string ModuleDescription =>

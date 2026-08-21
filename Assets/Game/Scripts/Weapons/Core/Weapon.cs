@@ -460,6 +460,59 @@ namespace SpaceGame.Weapons
         /// </summary>
         protected bool ShotDealsDamage { get; private set; } = true;
 
+        // ── Per-instance state ─────────────────────────────────────────────────
+        //
+        // A weapon is destroyed and rebuilt from its prefab on every equip, and OnEnable above then
+        // refills the magazine and clears the cooldown. So before this, an empty gun could be made
+        // full by scrolling one slot down the hotbar and back — and a save simply made that
+        // permanent, because there is no reload mechanic in this game and a magazine is a resource
+        // rather than a convenience.
+
+        private const string AmmoKey = "ammo";
+        private const string CooldownKey = "cd";
+
+        /// <summary>
+        /// The rounds left and the shot clock, both as the player would experience them.
+        ///
+        /// The cooldown is stored as time REMAINING, never as <see cref="nextFireTime"/> itself:
+        /// that is a stamp on <c>Time.time</c>, which restarts at zero every session, so a stored
+        /// absolute would come back either permanently expired or years in the future.
+        ///
+        /// Charging is deliberately not stored. Its state is a live <see cref="IChargeable"/>
+        /// projectile spawned into the world, and nothing in a save file can bring that instance
+        /// back — see <see cref="RestoreItemState"/>.
+        /// </summary>
+        public override void CaptureItemState(ItemState state)
+        {
+            base.CaptureItemState(state);
+            if (state == null) return;
+
+            if (magazine != null) state.Set(AmmoKey, magazine.CurrentAmmo);
+
+            float remaining = nextFireTime - Time.time;
+            if (remaining > 0.01f) state.Set(CooldownKey, remaining);
+        }
+
+        public override void RestoreItemState(ItemState state)
+        {
+            base.RestoreItemState(state);
+
+            // OnEnable has already run by now and has already called Refill(). That is the reset
+            // trap this override exists to undo, and the ordering is EquipmentController's doing —
+            // it restores after OnEquipped, which is after the instance has woken up.
+            if (magazine != null)
+                magazine.SetAmmo(state == null ? magazine.MaxAmmo : state.GetInt(AmmoKey, magazine.MaxAmmo));
+
+            nextFireTime = Time.time + Mathf.Max(0f, state == null ? 0f : state.GetFloat(CooldownKey, 0f));
+            canFire = true;
+
+            // A weapon that was mid-charge comes back uncharged, and the round it had already spent
+            // stays spent. Resuming would mean re-spawning the charging projectile at load, which
+            // puts a live object in the world on a machine that may be only presenting — and the
+            // player can simply charge again.
+            CancelCharging();
+        }
+
         /// <summary>
         /// Override CanUse() to check ammo.
         /// Fire rate is checked in TryFire(), not here, because CanUse() must return true

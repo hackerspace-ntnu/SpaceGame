@@ -14,11 +14,21 @@ namespace SpaceGame.Presentation
     ///
     /// Built here rather than per screen so that every field in the menus agrees on type size, rule
     /// weight and caret colour — otherwise a flow reads as several screens by several authors.
+    ///
+    /// <para>
+    /// That same rule is also the field's only way to show its state, which
+    /// <see cref="MenuFieldRule"/> drives: hovered, focused, or neither. It shipped for a while with
+    /// no state at all, which made a field indistinguishable from the caption above it and left
+    /// players typing lobby codes into a screen that never acknowledged them.
+    /// </para>
     /// </summary>
     public static class MenuField
     {
         /// <summary>Tall enough for a 64pt line plus the rule beneath it.</summary>
         public const float Height = 96f;
+
+        /// <summary>Wide enough to be seen at this type size. See where it is assigned.</summary>
+        private const int CaretWidth = 4;
 
         /// <summary>
         /// A single-line field drawn on a rule <paramref name="width"/> wide.
@@ -50,7 +60,19 @@ namespace SpaceGame.Presentation
             underline.pivot = new Vector2(0f, 0f);
             underline.anchoredPosition = Vector2.zero;
             underline.sizeDelta = new Vector2(width, 3f);
-            UIBuilder.Solid(underline, MenuEntry.Caption);
+            Image rule = UIBuilder.Solid(underline, MenuEntry.Caption);
+
+            // The focused state, drawn over the resting rule rather than by recolouring it: growing
+            // a second, thicker line across the field is a cue you can catch from the corner of your
+            // eye, and a colour change on a 3px line over sand is not. Starts at zero width — see
+            // MenuFieldRule, which owns everything about it from here on.
+            RectTransform focusRule = UIBuilder.Rect("FocusRule", rect);
+            focusRule.anchorMin = new Vector2(0f, 0f);
+            focusRule.anchorMax = new Vector2(0f, 0f);
+            focusRule.pivot = new Vector2(0f, 0f);
+            focusRule.anchoredPosition = Vector2.zero;
+            focusRule.sizeDelta = new Vector2(0f, MenuFieldRule.FocusThickness);
+            UIBuilder.Solid(focusRule, MenuEntry.Idle);
 
             RectTransform textArea = UIBuilder.Rect("TextArea", rect);
             textArea.anchorMin = new Vector2(0f, 0f);
@@ -77,7 +99,16 @@ namespace SpaceGame.Presentation
             input.customCaretColor = true;
             input.characterLimit = characterLimit;
 
+            // Unity's default is one pixel, which beside 64pt bold type is not a caret so much as a
+            // rendering artefact. Most of why these fields read as dead even while focused was that
+            // the only thing saying otherwise was invisible.
+            input.caretWidth = CaretWidth;
+
             if (onSubmit != null) input.onSubmit.AddListener(onSubmit);
+
+            rect.gameObject.AddComponent<MenuFieldRule>()
+                .Bind(input, rule, focusRule, hint, width);
+
             return input;
         }
 

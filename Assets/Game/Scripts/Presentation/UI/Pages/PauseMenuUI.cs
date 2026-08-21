@@ -7,7 +7,6 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using SpaceGame.Characters;
 using SpaceGame.Core;
-using SpaceGame.Core.Persistence;
 
 namespace SpaceGame.Presentation
 {
@@ -675,6 +674,8 @@ namespace SpaceGame.Presentation
             SettingsWidgets.Heading(page, "System");
 
             Binding(page, "Pause", "M");
+            Binding(page, "Map hologram", "N");
+            Binding(page, "Helmet overlay", "H");
             Binding(page, "Scoreboard (hold)", "Tab");
             Binding(page, "Skip transition", "Space");
             Binding(page, "Quicksave", "F5");
@@ -862,21 +863,20 @@ namespace SpaceGame.Presentation
             // still restores the clock, because a scene that starts under a zero timescale never
             // finishes its own startup coroutines.
             ForceClose();
+
+            // The settings are this screen's own business. Everything else that has to happen on
+            // the way out of a session — the world save, the staged world, the lobby membership,
+            // the shutdown, the load — belongs to SessionExit, because a client whose host vanishes
+            // has to do the same things and cannot get here to do them. This used to be that whole
+            // sequence written out here, minus the one step nobody remembered: handing the lobby
+            // membership back, without which the next attempt to host races this session's ghost.
             GameSettings.Save();
 
-            // The world, not just the settings. Before the shutdown below, which tears down the
-            // stores the save reads from — leaving to the menu is otherwise indistinguishable
-            // from losing the session.
-            SaveManager.SaveOnExit();
-            WorldSession.Clear();
-
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-
-            if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
-                NetworkManager.Singleton.Shutdown();
-
-            SceneManager.LoadScene("MainMenu", LoadSceneMode.Single);
+            // saveWorld: true. This is the deliberate exit, and on the machine that owns the world
+            // it is the last moment its state can still be written. SaveOnExit is a no-op on a
+            // client, which is right — and see SessionExit for why that guard cannot be relied on
+            // from the disconnect path.
+            SessionExit.ToMainMenu(saveWorld: true);
         }
 
         private void QuitGame()

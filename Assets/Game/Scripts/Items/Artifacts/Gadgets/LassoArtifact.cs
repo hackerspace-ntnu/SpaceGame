@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
 using SpaceGame.Agents;
+using SpaceGame.Persistence;
 using SpaceGame.Vehicles;
 
 namespace SpaceGame.Items
@@ -16,7 +17,7 @@ namespace SpaceGame.Items
     ///                Rope is tension-only: free when slack, pulls only when taut.
     /// Second Use() → releases the lasso, restores NavMesh on the target.
     /// </summary>
-    public class LassoArtifact : ToolItem
+    public class LassoArtifact : ToolItem, IItemDeferredRestore
     {
         /// <summary>Owner-run: a local physics throw aimed by the holder's own camera.</summary>
         public override UseAuthority Authority => UseAuthority.Owner;
@@ -323,6 +324,91 @@ namespace SpaceGame.Items
             }
 
             if (_isLassoed) Release();
+        }
+
+        // ── Per-instance state ─────────────────────────────────────────────────
+        //
+        // A roped creature is a relationship between two objects, and it lived entirely in fields on
+        // an item instance that is destroyed on every equip. So the creature was freed — and its
+        // NavMeshAgent handed back to it — by switching hotbar slot, and by reloading.
+        //
+        // Deferred, because the target is the whole point. A rope with no creature on the end of it
+        // is not worth restoring, so unlike the grapple there is nothing to apply early: the pending
+        // reference is kept until the creature turns up, which for one in a chunk that has not
+        // streamed in yet may be several passes later.
+
+        private const string TargetKey = "target";
+        private const string OffsetKey = "off";
+        private const string RopeKey = "rope";
+
+        private SaveRef _pendingTarget;
+        private Vector3 _pendingOffset;
+        private float _pendingRopeLength;
+        private bool _pendingRestore;
+
+        public bool HasPendingRestore => _pendingRestore;
+
+        public override void CaptureItemState(ItemState state)
+        {
+            base.CaptureItemState(state);
+            if (state == null || !_isLassoed) return;
+
+            Transform root = _targetRb != null ? _targetRb.transform : _targetTransform;
+            if (root == null) return;
+
+            SaveRef target = SaveRef.From(root.gameObject);
+
+            // An unreferenceable target is one the save system has no identity for — a prop nobody
+            // opted in. Storing the rope without it would restore a rope attached to nothing.
+            if (!target.IsSet) return;
+
+            state.Set(TargetKey, target);
+            state.Set(OffsetKey, _attachOffset);
+            state.Set(RopeKey, _currentRopeLength);
+        }
+
+        public override void RestoreItemState(ItemState state)
+        {
+            base.RestoreItemState(state);
+
+            _pendingRestore = false;
+            _pendingTarget = SaveRef.None;
+
+            if (state == null) return;
+
+            SaveRef target = state.GetRef(TargetKey);
+            if (!target.IsSet) return;
+
+            _pendingTarget = target;
+            _pendingOffset = state.GetVector3(OffsetKey, Vector3.up * npcAttachHeightOffset);
+            _pendingRopeLength = state.GetFloat(RopeKey);
+            _pendingRestore = true;
+        }
+
+        /// <summary>
+        /// Put the rope back on the creature, once the creature is here.
+        ///
+        /// Kept pending on failure and consumed on success: the target may be in a chunk that has
+        /// not streamed in yet, and giving up on the first pass would quietly free it.
+        /// </summary>
+        public void TryCompleteRestore()
+        {
+            if (!_pendingRestore) return;
+            if (_isLassoed || _isThrowing) { _pendingRestore = false; return; }
+            if (!_pendingTarget.TryResolve(out GameObject target)) return;
+
+            _pendingRestore = false;
+
+            // Straight to Attach, skipping the throw: the rope was already on the creature, and
+            // replaying the arc would give the player a second chance to miss.
+            Attach(target.GetComponent<Rigidbody>(), target.transform);
+
+            // After Attach, never before — it writes both of these itself, from the authored
+            // defaults and from where the two ends are standing right now. That is the safe answer;
+            // the saved pair is the better one, because the player may have reeled the creature
+            // most of the way in already.
+            _attachOffset = _pendingOffset;
+            if (_pendingRopeLength > ropeSlack) _currentRopeLength = _pendingRopeLength;
         }
 
         // ── Right-click reel-in (input read only) ─────────────────────────────

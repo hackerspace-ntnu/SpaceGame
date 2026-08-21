@@ -89,6 +89,53 @@ namespace SpaceGame.Agents
             patrolDirection = 1;
         }
 
+        // ─────────── For the save system ───────────
+        // The same shape as PatrolModule and WanderModule, with the same two things worth keeping:
+        // the leg currently being walked, and the leash anchor. The anchor is the important one —
+        // it is latched once from transform.position inside Tick, so letting it latch again after a
+        // load re-centres the leash on wherever the creature was saved and walks the territory
+        // across the map one reload at a time.
+
+        public bool HasDestination => hasDestination;
+
+        /// <summary>Meaningless unless <see cref="HasDestination"/>.</summary>
+        public Vector3 CurrentDestination => currentDestination;
+
+        public float WaitTimer => waitTimer;
+        public int PatrolIndex => patrolIndex;
+
+        /// <summary>+1 or -1 on a ping-pong route; unused on a looping one.</summary>
+        public int PatrolDirection => patrolDirection;
+
+        public bool HasSpawnAnchor => hasSpawnAnchor;
+        public Vector3 SpawnAnchor => spawnAnchor;
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// <paramref name="anchorSet"/> false leaves the anchor alone rather than clearing it, so
+        /// "nothing was recorded" cannot turn into "re-derive the leash from where you are now".
+        /// </summary>
+        public void RestoreWanderState(bool destinationSet, Vector3 destination, float wait,
+                                       int index, int direction, bool anchorSet, Vector3 anchor)
+        {
+            hasDestination = destinationSet;
+            currentDestination = destination;
+            waitTimer = Mathf.Max(0f, wait);
+
+            patrolIndex = patrolPoints == null || patrolPoints.Length == 0
+                ? 0
+                : Mathf.Clamp(index, 0, patrolPoints.Length - 1);
+
+            patrolDirection = direction < 0 ? -1 : 1;
+
+            if (anchorSet)
+            {
+                spawnAnchor = anchor;
+                hasSpawnAnchor = true;
+            }
+        }
+
         private bool TryGetNextDestination(Vector3 origin, out Vector3 destination)
         {
             if (ShouldUsePatrolPoints() && TryGetPatrolPoint(origin, out destination))

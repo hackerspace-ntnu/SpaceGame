@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Agents;
 using SpaceGame.Core;
+using SpaceGame.Core.Persistence;
+using SpaceGame.Persistence;
 
 namespace SpaceGame.Gameplay
 {
@@ -23,10 +25,13 @@ namespace SpaceGame.Gameplay
     /// return to the exterior. The window is measured from the exit (not the original fire),
     /// because real time keeps passing while the player is inside the interior — a cooldown
     /// started at entry would have expired by the time they came back out.
+    ///
+    /// ONLY THE SERVER FIRES. See <see cref="ThisMachineDecides"/> — a volume is a local
+    /// observation of a shared event, and only the authority's observation is allowed to count.
     /// </summary>
     [RequireComponent(typeof(Collider))]
     [AddComponentMenu("Triggers/Volume Trigger")]
-    public class VolumeTrigger : MonoBehaviour
+    public class VolumeTrigger : MonoBehaviour, IPersistentEntity
     {
         [Tooltip("Optional. If unset, the first ITriggerable on this GameObject is used.")]
         [SerializeField] private MonoBehaviour triggerableOverride;
@@ -44,8 +49,37 @@ namespace SpaceGame.Gameplay
         private float armedAt;
         private float lastStayLog;
 
+        /// <summary>
+        /// Whether this machine's observation of the volume is the one that counts.
+        ///
+        /// Every player's body exists on every machine, so a volume in the world overlaps a collider
+        /// locally whenever ANYONE walks into it — including a remote player's body, on your screen,
+        /// firing YOUR ITriggerable. That is one player walking into a cave marking everybody's
+        /// SceneTransition busy, and every client deciding for itself that some other player is now
+        /// inside an interior it has not loaded and holds no return position for.
+        ///
+        /// Deliberately "server or offline" and NOT <c>Network.Simulates(this)</c>, which is the gate
+        /// the interactables use. Simulates answers about the object it is handed, and a trigger
+        /// volume is scenery with no NetworkObject of its own — it would answer "yes, you simulate
+        /// this" on every client and change nothing at all. The thing that HAS an authority here is
+        /// the player being moved, and the server is the machine that owns that decision.
+        ///
+        /// Offline is still this machine, so single-player is untouched.
+        /// </summary>
+        private static bool ThisMachineDecides => !Network.IsNetworked || Network.Server;
+
         // Per-(player, this-volume) re-entry state. Static so it survives the volume being
         // unloaded/reloaded by world streaming while the player is off in an interior.
+        //
+        // Only ever populated on the machine that fires — see ThisMachineDecides — which is why the
+        // gate sits at the very top of TryFire rather than beside the Trigger call. A client that got
+        // as far as GetReentryState would mint an entry for a player it will never fire for.
+        //
+        // KEYED BY STABLE IDENTITY, not by GetInstanceID. Instance ids are per-object-per-session,
+        // which broke this map twice over: a volume that streamed out and back in was a different
+        // key on its way back, so the cooldown it was keeping never applied to the volume it was
+        // kept for, and nothing about the state could be written to a save at all. Identity keys are
+        // the same strings a save record uses, so the map both survives streaming and can be stored.
         private class ReentryState
         {
             // True once this player triggers this volume, until they are next confirmed back
@@ -55,7 +89,57 @@ namespace SpaceGame.Gameplay
             public bool TransitionPending;
             public float CooldownUntil;      // unscaled-time before which this volume must not re-fire
         }
-        private static readonly Dictionary<(int playerId, int volumeId), ReentryState> s_reentry = new();
+        private static readonly Dictionary<(string volumeKey, string playerKey), ReentryState> s_reentry = new();
+
+        /// <summary>
+        /// Empty the map when play starts.
+        ///
+        /// Static state survives leaving play mode when domain reload is off, so without this the
+        /// cooldowns from the previous session are still in force in the next one — a transition
+        /// volume silently refusing to fire for a player who has never used it, which is
+        /// indistinguishable from the volume being broken. Same reasoning, and the same attribute,
+        /// as <c>WorldSiteRegistry.Clear</c>.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetReentry() => s_reentry.Clear();
+
+        /// <summary>
+        /// This volume's identity, as something two sessions can agree on.
+        ///
+        /// The save record's own id where the object has been wired for saving, and the same derived
+        /// scene-plus-hierarchy id the save system would give it otherwise — so the key is stable
+        /// whether or not anybody has run the wiring tool.
+        /// </summary>
+        private string VolumeKey
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(volumeKey)) return volumeKey;
+
+                var entity = GetComponent<SaveableEntity>();
+                volumeKey = entity != null && !string.IsNullOrEmpty(entity.InstanceId)
+                    ? entity.InstanceId
+                    : SaveableEntity.DeriveAuthoredId(gameObject);
+
+                return volumeKey;
+            }
+        }
+
+        private string volumeKey;
+
+        /// <summary>
+        /// Who this is, as something two sessions can agree on.
+        ///
+        /// <see cref="SaveRef"/> answers "profile abc" for a player and "entity def" for an agent,
+        /// which is exactly the distinction this map needs and exactly what a save file can hold.
+        /// The fallback is only reached outside a bound session, where nothing is being saved
+        /// anyway and a per-session key is all that is wanted.
+        /// </summary>
+        private static string PlayerKeyOf(GameObject initiator)
+        {
+            SaveRef reference = SaveRef.From(initiator);
+            return reference.IsSet ? reference.ToString() : "local:" + initiator.GetInstanceID();
+        }
 
         private void Awake()
         {
@@ -71,16 +155,16 @@ namespace SpaceGame.Gameplay
             if (col != null) col.isTrigger = true;
         }
 
-        private void OnDestroy()
-        {
-            // Drop this volume's re-entry entries so the static map doesn't accumulate
-            // stale (player, volume) pairs as volumes stream in and out.
-            int volumeId = GetInstanceID();
-            var stale = new List<(int, int)>();
-            foreach (var key in s_reentry.Keys)
-                if (key.volumeId == volumeId) stale.Add(key);
-            foreach (var key in stale) s_reentry.Remove(key);
-        }
+        // Deliberately NOT dropping this volume's entries when it is destroyed any more.
+        //
+        // The old sweep existed because the key was an instance id, which a destroyed volume could
+        // never present again — so the entries really were dead weight. It also defeated the reason
+        // the map is static: world streaming unloads the cave entrance the moment the player is deep
+        // enough inside the cave, and sweeping on destroy threw away the very cooldown that stops
+        // the entrance re-firing the instant they step back out of it.
+        //
+        // With identity keys the entries are worth keeping, and there are only ever as many as
+        // (players × volumes they have actually used).
 
         private void OnTriggerEnter(Collider other)
         {
@@ -110,6 +194,18 @@ namespace SpaceGame.Gameplay
 
         private void TryFire(Collider other, string source)
         {
+            // Before anything else, so a client neither logs once a frame out of OnTriggerStay nor
+            // mints a per-(player, volume) re-entry entry it will never consult. That map is static
+            // and is only swept when the volume is destroyed, so entries a client can never use
+            // would sit in it for the length of the session.
+            if (!ThisMachineDecides)
+            {
+                if (source == "Enter")
+                    Debug.Log($"[VolumeTrigger] '{name}' {source} ignored: only the server decides " +
+                              "that a volume fired. The server sees this body too.", this);
+                return;
+            }
+
             if (Time.time < armedAt)
             {
                 if (source == "Enter")
@@ -174,13 +270,91 @@ namespace SpaceGame.Gameplay
 
         private ReentryState GetReentryState(GameObject player)
         {
-            var key = (player.GetInstanceID(), GetInstanceID());
+            var key = (VolumeKey, PlayerKeyOf(player));
             if (!s_reentry.TryGetValue(key, out var state))
             {
                 state = new ReentryState();
                 s_reentry[key] = state;
             }
             return state;
+        }
+
+        // ── Persistence ──────────────────────────────────────────────────────────
+
+        /// <summary>One player's standing with this volume, in a form a save record can hold.</summary>
+        public struct ReentryRecord
+        {
+            /// <summary>Who — a <see cref="SaveRef"/> rendered as a string. See PlayerKeyOf.</summary>
+            public string player;
+
+            /// <summary>A transition through this volume that has not yet resolved.</summary>
+            public bool transitionPending;
+
+            /// <summary>
+            /// Seconds of refusal still owed. A remaining duration and not the deadline, because
+            /// <c>Time.unscaledTime</c> restarts with the session.
+            /// </summary>
+            public float cooldownRemaining;
+        }
+
+        /// <summary>
+        /// What this volume currently refuses, and to whom.
+        ///
+        /// Worth saving because a one-per-trip transition volume that forgets is a volume that can
+        /// fire again the moment the world finishes loading — and a load very often puts the player
+        /// standing exactly where they were, which for a cave mouth is inside the trigger.
+        /// </summary>
+        public List<ReentryRecord> CaptureReentry()
+        {
+            List<ReentryRecord> records = null;
+            string volume = VolumeKey;
+
+            foreach (KeyValuePair<(string volumeKey, string playerKey), ReentryState> entry in s_reentry)
+            {
+                if (entry.Key.volumeKey != volume || entry.Value == null) continue;
+
+                float remaining = Mathf.Max(0f, entry.Value.CooldownUntil - Time.unscaledTime);
+                if (!entry.Value.TransitionPending && remaining <= 0f) continue;
+
+                records ??= new List<ReentryRecord>();
+                records.Add(new ReentryRecord
+                {
+                    player = entry.Key.playerKey,
+                    transitionPending = entry.Value.TransitionPending,
+                    cooldownRemaining = remaining,
+                });
+            }
+
+            return records;
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Replaces this volume's entries and leaves every other volume's alone, so restoring one
+        /// chunk cannot re-arm a transition somewhere else in the world.
+        /// </summary>
+        public void RestoreReentry(List<ReentryRecord> records)
+        {
+            string volume = VolumeKey;
+
+            var stale = new List<(string, string)>();
+            foreach (var key in s_reentry.Keys)
+                if (key.volumeKey == volume) stale.Add(key);
+            foreach (var key in stale) s_reentry.Remove(key);
+
+            if (records == null) return;
+
+            foreach (ReentryRecord record in records)
+            {
+                if (string.IsNullOrEmpty(record.player)) continue;
+
+                s_reentry[(volume, record.player)] = new ReentryState
+                {
+                    TransitionPending = record.transitionPending,
+                    CooldownUntil = Time.unscaledTime + Mathf.Max(0f, record.cooldownRemaining),
+                };
+            }
         }
 
         // Arm the post-exit re-entry cooldown the first time we see this player back in the

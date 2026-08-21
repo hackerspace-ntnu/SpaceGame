@@ -65,6 +65,11 @@ namespace SpaceGame.Agents
         private HealthComponent health;
         private Transform aggressor;
 
+        // Set by RestoreGrudge, consumed by the next OnEnable. Without it a restored grudge is wiped
+        // by the Forget() below whenever the restore lands while the object is disabled — which is
+        // the ordinary case for an entity whose chunk is hydrated before it is switched on.
+        private bool restoredGrudge;
+
         private void Awake()
         {
             health = GetComponent<HealthComponent>();
@@ -77,10 +82,18 @@ namespace SpaceGame.Agents
 
         private void OnEnable()
         {
-            // A creature that comes back — respawned, restored from a save, or streamed back in —
-            // comes back calm. Persisting a grudge would mean loading a world into an ambush whose
-            // cause happened before the player quit.
-            Forget();
+            // A creature that comes back — respawned or streamed back in — comes back calm, because
+            // nothing in that path says otherwise.
+            //
+            // A creature restored from a SAVE is the exception, and it is the reason for the latch.
+            // Shooting a Golem and reloading used to hand back a peaceful Golem forever: Fauna is
+            // Neutral toward everything, so AgentTargeting.Reevaluate can never re-acquire the player
+            // on its own, and this component is the only thing that would have re-asserted the target.
+            // The grudge is now persisted (ProvocationSaveable), and this must not throw it away.
+            if (restoredGrudge)
+                restoredGrudge = false;
+            else
+                Forget();
 
             if (health != null)
                 health.OnDamage += HandleDamage;
@@ -128,9 +141,41 @@ namespace SpaceGame.Agents
             if (!TargetResolution.IsViable(target))
                 return;
 
+            // Normally filled by Awake. Resolved here too because a restore can reach this before
+            // Awake has run — the save system talks to components on objects it has just hydrated.
+            if (targeting == null)
+                targeting = AgentTargeting.GetOrAdd(gameObject);
+
             aggressor = target;
             CalmingFor = 0f;
             targeting.ForceTarget(target);
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Goes through <see cref="Provoke"/> rather than assigning the field, so the restored grudge
+        /// arrives the same way a fresh one does: the target is handed to AgentTargeting immediately,
+        /// and this component's <c>[DefaultExecutionOrder(-40)]</c> re-assertion in
+        /// <see cref="Update"/> then holds it against a Reevaluate that could never find it. Setting
+        /// <c>aggressor</c> directly would leave the creature angry with no target until the leash
+        /// check happened to notice.
+        ///
+        /// <paramref name="calmingFor"/> is re-applied after the fact because <see cref="Provoke"/>
+        /// zeroes it — a creature saved 50 seconds into a 60 second calm-down must not come back with
+        /// a full clock.
+        /// </summary>
+        public void RestoreGrudge(Transform target, float calmingFor)
+        {
+            Provoke(target);
+
+            // Not viable — dead, despawned, or retired from the registry. Nothing was restored, so
+            // the latch stays down and OnEnable is free to reset as usual.
+            if (aggressor == null)
+                return;
+
+            CalmingFor = Mathf.Max(0f, calmingFor);
+            restoredGrudge = true;
         }
 
         /// <summary>Drop the grudge and go back to being peaceful.</summary>

@@ -12,6 +12,7 @@
 //
 // Combat and other reactive modules above Social priority are unaffected on the
 // member that owns them — they win locally and broadcast to the rest.
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -70,7 +71,7 @@ namespace SpaceGame.Agents
             public bool HasValue;
         }
 
-        private enum HerdPhase { Idle, Moving, Settling }
+        public enum HerdPhase { Idle, Moving, Settling }
 
         private struct HerdState
         {
@@ -85,12 +86,134 @@ namespace SpaceGame.Agents
         private static readonly Dictionary<string, int> s_broadcastFrame = new();
         private static readonly Dictionary<string, HerdState> s_state = new();
 
+        /// <summary>
+        /// Wipe every herd's shared state when play starts.
+        ///
+        /// These four dictionaries are process-wide and keyed by a string authored into prefabs, so
+        /// with domain reload off they survive leaving play mode — and "wildlife" in the world you
+        /// just left is the same key as "wildlife" in the world you are about to enter. A herd would
+        /// then wake up already Moving toward a destination in a world that no longer exists, and
+        /// walk at it until it hit the edge of the NavMesh. Same defence, same reason, as
+        /// <c>WorldSiteRegistry.Clear</c>.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            s_herds.Clear();
+            s_broadcast.Clear();
+            s_broadcastFrame.Clear();
+            s_state.Clear();
+        }
+
+        /// <summary>
+        /// Drop every herd's phase and destination, keeping membership.
+        ///
+        /// For world teardown inside one session — leaving a world for the menu, or loading a second
+        /// one — where <see cref="ResetStatics"/> does not fire. Membership is left alone because
+        /// members register themselves in <c>OnEnable</c>, which has already happened for anything
+        /// still loaded.
+        /// </summary>
+        public static void ClearSharedState()
+        {
+            s_broadcast.Clear();
+            s_broadcastFrame.Clear();
+            s_state.Clear();
+        }
+
+        // ─────────── Shared herd state, for the save system ───────────
+
+        /// <summary>One herd's migration, in a form a save file can hold.</summary>
+        [Serializable]
+        public struct HerdRecord
+        {
+            public string HerdId;
+            public HerdPhase Phase;
+            public Vector3 Destination;
+            public Vector3 SettleCenter;
+
+            /// <summary>
+            /// Seconds the herd has already spent in this phase.
+            ///
+            /// Stored as an elapsed span rather than as the absolute <c>Time.time</c> the phase
+            /// began: <c>Time.time</c> restarts at zero every session, so an absolute stamp would
+            /// come back in the future and the settle timeout would never fire again.
+            /// </summary>
+            public float PhaseElapsed;
+        }
+
+        /// <summary>Every herd currently mid-move. Idle herds are omitted — there is nothing to say.</summary>
+        public static HerdRecord[] CaptureSharedState()
+        {
+            var records = new List<HerdRecord>(s_state.Count);
+
+            foreach (KeyValuePair<string, HerdState> entry in s_state)
+            {
+                if (string.IsNullOrEmpty(entry.Key) || entry.Value.Phase == HerdPhase.Idle)
+                    continue;
+
+                records.Add(new HerdRecord
+                {
+                    HerdId = entry.Key,
+                    Phase = entry.Value.Phase,
+                    Destination = entry.Value.Destination,
+                    SettleCenter = entry.Value.SettleCenter,
+                    PhaseElapsed = Mathf.Max(0f, Time.time - entry.Value.PhaseEnterTime),
+                });
+            }
+
+            return records.ToArray();
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Replaces the table wholesale rather than merging, so a herd id the record does not
+        /// mention comes back Idle instead of keeping whatever the previous world left in it.
+        /// </summary>
+        public static void RestoreSharedState(HerdRecord[] records)
+        {
+            ClearSharedState();
+
+            if (records == null) return;
+
+            foreach (HerdRecord record in records)
+            {
+                if (string.IsNullOrEmpty(record.HerdId)) continue;
+
+                s_state[record.HerdId] = new HerdState
+                {
+                    Phase = record.Phase,
+                    Destination = record.Destination,
+                    SettleCenter = record.SettleCenter,
+                    PhaseEnterTime = Time.time - Mathf.Max(0f, record.PhaseElapsed),
+                };
+            }
+        }
+
         private IMovementMotor motor;
 
         // This member's assigned slot index on the settle circle — assigned once per settle phase.
         private int mySlotIndex = -1;
         private Vector3 mySlotPosition;
         private bool slotAssigned;
+
+        // ─────────── This member's slot, for the save system ───────────
+        // Without it every member reloads unassigned, re-derives its index from the order the herd
+        // happened to register in this session, and the group visibly reshuffles around its
+        // destination the first frame after a load.
+
+        public string HerdId => herdId;
+        public int SlotIndex => mySlotIndex;
+        public Vector3 SlotPosition => mySlotPosition;
+        public bool SlotAssigned => slotAssigned;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreSlot(int slotIndex, Vector3 slotPosition, bool assigned)
+        {
+            mySlotIndex = slotIndex;
+            mySlotPosition = slotPosition;
+            slotAssigned = assigned;
+        }
 
         // ── Registry ──────────────────────────────────────────────────────────────
         private static void Register(HerdModule m)

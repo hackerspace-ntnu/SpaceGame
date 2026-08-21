@@ -56,9 +56,52 @@ namespace SpaceGame.Agents
         private float retargetTimer;
         private float cooldownTimer;
 
+        // Cached rather than asked per shot: a turret fires on a cooldown but aims every frame, and
+        // the lookup this replaces walks the hierarchy for a NetworkObject. See AgentAuthority.
+        private AgentAuthority authority;
+
         public float MinRange => minRange;
         public float MaxRange => maxRange;
         public Transform CurrentTarget => target;
+
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // A placeable turret is world furniture: it is still there next session and it was still
+        // shooting at somebody. Three things go with it.
+        //
+        // The COOLDOWN, for the same reason as every other weapon here — a turret that reloads at
+        // zero fires the instant the world hydrates, which is a free mortar shell for whoever
+        // reloaded and a free one against them if it is hostile.
+        //
+        // The TARGET, so the turret does not spend up to `retargetInterval` staring at nothing and
+        // then re-acquire from scratch.
+        //
+        // The BARREL, which is the one nothing else covers: the aim lives on `rotatingPart`, a
+        // CHILD transform, and TransformSaveable is only ever on the root. Without this the gun
+        // snaps back to its authored heading and slews round again from there. Captured as a LOCAL
+        // rotation so it survives the turret itself having been placed at a different angle.
+        //
+        // No latch is needed here, unlike the combat modules: this component has no OnEnable, so
+        // nothing resets any of it behind a restore.
+        public float RetargetTimer => retargetTimer;
+        public float CooldownTimer => cooldownTimer;
+        public Transform RotatingPart => rotatingPart;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreTurretState(float retarget, float cooldown)
+        {
+            retargetTimer = retarget;
+            cooldownTimer = cooldown;
+        }
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreTarget(Transform restored) => target = restored;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreBarrelRotation(Quaternion localRotation)
+        {
+            if (rotatingPart != null) rotatingPart.localRotation = localRotation;
+        }
 
         private void Reset()
         {
@@ -76,12 +119,17 @@ namespace SpaceGame.Agents
 
         private void Awake()
         {
+            authority = new AgentAuthority(this);
             selfFaction = GetComponent<EntityFaction>();
             if (rotatingPart == null)
                 Debug.LogWarning($"[Turret] {name} has no rotatingPart assigned — turret will not rotate.");
             if (gunBarrel == null)
                 Debug.LogWarning($"[Turret] {name} has no gunBarrel assigned — falling back to rotatingPart/transform for spawn point.");
         }
+
+        // A turret bolted to a vehicle changes which NetworkObject is above it when the vehicle
+        // does. See AgentAuthority.Invalidate.
+        private void OnTransformParentChanged() => authority?.Invalidate();
 
         private void Update()
         {
@@ -228,6 +276,14 @@ namespace SpaceGame.Agents
             TurretProjectile tp = proj.GetComponent<TurretProjectile>();
             if (tp == null)
                 tp = proj.AddComponent<TurretProjectile>();
+
+            // Every machine fires; only the one that simulates this turret bills anybody. That
+            // split is chosen over gating the whole turret because a mortar shell is a slow, very
+            // visible arc — a client that never drew one would watch its allies take damage out of
+            // an empty sky — and because a shell shown this way costs nothing on the wire. The
+            // price is that peers aim from their own copy of the target list and can send the arc
+            // somewhere slightly different; the damage is unaffected, since theirs cannot deal any.
+            tp.Cosmetic = !authority.SimulatedHere;
             tp.Init(damagePerHit, gameObject);
 
             Rigidbody rb = proj.GetComponent<Rigidbody>();

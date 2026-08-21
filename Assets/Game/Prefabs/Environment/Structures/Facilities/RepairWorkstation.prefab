@@ -13,6 +13,9 @@ GameObject:
   - component: {fileID: 7100003}
   - component: {fileID: 7100004}
   - component: {fileID: 5890016459745650271}
+  - component: {fileID: -3249809796324482755}
+  - component: {fileID: -7287653139394987704}
+  - component: {fileID: -7229888397839910035}
   m_Layer: 0
   m_Name: RepairWorkstation
   m_TagString: Untagged
@@ -49,7 +52,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1471023556
+  GlobalObjectIdHash: 1495917934
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -118,6 +121,15 @@ MonoBehaviour:
   onRepaired:
     m_PersistentCalls:
       m_Calls: []
+  acceptedId: 506
+  acceptedSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  rejectedId: 508
 --- !u!114 &5890016459745650271
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -131,6 +143,46 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &-3249809796324482755
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 6b4d9c2e8a1f74e3ba5c0d78f1e29435
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &-7287653139394987704
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &-7229888397839910035
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 309cc244b1f0b4c2394356ad648f5ac5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RepairWorkstationSaveable
 --- !u!1 &7110000
 GameObject:
   m_ObjectHideFlags: 0

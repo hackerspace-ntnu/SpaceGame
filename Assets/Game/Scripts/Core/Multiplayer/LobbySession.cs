@@ -36,6 +36,19 @@ namespace SpaceGame.Core
         /// <summary>Lobby's GET rate limit is one call per second per lobby; 2s stays clear of it.</summary>
         private const float PollInterval = 2f;
 
+        /// <summary>
+        /// The floor between two QueryLobbies calls, whoever asked for them.
+        ///
+        /// Lobby allows one query per second. The browser's automatic refresh already sits on that
+        /// ceiling, so the Refresh button — which is a second query issued at a moment of the
+        /// player's choosing, usually right in the middle of the automatic one's interval — is what
+        /// pushes it over. 1.1s buys back the timer jitter that made it a coin toss.
+        /// </summary>
+        private const float QuerySpacing = 1.1f;
+
+        /// <summary>When the last query was ISSUED. Rate limiters count arrivals, not completions.</summary>
+        private float lastQueryAt = float.NegativeInfinity;
+
         private static LobbySession instance;
 
         /// <summary>
@@ -109,23 +122,37 @@ namespace SpaceGame.Core
         private float suitColorTimer;
         private bool suitColorInFlight;
 
+        /// <summary>
+        /// Keeps <see cref="HandleClientDisconnect"/> attached to whichever NetworkManager is live.
+        ///
+        /// This used to be a single subscription in <see cref="Awake"/> guarded by a null check,
+        /// which silently did nothing whenever the manager did not exist yet — and it often does
+        /// not, because this object creates itself on first use while NetworkBootstrap only
+        /// backfills a manager AfterSceneLoad. Losing that race cost the whole disconnect path with
+        /// no error anywhere. See <see cref="DisconnectHook"/>.
+        /// </summary>
+        private DisconnectHook disconnects;
+
         private void Awake()
         {
             if (instance != null && instance != this) { Destroy(gameObject); return; }
             instance = this;
 
-            if (NetworkManager.Singleton != null)
-                NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnect;
+            disconnects = new DisconnectHook(HandleClientDisconnect);
+            disconnects.Poll();
         }
 
         private void OnDestroy()
         {
-            if (NetworkManager.Singleton != null)
-                NetworkManager.Singleton.OnClientDisconnectCallback -= HandleClientDisconnect;
+            disconnects?.Detach();
         }
 
         private void Update()
         {
+            // Re-checked every frame rather than assumed once: two null tests, and it is what makes
+            // a manager that appears late — or is replaced between Play sessions — still reach us.
+            disconnects?.Poll();
+
             Heartbeat();
             Poll();
             FlushSuitColor();
@@ -182,11 +209,23 @@ namespace SpaceGame.Core
             finally { busy = false; }
         }
 
-        /// <summary>Public lobbies with room, newest first. Private ones are reachable only by code.</summary>
+        /// <summary>
+        /// Public lobbies with room, newest first. Private ones are reachable only by code.
+        ///
+        /// <para>
+        /// Returns <b>null</b> when the query failed and an empty list when it succeeded and found
+        /// nothing. The two used to be the same answer, which was harmless while the list was only
+        /// fetched when the player asked for it — but the browser now refreshes every second, and a
+        /// failure indistinguishable from "no sessions" empties the screen on every hiccup and puts
+        /// it back on the next one. The caller keeps what it has when this returns null.
+        /// </para>
+        /// </summary>
         public async Task<List<Lobby>> QueryAsync()
         {
             try
             {
+                await SpaceQuery();
+
                 QueryResponse response = await LobbyService.Instance.QueryLobbiesAsync(new QueryLobbiesOptions
                 {
                     Count = 25,
@@ -199,12 +238,51 @@ namespace SpaceGame.Core
 
                 return response.Results;
             }
+            catch (Exception e) when (IsSdkErrorPathFailure(e))
+            {
+                // Not our null. The service refused the request and the SDK threw this dereferencing
+                // an error body it never managed to parse — see IsSdkErrorPathFailure. Logged as a
+                // warning rather than an exception because the stack points into the package and
+                // says nothing about the actual refusal, and reported to the player as what it
+                // almost certainly is: one query too many, seconds away from working again.
+                Debug.LogWarning("[LobbySession] The lobby service refused the query and the SDK " +
+                                 "threw on its own error path. Treating it as rate limiting.");
+
+                Failed?.Invoke("Could not fetch the lobby list.\n(Too many requests — trying again shortly.)");
+                return null;
+            }
             catch (Exception e)
             {
                 Debug.LogException(e);
                 Failed?.Invoke(Describe(e, "Could not fetch the lobby list."));
-                return new List<Lobby>();
+                return null;
             }
+        }
+
+        /// <summary>
+        /// Holds a query back until <see cref="QuerySpacing"/> has passed since the last one.
+        ///
+        /// Enforced here rather than in the browser because it is the browser having two callers —
+        /// its own timer and its Refresh button — that trips the limiter, and neither of them can
+        /// see the other's request. Every query goes through this method, so the budget is spent in
+        /// one place. Held rather than dropped: the player pressed a button, and a refusal to
+        /// refresh is worse than a refresh that takes a moment.
+        ///
+        /// <para>
+        /// Waits by yielding frames rather than with <c>Task.Delay</c>. The continuation has to come
+        /// back on the main thread — the request under it is a UnityWebRequest and throws anywhere
+        /// else — and yielding is the form that cannot be resumed on a pool thread. It also reads
+        /// <see cref="Time.unscaledTime"/>, which is main-thread only.
+        /// </para>
+        /// </summary>
+        private async Task SpaceQuery()
+        {
+            // Claimed before the first await, not after: two queries arriving in the same frame must
+            // not both read the old stamp, both decide they are clear, and leave together.
+            float sendAt = Mathf.Max(Time.unscaledTime, lastQueryAt + QuerySpacing);
+            lastQueryAt = sendAt;
+
+            while (Time.unscaledTime < sendAt) await Task.Yield();
         }
 
         public Task<bool> JoinByIdAsync(string lobbyId) => JoinAsync(
@@ -237,6 +315,51 @@ namespace SpaceGame.Core
             SessionLauncher.Shutdown();
 
             await RemoveSelfQuietly(lobbyId);
+        }
+
+        /// <summary>
+        /// Hands the membership back on the way out of a session, with nobody waiting for it.
+        ///
+        /// <para>
+        /// Leaving to the menu is synchronous and ends in a scene load, so it cannot await this: a
+        /// player who pressed "Main Menu" would sit staring at a frozen world for as long as the
+        /// Lobby service took to answer. Nor can it be skipped, which is what it used to be — the
+        /// host's lobby then stayed listed until its 30-second heartbeat lapsed, and the membership
+        /// survived as exactly the ghost <see cref="JoinWithConflictRecoveryAsync"/> exists to clean
+        /// up. Anonymous auth hands back the same PlayerId every launch, so hosting again races your
+        /// own stale membership and is refused with 409 <i>player is already a member of the
+        /// lobby</i>.
+        /// </para>
+        ///
+        /// <para>
+        /// Firing a task and walking away is only safe because of what it is fired at. This object
+        /// is <see cref="DontDestroyOnLoad"/> and outlives the scene load, and the request itself
+        /// runs inside <see cref="RemoveSelfQuietly"/>, which is static and swallows its own
+        /// failures — so nothing lands on a destroyed object and the awaited half cannot leave an
+        /// unobserved exception on a task nobody holds. The try only has to cover the part that
+        /// runs before the first await, which is <see cref="Forget"/> raising
+        /// <see cref="Changed"/> at whatever is still subscribed.
+        /// </para>
+        ///
+        /// <para>
+        /// Reads the backing field rather than <see cref="Instance"/> on purpose: Instance is a lazy
+        /// factory, and asking it here would create a DontDestroyOnLoad LobbySession purely to be
+        /// told there is no lobby to leave — on every singleplayer exit.
+        /// </para>
+        /// </summary>
+        public static void LeaveInBackground()
+        {
+            LobbySession session = instance;
+            if (session == null) return;
+
+            try
+            {
+                _ = session.LeaveAsync();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[LobbySession] Could not start leaving the lobby: {e.Message}");
+            }
         }
 
         /// <summary>
@@ -614,9 +737,19 @@ namespace SpaceGame.Core
             return true;
         }
 
+        /// <summary>
+        /// A line the player can read, from whatever the service threw.
+        ///
+        /// The SDK's own error path is spelled out rather than quoted: it arrives as a bare
+        /// NullReferenceException with a message about an object reference, which describes the
+        /// package's bug instead of the refusal that caused it. See
+        /// <see cref="IsSdkErrorPathFailure"/>.
+        /// </summary>
         private static string Describe(Exception e, string headline) =>
-            e is LobbyServiceException lobbyException
-                ? $"{headline}\n({lobbyException.Reason}: {lobbyException.Message})"
-                : $"{headline}\n({e.GetType().Name}: {e.Message})";
+            IsSdkErrorPathFailure(e)
+                ? $"{headline}\n(The lobby service refused the request. Try again in a moment.)"
+                : e is LobbyServiceException lobbyException
+                    ? $"{headline}\n({lobbyException.Reason}: {lobbyException.Message})"
+                    : $"{headline}\n({e.GetType().Name}: {e.Message})";
     }
 }

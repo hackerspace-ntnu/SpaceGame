@@ -14,8 +14,32 @@ namespace SpaceGame.Agents
         private EntityFaction selfFaction;
         private float retargetTimer;
 
+        /// <summary>Set by a restore, consumed by the next <see cref="OnEnable"/>.</summary>
+        private bool restoredThisEnable;
+
         private void Awake() => selfFaction = GetComponent<EntityFaction>();
-        private void OnEnable() => retargetTimer = 0f;
+
+        private void OnEnable()
+        {
+            if (restoredThisEnable) { restoredThisEnable = false; return; }
+
+            retargetTimer = 0f;
+        }
+
+        // ─────────── For the save system ───────────
+        // `target` is a serialized field, so an authored one survives a reload on its own. What does
+        // not is a target picked at runtime by TargetResolution, and the countdown to the next pick.
+
+        public Transform ApproachTarget => target;
+        public float RetargetTimer => retargetTimer;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreApproach(Transform approachTarget, float timer)
+        {
+            target = approachTarget;
+            retargetTimer = Mathf.Max(0f, timer);
+            restoredThisEnable = true;
+        }
 
         [Header("Range")]
         [SerializeField] private float detectRadius = 6f;

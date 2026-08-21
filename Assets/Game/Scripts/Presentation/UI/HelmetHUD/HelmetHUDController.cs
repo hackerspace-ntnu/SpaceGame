@@ -1,5 +1,6 @@
 using UnityEngine;
 using SpaceGame.Agents;
+using SpaceGame.Characters;
 using SpaceGame.Gameplay;
 
 namespace SpaceGame.Presentation
@@ -19,14 +20,19 @@ namespace SpaceGame.Presentation
     ///   - Every MapPOI / MapService static marker shows up too.
     ///
     /// References auto-resolve when not set:
-    ///   - playerHealth -> first HealthComponent under Player-tagged GameObject
-    ///   - referenceCamera -> Camera.main
+    ///   - playerHealth -> the health of the player this HUD belongs to
+    ///   - referenceCamera -> left null, which leaves each subsystem on Camera.main
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
     public class HelmetHUDController : MonoBehaviour
     {
         [Header("References (auto-resolve at runtime if null)")]
+        [Tooltip("Optional override. Left empty — which is how PlayerHUD.prefab ships — the health of " +
+                 "the player this HUD hangs under is used.")]
         [SerializeField] private HealthComponent playerHealth;
+
+        [Tooltip("Optional override handed down to the nav markers. Left empty they project through " +
+                 "Camera.main, which is this peer's own view.")]
         [SerializeField] private Camera referenceCamera;
 
         [Header("Damage Response")]
@@ -39,21 +45,41 @@ namespace SpaceGame.Presentation
 
         private Canvas hudCanvas;
 
+        /// <summary>
+        /// The health this HUD is currently subscribed to, which is not the same thing as
+        /// <see cref="playerHealth"/>: that field is a designer's override and must survive being
+        /// resolved around, so what we actually bound to is tracked separately.
+        /// </summary>
+        private HealthComponent boundHealth;
+
+        /// <summary>Whose health this visor is currently reacting to. Null until one resolves.</summary>
+        public HealthComponent BoundHealth => boundHealth;
+
+        /// <summary>
+        /// Points the visor at the health of the player wearing it, moving the subscription if it
+        /// was pointed somewhere else. Safe to call repeatedly — see <see cref="BindHealth"/>.
+        /// </summary>
+        public void RebindHealth() => BindHealth(ResolveHealth());
+
         private void Awake()
         {
             EnsureCanvas();
-            ResolveReferences();
             EnsureSubsystems();
         }
 
         private void OnEnable()
         {
-            SubscribeHealth();
+            // Resolved here rather than once in Awake. This HUD is switched on from
+            // PlayerController.EnablePlayer, and on a networked session that happens inside
+            // OnNetworkSpawn — a moment at which Netcode has not yet published the local player
+            // object. Resolution has to be allowed to fail and be retried, which is what Update
+            // below does; a single Awake-time attempt is how a HUD ends up permanently blank.
+            RebindHealth();
         }
 
         private void OnDisable()
         {
-            UnsubscribeHealth();
+            BindHealth(null);
         }
 
         private void EnsureCanvas()
@@ -65,14 +91,37 @@ namespace SpaceGame.Presentation
             }
         }
 
-        private void ResolveReferences()
+        /// <summary>
+        /// Whose health this helmet shows.
+        /// <para>
+        /// This used to be <c>FindGameObjectWithTag("Player")</c>, which is wrong the moment a
+        /// second player exists: every player object in the session carries that tag, so the search
+        /// returned an arbitrary one and two of three players watched a stranger's health bar.
+        /// <see cref="GameplayMenuScope.FindLocalPlayer(Component)"/> reads it off this HUD's own
+        /// parent chain instead — a helmet HUD is a child of the player wearing it, and
+        /// PlayerController only switches on the owner's.
+        /// </para>
+        /// </summary>
+        private HealthComponent ResolveHealth()
         {
-            if (playerHealth == null)
-            {
-                var p = GameObject.FindGameObjectWithTag("Player");
-                if (p != null) playerHealth = p.GetComponentInChildren<HealthComponent>();
-            }
-            if (referenceCamera == null) referenceCamera = Camera.main;
+            if (playerHealth != null) return playerHealth;
+
+            PlayerController player = GameplayMenuScope.FindLocalPlayer(this);
+            return player != null ? player.GetComponentInChildren<HealthComponent>() : null;
+        }
+
+        /// <summary>
+        /// Moves the damage subscription to <paramref name="next"/>. Idempotent, and safe with
+        /// null, so it doubles as the unsubscribe path — a bare += here is what makes one hit
+        /// flash the visor twice.
+        /// </summary>
+        private void BindHealth(HealthComponent next)
+        {
+            // Detach first, unconditionally: that is what makes re-binding the same component a
+            // no-op rather than a second subscription, and it is why there is no early return.
+            if (boundHealth != null) boundHealth.OnDamage -= HandleDamage;
+            boundHealth = next;
+            if (boundHealth != null) boundHealth.OnDamage += HandleDamage;
         }
 
         private void EnsureSubsystems()
@@ -106,18 +155,12 @@ namespace SpaceGame.Presentation
                 nmRt.offsetMax = Vector2.zero;
                 navMarkers = go.AddComponent<HelmetNavMarkers>();
             }
-        }
 
-        private void SubscribeHealth()
-        {
-            if (playerHealth == null) return;
-            playerHealth.OnDamage += HandleDamage;
-        }
-
-        private void UnsubscribeHealth()
-        {
-            if (playerHealth == null) return;
-            playerHealth.OnDamage -= HandleDamage;
+            // One camera decision for the whole helmet. Pushed down only when it was authored:
+            // writing a null here would clear a camera the nav markers had wired themselves, and
+            // null on either of them already means "use Camera.main", live, every frame.
+            if (referenceCamera != null && navMarkers != null)
+                navMarkers.ReferenceCamera = referenceCamera;
         }
 
         private void HandleDamage(int amount)
@@ -129,7 +172,12 @@ namespace SpaceGame.Presentation
 
         private void Update()
         {
-            if (referenceCamera == null) referenceCamera = Camera.main;
+            // Retried until it lands. The player object this HUD hangs under is spawned
+            // asynchronously and its chunk is still streaming, so OnEnable's attempt is allowed to
+            // come back empty; the cost while it does is one walk up the parent chain per frame,
+            // and it stops the moment there is something to bind.
+            if (boundHealth == null)
+                BindHealth(ResolveHealth());
 
             // Nav markers still need their per-frame projection update.
             if (navMarkers != null)

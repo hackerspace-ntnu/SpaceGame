@@ -11,6 +11,17 @@
 //
 // Lives outside the DuneFoil assembly because WalkerPlatformCarrier — the thing that knows who is on
 // the deck — is in the default assembly, the same split DuneFoilRiggingStation uses.
+//
+// Nothing here is networked, and it deliberately has no ownership gate. HoldStation is not a piece
+// of shared state that has to be agreed on, it is a flag DERIVED every frame from a question each
+// machine can answer for itself — is anybody standing in that volume — and the answer is the same
+// on all of them because the carry volume and the bodies in it are the same on all of them. Only
+// the machine that owns the hull turns that flag into motion; every other machine's copy of the
+// locomotion is a prediction whose pose is overwritten by the replicated one.
+//
+// That equality is load-bearing and it is not free: it depends on WalkerPlatformCarrier counting
+// remote players in its census. See the comment on CollectRiders for the session in which it did
+// not, and the boat that consequently would not sail for anybody but the host.
 using UnityEngine;
 using SpaceGame.Vehicles.DuneFoil;
 

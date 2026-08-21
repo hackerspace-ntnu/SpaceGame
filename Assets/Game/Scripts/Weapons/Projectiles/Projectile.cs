@@ -2,6 +2,7 @@ using FMODUnity;
 using UnityEngine;
 using SpaceGame.Audio;
 using SpaceGame.Gameplay;
+using SpaceGame.Portals;
 
 namespace SpaceGame.Weapons
 {
@@ -81,6 +82,48 @@ namespace SpaceGame.Weapons
         /// Called by Update in derived classes.
         /// </summary>
         protected abstract void UpdateMovement();
+
+        /// <summary>How far past an exit aperture a shot is placed, so its next trace starts clear of the wall behind it.</summary>
+        private const float PortalExitClearance = 0.05f;
+
+        /// <summary>
+        /// Carry this shot through any aperture this frame's move crosses,
+        /// rewriting the move to the far side and turning <see cref="direction"/>
+        /// with it.
+        ///
+        /// Projectiles need their own path through a portal. They are not pushed
+        /// around by physics — they rewrite their own transform and resolve hits
+        /// with a cast — so they raise no trigger callback for the portal's
+        /// traversal volume to catch, and at fifty metres a second they would
+        /// step over a once-a-frame sample of it even if they did. A segment
+        /// test against the plane has neither problem.
+        ///
+        /// Callers must run this BEFORE their collision cast and trace from the
+        /// segment it returns. Tracing the original one instead resolves the
+        /// shot against the room it was leaving, which means every portalled
+        /// bullet detonates on the wall the aperture is cut into.
+        ///
+        /// One crossing per frame on purpose: two apertures facing each other
+        /// would otherwise let a single shot bounce between them without bound
+        /// inside one call.
+        /// </summary>
+        protected bool CrossPortal(ref Vector3 start, ref Vector3 end)
+        {
+            Portal portal = Portal.Crossing(start, end, out Vector3 entry, out Matrix4x4 transfer);
+            if (portal == null || portal.Linked == null) return false;
+
+            Vector3 remainder = end - entry;
+            Vector3 outward = portal.Linked.transform.forward;
+
+            start = transfer.MultiplyPoint3x4(entry) + outward * PortalExitClearance;
+            end = start + transfer.MultiplyVector(remainder);
+
+            direction = transfer.MultiplyVector(direction).normalized;
+            if (direction.sqrMagnitude > 0.0001f)
+                transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
+
+            return true;
+        }
 
         /// <summary>
         /// Handle collision with environment or entities.

@@ -19,5 +19,11 @@
       "Bash(awk '/m_Name: ExitDoor/,/--- /' /Users/ferdinandfremming/Documents/hackerspace/spillgruppen/SpaceGame/Assets/Scenes/Interiors/InsideRuin.unity)",
       "Read(//Users/ferdinandfremming/Library/Logs/Unity/**)"
     ]
+  },
+  "enabledPlugins": {
+    "spacegame-artifact@ferdinand-skills": true,
+    "spacegame-agent@ferdinand-skills": true,
+    "spacegame-persistence@ferdinand-skills": true,
+    "spacegame-multiplayer@ferdinand-skills": true
   }
 }

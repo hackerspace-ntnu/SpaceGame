@@ -52,6 +52,18 @@ namespace SpaceGame.Core.Persistence
             else
             {
                 target.transform.SetPositionAndRotation(position, rotation);
+
+                // An agent that is not on a mesh right now is the ordinary case during chunk
+                // hydration, not an exceptional one: this runs from WorldStreamer.OnChunkLoaded,
+                // and a chunk's NavMesh is frequently not available yet. The transform write above
+                // is a real placement, but the AGENT's own position is still wherever it was, so
+                // the first thing the agent does is stop or walk back — which is the "load worked
+                // and then quietly put it back where it started" failure this class exists to
+                // prevent, arriving through the one branch that did not handle it.
+                //
+                // So the warp is retried until the mesh shows up, rather than skipped in silence.
+                if (agent != null && agent.enabled)
+                    DeferredNavMeshWarp.Schedule(agent, position, rotation);
             }
 
             if (controllerWasEnabled) controller.enabled = true;

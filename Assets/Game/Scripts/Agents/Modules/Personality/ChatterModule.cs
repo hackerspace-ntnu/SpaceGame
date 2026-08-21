@@ -15,7 +15,13 @@ using SpaceGame.Presentation;
 
 namespace SpaceGame.Agents
 {
-    public class ChatterModule : BehaviourModuleBase
+    // IPresentationModule: this keeps ticking on machines that only watch the NPC. It has to. The
+    // line is shown in a screen-space popup on THIS machine, to THIS machine's player, chosen by
+    // how close THEY are standing — none of which the server can answer on their behalf. Running it
+    // only where the NPC is simulated would mean the host hears the camp talking and nobody else
+    // ever does. It qualifies because it writes nothing anyone else can observe: a local popup and
+    // a local sound, and a static cooldown that is per-machine by nature.
+    public class ChatterModule : BehaviourModuleBase, IPresentationModule
     {
         [Header("Audience")]
         [Tooltip("How close a player must be before this NPC says anything. The popup is a " +

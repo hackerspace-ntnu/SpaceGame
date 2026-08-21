@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -74,10 +75,73 @@ namespace SpaceGame.Gameplay
             return true;
         }
 
+        // ─────────────────────────────────────────────
+        //  Keeping four players out of one another
+        // ─────────────────────────────────────────────
+        //
+        // Every client and every respawn used to be handed spawnPoints[0].TryGetSpawnPoint, and
+        // that point's scatter has no idea who it has already placed. On the world's only spawn
+        // point — a child of the drivable ShipRV, scattering inside half a metre on the cargo bay
+        // floor — four players arriving together landed inside one another's colliders.
+        //
+        // It cannot be fixed by making the geometry test notice them: SpawnClearance.HasRoomToStand
+        // excludes player bodies on purpose, because on a bay that small the first player standing
+        // there blocks every candidate the point can produce and nobody else spawns indoors at all.
+        // So who is where is tracked here instead, and handed to the point as a preference.
+        //
+        // Two sources, because a player can be in either state. A body that exists is found by its
+        // tag. A position that has been handed out but not built on yet is not findable at all —
+        // there is nothing there — so it is remembered until it either becomes a body or goes stale.
+
+        /// <summary>
+        /// How far apart two players placed in the same breath should be, when the room allows it.
+        /// Five player-capsule radii: enough that nobody is inside anybody, close enough that a
+        /// cargo bay can still seat four.
+        /// </summary>
+        private const float SpawnSeparation = 2.5f;
+
+        /// <summary>
+        /// How long a handed-out position keeps its claim.
+        ///
+        /// Only has to bridge the gap between resolving a position and a body appearing at it,
+        /// which is the same frame in the normal case. The window exists for the abnormal one — a
+        /// spawn that resolves and then never happens, because the client dropped out during the
+        /// wait — where a claim held forever would push everybody else off a bay that is empty.
+        /// Comfortably longer than NetworkGameManager's own spawn resolve timeout.
+        /// </summary>
+        private const float ReservationSeconds = 20f;
+
+        private readonly List<Reservation> reservations = new();
+
+        /// <summary>Reused between calls; spawning happens on the server, one client at a time.</summary>
+        private readonly List<Vector3> occupied = new();
+
+        private struct Reservation
+        {
+            public Vector3 Position;
+            public float Expiry;
+        }
+
         /// <summary>
         /// A validated spawn position, or false when no spawn point can currently vouch for one —
         /// which in the streamed world means the chunk there has not loaded yet. Callers must wait
         /// and ask again rather than substitute a position of their own.
+        ///
+        /// <para>
+        /// Handing a position out CLAIMS it, so the next caller is steered away from it. That side
+        /// effect is deliberate and belongs here rather than at the spawn call: a position resolved
+        /// and then not used is exactly the case the claim's expiry covers, and every caller that
+        /// asks this question is about to put a body there.
+        /// </para>
+        ///
+        /// <para>
+        /// With several spawn points it takes the roomiest answer rather than the first. That is
+        /// safe in a streamed world without breaking the ordering NetworkGameManager documents,
+        /// because a point in a chunk that has not loaded has no colliders to raycast and so can
+        /// produce nothing at all — the geometry checks already refuse to answer for ground that
+        /// does not exist. The anchor, which decides WHICH chunks load, is still
+        /// <see cref="TryGetSpawnAnchor"/>'s single authored point and is deliberately not touched.
+        /// </para>
         /// </summary>
         public bool TryGetSpawnPoint(out Vector3 spawnPosition)
         {
@@ -89,7 +153,71 @@ namespace SpaceGame.Gameplay
                 return false;
             }
 
-            return spawnPoints[0].TryGetSpawnPoint(out spawnPosition);
+            CollectOccupied(occupied);
+
+            bool found = false;
+            float bestClearance = float.NegativeInfinity;
+            spawnPosition = Vector3.zero;
+
+            foreach (SpawnPoint point in spawnPoints)
+            {
+                if (!point.TryGetSpawnPoint(occupied, SpawnSeparation,
+                                            out Vector3 candidate, out float clearance))
+                    continue;
+
+                if (!found || clearance > bestClearance)
+                {
+                    found = true;
+                    bestClearance = clearance;
+                    spawnPosition = candidate;
+                }
+
+                // Already clear of everybody, so no other point can do better. In the main world,
+                // which has exactly one spawn point, this loop is what it always was.
+                if (clearance >= SpawnSeparation) break;
+            }
+
+            if (!found) return false;
+
+            Reserve(spawnPosition);
+            return true;
+        }
+
+        /// <summary>
+        /// Where players are, or are about to be. Rebuilt on every ask because both halves move:
+        /// bodies walk, and reservations expire.
+        /// </summary>
+        private void CollectOccupied(List<Vector3> into)
+        {
+            into.Clear();
+
+            // The tag rather than a component, matching SpawnClearance — nothing but the player
+            // character carries it, and it is the same question asked from the other side. Bodies
+            // found this way include players parented to a mount, whose root keeps the tag.
+            foreach (GameObject player in GameObject.FindGameObjectsWithTag(SpawnClearance.PlayerTag))
+                if (player != null) into.Add(player.transform.position);
+
+            float now = Time.time;
+
+            for (int i = reservations.Count - 1; i >= 0; i--)
+            {
+                if (reservations[i].Expiry <= now)
+                {
+                    reservations.RemoveAt(i);
+                    continue;
+                }
+
+                into.Add(reservations[i].Position);
+            }
+        }
+
+        private void Reserve(Vector3 position)
+        {
+            reservations.Add(new Reservation
+            {
+                Position = position,
+                Expiry = Time.time + ReservationSeconds,
+            });
         }
 
         /// <summary>
@@ -145,6 +273,15 @@ namespace SpaceGame.Gameplay
         /// position into the player's profile record, and the replacement body read it straight back
         /// out — so you respawned dead, at your own grave. Respawn is a state change on a living
         /// object, not a new object; see <c>PlayerRespawn</c>.
+        ///
+        /// <para>
+        /// Steers around the living for the same reason a first spawn does, and it matters more
+        /// here: a respawn lands in a bay that is already occupied by definition, since the people
+        /// who did not die are standing in it. The respawning player's own body is among the
+        /// occupants — it is still there, dead, wherever they fell — which costs nothing unless
+        /// they died on the spawn point, where being nudged off their own corpse is the outcome
+        /// anybody would have asked for.
+        /// </para>
         /// </summary>
         public bool TryGetRespawnPosition(out Vector3 respawnPosition)
         {

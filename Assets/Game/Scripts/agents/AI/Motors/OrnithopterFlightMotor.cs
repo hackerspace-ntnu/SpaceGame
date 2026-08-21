@@ -41,6 +41,17 @@ namespace SpaceGame.Agents
                  "ledge does not land the craft on the frame it spawned.")]
         [SerializeField, Min(0f)] private float landingGraceSeconds = 0.35f;
 
+        [Header("Crash")]
+        [SerializeField] private OrnithopterCrashConfig crash = new OrnithopterCrashConfig();
+
+        // How far above the spot being examined the ground search starts. A contact that is already
+        // resting ON the ground has nothing below it to find, so the ray has to begin above it.
+        private const float GroundSearchLift = 1.5f;
+
+        // Clearance left between the ground and the pilot's feet. The player's transform origin is
+        // at their feet, so this only has to be enough to keep them out of the surface.
+        private const float GroundStandOffset = 0.05f;
+
         private OrnithopterFlightState state;
         private OrnithopterFlightInput pendingInput;
         private bool hasPendingInput;
@@ -48,8 +59,17 @@ namespace SpaceGame.Agents
         private float launchTime = -999f;
         private bool flying;
 
-        /// <summary>Raised once when the craft touches down. The item listens and despawns it.</summary>
-        public event Action Landed;
+        // Reused by every ground probe. Sized for the handful of colliders a downward ray through a
+        // dune ever crosses; overflowing it costs the deepest hits, never the nearest one, which is
+        // the one the search wants.
+        private readonly RaycastHit[] groundHits = new RaycastHit[16];
+
+        /// <summary>
+        /// Raised once when the flight ends against the world — settling onto ground or flying into
+        /// something. Carries how hard the arrival was and somewhere solid to put the pilot; the wing
+        /// pack listens, hurts them if it was bad enough, stands them there and despawns the craft.
+        /// </summary>
+        public event Action<OrnithopterTouchdown> Landed;
 
         // ─────────── IOrnithopterFlightState ───────────
         public float Airspeed => state.Airspeed;
@@ -64,6 +84,9 @@ namespace SpaceGame.Agents
         public bool IsFlying => flying;
         public float Stamina => state.Stamina;
         public OrnithopterFlightConfig Config => flight;
+
+        /// <summary>Crash tuning. Read by whoever applies the consequences of a touchdown.</summary>
+        public OrnithopterCrashConfig Crash => crash;
 
         /// <summary>Stall speed for the current configuration — handy in the inspector and in tests.</summary>
         public float StallSpeed => OrnithopterFlightModel.StallSpeed(flight, 1f);
@@ -207,17 +230,119 @@ namespace SpaceGame.Agents
                 body.MoveRotation(attitude);
         }
 
+        /// <summary>
+        /// The gentle way a flight ends: ground has appeared underneath the craft. Deliberately a
+        /// probe rather than a wait for contact, so a wing flown onto the sand touches down as a
+        /// landing instead of arriving as a collision a step later.
+        /// </summary>
         private void CheckForLanding()
         {
-            if (Time.time - launchTime < landingGraceSeconds)
+            if (!PastLaunchGrace)
                 return;
 
-            if (!Physics.Raycast(transform.position, Vector3.down, groundProbeDistance,
-                                 groundMask, QueryTriggerInteraction.Ignore))
+            if (!GroundRaycast(transform.position, groundProbeDistance, out RaycastHit hit))
                 return;
+
+            ReportTouchdown(hit.point, hit.normal, wasImpact: false);
+        }
+
+        /// <summary>
+        /// The other way a flight ends: the craft flew into something. A cliff face, a rock, a
+        /// building, another creature — none of it is under the craft, so the downward probe never
+        /// sees any of it, and without this the machine simply grinds against the obstacle with its
+        /// velocity rewritten from the flight model every step.
+        /// </summary>
+        private void OnCollisionEnter(Collision collision)
+        {
+            if (!flying || !PastLaunchGrace || collision.contactCount == 0)
+                return;
+
+            ContactPoint contact = collision.GetContact(0);
+
+            // ContactPoint.normal points out of the thing that was hit and towards this craft, which
+            // is the same convention the ground probe's hit normal uses. Both feed ClosingSpeed
+            // unchanged.
+            ReportTouchdown(contact.point, contact.normal, wasImpact: true);
+        }
+
+        // Launching from a ledge clips the ledge. Ignoring the world for a moment after launch is
+        // what stops the wings opening and the craft immediately reporting that it has crashed into
+        // the ground it just stepped off.
+        private bool PastLaunchGrace => Time.time - launchTime >= landingGraceSeconds;
+
+        /// <summary>
+        /// Both endings funnel through here so a dive into the sand and a dive into a cliff cost the
+        /// same, and so there is exactly one place that decides where the pilot is left standing.
+        /// </summary>
+        private void ReportTouchdown(Vector3 point, Vector3 normal, bool wasImpact)
+        {
+            if (!flying)
+                return;
+
+            // Read the speed from the flight state, and read it BEFORE EndFlight zeroes the body.
+            // The state is the truth here: the Rigidbody's velocity has already been mangled by the
+            // solver's contact response by the time a collision callback runs, so asking it how fast
+            // the craft was going would under-report exactly the hardest hits.
+            Vector3 velocity = OrnithopterFlightModel.VelocityOf(state);
+            float closingSpeed = OrnithopterCrash.ClosingSpeed(velocity, normal);
+            Vector3 ground = ResolveGroundPosition(point, normal);
 
             EndFlight();
-            Landed?.Invoke();
+            Landed?.Invoke(new OrnithopterTouchdown(point, normal, closingSpeed, ground, wasImpact));
+        }
+
+        /// <summary>
+        /// Somewhere solid near the impact to stand the pilot. Falls back to the contact point
+        /// stepped out of the surface, which for a cliff face a long way up means the pilot is
+        /// released in mid-air and falls — the right answer, and one PlayerMovement's own fall
+        /// damage already prices.
+        /// </summary>
+        private Vector3 ResolveGroundPosition(Vector3 contactPoint, Vector3 normal)
+        {
+            Vector3 clear = normal.sqrMagnitude > 1e-6f
+                ? contactPoint + normal.normalized * crash.SurfaceClearance
+                : contactPoint;
+
+            Vector3 origin = clear + Vector3.up * GroundSearchLift;
+
+            if (GroundRaycast(origin, GroundSearchLift + crash.GroundSearchDistance, out RaycastHit hit))
+                return hit.point + Vector3.up * GroundStandOffset;
+
+            return clear;
+        }
+
+        /// <summary>
+        /// A downward raycast that ignores the craft and everything parented under it.
+        ///
+        /// The exclusion is not optional. The craft's own hull colliders sit around its origin and
+        /// the pilot is parented into the cradle while mounted, so an unfiltered probe finds the
+        /// machine itself the moment it looks down — reporting ground at the crash site whether or
+        /// not any exists.
+        /// </summary>
+        private bool GroundRaycast(Vector3 origin, float distance, out RaycastHit best)
+        {
+            best = default;
+
+            int count = Physics.RaycastNonAlloc(new Ray(origin, Vector3.down), groundHits, distance,
+                                                groundMask, QueryTriggerInteraction.Ignore);
+            bool found = false;
+
+            // RaycastNonAlloc does not sort, so the nearest surviving hit has to be picked out here
+            // rather than taken from index zero.
+            for (int i = 0; i < count; i++)
+            {
+                Collider hitCollider = groundHits[i].collider;
+                if (hitCollider == null || hitCollider.transform.IsChildOf(transform))
+                    continue;
+
+                if (!found || groundHits[i].distance < best.distance)
+                {
+                    best = groundHits[i];
+                    found = true;
+                }
+            }
+
+            return found;
         }
 
         public void ForceStop() => EndFlight();
@@ -225,6 +350,7 @@ namespace SpaceGame.Agents
         private void OnValidate()
         {
             if (flight == null) flight = new OrnithopterFlightConfig();
+            if (crash == null) crash = new OrnithopterCrashConfig();
             spreadDuration = Mathf.Max(0.05f, spreadDuration);
         }
     }

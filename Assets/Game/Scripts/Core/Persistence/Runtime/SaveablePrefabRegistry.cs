@@ -72,6 +72,12 @@ namespace SpaceGame.Core.Persistence
         {
             Prefabs.Clear();
 
+            // Reset with the dictionary it guards. Without this, a reload after a successful network
+            // scan discarded every network-derived entry and still reported "already scanned", so
+            // TryGet's one-shot retry never fired again and every network-only saveable failed to
+            // resolve for the rest of the process.
+            networkPrefabsScanned = false;
+
             foreach (InventoryItem item in Registry<InventoryItem>.All)
             {
                 if (item == null || item.itemPrefab == null || string.IsNullOrEmpty(item.ID)) continue;
@@ -129,13 +135,19 @@ namespace SpaceGame.Core.Persistence
         /// </summary>
         public static void LoadNetworkPrefabs()
         {
-            networkPrefabsScanned = true;
-
             NetworkManager manager = NetworkManager.Singleton;
+
+            // The flag is set only for a scan that actually had a NetworkManager to read. It used to
+            // be set on the first line, before this check — so if the first cache miss happened
+            // before NetworkManager's Awake (and nothing orders those two), the flag said "scanned",
+            // nothing had been registered, and TryGet refused to look again for the life of the
+            // process. Every network-only saveable then failed to resolve, on every hydrate.
             if (manager == null) return;
 
             var config = manager.NetworkConfig;
             if (config?.Prefabs == null) return;
+
+            networkPrefabsScanned = true;
 
             int added = 0;
 

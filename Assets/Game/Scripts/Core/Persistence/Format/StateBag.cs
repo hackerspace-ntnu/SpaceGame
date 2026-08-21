@@ -74,10 +74,16 @@ namespace SpaceGame.Persistence
             try
             {
                 value = raw.ToObject<T>(serializer ?? SaveSerializer.Serializer);
-                return value != null;
+
+                // True because the key was THERE and the payload parsed — not because the result
+                // happens to be non-null. `return value != null` made a stored value that legitimately
+                // deserializes to null or to default(T) indistinguishable from a key that was never
+                // written, which is exactly the distinction this method exists to report.
+                return true;
             }
             catch (JsonException)
             {
+                value = default;
                 return false;
             }
         }

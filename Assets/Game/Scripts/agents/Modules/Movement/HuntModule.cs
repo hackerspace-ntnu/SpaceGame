@@ -42,10 +42,34 @@ namespace SpaceGame.Agents
         // those ties.
         private void Reset() => SetPriorityDefault(ModulePriority.Ambient - 1);
 
+        /// <summary>Set by a restore, consumed by the next <see cref="OnEnable"/>.</summary>
+        private bool restoredThisEnable;
+
         private void OnEnable()
         {
+            if (restoredThisEnable)
+            {
+                restoredThisEnable = false;
+                return;
+            }
+
             target = null;
             retargetTimer = 0f;
+        }
+
+        // ─────────── For the save system ───────────
+        // Mostly re-derivable from AgentTargeting, but not for free: an arena bot that reloads with
+        // no quarry and a zeroed timer stands on its spawn point until the next scan lands.
+
+        public Transform HuntTarget => target;
+        public float RetargetTimer => retargetTimer;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreHunt(Transform huntTarget, float timer)
+        {
+            target = huntTarget;
+            retargetTimer = Mathf.Max(0f, timer);
+            restoredThisEnable = true;
         }
 
         public override string ModuleDescription =>

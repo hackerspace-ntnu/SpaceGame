@@ -53,11 +53,25 @@ namespace SpaceGame.Persistence
             {
                 if (token is not JObject entity) continue;
 
-                string id = (string)entity["instanceId"];
+                // Read as a token, not cast. `(string)entity["instanceId"]` throws
+                // InvalidCastException when the token is an object or an array — and this ran outside
+                // any guard, so a hand-edited or truncated v1 file took the load menu down with an
+                // unhandled exception instead of listing a corrupt save.
+                string id = entity["instanceId"]?.Type == JTokenType.String
+                    ? entity["instanceId"].Value<string>()
+                    : null;
+
                 if (string.IsNullOrEmpty(id)) continue;
 
                 entity["scene"] = sceneKey;
                 entity["authored"] = false;
+
+                // The same reasoning LiftAuthored already applies, for the population it was never
+                // applied to. hasPose defaults to TRUE on EntityRecord, and SpawnEntities uses
+                // record.Position unconditionally — so a v1 runtime record that happened to carry no
+                // position was spawned at the world origin. That is precisely the failure the flag
+                // was invented to prevent, on the other half of the file.
+                if (entity["position"] == null) entity["hasPose"] = false;
 
                 // v1 wrote the same runtime object once per session it survived, so a file can hold
                 // several records for one object under DIFFERENT ids. Keying by id here collapses
@@ -118,7 +132,12 @@ namespace SpaceGame.Persistence
 
             foreach (JToken id in tombstones)
             {
-                string value = (string)id;
+                // Token check rather than a cast, for the same reason as LiftRuntime: a cast of a
+                // non-string token throws out of the migrator, out of SaveFileStore.Read, and into
+                // whatever asked to list the saves.
+                if (id?.Type != JTokenType.String) continue;
+
+                string value = id.Value<string>();
                 if (!string.IsNullOrEmpty(value)) into.Add(value);
             }
         }

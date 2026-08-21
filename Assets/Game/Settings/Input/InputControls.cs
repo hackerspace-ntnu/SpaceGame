@@ -901,6 +901,15 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Hud"",
+                    ""type"": ""Button"",
+                    ""id"": ""1d5b8c73-24af-4a1e-9c60-6a83f1e2b904"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -1475,6 +1484,28 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""action"": ""Chat"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""5c2a7d16-9b40-4f8e-8d31-2ab7c04e6193"",
+                    ""path"": ""<Keyboard>/n"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Map"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e9f3b528-70c1-4a6d-b2f4-8c15d7a0e362"",
+                    ""path"": ""<Keyboard>/h"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Hud"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -1822,6 +1853,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         m_UI_Pause = m_UI.FindAction("Pause", throwIfNotFound: true);
         m_UI_DevInventory = m_UI.FindAction("DevInventory", throwIfNotFound: true);
         m_UI_Chat = m_UI.FindAction("Chat", throwIfNotFound: true);
+        m_UI_Hud = m_UI.FindAction("Hud", throwIfNotFound: true);
         // Hotbar
         m_Hotbar = asset.FindActionMap("Hotbar", throwIfNotFound: true);
         m_Hotbar_Hotbar1 = m_Hotbar.FindAction("Hotbar1", throwIfNotFound: true);
@@ -2161,6 +2193,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_UI_Pause;
     private readonly InputAction m_UI_DevInventory;
     private readonly InputAction m_UI_Chat;
+    private readonly InputAction m_UI_Hud;
     /// <summary>
     /// Provides access to input actions defined in input action map "UI".
     /// </summary>
@@ -2233,6 +2266,10 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @Chat => m_Wrapper.m_UI_Chat;
         /// <summary>
+        /// Provides access to the underlying input action "UI/Hud".
+        /// </summary>
+        public InputAction @Hud => m_Wrapper.m_UI_Hud;
+        /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
         public InputActionMap Get() { return m_Wrapper.m_UI; }
@@ -2303,6 +2340,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @Chat.started += instance.OnChat;
             @Chat.performed += instance.OnChat;
             @Chat.canceled += instance.OnChat;
+            @Hud.started += instance.OnHud;
+            @Hud.performed += instance.OnHud;
+            @Hud.canceled += instance.OnHud;
         }
 
         /// <summary>
@@ -2359,6 +2399,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @Chat.started -= instance.OnChat;
             @Chat.performed -= instance.OnChat;
             @Chat.canceled -= instance.OnChat;
+            @Hud.started -= instance.OnHud;
+            @Hud.performed -= instance.OnHud;
+            @Hud.canceled -= instance.OnHud;
         }
 
         /// <summary>
@@ -2885,6 +2928,13 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnChat(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Hud" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnHud(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Hotbar" which allows adding and removing callbacks.

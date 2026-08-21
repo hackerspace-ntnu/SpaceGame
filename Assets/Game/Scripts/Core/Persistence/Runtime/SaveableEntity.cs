@@ -87,7 +87,23 @@ namespace SpaceGame.Core.Persistence
         /// opinion about which system spawned it.
         /// </para>
         /// </summary>
-        public void DisownToExternal() => scope = SaveScope.External;
+        public void DisownToExternal()
+        {
+#if UNITY_EDITOR
+            // "Runtime-only" was a comment, not a rule. This writes a [SerializeField], so calling it
+            // outside play mode against a prefab asset or a scene instance persists the change into
+            // the asset — permanently removing that object from world capture, with nothing said and
+            // nothing to see in the inspector unless somebody goes looking for a scope enum.
+            if (!Application.isPlaying)
+            {
+                Debug.LogError($"[Save] DisownToExternal() was called on '{name}' outside play mode. " +
+                               "Ignored: it writes a serialized field, so it would bake the change " +
+                               "into the asset and take the object out of every future save.", this);
+                return;
+            }
+#endif
+            scope = SaveScope.External;
+        }
 
         /// <summary>
         /// Every live entity, so a save can find them without a scene-wide component search per
@@ -110,6 +126,20 @@ namespace SpaceGame.Core.Persistence
         private readonly List<ISaveable> savers = new();
         private bool saversGathered;
 
+        /// <summary>
+        /// Set when this object has been tombstoned and is on its way out.
+        ///
+        /// <c>Object.Destroy</c> is deferred to the end of the frame, so a tombstoned object is
+        /// still in its scene, still enabled and still in <see cref="LiveEntities"/> for the rest of
+        /// it. Any capture landing in that window re-created the record the tombstone had just
+        /// removed — and an authored record is never dropped again, so the file kept a permanent
+        /// entry for an object that no longer exists.
+        /// </summary>
+        public bool IsBuried { get; private set; }
+
+        /// <summary>Marks this object as destroyed-for-good, so nothing captures it on the way out.</summary>
+        public void MarkBuried() => IsBuried = true;
+
         private void Awake()
         {
             if (string.IsNullOrEmpty(instanceId))
@@ -117,7 +147,7 @@ namespace SpaceGame.Core.Persistence
                 // A runtime object that nobody stamped — a prefab instantiated directly rather than
                 // through the save system. Give it an identity anyway so its state is not silently
                 // dropped from every save for the rest of the session.
-                instanceId = Guid.NewGuid().ToString("N");
+                instanceId = FallbackIdentity();
             }
 
             if (Live.TryGetValue(instanceId, out SaveableEntity existing) && existing != null && existing != this)
@@ -127,10 +157,45 @@ namespace SpaceGame.Core.Persistence
                     "One was likely duplicated in a scene without OnValidate running. Reassigning.",
                     this);
 
-                instanceId = Guid.NewGuid().ToString("N");
+                instanceId = FallbackIdentity(avoid: instanceId);
             }
 
             Live[instanceId] = this;
+        }
+
+        /// <summary>
+        /// The identity to fall back on when the serialized one is missing or already taken.
+        ///
+        /// <b>An authored object must never be handed a random GUID.</b> It keeps <c>authored</c>
+        /// true, and authored records are deliberately never dropped by
+        /// <c>WorldSaveStore.DropVanishedRuntime</c> — so a fresh GUID every session meant the
+        /// object wrote its state under an id nothing ever looked up again AND left one more dead
+        /// record in the file on every single launch. Two objects that collide would also swap
+        /// which of them "won" depending on Awake order.
+        ///
+        /// Deriving from the hierarchy instead gives the same answer on every load of an unchanged
+        /// scene, which is the whole property an identity needs. The collision case appends a
+        /// discriminator so the loser is stable too rather than merely different.
+        /// </summary>
+        private string FallbackIdentity(string avoid = null)
+        {
+            if (!authored || !gameObject.scene.IsValid() || string.IsNullOrEmpty(gameObject.scene.name))
+                return Guid.NewGuid().ToString("N");
+
+            string derived = DeriveAuthoredId(gameObject);
+            if (string.IsNullOrEmpty(derived)) return Guid.NewGuid().ToString("N");
+
+            if (derived != avoid && !Live.ContainsKey(derived)) return derived;
+
+            // Two authored objects deriving the same id. Walk a deterministic discriminator rather
+            // than randomising, so the same pair resolves the same way next session.
+            for (int i = 1; i < 64; i++)
+            {
+                string candidate = derived + "#" + i.ToString();
+                if (candidate != avoid && !Live.ContainsKey(candidate)) return candidate;
+            }
+
+            return Guid.NewGuid().ToString("N");
         }
 
         private void OnDestroy()
@@ -154,6 +219,21 @@ namespace SpaceGame.Core.Persistence
 
             SaveableEntity entity = target.GetComponent<SaveableEntity>();
             if (entity == null) entity = target.AddComponent<SaveableEntity>();
+
+            // Never demote an authored object. This method is documented as "call at every runtime
+            // spawn point", so it is only a matter of time before it is handed a scene object by
+            // mistake — and flipping `authored` on one is a duplication bug that logs nothing: the
+            // scene file supplies the authored copy on the next load AND the record now asks
+            // SpawnEntities to instantiate a second one from prefabId.
+            if (entity.authored && entity.gameObject.scene.IsValid() &&
+                !string.IsNullOrEmpty(entity.gameObject.scene.name))
+            {
+                Debug.LogWarning(
+                    $"[Save] EnsureRuntime was called on '{target.name}', which is an AUTHORED scene " +
+                    "object. Ignoring, because demoting it to a runtime record would duplicate it on " +
+                    "every load. Spawn a fresh instance instead of re-keying a placed one.", target);
+                return entity;
+            }
 
             // The prefab id from the spawn site wins: a prefab stamped under one GUID can still be
             // spawned through a path that knows a better key for it (an item's own registry ID).
@@ -321,7 +401,27 @@ namespace SpaceGame.Core.Persistence
             }
         }
 
-        /// <summary>Hands each saver the payload stored under its key. Keys with no saver are left untouched.</summary>
+        /// <summary>
+        /// Hands each saver the payload stored under its key. Keys with no saver are left untouched.
+        ///
+        /// <b>Every saver is called, including those whose key is absent — they are handed null.</b>
+        /// Skipping them looked harmless and was not. Two things follow from a key being missing,
+        /// and both need the saver to hear about it:
+        ///
+        ///   • "absent" is what <c>CaptureState</c> returning null writes (see <c>StateBag.Set</c>),
+        ///     and it means the thing was at its defaults. A saver that is never called cannot
+        ///     reset, so a restored object silently kept whatever the live component happened to
+        ///     hold — a looted NPC came back with its authored inventory, a kinematic body kept its
+        ///     current velocity;
+        ///   • every deferred saver stages its pending work in <c>RestoreState</c> and clears it
+        ///     there. <c>MountSaveable.pendingRider</c>, <c>AgentStateSaveable.hasPending</c> and
+        ///     <c>OrnithopterSaveable.pendingFlying</c> were all cleared in the one method that was
+        ///     not being called, so a craft flying at one save and grounded at the next was
+        ///     re-launched into the air on load.
+        ///
+        /// So a saver's contract is now: <c>RestoreState(null)</c> means "you had nothing stored —
+        /// go back to your default".
+        /// </summary>
         public void Restore(StateBag bag)
         {
             if (bag == null) return;
@@ -329,7 +429,8 @@ namespace SpaceGame.Core.Persistence
             foreach (ISaveable saver in Savers())
             {
                 if (saver == null || string.IsNullOrEmpty(saver.SaveKey)) continue;
-                if (!bag.TryGetRaw(saver.SaveKey, out JObject payload)) continue;
+
+                bag.TryGetRaw(saver.SaveKey, out JObject payload);
 
                 try
                 {
@@ -345,10 +446,25 @@ namespace SpaceGame.Core.Persistence
         /// <summary>Runs the deferred pass for savers that need the world to have finished loading.</summary>
         public void NotifyLoadComplete()
         {
+            // Collected and sorted rather than walked in component order. Component order is the
+            // order somebody happened to add things to a prefab, and at least one saver already had
+            // to work around depending on it — see IDeferredSaveable.LoadOrder. A deferred saver may
+            // also mount, spawn or destroy, so the list is materialised before any of them runs.
+            List<IDeferredSaveable> deferredSavers = null;
+
             foreach (ISaveable saver in Savers())
             {
-                if (saver is not IDeferredSaveable deferred) continue;
+                if (saver is IDeferredSaveable deferred)
+                    (deferredSavers ??= new List<IDeferredSaveable>()).Add(deferred);
+            }
 
+            if (deferredSavers == null) return;
+
+            if (deferredSavers.Count > 1)
+                deferredSavers.Sort((a, b) => a.LoadOrder.CompareTo(b.LoadOrder));
+
+            foreach (IDeferredSaveable deferred in deferredSavers)
+            {
                 try
                 {
                     deferred.OnLoadComplete();
@@ -372,7 +488,17 @@ namespace SpaceGame.Core.Persistence
                 // On the asset itself: only the prefab id is meaningful. An instance id here would
                 // be copied into every instance of the prefab, giving them all the same identity.
                 string guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(this));
-                AssignIfChanged(ref prefabId, guid);
+
+                // Never blank a good id because the path could not be resolved.
+                //
+                // This unguarded assignment is why the field could not be written to disk at all.
+                // OnValidate runs again during PrefabUtility.SavePrefabAsset, and in that pass
+                // GetAssetPath returns empty — so AssetPathToGUID returns empty and this line wiped
+                // the value a moment before it was serialized. Every attempt to stamp the field
+                // reported success and left the file unchanged, which is exactly the behaviour that
+                // made "the editor works, the build does not" so hard to see.
+                if (!string.IsNullOrEmpty(guid)) AssignIfChanged(ref prefabId, guid);
+
                 AssignIfChanged(ref instanceId, string.Empty);
                 AssignIfChanged(ref authored, false);
                 return;
@@ -424,13 +550,42 @@ namespace SpaceGame.Core.Persistence
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        /// <summary>The GUID of the prefab this scene instance came from, or empty for a plain GameObject.</summary>
+        /// <summary>
+        /// The GUID of the prefab this scene instance came from, or empty for a plain GameObject.
+        ///
+        /// <b>Not <c>GetCorrespondingObjectFromOriginalSource</c>.</b> "Original source" walks the
+        /// whole variant chain to its root, and in this project the root of that chain is usually an
+        /// imported <c>.fbx</c> — <c>Golem.prefab</c> and <c>DuneRat.prefab</c> are both variants of
+        /// their model prefabs. So every scene instance of them was stamped with the FBX's GUID,
+        /// which <see cref="SaveablePrefabRegistry"/> can never resolve, while the asset branch of
+        /// <see cref="OnValidate"/> stamped the same object with the real prefab GUID. One object,
+        /// two disagreeing ids, depending on which branch happened to run.
+        ///
+        /// The nearest instance root is the right answer: it is the prefab a designer actually
+        /// dragged in, and it is the asset the registry knows how to instantiate.
+        /// </summary>
         private string ResolveSourcePrefabGuid()
         {
-            GameObject source = PrefabUtility.GetCorrespondingObjectFromOriginalSource(gameObject);
+            // The asset path of the prefab this instance is an instance OF — the nearest one, not
+            // the far end of its variant chain.
+            string path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(gameObject);
+
+            if (!string.IsNullOrEmpty(path) && path.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase))
+                return AssetDatabase.AssetPathToGUID(path);
+
+            // Fall back to the corresponding source object, still preferring the nearest source over
+            // the original one. An object whose nearest root is a model (.fbx) with no prefab in
+            // between genuinely has no prefab to name, and empty is the honest answer — it will be
+            // reported by the wiring validator rather than silently naming an unusable asset.
+            GameObject source = PrefabUtility.GetCorrespondingObjectFromSource(gameObject);
             if (source == null) return string.Empty;
 
-            return AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(source));
+            string sourcePath = AssetDatabase.GetAssetPath(source);
+            if (string.IsNullOrEmpty(sourcePath) ||
+                !sourcePath.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase))
+                return string.Empty;
+
+            return AssetDatabase.AssetPathToGUID(sourcePath);
         }
 
         /// <summary>

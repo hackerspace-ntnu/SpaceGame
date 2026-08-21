@@ -5,6 +5,18 @@ namespace SpaceGame.Vehicles
     /// <summary>
     /// Handles the movement logic for the rover.
     /// Separate from control logic for better separation of concerns.
+    ///
+    /// <para>
+    /// Deliberately free of netcode, and the separation above is what makes that possible: this is
+    /// a motor, driven entirely by the direction it is handed, so "who is allowed to decide where
+    /// this rover goes" is a question one layer up. <see cref="RoverController"/> answers it, and
+    /// only calls <see cref="UpdateMovement"/> on a machine entitled to move the thing.
+    /// </para>
+    /// <para>
+    /// The same split the dune foiler uses against its own simulation assembly, and it is worth
+    /// keeping: a motor with an authority check in it is a motor that cannot be unit-tested,
+    /// replayed, or driven by anything but a live session.
+    /// </para>
     /// </summary>
     public class RoverMovementController : MonoBehaviour
     {

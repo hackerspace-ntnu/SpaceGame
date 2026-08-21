@@ -25,6 +25,20 @@ namespace SpaceGame.Persistence
 
         public DateTime SavedAtUtc => Header?.SavedAtUtc ?? DateTime.MinValue;
 
+        /// <summary>
+        /// True when this save was written by a build newer than this one.
+        ///
+        /// Its header parses perfectly — <c>TryReadHeader</c> deliberately does not migrate — so it
+        /// listed as a healthy, loadable world and, being the most recent, was exactly what
+        /// "Continue" picked. The load then failed inside the migrator, fell through to the backup
+        /// (also from the future), and reported "save unreadable, backup also unreadable" for a file
+        /// that is neither. Naming the real reason is the whole fix.
+        /// </summary>
+        public bool FromNewerBuild => Header != null && Header.Version > SaveDocument.CurrentVersion;
+
+        /// <summary>Whether this slot can actually be entered.</summary>
+        public bool Loadable => !Unreadable && !FromNewerBuild;
+
         public string Label =>
             !string.IsNullOrEmpty(Header?.SlotLabel) ? Header.SlotLabel : SlotId;
     }
@@ -119,7 +133,10 @@ namespace SpaceGame.Persistence
         {
             foreach (SaveSlotInfo candidate in List())
             {
-                if (candidate.Unreadable) continue;
+                // Not merely "readable". A save from a newer build parses its header and fails at
+                // load, so Continue used to pick it every time and then report a misleading
+                // corruption error.
+                if (!candidate.Loadable) continue;
                 slot = candidate;
                 return true;
             }

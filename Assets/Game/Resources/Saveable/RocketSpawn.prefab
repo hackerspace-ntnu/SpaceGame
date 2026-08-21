@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 2790844676574897254}
   - component: {fileID: 2800714407217298713}
   - component: {fileID: 7014308151861458433}
+  - component: {fileID: 253165547775902911}
   m_Layer: 0
   m_Name: RocketSpawn
   m_TagString: Untagged
@@ -167,7 +168,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
-  prefabId: 
+  prefabId: 906da3c4fbcf24bafbbb3a8bfba925ea
   instanceId: 
   authored: 0
   scope: 0
@@ -195,6 +196,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
+--- !u!114 &253165547775902911
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 431438388529227558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 127c25f50aafc4d7296c8dfa119a2e05, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TurretSaveable
 --- !u!1 &682282503812588416
 GameObject:
   m_ObjectHideFlags: 0

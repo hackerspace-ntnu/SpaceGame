@@ -107,6 +107,15 @@ namespace SpaceGame.Items
         public void Bind(BackpackController controller) => owner = controller;
 
         /// <summary>
+        /// The player this pack belongs to, and the channel every request about it travels on.
+        ///
+        /// Public because the pack has no NetworkObject of its own: a slot view that wants to ask
+        /// the server for something has to ask through the wearer, who has both a channel and a
+        /// relay. See the networking note in <see cref="BackpackController"/>.
+        /// </summary>
+        public BackpackController Owner => owner;
+
+        /// <summary>
         /// Worn packs cannot be opened or interacted with — you cannot reach your own back. This is
         /// state, not just a visual: it is what stops the crosshair offering an interaction on the
         /// pack the player is wearing.
@@ -187,12 +196,51 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Move one item from the pack into the given hotbar.
+        /// Ask for the item in one slot. <b>The taker's own machine must go through here, not
+        /// through <see cref="TryTakeToHotbar"/>.</b>
         ///
+        /// <para>
+        /// Two players can be looking into the same open pack, so which of them gets the last thing
+        /// in it is the server's to decide — the same rule that puts a trade on the trader's
+        /// channel rather than the buyer's. Routed through the wearer, who owns the channel this
+        /// pack has to borrow.
+        /// </para>
+        /// </summary>
+        public void RequestTake(BackpackCompartment compartment, int index, Interactor interactor)
+        {
+            if (interactor == null) return;
+
+            if (owner != null)
+            {
+                owner.RequestTake(compartment, index, interactor);
+                return;
+            }
+
+            // A pack nobody owns has no channel to ask on, so it falls back to doing the transfer
+            // here — single-player-style, which is the same degradation every unrelayed message in
+            // this project takes. Unreachable today: every pack is bound to a wearer in
+            // BackpackController.Awake and destroyed with them.
+            IPlayerInventory hotbar = interactor.GetComponentInParent<IPlayerInventory>();
+            if (hotbar != null) TryTakeToHotbar(compartment, index, hotbar);
+        }
+
+        /// <summary>
+        /// Move one item from the pack into the given hotbar. <b>Server side only</b> — callers
+        /// want <see cref="RequestTake"/>.
+        ///
+        /// <para>
+        /// Both halves of this transfer replicate themselves, and neither of them from here. The
+        /// hotbar is <see cref="PlayerInventoryNetwork"/>'s, which is server-authoritative and
+        /// pushes every slot change out through its own NetworkList. The pack's half is
+        /// <see cref="BackpackNetwork"/>'s, which is watching this container for exactly this.
+        /// Doing anything else on the taker's machine as well would double the transfer up.
+        /// </para>
+        /// <para>
         /// A full hotbar is not a refusal — it is a SWAP: the pack item goes into the player's
         /// selected hotbar slot and whatever was in that slot takes its place in the pocket the
         /// player is aiming at. Refusing instead is what made a full hotbar feel like a broken
         /// interaction, because the only way out was to drop something on the ground first.
+        /// </para>
         /// </summary>
         public bool TryTakeToHotbar(BackpackCompartment compartment, int index, IPlayerInventory hotbar)
         {
@@ -245,7 +293,7 @@ namespace SpaceGame.Items
                 // Cannot happen once a slot has been cleared, but leaving the hotbar a slot short
                 // would be a silent item loss, so put the held item back and abandon the swap.
                 hotbar.TryAddItem(held);
-                hotbar.SelectSlot(target);
+                if (hotbar.SelectedSlotIndex != target) hotbar.SelectSlot(target);
                 return false;
             }
 
@@ -255,7 +303,13 @@ namespace SpaceGame.Items
             // Required, not cosmetic. PlayerInventory.TryRemoveItem nulls SelectedSlotIndex when it
             // removes the selected slot, so without this the player finishes the swap holding
             // nothing while the item they just took sits unselected in their hand slot.
-            hotbar.SelectSlot(target);
+            //
+            // Guarded on the selection having actually moved, because the networked hotbar does NOT
+            // clear it — and PlayerInventoryNetwork.SelectSlot is a TOGGLE, so re-selecting a slot
+            // that is already selected deselects it. Unguarded, every swap left the player holding
+            // nothing on exactly the implementation that ships.
+            if (hotbar.SelectedSlotIndex != target) hotbar.SelectSlot(target);
+
             return true;
         }
 
@@ -340,6 +394,11 @@ namespace SpaceGame.Items
             // Aiming at the pack body: closed on the ground means open it, open means take it back.
             // Aiming at an ITEM never reaches here — BackpackSlotView sits on the item's own collider
             // and Interactor resolves the nearest hit first.
+            //
+            // Reshoulder only ASKS: where the pack is, is shared state, so the server decides and
+            // tells everyone — including whoever pressed. The lid on an owner-less pack is the one
+            // case with nobody to ask, and it stays local. Anybody may shut somebody else's pack,
+            // deliberately: it is how you hand it back to them.
             if (!IsOpen) SetOpen(true);
             else if (owner != null) owner.Reshoulder();
         }

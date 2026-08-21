@@ -10,7 +10,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -7746605019518841121, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
       propertyPath: prefabId
-      value: 
+      value: f7d4cf6b779214121888a8c5e9171f01
       objectReference: {fileID: 0}
     - target: {fileID: 3742107592881161932, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
       propertyPath: m_LocalPosition.x
@@ -85,6 +85,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5634349938114829079}
+    - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7059438903585196936}
+    - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2152796702223863194}
+    - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4907140462652658823}
   m_SourcePrefab: {fileID: 100100000, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
 --- !u!1 &3760312103620484764 stripped
 GameObject:
@@ -243,6 +252,42 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SceneTracked
   keepChunksLoaded: 0
   policy: 1
+--- !u!114 &7059438903585196936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3760312103620484764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba2f0d7b595cb434f9f10161a0e8b395, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.NpcTaskSaveable
+--- !u!114 &2152796702223863194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3760312103620484764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42754ca4ed0784192afa4f7af4053b14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FormationSaveable
+--- !u!114 &4907140462652658823
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3760312103620484764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
 --- !u!4 &8750788233840712177 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3987795919156751077, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}

@@ -258,6 +258,53 @@ namespace SpaceGame.Agents
 
         public void SuggestDestination(Vector3 position) => destination = position;
 
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // What is worth a record here is the standing ORDER and the machine's momentum, and nothing
+        // else on the route.
+        //
+        // The route itself — `navPath`, `path`, `pathTarget`, `hasPath`, `repathTimer` — is
+        // deliberately left out. It is a derived thing: `repathTimer` starts at zero, so the first
+        // Tick after a load rebuilds the whole route from the destination before the machine takes a
+        // step, and a NavMeshPath cannot be serialized anyway. Worse, a stale corner list is
+        // actively harmful: the terrain it was calculated over may not have streamed in, and a
+        // machine steering at a corner from a route it can no longer walk goes somewhere nobody
+        // asked it to.
+        //
+        // The DETOUR (`detourDirection`, `detourHold`) goes too, and for a reason worth stating: it
+        // is a two-second commitment to going around a hill the legs refused, and it is dropped the
+        // moment the direct course is passable again. Restoring it costs two floats and saves a
+        // machine that saved mid-detour from walking straight back into the slope it had already
+        // decided to go around.
+        //
+        // `currentSpeed` and `currentStrafe` are the smoothed throttle, and they are here rather
+        // than in the "re-converges, skip it" pile because on these machines the smoothing feeds the
+        // GAIT: the twist sets the pace, the pace sets the stride, and a machine restored at zero
+        // throttle beside a restored mid-stride gait has its feet and its body disagreeing for the
+        // half second it takes to spin back up. Two floats to keep a walk looking like a walk.
+        public Vector3? Destination => destination;
+        public float StopDistance => stopDistance;
+        public float CurrentSpeed => currentSpeed;
+        public float CurrentStrafe => currentStrafe;
+        public Vector3 DetourDirection => detourDirection;
+        public float DetourHold => detourHold;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreDrive(Vector3? restoredDestination, float stop, float speed, float sideways)
+        {
+            destination = restoredDestination;
+            stopDistance = stop > 0f ? stop : defaultStopDistance;
+            currentSpeed = speed;
+            currentStrafe = lateralSteering ? sideways : 0f;
+        }
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreDetour(Vector3 direction, float hold)
+        {
+            detourDirection = direction;
+            detourHold = Mathf.Max(0f, hold);
+        }
+
         private float FlatDistanceTo(Vector3 p)
         {
             Vector3 d = p - transform.position;

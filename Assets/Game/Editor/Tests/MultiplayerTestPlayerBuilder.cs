@@ -19,7 +19,9 @@ namespace SpaceGame.EditorTools
         {
             "Assets/Game/Scenes/Core/Bootstrap.unity",
             "Assets/Game/Scenes/Core/MainMenu.unity",
-            "Assets/Game/Scenes/World/persistentScene.unity",
+            // Lowercase "world" — that is the casing on disk and in the index. Netcode hashes scene
+            // PATHS case-sensitively, so a drifted capital here is a join failure waiting to happen.
+            "Assets/Game/Scenes/world/persistentScene.unity",
         };
 
         /// <summary>Where the player lands. Outside Assets/ so it is never imported.</summary>
@@ -73,7 +75,12 @@ namespace SpaceGame.EditorTools
                 "  CLIENT_DRIVERS_DISABLED > 0          ...and it was the motors/brains that were switched off\n" +
                 "  CLIENT_HEALTH_SEEN == HOST_HEALTH_AFTER   damage the SERVER applied arrived here\n" +
                 "  HOST_RELAY_FROM_CLIENT=1             a client-to-server relay message crossed the wire\n" +
-                "  CLIENT_PLAYER_OBJECT=True            the joining player got a body";
+                "  CLIENT_PLAYER_OBJECT=True            the joining player got a body\n\n" +
+                "To PLAY this build against the editor instead of running the autotest, launch it with\n" +
+                "its own Unity Services profile — a player and the editor share one PlayerPrefs file, so\n" +
+                "they otherwise sign in as the same anonymous PlayerId and the lobby refuses the second\n" +
+                "one as already a member (see SessionLauncher.ProfileArg):\n\n" +
+                $"  open \"{OutputPath}\" --args -sgprofile client";
         }
     }
 }

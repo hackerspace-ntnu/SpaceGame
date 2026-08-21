@@ -115,8 +115,12 @@ namespace SpaceGame.Items
             InventorySlot slotFrom = GetSlot(from);
 
             if (slotTo.Item == null) {
+                // The per-instance state travels with the item. Read before the assignment, because
+                // assigning Item clears the state of whichever slot it lands in.
+                ItemState carried = slotFrom.State;
                 slotTo.Item = slotFrom.Item;
                 slotFrom.Item = null;
+                slotTo.State = carried;
                 successfulMove = true;
             }
             else
@@ -152,7 +156,16 @@ namespace SpaceGame.Items
 
         public bool SwapItems(int indexA, int indexB)
         {
-            (slots[indexA].Item, slots[indexB].Item) = (slots[indexB].Item, slots[indexA].Item); 
+            // Both bags are read out first: assigning Item clears the destination slot's state, so a
+            // swap that moved only the items would leave two half-used items claiming each other's
+            // ammo and charges.
+            ItemState stateA = slots[indexA].State;
+            ItemState stateB = slots[indexB].State;
+
+            (slots[indexA].Item, slots[indexB].Item) = (slots[indexB].Item, slots[indexA].Item);
+
+            slots[indexA].State = stateB;
+            slots[indexB].State = stateA;
             return true;
         }
 

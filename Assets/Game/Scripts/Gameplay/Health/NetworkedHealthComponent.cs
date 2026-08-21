@@ -2,6 +2,7 @@
 //
 // Both halves live here because they are the same statement: the server owns this health value.
 // It publishes it outward, and it is the only machine that may be asked to change it.
+using System;
 using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Core;
@@ -11,6 +12,24 @@ namespace SpaceGame.Gameplay
     [RequireComponent(typeof(HealthComponent))]
     public class NetworkedHealthComponent : NetworkBehaviour
     {
+        /// <summary>
+        /// Raised on every peer when a hit dealt by a player lands on anything — the victim, how
+        /// much, and which player's object did it.
+        /// <para>
+        /// It carries the attacker rather than a "was it me" flag on purpose: whether a hit is
+        /// worth drawing is a presentation question, and the answer differs between a damage
+        /// number, a hit marker and a combat log. Ask <c>NetworkObject.IsOwner</c> on the attacker
+        /// to find out whether this machine fired the shot.
+        /// </para>
+        /// <para>
+        /// Static because the listener is one screen-wide overlay rather than something living on
+        /// each victim, and the victims are every animal, NPC and player in a streamed world.
+        /// Nothing here keeps a reference to a subscriber, so an overlay that outlives a victim is
+        /// safe; the arguments are the ones that may be destroyed and must be null-checked.
+        /// </para>
+        /// </summary>
+        public static event Action<HealthComponent, int, GameObject> DamageAnnounced;
+
         private HealthComponent health;
 
         // Everyone, not Owner. A server-owned entity — which is every AI, creature and vehicle in
@@ -21,9 +40,17 @@ namespace SpaceGame.Gameplay
 
         private void Awake() => health = GetComponent<HealthComponent>();
 
-        private void OnEnable() => this.NetOn(NetMsg.Damage, OnDamageRequested);
+        private void OnEnable()
+        {
+            this.NetOn(NetMsg.Damage, OnDamageRequested);
+            this.NetOn(NetMsg.Damaged, OnDamageAnnounced);
+        }
 
-        private void OnDisable() => this.NetOff(NetMsg.Damage, OnDamageRequested);
+        private void OnDisable()
+        {
+            this.NetOff(NetMsg.Damage, OnDamageRequested);
+            this.NetOff(NetMsg.Damaged, OnDamageAnnounced);
+        }
 
         public override void OnNetworkSpawn()
         {
@@ -35,6 +62,11 @@ namespace SpaceGame.Gameplay
                 health.OnHeal += SyncHealth;
                 health.OnDeath += SyncHealth;
                 health.OnRestored += SyncHealth;
+
+                // Server-only, like every other subscription here, because the server is the only
+                // machine that ever learns who dealt a hit — LastDamageSource is written by
+                // HealthComponent.Damage, which runs nowhere else.
+                health.OnDamage += AnnounceDamage;
             }
             else
             {
@@ -59,6 +91,7 @@ namespace SpaceGame.Gameplay
                     health.OnHeal -= SyncHealth;
                     health.OnDeath -= SyncHealth;
                     health.OnRestored -= SyncHealth;
+                    health.OnDamage -= AnnounceDamage;
                 }
                 else
                 {
@@ -85,6 +118,46 @@ namespace SpaceGame.Gameplay
         private void SyncHealth(int _) => SyncHealth();
 
         private void SyncHealth() => networkHealth.Value = health.GetHealth;
+
+        /// <summary>
+        /// Server side: tell everyone that a player just hurt this entity — see
+        /// <see cref="NetMsg.Damaged"/> for why it is a broadcast.
+        ///
+        /// Silent unless a player dealt the hit. Environmental damage (a cactus, a fall) arrives
+        /// with no source at all, and an AI mauling a creature resolves to no PlayerIdentity, so
+        /// neither costs a message. That is what keeps this affordable in a world where most of
+        /// the damage happens between things nobody is watching.
+        /// </summary>
+        private void AnnounceDamage(int amount)
+        {
+            if (amount <= 0 || health == null) return;
+
+            Transform source = health.LastDamageSource;
+            if (source == null) return;
+
+            // GetComponentInParent, not GetComponent: callers disagree about what "source" is, and
+            // both spellings are correct. A projectile reports the shooter's root, while a hitscan
+            // rifle reports its own transform — and an equipped weapon is instantiated under a
+            // socket on the player's rig, so walking up finds the same player either way.
+            PlayerIdentity attacker = source.GetComponentInParent<PlayerIdentity>();
+            if (attacker == null) return;
+
+            // Others, not All. This machine just applied the damage, so HealthComponent.AnyDamaged
+            // has already fired here and anything local has been shown. Sending to everyone would
+            // hand the authority its own news back and draw the number twice.
+            this.NetToOthers(NetMsg.Damaged, new NetArg { A = amount }.With(attacker));
+        }
+
+        /// <summary>
+        /// Every peer, including the host that sent it: a player-dealt hit landed here. Republished
+        /// as a plain C# event so the UI never has to know a message id.
+        /// </summary>
+        private void OnDamageAnnounced(in NetArg arg, ulong sender)
+        {
+            if (health == null || arg.A <= 0) return;
+
+            DamageAnnounced?.Invoke(health, arg.A, arg.Resolve());
+        }
 
         /// <summary>
         /// Assigns the server's value rather than replaying the difference.

@@ -80,9 +80,26 @@ namespace SpaceGame.Core.Persistence
         /// </summary>
         public void RestoreState(JObject state)
         {
-            if (Body == null || state == null) return;
+            if (Body == null) return;
 
             if (Body.isKinematic) return;
+
+            // No payload means the body had no motion worth recording — see CaptureState — so the
+            // right answer is a body at rest, not a body keeping whatever it happens to be carrying.
+            //
+            // This half of the handoff is what makes the other half safe. TransformSaveable and
+            // WorldSaveStore both decline to zero velocity when a RigidbodySaveable is present,
+            // because it "owns momentum". They decided that from the COMPONENT existing, while the
+            // component only actually assigned a velocity when a PAYLOAD existed — and a kinematic
+            // capture drops the payload, which is the common case at quit. So a moving object could
+            // be teleported to its saved pose and keep the velocity it had at its old one, then fly
+            // off. Now this method always has an answer, so the ownership claim is true.
+            if (state == null)
+            {
+                Body.linearVelocity = Vector3.zero;
+                Body.angularVelocity = Vector3.zero;
+                return;
+            }
 
             var restored = state.ToObject<State>(SaveSerializer.Serializer);
 

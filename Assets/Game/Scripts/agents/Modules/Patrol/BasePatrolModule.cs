@@ -31,6 +31,42 @@ namespace SpaceGame.Agents
 
         private void Reset() => SetPriorityDefault(ModulePriority.Fallback);
 
+        // ─────────── For the save system ───────────
+        // The anchor is the territory. With no baseTransform assigned it is latched once from
+        // wherever the entity woke up, so letting it latch a second time after a load re-centres the
+        // whole patrol area on the save position — and moves it again on every save after that.
+
+        public bool HasSpawnAnchor => hasSpawnAnchor;
+        public Vector3 SpawnAnchor => spawnAnchor;
+
+        /// <summary>True while walking to <see cref="Destination"/>; false while waiting out the pause.</summary>
+        public bool IsMoving => state == State.Moving;
+
+        public Vector3 Destination => destination;
+
+        /// <summary>Seconds left of the pause between destinations.</summary>
+        public float WaitTimer => waitTimer;
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// <paramref name="hasAnchor"/> false leaves the existing anchor alone rather than clearing
+        /// it: "no anchor was recorded" must not become "re-derive one from where you are standing",
+        /// which is the drift this exists to stop.
+        /// </summary>
+        public void RestoreBasePatrol(bool hasAnchor, Vector3 anchor, bool moving, Vector3 target, float wait)
+        {
+            if (hasAnchor)
+            {
+                spawnAnchor = anchor;
+                hasSpawnAnchor = true;
+            }
+
+            state = moving ? State.Moving : State.Waiting;
+            destination = target;
+            waitTimer = Mathf.Max(0f, wait);
+        }
+
         public override string ModuleDescription =>
             "Patrols random NavMesh points around a base transform (or spawn position if none assigned).\n\n" +
             "• baseTransform — center of the patrol area; uses spawn point if empty\n" +

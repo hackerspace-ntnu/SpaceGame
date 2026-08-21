@@ -69,8 +69,13 @@ namespace SpaceGame.Characters
 
         private void Update()
         {
+            // Gated, because this component reads the keyboard directly rather than through an
+            // action map that gets switched off with the player. The same Main Camera prefab that
+            // carries this light is dropped into MainMenu.unity for the backdrop, so an ungated
+            // read had L switching a flashlight on behind the main menu — and behind the pause
+            // menu, and on a corpse.
             var kb = Keyboard.current;
-            if (kb != null && kb[toggleKey].wasPressedThisFrame)
+            if (kb != null && kb[toggleKey].wasPressedThisFrame && GameplayMenuScope.AcceptsGameplayInput)
             {
                 SetEnabled(!flashlight.enabled);
             }
@@ -95,6 +100,30 @@ namespace SpaceGame.Characters
             Shader.SetGlobalVector(IdParams, new Vector4(cosOuter, cosInner, flashlightReach, on ? 1f : 0f));
             Shader.SetGlobalVector(IdFalloff, new Vector4(longThrowFalloff, longThrowRangeFadeStart, 0f, 0f));
             Shader.SetGlobalVector(IdBeamEnd, new Vector4(currentBeamLength, 0f, 0f, 0f));
+        }
+
+        /// <summary>
+        /// Is the torch on? The whole of this component's state, and none of it was in any record.
+        ///
+        /// <para>
+        /// Reads the Light rather than a flag of its own, so it cannot disagree with what is
+        /// actually lit — <see cref="Awake"/> switches the light off directly.
+        /// </para>
+        /// </summary>
+        public bool IsOn => flashlight != null && flashlight.enabled;
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// <para>
+        /// Goes through the same <see cref="SetEnabled"/> the L key does, so the beam mesh is
+        /// switched with the light instead of being left behind as a lit cone with no lamp.
+        /// </para>
+        /// </summary>
+        public void RestoreOn(bool on)
+        {
+            if (flashlight == null) flashlight = GetComponent<Light>();
+            SetEnabled(on);
         }
 
         private void SetEnabled(bool on)

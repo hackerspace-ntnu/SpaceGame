@@ -6,7 +6,7 @@ edit the palette and regenerate, or the two will disagree.
 Every model and component in this repository links its materials from here.
 Before adding anything, search this table for something that would serve.
 
-**40 material(s)** across 9 categor(ies).
+**44 material(s)** across 9 categor(ies).
 
 ## Emissive
 
@@ -15,6 +15,8 @@ Before adding anything, search this table for something that would serve.
 | `Mat_Emissive_Amber` | `#FFB347` | 0.3 | 0.0 | Warning lamps, gauge backlighting, engine glow, indicator strips. |
 | `Mat_Emissive_Cabin_Warm` | `#FFF2D8` | 0.4 | 0.0 | Interior lighting strips and dome lamps - the warm liveable cabin light. |
 | `Mat_Emissive_Green_CRT` | `#6BFF9E` | 0.2 | 0.0 | Console screens, holographic helm display, diagnostic readouts. |
+| `Mat_Emissive_Portal_Blue` | `#2FB8FF` | 0.15 | 0.0 | Cold cyan-blue portal light: the blue portal aperture, the blue reservoir in the portal gun and its muzzle ring. The palette had no emissive blue at all - Mat_Emissive_Green_CRT is a readout and Mat_Glass_Canopy_Tinted is glazing, not a light source. |
+| `Mat_Emissive_Portal_Orange` | `#FF8A1E` | 0.15 | 0.0 | Hot orange portal light: the orange portal aperture and the orange reservoir in the portal gun. Deliberately separate from Mat_Emissive_Amber, which is a warm indicator lamp at #FFB347 - the two portal colours have to read as a matched pair against each other, and amber is too pale to hold its own beside Portal_Blue. |
 | `Mat_Emissive_Red_Warn` | `#FF4436` | 0.3 | 0.0 | Alarm strips, door-open beacons, reactor fault lamps. |
 
 ## Fabric
@@ -23,6 +25,7 @@ Before adding anything, search this table for something that would serve.
 |---|---|---|---|---|
 | `Mat_Fabric_Canvas_Faded` | `#6E6A5A` | 0.92 | 0.0 | Bunk bedding, cargo netting, curtains, awning cloth, strapping. |
 | `Mat_Fabric_Flag_Bleached` | `#D8D2C2` | 0.9 | 0.0 | Off-white sun-bleached flag and pennant cloth, awnings, sun shades. Much lighter than Canvas_Faded, which is dirty webbing. |
+| `Mat_Fabric_Rope_Hemp` | `#B89968` | 0.92 | 0.0 | Twisted natural-fibre rope: lariat coils, lashings, tow lines, rigging. Warmer and lighter than Mat_Fabric_Canvas_Faded, which is dirty grey webbing rather than laid rope. |
 | `Mat_Fabric_Seat_Ochre` | `#8A5A2B` | 0.85 | 0.0 | Crew seat upholstery - cracked ochre vinyl, matches the hull family. |
 | `Mat_Fabric_Tarp_Azure` | `#3E9AD0` | 0.9 | 0.0 | Saturated azure tarpaulin: shade sails and awnings pitched over field workspaces. The only strong colour note on a desert outpost, and nothing in the palette was within deltaE 20. Mat_Fabric_Flag_Bleached is its sun-killed counterpart. |
 | `Mat_Fabric_Wing_Beige` | `#CBB68E` | 0.88 | 0.0 | Sun-cured beige sailcloth stretched over wing blade frames. The ornithopter's primary wing surface - warmer and dirtier than Flag_Bleached, lighter than Canvas_Faded. |
@@ -86,6 +89,7 @@ Before adding anything, search this table for something that would serve.
 |---|---|---|---|---|
 | `Mat_Plastic_Cream_Aged` | `#B8AD94` | 0.6 | 0.0 | Yellowed RV interior plastic: cabinet fronts, switch panels, light diffusers, trim mouldings. |
 | `Mat_Plastic_Rubber_Black` | `#1A1A1A` | 0.88 | 0.0 | Hoses, cable sheathing, hand grips, floor matting, door weather seals. |
+| `Mat_Plastic_Safety_Yellow` | `#F2B01E` | 0.45 | 0.0 | Injection-moulded high-vis yellow plastic: safety pins, pull rings, trigger guards, lever grips. The moulded-plastic counterpart to Mat_Paint_Safety_Orange, which is enamel sprayed onto steel. |
 
 ## Wood
 

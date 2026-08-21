@@ -40,6 +40,17 @@ namespace SpaceGame.Core.Persistence
             if (keyboard[quickLoadKey].wasPressedThisFrame) QuickLoad();
         }
 
+        /// <summary>
+        /// Writes the active world, or says why it did not.
+        ///
+        /// <para>
+        /// Every refusal is announced. <c>SaveManager.Save</c> logs its own through a
+        /// <c>verbose</c>-gated <c>Log</c>, which is right for the autosave timer and wrong for a
+        /// keypress: F5 on a client did nothing at all, silently, and the player's only evidence was
+        /// that their world did not come back. A hotkey is a question the player asked, and it gets
+        /// an answer.
+        /// </para>
+        /// </summary>
         public void QuickSave()
         {
             SaveManager manager = SaveManager.Instance;
@@ -50,9 +61,32 @@ namespace SpaceGame.Core.Persistence
                 return;
             }
 
+            if (!WorldSession.IsActive)
+            {
+                Debug.LogWarning("[Save] Nothing to quicksave: no world is active. " +
+                                 "Enter a world through the main menu.");
+                return;
+            }
+
+            // Checked here as well as inside SaveManager, so the message names the player's actual
+            // situation rather than the system's rule. A guest in someone else's game cannot save it.
+            if (Network.IsNetworked && !Network.Server)
+            {
+                Debug.LogWarning("[Save] Quicksave ignored: the world belongs to the host, so only " +
+                                 "they can save it. Ask them to press the quicksave key.");
+                return;
+            }
+
             // Writes to whichever world is active — see SaveManager.QuickSave.
             if (manager.QuickSave())
+            {
                 Debug.Log($"[Save] Quicksaved '{WorldSession.DisplayName ?? "world"}'.");
+                return;
+            }
+
+            Debug.LogWarning("[Save] Quicksave did not run. The most likely reason is that the " +
+                             "previous save is still being written; try again in a moment. Turn on " +
+                             "SaveManager's 'verbose' for the exact refusal.");
         }
 
         public void QuickLoad()
@@ -60,6 +94,20 @@ namespace SpaceGame.Core.Persistence
             if (!WorldSession.IsActive)
             {
                 Debug.LogWarning("[Save] Quickload pressed with no active world.");
+                return;
+            }
+
+            // A client quickloading used to fall through to SceneManager.LoadScene(Single) below,
+            // which tears this machine's whole scene out from under a live session: its
+            // NetworkManager, its spawned player and every object Netcode had synchronised go with
+            // it, while the server carries on believing the peer is in the world. The state the
+            // client would be reloading is not theirs to reload either — the world lives on the
+            // server and only the server has the file.
+            if (Network.IsNetworked && !Network.Server)
+            {
+                Debug.LogWarning("[Save] Quickload ignored: the world belongs to the host. Reloading " +
+                                 "it here would drop you out of the session without reloading anything. " +
+                                 "Ask the host to quickload, and everyone is taken back together.");
                 return;
             }
 
@@ -78,7 +126,9 @@ namespace SpaceGame.Core.Persistence
             Debug.Log($"[Save] Quickloading into '{target}'.");
 
             // Through Netcode's scene manager when hosted, so clients follow. A plain
-            // SceneManager.LoadScene here would leave every client in the old world.
+            // SceneManager.LoadScene here would leave every client in the old world. The plain call
+            // is now only reachable with no session at all — an editor scene, an offline test —
+            // which is the one case where this machine IS the world.
             if (Network.Server)
                 Unity.Netcode.NetworkManager.Singleton.SceneManager.LoadScene(target, LoadSceneMode.Single);
             else

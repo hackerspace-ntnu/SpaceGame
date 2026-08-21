@@ -51,6 +51,16 @@ namespace SpaceGame.Gameplay
         /// position is buried in the ground is a heightmap question and is answered as one. What is
         /// left is exactly the structure geometry a player can be trapped in.
         /// </para>
+        /// <para>
+        /// Other players are excluded too, and that exclusion is what makes a second player able to
+        /// spawn at all. The game's only spawn point scatters inside 0.5 m on a floor 3.7 m by
+        /// 8.5 m, so once one player is standing on it their own 3 m capsule overlaps every
+        /// candidate the point can produce. Indoors there is no terrain fallback by design, so the
+        /// answer was "not yet" forever and the second player waited out the caller's whole timeout
+        /// before being dropped on the first one regardless. Standing briefly inside another player
+        /// is not a trap — two dynamic capsules resolve apart on the next physics step — whereas
+        /// being inside a hull is, and that is the distinction this test is meant to draw.
+        /// </para>
         /// </summary>
         public static bool HasRoomToStand(Vector3 groundPoint, float height, float radius)
         {
@@ -64,10 +74,43 @@ namespace SpaceGame.Gameplay
             for (int i = 0; i < count; i++)
             {
                 if (Overlaps[i] == null || Overlaps[i] is TerrainCollider) continue;
+                if (IsPlayerBody(Overlaps[i])) continue;
                 return false;
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Tag carried by the player character's root, and by nothing else in the project.
+        ///
+        /// Public because <see cref="SpawnManager"/> asks the same question from the other side:
+        /// this test excludes player bodies from "is there room to stand", so somebody else has to
+        /// be the one that knows where they already are. One spelling of the tag, one place.
+        /// </summary>
+        public const string PlayerTag = "Player";
+
+        /// <summary>
+        /// Whether this collider is part of a player's body.
+        ///
+        /// Asked of the attached Rigidbody rather than the collider, because the capsule lives on a
+        /// child called "Collider" while the tag is on the root that owns the body — and because
+        /// the Rigidbody stays the player's own even while they are parented to a mount, where
+        /// <c>transform.root</c> would answer with the vehicle instead.
+        ///
+        /// The tag, not a component: <c>PlayerController</c> would work for players, but the
+        /// obvious way to extend this to NPCs — matching <c>AgentController</c> — would also match
+        /// ShipRV, whose hull and cargo bay floor are exactly the geometry this test exists to
+        /// catch. Nothing but PlayerCharacter carries this tag, and the project defines no custom
+        /// tags at all, so it cannot widen by accident.
+        /// </summary>
+        private static bool IsPlayerBody(Collider collider)
+        {
+            Rigidbody body = collider.attachedRigidbody;
+
+            return body != null
+                ? body.CompareTag(PlayerTag)
+                : collider.transform.root.CompareTag(PlayerTag);
         }
 
         /// <summary>

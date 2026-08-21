@@ -1313,6 +1313,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 691112295041990756, guid: 9238326c489724aefb0ca8e6a40115a4, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 1512507764
+      objectReference: {fileID: 0}
     - target: {fileID: 2499213747737760984, guid: 9238326c489724aefb0ca8e6a40115a4, type: 3}
       propertyPath: m_LocalPosition.x
       value: 3781.1
@@ -1375,7 +1379,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3464075568543551090, guid: 9238326c489724aefb0ca8e6a40115a4, type: 3}
       propertyPath: prefabId
-      value: d6e34c90ec2ed4991b8aa095733cb491
+      value: 9238326c489724aefb0ca8e6a40115a4
       objectReference: {fileID: 0}
     - target: {fileID: 3464075568543551090, guid: 9238326c489724aefb0ca8e6a40115a4, type: 3}
       propertyPath: instanceId
@@ -8289,6 +8293,13 @@ GameObject:
   - component: {fileID: 1295212589}
   - component: {fileID: 1295212588}
   - component: {fileID: 1295212587}
+  - component: {fileID: 1295212603}
+  - component: {fileID: 1295212602}
+  - component: {fileID: 1295212601}
+  - component: {fileID: 1295212600}
+  - component: {fileID: 1295212599}
+  - component: {fileID: 1295212598}
+  - component: {fileID: 1295212597}
   m_Layer: 0
   m_Name: NPC
   m_TagString: Untagged
@@ -8312,6 +8323,7 @@ MonoBehaviour:
   animationSpeedMultiplier: 2.3
   walkAnimBoost: 2
   animatorSpeedScale: 1
+  measuredRunSpeed: 3.5
 --- !u!114 &1295212588
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8545,6 +8557,95 @@ Transform:
   - {fileID: 1278361574}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1295212597
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1295212586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b7179e995e114656a7c05b0bf39e686, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MotorStateSaveable
+--- !u!114 &1295212598
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1295212586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1eacc570714474389995d97c3e804006, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentPacingSaveable
+--- !u!114 &1295212599
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1295212586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb3670eb35fef414cb27ee61624f06c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentGoalSaveable
+--- !u!114 &1295212600
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1295212586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c672eb793055441e0a2ba07913619da5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGoal
+  drawGizmos: 1
+--- !u!114 &1295212601
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1295212586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28c98d1ddf47d4dc0a1e01f0e1524066, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.WanderBehaviourSaveable
+--- !u!114 &1295212602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1295212586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &1295212603
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1295212586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 
+  instanceId: autoec235a493159ce78
+  authored: 1
+  scope: 0
 --- !u!1001 &1300706144
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9198,6 +9299,10 @@ GameObject:
   - component: {fileID: 1340006329}
   - component: {fileID: 1340006332}
   - component: {fileID: 1340006331}
+  - component: {fileID: 1340006336}
+  - component: {fileID: 1340006335}
+  - component: {fileID: 1340006334}
+  - component: {fileID: 1340006333}
   m_Layer: 0
   m_Name: ApproachCutscene
   m_TagString: Untagged
@@ -9291,6 +9396,58 @@ MonoBehaviour:
   onCutsceneEnded:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1340006333
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1340006326}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49584e7b86857426799d3806536c5389, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.CutsceneActionSaveable
+--- !u!114 &1340006334
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1340006326}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2807a03c3a41446a9a6299484470841c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.VolumeTriggerSaveable
+--- !u!114 &1340006335
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1340006326}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &1340006336
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1340006326}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 
+  instanceId: autob460774fa8e41b8e
+  authored: 1
+  scope: 0
 --- !u!1 &1340015873
 GameObject:
   m_ObjectHideFlags: 0
@@ -12767,6 +12924,9 @@ GameObject:
   - component: {fileID: 2019074136}
   - component: {fileID: 2019074135}
   - component: {fileID: 2019074137}
+  - component: {fileID: 2019074140}
+  - component: {fileID: 2019074139}
+  - component: {fileID: 2019074138}
   m_Layer: 0
   m_Name: EntranceTrigger
   m_TagString: Untagged
@@ -12851,6 +13011,46 @@ MonoBehaviour:
   triggerForAgents: 1
   rearmCooldown: 1
   reentryCooldown: 4
+--- !u!114 &2019074138
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2019074132}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2807a03c3a41446a9a6299484470841c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.VolumeTriggerSaveable
+--- !u!114 &2019074139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2019074132}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &2019074140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2019074132}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 
+  instanceId: auto00fe6e4725459b11
+  authored: 1
+  scope: 0
 --- !u!1 &2038070176
 GameObject:
   m_ObjectHideFlags: 0
@@ -13312,7 +13512,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8445816429680129776, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
       propertyPath: prefabId
-      value: 4dcb597254cdd40d7b6b5b8e66c624d7
+      value: b23b2bafcf6a74fc4884959078ae9b02
       objectReference: {fileID: 0}
     - target: {fileID: -8445816429680129776, guid: b23b2bafcf6a74fc4884959078ae9b02, type: 3}
       propertyPath: instanceId

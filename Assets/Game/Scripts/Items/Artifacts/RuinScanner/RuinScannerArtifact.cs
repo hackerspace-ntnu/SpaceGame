@@ -64,6 +64,31 @@ namespace SpaceGame.Items
             return base.CanUse();
         }
 
+        // ── Per-instance state ─────────────────────────────────────────────────
+        //
+        // The cooldown is the only thing this scanner remembers, and it was free to erase: a fresh
+        // instance is made on every equip, so the pulse could be fired, the hotbar scrolled and the
+        // pulse fired again immediately — and a reload did the same thing.
+
+        private const string CooldownKey = "cd";
+
+        public override void CaptureItemState(ItemState state)
+        {
+            base.CaptureItemState(state);
+            if (state == null) return;
+
+            // Remaining, not the stamp: nextUseTime is measured against Time.time, which starts
+            // again at zero next session.
+            float remaining = nextUseTime - Time.time;
+            if (remaining > 0.01f) state.Set(CooldownKey, remaining);
+        }
+
+        public override void RestoreItemState(ItemState state)
+        {
+            base.RestoreItemState(state);
+            nextUseTime = Time.time + Mathf.Max(0f, state == null ? 0f : state.GetFloat(CooldownKey, 0f));
+        }
+
         [Header("VFX")]
         [Tooltip("Material used by the cone-of-light pulse (RuinScannerPulse shader).")]
         [SerializeField] private Material pulseMaterial;

@@ -70,6 +70,26 @@ namespace SpaceGame.Core.Persistence
         public bool BelongsToWorld => scope == SaveScope.World;
 
         /// <summary>
+        /// Hand this object's record to whoever spawned it, at runtime.
+        ///
+        /// <para>
+        /// For objects a system creates, owns and re-creates itself. <c>NpcWorldSim</c> is the case
+        /// it was added for: a caravan is persisted as ONE record — a position, a destination, a
+        /// task — and the members standing in the world are something that record rebuilds on
+        /// demand. Left on <see cref="SaveScope.World"/> they are also captured individually, so a
+        /// load re-instantiates every member from its prefab AND the simulator spawns the group
+        /// again from its record. That is the same duplicate-on-load this enum's summary describes
+        /// for the player, arriving by a different route.
+        /// </para>
+        /// <para>
+        /// Runtime-only and deliberately one-way: an object whose record belongs to another system
+        /// never goes back to belonging to the world, and a prefab has no business shipping with an
+        /// opinion about which system spawned it.
+        /// </para>
+        /// </summary>
+        public void DisownToExternal() => scope = SaveScope.External;
+
+        /// <summary>
         /// Every live entity, so a save can find them without a scene-wide component search per
         /// chunk. Registration is by instanceId; a duplicate id means two objects would fight over
         /// one record, which is worth a warning rather than a silent overwrite.

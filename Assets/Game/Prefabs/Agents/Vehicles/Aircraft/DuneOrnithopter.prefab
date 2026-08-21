@@ -1780,6 +1780,8 @@ GameObject:
   - component: {fileID: 4096831134557326267}
   - component: {fileID: 112924537384872545}
   - component: {fileID: 1709380820943153037}
+  - component: {fileID: 5719820741869269405}
+  - component: {fileID: -8143382019233687135}
   m_Layer: 0
   m_Name: DuneOrnithopter
   m_TagString: Untagged
@@ -2019,6 +2021,8 @@ MonoBehaviour:
   depthTolerance: 0.5
   surfaceClearance: 1.2
   absoluteFloorY: -500
+  groundWaitTimeout: 20
+  structureFloorReach: 1.7
   logRecoveries: 1
 --- !u!114 &4719381695298895875
 MonoBehaviour:
@@ -2208,6 +2212,30 @@ MonoBehaviour:
   deployId: 600
   foldId: 604
   spreadThreshold: 0.5
+--- !u!114 &5719820741869269405
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3241331717362755362}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29154b1ccc6444e649bf651e558f5b84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MountSaveable
+--- !u!114 &-8143382019233687135
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3241331717362755362}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b0eee159d8ba145b4b6e254f7e469df7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.OrnithopterSaveable
 --- !u!1 &3426127597216960582
 GameObject:
   m_ObjectHideFlags: 0

@@ -16,6 +16,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Gameplay;
+using SpaceGame.World.Weather;
 
 namespace SpaceGame.Agents
 {
@@ -78,6 +79,25 @@ namespace SpaceGame.Agents
         private float effectiveAcquisitionRange;
         private float effectiveLoseRange;
 
+        // How far this agent can see through the weather, 0 to 1. Refreshed on an interval rather
+        // than per frame: a sandstorm's density where one agent is standing changes over seconds,
+        // and sampling it every frame for every agent is exactly the per-agent-per-frame cost this
+        // component was written to remove.
+        private float stormSightFactor = 1f;
+        private float stormSampleTimer;
+        private const float StormSampleInterval = 1f;
+
+        // Both are floored at proximityAcquireRange. Without that floor a thick enough storm would
+        // shrink the working range inside the point-blank bypass, and an agent would fail to react
+        // to something it is standing next to — which reads as broken AI, not as bad weather.
+        /// <summary>Acquisition range after weather. What the agent can actually spot at.</summary>
+        public float SightRange =>
+            Mathf.Max(effectiveAcquisitionRange * stormSightFactor, settings.proximityAcquireRange);
+
+        /// <summary>Retention range after weather, so a target lost in the sand is dropped too.</summary>
+        public float LoseRange =>
+            Mathf.Max(effectiveLoseRange * stormSightFactor, settings.proximityAcquireRange);
+
         // Shared across agents rather than one list each: Reevaluate fills and fully consumes it
         // inside a single synchronous call, so no other agent can observe it mid-use.
         private static readonly List<EntityFaction> candidateBuffer = new List<EntityFaction>(64);
@@ -134,6 +154,12 @@ namespace SpaceGame.Agents
                 weaponRange = Mathf.Max(weaponRange, ranged.MaxRange);
             foreach (CloseCombatModule melee in GetComponents<CloseCombatModule>())
                 weaponRange = Mathf.Max(weaponRange, melee.AttackRange);
+
+            // Artifacts the agent is actually carrying count too. An NPC holding a looted rifle
+            // that reaches 40 m but acquiring at 35 would stand and watch a fight it is equipped to
+            // join — the same failure this method already exists to prevent for profile weapons.
+            foreach (NpcItemUseModule item in GetComponents<NpcItemUseModule>())
+                weaponRange = Mathf.Max(weaponRange, item.MaxRange);
 
             effectiveAcquisitionRange = Mathf.Max(settings.acquisitionRange, weaponRange + WeaponRangeMargin);
             effectiveLoseRange = Mathf.Max(settings.loseRange, effectiveAcquisitionRange + WeaponRangeMargin);
@@ -200,6 +226,22 @@ namespace SpaceGame.Agents
             reevaluateTimer = settings.reevaluateInterval;
         }
 
+        /// <summary>
+        /// True when this agent is currently fighting <paramref name="other"/>.
+        ///
+        /// Matched by hierarchy rather than by reference, because the two sides name the same
+        /// entity differently. Targeting holds whatever the registry scored — the entity root that
+        /// carries the EntityFaction — while a caller usually holds a component somewhere inside
+        /// the body: an Interactor on a camera rig, a collider on a limb. Comparing those two
+        /// transforms directly answers "no" for a player who is being chased and hit.
+        /// </summary>
+        public bool IsFightingWith(Transform other)
+        {
+            if (other == null || Target == null) return false;
+
+            return Target.root == other.root;
+        }
+
         public void ClearTarget()
         {
             Target = null;
@@ -261,6 +303,13 @@ namespace SpaceGame.Agents
                 HasLastKnownPosition = false;
             }
 
+            stormSampleTimer -= deltaTime;
+            if (stormSampleTimer <= 0f)
+            {
+                stormSampleTimer = StormSampleInterval;
+                stormSightFactor = Sandstorms.SightFactorAt(transform.position);
+            }
+
             // Strictly on the interval, including while the agent has no target at all. Re-scanning
             // every frame when nothing is acquired is the case that scales worst: it is exactly the
             // situation where every agent in the scene is querying the whole registry at once.
@@ -292,7 +341,7 @@ namespace SpaceGame.Agents
 
             DistanceToTarget = Vector3.Distance(transform.position, Target.position);
 
-            if (DistanceToTarget > effectiveLoseRange)
+            if (DistanceToTarget > LoseRange)
             {
                 ClearTarget();
                 return;
@@ -326,8 +375,12 @@ namespace SpaceGame.Agents
             if (selfFaction == null)
                 return;
 
+            // Sight range, not the raw acquisition range: in a sandstorm an agent scores only what
+            // it could actually see. proximityAcquireRange below is deliberately left alone — a
+            // robot still notices something at arm's length, so the storm hides you without
+            // turning you into a ghost.
             EntityTargetRegistry.Query(selfFaction, settings.relationship, transform.position,
-                                       effectiveAcquisitionRange, candidateBuffer);
+                                       SightRange, candidateBuffer);
 
             Transform best = null;
             float bestScore = float.MaxValue;

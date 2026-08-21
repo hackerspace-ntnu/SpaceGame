@@ -412,6 +412,8 @@ MonoBehaviour:
   depthTolerance: 0.5
   surfaceClearance: 1.2
   absoluteFloorY: -500
+  groundWaitTimeout: 20
+  structureFloorReach: 1.7
   logRecoveries: 1
 --- !u!114 &6607317269232638770
 MonoBehaviour:

@@ -37,6 +37,7 @@ namespace SpaceGame.Agents
         private IAgentBrain legacyBrain;
         private HerdModule herdModule;
         private AgentTargeting targeting;
+        private AgentGoal goal;
         private float speedVariationPhase;
 
         // Reused buffers for neighbour scan — instance-level to avoid cross-agent corruption.
@@ -87,6 +88,7 @@ namespace SpaceGame.Agents
                 HasReachedDestination = Motor.HasReachedDestination,
                 IsImmobile = Motor.IsImmobile,
                 Targeting = targeting,
+                Goal = goal,
             };
 
             if (nearbyAgentScanRadius > 0f)
@@ -231,6 +233,10 @@ namespace SpaceGame.Agents
             // Auto-added rather than required, so prefabs that predate the component still get one
             // shared target decision instead of every combat module resolving its own.
             targeting = AgentTargeting.GetOrAdd(gameObject);
+
+            // Same reasoning for travel: one destination per agent, written by whoever decides and
+            // read by whoever moves. Auto-added so a prefab needs no extra step to be sendable.
+            goal = AgentGoal.GetOrAdd(gameObject);
 
             // Legacy fallback: pick up any old IAgentBrain that isn't also IBehaviourModule.
             foreach (MonoBehaviour mb in GetComponentsInChildren<MonoBehaviour>(true))

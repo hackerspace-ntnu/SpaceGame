@@ -14,6 +14,8 @@ GameObject:
   - component: {fileID: 6011820618523835048}
   - component: {fileID: -9088049320227084382}
   - component: {fileID: 6315973176337051597}
+  - component: {fileID: -1088368297747879042}
+  - component: {fileID: 4887562301575971719}
   m_Layer: 0
   m_Name: InventoryItemModule
   m_TagString: Untagged
@@ -48,7 +50,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1579135332
+  GlobalObjectIdHash: 2152515887
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -75,6 +77,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickupableItem
   ShowTopMostFoldoutHeaderGroup: 1
   item: {fileID: 0}
+  pickupId: 503
+  pickupSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
 --- !u!114 &6011820618523835048
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -125,3 +135,31 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &-1088368297747879042
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 799124515057323172}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &4887562301575971719
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 799124515057323172}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable

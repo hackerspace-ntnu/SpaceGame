@@ -105,6 +105,55 @@ namespace SpaceGame.Tests.EditMode
             Assert.AreEqual("good", slot.SlotId);
         }
 
+        /// <summary>
+        /// The pre-world-selection files. A player who ever ran an older build still has an
+        /// autosave.json sitting beside their real worlds, and it must not be offered as one.
+        /// </summary>
+        [Test]
+        public void LegacySlots_AreNeverListed()
+        {
+            var now = new DateTime(2026, 8, 20, 12, 0, 0, DateTimeKind.Utc);
+
+            WriteSlot("autosave", now);
+            WriteSlot("quicksave", now.AddHours(-1));
+            WriteSlot("Dune Camp", now.AddHours(-2));
+
+            List<SaveSlotInfo> listed = slots.List();
+
+            Assert.AreEqual(new[] { "Dune Camp" }, listed.ConvertAll(s => s.SlotId).ToArray());
+        }
+
+        /// <summary>Newest on disk, so an unfiltered Continue would land straight on it.</summary>
+        [Test]
+        public void LegacySlots_AreSkippedByContinue()
+        {
+            var now = new DateTime(2026, 8, 20, 12, 0, 0, DateTimeKind.Utc);
+
+            WriteSlot("Dune Camp", now.AddHours(-2));
+            WriteSlot("autosave", now);
+
+            Assert.IsTrue(slots.TryGetMostRecent(out SaveSlotInfo slot));
+            Assert.AreEqual("Dune Camp", slot.SlotId);
+        }
+
+        /// <summary>
+        /// Case-insensitive, because the filesystems this ships on are: "Autosave" and "autosave"
+        /// are one file, so hiding only the lowercase spelling would leave the same save visible
+        /// under a different name.
+        /// </summary>
+        [Test]
+        public void IsLegacySlotId_IgnoresCaseAndPunctuation()
+        {
+            Assert.IsTrue(SaveSlots.IsLegacySlotId("autosave"));
+            Assert.IsTrue(SaveSlots.IsLegacySlotId("AutoSave"));
+            Assert.IsTrue(SaveSlots.IsLegacySlotId("  autosave  "));
+            Assert.IsTrue(SaveSlots.IsLegacySlotId("autosave!"));
+            Assert.IsTrue(SaveSlots.IsLegacySlotId("quicksave"));
+
+            Assert.IsFalse(SaveSlots.IsLegacySlotId("Dune Camp"));
+            Assert.IsFalse(SaveSlots.IsLegacySlotId(null));
+        }
+
         [Test]
         public void Delete_RemovesTheSlotEntirely()
         {

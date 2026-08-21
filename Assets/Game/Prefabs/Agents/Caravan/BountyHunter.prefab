@@ -1,0 +1,183 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &8770176401145438075
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 225500167991614023, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: faction
+      value: 
+      objectReference: {fileID: 11400000, guid: 4815f6a4ad2c743ad900584b2c1e0c4b, type: 2}
+    - target: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: m_Name
+      value: BountyHunter
+      objectReference: {fileID: 0}
+    - target: {fileID: 2812309974014771215, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2812309974014771215, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2812309974014771215, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2812309974014771215, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2812309974014771215, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2812309974014771215, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2812309974014771215, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2812309974014771215, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2812309974014771215, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2812309974014771215, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2826619466492437648, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: prefabId
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 3767619139010619025, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: loseRange
+      value: 170
+      objectReference: {fileID: 0}
+    - target: {fileID: 3767619139010619025, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: acquisitionRange
+      value: 120
+      objectReference: {fileID: 0}
+    - target: {fileID: 3767619139010619025, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: proximityAcquireRange
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 5714193229063369659, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 2238955323
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 5407795026581029989, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6629165065128360429}
+    - targetCorrespondingSourceObject: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 338011139266057641}
+    - targetCorrespondingSourceObject: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4141151548559146359}
+  m_SourcePrefab: {fileID: 100100000, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+--- !u!1 &6521133302145211711 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+  m_PrefabInstance: {fileID: 8770176401145438075}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6629165065128360429
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6521133302145211711}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f06a9c33511435ea0870b4c79079be6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FormationModule
+  priority: 15
+  active: 1
+  formationId: bounty-hunters
+  isLeader: 0
+  shape:
+    Lanes: 2
+    RowSpacing: 3
+    LaneSpacing: 2.2
+    LateralJitter: 0.5
+    LongitudinalJitter: 0.6
+    DriftAmplitude: 0.35
+    DriftRate: 0.1
+  slotTolerance: 1.6
+  catchUpGain: 0.12
+  minSpeedMultiplier: 0.85
+  maxSpeedMultiplier: 1.35
+  leaderMovingSpeed: 0.4
+  restRadius: 6
+  regroupDistance: 40
+  navSampleDistance: 6
+--- !u!114 &338011139266057641
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6521133302145211711}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4c3e48dfaf0e433887b381f0fcde4ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.GoalTravelModule
+  priority: 1
+  active: 1
+  speedMultiplier: 1.15
+  run: 1
+  stopDistanceMargin: 0.5
+--- !u!114 &4141151548559146359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6521133302145211711}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bde6bae968334560a6b4a8cb9594ce6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ChatterModule
+  priority: 5
+  active: 1
+  hearingRadius: 18
+  requireLineOfSight: 0
+  lineOfSightBlockers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  interval: {x: 20, y: 50}
+  globalCooldown: 6
+  popupDuration: 2.6
+  useTaskChatter: 1
+  idleChatter:
+  - Tracks are fresh. Spread out.
+  - They came through here. Not long ago.
+  - Contract doesn't care how tired you are.
+  silentWhileFighting: 1
+  voiceId: 400
+  voiceSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 

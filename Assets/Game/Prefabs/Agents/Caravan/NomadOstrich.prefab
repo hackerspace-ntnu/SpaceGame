@@ -1,0 +1,250 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &5631316796761535252
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -7746605019518841121, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      propertyPath: prefabId
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 3742107592881161932, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3742107592881161932, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3742107592881161932, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3742107592881161932, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3742107592881161932, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3742107592881161932, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3742107592881161932, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3742107592881161932, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3742107592881161932, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3742107592881161932, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5796015618132791183, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 1680486387
+      objectReference: {fileID: 0}
+    - target: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      propertyPath: m_Name
+      value: NomadOstrich
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7643972170450275259}
+    - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5273917283761924889}
+    - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1005919395237431434}
+    - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 941007473242535700}
+    - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 989872338144656192}
+    - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6082589952182902171}
+    - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5634349938114829079}
+  m_SourcePrefab: {fileID: 100100000, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+--- !u!1 &3760312103620484764 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+  m_PrefabInstance: {fileID: 5631316796761535252}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7643972170450275259
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3760312103620484764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47b49e23608f4866b851abfaee9268df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NpcPassenger
+  riderPrefab: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+  seatPoint: {fileID: 8750788233840712177}
+  seatOffset: {x: 0, y: -0.85, z: 0}
+  seatEuler: {x: 0, y: 0, z: 0}
+  spawnOnStart: 1
+  dismountSideOffset: 1.6
+  dismountSampleDistance: 6
+--- !u!114 &5273917283761924889
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3760312103620484764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f06a9c33511435ea0870b4c79079be6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.FormationModule
+  priority: 15
+  active: 1
+  formationId: nomad-caravan
+  isLeader: 0
+  shape:
+    Lanes: 2
+    RowSpacing: 4.5
+    LaneSpacing: 3
+    LateralJitter: 0.9
+    LongitudinalJitter: 1.2
+    DriftAmplitude: 0.7
+    DriftRate: 0.08
+  slotTolerance: 1.6
+  catchUpGain: 0.12
+  minSpeedMultiplier: 0.85
+  maxSpeedMultiplier: 1.35
+  leaderMovingSpeed: 0.4
+  restRadius: 6
+  regroupDistance: 40
+  navSampleDistance: 6
+--- !u!114 &1005919395237431434
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3760312103620484764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4c3e48dfaf0e433887b381f0fcde4ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.GoalTravelModule
+  priority: 1
+  active: 1
+  speedMultiplier: 1
+  run: 0
+  stopDistanceMargin: 0.5
+--- !u!114 &941007473242535700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3760312103620484764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: abd55a832c6584df7a5875d0e9489f0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NpcTaskModule
+  priority: 0
+  active: 1
+  tasks: []
+  homeSiteKind: 1
+  homeSearchRadius: 400
+  retryDelay: 5
+  travelTimeout: 240
+  logTransitions: 0
+--- !u!114 &989872338144656192
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3760312103620484764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bde6bae968334560a6b4a8cb9594ce6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ChatterModule
+  priority: 5
+  active: 1
+  hearingRadius: 12
+  requireLineOfSight: 0
+  lineOfSightBlockers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  interval: {x: 20, y: 50}
+  globalCooldown: 6
+  popupDuration: 2.6
+  useTaskChatter: 1
+  idleChatter:
+  - Long way yet before the wind turns.
+  - Keep the line tight - sand's soft here.
+  - '{doing}.'
+  silentWhileFighting: 1
+  voiceId: 400
+  voiceSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+--- !u!114 &6082589952182902171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3760312103620484764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 938766521615b45928fe6dd9093dc062, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.EntityFaction
+  faction: {fileID: 11400000, guid: f098756d43d674f47a68dfd8dae0dd1d, type: 2}
+  relationshipTable: {fileID: 11400000, guid: 285b6c1ceb5024872a050cd6fb8aaba9, type: 2}
+--- !u!114 &5634349938114829079
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3760312103620484764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c2de851ee8ee4bb4be2025d7ecbb018, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SceneTracked
+  keepChunksLoaded: 0
+  policy: 1
+--- !u!4 &8750788233840712177 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3987795919156751077, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+  m_PrefabInstance: {fileID: 5631316796761535252}
+  m_PrefabAsset: {fileID: 0}

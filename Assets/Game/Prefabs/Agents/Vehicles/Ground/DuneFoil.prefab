@@ -3994,6 +3994,10 @@ GameObject:
   - component: {fileID: 6006369409414689879}
   - component: {fileID: 8565088200282749298}
   - component: {fileID: 7813742348094111507}
+  - component: {fileID: 6172268832632108974}
+  - component: {fileID: -5100306222182200963}
+  - component: {fileID: 6730666332529788549}
+  - component: {fileID: 2464519229314053598}
   m_Layer: 0
   m_Name: DuneFoil
   m_TagString: Untagged
@@ -4194,6 +4198,60 @@ MonoBehaviour:
   textColor: {r: 0.88, g: 0.92, b: 0.96, a: 1}
   warnColor: {r: 1, g: 0.72, b: 0.35, a: 1}
   fadeDuration: 0.25
+--- !u!114 &6172268832632108974
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4009075938887354049}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: 
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &-5100306222182200963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4009075938887354049}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &6730666332529788549
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4009075938887354049}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 909d56f9862e642b28053eee9d804326, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.DuneFoilSaveable
+--- !u!114 &2464519229314053598
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4009075938887354049}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c2de851ee8ee4bb4be2025d7ecbb018, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.SceneTracked
+  keepChunksLoaded: 0
+  policy: 1
 --- !u!1 &4356077215603437107
 GameObject:
   m_ObjectHideFlags: 0

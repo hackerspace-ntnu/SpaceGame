@@ -92,14 +92,18 @@ namespace SpaceGame.Core.Persistence
         public static string DefaultRoot => Path.Combine(Application.persistentDataPath, "Saves");
 
         /// <summary>
-        /// The slot a save with no explicit target goes to: the active world.
+        /// The slot a save with no explicit target goes to: the active world, and nothing else.
         ///
-        /// Falls back to the autosave slot only when no world has been chosen — a world scene
-        /// opened directly in the editor, with no menu run behind it. That fallback is what keeps
-        /// the existing editor workflow working; in normal play a world is always active.
+        /// There is deliberately no fallback. Saving with no world chosen used to write an
+        /// "autosave" file, and since the world list is every save on disk, that file then showed
+        /// up as a world nobody made — one whose name, config id and contents all came from
+        /// whatever scene happened to be open in the editor at the time.
+        ///
+        /// The cost is that a world scene played directly from the editor no longer saves at all;
+        /// <see cref="Save"/> refuses and says so. Entering through the main menu is the only way
+        /// to get a world, which is also the only way a save has an identity worth writing.
         /// </summary>
-        private static string DefaultSlotId =>
-            WorldSession.IsActive ? WorldSession.WorldId : SaveSlots.AutoSaveSlotId;
+        private static string DefaultSlotId => WorldSession.IsActive ? WorldSession.WorldId : null;
 
         // ─────────────────────────────────────────────
         //  Lifecycle
@@ -231,6 +235,11 @@ namespace SpaceGame.Core.Persistence
         {
             if (autoSaveIntervalSeconds <= 0f) return;
             if (!Network.Server && Network.IsNetworked) return;
+
+            // No world, no slot. Silent rather than warned: this fires on a timer, so a scene
+            // played straight from the editor would otherwise log every interval forever.
+            if (!WorldSession.IsActive) return;
+
             if (Time.time < nextAutoSaveTime) return;
 
             nextAutoSaveTime = Time.time + autoSaveIntervalSeconds;
@@ -262,6 +271,7 @@ namespace SpaceGame.Core.Persistence
         {
             if (!saveOnQuit) return;
             if (Network.IsNetworked && !Network.Server) return;
+            if (!WorldSession.IsActive) return;
 
             // Synchronously. Unity gives the process no frames after this, so a background write
             // would be killed with it — which is the one moment a save is most needed.
@@ -415,6 +425,15 @@ namespace SpaceGame.Core.Persistence
             // wrong is the player's session.
             EnsureStores(null);
 
+            if (string.IsNullOrEmpty(slotId))
+            {
+                // Not merely tidy: SaveSlots.Sanitize turns an empty id into "save", so falling
+                // through here would quietly invent a save.json — exactly the stray slot this
+                // refusal exists to prevent.
+                Log("Save ignored: no world is active, so there is no slot to write.");
+                return false;
+            }
+
             if (Network.IsNetworked && !Network.Server)
             {
                 Log("Save ignored: only the server owns world state.");
@@ -500,7 +519,19 @@ namespace SpaceGame.Core.Persistence
         /// Not to a separate quicksave file: with more than one world a global quicksave slot is
         /// silently cross-world — F5 in one world and F9 in another would load the wrong session.
         /// </summary>
-        public bool QuickSave() => Save(DefaultSlotId, "Quicksave");
+        public bool QuickSave()
+        {
+            // Warned rather than silent, unlike the autosave timer: this one was asked for by a
+            // keypress, so the player has to be told why nothing happened.
+            if (!WorldSession.IsActive)
+            {
+                Debug.LogWarning("[Save] Nothing to quicksave: no world is active. " +
+                                 "Enter a world through the main menu.", this);
+                return false;
+            }
+
+            return Save(DefaultSlotId, "Quicksave");
+        }
 
         private void CompleteWrite(Task task, string slotId, string path, SaveDocument document)
         {

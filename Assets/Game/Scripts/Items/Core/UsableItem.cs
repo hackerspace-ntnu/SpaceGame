@@ -141,6 +141,12 @@ namespace SpaceGame.Items
         /// </summary>
         public virtual void OnEquipped(GameObject holder)
         {
+            // Set here and not only in TryUse/PlayUse, because OnRequestUse runs BEFORE either of
+            // those on the very first use of a freshly equipped item. Anything that reads the
+            // holder to describe a use — an aim ray, a muzzle, a velocity — would otherwise find
+            // null exactly once per equip.
+            owner = holder;
+
             var hold = GetComponent<HoldAnimator>();
             if (hold != null) hold.SetHeld(holder, true);
         }

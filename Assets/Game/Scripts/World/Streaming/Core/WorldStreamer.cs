@@ -75,6 +75,19 @@ namespace SpaceGame.World
 
         public void UnregisterTrackedTransform(Transform t) => trackedTransforms.Remove(t);
 
+        /// <summary>
+        /// Whether <paramref name="worldPos"/> is somewhere this streamer is responsible for —
+        /// inside the chunk grid, as opposed to the minigame arena 16.5 km east or anywhere else
+        /// deliberately parked off the map.
+        ///
+        /// Asked by callers that need to tell "there is no terrain here" apart from "there is no
+        /// terrain here YET". Inside the grid every position has a heightmap owed to it, so an
+        /// unsampleable one means the chunk has not arrived rather than that the place is
+        /// terrainless. Deliberately not <see cref="IsChunkLoadedAt"/>: chunk state is only tracked
+        /// on the machine that issues the loads, so on a client it reads NotLoaded forever.
+        /// </summary>
+        public bool IsInsideWorldGrid(Vector3 worldPos) => config != null && config.IsWithinGrid(worldPos);
+
         /// <summary>True if the chunk under <paramref name="worldPos"/> is fully loaded (state == Loaded).</summary>
         public bool IsChunkLoadedAt(Vector3 worldPos)
         {

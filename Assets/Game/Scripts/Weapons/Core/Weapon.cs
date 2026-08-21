@@ -60,6 +60,24 @@ namespace SpaceGame.Weapons
         public Transform Handle1 => handle1; // Primary grip point
         public Transform Handle2 => handle2; // Secondary grip point
 
+        /// <summary>
+        /// Someone other than a local player is pointing this weapon, so leave its rotation alone.
+        ///
+        /// <para>
+        /// Set by <see cref="SpaceGame.Agents.EntityEquipmentController"/> when an NPC picks a
+        /// weapon up. Without it an NPC's gun is aimed by <see cref="UpdateWeaponRotation"/>, whose
+        /// ownership test passes on the server for every server-owned entity and whose camera is
+        /// then <c>Camera.main</c> — the host's. The result is every NPC in the world swinging its
+        /// barrel to follow the host's head, which looks like the NPCs are watching you and is
+        /// nothing of the kind.
+        /// </para>
+        /// <para>
+        /// Not serialized: it is a fact about who is holding the weapon right now, decided when it
+        /// is equipped, and a prefab has no business having an opinion about it.
+        /// </para>
+        /// </summary>
+        [System.NonSerialized] public bool ExternallyAimed;
+
         protected virtual void OnEnable()
         {
             // Auto-find camera if not assigned
@@ -149,6 +167,14 @@ namespace SpaceGame.Weapons
         /// </summary>
         protected virtual void UpdateWeaponRotation()
         {
+            // Somebody else is aiming this — an NPC's equipment controller, a turret mount. Checked
+            // before ownership, because an NPC's weapon IS owned by the machine simulating it and
+            // would otherwise pass the test below and swing to that machine's camera.
+            if (ExternallyAimed)
+            {
+                return;
+            }
+
             if (!Network.Owns(this))
             {
                 return;

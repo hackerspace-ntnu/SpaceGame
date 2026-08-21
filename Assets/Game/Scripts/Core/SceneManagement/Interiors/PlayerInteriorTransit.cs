@@ -9,7 +9,7 @@
 // somewhere no other machine agreed with, and could not get back out.
 //
 // This is the same "sync component beside the component" split the project already uses for
-// PlayerSaveSync and GrappleNetworkSync: the logic stays where it belongs, and the RPC lives on a
+// PlayerSaveSync: the logic stays where it belongs, and the RPC lives on a
 // NetworkBehaviour that actually has a channel. It sits on the PLAYER rather than on the manager
 // because a transition has exactly one subject, and the player is the NetworkObject in the story.
 using Unity.Collections;

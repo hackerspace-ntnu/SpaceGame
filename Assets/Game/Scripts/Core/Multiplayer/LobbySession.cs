@@ -433,6 +433,10 @@ namespace SpaceGame.Core
         /// Lobby membership is rolled back if the Relay connection fails. Otherwise a failed
         /// connection leaves a ghost occupying a slot in a lobby it is not in, which is how a
         /// four-player lobby ends up refusing a third player.
+        ///
+        /// The join itself goes through <see cref="JoinWithConflictRecoveryAsync"/>, which clears
+        /// out any membership an earlier session failed to give back. See that method for why the
+        /// SDK's own handling of that case is not enough.
         /// </summary>
         private async Task<bool> JoinAsync(Func<Task<Lobby>> join, string failureHeadline)
         {
@@ -442,7 +446,10 @@ namespace SpaceGame.Core
             {
                 if (!await EnsureReadyAsync()) return false;
 
-                Lobby lobby = await join();
+                Lobby lobby = await JoinWithConflictRecoveryAsync(join,
+                    () => LobbyService.Instance.GetJoinedLobbiesAsync(),
+                    lobbyId => LobbyService.Instance.RemovePlayerAsync(
+                        lobbyId, AuthenticationService.Instance.PlayerId));
                 if (lobby == null) { Failed?.Invoke("The lobby service returned nothing."); return false; }
 
                 if (!lobby.Data.TryGetValue(KeyRelayJoinCode, out DataObject relayCode)
@@ -544,11 +551,34 @@ namespace SpaceGame.Core
             string reason = manager.DisconnectReason;
             Debug.Log($"[LobbySession] Disconnected. Reason: '{reason}'");
 
+            // Read before Forget nulls it: the membership has to be handed back, not just dropped
+            // locally. Forgetting alone left this player listed in a lobby they were no longer in,
+            // and because anonymous auth reuses the same player id, the next attempt to join that
+            // lobby was refused with "player is already a member of the lobby".
+            string lobbyId = Current?.Id;
+
             // Any disconnect strands us, not just a clean host shutdown. Matching on the exact
             // reason string meant a host crash, a dropped connection or a Relay timeout left the
             // player sitting in a session that no longer existed.
             Failed?.Invoke(string.IsNullOrEmpty(reason) ? "Lost connection to the host." : reason);
             Forget();
+
+            // Not awaited: this is a Netcode callback, and the UI has already been told. The
+            // removal is best-effort by design — RemoveSelfQuietly never throws.
+            _ = RemoveSelfQuietly(lobbyId);
+        }
+
+        /// <summary>
+        /// Hands the lobby membership back on the way out.
+        ///
+        /// Best-effort and often too late — quitting tears down the request loop, and stopping play
+        /// mode in the editor gives it no chance at all. It is sent anyway because when it does land
+        /// it frees the slot immediately, and <see cref="JoinWithConflictRecoveryAsync"/> clears up
+        /// whatever survives on the next join.
+        /// </summary>
+        private void OnApplicationQuit()
+        {
+            _ = RemoveSelfQuietly(Current?.Id);
         }
 
         private void Forget()

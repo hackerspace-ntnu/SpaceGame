@@ -12,14 +12,27 @@ namespace SpaceGame.Items
     /// First Use()  → animates rope shooting toward target, then starts pulling the player.
     /// Second Use() → releases the hook (or it auto-releases on arrival).
     ///
-    /// The per-frame pull runs as a coroutine on this MonoBehaviour so ToolItem's
-    /// fire-and-forget Use() stays clean.
+    /// Networking rides the same Use/Present split every other artifact uses, and nothing else:
+    ///
+    ///   • <see cref="OnRequestUse"/> — owner-side, the one machine with the camera. It resolves
+    ///     the hook point and puts it in the message, because no peer can recompute an aim.
+    ///   • <see cref="Present"/> — every machine. Rope, shoot animation and countdown run here, so
+    ///     a peer sees the rope instead of a player mysteriously flying.
+    ///
+    /// The pendulum inside <see cref="PullRoutine"/> is the one part that stays owner-only. Their
+    /// body is owner-authoritative, so the swing replicates through the transform they already own
+    /// — and a peer running the constraint too would be a second authority on the same Rigidbody.
+    ///
+    /// This used to need a GrappleNetworkSync beside it: a NetworkBehaviour on the player with its
+    /// own RPC triple and a replicated anchor. It carried nothing the use message does not, and the
+    /// rope it existed to draw was never drawn — the LineRenderer it needed was unassigned on both
+    /// player prefabs, so every remote grapple was invisible for as long as that component shipped.
     /// </summary>
     public class GrapplingHookArtifact : ToolItem
     {
         /// <summary>
         /// Owner-run: the swing IS the item. A round trip through the server would sit inside
-        /// every jump. GrappleNetworkSync replicates the anchor so peers see the rope.
+        /// every jump. Present() replicates the rope so peers see what the swing hangs from.
         /// </summary>
         public override UseAuthority Authority => UseAuthority.Owner;
 
@@ -39,6 +52,10 @@ namespace SpaceGame.Items
         [SerializeField] private int ropeSegments = 12;
         [SerializeField] private float ropeGravity = 4f;
 
+        // What the press meant, carried in NetArg.B. A is already the hotbar slot, so B it is.
+        private const int Release = 0;
+        private const int Attach  = 1;
+
         // ── Runtime state ──────────────────────────────────────────────────────
         private bool _isGrappling;
         private bool _isShooting;
@@ -47,19 +64,23 @@ namespace SpaceGame.Items
         private float _shootHeadProgress;  // 0→1 during shoot animation
         private Coroutine _pullCoroutine;
 
-        // ── ToolItem override ──────────────────────────────────────────────────
+        // ── Owner side: describe the press ─────────────────────────────────────
 
-        protected override void Use()
+        /// <summary>
+        /// Owner-side: settle what this press is and, if it is a throw, where the rope lands.
+        ///
+        /// The raycast belongs here rather than in Use(). It is the only moment the aim is honest
+        /// — this is the machine holding the camera — and resolving it once means every machine
+        /// hangs its rope on the same point instead of each guessing its own.
+        /// </summary>
+        public override void OnRequestUse(ref NetArg arg)
         {
-            base.Use(); // sets aimProvider
+            arg.B = Release;
 
-            if (_isGrappling)
-            {
-                StopGrapple();
-                return;
-            }
+            // Rope already out: this press lets go, and there is nothing to aim at.
+            if (_isGrappling || _isShooting) return;
 
-            if (_isShooting) return;
+            if (aimProvider == null) return;
 
             RaycastHit? hit = aimProvider.GetRayCast(maxRange);
             if (hit == null) return;
@@ -68,16 +89,38 @@ namespace SpaceGame.Items
             if ((hookableLayers.value & (1 << hit.Value.collider.gameObject.layer)) == 0)
                 return;
 
-            _hookPoint = hit.Value.point;
+            arg.B = Attach;
+            arg.P = hit.Value.point;
+        }
+
+        /// <summary>
+        /// Nothing. Both halves of this item are either the owner's own body moving or a rope being
+        /// drawn, and both live in <see cref="Present"/> so that peers get them too.
+        /// </summary>
+        protected override void Use() { }
+
+        // ── Every machine: the rope ────────────────────────────────────────────
+
+        protected override void Present()
+        {
+            if (UseArg.B != Attach)
+            {
+                StopGrapple();
+                return;
+            }
+
+            // A second attach with no release in between means a message arrived twice or out of
+            // order. Keep the rope that is already flying rather than starting a rival coroutine.
+            if (_isGrappling || _isShooting) return;
+            if (owner == null) return;
+
+            _hookPoint = UseArg.P;
             _ropeLength = Vector3.Distance(owner.transform.position, _hookPoint);
 
-            owner.GetComponent<PlayerMovement>()?.DisableGroundSnap(999f);
+            if (OwnsMovement())
+                owner.GetComponent<PlayerMovement>()?.DisableGroundSnap(999f);
 
             EnableRope();
-
-            // Tell the other players where the rope landed. The pull itself stays local — this is
-            // client-predicted, so the swing never waits on a round trip.
-            NetworkSync?.ReportAttached(_hookPoint);
 
             _pullCoroutine = StartCoroutine(ShootThenPullRoutine());
         }
@@ -85,7 +128,7 @@ namespace SpaceGame.Items
         // ── Shoot animation → pull coroutine ──────────────────────────────────
         //
         // Animates the rope extending from muzzle to hook point (headProgress 0→1),
-        // then hands off to PullRoutine for the pendulum grapple.
+        // then hands off to the pendulum grapple — or, on a peer, to the rope alone.
 
         private IEnumerator ShootThenPullRoutine()
         {
@@ -111,7 +154,10 @@ namespace SpaceGame.Items
             _isGrappling = true;
             _shootHeadProgress = 1f;
 
-            yield return StartCoroutine(PullRoutine());
+            // Yielded as a nested enumerator rather than StartCoroutine, so that StopGrapple
+            // stopping _pullCoroutine stops the pendulum with it instead of leaving it to notice
+            // on its own next frame that _isGrappling went false.
+            yield return OwnsMovement() ? PullRoutine() : RemoteRopeRoutine();
         }
 
         // ── Pull coroutine ─────────────────────────────────────────────────────
@@ -123,12 +169,6 @@ namespace SpaceGame.Items
         private IEnumerator PullRoutine()
         {
             var rb = owner.GetComponent<Rigidbody>();
-
-            // Only the player who owns this body may drive it. On a remote peer the swing arrives
-            // through that player's NetworkTransform instead; running the constraint here too would
-            // have two authorities writing the same Rigidbody.
-            if (!OwnsMovement())
-                yield break;
 
             while (_isGrappling && rb != null)
             {
@@ -163,11 +203,39 @@ namespace SpaceGame.Items
             }
         }
 
+        /// <summary>
+        /// A peer's half of the swing: the rope, and only the rope.
+        ///
+        /// It reels in on the same clock the owner's pendulum uses, so both machines let go at the
+        /// same rope length without anyone having to send a second message for the arrival. Where
+        /// the swinging player actually ends up arrives through their own NetworkTransform — this
+        /// routine must never touch that body.
+        /// </summary>
+        private IEnumerator RemoteRopeRoutine()
+        {
+            while (_isGrappling && owner != null)
+            {
+                _ropeLength = Mathf.Max(arrivalDistance, _ropeLength - reelSpeed * Time.deltaTime);
+
+                UpdateRopeWithProgress(1f, owner.transform.position);
+
+                if (_ropeLength <= arrivalDistance)
+                {
+                    StopGrapple();
+                    yield break;
+                }
+
+                yield return null;
+            }
+        }
+
         // ── Helpers ────────────────────────────────────────────────────────────
 
         private void StopGrapple()
         {
-            bool wasOut = _isGrappling || _isShooting;
+            // Also the miss case: a press that hit nothing presents a Release, and there is no
+            // rope to drop. Bailing keeps a miss from cancelling the ground snap for no reason.
+            if (!_isGrappling && !_isShooting) return;
 
             _isGrappling = false;
             _isShooting = false;
@@ -179,45 +247,10 @@ namespace SpaceGame.Items
             }
 
             DisableRope();
-            owner.GetComponent<PlayerMovement>()?.DisableGroundSnap(0.15f);
 
-            if (wasOut)
-                NetworkSync?.ReportReleased();
-        }
-
-        /// <summary>
-        /// The server rejected this anchor (out of range). Drop the rope without re-reporting the
-        /// release — the sync already knows, and it owns the anchor state that triggered this.
-        /// </summary>
-        public void CancelFromNetwork()
-        {
-            _isGrappling = false;
-            _isShooting = false;
-
-            if (_pullCoroutine != null)
-            {
-                StopCoroutine(_pullCoroutine);
-                _pullCoroutine = null;
-            }
-
-            DisableRope();
-            if (owner != null)
+            if (OwnsMovement() && owner != null)
                 owner.GetComponent<PlayerMovement>()?.DisableGroundSnap(0.15f);
         }
-
-        // Resolved from the player rather than this item: the held gun has no NetworkObject, so the
-        // RPC channel lives on the body holding it.
-        private GrappleNetworkSync NetworkSync
-        {
-            get
-            {
-                if (_networkSync == null && owner != null)
-                    _networkSync = owner.GetComponentInChildren<GrappleNetworkSync>(true);
-                return _networkSync;
-            }
-        }
-
-        private GrappleNetworkSync _networkSync;
 
         /// <summary>
         /// True when this machine is allowed to move the grappling player's Rigidbody: offline, or

@@ -143,6 +143,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5254165685370242764}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7452437517511820467}
   m_SourcePrefab: {fileID: 100100000, guid: 4dcb597254cdd40d7b6b5b8e66c624d7, type: 3}
 --- !u!95 &2431885669563376617 stripped
 Animator:
@@ -268,6 +271,7 @@ MonoBehaviour:
   animator: {fileID: 2431885669563376617}
   animationSpeedMultiplier: 1
   walkAnimBoost: 1
+  animatorSpeedScale: 1
 --- !u!114 &8549947225533376528
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -679,4 +683,18 @@ MonoBehaviour:
   depthTolerance: 0.5
   surfaceClearance: 1.2
   absoluteFloorY: -500
+  groundWaitTimeout: 20
+  structureFloorReach: 1.7
   logRecoveries: 1
+--- !u!114 &7452437517511820467
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8940832018371814185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21911023c0932417c9a2a12b2e7b8fd6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentStateSaveable

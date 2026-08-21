@@ -19,6 +19,15 @@ namespace SpaceGame.Gameplay
         private Transform _rightDoor;
 
         private bool _isOpen = false;
+
+        /// <summary>
+        /// Whether the door is standing open. Read by SandstormShelter: shutting the hatch is what
+        /// makes the inside of the ship safe, so something outside this class has to be able to ask.
+        /// True from the moment the swing starts rather than when it finishes — the player has
+        /// committed by then, and delaying the consequence by the animation reads as a bug.
+        /// </summary>
+        public bool IsOpen => _isOpen;
+
         private Quaternion _leftStartRotation;
         private Quaternion _leftTargetRotation;
         private Quaternion _rightStartRotation;

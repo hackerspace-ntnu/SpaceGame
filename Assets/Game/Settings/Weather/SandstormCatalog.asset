@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa5fb1fc1aae4d298ea4173510fc9384, type: 3}
+  m_Name: SandstormCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Weather.SandstormCatalog
+  profiles:
+  - {fileID: 11400000, guid: c0a985e315463478984553ccbc54b8cf, type: 2}
+  - {fileID: 11400000, guid: becc0256d177444e6a32498d043df4e4, type: 2}
+  - {fileID: 11400000, guid: 4f07f520a8e6544e58ab2a3835780df3, type: 2}

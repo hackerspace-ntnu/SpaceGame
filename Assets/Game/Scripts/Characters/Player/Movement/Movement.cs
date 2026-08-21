@@ -70,6 +70,58 @@ namespace SpaceGame.Characters
         /// <summary>Whether the player was on the ground as of the last physics step.</summary>
         public bool IsOnGround => wasGrounded;
 
+        /// <summary>
+        /// The body, resolved on demand. <see cref="rb"/> is the authored reference; this is here so
+        /// <see cref="EnsureMovableBody"/> can be called on a bare GameObject — a test, a
+        /// script-built player — without the serialized field having been filled in.
+        /// </summary>
+        private Rigidbody Body => rb != null ? rb : rb = GetComponent<Rigidbody>();
+
+        /// <summary>Logged once per player, not once per physics step. See EnsureMovableBody.</summary>
+        private bool warnedAboutKinematicBody;
+
+        /// <summary>
+        /// Insists that a player who is meant to be walking has a body physics can move.
+        ///
+        /// A kinematic Rigidbody silently discards every <c>linearVelocity</c> write, so a player in
+        /// that state stands still while everything upstream looks perfect: input arrives, this
+        /// component runs to the end of FixedUpdate, the animator plays a walk. Only the body is
+        /// missing from the conversation. That is not a state worth being tolerant of — there is no
+        /// reading of it in which the player is having a good time — so it is corrected here rather
+        /// than diagnosed later.
+        ///
+        /// Two things are allowed to hold the body and are left alone.
+        ///
+        ///   * A rider being carried. <c>MountModule</c> makes the body kinematic on purpose and
+        ///     parents the player into the mount, and freeing it would drop them through their own
+        ///     seat. Phrased as "has a parent" rather than a MountModule lookup, the same way
+        ///     <c>UnderTerrainGuard.Evaluate</c> decides the same question, so any future carrier is
+        ///     covered without being named.
+        ///   * Somebody else's player. Netcode keeps a remote body kinematic deliberately, and this
+        ///     component is disabled on those anyway — the ownership test is what makes that a rule
+        ///     rather than a coincidence.
+        ///
+        /// It warns the first time it fires, because a body that reaches this state has come from a
+        /// bug somewhere else and a silent repair would hide it. <c>RigidbodySaveable</c> was that
+        /// bug once; the warning is what makes the next one findable.
+        /// </summary>
+        public void EnsureMovableBody()
+        {
+            if (Body == null || !Body.isKinematic) return;
+            if (transform.parent != null) return;
+            if (!Network.Owns(this)) return;
+
+            Body.isKinematic = false;
+
+            if (warnedAboutKinematicBody) return;
+            warnedAboutKinematicBody = true;
+
+            Debug.LogWarning(
+                $"[PlayerMovement] {name} was driving a kinematic body, so nothing it was told to " +
+                "do could move it. Released it. Something handed this player a body it does not " +
+                "own — check whatever last touched isKinematic.", this);
+        }
+
         private void Start()
         {
             inputs = GetComponent<PlayerController>().Input;
@@ -86,6 +138,10 @@ namespace SpaceGame.Characters
 
         private void FixedUpdate()
         {
+            // Before anything is computed, because everything below is written into this body and a
+            // kinematic one throws all of it away without complaining.
+            EnsureMovableBody();
+
             moveInput = inputs.MoveInput;
             HandleJumpCooldown();
 

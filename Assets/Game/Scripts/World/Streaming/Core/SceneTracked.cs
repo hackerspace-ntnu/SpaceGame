@@ -45,6 +45,33 @@ namespace SpaceGame.World
         public UnloadPolicy Policy => policy;
         public Transform TrackedTransform => transform;
 
+        /// <summary>
+        /// Set whether this entity pins chunks, at runtime.
+        ///
+        /// <para>
+        /// Exists for entities that are spawned rather than placed, where the prefab cannot know the
+        /// answer. <c>NpcWorldSim</c> is the case: an NPC it spawns is always within a few hundred
+        /// metres of a player, so its chunk is loaded regardless — and pinning would mean every
+        /// caravan in the world dragging its own nine loaded chunks around behind it, which for a
+        /// dozen groups is most of the world resident at once.
+        /// </para>
+        /// <para>
+        /// Applied by re-registering, because <c>WorldStreamer</c> reads the flag when a tracker
+        /// joins rather than every frame.
+        /// </para>
+        /// </summary>
+        public void SetKeepChunksLoaded(bool pin)
+        {
+            if (keepChunksLoaded == pin) return;
+
+            keepChunksLoaded = pin;
+
+            if (!isActiveAndEnabled) return;
+
+            WorldStreamer.UnregisterTracked(this);
+            WorldStreamer.RegisterTracked(this);
+        }
+
         private void OnEnable()
         {
             WorldStreamer.RegisterTracked(this);

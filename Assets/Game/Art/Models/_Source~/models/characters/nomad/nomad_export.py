@@ -35,6 +35,10 @@ Unity cannot build a Humanoid avatar from that. Three traps decide the recipe:
 to 4.87, head top ~2.9) and reads in-game as a white orb floating over the
 nomad. It was in the previous export; it should not have been.
 
+The robot helmet the nomad now WEARS is a different thing: nine `Helmet_*`
+panels fitted onto the head by hand. They arrive unweighted and are anchored as
+one rigid unit -- see HELMET_PREFIX below.
+
 Objects are selected rather than deleted, and the export runs with
 `use_selection=True`. That matters: several kept meshes carry SHRINKWRAP
 modifiers whose targets are meshes we do NOT export, and deleting a shrinkwrap
@@ -112,6 +116,25 @@ CLOTH_MESHES = {
     "Cloth_Cape_01", "Cloth_Cape_02",
 }
 
+# The robot helmet, fitted to the head by hand and split into colourable panels by
+# nomad_split_helmet.py. Nine objects that are ONE rigid object in the fiction, so they must all
+# ride ONE bone. Left to `ensure_weights` they do not: nearest-bone puts the shell, brow, lens and
+# top rail on `HeadTop_End`, the face, jaw, ear pods and neck rim on `Head`, and the chin studs on
+# `Neck` -- so the moment the head turns, the studs stay behind and the helmet comes apart at the
+# chin. `Head` is the bone the helmet is fitted around, and every panel is within 0.44 of it.
+HELMET_PREFIX = "Helmet_"
+HELMET_ANCHOR_BONE = "mixamorig:Head"
+
+# Meshes inside the live window that are nonetheless not part of the character.
+#
+# `Robot_Helmet_02` is one of the three loose helmets `nomad_add_helmets.py` extracted. It was
+# tried on the head and then superseded by the split panels above, which enclose it completely --
+# rendering the head with and without it is the same picture, so all it can contribute in Unity is
+# ~1.1k hidden triangles and z-fighting where its shell grazes the inside of Helmet_Shell.
+SKIP_MESHES = {
+    "Robot_Helmet_02",
+}
+
 # How far a mesh may sit from the bones it is actually weighted to before we treat those weights
 # as inherited junk. A worn prop rides the bone it sits on; a pouch painted onto spine bones but
 # modelled out at the wrist simply stays behind when the arm comes down.
@@ -133,6 +156,8 @@ def is_live(obj):
     """Part of the character standing at x~7, and actually worn rather than parked."""
     lo, hi = world_bbox(obj)
     centre_x = (lo.x + hi.x) / 2.0
+    if obj.name in SKIP_MESHES:
+        return False
     if not (LIVE_X_MIN <= centre_x <= LIVE_X_MAX):
         return False
     if lo.z > PARKED_Z:
@@ -360,9 +385,15 @@ def main():
 
     weighted = []
     caped = []
+    helmeted = []
     reanchored = []
     for mesh in live:
         rebind(mesh, target)
+
+        if mesh.name.startswith(HELMET_PREFIX):
+            anchor_to(mesh, target, HELMET_ANCHOR_BONE)
+            helmeted.append(mesh.name)
+            continue
 
         if mesh.name in CLOTH_MESHES:
             graded = grade_cape(mesh, target)
@@ -387,6 +418,8 @@ def main():
           "above z=%.1f" % (len(live), len(meshes), len(meshes) - len(live), PARKED_Z))
     for name, how in caped:
         print("  cape panel      %-24s -> %s" % (name, how))
+    if helmeted:
+        print("  helmet panels   %-24s -> %s" % ("%d panels" % len(helmeted), HELMET_ANCHOR_BONE))
     for name, bone in weighted:
         print("  weighted unrigged mesh %-24s -> %s" % (name, bone))
     for name, bone, drift in reanchored:

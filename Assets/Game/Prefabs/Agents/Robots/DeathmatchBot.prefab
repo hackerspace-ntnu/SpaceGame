@@ -592,6 +592,7 @@ MonoBehaviour:
   animator: {fileID: 164182178236826577}
   animationSpeedMultiplier: 1.5
   walkAnimBoost: 1.1
+  animatorSpeedScale: 1
 --- !u!95 &164182178236826577
 Animator:
   serializedVersion: 7
@@ -1018,6 +1019,8 @@ MonoBehaviour:
   depthTolerance: 0.5
   surfaceClearance: 1.2
   absoluteFloorY: -500
+  groundWaitTimeout: 20
+  structureFloorReach: 1.7
   logRecoveries: 1
 --- !u!1 &972329710984439990
 GameObject:

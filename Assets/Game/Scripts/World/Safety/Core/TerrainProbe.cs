@@ -37,6 +37,23 @@ namespace SpaceGame.World.Safety
         }
 
         /// <summary>
+        /// Whether the streamed world is responsible for the ground at <paramref name="worldPos"/>.
+        ///
+        /// The companion to <see cref="TryGetTerrainHeight"/> failing. On its own that failure is
+        /// ambiguous — an interior and a chunk that has not loaded look identical from here — and
+        /// the two want opposite responses: leave the interior alone, wait for the chunk. Inside
+        /// the grid there is a heightmap owed at every position, so the answer is "wait".
+        ///
+        /// False with no streamer at all, which is the arena, the test scenes and every interior:
+        /// nowhere with no streamer is owed anything.
+        /// </summary>
+        public static bool IsInsideStreamedWorld(Vector3 worldPos)
+        {
+            var streamer = ResolveStreamer();
+            return streamer != null && streamer.IsInsideWorldGrid(worldPos);
+        }
+
+        /// <summary>
         /// Cached because this runs on a timer for every guarded body; re-resolved whenever the
         /// cache is stale, since WorldStreamer is destroyed and recreated across scene reloads and
         /// a destroyed reference compares equal to null.

@@ -92,6 +92,55 @@ namespace SpaceGame.Tests
             Assert.AreEqual(UnderTerrainAction.Park, verdict.Action);
         }
 
+        // ── Ground the world still owes ───────────────────────────────────────────────
+        //
+        // The -500 m floor above only catches a body that has already fallen for ten seconds.
+        // These cover the case that produces that fall: a client whose player object arrived
+        // before its own copy of the chunk scene did, standing where terrain is expected and
+        // has not turned up yet.
+
+        [Test]
+        public void NoTerrainWhereTerrainIsExpected_IsParkedAtOnceRatherThanFalling()
+        {
+            // Still at spawn height, nowhere near the floor — but inside the streamed world with
+            // nothing underfoot, so the ground here is owed rather than absent. Holding costs a
+            // moment of stillness; falling costs a 600 m drop and a burial at the bottom of it.
+            var verdict = Shipped().Evaluate(bodyY: 120f, hasTerrain: false, terrainY: 0f,
+                                             groundExpected: true);
+
+            Assert.AreEqual(UnderTerrainAction.Park, verdict.Action);
+        }
+
+        [Test]
+        public void TerrainPresent_OutranksGroundExpected()
+        {
+            // Once the chunk is in there is a real surface to measure, and measuring beats waiting.
+            var verdict = Shipped().Evaluate(bodyY: 94f, hasTerrain: true, terrainY: 100f,
+                                             groundExpected: true);
+
+            Assert.AreEqual(UnderTerrainAction.Lift, verdict.Action);
+            Assert.AreEqual(101.2f, verdict.TargetY, 1e-4f);
+        }
+
+        [Test]
+        public void NoTerrainAndNoneExpected_IsStillLeftAlone()
+        {
+            // An interior, the arena, an ornithopter over off-grid space. Nothing is owed here,
+            // so there is nothing to wait for — parking these would freeze them in place.
+            var verdict = Shipped().Evaluate(bodyY: 3f, hasTerrain: false, terrainY: 0f,
+                                             groundExpected: false);
+
+            Assert.AreEqual(UnderTerrainAction.None, verdict.Action);
+        }
+
+        [Test]
+        public void TheThreeArgumentFormStillMeansNoGroundIsExpected()
+        {
+            // The overload every existing caller and test uses. Its behaviour is the old
+            // behaviour exactly — "expected" is information only the component can supply.
+            Assert.AreEqual(UnderTerrainAction.None, Shipped().Evaluate(3f, false, 0f).Action);
+        }
+
         [Test]
         public void NegativeTuningIsClamped_SoTheGuardCannotInvertIntoTheBugItCatches()
         {

@@ -1370,6 +1370,8 @@ MonoBehaviour:
     m_Bits: 0
   groundClearance: 1.2
   attempts: 20
+  standingHeight: 3
+  standingRadius: 0.45
   probeHeight: 1
 --- !u!1 &1334416399886850029
 GameObject:
@@ -4628,6 +4630,9 @@ GameObject:
   - component: {fileID: -8592645260601008083}
   - component: {fileID: 4222765109031094611}
   - component: {fileID: 6718964329822956518}
+  - component: {fileID: 8255014322492242522}
+  - component: {fileID: -8636923347757932274}
+  - component: {fileID: 3563888451672757504}
   m_Layer: 0
   m_Name: ShipRV
   m_TagString: Untagged
@@ -5008,6 +5013,8 @@ MonoBehaviour:
   depthTolerance: 0.5
   surfaceClearance: 1.2
   absoluteFloorY: -500
+  groundWaitTimeout: 20
+  structureFloorReach: 1.7
   logRecoveries: 1
 --- !u!114 &6718964329822956518
 MonoBehaviour:
@@ -5033,6 +5040,50 @@ MonoBehaviour:
   followTransform: 1
   fadeOutOnStop: 1
   intensityParameter: 
+--- !u!114 &8255014322492242522
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4311070154887600435}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36bd3f82b7154b63a6772e9a404db8e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Weather.SandstormShelter
+  localVolume:
+    m_Center: {x: 0.005, y: 1.645, z: -0.75}
+    m_Extent: {x: 0.9, y: 1.15, z: 3.75}
+  extraVolumes: []
+  shelter: 1
+  shelterWithDoorOpen: 0.35
+  doors: []
+  drawGizmos: 1
+--- !u!114 &-8636923347757932274
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4311070154887600435}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29154b1ccc6444e649bf651e558f5b84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MountSaveable
+--- !u!114 &3563888451672757504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4311070154887600435}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a89bc0f768b64118b80c7f2721c5751, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.ArticulatedPartsSaveable
 --- !u!1 &4456266824167829280
 GameObject:
   m_ObjectHideFlags: 0

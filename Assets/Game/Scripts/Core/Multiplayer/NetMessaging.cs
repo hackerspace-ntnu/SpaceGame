@@ -134,6 +134,12 @@ namespace SpaceGame.Core
         // (30 was LaunchCraft, retired: a wing-pack launch is just a server-authoritative item use
         //  like any other. Not reused — ids travel between builds.)
 
+        // ── Trading ──
+        // A = index of the accepted offer on the trader. Target = the player taking it.
+        // Sent to the TRADER's relay: the trader owns its own stock, and the server is the only
+        // machine allowed to decide that two players did not both take the last water cell.
+        public const ushort Trade     = 50;
+
         // ── Life cycle ──
         // No matching "Respawned" id: the server's answer to this is a heal (which the health
         // NetworkVariable already publishes) plus a placement (which NetworkedTeleport routes to

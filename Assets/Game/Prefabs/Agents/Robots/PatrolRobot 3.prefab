@@ -551,6 +551,7 @@ GameObject:
   - component: {fileID: 8361729544035214999}
   - component: {fileID: 8931128254294705140}
   - component: {fileID: 1221657839297735987}
+  - component: {fileID: -7264484959881142148}
   m_Layer: 0
   m_Name: PatrolRobot 3
   m_TagString: Untagged
@@ -934,6 +935,7 @@ MonoBehaviour:
   animator: {fileID: 164182178236826577}
   animationSpeedMultiplier: 1.5
   walkAnimBoost: 1.1
+  animatorSpeedScale: 1
 --- !u!95 &164182178236826577
 Animator:
   serializedVersion: 7
@@ -1292,7 +1294,21 @@ MonoBehaviour:
   depthTolerance: 0.5
   surfaceClearance: 1.2
   absoluteFloorY: -500
+  groundWaitTimeout: 20
+  structureFloorReach: 1.7
   logRecoveries: 1
+--- !u!114 &-7264484959881142148
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15c9c61659d834ef3b21a62c5ea5801a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityInventorySaveable
 --- !u!1 &993558174326219863
 GameObject:
   m_ObjectHideFlags: 0

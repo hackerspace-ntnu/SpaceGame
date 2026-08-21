@@ -154,6 +154,12 @@ namespace SpaceGame.EditorTests
             Assert.AreEqual(new[] { null, "m2", "m3" }, state.mainItemIds);
         }
 
+        /// <summary>
+        /// Every shipped file carries an <c>isKinematic</c> the build no longer has a field for —
+        /// it was dropped once it turned out to be a netcode teardown artefact rather than anything
+        /// about the entity. The motion beside it must still read, and the stray field must not be
+        /// what stops a player's world from loading.
+        /// </summary>
         [Test]
         public void RigidbodyPayload_v1_StillLoads()
         {
@@ -164,7 +170,6 @@ namespace SpaceGame.EditorTests
 
             Assert.AreEqual(new Vector3(1.5f, -2f, 3.25f), state.velocity);
             Assert.AreEqual(new Vector3(0f, 0.5f, 0f), state.angularVelocity);
-            Assert.IsTrue(state.isKinematic);
         }
 
         [Test]
@@ -258,8 +263,14 @@ namespace SpaceGame.EditorTests
             Assert.IsFalse(runtime.Authored);
             Assert.AreEqual("prefab-guid", runtime.PrefabId);
             Assert.AreEqual(new Vector3(1f, 2f, 3f), runtime.Position);
-            Assert.IsTrue(runtime.State.TryGet(RigidbodySaveable.Key, out RigidbodySaveable.State body));
-            Assert.IsTrue(body.isKinematic, "the runtime entity's payload was lost in the migration");
+            // Asked of the raw entry rather than a typed field: this v1 payload holds only
+            // isKinematic, which the build no longer has a field for, so a typed read would come
+            // back empty-but-successful and prove nothing. What the migration owes us is that the
+            // entry arrived at all.
+            Assert.IsTrue(runtime.State.TryGetRaw(RigidbodySaveable.Key, out JObject body),
+                          "the runtime entity's payload was lost in the migration");
+            Assert.IsNotNull(body[nameof(RigidbodySaveable.State.velocity)] ?? body["isKinematic"],
+                             "the payload arrived empty, so its contents were dropped en route");
 
             Assert.IsTrue(doc.World.TryGet("authored-guid", out EntityRecord authored),
                           "a v1 authored record did not survive the migration");

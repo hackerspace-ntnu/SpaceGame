@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
 using SpaceGame.Agents;
 using SpaceGame.Audio;
+using SpaceGame.Gameplay.Trading;
 using SpaceGame.Presentation;
 
 namespace SpaceGame.Gameplay
@@ -39,7 +40,7 @@ namespace SpaceGame.Gameplay
         public UnityEvent onNoChosen;
     }
 
-    public class DialogInteraction : MonoBehaviour, IInteractable
+    public class DialogInteraction : MonoBehaviour, IInteractable, IContextualInteractable
     {
         [Header("Dialog")]
         [SerializeField] private DialogMode dialogMode = DialogMode.PredefinedSequence;
@@ -111,6 +112,51 @@ namespace SpaceGame.Gameplay
         [SerializeField] private SfxId voiceId = SfxId.NpcMumbleNeutral;
         [SerializeField] private EventReference voiceSound;
 
+        /// <summary>
+        /// Whether this character will talk to THIS person right now.
+        ///
+        /// <para>
+        /// It will not while it is fighting them. The two halves of a character never spoke to each
+        /// other before: <see cref="CanInteract()"/> answers from its own line counter, and
+        /// <see cref="AgentTargeting"/> decides who the same character is chasing and swinging at
+        /// without being asked about conversation. So a provoked Nomad ran the player down with
+        /// "Press E" still lit on the crosshair, and pressing it opened a chat window mid-fight.
+        /// </para>
+        /// <para>
+        /// Deliberately contextual rather than folded into <see cref="CanInteract()"/>: the answer
+        /// differs per person. A character fighting one player must still be talkable by a second
+        /// one standing behind them, and refusing everybody would also silence the character
+        /// permanently for anyone watching the fight from outside it.
+        /// </para>
+        /// </summary>
+        public bool CanInteract(Interactor interactor)
+        {
+            if (interactor == null) return true;
+
+            return !IsFightingWith(interactor.transform);
+        }
+
+        /// <summary>
+        /// Both halves of "in a fight with", because either can be true on its own.
+        ///
+        /// The acquired target is the live answer, but it is dropped the moment the player ducks
+        /// behind a rock or steps past loseRange, and <see cref="ProvocationModule"/> re-asserts it
+        /// on the next frame it can. Reading only the target opens a conversation in that gap; the
+        /// grudge is what stays true across it.
+        /// </summary>
+        private bool IsFightingWith(Transform other)
+        {
+            if (other == null) return false;
+
+            if (TryGetComponent(out AgentTargeting targeting) && targeting.IsFightingWith(other))
+                return true;
+
+            return TryGetComponent(out ProvocationModule provocation)
+                   && provocation.IsProvoked
+                   && provocation.Aggressor != null
+                   && provocation.Aggressor.root == other.root;
+        }
+
         public bool CanInteract()
         {
             if (useDelayBetweenDialogues && !dialogueSessionActive && Time.time < nextDialogueAvailableTime)
@@ -164,6 +210,25 @@ namespace SpaceGame.Gameplay
         public void Interact(Interactor interactor)
         {
             Debug.Log($"[DialogInteraction] Interact called on '{name}' by '{interactor.name}'.");
+
+            // Interactor asks this too before it gets here. Repeated because Interact is also
+            // reachable from a UnityEvent and from InteractorRelay, and "cannot be talked to while
+            // it is attacking you" has to hold on every route in, not only the one with a prompt.
+            if (!CanInteract(interactor))
+            {
+                Debug.Log($"[DialogInteraction] '{name}' is fighting '{interactor.name}' — no conversation.");
+                return;
+            }
+
+            // A trader asks about trade before it says anything else, because that is what the
+            // player walked over for. Routed through here rather than TraderInteraction being its
+            // own IInteractable: Interactor resolves ONE IInteractable per collider, so a second
+            // one on the same character would make which of the two answers depend on component
+            // order — silently, and differently per prefab.
+            if (TryGetComponent(out TraderInteraction trader) && trader.TryOfferTrade(this, interactor))
+            {
+                return;
+            }
 
             if (ShouldRestartFromBeginning())
             {
@@ -357,7 +422,7 @@ namespace SpaceGame.Gameplay
             }
 
             NpcDialogPopupUI.Instance.ShowQuestion(
-                step.text,
+                ResolveTokens(step.text),
                 step.yesLabel,
                 step.noLabel,
                 () =>
@@ -605,10 +670,91 @@ namespace SpaceGame.Gameplay
         /// </summary>
         private void SpeakLine(string line)
         {
-            NpcDialogPopupUI.Instance.Show(line, popupDuration);
+            NpcDialogPopupUI.Instance.Show(ResolveTokens(line), popupDuration);
 
             Sfx.Play(voiceId, transform.position, voiceSound, GetInstanceID());
         }
 
+        // ─────────── Saying what this character is actually doing ───────────
+
+        private NpcTaskModule taskModule;
+        private bool taskModuleResolved;
+
+        /// <summary>
+        /// Fills in <c>{task}</c>, <c>{destination}</c> and <c>{doing}</c> from this character's
+        /// current job.
+        ///
+        /// <para>
+        /// The point of giving NPCs errands is that a player can find out about them, and a fixed
+        /// line recited by someone three days into a journey hides the entire system. A token in an
+        /// authored line is the cheapest possible way to let the writing ask.
+        /// </para>
+        /// <para>
+        /// Resolved lazily and cached, including the null answer: most characters will never have a
+        /// task module, and this runs on every line of every conversation.
+        /// </para>
+        /// </summary>
+        private string ResolveTokens(string line)
+        {
+            if (!NpcSpeechTokens.HasToken(line)) return line;
+
+            if (!taskModuleResolved)
+            {
+                taskModule = GetComponent<NpcTaskModule>();
+                taskModuleResolved = true;
+            }
+
+            return NpcSpeechTokens.Resolve(line, taskModule);
+        }
+
+        // ─────────── Lending the question UI to other components ───────────
+
+        /// <summary>
+        /// Ask the player a yes/no question through this character, with the Y/N keys working.
+        ///
+        /// <para>
+        /// Exposed because the keyboard half of a question lives here, not in the popup:
+        /// <see cref="NpcDialogPopupUI"/> owns the buttons, and <see cref="Update"/> above owns Y
+        /// and N — gated on <c>waitingForBranchChoice</c>. Anything else that wants to ask
+        /// something (trading is the first) would otherwise get a question the player can only
+        /// answer with the mouse, which no other prompt in the game requires.
+        /// </para>
+        /// <para>
+        /// Returns false when there is no popup to ask through, so the caller can decide what a
+        /// silent refusal means rather than being told a question was asked when it was not.
+        /// </para>
+        /// </summary>
+        public bool AskQuestion(string question, string yesLabel, string noLabel,
+                                System.Action onYes, System.Action onNo)
+        {
+            if (NpcDialogPopupUI.Instance == null || waitingForBranchChoice)
+                return false;
+
+            waitingForBranchChoice = true;
+            BeginDialogueSession();
+
+            NpcDialogPopupUI.Instance.ShowQuestion(
+                ResolveTokens(question),
+                yesLabel,
+                noLabel,
+                () =>
+                {
+                    waitingForBranchChoice = false;
+                    lastInteractionTime = Time.time;
+                    onYes?.Invoke();
+                },
+                () =>
+                {
+                    waitingForBranchChoice = false;
+                    lastInteractionTime = Time.time;
+                    EndDialogueSessionWithDelay();
+                    onNo?.Invoke();
+                });
+
+            return true;
+        }
+
+        /// <summary>True while this character is waiting on an answer from the player.</summary>
+        public bool IsAwaitingAnswer => waitingForBranchChoice;
     }
 }

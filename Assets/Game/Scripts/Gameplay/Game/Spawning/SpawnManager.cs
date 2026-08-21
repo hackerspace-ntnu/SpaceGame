@@ -97,6 +97,15 @@ namespace SpaceGame.Gameplay
         /// validated it, so this only catches the gap between validation and use — a chunk that
         /// finished loading in between, raising the ground above a position that was fine when it
         /// was chosen.
+        ///
+        /// A position standing on a built floor is exempt, and that exemption is what keeps this
+        /// from being the very fault it exists to prevent. Being below the heightmap is only
+        /// trouble when nothing is holding you up: inside a hull it is ordinary — the ship's cargo
+        /// bay clears the sand outside by 0.91 m today and would be under it after one settle —
+        /// and lifting a player from the floor they were standing on to the height of the ground
+        /// outside puts them in that floor rather than out of it. This runs on the save-restore
+        /// path too, where the position is wherever the player logged out, so the question has to
+        /// be answered from the geometry rather than from who asked.
         /// </summary>
         private static Vector3 ClampAboveTerrain(Vector3 spawnPosition)
         {
@@ -106,11 +115,21 @@ namespace SpaceGame.Gameplay
             if (spawnPosition.y >= terrainY)
                 return spawnPosition;
 
+            if (SpawnClearance.StandsOnStructure(spawnPosition, StructureFloorReach))
+                return spawnPosition;
+
             Debug.LogWarning($"[SpawnManager] spawn position {spawnPosition} resolved below the " +
-                             $"terrain surface (y={terrainY:F1}) — clamped above it.");
+                             $"terrain surface (y={terrainY:F1}) with nothing under it — clamped above it.");
 
             return new Vector3(spawnPosition.x, terrainY + SpawnSurfaceClearance, spawnPosition.z);
         }
+
+        /// <summary>
+        /// How far under a spawn position to look for a floor. A shade over the clearance the
+        /// position was lifted by, so the floor it was measured from is inside the reach and the
+        /// deck below is not.
+        /// </summary>
+        private const float StructureFloorReach = SpawnSurfaceClearance + 0.5f;
 
         /// <summary>Matches SpawnPoint.groundClearance — see the note there on the player capsule.</summary>
         private const float SpawnSurfaceClearance = 1.2f;

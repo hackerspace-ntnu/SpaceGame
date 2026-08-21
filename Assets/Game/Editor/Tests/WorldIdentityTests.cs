@@ -118,6 +118,24 @@ namespace SpaceGame.EditorTests
             Assert.IsNotEmpty(error);
         }
 
+        /// <summary>
+        /// "autosave" is hidden from the world list, so a world allowed to take that name would be
+        /// created and then be invisible — and on a case-insensitive filesystem it would be the
+        /// legacy file itself.
+        /// </summary>
+        [Test]
+        public void ValidateNewName_RejectsTheReservedLegacyNames()
+        {
+            Assert.IsFalse(WorldIdentity.ValidateNewName("autosave", SlotsWith(), out string error));
+            Assert.IsNotEmpty(error);
+
+            Assert.IsFalse(WorldIdentity.ValidateNewName("AutoSave", SlotsWith(), out error));
+            Assert.IsNotEmpty(error);
+
+            Assert.IsFalse(WorldIdentity.ValidateNewName("quicksave", SlotsWith(), out error));
+            Assert.IsNotEmpty(error);
+        }
+
         [Test]
         public void ValidateNewName_SurvivesNoSaveDirectoryAtAll()
         {

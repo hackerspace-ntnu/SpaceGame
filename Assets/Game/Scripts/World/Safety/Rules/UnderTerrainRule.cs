@@ -73,14 +73,39 @@ namespace SpaceGame.World.Safety
             AbsoluteFloorY = absoluteFloorY;
         }
 
+        /// <summary>
+        /// The original three-part question. "No terrain here" is read as "there is no surface to
+        /// be under", which is the right answer for an interior and for anywhere off the map.
+        /// </summary>
         public UnderTerrainVerdict Evaluate(float bodyY, bool hasTerrain, float terrainY)
+            => Evaluate(bodyY, hasTerrain, terrainY, groundExpected: false);
+
+        /// <param name="groundExpected">
+        /// Whether the world owes ground at this position and has not delivered it — the body is
+        /// inside the streamed grid with nothing at all beneath it. Only the component can answer
+        /// this, because it is a question about the streamer and the colliders, not about heights.
+        ///
+        /// It exists because the absolute floor is far too late a signal for the failure that
+        /// actually strands people. A client's player object can arrive before that client's own
+        /// copy of the chunk scene does; with no local terrain collider the body simply falls, and
+        /// the floor does not notice until six hundred metres later — by which time the chunk has
+        /// loaded overhead and the recovery is a burial being undone rather than one being avoided.
+        /// </param>
+        public UnderTerrainVerdict Evaluate(float bodyY, bool hasTerrain, float terrainY, bool groundExpected)
         {
+            // A measured surface always wins. It answers the question outright, so how far the body
+            // has fallen and whether anything is owed here stop mattering.
             if (hasTerrain)
             {
                 return bodyY < terrainY - DepthTolerance
                     ? new UnderTerrainVerdict(UnderTerrainAction.Lift, terrainY + SurfaceClearance)
                     : UnderTerrainVerdict.Fine;
             }
+
+            // Ground is coming. Wait for it where we stand rather than falling through the space
+            // where it will be — a parked body still pins the chunk it is waiting on.
+            if (groundExpected)
+                return new UnderTerrainVerdict(UnderTerrainAction.Park, bodyY);
 
             return bodyY < AbsoluteFloorY
                 ? new UnderTerrainVerdict(UnderTerrainAction.Park, bodyY)

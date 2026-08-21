@@ -17,6 +17,11 @@ namespace SpaceGame.Agents
         // themselves — that is what keeps chase, melee and ranged committed to the same entity.
         public AgentTargeting Targeting;
 
+        // Where the agent is trying to get to, or null on agents without an AgentGoal component.
+        // The counterpart of Targeting for travel: task modules write a destination here and
+        // movement modules read it, so nothing that decides WHERE also decides HOW.
+        public AgentGoal Goal;
+
         // Filled by AgentController when nearbyAgentScanRadius > 0.
         // Positions and velocities are parallel arrays indexed [0..NearbyAgentCount).
         public Vector3[] NearbyAgentPositions;

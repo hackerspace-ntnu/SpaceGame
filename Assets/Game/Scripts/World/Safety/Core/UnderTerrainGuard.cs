@@ -15,8 +15,22 @@
 // It never fires during normal play. Every vehicle's own ground probe (FoilLift's centre ray,
 // LeggedLocomotion's foot solver, rover suspension) works strictly above the surface, so the only
 // way to reach the depth this reacts to is for something to have already gone wrong.
+//
+// Two things about it are specifically about multiplayer, and both were learned from the same bug —
+// clients spawning under the world and staying there while the host never did.
+//
+//   * It runs on whoever OWNS the body, not on the server. The player's transform is
+//     owner-authoritative, so a server-side lift of a remote player is overwritten within a tick.
+//     Gating on the server ran the guard only where it could not work. See HasAuthority.
+//
+//   * It would rather hold a body still than let it fall. Chunk loads are issued by the server and
+//     applied on each client asynchronously, so a client's player object can exist before that
+//     client's copy of the ground under it does. Waiting where you stand costs a moment; falling
+//     through ground that is on its way costs a six-hundred-metre drop and a burial at the end of
+//     it. See IsAwaitingGround.
 using UnityEngine;
 using SpaceGame.Core;
+using SpaceGame.Gameplay;
 
 namespace SpaceGame.World.Safety
 {
@@ -49,6 +63,20 @@ namespace SpaceGame.World.Safety
                  "below the lowest real ground in any scene so ordinary play never reaches it.")]
         [SerializeField] private float absoluteFloorY = -500f;
 
+        [Header("Waiting for ground")]
+        [Tooltip("How long to hold a body still while the chunk it is standing over loads. Bounds " +
+                 "the wait so a hold can never become permanent: if the ground has not arrived by " +
+                 "then, something is wrong that holding will not fix, and a body left frozen " +
+                 "forever is worse than one that falls and gets lifted back out.")]
+        [SerializeField] private float groundWaitTimeout = 20f;
+
+        [Tooltip("How far under a body to look for a built floor. A body standing on one is " +
+                 "supported whatever the heightmap says, and must not be lifted to the surface " +
+                 "outside — that moves it INTO the floor rather than out of trouble. A shade over " +
+                 "the surface clearance, so the floor it is standing on is within reach and the " +
+                 "deck below is not.")]
+        [SerializeField] private float structureFloorReach = 1.7f;
+
         [Header("Debug")]
         [SerializeField] private bool logRecoveries = true;
 
@@ -71,6 +99,12 @@ namespace SpaceGame.World.Safety
 
         private bool isParked;
         private Vector3 parkedPosition;
+
+        /// <summary>
+        /// When this body first found itself inside the streamed world with no ground under it, or
+        /// -1 when it is not waiting. See <see cref="IsAwaitingGround"/>.
+        /// </summary>
+        private float groundWaitStartedAt = -1f;
 
         private Transform Body => bodyRoot != null ? bodyRoot : transform;
 
@@ -143,7 +177,19 @@ namespace SpaceGame.World.Safety
 
         private void Update()
         {
-            if (!HasAuthority()) return;
+            if (!HasAuthority())
+            {
+                // Released, not just skipped, and the difference matters because authority can be
+                // lost while a hold is running. A body is owned by everyone between Instantiate and
+                // its network spawn (an unspawned NetworkObject has no remote truth to defer to),
+                // and ownership moves again when a rider takes a vehicle. A hold is only ever ended
+                // by an evaluation, so one begun on a machine that then stops deciding this body's
+                // position would go on pinning it — against the transform sync — for good.
+                if (isParked) ExitPark();
+                groundWaitStartedAt = -1f;
+                return;
+            }
+
             if (Time.time < nextCheckTime) return;
 
             nextCheckTime = Time.time + Mathf.Max(0.01f, checkInterval);
@@ -152,11 +198,20 @@ namespace SpaceGame.World.Safety
         }
 
         /// <summary>
-        /// Only the side that owns the position may move it. On a client this would fight the
-        /// server's replicated transform every interval; offline there is no server, and the
-        /// local simulation is authoritative.
+        /// Only the side that owns the position may move it.
+        ///
+        /// Ownership, NOT the server, and the difference is the whole reason this guard did nothing
+        /// online. The player's NetworkTransform is owner-authoritative (AuthorityMode: Owner), so
+        /// for a remote player the server is not the side that owns the position — a lift written
+        /// there is overwritten by that owner's next state update, within a tick and silently. A
+        /// server-gated guard therefore ran on the one machine that could not make the move stick
+        /// and refused to run on the one that could, which is exactly why a buried player recovered
+        /// for the host and stayed buried for everyone else.
+        ///
+        /// Nothing else changes: offline <see cref="Network.Owns"/> is true, the host owns its own
+        /// body, and a server-spawned bot or vehicle is owned by the server as before.
         /// </summary>
-        private static bool HasAuthority() => !Network.IsNetworked || Network.Server;
+        private bool HasAuthority() => Network.Owns(this);
 
         private void Evaluate()
         {
@@ -174,7 +229,7 @@ namespace SpaceGame.World.Safety
 
             Vector3 position = b.position;
             bool hasTerrain = TerrainProbe.TryGetTerrainHeight(position, out float terrainY);
-            var verdict = Rule.Evaluate(position.y, hasTerrain, terrainY);
+            var verdict = Rule.Evaluate(position.y, hasTerrain, terrainY, IsAwaitingGround(position, hasTerrain));
 
             switch (verdict.Action)
             {
@@ -193,14 +248,69 @@ namespace SpaceGame.World.Safety
             }
         }
 
+        /// <summary>
+        /// Whether the world owes ground here and has not delivered it yet.
+        ///
+        /// Three conditions, and each one is load-bearing:
+        ///
+        ///   * no terrain to sample — with a surface present there is nothing to wait for;
+        ///   * inside the streamed grid, so an ornithopter flying over off-grid space, the minigame
+        ///     arena and every interior are places where "no terrain" is the permanent truth rather
+        ///     than a delay, and freezing a body there would be the bug this is meant to prevent;
+        ///   * nothing solid underfoot, so a player standing on a ship's deck or an interior floor
+        ///     inside the grid's footprint is supported and is not waiting for anything.
+        ///
+        /// Bounded by <see cref="groundWaitTimeout"/>, because a hold with no way out is worse than
+        /// the fall it prevents. The clock starts the first tick all three agree and is dropped the
+        /// moment they stop, so a body that waits, lands, and is later stranded again gets a fresh
+        /// wait rather than a clock that has already run down.
+        /// </summary>
+        private bool IsAwaitingGround(Vector3 position, bool hasTerrain)
+        {
+            if (hasTerrain
+                || !TerrainProbe.IsInsideStreamedWorld(position)
+                || SpawnClearance.StandsOnStructure(position, structureFloorReach))
+            {
+                groundWaitStartedAt = -1f;
+                return false;
+            }
+
+            if (groundWaitStartedAt < 0f) groundWaitStartedAt = Time.time;
+
+            if (Time.time - groundWaitStartedAt <= Mathf.Max(0f, groundWaitTimeout)) return true;
+
+            Debug.LogError(
+                $"[UnderTerrainGuard] {name} waited {groundWaitTimeout:F0}s at " +
+                $"{position.x:F0},{position.z:F0} for terrain that never loaded. Releasing it — " +
+                "the absolute floor is the only failsafe left from here.", this);
+
+            return false;
+        }
+
         private void Lift(Transform b, float targetY, float terrainY)
         {
             Vector3 was = b.position;
+
+            // A body on a built floor is already held up, whatever the heightmap says. Lifting it
+            // to the surface outside would move it INTO that floor — the ship's cargo bay clears
+            // the sand under the hull by well under a metre, so driving the ship onto rising ground
+            // puts its whole interior under the terrain without anything being wrong. Same
+            // exemption, and the same reason, as SpawnManager.ClampAboveTerrain.
+            if (SpawnClearance.StandsOnStructure(was, structureFloorReach)) return;
+
             Vector3 recovered = new(was.x, targetY, was.z);
 
-            // Transform first — that carries the whole hierarchy — then resync physics to it.
-            b.position = recovered;
-            ResyncBodies();
+            // Through the shared placement path rather than a raw transform write. This guard is on
+            // NavMeshAgent-driven bodies too (DuneRat, the patrol robots, Nomad), and an agent
+            // navigates from its own position: moving only the transform leaves the agent where it
+            // was and it is dragged straight back on the next frame. That path also handles the
+            // CharacterController's cached position and the interpolation trap that makes a
+            // teleported Rigidbody spend a frame travelling back toward where it came from.
+            //
+            // NetworkedTeleport rather than SaveTeleport directly so the move is addressed to
+            // whoever owns the body. We are that owner here — HasAuthority saw to it — so this
+            // takes the local path, and it stays correct if a body is ever guarded from elsewhere.
+            NetworkedTeleport.Move(b.gameObject, recovered, b.rotation);
             RecoveryCount++;
 
             if (logRecoveries)
@@ -239,6 +349,20 @@ namespace SpaceGame.World.Safety
             }
 
             ResyncBodies();
+
+            // Two very different situations reach the same hold, and they do not deserve the same
+            // noise. Waiting for a chunk is the ordinary case this guard now exists to catch — a
+            // client whose player object outran its own copy of the world — and it resolves itself
+            // in a moment. Sitting below the absolute floor means a body fell hundreds of metres
+            // before anything noticed, which is a genuine fault worth an error.
+            if (groundWaitStartedAt >= 0f)
+            {
+                Debug.Log(
+                    $"[UnderTerrainGuard] {name} is at {parkedPosition.x:F0},{parkedPosition.z:F0} " +
+                    "with no ground under it yet — holding still instead of falling through, until " +
+                    "the chunk there loads.", this);
+                return;
+            }
 
             Debug.LogError(
                 $"[UnderTerrainGuard] {name} fell below y={absoluteFloorY} at " +

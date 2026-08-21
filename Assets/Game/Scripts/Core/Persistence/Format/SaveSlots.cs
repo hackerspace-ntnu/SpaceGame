@@ -39,8 +39,30 @@ namespace SpaceGame.Persistence
     public class SaveSlots
     {
         public const string Extension = ".json";
-        public const string AutoSaveSlotId = "autosave";
-        public const string QuickSaveSlotId = "quicksave";
+
+        /// <summary>
+        /// Slot ids the game no longer writes, and must never show.
+        ///
+        /// Before world selection there was one save per KIND rather than one per world: anything
+        /// saved with no world chosen went to "autosave", and F5 went to a global "quicksave".
+        /// Both are now the active world's own file, and there is no fallback slot at all — but the
+        /// files those builds wrote are still on players' disks, and the world list is literally
+        /// "every .json in this folder". Without this, a machine that ever ran an older build shows
+        /// a world called "autosave" that nobody made.
+        ///
+        /// Case-insensitive because the platforms this ships on have case-insensitive filesystems:
+        /// a world named "Autosave" would be the same FILE as the legacy one, not a second world.
+        /// <see cref="WorldIdentity.ValidateNewName"/> refuses these names for that reason.
+        /// </summary>
+        private static readonly HashSet<string> LegacySlotIds = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "autosave",
+            "quicksave",
+        };
+
+        /// <summary>Whether a slot id belongs to a build that predates world selection.</summary>
+        public static bool IsLegacySlotId(string slotId) =>
+            !string.IsNullOrWhiteSpace(slotId) && LegacySlotIds.Contains(Sanitize(slotId));
 
         public string Root { get; }
 
@@ -59,7 +81,8 @@ namespace SpaceGame.Persistence
         /// <summary>
         /// Every slot on disk, newest first, so a "Continue" button is just <c>List()[0]</c>.
         /// Unreadable files are listed rather than hidden: a save the player can see and delete
-        /// beats one that silently is not there.
+        /// beats one that silently is not there. <see cref="LegacySlotIds"/> are the one exception
+        /// — those are not worlds and never were.
         /// </summary>
         public List<SaveSlotInfo> List()
         {
@@ -79,6 +102,8 @@ namespace SpaceGame.Persistence
             foreach (string file in files)
             {
                 string slotId = Path.GetFileNameWithoutExtension(file);
+                if (IsLegacySlotId(slotId)) continue;
+
                 bool readable = SaveFileStore.TryReadHeader(file, out SaveHeader header);
                 slots.Add(new SaveSlotInfo(slotId, file, header, !readable));
             }

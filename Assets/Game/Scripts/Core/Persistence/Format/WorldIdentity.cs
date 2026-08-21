@@ -66,6 +66,15 @@ namespace SpaceGame.Persistence
                 return false;
             }
 
+            if (SaveSlots.IsLegacySlotId(typed))
+            {
+                // Not merely reserved: on a case-insensitive filesystem this name IS the legacy
+                // file, which the world list hides — so the world would be created and then be
+                // invisible, which is worse than being refused.
+                error = $"'{typed.Trim()}' is a reserved name. Pick another.";
+                return false;
+            }
+
             if (slots != null && slots.Exists(IdFor(typed)))
             {
                 error = $"A world called '{typed.Trim()}' already exists.";

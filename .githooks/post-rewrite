@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-# Runs after `git rebase` and `git commit --amend`.
-root="$(git rev-parse --show-toplevel)"
-[ -x "$root/Tools/fix-asset-casing.sh" ] || exit 0
-"$root/Tools/fix-asset-casing.sh" --quiet || true
-exit 0

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Runs after `git pull` / `git merge`.
+#
+# A case-only rename cannot be delivered by git to a case-insensitive filesystem,
+# so repair the working tree ourselves. See Tools/fix-asset-casing.sh for why this
+# matters (Netcode hashes scene PATHS case-sensitively).
+root="$(git rev-parse --show-toplevel)"
+[ -x "$root/Tools/fix-asset-casing.sh" ] || exit 0
+# Never fail the merge: exit 1 just means "Unity is open, fix it manually".
+"$root/Tools/fix-asset-casing.sh" --quiet || true
+exit 0

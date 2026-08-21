@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Runs after `git checkout` / `git switch` / `git clone`.
+# $3 is 1 for a branch checkout, 0 for a single-file checkout.
+[ "${3:-0}" = "1" ] || exit 0
+root="$(git rev-parse --show-toplevel)"
+[ -x "$root/Tools/fix-asset-casing.sh" ] || exit 0
+"$root/Tools/fix-asset-casing.sh" --quiet || true
+exit 0

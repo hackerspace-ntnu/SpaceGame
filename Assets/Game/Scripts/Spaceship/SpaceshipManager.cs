@@ -127,8 +127,37 @@ public class SpaceshipManager : MonoBehaviour, IPersistentEntity
         TransitionToState(target);
     }
 
+    /// <summary>
+    /// Tick the state — but only where this ship is simulated.
+    ///
+    /// <para>
+    /// A state's <c>Update</c> is what MOVES the hull: <c>SpaceshipFlightState</c> forwards it to
+    /// the flight controller, which writes the transform every frame. Run on every machine that is
+    /// exactly the private-copy problem <see cref="SpaceGame.Core.NetAuthority"/> exists for —
+    /// four ships climbing at four slightly different rates, fighting whatever the wire says.
+    /// </para>
+    /// <para>
+    /// Gated here rather than by adding the flight controller to NetAuthority's driver list,
+    /// because disabling it would not help: the state calls it through
+    /// <see cref="IFlightController"/>, and an interface call does not consult
+    /// <c>Behaviour.enabled</c>. This is the only line that can stop it.
+    /// </para>
+    /// <para>
+    /// Enter and Exit are deliberately NOT gated. Those are the presentation — boosters lit,
+    /// booster lights on — and they have to happen on every machine, which is the same split every
+    /// networked system in this project uses. What arrives over the wire is the motion; what each
+    /// machine runs for itself is the look of it.
+    /// </para>
+    /// <para>
+    /// <c>Simulates</c>, not <c>IsServer</c>: a ship with no NetworkObject — which is every one in
+    /// the project today — has no remote truth to defer to, so every machine is its own authority
+    /// and it keeps working exactly as it did.
+    /// </para>
+    /// </summary>
     private void Update()
     {
+        if (!SpaceGame.Core.Network.Simulates(this)) return;
+
         currentState?.Update(this);
     }
 

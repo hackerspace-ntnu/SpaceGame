@@ -479,6 +479,9 @@ GameObject:
   - component: {fileID: 4653349713628000842}
   - component: {fileID: 832774164187065012}
   - component: {fileID: 913228681390389897}
+  - component: {fileID: 3260782250814657956}
+  - component: {fileID: -6276654198078954550}
+  - component: {fileID: 3261253648911555968}
   m_Layer: 0
   m_Name: CutsceneDoor_C
   m_TagString: Untagged
@@ -575,6 +578,46 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InteractableTrigger
   triggerableOverride: {fileID: 0}
+--- !u!114 &3260782250814657956
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5480566411558207321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: f603d9e2922614ff6a6ca1e52e20a5eb
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &-6276654198078954550
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5480566411558207321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &3261253648911555968
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5480566411558207321}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49584e7b86857426799d3806536c5389, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.CutsceneActionSaveable
 --- !u!1 &8046570559302015279
 GameObject:
   m_ObjectHideFlags: 0

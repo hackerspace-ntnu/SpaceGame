@@ -20,6 +20,20 @@ namespace SpaceGame.EditorTools
     {
         private readonly System.Collections.Generic.List<GameObject> spawned = new();
 
+        /// <summary>
+        /// Pins the RNG so scattering is reproducible.
+        ///
+        /// <c>SpawnPoint.GetRandomPoint</c> draws from <c>Random.insideUnitCircle</c>, and the
+        /// scattering test asserts which half of a bay the samples land in — so with an unseeded
+        /// generator it passed or failed depending on the draw, alternating between runs. A test
+        /// that is right most of the time is worse than one that is wrong all of the time: it
+        /// trains everyone to re-run the suite instead of reading the failure.
+        ///
+        /// The value is arbitrary; what matters is that it is the same one every run.
+        /// </summary>
+        [SetUp]
+        public void SeedTheGenerator() => Random.InitState(20260822);
+
         [TearDown]
         public void TearDown()
         {

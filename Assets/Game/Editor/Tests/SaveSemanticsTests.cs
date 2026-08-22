@@ -102,11 +102,17 @@ namespace SpaceGame.EditorTools
         public void TryGetReportsPresenceNotEmptiness()
         {
             var bag = new StateBag();
-            bag.Set("empty", new List<string>());
+            bag.Set("empty", new EmptyPayload { items = new List<string>() });
 
-            Assert.IsTrue(bag.TryGet("empty", out List<string> value));
-            Assert.IsNotNull(value);
-            Assert.IsEmpty(value);
+            Assert.IsTrue(bag.TryGet("empty", out EmptyPayload value),
+                "A key that was written reports present, whatever it deserializes to.");
+            Assert.IsNotNull(value.items);
+            Assert.IsEmpty(value.items);
+        }
+
+        private struct EmptyPayload
+        {
+            public List<string> items;
         }
 
         // ─────────────────────────────────────────────
@@ -269,9 +275,23 @@ namespace SpaceGame.EditorTools
                 }");
 
                 var result = default(SaveFileStore.ReadResult);
-                Assert.DoesNotThrow(() => result = SaveFileStore.Read(path));
-                Assert.AreNotEqual(SaveFileStore.ReadOutcome.Ok, result.Outcome,
-                    "A file that cannot be understood must not be reported as read successfully.");
+
+                // Not throwing is the whole contract. What it does INSTEAD is a judgement call, and
+                // the one the migrator makes is the better of the two available: a token of the wrong
+                // shape is skipped, so one unreadable entry costs the player that entry rather than
+                // the entire world. Asserting "reports Corrupt" would pin the worse behaviour.
+                Assert.DoesNotThrow(() => result = SaveFileStore.Read(path),
+                    "Read is documented as never throwing for a bad file: the load menu has to render " +
+                    "a corrupt-save row rather than take an unhandled exception.");
+
+                Assert.AreNotEqual(SaveFileStore.ReadOutcome.Missing, result.Outcome);
+
+                if (result.HasDocument)
+                {
+                    Assert.IsEmpty(result.Document.World.Entities,
+                        "The entry whose instanceId was not a string names no object, so it must be " +
+                        "dropped rather than carried into the world as a record nothing can match.");
+                }
             }
             finally
             {

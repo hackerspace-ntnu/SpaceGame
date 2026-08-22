@@ -79,6 +79,11 @@ namespace SpaceGame.Core.Persistence.EditorTools
                                       "Re-import it so OnValidate can stamp one.");
                 }
 
+                // Invalidate first: the saver list is cached on the component, and a prefab asset
+                // lives in memory across the whole editor session — so a validation run after the
+                // wiring tool added savers would otherwise still be reading the list from before it.
+                entity.InvalidateSavers();
+
                 if (entity.Savers().Count == 0)
                 {
                     report.Warnings.Add($"'{prefab.name}' is saveable but has no ISaveable components, " +

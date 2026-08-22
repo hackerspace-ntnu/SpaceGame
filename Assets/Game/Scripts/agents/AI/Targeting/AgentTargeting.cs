@@ -63,7 +63,18 @@ namespace SpaceGame.Agents
         // its attacker instead of continuing toward a marginally closer target.
         public Transform LastAttacker { get; private set; }
 
-        public FactionRelationship Relationship => settings.relationship;
+        /// <summary>
+        /// Who this agent counts as an enemy. Resolves <see cref="settings"/> on demand for the same
+        /// reason <see cref="ForceTarget"/> does: a restore can ask before Awake has run.
+        /// </summary>
+        public FactionRelationship Relationship
+        {
+            get
+            {
+                EnsureSettings();
+                return settings.relationship;
+            }
+        }
 
         /// <summary>
         /// The tuning asset currently in force, or null when the agent is running the inline fields.
@@ -81,16 +92,56 @@ namespace SpaceGame.Agents
         /// <c>AgentStateSaveable</c>. Falls back to the profile default when asked before Awake,
         /// which is what an EditMode test does.
         /// </summary>
-        public float MemoryDuration =>
-            settings != null ? settings.memoryDuration
-            : profile != null ? profile.memoryDuration
-            : FallbackMemoryDuration;
+        public float MemoryDuration
+        {
+            get
+            {
+                EnsureSettings();
+                return settings != null ? settings.memoryDuration : FallbackMemoryDuration;
+            }
+        }
 
         // Matches TargetingProfile.memoryDuration's own default.
         private const float FallbackMemoryDuration = 6f;
 
         // ── Internals ─────────────────────────────────────────────────────────────
         private TargetingProfile settings;
+
+        /// <summary>
+        /// Makes sure <see cref="settings"/> exists, whoever asks first.
+        ///
+        /// It used to be built only in <c>Awake</c>, and that was a real ordering hazard rather than
+        /// a tidiness question: the save system talks to components on objects it has just hydrated,
+        /// so <see cref="ForceTarget"/> — which reads <c>settings.reevaluateInterval</c> — is
+        /// reachable from a restore before Awake has run. It threw a NullReferenceException out of
+        /// the deferred pass, which <c>SaveableEntity.NotifyLoadComplete</c> catches and logs, so the
+        /// restored grudge was silently dropped and the creature came back peaceful. Same class of
+        /// bug the restore was written to fix, arriving one layer down.
+        ///
+        /// Idempotent, so Awake calling it and a restore calling it first are the same thing.
+        /// </summary>
+        private void EnsureSettings()
+        {
+            if (settings != null) return;
+
+            // Without an asset, synthesise one from the inline fields. Everything downstream then
+            // reads a single settings object and never has to know which source it came from.
+            if (profile == null)
+            {
+                runtimeDefaults = ScriptableObject.CreateInstance<TargetingProfile>();
+                runtimeDefaults.hideFlags = HideFlags.HideAndDontSave;
+                runtimeDefaults.relationship = relationship;
+                runtimeDefaults.acquisitionRange = acquisitionRange;
+                runtimeDefaults.loseRange = Mathf.Max(loseRange, acquisitionRange);
+                runtimeDefaults.requireLineOfSightToAcquire = requireLineOfSightToAcquire;
+                runtimeDefaults.proximityAcquireRange = proximityAcquireRange;
+                settings = runtimeDefaults;
+            }
+            else
+            {
+                settings = profile;
+            }
+        }
         private TargetingProfile runtimeDefaults;
         private EntityFaction selfFaction;
         private PerceptionModule perception;
@@ -146,23 +197,7 @@ namespace SpaceGame.Agents
             perception = GetComponent<PerceptionModule>();
             health = GetComponent<HealthComponent>();
 
-            // Without an asset, synthesise one from the inline fields. Everything downstream then
-            // reads a single settings object and never has to know which source it came from.
-            if (profile == null)
-            {
-                runtimeDefaults = ScriptableObject.CreateInstance<TargetingProfile>();
-                runtimeDefaults.hideFlags = HideFlags.HideAndDontSave;
-                runtimeDefaults.relationship = relationship;
-                runtimeDefaults.acquisitionRange = acquisitionRange;
-                runtimeDefaults.loseRange = Mathf.Max(loseRange, acquisitionRange);
-                runtimeDefaults.requireLineOfSightToAcquire = requireLineOfSightToAcquire;
-                runtimeDefaults.proximityAcquireRange = proximityAcquireRange;
-                settings = runtimeDefaults;
-            }
-            else
-            {
-                settings = profile;
-            }
+            EnsureSettings();
 
             if (selfFaction == null)
             {
@@ -256,6 +291,8 @@ namespace SpaceGame.Agents
         {
             if (!TargetResolution.IsViable(target))
                 return;
+
+            EnsureSettings();
 
             Target = target;
             DistanceToTarget = Vector3.Distance(transform.position, target.position);

@@ -117,9 +117,22 @@ namespace SpaceGame.EditorTools
 
         private SceneTransition NewTransition(string name, params SceneTransitionEffect[] effects)
         {
+            SceneTransition transition = BuildTransition(name, effects);
+            Life(transition, "OnEnable");
+            return transition;
+        }
+
+        /// <summary>
+        /// A transition that has not been enabled yet, so a caller can finish placing it first.
+        ///
+        /// The split matters because <c>OnEnable</c> is what registers the transition under its id,
+        /// and the id is derived from where the object sits. Enabling one at the scene root and
+        /// moving it afterwards registers it under a path it does not occupy.
+        /// </summary>
+        private SceneTransition BuildTransition(string name, params SceneTransitionEffect[] effects)
+        {
             var transition = NewObject(name).AddComponent<SceneTransition>();
             Set(transition, "effects", effects);
-            Life(transition, "OnEnable");
             return transition;
         }
 
@@ -130,9 +143,18 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private SceneTransition PlacedTransition(string name, GameObject parent)
         {
-            SceneTransition transition = NewTransition(name);
+            // Parent BEFORE enabling.
+            //
+            // This used to enable at the scene root and reparent afterwards, which registered the
+            // transition under a root path it was about to leave. With two identically named doors
+            // that is an outright collision: the first is created at root/door[0] and moved away,
+            // so the second is ALSO created at root/door[0] and OnEnable finds the first already
+            // registered there — an error about a hash clash between two objects whose real,
+            // post-parenting ids differ perfectly well. The id computation was never at fault; the
+            // fixture was asking for it a step too early.
+            SceneTransition transition = BuildTransition(name);
             transition.transform.SetParent(parent.transform);
-            Set(transition, "transitionId", 0);
+            Life(transition, "OnEnable");
             return transition;
         }
 

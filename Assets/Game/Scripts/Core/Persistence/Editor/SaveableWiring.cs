@@ -60,6 +60,11 @@ namespace SpaceGame.Core.Persistence.EditorTools
             "Assets/Game/Resources/Saveable",
 
             "Assets/Game/Prefabs/Systems",
+
+            // Cutscene props live here, and several of them are doors and triggers — which became
+            // world entities the moment DoorInteraction and CutsceneAction started declaring
+            // IPersistentEntity. The folder name says "effects"; the contents include state.
+            "Assets/Game/Prefabs/VisualEffects",
         };
 
         /// <summary>

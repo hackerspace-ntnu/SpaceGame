@@ -191,7 +191,19 @@ namespace SpaceGame.Agents
         public Vector3? CurrentDestination => destination;
 
         public bool HasReachedDestination =>
-            !destination.HasValue || FlatDistanceTo(destination.Value) <= stopDistance;
+            !destination.HasValue || FlatDistanceTo(destination.Value) <= EffectiveStopDistance;
+
+        /// <summary>
+        /// The stop distance to actually steer by, never zero.
+        ///
+        /// <c>stopDistance</c> has no field initialiser and is first assigned in <c>Awake</c>, so
+        /// anything that reads it before then sees 0 — and a machine that considers itself arrived
+        /// only at range zero never arrives. The guarantee belongs here, at the point of use, rather
+        /// than in <see cref="RestoreDrive"/> where it used to live: a restore that rewrites the
+        /// value it is handed cannot round-trip, because the next capture reads back something the
+        /// record never said. That asymmetry is what made the Ostrich fail its save/load test.
+        /// </summary>
+        private float EffectiveStopDistance => stopDistance > 0f ? stopDistance : defaultStopDistance;
 
         public void Tick(in MoveIntent intent, float deltaTime)
         {
@@ -289,12 +301,24 @@ namespace SpaceGame.Agents
         public Vector3 DetourDirection => detourDirection;
         public float DetourHold => detourHold;
 
-        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Assigns verbatim. A restore that "helpfully" substitutes a default for a value it does
+        /// not like breaks the one property the save system needs from every saver — that capturing
+        /// a restored object gives back what was stored — and it breaks it silently, because both
+        /// halves look individually reasonable. <see cref="EffectiveStopDistance"/> is where the
+        /// never-zero guarantee lives now.
+        /// </summary>
         public void RestoreDrive(Vector3? restoredDestination, float stop, float speed, float sideways)
         {
             destination = restoredDestination;
-            stopDistance = stop > 0f ? stop : defaultStopDistance;
+            stopDistance = stop;
             currentSpeed = speed;
+
+            // Still filtered by the rig's own capability: a machine that cannot strafe must not be
+            // handed a sideways throttle by a record written for one that can. Capture reads the
+            // same filtered field back, so this stays symmetric.
             currentStrafe = lateralSteering ? sideways : 0f;
         }
 
@@ -553,7 +577,7 @@ namespace SpaceGame.Agents
             if (destination.HasValue)
             {
                 Gizmos.color = new Color(1f, 0.9f, 0.2f, 0.9f);
-                Gizmos.DrawWireSphere(destination.Value, stopDistance);
+                Gizmos.DrawWireSphere(destination.Value, EffectiveStopDistance);
             }
         }
     }

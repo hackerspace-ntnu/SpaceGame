@@ -178,7 +178,24 @@ namespace SpaceGame.Items
         /// unplayable.
         /// </para>
         /// </summary>
-        private void OnDestroy()
+        private void OnDestroy() => StopAll();
+
+        /// <summary>
+        /// Stop everything running and put the body back.
+        ///
+        /// <para>
+        /// Public because destruction is not the only moment that wants it — a respawn and an
+        /// ownership change both need the body handed back in one piece — and because a guarantee
+        /// that can only be triggered by Unity's teardown callback cannot be tested. Edit mode does
+        /// not raise <c>OnDestroy</c> for a component it never awakened, so the callback alone left
+        /// the rule unverifiable.
+        /// </para>
+        /// <para>
+        /// Idempotent: an effect is removed before its <c>stopEffect</c> runs, so a second call has
+        /// nothing left to undo.
+        /// </para>
+        /// </summary>
+        public void StopAll()
         {
             for (int i = activeEffects.Count - 1; i >= 0; i--)
                 RemoveEffect(activeEffects[i]);

@@ -217,7 +217,16 @@ namespace SpaceGame.EditorTools
             Potion().PlayUse(player);
             Assert.IsFalse(body.useGravity);
 
-            UnityEngine.Object.DestroyImmediate(effects);
+            // Through StopAll, which is what OnDestroy calls.
+            //
+            // Destroying the component directly does NOT raise OnDestroy in edit mode — this fixture
+            // calls Awake by reflection, so Unity never registered the component as awakened and
+            // skips its teardown callback. Destroying the whole GameObject DOES raise it, but then
+            // the Rigidbody is destroyed too and `body.useGravity` cannot be read afterwards, so the
+            // assertion would pass without checking anything. Calling the teardown the production
+            // path calls leaves the body alive to be inspected, which is the only version of this
+            // that actually asserts the rule.
+            effects.StopAll();
 
             Assert.IsTrue(body.useGravity,
                 "A body torn down mid-effect never reaches the expiry that puts it back, and a " +

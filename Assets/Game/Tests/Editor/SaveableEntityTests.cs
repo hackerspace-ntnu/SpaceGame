@@ -23,6 +23,9 @@ namespace SpaceGame.EditorTests
             public int CaptureCalls;
             public int RestoreCalls;
 
+            /// <summary>What the last restore was handed, so a test can tell null from absent.</summary>
+            public JObject LastPayload;
+
             public string SaveKey => Key;
 
             public object CaptureState()
@@ -34,6 +37,7 @@ namespace SpaceGame.EditorTests
             public void RestoreState(JObject state)
             {
                 RestoreCalls++;
+                LastPayload = state;
                 if (state?["value"] is { } v) Value = v.Value<int>();
             }
 
@@ -116,9 +120,24 @@ namespace SpaceGame.EditorTests
             Assert.AreEqual(1, spy.RestoreCalls);
         }
 
-        /// <summary>A saver with no stored payload must be left alone, not handed a null and reset.</summary>
+        /// <summary>
+        /// A saver with no stored payload is handed null, not skipped.
+        ///
+        /// <b>This test asserted the opposite until August 2026, and the rule it encoded was the
+        /// bug.</b> "Leave it alone" sounds conservative and is not: an absent key is what
+        /// <c>CaptureState</c> returning null writes, so it means "this component was at its defaults
+        /// when the save was taken" — and a saver that is never called cannot put itself back to
+        /// those defaults. A looted NPC came back with its authored inventory; a kinematic body kept
+        /// whatever velocity it happened to hold.
+        ///
+        /// It also broke every deferred saver, which stages its pending work in RestoreState and
+        /// clears it there. <c>MountSaveable.pendingRider</c>, <c>AgentStateSaveable.hasPending</c>
+        /// and <c>OrnithopterSaveable.pendingFlying</c> were all cleared in the one method that was
+        /// not being called, so a value read at one save was re-applied after a later save that did
+        /// not store it — a craft flying at save N and grounded at save N+1 was re-launched on load.
+        /// </summary>
         [Test]
-        public void Restore_SkipsSaversWithNoStoredPayload()
+        public void Restore_HandsNullToSaversWithNoStoredPayload()
         {
             root = new GameObject("root");
             var entity = root.AddComponent<SaveableEntity>();
@@ -127,8 +146,10 @@ namespace SpaceGame.EditorTests
 
             entity.Restore(new StateBag());
 
-            Assert.AreEqual(5, spy.Value);
-            Assert.AreEqual(0, spy.RestoreCalls);
+            Assert.AreEqual(1, spy.RestoreCalls,
+                "Every saver is called on every restore, so that 'reset yourself' is expressible.");
+            Assert.IsNull(spy.LastPayload,
+                "The absent case must arrive as null — that is the saver's cue to go back to default.");
         }
 
         /// <summary>

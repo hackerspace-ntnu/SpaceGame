@@ -270,6 +270,43 @@ namespace SpaceGame.Core
         // self-healing busy flag for precisely this class of failure.
         public const ushort SceneEffects     = 70; // server → the initiator's owner: run this phase
         public const ushort SceneEffectsDone = 71; // owner → server: my out-phase has finished
+
+        // ── Lasso ──
+        // Sent to the THROWER's channel, not the lasso's. Every equipped artifact in this project
+        // is plain-Instantiated onto a hand bone, and several of their prefabs — the lasso among
+        // them — carry a NetworkObject of their own because dropping the item routes through
+        // World.Spawn. That NetworkObject is never spawned while the item is held, so a message
+        // sent from the item would resolve to the ITEM's dormant relay and fall through to a local
+        // dispatch on every machine. The player above it is the entity with a live wire.
+        //
+        // The rope's two ends are decided on two different machines and this pair is what joins
+        // them. The THROW itself needs nothing here — it rides UseItem/ItemUsed like every other
+        // artifact — but the CATCH cannot: the arc finds its target mid-flight, and two machines
+        // integrating the same arc at different frame rates can pick different creatures out of a
+        // crowd. So the thrower's machine decides what was caught and says so, and everyone else
+        // ropes what they are told rather than what they found.
+        //
+        //   LassoRope   owner → server. B = LassoVerb, Target = the roped subject (Caught only).
+        //   LassoRoped  server → everyone. Same payload, relayed untouched.
+        //
+        // Broadcast to All rather than Others because the reel is a level, not an edge: a machine
+        // that missed a message is corrected by the next one, and both handlers act only when the
+        // new state differs — the same idempotence rule NetLatch.Apply documents.
+        public const ushort LassoRope  = 72; // owner → server, on the THROWER's relay
+        public const ushort LassoRoped = 73; // server → everyone
+    }
+
+    /// <summary>What a <see cref="NetMsg.LassoRope"/> message is saying. Append only.</summary>
+    public static class LassoVerb
+    {
+        /// <summary>The arc latched onto <see cref="NetArg.Target"/>. Rope it.</summary>
+        public const int Caught = 1;
+
+        /// <summary>The thrower is pulling the rope in.</summary>
+        public const int ReelOn = 2;
+
+        /// <summary>The thrower stopped pulling.</summary>
+        public const int ReelOff = 3;
     }
 
     /// <summary>Which half of a transition <see cref="NetMsg.SceneEffects"/> is asking for.</summary>

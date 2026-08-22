@@ -43,7 +43,7 @@ namespace SpaceGame.Locomotion
     // It is also the clause that catches these at all: this is a kinematic layer with gravity off, so
     // every legged machine failed the "non-kinematic Rigidbody" test the policy used to rely on.
     [DefaultExecutionOrder(100)]
-    public abstract partial class LeggedLocomotion : MonoBehaviour, IPersistentEntity
+    public abstract partial class LeggedLocomotion : MonoBehaviour, IPersistentEntity, IExternallyPosed
     {
         [Header("Rig")]
         [Tooltip("Armature holding the limb chains. Auto-found if empty.")]
@@ -201,6 +201,39 @@ namespace SpaceGame.Locomotion
 
         public bool IsReady => ready;
         public int LegCount => legs.Count;
+
+        /// <summary>
+        /// Stop owning the body's transform and follow whoever else is writing it.
+        ///
+        /// <para>
+        /// Invariant I4 makes this layer the single owner of the body's transform, and on the
+        /// machine deciding where the machine goes it still is. On every other machine in a
+        /// networked session the pose arrives over the wire, and a locomotion that keeps writing
+        /// its own answer in LateUpdate wins that argument every frame: the remote copy stands
+        /// still wherever it spawned while the real machine walks away. Set by NetAuthority.
+        /// </para>
+        /// <para>
+        /// The legs keep solving either way — that is the whole point of following rather than
+        /// switching off. Travel is measured off the replicated body and handed to the gait, so a
+        /// remote machine's feet step in time with the ground it is genuinely covering.
+        /// </para>
+        /// </summary>
+        public bool ExternallyPosed
+        {
+            get => externallyPosed;
+            set
+            {
+                if (externallyPosed == value) return;
+                externallyPosed = value;
+
+                // Both directions resume from the body's CURRENT pose. Taking the transform back
+                // without this continues a path integrated before the wire took over, which
+                // teleports the machine to wherever it stood when ownership last changed.
+                if (ready) ResetBodyState();
+            }
+        }
+
+        private bool externallyPosed;
 
         /// Limbs that are NOT walked on. Empty on every machine whose rig has no `Arm_` root, which
         /// is both of the ones shipping.
@@ -390,13 +423,25 @@ namespace SpaceGame.Locomotion
         ///
         /// Reading a hip before SolveLegs is safe because the hip sits ON the coxa's yaw axis, so
         /// this frame's yaw has not moved it.
+        ///
+        /// The first two calls are the half that OWNS the body, and they are the half `FollowBody`
+        /// replaces when something else is posing it. Everything after them reads the same three
+        /// fields either way and cannot tell which produced them.
         public void Step(float deltaTime)
         {
             if (!ready) return;
             float dt = Mathf.Max(deltaTime, 1e-5f);
 
-            AdvancePath(dt);
-            PoseBody(dt);
+            if (externallyPosed)
+            {
+                FollowBody(dt);
+            }
+            else
+            {
+                AdvancePath(dt);
+                PoseBody(dt);
+            }
+
             UpdateGait(dt);
             SolveLegs();
 

@@ -51,7 +51,19 @@ namespace SpaceGame.Items
         /// </summary>
         private const float HoldSendInterval = 1f / 15f;
 
+        /// <summary>Are hold ticks streaming? Not the same as the button being down — see <see cref="useButtonDown"/>.</summary>
         private bool useHeld;
+
+        /// <summary>
+        /// Is the use button physically down?
+        ///
+        /// Tracked apart from <see cref="useHeld"/> because a self-timed item — one whose
+        /// <see cref="UsableItem.WantsHold"/> is true — outlives the press, and the stream has to
+        /// keep running while it does. Collapsing the two back into one flag is what makes a
+        /// three-second burst freeze its aim the moment the player lets go.
+        /// </summary>
+        private bool useButtonDown;
+
         private float nextHoldSend;
 
 
@@ -385,12 +397,27 @@ namespace SpaceGame.Items
             if (usable.IsContinuous)
             {
                 useHeld = true;
+                useButtonDown = true;
                 nextHoldSend = 0f;
             }
         }
 
-        /// <summary>Owner let go of use.</summary>
-        private void OnUseRelease() => EndHold(send: true);
+        /// <summary>
+        /// Owner let go of use.
+        ///
+        /// A self-timed item is not finished just because the finger came up, and cutting the
+        /// stream here would strand every other machine on the aim it had at the press. Its stream
+        /// ends in <see cref="Update"/>, when the item itself says it is done.
+        /// </summary>
+        private void OnUseRelease()
+        {
+            useButtonDown = false;
+
+            UsableItem usable = HeldItem();
+            if (usable != null && usable.IsContinuous && usable.WantsHold) return;
+
+            EndHold(send: true);
+        }
 
         /// <summary>
         /// Owner side: keep the aim flowing while the button is down.
@@ -405,6 +432,15 @@ namespace SpaceGame.Items
 
             UsableItem usable = HeldItem();
             if (usable == null || !usable.IsContinuous)
+            {
+                EndHold(send: true);
+                return;
+            }
+
+            // The button is up and the item has stopped asking. For an ordinary held item this is
+            // never reached — OnUseRelease already ended it — so this is the self-timed item's
+            // release, arriving whenever the item decided rather than whenever the finger did.
+            if (!useButtonDown && !usable.WantsHold)
             {
                 EndHold(send: true);
                 return;
@@ -426,6 +462,7 @@ namespace SpaceGame.Items
         {
             if (!useHeld) return;
             useHeld = false;
+            useButtonDown = false;
 
             UsableItem usable = HeldItem();
             if (usable == null) return;

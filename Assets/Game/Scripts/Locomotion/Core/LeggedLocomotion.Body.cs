@@ -76,9 +76,14 @@ namespace SpaceGame.Locomotion
         }
 
         /// Drop the machine so the legs start within reach of the ground.
+        ///
+        /// Refused outright while something else is posing the body: "never write the body" is the
+        /// whole of that mode, and a snap is a write like any other. A replicated machine is
+        /// already standing wherever the machine that owns it put it, which is by definition on the
+        /// ground it was measured against.
         public void SnapToGround()
         {
-            if (!ready) return;
+            if (!ready || externallyPosed) return;
             // A deliberately longer ray than the per-frame ones: this is called on a machine that
             // may have been dropped into the scene anywhere above its ground.
             if (!ground.Ray(body.position + Vector3.up * rayStartAbove * 4f, rayLength * 4f,
@@ -127,6 +132,72 @@ namespace SpaceGame.Locomotion
             // Signed by the FORWARD channel, since that is the only one an "is it reversing?" reader
             // can mean; a purely lateral command reports its ground speed as positive.
             diagnostics.AchievedSpeed = v.y < 0f ? -moved.magnitude / dt : moved.magnitude / dt;
+        }
+
+        /// One frame's body work for a machine that is NOT posing itself — a replicated copy on a
+        /// machine that does not own the entity. The mirror image of AdvancePath + PoseBody:
+        /// instead of integrating the command into the path and writing the result to the
+        /// transform, it reads the transform and works the command back out of it.
+        ///
+        /// Everything downstream — the gait clock, the foot drift, the foothold clamp, the load
+        /// transfer — reads `commandedWorldVelocity`, `travelVelocity` and `commandedYawRate` and
+        /// cannot tell where they came from. So the legs of a remote machine step against the
+        /// ground it is genuinely covering instead of standing still on it.
+        ///
+        /// Nothing here raycasts. Height, tilt and the reach correction are all decisions about
+        /// where to PUT the body, and they were already made on the machine that owns it; redoing
+        /// them here would only be a second opinion fighting the pose that arrived.
+        private void FollowBody(float dt)
+        {
+            Vector3 position = body.position;
+            float yaw = body.eulerAngles.y;
+
+            Vector3 moved = position - lastBodyPos;
+            float yawMoved = Mathf.DeltaAngle(currentYaw, yaw);
+
+            currentYaw = yaw;
+            pathPos = position;
+            smoothedHeight = position.y;
+            heightPrimed = true;
+
+            // Nothing followed is falling under its own gravity — height arrives with the pose. A
+            // fall in progress when the machine changed hands would otherwise keep reporting, and
+            // IsFalling is what a driver and the body motions read to know the legs are off duty.
+            fallVelocity = 0f;
+            IsFalling = false;
+
+            // The climb gate belongs to a machine choosing where to go. This one is being told.
+            ClimbScale = 1f;
+            ClimbBlocked = false;
+
+            // Horizontal only: the gait is paced by ground covered, and the vertical channel here
+            // is terrain the owner already walked over, not travel the feet have to keep up with.
+            moved.y = 0f;
+            Vector3 worldVelocity = moved / dt;
+
+            // Clamped exactly as SetTwist clamps a command, and for the same reason plus one more:
+            // a replicated pose JUMPS — a spawn, a save restore, a teleport, a chunk migration —
+            // and an unclamped delta would wind the gait clock through whole cycles in one frame
+            // and throw every foot at once.
+            float max = MaxSpeed;
+            float sq = worldVelocity.sqrMagnitude;
+            if (sq > max * max && sq > 1e-12f) worldVelocity *= max / Mathf.Sqrt(sq);
+
+            commandedWorldVelocity = worldVelocity;
+            commandedYawRate = Mathf.Clamp(yawMoved / dt, -MaxYawRate, MaxYawRate);
+
+            // Body frame, because that is what travelVelocity means everywhere else: x out to the
+            // machine's right, y along its nose. Deriving it from the heading rather than from the
+            // body's full rotation keeps a machine on a slope from reading its own pitch as travel.
+            Vector3 local = Quaternion.Inverse(Quaternion.AngleAxis(currentYaw, Vector3.up)) * worldVelocity;
+            travelVelocity = new Vector2(local.x, local.z);
+            commandedVelocity = travelVelocity;
+
+            gait.Advance(Pace * dt, WalkerGait.CycleDistance(cycleStride, CurrentDuty));
+
+            diagnostics.AchievedSpeed = travelVelocity.y < 0f
+                ? -worldVelocity.magnitude
+                : worldVelocity.magnitude;
         }
 
         /// Cut the commanded travel down to what the ground ahead will actually let the legs walk

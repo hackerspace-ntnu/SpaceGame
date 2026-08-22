@@ -1,5 +1,6 @@
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.VFX;
 using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
@@ -7,13 +8,30 @@ using SpaceGame.Gameplay;
 namespace SpaceGame.Items
 {
     /// <summary>
-    /// A staff that emits a solid beam for as long as the use button is held, cutting whatever it
-    /// rests on.
+    /// A staff that throws a lightning arc for three seconds when fired, burning whatever it rests
+    /// on, and then needs ten to recharge.
     ///
     /// It is the first item in the game that acts continuously, and it does that through the same
     /// request/authority/present split every artifact already uses — see
     /// <see cref="UsableItem.IsContinuous"/>. The only thing it adds is that the split runs many
     /// times instead of once.
+    ///
+    /// <para>
+    /// <b>Why the button no longer decides how long it burns.</b> The press ignites it and the
+    /// staff times itself out; holding does not extend it and releasing does not cut it short. That
+    /// makes the trigger a commitment rather than a dial — with a fixed burn and a long recharge,
+    /// the interesting decision is WHEN to spend it, which a hold-to-fire beam does not have. The
+    /// hold ticks are still streamed for the whole three seconds, because they are the only channel
+    /// that carries an aim; see <see cref="UsableItem.WantsHold"/> for why that had to be said out
+    /// loud rather than left to the button.
+    /// </para>
+    /// <para>
+    /// <b>Why the arc is geometry and not just a shader.</b> The kinks are real displacement of the
+    /// LineRenderer's points, re-rolled several times a second. A bolt painted into the UV of a
+    /// straight ribbon looks like a bolt only until the beam sweeps, at which point the squiggle
+    /// slides along a visibly straight strip. SpaceGame/LightningBeam draws the discharge — the
+    /// filament, the segment breaks, the strobe — and this class draws the path.
+    /// </para>
     ///
     /// <para>
     /// <b>What travels, and why it is the ray rather than the endpoint.</b> The owner reports its
@@ -33,8 +51,14 @@ namespace SpaceGame.Items
     /// </summary>
     public class LaserStaffArtifact : ToolItem
     {
-        /// <summary>The beam burns for as long as the button is down. See the class summary.</summary>
+        /// <summary>The beam keeps acting after the press. See the class summary.</summary>
         public override bool IsContinuous => true;
+
+        /// <summary>
+        /// Keep the hold stream — and with it the aim — running for the whole burn, however
+        /// briefly the button was actually down. See <see cref="UsableItem.WantsHold"/>.
+        /// </summary>
+        public override bool WantsHold => _lit;
 
         /// <summary>
         /// Server-run. Unlike the grapple, whose whole effect is the holder's own body, this one
@@ -53,8 +77,28 @@ namespace SpaceGame.Items
         [Tooltip("Where the beam leaves the staff. Falls back to the prefab root, which sits at the grip, so leaving this empty puts the beam in the holder's fist.")]
         [SerializeField] private Transform muzzle;
 
-        [Tooltip("The beam itself. Two points, muzzle to impact, drawn with the LaserBeam shader.")]
+        [Tooltip("The arc itself. Many points, muzzle to impact, drawn with the LightningBeam shader.")]
         [SerializeField] private LineRenderer beam;
+
+        [Header("Burst")]
+        [Tooltip("Seconds the arc burns for once fired. The button does not extend or shorten it.")]
+        [SerializeField] private float burnDuration = 3f;
+
+        [Tooltip("Seconds after the burn ends before the staff will fire again.")]
+        [SerializeField] private float cooldown = 10f;
+
+        [Header("Arc")]
+        [Tooltip("How many segments the arc is drawn with. More is a finer bolt and a longer line to rebuild each frame; below about eight it stops reading as lightning and starts reading as a bent stick.")]
+        [SerializeField] private int arcSegments = 26;
+
+        [Tooltip("How far the arc wanders sideways, as a fraction of its own length. Scaled with distance so a short arc is not a wild scribble and a long one is not a straight line.")]
+        [SerializeField] private float arcSpread = 0.035f;
+
+        [Tooltip("Ceiling on that wander, in metres. Without it a 120 m arc would swing six metres wide and miss what the beam is actually burning.")]
+        [SerializeField] private float arcMaxOffset = 0.55f;
+
+        [Tooltip("How many times a second the bolt jumps to a completely new shape. This is the number that decides whether it reads as lightning or as a wobbling rope.")]
+        [SerializeField] private float arcRestrikeRate = 22f;
 
         [Header("Damage")]
         [Tooltip("Damage per second while the beam rests on something. This is the dial to tune — the tick rate below only decides how finely it is sampled.")]
@@ -81,6 +125,19 @@ namespace SpaceGame.Items
 
         [Tooltip("Optional light at the impact point.")]
         [SerializeField] private Light impactLight;
+
+        [Tooltip("The Lightning VFX graph, struck at whatever the arc is resting on. Leave empty for no strike.")]
+        [SerializeField] private GameObject strikeVfx;
+
+        [Tooltip("Seconds between strikes while the arc stays on something. One lands the instant it bites.")]
+        [SerializeField] private float strikeInterval = 0.7f;
+
+        [Tooltip("Seconds a spawned strike is left alive before it is cleaned up. The graph is a one-shot burst; nothing else destroys it.")]
+        [SerializeField] private float strikeLifetime = 3f;
+
+        [Tooltip("Recolours the strike graph's two exposed colours. Red, like the rest of the weapon.")]
+        [ColorUsage(true, true)]
+        [SerializeField] private Color strikeColor = new Color(1f, 0.09f, 0.06f, 1f);
 
         [SerializeField] private float impactLightIntensity = 7f;
 
@@ -113,6 +170,58 @@ namespace SpaceGame.Items
 
         private bool _lit;
         private float _lastHoldTime;
+
+        /// <summary>When the current burn ends. Meaningless while <see cref="_lit"/> is false.</summary>
+        private float _burnEndsAt;
+
+        /// <summary>
+        /// When the staff will fire again — burn included, so it covers the whole shot.
+        ///
+        /// <para>
+        /// Stamped at IGNITION, not when the burn ends, and that ordering is load-bearing. On a
+        /// host both halves of a press run, and <see cref="Present"/> runs first: a gate that read
+        /// "not currently burning" would be false by the time the server's <see cref="Use"/>
+        /// reached <see cref="CanUse"/>, so the press would be refused after the arc had already
+        /// lit — spending a charge on a shot the server never took. A deadline that is already in
+        /// the future the moment the arc lights answers both questions with one number.
+        /// </para>
+        /// <para>
+        /// Every machine keeps its own, rather than the server keeping one and telling the others.
+        /// The burn starts from a press each of them saw and runs for a constant, so they all reach
+        /// the same answer within a frame of each other — and the machine whose answer actually has
+        /// to be right NOW is the owner's, which is the one being asked to press the button again.
+        /// </para>
+        /// </summary>
+        private float _cooldownEndsAt;
+
+        /// <summary>When the next strike graph may be spawned. See <see cref="strikeInterval"/>.</summary>
+        private float _nextStrikeTime;
+
+        /// <summary>
+        /// Set by <see cref="Ignite"/> when a press actually lights the arc, and consumed by
+        /// <see cref="Use"/>.
+        ///
+        /// It exists to answer one awkward question honestly: when the authority half of a press
+        /// reaches <see cref="CanUse"/>, has THIS press already been accepted? On a host it has —
+        /// <see cref="Present"/> ran first — so by then the arc is burning and the recharge is
+        /// stamped, and both of the obvious gates ("not burning", "recharged") say no to a press
+        /// that plainly succeeded. Refusing there does not stop anything, since the arc is already
+        /// lit; it only skips the charge, so a limited-use staff would fire forever on a host and
+        /// deplete normally on a dedicated server.
+        ///
+        /// A flag the ignition itself raises separates "this press" from "another press during the
+        /// same burn", which is the distinction the two timers cannot make.
+        /// </summary>
+        private bool _pressLitTheArc;
+
+        /// <summary>
+        /// Per-instance offset into the arc's noise, so two staffs firing side by side do not throw
+        /// the same bolt in perfect lockstep.
+        /// </summary>
+        private float _arcSeed;
+
+        /// <summary>Reused between frames. The arc is rebuilt every frame and this is 27 Vector3s.</summary>
+        private Vector3[] _arcPoints;
 
         /// <summary>The aim ray as last reported. On the owner it is refreshed every frame.</summary>
         private Vector3 _rayOrigin;
@@ -158,6 +267,113 @@ namespace SpaceGame.Items
         private static readonly int IgniteId = Shader.PropertyToID("_Ignite");
         private static readonly int BeamLengthId = Shader.PropertyToID("_BeamLength");
 
+        /// <summary>The Lightning graph's two exposed colours. Names, not guesses — see Lightning.vfx.</summary>
+        private static readonly int LightningColorId = Shader.PropertyToID("LightningColor");
+        private static readonly int Color01Id = Shader.PropertyToID("Color01");
+
+        private void Awake() => _arcSeed = Random.value * 1000f;
+
+        // ── The recharge, across instances ─────────────────────────────────────
+        //
+        // The held object is a fresh Instantiate of the prefab, destroyed the moment the player
+        // scrolls to the next hotbar slot — so a cooldown living on the instance is a cooldown you
+        // can skip by scrolling down and back up. It belongs in the slot, like the charge count.
+
+        /// <summary>State key for the recharge. Written into save files — never rename.</summary>
+        private const string CooldownKey = "staffCooldown";
+
+        public override void CaptureItemState(ItemState state)
+        {
+            base.CaptureItemState(state);
+            if (state == null) return;
+
+            // Seconds remaining, never a deadline: Time.time restarts at zero each session, so a
+            // stored deadline comes back either already spent or hours away.
+            float remaining = Mathf.Max(0f, _cooldownEndsAt - Time.time);
+
+            if (remaining > 0.01f) state.Set(CooldownKey, remaining);
+        }
+
+        public override void RestoreItemState(ItemState state)
+        {
+            base.RestoreItemState(state);
+
+            float remaining = state == null ? 0f : state.GetFloat(CooldownKey, 0f);
+            _cooldownEndsAt = remaining > 0f ? Time.time + remaining : 0f;
+        }
+
+        // ── The press: ignition ────────────────────────────────────────────────
+
+        /// <summary>
+        /// Owner-side, on the press: the aim the burn starts from.
+        ///
+        /// Sent even though hold ticks carry the same thing, because the first tick is a frame away
+        /// and the arc is drawn on the press. Without it the first frame of every shot points
+        /// wherever the staff happened to be lying.
+        /// </summary>
+        public override void OnRequestUse(ref NetArg arg)
+        {
+            Transform aim = aimProvider != null ? aimProvider.AimTransform : null;
+            if (aim == null) return;
+
+            arg.P = aim.position;
+            arg.R = aim.rotation;
+        }
+
+        /// <summary>
+        /// Authority-side ignition. Nothing is spawned and nothing is billed here — the damage runs
+        /// in <see cref="Update"/> for as long as the burn lasts — but the server has to start its
+        /// own burn, because a dedicated server never receives <see cref="Present"/>.
+        /// </summary>
+        protected override void Use()
+        {
+            Ignite(UseArg);
+            _pressLitTheArc = false;
+        }
+
+        /// <summary>Every machine's ignition, including the owner's, immediately.</summary>
+        protected override void Present() => Ignite(UseArg);
+
+        /// <summary>
+        /// Light the arc, unless it is already lit or the staff is still recharging.
+        ///
+        /// Idempotent, because on a host both <see cref="Use"/> and <see cref="Present"/> run for
+        /// the same press and a second ignition would restart the three seconds.
+        /// </summary>
+        private void Ignite(NetArg arg)
+        {
+            if (_lit || Time.time < _cooldownEndsAt) return;
+
+            if (arg.HasOrientation)
+            {
+                _rayOrigin = arg.P;
+                _rayDirection = arg.R * Vector3.forward;
+            }
+
+            _lit = true;
+            _smoothedDirection = _rayDirection;
+            _damageCarry = 0f;
+            _damageTimer = 0f;
+            _lastHoldTime = Time.time;
+            _burnEndsAt = Time.time + burnDuration;
+            _cooldownEndsAt = Time.time + burnDuration + cooldown;
+            _nextStrikeTime = 0f;
+            _pressLitTheArc = true;
+        }
+
+        /// <summary>
+        /// Authority-side gate on the press.
+        ///
+        /// Charges are spent in <see cref="UsableItem.TryUse"/> whether or not the item does
+        /// anything, so a limited-use staff whose button was mashed through its own cooldown would
+        /// burn through its charges without ever firing.
+        ///
+        /// One condition, not two: <see cref="_cooldownEndsAt"/> already covers the burn. See its
+        /// summary for why "is it burning?" must not be asked here.
+        /// </summary>
+        protected override bool CanUse() =>
+            base.CanUse() && (_pressLitTheArc || Time.time >= _cooldownEndsAt);
+
         // ── Owner side: describe the aim ───────────────────────────────────────
 
         /// <summary>
@@ -198,6 +414,13 @@ namespace SpaceGame.Items
         /// the "others" its own broadcast goes to — so the aim has to be recorded on the authority
         /// path too, or the one machine that decides what got hit would be the one machine that
         /// does not know where the player is pointing.
+        ///
+        /// <para>
+        /// A tick no longer LIGHTS anything: the press does that, in <see cref="Ignite"/>. This
+        /// only steers. That is what makes the button unable to extend a burn — ticks keep arriving
+        /// for as long as the finger is down, and once the three seconds are spent they steer
+        /// nothing.
+        /// </para>
         /// </summary>
         private void ApplyHold(NetArg arg, bool active)
         {
@@ -207,6 +430,8 @@ namespace SpaceGame.Items
                 return;
             }
 
+            if (!_lit) return;
+
             _lastHoldTime = Time.time;
 
             if (arg.HasOrientation)
@@ -214,21 +439,20 @@ namespace SpaceGame.Items
                 _rayOrigin = arg.P;
                 _rayDirection = arg.R * Vector3.forward;
             }
-
-            if (!_lit)
-            {
-                _lit = true;
-                _smoothedDirection = _rayDirection;
-                _damageCarry = 0f;
-                _damageTimer = 0f;
-            }
         }
 
         private void Update()
         {
+            // The burn is over when the staff says so, not when the player does.
+            if (_lit && Time.time >= _burnEndsAt) Extinguish();
+
             // The safety net. A release is one message, and one message is exactly the kind of
             // thing that goes missing — along with the player who was holding the button. Without
             // this, that leaves a beam burning at full damage forever with nobody able to stop it.
+            //
+            // Still needed alongside the burn timer: this one catches a machine that stopped
+            // hearing from the owner mid-burn, and puts the arc out where it is rather than letting
+            // it sit for the remaining seconds pointing at a stale aim.
             if (_lit && Time.time - _lastHoldTime > holdTimeout) Extinguish();
 
             if (_lit) RefreshOwnerAim();
@@ -376,9 +600,7 @@ namespace SpaceGame.Items
                     Vector3 end = Vector3.Lerp(start, _endPoint, _ignition);
 
                     beam.useWorldSpace = true;
-                    beam.positionCount = 2;
-                    beam.SetPosition(0, start);
-                    beam.SetPosition(1, end);
+                    BuildArc(start, end);
 
                     _beamProperties ??= new MaterialPropertyBlock();
                     beam.GetPropertyBlock(_beamProperties);
@@ -392,6 +614,86 @@ namespace SpaceGame.Items
             }
 
             DrawImpact(visible && _hitObject != null);
+        }
+
+        /// <summary>
+        /// Lay the LineRenderer's points along the discharge path from <paramref name="start"/> to
+        /// <paramref name="end"/>.
+        ///
+        /// <para>
+        /// Two displacements, doing two different jobs. The QUANTISED one re-rolls
+        /// <see cref="arcRestrikeRate"/> times a second and gives the bolt its kinks; the SMOOTH one
+        /// drifts continuously and makes the whole channel sway. Either alone is wrong — quantised
+        /// alone strobes in place like a fluorescent tube, smooth alone is a rope in the wind.
+        /// </para>
+        /// <para>
+        /// Both are faded out at the ends by a sine envelope, which is what pins the arc to the
+        /// muzzle and to the exact point <see cref="Trace"/> found. An arc whose ends wander is an
+        /// arc that visibly misses the thing it is billing for damage.
+        /// </para>
+        /// </summary>
+        private void BuildArc(Vector3 start, Vector3 end)
+        {
+            int segments = Mathf.Max(1, arcSegments);
+            int points = segments + 1;
+
+            if (_arcPoints == null || _arcPoints.Length != points) _arcPoints = new Vector3[points];
+
+            Vector3 span = end - start;
+            float length = span.magnitude;
+
+            if (length < 1e-4f)
+            {
+                beam.positionCount = 2;
+                beam.SetPosition(0, start);
+                beam.SetPosition(1, end);
+                return;
+            }
+
+            Vector3 forward = span / length;
+
+            // Any two axes across the beam will do — the noise has no preferred direction — but
+            // they have to be perpendicular to it, or the "sideways" wander would shorten and
+            // lengthen the arc instead of bending it.
+            Vector3 right = Vector3.Cross(forward, Mathf.Abs(forward.y) > 0.95f ? Vector3.right : Vector3.up).normalized;
+            Vector3 up = Vector3.Cross(forward, right);
+
+            float amplitude = Mathf.Min(length * Mathf.Max(0f, arcSpread), Mathf.Max(0f, arcMaxOffset));
+            float phase = Mathf.Floor(Time.time * Mathf.Max(1f, arcRestrikeRate));
+
+            _arcPoints[0] = start;
+            _arcPoints[points - 1] = end;
+
+            for (int i = 1; i < points - 1; i++)
+            {
+                float t = (float)i / segments;
+                float envelope = Mathf.Sin(t * Mathf.PI);
+
+                float kinkR = Jitter(i * 1.37f + _arcSeed, phase);
+                float kinkU = Jitter(i * 2.71f + _arcSeed + 19.3f, phase + 7.1f);
+
+                float swayR = Mathf.PerlinNoise(_arcSeed + t * 2.2f, Time.time * 1.7f) * 2f - 1f;
+                float swayU = Mathf.PerlinNoise(_arcSeed + 51.7f + t * 2.2f, Time.time * 1.4f) * 2f - 1f;
+
+                Vector3 offset = right * (kinkR * 0.75f + swayR * 0.5f)
+                               + up * (kinkU * 0.75f + swayU * 0.5f);
+
+                _arcPoints[i] = start + span * t + offset * (amplitude * envelope);
+            }
+
+            beam.positionCount = points;
+            beam.SetPositions(_arcPoints);
+        }
+
+        /// <summary>
+        /// A hash rather than Perlin noise, and that is the whole point: it is DISCONTINUOUS. Feed
+        /// it a quantised time and the bolt snaps to an unrelated shape instead of easing into a
+        /// neighbouring one, which is the difference between lightning and a wobble.
+        /// </summary>
+        private static float Jitter(float a, float b)
+        {
+            float h = Mathf.Sin(a * 127.1f + b * 311.7f) * 43758.5453f;
+            return (h - Mathf.Floor(h)) * 2f - 1f;
         }
 
         /// <summary>
@@ -452,6 +754,14 @@ namespace SpaceGame.Items
                 _wasLanded = landed;
             }
 
+            // Gated on _lit rather than on `landed`, which stays true through the fade-out: a strike
+            // that landed after the burn ended would read as a fourth shot the player did not take.
+            if (_lit && landed && strikeVfx != null && Time.time >= _nextStrikeTime)
+            {
+                _nextStrikeTime = Time.time + Mathf.Max(0.05f, strikeInterval);
+                SpawnStrike();
+            }
+
             if (impactLight != null)
             {
                 if (impactLight.enabled != landed) impactLight.enabled = landed;
@@ -469,6 +779,33 @@ namespace SpaceGame.Items
                     impactLight.intensity = impactLightIntensity * _ignition * flicker;
                 }
             }
+        }
+
+        /// <summary>
+        /// Drop a lightning strike on whatever the arc is resting on.
+        ///
+        /// Purely cosmetic, and therefore run on every machine rather than on the authority: the
+        /// damage is already being billed tick by tick in <see cref="TickDamage"/>, and spawning
+        /// this on the server instead would mean nobody saw it.
+        /// </summary>
+        private void SpawnStrike()
+        {
+            // Posed exactly as LightningSpell poses it. The graph was authored striking downwards,
+            // and the −90° about X is what stands it back up; it is the item's posing, not a units
+            // fix, so it belongs at every call site rather than baked into the prefab.
+            GameObject strike = Instantiate(strikeVfx, _endPoint + _hitNormal * 0.05f,
+                                            Quaternion.Euler(90f, 0f, 0f));
+
+            foreach (VisualEffect graph in strike.GetComponentsInChildren<VisualEffect>(true))
+            {
+                if (graph.HasVector4(LightningColorId)) graph.SetVector4(LightningColorId, strikeColor);
+                if (graph.HasVector4(Color01Id)) graph.SetVector4(Color01Id, strikeColor);
+            }
+
+            // The graph is a one-shot burst and nothing else owns what it leaves behind.
+            // LightningSpell leaks one of these per cast; an arc striking every 0.7 s would leak
+            // several times faster, and they are not cheap objects.
+            Destroy(strike, Mathf.Max(0.1f, strikeLifetime));
         }
 
         private static void SetEmitting(ParticleSystem system, bool on)
@@ -489,9 +826,23 @@ namespace SpaceGame.Items
 
         private Vector3 MuzzlePoint() => muzzle != null ? muzzle.position : transform.position;
 
+        /// <summary>
+        /// Put the arc out.
+        ///
+        /// It does not touch the recharge, because <see cref="Ignite"/> already set it for the
+        /// whole shot. That is also what makes this safe to call on an already-dark staff — and it
+        /// is called that way constantly, from OnDisable, from OnUnequipped, and from every release
+        /// tick that arrives after the burn has timed out. A recharge stamped here instead would be
+        /// pushed ten seconds further away every time the player scrolled past the staff.
+        ///
+        /// A shot cut short — swapped away, or a stream that went quiet — is simply a shot wasted:
+        /// the deadline stands where ignition put it, so the seconds the player did not get to
+        /// spend are not handed back.
+        /// </summary>
         private void Extinguish()
         {
             _lit = false;
+            _pressLitTheArc = false;
             _hitObject = null;
             _damageCarry = 0f;
             _damageTimer = 0f;
@@ -545,6 +896,18 @@ namespace SpaceGame.Items
             damageTicksPerSecond = Mathf.Clamp(damageTicksPerSecond, 1f, 200f);
             igniteTime = Mathf.Max(0.001f, igniteTime);
             fadeTime = Mathf.Max(0.001f, fadeTime);
+
+            burnDuration = Mathf.Max(0.1f, burnDuration);
+            cooldown = Mathf.Max(0f, cooldown);
+            strikeInterval = Mathf.Max(0.05f, strikeInterval);
+            strikeLifetime = Mathf.Max(0.1f, strikeLifetime);
+
+            // Below about eight the displacement stops reading as lightning and starts reading as a
+            // bent stick; the ceiling is a guard on rebuilding the whole line every frame.
+            arcSegments = Mathf.Clamp(arcSegments, 8, 96);
+            arcSpread = Mathf.Max(0f, arcSpread);
+            arcMaxOffset = Mathf.Max(0f, arcMaxOffset);
+            arcRestrikeRate = Mathf.Clamp(arcRestrikeRate, 1f, 120f);
 
             // A timeout inside the send interval would cut the beam between two perfectly ordinary
             // ticks, so it is floored well clear of it rather than left to whoever edits it.

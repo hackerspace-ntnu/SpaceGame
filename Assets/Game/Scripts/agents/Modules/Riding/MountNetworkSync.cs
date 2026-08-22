@@ -8,8 +8,17 @@
 //     tells everyone. This keeps two players from mounting the same animal on the same frame.
 //   • Ownership of the mount transfers to the rider so their SteerModule can drive it and have the
 //     resulting motion replicate through the mount's NetworkTransform. On dismount it goes back.
-//   • Remote peers run the same TryMount/Dismount so the rider is visibly parented into the seat,
-//     but MountModule.OnEnable/Update only drives cameras and input for the local owner anyway.
+//   • Remote peers run the same TryMount/Dismount so the rider is visibly parented into the seat.
+//     Cameras, look input and steering are the local rider's alone — MountModule.RiderIsLocal.
+//
+// Two channels, not one, and they answer different questions:
+//   • NetMsg.Mount/Mounted/Dismount/Dismounted is the EVENT. It is what everybody in the session at
+//     the time acts on, immediately.
+//   • seatedRider is the STATE. NetworkVariable change events never replay, so a player who joins
+//     while somebody is already in the saddle has nothing else to go on: the event was sent long
+//     before they connected. Without it a late joiner saw the rider standing bolt upright on an
+//     ostrich that still advertised itself as free to mount.
+// The state channel also re-asserts itself every frame, so it repairs the seat whatever went wrong.
 using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Core;
@@ -17,14 +26,29 @@ using SpaceGame.Gameplay;
 
 namespace SpaceGame.Agents
 {
+    // NetworkBehaviour rather than MonoBehaviour purely for the NetworkVariable below. It sits on
+    // the same GameObject as the mount's NetworkObject on every prefab that has one, which is what
+    // makes that legal.
     [RequireComponent(typeof(MountModule))]
-    public class MountNetworkSync : MonoBehaviour
+    public class MountNetworkSync : NetworkBehaviour
     {
         private MountModule mount;
 
         // Set while a replicated mount/dismount is being applied, so the local events those raise
         // don't bounce straight back out as another request.
         private bool applyingRemote;
+
+        /// <summary>
+        /// Who is in the seat, as their NetworkObjectId; 0 for empty.
+        ///
+        /// <para>
+        /// Server-write because seating is a server decision, and this is the RECORD of that
+        /// decision rather than a second way of making one — nothing acts on a write to it except
+        /// a peer bringing its own copy of the mount into line.
+        /// </para>
+        /// </summary>
+        private readonly NetworkVariable<ulong> seatedRider = new(
+            0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
         private void Awake() => mount = GetComponent<MountModule>();
 
@@ -42,6 +66,98 @@ namespace SpaceGame.Agents
             this.NetOff(NetMsg.Dismount, OnDismountRequested);
             this.NetOff(NetMsg.Mounted, OnMountedElsewhere);
             this.NetOff(NetMsg.Dismounted, OnDismountedElsewhere);
+        }
+
+        // ─────────── The state channel ───────────
+
+        /// <summary>
+        /// Keep the seat and the record agreeing — publishing it on the server, obeying it
+        /// everywhere else.
+        ///
+        /// <para>
+        /// Polled rather than raised from <see cref="MountModule.Mounted"/>/<c>Dismounted</c>,
+        /// which looks like the obvious wiring and is wrong twice: <c>Dismounted</c> fires BEFORE
+        /// the rider references are cleared, so a handler reading the seat there still finds the
+        /// rider it is being told left, and <c>AbandonRider</c> — the teardown path — raises no
+        /// event at all. Comparing two ulongs once a frame has neither problem and cannot miss a
+        /// path added later.
+        /// </para>
+        /// </summary>
+        private void Update()
+        {
+            if (!IsSpawned) return;
+
+            if (IsServer)
+            {
+                ulong seated = ResolveSeatedRiderId();
+                if (seatedRider.Value != seated) seatedRider.Value = seated;
+                return;
+            }
+
+            ReconcileSeat();
+        }
+
+        /// <summary>
+        /// Client side: seat the rider the server says is in this mount, if nobody is in it here.
+        ///
+        /// <para>
+        /// SEATING ONLY — emptying the seat stays with <see cref="NetMsg.Dismounted"/>, and that is
+        /// not a gap. The record is written a tick after the event that caused it, so a reconcile
+        /// that also emptied seats would see "mounted here, record still says empty" in the window
+        /// between the broadcast landing and the variable arriving, and throw the rider off a
+        /// mount they had just climbed onto. Every peer that needs to hear about a dismount is by
+        /// definition connected when it happens, so the reliable broadcast already reaches all of
+        /// them; only ARRIVING mid-ride has no event to hear, and that is what this covers.
+        /// </para>
+        /// <para>
+        /// The value is re-read every frame rather than latched at spawn, so a rider who leaves
+        /// before this machine managed to seat them is simply never seated. The retry exists
+        /// because the rider named by the record may not have been spawned here yet — one join
+        /// synchronises many objects and their order is not ours to choose.
+        /// </para>
+        /// </summary>
+        private void ReconcileSeat()
+        {
+            ulong wanted = seatedRider.Value;
+            if (wanted == 0) return;
+
+            // Anybody in the seat is enough. The server is the only writer and a seat holds one
+            // rider, so there is no second case to distinguish — and reading the seated rider's
+            // identity back to compare it would spin forever on a rider with no NetworkObject,
+            // which can never match an id.
+            if (mount.IsMounted) return;
+
+            if (NetworkManager.Singleton == null) return;
+            if (!NetworkManager.Singleton.SpawnManager.SpawnedObjects
+                    .TryGetValue(wanted, out NetworkObject riderNet) || riderNet == null)
+                return;
+
+            Interactor interactor = riderNet.GetComponentInChildren<Interactor>(true);
+            if (interactor != null) ApplyMount(interactor);
+        }
+
+        /// <summary>
+        /// The NetworkObjectId of whoever is in the seat, or 0.
+        ///
+        /// <para>
+        /// Zero also covers "mounted by a rider with no spawned NetworkObject", which is not a lie
+        /// the clients can be hurt by: every rider in a session is a spawned player object, and the
+        /// case only arises offline, where there is nobody to tell. The mount's OWN NetworkObject
+        /// is explicitly excluded — a rider is parented INTO the seat, so an unnetworked one
+        /// resolves upward to the mount, and naming the mount as its own rider would have a late
+        /// joiner trying to seat the ostrich on itself.
+        /// </para>
+        /// </summary>
+        private ulong ResolveSeatedRiderId()
+        {
+            Transform rider = mount.MountedPlayerTransform;
+            if (rider == null) return 0;
+
+            NetworkObject riderNet = rider.GetComponentInParent<NetworkObject>();
+            if (riderNet == null || !riderNet.IsSpawned) return 0;
+            if (riderNet == GetComponentInParent<NetworkObject>()) return 0;
+
+            return riderNet.NetworkObjectId;
         }
 
         // ─────────── Requests ───────────

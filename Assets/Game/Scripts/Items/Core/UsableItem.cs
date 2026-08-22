@@ -84,6 +84,26 @@ namespace SpaceGame.Items
         public virtual bool IsContinuous => false;
 
         /// <summary>
+        /// Does this item want the hold to continue even though the button is up?
+        ///
+        /// <para>
+        /// False for a beam you steer by holding the trigger — that one ends when you let go, and
+        /// nothing here changes for it. True for an item that runs for a fixed time once triggered:
+        /// the laser staff burns for three seconds whether or not the finger stays down.
+        /// </para>
+        /// <para>
+        /// It exists because a self-timed burst still needs the aim to keep flowing. Hold ticks are
+        /// the only channel that carries an aim, and they stop the instant the button comes up — so
+        /// without this, tapping the button leaves every other machine, INCLUDING the server that
+        /// decides what the beam is burning, drawing and billing along an aim frozen at the moment
+        /// of the press while the owner's own view sweeps freely. Ending the burst is then the
+        /// item's job rather than the button's: EquipmentController keeps streaming until this goes
+        /// false again.
+        /// </para>
+        /// </summary>
+        public virtual bool WantsHold => false;
+
+        /// <summary>
         /// Owner-side, before the request leaves: add anything the other machines cannot work out
         /// for themselves. Aim points go in <c>P</c>, orientations in <c>R</c>.
         /// </summary>

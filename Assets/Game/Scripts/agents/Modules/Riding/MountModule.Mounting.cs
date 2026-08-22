@@ -235,9 +235,7 @@ namespace SpaceGame.Agents
             RestoreRiderMountCollisions();
             RestoreRootMotionAfterDismount();
             RestoreModuleSuppression();
-            SetThirdPersonCameraEnabled(false);
-            SetFirstPersonCameraEnabled(true);
-            SetMountedVisorEnabled(true);
+            RestoreLocalViewAfterDismount();
             PlayerMovement dismountedMovement = mountedPlayerMovement;
             Dismounted?.Invoke(dismountedMovement);
             ReleaseRuntimeThirdPersonCamera();
@@ -261,7 +259,12 @@ namespace SpaceGame.Agents
         // untracked, so pooling a ridden mount would need a real dismount before the SetActive call.
         private void AbandonRider()
         {
-            runtimeThirdPersonCamera = null;
+            // Destroyed rather than merely forgotten, unlike everything else here. The mount camera
+            // is spawned UNPARENTED (see EnsureRuntimeThirdPersonCamera) precisely so the vehicle's
+            // motion does not reach it twice, which also means nothing takes it down with the
+            // hierarchy this method exists to give up on. Dropping the reference alone leaves a live
+            // camera and a second AudioListener in the scene for the rest of the session.
+            ReleaseRuntimeThirdPersonCamera();
             ignoredCollisionPairs = null;
             suppressibleAnimators = null;
             suppressibleAnimatorRootMotion = null;
@@ -307,6 +310,13 @@ namespace SpaceGame.Agents
 
         private void DisableRiderComponentsForMount()
         {
+            // Captured before anything is written, and captured whether or not this mount is
+            // configured to take that component — an untaken component is remembered as-is, so the
+            // restore below stays a no-op for it either way.
+            riderMovementWasEnabled = mountedPlayerMovement && mountedPlayerMovement.enabled;
+            riderLookWasEnabled = mountedPlayerLook && mountedPlayerLook.enabled;
+            riderInteractorWasEnabled = mountedInteractor && mountedInteractor.enabled;
+
             if (disablePlayerMovement && mountedPlayerMovement)
             {
                 mountedPlayerMovement.enabled = false;
@@ -332,16 +342,23 @@ namespace SpaceGame.Agents
             if (RiderIsDead())
                 return;
 
-            if (disablePlayerMovement && mountedPlayerMovement)
+            // What was taken, and only that. A rider who arrived with these already off is a remote
+            // player being replayed by MountNetworkSync on a machine that does not own them — see
+            // the fields' note in MountModule.cs. Waking those up is not a cosmetic slip: it hands
+            // somebody else's PlayerLook this machine's cursor, every frame, until they quit.
+            if (disablePlayerMovement && mountedPlayerMovement && riderMovementWasEnabled)
                 mountedPlayerMovement.enabled = true;
 
-            if (disablePlayerLook && mountedPlayerLook)
+            if (disablePlayerLook && mountedPlayerLook && riderLookWasEnabled)
             {
+                // Hiding the head belongs to the first-person view this rider is returning to, so it
+                // travels with the look restore rather than running for a body we only ever see from
+                // the outside.
                 mountedPlayerLook.SetHeadVisible(false);
                 mountedPlayerLook.enabled = true;
             }
 
-            if (disablePlayerInteractor && mountedInteractor)
+            if (disablePlayerInteractor && mountedInteractor && riderInteractorWasEnabled)
                 mountedInteractor.enabled = true;
         }
 

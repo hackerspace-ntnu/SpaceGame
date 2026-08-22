@@ -73,9 +73,19 @@ namespace SpaceGame.Agents
             }
         }
 
+        /// <summary>
+        /// Is this machine the one whose player is in the saddle?
+        ///
+        /// Every input read below is a read of THIS machine's keyboard, and mounting replicates, so
+        /// without this every peer drove its own copy of a craft somebody else was riding — and
+        /// unlike SteerModule this one writes the Rigidbody outright, including un-freezing the
+        /// kinematic body NetAuthority just froze. Same gate, same reason.
+        /// </summary>
+        private bool RiderIsLocal => mountModule && mountModule.IsMounted && mountModule.RiderIsLocal;
+
         private void Update()
         {
-            if (!mountModule || !mountModule.IsMounted)
+            if (!RiderIsLocal)
                 return;
 
             // Server-authoritative when networked, same as SteerModule's Escape handler.
@@ -93,7 +103,7 @@ namespace SpaceGame.Agents
 
         private void FixedUpdate()
         {
-            if (!mountModule || !mountModule.IsMounted || !body)
+            if (!RiderIsLocal || !body)
                 return;
 
             ConfigureBodyForRiding();
@@ -108,6 +118,12 @@ namespace SpaceGame.Agents
 
         private void HandleMounted(PlayerMovement _)
         {
+            // Gated for the same reason FixedUpdate is: this hands the body back to physics, and on
+            // a machine that is only watching, the body is deliberately kinematic so the replicated
+            // transform is not fought by a local simulation nobody is driving.
+            if (!RiderIsLocal)
+                return;
+
             ConfigureBodyForRiding();
             if (body)
                 body.WakeUp();

@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using SpaceGame.Characters;
+using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.Persistence;
 using SpaceGame.Vehicles;
@@ -159,6 +160,21 @@ namespace SpaceGame.Agents
         private bool playerRigidbodyWasKinematic;
         private bool playerRigidbodyHadGravity;
         private RigidbodyInterpolation playerRigidbodyInterpolation;
+
+        // The rider's own control components as they were the moment they sat down, so the dismount
+        // hands back what it took rather than switching everything on.
+        //
+        // The difference is the whole multiplayer story of this class. MountNetworkSync replays a
+        // peer's mount and dismount here, so a client runs this against SOMEBODY ELSE'S player —
+        // a body whose PlayerMovement, PlayerLook and Interactor are off because
+        // PlayerController.DisablePlayer switched them off on every machine that does not own it.
+        // Restoring to `true` woke them up on the wrong machine: PlayerLook.LateUpdate then re-locks
+        // this machine's cursor every frame (the death screen loses its pointer, so Respawn cannot
+        // be clicked) and PlayerMovement.FixedUpdate writes velocity into a remote body netcode
+        // keeps kinematic, once per physics step, for the rest of the session.
+        private bool riderMovementWasEnabled;
+        private bool riderLookWasEnabled;
+        private bool riderInteractorWasEnabled;
         private float lastMountChangeTime;
 
         private Transform activeSeatPoint;
@@ -187,6 +203,27 @@ namespace SpaceGame.Agents
 
         // ─────────── Public API ───────────
         public bool IsMounted => mountedPlayer != null;
+
+        /// <summary>
+        /// Is the rider in this seat THIS machine's player?
+        ///
+        /// <para>
+        /// The line between what a mount does for everybody — seating the rider, suppressing its
+        /// own AI, ignoring the collision pairs, posing the legs — and the much smaller set it does
+        /// for exactly one person: the cameras, the audio listener, the look input, the visor
+        /// shader flag, and switching the rider's own control scripts off. Mounting replicates to
+        /// every peer, so before this the second set ran on every machine in the session at once,
+        /// which is how one player climbing onto an ostrich put a third-person camera on everybody
+        /// else's screen.
+        /// </para>
+        /// <para>
+        /// Asked of the RIDER, not of the mount. Mount ownership is handed to the rider as part of
+        /// seating, and a peer can apply the mount before that transfer has reached it; a rider's
+        /// ownership never changes at all. <see cref="Network.Owns"/> answers true offline and for
+        /// an unnetworked rider, so single-player and un-networked mounts behave as they always did.
+        /// </para>
+        /// </summary>
+        public bool RiderIsLocal => mountedPlayer != null && Network.Owns(mountedPlayer);
         public bool IsAvailableForMount => !IsMounted && Time.time >= lastMountChangeTime + mountCooldown;
         public bool AllowAISelfMovementWhenMounted => allowAISelfMovementWhenMounted;
         public Transform ActiveSeatPoint => activeSeatPoint != null ? activeSeatPoint : seatPoint;
@@ -258,7 +295,11 @@ namespace SpaceGame.Agents
 
         private void Update()
         {
-            if (!IsMounted)
+            // The look stick belongs to the person in the saddle. Read on a machine whose player is
+            // standing somewhere else, it aims a camera they are not looking through, force-enables
+            // their Look action while they are in a menu, and writes pitch onto the head of a
+            // remote player whose aim already replicates through PlayerViewNetwork.
+            if (!IsMounted || !RiderIsLocal)
                 return;
 
             EnsureLookActionEnabled();

@@ -58,23 +58,64 @@ namespace SpaceGame.Agents
                 mountedFirstPersonCameraRoot.localRotation = Quaternion.Euler(mountedPitch, 0f, 0f);
         }
 
+        /// <summary>
+        /// Put this machine's view into <paramref name="perspective"/>.
+        ///
+        /// <para>
+        /// Tracked on every machine, because <c>activePerspective</c> is what LateUpdate reads and
+        /// what a later toggle flips — but ACTED ON only for the local rider. Everything below the
+        /// guard is one person's view of the world: their cameras, their audio listener, and a
+        /// static shader flag with exactly one correct writer per process. Running it for somebody
+        /// else's rider is what spawned a second third-person camera on every peer in the session
+        /// the moment one player climbed into a saddle.
+        /// </para>
+        /// </summary>
         private void ApplyPerspective(CameraPerspective perspective)
         {
             activePerspective = perspective;
-            if (activePerspective == CameraPerspective.FirstPerson)
+            bool firstPerson = activePerspective == CameraPerspective.FirstPerson;
+
+            // The head is a VISUAL, so it is decided everywhere. A remote rider is only ever seen
+            // from outside, and hiding their head to match a first-person view nobody on this
+            // machine is looking through leaves a decapitated player sitting on the saddle.
+            mountedPlayerLook?.SetHeadVisible(!RiderIsLocal || !firstPerson);
+
+            if (!RiderIsLocal)
+                return;
+
+            if (firstPerson)
             {
                 SetThirdPersonCameraEnabled(false);
                 SetFirstPersonCameraEnabled(true);
                 SetMountedVisorEnabled(true);
-                mountedPlayerLook?.SetHeadVisible(false);
             }
             else
             {
                 SetFirstPersonCameraEnabled(false);
                 SetThirdPersonCameraEnabled(true);
                 SetMountedVisorEnabled(false);
-                mountedPlayerLook?.SetHeadVisible(true);
             }
+        }
+
+        /// <summary>
+        /// Hand this machine's view back to the player's own head at the end of a dismount.
+        ///
+        /// <para>
+        /// The exact mirror of the local half of <see cref="ApplyPerspective"/>, and gated the same
+        /// way. On a machine that is only WATCHING somebody dismount there is no mount camera to
+        /// switch off, the first-person camera being re-enabled belongs to a remote player whose
+        /// camera <c>PlayerController.DisablePlayer</c> deliberately switched off, and the visor
+        /// flag is a global with one correct writer.
+        /// </para>
+        /// </summary>
+        private void RestoreLocalViewAfterDismount()
+        {
+            if (!RiderIsLocal)
+                return;
+
+            SetThirdPersonCameraEnabled(false);
+            SetFirstPersonCameraEnabled(true);
+            SetMountedVisorEnabled(true);
         }
 
         private void InitializeMountedViewState()
@@ -195,7 +236,9 @@ namespace SpaceGame.Agents
 
         private void LateUpdate()
         {
-            if (!IsMounted)
+            // Nothing in here exists on a machine whose player is not the rider: the camera is
+            // never spawned there, and cameraYaw only feeds that camera.
+            if (!IsMounted || !RiderIsLocal)
                 return;
 
             // Light smoothing on the orbit yaw. This is a comfort filter, not the shake fix — the

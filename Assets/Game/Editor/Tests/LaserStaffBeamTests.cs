@@ -75,6 +75,34 @@ namespace SpaceGame.EditorTools
                 .Invoke(target, null);
         }
 
+        /// <summary>
+        /// The press, as EquipmentController sends it: request, present, then the authority half.
+        ///
+        /// This is what LIGHTS the arc. Hold ticks only steer it — a burn is three seconds long
+        /// whatever the button does, so a test that lights the staff by holding it is testing a
+        /// path that no longer exists.
+        /// </summary>
+        private NetArg Fire()
+        {
+            var arg = new NetArg { A = 0 };
+            artifact.OnRequestUse(ref arg);
+            artifact.PlayUse(player, arg);
+            artifact.TryUse(player, arg);
+            return arg;
+        }
+
+        /// <summary>Forget the recharge, for tests that fire more than once.</summary>
+        private void ClearCooldown() => Set(artifact, "_cooldownEndsAt", 0f);
+
+        /// <summary>
+        /// Reach a private field on UsableItem itself. GetField on the derived type does not return
+        /// the base's private members, so the charge count needs its own accessor.
+        /// </summary>
+        private static void SetBase(object target, string name, object value) =>
+            typeof(UsableItem)
+                .GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(target, value);
+
         /// <summary>One hold tick, as EquipmentController would send it.</summary>
         private NetArg Hold(bool active = true)
         {
@@ -157,17 +185,27 @@ namespace SpaceGame.EditorTools
         // ─────────── Ignition and extinction ───────────
 
         [Test]
-        public void FirstHoldTick_LightsTheBeam()
+        public void ThePress_LightsTheBeam()
         {
             Assert.IsFalse(Get<bool>(artifact, "_lit"));
-            Hold();
+            Fire();
             Assert.IsTrue(Get<bool>(artifact, "_lit"));
+        }
+
+        [Test]
+        public void HoldTicks_DoNotLightAnything()
+        {
+            Hold();
+
+            Assert.IsFalse(Get<bool>(artifact, "_lit"),
+                "The trigger fires the staff. A tick that could light it would let a held button " +
+                "restart the burn the moment the cooldown lapsed.");
         }
 
         [Test]
         public void ReleaseTick_PutsItOut()
         {
-            Hold();
+            Fire();
             Hold(active: false);
             Assert.IsFalse(Get<bool>(artifact, "_lit"));
         }
@@ -175,7 +213,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void Unequipping_PutsItOut()
         {
-            Hold();
+            Fire();
             artifact.OnUnequipped(player);
             Assert.IsFalse(Get<bool>(artifact, "_lit"), "A staff put away, dropped or swapped must stop burning.");
         }
@@ -183,7 +221,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void StaleHoldStream_ExtinguishesItself()
         {
-            Hold();
+            Fire();
             Assert.IsTrue(Get<bool>(artifact, "_lit"));
 
             // The release that never arrived — a dropped packet, or a player who disconnected with
@@ -207,12 +245,259 @@ namespace SpaceGame.EditorTools
                 "A timeout shorter than the 15 Hz send interval would cut the beam between two ordinary ticks.");
         }
 
+        // ─────────── The burst and the recharge ───────────
+        //
+        // Three seconds on, ten seconds off, and the button gets no say in either. Everything here
+        // fails silently if it breaks: a burn that never ends looks like a working weapon until
+        // somebody notices it never stopped, and a cooldown you can skip by scrolling hotbar slots
+        // looks like a working cooldown right up until the first player tries it.
+
+        [Test]
+        public void Firing_StartsAFixedLengthBurn()
+        {
+            Fire();
+
+            Assert.AreEqual(Time.time + Get<float>(artifact, "burnDuration"),
+                            Get<float>(artifact, "_burnEndsAt"), 0.01f);
+        }
+
+        [Test]
+        public void TheBurn_EndsItself()
+        {
+            Fire();
+
+            // The three seconds, spent. Rewinding the deadline is the same thing as time passing.
+            Set(artifact, "_burnEndsAt", Time.time - 0.01f);
+            Invoke(artifact, "Update");
+
+            Assert.IsFalse(Get<bool>(artifact, "_lit"),
+                "The staff times its own burn. Nothing else is going to stop it.");
+        }
+
+        [Test]
+        public void TheBurn_OutlivesTheButton()
+        {
+            Fire();
+
+            Assert.IsTrue(artifact.WantsHold,
+                "EquipmentController streams the aim only while this is true. False here and a " +
+                "tapped shot freezes every other machine's aim at the instant of the press.");
+
+            Set(artifact, "_burnEndsAt", Time.time - 0.01f);
+            Invoke(artifact, "Update");
+
+            Assert.IsFalse(artifact.WantsHold, "…and the stream has to end when the burn does.");
+        }
+
+        [Test]
+        public void HoldingTheButton_DoesNotExtendTheBurn()
+        {
+            Fire();
+            float deadline = Get<float>(artifact, "_burnEndsAt");
+
+            Hold();
+            Hold();
+
+            Assert.AreEqual(deadline, Get<float>(artifact, "_burnEndsAt"), 0.0001f);
+        }
+
+        [Test]
+        public void Firing_StartsTheRecharge_CoveringTheBurnToo()
+        {
+            Fire();
+
+            float expected = Time.time
+                           + Get<float>(artifact, "burnDuration")
+                           + Get<float>(artifact, "cooldown");
+
+            Assert.AreEqual(expected, Get<float>(artifact, "_cooldownEndsAt"), 0.05f,
+                "Stamped at ignition, not when the burn ends. On a host Present runs before the " +
+                "server's Use, so a gate that asked \"is it burning?\" would refuse a press the " +
+                "arc had already answered — and spend a charge doing it.");
+        }
+
+        [Test]
+        public void TheRecharge_RefusesASecondShot()
+        {
+            Fire();
+            Set(artifact, "_burnEndsAt", Time.time - 0.01f);
+            Invoke(artifact, "Update");
+
+            Fire();
+
+            Assert.IsFalse(Get<bool>(artifact, "_lit"),
+                "Ten seconds means ten seconds, on every machine — the press is presented locally " +
+                "before the server has said anything, so the owner has to refuse it itself.");
+        }
+
+        [Test]
+        public void TheRecharge_Lapses()
+        {
+            Fire();
+            Set(artifact, "_burnEndsAt", Time.time - 0.01f);
+            Invoke(artifact, "Update");
+
+            ClearCooldown();
+            Fire();
+
+            Assert.IsTrue(Get<bool>(artifact, "_lit"));
+        }
+
+        [Test]
+        public void TheRecharge_SurvivesAHotbarSwap()
+        {
+            Fire();
+
+            // Exactly the order Unequip uses: the slot is written back BEFORE anything is put out,
+            // so a staff swapped away mid-burn has to report the recharge it is about to owe rather
+            // than the one it has not started yet.
+            var state = new ItemState();
+            artifact.CaptureItemState(state);
+
+            Assert.Greater(state.GetFloat("staffCooldown", 0f), 0f,
+                "A cooldown living only on the instance is a cooldown you skip by scrolling away " +
+                "and back — the held object is destroyed and rebuilt on every hotbar change.");
+
+            var swapped = new GameObject("second staff").AddComponent<LaserStaffArtifact>();
+            swapped.RestoreItemState(state);
+
+            bool blocked = Get<float>(swapped, "_cooldownEndsAt") > Time.time;
+            Object.DestroyImmediate(swapped.gameObject);
+
+            Assert.IsTrue(blocked);
+        }
+
+        [Test]
+        public void TheRecharge_IsStoredAsSecondsRemaining_NotAsADeadline()
+        {
+            Set(artifact, "_cooldownEndsAt", Time.time + 4f);
+
+            var state = new ItemState();
+            artifact.CaptureItemState(state);
+
+            Assert.AreEqual(4f, state.GetFloat("staffCooldown", 0f), 0.05f,
+                "Time.time restarts at zero every session, so a stored deadline comes back either " +
+                "already spent or hours away.");
+        }
+
+        [Test]
+        public void ADarkStaff_DoesNotKeepRestampingItsRecharge()
+        {
+            Fire();
+            Set(artifact, "_burnEndsAt", Time.time - 0.01f);
+            Invoke(artifact, "Update");
+
+            float deadline = Get<float>(artifact, "_cooldownEndsAt");
+
+            // Every one of these calls Extinguish on a staff that is already out.
+            Hold(active: false);
+            artifact.OnUnequipped(player);
+            Invoke(artifact, "Update");
+
+            Assert.AreEqual(deadline, Get<float>(artifact, "_cooldownEndsAt"), 0.0001f,
+                "Scrolling past a recharging staff must not push its next shot ten seconds further away.");
+        }
+
+        // ─────────── Charges ───────────
+        //
+        // Fire() runs Present BEFORE the authority half, which is exactly the order a host uses.
+        // Every gate the recharge could plausibly have been written as is already true by then, so
+        // these three are the ones that catch a staff spending charges it should not — or, worse,
+        // never spending them at all on the one machine most people play on.
+
+        [Test]
+        public void APress_SpendsItsCharge_EvenThoughPresentRanFirst()
+        {
+            SetBase(artifact, "maxUses", 1);
+
+            bool depleted = false;
+            artifact.OnItemDepleted += _ => depleted = true;
+
+            Fire();
+
+            Assert.IsTrue(depleted,
+                "By the time the server's half of a host press is reached the arc is already lit " +
+                "and the recharge already stamped. A gate reading either would skip the charge, " +
+                "and a limited-use staff would fire forever on a host.");
+        }
+
+        [Test]
+        public void APressDuringTheRecharge_SpendsNothing()
+        {
+            SetBase(artifact, "maxUses", 1);
+            Set(artifact, "_cooldownEndsAt", Time.time + 5f);
+
+            bool depleted = false;
+            artifact.OnItemDepleted += _ => depleted = true;
+
+            Fire();
+
+            Assert.IsFalse(Get<bool>(artifact, "_lit"));
+            Assert.IsFalse(depleted, "A press the staff refused must not cost a charge.");
+        }
+
+        [Test]
+        public void APressDuringTheBurn_SpendsNothing()
+        {
+            SetBase(artifact, "maxUses", 2);
+
+            bool depleted = false;
+            artifact.OnItemDepleted += _ => depleted = true;
+
+            Fire();
+            Fire();
+
+            Assert.IsFalse(depleted,
+                "Mashing the button through a burn changes nothing, so it must cost nothing.");
+        }
+
+        // ─────────── The arc ───────────
+
+        [Test]
+        public void TheArc_IsBentGeometry_PinnedAtBothEnds()
+        {
+            var lineObject = new GameObject("beam", typeof(LineRenderer));
+            var line = lineObject.GetComponent<LineRenderer>();
+            Set(artifact, "beam", line);
+
+            var start = new Vector3(0f, 1f, 0f);
+            var end = new Vector3(0f, 1f, 20f);
+
+            typeof(LaserStaffArtifact)
+                .GetMethod("BuildArc", BindingFlags.NonPublic | BindingFlags.Instance)
+                .Invoke(artifact, new object[] { start, end });
+
+            int segments = Get<int>(artifact, "arcSegments");
+            int count = line.positionCount;
+
+            Vector3 first = line.GetPosition(0);
+            Vector3 last = line.GetPosition(count - 1);
+
+            // The widest the arc strays from the straight line between the two ends.
+            float widest = 0f;
+            for (int i = 1; i < count - 1; i++)
+            {
+                Vector3 straight = Vector3.Lerp(start, end, (float)i / (count - 1));
+                widest = Mathf.Max(widest, Vector3.Distance(line.GetPosition(i), straight));
+            }
+
+            Object.DestroyImmediate(lineObject);
+
+            Assert.AreEqual(segments + 1, count,
+                "The kinks are real points. Painting a bolt into the UV of a straight ribbon looks " +
+                "like a bolt only until the beam sweeps.");
+            Assert.AreEqual(start, first, "The arc must start in the muzzle…");
+            Assert.AreEqual(end, last, "…and end exactly where Trace found the surface it is billing.");
+            Assert.Greater(widest, 0.01f, "A bolt that does not stray from the straight line is a laser.");
+        }
+
         // ─────────── Damage ───────────
 
         [Test]
         public void DamageIsSpentInWholePoints_AtTheConfiguredRate()
         {
             PlaceTargetAhead();
+            Fire();
             Hold();
             Invoke(artifact, "Trace");
 
@@ -229,6 +514,7 @@ namespace SpaceGame.EditorTools
         public void TickRateDoesNotChangeTheDamage()
         {
             PlaceTargetAhead();
+            Fire();
             Hold();
             Invoke(artifact, "Trace");
 
@@ -251,6 +537,7 @@ namespace SpaceGame.EditorTools
         public void FractionalDamagePerTick_IsNotLostToRounding()
         {
             PlaceTargetAhead();
+            Fire();
             Hold();
             Invoke(artifact, "Trace");
 
@@ -269,7 +556,7 @@ namespace SpaceGame.EditorTools
         public void BeamOffTarget_DealsNothing()
         {
             PlaceTargetAhead();
-            Hold();
+            Fire();
 
             // Aim at open sky. Nothing is hit, so nothing is billed.
             Set(artifact, "_hitObject", null);
@@ -302,6 +589,7 @@ namespace SpaceGame.EditorTools
             }
 
             PlaceTargetAhead();
+            Fire();
             Hold();
             Invoke(artifact, "Trace");
 
@@ -314,7 +602,7 @@ namespace SpaceGame.EditorTools
         [Test]
         public void Trace_ReachesFullRangeWhenNothingIsThere()
         {
-            Hold();
+            Fire();
             Invoke(artifact, "Trace");
 
             Assert.IsNull(Get<GameObject>(artifact, "_hitObject"));
@@ -334,7 +622,7 @@ namespace SpaceGame.EditorTools
             near.transform.position = new Vector3(0f, 0f, 5f);
             Physics.SyncTransforms();
 
-            Hold();
+            Fire();
             Invoke(artifact, "Trace");
 
             GameObject hit = Get<GameObject>(artifact, "_hitObject");

@@ -32,7 +32,7 @@ namespace SpaceGame.EditorTools
         private const string PrefabPath   = "Assets/Game/Prefabs/Items/Artifacts/Gadgets/LaserStaff.prefab";
         private const string ItemPath     = "Assets/Game/Resources/Items/Artifacts/LaserStaff.asset";
         private const string MaterialDir  = "Assets/Game/Art/Materials/Weapons";
-        private const string BeamMatPath  = MaterialDir + "/LaserBeam.mat";
+        private const string BeamMatPath  = MaterialDir + "/LightningBeam.mat";
         private const string ImpactMatPath = MaterialDir + "/LaserImpact.mat";
         private const string SparkMatPath = MaterialDir + "/LaserSpark.mat";
         private const string SmokeMatPath = MaterialDir + "/LaserSmoke.mat";
@@ -43,6 +43,20 @@ namespace SpaceGame.EditorTools
         private static readonly Color Core = new Color(1.000f, 0.894f, 0.894f);
         private static readonly Color Body = new Color(1.000f, 0.169f, 0.169f);
         private static readonly Color Halo = new Color(0.420f, 0.000f, 0.000f);
+
+        /// <summary>
+        /// The arc's own two, kept apart from the impact rig's.
+        ///
+        /// Red only, and one hue at three exposures rather than three colours. The filament stays
+        /// firmly red instead of going to the near-white the laser's core used, because bloom takes
+        /// it towards white on its own — authoring the whiteness as well is how a "red" beam ends up
+        /// looking pink.
+        /// </summary>
+        private static readonly Color ArcCore = new Color(1.000f, 0.300f, 0.240f);
+        private static readonly Color ArcGlow = new Color(0.450f, 0.015f, 0.000f);
+
+        /// <summary>The strike graph the arc drops on whatever it rests on. Tinted at runtime.</summary>
+        private const string StrikeVfxPath = "Assets/Game/Prefabs/VisualEffects/Lightning/Lightning.prefab";
 
         /// <summary>The ground layer DropItemPhysics settles against, copied from LightningSpell.</summary>
         private const int GroundLayerMask = 128;
@@ -57,7 +71,7 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
-            Material beamMat   = EnsureMaterial(BeamMatPath, "SpaceGame/LaserBeam", ConfigureBeamMaterial);
+            Material beamMat   = EnsureMaterial(BeamMatPath, "SpaceGame/LightningBeam", ConfigureBeamMaterial);
             Material impactMat = EnsureMaterial(ImpactMatPath, "SpaceGame/LaserImpact", ConfigureImpactMaterial);
             Material sparkMat  = EnsureMaterial(SparkMatPath, "SpaceGame/LaserSpark", ConfigureSparkMaterial);
             Material smokeMat  = EnsureMaterial(SmokeMatPath, "SpaceGame/LaserSmoke", ConfigureSmokeMaterial);
@@ -122,6 +136,11 @@ namespace SpaceGame.EditorTools
             beam.positionCount = 2;
             beam.widthMultiplier = 0.13f;
             beam.numCapVertices = 4;
+
+            // The arc is drawn with a couple of dozen displaced points, and every one of them is a
+            // corner. Without rounded joins the ribbon pinches to nothing at each kink and the bolt
+            // reads as a chain of separate darts.
+            beam.numCornerVertices = 3;
             beam.textureMode = LineTextureMode.Stretch;
             beam.alignment = LineAlignment.View;
             beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -221,6 +240,14 @@ namespace SpaceGame.EditorTools
             SetPrivate(artifact, "embers", embers);
             SetPrivate(artifact, "smoke", smokeSystem);
             SetPrivate(artifact, "impactLight", impactLight);
+
+            // The strike itself. Missing is survivable — the artifact simply does not strike — so
+            // this warns rather than aborting a build that is otherwise complete.
+            var strikeVfx = AssetDatabase.LoadAssetAtPath<GameObject>(StrikeVfxPath);
+            if (strikeVfx == null)
+                Debug.LogWarning($"[LaserStaff] No strike VFX at {StrikeVfxPath}; the arc will land without one.");
+            else
+                SetPrivate(artifact, "strikeVfx", strikeVfx);
 
             // The ignition report. There is no sustained loop: Sfx has no way to stop one, and the
             // FMOD project is lost, so a looping beam hum could not be authored or cut off anyway.
@@ -538,18 +565,31 @@ namespace SpaceGame.EditorTools
             return material;
         }
 
+        /// <summary>
+        /// The arc. One hue at three exposures — see the shader — so nothing in the beam is any
+        /// colour but red.
+        ///
+        /// The filament is far narrower and sharper than the laser's was, and the glow far wider.
+        /// That gap between a thin channel and a broad haze is what makes a discharge look like one
+        /// rather than like a coloured stripe.
+        /// </summary>
         private static void ConfigureBeamMaterial(Material m)
         {
-            m.SetColor("_CoreColor", Core);
-            m.SetColor("_BeamColor", Body);
-            m.SetColor("_HaloColor", Halo);
-            m.SetFloat("_Intensity", 3.5f);
-            m.SetFloat("_CoreWidth", 0.28f);
-            m.SetFloat("_CoreSharpness", 2.6f);
-            m.SetFloat("_FlowSpeed", 18f);
-            m.SetFloat("_FlowScale", 1.8f);
-            m.SetFloat("_FlowStrength", 0.35f);
-            m.SetFloat("_TipFlare", 2.2f);
+            m.SetColor("_CoreColor", ArcCore);
+            m.SetColor("_BoltColor", Body);
+            m.SetColor("_GlowColor", ArcGlow);
+            m.SetFloat("_Intensity", 4.2f);
+            m.SetFloat("_CoreWidth", 0.14f);
+            m.SetFloat("_CoreSharpness", 3.4f);
+            m.SetFloat("_GlowFalloff", 0.55f);
+            m.SetFloat("_CrackleScale", 6f);
+            m.SetFloat("_CrackleSpeed", 34f);
+            m.SetFloat("_CrackleDepth", 0.55f);
+            m.SetFloat("_StrikeRate", 22f);
+            m.SetFloat("_StrikeDepth", 0.35f);
+            m.SetFloat("_MuzzleTaper", 0.05f);
+            m.SetFloat("_TipFlare", 2.6f);
+            m.SetFloat("_TipWidth", 0.14f);
             m.renderQueue = 3000;
         }
 

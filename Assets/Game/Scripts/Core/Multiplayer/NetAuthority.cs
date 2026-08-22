@@ -13,6 +13,7 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
 using SpaceGame.Agents;
+using SpaceGame.Locomotion;
 
 namespace SpaceGame.Core
 {
@@ -88,6 +89,15 @@ namespace SpaceGame.Core
             Restore();
             if (IsSimulatedHere) return;
 
+            // Before the drivers, because a kinematic posing layer is not one and must not be
+            // treated as one. A legged machine's locomotion both MOVES the body and SOLVES the
+            // legs: switch it off and the remote copy slides along with still feet, leave it on and
+            // it overwrites the replicated pose in LateUpdate every frame — so the remote copy
+            // never moves at all while the real machine walks away. That second failure is what
+            // made a mounted ostrich vanish out from under its rider on every other machine.
+            // Neither switch is right; it has to follow the wire instead.
+            SetExternallyPosed(true);
+
             foreach (Behaviour driver in ResolveDrivers())
             {
                 if (driver == null || !driver.enabled) continue;
@@ -111,8 +121,32 @@ namespace SpaceGame.Core
 
             disabled.Clear();
 
+            // Unconditional rather than remembered, because unlike the drivers there is nothing to
+            // remember: owning your own transform is the only state a posing layer is ever authored
+            // in, and this is the sole thing that ever moves it off that. Handing it back on despawn
+            // is what stops a client who loses the session being left with a frozen world.
+            SetExternallyPosed(false);
+
             if (body != null) body.isKinematic = wasKinematic;
             body = null;
+        }
+
+        /// <summary>
+        /// Tell every kinematic posing layer on this entity whether it still owns its transform.
+        ///
+        /// Filtered by <see cref="BelongsTo"/> for the same reason the drivers are: a rider is
+        /// parented INTO their mount while mounted, so an unfiltered sweep would reach down into
+        /// the player sitting on the saddle.
+        /// </summary>
+        private void SetExternallyPosed(bool value)
+        {
+            foreach (MonoBehaviour behaviour in GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                if (behaviour is not IExternallyPosed posed) continue;
+                if (!BelongsTo(gameObject, behaviour)) continue;
+
+                posed.ExternallyPosed = value;
+            }
         }
 
         /// <summary>

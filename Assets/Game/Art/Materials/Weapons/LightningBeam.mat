@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: LaserBeam
-  m_Shader: {fileID: 4800000, guid: 5e130bff9f48245b5aea121206803384, type: 3}
+  m_Name: LightningBeam
+  m_Shader: {fileID: 4800000, guid: aad3269ba9b54f739ab0807ab68a5db5, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -19,29 +19,29 @@ Material:
   m_CustomRenderQueue: 3000
   stringTagMap: {}
   disabledShaderPasses: []
-  m_LockedProperties: 
+  m_LockedProperties:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
     - _BeamLength: 10
-    - _CoreSharpness: 2.6
-    - _CoreWidth: 0.28
-    - _Flicker: 0.12
-    - _FlickerSpeed: 34
-    - _FlowScale: 1.8
-    - _FlowSpeed: 18
-    - _FlowStrength: 0.35
-    - _HaloFalloff: 0.7
+    - _CoreSharpness: 3.4
+    - _CoreWidth: 0.14
+    - _CrackleDepth: 0.55
+    - _CrackleScale: 6
+    - _CrackleSpeed: 34
+    - _GlowFalloff: 0.55
     - _Ignite: 1
-    - _Intensity: 3.5
-    - _MuzzleTaper: 0.06
-    - _TipFlare: 2.2
-    - _TipWidth: 0.12
+    - _Intensity: 4.2
+    - _MuzzleTaper: 0.05
+    - _StrikeDepth: 0.35
+    - _StrikeRate: 22
+    - _TipFlare: 2.6
+    - _TipWidth: 0.14
     m_Colors:
-    - _BeamColor: {r: 1, g: 0.169, b: 0.169, a: 1}
-    - _CoreColor: {r: 1, g: 0.894, b: 0.894, a: 1}
-    - _HaloColor: {r: 0.42, g: 0, b: 0, a: 1}
+    - _BoltColor: {r: 1, g: 0.09, b: 0.06, a: 1}
+    - _CoreColor: {r: 1, g: 0.3, b: 0.24, a: 1}
+    - _GlowColor: {r: 0.45, g: 0.015, b: 0, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

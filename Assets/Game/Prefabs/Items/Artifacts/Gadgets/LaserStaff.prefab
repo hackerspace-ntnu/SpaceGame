@@ -9761,7 +9761,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 226ac964e9f9342908cf48e44d7d1e4a, type: 2}
+  - {fileID: 2100000, guid: 7ac4dba0b12647e5960b42a32131f884, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -9835,7 +9835,7 @@ LineRenderer:
       m_ColorSpace: -1
       m_NumColorKeys: 2
       m_NumAlphaKeys: 2
-    numCornerVertices: 0
+    numCornerVertices: 3
     numCapVertices: 4
     alignment: 0
     textureMode: 0
@@ -10192,6 +10192,12 @@ MonoBehaviour:
     m_Bits: 4294967295
   muzzle: {fileID: 1956313727594832670}
   beam: {fileID: 4634175972667586057}
+  burnDuration: 3
+  cooldown: 10
+  arcSegments: 26
+  arcSpread: 0.035
+  arcMaxOffset: 0.55
+  arcRestrikeRate: 22
   damagePerSecond: 100
   damageTicksPerSecond: 50
   impactRoot: {fileID: 4191372554167758733}
@@ -10200,6 +10206,10 @@ MonoBehaviour:
   embers: {fileID: 8206739465742743290}
   smoke: {fileID: 4900052564320809090}
   impactLight: {fileID: 6190554345905111907}
+  strikeVfx: {fileID: 5066555527250073763, guid: 28cb2c4920cfc224ea0501fbcc151e1f, type: 3}
+  strikeInterval: 0.7
+  strikeLifetime: 3
+  strikeColor: {r: 1, g: 0.09, b: 0.06, a: 1}
   impactLightIntensity: 7
   impactLightFlicker: 0.35
   glowPulse: 0.18

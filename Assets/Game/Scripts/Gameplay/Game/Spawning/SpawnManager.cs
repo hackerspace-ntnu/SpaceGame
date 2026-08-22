@@ -283,12 +283,201 @@ namespace SpaceGame.Gameplay
         /// anybody would have asked for.
         /// </para>
         /// </summary>
-        public bool TryGetRespawnPosition(out Vector3 respawnPosition)
-        {
-            if (!TryGetSpawnPoint(out respawnPosition)) return false;
+        public bool TryGetRespawnPosition(out Vector3 respawnPosition) =>
+            TryGetRespawnPosition(null, out respawnPosition);
 
-            respawnPosition = ClampAboveTerrain(respawnPosition);
-            return true;
+        /// <summary>
+        /// As above, with the position of the body being brought back offered as a last-resort
+        /// anchor. Worth passing: a dead player is standing on ground that certainly exists, which
+        /// is the one thing the spawn point cannot promise about itself.
+        /// </summary>
+        public bool TryGetRespawnPosition(Vector3 near, out Vector3 respawnPosition) =>
+            TryGetRespawnPosition((Vector3?)near, out respawnPosition);
+
+        private bool TryGetRespawnPosition(Vector3? near, out Vector3 respawnPosition)
+        {
+            if (TryGetSpawnPoint(out respawnPosition))
+            {
+                respawnPosition = ClampAboveTerrain(respawnPosition);
+                return true;
+            }
+
+            // The spawn point would not answer. For a joining client that is a reason to wait —
+            // NetworkGameManager asks again until the chunk arrives. For a respawn it is not: the
+            // player is already in the session, already dead, and has just pressed the only button
+            // they have. Leaving them face down until a bay somewhere becomes satisfiable is the
+            // failure this fallback exists to stop.
+            //
+            // So the ship stops being a requirement. Nothing about coming back to life needs a
+            // cargo bay — open sand next to it is a perfectly good place to stand up — and open
+            // ground is measured against the heightmap, which answers wherever the world is loaded
+            // and is not blocked by a hull, a full bay or a ship parked on a slope. A roof
+            // overhead is the disqualifier rather than a preference: it is what tells us we are
+            // back under the hull we were trying to leave.
+            CollectOccupied(occupied);
+
+            if (TryGetSpawnAnchor(out Vector3 anchor) &&
+                TryFindOpenGround(anchor, occupied, out respawnPosition))
+            {
+                Debug.LogWarning("[SpawnManager] no spawn point could vouch for a position — " +
+                                 $"respawning outside, on open ground near the spawn point, at {respawnPosition}.");
+                Reserve(respawnPosition);
+                return true;
+            }
+
+            // Still nothing: either there is no spawn point at all, or the ground around it has not
+            // loaded. Where the player fell has both, by definition — they were standing on it.
+            if (near.HasValue && TryFindOpenGround(near.Value, occupied, out respawnPosition))
+            {
+                Debug.LogWarning("[SpawnManager] no spawn point and no open ground near one — " +
+                                 $"respawning on open ground near where the player fell, at {respawnPosition}.");
+                Reserve(respawnPosition);
+                return true;
+            }
+
+            respawnPosition = Vector3.zero;
+            return false;
+        }
+
+        // ─────────────────────────────────────────────
+        //  Open ground, for when no spawn point will answer
+        // ─────────────────────────────────────────────
+
+        /// <summary>Clear of the ship's hull, which is roughly 5 m from the bay it contains.</summary>
+        private const float OpenGroundMinRadius = 7f;
+
+        /// <summary>Far enough to walk back from without being a different part of the world.</summary>
+        private const float OpenGroundMaxRadius = 30f;
+
+        private const int OpenGroundRings = 5;
+        private const int OpenGroundSpokes = 12;
+
+        /// <summary>Start height for the geometry probe. Clears the tallest hull in the game.</summary>
+        private const float OpenGroundProbeHeight = 80f;
+        private const float OpenGroundProbeDistance = 300f;
+
+        /// <summary>Mirrors SpawnPoint's standing volume — the player capsule, 3 m tall.</summary>
+        private const float StandingHeight = 3f;
+        private const float StandingRadius = 0.45f;
+
+        /// <summary>
+        /// A place to stand under open sky near <paramref name="center"/>.
+        ///
+        /// Two passes, and the order matters. The heightmap is asked first because it is the one
+        /// surface that cannot be shadowed: a downward ray fired near a ship takes the hull, the
+        /// roof or a crate as "ground", and that is precisely the reading that put a player inside
+        /// a floor before. Only if the world has no terrain here — an interior scene, the arena,
+        /// the test scenes — does the second pass fall back to whatever solid thing a ray finds.
+        /// </summary>
+        private static bool TryFindOpenGround(Vector3 center, IReadOnlyList<Vector3> occupied,
+                                              out Vector3 position)
+        {
+            return TryScanOpenGround(center, occupied, terrainOnly: true, out position)
+                || TryScanOpenGround(center, occupied, terrainOnly: false, out position);
+        }
+
+        /// <summary>
+        /// Rings of samples outward from <paramref name="center"/>, taking the roomiest valid one.
+        /// The bearing of the first spoke is randomised so a wipe does not queue the whole lobby up
+        /// on the same side of the ship.
+        /// </summary>
+        private static bool TryScanOpenGround(Vector3 center, IReadOnlyList<Vector3> occupied,
+                                              bool terrainOnly, out Vector3 position)
+        {
+            position = Vector3.zero;
+
+            bool found = false;
+            float bestClearance = float.NegativeInfinity;
+
+            float spin = Random.value * Mathf.PI * 2f;
+            float ringStep = (OpenGroundMaxRadius - OpenGroundMinRadius) / Mathf.Max(1, OpenGroundRings - 1);
+
+            for (int ring = 0; ring < OpenGroundRings; ring++)
+            {
+                float radius = OpenGroundMinRadius + ringStep * ring;
+
+                for (int spoke = 0; spoke < OpenGroundSpokes; spoke++)
+                {
+                    float angle = spin + spoke * (Mathf.PI * 2f / OpenGroundSpokes);
+                    Vector3 at = center + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
+
+                    if (!TryResolveGround(center, at, terrainOnly, out Vector3 groundPoint)) continue;
+
+                    // A roof overhead means this sample is back under the hull — or under a deck,
+                    // or a rock overhang — which is the one thing this search is trying to leave.
+                    if (SpawnClearance.IsSheltered(groundPoint)) continue;
+
+                    if (!SpawnClearance.HasRoomToStand(groundPoint, StandingHeight, StandingRadius))
+                        continue;
+
+                    Vector3 candidate = groundPoint + Vector3.up * SpawnSurfaceClearance;
+                    float gap = NearestOccupantDistance(candidate, occupied);
+
+                    if (gap >= SpawnSeparation)
+                    {
+                        position = candidate;
+                        return true;
+                    }
+
+                    if (!found || gap > bestClearance)
+                    {
+                        found = true;
+                        bestClearance = gap;
+                        position = candidate;
+                    }
+                }
+            }
+
+            return found;
+        }
+
+        private static bool TryResolveGround(Vector3 center, Vector3 at, bool terrainOnly,
+                                             out Vector3 groundPoint)
+        {
+            if (terrainOnly)
+            {
+                if (TerrainProbe.TryGetTerrainHeight(at, out float terrainY))
+                {
+                    groundPoint = new Vector3(at.x, terrainY, at.z);
+                    return true;
+                }
+
+                groundPoint = Vector3.zero;
+                return false;
+            }
+
+            Vector3 origin = new(at.x, center.y + OpenGroundProbeHeight, at.z);
+
+            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, OpenGroundProbeDistance,
+                                ~0, QueryTriggerInteraction.Ignore))
+            {
+                groundPoint = hit.point;
+                return true;
+            }
+
+            groundPoint = Vector3.zero;
+            return false;
+        }
+
+        /// <summary>
+        /// Distance to the nearest body or claimed position, or infinity when there are none — so
+        /// an empty world reads as maximally clear with no special case. Mirrors the same measure
+        /// inside <see cref="SpawnPoint"/>, which cannot be shared without making one of them
+        /// depend on the other.
+        /// </summary>
+        private static float NearestOccupantDistance(Vector3 position, IReadOnlyList<Vector3> occupied)
+        {
+            if (occupied == null || occupied.Count == 0) return float.PositiveInfinity;
+
+            float nearest = float.PositiveInfinity;
+
+            for (int i = 0; i < occupied.Count; i++)
+            {
+                float distance = Vector3.Distance(position, occupied[i]);
+                if (distance < nearest) nearest = distance;
+            }
+
+            return nearest;
         }
 
         public void SpawnPlayerForClient(ulong clientId)

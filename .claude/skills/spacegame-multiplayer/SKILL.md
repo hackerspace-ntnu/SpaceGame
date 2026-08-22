@@ -7,6 +7,10 @@ description: Use when adding netcode to an existing single-player system in Spac
 
 ## Overview
 
+**The bar: every gameplay system works fully online.** Anything a player can change has to reach
+every other machine, including players who join later. A system that is still local is unfinished
+work, not a system that was scoped that way.
+
 One generic message channel carries every gameplay message in the project:
 `Assets/Game/Scripts/Core/Multiplayer/NetMessaging.cs` (the `NetArg` payload, the `NetMsg` id
 catalog, the extension-method API), `NetChannel.cs` (per-entity handler table, a plain

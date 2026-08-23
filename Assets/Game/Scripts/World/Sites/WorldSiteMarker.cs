@@ -5,6 +5,7 @@
 // world position on first enable, hand it to a registry that outlives the chunk, and use a stable
 // serialized id so streaming the chunk back in updates the record rather than duplicating it.
 using UnityEngine;
+using SpaceGame.Core.Persistence;
 using SpaceGame.Presentation;
 
 namespace SpaceGame.World
@@ -43,10 +44,35 @@ namespace SpaceGame.World
             radius = Mathf.Max(1f, radius);
         }
 
+        /// <summary>
+        /// Give this marker an id, if it has not been given one already.
+        ///
+        /// <para>
+        /// <b>A blank id used to mean a fresh <c>Guid</c>, every session.</b> That is fine for a
+        /// marker whose id was baked at edit time and is only a fallback in principle — except that
+        /// the fallback runs in builds too, and site ids are written into save files:
+        /// <c>NpcGroup.Record.lastSiteId</c> names the place a caravan was last at. A guid minted at
+        /// runtime is a different guid next session, so a saved NPC was looking for a place that no
+        /// longer existed, and every group in the world silently forgot where it had been.
+        /// </para>
+        /// <para>
+        /// Derived from the scene and the hierarchy instead — the same shape
+        /// <c>SaveableEntity.DeriveAuthoredId</c> uses for exactly the same reason — so an unchanged
+        /// scene produces the same id on every load of every build. An id somebody authored is never
+        /// touched.
+        /// </para>
+        /// </summary>
         private void EnsureId()
         {
-            if (string.IsNullOrEmpty(id))
-                id = System.Guid.NewGuid().ToString("N");
+            if (!string.IsNullOrEmpty(id)) return;
+
+            // No scene means a prefab asset or a prefab stage: there is no placement to derive from,
+            // and a guid baked into the asset is the honest answer. Placed instances of that prefab
+            // then share it, which is the same trade the component made before and is why deriving
+            // is preferred wherever there IS a scene.
+            id = gameObject.scene.IsValid() && !string.IsNullOrEmpty(gameObject.scene.name)
+                ? SaveableEntity.DeriveAuthoredId(gameObject)
+                : System.Guid.NewGuid().ToString("N");
         }
 
         private void OnEnable()

@@ -191,7 +191,19 @@ namespace SpaceGame.Agents
         public Vector3? CurrentDestination => destination;
 
         public bool HasReachedDestination =>
-            !destination.HasValue || FlatDistanceTo(destination.Value) <= stopDistance;
+            !destination.HasValue || FlatDistanceTo(destination.Value) <= EffectiveStopDistance;
+
+        /// <summary>
+        /// The stop distance to actually steer by, never zero.
+        ///
+        /// <c>stopDistance</c> has no field initialiser and is first assigned in <c>Awake</c>, so
+        /// anything that reads it before then sees 0 — and a machine that considers itself arrived
+        /// only at range zero never arrives. The guarantee belongs here, at the point of use, rather
+        /// than in <see cref="RestoreDrive"/> where it used to live: a restore that rewrites the
+        /// value it is handed cannot round-trip, because the next capture reads back something the
+        /// record never said. That asymmetry is what made the Ostrich fail its save/load test.
+        /// </summary>
+        private float EffectiveStopDistance => stopDistance > 0f ? stopDistance : defaultStopDistance;
 
         public void Tick(in MoveIntent intent, float deltaTime)
         {
@@ -257,6 +269,65 @@ namespace SpaceGame.Agents
         }
 
         public void SuggestDestination(Vector3 position) => destination = position;
+
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // What is worth a record here is the standing ORDER and the machine's momentum, and nothing
+        // else on the route.
+        //
+        // The route itself — `navPath`, `path`, `pathTarget`, `hasPath`, `repathTimer` — is
+        // deliberately left out. It is a derived thing: `repathTimer` starts at zero, so the first
+        // Tick after a load rebuilds the whole route from the destination before the machine takes a
+        // step, and a NavMeshPath cannot be serialized anyway. Worse, a stale corner list is
+        // actively harmful: the terrain it was calculated over may not have streamed in, and a
+        // machine steering at a corner from a route it can no longer walk goes somewhere nobody
+        // asked it to.
+        //
+        // The DETOUR (`detourDirection`, `detourHold`) goes too, and for a reason worth stating: it
+        // is a two-second commitment to going around a hill the legs refused, and it is dropped the
+        // moment the direct course is passable again. Restoring it costs two floats and saves a
+        // machine that saved mid-detour from walking straight back into the slope it had already
+        // decided to go around.
+        //
+        // `currentSpeed` and `currentStrafe` are the smoothed throttle, and they are here rather
+        // than in the "re-converges, skip it" pile because on these machines the smoothing feeds the
+        // GAIT: the twist sets the pace, the pace sets the stride, and a machine restored at zero
+        // throttle beside a restored mid-stride gait has its feet and its body disagreeing for the
+        // half second it takes to spin back up. Two floats to keep a walk looking like a walk.
+        public Vector3? Destination => destination;
+        public float StopDistance => stopDistance;
+        public float CurrentSpeed => currentSpeed;
+        public float CurrentStrafe => currentStrafe;
+        public Vector3 DetourDirection => detourDirection;
+        public float DetourHold => detourHold;
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Assigns verbatim. A restore that "helpfully" substitutes a default for a value it does
+        /// not like breaks the one property the save system needs from every saver — that capturing
+        /// a restored object gives back what was stored — and it breaks it silently, because both
+        /// halves look individually reasonable. <see cref="EffectiveStopDistance"/> is where the
+        /// never-zero guarantee lives now.
+        /// </summary>
+        public void RestoreDrive(Vector3? restoredDestination, float stop, float speed, float sideways)
+        {
+            destination = restoredDestination;
+            stopDistance = stop;
+            currentSpeed = speed;
+
+            // Still filtered by the rig's own capability: a machine that cannot strafe must not be
+            // handed a sideways throttle by a record written for one that can. Capture reads the
+            // same filtered field back, so this stays symmetric.
+            currentStrafe = lateralSteering ? sideways : 0f;
+        }
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreDetour(Vector3 direction, float hold)
+        {
+            detourDirection = direction;
+            detourHold = Mathf.Max(0f, hold);
+        }
 
         private float FlatDistanceTo(Vector3 p)
         {
@@ -506,7 +577,7 @@ namespace SpaceGame.Agents
             if (destination.HasValue)
             {
                 Gizmos.color = new Color(1f, 0.9f, 0.2f, 0.9f);
-                Gizmos.DrawWireSphere(destination.Value, stopDistance);
+                Gizmos.DrawWireSphere(destination.Value, EffectiveStopDistance);
             }
         }
     }

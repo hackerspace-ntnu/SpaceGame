@@ -1,10 +1,18 @@
 using UnityEngine;
+using SpaceGame.Persistence;
 
 /// <summary>
 /// Main spaceship manager using state pattern
 /// Handles state transitions, booster control, and booster lights
+///
+/// <para>
+/// <see cref="IPersistentEntity"/> because which state the ship is in is world state a player put
+/// it in, and the hull may carry nothing else <c>SaveablePolicy.NeedsSaving</c> looks for — its
+/// Rigidbody is only a qualifier while it is non-kinematic, which is exactly the state a ship
+/// sitting on the pad is not in.
+/// </para>
 /// </summary>
-public class SpaceshipManager : MonoBehaviour
+public class SpaceshipManager : MonoBehaviour, IPersistentEntity
 {
     [SerializeField] private RocketBoosterController boosterController;
     [SerializeField] private Transform boostersParent;
@@ -18,6 +26,17 @@ public class SpaceshipManager : MonoBehaviour
     private Light[] boosterLights;
     private Rigidbody rb;
 
+    /// <summary>Which of the three states the ship is in. The save system's whole view of it.</summary>
+    public enum StateKind { Idle, Flight, Crash }
+
+    // Set by a restore, cleared by the OnEnable that honours it.
+    //
+    // Initialize runs from OnEnable and used to END unconditionally in "start in idle state", which
+    // meant a ship that had crashed came back sitting quietly on the pad with its boosters off — the
+    // state machine reset by the one method that has to run before anything can read it. A latch is
+    // the smallest thing that lets a restore outrank that default without moving the default.
+    private bool restored;
+
     private void OnEnable()
     {
         Initialize();
@@ -25,38 +44,120 @@ public class SpaceshipManager : MonoBehaviour
 
     private void Initialize()
     {
+        EnsureStates();
+
+        // A restore has already put us somewhere. Consumed rather than sticky: the next enable with
+        // nothing restored in between is an ordinary one and belongs in idle.
+        if (restored) { restored = false; return; }
+
+        // Start in idle state
+        TransitionToState(idleState);
+    }
+
+    /// <summary>
+    /// Build the parts the state machine needs, without deciding which state to be in.
+    ///
+    /// Split out of <see cref="Initialize"/> so a restore that arrives before the first OnEnable can
+    /// put the ship into a state without the idle transition that Initialize ends with immediately
+    /// undoing it. Idempotent.
+    /// </summary>
+    private void EnsureStates()
+    {
         // Initialize Rigidbody reference
-        rb = GetComponent<Rigidbody>();
-        
+        if (rb == null) rb = GetComponent<Rigidbody>();
+
         // Collect all booster lights from children
-        if (boostersParent != null)
+        if (boosterLights == null)
         {
-            boosterLights = boostersParent.GetComponentsInChildren<Light>();
+            if (boostersParent != null)
+            {
+                boosterLights = boostersParent.GetComponentsInChildren<Light>();
+            }
+            else
+            {
+                Debug.LogWarning("SpaceshipManager: boostersParent not assigned!");
+                boosterLights = new Light[0];
+            }
         }
-        else
-        {
-            Debug.LogWarning("SpaceshipManager: boostersParent not assigned!");
-            boosterLights = new Light[0];
-        }
-        
+
         // Initialize states
-        idleState = new SpaceshipIdleState();
-        
+        if (idleState == null) idleState = new SpaceshipIdleState();
+
         // Flight controller needs to be set via inspector or property
         if (flightController == null)
         {
             flightController = GetComponent<IFlightController>();
         }
-        
-        flightState = new SpaceshipFlightState(flightController);
-        crashState = new SpaceshipCrashState();
-        
-        // Start in idle state
-        TransitionToState(idleState);
+
+        if (flightState == null) flightState = new SpaceshipFlightState(flightController);
+        if (crashState == null) crashState = new SpaceshipCrashState();
     }
 
+    /// <summary>The state the ship is in right now, as something a record can hold.</summary>
+    public StateKind CurrentKind =>
+        currentState is SpaceshipFlightState ? StateKind.Flight :
+        currentState is SpaceshipCrashState ? StateKind.Crash :
+        StateKind.Idle;
+
+    /// <summary>How fast the ship was going when it hit. Zero unless it has crashed.</summary>
+    public Vector3 CrashVelocity => crashState != null ? crashState.VelocityAtCrash : Vector3.zero;
+
+    /// <summary>
+    /// Restore-only. Called by the save system; do not call from gameplay.
+    ///
+    /// Goes through <see cref="TransitionToState"/> rather than assigning the field, so each state's
+    /// Enter runs and the boosters and their lights end up matching the state they belong to —
+    /// those flags are an OUTPUT of the state machine, and storing them separately could only ever
+    /// produce a ship that is flying with its engines off.
+    ///
+    /// The crash velocity is set before the transition because <see cref="SpaceshipCrashState"/>
+    /// reads it in Enter, which is the same order <see cref="Crash"/> uses.
+    /// </summary>
+    public void RestoreState(StateKind kind, Vector3 crashVelocity)
+    {
+        EnsureStates();
+
+        crashState.VelocityAtCrash = crashVelocity;
+        restored = true;
+
+        ISpaceshipState target = idleState;
+        if (kind == StateKind.Flight) target = flightState;
+        else if (kind == StateKind.Crash) target = crashState;
+
+        TransitionToState(target);
+    }
+
+    /// <summary>
+    /// Tick the state — but only where this ship is simulated.
+    ///
+    /// <para>
+    /// A state's <c>Update</c> is what MOVES the hull: <c>SpaceshipFlightState</c> forwards it to
+    /// the flight controller, which writes the transform every frame. Run on every machine that is
+    /// exactly the private-copy problem <see cref="SpaceGame.Core.NetAuthority"/> exists for —
+    /// four ships climbing at four slightly different rates, fighting whatever the wire says.
+    /// </para>
+    /// <para>
+    /// Gated here rather than by adding the flight controller to NetAuthority's driver list,
+    /// because disabling it would not help: the state calls it through
+    /// <see cref="IFlightController"/>, and an interface call does not consult
+    /// <c>Behaviour.enabled</c>. This is the only line that can stop it.
+    /// </para>
+    /// <para>
+    /// Enter and Exit are deliberately NOT gated. Those are the presentation — boosters lit,
+    /// booster lights on — and they have to happen on every machine, which is the same split every
+    /// networked system in this project uses. What arrives over the wire is the motion; what each
+    /// machine runs for itself is the look of it.
+    /// </para>
+    /// <para>
+    /// <c>Simulates</c>, not <c>IsServer</c>: a ship with no NetworkObject — which is every one in
+    /// the project today — has no remote truth to defer to, so every machine is its own authority
+    /// and it keeps working exactly as it did.
+    /// </para>
+    /// </summary>
     private void Update()
     {
+        if (!SpaceGame.Core.Network.Simulates(this)) return;
+
         currentState?.Update(this);
     }
 

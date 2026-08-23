@@ -32,20 +32,34 @@ namespace SpaceGame.Items
             return pack != null && pack.IsOpen && index >= 0;
         }
 
+        /// <summary>
+        /// Ask for this item. Nothing moves here.
+        ///
+        /// <para>
+        /// This used to reach straight into <c>interactor.GetComponent&lt;IPlayerInventory&gt;()</c>
+        /// and move the item, which was wrong twice over. It was wrong on this machine, because on
+        /// this project's player the Interactor sits on the camera rig and a plain GetComponent
+        /// there finds no inventory at all — the same trap PickupableItem.RequestPickup documents,
+        /// and the reason taking anything out of a pack quietly did nothing. And it was wrong for
+        /// the session, because two players can be looking into one open pack and only one machine
+        /// may be allowed to decide which of them got the last water cell.
+        /// </para>
+        /// <para>
+        /// So the request goes to the server, which performs BOTH halves of the transfer — and both
+        /// halves replicate themselves from there: the hotbar through PlayerInventoryNetwork, the
+        /// pack through BackpackNetwork. Nothing is done optimistically, on purpose: an optimistic
+        /// take would have to be taken back from whichever player lost the race, and watching an
+        /// item appear in your hand and vanish again is worse than the round trip.
+        /// </para>
+        /// </summary>
         public void Interact(Interactor interactor)
         {
             if (!CanInteract() || interactor == null) return;
 
-            // Same resolve PickupableItem uses, so a pack and a world pickup agree on what "the
-            // player's inventory" means.
-            IPlayerInventory hotbar = interactor.GetComponent<IPlayerInventory>();
-            if (hotbar == null) return;
-
-            if (pack.TryTakeToHotbar(compartment, index, hotbar)) return;
-
-            // Deliberately not silent. A full hotbar and a broken interaction look identical from the
-            // player's side, and this is the one refusal they will hit routinely.
-            Debug.Log("Backpack: hotbar is full — drop or use something first.", this);
+            // No "hotbar is full" line any more. It cannot be said honestly from here — the machine
+            // that knows is the one that runs the swap — and a full hotbar is no longer a refusal
+            // anyway: BackpackObject.TryTakeToHotbar swaps the selected item into the pocket.
+            pack.RequestTake(compartment, index, interactor);
         }
     }
 }

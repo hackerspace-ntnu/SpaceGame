@@ -4,6 +4,7 @@
 using UnityEngine;
 using UnityEngine.AI;
 using SpaceGame.World;
+using SpaceGame.Teleporting;
 
 namespace SpaceGame.Agents
 {
@@ -21,7 +22,8 @@ namespace SpaceGame.Agents
     // Run before default (0) so agent.enabled=false happens before NavMeshAgent's own Awake registers it.
     [DefaultExecutionOrder(-100)]
     [RequireComponent(typeof(NavMeshAgent))]
-    public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IMountLeapMotor, IRiderControllable
+    public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IMountLeapMotor,
+                                     IRiderControllable, ISelfDrivingMotor, ITeleportAware
     {
         [Header("Navigation")]
         [SerializeField] private NavMeshAgent agent;
@@ -63,6 +65,8 @@ namespace SpaceGame.Agents
 
         private float stuckTimer;
         private float reattachTimer;
+        private bool selfDriveSuspended;
+        private bool suspendedAgentWasEnabled;
         private bool defaultUpdateRotation;
         private bool defaultUpdatePosition;
         private float defaultStoppingDistance;
@@ -139,12 +143,90 @@ namespace SpaceGame.Agents
 
         private void OnEnable()
         {
+            // A restore has already described a jump or a leap in flight. Consumed, so a later
+            // genuine enable clears them as it always did.
+            if (motorRestored)
+            {
+                motorRestored = false;
+                return;
+            }
+
             stuckTimer = 0f;
             reattachTimer = 0f;
             jumpCooldownTimer = 0f;
             jumpElapsed = -1f;
             leapCooldownTimer = 0f;
             isLeaping = false;
+        }
+
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // A leap is the case that matters, and it matters because of what it turns OFF. RequestLeap
+        // sets `agent.updatePosition = false` and `updateRotation = false` and drives the transform
+        // by hand; UpdateMountedLeap is the only thing that ever puts them back, and it only does so
+        // on the frame the arc completes. So a leap has to come back as a leap — resumed and allowed
+        // to land — rather than being abandoned halfway with the agent's own flags left where the
+        // takeoff put them.
+        //
+        // The cooldowns come too, for the same free-action reason as the weapon cadences: a mount
+        // whose leap cooldown reloads at zero can leap on demand as often as the rider is willing to
+        // reload.
+        //
+        // `stuckTimer` and `reattachTimer` are deliberately left out. Both are re-derived within a
+        // fraction of a second of the first tick from things that are true right now — whether the
+        // agent is moving, whether there is a NavMesh underneath — so storing them buys nothing and
+        // a stale stuck timer would trigger a spurious path reset on the first frame after a load.
+        // `selfDriveSuspended` is left out too: it is an authority state, asserted by
+        // AgentController against THIS session's ownership, and restoring one from a session with a
+        // different host is how an agent ends up parked with its NavMeshAgent switched off.
+        private bool motorRestored;
+
+        public float JumpElapsed => jumpElapsed;
+        public float JumpCooldownTimer => jumpCooldownTimer;
+        public float LeapCooldownTimer => leapCooldownTimer;
+        public float LeapElapsed => leapElapsed;
+        public float LeapDuration => leapDuration;
+        public float LeapVertical => leapVertical;
+        public Vector3 LeapStart => leapStart;
+        public Vector3 LeapEnd => leapEnd;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreCooldowns(float jumpElapsedSeconds, float jumpCooldown, float leapCooldown)
+        {
+            motorRestored = true;
+            jumpElapsed = jumpElapsedSeconds;
+            jumpCooldownTimer = jumpCooldown;
+            leapCooldownTimer = leapCooldown;
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Re-asserts the agent flags the takeoff turned off, not just the arithmetic: a leap
+        /// restored as numbers alone would move the transform while an enabled NavMeshAgent wrote
+        /// over it every frame.
+        /// </summary>
+        public void RestoreLeap(Vector3 start, Vector3 end, float vertical, float duration, float elapsed)
+        {
+            motorRestored = true;
+
+            leapStart = start;
+            leapEnd = end;
+            leapVertical = Mathf.Max(0f, vertical);
+            leapDuration = Mathf.Max(0.05f, duration);
+            leapElapsed = Mathf.Max(0f, elapsed);
+            isLeaping = true;
+
+            if (!agent) return;
+
+            if (agent.isActiveAndEnabled && agent.isOnNavMesh)
+            {
+                agent.ResetPath();
+                agent.isStopped = true;
+            }
+
+            agent.updatePosition = false;
+            agent.updateRotation = false;
         }
 
         public void Tick(in MoveIntent intent, float deltaTime)
@@ -240,6 +322,50 @@ namespace SpaceGame.Agents
                 // autoBraking=false can take a while and can look like slow circling).
                 agent.velocity = Vector3.zero;
             }
+        }
+
+        // ─────────── ISelfDrivingMotor ───────────
+        //
+        // ForceStop is not enough here, and the difference is the whole reason this interface
+        // exists. A stopped NavMeshAgent is still an ENABLED NavMeshAgent, and an enabled one
+        // writes transform.position from its own internal position every frame: the replicated
+        // pose lands, the agent overwrites it on the next frame with where it thinks it is, and
+        // the remote copy stops following the server entirely. Switching the component off is what
+        // hands the transform back to the NetworkTransform.
+
+        public void SuspendSelfDrive()
+        {
+            if (selfDriveSuspended || agent == null)
+                return;
+
+            selfDriveSuspended = true;
+
+            // Recorded rather than assumed, because "enabled" is not this agent's resting state:
+            // Awake parks it when it wakes before a NavMesh exists beneath it, and resuming would
+            // otherwise switch on an agent that was never on and drop it through the world.
+            suspendedAgentWasEnabled = agent.enabled;
+
+            if (!agent.enabled)
+                return;
+
+            // Clear the path first. An agent re-enabled later would otherwise resume walking to a
+            // destination chosen an ownership change ago, on a machine that has since been told
+            // where the body actually is.
+            if (agent.isActiveAndEnabled && agent.isOnNavMesh)
+                agent.ResetPath();
+
+            agent.enabled = false;
+        }
+
+        public void ResumeSelfDrive()
+        {
+            if (!selfDriveSuspended)
+                return;
+
+            selfDriveSuspended = false;
+
+            if (agent != null && suspendedAgentWasEnabled)
+                agent.enabled = true;
         }
 
         public void NudgeDestination(Vector3 offset)
@@ -362,6 +488,24 @@ namespace SpaceGame.Agents
             agent.updateRotation = false;
         }
 
+        /// <summary>
+        /// Bring a leap in flight through a teleport.
+        ///
+        /// A leap runs with <c>agent.updatePosition</c> switched off and the body driven along a
+        /// lerp between two WORLD points, so it is the agent's own navigation that is suspended and
+        /// this arc that is authoritative. Leave the endpoints in the room the creature left and the
+        /// next frame drags it straight back at them, through the wall, at whatever speed the two
+        /// apertures are apart divided by what remains of the leap.
+        ///
+        /// The agent's own position is not touched here — SaveTeleport has already warped it, and
+        /// re-warping mid-leap is what <c>updatePosition = false</c> exists to prevent.
+        /// </summary>
+        public void OnTeleported(in TeleportMove move)
+        {
+            leapStart = move.Point(leapStart);
+            leapEnd = move.Point(leapEnd);
+        }
+
         private void ApplyMoveIntent(in MoveIntent intent, float deltaTime)
         {
             if (intent.OverrideFacingDirection)
@@ -470,8 +614,11 @@ namespace SpaceGame.Agents
         private void TryReattachToNavMesh(float deltaTime)
         {
             // Only our own parking is recoverable here. An agent whose GameObject is inactive never
-            // reaches this method, so a disabled component is the parked case by elimination.
-            if (agent.enabled)
+            // reaches this method, so a disabled component is the parked case by elimination —
+            // except for the one other thing that parks it, which is a machine that does not
+            // simulate this entity. Re-attaching there would switch the agent back on and hand it
+            // the transform the server is replicating into.
+            if (agent.enabled || selfDriveSuspended)
             {
                 return;
             }

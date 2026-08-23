@@ -69,7 +69,21 @@ namespace SpaceGame.Vehicles
         public void SetOpen(bool open, bool instant = false)
         {
             EnsureBaseline();
-            target = open ? 1f : 0f;
+            float wanted = open ? 1f : 0f;
+
+            // Already on its way there: leave the swing alone.
+            //
+            // This matters because the networked state answer is a BROADCAST, not a reply to the
+            // one client that asked — the messaging layer has no unicast. So every machine hears
+            // "this door is open", including the machines already watching it open. Without this
+            // guard that restarts the animation from wherever it had got to, and a door somebody
+            // is walking through visibly stutters every time anyone joins.
+            //
+            // An instant request is still honoured: skipping the animation is the whole point of
+            // it, and a part mid-swing has to be able to be snapped to its target.
+            if (!instant && Mathf.Approximately(target, wanted)) return;
+
+            target = wanted;
 
             if (instant)
             {

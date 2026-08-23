@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using UnityEngine;
 
 namespace SpaceGame.Persistence
 {
@@ -49,9 +51,33 @@ namespace SpaceGame.Persistence
                 return;
             }
 
-            Entries[key] = payload is JObject already
-                ? already
-                : JObject.FromObject(payload, serializer ?? SaveSerializer.Serializer);
+            if (payload is JObject already)
+            {
+                Entries[key] = already;
+                return;
+            }
+
+            try
+            {
+                Entries[key] = JObject.FromObject(payload, serializer ?? SaveSerializer.Serializer);
+            }
+            catch (Exception e)
+            {
+                // A payload that is not an object — a bare list, an int, a string — cannot be a state
+                // bag entry, because the bag is a map of key to object. Newtonsoft says so by
+                // throwing, and an unhandled throw here takes down the capture of the ENTIRE entity,
+                // and with it every other saver on it. One saver returning the wrong shape is not
+                // worth the other twenty.
+                //
+                // Dropping the key is the same outcome the saver would have got from returning null,
+                // and the error names the culprit so it can be fixed rather than merely survived.
+                Entries.Remove(key);
+
+                Debug.LogError($"[Save] Saver '{key}' returned a payload that is not an object " +
+                               $"({payload.GetType().Name}), so it was dropped: {e.Message}. " +
+                               "CaptureState must return a struct or class with fields — wrap a bare " +
+                               "collection in one.");
+            }
         }
 
         public bool TryGetRaw(string key, out JObject payload)
@@ -74,10 +100,16 @@ namespace SpaceGame.Persistence
             try
             {
                 value = raw.ToObject<T>(serializer ?? SaveSerializer.Serializer);
-                return value != null;
+
+                // True because the key was THERE and the payload parsed — not because the result
+                // happens to be non-null. `return value != null` made a stored value that legitimately
+                // deserializes to null or to default(T) indistinguishable from a key that was never
+                // written, which is exactly the distinction this method exists to report.
+                return true;
             }
             catch (JsonException)
             {
+                value = default;
                 return false;
             }
         }

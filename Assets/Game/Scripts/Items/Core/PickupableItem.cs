@@ -10,8 +10,16 @@ namespace SpaceGame.Items
     /// <summary>
     /// Script to be attached to pickupable items in the world.
     /// When interacted with, it will attempt to add the item to the player's inventory and destroy itself if successful.
+    ///
+    /// <para>
+    /// Also the scanner's default contact: loose salvage is what the item scanner exists to find,
+    /// so every pickup registers itself rather than waiting for somebody to remember a
+    /// <see cref="ScanBeacon"/>. Registration is tied to enable/disable, which is what makes it
+    /// correct under world streaming — a chunk unloading disables its contents and its contacts
+    /// leave the registry with them.
+    /// </para>
     /// </summary>
-    class PickupableItem : NetworkBehaviour, IInteractable
+    class PickupableItem : NetworkBehaviour, IInteractable, IScanTarget
     {
        [SerializeField] private InventoryItem item;
 
@@ -23,6 +31,16 @@ namespace SpaceGame.Items
        {
           return true;
        }
+
+       // ── IScanTarget ──────────────────────────────────────────────────────────
+
+       public bool IsScannable => isActiveAndEnabled;
+       public Vector3 ScanPosition => transform.position;
+       public ScanClass ScanClass => ScanClass.Item;
+       public string ScanLabel => item != null ? item.itemName : name;
+
+       private void OnEnable() => ScannerRegistry.Register(this);
+       private void OnDisable() => ScannerRegistry.Unregister(this);
 
        public void Interact(Interactor interactor)
        {

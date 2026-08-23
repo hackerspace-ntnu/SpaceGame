@@ -116,6 +116,18 @@ namespace SpaceGame.Persistence
         /// </summary>
         [JsonProperty("destroyed")] public List<string> Destroyed = new();
 
+        /// <summary>
+        /// <see cref="Destroyed"/> as a set, rebuilt by <see cref="Normalize"/>.
+        ///
+        /// The list is the serialized shape and stays a list, because a JSON array is the honest
+        /// representation and changing it would need a migration for nothing. But
+        /// <see cref="IsDestroyed"/> is asked once per authored object per chunk hydrate, and
+        /// answering it with <c>List.Contains</c> made chunk loading cost O(objects × kills). In a
+        /// world that is played rather than tested, the tombstone list only ever grows, so that is a
+        /// load time that gets worse for as long as the save is used.
+        /// </summary>
+        [JsonIgnore] private HashSet<string> destroyedSet;
+
         [JsonIgnore] public int Count => Entities?.Count ?? 0;
 
         public void Normalize()
@@ -123,6 +135,8 @@ namespace SpaceGame.Persistence
             Global ??= new StateBag();
             Entities ??= new Dictionary<string, EntityRecord>();
             Destroyed ??= new List<string>();
+
+            destroyedSet = new HashSet<string>(Destroyed);
 
             foreach (KeyValuePair<string, EntityRecord> entry in Entities)
             {
@@ -170,8 +184,41 @@ namespace SpaceGame.Persistence
                     yield return record;
         }
 
-        public bool IsDestroyed(string instanceId) =>
-            !string.IsNullOrEmpty(instanceId) && Destroyed != null && Destroyed.Contains(instanceId);
+        public bool IsDestroyed(string instanceId)
+        {
+            if (string.IsNullOrEmpty(instanceId)) return false;
+
+            // Deserialization fills the list directly and never calls Normalize, so the set can be
+            // null here on a freshly read document.
+            destroyedSet ??= new HashSet<string>(Destroyed ?? new List<string>());
+            return destroyedSet.Contains(instanceId);
+        }
+
+        /// <summary>Buries an authored object, keeping the list and its index in step.</summary>
+        public void MarkDestroyed(string instanceId)
+        {
+            if (string.IsNullOrEmpty(instanceId)) return;
+
+            Destroyed ??= new List<string>();
+            destroyedSet ??= new HashSet<string>(Destroyed);
+
+            if (destroyedSet.Add(instanceId)) Destroyed.Add(instanceId);
+        }
+
+        /// <summary>
+        /// Lifts a tombstone. The counterpart to <see cref="MarkDestroyed"/>, and the thing whose
+        /// absence made the list grow forever: nothing in the project could ever remove one.
+        /// </summary>
+        public bool ClearDestroyed(string instanceId)
+        {
+            if (string.IsNullOrEmpty(instanceId) || Destroyed == null) return false;
+
+            destroyedSet ??= new HashSet<string>(Destroyed);
+            if (!destroyedSet.Remove(instanceId)) return false;
+
+            Destroyed.Remove(instanceId);
+            return true;
+        }
     }
 
     /// <summary>
@@ -216,6 +263,20 @@ namespace SpaceGame.Persistence
         /// migration would teleport every such object to (0,0,0) on the first load.
         /// </summary>
         [JsonProperty("hasPose")] public bool HasPose = true;
+
+        /// <summary>
+        /// Whether <see cref="Scale"/> means anything.
+        ///
+        /// Replaces a <c>scale != Vector3.zero</c> sentinel that was repeated in three places and
+        /// was wrong in both directions. It could not actually detect the case it was written for —
+        /// a record with no scale field deserializes to the field initializer, <c>Vector3.one</c>,
+        /// never to zero — and it silently overrode the one thing it could detect: an object
+        /// deliberately scaled to zero, which is a common way to hide something without disabling
+        /// it. Such an object came back at full size.
+        ///
+        /// Defaults true so every record already written keeps restoring its scale exactly as before.
+        /// </summary>
+        [JsonProperty("hasScale")] public bool HasScale = true;
 
         [JsonProperty("state")] public StateBag State = new();
 

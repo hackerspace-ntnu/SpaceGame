@@ -245,7 +245,51 @@ namespace SpaceGame.Gameplay.Trading
         /// <summary>Add an offer at runtime — a trader restocking from what a task yielded.</summary>
         public void AddOffer(TradeOffer offer)
         {
-            if (offer != null && offer.IsValid) offers.Add(offer);
+            if (offer == null || !offer.IsValid) return;
+
+            // Marked as the save system's only way of telling a runtime offer from an authored one.
+            // An authored offer comes back from the profile next session on its own; this one exists
+            // nowhere but in this list and in the record.
+            offer.runtimeAdded = true;
+            offers.Add(offer);
+        }
+
+        /// <summary>
+        /// Seconds left on the post-decline silence, or zero if the trader will offer right now.
+        ///
+        /// A duration rather than the deadline itself, because <c>Time.time</c> restarts with the
+        /// session and a stored deadline would either have already passed or sit 45 seconds into a
+        /// clock that has just been reset.
+        /// </summary>
+        public float OfferCooldownRemaining => Mathf.Max(0f, nextOfferTime - Time.time);
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// <para>
+        /// Replaces the working copy of the stock outright. That is deliberate and is the whole
+        /// difficulty of persisting a trader: <see cref="TraderProfile.CloneOffers"/> exists so that
+        /// buying from one scavenger does not empty every scavenger sharing the asset, which means
+        /// the live list is rebuilt from the asset in Awake on every single session — anything a
+        /// player did to it is gone before this component has finished waking up. So a restore
+        /// cannot nudge the list; it has to hand back the list.
+        /// </para>
+        /// <para>
+        /// Whoever calls this owns the merge — see <c>TraderSaveable</c>, which keeps offers the
+        /// profile has gained since the save was written.
+        /// </para>
+        /// </summary>
+        public void RestoreOffers(List<TradeOffer> restored, float cooldownRemaining)
+        {
+            offers.Clear();
+
+            if (restored != null)
+            {
+                foreach (TradeOffer offer in restored)
+                    if (offer != null && offer.IsValid) offers.Add(offer);
+            }
+
+            nextOfferTime = Time.time + Mathf.Max(0f, cooldownRemaining);
         }
 
         // ── Inventory helpers ────────────────────────────────────────────────────

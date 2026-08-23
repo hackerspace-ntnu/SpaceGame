@@ -1,6 +1,5 @@
 using UnityEngine;
 using System;
-using System.Linq;
 using Unity.Netcode;
 using UnityEngine.SceneManagement;
 using SpaceGame.Core;
@@ -42,16 +41,85 @@ namespace SpaceGame.Gameplay
             GameTimer = Mathf.Max(0f, seconds);
         }
 
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Sets the state and announces it, but never acts on it: <see cref="WinGame"/> is what
+        /// LOADS the win scene, and a restore that went through it would send a player who saved
+        /// after winning straight back out of the world they just loaded.
+        /// </summary>
+        public void RestoreState(GameState state) => SetState(state);
+
         public void SetState(GameState state)
         {
             CurrentState = state;
             OnStateChanged?.Invoke(state);
         }
 
+        /// <summary>
+        /// Ends the run for everyone in the session.
+        ///
+        /// <para>
+        /// The scene load used to go through UnityEngine's SceneManager, which moves ONLY the
+        /// machine that called it: the host left for the win scene and everyone else stayed behind
+        /// in a world whose server had gone. Every other transition in the project routes through
+        /// Netcode for exactly this reason — see SaveHotkeys' quickload, whose comment says the same
+        /// thing about the same mistake.
+        /// </para>
+        ///
+        /// <para>
+        /// And winning is not this machine's to declare. Scrap is handed over through
+        /// ShipInteraction, which routes every deposit to the server, so a client boarding the ship
+        /// still wins the game for everyone: the decision is simply made on the machine allowed to
+        /// make it and comes back as the scene change below. A client that reached this method
+        /// anyway would load the win scene on its own and abandon a session that is still running.
+        /// </para>
+        ///
+        /// <para>
+        /// Un-networked counts as the authority. Singleplayer runs as a host, so the only way to be
+        /// here with no NetworkManager listening is a scene opened straight from the editor, and
+        /// refusing there would make the win condition impossible to try out.
+        /// </para>
+        ///
+        /// <para>
+        /// Written out rather than using <c>Network.Simulates</c>, which is the project's usual
+        /// guard and would be wrong here. Simulates answers "true" for anything without a
+        /// NetworkObject over it, on the reasoning that such a thing has no remote truth to defer
+        /// to — and this manager is a plain MonoBehaviour, so every client would read as its own
+        /// authority and load the win scene alone. What is being guarded is not an entity's
+        /// simulation; it is a decision about the whole session.
+        /// </para>
+        ///
+        /// <para>
+        /// <see cref="OnStateChanged"/> therefore only fires on the authority. Nothing subscribes to
+        /// it today, and the thing it would have announced — the run being over — reaches every
+        /// client as the scene load itself.
+        /// </para>
+        /// </summary>
         public void WinGame()
         {
+            if (Network.IsNetworked && !Network.Server)
+            {
+                Debug.LogWarning("[GameManager] WinGame ignored on a client. The server decides the " +
+                                 "win and moves everyone, including whoever asked.");
+                return;
+            }
+
+            if (onWinScene == null || string.IsNullOrEmpty(onWinScene.SceneName))
+            {
+                Debug.LogError("[GameManager] Nothing is assigned to onWinScene, so winning has " +
+                               "nowhere to go. The run stays open.", this);
+                return;
+            }
+
             SetState(GameState.Won);
-            SceneManager.LoadScene(onWinScene.SceneName, LoadSceneMode.Single);
+
+            // Through Netcode's scene manager when hosted, so clients follow. The plain load below
+            // is the un-networked editor case and nothing else.
+            if (Network.Server)
+                NetworkManager.Singleton.SceneManager.LoadScene(onWinScene.SceneName, LoadSceneMode.Single);
+            else
+                SceneManager.LoadScene(onWinScene.SceneName, LoadSceneMode.Single);
         }
     }
 }

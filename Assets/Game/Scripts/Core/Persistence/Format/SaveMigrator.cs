@@ -119,15 +119,41 @@ namespace SpaceGame.Persistence
         /// </summary>
         public static System.IDisposable RegisterScoped(ISaveMigration migration)
         {
+            if (migration == null) return new Registration(null);
+
             Migrations.Add(migration);
             return new Registration(migration);
         }
+
+        /// <summary>
+        /// Takes every scoped registration back out.
+        ///
+        /// <see cref="Migrations"/> is static and lives as long as the editor's domain does, so a
+        /// test whose <c>Dispose</c> is skipped — an assertion that throws inside a <c>using</c>
+        /// block does exactly that — leaves a fake migration installed and silently rewriting every
+        /// real save opened for the rest of the session. A teardown hook that cannot be skipped is
+        /// cheaper than trusting every test to unwind.
+        /// </summary>
+        public static void ClearScopedRegistrations()
+        {
+            // The shipped ladder is the prefix this class was constructed with; anything after it is
+            // scoped. Rebuilding rather than removing by identity means a double-registered fake
+            // cannot survive either.
+            while (Migrations.Count > ShippedMigrationCount)
+                Migrations.RemoveAt(Migrations.Count - 1);
+        }
+
+        /// <summary>How many entries in <see cref="Migrations"/> are the real, shipped ladder.</summary>
+        private static readonly int ShippedMigrationCount = Migrations.Count;
 
         private class Registration : System.IDisposable
         {
             private readonly ISaveMigration migration;
             public Registration(ISaveMigration migration) => this.migration = migration;
-            public void Dispose() => Migrations.Remove(migration);
+            public void Dispose()
+            {
+                if (migration != null) Migrations.Remove(migration);
+            }
         }
     }
 }

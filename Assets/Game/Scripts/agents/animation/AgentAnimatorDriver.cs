@@ -1,6 +1,13 @@
 // Bridges motor output into animator parameters for agent characters.
 // Converts world velocity into local animation-space values each frame.
 // Keeps animation updates centralized and independent from brain logic.
+//
+// It also drives ITSELF on any frame nobody drove it, and that is the half that makes a creature
+// look alive on a machine that is only watching it. AgentController stops ticking on a client that
+// does not own the agent — and NetAuthority goes further and disables the component outright — so
+// the only thing left moving the body there is the replicated NetworkTransform. Reading the motor
+// would report zero and the creature would slide across the sand with still feet; measuring the
+// transform reports what the server actually did with it.
 using UnityEngine;
 
 namespace SpaceGame.Agents
@@ -21,6 +28,28 @@ namespace SpaceGame.Agents
                  "Per-Animator, not per-controller, so a shared controller can drive a slow amble on " +
                  "one character and a brisk walk on another.")]
         [SerializeField] private float animatorSpeedScale = 1f;
+
+        [Tooltip("Speed (m/s) above which a measured, replicated motion is animated as a run.\n\n" +
+                 "Only used on machines that are watching this agent rather than driving it. The " +
+                 "machine that drives it is told whether the intent was a run; a watcher can only " +
+                 "see how fast the body moved, and guessing wrong costs a visibly different " +
+                 "playback rate (see walkAnimBoost) rather than the wrong clip.")]
+        [SerializeField] private float measuredRunSpeed = 3.5f;
+
+        // The frame something else called Tick. Anything else means nobody is driving this agent's
+        // animation on this machine, which is the watching case.
+        private int lastDrivenFrame = -1;
+
+        // Sampled in the parent's space, not the world's: a creature standing still on a walker's
+        // moving deck is at rest, and measuring it in world space would animate it sprinting.
+        // Degrades to world space when there is no parent, which is every loose agent.
+        private Vector3 previousLocalPosition;
+        private bool hasPreviousPosition;
+
+        // Above this, the body did not move — it was moved. A NetworkTransform teleport, a chunk
+        // streaming in under the agent, a respawn. Nothing this game drives goes this fast, and
+        // feeding the jump in as a velocity would flash a full-speed run for a frame every time.
+        private const float TeleportSpeed = 60f;
 
         private void Awake()
         {
@@ -46,8 +75,80 @@ namespace SpaceGame.Agents
                 animator.speed = animatorSpeedScale;
         }
 
+        private void OnEnable() => hasPreviousPosition = false;
+
+        // A reparent moves the frame the sample is taken in, so the delta across that one frame is
+        // the distance between two different origins rather than any motion. Mounting a creature
+        // would otherwise flash a sprint on the frame it is seated.
+        private void OnTransformParentChanged() => hasPreviousPosition = false;
+
+        /// <summary>
+        /// Fill in for whoever is not driving this animation.
+        ///
+        /// <para>
+        /// LateUpdate, so every Update — this agent's controller when it has authority, and the
+        /// NetworkTransform's own application of the server's pose — has already happened. The
+        /// measurement is kept up to date on every frame, driven or not, so the first watching
+        /// frame after an ownership change measures one frame of motion rather than the whole
+        /// distance travelled since the last time anyone looked.
+        /// </para>
+        /// </summary>
+        private void LateUpdate()
+        {
+            Vector3 sample = SampleLocalPosition();
+            float deltaTime = Time.deltaTime;
+
+            Vector3 measured = hasPreviousPosition
+                ? MeasureVelocity(ToWorldVector(sample - previousLocalPosition), deltaTime)
+                : Vector3.zero;
+
+            previousLocalPosition = sample;
+            hasPreviousPosition = true;
+
+            if (lastDrivenFrame == Time.frameCount)
+                return;
+
+            // isImmobile is false rather than measured: it means "this agent has been rooted in
+            // place by something", which is a decision, and a watching machine has not been told
+            // it. Reporting a stationary creature as immobilised would play the wrong idle.
+            Tick(measured, false, measured.sqrMagnitude >= measuredRunSpeed * measuredRunSpeed);
+        }
+
+        /// <summary>
+        /// Turn one frame of observed movement into a velocity, or into nothing when it was not
+        /// movement at all.
+        ///
+        /// <para>
+        /// Static and free of the transform so the rule can be tested without a frame: a
+        /// non-positive delta is a paused or first frame and measures nothing, and anything past
+        /// <see cref="TeleportSpeed"/> was a placement rather than a stride.
+        /// </para>
+        /// </summary>
+        public static Vector3 MeasureVelocity(Vector3 worldDelta, float deltaTime)
+        {
+            if (deltaTime <= 0f) return Vector3.zero;
+
+            Vector3 velocity = worldDelta / deltaTime;
+
+            return velocity.sqrMagnitude > TeleportSpeed * TeleportSpeed ? Vector3.zero : velocity;
+        }
+
+        private Vector3 SampleLocalPosition()
+        {
+            Transform parent = transform.parent;
+            return parent != null ? parent.InverseTransformPoint(transform.position) : transform.position;
+        }
+
+        private Vector3 ToWorldVector(Vector3 localDelta)
+        {
+            Transform parent = transform.parent;
+            return parent != null ? parent.TransformVector(localDelta) : localDelta;
+        }
+
         public void Tick(Vector3 worldVelocity, bool isImmobile, bool isRunning = false)
         {
+            lastDrivenFrame = Time.frameCount;
+
             if (!animator)
             {
                 return;
@@ -86,6 +187,7 @@ namespace SpaceGame.Agents
         {
             animationSpeedMultiplier = Mathf.Max(0.1f, animationSpeedMultiplier);
             animatorSpeedScale = Mathf.Clamp(animatorSpeedScale, 0.05f, 4f);
+            measuredRunSpeed = Mathf.Max(0.1f, measuredRunSpeed);
         }
     }
 }

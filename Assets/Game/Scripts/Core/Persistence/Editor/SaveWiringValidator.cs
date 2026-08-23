@@ -38,6 +38,7 @@ namespace SpaceGame.Core.Persistence.EditorTools
             var report = new Report();
 
             ValidateSaveablePrefabs(report);
+            ValidateStampedOnDisk(report);
             ValidatePersistentEntityPrefabs(report);
             ValidateItemPrefabs(report);
             ValidateNetworkPrefabRegistration(report);
@@ -78,6 +79,11 @@ namespace SpaceGame.Core.Persistence.EditorTools
                                       "Re-import it so OnValidate can stamp one.");
                 }
 
+                // Invalidate first: the saver list is cached on the component, and a prefab asset
+                // lives in memory across the whole editor session — so a validation run after the
+                // wiring tool added savers would otherwise still be reading the list from before it.
+                entity.InvalidateSavers();
+
                 if (entity.Savers().Count == 0)
                 {
                     report.Warnings.Add($"'{prefab.name}' is saveable but has no ISaveable components, " +
@@ -85,6 +91,69 @@ namespace SpaceGame.Core.Persistence.EditorTools
                 }
             }
         }
+
+        /// <summary>
+        /// Every saveable prefab must carry its <c>prefabId</c> ON DISK, not merely in memory.
+        ///
+        /// <b>Reading it through the component cannot detect this, which is why it went unnoticed.</b>
+        /// <c>SaveableEntity.OnValidate</c> is inside <c>#if UNITY_EDITOR</c> and stamps the field
+        /// the moment the asset is loaded, so in the editor <c>entity.PrefabId</c> always looks
+        /// right — every runtime spawn inherits the in-memory value and works, and every check that
+        /// asks the object agrees. Nothing wrote it to the file, and in a player build
+        /// <c>OnValidate</c> never runs, so the value the game actually ships with is the empty one.
+        ///
+        /// Two of <see cref="SaveablePrefabRegistry"/>'s three lookup routes key on that field, so
+        /// in a build they registered nothing and every runtime-spawned world object was captured
+        /// into the save and dropped on load. The only way to see it is to read the YAML.
+        ///
+        /// The second check catches the other half: a prefab whose stamped id is not its own GUID.
+        /// That happens to any prefab that is a VARIANT of an imported model, because the old
+        /// derivation walked the variant chain to its root and found the <c>.fbx</c>.
+        /// </summary>
+        private static void ValidateStampedOnDisk(Report report)
+        {
+            // Every prefab in the project, not just the two populations SaveablePrefabsInProject
+            // knows about: the point is to find prefabs that carry an identity and cannot use it.
+            foreach (string assetGuid in AssetDatabase.FindAssets("t:Prefab"))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(assetGuid);
+                if (string.IsNullOrEmpty(path) || !path.StartsWith("Assets/Game/", System.StringComparison.Ordinal))
+                    continue;
+
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab == null) continue;
+
+                var entity = prefab.GetComponent<SaveableEntity>();
+                if (entity == null) continue;
+
+                // The player is SaveScope.External: the world store never instantiates it, so it has
+                // no use for a prefab id and is deliberately left blank.
+                if (entity.Scope == SaveScope.External) continue;
+
+                string guid = assetGuid;
+                string onDisk = SaveablePrefabFile.ReadPrefabId(path);
+
+                if (string.IsNullOrEmpty(onDisk))
+                {
+                    report.Errors.Add(
+                        $"'{prefab.name}' has no prefabId in its FILE ({path}). It looks correct in " +
+                        "the editor because OnValidate stamps it in memory, but a build ships the " +
+                        "empty value — so anything spawned from it at runtime is saved and then " +
+                        "cannot be restored. Run Tools ▸ Save System ▸ Wire Saveable Prefabs.");
+                    continue;
+                }
+
+                if (onDisk != guid)
+                {
+                    report.Errors.Add(
+                        $"'{prefab.name}' is stamped with prefabId '{onDisk}' but its own asset GUID " +
+                        $"is '{guid}' ({path}). A prefab that is a variant of an imported model used " +
+                        "to be stamped with the model's GUID, which nothing can instantiate. Re-run " +
+                        "Wire Saveable Prefabs.");
+                }
+            }
+        }
+
 
         /// <summary>
         /// Every agent, mount and vehicle prefab must carry a baked identity.

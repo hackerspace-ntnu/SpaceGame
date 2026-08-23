@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -74,10 +75,73 @@ namespace SpaceGame.Gameplay
             return true;
         }
 
+        // ─────────────────────────────────────────────
+        //  Keeping four players out of one another
+        // ─────────────────────────────────────────────
+        //
+        // Every client and every respawn used to be handed spawnPoints[0].TryGetSpawnPoint, and
+        // that point's scatter has no idea who it has already placed. On the world's only spawn
+        // point — a child of the drivable ShipRV, scattering inside half a metre on the cargo bay
+        // floor — four players arriving together landed inside one another's colliders.
+        //
+        // It cannot be fixed by making the geometry test notice them: SpawnClearance.HasRoomToStand
+        // excludes player bodies on purpose, because on a bay that small the first player standing
+        // there blocks every candidate the point can produce and nobody else spawns indoors at all.
+        // So who is where is tracked here instead, and handed to the point as a preference.
+        //
+        // Two sources, because a player can be in either state. A body that exists is found by its
+        // tag. A position that has been handed out but not built on yet is not findable at all —
+        // there is nothing there — so it is remembered until it either becomes a body or goes stale.
+
+        /// <summary>
+        /// How far apart two players placed in the same breath should be, when the room allows it.
+        /// Five player-capsule radii: enough that nobody is inside anybody, close enough that a
+        /// cargo bay can still seat four.
+        /// </summary>
+        private const float SpawnSeparation = 2.5f;
+
+        /// <summary>
+        /// How long a handed-out position keeps its claim.
+        ///
+        /// Only has to bridge the gap between resolving a position and a body appearing at it,
+        /// which is the same frame in the normal case. The window exists for the abnormal one — a
+        /// spawn that resolves and then never happens, because the client dropped out during the
+        /// wait — where a claim held forever would push everybody else off a bay that is empty.
+        /// Comfortably longer than NetworkGameManager's own spawn resolve timeout.
+        /// </summary>
+        private const float ReservationSeconds = 20f;
+
+        private readonly List<Reservation> reservations = new();
+
+        /// <summary>Reused between calls; spawning happens on the server, one client at a time.</summary>
+        private readonly List<Vector3> occupied = new();
+
+        private struct Reservation
+        {
+            public Vector3 Position;
+            public float Expiry;
+        }
+
         /// <summary>
         /// A validated spawn position, or false when no spawn point can currently vouch for one —
         /// which in the streamed world means the chunk there has not loaded yet. Callers must wait
         /// and ask again rather than substitute a position of their own.
+        ///
+        /// <para>
+        /// Handing a position out CLAIMS it, so the next caller is steered away from it. That side
+        /// effect is deliberate and belongs here rather than at the spawn call: a position resolved
+        /// and then not used is exactly the case the claim's expiry covers, and every caller that
+        /// asks this question is about to put a body there.
+        /// </para>
+        ///
+        /// <para>
+        /// With several spawn points it takes the roomiest answer rather than the first. That is
+        /// safe in a streamed world without breaking the ordering NetworkGameManager documents,
+        /// because a point in a chunk that has not loaded has no colliders to raycast and so can
+        /// produce nothing at all — the geometry checks already refuse to answer for ground that
+        /// does not exist. The anchor, which decides WHICH chunks load, is still
+        /// <see cref="TryGetSpawnAnchor"/>'s single authored point and is deliberately not touched.
+        /// </para>
         /// </summary>
         public bool TryGetSpawnPoint(out Vector3 spawnPosition)
         {
@@ -89,7 +153,71 @@ namespace SpaceGame.Gameplay
                 return false;
             }
 
-            return spawnPoints[0].TryGetSpawnPoint(out spawnPosition);
+            CollectOccupied(occupied);
+
+            bool found = false;
+            float bestClearance = float.NegativeInfinity;
+            spawnPosition = Vector3.zero;
+
+            foreach (SpawnPoint point in spawnPoints)
+            {
+                if (!point.TryGetSpawnPoint(occupied, SpawnSeparation,
+                                            out Vector3 candidate, out float clearance))
+                    continue;
+
+                if (!found || clearance > bestClearance)
+                {
+                    found = true;
+                    bestClearance = clearance;
+                    spawnPosition = candidate;
+                }
+
+                // Already clear of everybody, so no other point can do better. In the main world,
+                // which has exactly one spawn point, this loop is what it always was.
+                if (clearance >= SpawnSeparation) break;
+            }
+
+            if (!found) return false;
+
+            Reserve(spawnPosition);
+            return true;
+        }
+
+        /// <summary>
+        /// Where players are, or are about to be. Rebuilt on every ask because both halves move:
+        /// bodies walk, and reservations expire.
+        /// </summary>
+        private void CollectOccupied(List<Vector3> into)
+        {
+            into.Clear();
+
+            // The tag rather than a component, matching SpawnClearance — nothing but the player
+            // character carries it, and it is the same question asked from the other side. Bodies
+            // found this way include players parented to a mount, whose root keeps the tag.
+            foreach (GameObject player in GameObject.FindGameObjectsWithTag(SpawnClearance.PlayerTag))
+                if (player != null) into.Add(player.transform.position);
+
+            float now = Time.time;
+
+            for (int i = reservations.Count - 1; i >= 0; i--)
+            {
+                if (reservations[i].Expiry <= now)
+                {
+                    reservations.RemoveAt(i);
+                    continue;
+                }
+
+                into.Add(reservations[i].Position);
+            }
+        }
+
+        private void Reserve(Vector3 position)
+        {
+            reservations.Add(new Reservation
+            {
+                Position = position,
+                Expiry = Time.time + ReservationSeconds,
+            });
         }
 
         /// <summary>
@@ -145,13 +273,211 @@ namespace SpaceGame.Gameplay
         /// position into the player's profile record, and the replacement body read it straight back
         /// out — so you respawned dead, at your own grave. Respawn is a state change on a living
         /// object, not a new object; see <c>PlayerRespawn</c>.
+        ///
+        /// <para>
+        /// Steers around the living for the same reason a first spawn does, and it matters more
+        /// here: a respawn lands in a bay that is already occupied by definition, since the people
+        /// who did not die are standing in it. The respawning player's own body is among the
+        /// occupants — it is still there, dead, wherever they fell — which costs nothing unless
+        /// they died on the spawn point, where being nudged off their own corpse is the outcome
+        /// anybody would have asked for.
+        /// </para>
         /// </summary>
-        public bool TryGetRespawnPosition(out Vector3 respawnPosition)
-        {
-            if (!TryGetSpawnPoint(out respawnPosition)) return false;
+        public bool TryGetRespawnPosition(out Vector3 respawnPosition) =>
+            TryGetRespawnPosition(null, out respawnPosition);
 
-            respawnPosition = ClampAboveTerrain(respawnPosition);
-            return true;
+        /// <summary>
+        /// As above, with the position of the body being brought back offered as a last-resort
+        /// anchor. Worth passing: a dead player is standing on ground that certainly exists, which
+        /// is the one thing the spawn point cannot promise about itself.
+        /// </summary>
+        public bool TryGetRespawnPosition(Vector3 near, out Vector3 respawnPosition) =>
+            TryGetRespawnPosition((Vector3?)near, out respawnPosition);
+
+        private bool TryGetRespawnPosition(Vector3? near, out Vector3 respawnPosition)
+        {
+            if (TryGetSpawnPoint(out respawnPosition))
+            {
+                respawnPosition = ClampAboveTerrain(respawnPosition);
+                return true;
+            }
+
+            // The spawn point would not answer. For a joining client that is a reason to wait —
+            // NetworkGameManager asks again until the chunk arrives. For a respawn it is not: the
+            // player is already in the session, already dead, and has just pressed the only button
+            // they have. Leaving them face down until a bay somewhere becomes satisfiable is the
+            // failure this fallback exists to stop.
+            //
+            // So the ship stops being a requirement. Nothing about coming back to life needs a
+            // cargo bay — open sand next to it is a perfectly good place to stand up — and open
+            // ground is measured against the heightmap, which answers wherever the world is loaded
+            // and is not blocked by a hull, a full bay or a ship parked on a slope. A roof
+            // overhead is the disqualifier rather than a preference: it is what tells us we are
+            // back under the hull we were trying to leave.
+            CollectOccupied(occupied);
+
+            if (TryGetSpawnAnchor(out Vector3 anchor) &&
+                TryFindOpenGround(anchor, occupied, out respawnPosition))
+            {
+                Debug.LogWarning("[SpawnManager] no spawn point could vouch for a position — " +
+                                 $"respawning outside, on open ground near the spawn point, at {respawnPosition}.");
+                Reserve(respawnPosition);
+                return true;
+            }
+
+            // Still nothing: either there is no spawn point at all, or the ground around it has not
+            // loaded. Where the player fell has both, by definition — they were standing on it.
+            if (near.HasValue && TryFindOpenGround(near.Value, occupied, out respawnPosition))
+            {
+                Debug.LogWarning("[SpawnManager] no spawn point and no open ground near one — " +
+                                 $"respawning on open ground near where the player fell, at {respawnPosition}.");
+                Reserve(respawnPosition);
+                return true;
+            }
+
+            respawnPosition = Vector3.zero;
+            return false;
+        }
+
+        // ─────────────────────────────────────────────
+        //  Open ground, for when no spawn point will answer
+        // ─────────────────────────────────────────────
+
+        /// <summary>Clear of the ship's hull, which is roughly 5 m from the bay it contains.</summary>
+        private const float OpenGroundMinRadius = 7f;
+
+        /// <summary>Far enough to walk back from without being a different part of the world.</summary>
+        private const float OpenGroundMaxRadius = 30f;
+
+        private const int OpenGroundRings = 5;
+        private const int OpenGroundSpokes = 12;
+
+        /// <summary>Start height for the geometry probe. Clears the tallest hull in the game.</summary>
+        private const float OpenGroundProbeHeight = 80f;
+        private const float OpenGroundProbeDistance = 300f;
+
+        /// <summary>Mirrors SpawnPoint's standing volume — the player capsule, 3 m tall.</summary>
+        private const float StandingHeight = 3f;
+        private const float StandingRadius = 0.45f;
+
+        /// <summary>
+        /// A place to stand under open sky near <paramref name="center"/>.
+        ///
+        /// Two passes, and the order matters. The heightmap is asked first because it is the one
+        /// surface that cannot be shadowed: a downward ray fired near a ship takes the hull, the
+        /// roof or a crate as "ground", and that is precisely the reading that put a player inside
+        /// a floor before. Only if the world has no terrain here — an interior scene, the arena,
+        /// the test scenes — does the second pass fall back to whatever solid thing a ray finds.
+        /// </summary>
+        private static bool TryFindOpenGround(Vector3 center, IReadOnlyList<Vector3> occupied,
+                                              out Vector3 position)
+        {
+            return TryScanOpenGround(center, occupied, terrainOnly: true, out position)
+                || TryScanOpenGround(center, occupied, terrainOnly: false, out position);
+        }
+
+        /// <summary>
+        /// Rings of samples outward from <paramref name="center"/>, taking the roomiest valid one.
+        /// The bearing of the first spoke is randomised so a wipe does not queue the whole lobby up
+        /// on the same side of the ship.
+        /// </summary>
+        private static bool TryScanOpenGround(Vector3 center, IReadOnlyList<Vector3> occupied,
+                                              bool terrainOnly, out Vector3 position)
+        {
+            position = Vector3.zero;
+
+            bool found = false;
+            float bestClearance = float.NegativeInfinity;
+
+            float spin = Random.value * Mathf.PI * 2f;
+            float ringStep = (OpenGroundMaxRadius - OpenGroundMinRadius) / Mathf.Max(1, OpenGroundRings - 1);
+
+            for (int ring = 0; ring < OpenGroundRings; ring++)
+            {
+                float radius = OpenGroundMinRadius + ringStep * ring;
+
+                for (int spoke = 0; spoke < OpenGroundSpokes; spoke++)
+                {
+                    float angle = spin + spoke * (Mathf.PI * 2f / OpenGroundSpokes);
+                    Vector3 at = center + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
+
+                    if (!TryResolveGround(center, at, terrainOnly, out Vector3 groundPoint)) continue;
+
+                    // A roof overhead means this sample is back under the hull — or under a deck,
+                    // or a rock overhang — which is the one thing this search is trying to leave.
+                    if (SpawnClearance.IsSheltered(groundPoint)) continue;
+
+                    if (!SpawnClearance.HasRoomToStand(groundPoint, StandingHeight, StandingRadius))
+                        continue;
+
+                    Vector3 candidate = groundPoint + Vector3.up * SpawnSurfaceClearance;
+                    float gap = NearestOccupantDistance(candidate, occupied);
+
+                    if (gap >= SpawnSeparation)
+                    {
+                        position = candidate;
+                        return true;
+                    }
+
+                    if (!found || gap > bestClearance)
+                    {
+                        found = true;
+                        bestClearance = gap;
+                        position = candidate;
+                    }
+                }
+            }
+
+            return found;
+        }
+
+        private static bool TryResolveGround(Vector3 center, Vector3 at, bool terrainOnly,
+                                             out Vector3 groundPoint)
+        {
+            if (terrainOnly)
+            {
+                if (TerrainProbe.TryGetTerrainHeight(at, out float terrainY))
+                {
+                    groundPoint = new Vector3(at.x, terrainY, at.z);
+                    return true;
+                }
+
+                groundPoint = Vector3.zero;
+                return false;
+            }
+
+            Vector3 origin = new(at.x, center.y + OpenGroundProbeHeight, at.z);
+
+            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, OpenGroundProbeDistance,
+                                ~0, QueryTriggerInteraction.Ignore))
+            {
+                groundPoint = hit.point;
+                return true;
+            }
+
+            groundPoint = Vector3.zero;
+            return false;
+        }
+
+        /// <summary>
+        /// Distance to the nearest body or claimed position, or infinity when there are none — so
+        /// an empty world reads as maximally clear with no special case. Mirrors the same measure
+        /// inside <see cref="SpawnPoint"/>, which cannot be shared without making one of them
+        /// depend on the other.
+        /// </summary>
+        private static float NearestOccupantDistance(Vector3 position, IReadOnlyList<Vector3> occupied)
+        {
+            if (occupied == null || occupied.Count == 0) return float.PositiveInfinity;
+
+            float nearest = float.PositiveInfinity;
+
+            for (int i = 0; i < occupied.Count; i++)
+            {
+                float distance = Vector3.Distance(position, occupied[i]);
+                if (distance < nearest) nearest = distance;
+            }
+
+            return nearest;
         }
 
         public void SpawnPlayerForClient(ulong clientId)

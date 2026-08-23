@@ -43,7 +43,37 @@ namespace SpaceGame.Core
         public event Action OnInteractPressed;
     
         public event Action OnUsePressed;
-    
+
+        /// <summary>
+        /// The use button let go again, for items that do something for as long as they are held —
+        /// the laser staff's beam is the first.
+        ///
+        /// Bound to the same action as <see cref="OnUsePressed"/> rather than to a new one, so a
+        /// press and its release can never disagree about which button they belong to. The Input
+        /// System also cancels an in-progress action when the action map is disabled, which means
+        /// this fires on death and on opening a menu without anyone having to remember to — a held
+        /// beam that kept burning through a respawn would be the obvious failure otherwise.
+        /// </summary>
+        public event Action OnUseReleased;
+
+        /// <summary>
+        /// The secondary trigger — right mouse, left gamepad trigger.
+        ///
+        /// Built in code rather than added to InputSystem_Actions, because
+        /// InputControls.cs embeds its own copy of that asset's JSON and is what
+        /// actually binds at runtime: editing the .inputactions does nothing
+        /// until the generated file is regenerated, and hand-patching 3000 lines
+        /// of generated code to add one button is a much larger risk to every
+        /// other control in the game than owning this one action here.
+        ///
+        /// It still lives on this component so it obeys the same enable and
+        /// disable as everything else — an alternate fire that kept working
+        /// through death and menus would be worse than not having one.
+        /// </summary>
+        public event Action OnAltUsePressed;
+
+        private InputAction altUse;
+
         public event Action OnJumpPressed;
     
         public event Action OnDashPressed;
@@ -72,6 +102,11 @@ namespace SpaceGame.Core
             if (inputs != null) return;
 
             inputs = new InputControls();
+
+            altUse = new InputAction("AltUse", InputActionType.Button);
+            altUse.AddBinding("<Mouse>/rightButton").WithGroup("Keyboard&Mouse");
+            altUse.AddBinding("<Gamepad>/leftTrigger").WithGroup("Gamepad");
+
             BindActions();
         }
 
@@ -104,13 +139,21 @@ namespace SpaceGame.Core
             inputs.Player.Jump.performed     += _ => OnJumpPressed?.Invoke();
             inputs.Player.Dash.performed   += _ => OnDashPressed?.Invoke();
             inputs.Player.Use.performed   += _ => OnUsePressed?.Invoke();
+            inputs.Player.Use.canceled    += _ => OnUseReleased?.Invoke();
             inputs.Player.Backpack.performed += _ => OnBackpackPressed?.Invoke();
+
+            // Bound here with the rest, and exactly once, for the same reason
+            // they are: the callback is a lambda that nothing can unsubscribe,
+            // so binding it in OnEnable would leave another copy attached after
+            // every death and respawn.
+            altUse.performed += _ => OnAltUsePressed?.Invoke();
         }
 
         private void OnEnable()
         {
             EnsureInputs();
             inputs.Enable();
+            altUse?.Enable();
         }
 
         private void OnDisable()
@@ -118,6 +161,7 @@ namespace SpaceGame.Core
             // Not EnsureInputs: if the asset was never created there is nothing enabled to stop,
             // and building one here just to disable it would leak it past OnDestroy.
             inputs?.Disable();
+            altUse?.Disable();
 
             // Stale axes outlive the disable otherwise — MoveInput and LookInput are only written
             // by Update, so whatever the stick last read stays latched. On death that is a live
@@ -130,6 +174,9 @@ namespace SpaceGame.Core
         {
             inputs?.Dispose();
             inputs = null;
+
+            altUse?.Dispose();
+            altUse = null;
         }
 
         /// <summary>

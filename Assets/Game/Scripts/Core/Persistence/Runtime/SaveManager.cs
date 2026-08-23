@@ -18,6 +18,19 @@ namespace SpaceGame.Core.Persistence
     /// saved would write out its own replicated approximation of a world it does not own. Clients
     /// get loaded state the same way they get every other change: through replication.
     /// </summary>
+    /// <remarks>
+    /// <b>Execution order is part of the contract.</b> Unity delivers <c>OnApplicationQuit</c> in
+    /// script execution order, and NetworkManager tears the session down on quit as well. Whichever
+    /// ran first decided what the quit-save contained, and nothing pinned the order — so a save
+    /// taken after netcode teardown found every Rigidbody already made kinematic (no momentum), and
+    /// every remote player already unbound (no capture, and mount riders unresolvable). Running
+    /// first makes the quit-save a save of the session rather than of its wreckage.
+    ///
+    /// It also puts <c>Awake</c> ahead of the rest of the scene, which this class already depended
+    /// on informally: both stores must be holding the loaded document before the first chunk
+    /// hydrates or a player spawns.
+    /// </remarks>
+    [DefaultExecutionOrder(-10000)]
     public class SaveManager : MonoBehaviour
     {
         public static SaveManager Instance { get; private set; }
@@ -64,6 +77,14 @@ namespace SpaceGame.Core.Persistence
         private PlayerSaveService playerService;
         private float nextAutoSaveTime;
         private Task activeWrite;
+
+        /// <summary>
+        /// Whether a background write is still in flight.
+        ///
+        /// Exposed so a hotkey can tell the player "a save is already being written" rather than the
+        /// generic "nothing happened" — the one refusal that is transient and worth waiting out.
+        /// </summary>
+        public static bool IsWriting => Instance?.activeWrite is { IsCompleted: false };
         private bool loadedFromSave;
         private bool loadAnnounced;
 
@@ -150,6 +171,15 @@ namespace SpaceGame.Core.Persistence
             WorldStreamer.OnChunkLoaded += HandleChunkLoaded;
             WorldStreamer.OnChunkWillUnload += HandleChunkWillUnload;
             WorldStreamer.OnChunkUnloaded += HandleChunkUnloaded;
+
+            // Interiors are hydrated exactly like chunks, and were not hydrated at all before.
+            // WorldSaveStore.Hydrate had two callers — the persistent scene and chunks — so every
+            // cave in the game was invisible to the save system: a looted container, a killed
+            // creature, a moved crate inside one simply did not exist as far as a save was
+            // concerned. InteriorManager now raises the same three events WorldStreamer does.
+            InteriorManager.OnInteriorLoaded += HandleInteriorLoaded;
+            InteriorManager.OnInteriorWillUnload += HandleInteriorWillUnload;
+            InteriorManager.OnInteriorUnloaded += HandleInteriorUnloaded;
             worldStore.OnSceneHydrated += HandleSceneHydrated;
             playerService.PlayerBound += HandlePlayerBound;
 
@@ -220,6 +250,10 @@ namespace SpaceGame.Core.Persistence
             WorldStreamer.OnChunkWillUnload -= HandleChunkWillUnload;
             WorldStreamer.OnChunkUnloaded -= HandleChunkUnloaded;
 
+            InteriorManager.OnInteriorLoaded -= HandleInteriorLoaded;
+            InteriorManager.OnInteriorWillUnload -= HandleInteriorWillUnload;
+            InteriorManager.OnInteriorUnloaded -= HandleInteriorUnloaded;
+
             if (worldStore != null) worldStore.OnSceneHydrated -= HandleSceneHydrated;
             if (playerService != null) playerService.PlayerBound -= HandlePlayerBound;
 
@@ -242,8 +276,15 @@ namespace SpaceGame.Core.Persistence
 
             if (Time.time < nextAutoSaveTime) return;
 
-            nextAutoSaveTime = Time.time + autoSaveIntervalSeconds;
-            Save(DefaultSlotId, "Autosave");
+            // Scheduled from the OUTCOME, not before the attempt. Advancing the clock first meant a
+            // refusal — an in-flight write, a capture that found no players, a serialization throw —
+            // cost the player another full interval before anything tried again. A refused autosave
+            // now retries shortly rather than at the back of a five-minute queue.
+            bool wrote = Save(DefaultSlotId, "Autosave");
+
+            nextAutoSaveTime = Time.time + (wrote
+                ? autoSaveIntervalSeconds
+                : Mathf.Min(15f, autoSaveIntervalSeconds));
         }
 
         /// <summary>
@@ -425,25 +466,62 @@ namespace SpaceGame.Core.Persistence
             // wrong is the player's session.
             EnsureStores(null);
 
+            // Refusals are WARNINGS, not verbose logs.
+            //
+            // Every one of them means a save the player believes happened did not, and routing them
+            // through Log() put them behind a `verbose` flag that is off — which is how a quit-save
+            // could stop working for two sessions running without anyone noticing. The one refusal
+            // that stays quiet is the autosave timer's, below, because it fires on a schedule.
             if (string.IsNullOrEmpty(slotId))
             {
                 // Not merely tidy: SaveSlots.Sanitize turns an empty id into "save", so falling
                 // through here would quietly invent a save.json — exactly the stray slot this
                 // refusal exists to prevent.
-                Log("Save ignored: no world is active, so there is no slot to write.");
+                Refuse("no world is active, so there is no slot to write. Enter a world through " +
+                       "the main menu — a world scene opened directly in the editor cannot save.");
                 return false;
             }
 
             if (Network.IsNetworked && !Network.Server)
             {
-                Log("Save ignored: only the server owns world state.");
+                Refuse("only the server owns world state, so this peer has nothing to write.");
                 return false;
             }
 
+            // A save already in flight blocks another ASYNCHRONOUS one, and nothing more.
+            //
+            // This check used to sit above the synchronous branch, where it was the single worst
+            // bug in the system: OnApplicationQuit and SaveOnExit both pass synchronous: true
+            // precisely because Unity gives the process no more frames — and both returned false
+            // and wrote nothing whenever a background autosave happened to still be writing. An
+            // alt-F4 landing in that window lost the whole session since the last autosave, and
+            // said so only through a Log() that is gated on `verbose`.
+            //
+            // A synchronous save now waits the background write out instead of standing down. That
+            // is safe because the two write to the same file through SaveFileStore's temp-and-
+            // replace, so the only thing being serialised here is the order they land in.
             if (activeWrite is { IsCompleted: false })
             {
-                Log("Save ignored: the previous write has not finished.");
-                return false;
+                if (!synchronous)
+                {
+                    Log("Save ignored: the previous write has not finished.");
+                    return false;
+                }
+
+                try
+                {
+                    // Bounded: a save we cannot finish is worth failing, but a hang here would take
+                    // the whole quit with it.
+                    if (!activeWrite.Wait(TimeSpan.FromSeconds(5)))
+                        Debug.LogWarning("[Save] The previous write did not finish in time; writing " +
+                                         "over it anyway rather than losing this save.", this);
+                }
+                catch (Exception e)
+                {
+                    // The previous write faulted. That is its problem, not this save's.
+                    Debug.LogWarning($"[Save] The previous write failed ({e.GetBaseException().Message}); " +
+                                     "continuing with this save.", this);
+                }
             }
 
             SaveDocument document;
@@ -463,6 +541,15 @@ namespace SpaceGame.Core.Persistence
 
             string path = Slots.PathFor(slotId);
 
+            if (SaveFileStore.WouldDowngradeFormat(path, document))
+            {
+                Fail($"Refused to save '{slotId}': the file already there was written by a NEWER " +
+                     "version of the game than this one. Overwriting it would discard whatever that " +
+                     "version stored and could not be read back. Run the newer build, or delete the " +
+                     "save deliberately.");
+                return false;
+            }
+
             if (SaveFileStore.WouldDiscardAllPlayers(path, document))
             {
                 Fail($"Refused to save '{slotId}': the capture found no players, and the file " +
@@ -477,6 +564,7 @@ namespace SpaceGame.Core.Persistence
                 try
                 {
                     SaveFileStore.Write(path, json);
+                    SaveFileStore.NotifyWritten(path, document);
                     Announce(slotId, path, document);
                     OnSaved?.Invoke(slotId);
                 }
@@ -510,7 +598,16 @@ namespace SpaceGame.Core.Persistence
             int players = document?.Players?.Count ?? 0;
             int entities = document?.World?.Count ?? 0;
 
-            Debug.Log($"[Save] Wrote '{slotId}' — {players} player(s), {entities} entity record(s) → {path}", this);
+            // A save happened, so any standing explanation of why one did not is stale.
+            LastRefusal = null;
+
+            int held = worldStore?.UnresolvedCount ?? 0;
+            string heldNote = held > 0
+                ? $", {held} record(s) held back for prefabs that could not be resolved"
+                : string.Empty;
+
+            Debug.Log($"[Save] Wrote '{slotId}' — {players} player(s), {entities} entity record(s)" +
+                      $"{heldNote} → {path}", this);
         }
 
         /// <summary>
@@ -543,6 +640,7 @@ namespace SpaceGame.Core.Persistence
                 return;
             }
 
+            SaveFileStore.NotifyWritten(path, document);
             Announce(slotId, path, document);
             OnSaved?.Invoke(slotId);
         }
@@ -593,6 +691,11 @@ namespace SpaceGame.Core.Persistence
             Scene persistent = gameObject.scene;
             if (persistent.IsValid() && persistent.isLoaded)
                 worldStore.Dehydrate(SceneKey.Persistent, persistent);
+
+            // After the captures, never before: compaction removes records that name nothing, and a
+            // record refreshed this pass is by definition not one of those. Running it here means
+            // the file written is the compacted one rather than the compaction landing a save later.
+            worldStore.Compact();
         }
 
         private void CaptureGlobals(SaveDocument document)
@@ -670,6 +773,30 @@ namespace SpaceGame.Core.Persistence
         private void HandleChunkUnloaded(Vector2Int coord) =>
             worldStore.ForgetLoaded(SceneKey.ForChunk(coord));
 
+        // ─────────────────────────────────────────────
+        //  Interiors
+        // ─────────────────────────────────────────────
+        //
+        // Identical in shape to the chunk hooks, and deliberately so: an interior is a scene that
+        // comes and goes around a player, which is the same problem streaming already solves. The
+        // only difference is the key — SceneKey.ForScene rather than ForChunk — because an interior
+        // is named rather than gridded.
+
+        private void HandleInteriorLoaded(string sceneName, Scene scene)
+        {
+            if (Network.IsNetworked && !Network.Server) return;
+            worldStore.Hydrate(SceneKey.ForScene(sceneName), scene);
+        }
+
+        private void HandleInteriorWillUnload(string sceneName, Scene scene)
+        {
+            if (Network.IsNetworked && !Network.Server) return;
+            worldStore.Dehydrate(SceneKey.ForScene(sceneName), scene);
+        }
+
+        private void HandleInteriorUnloaded(string sceneName) =>
+            worldStore.ForgetLoaded(SceneKey.ForScene(sceneName));
+
         /// <summary>
         /// Records that an object is being removed from the world for good.
         ///
@@ -704,6 +831,7 @@ namespace SpaceGame.Core.Persistence
 
         private void Fail(string message)
         {
+            LastRefusal = message;
             Debug.LogError($"[Save] {message}", this);
             OnSaveError?.Invoke(message);
         }
@@ -712,5 +840,24 @@ namespace SpaceGame.Core.Persistence
         {
             if (verbose) Debug.Log($"[Save] {message}", this);
         }
+
+        /// <summary>
+        /// Reports a save that was asked for and did not happen.
+        ///
+        /// Always visible, and recorded on <see cref="LastRefusal"/> so a hotkey or a UI can tell
+        /// the player rather than leaving them to guess. Refusals used to go through
+        /// <see cref="Log"/>, which is behind a <c>verbose</c> flag that ships off — and a save that
+        /// silently does nothing is worse than one that fails loudly, because the player finds out
+        /// at the wrong end.
+        /// </summary>
+        private void Refuse(string reason)
+        {
+            LastRefusal = reason;
+            Debug.LogWarning($"[Save] Save ignored: {reason}", this);
+            OnSaveError?.Invoke(reason);
+        }
+
+        /// <summary>Why the most recent save did not happen, or null if the last one did.</summary>
+        public static string LastRefusal { get; private set; }
     }
 }

@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using SpaceGame.Core;
 using SpaceGame.World;
 
 namespace SpaceGame.Items
@@ -58,7 +60,88 @@ namespace SpaceGame.Items
 
         private bool _disposed;
 
+        // ── Live registry ──────────────────────────────────────────────────────
+
+        private static readonly List<Leash> LiveLeashes = new();
+
+        /// <summary>
+        /// Every rope currently in the session.
+        ///
+        /// <para>
+        /// A leash is not spawned from a prefab and is not parented to anything — it is a bare
+        /// <c>new GameObject</c> that immediately calls <c>DontDestroyOnLoad</c> — so nothing else in
+        /// the game can find one, and a saver had no way to ask what ropes exist. This list is that
+        /// way. Kept static because the ropes belong to the session rather than to any object,
+        /// which is also why their saver is a global one.
+        /// </para>
+        /// </summary>
+        public static IReadOnlyList<Leash> All => LiveLeashes;
+
+        private void OnEnable()
+        {
+            if (!LiveLeashes.Contains(this)) LiveLeashes.Add(this);
+        }
+
+        private void OnDisable() => LiveLeashes.Remove(this);
+
+        // ── Construction ───────────────────────────────────────────────────────
+
+        /// <summary>Everything about a rope that is a decision rather than a measurement.</summary>
+        public struct Settings
+        {
+            public float maxLength;
+            public float stiffness;
+            public float damping;
+            public float breakForce;
+            public int segments;
+            public float ropeSag;
+            public Color color;
+            public float width;
+            public Material material;
+        }
+
+        /// <summary>
+        /// Build an unattached rope with its renderer already set up.
+        ///
+        /// <para>
+        /// One factory rather than two copies of the same fifteen lines: the artifact builds ropes
+        /// when a player clicks, and the save system builds them when a world is loaded, and a rope
+        /// that came back from a save must be indistinguishable from one that did not.
+        /// </para>
+        /// </summary>
+        public static Leash Create(in Settings settings)
+        {
+            var go = new GameObject("Leash");
+            var leash = go.AddComponent<Leash>();
+            var lr = go.AddComponent<LineRenderer>();
+
+            if (settings.material != null) lr.material = settings.material;
+            lr.startColor = settings.color;
+            lr.endColor = settings.color;
+            lr.startWidth = settings.width;
+            lr.endWidth = settings.width;
+            lr.useWorldSpace = true;
+            lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            lr.receiveShadows = false;
+
+            leash.line = lr;
+            leash.maxLength = settings.maxLength;
+            leash.stiffness = settings.stiffness;
+            leash.damping = settings.damping;
+            leash.breakForce = settings.breakForce;
+            leash.segments = Mathf.Max(2, settings.segments);
+            leash.ropeSag = settings.ropeSag;
+
+            return leash;
+        }
+
         public bool IsHeld => aKind == EndpointKind.PlayerHand || bKind == EndpointKind.PlayerHand;
+
+        /// <summary>The object end A is tied to, or null for a rope pinned to bare geometry.</summary>
+        public Transform EndATransform => aTransform;
+
+        /// <summary>The object end B is tied to, or null.</summary>
+        public Transform EndBTransform => bTransform;
 
         public Vector3 EndAPos => aTransform != null ? aTransform.TransformPoint(aLocalOffset) : Vector3.zero;
         public Vector3 EndBPos => bTransform != null ? bTransform.TransformPoint(bLocalOffset) : Vector3.zero;
@@ -72,9 +155,34 @@ namespace SpaceGame.Items
 
         // ── Constraint ─────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Whether this machine runs the constraint.
+        ///
+        /// The server, or nobody. A rope has two ends and no natural owner — one may be a crate the
+        /// server simulates while the other is a player who simulates themselves — so letting each
+        /// machine run its own copy means two authorities fighting over the same bodies. Every
+        /// machine still BUILDS the rope and draws it (see LateUpdate); only one machine decides
+        /// what it does.
+        /// </summary>
+        private static bool Simulating => !Network.IsNetworked || Network.Server;
+
+        // What the rope owes each player endpoint since the last flush, as a velocity delta.
+        // Accumulated rather than sent per step: at 50 physics steps a second, one message per
+        // step per rope would drown the channel for a force the player cannot feel at that
+        // resolution anyway.
+        private Vector3 pendingTugA;
+        private Vector3 pendingTugB;
+        private float nextTugSendTime;
+
+        /// <summary>How often accumulated tugs go out. Ten a second reads as continuous pull.</summary>
+        private const float TugSendInterval = 0.1f;
+
         private void FixedUpdate()
         {
             if (_disposed) return;
+            if (!Simulating) return;
+
+            FlushPlayerTugs();
 
             // If an endpoint disappears we DO NOT auto-dispose. The GameObject stays alive
             // so we can inspect it in the Hierarchy. Physics simply freezes for this frame.
@@ -116,9 +224,47 @@ namespace SpaceGame.Items
             float positionStepPerSide = mobileSides > 0 ? overshoot / mobileSides : 0f;
 
             // n points A → B. So A moves along n toward B; B moves along -n toward A.
-            ResolveEndpoint(aRigidbody, aReactionRb, aAgent, n * forceMag, n, positionStepPerSide);
-            ResolveEndpoint(bRigidbody, bReactionRb, bAgent, -n * forceMag, -n, positionStepPerSide);
+            ResolveEndpoint(aRigidbody, aReactionRb, aAgent, n * forceMag, n, positionStepPerSide, ref pendingTugA);
+            ResolveEndpoint(bRigidbody, bReactionRb, bAgent, -n * forceMag, -n, positionStepPerSide, ref pendingTugB);
         }
+
+        /// <summary>
+        /// Hand each player endpoint what the rope owes it, for that player's own machine to apply.
+        ///
+        /// Sent to the PLAYER's channel rather than the rope's: the rope is a plain scene object
+        /// with no NetworkObject and therefore no relay of its own, while the player has both.
+        /// </summary>
+        private void FlushPlayerTugs()
+        {
+            if (Time.time < nextTugSendTime) return;
+            nextTugSendTime = Time.time + TugSendInterval;
+
+            SendTug(aRigidbody, aReactionRb, ref pendingTugA);
+            SendTug(bRigidbody, bReactionRb, ref pendingTugB);
+        }
+
+        private static void SendTug(Rigidbody primary, Rigidbody reaction, ref Vector3 pending)
+        {
+            if (pending.sqrMagnitude < 1e-6f) return;
+
+            Rigidbody target = primary != null ? primary : reaction;
+            if (target == null) { pending = Vector3.zero; return; }
+
+            NetMessaging.NetSendTo(target.gameObject, NetMsg.RopeTug,
+                                   new NetArg { P = pending }, NetTo.All);
+
+            pending = Vector3.zero;
+        }
+
+        /// <summary>
+        /// Whether this body is a player's, and therefore not the server's to push.
+        ///
+        /// The tag, for the same reason the spawn clearance check uses it: the player capsule is on
+        /// layer 0 so no mask can pick it out, and PlayerCharacter is the only prefab in the
+        /// project carrying the tag.
+        /// </summary>
+        private static bool IsPlayerBody(Rigidbody body) =>
+            body != null && body.CompareTag("Player");
 
         private static Vector3 GetEndpointVelocity(Rigidbody primary, Rigidbody reaction)
         {
@@ -138,10 +284,22 @@ namespace SpaceGame.Items
             Rigidbody primary, Rigidbody reaction, NavMeshAgent agent,
             Vector3 forceTowardOther,
             Vector3 unitTowardOther,
-            float positionStep)
+            float positionStep,
+            ref Vector3 pendingTug)
         {
             Rigidbody target = primary != null ? primary : reaction;
             if (target == null) return;
+
+            // A player's body is theirs to move, not ours. Bank what the rope owes them as a
+            // velocity delta — mass applied here, where the body actually is — and let their own
+            // machine apply it. Pushing it from the server would be undone within the tick.
+            if (IsPlayerBody(target))
+            {
+                if (!target.isKinematic && target.mass > 0f)
+                    pendingTug += forceTowardOther * (Time.fixedDeltaTime / target.mass);
+
+                return;
+            }
 
             if (!target.isKinematic)
             {
@@ -231,6 +389,91 @@ namespace SpaceGame.Items
             attachable = LeashAttachable.GetOrAdd(rootT.gameObject);
             attachable.AddLeash(this);
             agent = rootT.GetComponentInParent<NavMeshAgent>();
+        }
+
+        // ── Restore ────────────────────────────────────────────────────────────
+
+        /// <summary>One end of a rope as a save file can describe it.</summary>
+        public struct EndpointRestore
+        {
+            /// <summary>What this end was tied to. Static ends have none and use <see cref="WorldPoint"/>.</summary>
+            public GameObject Root;
+
+            /// <summary>Where on <see cref="Root"/>, in its local space.</summary>
+            public Vector3 LocalOffset;
+
+            /// <summary>Where in the world, for an end pinned to bare geometry rather than an object.</summary>
+            public Vector3 WorldPoint;
+
+            /// <summary>True for the end that was in a player's hand.</summary>
+            public bool Held;
+        }
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreEndpointA(in EndpointRestore endpoint) => RestoreEndpoint(true, endpoint);
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreEndpointB(in EndpointRestore endpoint) => RestoreEndpoint(false, endpoint);
+
+        /// <summary>
+        /// Tie one end of this rope to a described endpoint.
+        ///
+        /// <para>
+        /// Not <see cref="ConfigureEndpointA_OnObject"/>: that takes a world hit point and derives
+        /// the local offset from wherever the object is standing at the time, which for a restore is
+        /// wherever the object was PLACED this session. The offset is a property of the knot and is
+        /// stored, so it is handed in here rather than recomputed.
+        /// </para>
+        /// </summary>
+        private void RestoreEndpoint(bool isA, in EndpointRestore endpoint)
+        {
+            EndpointKind kind;
+            Transform xform;
+            Rigidbody rb = null;
+            Rigidbody reaction = null;
+            LeashAttachable attachable = null;
+            NavMeshAgent agent = null;
+            Vector3 offset = endpoint.LocalOffset;
+
+            if (endpoint.Root == null)
+            {
+                // Bare geometry. A fresh stand-in at the recorded point, exactly as LeashArtifact
+                // makes one for a rope tied to a wall — the point is the anchor, and it is the same
+                // point in every session.
+                var anchor = new GameObject("LeashAnchor");
+                anchor.transform.position = endpoint.WorldPoint;
+
+                kind = EndpointKind.Static;
+                xform = anchor.transform;
+                offset = Vector3.zero;
+            }
+            else if (endpoint.Held)
+            {
+                kind = EndpointKind.PlayerHand;
+                xform = endpoint.Root.transform;
+                reaction = endpoint.Root.GetComponentInParent<Rigidbody>();
+            }
+            else
+            {
+                rb = endpoint.Root.GetComponentInParent<Rigidbody>();
+                xform = rb != null ? rb.transform : endpoint.Root.transform;
+                kind = rb != null ? EndpointKind.Object : EndpointKind.Static;
+
+                attachable = LeashAttachable.GetOrAdd(xform.gameObject);
+                attachable.AddLeash(this);
+                agent = xform.GetComponentInParent<NavMeshAgent>();
+            }
+
+            if (isA)
+            {
+                aKind = kind; aTransform = xform; aRigidbody = rb;
+                aReactionRb = reaction; aLocalOffset = offset; aAttachable = attachable; aAgent = agent;
+            }
+            else
+            {
+                bKind = kind; bTransform = xform; bRigidbody = rb;
+                bReactionRb = reaction; bLocalOffset = offset; bAttachable = attachable; bAgent = agent;
+            }
         }
 
         /// <summary>

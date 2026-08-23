@@ -25,9 +25,63 @@ namespace SpaceGame.Agents
         private EntityFaction selfFaction;
         private float retargetTimer;
 
+        // Set by RestoreFlee, consumed by the next OnEnable.
+        private bool restoredFlee;
+
+        // ── Persisted state ───────────────────────────────────────────────────────
+        public bool IsFleeing => fleeing;
+
+        /// <summary>Who is being run from. Re-resolved on an interval, so this is a starting point.</summary>
+        public Transform Threat => threat;
+
+        public float RetargetTimer => retargetTimer;
+
         private void Awake() => selfFaction = GetComponent<EntityFaction>();
         private void Reset() => SetPriorityDefault(ModulePriority.Override);
-        private void OnEnable() { fleeing = false; retargetTimer = 0f; }
+
+        private void OnEnable()
+        {
+            // The flee flag is hysteresis, not a derived value — see RestoreFlee.
+            if (restoredFlee)
+            {
+                restoredFlee = false;
+                return;
+            }
+
+            fleeing = false;
+            retargetTimer = 0f;
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// <paramref name="wasFleeing"/> cannot be recomputed from the world, which is the whole
+        /// point of persisting it. Fleeing starts inside <c>triggerRadius</c> and stops outside
+        /// <c>safeRadius</c>, so for any threat sitting between the two the flag is the only thing
+        /// that says which side of the hysteresis the creature is on. A DuneRat that reloads calm
+        /// with the player 8 m away — past the 6 m trigger, inside the 10 m safe radius — stands
+        /// there and waits to be shot.
+        /// </summary>
+        public void RestoreFlee(bool wasFleeing, float retarget)
+        {
+            fleeing = wasFleeing;
+            retargetTimer = Mathf.Max(0f, retarget);
+            restoredFlee = true;
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Separate from <see cref="RestoreFlee"/> because the threat is a cross-object reference and
+        /// arrives later, once the save system can resolve it. Losing it is survivable — the next
+        /// <c>Refresh</c> finds a threat of its own — but the restored flag would then be applied to
+        /// whoever that turns out to be rather than to the creature's actual pursuer.
+        /// </summary>
+        public void RestoreThreat(Transform restoredThreat)
+        {
+            if (restoredThreat != null)
+                threat = restoredThreat;
+        }
 
         public override string ModuleDescription =>
             "Runs away from the nearest entity with the configured faction relationship when it enters triggerRadius. Stops fleeing once beyond safeRadius.\n\n" +

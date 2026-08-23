@@ -30,7 +30,14 @@ namespace SpaceGame.Agents
         private bool hasDestination;
         private Vector3 currentDestination;
         private Vector3 anchorPosition;
+        private bool hasAnchorPosition;
         private float waitTimer;
+
+        /// <summary>
+        /// Set by a restore, consumed by the next <see cref="OnEnable"/>. Hydration does not
+        /// guarantee <see cref="OnEnable"/> runs before the restore.
+        /// </summary>
+        private bool restoredThisEnable;
 
         private void Reset() => SetPriorityDefault(ModulePriority.Fallback);
 
@@ -43,9 +50,57 @@ namespace SpaceGame.Agents
 
         private void OnEnable()
         {
-            anchorPosition = anchor ? anchor.position : transform.position;
+            if (restoredThisEnable)
+            {
+                restoredThisEnable = false;
+                return;
+            }
+
+            // Latched ONCE, not on every enable. The roost is the creature's territory: re-deriving
+            // it from transform.position each time the module comes back means the wander volume
+            // follows the creature instead of containing it, so every save/load — and every chunk
+            // that streams out and back — walks the roost a little further from where it was
+            // authored.
+            if (!hasAnchorPosition)
+            {
+                anchorPosition = anchor ? anchor.position : transform.position;
+                hasAnchorPosition = true;
+            }
+
             hasDestination = false;
             waitTimer = 0f;
+        }
+
+        // ─────────── For the save system ───────────
+
+        public bool HasAnchorPosition => hasAnchorPosition;
+        public Vector3 AnchorPosition => anchorPosition;
+        public bool HasDestination => hasDestination;
+
+        /// <summary>Meaningless unless <see cref="HasDestination"/>.</summary>
+        public Vector3 CurrentDestination => currentDestination;
+
+        public float WaitTimer => waitTimer;
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// <paramref name="anchorSet"/> false leaves the existing anchor alone — "nothing was
+        /// recorded" must not become "re-derive one from the current position".
+        /// </summary>
+        public void RestoreAirWander(bool anchorSet, Vector3 anchorWorldPosition,
+                                     bool destinationSet, Vector3 destination, float wait)
+        {
+            if (anchorSet)
+            {
+                anchorPosition = anchorWorldPosition;
+                hasAnchorPosition = true;
+            }
+
+            hasDestination = destinationSet;
+            currentDestination = destination;
+            waitTimer = Mathf.Max(0f, wait);
+            restoredThisEnable = true;
         }
 
         public override MoveIntent? Tick(in AgentContext context, float deltaTime)

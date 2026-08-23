@@ -19,8 +19,24 @@ namespace SpaceGame.Core
     public sealed class NetChannel : MonoBehaviour
     {
         private readonly Dictionary<ushort, List<NetHandler>> handlers = new();
-        private readonly List<NetHandler> dispatchBuffer = new();
         private bool warnedUnrelayed;
+
+        /// <summary>
+        /// Spare copy buffers, one handed out per <see cref="Dispatch"/> currently on the stack.
+        ///
+        /// A single reusable buffer per channel is what this replaced, and it was wrong for the
+        /// case that matters most: dispatch is RE-ENTRANT, and re-enters on the same channel. The
+        /// standard round trip is a client sending UseItem to the server, whose handler answers by
+        /// broadcasting ItemUsed — and on the host <c>SendTo.ClientsAndHost</c> runs the local end
+        /// inline, so the inner Dispatch began while the outer one was still walking its buffer.
+        /// Clearing it there threw "Collection was modified" out of an RPC handler on every item
+        /// use, taking the rest of the outer dispatch with it.
+        ///
+        /// Static and unsynchronised because Netcode delivers messages on the main thread only, so
+        /// "how many dispatches are in flight" is exactly the call depth. Buffers are cleared as
+        /// they are returned, so the pool never holds a handler alive past its dispatch.
+        /// </summary>
+        private static readonly Stack<List<NetHandler>> BufferPool = new();
 
         /// <summary>
         /// The channel for <paramref name="self"/>'s entity, creating it if needed.
@@ -82,20 +98,30 @@ namespace SpaceGame.Core
                 return;
 
             // Copied first: a handler is entitled to unsubscribe itself, or to spawn something that
-            // subscribes, and either would invalidate the list mid-iteration.
-            dispatchBuffer.Clear();
-            dispatchBuffer.AddRange(list);
+            // subscribes, and either would invalidate the list mid-iteration. The copy is rented
+            // rather than reused so that a handler which triggers another dispatch — the normal
+            // request-then-broadcast round trip — gets its own buffer instead of resetting ours.
+            List<NetHandler> buffer = BufferPool.Count > 0 ? BufferPool.Pop() : new List<NetHandler>();
+            buffer.AddRange(list);
 
-            foreach (NetHandler handler in dispatchBuffer)
+            try
             {
-                try
+                foreach (NetHandler handler in buffer)
                 {
-                    handler(in arg, sender);
+                    try
+                    {
+                        handler(in arg, sender);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"[Net] handler for message {id} on '{name}' threw: {e}", this);
+                    }
                 }
-                catch (Exception e)
-                {
-                    Debug.LogError($"[Net] handler for message {id} on '{name}' threw: {e}", this);
-                }
+            }
+            finally
+            {
+                buffer.Clear();
+                BufferPool.Push(buffer);
             }
         }
 

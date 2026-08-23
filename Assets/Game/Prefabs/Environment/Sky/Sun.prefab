@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6213383745215315225}
   - component: {fileID: 3516790114291833761}
   - component: {fileID: 7186089524042346818}
+  - component: {fileID: -6424640912104837356}
   m_Layer: 0
   m_Name: Sun
   m_TagString: Untagged
@@ -42,14 +43,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5334017982181810390}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 1
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
   m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 2
     m_Resolution: -1
@@ -140,6 +141,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd6c608f5dc93e547bd2aa958d727a43, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DayNightCycle
-  cycleDuration: 80
+  cycleDuration: 1600
+  freezeCycle: 0
   startTimeOfDay: 0.25
   rotationAxis: {x: 1, y: 0, z: 0}
+--- !u!114 &-6424640912104837356
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5334017982181810390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b9ea1e84022c4caf9e93f4af8200f8b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.DayNightSaveable
+  cycle: {fileID: 0}

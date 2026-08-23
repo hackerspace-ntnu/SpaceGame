@@ -164,10 +164,28 @@ namespace SpaceGame.Agents
             ResetMountedInputState();
         }
 
+        /// <summary>
+        /// Rider input, for the one machine the rider is sitting at.
+        ///
+        /// <para>
+        /// Not mounted, or mounted by somebody else's player — both are "hands off", and the second
+        /// is not a small mistake. Mounting replicates, so every peer's copy of this module went
+        /// live the moment anyone climbed on: <see cref="HandleJumpAndLeap"/> calls the motor
+        /// straight out, so every peer's spacebar made their own copy of the bird leap, and
+        /// <see cref="EnsureMountedInputActionsEnabled"/> force-enabled Move and Jump on machines
+        /// whose player was standing somewhere else entirely. Escape threw the request in too.
+        /// </para>
+        /// <para>
+        /// Actions taken on a machine that is no longer driving are handed straight back rather
+        /// than left held: ownership can move mid-ride, and an action force-enabled by a rider who
+        /// has since dismounted stays enabled until this module is disabled.
+        /// </para>
+        /// </summary>
         private void Update()
         {
-            if (!IsMounted)
+            if (!IsMounted || !mountModule.RiderIsLocal)
             {
+                RestoreMountedInputActions();
                 ResetMountedInputState();
                 DampVisualLeanToNeutral(Time.deltaTime);
                 return;

@@ -27,13 +27,53 @@ namespace SpaceGame.Agents
         private Vector3 searchPosition;
         private bool hadTarget; // tracks edge: target just became lost
 
+        // Set by RestoreSearch, consumed by the next OnEnable — see the comment there.
+        private bool restoredSearch;
+
+        // ── Persisted state ───────────────────────────────────────────────────────
+        public bool IsSearching => isSearching;
+        public float SearchTimer => searchTimer;
+        public Vector3 SearchPosition => searchPosition;
+
+        /// <summary>Whether a target was held last frame. This is the edge this module starts on.</summary>
+        public bool HadTarget => hadTarget;
+
         private void Reset() => SetPriorityDefault(ModulePriority.Reactive - 1); // 19 — just below Chase
 
         private void OnEnable()
         {
+            // A restore must survive this. The search state is what makes the last-known position
+            // AgentTargeting persists mean anything — see RestoreSearch.
+            if (restoredSearch)
+            {
+                restoredSearch = false;
+                return;
+            }
+
             isSearching = false;
             searchTimer = 0f;
             hadTarget = false;
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// <paramref name="hadTargetLastFrame"/> matters as much as the search itself. This module
+        /// only ever starts on a falling edge — a target held last frame and gone this one — so an
+        /// agent that reloaded with <c>hadTarget</c> at false could never start searching no matter
+        /// what it remembered. That is why <c>AgentTargeting.LastKnownPosition</c> was being saved
+        /// faithfully and then never acted on.
+        /// </summary>
+        public void RestoreSearch(bool searching, float timer, Vector3 position, bool hadTargetLastFrame)
+        {
+            searchTimer = Mathf.Max(0f, timer);
+
+            // An expired search is not a search. Restoring one would have the agent stand at a
+            // remembered position for exactly one frame before giving up.
+            isSearching = searching && searchTimer > 0f;
+            searchPosition = position;
+            hadTarget = hadTargetLastFrame;
+            restoredSearch = true;
         }
 
         public override string ModuleDescription =>

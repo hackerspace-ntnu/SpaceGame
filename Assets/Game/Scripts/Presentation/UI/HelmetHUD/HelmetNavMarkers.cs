@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using SpaceGame.Agents;
+using SpaceGame.Characters;
 
 namespace SpaceGame.Presentation
 {
@@ -32,8 +33,31 @@ namespace SpaceGame.Presentation
         [Header("Source")]
         [Tooltip("Camera used for world->screen projection. If null, Camera.main is used at runtime.")]
         [SerializeField] private Camera referenceCamera;
-        [Tooltip("Player's EntityFaction. If null, auto-resolves via Player tag at runtime. Used to color enemies/allies and to compute threat levels.")]
+        [Tooltip("Player's EntityFaction. If null, it is read from the player this HUD hangs under. Used to color enemies/allies and to compute threat levels.")]
         [SerializeField] private EntityFaction playerFaction;
+
+        /// <summary>
+        /// Projection camera override. Null means <see cref="Camera.main"/>, re-read every frame,
+        /// which is what lets the view follow the player onto a mount and back off again.
+        /// </summary>
+        public Camera ReferenceCamera
+        {
+            get => referenceCamera;
+            set => referenceCamera = value;
+        }
+
+        /// <summary>
+        /// The faction every marker is coloured against — the wearer's. Resolves on the first ask
+        /// and on every ask after that until it lands, exactly as <see cref="Tick"/> does.
+        /// </summary>
+        public EntityFaction PlayerFaction
+        {
+            get
+            {
+                ResolvePlayerFaction();
+                return playerFaction;
+            }
+        }
 
         [Header("Layout")]
         [Tooltip("Padding (px) inside screen edges where off-screen markers clamp.")]
@@ -124,11 +148,26 @@ namespace SpaceGame.Presentation
             seenThisFrame.Clear();
         }
 
+        /// <summary>
+        /// Whose side the markers are coloured from.
+        /// <para>
+        /// Not a tag search. Every player object in the session is tagged "Player", so
+        /// <c>FindGameObjectWithTag</c> handed this an arbitrary one and a client could end up
+        /// painting its own team-mates hostile because it had adopted a stranger's faction. The HUD
+        /// is a child of the player wearing it, which is the reliable answer and the one available
+        /// earliest — see <see cref="GameplayMenuScope.FindLocalPlayer(Component)"/>.
+        /// </para>
+        /// <para>
+        /// Leaves the field null when the player is not up yet, and is called again from
+        /// <see cref="Tick"/> until it is. Nothing is cached on a miss.
+        /// </para>
+        /// </summary>
         private void ResolvePlayerFaction()
         {
             if (playerFaction != null) return;
-            var p = GameObject.FindGameObjectWithTag("Player");
-            if (p != null) playerFaction = p.GetComponentInChildren<EntityFaction>();
+
+            PlayerController player = GameplayMenuScope.FindLocalPlayer(this);
+            if (player != null) playerFaction = player.GetComponentInChildren<EntityFaction>();
         }
 
         private MarkerView EnsureView(object key, string labelText, Color tint)
@@ -184,6 +223,16 @@ namespace SpaceGame.Presentation
             threatLevel = 0f;
             threatLocalDir = Vector3.zero;
 
+            // Camera.main is safe here in a way FindGameObjectWithTag("Player") was not, and the
+            // difference is worth stating because both look like the same kind of blind search.
+            // Camera.main only ever returns an ACTIVE AND ENABLED camera tagged MainCamera. Every
+            // player carries one — it is the Main Camera prefab nested in PlayerCharacter — but
+            // PlayerController.DisablePlayer deactivates that GameObject for every player this peer
+            // does not own, so remote players cannot be candidates. What is left is whatever is
+            // currently rendering this peer's view, which is exactly what a screen-space projection
+            // wants: the first-person camera on foot, the spectator camera while dead, a vehicle
+            // camera while riding. Re-read every frame rather than cached, so handing the view over
+            // between those needs no notification.
             var cam = referenceCamera != null ? referenceCamera : Camera.main;
             if (cam == null) return;
 

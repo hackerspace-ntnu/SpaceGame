@@ -15,6 +15,31 @@ namespace SpaceGame.Agents
 
         public FactionDefinition Faction => faction;
 
+        /// <summary>
+        /// The table this entity arbitrates its relationships through. Exposed so a save can record
+        /// which one was in force — <see cref="SetFaction"/> swaps it as well as the faction.
+        /// </summary>
+        public FactionRelationshipTable RelationshipTable => relationshipTable;
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// <para>
+        /// Separate from <see cref="SetFaction"/> only in that a null <paramref name="restoredTable"/>
+        /// CLEARS the table rather than leaving the serialized one — a restore has to be able to put
+        /// this entity back exactly as it was, including back to having no table.
+        /// </para>
+        /// <para>
+        /// No re-registration is needed: <see cref="EntityTargetRegistry"/> holds the component, not
+        /// the faction, and every relationship query reads these fields live.
+        /// </para>
+        /// </summary>
+        public void RestoreFaction(FactionDefinition restoredFaction, FactionRelationshipTable restoredTable)
+        {
+            faction = restoredFaction;
+            relationshipTable = restoredTable;
+        }
+
         // Assigns faction at runtime, before OnEnable registers this entity into
         // EntityTargetRegistry. Used by MatchManager when spawning match entities
         // (bots and players) whose faction depends on chosen team/gamemode, not

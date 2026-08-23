@@ -24,6 +24,24 @@ namespace SpaceGame.Agents
         private EntityFaction shooterFaction;
         private Transform shooterTransform;
 
+        /// <summary>
+        /// True for a shell that exists only so somebody can watch the arc.
+        ///
+        /// <para>
+        /// A turret fires on every machine — that is what keeps the mortar visible to a player who
+        /// is not hosting, and it costs nothing on the wire — but only the machine that simulates
+        /// the turret may bill anybody for the landing. <see cref="NetDamage"/> forwards a client's
+        /// hit to the server as a request and the server honours all of them, so without this a
+        /// four-player session takes four shells of damage from one shell.
+        /// </para>
+        /// <para>
+        /// Set by whoever fires; see <see cref="SpaceGame.Weapons.Projectile.Cosmetic"/>, which is
+        /// the same flag for the player's weapons. Splash included: a cosmetic shell splashes
+        /// nobody, not even the neighbours the authority's copy will decide about for itself.
+        /// </para>
+        /// </summary>
+        public bool Cosmetic { get; set; }
+
         public void Init(int damageAmount, GameObject shooter)
         {
             damage = damageAmount;
@@ -60,13 +78,18 @@ namespace SpaceGame.Agents
 
             hasHit = true;
 
+            // Outside the Cosmetic check, deliberately: every machine that put this shell in the
+            // air should show it landing. Only the damage below is the authority's alone.
             if (impactVfxPrefab != null)
                 Instantiate(impactVfxPrefab, hitPos, Quaternion.LookRotation(hitNormal));
 
-            if (splashRadius > 0f)
-                ApplySplash(hitPos);
-            else
-                ApplyDirect(collision.transform);
+            if (!Cosmetic)
+            {
+                if (splashRadius > 0f)
+                    ApplySplash(hitPos);
+                else
+                    ApplyDirect(collision.transform);
+            }
 
             Destroy(gameObject);
         }

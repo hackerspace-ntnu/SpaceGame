@@ -97,14 +97,25 @@ Examples of future destination kinds:
 
 Examples: timer trigger, signal-bus trigger, network event trigger, cutscene-step trigger.
 
-## What's deliberately out of scope
+## Not handled yet
 
-- **Cancellation** — once started, a transition runs to completion.
-- **Group / party transitions** — only the calling initiator transitions. No volume "drag everyone in" semantics.
-- **Mounted players / vehicles** — transition fires for the player; the mount is left behind. Revisit if it bites.
+Two of these are genuine design choices about what a "transition" is. The rest are gaps to close —
+the game is aiming at fully networked play and a world that reloads exactly as it was left.
+
+- **Save/load integration** — the destination writes no "player is at X" state, so a player who
+  quits mid-interior comes back somewhere else. Needs a hook into the save system
+  ([Persistence.md](Persistence.md)).
+- **Group / party transitions** — only the calling initiator transitions today. A volume that pulls
+  a whole party through is needed for co-op.
+- **Mounted players / vehicles** — the transition fires for the player and the mount is left behind.
+  Mounts have to travel with their rider.
+- **Cancellation** — once started, a transition runs to completion. Fine today; revisit if a
+  cancellable transition is ever wanted.
+
+Genuinely a different mechanism, not a gap:
+
 - **Same-scene teleports** — not a "transition." Use `InteriorAnchor.TeleportPlayer` or a dedicated teleport component.
-- **Full scene swap** — additive only. Add a `FullSceneSwapDestination` when needed.
-- **Save/load integration** — the destination doesn't write any "player is at X" state. Save system needs its own hook.
+- **Full scene swap** — additive by default. Use `FullSceneSwapDestination` when a full swap is what you want.
 
 ## Files
 

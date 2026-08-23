@@ -75,6 +75,15 @@ namespace SpaceGame.Agents
             health.OnDeath += HandleDeath;
             health.OnRevive += HandleRevive;
 
+            // A restore has already said which thresholds had fired, so this enable must not
+            // contradict it. Consumed rather than left standing, so the next genuine enable — a
+            // revive, a despawned body switched back on — resets the latches as it always did.
+            if (thresholdsRestored)
+            {
+                thresholdsRestored = false;
+                return;
+            }
+
             // Reset threshold triggers in case entity was revived.
             if (thresholdReactions != null)
                 for (int i = 0; i < thresholdReactions.Count; i++)
@@ -83,6 +92,65 @@ namespace SpaceGame.Agents
                     r.triggered = false;
                     thresholdReactions[i] = r;
                 }
+        }
+
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // <c>HealthThresholdReaction.triggered</c> is [HideInInspector] on a serialized struct and is
+        // explicitly cleared above, so it is pure runtime state that nothing captured. Two things
+        // went wrong because of that, and only one of them was a loss.
+        //
+        // THE ACTIVE MISBEHAVIOUR. A creature restored at 20% health comes back with every latch
+        // clear, so the first hit it takes afterwards re-crosses thresholds it crossed long ago and
+        // <c>onThresholdReached</c> fires AGAIN — the enrage event replays, the scream replays, on
+        // every single load. Persisting the latches is what stops it.
+        //
+        // THE LOSS. The reactions' enable/disable lists are durable state written into module
+        // `enabled` flags, and nothing put them back. So an agent that a threshold had switched OFF
+        // — including its AgentController, which is exactly how ApplyDeadState parks a corpse — came
+        // back switched on and thinking again. Restoring re-applies those lists, silently.
+        private bool thresholdsRestored;
+
+        /// <summary>Which thresholds had already fired, positionally. Read by the save system.</summary>
+        public bool[] TriggeredThresholds()
+        {
+            if (thresholdReactions == null) return System.Array.Empty<bool>();
+
+            var flags = new bool[thresholdReactions.Count];
+            for (int i = 0; i < thresholdReactions.Count; i++)
+                flags[i] = thresholdReactions[i].triggered;
+
+            return flags;
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Positional, and short or long arrays are tolerated: a reaction added to the prefab since
+        /// the save reads as "not yet fired", which is the right answer for a threshold that did not
+        /// exist to be crossed.
+        /// </summary>
+        public void RestoreThresholds(bool[] flags)
+        {
+            thresholdsRestored = true;
+            if (thresholdReactions == null) return;
+
+            for (int i = 0; i < thresholdReactions.Count; i++)
+            {
+                HealthThresholdReaction reaction = thresholdReactions[i];
+                bool fired = flags != null && i < flags.Length && flags[i];
+
+                reaction.triggered = fired;
+                thresholdReactions[i] = reaction;
+
+                // Silently: the modules this reaction switched are STATE and must come back, but the
+                // UnityEvent is an ANNOUNCEMENT of a moment that has already happened.
+                if (fired) ApplyReaction(reaction, announce: false);
+            }
+
+            // The models on the hand bones are a projection of which combat modules are enabled, and
+            // the lines above have just changed that. Their own Awake ran with the prefab's answer.
+            WeaponSelector.RefreshAll(gameObject);
         }
 
         private void OnDisable()
@@ -182,14 +250,32 @@ namespace SpaceGame.Agents
                 reaction.triggered = true;
                 thresholdReactions[i] = reaction;
 
+                // A save being applied, not a wound. The same rule HandleDeath follows and for the
+                // same reason: the resulting STATE must happen, the announcement must not. Belt and
+                // braces today — RestoreHealth raises OnRestored rather than OnDamage, so this path
+                // is not currently reached during a restore — and it is the guard that keeps it
+                // correct if anything ever routes a restore through Damage.
+                ApplyReaction(reaction, announce: health == null || !health.IsRestoring);
+            }
+        }
+
+        /// <summary>
+        /// One threshold's consequences. <paramref name="announce"/> separates the lasting half — the
+        /// modules this reaction switches on and off — from the one-off half, which is a UnityEvent
+        /// that may play a scream, spawn a effect or start a cutscene and must fire exactly once in
+        /// the life of the creature, not once per load.
+        /// </summary>
+        private void ApplyReaction(in HealthThresholdReaction reaction, bool announce)
+        {
+            if (reaction.enableModules != null)
                 foreach (MonoBehaviour mb in reaction.enableModules)
                     if (mb) mb.enabled = true;
 
+            if (reaction.disableModules != null)
                 foreach (MonoBehaviour mb in reaction.disableModules)
                     if (mb) mb.enabled = false;
 
-                reaction.onThresholdReached?.Invoke();
-            }
+            if (announce) reaction.onThresholdReached?.Invoke();
         }
 
         private void Despawn() => gameObject.SetActive(false);

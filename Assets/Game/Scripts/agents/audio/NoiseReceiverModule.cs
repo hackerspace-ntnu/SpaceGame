@@ -43,8 +43,46 @@ namespace SpaceGame.Agents
         private Vector3 investigatePosition;
         private float investigateTimer;
 
+        // Set by RestoreInvestigation, consumed by the next OnEnable.
+        private bool restoredInvestigation;
+
+        // ── Persisted state ───────────────────────────────────────────────────────
+        public bool IsInvestigating => isInvestigating;
+        public Vector3 InvestigatePosition => investigatePosition;
+        public float InvestigateTimer => investigateTimer;
+
         private void Reset() => SetPriorityDefault(ModulePriority.Reactive - 2); // 18 — below Chase, above Search
-        private void OnEnable() { isInvestigating = false; investigateTimer = 0f; }
+
+        private void OnEnable()
+        {
+            // The guard walking toward a gunshot has to still be walking toward it after a reload.
+            if (restoredInvestigation)
+            {
+                restoredInvestigation = false;
+                return;
+            }
+
+            isInvestigating = false;
+            investigateTimer = 0f;
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// The aggro branch of <see cref="OnNoiseHeard"/> needs nothing here: it hands the instigator
+        /// to <c>AgentTargeting</c> and clears the investigation, and <c>AgentStateSaveable</c> owns
+        /// the target.
+        /// </summary>
+        public void RestoreInvestigation(bool investigating, Vector3 position, float timer)
+        {
+            investigateTimer = Mathf.Max(0f, timer);
+
+            // An expired investigation is not one — restoring it costs a frame of walking and then
+            // gives up, which reads as a twitch.
+            isInvestigating = investigating && investigateTimer > 0f;
+            investigatePosition = position;
+            restoredInvestigation = true;
+        }
 
         // Resolved lazily: noises can arrive before AgentController has run its own resolve.
         private AgentTargeting Targeting =>

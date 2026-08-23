@@ -13,6 +13,7 @@
 //
 // The other subtlety is that a walker is wrapped in its own colliders, so a plain masked raycast
 // plants its feet on itself. Every ray here rejects hits on the machine casting it.
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Locomotion
@@ -39,13 +40,28 @@ namespace SpaceGame.Locomotion
 
         /// `startAbove` is how far above a query point a ray starts, so a foot already slightly
         /// below the surface still finds it; `length` is how far down it looks from there.
-        public WalkerGround(Transform self, LayerMask mask, float startAbove, float length)
+        public WalkerGround(Transform self, LayerMask mask, float startAbove, float length,
+                            HashSet<Collider> excluded = null)
         {
             this.self = self;
             this.mask = mask;
             this.startAbove = startAbove;
             this.length = length;
+            this.excluded = excluded;
         }
+
+        /// Surfaces these probes must pretend are not there. Held by REFERENCE, not copied, so the
+        /// owner can open and close a hole without rebuilding the sampler.
+        ///
+        /// It exists for one case and it is worth naming: a portal cuts an aperture into a wall and
+        /// switches off the machine's COLLISION with it, which is all a physics body needs to walk
+        /// through. A legged machine needs more, because it does not push against the world -- it
+        /// asks the world where it is allowed to put a foot, by casting rays, and
+        /// `Physics.IgnoreCollision` has no effect whatsoever on a raycast. So the wall stayed
+        /// solid to every probe: the climb gate read the far side of the aperture as a cliff and
+        /// refused to travel into it, and the machine stopped dead at the rim of a hole it was
+        /// entitled to walk through.
+        private readonly HashSet<Collider> excluded;
 
         /// Nearest ground below `origin`, never the machine itself.
         public bool Ray(Vector3 origin, float distance, out RaycastHit best)
@@ -75,6 +91,7 @@ namespace SpaceGame.Locomotion
                 Collider col = buffer[i].collider;
                 if (col == null || col.transform.IsChildOf(self)) continue;
                 if (IsLooseBody(col)) continue;
+                if (excluded != null && excluded.Count > 0 && excluded.Contains(col)) continue;
                 if (buffer[i].distance >= nearest) continue;
                 nearest = buffer[i].distance;
                 best = buffer[i];

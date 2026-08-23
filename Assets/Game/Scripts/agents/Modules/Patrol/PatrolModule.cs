@@ -52,10 +52,26 @@ namespace SpaceGame.Agents
         private int waypointIndex;
         private int waypointDirection = 1;
 
+        /// <summary>
+        /// Set by a restore, consumed by the next <see cref="OnEnable"/>.
+        ///
+        /// <see cref="OnEnable"/> zeroes the whole route, and hydration does not guarantee it runs
+        /// before the restore — a chunk that streams back in re-enables this module *after* the
+        /// record has been applied. Without the latch the restore is silently undone and the guard
+        /// starts again at waypoint 0, which is the behaviour the saver exists to remove.
+        /// </summary>
+        private bool restoredThisEnable;
+
         private void Reset() => SetPriorityDefault(ModulePriority.Fallback);
 
         private void OnEnable()
         {
+            if (restoredThisEnable)
+            {
+                restoredThisEnable = false;
+                return;
+            }
+
             destination = null;
             waitTimer = 0f;
             waypointIndex = 0;
@@ -72,7 +88,29 @@ namespace SpaceGame.Agents
         /// <summary>+1 or -1 on a ping-pong route; unused on a looping one.</summary>
         public int WaypointDirection => waypointDirection;
 
+        public bool HasDestination => destination.HasValue;
+
+        /// <summary>Meaningless unless <see cref="HasDestination"/>.</summary>
+        public Vector3 Destination => destination ?? Vector3.zero;
+
+        /// <summary>Seconds left of the pause at the current post.</summary>
+        public float WaitTimer => waitTimer;
+
         /// <summary>
+        /// Whether the patrol circle's centre has been decided yet.
+        ///
+        /// This is the territory. In <see cref="PatrolMode.RadiusBased"/> with no explicit
+        /// <c>radiusCenter</c>, the centre is latched once from wherever the agent woke up — so if a
+        /// reload lets it latch a second time, the whole patrol area moves to wherever the guard
+        /// happened to be standing when the game was saved, and moves again on the next save.
+        /// </summary>
+        public bool HasSpawnAnchor => hasSpawnAnchor;
+
+        public Vector3 SpawnAnchor => spawnAnchor;
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
         /// Puts an agent back where it was in its circuit. Clamped rather than trusted: the route is
         /// authored data and may have had waypoints removed since the save was written.
         /// </summary>
@@ -83,6 +121,30 @@ namespace SpaceGame.Agents
                 : Mathf.Clamp(index, 0, patrolPoints.Length - 1);
 
             waypointDirection = direction < 0 ? -1 : 1;
+            restoredThisEnable = true;
+        }
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestorePatrolLeg(bool hasDestination, Vector3 target, float wait)
+        {
+            destination = hasDestination ? target : (Vector3?)null;
+            waitTimer = Mathf.Max(0f, wait);
+            restoredThisEnable = true;
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Hands back the patrol centre the agent had before the save, and marks it latched so
+        /// <see cref="EnsureAnchor"/> never re-derives it from the current position.
+        /// </summary>
+        public void RestoreSpawnAnchor(bool hasAnchor, Vector3 anchor)
+        {
+            if (!hasAnchor) return;
+
+            spawnAnchor = anchor;
+            hasSpawnAnchor = true;
+            restoredThisEnable = true;
         }
 
         public override string ModuleDescription =>

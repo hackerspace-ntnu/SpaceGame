@@ -35,6 +35,20 @@ namespace SpaceGame.World.Safety
         /// turns this into a <see cref="Lift"/>.
         /// </summary>
         Park,
+
+        /// <summary>
+        /// The hold has run its course and no ground arrived. Put the body back somewhere known
+        /// to have been solid instead of going on holding it.
+        ///
+        /// <para>
+        /// This exists because <see cref="Park"/> is an optimistic verdict: it assumes the chunk
+        /// under the body is on its way. When the body is somewhere the streamer owes nothing —
+        /// off the grid, or over a chunk authored without terrain — nothing is coming, and a hold
+        /// with no way out is a player frozen in the void with no recourse but to quit. A body put
+        /// back on ground it has actually stood on is recoverable; one held forever is not.
+        /// </para>
+        /// </summary>
+        Recover,
     }
 
     public readonly struct UnderTerrainVerdict
@@ -92,6 +106,18 @@ namespace SpaceGame.World.Safety
         /// loaded overhead and the recovery is a burial being undone rather than one being avoided.
         /// </param>
         public UnderTerrainVerdict Evaluate(float bodyY, bool hasTerrain, float terrainY, bool groundExpected)
+            => Evaluate(bodyY, hasTerrain, terrainY, groundExpected, parkExpired: false);
+
+        /// <param name="parkExpired">
+        /// Whether this body has already been held below the floor for as long as the guard is
+        /// willing to hold it. Only the component can answer this — it is a question about how
+        /// long the hold has run, not about heights.
+        ///
+        /// It turns the below-floor park from a wait with no exit into a bounded one. See
+        /// <see cref="UnderTerrainAction.Recover"/> for why that matters.
+        /// </param>
+        public UnderTerrainVerdict Evaluate(float bodyY, bool hasTerrain, float terrainY,
+                                            bool groundExpected, bool parkExpired)
         {
             // A measured surface always wins. It answers the question outright, so how far the body
             // has fallen and whether anything is owed here stop mattering.
@@ -107,9 +133,14 @@ namespace SpaceGame.World.Safety
             if (groundExpected)
                 return new UnderTerrainVerdict(UnderTerrainAction.Park, bodyY);
 
-            return bodyY < AbsoluteFloorY
-                ? new UnderTerrainVerdict(UnderTerrainAction.Park, bodyY)
-                : UnderTerrainVerdict.Fine;
+            if (bodyY >= AbsoluteFloorY)
+                return UnderTerrainVerdict.Fine;
+
+            // Below the floor with nothing to measure. Wait first — the chunk is usually on its
+            // way — but not indefinitely: a hold nothing can end is worse than the fall it
+            // prevented, because the fall at least has a bottom.
+            return new UnderTerrainVerdict(
+                parkExpired ? UnderTerrainAction.Recover : UnderTerrainAction.Park, bodyY);
         }
     }
 }

@@ -87,7 +87,23 @@ namespace SpaceGame.Core.Persistence
             if (hasRecord)
             {
                 if (applyPosition)
-                    SaveTeleport.Move(player, record.Position, record.Rotation);
+                {
+                    // Through NetworkedTeleport, not SaveTeleport directly.
+                    //
+                    // The player's NetworkTransform is OWNER-authoritative. A remote client's body is
+                    // written by that client, so a server-side transform write on it is overwritten
+                    // within a tick — silently. This line was that write, and the consequence was that
+                    // a returning client got their health, hotbar and backpack back (all server state,
+                    // all replicated) and spawned at the SpawnPoint anyway. It reads to the player as
+                    // "everything came back except where I was", and it is invisible in solo testing
+                    // because the host owns its own body and so the direct write happens to work.
+                    //
+                    // NetworkedTeleport exists for exactly this and is already on the player prefab;
+                    // PlayerRespawn uses it and works. It degrades to a direct SaveTeleport.Move when
+                    // there is no NetworkObject, no spawn, or no network — so the offline and host
+                    // paths are unchanged.
+                    NetworkedTeleport.Move(player, record.Position, record.Rotation);
+                }
 
                 SaveableEntity entity = player.GetComponent<SaveableEntity>();
 

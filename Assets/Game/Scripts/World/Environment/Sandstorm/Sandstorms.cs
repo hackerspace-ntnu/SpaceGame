@@ -52,11 +52,64 @@ namespace SpaceGame.World.Weather
 
         /// <summary>
         /// The clock every machine agrees on. Server time when there is a session — including for
-        /// clients, which estimate it — and plain game time when there is not. Storm position is a
-        /// function of this, so anything else here would let two players stand in different weather.
+        /// clients, which estimate it — and plain game time when there is not.
+        ///
+        /// <para>
+        /// Read by the sky as well as the weather (<c>DayNightCycle.Now</c>), which is why it is
+        /// still the RAW reading and not <see cref="WeatherTime"/>: the two systems anchor
+        /// themselves against it independently, and a clock one of them could move underneath the
+        /// other would let restoring a saved storm swing the sun.
+        /// </para>
         /// </summary>
-        public static double Now =>
-            Network.IsNetworked ? NetworkManager.Singleton.ServerTime.Time : Time.timeAsDouble;
+        public static double Now => StormClock.Shared;
+
+        /// <summary>
+        /// What time the WEATHER thinks it is. Every storm's <c>StartTime</c> is a reading of this.
+        ///
+        /// <para>
+        /// Not the raw clock, because the raw clock restarts at zero every session and a saved
+        /// storm's StartTime read back against a fresh zero is a storm that has not begun yet. See
+        /// <see cref="StormClock"/>: an anchor over the shared clock, so restoring a world is a
+        /// matter of re-stating which reading counts as now rather than replaying elapsed time.
+        /// Every machine still derives the same number — the anchor is replicated by
+        /// <c>SandstormManager</c>, exactly as the sky's is by <c>SkyNetwork</c>.
+        /// </para>
+        /// </summary>
+        public static double WeatherTime => StormClock.Now;
+
+        /// <summary>
+        /// Restore-only. Puts the weather clock back to a saved reading. Called by the save system;
+        /// do not call from gameplay.
+        /// </summary>
+        public static void RestoreClock(double weatherTime) => StormClock.RestoreNow(weatherTime);
+
+        /// <summary>
+        /// Restore-only. Starts the weather clock over, for a world that has no saved weather.
+        /// Called by the save system; do not call from gameplay.
+        /// </summary>
+        public static void ResetClock() => StormClock.Reset();
+
+        /// <summary>
+        /// Every live storm as a record, for the save system. Empty when there is no manager.
+        /// </summary>
+        public static System.Collections.Generic.IReadOnlyList<StormInstance> Records =>
+            SandstormManager.Instance != null
+                ? SandstormManager.Instance.Records
+                : System.Array.Empty<StormInstance>();
+
+        /// <summary>
+        /// Restore-only. Replaces every live storm with the saved set and resumes id allocation from
+        /// <paramref name="nextId"/>. Server-only, and false when there is no manager — same
+        /// contract as <see cref="TrySpawn"/>. Called by the save system; do not call from gameplay.
+        /// </summary>
+        public static bool RestoreStorms(System.Collections.Generic.IReadOnlyList<StormInstance> storms, int nextId)
+        {
+            SandstormManager manager = SandstormManager.Instance;
+            return manager != null && manager.RestoreRecords(storms, nextId);
+        }
+
+        /// <summary>The id the next storm would be given. Saved so ids stay unique across a reload.</summary>
+        public static int NextId => SandstormManager.Instance != null ? SandstormManager.Instance.NextId : 1;
 
         /// <summary>True when at least one storm exists anywhere in the world.</summary>
         public static bool Any => SandstormManager.Instance != null &&

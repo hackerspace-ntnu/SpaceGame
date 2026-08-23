@@ -36,6 +36,14 @@ namespace SpaceGame.Core.Persistence
 
         public string SaveKey => Key;
 
+        /// <summary>
+        /// Early: seating the rider re-establishes a relationship other savers read. The ornithopter's
+        /// saver in particular needs to know whether anybody is aboard before it decides whether to
+        /// put a craft back into the air, and it previously had to subscribe to
+        /// <c>MountModule.Mounted</c> to work around not being able to say so.
+        /// </summary>
+        public int LoadOrder => IDeferredSaveable.Early;
+
         /// <summary>The reference read from the save, waiting for the rider to exist.</summary>
         private SaveRef pendingRider;
 

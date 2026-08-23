@@ -63,6 +63,11 @@ namespace SpaceGame.Agents
         [Tooltip("How fast the held item swings onto a new aim, in degrees per second. 0 snaps.")]
         [SerializeField] private float aimTurnSpeed = 540f;
 
+        [Header("Grip")]
+        [Tooltip("Multiplies the size held items are scaled to. Raise it for an outsized creature so " +
+                 "the gun in its fist stays in proportion to the fist.")]
+        [SerializeField] private float holdScaleMultiplier = 1f;
+
         [Tooltip("Height above this entity's origin that shots are measured from when the item has " +
                  "no muzzle of its own.")]
         [SerializeField] private float eyeHeight = 1.5f;
@@ -71,7 +76,6 @@ namespace SpaceGame.Agents
         private EquipItemSocket socket;
         private GameObject equippedObject;
         private UsableItem equippedUsable;
-        private Weapon heldWeapon;
         private int equippedSlotIndex = -1;
         private float autoUseTimer;
 
@@ -102,8 +106,10 @@ namespace SpaceGame.Agents
         {
             get
             {
-                if (equippedObject != null && handSocket != null)
-                    return handSocket.position;
+                // The palm, not the wrist. The item is seated at the grip, so a shot measured from
+                // the bone origin starts a hand's width behind the thing that fired it.
+                if (equippedObject != null && socket != null && socket.Socket != null)
+                    return socket.GripPosition;
 
                 return transform.position + Vector3.up * eyeHeight;
             }
@@ -126,7 +132,14 @@ namespace SpaceGame.Agents
                 Debug.LogError($"{name}: EntityEquipmentController could not resolve a hand bone. " +
                                "Assign handSocket manually or add a hint to handBoneNameHints.", this);
 
-            socket = new EquipItemSocket(handSocket);
+            // The grip frame is worked out from the rig's own fingers rather than taken from the
+            // bone's rotation — see HandGripFrame. NPC skeletons vary far more than the player's
+            // does, so a frame that survives a different export matters more here, not less.
+            Animator rigAnimator = GetComponentInChildren<Animator>(true);
+            HandGripFrame frame = HandGripFrame.Derive(rigAnimator, handSocket,
+                                                       isRightHand: handBone != HumanBodyBones.LeftHand);
+
+            socket = new EquipItemSocket(handSocket, frame, holdScaleMultiplier);
         }
 
         /// <summary>
@@ -162,11 +175,56 @@ namespace SpaceGame.Agents
 
         private void Start()
         {
-            if (startingSlot >= 0)
+            // The starting slot is the AUTHORED answer to "what is this NPC holding". A restore is
+            // the recorded one, and it wins: an NPC that picked up and equipped a looted rifle must
+            // not come back holding the pistol its prefab ships with. Not consumed, unlike the
+            // OnEnable latches elsewhere — Start runs once, so there is no later genuine start for
+            // the flag to have to yield to.
+            if (!equipmentRestored && startingSlot >= 0)
                 EquipSlot(startingSlot);
 
             if (entityInventory)
                 entityInventory.OnSlotChanged += OnInventorySlotChanged;
+        }
+
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // <c>EntityInventorySaveable</c> already persists WHAT is in the bag. This is WHICH of it is
+        // in the hand, which is a different question with a different answer: the slot index is
+        // runtime state written by <see cref="EquipSlot"/>, <see cref="EquipFirstAvailable"/> and by
+        // an item running dry, and none of those leave a trace anything captured.
+        //
+        // `equippedObject` and `equippedUsable` are deliberately not stored. They are a spawned
+        // instance and a component on it — rebuilt by <see cref="EquipSlot"/> from the slot, so
+        // naming the slot names them too, and a saved reference to a scene object would be
+        // meaningless in a file anyway.
+        private bool equipmentRestored;
+
+        public float AutoUseTimer => autoUseTimer;
+        public bool HasAimPoint => hasAimPoint;
+        public Vector3 AimPoint => aimPoint;
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Idempotent, because it is applied twice on purpose — once as the record lands and once
+        /// after the load settles — so that it is correct whichever order this saver and the
+        /// inventory's saver happen to run in. <see cref="EquipSlot"/> returns early when the slot
+        /// asked for is already in hand, so the second call costs nothing and re-spawns nothing.
+        /// </summary>
+        public void RestoreEquipment(int slotIndex, float autoTimer, bool aiming, Vector3 aimAt)
+        {
+            equipmentRestored = true;
+
+            if (slotIndex < 0) Unequip();
+            else EquipSlot(slotIndex);
+
+            autoUseTimer = autoTimer;
+
+            // After the equip, never before: Unequip clears the aim, so an aim written first would
+            // be thrown away on the empty-handed path.
+            if (aiming) AimAt(aimAt);
+            else ClearAim();
         }
 
         private void OnEnable()
@@ -249,7 +307,6 @@ namespace SpaceGame.Agents
 
             // See Weapon.ExternallyAimed. Set for every weapon on the object, not just the root,
             // so a multi-part prefab does not leave one barrel tracking the host's camera.
-            heldWeapon = equippedObject.GetComponent<Weapon>();
             foreach (Weapon weapon in equippedObject.GetComponentsInChildren<Weapon>(true))
                 weapon.ExternallyAimed = aimHeldItem;
         }
@@ -265,7 +322,6 @@ namespace SpaceGame.Agents
             socket.Unequip();
             equippedObject = null;
             equippedUsable = null;
-            heldWeapon = null;
             equippedSlotIndex = -1;
             hasAimPoint = false;
         }
@@ -427,12 +483,15 @@ namespace SpaceGame.Agents
                 ? wanted
                 : Quaternion.RotateTowards(item.rotation, wanted, aimTurnSpeed * Time.deltaTime);
 
-            // Re-seat the grip. EquipItemSocket aligns Handle1 to the socket once, at equip time,
-            // by offsetting the object's ROOT — so any rotation after that swings the weapon about
-            // its own origin and the grip leaves the hand. Re-applying the offset each frame keeps
-            // the weapon rotating about the point it is actually held by.
-            if (heldWeapon != null && heldWeapon.Handle1 != null && handSocket != null)
-                item.position += handSocket.position - heldWeapon.Handle1.position;
+            // Re-seat the grip. The socket seats the item's grip point in the palm once, at equip
+            // time, by offsetting the object's ROOT — so any rotation after that swings the item
+            // about its own origin and the grip leaves the hand. Putting it back each frame keeps
+            // the item turning about the point it is actually held by.
+            //
+            // Asking the socket rather than doing the arithmetic here is what extends this to
+            // artifacts: it re-seats whatever the grip point turned out to be, which for a weapon
+            // is still Handle1 and for everything else is its ItemGrip or its own centre.
+            socket?.ReseatGrip();
         }
 
         private void OnValidate()
@@ -440,6 +499,7 @@ namespace SpaceGame.Agents
             autoUseInterval = Mathf.Max(0.05f, autoUseInterval);
             aimTurnSpeed = Mathf.Max(0f, aimTurnSpeed);
             eyeHeight = Mathf.Max(0f, eyeHeight);
+            holdScaleMultiplier = Mathf.Max(0.01f, holdScaleMultiplier);
         }
     }
 }

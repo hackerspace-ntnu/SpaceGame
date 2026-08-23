@@ -63,10 +63,85 @@ namespace SpaceGame.Agents
         // its attacker instead of continuing toward a marginally closer target.
         public Transform LastAttacker { get; private set; }
 
-        public FactionRelationship Relationship => settings.relationship;
+        /// <summary>
+        /// Who this agent counts as an enemy. Resolves <see cref="settings"/> on demand for the same
+        /// reason <see cref="ForceTarget"/> does: a restore can ask before Awake has run.
+        /// </summary>
+        public FactionRelationship Relationship
+        {
+            get
+            {
+                EnsureSettings();
+                return settings.relationship;
+            }
+        }
+
+        /// <summary>
+        /// The tuning asset currently in force, or null when the agent is running the inline fields.
+        ///
+        /// Not the same question as "what does the prefab say": <see cref="ApplyProfile"/> swaps this
+        /// at runtime, so it is the only place that knows a MatchManager arena profile is live rather
+        /// than the one Awake read.
+        /// </summary>
+        public TargetingProfile ActiveProfile => profile;
+
+        /// <summary>
+        /// Seconds an unseen target and its last-known position survive before the agent gives up.
+        ///
+        /// Exposed for the save system, which clamps a restored memory to it — see
+        /// <c>AgentStateSaveable</c>. Falls back to the profile default when asked before Awake,
+        /// which is what an EditMode test does.
+        /// </summary>
+        public float MemoryDuration
+        {
+            get
+            {
+                EnsureSettings();
+                return settings != null ? settings.memoryDuration : FallbackMemoryDuration;
+            }
+        }
+
+        // Matches TargetingProfile.memoryDuration's own default.
+        private const float FallbackMemoryDuration = 6f;
 
         // ── Internals ─────────────────────────────────────────────────────────────
         private TargetingProfile settings;
+
+        /// <summary>
+        /// Makes sure <see cref="settings"/> exists, whoever asks first.
+        ///
+        /// It used to be built only in <c>Awake</c>, and that was a real ordering hazard rather than
+        /// a tidiness question: the save system talks to components on objects it has just hydrated,
+        /// so <see cref="ForceTarget"/> — which reads <c>settings.reevaluateInterval</c> — is
+        /// reachable from a restore before Awake has run. It threw a NullReferenceException out of
+        /// the deferred pass, which <c>SaveableEntity.NotifyLoadComplete</c> catches and logs, so the
+        /// restored grudge was silently dropped and the creature came back peaceful. Same class of
+        /// bug the restore was written to fix, arriving one layer down.
+        ///
+        /// Idempotent, so Awake calling it and a restore calling it first are the same thing.
+        /// </summary>
+        private void EnsureSettings()
+        {
+            if (settings != null) return;
+
+            // Without an asset, synthesise one from the inline fields. Everything downstream then
+            // reads a single settings object and never has to know which source it came from.
+            if (profile == null)
+            {
+                runtimeDefaults = ScriptableObject.CreateInstance<TargetingProfile>();
+                runtimeDefaults.hideFlags = HideFlags.HideAndDontSave;
+                runtimeDefaults.relationship = relationship;
+                runtimeDefaults.acquisitionRange = acquisitionRange;
+                runtimeDefaults.loseRange = Mathf.Max(loseRange, acquisitionRange);
+                runtimeDefaults.requireLineOfSightToAcquire = requireLineOfSightToAcquire;
+                runtimeDefaults.proximityAcquireRange = proximityAcquireRange;
+                settings = runtimeDefaults;
+            }
+            else
+            {
+                settings = profile;
+            }
+        }
         private TargetingProfile runtimeDefaults;
         private EntityFaction selfFaction;
         private PerceptionModule perception;
@@ -102,29 +177,27 @@ namespace SpaceGame.Agents
         // inside a single synchronous call, so no other agent can observe it mid-use.
         private static readonly List<EntityFaction> candidateBuffer = new List<EntityFaction>(64);
 
+        private AgentAuthority authority;
+
+        /// <summary>
+        /// Is this machine the one deciding this agent's target? See <see cref="AgentAuthority"/>.
+        ///
+        /// <para>
+        /// Null-tolerant because this component is added at runtime by
+        /// <see cref="GetOrAdd(GameObject)"/>, and outside play mode AddComponent does not run
+        /// Awake — an editor tool that pokes this must get the single-player answer, not an NRE.
+        /// </para>
+        /// </summary>
+        public bool SimulatesHere => authority == null || authority.SimulatedHere;
+
         private void Awake()
         {
+            authority = new AgentAuthority(this);
             selfFaction = GetComponent<EntityFaction>();
             perception = GetComponent<PerceptionModule>();
             health = GetComponent<HealthComponent>();
 
-            // Without an asset, synthesise one from the inline fields. Everything downstream then
-            // reads a single settings object and never has to know which source it came from.
-            if (profile == null)
-            {
-                runtimeDefaults = ScriptableObject.CreateInstance<TargetingProfile>();
-                runtimeDefaults.hideFlags = HideFlags.HideAndDontSave;
-                runtimeDefaults.relationship = relationship;
-                runtimeDefaults.acquisitionRange = acquisitionRange;
-                runtimeDefaults.loseRange = Mathf.Max(loseRange, acquisitionRange);
-                runtimeDefaults.requireLineOfSightToAcquire = requireLineOfSightToAcquire;
-                runtimeDefaults.proximityAcquireRange = proximityAcquireRange;
-                settings = runtimeDefaults;
-            }
-            else
-            {
-                settings = profile;
-            }
+            EnsureSettings();
 
             if (selfFaction == null)
             {
@@ -189,6 +262,10 @@ namespace SpaceGame.Agents
                 health.OnDamage -= HandleDamaged;
         }
 
+        // The cached authority lookup walks up to the nearest NetworkObject, and reparenting is the
+        // only thing that changes which one that is. See AgentAuthority.Invalidate.
+        private void OnTransformParentChanged() => authority?.Invalidate();
+
         private void OnDestroy()
         {
             if (runtimeDefaults != null)
@@ -214,6 +291,8 @@ namespace SpaceGame.Agents
         {
             if (!TargetResolution.IsViable(target))
                 return;
+
+            EnsureSettings();
 
             Target = target;
             DistanceToTarget = Vector3.Distance(transform.position, target.position);
@@ -291,6 +370,15 @@ namespace SpaceGame.Agents
 
         private void Update()
         {
+            // Who an agent is fighting is a decision, and this is the component that exists so it
+            // is made once. Made once per MACHINE it is not made once at all: every peer scored the
+            // registry on its own schedule and reached its own answer, so the creature you were
+            // watching charge somebody else was, on the server, already on top of you. Deciding on
+            // the authority alone is also what keeps the cost off machines that do not own the
+            // agent — Reevaluate scores every faction in range, per agent, on an interval.
+            if (!SimulatesHere)
+                return;
+
             float deltaTime = Time.deltaTime;
 
             if (Target != null && !TargetResolution.IsViable(Target))

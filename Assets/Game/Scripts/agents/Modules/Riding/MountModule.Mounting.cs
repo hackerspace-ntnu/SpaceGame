@@ -149,6 +149,27 @@ namespace SpaceGame.Agents
             suppressibleAnimatorRootMotion = null;
         }
 
+        /// <summary>
+        /// Dismount, standing the rider at an explicit world position instead of at the mount's
+        /// dismount point.
+        ///
+        /// For the cases where the mount is in no state to say where its own dismount point is: a
+        /// crashed aircraft is embedded in a cliff at whatever attitude it hit at, and its dismount
+        /// marker is wherever that attitude swung it — inside the rock as often as not. The caller
+        /// has already resolved somewhere solid; this is how it gets used.
+        ///
+        /// Routed through <see cref="Dismount"/> rather than duplicating it, so the re-entrancy
+        /// guard, the teardown beacon and every restore behave identically whoever chose the spot.
+        /// </summary>
+        public void DismountAt(Vector3 position)
+        {
+            if (!IsMounted)
+                return;
+
+            dismountPositionOverride = position;
+            Dismount();
+        }
+
         public void Dismount()
         {
             if (!IsMounted)
@@ -176,6 +197,12 @@ namespace SpaceGame.Agents
         {
             Transform rider = mountedPlayer;
 
+            // Consumed here rather than in DismountAt, and consumed on every path out including the
+            // abandon one: an override left standing would silently relocate the NEXT rider to
+            // wherever the last one crashed.
+            Vector3? requestedPosition = dismountPositionOverride;
+            dismountPositionOverride = null;
+
             // The rider is going away underneath us — they died, or whatever owns them is being
             // destroyed and took the seat with it. Every restore below reaches into that doomed
             // object, and the reparent is outright illegal, so there is nothing useful left to do
@@ -193,9 +220,17 @@ namespace SpaceGame.Agents
 
             UnparentRider(rider);
 
-            Vector3 dismountPosition = dismountPoint
+            Vector3 dismountPosition = requestedPosition ?? (dismountPoint
                 ? dismountPoint.position
-                : transform.position + transform.right * fallbackDismountDistance;
+                : transform.position + transform.right * fallbackDismountDistance);
+
+            // Recorded so the dismount can be replicated as a PLACE rather than as a bare event.
+            // Every peer re-derives this position from its own copy of the mount, which is only the
+            // same answer while the two copies agree — and the one case that matters most is the
+            // one where they do not: a crashed aircraft is dismounted at ground the server probed
+            // for, and a peer that recomputes puts its pilot under the wreck instead.
+            lastDismountPosition = dismountPosition;
+            hasLastDismountPosition = true;
 
             // Strip any tilt the rider inherited from a tilted mount — keep only yaw so the
             // player stands upright after dismount.
@@ -208,9 +243,7 @@ namespace SpaceGame.Agents
             RestoreRiderMountCollisions();
             RestoreRootMotionAfterDismount();
             RestoreModuleSuppression();
-            SetThirdPersonCameraEnabled(false);
-            SetFirstPersonCameraEnabled(true);
-            SetMountedVisorEnabled(true);
+            RestoreLocalViewAfterDismount();
             PlayerMovement dismountedMovement = mountedPlayerMovement;
             Dismounted?.Invoke(dismountedMovement);
             ReleaseRuntimeThirdPersonCamera();
@@ -234,7 +267,12 @@ namespace SpaceGame.Agents
         // untracked, so pooling a ridden mount would need a real dismount before the SetActive call.
         private void AbandonRider()
         {
-            runtimeThirdPersonCamera = null;
+            // Destroyed rather than merely forgotten, unlike everything else here. The mount camera
+            // is spawned UNPARENTED (see EnsureRuntimeThirdPersonCamera) precisely so the vehicle's
+            // motion does not reach it twice, which also means nothing takes it down with the
+            // hierarchy this method exists to give up on. Dropping the reference alone leaves a live
+            // camera and a second AudioListener in the scene for the rest of the session.
+            ReleaseRuntimeThirdPersonCamera();
             ignoredCollisionPairs = null;
             suppressibleAnimators = null;
             suppressibleAnimatorRootMotion = null;
@@ -280,6 +318,13 @@ namespace SpaceGame.Agents
 
         private void DisableRiderComponentsForMount()
         {
+            // Captured before anything is written, and captured whether or not this mount is
+            // configured to take that component — an untaken component is remembered as-is, so the
+            // restore below stays a no-op for it either way.
+            riderMovementWasEnabled = mountedPlayerMovement && mountedPlayerMovement.enabled;
+            riderLookWasEnabled = mountedPlayerLook && mountedPlayerLook.enabled;
+            riderInteractorWasEnabled = mountedInteractor && mountedInteractor.enabled;
+
             if (disablePlayerMovement && mountedPlayerMovement)
             {
                 mountedPlayerMovement.enabled = false;
@@ -305,16 +350,23 @@ namespace SpaceGame.Agents
             if (RiderIsDead())
                 return;
 
-            if (disablePlayerMovement && mountedPlayerMovement)
+            // What was taken, and only that. A rider who arrived with these already off is a remote
+            // player being replayed by MountNetworkSync on a machine that does not own them — see
+            // the fields' note in MountModule.cs. Waking those up is not a cosmetic slip: it hands
+            // somebody else's PlayerLook this machine's cursor, every frame, until they quit.
+            if (disablePlayerMovement && mountedPlayerMovement && riderMovementWasEnabled)
                 mountedPlayerMovement.enabled = true;
 
-            if (disablePlayerLook && mountedPlayerLook)
+            if (disablePlayerLook && mountedPlayerLook && riderLookWasEnabled)
             {
+                // Hiding the head belongs to the first-person view this rider is returning to, so it
+                // travels with the look restore rather than running for a body we only ever see from
+                // the outside.
                 mountedPlayerLook.SetHeadVisible(false);
                 mountedPlayerLook.enabled = true;
             }
 
-            if (disablePlayerInteractor && mountedInteractor)
+            if (disablePlayerInteractor && mountedInteractor && riderInteractorWasEnabled)
                 mountedInteractor.enabled = true;
         }
 
@@ -478,7 +530,17 @@ namespace SpaceGame.Agents
         {
             if (runtimeThirdPersonCamera == null)
                 return;
-            Destroy(runtimeThirdPersonCamera.gameObject);
+
+            // DestroyImmediate outside play mode, because plain Destroy there is an editor ERROR
+            // ("Destroy may not be called from edit mode") and the object survives regardless. That
+            // is not hypothetical tidiness: mounting spawns this camera from ApplyPerspective, so
+            // every EditMode test that mounts and dismounts something raises it, and an unhandled
+            // error log fails the test that provoked it whatever it was actually asserting.
+            if (Application.isPlaying)
+                Destroy(runtimeThirdPersonCamera.gameObject);
+            else
+                DestroyImmediate(runtimeThirdPersonCamera.gameObject);
+
             runtimeThirdPersonCamera = null;
         }
     }

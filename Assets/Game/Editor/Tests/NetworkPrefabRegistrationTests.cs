@@ -104,6 +104,55 @@ namespace SpaceGame.Tests
                 "\nRun Tools/SpaceGame/Multiplayer/Sync Network Prefabs.");
         }
 
+        /// <summary>
+        /// Every item a player can hold is also an item a player can DROP, and dropping routes
+        /// through PlayerDropService to GameServices.World.Spawn — which needs a NetworkObject on
+        /// the prefab and that prefab in the list above.
+        ///
+        /// The test above only sees prefabs that already carry a NetworkObject, so it cannot catch
+        /// the worse version of this mistake: an item prefab built without one at all. That is
+        /// what happened to PortalGun. It equipped, aimed and fired perfectly, and the first drop
+        /// logged "[WorldService] Prefab 'PortalGun' has no NetworkObject, so it will only ever
+        /// exist on the server" and left nothing behind — the gun was simply gone.
+        /// </summary>
+        [Test]
+        public void EveryInventoryItemPrefab_IsANetworkedAndRegisteredPrefab()
+        {
+            var registeredPaths = new HashSet<string>(
+                RegisteredPrefabs(LoadNetworkManager()).Select(AssetDatabase.GetAssetPath));
+
+            var unnetworked = new List<string>();
+            var unregistered = new List<string>();
+
+            foreach (string guid in AssetDatabase.FindAssets("t:InventoryItem"))
+            {
+                string itemPath = AssetDatabase.GUIDToAssetPath(guid);
+                var item = AssetDatabase.LoadAssetAtPath<SpaceGame.Items.InventoryItem>(itemPath);
+
+                // A blank itemPrefab is a separate defect and is not this test's business —
+                // asserting it here would make one broken item fail two tests for two reasons.
+                if (item == null || item.itemPrefab == null) continue;
+
+                string prefabPath = AssetDatabase.GetAssetPath(item.itemPrefab);
+
+                if (item.itemPrefab.GetComponent<NetworkObject>() == null)
+                    unnetworked.Add($"{itemPath} -> {prefabPath}");
+                else if (!registeredPaths.Contains(prefabPath))
+                    unregistered.Add($"{itemPath} -> {prefabPath}");
+            }
+
+            Assert.IsEmpty(unnetworked,
+                "These item prefabs have no NetworkObject on their root, so dropping one spawns " +
+                "nothing and the item is destroyed:\n  " + string.Join("\n  ", unnetworked) +
+                "\nAdd a NetworkObject (plus PickupableItem, a collider, a Rigidbody and " +
+                "DropItemPhysics) — see LaserStaffBuilder for the whole block.");
+
+            Assert.IsEmpty(unregistered,
+                "These item prefabs are networked but unregistered, so only the host will ever " +
+                "see one lying in the sand:\n  " + string.Join("\n  ", unregistered) +
+                "\nRun Tools/SpaceGame/Multiplayer/Sync Network Prefabs.");
+        }
+
         [Test]
         public void RegisteredPrefabs_AllStillExist()
         {

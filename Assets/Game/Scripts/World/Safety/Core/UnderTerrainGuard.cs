@@ -28,6 +28,13 @@
 //     client's copy of the ground under it does. Waiting where you stand costs a moment; falling
 //     through ground that is on its way costs a six-hundred-metre drop and a burial at the end of
 //     it. See IsAwaitingGround.
+//
+//   * But it will not hold forever, and that is the third thing multiplayer taught it. A hold
+//     assumes the ground is coming; a body that ends up somewhere the streamer owes nothing — off
+//     the grid, or over a chunk authored without terrain — is waiting for something nobody has
+//     promised. That happened for real: a wing-pack launch put a pilot at the world origin and
+//     they were pinned there, in the dark, with no way out but quitting. So the hold is bounded
+//     and ends in a recovery to the last ground the body actually stood on. See Recover.
 using UnityEngine;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
@@ -67,7 +74,9 @@ namespace SpaceGame.World.Safety
         [Tooltip("How long to hold a body still while the chunk it is standing over loads. Bounds " +
                  "the wait so a hold can never become permanent: if the ground has not arrived by " +
                  "then, something is wrong that holding will not fix, and a body left frozen " +
-                 "forever is worse than one that falls and gets lifted back out.")]
+                 "forever is worse than one that falls and gets lifted back out.\n\n" +
+                 "Bounds the below-the-floor hold as well, which is the one that has no way of " +
+                 "ending on its own when the body is somewhere the streamer owes nothing.")]
         [SerializeField] private float groundWaitTimeout = 20f;
 
         [Tooltip("How far under a body to look for a built floor. A body standing on one is " +
@@ -105,6 +114,25 @@ namespace SpaceGame.World.Safety
         /// -1 when it is not waiting. See <see cref="IsAwaitingGround"/>.
         /// </summary>
         private float groundWaitStartedAt = -1f;
+
+        /// <summary>
+        /// When the body was first parked below the absolute floor with nothing owed here, or -1
+        /// when it is not in that hold. Separate from <see cref="groundWaitStartedAt"/> because
+        /// they are opposite situations: that one is waiting for ground the streamer is bringing,
+        /// this one is waiting for ground nobody has promised.
+        /// </summary>
+        private float floorParkStartedAt = -1f;
+
+        /// <summary>
+        /// The last place this body was measurably standing on the world — terrain under it and
+        /// nothing wrong. It is where a body that has fallen out of the world is put back, and it
+        /// is the only recovery target that is certainly somewhere the player can play from.
+        /// </summary>
+        private Vector3 lastSafePosition;
+        private bool hasSafePosition;
+
+        /// <summary>Said once per stranding, so a recovery that cannot be made is not silent spam.</summary>
+        private bool warnedNoRecoveryTarget;
 
         private Transform Body => bodyRoot != null ? bodyRoot : transform;
 
@@ -229,23 +257,137 @@ namespace SpaceGame.World.Safety
 
             Vector3 position = b.position;
             bool hasTerrain = TerrainProbe.TryGetTerrainHeight(position, out float terrainY);
-            var verdict = Rule.Evaluate(position.y, hasTerrain, terrainY, IsAwaitingGround(position, hasTerrain));
+            bool awaitingGround = IsAwaitingGround(position, hasTerrain);
+            var verdict = Rule.Evaluate(position.y, hasTerrain, terrainY, awaitingGround,
+                                        parkExpired: HasFloorParkExpired());
 
             switch (verdict.Action)
             {
                 case UnderTerrainAction.Lift:
                     if (isParked) ExitPark();
+                    ForgetFloorPark();
                     Lift(b, verdict.TargetY, terrainY);
                     break;
 
                 case UnderTerrainAction.Park:
+                    // Only the below-the-floor hold is timed. A body waiting on a chunk the
+                    // streamer is genuinely fetching has IsAwaitingGround's own bounded wait, and
+                    // starting a second clock for it would expire the two at different moments.
+                    if (awaitingGround) ForgetFloorPark();
+                    else if (floorParkStartedAt < 0f) floorParkStartedAt = Time.time;
+
                     EnterPark(b);
+                    break;
+
+                case UnderTerrainAction.Recover:
+                    if (isParked) ExitPark();
+                    ForgetFloorPark();
+                    Recover(b);
                     break;
 
                 default:
                     if (isParked) ExitPark();
+                    ForgetFloorPark();
+                    RememberSafePosition(position, hasTerrain);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Has the below-the-floor hold run longer than this guard is willing to hold anything?
+        ///
+        /// Read from the clock the previous evaluation started rather than from this one, so the
+        /// first tick of a hold always parks. That ordering is the point: a body that fell through
+        /// a chunk which then loads is recovered by the ordinary lift on the next tick, and never
+        /// reaches this at all.
+        /// </summary>
+        private bool HasFloorParkExpired() =>
+            floorParkStartedAt >= 0f &&
+            Time.time - floorParkStartedAt > Mathf.Max(0f, groundWaitTimeout);
+
+        private void ForgetFloorPark() => floorParkStartedAt = -1f;
+
+        /// <summary>
+        /// Note where the body is while it is demonstrably fine — on terrain, at or above the
+        /// surface. This is the only position a recovery can trust, because it is the only one the
+        /// body has actually occupied without anything being wrong.
+        ///
+        /// Deliberately not recorded while parked, lifted, or anywhere with no terrain: an interior
+        /// floor and a deck are fine places to stand and terrible places to be teleported back to
+        /// from outside, and a position taken mid-recovery would remember the fault rather than the
+        /// world.
+        /// </summary>
+        private void RememberSafePosition(Vector3 position, bool hasTerrain)
+        {
+            if (!hasTerrain) return;
+
+            lastSafePosition = position;
+            hasSafePosition = true;
+            warnedNoRecoveryTarget = false;
+        }
+
+        /// <summary>
+        /// Put a body that has fallen out of the world back into it.
+        ///
+        /// The hold this follows has already had its chance: <see cref="groundWaitTimeout"/>
+        /// seconds of pinning the body over its own X/Z, which is all a chunk that was ever coming
+        /// needs. Reaching here means nothing is coming — the body is off the grid, or over a chunk
+        /// authored with no terrain — so continuing to hold is a player frozen in the void with
+        /// nothing to do but quit. That is the failure this method exists to prevent, and it is
+        /// worth a teleport the player did not ask for.
+        ///
+        /// Somewhere this body has genuinely stood is preferred over a spawn point, because it is
+        /// where they were before whatever went wrong and it costs them no walk back.
+        /// </summary>
+        private void Recover(Transform b)
+        {
+            if (!TryResolveRecoveryPosition(out Vector3 target, out string source))
+            {
+                if (!warnedNoRecoveryTarget)
+                {
+                    warnedNoRecoveryTarget = true;
+                    Debug.LogError(
+                        $"[UnderTerrainGuard] {name} is stranded below y={absoluteFloorY} at " +
+                        $"{b.position.x:F0},{b.position.z:F0} with nowhere known to put it back. " +
+                        "Still holding — but nothing here will end that on its own.", this);
+                }
+
+                EnterPark(b);
+                return;
+            }
+
+            Vector3 was = b.position;
+            NetworkedTeleport.Move(b.gameObject, target, b.rotation);
+            RecoveryCount++;
+
+            Debug.LogWarning(
+                $"[UnderTerrainGuard] {name} was stranded at {was.x:F0},{was.z:F0} below " +
+                $"y={absoluteFloorY} with no ground on its way — returned to {source} at " +
+                $"{target.x:F0},{target.y:F0},{target.z:F0}.", this);
+        }
+
+        private bool TryResolveRecoveryPosition(out Vector3 target, out string source)
+        {
+            if (hasSafePosition)
+            {
+                target = lastSafePosition;
+                source = "the last ground it stood on";
+                return true;
+            }
+
+            // Never stood anywhere measurable — a body that was already lost when this guard first
+            // looked at it. A spawn point is not where they were, but it is in the world.
+            if (SpawnManager.Instance != null &&
+                SpawnManager.Instance.TryGetRespawnPosition(out Vector3 spawn))
+            {
+                target = spawn;
+                source = "a spawn point";
+                return true;
+            }
+
+            target = default;
+            source = null;
+            return false;
         }
 
         /// <summary>
@@ -367,7 +509,8 @@ namespace SpaceGame.World.Safety
             Debug.LogError(
                 $"[UnderTerrainGuard] {name} fell below y={absoluteFloorY} at " +
                 $"{parkedPosition.x:F0},{parkedPosition.z:F0} with no terrain to sample. Holding " +
-                "position until the chunk there loads.", this);
+                $"position for up to {groundWaitTimeout:F0}s in case the chunk there loads, then " +
+                "putting it back on the last ground it stood on.", this);
         }
 
         private void ExitPark()

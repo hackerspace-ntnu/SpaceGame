@@ -5,6 +5,26 @@ namespace SpaceGame.Gameplay
 {
     public class HealthComponent : MonoBehaviour, IDamageable
     {
+        /// <summary>
+        /// Any health at all being hurt, on whichever machine actually applied the hit — read
+        /// <see cref="LastDamageSource"/> on the victim to find out who did it.
+        /// <para>
+        /// Static because the listener is one screen-wide overlay rather than something living on
+        /// each victim, and the victims are every animal, NPC, player, crate and test cube in a
+        /// streamed world. Subscribing per instance would mean a component on every damageable
+        /// prefab, and the ones that get forgotten are exactly the ones that then silently show no
+        /// feedback.
+        /// </para>
+        /// <para>
+        /// This is deliberately NOT the same signal as <c>NetworkedHealthComponent.DamageAnnounced</c>.
+        /// This one fires where the damage was decided and needs nothing replicated; that one
+        /// carries the news to a client that cannot see its own hits, because
+        /// <c>Weapon.Use()</c> runs on the authority alone. Between them every case is covered
+        /// once, and the broadcast deliberately excludes the authority so neither doubles up.
+        /// </para>
+        /// </summary>
+        public static event Action<HealthComponent, int> AnyDamaged;
+
         public event Action<int> OnDamage;
         public event Action<int> OnHeal;
         public event Action OnDeath;
@@ -49,6 +69,9 @@ namespace SpaceGame.Gameplay
             currentHealth -= amount;
 
             OnDamage?.Invoke(amount);
+
+            // After OnDamage and before the death check, so a killing blow still shows its number.
+            AnyDamaged?.Invoke(this, amount);
 
             if (currentHealth <= 0) OnDeath?.Invoke();
         }

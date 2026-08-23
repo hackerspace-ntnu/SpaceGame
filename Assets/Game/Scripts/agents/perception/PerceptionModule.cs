@@ -173,6 +173,28 @@ namespace SpaceGame.Agents
             return blocker == null || blocker == target || blocker.IsChildOf(target);
         }
 
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// This component keeps a second copy of the same memory <c>AgentTargeting</c> keeps, written
+        /// from <see cref="CanSee"/>. Only one of them is persisted — AgentTargeting's, which is the
+        /// authority, since it is the caller that decides when <see cref="CanSee"/> runs at all. This
+        /// method exists so <c>AgentStateSaveable</c> can push that one answer into both, rather than
+        /// letting a second saver restore a copy that could disagree with the first.
+        ///
+        /// The elapsed time is clamped to this component's own <c>memoryDuration</c>, which may be
+        /// shorter than the targeting profile's — a memory this module would already have dropped
+        /// must not come back alive.
+        /// </summary>
+        public void RestoreMemory(Vector3 lastKnownPosition, bool hasLastKnownPosition, float timeSinceLastSeen)
+        {
+            LastKnownPosition = lastKnownPosition;
+            HasLastKnownPosition = hasLastKnownPosition;
+            TimeSinceLastSeen = hasLastKnownPosition
+                ? Mathf.Clamp(timeSinceLastSeen, 0f, memoryDuration)
+                : 0f;
+        }
+
         // Call when a target is spotted for the first time to alert nearby allies.
         public void NotifySpotted(Transform target)
         {

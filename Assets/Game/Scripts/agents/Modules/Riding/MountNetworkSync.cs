@@ -8,23 +8,55 @@
 //     tells everyone. This keeps two players from mounting the same animal on the same frame.
 //   • Ownership of the mount transfers to the rider so their SteerModule can drive it and have the
 //     resulting motion replicate through the mount's NetworkTransform. On dismount it goes back.
-//   • Remote peers run the same TryMount/Dismount so the rider is visibly parented into the seat,
-//     but MountModule.OnEnable/Update only drives cameras and input for the local owner anyway.
+//   • Remote peers run the same TryMount/Dismount so the rider is visibly parented into the seat.
+//     Cameras, look input and steering are the local rider's alone — MountModule.RiderIsLocal.
+//
+// Two channels, not one, and they answer different questions:
+//   • NetMsg.Mount/Mounted/Dismount/Dismounted is the EVENT. It is what everybody in the session at
+//     the time acts on, immediately.
+//   • seatedRider is the STATE. NetworkVariable change events never replay, so a player who joins
+//     while somebody is already in the saddle has nothing else to go on: the event was sent long
+//     before they connected. Without it a late joiner saw the rider standing bolt upright on an
+//     ostrich that still advertised itself as free to mount.
+// The state channel also re-asserts itself every frame, so it repairs the seat whatever went wrong.
 using Unity.Netcode;
 using UnityEngine;
+using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
 
 namespace SpaceGame.Agents
 {
+    // NetworkBehaviour rather than MonoBehaviour purely for the NetworkVariable below. It sits on
+    // the same GameObject as the mount's NetworkObject on every prefab that has one, which is what
+    // makes that legal.
     [RequireComponent(typeof(MountModule))]
-    public class MountNetworkSync : MonoBehaviour
+    public class MountNetworkSync : NetworkBehaviour
     {
         private MountModule mount;
 
         // Set while a replicated mount/dismount is being applied, so the local events those raise
         // don't bounce straight back out as another request.
         private bool applyingRemote;
+
+        /// <summary>
+        /// Who is in the seat, as their NetworkObjectId; 0 for empty.
+        ///
+        /// <para>
+        /// Server-write because seating is a server decision, and this is the RECORD of that
+        /// decision rather than a second way of making one — nothing acts on a write to it except
+        /// a peer bringing its own copy of the mount into line.
+        /// </para>
+        /// </summary>
+        private readonly NetworkVariable<ulong> seatedRider = new(
+            0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+        /// <summary>
+        /// <see cref="NetArg.B"/> on a <see cref="NetMsg.Dismounted"/> that carries a place to put
+        /// the rider in <see cref="NetArg.P"/>. Zero — the default — means "use your own dismount
+        /// point", which is what an older build's message looks like.
+        /// </summary>
+        private const int DismountCarriesPosition = 1;
 
         private void Awake() => mount = GetComponent<MountModule>();
 
@@ -34,6 +66,8 @@ namespace SpaceGame.Agents
             this.NetOn(NetMsg.Dismount, OnDismountRequested);
             this.NetOn(NetMsg.Mounted, OnMountedElsewhere);
             this.NetOn(NetMsg.Dismounted, OnDismountedElsewhere);
+
+            mount.Dismounted += AnnounceDismount;
         }
 
         private void OnDisable()
@@ -42,6 +76,148 @@ namespace SpaceGame.Agents
             this.NetOff(NetMsg.Dismount, OnDismountRequested);
             this.NetOff(NetMsg.Mounted, OnMountedElsewhere);
             this.NetOff(NetMsg.Dismounted, OnDismountedElsewhere);
+
+            mount.Dismounted -= AnnounceDismount;
+        }
+
+        // ─────────── The state channel ───────────
+
+        /// <summary>
+        /// Keep the seat and the record agreeing — publishing it on the server, obeying it
+        /// everywhere else.
+        ///
+        /// <para>
+        /// Polled rather than raised from <see cref="MountModule.Mounted"/>/<c>Dismounted</c>,
+        /// which looks like the obvious wiring and is wrong twice: <c>Dismounted</c> fires BEFORE
+        /// the rider references are cleared, so a handler reading the seat there still finds the
+        /// rider it is being told left, and <c>AbandonRider</c> — the teardown path — raises no
+        /// event at all. Comparing two ulongs once a frame has neither problem and cannot miss a
+        /// path added later.
+        /// </para>
+        /// </summary>
+        private void Update()
+        {
+            if (!IsSpawned) return;
+
+            if (IsServer)
+            {
+                ulong seated = ResolveSeatedRiderId();
+                if (seatedRider.Value != seated) seatedRider.Value = seated;
+                return;
+            }
+
+            ReconcileSeat();
+        }
+
+        /// <summary>
+        /// Tell everyone the seat is empty, and where the rider was put down.
+        ///
+        /// <para>
+        /// Answered from the mount's own <see cref="MountModule.Dismounted"/> rather than from the
+        /// request handler, which is the only way to cover the dismounts nobody requested. A rider
+        /// is thrown out of the saddle by an ornithopter landing, by dying, by their pack being
+        /// unequipped, by a rider's own teardown — none of those come through
+        /// <see cref="OnDismountRequested"/>, and before this none of them reached another machine
+        /// at all. Peers were left with a rider still welded into a seat the server had emptied,
+        /// and only found out when the mount itself was destroyed underneath them.
+        /// </para>
+        /// <para>
+        /// The event and not the <see cref="seatedRider"/> poll, even though the poll is what the
+        /// rest of this class trusts, because some dismounts do not survive until the next frame:
+        /// a landed ornithopter is dismounted and despawned inside one call, so a poll would find
+        /// the component gone before it ever noticed the seat empty.
+        /// </para>
+        /// <para>
+        /// It also closes the hole in the requested path: that one excluded the client who asked,
+        /// on the reasoning that a requester has already acted locally — but a mount request is
+        /// sent WITHOUT acting locally, so the one machine that most needed telling was the one
+        /// deliberately skipped. Announcing from the dismount itself tells everybody, them included.
+        /// </para>
+        /// <para>
+        /// The position travels because a peer cannot work it out. Landing dismounts the pilot at
+        /// ground the server probed for; a peer that fell back on its own dismount marker would
+        /// put them under the wreck, and on their own machine — where their body is
+        /// owner-authoritative — that wrong answer is the one that sticks.
+        /// </para>
+        /// </summary>
+        private void AnnounceDismount(PlayerMovement rider)
+        {
+            if (!IsServer || !IsSpawned || rider == null) return;
+
+            var arg = new NetArg().With(rider);
+
+            if (mount.HasLastDismountPosition)
+            {
+                arg.P = mount.LastDismountPosition;
+                arg.B = DismountCarriesPosition;
+            }
+
+            // Others rather than All: this machine has just dismounted — that is what raised the
+            // event we are answering.
+            this.NetToOthers(NetMsg.Dismounted, arg);
+        }
+
+        /// <summary>
+        /// Client side: seat the rider the server says is in this mount, if nobody is in it here.
+        ///
+        /// <para>
+        /// SEATING ONLY — emptying the seat stays with <see cref="NetMsg.Dismounted"/>, and that is
+        /// not a gap. The record is written a tick after the event that caused it, so a reconcile
+        /// that also emptied seats would see "mounted here, record still says empty" in the window
+        /// between the broadcast landing and the variable arriving, and throw the rider off a
+        /// mount they had just climbed onto. Every peer that needs to hear about a dismount is by
+        /// definition connected when it happens, so the reliable broadcast already reaches all of
+        /// them; only ARRIVING mid-ride has no event to hear, and that is what this covers.
+        /// </para>
+        /// <para>
+        /// The value is re-read every frame rather than latched at spawn, so a rider who leaves
+        /// before this machine managed to seat them is simply never seated. The retry exists
+        /// because the rider named by the record may not have been spawned here yet — one join
+        /// synchronises many objects and their order is not ours to choose.
+        /// </para>
+        /// </summary>
+        private void ReconcileSeat()
+        {
+            ulong wanted = seatedRider.Value;
+            if (wanted == 0) return;
+
+            // Anybody in the seat is enough. The server is the only writer and a seat holds one
+            // rider, so there is no second case to distinguish — and reading the seated rider's
+            // identity back to compare it would spin forever on a rider with no NetworkObject,
+            // which can never match an id.
+            if (mount.IsMounted) return;
+
+            if (NetworkManager.Singleton == null) return;
+            if (!NetworkManager.Singleton.SpawnManager.SpawnedObjects
+                    .TryGetValue(wanted, out NetworkObject riderNet) || riderNet == null)
+                return;
+
+            Interactor interactor = riderNet.GetComponentInChildren<Interactor>(true);
+            if (interactor != null) ApplyMount(interactor);
+        }
+
+        /// <summary>
+        /// The NetworkObjectId of whoever is in the seat, or 0.
+        ///
+        /// <para>
+        /// Zero also covers "mounted by a rider with no spawned NetworkObject", which is not a lie
+        /// the clients can be hurt by: every rider in a session is a spawned player object, and the
+        /// case only arises offline, where there is nobody to tell. The mount's OWN NetworkObject
+        /// is explicitly excluded — a rider is parented INTO the seat, so an unnetworked one
+        /// resolves upward to the mount, and naming the mount as its own rider would have a late
+        /// joiner trying to seat the ostrich on itself.
+        /// </para>
+        /// </summary>
+        private ulong ResolveSeatedRiderId()
+        {
+            Transform rider = mount.MountedPlayerTransform;
+            if (rider == null) return 0;
+
+            NetworkObject riderNet = rider.GetComponentInParent<NetworkObject>();
+            if (riderNet == null || !riderNet.IsSpawned) return 0;
+            if (riderNet == GetComponentInParent<NetworkObject>()) return 0;
+
+            return riderNet.NetworkObjectId;
         }
 
         // ─────────── Requests ───────────
@@ -133,9 +309,28 @@ namespace SpaceGame.Agents
             return true;
         }
 
+        /// <summary>
+        /// Server side: the only machine allowed to say a dismount happened.
+        ///
+        /// <para>
+        /// Unlike <c>PlayerRespawn.OnRespawnRequested</c>, this one does check the sender, and the
+        /// difference is what the message can be aimed at. A respawn arrives on the player's own
+        /// channel and asks for something that player is already asking for, so the worst a forged
+        /// one can do is resurrect a teammate who wanted resurrecting. A dismount arrives on the
+        /// MOUNT's channel — every client knows every mount's NetworkObjectId, because that is how
+        /// they draw it — so an unchecked handler lets anybody in the session throw anybody else
+        /// off their walker at any moment, from anywhere on the map.
+        /// </para>
+        /// <para>
+        /// The server is allowed through unconditionally: it dismounts riders for reasons no client
+        /// asked for — a death, a teardown, a save being restored — and offline every send is
+        /// attributed to the server id, so single-player takes this path as it always did.
+        /// </para>
+        /// </summary>
         private void OnDismountRequested(in NetArg arg, ulong sender)
         {
             if (!Network.Simulates(this) || !mount.IsMounted) return;
+            if (!MayDismount(sender)) return;
 
             ApplyDismount();
 
@@ -146,7 +341,58 @@ namespace SpaceGame.Agents
                 mountObject.ChangeOwnership(NetworkManager.ServerClientId);
             }
 
-            this.NetToOthers(NetMsg.Dismounted, arg, except: sender);
+            // No broadcast here. ApplyDismount above raised MountModule.Dismounted, and
+            // AnnounceDismount answered it — for this dismount and for the ones that never come
+            // through here at all. One announcement, one shape, whatever emptied the seat.
+        }
+
+        /// <summary>
+        /// May <paramref name="sender"/> throw the current rider off? Resolves who the rider is and
+        /// hands the decision to <see cref="IsDismountAllowed"/>.
+        /// </summary>
+        private bool MayDismount(ulong sender)
+        {
+            if (!Network.IsNetworked) return true;
+
+            return IsDismountAllowed(sender, NetworkManager.ServerClientId, ResolveRiderOwner());
+        }
+
+        /// <summary>
+        /// The rule itself, with the lookups taken out so it can be tested without a session.
+        ///
+        /// <para>
+        /// Only the rider themselves, or the server. A null <paramref name="riderOwner"/> means
+        /// nobody could be identified — an unnetworked rider, a rider not spawned, a mount seated
+        /// by a save being restored — and that answers true: there is no client id to compare
+        /// against, and refusing would mean nobody could ever get off. The check exists for exactly
+        /// one thing, which is a client naming somebody else's mount, and it should not start
+        /// deciding anything else.
+        /// </para>
+        /// </summary>
+        public static bool IsDismountAllowed(ulong sender, ulong serverClientId, ulong? riderOwner)
+        {
+            if (sender == serverClientId) return true;
+            if (riderOwner == null) return true;
+
+            return sender == riderOwner.Value;
+        }
+
+        /// <summary>The client id of whoever is in the seat, or null if there is no telling.</summary>
+        private ulong? ResolveRiderOwner()
+        {
+            Transform rider = mount.MountedPlayerTransform;
+            if (rider == null) return null;
+
+            NetworkObject riderNet = rider.GetComponentInParent<NetworkObject>();
+            if (riderNet == null || !riderNet.IsSpawned) return null;
+
+            // A rider is parented INTO the seat while mounted, so a rider with no NetworkObject of
+            // its own resolves to the mount's — whose owner is the rider's client, since seating
+            // hands ownership over. Comparing the sender against that is comparing them with
+            // themselves and would wave anybody through. Treat it as "no rider identity" instead.
+            if (riderNet == GetComponentInParent<NetworkObject>()) return null;
+
+            return riderNet.OwnerClientId;
         }
 
         // ─────────── Replication to peers ───────────
@@ -161,7 +407,14 @@ namespace SpaceGame.Agents
             if (interactor != null) ApplyMount(interactor);
         }
 
-        private void OnDismountedElsewhere(in NetArg arg, ulong sender) => ApplyDismount();
+        private void OnDismountedElsewhere(in NetArg arg, ulong sender)
+        {
+            // Where the server put them, when it said. Falling back to this mount's own dismount
+            // point is right for a mount that has not moved since — an ostrich somebody stepped
+            // off — and is all there was before the position travelled.
+            if (arg.B == DismountCarriesPosition) ApplyDismountAt(arg.P);
+            else ApplyDismount();
+        }
 
         // ─────────── Local application ───────────
 
@@ -184,6 +437,19 @@ namespace SpaceGame.Agents
             try
             {
                 mount.Dismount();
+            }
+            finally
+            {
+                applyingRemote = false;
+            }
+        }
+
+        private void ApplyDismountAt(Vector3 position)
+        {
+            applyingRemote = true;
+            try
+            {
+                mount.DismountAt(position);
             }
             finally
             {

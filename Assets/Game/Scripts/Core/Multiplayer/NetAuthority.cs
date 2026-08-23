@@ -13,6 +13,7 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
 using SpaceGame.Agents;
+using SpaceGame.Locomotion;
 
 namespace SpaceGame.Core
 {
@@ -59,7 +60,41 @@ namespace SpaceGame.Core
         // still end up in the "I simulate this" state rather than half-configured.
         private void Start() => Refresh();
 
-        public override void OnNetworkSpawn() => Refresh();
+        public override void OnNetworkSpawn()
+        {
+            AdoptSpawnPose();
+            Refresh();
+        }
+
+        /// <summary>
+        /// Put the body where Netcode has just put the transform, before the body writes its own
+        /// pose back over it.
+        ///
+        /// <para>
+        /// The server spawns with <c>Instantiate(prefab, position, rotation)</c>, so its own copy
+        /// is born in the right place and nothing is wrong locally. Every other machine receives
+        /// the object through <c>NetworkSpawnManager.InstantiateNetworkPrefab</c>, which does the
+        /// two steps in the other order — <c>Instantiate(prefab)</c> at the PREFAB's pose, then a
+        /// transform write to move it. A transform write does not relocate a Rigidbody in this
+        /// project (<see cref="Persistence.SaveTeleport"/> is entirely about that), so a dynamic,
+        /// interpolated body restores the authored prefab pose within the frame and the entity
+        /// materialises at the origin instead of where it was spawned.
+        /// </para>
+        /// <para>
+        /// Harmless when nothing is wrong, and load-bearing when the entity is
+        /// OWNER-authoritative: there the wrong pose is not corrected by the server, it is
+        /// PUBLISHED to it as the truth. That is exactly how a wing-pack ornithopter spawned over
+        /// a dune arrived at the world origin on its pilot's machine and dragged the pilot, the
+        /// server's copy and the chunk streamer there with it.
+        /// </para>
+        /// <para>
+        /// <see cref="SpaceGame.Characters.NetworkPlayerController"/> does the same thing for the player and
+        /// documents the same failure. This is the general case: every entity that carries this
+        /// component is one somebody expects to move on its own.
+        /// </para>
+        /// </summary>
+        private void AdoptSpawnPose() =>
+            Persistence.SaveTeleport.Move(gameObject, transform.position, transform.rotation);
 
         // Ownership moves while the entity is alive — every time somebody mounts or dismounts. The
         // drivers have to follow it, or the new rider steers a body that is switched off and the
@@ -88,9 +123,28 @@ namespace SpaceGame.Core
             Restore();
             if (IsSimulatedHere) return;
 
+            // Before the drivers, because a kinematic posing layer is not one and must not be
+            // treated as one. A legged machine's locomotion both MOVES the body and SOLVES the
+            // legs: switch it off and the remote copy slides along with still feet, leave it on and
+            // it overwrites the replicated pose in LateUpdate every frame — so the remote copy
+            // never moves at all while the real machine walks away. That second failure is what
+            // made a mounted ostrich vanish out from under its rider on every other machine.
+            // Neither switch is right; it has to follow the wire instead.
+            SetExternallyPosed(true);
+
             foreach (Behaviour driver in ResolveDrivers())
             {
                 if (driver == null || !driver.enabled) continue;
+
+                // A driver that implements IExternallyPosed has just been TOLD it is not posing
+                // this body, and switching it off as well would take its other half down with it.
+                // The ornithopter's flight motor is both the thing that moves the craft and the
+                // thing that knows the wings are spread and beating; disabled, a remote copy sails
+                // past with its wings folded shut. Same reasoning as the legged case above, which
+                // is why the interface exists at all — this makes it automatic rather than
+                // something every prefab has to remember to configure by hand.
+                if (driver is IExternallyPosed) continue;
+
                 driver.enabled = false;
                 disabled.Add(driver);
             }
@@ -111,8 +165,32 @@ namespace SpaceGame.Core
 
             disabled.Clear();
 
+            // Unconditional rather than remembered, because unlike the drivers there is nothing to
+            // remember: owning your own transform is the only state a posing layer is ever authored
+            // in, and this is the sole thing that ever moves it off that. Handing it back on despawn
+            // is what stops a client who loses the session being left with a frozen world.
+            SetExternallyPosed(false);
+
             if (body != null) body.isKinematic = wasKinematic;
             body = null;
+        }
+
+        /// <summary>
+        /// Tell every kinematic posing layer on this entity whether it still owns its transform.
+        ///
+        /// Filtered by <see cref="BelongsTo"/> for the same reason the drivers are: a rider is
+        /// parented INTO their mount while mounted, so an unfiltered sweep would reach down into
+        /// the player sitting on the saddle.
+        /// </summary>
+        private void SetExternallyPosed(bool value)
+        {
+            foreach (MonoBehaviour behaviour in GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                if (behaviour is not IExternallyPosed posed) continue;
+                if (!BelongsTo(gameObject, behaviour)) continue;
+
+                posed.ExternallyPosed = value;
+            }
         }
 
         /// <summary>

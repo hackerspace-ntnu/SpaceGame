@@ -142,9 +142,31 @@ namespace SpaceGame.Persistence
                 }
                 catch (IOException) { }
                 catch (UnauthorizedAccessException) { }
+                catch (Exception) { }
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// True when writing <paramref name="candidate"/> over the save at <paramref name="path"/>
+        /// would replace a NEWER format with an older one.
+        ///
+        /// <c>SaveMigrator</c> already refuses to LOAD a file from the future, and its comment says
+        /// why: a partially understood world that then gets saved back over the good file. But the
+        /// save path never checked, so the refusal only ever protected the first half. Launch an
+        /// older build against a world last played on a newer one, wait out one autosave interval,
+        /// and the newer save is gone — replaced by a document in a format that cannot express it.
+        ///
+        /// The header alone is enough to answer this and costs nothing, which matters because it
+        /// runs on every autosave.
+        /// </summary>
+        public static bool WouldDowngradeFormat(string path, SaveDocument candidate)
+        {
+            if (candidate?.Header == null) return false;
+            if (!TryReadHeader(path, out SaveHeader existing) || existing == null) return false;
+
+            return existing.Version > candidate.Header.Version;
         }
 
         /// <summary>Removes a save and everything that shadows it, so a deleted slot cannot come back from its backup.</summary>
@@ -180,12 +202,42 @@ namespace SpaceGame.Persistence
         public static bool WouldDiscardAllPlayers(string path, SaveDocument candidate)
         {
             if (candidate == null) return true;
+
+            // The overwhelmingly common case, and the one that must stay free: this save has
+            // players, so it cannot be discarding any. Answering it first is what keeps the
+            // expensive branch below off the autosave path entirely.
             if (candidate.Players is { Count: > 0 }) return false;
+
             if (!Exists(path)) return false;
 
-            // Header-only read would not do — the player list lives in the body.
+            // What we last wrote here ourselves, if we know. A header-only read would not do — the
+            // player list lives in the body — so the alternative is parsing the whole previous world
+            // on the main thread, inside the frame that is already serializing the current one. That
+            // happened on every single save, autosaves included, and it is the one part of "the
+            // write is off-thread" that was never true.
+            if (LastWrittenPlayerCount.TryGetValue(path, out int known)) return known > 0;
+
             ReadResult existing = Read(path);
-            return existing.HasDocument && existing.Document.Players is { Count: > 0 };
+            bool hadPlayers = existing.HasDocument && existing.Document.Players is { Count: > 0 };
+
+            LastWrittenPlayerCount[path] = hadPlayers ? 1 : 0;
+            return hadPlayers;
+        }
+
+        /// <summary>
+        /// How many player records the file at each path last held, as far as this process knows.
+        ///
+        /// Only ever populated from a write we performed or a read we already paid for, so it cannot
+        /// disagree with the disk unless another process edits the save behind us — and in that case
+        /// the guard it feeds is a safety net, not a correctness requirement.
+        /// </summary>
+        private static readonly System.Collections.Generic.Dictionary<string, int> LastWrittenPlayerCount = new();
+
+        /// <summary>Records what a completed write put on disk, so the next guard need not re-read it.</summary>
+        public static void NotifyWritten(string path, SaveDocument document)
+        {
+            if (string.IsNullOrEmpty(path)) return;
+            LastWrittenPlayerCount[path] = document?.Players?.Count ?? 0;
         }
 
         private static bool TryReadFile(string path, out SaveDocument document, out string error)
@@ -209,6 +261,21 @@ namespace SpaceGame.Persistence
             catch (UnauthorizedAccessException e)
             {
                 error = $"access denied: {e.Message}";
+            }
+            catch (Exception e)
+            {
+                // The catch-all is the point, and its absence broke this class's own contract.
+                //
+                // Read is documented as never throwing for a bad file, because the load menu has to
+                // be able to render a "corrupt save" row rather than take an unhandled exception.
+                // But only three exception types were caught, and the migration ladder runs inside
+                // SaveSerializer.FromJson OUTSIDE any guard of its own: V1GlobalEntities does
+                // unchecked casts like (string)entity["instanceId"], so a hand-edited or truncated
+                // v1 file where that token is an object throws InvalidCastException — which sailed
+                // straight through here, through Read, and out of SaveSlots into the menu.
+                //
+                // A file we cannot parse is a corrupt file, whatever the reason.
+                error = $"could not be understood: {e.GetBaseException().Message}";
             }
 
             return false;

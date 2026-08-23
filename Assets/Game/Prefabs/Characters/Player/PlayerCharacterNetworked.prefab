@@ -53,7 +53,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1378113935866583304, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       propertyPath: prefabId
-      value: 
+      value: 29c12f19fe277234e8f077d5c15501c2
       objectReference: {fileID: 0}
     - target: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       propertyPath: m_Name
@@ -157,6 +157,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3776290647649294465}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7303071895754830784}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7731988448858959287}
   m_SourcePrefab: {fileID: 100100000, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
 --- !u!1 &582217690245548981 stripped
 GameObject:
@@ -398,6 +404,7 @@ MonoBehaviour:
   inventorySize: 4
   startingItems:
   - {fileID: 11400000, guid: 0207e5d6f86434fdb90e2a0dcb5038ae, type: 2}
+  - {fileID: 11400000, guid: c48f2b7d16ae4c93a5e07f81d3b62c40, type: 2}
 --- !u!114 &2648420191720355216
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -430,6 +437,14 @@ MonoBehaviour:
   - Hand_R
   - R_Hand
   - hand.R
+  offHandBone: 17
+  offHandBoneNameHints:
+  - LeftHand
+  - Hand_L
+  - L_Hand
+  - hand.L
+  gripFrameOverride: {fileID: 0}
+  holdScaleMultiplier: 1
 --- !u!114 &5942945521592415359
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -522,6 +537,34 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.World.Weather.SandstormVictim
   tickInterval: 0.5
   samplePoint: {fileID: 0}
+--- !u!114 &7303071895754830784
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4e64f672405d40c9a42269ae3a4297e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BackpackNetwork
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &7731988448858959287
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57ee299435b424f1d9a9e5489ce46ef8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Characters.PlayerViewNetwork
+  ShowTopMostFoldoutHeaderGroup: 1
+  aimSmoothing: 18
+  publishThreshold: 0.25
 --- !u!4 &1885774286167179584 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3211930088316101119, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}

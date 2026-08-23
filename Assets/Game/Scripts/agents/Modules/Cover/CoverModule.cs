@@ -26,10 +26,73 @@ namespace SpaceGame.Agents
         private CoverPoint occupiedCover;
         private bool arrivedAtCover;
 
+        // Set by RestoreCover, consumed by the next OnEnable.
+        private bool restoredCover;
+
+        // ── Persisted state ───────────────────────────────────────────────────────
+        public CoverPoint OccupiedCover => occupiedCover;
+        public bool ArrivedAtCover => arrivedAtCover;
+        public float RetargetTimer => retargetTimer;
+
         private void Reset() => SetPriorityDefault(ModulePriority.Reactive + 1); // 21 — beats plain chase
 
-        private void OnEnable() => VacateCover();
+        private void OnEnable()
+        {
+            // Without this, every agent pinned behind a rock steps into the open the moment the world
+            // reloads — and the reservation it never re-took is free for a second agent to claim.
+            if (restoredCover)
+            {
+                restoredCover = false;
+                return;
+            }
+
+            VacateCover();
+        }
+
+        // Not latched: leaving the world genuinely releases the reservation, and the occupancy count
+        // on the point has to come down with it or the cover is lost for the rest of the session.
         private void OnDisable() => VacateCover();
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Re-takes the reservation through <see cref="CoverPoint.TryOccupy"/> rather than assigning
+        /// the field, because the occupancy count is not itself persisted: it is rebuilt from
+        /// whichever agents get their claim back. That is also what stops two agents from restoring
+        /// onto one single-occupant point — the second one's claim is refused here exactly as it
+        /// would be during play.
+        ///
+        /// Returns false when nothing was claimed, which is an ordinary outcome: the point may have
+        /// been taken, or <paramref name="point"/> may be null because the save named no cover.
+        /// </summary>
+        public bool RestoreCover(CoverPoint point, bool arrived, float retarget)
+        {
+            retargetTimer = Mathf.Max(0f, retarget);
+            restoredCover = true;
+
+            if (point == null)
+            {
+                VacateCover();
+                return false;
+            }
+
+            // Idempotent: OnLoadComplete can run more than once, and claiming the same point twice
+            // would push the occupancy count past maxOccupants and lock everyone else out of it.
+            if (occupiedCover == point)
+            {
+                arrivedAtCover = arrived;
+                return true;
+            }
+
+            VacateCover();
+
+            if (!point.TryOccupy())
+                return false;
+
+            occupiedCover = point;
+            arrivedAtCover = arrived;
+            return true;
+        }
 
         public override string ModuleDescription =>
             "Finds the nearest available CoverPoint and moves behind it when a threat is within range. Stays in cover until the threat leaves.\n\n" +

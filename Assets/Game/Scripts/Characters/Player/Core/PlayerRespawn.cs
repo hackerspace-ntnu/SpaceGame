@@ -66,11 +66,18 @@ namespace SpaceGame.Characters
             // MatchManager respawn. Healing again would be harmless; moving them would not.
             if (health == null || health.Alive) return;
 
+            // Their own position is passed as the last-resort anchor. A spawn point can refuse —
+            // the bay is full of geometry, the ship has been driven somewhere awkward, the chunk
+            // under it has not loaded — and a refusal used to end the respawn, leaving the player
+            // face down with nothing left to press. It does not any more: SpawnManager falls back
+            // to open ground outside, near the spawn point if it can and near the corpse if it
+            // cannot, since a dead player is by definition standing on ground that exists.
             if (SpawnManager.Instance == null ||
-                !SpawnManager.Instance.TryGetRespawnPosition(out Vector3 position))
+                !SpawnManager.Instance.TryGetRespawnPosition(transform.position, out Vector3 position))
             {
-                Debug.LogError("[Respawn] No valid spawn position — the player stays down. Is a " +
-                               "SpawnPoint present, and has the chunk under it finished loading?", this);
+                Debug.LogError("[Respawn] No valid spawn position — not at a SpawnPoint and not on " +
+                               "open ground anywhere near one or near the body, so the player stays " +
+                               "down. Is any of the world around them loaded?", this);
                 return;
             }
 

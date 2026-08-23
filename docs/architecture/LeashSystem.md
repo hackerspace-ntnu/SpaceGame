@@ -364,14 +364,22 @@ leashed and resisting) can `GetComponent<LeashAttachable>()` and inspect
 
 ---
 
-## 11. Future Extensions (not implemented)
+## 11. Not built yet
+
+Required — a leash is gameplay state, so it has to reach every machine and survive a reload:
+
+- **Net-syncing** — leashes are still local. Creation, endpoint changes and dispose each need to go
+  over `NetMessaging`, and a late joiner has to see the ropes that already exist. See
+  [the networked doors and leash design](../superpowers/specs/2026-08-21-networked-doors-and-leash-design.md).
+- **Persistence** — a leash tying a mount to a post must still be there after save/quit/load, like
+  any other mutable world state (see [Persistence.md](Persistence.md)).
+
+Polish, whenever somebody wants it:
 
 - **Rope segments with intermediate physics** — current rope is a single
   spring at max length; for "rope wrapping around a corner" behaviour, a
   segmented Verlet rope would be needed.
 - **Snap SFX/VFX** — `Leash.Snap()` is the hook point. Currently it just
   calls `Dispose`. Add particles or an FMOD `EventReference` here.
-- **Net-syncing** — leashes are entirely local right now; multiplayer would
-  need state sync on creation, endpoint changes, and dispose.
 - **Visual snap effect** — fade the LineRenderer over a few frames before
   destroying the GameObject for a cleaner-feeling break.

@@ -16,7 +16,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using SpaceGame.Gameplay;
+using SpaceGame.Presentation;
 using SpaceGame.Vehicles.DuneFoil;
 
 namespace SpaceGame.Vehicles
@@ -46,7 +46,6 @@ namespace SpaceGame.Vehicles
 
         [SerializeField, Min(0.01f)] private float fadeDuration = 0.25f;
 
-        private Interactor localPlayer;
         private CanvasGroup group;
         private RectTransform needle;
         private RectTransform bow;
@@ -84,22 +83,25 @@ namespace SpaceGame.Vehicles
         /// <summary>
         /// Is the player whose screen this is standing on the deck?
         ///
-        /// Found the same way <c>InteractionPromptUI</c> finds its interactor — by looking for one
-        /// in the scene — because that is what this project means by "the local player": the HUD
-        /// layer here is not netcode-aware and pretending otherwise would be a second convention
-        /// for the same thing.
+        /// Through <see cref="GameplayMenuScope.LocalPlayerTransform"/>, which is the project's one
+        /// answer to "which of these bodies is mine" — the parameterless overload, because this HUD
+        /// lives on the craft rather than on a player and has no owner to read off its own parents.
+        ///
+        /// It used to be <c>FindFirstObjectByType&lt;Interactor&gt;</c>, copied from
+        /// <c>InteractionPromptUI</c>. Alone in a session that is indistinguishable from correct,
+        /// and in a crew it is a coin toss: every remote player carries an Interactor on an active
+        /// GameObject too, so whichever of them happened to spawn first decided whose deck this dial
+        /// answered to. A player left standing in the sand would watch the craft sail away with its
+        /// wind gauge on their screen.
         /// </summary>
         private bool IsLocalPlayerAboard()
         {
             if (aboardVolume == null) return false;
 
-            if (localPlayer == null)
-            {
-                localPlayer = FindFirstObjectByType<Interactor>();
-                if (localPlayer == null) return false;
-            }
+            Transform player = GameplayMenuScope.LocalPlayerTransform;
+            if (player == null) return false;
 
-            Vector3 p = localPlayer.transform.root.position;
+            Vector3 p = player.position;
             return (aboardVolume.ClosestPoint(p) - p).sqrMagnitude < 1e-4f;
         }
 

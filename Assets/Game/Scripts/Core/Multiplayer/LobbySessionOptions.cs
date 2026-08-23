@@ -185,6 +185,40 @@ namespace SpaceGame.Core
             }
         }
 
+        /// <summary>
+        /// Whether an exception is the Lobby SDK falling over on its own error path, rather than a
+        /// fault on this side of the boundary.
+        ///
+        /// <para>
+        /// <c>WrappedLobbyService.TryCatchRequest</c> answers an <c>HttpException&lt;ErrorStatus&gt;</c>
+        /// with <c>he.ActualError.Code</c>, and <c>ActualError</c> is whatever
+        /// <c>ResponseHandler.TryDeserializeResponse</c> made of the response body — which is
+        /// <b>null</b> whenever the service answers an HTTP error with an empty or unparseable one.
+        /// Its rate limiter does exactly that. So a refused request does not arrive as
+        /// <see cref="LobbyServiceException"/> with a reason on it; it arrives as a raw
+        /// <see cref="NullReferenceException"/> thrown from inside the package, and the status code
+        /// that would have said <i>which</i> refusal it was is destroyed by the same dereference.
+        /// </para>
+        ///
+        /// <para>
+        /// Matched on the stack rather than on the type alone, so a genuine null bug in our own
+        /// code is still reported as one instead of being excused as a busy service.
+        /// </para>
+        /// </summary>
+        public static bool IsSdkErrorPathFailure(Exception e) =>
+            e is NullReferenceException && IsLobbyPackageStack(e.StackTrace);
+
+        /// <summary>
+        /// Whether these frames come from inside the Lobby package.
+        ///
+        /// Split out because <see cref="Exception.StackTrace"/> is filled in by the runtime as an
+        /// exception is thrown and cannot be set, so this is the half a test can reach — and
+        /// because the check is the load-bearing part: matching on the type alone would excuse
+        /// every null in our own code as a busy service.
+        /// </summary>
+        public static bool IsLobbyPackageStack(string stackTrace) =>
+            stackTrace != null && stackTrace.Contains("Unity.Services.Lobbies");
+
         /// <summary>"3/4" — taken over total. Lobby reports FREE slots, which reads inverted.</summary>
         public static string DescribeOccupancy(int maxPlayers, int availableSlots) =>
             $"{maxPlayers - availableSlots}/{maxPlayers}";

@@ -85,10 +85,16 @@ Assets/Game/Scripts/Cutscenes/
 
 `PlayerController.EnterCutsceneMode()` / `ExitCutsceneMode()` is what the Director uses. Captures + restores prior state, so it's safe mid-mount.
 
-## Limitations
+## Current state
+
+The target is full multiplayer: every cutscene correct on every machine, including late joiners.
+The items below are work still to do, not decisions to stop here.
 
 - **One cutscene at a time.** Concurrent `Play` rejects with a warning.
-- **Local-only (no NetCode).** Cutscenes run on the client that triggered them. Don't mutate networked state inside one.
+- **Not replicated yet.** A cutscene runs only on the client that triggered it. Until it is routed
+  through `NetMessaging` (see `spacegame-multiplayer`), don't mutate networked state inside one —
+  the mutation would land on one machine only.
 - **`Time.deltaTime`.** If `timeScale = 0` (pause), camera moves freeze. `LetterboxOverlay` uses unscaled time and is fine.
 - **No audio duck.** Music plays at full volume through cutscenes.
-- **`ThirdPersonWalkThroughCutscene` writes the player Rigidbody directly** — fine offline, fights `NetworkTransform` in MP.
+- **`ThirdPersonWalkThroughCutscene` writes the player Rigidbody directly** — correct offline, and it
+  fights `NetworkTransform` in a session. It has to move to `NetworkedTeleport.Move`.

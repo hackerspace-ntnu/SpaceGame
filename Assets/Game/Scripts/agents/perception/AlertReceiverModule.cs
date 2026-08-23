@@ -16,8 +16,43 @@ namespace SpaceGame.Agents
         private float alertTimer;
         private AgentTargeting targeting;
 
+        // Set by RestoreAlert, consumed by the next OnEnable.
+        private bool restoredAlert;
+
+        // ── Persisted state ───────────────────────────────────────────────────────
+        public Vector3 AlertPosition => alertPosition;
+
+        /// <summary>Seconds of investigation left. Zero means no alert is being acted on.</summary>
+        public float AlertTimer => alertTimer;
+
         private void Reset() => SetPriorityDefault(ModulePriority.Reactive - 1); // 19 — yields to ChaseModule when it has a target
-        private void OnEnable() => ClearAlert();
+
+        private void OnEnable()
+        {
+            // A squad an ally alerted seconds before the save has to come back still converging on
+            // the reported position, not idling in formation.
+            if (restoredAlert)
+            {
+                restoredAlert = false;
+                return;
+            }
+
+            ClearAlert();
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Only the position and the clock. The alerted target itself is not this module's to put
+        /// back — <c>ReceiveAlert</c> hands it straight to <c>AgentTargeting</c>, and
+        /// <c>AgentStateSaveable</c> owns that.
+        /// </summary>
+        public void RestoreAlert(Vector3 position, float timer)
+        {
+            alertPosition = position;
+            alertTimer = Mathf.Max(0f, timer);
+            restoredAlert = true;
+        }
 
         // Called by AlertBroadcaster.
         public void ReceiveAlert(Transform target, Vector3 lastKnownPosition)

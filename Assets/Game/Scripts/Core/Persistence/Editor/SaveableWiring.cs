@@ -37,13 +37,55 @@ namespace SpaceGame.Core.Persistence.EditorTools
         /// projectiles and system prefabs have no state worth a save record, and marking them would
         /// bloat every file with objects nobody can tell apart.
         /// </summary>
+        /// <b>The casing is load-bearing and was wrong.</b> <c>AssetDatabase.FindAssets</c> matches
+        /// folder paths case-sensitively, and the folder on disk is <c>agents</c>, not
+        /// <c>Agents</c> — so the single largest population of saveable prefabs in the project was
+        /// never visited by this pass at all. It found nothing and said nothing, because a folder
+        /// that matches no assets is indistinguishable from a folder with no saveable assets in it.
+        /// <see cref="ResolveSearchFolders"/> now refuses to run over a path that does not exist.
         private static readonly string[] SearchFolders =
         {
-            "Assets/Game/Prefabs/Agents",
+            "Assets/Game/Prefabs/agents",
             "Assets/Game/Prefabs/Items",
             "Assets/Game/Prefabs/Environment",
             "Assets/Game/Prefabs/Vehicles",
+
+            // The player lives here. It is SaveScope.External so it gets no world record, but it
+            // still needs its identity and its savers kept in step with the policy.
+            "Assets/Game/Prefabs/Characters",
+
+            // Anything a designer filed for runtime restore. Prefabs here are resolved by
+            // SaveablePrefabRegistry through their stamped prefabId, so an unstamped one in this
+            // folder is exactly the case that logs "has a SaveableEntity with no prefab id".
+            "Assets/Game/Resources/Saveable",
+
+            "Assets/Game/Prefabs/Systems",
+
+            // Cutscene props live here, and several of them are doors and triggers — which became
+            // world entities the moment DoorInteraction and CutsceneAction started declaring
+            // IPersistentEntity. The folder name says "effects"; the contents include state.
+            "Assets/Game/Prefabs/VisualEffects",
         };
+
+        /// <summary>
+        /// The search folders that actually exist, warning about any that do not.
+        ///
+        /// A misspelled or re-cased folder in <see cref="SearchFolders"/> is silent otherwise: the
+        /// pass reports "0 wired" and looks like it found nothing to do.
+        /// </summary>
+        private static string[] ResolveSearchFolders()
+        {
+            var live = new List<string>(SearchFolders.Length);
+
+            foreach (string folder in SearchFolders)
+            {
+                if (AssetDatabase.IsValidFolder(folder)) live.Add(folder);
+                else Debug.LogWarning($"[SaveableWiring] Search folder '{folder}' does not exist — " +
+                                      "nothing in it will be wired. Fix the path or remove it.");
+            }
+
+            return live.ToArray();
+        }
 
         [MenuItem("Tools/Save System/Wire Saveable Prefabs")]
         public static void WirePrefabs()
@@ -59,7 +101,7 @@ namespace SpaceGame.Core.Persistence.EditorTools
             int changed = 0;
             int skipped = 0;
 
-            foreach (string guid in AssetDatabase.FindAssets("t:Prefab", SearchFolders))
+            foreach (string guid in AssetDatabase.FindAssets("t:Prefab", ResolveSearchFolders()))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -83,11 +125,17 @@ namespace SpaceGame.Core.Persistence.EditorTools
                     continue;
                 }
 
-                if (Wire(prefab, out string added))
+                bool wired = Wire(prefab, out string added);
+                bool stamped = StampPrefabId(prefab, guid);
+
+                if (wired || stamped)
                 {
                     changed++;
                     report.Append("  + ").Append(System.IO.Path.GetFileNameWithoutExtension(path))
-                          .Append("  [").Append(why).Append("]  added: ").Append(added).Append('\n');
+                          .Append("  [").Append(why).Append(']');
+                    if (wired) report.Append("  added: ").Append(added);
+                    if (stamped) report.Append("  stamped prefabId");
+                    report.Append('\n');
                     EditorUtility.SetDirty(prefab);
                 }
             }
@@ -98,6 +146,63 @@ namespace SpaceGame.Core.Persistence.EditorTools
             report.Append($"  {changed} prefab(s) wired, {skipped} skipped (no state worth saving).");
             Debug.Log(report.ToString());
         }
+
+        /// <summary>
+        /// Writes the prefab's own GUID into its <see cref="SaveableEntity.PrefabId"/> and returns
+        /// whether that changed anything.
+        ///
+        /// <b>This is the whole reason a build persisted less than the editor did.</b> The field was
+        /// only ever assigned by <c>SaveableEntity.OnValidate</c>, which is inside
+        /// <c>#if UNITY_EDITOR</c> — so in the editor the value appeared the moment the asset was
+        /// loaded into memory, and every runtime spawn inherited it and worked. Nothing wrote it to
+        /// disk: this pass called <c>SetDirty</c> only when <see cref="Wire"/> had added a
+        /// component, so a re-run over already-wired prefabs saved nothing, and every prefab in the
+        /// project shipped with the field empty.
+        ///
+        /// In a player build <c>OnValidate</c> never runs, so the empty value is what
+        /// <see cref="SaveablePrefabRegistry"/> sees. Two of its three lookup routes key on it, so
+        /// they registered nothing at all, and every runtime-spawned world object was captured into
+        /// the save and then dropped on load.
+        ///
+        /// Written through <c>SerializedObject</c> rather than by assigning the field, for the same
+        /// reason the scene pass does: it is the only way the change is recorded as a real
+        /// modification rather than a value that happens to match.
+        /// </summary>
+        private static bool StampPrefabId(GameObject prefab, string guid)
+        {
+            var entity = prefab.GetComponent<SaveableEntity>();
+            if (entity == null || string.IsNullOrEmpty(guid)) return false;
+
+            string path = AssetDatabase.GetAssetPath(prefab);
+            if (string.IsNullOrEmpty(path)) return false;
+
+            // Compared against the FILE, never against entity.PrefabId.
+            //
+            // OnValidate has already stamped the in-memory value by the time this asset is loaded,
+            // so the component always agrees with the GUID and an early-out on `entity.PrefabId ==
+            // guid` skips every prefab in the project — which is precisely how the field stayed
+            // empty on disk while looking correct everywhere in the editor. The only honest question
+            // is what the serialized bytes say.
+            if (SaveablePrefabFile.ReadPrefabId(path) == guid) return false;
+
+            var so = new SerializedObject(entity);
+            SerializedProperty prop = so.FindProperty("prefabId");
+            if (prop == null) return false;
+
+            prop.stringValue = guid;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(entity);
+
+            // SavePrefabAsset, not SetDirty + SaveAssets.
+            //
+            // A GameObject returned by LoadAssetAtPath is the prefab's contents, and marking it dirty
+            // does not make AssetDatabase.SaveAssets write the prefab file — which is the second half
+            // of why this never landed. SavePrefabAsset is the call that serializes a prefab asset
+            // loaded this way.
+            PrefabUtility.SavePrefabAsset(prefab);
+            return true;
+        }
+
 
         /// <summary>
         /// Adds identity and savers to every already-placed instance in the open scenes, then saves

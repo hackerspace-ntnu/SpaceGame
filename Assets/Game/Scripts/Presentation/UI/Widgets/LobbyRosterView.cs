@@ -102,6 +102,19 @@ namespace SpaceGame.Presentation
         private const float PrivacyWidth = 190f;
         private const float PrivacyStateWidth = 40f;
 
+        /// <summary>
+        /// Where a busy rule sits, measured up from the bottom of the page.
+        ///
+        /// In the gap between the two rows already pinned down there: the status line runs from 168
+        /// to 212 and the footer from 64 to 142, so anything between 142 and 168 lands clear of
+        /// both. Chosen rather than derived because both of those are shared constants that other
+        /// screens also anchor to, and a rule computed off them would move whenever they did.
+        /// </summary>
+        private const float StatusRuleBottom = 154f;
+
+        /// <summary>What a locked control fades to. Present, plainly not available.</summary>
+        private const float DimmedAlpha = 0.35f;
+
         /// <summary>What the host can do from this page. Supplied by the screen that owns it.</summary>
         public readonly struct Actions
         {
@@ -150,6 +163,20 @@ namespace SpaceGame.Presentation
         /// <summary>Set while the status line is holding a failure the poll must not overwrite.</summary>
         private bool statusIsSticky;
 
+        // ─────────────────────────────────────────────────────────── the busy state
+        //
+        // The controls are locked as two groups rather than one, because they are two rows at
+        // opposite ends of the page and there is nothing between them to hang a single group off.
+
+        private CanvasGroup topBarGroup;
+        private CanvasGroup footerGroup;
+
+        /// <summary>The empty row under the status line that a sweeping rule is built into.</summary>
+        private RectTransform statusRuleSlot;
+
+        private MenuBusy statusRule;
+        private MenuBusy statusDots;
+
         public LobbyRosterView(RectTransform page, GameObject entryPrefab, Actions actions)
         {
             this.entryPrefab = entryPrefab;
@@ -169,6 +196,11 @@ namespace SpaceGame.Presentation
         {
             if (rank != null) rank.Dispose();
             rank = null;
+
+            // The rule and the dots are inside the page and go with it, but the references are not
+            // — and a stopped animation is what stops SetBusy(false) later touching dead objects.
+            if (statusRule != null) { statusRule.Stop(); statusRule = null; }
+            StopStatusDots();
         }
 
         // ────────────────────────────────────────────────────────────────────── build
@@ -195,6 +227,7 @@ namespace SpaceGame.Presentation
         private void BuildTopBar(RectTransform page)
         {
             RectTransform bar = Pinned(page, "TopBar", TopBarTop, ColumnWidth, TopBarHeight);
+            topBarGroup = bar.gameObject.AddComponent<CanvasGroup>();
 
             Shadowed(bar, "CodeCaption", "CODE", CodeCaptionX, CodeCaptionWidth,
                      TopBarCaptionSize, out _);
@@ -262,8 +295,14 @@ namespace SpaceGame.Presentation
                                              fromBottom: MenuEntry.MessageBottom);
             status = UIBuilder.Label(statusRow, string.Empty, MenuEntry.CaptionSize, MenuEntry.Caption);
 
+            // Sits in the gap between the status line's bottom edge and the footer's top one, so a
+            // busy rule can appear and go without moving anything around it.
+            statusRuleSlot = Pinned(page, "StatusRule", 0f, ColumnWidth, MenuBusy.RuleThickness,
+                                    fromBottom: StatusRuleBottom);
+
             RectTransform footer = Pinned(page, "Footer", 0f, ColumnWidth, ActionHeight,
                                           fromBottom: MenuEntry.FooterBottom);
+            footerGroup = footer.gameObject.AddComponent<CanvasGroup>();
 
             var layout = footer.gameObject.AddComponent<HorizontalLayoutGroup>();
             layout.spacing = 64f;
@@ -349,9 +388,76 @@ namespace SpaceGame.Presentation
             }
         }
 
+        /// <summary>
+        /// Holds the page while something the host asked for is still in flight.
+        ///
+        /// <para>
+        /// There is exactly one such wait today: the roster is put up before the session exists, so
+        /// that pressing Host is answered immediately rather than after two round trips (see
+        /// <c>LobbyUI.StartHosting</c>). For that second and a half the controls on this page act on
+        /// a lobby that is not there yet — Copy has no code to copy, the privacy toggle has nothing
+        /// to toggle, Start has no server — so they go quiet rather than staying live and failing.
+        /// </para>
+        ///
+        /// <para>
+        /// <paramref name="caption"/> is a stem without its ellipsis: the dots are animated, and a
+        /// caption that already ends in one gets two.
+        /// </para>
+        /// </summary>
+        public void SetBusy(bool isBusy, string caption = null)
+        {
+            Dim(topBarGroup, isBusy);
+            Dim(footerGroup, isBusy);
+
+            if (statusRule != null) { statusRule.Stop(); statusRule = null; }
+            if (isBusy && statusRuleSlot != null) statusRule = MenuBusy.Rule(statusRuleSlot);
+
+            if (isBusy && !string.IsNullOrEmpty(caption))
+            {
+                StopStatusDots();
+                statusDots = MenuBusy.Dots(status, caption);
+
+                // Sticky for the same reason a warning is: this page redraws twice a second, and a
+                // caption written as an ordinary status would be gone before the wait it describes
+                // had finished.
+                statusIsSticky = true;
+                return;
+            }
+
+            if (!isBusy)
+            {
+                // Only the caption is cleared, never the line. A failure that landed while the
+                // operation was in flight has already gone through SetWarning, and wiping the
+                // status here would replace the reason it failed with nothing at all.
+                bool captionWasShowing = statusDots != null;
+                StopStatusDots();
+
+                if (captionWasShowing) SetStatus(string.Empty);
+            }
+        }
+
+        private void StopStatusDots()
+        {
+            if (statusDots == null) return;
+
+            statusDots.Stop();
+            statusDots = null;
+        }
+
+        private static void Dim(CanvasGroup group, bool locked)
+        {
+            if (group == null) return;
+
+            group.interactable = !locked;
+            group.blocksRaycasts = !locked;
+            group.alpha = locked ? DimmedAlpha : 1f;
+        }
+
         /// <summary>A transient line — "Creating session…", "Copied ABC123". The next poll replaces it.</summary>
         public void SetStatus(string message)
         {
+            StopStatusDots();
+
             status.text = message ?? string.Empty;
             statusIsSticky = false;
         }
@@ -366,6 +472,10 @@ namespace SpaceGame.Presentation
         /// </summary>
         public void SetWarning(string message)
         {
+            // Before the write, not after: the animator owns this label's text and would put its
+            // own caption back on the next frame, taking the failure off the screen with it.
+            StopStatusDots();
+
             status.text = message ?? string.Empty;
             statusIsSticky = true;
         }

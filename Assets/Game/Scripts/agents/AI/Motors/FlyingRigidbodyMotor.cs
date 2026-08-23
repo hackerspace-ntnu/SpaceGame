@@ -102,6 +102,35 @@ namespace SpaceGame.Agents
 
         public Vector3? CurrentDestination => currentDestination;
 
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // `riderYaw` is the craft's steering heading, and it is only ever seeded from the body once,
+        // on the first step a rider drives. Left unsaved, a craft that is remounted after a load
+        // seeds it from the restored rotation — which for a flying machine carries pitch and roll,
+        // so the first stick input snaps the nose to a yaw that ignores them. The destination comes
+        // along so an AI-flown craft does not stop for a frame while the brain re-issues its order.
+        //
+        // The rider's throttle (`riderForwardSpeed`, `riderVerticalSpeed`) and the latched
+        // `pendingRiderInput` are deliberately left out: a held stick is an input, and nobody is
+        // holding one on the frame a world loads. Restoring one flies the craft under its own power.
+        public float RiderYaw => riderYaw;
+        public bool RiderYawValid => riderYawValid;
+        public float StopDistance => stopDistance;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreRiderYaw(float yaw)
+        {
+            riderYaw = yaw;
+            riderYawValid = true;
+        }
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreDestination(Vector3? destination, float stop)
+        {
+            currentDestination = destination;
+            stopDistance = Mathf.Max(0.1f, stop);
+        }
+
         private void Awake()
         {
             if (!body)

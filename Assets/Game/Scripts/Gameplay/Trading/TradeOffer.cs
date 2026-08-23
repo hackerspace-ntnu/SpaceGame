@@ -34,6 +34,16 @@ namespace SpaceGame.Gameplay.Trading
                  "offer is spent once it runs out, which is what makes a trader worth finding early.")]
         public int stock = -1;
 
+        /// <summary>
+        /// True for an offer handed to <c>TraderInteraction.AddOffer</c> during play rather than
+        /// authored on a profile or a prefab.
+        ///
+        /// Not serialized, and it is not state a designer sets: it exists so a save can tell an
+        /// offer the trader was BORN with — which the profile will hand them again next session —
+        /// from one a task gave them, which nothing but the record will ever bring back.
+        /// </summary>
+        [NonSerialized] public bool runtimeAdded;
+
         public bool IsValid => wants != null && gives != null;
 
         public bool InStock => stock != 0;

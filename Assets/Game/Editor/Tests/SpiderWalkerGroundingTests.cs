@@ -17,7 +17,7 @@ namespace SpaceGame.EditorTools
     /// transforms are synced.
     public class SpiderWalkerGroundingTests
     {
-        private const string PrefabPath = "Assets/Game/Prefabs/Agents/Vehicles/Ground/RigWalker.prefab";
+        private const string PrefabPath = "Assets/Game/Prefabs/agents/Vehicles/Ground/RigWalker.prefab";
 
         private GameObject world;
         private GameObject walker;

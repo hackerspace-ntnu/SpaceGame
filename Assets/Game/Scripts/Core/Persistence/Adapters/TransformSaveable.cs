@@ -44,13 +44,25 @@ namespace SpaceGame.Core.Persistence
 
             // Leave the body's velocity alone when a RigidbodySaveable is present: it owns momentum,
             // and the two savers run in whatever order the components sit in.
+            //
+            // That claim is only true because RigidbodySaveable now answers on BOTH paths — a
+            // payload restores the saved velocity, no payload zeroes it. It used to return early
+            // when its key was absent, which is the common case (a kinematic capture stores
+            // nothing), so between the two of them nobody set a velocity at all and a teleported
+            // object kept the momentum it had somewhere else.
             bool zeroVelocity = GetComponent<RigidbodySaveable>() == null;
 
             SaveTeleport.Move(gameObject, restored.position, restored.rotation, zeroVelocity);
 
-            // A zero scale is what a truncated payload reads as, and applying it makes the object
-            // invisible rather than merely misplaced.
-            if (restored.scale != Vector3.zero) transform.localScale = restored.scale;
+            // No zero-scale sentinel here any more. It was written to catch a truncated payload, but
+            // a payload with no scale field deserializes to default(Vector3) only because the struct
+            // has no initializer — and the case it DID catch was an object deliberately scaled to
+            // zero, which is how several props in this project hide without being disabled. Those
+            // came back at full size. A missing payload is now expressed by the record's HasScale
+            // flag, and a payload that genuinely predates the field is detected by asking the JSON
+            // rather than by inspecting the value — which is the distinction the sentinel could not
+            // make.
+            if (state["scale"] != null) transform.localScale = restored.scale;
         }
     }
 }

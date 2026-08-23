@@ -221,8 +221,18 @@ namespace SpaceGame.Presentation
 
         private void Update()
         {
-            if (toggleAction != null && toggleAction.WasPressedThisFrame())
-                SetVisible(!visible);
+            // The UI action map this reads from stays live under every menu, so the press has to be
+            // qualified the same way the flashlight's is: N belongs to the player, not to whatever
+            // panel is currently on top of them.
+            if (toggleAction == null || !toggleAction.WasPressedThisFrame()) return;
+            if (!GameplayMenuScope.AcceptsGameplayInput) return;
+
+            // N is also the "no" half of an NPC's yes/no question, and that answer is read straight
+            // off the keyboard. Without this the same press both declines the offer and throws the
+            // map up in the player's face.
+            if (NpcDialogPopupUI.Instance != null && NpcDialogPopupUI.Instance.IsQuestionActive) return;
+
+            SetVisible(!visible);
         }
 
         /// <summary>
@@ -232,6 +242,12 @@ namespace SpaceGame.Presentation
         /// </summary>
         private void LateUpdate()
         {
+            // One guard for the whole pass. Every step below reads the player's position or
+            // heading, and UpdatePlayerMarker and UpdateMaterialUniforms did so without checking —
+            // they were reachable with no player at all, because UpdateRootTransform's own check
+            // only returned from UpdateRootTransform.
+            if (!ResolvePlayer()) return;
+
             SampleDiscovery();
             if (!visible) return;
             UpdateRootTransform();
@@ -244,12 +260,6 @@ namespace SpaceGame.Presentation
         private void SampleDiscovery()
         {
             if (!enableFogOfWar) return;
-            if (player == null)
-            {
-                var p = GameObject.FindGameObjectWithTag("Player");
-                if (p != null) player = p.transform;
-                if (player == null) return;
-            }
 
             Vector3 pos = player.position;
             if (!hasDiscoverySample)
@@ -890,20 +900,46 @@ namespace SpaceGame.Presentation
         //  Update
         // ─────────────────────────────────────────────
 
-        private void UpdateRootTransform()
+        /// <summary>
+        /// Binds <see cref="player"/> to the player this peer is driving, and reports whether there
+        /// is one yet.
+        /// <para>
+        /// This was <c>FindGameObjectWithTag("Player")</c>, repeated in two of the methods below.
+        /// Every player object in the session carries that tag, so the hologram could centre on a
+        /// stranger — a map showing someone else's surroundings, following someone else's fog of
+        /// war. This object lives in the world rather than under a player, so it asks the session
+        /// rather than its own parents.
+        /// </para>
+        /// <para>
+        /// Re-asked for as long as it comes back empty. The player object spawns asynchronously and
+        /// its chunk streams in after that, so a single attempt at Start resolves nothing; a null
+        /// is never latched.
+        /// </para>
+        /// </summary>
+        private bool ResolvePlayer()
         {
             if (player == null)
-            {
-                var p = GameObject.FindGameObjectWithTag("Player");
-                if (p != null) player = p.transform;
-                if (player == null) return;
-            }
+                player = GameplayMenuScope.LocalPlayerTransform;
 
+            return player != null;
+        }
+
+        private void UpdateRootTransform()
+        {
             // Anchor: prefer the live camera so the hologram tracks the screen
             // (yaw + pitch). projectorAnchor / player are fallbacks if no camera
             // resolves.
-            Transform anchor = (Camera.main != null && Camera.main.isActiveAndEnabled)
-                ? Camera.main.transform
+            //
+            // Camera.main is the right question here even in a full session, and for a different
+            // reason than the player lookup above: it only ever returns an ACTIVE AND ENABLED
+            // camera tagged MainCamera, and PlayerController.DisablePlayer deactivates the camera
+            // GameObject of every player this peer does not own. What survives that filter is
+            // whichever camera is rendering this peer's view right now, which is what a hologram
+            // that floats beside your face has to track. Read once into a local: the property does
+            // a lookup when its cache is stale, and this used to call it three times a frame.
+            Camera view = Camera.main;
+            Transform anchor = (view != null && view.isActiveAndEnabled)
+                ? view.transform
                 : (projectorAnchor != null ? projectorAnchor : player);
 
             Vector3 anchorPos = anchor.position;
@@ -1111,6 +1147,11 @@ namespace SpaceGame.Presentation
             var svc = MapService.Instance;
             var s = terrainContainer.localScale;
 
+            // Hoisted out of the loop: the labels below billboard toward the view, and asking for
+            // it once per marker per frame is a lookup per POI on screen. Same camera for all of
+            // them by definition — see UpdateRootTransform for why Camera.main is this peer's own.
+            Camera labelView = Camera.main;
+
             foreach (var kvp in markerVisuals)
             {
                 var marker = kvp.Key;
@@ -1201,12 +1242,11 @@ namespace SpaceGame.Presentation
                     // Full billboard: face the camera straight-on, regardless of
                     // camera tilt. The label's up axis tracks the camera's up, so
                     // text is always readable head-on (side, top, anywhere).
-                    var cam = Camera.main;
-                    if (cam != null)
+                    if (labelView != null)
                     {
-                        Vector3 toCam = cam.transform.position - labelGo.transform.position;
+                        Vector3 toCam = labelView.transform.position - labelGo.transform.position;
                         if (toCam.sqrMagnitude > 1e-6f)
-                            labelGo.transform.rotation = Quaternion.LookRotation(-toCam.normalized, cam.transform.up);
+                            labelGo.transform.rotation = Quaternion.LookRotation(-toCam.normalized, labelView.transform.up);
                     }
                 }
             }

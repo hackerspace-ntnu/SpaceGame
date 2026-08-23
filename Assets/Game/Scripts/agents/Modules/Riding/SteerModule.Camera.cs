@@ -43,7 +43,13 @@ namespace SpaceGame.Agents
         private void HandleMounted(PlayerMovement _)
         {
             ResolveMotorReferences();
-            EnsureMountedInputActionsEnabled();
+
+            // Only the machine whose player is in the saddle takes the input actions. Mounting is
+            // replicated, so this handler fires on every peer, and enabling Move/Jump on a machine
+            // whose player is on foot somewhere else steals them from whatever else wanted them.
+            if (mountModule != null && mountModule.RiderIsLocal)
+                EnsureMountedInputActionsEnabled();
+
             ResetMountedInputState();
             currentLean = 0f;
             leanVelocity = 0f;

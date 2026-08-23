@@ -13,7 +13,13 @@
 // It sits on the hull root so every hull collider resolves to it: Interactor walks up from whatever
 // it hit until it finds an IInteractable, and the rigging stations are nearer their own handles than
 // this is, so they keep priority. Looking at a rope station still works the rope.
+//
+// Boarding is deliberately NOT server-authoritative, unlike taking the helm. There is nothing here
+// two players can race for: a deck is not a seat, everybody who wants to be on it can be, and
+// nothing about the hull changes when somebody steps onto it. What the move DOES need is to happen
+// on the machine that owns the body being moved — see Interact.
 using UnityEngine;
+using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.Vehicles.DuneFoil;
 
@@ -104,6 +110,30 @@ namespace SpaceGame.Vehicles
             return !IsAlreadyAboard(ResolvePlayer(interactor));
         }
 
+        /// <summary>
+        /// Put this player on the deck.
+        ///
+        /// <para>
+        /// The move goes through <see cref="NetworkedTeleport"/> rather than being written onto the
+        /// Rigidbody here, and that is the whole multiplayer half of this component. A player's
+        /// NetworkTransform is OWNER-authoritative, so a machine that does not own this body can
+        /// write its position all it likes and the owner's next state update overwrites it within a
+        /// tick — silently. On a client that meant boarding teleported you onto a hull that, on the
+        /// host, was somewhere else entirely; a moment later the host's idea of where you were won,
+        /// and you were back in the sand. NetworkedTeleport encodes the rule once: whoever owns the
+        /// body performs the move, everybody else finds out through the transform sync that is
+        /// already running. It also degrades to a plain placement offline and for anything with no
+        /// NetworkObject, so single-player and the EditMode tests take the same path.
+        /// </para>
+        /// <para>
+        /// It brings <see cref="SpaceGame.Core.Persistence.SaveTeleport"/> with it, which is
+        /// strictly more correct than the assignment it replaces: assigning transform.position does
+        /// not move a body in this project (physics auto-sync is off and the player is
+        /// interpolated), so the pose had to be written onto the Rigidbody as well — and the
+        /// interpolation history had to be dropped across the write, which is the part the old code
+        /// did not do and which reads as the player sliding back toward the sand for a frame.
+        /// </para>
+        /// </summary>
         public void Interact(Interactor interactor)
         {
             if (interactor == null) return;
@@ -111,7 +141,11 @@ namespace SpaceGame.Vehicles
             Transform player = ResolvePlayer(interactor);
             if (player == null) return;
 
-            Rigidbody body = interactor.GetComponentInParent<Rigidbody>();
+            // Not our body to move. Interactor only ever fires for the local player, so this is a
+            // guard against a caller rather than a case the game reaches — but IInteractable is a
+            // public surface, and moving somebody else's body from here would be a teleport that
+            // gets undone within a tick and is invisible while it happens.
+            if (!Network.Owns(player)) return;
 
             // Everything below asks colliders where they are, and this hull is transform-driven:
             // the locomotion writes its position every Update, while collider bounds only catch up
@@ -119,21 +153,21 @@ namespace SpaceGame.Vehicles
             // where it is — half a metre astern at cruising speed, and a great deal further than
             // that on the frame after the craft has been moved by anything else. The player then
             // lands beside the hull instead of on it.
+            //
+            // Every word of that survives the craft becoming networked, and one more reason joins
+            // it: on a machine that does not own the hull the pose is written by the replicated
+            // NetworkTransform, which is a transform write like any other and leaves the colliders
+            // exactly as far behind.
             Physics.SyncTransforms();
 
             if (IsAlreadyAboard(player)) return;
 
             if (!ResolveLanding(player, out Vector3 landing)) return;
 
-            if (body != null)
-            {
-                // Zero the fall first: arriving with the speed you built up walking into the hull
-                // launches you off the far rail.
-                body.linearVelocity = Vector3.zero;
-                body.angularVelocity = Vector3.zero;
-                body.position = landing;
-            }
-            player.position = landing;
+            // Zeroing the fall is SaveTeleport's default: arriving with the speed you built up
+            // walking into the hull launches you off the far rail.
+            NetworkedTeleport.Move(player.gameObject, landing, player.rotation);
+
             Physics.SyncTransforms();
         }
 

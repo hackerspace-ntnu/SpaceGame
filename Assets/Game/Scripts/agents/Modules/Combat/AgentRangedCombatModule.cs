@@ -22,6 +22,7 @@ using SpaceGame.Audio;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Events;
+using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.Weapons;
 using SpaceGame.World;
@@ -85,23 +86,117 @@ namespace SpaceGame.Agents
         // attributed even after AgentTargeting has already moved on to someone else.
         private IDamageable firingAt;
 
+        // Whose shot this is. Cached rather than resolved per trigger pull — see AgentAuthority.
+        private AgentAuthority authority;
+
         // Read by AgentTargeting at Awake so acquisition range covers the fire band — otherwise an
         // agent can be equipped for a fight it will never notice it could start.
         public float MaxRange => fireProfile != null ? fireProfile.maxRange : 0f;
 
+        /// <summary>
+        /// The weapon this barrel is firing right now — the mounted slot when there is a
+        /// WeaponMount, the serialized fallback otherwise.
+        ///
+        /// <para>
+        /// A watching machine resolves it the same way and lands on the same asset, because nothing
+        /// swaps a WeaponMount slot on its own: <see cref="WeaponMount.Equip"/> is only reachable
+        /// from a UnityEvent or a script, so both machines are reading the same serialized index.
+        /// If something ever does start swapping mid-fight, the index belongs in the message's
+        /// spare <see cref="NetArg.B"/> and a mismatch should drop the shot — which is the rule
+        /// EntityEquipmentController already applies to a hotbar slot.
+        /// </para>
+        /// </summary>
+        private AgentWeaponDefinition ActiveWeapon =>
+            weaponMount != null ? weaponMount.ActiveDefinition : weapon;
+
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // The cadence below is durable state, not scratch: a module that reloads at zero cooldown
+        // is a free shot for whoever reloads, and one that reloads with burstRemaining at zero
+        // drops the rest of a volley that was already in the air.
+        //
+        // OnEnable clears every one of these, and it runs both before and after a restore
+        // depending on the hydration path — hence the latch. See the saver in
+        // Core/Persistence/Adapters/CombatCadenceSaveable.cs.
+        private bool cadenceRestored;
+
+        public float CooldownTimer => cooldownTimer;
+        public int BurstRemaining => burstRemaining;
+        public float BurstTimer => burstTimer;
+        public int BurstSpread => currentBurstSpread;
+        public bool Engaged => engaged;
+        public float StrafeTimer => strafeTimer;
+        public bool HasStrafeDestination => hasStrafeDestination;
+        public Vector3 StrafeDestination => strafeDestination;
+
+        /// <summary>
+        /// Whatever this barrel last fired at, as an object. Only used to attribute a kill, so a
+        /// referent that has since gone is a perfectly good "nobody".
+        /// </summary>
+        public GameObject FiringAtObject => firingAt is Component c && c != null ? c.gameObject : null;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreCadence(float cooldown, int burstLeft, float burst, int spread,
+                                   bool wasEngaged, float strafe, bool hasStrafeDest,
+                                   Vector3 strafeDest)
+        {
+            cadenceRestored = true;
+            cooldownTimer = cooldown;
+            burstRemaining = burstLeft;
+            burstTimer = burst;
+            currentBurstSpread = spread;
+            engaged = wasEngaged;
+            strafeTimer = strafe;
+            hasStrafeDestination = hasStrafeDest;
+            strafeDestination = strafeDest;
+        }
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreFiringAt(GameObject target)
+        {
+            firingAt = target != null ? target.GetComponentInChildren<IDamageable>() : null;
+        }
+
         private void Reset() => SetPriorityDefault(ModulePriority.RangedAttack);
         private void OnEnable()
         {
-            cooldownTimer = 0f;
-            burstRemaining = 0;
-            engaged = false;
-            hasStrafeDestination = false;
-            strafeTimer = 0f;
+            // A restore already set this module up. Consumed rather than left standing, so the next
+            // genuine enable — a threshold reaction switching the module back on, an ownership
+            // change — resets the cadence as it always did.
+            if (cadenceRestored)
+            {
+                cadenceRestored = false;
+            }
+            else
+            {
+                cooldownTimer = 0f;
+                burstRemaining = 0;
+                engaged = false;
+                hasStrafeDestination = false;
+                strafeTimer = 0f;
+            }
+
+            // Watching machines listen so the authority can tell them a shot left this barrel. The
+            // authority registers too and never receives its own broadcast — NetRelay filters the
+            // sender out. Paired with the OnDisable below rather than living in Awake: NetAuthority
+            // switches components on and off as ownership moves, and a subscription that outlived a
+            // disable would put a second bullet in the air.
+            this.NetOn(NetMsg.AgentActed, OnAgentActed);
         }
-        private void OnDisable() => SetAiming(false);
+
+        private void OnDisable()
+        {
+            SetAiming(false);
+            this.NetOff(NetMsg.AgentActed, OnAgentActed);
+        }
+
+        // Mounted NPCs are parented into a seat, which moves them under a different NetworkObject.
+        // See AgentAuthority.Invalidate.
+        private void OnTransformParentChanged() => authority?.Invalidate();
 
         private void Awake()
         {
+            authority = new AgentAuthority(this);
             GameObject gun = FindChildByName("Gun");
             gun?.SetActive(IsActive);
             if (!muzzleSocket && gun != null)
@@ -306,9 +401,20 @@ namespace SpaceGame.Agents
             return true;
         }
 
+        /// <summary>
+        /// Decide one shot: pick the weapon, lead the target, roll the spread — then hand the
+        /// finished ray to <see cref="PresentShot"/> and tell everybody else about it.
+        ///
+        /// <para>
+        /// Only ever reached on the machine that owns the agent, because AgentController stopped
+        /// ticking modules anywhere else. There is deliberately no second authority check here for
+        /// the same reason CloseCombatModule.Attack has none: a check repeated one level down is a
+        /// second answer to the same question, free to drift from the first.
+        /// </para>
+        /// </summary>
         private void FireOne(Transform target)
         {
-            AgentWeaponDefinition activeWeapon = weaponMount != null ? weaponMount.ActiveDefinition : weapon;
+            AgentWeaponDefinition activeWeapon = ActiveWeapon;
             Transform activeMuzzle = weaponMount != null ? weaponMount.ActiveMuzzle : muzzleSocket;
 
             if (activeWeapon == null || activeWeapon.projectilePrefab == null)
@@ -334,23 +440,110 @@ namespace SpaceGame.Agents
             }
             currentBurstSpread++;
 
+            PresentShot(muzzle.position, spawnPos, aimDir, cosmetic: !authority.SimulatedHere);
+
+            // One message per shot, not one per burst — and the third reason is the deciding one.
+            //
+            // Each shot rolls its own spread, so a single message could not describe a burst
+            // without carrying every ray in it. A burst is not atomic either: the loop in Tick
+            // stalls it the instant the target leaves the band or line of sight breaks, so a peer
+            // replaying a promised N shots would draw rounds that never left the barrel. And
+            // replaying a schedule means a second copy of the burst clock running on every watching
+            // machine, which is precisely the class of divergence this message exists to remove.
+            //
+            // The rate is bounded by fireCooldown and burstInterval, never by frame rate, and an
+            // NPC that is not pulling a trigger puts nothing on the wire at all.
+            AgentActionRelay.Broadcast(this, AgentAction.Ranged, spawnPos, aimDir);
+        }
+
+        /// <summary>
+        /// Put one shot in the air, with its report and its animation. Runs on every machine.
+        ///
+        /// <para>
+        /// The Present half of the same split <see cref="SpaceGame.Items.UsableItem"/> draws
+        /// between Use and Present, and for the same reason: the authority runs it as part of
+        /// firing, a watcher runs it from <see cref="NetMsg.AgentActed"/>, and neither needs to
+        /// know what the other did. Everything that decides — the target, the lead, the spread, who
+        /// gets billed — happens above this line and never below it.
+        /// </para>
+        /// <para>
+        /// <paramref name="reportPosition"/> is the barrel and <paramref name="spawnPos"/> is
+        /// <c>muzzleForwardOffset</c> in front of it, which is where the projectile has to start to
+        /// clear the gun model. A watcher only receives the second, so it passes it for both — the
+        /// sound is then a barrel's length out, which nobody can hear and which is cheaper than a
+        /// second Vector3 on every shot.
+        /// </para>
+        /// </summary>
+        private void PresentShot(Vector3 reportPosition, Vector3 spawnPos, Vector3 aimDir, bool cosmetic)
+        {
+            AgentWeaponDefinition activeWeapon = ActiveWeapon;
+            if (activeWeapon == null || activeWeapon.projectilePrefab == null)
+                return;
+
             GameObject projectile = Instantiate(activeWeapon.projectilePrefab, spawnPos, Quaternion.LookRotation(aimDir));
 
             AgentProjectile agentProjectile = projectile.GetComponent<AgentProjectile>();
             if (agentProjectile != null)
-                agentProjectile.Init(activeWeapon.damagePerHit, OnProjectileResult, gameObject);
+            {
+                // The one rule that keeps this from re-opening the bug the authority gate closed:
+                // whenever more than one machine puts a copy of the same shot in the air, exactly
+                // one of them may bill the target. NetDamage applies a hit on the server and
+                // forwards it as a request from a client, and the server honours every request, so
+                // four peers drawing the same bullet would deal the damage four times.
+                agentProjectile.Cosmetic = cosmetic;
+
+                // No result callback on a watching machine. OnMiss and OnKillEvent are outcomes of
+                // the shot that actually happened, and OnKillEvent reads `firingAt` — bookkeeping
+                // only the deciding machine fills in. A cosmetic bullet answering "did it die"
+                // would be a second, quieter answer to a question the replicated health already
+                // answers out loud.
+                Action<bool, Vector3> onResult = cosmetic ? null : new Action<bool, Vector3>(OnProjectileResult);
+                agentProjectile.Init(activeWeapon.damagePerHit, onResult, gameObject);
+            }
 
             Rigidbody rb = projectile.GetComponent<Rigidbody>();
             if (rb != null)
                 rb.linearVelocity = aimDir * activeWeapon.projectileSpeed;
 
-            Sfx.Play(activeWeapon.fireId, muzzle.position, activeWeapon.fireSound, GetInstanceID());
+            Sfx.Play(activeWeapon.fireId, reportPosition, activeWeapon.fireSound, GetInstanceID());
 
             if (animator && !string.IsNullOrEmpty(shootAnimTrigger))
                 animator.SetTrigger(shootAnimTrigger);
 
-            OnFire?.Invoke(muzzle.position);
+            // The muzzle flash. AgentWeaponDefinition has no VFX slot, so OnFire is where a
+            // designer hangs one — that makes it presentation, and presentation runs everywhere.
+            // The line between these and the events that stayed with the authority is what each one
+            // is handed: OnFire gets the barrel position, which the message carries, while OnMiss
+            // and OnKillEvent get the OUTCOME of a shot only the deciding machine actually fired.
+            OnFire?.Invoke(reportPosition);
             OnFireEvent?.Invoke();
+        }
+
+        /// <summary>
+        /// A watching machine drawing the shot the authority actually fired.
+        /// </summary>
+        private void OnAgentActed(in NetArg arg, ulong sender)
+        {
+            // Is this message even ours? An unrecognised kind is ignored rather than assumed — see
+            // AgentAction — and it matters on this exact channel: an agent carrying a
+            // CloseCombatModule as well broadcasts its swings here, and putting a bullet in the air
+            // for a sword swing would be worse than drawing nothing.
+            if (arg.A != AgentAction.Ranged) return;
+
+            // The deciding machine already drew this while firing it, and NetRelay excludes the
+            // sender from its own broadcast — so in practice only a watcher gets here. Asking
+            // anyway is what keeps the handler idempotent should the message ever arrive by another
+            // route, and it is the same guard EntityEquipmentController.OnItemUsedElsewhere uses.
+            // A null authority means Awake has not run (an EditMode fixture), which reads as "this
+            // machine decides" and therefore presents nothing.
+            if (authority == null || authority.SimulatedHere) return;
+
+            // No fallback to a locally computed aim. A watcher with no ray draws nothing, because
+            // guessing from its own copy of the world is the exact behaviour this message replaced.
+            if (!AgentActionRelay.TryReadRay(in arg, out Vector3 origin, out Vector3 direction))
+                return;
+
+            PresentShot(origin, origin, direction, cosmetic: true);
         }
 
         // Lead prediction uses the weapon actually being fired, not the serialized fallback — a

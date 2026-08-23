@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using FMOD.Studio;
 using FMODUnity;
@@ -156,6 +157,22 @@ namespace SpaceGame.Audio
                 {
                     Debug.LogWarning($"[Audio] {id} points at '{chosen}', which is not in any loaded bank. " +
                                      "Check the bank list and the event path.");
+                }
+            }
+            catch (Exception e)
+            {
+                // Sound must never be able to take gameplay down with it.
+                //
+                // FMOD's RuntimeManager throws a bare NullReferenceException out of
+                // GetEventDescription when it has no banks loaded at all — which is not an
+                // EventNotFoundException and so sailed straight through the catch above. Any context
+                // without banks hits it: an EditMode test, a headless server, a build whose banks
+                // failed to ship. The caller is always a gameplay action — a swing, a shot, a door —
+                // and none of them should fail because the audio system is not there.
+                if (Complained.Add(id))
+                {
+                    Debug.LogWarning($"[Audio] {id} could not be played ({e.GetType().Name}: " +
+                                     $"{e.Message}). Audio is unavailable; gameplay continues.");
                 }
             }
         }

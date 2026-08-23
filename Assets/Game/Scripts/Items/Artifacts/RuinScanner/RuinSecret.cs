@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Gameplay;
+using SpaceGame.Persistence;
 
 namespace SpaceGame.Items
 {
@@ -12,9 +13,16 @@ namespace SpaceGame.Items
     ///
     /// Optional `secretRoot` lets you reveal a child object (e.g. a door mesh
     /// that's normally disabled) without touching the trigger volume itself.
+    ///
+    /// <para>
+    /// <see cref="IPersistentEntity"/> because a secret has none of the components
+    /// <c>SaveablePolicy.NeedsSaving</c> otherwise looks for — no health, no agent, no dynamic body
+    /// — so without the marker it would never be wired for saving and the reveal could not survive
+    /// a load however carefully it was captured.
+    /// </para>
     /// </summary>
     [DisallowMultipleComponent]
-    public class RuinSecret : MonoBehaviour, IRuinSecret
+    public class RuinSecret : MonoBehaviour, IRuinSecret, IPersistentEntity
     {
         [Tooltip("Root of the visuals to reveal. If null, uses this GameObject.")]
         [SerializeField] private GameObject secretRoot;
@@ -49,6 +57,39 @@ namespace SpaceGame.Items
         private static readonly int RevealAlphaId = Shader.PropertyToID("_RevealAlpha");
 
         public Vector3 Position => (secretRoot != null ? secretRoot.transform : transform).position;
+
+        /// <summary>Whether the secret is currently exposed rather than dormant.</summary>
+        public bool IsRevealed => isRevealed;
+
+        /// <summary>
+        /// Seconds of reveal still owed, or zero while dormant.
+        ///
+        /// A remaining duration and not <see cref="revealEndTime"/> itself, because that is a
+        /// <c>Time.time</c> deadline and <c>Time.time</c> restarts with the session — a stored
+        /// deadline would either have already passed or sit several seconds into a clock that has
+        /// just been reset to zero.
+        /// </summary>
+        public float RevealRemaining => isRevealed ? Mathf.Max(0f, revealEndTime - Time.time) : 0f;
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// A secret is only ever exposed because a player pulsed a scanner over it, and while it is
+        /// exposed its interactable is enabled — so a hidden door somebody had just scanned open and
+        /// was walking toward is, on reload, a hidden door again with its renderers switched back
+        /// off. Restoring goes through <see cref="Reveal"/> so the fade and the material swap are
+        /// set up by the same code a pulse uses.
+        /// </summary>
+        public void RestoreReveal(float remaining)
+        {
+            if (remaining > 0f) { Reveal(remaining); return; }
+
+            if (!isRevealed) return;
+
+            isRevealed = false;
+            RestoreDormantMaterials();
+            enabled = false;
+        }
 
         private void Awake()
         {

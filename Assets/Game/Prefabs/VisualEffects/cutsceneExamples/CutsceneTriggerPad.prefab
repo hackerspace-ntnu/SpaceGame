@@ -121,6 +121,10 @@ GameObject:
   - component: {fileID: 6202137669948291734}
   - component: {fileID: 5758041688677580595}
   - component: {fileID: 6002140095107301015}
+  - component: {fileID: -3432355257546358611}
+  - component: {fileID: -38687269747135658}
+  - component: {fileID: 2027651592397089343}
+  - component: {fileID: -4416226704248001239}
   m_Layer: 0
   m_Name: CutsceneTriggerPad
   m_TagString: Untagged
@@ -272,6 +276,59 @@ MonoBehaviour:
   triggerForPlayers: 1
   triggerForAgents: 1
   rearmCooldown: 1
+  reentryCooldown: 4
+--- !u!114 &-3432355257546358611
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5178368312753883239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
+  prefabId: c4caaa285b0204c48a905c7f09e0e8f0
+  instanceId: 
+  authored: 0
+  scope: 0
+--- !u!114 &-38687269747135658
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5178368312753883239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &2027651592397089343
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5178368312753883239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2807a03c3a41446a9a6299484470841c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.VolumeTriggerSaveable
+--- !u!114 &-4416226704248001239
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5178368312753883239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49584e7b86857426799d3806536c5389, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.CutsceneActionSaveable
 --- !u!1 &6387993603300177246
 GameObject:
   m_ObjectHideFlags: 0

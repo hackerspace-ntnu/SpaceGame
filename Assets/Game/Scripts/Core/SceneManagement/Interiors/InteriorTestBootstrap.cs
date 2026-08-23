@@ -1,4 +1,5 @@
 using UnityEngine;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Core
 {
@@ -57,12 +58,16 @@ namespace SpaceGame.Core
             timer += Time.deltaTime;
             if (timer < spawnDelay) return;
 
-            Transform player = playerOverride;
-            if (player == null)
-            {
-                var tagged = GameObject.FindGameObjectWithTag("Player");
-                if (tagged != null) player = tagged.transform;
-            }
+            // The LOCAL player, not any player. This was FindGameObjectWithTag("Player"), which in a
+            // session returns an arbitrary body — and the door below is a plain CreatePrimitive with
+            // no NetworkObject, so it exists on this machine only. Placed three metres from someone
+            // else's player it would be a door nobody can reach: invisible to them because it was
+            // never replicated, and out of reach for the person who is meant to walk up and press E.
+            // "Any player" is never what a locally-spawned test fixture wants.
+            Transform player = playerOverride != null
+                ? playerOverride
+                : GameplayMenuScope.LocalPlayerTransform;
+
             if (player == null) return;
 
             Vector3 pos = player.position

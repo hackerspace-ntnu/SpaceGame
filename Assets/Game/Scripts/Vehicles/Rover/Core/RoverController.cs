@@ -1,4 +1,5 @@
 using UnityEngine;
+using SpaceGame.Core;
 
 namespace SpaceGame.Vehicles
 {
@@ -6,6 +7,33 @@ namespace SpaceGame.Vehicles
     /// Rover movement and exploration controller.
     /// Uses NavMesh for pathfinding waypoints but applies movement through RoverMovementController.
     /// Uses forward/downward raycasts from ThingMount to explore terrain.
+    ///
+    /// <para>
+    /// Nobody drives this. It is not a crewed vehicle like the dune foiler — there is no station to
+    /// claim, no seat, no input, and nothing on it a second player could race a first one for. What
+    /// it does share with the foiler is that it decides where it goes and then writes its own
+    /// transform, and a decision made independently on five machines is five different rovers. Here
+    /// the decision is literally random (see <see cref="GenerateRandomWaypoint"/>), so the copies do
+    /// not merely drift, they set off in different directions on the first frame.
+    /// </para>
+    /// <para>
+    /// So the exploration is gated on <see cref="Network.Simulates"/> — the one machine that owns
+    /// the entity decides, and the transform sync carries the result. That answers true offline,
+    /// true on the server, and true for an entity with no NetworkObject, which is what the rover is
+    /// today: it is authored only into <c>Assets/Game/Scenes/Tests/Aleksander test scene.unity</c>,
+    /// its prefabs carry no NetworkObject and are in no network prefab list, so today this changes
+    /// nothing at all and every machine keeps running its own copy exactly as before. It is here so
+    /// that the day somebody puts a NetworkObject on the prefab and drops it into the world, the
+    /// rover is server-simulated rather than quietly five rovers — which is the failure that costs
+    /// an afternoon to find, because the host's screen is always right.
+    /// </para>
+    /// <para>
+    /// Deliberately NOT a NetAuthority job. NetAuthority switches whole driver components off on
+    /// remote machines, which is right for a legged creature whose animation is a separate
+    /// component; here the exploration and the wheel/bogie presentation would go with it, and a
+    /// remote rover would slide across the sand with dead wheels. Gating the decision and leaving
+    /// the presentation running is the same split the dune foiler uses.
+    /// </para>
     /// </summary>
     public class RoverController : MonoBehaviour
     {
@@ -100,6 +128,14 @@ namespace SpaceGame.Vehicles
         private void UpdateExploration()
         {
             if (thingMount == null || movementController == null)
+            {
+                return;
+            }
+
+            // Not ours to steer. Simulates, not IsServer: a rover with no NetworkObject — which is
+            // every rover in the project today — has no remote truth to defer to, so every machine
+            // running its own is the best available answer and refusing would freeze it solid.
+            if (!Network.Simulates(this))
             {
                 return;
             }

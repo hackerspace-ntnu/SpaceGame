@@ -3,6 +3,7 @@ using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Persistence;
 
 namespace SpaceGame.Items
 {
@@ -28,7 +29,7 @@ namespace SpaceGame.Items
     /// rope it existed to draw was never drawn — the LineRenderer it needed was unassigned on both
     /// player prefabs, so every remote grapple was invisible for as long as that component shipped.
     /// </summary>
-    public class GrapplingHookArtifact : ToolItem
+    public class GrapplingHookArtifact : ToolItem, IItemDeferredRestore
     {
         /// <summary>
         /// Owner-run: the swing IS the item. A round trip through the server would sit inside
@@ -64,6 +65,19 @@ namespace SpaceGame.Items
         private float _shootHeadProgress;  // 0→1 during shoot animation
         private Coroutine _pullCoroutine;
 
+        /// <summary>
+        /// What the hook is stuck in, when it is stuck in something that can move.
+        ///
+        /// Only ever known on the machine that aimed the shot — the raycast lives in
+        /// <see cref="OnRequestUse"/> and its collider does not travel in the message, because
+        /// nothing at runtime needs it. A save does: a hook set into a moving vehicle and stored as
+        /// a world point comes back anchored to a patch of empty air the vehicle has since left.
+        /// </summary>
+        private Transform _hookAttach;
+
+        /// <summary>The aimed-at collider, waiting for the press it belongs to to be presented.</summary>
+        private Transform _pendingAttach;
+
         // ── Owner side: describe the press ─────────────────────────────────────
 
         /// <summary>
@@ -91,6 +105,9 @@ namespace SpaceGame.Items
 
             arg.B = Attach;
             arg.P = hit.Value.point;
+
+            // Kept for the save, not for the swing. See _hookAttach.
+            _pendingAttach = hit.Value.collider.transform;
         }
 
         /// <summary>
@@ -116,6 +133,9 @@ namespace SpaceGame.Items
 
             _hookPoint = UseArg.P;
             _ropeLength = Vector3.Distance(owner.transform.position, _hookPoint);
+
+            _hookAttach = _pendingAttach;
+            _pendingAttach = null;
 
             if (OwnsMovement())
                 owner.GetComponent<PlayerMovement>()?.DisableGroundSnap(999f);
@@ -229,6 +249,125 @@ namespace SpaceGame.Items
             }
         }
 
+        // ── Per-instance state ─────────────────────────────────────────────────
+        //
+        // Quitting mid-swing used to reload the player at exactly the coordinates they were hanging
+        // at, with no rope and no anchor — so the reward for saving over a canyon was falling into
+        // it. The rope is restored here, at the length it had reached, and the pendulum simply picks
+        // up where it left off.
+
+        private const string HookKey = "hook";     // world point the hook is set in
+        private const string RopeKey = "rope";     // rope length, mid-reel
+        private const string AttachKey = "at";     // what it is set INTO, when that can move
+        private const string OffsetKey = "off";    // the hook point in that thing's local space
+
+        private SaveRef _pendingAttachRef;
+        private Vector3 _pendingAttachOffset;
+        private bool _pendingRestore;
+
+        public bool HasPendingRestore => _pendingRestore;
+
+        public override void CaptureItemState(ItemState state)
+        {
+            base.CaptureItemState(state);
+            if (state == null) return;
+
+            // Mid-throw counts as attached: the hook point is already settled, and coming back
+            // hanging from it is closer to what the player was doing than coming back falling.
+            if (!_isGrappling && !_isShooting) return;
+
+            state.Set(HookKey, _hookPoint);
+            state.Set(RopeKey, _ropeLength);
+
+            if (_hookAttach == null) return;
+
+            SaveRef anchor = SaveRef.From(_hookAttach.gameObject);
+            if (!anchor.IsSet) return;   // static geometry: the world point is the whole answer
+
+            state.Set(AttachKey, anchor);
+            state.Set(OffsetKey, _hookAttach.InverseTransformPoint(_hookPoint));
+        }
+
+        public override void RestoreItemState(ItemState state)
+        {
+            base.RestoreItemState(state);
+
+            _pendingRestore = false;
+            _pendingAttachRef = SaveRef.None;
+
+            // No rope in the record means the player was not hanging from anything, and a fresh
+            // instance already is not. StopGrapple covers the case where this instance was handed a
+            // second bag after being handed a first one.
+            if (state == null || !state.Has(HookKey))
+            {
+                StopGrapple();
+                return;
+            }
+
+            Vector3 hookPoint = state.GetVector3(HookKey);
+            float ropeLength = state.GetFloat(RopeKey);
+
+            // Resumed now rather than in the deferred pass, because the swing is self-contained:
+            // a world point is a complete anchor on its own. The reference below only REFINES it,
+            // for the case where the thing it is set into has moved since the save.
+            ResumeGrapple(hookPoint, ropeLength);
+
+            SaveRef anchor = state.GetRef(AttachKey);
+            if (!anchor.IsSet) return;
+
+            _pendingAttachRef = anchor;
+            _pendingAttachOffset = state.GetVector3(OffsetKey);
+            _pendingRestore = true;
+        }
+
+        /// <summary>
+        /// Re-anchor the rope onto the object it was actually set into, once that object exists.
+        ///
+        /// Idempotent and consumed only on success, the house rule for a reference that may name
+        /// something still streaming in.
+        /// </summary>
+        public void TryCompleteRestore()
+        {
+            if (!_pendingRestore) return;
+            if (!_pendingAttachRef.TryResolve(out GameObject anchor)) return;
+
+            _pendingRestore = false;
+
+            if (!_isGrappling && !_isShooting) return;
+
+            _hookAttach = anchor.transform;
+            _hookPoint = _hookAttach.TransformPoint(_pendingAttachOffset);
+        }
+
+        /// <summary>
+        /// Put the player back on a rope that is already out.
+        ///
+        /// The throw is skipped on purpose — <see cref="ShootThenPullRoutine"/> animates a rope
+        /// travelling to its anchor, and the player watched that happen before they saved. This
+        /// starts at the pendulum, which is the part they were in the middle of.
+        /// </summary>
+        private void ResumeGrapple(Vector3 hookPoint, float ropeLength)
+        {
+            if (owner == null) return;
+            if (_isGrappling || _isShooting) return;
+
+            _hookPoint = hookPoint;
+            _ropeLength = ropeLength > 0.01f
+                ? ropeLength
+                : Vector3.Distance(owner.transform.position, hookPoint);
+
+            if (OwnsMovement())
+                owner.GetComponent<PlayerMovement>()?.DisableGroundSnap(999f);
+
+            EnableRope();
+
+            _isShooting = false;
+            _isGrappling = true;
+            _shootHeadProgress = 1f;
+
+            _pullCoroutine = StartCoroutine(OwnsMovement() ? PullRoutine() : RemoteRopeRoutine());
+        }
+
         // ── Helpers ────────────────────────────────────────────────────────────
 
         private void StopGrapple()
@@ -239,6 +378,8 @@ namespace SpaceGame.Items
 
             _isGrappling = false;
             _isShooting = false;
+            _hookAttach = null;
+            _pendingRestore = false;
 
             if (_pullCoroutine != null)
             {

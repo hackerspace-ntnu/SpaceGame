@@ -3,6 +3,7 @@
 // Just drop this on any cover object in the scene — no configuration needed.
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Core.Persistence;
 using SpaceGame.Presentation;
 
 namespace SpaceGame.Agents
@@ -16,6 +17,32 @@ namespace SpaceGame.Agents
 
         public bool IsAvailable => currentOccupants < maxOccupants;
         public Vector3 Position => transform.position;
+
+        /// <summary>
+        /// How many agents currently claim this point. Exposed for the save system, which does not
+        /// store the count — it is rebuilt from the agents that re-claim their reservation on load,
+        /// which is the only reading that cannot drift out of step with them.
+        /// </summary>
+        public int CurrentOccupants => currentOccupants;
+
+        private string stableId;
+
+        /// <summary>
+        /// An identity a save file can hold.
+        ///
+        /// A cover point is a bare marker on a rock: no health, no NavMeshAgent, no non-kinematic
+        /// body, so <c>SaveablePolicy.NeedsSaving</c> says no and it never gets a
+        /// <c>SaveableEntity</c> — which means <c>SaveRef.From</c> cannot describe it. Giving every
+        /// rock in the world an entity record just to be pointed at would be a poor trade, so the id
+        /// is derived from where the point sits in its scene, using the same derivation
+        /// <c>SaveableEntity</c> uses for objects nobody wired at edit time. Stable across sessions,
+        /// not across edits to the scene — a cover point that moves in the hierarchy is a new point,
+        /// and the agent that had claimed it simply picks a fresh one.
+        ///
+        /// Cached: it is asked for once per lookup during a load, and the derivation allocates.
+        /// </summary>
+        public string StableId =>
+            !string.IsNullOrEmpty(stableId) ? stableId : stableId = SaveableEntity.DeriveAuthoredId(gameObject);
 
         private void OnEnable()  => CoverPointRegistry.Register(this);
         private void OnDisable() => CoverPointRegistry.Unregister(this);
@@ -52,6 +79,28 @@ namespace SpaceGame.Agents
         }
 
         public static void Unregister(CoverPoint cp) => s_all.Remove(cp);
+
+        /// <summary>
+        /// The registered point with this <see cref="CoverPoint.StableId"/>, or null if its scene is
+        /// not loaded. Null is an ordinary answer during a load — a chunk may still be streaming —
+        /// so a caller should retry rather than give up.
+        ///
+        /// A linear scan on purpose: this runs a handful of times per load, never per frame, and a
+        /// dictionary keyed on a derived id would have to be invalidated every time a point moved.
+        /// </summary>
+        public static CoverPoint FindById(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+                return null;
+
+            foreach (CoverPoint cp in s_all)
+            {
+                if (cp && cp.StableId == id)
+                    return cp;
+            }
+
+            return null;
+        }
 
         // Returns the best available cover relative to 'self' within 'searchRadius', given 'threatPos'.
         // Returns null if nothing is available.

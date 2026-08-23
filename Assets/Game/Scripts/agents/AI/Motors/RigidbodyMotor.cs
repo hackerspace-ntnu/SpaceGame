@@ -4,12 +4,14 @@
 // temporarily going kinematic, matching the NavMesh motor's mount feel.
 using UnityEngine;
 using SpaceGame.World;
+using SpaceGame.Teleporting;
 
 namespace SpaceGame.Agents
 {
     [DefaultExecutionOrder(-100)]
     [RequireComponent(typeof(Rigidbody))]
-    public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IMountLeapMotor, IRiderControllable
+    public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IMountLeapMotor,
+                                  IRiderControllable, ITeleportAware
     {
         [Header("References")]
         [SerializeField] private Rigidbody body;
@@ -104,6 +106,82 @@ namespace SpaceGame.Agents
         {
             if (!body)
                 body = GetComponent<Rigidbody>();
+        }
+
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // <c>arcWasKinematic</c> is the reason this motor needed a saver at all, and it is the one
+        // piece of state here whose loss is not cosmetic.
+        //
+        // An arc runs by forcing the body kinematic and remembering what it was before, so that
+        // UpdateArc can put it back on the frame the arc lands. That memory lives in ONE place and
+        // in no other, so a save taken mid-arc records a kinematic body and loses the only record of
+        // what it should stop being. Reload, and either the arc never resumes and the body stays
+        // kinematic — unpushable, weightless, permanently — or it resumes and lands the body on
+        // whatever `arcWasKinematic` happened to default to. Neither is recoverable in play.
+        //
+        // So the resting flag is captured EVERY time, not only mid-arc, and re-asserted on restore.
+        // That is not a violation of "savers do not store engine flags": this motor is the component
+        // that asserts isKinematic on this body, and the flag is exactly what it is here to own.
+        //
+        // The rider channel (`riderForwardSpeed`, `pendingRiderInput`) is deliberately not saved. A
+        // rider's held stick is an input, and there is nobody holding it on the frame a world loads;
+        // restoring one would drive the vehicle off under a stick nobody is touching.
+        public float StopDistance => stopDistance;
+        public bool Arcing => arcing;
+        public float ArcElapsed => arcElapsed;
+        public float ArcDuration => arcDuration;
+        public float ArcHeight => arcHeight;
+        public Vector3 ArcStart => arcStart;
+        public Vector3 ArcEnd => arcEnd;
+        public float ArcCooldownTimer => arcCooldownTimer;
+
+        /// <summary>
+        /// What <c>isKinematic</c> means for this body when nothing is arcing: the live flag
+        /// normally, and the remembered one while an arc has temporarily overridden it.
+        /// </summary>
+        public bool RestingKinematic => arcing ? arcWasKinematic : body != null && body.isKinematic;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreDestination(Vector3? destination, float stop)
+        {
+            currentDestination = destination;
+            stopDistance = Mathf.Max(0.01f, stop);
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// <paramref name="restingKinematic"/> is applied on BOTH paths. Resuming an arc needs it so
+        /// the landing has something correct to restore to; not resuming one needs it so a body that
+        /// arrived kinematic — because that is what it was mid-arc when the save was written — is
+        /// handed back its weight instead of hovering for the rest of the session.
+        /// </summary>
+        public void RestoreArc(bool wasArcing, float elapsed, float duration, float height,
+                               Vector3 start, Vector3 end, bool restingKinematic, float cooldown)
+        {
+            arcCooldownTimer = Mathf.Max(0f, cooldown);
+            arcWasKinematic = restingKinematic;
+
+            if (!wasArcing)
+            {
+                arcing = false;
+                if (body != null && body.isKinematic != restingKinematic)
+                    body.isKinematic = restingKinematic;
+                return;
+            }
+
+            arcing = true;
+            arcElapsed = Mathf.Max(0f, elapsed);
+            arcDuration = Mathf.Max(0.05f, duration);
+            arcHeight = Mathf.Max(0f, height);
+            arcStart = start;
+            arcEnd = end;
+
+            if (body == null) return;
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+            body.isKinematic = true;
         }
 
         public void Tick(in MoveIntent intent, float deltaTime)
@@ -337,6 +415,28 @@ namespace SpaceGame.Agents
             // itself as it drives, instead of slerping forever toward upright. MoveRotation rather
             // than transform.rotation for the interpolation reason in ApplyRiderInput.
             body.MoveRotation(Quaternion.Euler(0f, blended.eulerAngles.y, 0f));
+        }
+
+        /// <summary>
+        /// Bring the leap arc and the current destination through a teleport.
+        ///
+        /// The arc is the one that must not be missed. It is a lerp between two WORLD points, driven
+        /// onto a kinematic body every physics step, so a creature that leaps into an aperture is
+        /// pulled straight back toward the room it left — through the wall, on the next step, faster
+        /// the further apart the two apertures are. It is not a cosmetic error: the leap wins,
+        /// because it writes the body's position outright.
+        ///
+        /// The destination is rebased for a milder reason. Nothing depends on it being right — a
+        /// chase re-issues one within a frame — but a stale one means that frame is spent walking
+        /// back at the aperture, which reads as the creature changing its mind about coming through.
+        /// </summary>
+        public void OnTeleported(in TeleportMove move)
+        {
+            arcStart = move.Point(arcStart);
+            arcEnd = move.Point(arcEnd);
+
+            if (currentDestination.HasValue)
+                currentDestination = move.Point(currentDestination.Value);
         }
 
         private void BeginArc(Vector3 direction, float horizontalDistance, float height, float duration)

@@ -39,11 +39,11 @@ This is the layer that the [Scene Transition system](../Transitions/README.md) s
 4. `Create → Scene Management → Interior Scene` to make the SO. Drag the scene asset in; set `spawnAnchorId` to match an anchor you placed.
 5. Reference the SO from a destination — typically `InteriorSceneDestination` driven by a `SceneTransition`.
 
-## Caveats / known limitations
+## Open work
 
-- **Single shared instance per interior.** Refcount assumes everyone entering "Interior_Tavern" lands in the *same* loaded scene. Fine for hub spaces; insufficient for instanced dungeons or per-player housing.
-- **Loaded at world origin.** Interior geometry overlaps with whatever streamed exterior chunk happens to be at `(0,0,0)`. Currently fine because nothing important sits at origin; a real fix is offsetting interior loads to a far-away "interior bay."
-- **Return info is in-memory only.** Lost on host migration / server restart. For persistent worlds this needs to live on the player's save data.
+- **Single shared instance per interior.** Refcount assumes everyone entering "Interior_Tavern" lands in the *same* loaded scene. Correct for hub spaces; instanced dungeons and per-player housing still need per-instance loading.
+- **Loaded at world origin.** Interior geometry overlaps with whatever streamed exterior chunk happens to be at `(0,0,0)`. Currently harmless because nothing important sits at origin; the real fix is offsetting interior loads to a far-away "interior bay."
+- **Return info is in-memory only.** Lost on host migration / server restart. It has to move onto the player's save data — the world is meant to reload exactly as it was left, and a player standing inside an interior is part of that.
 - **`async void` in `Bootstrapper.AfterSceneLoad`.** Swallows exceptions. Low risk but a sharp edge.
 
 ## Dependencies

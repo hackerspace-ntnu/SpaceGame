@@ -84,6 +84,19 @@ namespace SpaceGame.Agents
 
         private int memberSeed;
 
+        /// <summary>
+        /// Where in the column this member sat when the game was saved, or -1 for "wherever it
+        /// lands".
+        ///
+        /// A follower's slot is <see cref="FollowerIndexOf"/>, which is simply its position in the
+        /// registration list — and registration order is the order Unity happened to enable the
+        /// members in, which a reload does not reproduce. So a caravan came back with its animals
+        /// swapped around: same column, different beasts in it. This is the sort key that puts them
+        /// back, and it is a key rather than an assignment because membership genuinely changes —
+        /// a member that died must not leave a permanent hole.
+        /// </summary>
+        private int restoredOrder = -1;
+
         public string FormationId => formationId;
         public bool IsLeader => isLeader;
 
@@ -121,7 +134,41 @@ namespace SpaceGame.Agents
                 formations[member.formationId] = list = new List<FormationModule>();
 
             if (!list.Contains(member)) list.Add(member);
+
+            ApplyRestoredOrder(member.formationId);
         }
+
+        /// <summary>
+        /// Re-sorts a formation's membership by the order it had when it was last saved.
+        ///
+        /// Insertion sort, because it is stable: a member with no recorded order keeps its arrival
+        /// position behind the ones that have one, and a formation is a handful of members so the
+        /// cost is not worth thinking about. <c>List.Sort</c> would not do — it is unstable, which
+        /// is the same trap <c>AgentController</c>'s priority sort documents.
+        /// </summary>
+        private static void ApplyRestoredOrder(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id) || !formations.TryGetValue(id, out List<FormationModule> list))
+                return;
+
+            for (int i = 1; i < list.Count; i++)
+            {
+                FormationModule member = list[i];
+                int key = OrderKey(member);
+
+                int j = i - 1;
+                while (j >= 0 && OrderKey(list[j]) > key)
+                {
+                    list[j + 1] = list[j];
+                    j--;
+                }
+
+                list[j + 1] = member;
+            }
+        }
+
+        private static int OrderKey(FormationModule member) =>
+            member == null || member.restoredOrder < 0 ? int.MaxValue : member.restoredOrder;
 
         private static void Unregister(FormationModule member)
         {
@@ -148,6 +195,42 @@ namespace SpaceGame.Agents
         }
 
         public void SetShape(FormationShape newShape) => shape = newShape.Sanitised();
+
+        // ─────────── For the save system ───────────
+
+        /// <summary>This member's index among the followers, or -1 for the leader / a stray.</summary>
+        public int FollowerIndex => FollowerIndexOf(this);
+
+        public Vector3 SmoothedHeading => smoothedHeading;
+
+        /// <summary>The member's fixed personal offset seed, so its place in the column is unchanged.</summary>
+        public int MemberSeed => memberSeed;
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// <paramref name="leaderSpeed"/> matters even on a follower: it is what
+        /// <see cref="LeaderOf"/>'s reader uses to decide whether the group is marching or at rest,
+        /// so restoring a halted caravan with a zero speed keeps it clustered instead of snapping
+        /// into a travelling column for the frame before the leader's velocity is measured again.
+        /// </summary>
+        public void RestoreFormationState(int followerIndex, Vector3 heading, float leaderSpeed,
+                                          bool seedSet, int seed)
+        {
+            restoredOrder = followerIndex;
+
+            if (heading.sqrMagnitude > 0.0001f)
+                smoothedHeading = heading.normalized;
+
+            LeaderSpeed = Mathf.Max(0f, leaderSpeed);
+
+            if (seedSet)
+                memberSeed = seed;
+
+            // Membership is already built by the time a restore lands — every member registered in
+            // OnEnable — so the sort has to be re-run rather than waited for.
+            ApplyRestoredOrder(formationId);
+        }
 
         /// <summary>The current leader of <paramref name="id"/>, or null if that formation is empty.</summary>
         public static FormationModule LeaderOf(string id)

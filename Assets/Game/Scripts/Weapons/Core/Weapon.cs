@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using FMODUnity;
 using SpaceGame.Audio;
+using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Items;
 using SpaceGame.Presentation;
@@ -158,18 +159,27 @@ namespace SpaceGame.Weapons
         }
 
         /// <summary>
-        /// Rotate weapon to point in the direction the camera is looking (pitch only).
+        /// Rotate weapon to point in the direction its holder is looking (pitch and yaw).
         ///
-        /// Owner only. Camera.main is whatever camera this machine happens to have active, which for
-        /// every OTHER player's weapon is the local player's — so without the ownership test each
-        /// machine swung every gun in the game to follow its own head. A remote copy is left on its
-        /// hand bone, where the replicated animation puts it, which is what it should look like.
+        /// <para>
+        /// Two sources, because the answer lives in two different places. The machine that OWNS the
+        /// holder reads its own camera, which is live and exact. Every other machine reads that
+        /// player's <see cref="PlayerViewNetwork.AimPivot"/>, which carries their replicated pitch
+        /// on top of the body yaw that already comes down the transform.
+        /// </para>
+        /// <para>
+        /// Camera.main is emphatically not a fallback for the remote case: it is whatever camera
+        /// THIS machine has active, which is the local player's — so reading it for somebody else's
+        /// gun swung every weapon in the game to follow the local head. That is why this used to
+        /// leave a remote weapon on its hand bone and do nothing. The cost of doing nothing was
+        /// that a player aiming up or down looked, to everyone else, like they were aiming level.
+        /// </para>
         /// </summary>
         protected virtual void UpdateWeaponRotation()
         {
             // Somebody else is aiming this — an NPC's equipment controller, a turret mount. Checked
-            // before ownership, because an NPC's weapon IS owned by the machine simulating it and
-            // would otherwise pass the test below and swing to that machine's camera.
+            // first, because an NPC's weapon IS owned by the machine simulating it and would
+            // otherwise pass the test below and swing to that machine's camera.
             if (ExternallyAimed)
             {
                 return;
@@ -177,6 +187,7 @@ namespace SpaceGame.Weapons
 
             if (!Network.Owns(this))
             {
+                AimAlongReplicatedView();
                 return;
             }
 
@@ -196,6 +207,37 @@ namespace SpaceGame.Weapons
             // Create a rotation that points toward the camera's forward direction
             // This includes both pitch (up/down) and yaw (left/right)
             transform.rotation = Quaternion.LookRotation(cameraForward, aimCamera.transform.up);
+        }
+
+        /// <summary>
+        /// A weapon in somebody else's hands: point it where they say they are pointing it.
+        ///
+        /// <para>
+        /// Silently does nothing when the holder has no replicated view — an NPC, a weapon lying on
+        /// a table, a test rig — which leaves it on its hand bone exactly as before. That is the
+        /// right fallback: the alternative for a holder whose aim is unknown is to invent one.
+        /// </para>
+        /// </summary>
+        // Cached against the holder it was looked up from, because this runs every frame for every
+        // remote weapon in the session and GetComponent is not free. Re-resolved whenever the item
+        // changes hands, which is the only thing that can invalidate it.
+        private GameObject viewOwner;
+        private PlayerViewNetwork ownerView;
+
+        private void AimAlongReplicatedView()
+        {
+            if (owner == null) return;
+
+            if (!ReferenceEquals(viewOwner, owner))
+            {
+                viewOwner = owner;
+                ownerView = owner.GetComponent<PlayerViewNetwork>();
+            }
+
+            Transform aim = ownerView != null ? ownerView.AimPivot : null;
+            if (aim == null) return;
+
+            transform.rotation = Quaternion.LookRotation(aim.forward, aim.up);
         }
 
         /// <summary>
@@ -459,6 +501,59 @@ namespace SpaceGame.Weapons
         /// bills the target for the same bullet.
         /// </summary>
         protected bool ShotDealsDamage { get; private set; } = true;
+
+        // ── Per-instance state ─────────────────────────────────────────────────
+        //
+        // A weapon is destroyed and rebuilt from its prefab on every equip, and OnEnable above then
+        // refills the magazine and clears the cooldown. So before this, an empty gun could be made
+        // full by scrolling one slot down the hotbar and back — and a save simply made that
+        // permanent, because there is no reload mechanic in this game and a magazine is a resource
+        // rather than a convenience.
+
+        private const string AmmoKey = "ammo";
+        private const string CooldownKey = "cd";
+
+        /// <summary>
+        /// The rounds left and the shot clock, both as the player would experience them.
+        ///
+        /// The cooldown is stored as time REMAINING, never as <see cref="nextFireTime"/> itself:
+        /// that is a stamp on <c>Time.time</c>, which restarts at zero every session, so a stored
+        /// absolute would come back either permanently expired or years in the future.
+        ///
+        /// Charging is deliberately not stored. Its state is a live <see cref="IChargeable"/>
+        /// projectile spawned into the world, and nothing in a save file can bring that instance
+        /// back — see <see cref="RestoreItemState"/>.
+        /// </summary>
+        public override void CaptureItemState(ItemState state)
+        {
+            base.CaptureItemState(state);
+            if (state == null) return;
+
+            if (magazine != null) state.Set(AmmoKey, magazine.CurrentAmmo);
+
+            float remaining = nextFireTime - Time.time;
+            if (remaining > 0.01f) state.Set(CooldownKey, remaining);
+        }
+
+        public override void RestoreItemState(ItemState state)
+        {
+            base.RestoreItemState(state);
+
+            // OnEnable has already run by now and has already called Refill(). That is the reset
+            // trap this override exists to undo, and the ordering is EquipmentController's doing —
+            // it restores after OnEquipped, which is after the instance has woken up.
+            if (magazine != null)
+                magazine.SetAmmo(state == null ? magazine.MaxAmmo : state.GetInt(AmmoKey, magazine.MaxAmmo));
+
+            nextFireTime = Time.time + Mathf.Max(0f, state == null ? 0f : state.GetFloat(CooldownKey, 0f));
+            canFire = true;
+
+            // A weapon that was mid-charge comes back uncharged, and the round it had already spent
+            // stays spent. Resuming would mean re-spawning the charging projectile at load, which
+            // puts a live object in the world on a machine that may be only presenting — and the
+            // player can simply charge again.
+            CancelCharging();
+        }
 
         /// <summary>
         /// Override CanUse() to check ammo.

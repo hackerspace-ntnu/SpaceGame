@@ -47,6 +47,19 @@ namespace SpaceGame.Core.Persistence
         /// <summary>Scene keys currently live, so a save knows which scenes to re-read from memory.</summary>
         private readonly Dictionary<string, Scene> loadedScenes = new();
 
+        /// <summary>
+        /// Runtime records whose <c>prefabId</c> could not be resolved on the last attempt.
+        ///
+        /// They are absent from the world for now, which is indistinguishable from destroyed as far
+        /// as <see cref="DropVanishedRuntime"/> can tell — so without this set it deleted them, and
+        /// a save file that merely named a prefab nobody had registered became a save file with the
+        /// object permanently missing. Membership is cleared the moment the id resolves.
+        /// </summary>
+        private readonly HashSet<string> unresolved = new();
+
+        /// <summary>How many records are being held back because their prefab could not be found.</summary>
+        public int UnresolvedCount => unresolved.Count;
+
         public WorldSaveStore() : this(new WorldRecord()) { }
 
         public WorldSaveStore(WorldRecord existing)
@@ -117,6 +130,11 @@ namespace SpaceGame.Core.Persistence
                 if (!entity.BelongsToWorld) continue;
                 if (string.IsNullOrEmpty(entity.InstanceId)) continue;
 
+                // Tombstoned this frame and not yet actually destroyed. Capturing it would undo the
+                // burial — see SaveableEntity.IsBuried. Not added to `seen` either: a runtime object
+                // on its way out SHOULD be dropped from the record by DropVanishedRuntime.
+                if (entity.IsBuried) continue;
+
                 seen.Add(entity.InstanceId);
                 CaptureEntity(entity, sceneKey);
             }
@@ -146,6 +164,10 @@ namespace SpaceGame.Core.Persistence
                 if (record == null || record.Authored) continue;
                 if (record.Scene != sceneKey || seen.Contains(entry.Key)) continue;
 
+                // Failed to spawn rather than ceased to exist. Deleting it here is how a missing
+                // prefab registration became irreversible — see SpawnEntities.
+                if (unresolved.Contains(entry.Key)) continue;
+
                 // Alive somewhere else — it migrated rather than died. The null check matters: a
                 // destroyed object leaves a null behind if its OnDisable never ran.
                 if (SaveableEntity.LiveEntities.TryGetValue(entry.Key, out SaveableEntity live) && live != null)
@@ -158,6 +180,78 @@ namespace SpaceGame.Core.Persistence
 
             foreach (string id in doomed)
                 world.Entities.Remove(id);
+        }
+
+        /// <summary>
+        /// Removes records that can no longer refer to anything, and returns how many went.
+        ///
+        /// <b>Nothing in this system ever removed a record before.</b> Authored records are
+        /// deliberately never dropped (a scene that is not loaded looks exactly like a scene whose
+        /// objects are gone), tombstones had no removal path at all, and unresolvable runtime
+        /// records were the one thing that WAS dropped — the only case where dropping was wrong. So
+        /// a save file only ever grew, for the life of the world.
+        ///
+        /// This is deliberately conservative. It deletes only the two shapes that are provably
+        /// meaningless, and reports rather than guessing about the rest:
+        ///
+        ///   • a runtime record with an EMPTY prefabId. Not "one we could not resolve" — that is
+        ///     held, see <see cref="unresolved"/> — but one that names nothing at all, so no future
+        ///     wiring can ever bring it back. These are the residue of objects spawned before their
+        ///     prefab carried a stamped id;
+        ///   • a record for an id that is also tombstoned. The two contradict each other, and the
+        ///     tombstone is the later statement. A pair like this is the fingerprint of the
+        ///     deferred-destroy race that <see cref="SaveableEntity.IsBuried"/> now closes.
+        ///
+        /// Authored records for objects a designer has since deleted from a scene are NOT removed:
+        /// this store cannot tell them apart from records for chunks that simply are not loaded, and
+        /// guessing wrong deletes a player's progress. They are counted instead, so the growth is at
+        /// least visible.
+        /// </summary>
+        public int Compact()
+        {
+            List<string> doomed = null;
+            int emptyPrefab = 0;
+            int contradicted = 0;
+
+            foreach (KeyValuePair<string, EntityRecord> entry in world.Entities)
+            {
+                EntityRecord record = entry.Value;
+                if (record == null) { (doomed ??= new List<string>()).Add(entry.Key); continue; }
+
+                if (world.IsDestroyed(entry.Key))
+                {
+                    (doomed ??= new List<string>()).Add(entry.Key);
+                    contradicted++;
+                    continue;
+                }
+
+                if (!record.Authored && string.IsNullOrEmpty(record.PrefabId))
+                {
+                    (doomed ??= new List<string>()).Add(entry.Key);
+                    emptyPrefab++;
+                }
+            }
+
+            if (doomed == null) return 0;
+
+            foreach (string id in doomed)
+            {
+                world.Entities.Remove(id);
+                unresolved.Remove(id);
+            }
+
+            if (emptyPrefab > 0)
+                Debug.LogWarning($"[Save] Dropped {emptyPrefab} runtime record(s) that named no prefab " +
+                                 "at all and could never have been restored. This is what an object " +
+                                 "spawned from an unstamped prefab leaves behind — run Tools ▸ Save " +
+                                 "System ▸ Wire Saveable Prefabs so new spawns carry an id.");
+
+            if (contradicted > 0)
+                Debug.LogWarning($"[Save] Dropped {contradicted} record(s) for objects that are also " +
+                                 "tombstoned. A record and a tombstone for one id contradict each " +
+                                 "other; the tombstone wins.");
+
+            return doomed.Count;
         }
 
         /// <summary>Refreshes every loaded scene's records. The first half of writing a save.</summary>
@@ -194,11 +288,29 @@ namespace SpaceGame.Core.Persistence
         {
             if (entity == null || !entity.IsAuthored || string.IsNullOrEmpty(entity.InstanceId)) return;
 
-            if (!world.Destroyed.Contains(entity.InstanceId))
-                world.Destroyed.Add(entity.InstanceId);
-
+            world.MarkDestroyed(entity.InstanceId);
             world.Entities.Remove(entity.InstanceId);
+
+            // Object.Destroy is deferred to the end of the frame, so between this call and the
+            // object actually going away it is still in its scene and still in LiveEntities. A
+            // Dehydrate landing in that window — a save taken right after a chunk load, which
+            // CaptureLoadedScenes does on every single save — walked straight past the tombstone and
+            // re-created the record this line just removed. That record is Authored, and authored
+            // records are never dropped by DropVanishedRuntime, so it became a permanent orphan
+            // describing an object that no longer exists.
+            entity.MarkBuried();
         }
+
+        /// <summary>
+        /// Lifts a tombstone, so an authored object may exist again.
+        ///
+        /// Needed because tombstones are otherwise permanent and keyed by an identity that can be
+        /// re-derived: <see cref="SaveableEntity.DeriveAuthoredId"/> includes sibling index, so
+        /// deleting one prop from a chunk scene shifts a different object into the dead one's id and
+        /// <see cref="RemoveDestroyed"/> would delete it on every load, silently. The compaction
+        /// pass calls this for tombstones whose object is demonstrably a different one.
+        /// </summary>
+        public bool ForgetDestroyed(string instanceId) => world.ClearDestroyed(instanceId);
 
         // ─────────────────────────────────────────────
         //  Capture / restore
@@ -224,6 +336,7 @@ namespace SpaceGame.Core.Persistence
             record.Position = entity.transform.position;
             record.Rotation = entity.transform.rotation;
             record.Scale = entity.transform.localScale;
+            record.HasScale = true;
 
             // A fresh bag rather than the existing one: a saver removed since the last capture must
             // drop out of the record, and merging into the old bag would preserve it forever.
@@ -258,14 +371,43 @@ namespace SpaceGame.Core.Persistence
             {
                 if (!SaveablePrefabRegistry.TryGet(record.PrefabId, out GameObject prefab))
                 {
+                    // Marked, not merely skipped. DropVanishedRuntime deletes any runtime record for
+                    // this scene that it cannot see alive — and a record that failed to spawn is by
+                    // definition not alive, so the next chunk unload used to erase it. That turned a
+                    // recoverable wiring problem into permanent data loss: fix the wiring afterwards
+                    // and the objects were still gone, because the records naming them had been
+                    // thrown away one unload later.
+                    unresolved.Add(record.InstanceId);
+
                     Debug.LogWarning($"[Save] No prefab registered for id '{record.PrefabId}' — one " +
-                                     "saved object could not be restored. Is it missing from " +
-                                     $"Resources/{SaveablePrefabRegistry.ResourcesFolder}?");
+                                     "saved object could not be restored, and its record is being " +
+                                     "KEPT so it can come back once the prefab is reachable. Register " +
+                                     "it with NetworkManager, put it under " +
+                                     $"Resources/{SaveablePrefabRegistry.ResourcesFolder}, or run " +
+                                     "Tools ▸ Save System ▸ Wire Saveable Prefabs to stamp its id.");
+                    continue;
+                }
+
+                // It resolved, so any earlier failure for this id is history.
+                unresolved.Remove(record.InstanceId);
+
+                // HasPose is honoured for runtime records too, not only authored ones. It used to be
+                // read nowhere on this path, so a record that genuinely did not know where its object
+                // belonged — the only source is a v1 file whose runtime entry had no position — was
+                // instantiated at the world origin, i.e. under the terrain, several kilometres from
+                // anything. Holding the record is the better answer: nothing is lost, and the object
+                // is not silently relocated to a place it has never been.
+                if (!record.HasPose)
+                {
+                    unresolved.Add(record.InstanceId);
+                    Debug.LogWarning($"[Save] Record '{record.InstanceId}' names a runtime object with " +
+                                     "no saved position, so there is nowhere to put it. Keeping the " +
+                                     "record rather than spawning it at the world origin.");
                     continue;
                 }
 
                 GameObject instance = UnityEngine.Object.Instantiate(prefab, record.Position, record.Rotation);
-                if (record.Scale != Vector3.zero) instance.transform.localScale = record.Scale;
+                if (record.HasScale) instance.transform.localScale = record.Scale;
 
                 // Into the chunk's own scene, not the active one. Left in the active scene it would
                 // survive that chunk unloading and pile up a duplicate on every reload.
@@ -293,12 +435,30 @@ namespace SpaceGame.Core.Persistence
         /// </summary>
         private void RemoveDestroyed(Dictionary<string, SaveableEntity> authored)
         {
-            foreach (string instanceId in world.Destroyed)
-            {
-                if (!authored.TryGetValue(instanceId, out SaveableEntity entity) || entity == null) continue;
+            // Driven from the objects this scene actually has, not from the tombstone list. The list
+            // only ever grows — one entry per authored object ever destroyed, for the life of the
+            // world — so walking it per hydrate made chunk loading cost more the longer the save had
+            // been played. The scene's authored population is bounded; the graveyard is not.
+            List<string> doomed = null;
 
-                SaveNetworking.DespawnAndDestroy(entity.gameObject);
+            foreach (KeyValuePair<string, SaveableEntity> entry in authored)
+            {
+                if (entry.Value == null || !world.IsDestroyed(entry.Key)) continue;
+                (doomed ??= new List<string>()).Add(entry.Key);
+            }
+
+            if (doomed == null) return;
+
+            foreach (string instanceId in doomed)
+            {
+                SaveableEntity entity = authored[instanceId];
                 authored.Remove(instanceId);
+
+                if (entity != null)
+                {
+                    entity.MarkBuried();
+                    SaveNetworking.DespawnAndDestroy(entity.gameObject);
+                }
             }
         }
 
@@ -327,7 +487,7 @@ namespace SpaceGame.Core.Persistence
                     SaveTeleport.Move(entity.gameObject, record.Position, record.Rotation,
                                       zeroVelocity: entity.GetComponent<RigidbodySaveable>() == null);
 
-                    if (record.Scale != Vector3.zero) entity.transform.localScale = record.Scale;
+                    if (record.HasScale) entity.transform.localScale = record.Scale;
                 }
 
                 entity.Restore(record.State);

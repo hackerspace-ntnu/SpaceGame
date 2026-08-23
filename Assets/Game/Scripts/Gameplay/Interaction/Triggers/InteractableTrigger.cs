@@ -8,6 +8,18 @@ namespace SpaceGame.Gameplay
     /// Drop on a GameObject that also has any <see cref="ITriggerable"/> (SceneTransition,
     /// CutsceneAction, …). On player interact (raycast → E) it forwards the Interactor's
     /// GameObject to the triggerable. One trigger component, any number of action types.
+    ///
+    /// Deliberately ungated, unlike <see cref="VolumeTrigger"/>, and the difference is worth stating
+    /// because the two classes look like the same thing. A volume is a local OBSERVATION: every
+    /// player's body exists on every machine, so an untreated volume fires on all of them for all of
+    /// them. An interact is a local ACTION: Interactor is fed by PlayerInputManager, which
+    /// PlayerController.DisablePlayer switches off on every body this machine does not own, so this
+    /// method can only ever run for the player sitting at this keyboard. There is no wrong machine
+    /// to gate out, and gating on the server instead would break it outright — a client pressing E
+    /// would then do nothing at all.
+    ///
+    /// What the triggerable does with that press is the triggerable's own business to replicate; see
+    /// <see cref="ITriggerable"/>.
     /// </summary>
     [AddComponentMenu("Triggers/Interactable Trigger")]
     public class InteractableTrigger : MonoBehaviour, IInteractable

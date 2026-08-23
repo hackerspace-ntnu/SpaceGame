@@ -36,6 +36,7 @@ TARGETS = [
      "weather_station.fbx"),
     ("antigrav_device.blend", "Coll_AntiGrav_Ring", "antigrav_emitter.fbx"),
     ("leash_device.blend", "Coll_Leash_Spool", "leash_emitter.fbx"),
+    ("lasso_coil.blend", "Coll_Lasso_Coil", "lasso_coil.fbx"),
 ]
 
 

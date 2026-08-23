@@ -138,10 +138,64 @@ namespace SpaceGame.Agents
 
         private void OnEnable()
         {
+            // A restore already set this module up. Consumed, so a later genuine enable still
+            // resets the cadence as it always did.
+            if (cadenceRestored)
+            {
+                cadenceRestored = false;
+                return;
+            }
+
             cooldownTimer = 0f;
             burstRemaining = 0;
             targetHeldFor = 0f;
             hasFacingTarget = false;
+        }
+
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // `targetHeldFor` is the one that matters most and is the least obvious: it is the
+        // has-aimed-long-enough accumulator behind `reactionDelay`, so losing it means every NPC in
+        // the world grants the player another half second of grace after each load. The cooldown
+        // and the burst are the same free-shot problem the other combat modules have.
+        //
+        // See Core/Persistence/Adapters/CombatCadenceSaveable.cs.
+        private bool cadenceRestored;
+
+        public float CooldownTimer => cooldownTimer;
+        public int BurstRemaining => burstRemaining;
+        public float BurstTimer => burstTimer;
+        public float TargetHeldFor => targetHeldFor;
+        public Transform LastTarget => lastTarget;
+        public Vector3 LastTargetPosition => lastTargetPosition;
+        public bool HasFacingTarget => hasFacingTarget;
+        public Vector3 FacingPoint => facingPoint;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreCadence(float cooldown, int burstLeft, float burst, float heldFor,
+                                   bool facing, Vector3 face)
+        {
+            cadenceRestored = true;
+            cooldownTimer = cooldown;
+            burstRemaining = burstLeft;
+            burstTimer = burst;
+            targetHeldFor = heldFor;
+            hasFacingTarget = facing;
+            facingPoint = face;
+        }
+
+        /// <summary>
+        /// Restore-only. Called by the save system; do not call from gameplay.
+        ///
+        /// Seeds the lead-prediction tracker with the target and the position it was differencing
+        /// against, so the first frame after a load does not read a whole session's displacement as
+        /// one frame of velocity and fire the shot into the next county.
+        /// </summary>
+        public void RestoreAimTracking(Transform target, Vector3 lastPosition)
+        {
+            lastTarget = target;
+            lastTargetPosition = target != null ? lastPosition : Vector3.zero;
+            targetVelocity = Vector3.zero;
         }
 
         public override string ModuleDescription =>

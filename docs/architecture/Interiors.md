@@ -52,7 +52,8 @@ Effects use distinct `TransitionChannel`s (Screen / Audio / Camera / Time). `Sce
 - All `EnterInterior` / `ExitInterior` calls route through `ServerRpc`; the server is authoritative for the load + teleport.
 - Interiors load via `NetworkManager.SceneManager.LoadScene` when networked, `SceneManager.LoadSceneAsync` offline.
 - Refcounted by `NetworkObjectId`; the interior unloads when the last player leaves.
-- Late joiners don't auto-load active interiors (known limit).
+- Late joiners don't auto-load active interiors yet. That is an open bug, not an accepted limit: a
+  player who joins while somebody is inside has to end up in the same interior.
 
 ## Currently wired
 
@@ -92,8 +93,13 @@ Assets/Game/Resources/Interiors/         InteriorScene + Destination + Effect as
 Assets/Game/Scenes/Interiors/            the .unity scenes
 ```
 
-## Limitations
+## Open work
+
+Interiors are held to the same bar as the rest of the game: everything replicated, everything
+persisted. These are the places that bar is not met yet.
 
 - Scene + anchor ids are strings. Typos give "dropped at origin" at runtime. `InteriorScene.OnValidate` catches missing Build Settings entries and (when the target scene is loaded) missing anchors.
-- `SceneTracked` entities (vehicles, mounts) don't follow the player inside.
-- Items dropped inside an interior are lost when the last player leaves and the scene unloads.
+- `SceneTracked` entities (vehicles, mounts) don't follow the player inside yet.
+- Items dropped inside an interior are lost when the last player leaves and the scene unloads. This
+  is a persistence hole, not an accepted rule — an interior's contents have to survive an unload the
+  same way a chunk's do (`WorldSaveStore`, see [Persistence.md](Persistence.md)).

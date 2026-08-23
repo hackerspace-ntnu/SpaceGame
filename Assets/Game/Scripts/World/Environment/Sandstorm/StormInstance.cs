@@ -37,7 +37,7 @@ namespace SpaceGame.World.Weather
         /// <summary>Compass bearing the storm travels toward: 0 is +Z, 90 is +X.</summary>
         public float HeadingDegrees;
 
-        /// <summary>Shared-clock time the storm began. See <see cref="Sandstorms.Now"/>.</summary>
+        /// <summary>Weather-clock time the storm began. See <see cref="Sandstorms.WeatherTime"/>.</summary>
         public double StartTime;
 
         /// <summary>Seconds until it expires. Zero means never — a parked hazard region.</summary>

@@ -40,9 +40,48 @@ namespace SpaceGame.Agents
 
         private float cooldownTimer;
 
+        // Cached rather than asked per shot — see AgentAuthority for why the uncached question is
+        // the wrong one to put on a per-frame path.
+        private AgentAuthority authority;
+
+        private void Awake() => authority = new AgentAuthority(this);
+
+        // A launcher deployed onto a vehicle changes which NetworkObject is above it when the
+        // vehicle does. See AgentAuthority.Invalidate.
+        private void OnTransformParentChanged() => authority?.Invalidate();
+
         private void OnEnable()
         {
+            // A restore already set the clock. Consumed, so a later genuine enable still starts the
+            // first-shot delay as it always did.
+            if (cadenceRestored)
+            {
+                cadenceRestored = false;
+                return;
+            }
+
             cooldownTimer = firstShotDelay;
+        }
+
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // The only durable state a fixed launcher has. Without it every reload re-arms the
+        // `firstShotDelay`, so a player who saves and loads under a hostile launcher gets a free
+        // second before the next rocket — and a player who does it repeatedly never gets shot at.
+        //
+        // The head's aim is deliberately NOT saved: LateUpdate rebuilds it every frame from
+        // `pitchAngle` and `yawAngle`, which are serialized, so it is a function of the prefab and
+        // this transform rather than state. That is the difference from TurretModule, whose barrel
+        // is aimed at a target and therefore has nowhere else to come from.
+        private bool cadenceRestored;
+
+        public float CooldownTimer => cooldownTimer;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreCooldown(float cooldown)
+        {
+            cadenceRestored = true;
+            cooldownTimer = cooldown;
         }
 
         private void Update()
@@ -81,6 +120,12 @@ namespace SpaceGame.Agents
             TurretProjectile tp = proj.GetComponent<TurretProjectile>();
             if (tp == null)
                 tp = proj.AddComponent<TurretProjectile>();
+
+            // Fired everywhere so every player sees the rocket; damaging only where this launcher
+            // is simulated, or the server bills the target once per machine that drew one. This
+            // launcher fires on a fixed timer along a fixed heading, so the copies agree without
+            // anything being sent — see TurretModule.Fire for the aimed case.
+            tp.Cosmetic = !authority.SimulatedHere;
             tp.Init(damagePerHit, gameObject);
 
             Rigidbody rb = proj.GetComponent<Rigidbody>();

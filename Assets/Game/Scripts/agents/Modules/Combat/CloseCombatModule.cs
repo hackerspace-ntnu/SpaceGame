@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using FMODUnity;
 using SpaceGame.Audio;
+using SpaceGame.Core;
 using SpaceGame.Gameplay;
 
 namespace SpaceGame.Agents
@@ -45,19 +46,77 @@ namespace SpaceGame.Agents
         private bool engaged;
         private Animator animator;
 
+        // Whose swing this is. Cached rather than resolved per message — see AgentAuthority. Only
+        // ever read on the receiving side here: the deciding side is gated one level up, in
+        // AgentController, and asking twice would be a second answer free to drift from the first.
+        private AgentAuthority authority;
+
         // Read by ChaseModule (to tighten chaseStopDistance and skip herd-spread offsets that would
         // park the agent outside melee reach) and by AgentTargeting (to cover the range in its
         // acquisition window).
         public float AttackRange => attackRange;
 
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // A swing's cadence outlives a session. Reloading at zero cooldown hands whoever reloaded a
+        // free hit — a creature caught mid-recovery comes back able to strike immediately — and
+        // reloading with commitTimer at zero lets Chase reclaim a frame that a swing had committed.
+        //
+        // OnEnable clears all three, and runs on either side of a restore depending on the
+        // hydration path, hence the latch. See Core/Persistence/Adapters/CombatCadenceSaveable.cs.
+        private bool cadenceRestored;
+
+        public float CooldownTimer => cooldownTimer;
+        public float CommitTimer => commitTimer;
+        public bool Engaged => engaged;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreCadence(float cooldown, float commit, bool wasEngaged)
+        {
+            cadenceRestored = true;
+            cooldownTimer = cooldown;
+            commitTimer = commit;
+            engaged = wasEngaged;
+        }
+
         private void Reset() => SetPriorityDefault(ModulePriority.MeleeAttack);
-        private void OnEnable() { cooldownTimer = 0f; commitTimer = 0f; engaged = false; }
+
+        private void OnEnable()
+        {
+            // A restore already set this module up. Consumed, so a later genuine enable — a
+            // threshold reaction, an ownership change — still resets the cadence as it always did.
+            if (cadenceRestored)
+            {
+                cadenceRestored = false;
+            }
+            else
+            {
+                cooldownTimer = 0f;
+                commitTimer = 0f;
+                engaged = false;
+            }
+
+            // Watching machines listen so the authority can tell them a swing happened. The
+            // authority registers too and simply never receives its own broadcast — NetRelay
+            // filters the sender out — which is the same shape EntityEquipmentController uses for
+            // NetMsg.ItemUsed. Registered in OnEnable rather than Awake so it is paired with the
+            // OnDisable below: NetAuthority switches components on and off as ownership moves, and
+            // a subscription that outlived a disable would present a swing twice.
+            this.NetOn(NetMsg.AgentActed, OnAgentActed);
+        }
+
+        private void OnDisable() => this.NetOff(NetMsg.AgentActed, OnAgentActed);
 
         private void Awake()
         {
+            authority = new AgentAuthority(this);
             FindChildByName("Sword")?.SetActive(IsActive);
             animator = GetComponentInChildren<Animator>();
         }
+
+        // Being carried — onto a walker's deck, into a seat — moves this agent under a different
+        // NetworkObject. See AgentAuthority.Invalidate.
+        private void OnTransformParentChanged() => authority?.Invalidate();
 
         public override MoveIntent? Tick(in AgentContext context, float deltaTime)
         {
@@ -101,19 +160,92 @@ namespace SpaceGame.Agents
             return MoveIntent.StopAndFace(target.position);
         }
 
+        /// <summary>
+        /// One swing. Runs on the machine that simulates this agent and on no other.
+        ///
+        /// <para>
+        /// There is deliberately no authority check here, and that is worth stating because the
+        /// bug it prevents is severe: <see cref="NetDamage"/> lands a hit locally on the server and
+        /// forwards it as a REQUEST from a client, and the server honours every request it gets, so
+        /// a swing that runs on the host and on two clients bills the target three times. The gate
+        /// is one level up, in <see cref="AgentController"/>, which stops ticking modules at all on
+        /// a machine that does not own the agent — and this method is reachable from nowhere else.
+        /// Repeating the check here would be a second answer to the same question, free to drift
+        /// from the first.
+        /// </para>
+        /// <para>
+        /// The consequence used to be that the sound and the trigger only fired on the simulating
+        /// machine, so nobody else saw the swing at all. They now go out as
+        /// <see cref="NetMsg.AgentActed"/> — see <see cref="PresentSwing"/>, which is the half of
+        /// this method that runs everywhere.
+        /// </para>
+        /// </summary>
         private void Attack(Transform target)
         {
             var health = target.GetComponentInChildren<HealthComponent>();
             if (health != null && health.Alive)
                 NetDamage.Apply(health.gameObject, attackDamage, transform);
 
-            Sfx.Play(attackId, transform.position, attackSound, GetInstanceID());
+            // Deliberately NOT part of the presentation below, and not carried in the message
+            // either: this hands out the TARGET, which is exactly the divergent state AgentActed
+            // exists so that watchers never have to guess at. A handler holding the victim is one
+            // edit away from being a second machine that can damage it.
+            OnAttack?.Invoke(target);
+
+            // The agent's own position, matching where the sound was played from before this was
+            // split — a swing has no muzzle, so its origin is the body that made it.
+            Vector3 origin = transform.position;
+            Vector3 direction = target.position - origin;
+
+            PresentSwing(origin);
+
+            // Once per swing, from inside the cooldown gate in Tick — never per frame. A committed
+            // swing already holds the agent still for attackCommitDuration, so the wire rate is
+            // bounded by attackCooldown and nothing else.
+            AgentActionRelay.Broadcast(this, AgentAction.Melee, origin, direction);
+        }
+
+        /// <summary>
+        /// One swing's look and sound. Runs on every machine — here as part of attacking, on a
+        /// watcher because the authority said it happened.
+        ///
+        /// <para>
+        /// Idempotent by construction: it starts a sound and sets an animator trigger and reads no
+        /// state at all, so a message that arrived twice would be a doubled sound rather than a
+        /// doubled swing. Nothing below this line may damage, spawn or consume anything — that is
+        /// the whole boundary, and <see cref="Attack"/> above it is the only side that decides.
+        /// </para>
+        /// </summary>
+        private void PresentSwing(Vector3 origin)
+        {
+            Sfx.Play(attackId, origin, attackSound, GetInstanceID());
 
             if (animator && !string.IsNullOrEmpty(attackAnimTrigger))
                 animator.SetTrigger(attackAnimTrigger);
 
-            OnAttack?.Invoke(target);
             OnAttackEvent?.Invoke();
+        }
+
+        /// <summary>
+        /// A watching machine drawing the swing the authority actually made.
+        /// </summary>
+        private void OnAgentActed(in NetArg arg, ulong sender)
+        {
+            // Is this message even ours? An unrecognised kind is ignored rather than assumed — see
+            // AgentAction — and it matters on this exact channel: an agent carrying an
+            // AgentRangedCombatModule as well broadcasts its shots here, and swinging a sword for a
+            // rifle shot is worse than playing nothing.
+            if (arg.A != AgentAction.Melee) return;
+
+            // The deciding machine already drew this while performing it, and NetRelay excludes the
+            // sender from its own broadcast — so in practice only a watcher gets here. Asking
+            // anyway is what keeps the handler idempotent should the message ever arrive by another
+            // route, and it is the same guard EntityEquipmentController.OnItemUsedElsewhere uses.
+            // A null authority means Awake has not run (an EditMode fixture), which reads as "this
+            // machine decides" and therefore presents nothing.
+            if (authority == null || authority.SimulatedHere) return;
+
+            PresentSwing(arg.P);
         }
 
         private GameObject FindChildByName(string childName)

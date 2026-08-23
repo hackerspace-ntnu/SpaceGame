@@ -163,6 +163,7 @@ namespace SpaceGame.Characters
         
             float control = grounded ? 1f : airControl;
             Vector3 newHorizontal = Vector3.Lerp(currentHorizontal, desiredHorizontal, control);
+            newHorizontal = SteerWithoutBraking(currentHorizontal, newHorizontal, grounded);
 
             velocity.x = newHorizontal.x;
             velocity.z = newHorizontal.z;
@@ -174,6 +175,51 @@ namespace SpaceGame.Characters
             UpdateAnimatorParameters(velocity, grounded);
         }
     
+        /// <summary>
+        /// Momentum this component did not produce and must not throw away.
+        ///
+        /// Set by <see cref="CarryMomentum"/> and cleared the moment the player
+        /// lands or slows to a walk, so it is off for all of ordinary movement.
+        /// </summary>
+        private bool carryingMomentum;
+
+        /// <summary>
+        /// Keep whatever horizontal speed the body has until it lands.
+        ///
+        /// Called by anything that flings the player faster than they can run —
+        /// today that is coming out of a portal. Without it the aim of
+        /// "speedy thing goes in, speedy thing comes out" cannot survive
+        /// <see cref="FixedUpdate"/>: the lerp below pulls horizontal velocity
+        /// 30% of the way toward a 6 m/s walk fifty times a second, which turns
+        /// a 40 m/s exit into a stroll in about a fifth of a second. The player
+        /// sees the fling start and then be visibly confiscated.
+        /// </summary>
+        public void CarryMomentum() => carryingMomentum = true;
+
+        /// <summary>
+        /// While momentum is being carried, air control may TURN the flight but
+        /// never slow it.
+        ///
+        /// Preserving the magnitude rather than skipping the lerp is what keeps
+        /// the player steerable in mid-air, which is the half of air control
+        /// that was always wanted. It ends by itself: on touchdown, because the
+        /// ground is where speed is supposed to be given back, and at walking
+        /// pace, because below that there is no fling left to protect.
+        /// </summary>
+        private Vector3 SteerWithoutBraking(Vector3 current, Vector3 steered, bool grounded)
+        {
+            if (!carryingMomentum) return steered;
+
+            float carried = current.magnitude;
+            if (grounded || carried <= moveSpeed)
+            {
+                carryingMomentum = false;
+                return steered;
+            }
+
+            return steered.sqrMagnitude > 1e-6f ? steered.normalized * carried : current;
+        }
+
         private void HandleFallDamage(bool grounded)
         {
             // Detect landing (was in air, now grounded)

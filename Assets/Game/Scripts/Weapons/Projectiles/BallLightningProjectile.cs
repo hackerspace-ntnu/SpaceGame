@@ -184,6 +184,25 @@ namespace SpaceGame.Weapons
             Vector3 start = transform.position;
             Vector3 end = start + moveDelta;
 
+            // Before the cast, so the leg on the far side is swept through the
+            // room the ball came out into rather than the one it left. This also
+            // turns `direction`, which the wander, the bob and the hover above
+            // are all built from, so the drift carries on around the new heading
+            // instead of still curving around the old one.
+            if (CrossPortal(ref start, ref end))
+            {
+                moveDelta = end - start;
+                travelDistance = moveDelta.magnitude;
+
+                if (travelDistance <= 0.0001f)
+                {
+                    transform.position = start;
+                    return;
+                }
+
+                moveDir = moveDelta / travelDistance;
+            }
+
             // Collision check with sphere cast
             if (Physics.SphereCast(start, collisionRadius, moveDir, out RaycastHit hit, travelDistance, hitMask, QueryTriggerInteraction.Ignore))
             {

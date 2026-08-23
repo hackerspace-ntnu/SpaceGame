@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using NUnit.Framework;
@@ -249,6 +250,46 @@ namespace SpaceGame.Tests
                 _ => Task.CompletedTask)));
 
             Assert.AreEqual(0, swept);
+        }
+
+        // ───────────────────────────────────────────── the SDK's own error path
+
+        [Test]
+        public void SdkErrorPath_RecognisesFramesFromInsideTheLobbyPackage()
+        {
+            // WrappedLobbyService.TryCatchRequest does `he.ActualError.Code`, and ActualError is
+            // null whenever the service answers an HTTP error with a body the SDK cannot parse —
+            // which is what its rate limiter sends. So a refused query does not arrive as a
+            // LobbyServiceException carrying a reason; it arrives as a bare null dereference with
+            // these frames under it.
+            Assert.IsTrue(LobbySession.IsLobbyPackageStack(
+                "Unity.Services.Lobbies.Internal.WrappedLobbyService.TryCatchRequest[TRequest,TReturn]" +
+                " (at Library/PackageCache/com.unity.services.multiplayer/Runtime/Lobbies/SDK/" +
+                "WrappedLobbyService.cs:572)"));
+        }
+
+        [Test]
+        public void SdkErrorPath_DoesNotExcuseOurOwnNulls()
+        {
+            Assert.IsFalse(LobbySession.IsLobbyPackageStack(
+                "SpaceGame.Core.LobbySession.QueryAsync () (at Assets/Game/Scripts/Core/Multiplayer/" +
+                "LobbySession.cs:214)"));
+        }
+
+        [Test]
+        public void SdkErrorPath_SurvivesAnExceptionThatWasNeverThrown()
+        {
+            // StackTrace is null until the runtime fills it in, and the catch clauses that reach
+            // this also see exceptions our own code constructed.
+            Assert.IsFalse(LobbySession.IsSdkErrorPathFailure(new NullReferenceException()));
+        }
+
+        [Test]
+        public void SdkErrorPath_IgnoresExceptionsThatCarryTheirOwnReason()
+        {
+            // A LobbyServiceException already says what went wrong and must keep saying it.
+            Assert.IsFalse(LobbySession.IsSdkErrorPathFailure(
+                new LobbyServiceException(LobbyExceptionReason.RateLimited, "rate limited")));
         }
 
         /// <summary>The 409 the service answers a join with when this player is already listed.</summary>

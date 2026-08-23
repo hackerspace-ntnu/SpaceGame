@@ -23,11 +23,25 @@ namespace SpaceGame.Weapons
                 return;
             }
 
-            // Move projectile forward
-            transform.position += direction * speed * Time.deltaTime;
+            Vector3 start = transform.position;
+            Vector3 end = start + direction * speed * Time.deltaTime;
 
-            // Periodic collision checks to avoid missing fast-moving collisions
-            if (Time.time - lastCollisionCheck >= checkInterval)
+            // Before the move is committed and before anything is traced: a shot
+            // that went through an aperture has to resolve against the room it
+            // came out into, and `direction` — which CheckCollision traces along
+            // — is turned here.
+            bool crossed = CrossPortal(ref start, ref end);
+
+            transform.position = end;
+
+            // The exit, not wherever the shot was a frame ago, is where the far
+            // side of this move begins.
+            if (crossed) lastPosition = start;
+
+            // Periodic collision checks to avoid missing fast-moving collisions.
+            // A crossing is always checked, whichever side of the interval it
+            // fell on, since it is the one frame the shot changes rooms.
+            if (crossed || Time.time - lastCollisionCheck >= checkInterval)
             {
                 CheckCollision();
                 lastCollisionCheck = Time.time;

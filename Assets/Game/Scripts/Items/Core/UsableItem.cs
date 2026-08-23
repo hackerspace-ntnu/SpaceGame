@@ -39,7 +39,7 @@ namespace SpaceGame.Items
     /// and the ones nobody has written yet — networked by default. An item that overrides neither
     /// still works; it simply does its work on the server only.
     /// </summary>
-    public abstract class UsableItem : MonoBehaviour
+    public abstract class UsableItem : MonoBehaviour, IItemStateCarrier
     {
         [SerializeField] private int maxUses = -1; // -1 means unlimited uses
 
@@ -67,6 +67,41 @@ namespace SpaceGame.Items
 
         /// <summary>Where <see cref="Use"/> runs. See <see cref="UseAuthority"/>.</summary>
         public virtual UseAuthority Authority => UseAuthority.Server;
+
+        /// <summary>
+        /// Does this item keep acting for as long as the button is held?
+        ///
+        /// False for everything that existed before the laser staff, and that is the point: a
+        /// press-and-forget item is untouched by the held-use path, which never runs for it. An
+        /// item that answers true additionally gets <see cref="OnRequestHold"/>,
+        /// <see cref="Hold"/> and <see cref="PresentHold"/> called on the same three machines, at
+        /// the send rate EquipmentController streams at, until the button comes up.
+        ///
+        /// A continuous item still gets the ordinary press first. That is deliberate rather than
+        /// incidental: the press is what plays the ignition sound and what counts against
+        /// <c>maxUses</c>, so a held item is a normal item that also happens to keep going.
+        /// </summary>
+        public virtual bool IsContinuous => false;
+
+        /// <summary>
+        /// Does this item want the hold to continue even though the button is up?
+        ///
+        /// <para>
+        /// False for a beam you steer by holding the trigger — that one ends when you let go, and
+        /// nothing here changes for it. True for an item that runs for a fixed time once triggered:
+        /// the laser staff burns for three seconds whether or not the finger stays down.
+        /// </para>
+        /// <para>
+        /// It exists because a self-timed burst still needs the aim to keep flowing. Hold ticks are
+        /// the only channel that carries an aim, and they stop the instant the button comes up — so
+        /// without this, tapping the button leaves every other machine, INCLUDING the server that
+        /// decides what the beam is burning, drawing and billing along an aim frozen at the moment
+        /// of the press while the owner's own view sweeps freely. Ending the burst is then the
+        /// item's job rather than the button's: EquipmentController keeps streaming until this goes
+        /// false again.
+        /// </para>
+        /// </summary>
+        public virtual bool WantsHold => false;
 
         /// <summary>
         /// Owner-side, before the request leaves: add anything the other machines cannot work out
@@ -112,6 +147,43 @@ namespace SpaceGame.Items
             Present();
         }
 
+        // ── Per-instance state ─────────────────────────────────────────────────
+        //
+        // Every held object in this game is a fresh Instantiate of the item prefab, destroyed on
+        // unequip — see ItemState. So anything an item has BECOME lives in the hotbar slot rather
+        // than on the instance, and these two methods are how it gets there and back.
+        //
+        // The charge count is here because it belongs to every item: a limited-use artifact whose
+        // charges refilled every time the player scrolled past it was not a save bug, it was a
+        // gameplay bug that a save merely made visible.
+
+        /// <summary>State key for the charge count. Written into save files — never rename.</summary>
+        private const string UsesKey = "uses";
+
+        /// <summary>
+        /// Write what this instance would otherwise lose. Subclasses override and call base.
+        /// </summary>
+        public virtual void CaptureItemState(ItemState state)
+        {
+            if (state == null) return;
+
+            // An unlimited item has no count worth storing, and storing a zero for every artifact in
+            // the game would put a bag on every slot that has nothing in it.
+            if (maxUses >= 0 && currentUses > 0) state.Set(UsesKey, currentUses);
+        }
+
+        /// <summary>
+        /// Apply a captured bag. Runs after <see cref="OnEquipped"/>, so it is free to overwrite
+        /// whatever equipping set up.
+        /// </summary>
+        public virtual void RestoreItemState(ItemState state)
+        {
+            // A null bag is "this item is at its defaults", which for a fresh instance is already
+            // true — but the reset is written out rather than assumed, because the same instance can
+            // be handed a bag and then handed none.
+            currentUses = state == null ? 0 : state.GetInt(UsesKey, 0);
+        }
+
         protected virtual bool CanUse()
         {
             // Prevent use if max uses reached
@@ -132,6 +204,40 @@ namespace SpaceGame.Items
             OnItemDepleted?.Invoke(this);
         }
 
+        // ── Held use ───────────────────────────────────────────────────────────
+        //
+        // The same request/authority/present split as a press, because a hold has the same three
+        // machines with the same three jobs. `active` is false on the final tick, which is the
+        // release — every override must treat that as "stop", including the case where it never
+        // saw the ticks that came before it.
+
+        /// <summary>
+        /// Owner-side, before each hold tick leaves: describe the aim, which is knowable only here.
+        /// </summary>
+        public virtual void OnRequestHold(ref NetArg arg, bool active) { }
+
+        /// <summary>Authority-side: keep doing the thing. See <see cref="TryUse"/>.</summary>
+        public void TryHold(GameObject useOwner, NetArg arg, bool active)
+        {
+            owner = useOwner;
+            UseArg = arg;
+            Hold(arg, active);
+        }
+
+        /// <summary>Every machine: keep showing the thing. See <see cref="PlayUse"/>.</summary>
+        public void PlayHold(GameObject useOwner, NetArg arg, bool active)
+        {
+            owner = useOwner;
+            UseArg = arg;
+            PresentHold(arg, active);
+        }
+
+        /// <summary>Authority-only, once per hold tick. Empty unless the item is continuous.</summary>
+        protected virtual void Hold(NetArg arg, bool active) { }
+
+        /// <summary>Cosmetic half of a hold tick, on every machine.</summary>
+        protected virtual void PresentHold(NetArg arg, bool active) { }
+
         /// <summary>
         /// Lifecycle hook fired by EquipmentController right after the item prefab is
         /// instantiated and parented to the player's hand. Use for "while held"
@@ -147,9 +253,29 @@ namespace SpaceGame.Items
             // null exactly once per equip.
             owner = holder;
 
+            // Give the item a hold pose whether or not anyone remembered to author one.
+            //
+            // This used to read the component and do nothing when it was absent, which made the
+            // pose opt-in and silently so — an artifact without a HoldAnimator does not fail or
+            // warn, it just stands in the idle tree holding a gun. Four of eleven equippable
+            // artifacts had the component; the other seven were the bug.
+            //
+            // An authored component is left exactly as it is, because it carries per-prefab
+            // tuning. This only fills the gap.
             var hold = GetComponent<HoldAnimator>();
+            if (hold == null && UsesHoldPose) hold = gameObject.AddComponent<HoldAnimator>();
             if (hold != null) hold.SetHeld(holder, true);
         }
+
+        /// <summary>
+        /// Whether holding this item should pose the holder's body.
+        ///
+        /// <para>
+        /// True for anything gripped. Override to false for something worn rather than held — a
+        /// pack, a suit module — where posing the arms as though gripping it is wrong.
+        /// </para>
+        /// </summary>
+        protected virtual bool UsesHoldPose => true;
 
         /// <summary>
         /// Lifecycle hook fired by EquipmentController right before the item prefab

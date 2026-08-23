@@ -27,9 +27,32 @@ namespace SpaceGame.Agents
         private Transform target;
         private float retargetTimer;
 
+        /// <summary>Set by a restore, consumed by the next <see cref="OnEnable"/>.</summary>
+        private bool restoredThisEnable;
+
         private void Awake() => selfFaction = GetComponent<EntityFaction>();
         private void Reset() => SetPriorityDefault(ModulePriority.Ambient);
-        private void OnEnable() { target = null; retargetTimer = 0f; }
+
+        private void OnEnable()
+        {
+            if (restoredThisEnable) { restoredThisEnable = false; return; }
+
+            target = null;
+            retargetTimer = 0f;
+        }
+
+        // ─────────── For the save system ───────────
+
+        public Transform KiteTarget => target;
+        public float RetargetTimer => retargetTimer;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreKeepDistance(Transform kiteTarget, float timer)
+        {
+            target = kiteTarget;
+            retargetTimer = Mathf.Max(0f, timer);
+            restoredThisEnable = true;
+        }
 
         public override string ModuleDescription =>
             "Maintains a preferred distance from a target. Backs away if too close, faces the target otherwise. Good for ranged enemies that kite.\n\n" +

@@ -43,12 +43,16 @@ namespace SpaceGame.World.Weather
 
         private void OnEnable()
         {
-            if (Application.isPlaying)
-                TryRegister();
+            if (!Application.isPlaying) return;
+
+            SandstormManager.RecordsRestored += OnRecordsRestored;
+            TryRegister();
         }
 
         private void OnDisable()
         {
+            SandstormManager.RecordsRestored -= OnRecordsRestored;
+
             if (Application.isPlaying && stormId != 0)
             {
                 Sandstorms.Despawn(stormId);
@@ -57,6 +61,15 @@ namespace SpaceGame.World.Weather
 
             DestroyPreview();
         }
+
+        /// <summary>
+        /// A load replaced the storm list, so whatever id this zone was holding is stale.
+        ///
+        /// Dropping it back to zero re-arms the register-and-adopt retry in <see cref="Update"/>,
+        /// which finds this zone's storm in the restored list and takes it back over. Deliberately
+        /// not a despawn: the storm that id named is already gone from the list.
+        /// </summary>
+        private void OnRecordsRestored() => stormId = 0;
 
         private void Update()
         {
@@ -79,6 +92,13 @@ namespace SpaceGame.World.Weather
 
             SandstormManager manager = SandstormManager.Instance;
             if (manager == null || !manager.HasAuthority)
+                return;
+
+            // Adopt before spawning. After a load this zone's storm is already in the restored list
+            // with its original StartTime — and therefore its original position, wander phase and
+            // gust phase — so spawning a second one would leave two identical storms stacked on the
+            // same spot forever, one of them dating from this moment.
+            if (manager.TryAdopt(profile, transform.position, seed, out stormId))
                 return;
 
             manager.TrySpawn(profile, transform.position, headingDegrees, out stormId, duration, seed);

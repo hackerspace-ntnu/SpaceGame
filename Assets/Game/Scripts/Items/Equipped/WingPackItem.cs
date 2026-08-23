@@ -11,10 +11,11 @@ using SpaceGame.Agents;
 using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
+using SpaceGame.Persistence;
 
 namespace SpaceGame.Items
 {
-    public class WingPackItem : UsableItem
+    public class WingPackItem : UsableItem, IItemDeferredRestore
     {
         [Header("Craft")]
         [Tooltip("The ornithopter prefab spawned and mounted when the pack is used.")]
@@ -155,9 +156,17 @@ namespace SpaceGame.Items
             if (Network.IsNetworked && pilot.TryGetComponent(out NetworkObject pilotNetObj))
                 pilotOwner = pilotNetObj.OwnerClientId;
 
+            // The launch pose is worked out BEFORE the craft exists, from the prefab, because the
+            // pose handed to Spawn is the one that travels: it is what goes into the spawn message
+            // and therefore what every other machine builds its copy at. Moving the craft after
+            // spawning it — which is what this did — moved the server's copy alone, and since the
+            // craft is owner-authoritative the pilot's machine then published its own, uncorrected
+            // pose straight back over it.
+            Vector3 launchPosition = CraftPositionFor(player.position, facing);
+
             // Ownership goes to the pilot so their local flight input drives the craft and replicates
             // outward, rather than the server overwriting it every tick.
-            craft = GameServices.World.Spawn(ornithopterPrefab, player.position, facing, pilotOwner);
+            craft = GameServices.World.Spawn(ornithopterPrefab, launchPosition, facing, pilotOwner);
             if (craft == null)
                 return false;
 
@@ -172,34 +181,87 @@ namespace SpaceGame.Items
                 return false;
             }
 
-            // Place the craft so its SEAT lands where the player already is, rather than its origin.
-            // Mounting parents the player to the seat at identity, so without this the player is
-            // teleported by however far the cradle sits from the prefab root.
-            Transform seat = craftMount.ActiveSeatPoint;
-            if (seat != null)
-            {
-                Vector3 seatOffset = seat.position - craft.transform.position;
-                craft.transform.position = player.position + Vector3.up * launchLift - seatOffset;
-            }
-            else
-            {
-                craft.transform.position = player.position + Vector3.up * launchLift;
-            }
-
             craftMotor.Landed += HandleLanded;
             craftMount.Dismounted += HandleDismounted;
 
             Interactor interactor = pilot.GetComponentInChildren<Interactor>(true);
-            if (interactor == null || !craftMount.TryMount(interactor, null))
+            if (interactor == null || !SeatPilot(interactor))
             {
                 Debug.LogError("WingPackItem: could not mount the player onto the craft.", this);
                 ReleaseCraft(dismountFirst: false);
                 return false;
             }
 
-            craftMotor.Launch(forward, carriedSpeed);
+            // Outward to every machine rather than applied here, because here is not where this
+            // craft is flown. Ownership went to the pilot two lines up; NetAuthority has already
+            // switched this copy to following the wire and frozen its body, so a launch applied
+            // locally would be a launch nothing ever integrates. See
+            // OrnithopterFlightMotor.Replication.cs.
+            craftMotor.NetworkLaunch(forward, carriedSpeed);
             SetHeldVisible(false);
             return true;
+        }
+
+        /// <summary>
+        /// Where the craft has to be for its SEAT to land on the pilot, plus the lift that keeps the
+        /// wings from opening through the ledge just stepped off.
+        ///
+        /// Measured off the PREFAB rather than off a spawned instance, so it can be known before the
+        /// craft exists — which is the whole point, since the spawn pose is the only one that
+        /// replicates. Mounting seats the rider at the seat marker, so without this the pilot is
+        /// teleported by however far the cradle sits from the prefab root the moment they board.
+        /// </summary>
+        private Vector3 CraftPositionFor(Vector3 pilotPosition, Quaternion facing) =>
+            LaunchPosition(ornithopterPrefab, pilotPosition, facing, launchLift);
+
+        /// <summary>
+        /// Strap the pilot in, on every machine rather than just this one.
+        ///
+        /// Through <see cref="MountNetworkSync"/> when the craft has one, for the reason that class
+        /// documents at length: a seat taken by calling <c>MountModule.TryMount</c> directly is
+        /// taken on the server and on nothing else. Nobody is told, so no peer draws the pilot in
+        /// the cradle, and ownership of the craft is never handed over — leaving the pilot in a
+        /// seat they cannot steer while everyone else watches them stand in the sand.
+        ///
+        /// It survived that way because the state channel repaired it a frame later. Repairing a
+        /// seat is what that channel is for; being the only way anybody ever hears about a mount
+        /// is not.
+        /// </summary>
+        private bool SeatPilot(Interactor interactor)
+        {
+            if (craft.TryGetComponent(out MountNetworkSync sync))
+                return sync.ServerMount(interactor);
+
+            return craftMount.TryMount(interactor, null);
+        }
+
+        /// <summary>
+        /// The pose maths, as a static so it can be checked without spawning anything. Answers the
+        /// lifted pilot position unchanged for a craft whose seat cannot be resolved, which is the
+        /// old behaviour and puts the craft's ORIGIN on the pilot — visibly wrong, but not a
+        /// teleport, and only reachable by a prefab with no seat marker.
+        /// </summary>
+        public static Vector3 LaunchPosition(GameObject craftPrefab, Vector3 pilotPosition,
+                                             Quaternion facing, float lift)
+        {
+            Vector3 lifted = pilotPosition + Vector3.up * lift;
+
+            if (craftPrefab == null)
+                return lifted;
+
+            var prefabMount = craftPrefab.GetComponent<MountModule>();
+            Transform seat = prefabMount != null ? prefabMount.ActiveSeatPoint : null;
+            if (seat == null)
+                return lifted;
+
+            // The seat marker in the prefab root's own space, then turned to face the launch
+            // heading — the craft is spawned rotated, and an offset measured in the prefab's frame
+            // has to be rotated with it or the correction points the wrong way for every heading
+            // but north.
+            Vector3 seatLocal = craftPrefab.transform.InverseTransformPoint(
+                seat.TransformPoint(prefabMount.SeatOffset));
+
+            return lifted - facing * seatLocal;
         }
 
         /// <summary>
@@ -237,7 +299,45 @@ namespace SpaceGame.Items
             SetHeldVisible(false);
         }
 
-        private void HandleLanded() => ReleaseCraft(dismountFirst: true);
+        /// <summary>
+        /// The flight ended against the world. Two things happen that a bail-out does not do: the
+        /// pilot pays for however hard they arrived, and they are put down somewhere solid rather
+        /// than wherever the craft's dismount marker ended up pointing.
+        ///
+        /// Order matters, in both directions. The cost is worked out FIRST, because the teardown
+        /// drops the reference to the config that prices it. The hit lands LAST, after the pilot is
+        /// standing on the ground, because a fatal crash should leave the body at the wreck rather
+        /// than mid-air where the rider-death path would tear the mount down around them.
+        /// </summary>
+        private void HandleLanded(OrnithopterTouchdown touchdown)
+        {
+            int damage = ImpactDamage(touchdown);
+
+            // Two machines see this landing and they have different jobs. The pilot's own machine
+            // flew the craft in and raised it first-hand; the server heard about it a moment later
+            // (OrnithopterFlightMotor.Replication.cs) and is the only one allowed to act on it.
+            //
+            // The pilot's side stops flying and gets its pack back, and no more: dismounting there
+            // would take a rider out of a seat the server still has them in, and MountNetworkSync's
+            // state channel would put them straight back. Charging them for the crash there would
+            // bill the same arrival twice, once locally and once when the server prices it.
+            bool authoritative = craft == null || Network.Simulates(craft.transform);
+
+            ReleaseCraft(dismountFirst: authoritative, standAt: touchdown.GroundPosition);
+
+            // NetDamage rather than the pilot's HealthComponent: only the server is allowed to
+            // decide what a hit did.
+            if (authoritative && damage > 0 && owner != null)
+                NetDamage.Apply(owner, damage);
+        }
+
+        /// <summary>
+        /// What the arrival cost. Zero for anything flown in properly — the curve is priced on
+        /// CLOSING speed, so a shallow glide onto sand at full airspeed is free and the same
+        /// airspeed pointed at a cliff is not.
+        /// </summary>
+        private int ImpactDamage(in OrnithopterTouchdown touchdown) =>
+            craftMotor != null ? OrnithopterCrash.ImpactDamage(touchdown.ClosingSpeed, craftMotor.Crash) : 0;
 
         // The rider bailed out (Escape). The craft goes with them — and because the pack has unlimited
         // uses and is usable while falling, bailing out and redeploying is a legitimate move rather
@@ -248,8 +348,11 @@ namespace SpaceGame.Items
         /// The single teardown path. Reached from landing, from dismounting, from switching hotbar
         /// slot mid-flight, and from the item being destroyed — so it has to be safe to call twice and
         /// safe to call while the player is still parented into the craft.
+        ///
+        /// <paramref name="standAt"/> overrides where the pilot is left, for the one caller that has
+        /// probed the world and knows better than the craft's own dismount marker does.
         /// </summary>
-        private void ReleaseCraft(bool dismountFirst)
+        private void ReleaseCraft(bool dismountFirst, Vector3? standAt = null)
         {
             if (craft == null)
                 return;
@@ -261,7 +364,12 @@ namespace SpaceGame.Items
             // Get the player out from under the craft before destroying it — they are parented to the
             // seat, and destroying the parent takes the player with it.
             if (dismountFirst && craftMount != null && craftMount.IsMounted)
-                craftMount.Dismount();
+            {
+                if (standAt.HasValue)
+                    craftMount.DismountAt(standAt.Value);
+                else
+                    craftMount.Dismount();
+            }
 
             GameObject doomed = craft;
             craft = null;
@@ -280,6 +388,70 @@ namespace SpaceGame.Items
 
             GameServices.World.Despawn(doomed);
             SetHeldVisible(true);
+        }
+
+        // ── Per-instance state ─────────────────────────────────────────────────
+        //
+        // The pack is the craft's owner: it subscribes to Landed and Dismounted, it hides the folded
+        // model while the real thing is out, and it refuses to deploy a second one. None of that was
+        // in any record — so a player who quit flying came back as a bare figure in freefall beside
+        // an aircraft that nothing was driving.
+        //
+        // <see cref="AdoptCraft"/> already existed for exactly this, and OrnithopterSaveable calls
+        // it when the craft's own record re-seats the rider. This is the other direction, and it
+        // covers the case that one cannot: a pack whose craft came back but whose rider did not go
+        // with it.
+
+        private const string CraftKey = "craft";
+
+        private SaveRef _pendingCraft;
+        private bool _pendingRestore;
+
+        public bool HasPendingRestore => _pendingRestore;
+
+        public override void CaptureItemState(ItemState state)
+        {
+            base.CaptureItemState(state);
+            if (state == null || craft == null) return;
+
+            state.Set(CraftKey, SaveRef.From(craft));
+        }
+
+        public override void RestoreItemState(ItemState state)
+        {
+            base.RestoreItemState(state);
+
+            _pendingRestore = false;
+            _pendingCraft = SaveRef.None;
+
+            if (state == null) return;
+
+            SaveRef saved = state.GetRef(CraftKey);
+            if (!saved.IsSet) return;
+
+            _pendingCraft = saved;
+            _pendingRestore = true;
+        }
+
+        /// <summary>
+        /// Take the restored craft back, once the world store has rebuilt it.
+        ///
+        /// Kept pending on failure: the craft is a runtime-spawned world object and may be
+        /// instantiated by a chunk that hydrates after this player binds. If it never comes back —
+        /// its record lost, or the prefab unresolvable — the pack simply stays stowed and the player
+        /// stands on the ground, which is the correct failure.
+        /// </summary>
+        public void TryCompleteRestore()
+        {
+            if (!_pendingRestore) return;
+
+            // Already adopted, by OrnithopterSaveable's own re-seat path. Nothing left to wait for.
+            if (craft != null) { _pendingRestore = false; return; }
+
+            if (!_pendingCraft.TryResolve(out GameObject restored)) return;
+
+            _pendingRestore = false;
+            AdoptCraft(restored);
         }
 
         /// <summary>Hide the folded pack in the player's hand while the real thing is deployed.</summary>

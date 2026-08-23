@@ -19,6 +19,27 @@ namespace SpaceGame.Agents
         private EntityFaction shooterFaction;
         private Transform shooterTransform;
 
+        /// <summary>
+        /// True for a shot that exists only so somebody can watch it.
+        ///
+        /// <para>
+        /// The same flag <see cref="SpaceGame.Weapons.Projectile.Cosmetic"/> carries, for the same
+        /// reason and deliberately under the same name — these are two unrelated classes (this one
+        /// is a Rigidbody that reports its own hit back to the module that fired it; that one is a
+        /// raycasting base class for player weapons) which share exactly one problem. Whenever more
+        /// than one machine puts a copy of the same shot in the air, exactly one of them may bill
+        /// the target: <see cref="NetDamage"/> applies a hit on the server and forwards it as a
+        /// request from a client, and the server honours every request, so four peers firing the
+        /// same bullet deal the damage four times.
+        /// </para>
+        /// <para>
+        /// The spawner sets it, because the spawner is the only thing that knows whose shot this
+        /// is. Impact VFX, sound and the result callback are all left running on a cosmetic copy —
+        /// the whole point of it being in the air is that everybody sees it land.
+        /// </para>
+        /// </summary>
+        public bool Cosmetic { get; set; }
+
         public void Init(int damageAmount, Action<bool, Vector3> resultCallback, GameObject shooter = null)
         {
             damage = damageAmount;
@@ -66,7 +87,13 @@ namespace SpaceGame.Agents
                 // NetDamage picks the authority: applied here on the server or offline, relayed to
                 // the server when a client's projectile lands. Without it an AI's shot only ever
                 // hurt the copy of the target on the machine that happened to simulate the bullet.
-                NetDamage.Apply((damageable as Component)?.gameObject, damage, shooterTransform);
+                //
+                // Cosmetic is what stops that relay from being sent by every peer at once — see the
+                // property. The callback still fires either way: it is what drives the shooter's
+                // OnMiss/OnKill events, and a peer that showed the shot should show its outcome.
+                if (!Cosmetic)
+                    NetDamage.Apply((damageable as Component)?.gameObject, damage, shooterTransform);
+
                 onResult?.Invoke(true, hitPos);
             }
             else

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using SpaceGame.Core;
 using SpaceGame.Presentation;
 
 namespace SpaceGame.Characters
@@ -69,11 +70,34 @@ namespace SpaceGame.Characters
 
         private void Update()
         {
+            // Asked once and reused, because it walks the hierarchy looking for a NetworkObject and
+            // both gates below want the same answer in the same frame.
+            bool mine = OwnsSingleSlotEffects;
+
+            // Gated twice, because this component reads the keyboard directly rather than through
+            // an action map that gets switched off with the player.
+            //
+            // By SCOPE: the same Main Camera prefab that carries this light is dropped into
+            // MainMenu.unity for the backdrop, so an ungated read had L switching a flashlight on
+            // behind the main menu — and behind the pause menu, and on a corpse.
+            //
+            // By OWNERSHIP: every machine in a session holds a copy of every other player's lamp,
+            // and a keyboard is not per-player. Without this, one press of L toggled the torch on
+            // every player in the game at once — on this machine's copy of them. The owner's press
+            // is the only one that counts, and PlayerViewNetwork carries the result to everyone
+            // else. Network.Owns walks up to the player above this light, and answers true offline
+            // and for anything unnetworked, so a torch on a prop or in a test scene still works.
             var kb = Keyboard.current;
-            if (kb != null && kb[toggleKey].wasPressedThisFrame)
+            if (kb != null && kb[toggleKey].wasPressedThisFrame
+                && GameplayMenuScope.AcceptsGameplayInput
+                && mine)
             {
                 SetEnabled(!flashlight.enabled);
             }
+
+            // Both of these drive SINGLE-SLOT effects, so only one lamp in the session may run
+            // them — see OwnsSingleSlotEffects.
+            if (!mine) return;
 
             if (flashlight.enabled)
             {
@@ -81,6 +105,31 @@ namespace SpaceGame.Characters
             }
             PushShaderGlobals();
         }
+
+        /// <summary>
+        /// May this lamp drive the effects there is only one of?
+        ///
+        /// <para>
+        /// The long-throw layer is a set of GLOBAL shader uniforms — one position, one direction,
+        /// one colour for the whole frame — and the volumetric beam mesh is shaped by another
+        /// (<c>_FlashlightBeamEnd</c>). One writer was the whole design, and it was true for as
+        /// long as a remote player's lamp was switched off with the camera it hangs under.
+        /// </para>
+        /// <para>
+        /// Now that every player's lamp is live on every machine, an ungated push means four
+        /// flashlights racing to write the same slot every frame: the layer would flicker between
+        /// whoever wrote last, and any torch that happens to be OFF writes <c>enabled = 0</c> and
+        /// blacks out the layer for the player whose torch is on.
+        /// </para>
+        /// <para>
+        /// So the slot belongs to the lamp of whoever is looking — the local player. What another
+        /// player's torch contributes is its URP spot light, which is a real light and lights the
+        /// world for everyone correctly; what it does not contribute is the extra reach and the
+        /// visible shaft. Giving every torch those too means an array of flashlights in
+        /// Flashlight.hlsl rather than one, which is a rendering change and not a netcode one.
+        /// </para>
+        /// </summary>
+        private bool OwnsSingleSlotEffects => Network.Owns(this);
 
         private void PushShaderGlobals()
         {
@@ -97,10 +146,44 @@ namespace SpaceGame.Characters
             Shader.SetGlobalVector(IdBeamEnd, new Vector4(currentBeamLength, 0f, 0f, 0f));
         }
 
+        /// <summary>
+        /// Is the torch on? The whole of this component's state, and none of it was in any record.
+        ///
+        /// <para>
+        /// Reads the Light rather than a flag of its own, so it cannot disagree with what is
+        /// actually lit — <see cref="Awake"/> switches the light off directly.
+        /// </para>
+        /// </summary>
+        public bool IsOn => flashlight != null && flashlight.enabled;
+
+        /// <summary>
+        /// Someone outside this lamp stating what it should be. Called by the save system and by
+        /// <see cref="PlayerViewNetwork"/> mirroring the owner's torch onto a remote copy; do not
+        /// call it from gameplay, which should go through the key.
+        ///
+        /// <para>
+        /// Both callers are the same shape — an authority declaring the truth rather than asking
+        /// for a toggle — which is why it takes the state and not a flip.
+        /// </para>
+        /// <para>
+        /// Goes through the same <see cref="SetEnabled"/> the L key does, so the beam mesh is
+        /// switched with the light instead of being left behind as a lit cone with no lamp.
+        /// </para>
+        /// </summary>
+        public void RestoreOn(bool on)
+        {
+            if (flashlight == null) flashlight = GetComponent<Light>();
+            SetEnabled(on);
+        }
+
         private void SetEnabled(bool on)
         {
             flashlight.enabled = on;
-            if (beamRenderer != null) beamRenderer.enabled = on;
+
+            // The spot light is switched for everyone; the beam mesh only for the lamp that owns
+            // the shader slot shaping it. A remote lamp with the mesh on would draw a shaft cut to
+            // the LOCAL player's beam length — a cone of light stopping at nothing.
+            if (beamRenderer != null) beamRenderer.enabled = on && OwnsSingleSlotEffects;
         }
 
         // Probe the scene for the shortest opaque hit inside the cone, then rebuild the
@@ -265,8 +348,13 @@ namespace SpaceGame.Characters
         {
             if (beamGO != null) Destroy(beamGO);
             if (beamMesh != null) Destroy(beamMesh);
-            // Make sure shaders don't keep lighting from a destroyed flashlight.
-            Shader.SetGlobalVector(IdParams, new Vector4(1f, 1f, 1f, 0f));
+
+            // Make sure shaders don't keep lighting from a destroyed flashlight — but only if this
+            // was the lamp writing them. A remote player disconnecting used to be enough to black
+            // out the local player's long-throw layer, since every lamp cleared the shared slot on
+            // the way out whether or not it had ever owned it.
+            if (OwnsSingleSlotEffects)
+                Shader.SetGlobalVector(IdParams, new Vector4(1f, 1f, 1f, 0f));
         }
     }
 }

@@ -128,6 +128,46 @@ namespace SpaceGame.Agents
 
         public Vector3? CurrentDestination => currentDestination;
 
+        // ── Save/restore ──────────────────────────────────────────────────────────
+        //
+        // Two fields, and neither of them the obvious one.
+        //
+        // The HEADING is owned outright and rewritten every physics step, and it is only ever seeded
+        // from the body once, on the first step. Left unsaved it re-seeds from the restored
+        // rotation, which is nearly right — but "nearly" is the whole problem on a hull that flies
+        // level by design, because the seed happens before the first MoveRotation and a craft
+        // restored with any residual tilt takes its yaw from a rotation that has pitch and roll in
+        // it. Saving it makes the answer exact.
+        //
+        // The DESTINATION comes along so anything that asks this motor where it was going — the
+        // driver's HasReachedDestination, a module deciding whether to re-issue an order — gets the
+        // right answer on the frames before the brain has ticked. It is short-lived by design: the
+        // AI channel rewrites it every FixedUpdate, so this is a correct FIRST answer, not a
+        // standing order.
+        //
+        // `pendingIntent` is deliberately NOT saved, and that is the interesting omission: it is the
+        // last order from the AI channel, and the AI channel re-issues an order every single frame
+        // it is ticked. A restored one is therefore live for exactly one frame before it is
+        // overwritten — one frame of a stale order flying the craft, which is strictly worse than
+        // the idle it would otherwise start from.
+        public float Heading => heading;
+        public bool HeadingValid => headingValid;
+        public float StopDistance => stopDistance;
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreHeading(float restoredHeading)
+        {
+            heading = restoredHeading;
+            headingValid = true;
+        }
+
+        /// <summary>Restore-only. Called by the save system; do not call from gameplay.</summary>
+        public void RestoreDestination(Vector3? destination, float stop)
+        {
+            currentDestination = destination;
+            stopDistance = Mathf.Max(0.1f, stop);
+        }
+
         private void Awake()
         {
             if (!body)

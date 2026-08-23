@@ -1,6 +1,7 @@
 using UnityEngine;
 using SpaceGame.Persistence;
 
+using SpaceGame.Teleporting;
 namespace SpaceGame.Vehicles.DuneFoil
 {
     /// <summary>
@@ -28,7 +29,7 @@ namespace SpaceGame.Vehicles.DuneFoil
     [DefaultExecutionOrder(100)]    // after SailRig (50), before WalkerPlatformCarrier (200)
     [RequireComponent(typeof(SailRig))]
     [RequireComponent(typeof(FoilLift))]
-    public class DuneFoilLocomotion : MonoBehaviour, IPersistentEntity
+    public class DuneFoilLocomotion : MonoBehaviour, IPersistentEntity, ITeleportAware
     {
         [Header("Mass")]
         [Tooltip("Craft mass in kg. Sail force divided by this is acceleration, so it sets how " +
@@ -102,6 +103,21 @@ namespace SpaceGame.Vehicles.DuneFoil
         /// assembly cannot see the answer to.
         /// </summary>
         public bool HoldStation { get; set; }
+
+        /// <summary>
+        /// Turn the craft's way on with the craft.
+        ///
+        /// <c>velocity</c> is in WORLD space and the hull is driven from it every frame
+        /// (<c>transform.position + Flatten(velocity) * dt</c>), so a teleport that turns the craft
+        /// leaves it sailing the compass bearing it had in the room it left — across the new one,
+        /// sideways to its own hull, with the rig still drawing. The position itself needs nothing:
+        /// this craft integrates FROM its transform rather than from a stored path, so a teleport of
+        /// the transform is a teleport of the craft.
+        /// </summary>
+        public void OnTeleported(in TeleportMove move)
+        {
+            velocity = move.Direction(velocity);
+        }
 
         private SailRig rig;
         private FoilLift foil;

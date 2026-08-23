@@ -15,6 +15,8 @@
 // that overwrites a prefab wholesale eats hand-added components, so this one
 // edits the existing prefab contents instead of rebuilding them.
 using System.IO;
+using System.Linq;
+using Unity.Netcode;
 using UnityEditor;
 using UnityEngine;
 using SpaceGame.Items;
@@ -28,6 +30,14 @@ namespace SpaceGame.EditorTools.Portals
         private const string PrefabFolder   = "Assets/Game/Prefabs/Items/Artifacts/Portals";
         private const string ItemFolder     = "Assets/Game/Resources/Items/Artifacts";
         private const string GunFbx         = "Assets/Game/Art/Models/Items/portal_gun.fbx";
+
+        // The list NetworkManager actually reads. NOT Assets/DefaultNetworkPrefabs.asset, which
+        // Netcode regenerates on its own and which nothing consults.
+        private const string NetworkPrefabsPath =
+            "Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset";
+
+        /// <summary>The ground layer DropItemPhysics settles a dropped item against.</summary>
+        private const int GroundLayerMask = 128;
 
         // Named to match the FBX's own material slots, so the remap below is a
         // substitution rather than a rename — and so PortalGunItem, which finds
@@ -89,7 +99,9 @@ namespace SpaceGame.EditorTools.Portals
             GameObject projectile = BuildProjectilePrefab(blob);
             GameObject gun = BuildGunPrefab(portalPrimary, projectile, fluidPrimary, fluidSecondary);
 
-            BuildItemAsset(gun);
+            InventoryItem item = BuildItemAsset(gun);
+            WireItemIntoPickup(gun, item);
+            RegisterNetworkPrefab(gun);
             AddTravellerToPlayers();
 
             AssetDatabase.SaveAssets();
@@ -109,12 +121,10 @@ namespace SpaceGame.EditorTools.Portals
             material.SetColor("_Colour", colour);
             material.SetColor("_DeepColour", Deep);
             material.SetColor("_HotColour", Hot);
-            material.SetFloat("_ViewTint", 0.62f);
             material.SetFloat("_EdgeGlow", 3.2f);
             material.SetFloat("_EdgeWidth", 0.22f);
             material.SetFloat("_Throat", 0.45f);
             material.SetFloat("_Swirl", 2.1f);
-            material.SetFloat("_Energy", 0.45f);
             EditorUtility.SetDirty(material);
             return material;
         }
@@ -345,6 +355,10 @@ namespace SpaceGame.EditorTools.Portals
             string path = $"{PrefabFolder}/PortalGun.prefab";
             GameObject root = LoadOrCreateRoot(path, "PortalGun");
 
+            // Before anything else, and before the early return below: a gun that cannot be
+            // dropped is broken whether or not its model imported.
+            EnsureWorldPresence(root);
+
             Transform model = root.transform.Find("Model");
             if (model == null)
             {
@@ -485,7 +499,7 @@ namespace SpaceGame.EditorTools.Portals
 
         // ── Item registration and the player ───────────────────────────────────
 
-        private static void BuildItemAsset(GameObject gunPrefab)
+        private static InventoryItem BuildItemAsset(GameObject gunPrefab)
         {
             EnsureFolder(ItemFolder);
             string path = $"{ItemFolder}/PortalGun.asset";
@@ -501,9 +515,120 @@ namespace SpaceGame.EditorTools.Portals
             item.itemPrefab = gunPrefab;
             EditorUtility.SetDirty(item);
 
-            // Nothing else to do: RegistryLoader picks every InventoryItem out of
-            // Resources/Items at startup, so being in this folder IS being
-            // registered.
+            // Nothing else to do for the REGISTRY: RegistryLoader picks every
+            // InventoryItem out of Resources/Items at startup, so being in this
+            // folder IS being registered there. The network prefab list is a
+            // separate list and is handled by RegisterNetworkPrefab.
+            return item;
+        }
+
+        // ── The gun as an object in the world ──────────────────────────────────
+
+        /// <summary>
+        /// The components that let the gun exist in the world rather than only in a hand: spawned
+        /// over the network, thrown, picked back up, and saved where it came to rest.
+        ///
+        /// The gun shipped without any of them, which is invisible for as long as it is only ever
+        /// equipped out of the hotbar and then fails the instant somebody drops it —
+        /// PlayerDropService routes through GameServices.World.Spawn, which refuses a prefab with
+        /// no NetworkObject and says so: "Prefab 'PortalGun' has no NetworkObject, so it will only
+        /// ever exist on the server." PickupableItem is itself a NetworkBehaviour, so it cannot be
+        /// added without one either — and without PickupableItem a dropped gun is scenery that
+        /// cannot be picked back up.
+        ///
+        /// Mirrors LightningSpell.prefab component for component; LaserStaffBuilder writes the
+        /// same block out for a staff.
+        /// </summary>
+        private static void EnsureWorldPresence(GameObject root)
+        {
+            NetworkObject netObject = Ensure<NetworkObject>(root);
+            netObject.SynchronizeTransform = true;
+
+            // Roughly the gun's half-size at the 0.42 m it is held at. ItemGrip.keepColliders is
+            // off, so this is disabled while held and only has to be right for the thing lying in
+            // the sand.
+            SphereCollider sphere = Ensure<SphereCollider>(root);
+            sphere.radius = 0.18f;
+            sphere.center = Vector3.zero;
+
+            Rigidbody body = Ensure<Rigidbody>(root);
+            body.isKinematic = true;
+            body.useGravity = true;
+
+            EnsureInternal(root, "SpaceGame.Items.PickupableItem");
+
+            DropItemPhysics drop = Ensure<DropItemPhysics>(root);
+            var serializedDrop = new SerializedObject(drop);
+            serializedDrop.FindProperty("rb").objectReferenceValue = body;
+            serializedDrop.FindProperty("groundLayer").intValue = GroundLayerMask;
+            serializedDrop.ApplyModifiedPropertiesWithoutUndo();
+
+            Ensure<SpaceGame.Core.NetRelay>(root);
+
+            // prefabId and instanceId are left blank on purpose — SaveableEntity.OnValidate
+            // stamps them, and a hand-written id is how two prefabs end up sharing one.
+            Ensure<SpaceGame.Core.Persistence.SaveableEntity>(root);
+            Ensure<SpaceGame.Core.Persistence.TransformSaveable>(root);
+        }
+
+        /// <summary>
+        /// Point the gun prefab's pickup at its own item asset.
+        ///
+        /// Done after the prefab is saved rather than inside the build: the item asset references
+        /// the prefab and the prefab references the item, so one of the two links can only be made
+        /// once both files exist.
+        /// </summary>
+        private static void WireItemIntoPickup(GameObject gunPrefab, InventoryItem item)
+        {
+            if (gunPrefab == null || item == null) return;
+
+            // By type NAME. PickupableItem is internal to Assembly-CSharp and cannot be named
+            // from an editor assembly at all.
+            Component pickup = gunPrefab.GetComponents<Component>()
+                .FirstOrDefault(c => c != null &&
+                                     c.GetType().FullName == "SpaceGame.Items.PickupableItem");
+
+            if (pickup == null)
+            {
+                Debug.LogError("[Portals] PickupableItem missing from the gun prefab; " +
+                               "a dropped gun could not be picked back up.");
+                return;
+            }
+
+            var serialized = new SerializedObject(pickup);
+            SerializedProperty slot = serialized.FindProperty("item");
+            if (slot == null || slot.objectReferenceValue == item) return;
+
+            slot.objectReferenceValue = item;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            PrefabUtility.SavePrefabAsset(gunPrefab);
+        }
+
+        /// <summary>
+        /// Add the gun to the list NetworkManager actually reads.
+        ///
+        /// An unregistered item prefab fails on CLIENTS ONLY — the host instantiates its own copy
+        /// and never consults the list — so solo playtesting cannot find this mistake.
+        ///
+        /// Only the GUN belongs here. The apertures and the blob are instantiated locally by every
+        /// machine out of Present(), which is exactly what a network prefab must not be.
+        /// </summary>
+        private static void RegisterNetworkPrefab(GameObject prefab)
+        {
+            if (prefab == null) return;
+
+            var list = AssetDatabase.LoadAssetAtPath<NetworkPrefabsList>(NetworkPrefabsPath);
+            if (list == null)
+            {
+                Debug.LogError($"[Portals] No network prefab list at {NetworkPrefabsPath}.");
+                return;
+            }
+
+            if (list.Contains(prefab)) return;
+
+            list.Add(new NetworkPrefab { Prefab = prefab });
+            EditorUtility.SetDirty(list);
+            Debug.Log("[Portals] Registered PortalGun as a network prefab.");
         }
 
         /// <summary>
@@ -622,6 +747,25 @@ namespace SpaceGame.EditorTools.Portals
         {
             T existing = target.GetComponent<T>();
             return existing != null ? existing : target.AddComponent<T>();
+        }
+
+        /// <summary>
+        /// <see cref="Ensure{T}"/> for a component this assembly cannot name.
+        ///
+        /// PickupableItem is internal to Assembly-CSharp, so an editor script reaches it the way
+        /// the inspector does — by type name, off an assembly it can name.
+        /// </summary>
+        private static Component EnsureInternal(GameObject target, string typeName)
+        {
+            System.Type type = typeof(ItemGrip).Assembly.GetType(typeName);
+            if (type == null)
+            {
+                Debug.LogError($"[Portals] Type '{typeName}' not found.");
+                return null;
+            }
+
+            Component existing = target.GetComponent(type);
+            return existing != null ? existing : target.AddComponent(type);
         }
 
         private static Transform EnsureChild(Transform parent, string name)

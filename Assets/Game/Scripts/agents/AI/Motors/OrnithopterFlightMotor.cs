@@ -9,6 +9,7 @@
 using System;
 using SpaceGame.Locomotion;
 using SpaceGame.Vehicles.Ornithopter;
+using SpaceGame.Teleporting;
 using UnityEngine;
 
 namespace SpaceGame.Agents
@@ -16,7 +17,8 @@ namespace SpaceGame.Agents
     [DefaultExecutionOrder(-100)]
     [RequireComponent(typeof(Rigidbody))]
     public partial class OrnithopterFlightMotor : MonoBehaviour, IMovementMotor, IRiderControllable,
-                                                  IOrnithopterFlightState, IExternallyPosed
+                                                  IOrnithopterFlightState, IExternallyPosed,
+                                                  ITeleportAware
     {
         [Header("References")]
         [SerializeField] private Rigidbody body;
@@ -212,6 +214,36 @@ namespace SpaceGame.Agents
 
             ApplyPose();
             CheckForLanding();
+        }
+
+        /// <summary>
+        /// Turn the flight with the craft.
+        ///
+        /// The flight STATE is the truth here, not the Rigidbody: <see cref="ApplyPose"/> writes
+        /// both the velocity and the attitude out of <c>state.Heading</c> every physics step. So a
+        /// teleport that turns the craft — which is every portal traversal — is undone on the very
+        /// next step, and the wing arrives at the far aperture flying the heading it had in the room
+        /// it left. It does not look like a rotation bug; it looks like the craft ignoring the
+        /// portal and continuing on its old course from a new place.
+        ///
+        /// Only the yaw is taken. Pitch and roll are the aircraft's own attitude about its heading
+        /// and mean the same thing in any room; a portal on a ceiling would otherwise compose a
+        /// half-roll into the flight model and invert the controls.
+        /// </summary>
+        public void OnTeleported(in TeleportMove move)
+        {
+            Vector3 heading = move.Direction(
+                Quaternion.Euler(0f, state.Heading, 0f) * Vector3.forward);
+
+            heading.y = 0f;
+            if (heading.sqrMagnitude < 1e-6f) return;
+
+            state.Heading = Mathf.Repeat(
+                Mathf.Atan2(heading.x, heading.z) * Mathf.Rad2Deg, 360f);
+
+            // Straight back onto the body, so the frame the craft arrives in is already flying the
+            // new heading rather than spending one step on the old one.
+            ApplyPose(snap: true);
         }
 
         /// <summary>

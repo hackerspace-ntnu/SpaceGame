@@ -52,7 +52,10 @@ namespace SpaceGame.Locomotion
             measurements.Clear();
 
             if (body == null) body = transform;
-            ground = new WalkerGround(transform, groundMask, rayStartAbove, rayLength);
+            // The exclusion set is passed by reference and OUTLIVES the sampler, so an aperture
+            // opened around this machine survives a rig rebuild rather than silently re-solidifying.
+            ground = new WalkerGround(transform, groundMask, rayStartAbove, rayLength,
+                                      probeExclusions);
 
             strideModel = CreateStride();
             gaitPattern = CreateGait();

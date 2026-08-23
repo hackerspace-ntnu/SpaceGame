@@ -22,11 +22,7 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs:
-    - _PortalTexture:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
+    m_TexEnvs: []
     m_Ints: []
     m_Floats:
     - _Aperture: 0.97
@@ -34,8 +30,6 @@ Material:
     - _BoilSpeed: 1.6
     - _EdgeGlow: 2.4
     - _EdgeWidth: 0.13
-    - _Fringe: 0.0035
-    - _HasView: 1
     - _Open: 1
     m_Colors:
     - _EdgeColour: {r: 0.18, g: 0.72, b: 1, a: 1}

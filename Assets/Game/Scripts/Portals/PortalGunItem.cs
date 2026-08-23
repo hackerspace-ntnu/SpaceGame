@@ -16,12 +16,24 @@
 // — no damage, no spawn, no contested resource — and routing it through the
 // server would put a round trip inside the feel of the trigger.
 //
-// The second barrel is the only unusual part. There is exactly one Use action in
-// this project's input map and a portal gun needs two triggers, so the gun
-// subscribes to the alternate-fire event itself and posts the SAME NetMsg.UseItem
-// that EquipmentController would have, with the other barrel's index in B. The
-// server's existing handler relays it onward untouched, so the blue portal takes
-// the identical path to the orange one rather than growing a parallel one.
+// ONE TRIGGER, TWO BARRELS. This gun is fired entirely from the Use button, and
+// which barrel a shot comes out of is not a property of which button was
+// pressed: the gun walks the two barrels itself, orange then blue then orange,
+// so two clicks always leave two apertures open.
+//
+// It used to have a second trigger, and that is the whole reason this note
+// exists. There is exactly one Use action in this project's input map, so the
+// blue barrel was reached through an alternate-fire event the gun subscribed to
+// itself — an InputAction built in code, bound from an item instance that is
+// destroyed and rebuilt on every hotbar change, behind an ownership check that
+// has to be right on the frame a networked player is restored. Every one of
+// those can fail silently, and all of them look identical from the player's
+// side: the left trigger works, the right one does nothing, and firing again
+// simply MOVES the one aperture the gun has ever opened. A portal gun with one
+// hole is not a portal gun.
+//
+// The cursor that decides the barrel lives on PortalPair, with the portals, not
+// here — see there for why.
 using UnityEngine;
 using SpaceGame.Characters;
 using SpaceGame.Core;
@@ -99,7 +111,6 @@ namespace SpaceGame.Items
         private readonly int[] fluidSlot = { -1, -1 };
 
         private MaterialPropertyBlock fluidBlock;
-        private PlayerInputManager subscribedInput;
 
         // ── Lifecycle ──────────────────────────────────────────────────────────
 
@@ -136,71 +147,8 @@ namespace SpaceGame.Items
             }
         }
 
-        public override void OnEquipped(GameObject holder)
-        {
-            base.OnEquipped(holder);
-            BindAlternateFire();
-        }
-
-        /// <summary>
-        /// Listen for the second trigger, if this machine is entitled to and has not already.
-        ///
-        /// Called from OnEquipped and again from Update, and the retry is the point. Equipping is
-        /// not one moment: a player's inventory is restored, and their hotbar selection re-applied,
-        /// on the frame their NetworkObject arrives — which on a client can be a frame BEFORE
-        /// ownership is settled. <see cref="Network.Owns"/> answers false for that one frame, and a
-        /// one-shot subscription taken there is simply never taken at all. The symptom is the whole
-        /// point of this method: the left trigger works, because it rides EquipmentController's own
-        /// input, and the right one silently does nothing — so the gun can only ever have one
-        /// aperture open.
-        /// </summary>
-        private void BindAlternateFire()
-        {
-            // Unity fake-null: a manager destroyed with the old player body reads as null here,
-            // which is exactly right — the subscription died with it and has to be retaken.
-            if (subscribedInput != null) return;
-
-            GameObject holder = owner;
-
-            // Only the machine that owns this player listens for a trigger. A
-            // peer's copy of a remote player equips the same prefab, and a peer
-            // subscribing to its own local input would fire that remote player's
-            // gun from this machine's mouse.
-            if (holder == null || !Network.Owns(holder.transform)) return;
-
-            var input = holder.GetComponentInChildren<PlayerInputManager>(true);
-            if (input == null) return;
-
-            subscribedInput = input;
-            subscribedInput.OnAltUsePressed += FireAlternate;
-        }
-
-        public override void OnUnequipped(GameObject holder)
-        {
-            base.OnUnequipped(holder);
-
-            if (subscribedInput != null)
-            {
-                subscribedInput.OnAltUsePressed -= FireAlternate;
-                subscribedInput = null;
-            }
-        }
-
-        private void OnDestroy()
-        {
-            // OnUnequipped is not guaranteed: the item is destroyed outright when
-            // the player dies or the slot empties, and a live subscription on a
-            // destroyed MonoBehaviour throws inside the input manager's event.
-            if (subscribedInput == null) return;
-
-            subscribedInput.OnAltUsePressed -= FireAlternate;
-            subscribedInput = null;
-        }
-
         private void Update()
         {
-            BindAlternateFire();
-
             for (int i = 0; i < 2; i++)
             {
                 if (requiresCharge)
@@ -217,55 +165,47 @@ namespace SpaceGame.Items
 
         // ── Owner side: aim ────────────────────────────────────────────────────
 
-        /// <summary>Primary trigger — the orange aperture.</summary>
+        /// <summary>
+        /// The trigger. Every shot comes through here, out of whichever barrel is due.
+        ///
+        /// The barrel is chosen here, on the shooter's machine, and travels in B. Every other
+        /// machine reads it back out rather than deciding for itself, exactly as it does with the
+        /// placement: two machines each keeping their own idea of "which barrel is next" would
+        /// drift apart the first time one of them dropped a message, and then one player's orange
+        /// portal would be another player's blue.
+        /// </summary>
         public override void OnRequestUse(ref NetArg arg)
         {
-            arg.B = PortalPair.Primary;
-            Aim(ref arg, PortalPair.Primary);
+            int barrel = ChooseBarrel();
+
+            arg.B = barrel;
+            Aim(ref arg, barrel);
+
+            // Only a shot that actually opens something moves the cursor on — see
+            // PortalPair.PeekBarrel.
+            if (arg.HasOrientation) CommitBarrel(barrel);
         }
 
         /// <summary>
-        /// Secondary trigger — the blue aperture, posted onto the same message
-        /// the primary uses. See the class summary for why it is done here and
-        /// not in EquipmentController.
+        /// Which barrel this shot comes out of.
+        ///
+        /// Asked of the PLAYER's pair rather than answered from a field here, because the gun
+        /// object does not live long enough to hold the answer: EquipmentController destroys and
+        /// rebuilds the held item on every hotbar change, so a cursor kept on this instance would
+        /// be back on the orange barrel every time the player scrolled the wheel — and a gun that
+        /// always fires the same barrel can only ever have one aperture open.
         /// </summary>
-        private void FireAlternate()
+        private int ChooseBarrel()
         {
-            if (owner == null) return;
-
-            // A carries the hotbar slot, exactly as EquipmentController's own press does. The
-            // server refuses a use whose slot is no longer the selected one, and that guard is the
-            // difference between the second barrel taking the same path as the first and taking a
-            // parallel one that is right most of the time: a shot sent as the player scrolls off
-            // the gun would otherwise be presented on every peer by whatever is in their hand now.
-            var arg = new NetArg { A = SelectedSlot(), B = PortalPair.Secondary };
-            Aim(ref arg, PortalPair.Secondary);
-
-            // Presented here and now, so the trigger never waits for the wire.
-            PlayUse(owner, arg);
-
-            // The server relays it to the peers; its own handler runs TryUse,
-            // which this item does not use, and then broadcasts ItemUsed.
-            this.NetToServer(NetMsg.UseItem, arg);
+            PortalPair pair = PortalPair.Of(owner);
+            return pair != null ? pair.PeekBarrel() : PortalPair.Primary;
         }
 
-        /// <summary>
-        /// The hotbar slot this gun is being held from, or -1 when there is no telling.
-        ///
-        /// -1 is the "do not check" value on the wire, which is the right answer for an item that
-        /// is not in a hotbar at all rather than a way of skipping the check.
-        ///
-        /// Resolved with the same GetComponent PlayerController uses, so the number sent is read
-        /// off the very object the server's guard compares it against. A different route to "an
-        /// inventory" could find the other one on a prefab that carries both, and a slot check
-        /// against the wrong inventory rejects every shot.
-        /// </summary>
-        private int SelectedSlot()
+        /// <summary>Owner-side only: record which barrel just went, so the next shot takes the other.</summary>
+        private void CommitBarrel(int barrel)
         {
-            if (owner == null) return -1;
-
-            var inventory = owner.GetComponent<IPlayerInventory>();
-            return inventory?.SelectedSlotIndex ?? -1;
+            PortalPair pair = PortalPair.Of(owner);
+            if (pair != null) pair.CommitBarrel(barrel);
         }
 
         /// <summary>

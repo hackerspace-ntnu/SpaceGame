@@ -1,18 +1,22 @@
 // One aperture.
 //
-// A portal is two things that happen to share a transform, and keeping them
-// straight is most of what this file is about:
+// A portal is a DOOR: a plane that anything crossing comes out of the other
+// side of, plus a surface that says as much. It is deliberately NOT a window.
 //
-//   • a WINDOW — a rectangle of screen showing a render taken from behind the
-//     other aperture. That half lives in PortalRenderer, because it has to
-//     happen at a specific point in the frame and for every portal at once.
-//   • a DOOR — a plane that anything crossing comes out of the other side.
-//     That half lives here.
+// It used to be one. A PortalRenderer posed a second camera behind the linked
+// aperture, rendered the scene into a RenderTexture, and the surface sampled it
+// by screen position — so you could see the far room through the hole. It read
+// beautifully and it cost a whole extra scene render per aperture per frame,
+// shadow cascades included, which is not a price a feature that opens two
+// apertures per player every twenty seconds can pay. The surface now shows a
+// stylised aperture and nothing behind it: the swirl in PortalSurface.shader,
+// lit at the rim, dark in the throat. What is on the other side is found out by
+// walking through.
 //
-// The two halves must agree exactly, or the illusion breaks in the most obvious
-// possible way: the view says the far room is one step ahead, and the player
-// walks into a wall. So both are derived from the same transfer matrix,
-// <see cref="TransferFrom"/>, and nothing else is allowed to compute one.
+// The consequence to keep in mind when touching this file: NOTHING here has to
+// agree with a rendered view any more. The transfer matrix
+// <see cref="TransferFrom"/> is now only ever about where a traveller comes
+// out, so it answers to physics alone.
 //
 // A portal is NOT a NetworkObject. Placement replicates as a message describing
 // where the aperture went, and every machine builds its own copy from that, the
@@ -38,9 +42,10 @@ namespace SpaceGame.Portals
 {
     /// <summary>
     /// ExecuteAlways so an aperture placed in a scene by hand is live while the
-    /// level is being built. Without it Portal.All is empty outside play mode,
-    /// nothing subscribes the renderer, and the surface shows its dead-end
-    /// swirl — which is indistinguishable from the portal being broken.
+    /// level is being built. The iris animation and the surface's colours are
+    /// pushed from LateUpdate; without it a hand-placed portal sits at _Open of
+    /// zero, where the shader clips the whole aperture away — invisible, and
+    /// indistinguishable from the portal being broken.
     /// </summary>
     [ExecuteAlways]
     [DisallowMultipleComponent]
@@ -83,14 +88,22 @@ namespace SpaceGame.Portals
         [Tooltip("Seconds the aperture spends closing at the end of its life. Taken out of the lifetime, not added to it — a twenty second portal is gone at twenty seconds.")]
         [SerializeField] private float closeDuration = 0.35f;
 
+        [Tooltip("Shut BOTH apertures the moment anything comes through. One journey per pair. Uncheck it for a portal placed in a scene by hand that is meant to stay open.")]
+        [SerializeField] private bool closeOnTraversal = true;
+
         // ── Shader property ids ────────────────────────────────────────────────
         private static readonly int OpenId       = Shader.PropertyToID("_Open");
-        private static readonly int HasViewId    = Shader.PropertyToID("_HasView");
-        private static readonly int ViewId       = Shader.PropertyToID("_PortalTexture");
         private static readonly int BodyColourId = Shader.PropertyToID("_Colour");
         private static readonly int RimColourId  = Shader.PropertyToID("_Colour");
 
-        /// <summary>Every portal alive in this scene. PortalRenderer walks it once a frame.</summary>
+        /// <summary>
+        /// Every portal alive in this scene.
+        ///
+        /// Read by <see cref="Crossing"/>, which is the traversal path for
+        /// everything that moves by rewriting its own transform rather than
+        /// being pushed by physics — every raycasting projectile in the game.
+        /// Those cannot be caught by the swept volume, so they ask the list.
+        /// </summary>
         public static readonly List<Portal> All = new List<Portal>();
 
         /// <summary>
@@ -99,7 +112,9 @@ namespace SpaceGame.Portals
         /// A serialized field rather than a runtime-only property, because a
         /// pair placed in a scene has to survive being saved: an auto-property
         /// is not serialized, so a hand-authored pair came back from disk
-        /// unlinked and showed its dead-end swirl with no clue why.
+        /// unlinked with no clue why — and, now that the surface shows the same
+        /// swirl whether or not there is an aperture on the other end, no way to
+        /// tell by looking. An unlinked portal is a wall you walk into.
         /// </summary>
         public Portal Linked => linked;
 
@@ -120,11 +135,6 @@ namespace SpaceGame.Portals
 
         /// <summary>The plane of the opening, facing out into the room.</summary>
         public Plane Plane => new Plane(transform.forward, transform.position);
-
-        /// <summary>The render of the far side, owned and sized by PortalRenderer.</summary>
-        public RenderTexture ViewTexture { get; set; }
-
-        public Renderer SurfaceRenderer => surfaceRenderer;
 
         /// <summary>What the aperture was cut into, so traversal can ignore it. May be null.</summary>
         public Collider HostSurface => hostSurface;
@@ -181,6 +191,32 @@ namespace SpaceGame.Portals
 
             /// <summary>Clock at the moment this traveller last came out of an aperture.</summary>
             public float TraversedAt;
+
+            /// <summary>
+            /// This traveller came OUT of this aperture and has not left its volume since.
+            ///
+            /// The contact pull cannot work without it. Anything that arrives here is standing in
+            /// front of this opening, touching it, on the very side the pull acts from — so without
+            /// a flag saying "you came from here" a creature carried through would be pulled
+            /// straight back the moment the re-entry cooldown lapsed, and then again, forever.
+            ///
+            /// It clears itself: a traveller that walks out of the swept volume is dropped from
+            /// <see cref="tracked"/> entirely, so the next sample it gets is a fresh one. Walking
+            /// back into the aperture afterwards is a new approach and is pulled through again,
+            /// which is correct — it walked into a portal.
+            /// </summary>
+            public bool Arrived;
+
+            /// <summary>
+            /// A frame of motion has been measured for this traveller since it was tracked.
+            ///
+            /// The contact pull needs it. On the frame a traveller is first seen its previous
+            /// sample IS its current one, so nothing has moved by definition and everything looks
+            /// stalled — without this, walking into the swept volume already close to the opening
+            /// would be pulled before the aperture had any evidence about whether the traveller was
+            /// getting there by itself.
+            /// </summary>
+            public bool Measured;
         }
 
         private readonly Dictionary<PortalTraveller, Sample> tracked =
@@ -223,15 +259,18 @@ namespace SpaceGame.Portals
 
         // Per-portal MATERIAL INSTANCES, not MaterialPropertyBlocks.
         //
-        // The block version bound correctly by every measurement — GetPropertyBlock
-        // came back holding the right RenderTexture, _HasView at 1, _Open at 1 —
-        // and the shader still sampled solid black. Whatever the reason (and the
-        // SRP Batcher was ruled out by switching it off), a per-object texture
-        // override through a property block is not a mechanism worth trusting for
-        // the one thing this whole feature exists to show. An instanced material
-        // is the mechanism the renderer cannot ignore.
+        // Two apertures are open at once and neither shares the other's state:
+        // they are told apart by _Colour, and they iris independently, so _Open
+        // differs between them on every frame either is animating.
         //
-        // The cost is one material per aperture, and there are two per player.
+        // Instances rather than property blocks because the block version was
+        // tried and could not be trusted here — it bound correctly by every
+        // measurement, GetPropertyBlock came back holding exactly what had been
+        // set, and the shader read something else anyway. That was diagnosed
+        // against a texture override, which this no longer uses, so a block
+        // might well work now; it has not been re-tested and there is nothing to
+        // gain by finding out. The cost is one material per aperture, two per
+        // player.
         private Material surfaceMaterial;
         private Material rimMaterial;
         private Material surfaceSource;
@@ -341,11 +380,6 @@ namespace SpaceGame.Portals
         {
             if (!All.Contains(this)) All.Add(this);
             openedAt = Clock;
-
-            // Asking for the renderer here is what makes a portal self-sufficient:
-            // nothing has to be placed in a scene, and a portal dropped into an
-            // empty scene still draws. The first one to exist builds it.
-            _ = PortalRenderer.Instance;
         }
 
         private void OnDisable()
@@ -357,13 +391,6 @@ namespace SpaceGame.Portals
             // leaves objects permanently ignoring the wall they were passing
             // through, which is invisible until something falls out of the level.
             ReleaseAll();
-
-            // The renderer holds a screen-sized RenderTexture per aperture. An expiring portal is
-            // the common case now rather than the exceptional one — one every twenty seconds per
-            // barrel per player — so it says so itself instead of relying on whoever destroyed it
-            // to remember. Existing, not Instance: this also runs during a scene unload, where
-            // building a renderer to tell it about a portal that is going away is an error.
-            if (PortalRenderer.Existing != null) PortalRenderer.Existing.Forget(this);
         }
 
         // ── Pairing and placement ──────────────────────────────────────────────
@@ -372,8 +399,10 @@ namespace SpaceGame.Portals
         /// Pair two apertures, unpairing whatever either was attached to.
         ///
         /// Passing null for one side is how a portal is orphaned — it keeps
-        /// existing and showing its dead-end swirl, which is deliberate: a
-        /// player who fires only one barrel should see something happen.
+        /// existing and showing its swirl, which is deliberate: a player who
+        /// fires only one barrel should see something happen. It now looks
+        /// exactly like a working one, so nothing about the surface tells them
+        /// it is not a way through until they try to walk into it.
         /// </summary>
         public static void Link(Portal a, Portal b)
         {
@@ -474,6 +503,15 @@ namespace SpaceGame.Portals
             if (Application.isPlaying) Destroy(gameObject);
             else DestroyImmediate(gameObject);
         }
+
+        /// <summary>
+        /// Whether this aperture shuts the pair behind whatever comes through it.
+        ///
+        /// Settable rather than only authored for the same reason <see cref="SetLifetime"/> is: how
+        /// long a portal lasts, and how many journeys it is good for, are rules belonging to
+        /// whatever opened it, not to the prefab it was opened from.
+        /// </summary>
+        public void SetCloseOnTraversal(bool closes) => closeOnTraversal = closes;
 
         public void SetSize(Vector2 metres)
         {
@@ -627,8 +665,8 @@ namespace SpaceGame.Portals
         /// </summary>
         private void LateUpdate()
         {
-            // The WINDOW is drawn outside play mode — that is what ExecuteAlways is for, so an
-            // aperture being placed in a level shows what is on the other side.
+            // The SURFACE is driven outside play mode — that is what ExecuteAlways is for, so an
+            // aperture being placed in a level is visible while it is being placed.
             PublishSurfaceState();
 
             // The DOOR is not. The sweep adopts whatever it finds, adding a PortalTraveller to it
@@ -698,7 +736,8 @@ namespace SpaceGame.Portals
                 // aperture, so nothing has to be prepared in advance to be able to go through.
                 // See PortalTraveller.For.
                 PortalTraveller traveller = PortalTraveller.For(collider, createIfMissing: true);
-                if (traveller == null || !seen.Add(traveller)) continue;
+                if (traveller == null || !Fits(traveller)) continue;
+                if (!seen.Add(traveller)) continue;
 
                 if (tracked.ContainsKey(traveller)) continue;
 
@@ -735,6 +774,39 @@ namespace SpaceGame.Portals
         /// aperture is cut into, and answering "no" for those without touching their parents is
         /// what keeps an unmasked sweep affordable.
         /// </summary>
+        /// <summary>
+        /// Is this thing small enough to go through the hole?
+        ///
+        /// Asked BEFORE the traveller is tracked, which is the part that matters. Being tracked is
+        /// not merely being eligible to teleport — <see cref="PortalTraveller.EnterPortal"/> stops
+        /// the wall this aperture is cut into from colliding with the traveller at all. So without
+        /// this test a creature many times the size of the opening got two things at once, and the
+        /// second was the worse one: it teleported whole the moment the CENTRE of its colliders
+        /// crossed the plane inside the ellipse, and until then the wall simply stopped existing
+        /// for it, so it could walk straight into the masonry the picture is painted on.
+        ///
+        /// Refusing is the whole remedy. An untracked traveller collides with that wall exactly as
+        /// it always did and cannot pass, which is what a hole smaller than you should feel like —
+        /// and it needs no message, no failed-traversal state and nothing to undo.
+        ///
+        /// Measured against the ELLIPSE, since that is the opening; the rectangle in
+        /// <see cref="size"/> is only what it is inscribed in. The narrower half of the traveller
+        /// is paired with the narrower semi-axis, so a wide flat thing is judged against a wide
+        /// flat hole rather than against whichever axis it happened to be authored on.
+        /// </summary>
+        private bool Fits(PortalTraveller traveller)
+        {
+            Vector2 girth = traveller.Girth;
+
+            float narrow = Mathf.Max(Mathf.Min(size.x, size.y) * 0.5f, 1e-4f);
+            float wide = Mathf.Max(Mathf.Max(size.x, size.y) * 0.5f, 1e-4f);
+
+            float u = girth.x / narrow;
+            float v = girth.y / wide;
+
+            return u * u + v * v <= 1f;
+        }
+
         private static bool MightTravel(Collider collider) =>
             collider.attachedRigidbody != null
             || collider is CharacterController
@@ -770,11 +842,32 @@ namespace SpaceGame.Portals
 
                 traveller.UpdateClone(this);
 
-                if (Crossed(previous, point, current) && Linked != null &&
+                bool crossed = Crossed(previous, point, current);
+                bool pulled = !crossed && Touching(traveller, point, current, previous);
+
+                if ((crossed || pulled) && Linked != null &&
                     Clock - previous.TraversedAt > ReentryCooldown)
                 {
                     departed.Add(traveller);
-                    Traverse(traveller);
+
+                    // A crossing has already carried the traveller to the back of this plane, which
+                    // is what the transfer expects. A PULL has not: it fires while the traveller is
+                    // still in FRONT, and handing that pose to the transfer puts it out of the BACK
+                    // of the far aperture — inside the wall the far aperture is cut into. So the
+                    // pull carries it across this plane first, far enough that it lands clear.
+                    Vector3 offset = pulled
+                        ? -transform.forward * (current + traveller.HalfDepthAlong(transform.forward)
+                                                        + PullExitClearance)
+                        : Vector3.zero;
+
+                    Traverse(traveller, offset);
+
+                    // A traversal may have shut this aperture behind the traveller, and everything
+                    // left in this loop reads `transform`. Outside play mode that is a destroyed
+                    // object rather than a deferred one, so the next iteration would throw a
+                    // MissingReferenceException out of a frame update.
+                    if (closing) break;
+
                     continue;
                 }
 
@@ -783,6 +876,15 @@ namespace SpaceGame.Portals
                     Side = current,
                     Point = point,
                     TraversedAt = previous.TraversedAt,
+
+                    // Carried forward, not defaulted: this is rewritten every frame the traveller
+                    // is tracked, and dropping the flag here would re-arm the pull one frame after
+                    // an arrival and send the traveller straight back where it came from.
+                    Arrived = previous.Arrived,
+
+                    // This sample was compared against a previous one, so from here on the
+                    // traveller's motion is known.
+                    Measured = true,
                 };
             }
 
@@ -815,6 +917,68 @@ namespace SpaceGame.Portals
             return WithinAperture(meeting, 0.25f);
         }
 
+        /// <summary>
+        /// Is this traveller in contact with the opening, and therefore taken through it?
+        ///
+        /// <b>Why a plane crossing is not enough.</b> The crossing test asks whether the traveller's
+        /// centre passed from the front of the plane to the back, which is exact and is the right
+        /// question for anything that moves by being pushed — a player, a crate, a body flung
+        /// through. It is the wrong question for everything that moves by DECIDING where to go. A
+        /// NavMeshAgent will not path into a wall, because navigation has no idea the hole is
+        /// there; a legged machine walks up to the rim and stops. Neither ever drives its centre
+        /// past the plane, so neither ever crossed — the dune rat and the Nomad ignored apertures
+        /// completely, and the astronaut reached the opening and halted in it.
+        ///
+        /// So contact is the second way through: reach the surface of an aperture and it takes you,
+        /// whatever it was that walked you there. Deliberately NOT conditioned on moving toward the
+        /// plane — a creature stopped dead against the opening is the exact case this exists for.
+        ///
+        /// Navigation is left ignorant on purpose. Nothing paths through a portal; things are
+        /// carried through when they touch one.
+        /// </summary>
+        private bool Touching(PortalTraveller traveller, Vector3 point, float side, in Sample sample)
+        {
+            // Already behind the plane: that is the crossing test's business, not this one.
+            if (side <= 0f) return false;
+
+            // Came out of here and has not left yet. See Sample.Arrived.
+            if (sample.Arrived) return false;
+
+            // Only something that has stopped getting closer. This is the difference between a
+            // door and a drain, and it is what keeps the clone worth having: a traveller still
+            // closing on the plane is going to cross it on its own in a frame or two, and it should
+            // — that is the crossing that straddles the aperture and shows half of itself standing
+            // out of the far one. Pulling it early would replace the one visual that makes a portal
+            // read as a hole rather than a teleporter.
+            //
+            // So the pull is for movers that have run out of ways to get any closer: an agent at
+            // the edge of its navigation mesh, a legged machine whose climb gate has stopped it, a
+            // body resting against the surface.
+            if (!sample.Measured) return false;
+            if (sample.Side - side > minimumCrossingSpeed) return false;
+
+            // Measured against the traveller's OWN thickness, so "touching" means the same thing
+            // for a dune rat and for an ostrich.
+            if (side > traveller.HalfDepthAlong(transform.forward) + PullReach) return false;
+
+            // In front of the OPENING, not merely near the wall it is cut into. Without this,
+            // anything that brushed past the portal's end of the room would be taken.
+            return WithinAperture(point, 0.25f);
+        }
+
+        /// <summary>
+        /// How far short of the surface an object may stop and still be taken through.
+        ///
+        /// Small, because this is "touching" and not "nearby": measured from the traveller's own
+        /// skin rather than its centre, so it is the whole of the allowance. Enough to cover a
+        /// creature that halts a hand's breadth from the opening; not enough to reach out of the
+        /// aperture and take something walking past it.
+        /// </summary>
+        private const float PullReach = 0.25f;
+
+        /// <summary>How far clear of the far aperture's surface a pulled traveller is set down.</summary>
+        private const float PullExitClearance = 0.1f;
+
         private void ReleaseAll()
         {
             if (tracked.Count == 0) return;
@@ -829,10 +993,20 @@ namespace SpaceGame.Portals
             tracked.Clear();
         }
 
-        private void Traverse(PortalTraveller traveller)
+        /// <param name="entryOffset">
+        /// A world-space step applied to the traveller BEFORE the transfer. Zero for a crossing,
+        /// which has already carried itself through the plane; non-zero for a contact pull, which
+        /// has not. Composed into the matrix rather than applied separately so that the position,
+        /// the rotation and the velocity all still come from one transform — the rule this whole
+        /// file is built on, and a translation leaves the rotation untouched.
+        /// </param>
+        private void Traverse(PortalTraveller traveller, Vector3 entryOffset)
         {
             Portal destination = Linked;
             Matrix4x4 transfer = destination.TransferFrom(this);
+
+            if (entryOffset != Vector3.zero)
+                transfer *= Matrix4x4.Translate(entryOffset);
 
             Release(traveller);
             traveller.Traverse(this, destination, transfer);
@@ -842,6 +1016,30 @@ namespace SpaceGame.Portals
             // leave it colliding with the wall behind the exit for one physics
             // step, which at any speed means being shoved back out.
             destination.Adopt(traveller);
+
+            if (closeOnTraversal) ShutBehind(destination);
+        }
+
+        /// <summary>
+        /// Shut both ends, now that something has been through.
+        ///
+        /// BOTH, not just the one that was entered. An aperture whose partner has gone is not a
+        /// door any more — it is a lit ring around a dead-end swirl that looks exactly like a
+        /// working portal until somebody walks into the wall behind it. Leaving one standing would
+        /// turn every journey into a piece of scenery the player has to clear up.
+        ///
+        /// The far end goes FIRST. <see cref="Close"/> unpairs as it goes, so shutting this one
+        /// first would clear <see cref="Linked"/> and leave the far aperture with nothing holding a
+        /// reference to it — open forever, and no longer reachable from the pair.
+        ///
+        /// Called after <see cref="Adopt"/>, never before: the traveller has to be handed to the
+        /// far aperture while it still exists, and closing releases it again a moment later through
+        /// OnDisable, which is what puts the wall back on the way out.
+        /// </summary>
+        private void ShutBehind(Portal destination)
+        {
+            if (destination != null) destination.Close();
+            Close();
         }
 
         /// <summary>Take over a traveller that has just arrived out of this aperture.</summary>
@@ -854,6 +1052,10 @@ namespace SpaceGame.Portals
                 Side = SideOf(traveller.TrackedPoint),
                 Point = traveller.TrackedPoint,
                 TraversedAt = Clock,
+
+                // It is standing in this opening, touching it, on the side the pull acts from.
+                // See Sample.Arrived.
+                Arrived = true,
             };
             traveller.EnterPortal(this);
         }
@@ -870,17 +1072,11 @@ namespace SpaceGame.Portals
         /// <summary>
         /// Push the aperture's current state onto its materials.
         ///
-        /// Called from LateUpdate for the opening animation, and again by
-        /// PortalRenderer the moment it has finished rendering this portal.
-        /// The second call is the one that matters: the render target is
-        /// created and filled during beginContextRendering, which is AFTER
-        /// every LateUpdate in the frame, so a surface that only heard about
-        /// its texture from LateUpdate showed the previous frame's — and, on
-        /// the frame a portal opens, showed none at all. That last case is
-        /// indistinguishable from the portal being broken, which is exactly
-        /// what it looked like: a lit rim around a black hole.
+        /// Only the iris now — how far open the aperture is, which both the
+        /// surface and the rim clip themselves against. The colours are set once
+        /// in <see cref="EnsureMaterials"/> and never change after.
         /// </summary>
-        internal void PublishSurfaceState()
+        private void PublishSurfaceState()
         {
             float open = openDuration > 0f
                 ? Mathf.Clamp01((Clock - openedAt) / openDuration)
@@ -899,14 +1095,7 @@ namespace SpaceGame.Portals
 
             EnsureMaterials();
 
-            if (surfaceMaterial != null)
-            {
-                surfaceMaterial.SetFloat(OpenId, open);
-                surfaceMaterial.SetFloat(HasViewId,
-                    ViewTexture != null && Linked != null ? 1f : 0f);
-                if (ViewTexture != null) surfaceMaterial.SetTexture(ViewId, ViewTexture);
-            }
-
+            if (surfaceMaterial != null) surfaceMaterial.SetFloat(OpenId, open);
             if (rimMaterial != null) rimMaterial.SetFloat(OpenId, open);
         }
 

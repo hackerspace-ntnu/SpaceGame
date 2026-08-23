@@ -4,6 +4,7 @@
 using UnityEngine;
 using UnityEngine.AI;
 using SpaceGame.World;
+using SpaceGame.Teleporting;
 
 namespace SpaceGame.Agents
 {
@@ -22,7 +23,7 @@ namespace SpaceGame.Agents
     [DefaultExecutionOrder(-100)]
     [RequireComponent(typeof(NavMeshAgent))]
     public class NavMeshAgentMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IMountLeapMotor,
-                                     IRiderControllable, ISelfDrivingMotor
+                                     IRiderControllable, ISelfDrivingMotor, ITeleportAware
     {
         [Header("Navigation")]
         [SerializeField] private NavMeshAgent agent;
@@ -485,6 +486,24 @@ namespace SpaceGame.Agents
             }
             agent.updatePosition = false;
             agent.updateRotation = false;
+        }
+
+        /// <summary>
+        /// Bring a leap in flight through a teleport.
+        ///
+        /// A leap runs with <c>agent.updatePosition</c> switched off and the body driven along a
+        /// lerp between two WORLD points, so it is the agent's own navigation that is suspended and
+        /// this arc that is authoritative. Leave the endpoints in the room the creature left and the
+        /// next frame drags it straight back at them, through the wall, at whatever speed the two
+        /// apertures are apart divided by what remains of the leap.
+        ///
+        /// The agent's own position is not touched here — SaveTeleport has already warped it, and
+        /// re-warping mid-leap is what <c>updatePosition = false</c> exists to prevent.
+        /// </summary>
+        public void OnTeleported(in TeleportMove move)
+        {
+            leapStart = move.Point(leapStart);
+            leapEnd = move.Point(leapEnd);
         }
 
         private void ApplyMoveIntent(in MoveIntent intent, float deltaTime)

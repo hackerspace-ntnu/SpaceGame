@@ -15,11 +15,15 @@ namespace SpaceGame.Portals
     [DisallowMultipleComponent]
     public sealed class PortalPair : MonoBehaviour
     {
-        /// <summary>The left trigger's aperture — orange.</summary>
+        /// <summary>The first barrel — orange. The one a player's very first shot comes out of.</summary>
         public const int Primary = 0;
 
         /// <summary>
-        /// The right trigger's aperture — blue.
+        /// The second barrel — blue.
+        ///
+        /// There is no second trigger: both barrels are fired from the same button, in turn. See
+        /// <see cref="PeekBarrel"/>, and the header of PortalGunItem for why the gun no longer has
+        /// an alternate fire.
         ///
         /// Told apart by hue rather than by value, and deliberately: the two ends of a portal are
         /// the one pair of objects in this game a player has to identify instantly and from across
@@ -29,6 +33,17 @@ namespace SpaceGame.Portals
         public const int Secondary = 1;
 
         private readonly Portal[] portals = new Portal[2];
+
+        /// <summary>
+        /// Which barrel the next shot should come out of.
+        ///
+        /// It lives here, with the portals, rather than on the gun, and for the same reason they
+        /// do: the gun prefab is destroyed and rebuilt on every hotbar change, so a cursor kept on
+        /// the item would reset to the orange barrel every time the player glanced at their
+        /// inventory — and a gun that always fires the same barrel can only ever have one aperture
+        /// open, which is precisely the failure this cursor exists to end.
+        /// </summary>
+        private int nextBarrel = Primary;
 
         /// <summary>The pair belonging to <paramref name="owner"/>, created on first use.</summary>
         public static PortalPair Of(GameObject owner)
@@ -43,13 +58,60 @@ namespace SpaceGame.Portals
         public Portal Get(int index) =>
             index >= 0 && index < portals.Length ? portals[index] : null;
 
+        /// <summary>How many of the two apertures are open right now.</summary>
+        public int OpenCount
+        {
+            get
+            {
+                int count = 0;
+                for (int i = 0; i < portals.Length; i++)
+                    if (portals[i] != null) count++;
+                return count;
+            }
+        }
+
+        /// <summary>
+        /// Which barrel the next shot should use, without claiming it.
+        ///
+        /// Peek and <see cref="CommitBarrel"/> are separate because a shot that fizzles — aimed at
+        /// the sky, or at a surface that refuses portals — must not move the cursor on. Burning a
+        /// barrel on a miss would mean two clicks at nothing leaves the player back where they
+        /// started, and which barrel comes next would depend on what they had missed.
+        ///
+        /// <para>
+        /// An EMPTY barrel always wins. Plain alternation is not enough on its own: once one
+        /// aperture expires the cursor is as likely as not to be pointing at the one still open,
+        /// and the shot that should have restored the pair would move the survivor instead —
+        /// leaving one portal on screen and nothing to explain why.
+        /// </para>
+        /// </summary>
+        public int PeekBarrel()
+        {
+            int other = 1 - nextBarrel;
+            return portals[nextBarrel] != null && portals[other] == null ? other : nextBarrel;
+        }
+
+        /// <summary>
+        /// A shot has gone out of <paramref name="index"/>; point the cursor at the other barrel.
+        ///
+        /// Called at the moment the shot is FIRED, not when the aperture opens, because the blob
+        /// takes a visible fraction of a second to reach the wall. Waiting for the arrival would
+        /// let two quick clicks both read "nothing open yet", both pick the same barrel, and the
+        /// second simply move the aperture the first one had just placed.
+        /// </summary>
+        public void CommitBarrel(int index)
+        {
+            if (index < 0 || index >= portals.Length) return;
+            nextBarrel = 1 - index;
+        }
+
         /// <summary>
         /// Open, or move, one of the two apertures.
         ///
         /// Moving the existing GameObject rather than destroying and respawning
-        /// it keeps the render target alive across a re-fire. Reallocating a
-        /// screen-sized RenderTexture every time somebody taps the trigger is a
-        /// stutter you can hear the GC in.
+        /// it keeps the aperture's material instances alive across a re-fire.
+        /// Spawning a fresh pair of instanced materials every time somebody taps
+        /// the trigger is a stutter you can hear the GC in.
         ///
         /// <paramref name="lifetime"/> is seconds until the aperture irises shut, or 0 for one
         /// that never does. It is set on every shot rather than authored on the prefab, because

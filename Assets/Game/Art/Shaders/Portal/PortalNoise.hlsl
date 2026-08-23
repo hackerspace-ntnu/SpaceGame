@@ -73,4 +73,24 @@ float PortalWarpedFbm(float2 p, float time, float strength)
     return PortalFbm(p + strength * r, 4);
 }
 
+// The same substance, warped once instead of twice.
+//
+// PortalWarpedFbm above costs five fbm evaluations — sixteen noise samples,
+// sixty-four hashes — for every pixel it touches. On the gun's reservoirs and
+// on a projectile that is nothing; on the aperture surface, which can fill the
+// screen, it is the one part of the portal fragment cost that scales with how
+// close the player is standing.
+//
+// Dropping the second warp takes it to three evaluations. What is lost is one
+// generation of folding: features still stretch and curl, they just do not curl
+// back through themselves. Side by side the difference is visible; in motion,
+// behind a swirl, at the far end of a hole in a wall, it is not.
+float PortalWarpedFbmLite(float2 p, float time, float strength)
+{
+    float2 q = float2(PortalFbm(p + float2(0.0, time * 0.15), 3),
+                      PortalFbm(p + float2(5.2, 1.3 - time * 0.11), 3));
+
+    return PortalFbm(p + strength * q, 4);
+}
+
 #endif // SPACEGAME_PORTAL_NOISE_INCLUDED

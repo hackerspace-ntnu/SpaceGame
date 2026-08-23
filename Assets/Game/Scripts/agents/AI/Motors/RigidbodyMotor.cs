@@ -4,12 +4,14 @@
 // temporarily going kinematic, matching the NavMesh motor's mount feel.
 using UnityEngine;
 using SpaceGame.World;
+using SpaceGame.Teleporting;
 
 namespace SpaceGame.Agents
 {
     [DefaultExecutionOrder(-100)]
     [RequireComponent(typeof(Rigidbody))]
-    public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IMountLeapMotor, IRiderControllable
+    public class RigidbodyMotor : MonoBehaviour, IMovementMotor, IMountJumpMotor, IMountLeapMotor,
+                                  IRiderControllable, ITeleportAware
     {
         [Header("References")]
         [SerializeField] private Rigidbody body;
@@ -413,6 +415,28 @@ namespace SpaceGame.Agents
             // itself as it drives, instead of slerping forever toward upright. MoveRotation rather
             // than transform.rotation for the interpolation reason in ApplyRiderInput.
             body.MoveRotation(Quaternion.Euler(0f, blended.eulerAngles.y, 0f));
+        }
+
+        /// <summary>
+        /// Bring the leap arc and the current destination through a teleport.
+        ///
+        /// The arc is the one that must not be missed. It is a lerp between two WORLD points, driven
+        /// onto a kinematic body every physics step, so a creature that leaps into an aperture is
+        /// pulled straight back toward the room it left — through the wall, on the next step, faster
+        /// the further apart the two apertures are. It is not a cosmetic error: the leap wins,
+        /// because it writes the body's position outright.
+        ///
+        /// The destination is rebased for a milder reason. Nothing depends on it being right — a
+        /// chase re-issues one within a frame — but a stale one means that frame is spent walking
+        /// back at the aperture, which reads as the creature changing its mind about coming through.
+        /// </summary>
+        public void OnTeleported(in TeleportMove move)
+        {
+            arcStart = move.Point(arcStart);
+            arcEnd = move.Point(arcEnd);
+
+            if (currentDestination.HasValue)
+                currentDestination = move.Point(currentDestination.Value);
         }
 
         private void BeginArc(Vector3 direction, float horizontalDistance, float height, float duration)

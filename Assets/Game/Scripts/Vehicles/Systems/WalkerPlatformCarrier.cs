@@ -31,11 +31,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Core;
 using SpaceGame.Vehicles.Crawler;
+using SpaceGame.Teleporting;
+using SpaceGame.Core.Persistence;
+using SpaceGame.Portals;
 
 namespace SpaceGame.Vehicles
 {
     [DefaultExecutionOrder(200)]
-    public class WalkerPlatformCarrier : MonoBehaviour
+    public class WalkerPlatformCarrier : MonoBehaviour, ITeleportAware
     {
         [Header("Carry volume")]
         [Tooltip("Trigger collider covering the walkable areas. Anything with a Rigidbody inside " +
@@ -221,6 +224,50 @@ namespace SpaceGame.Vehicles
         // Whatever the craft moved since the previous physics step is what gets applied at this one,
         // so nothing is dropped and nothing accumulates.
         private void FixedUpdate() => CarryRiders();
+
+        /// <summary>
+        /// Take everyone aboard through the jump with the deck.
+        ///
+        /// Two things, and the FIRST is the one that would be a disaster on its own. The carry is a
+        /// DELTA — this frame's pose minus last frame's — so a teleported deck presents the whole
+        /// jump as one frame of motion and every rider is flung the entire distance between the two
+        /// apertures, in one step, through whatever is in the way. <see cref="Prime"/> has said so
+        /// since it was written ("call after teleporting the craft, or nobody aboard survives the
+        /// jump"); this is what finally calls it.
+        ///
+        /// The second is that riders are carried, not parented, so priming alone would leave the
+        /// crew standing in mid-air where the deck used to be. They are moved by the same transfer
+        /// the deck took, which puts each of them exactly where they were standing on it.
+        ///
+        /// Ownership is honoured for the same reason the per-frame carry honours it: a remote
+        /// player's body is owner-authoritative, their own machine is carrying them on its copy of
+        /// this deck, and a write here is overwritten within a tick. Offline and for anything
+        /// unnetworked <c>Network.Owns</c> answers true, so the single-player case carries everyone.
+        /// </summary>
+        public void OnTeleported(in TeleportMove move)
+        {
+            // The census from the last physics step. Re-collecting here would be worse, not better:
+            // the deck has already arrived and the riders have not, so an overlap of the carry
+            // volume at this instant finds nobody at all.
+            foreach (Rigidbody rb in riders)
+            {
+                if (rb == null || claimed.Contains(rb)) continue;
+                if (!Network.Owns(rb)) continue;
+
+                // Somebody standing in the aperture is going through it themselves, in this same
+                // frame's crossings. Carrying them as well applies the transfer twice and lands
+                // them as far past the exit as the two apertures are apart.
+                var traveller = rb.GetComponentInParent<PortalTraveller>();
+                if (traveller != null && traveller.InPortal) continue;
+
+                SaveTeleport.Move(rb.gameObject, move.Point(rb.position),
+                                  move.Rotation(rb.rotation), zeroVelocity: false);
+            }
+
+            // After the riders, not before: moving them reads this deck's new pose, and re-priming
+            // is only about the NEXT frame's delta.
+            Prime();
+        }
 
         /// <summary>
         /// Move everyone aboard by the platform's motion since the last call. Public and

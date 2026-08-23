@@ -294,6 +294,28 @@ namespace SpaceGame.Core
         // new state differs — the same idempotence rule NetLatch.Apply documents.
         public const ushort LassoRope  = 72; // owner → server, on the THROWER's relay
         public const ushort LassoRoped = 73; // server → everyone
+
+        // ── Ornithopter ──
+        // Both on the CRAFT's channel, and they travel in opposite directions because the two
+        // halves of a flight are decided on different machines.
+        //
+        // The craft is spawned by the server (only the server may spawn) but handed to the PILOT,
+        // and everything about it from that moment on is the pilot's machine's business: it owns
+        // the transform, it reads the stick, it runs the flight model. So the launch has to be
+        // carried outward to that machine rather than performed where it was decided — a launch
+        // applied on the server alone lands on a copy NetAuthority has already switched to
+        // following the wire, which is a craft nobody is flying.
+        //
+        //   CraftLaunch  server → everyone.  R = heading, A = launch airspeed in cm/s.
+        //   CraftDown    owner → server.     P = where to stand the pilot, A = closing speed in
+        //                                    cm/s, B = 1 when the craft flew INTO something.
+        //
+        // CraftDown is the answer coming back. The pilot's machine is the only one integrating the
+        // flight, so it is the only one that can see the landing — but what a landing COSTS, and
+        // the despawn and dismount that follow it, are the server's to decide, which is what this
+        // hands over. Speeds travel as centimetres per second because NetArg has no float field.
+        public const ushort CraftLaunch = 74; // server → everyone, on the CRAFT's relay
+        public const ushort CraftDown   = 75; // owner → server, on the CRAFT's relay
     }
 
     /// <summary>What a <see cref="NetMsg.LassoRope"/> message is saying. Append only.</summary>

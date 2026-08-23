@@ -41,6 +41,9 @@ namespace SpaceGame.EditorTools.Portals
         private const string PrimaryFluidName   = "Mat_Emissive_Portal_Orange";
         private const string SecondaryFluidName = "Mat_Emissive_Portal_Blue";
 
+        /// <summary>Seconds an aperture the gun opens stays open before it irises shut.</summary>
+        private const float PortalLifetime = 20f;
+
         // Both apertures are YELLOW. An earlier pass had one orange and one blue,
         // and two saturated complementary colours across the same screen read as
         // clip art rather than as one piece of technology. They are told apart by
@@ -396,6 +399,7 @@ namespace SpaceGame.EditorTools.Portals
             serializedItem.FindProperty("bodyRenderer").objectReferenceValue = bodyRenderer;
             serializedItem.FindProperty("primaryMaterialName").stringValue = PrimaryFluidName;
             serializedItem.FindProperty("secondaryMaterialName").stringValue = SecondaryFluidName;
+            serializedItem.FindProperty("portalLifetime").floatValue = PortalLifetime;
             serializedItem.ApplyModifiedPropertiesWithoutUndo();
 
             // Written once. How a thing sits in a hand is judged by looking at

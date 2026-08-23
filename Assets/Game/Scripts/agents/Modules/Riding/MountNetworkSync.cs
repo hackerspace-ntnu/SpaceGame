@@ -21,6 +21,7 @@
 // The state channel also re-asserts itself every frame, so it repairs the seat whatever went wrong.
 using Unity.Netcode;
 using UnityEngine;
+using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
 
@@ -50,6 +51,13 @@ namespace SpaceGame.Agents
         private readonly NetworkVariable<ulong> seatedRider = new(
             0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+        /// <summary>
+        /// <see cref="NetArg.B"/> on a <see cref="NetMsg.Dismounted"/> that carries a place to put
+        /// the rider in <see cref="NetArg.P"/>. Zero — the default — means "use your own dismount
+        /// point", which is what an older build's message looks like.
+        /// </summary>
+        private const int DismountCarriesPosition = 1;
+
         private void Awake() => mount = GetComponent<MountModule>();
 
         private void OnEnable()
@@ -58,6 +66,8 @@ namespace SpaceGame.Agents
             this.NetOn(NetMsg.Dismount, OnDismountRequested);
             this.NetOn(NetMsg.Mounted, OnMountedElsewhere);
             this.NetOn(NetMsg.Dismounted, OnDismountedElsewhere);
+
+            mount.Dismounted += AnnounceDismount;
         }
 
         private void OnDisable()
@@ -66,6 +76,8 @@ namespace SpaceGame.Agents
             this.NetOff(NetMsg.Dismount, OnDismountRequested);
             this.NetOff(NetMsg.Mounted, OnMountedElsewhere);
             this.NetOff(NetMsg.Dismounted, OnDismountedElsewhere);
+
+            mount.Dismounted -= AnnounceDismount;
         }
 
         // ─────────── The state channel ───────────
@@ -95,6 +107,54 @@ namespace SpaceGame.Agents
             }
 
             ReconcileSeat();
+        }
+
+        /// <summary>
+        /// Tell everyone the seat is empty, and where the rider was put down.
+        ///
+        /// <para>
+        /// Answered from the mount's own <see cref="MountModule.Dismounted"/> rather than from the
+        /// request handler, which is the only way to cover the dismounts nobody requested. A rider
+        /// is thrown out of the saddle by an ornithopter landing, by dying, by their pack being
+        /// unequipped, by a rider's own teardown — none of those come through
+        /// <see cref="OnDismountRequested"/>, and before this none of them reached another machine
+        /// at all. Peers were left with a rider still welded into a seat the server had emptied,
+        /// and only found out when the mount itself was destroyed underneath them.
+        /// </para>
+        /// <para>
+        /// The event and not the <see cref="seatedRider"/> poll, even though the poll is what the
+        /// rest of this class trusts, because some dismounts do not survive until the next frame:
+        /// a landed ornithopter is dismounted and despawned inside one call, so a poll would find
+        /// the component gone before it ever noticed the seat empty.
+        /// </para>
+        /// <para>
+        /// It also closes the hole in the requested path: that one excluded the client who asked,
+        /// on the reasoning that a requester has already acted locally — but a mount request is
+        /// sent WITHOUT acting locally, so the one machine that most needed telling was the one
+        /// deliberately skipped. Announcing from the dismount itself tells everybody, them included.
+        /// </para>
+        /// <para>
+        /// The position travels because a peer cannot work it out. Landing dismounts the pilot at
+        /// ground the server probed for; a peer that fell back on its own dismount marker would
+        /// put them under the wreck, and on their own machine — where their body is
+        /// owner-authoritative — that wrong answer is the one that sticks.
+        /// </para>
+        /// </summary>
+        private void AnnounceDismount(PlayerMovement rider)
+        {
+            if (!IsServer || !IsSpawned || rider == null) return;
+
+            var arg = new NetArg().With(rider);
+
+            if (mount.HasLastDismountPosition)
+            {
+                arg.P = mount.LastDismountPosition;
+                arg.B = DismountCarriesPosition;
+            }
+
+            // Others rather than All: this machine has just dismounted — that is what raised the
+            // event we are answering.
+            this.NetToOthers(NetMsg.Dismounted, arg);
         }
 
         /// <summary>
@@ -281,7 +341,9 @@ namespace SpaceGame.Agents
                 mountObject.ChangeOwnership(NetworkManager.ServerClientId);
             }
 
-            this.NetToOthers(NetMsg.Dismounted, arg, except: sender);
+            // No broadcast here. ApplyDismount above raised MountModule.Dismounted, and
+            // AnnounceDismount answered it — for this dismount and for the ones that never come
+            // through here at all. One announcement, one shape, whatever emptied the seat.
         }
 
         /// <summary>
@@ -345,7 +407,14 @@ namespace SpaceGame.Agents
             if (interactor != null) ApplyMount(interactor);
         }
 
-        private void OnDismountedElsewhere(in NetArg arg, ulong sender) => ApplyDismount();
+        private void OnDismountedElsewhere(in NetArg arg, ulong sender)
+        {
+            // Where the server put them, when it said. Falling back to this mount's own dismount
+            // point is right for a mount that has not moved since — an ostrich somebody stepped
+            // off — and is all there was before the position travelled.
+            if (arg.B == DismountCarriesPosition) ApplyDismountAt(arg.P);
+            else ApplyDismount();
+        }
 
         // ─────────── Local application ───────────
 
@@ -368,6 +437,19 @@ namespace SpaceGame.Agents
             try
             {
                 mount.Dismount();
+            }
+            finally
+            {
+                applyingRemote = false;
+            }
+        }
+
+        private void ApplyDismountAt(Vector3 position)
+        {
+            applyingRemote = true;
+            try
+            {
+                mount.DismountAt(position);
             }
             finally
             {

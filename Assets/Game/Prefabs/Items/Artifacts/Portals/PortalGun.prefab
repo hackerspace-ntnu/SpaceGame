@@ -92,18 +92,20 @@ MonoBehaviour:
   surfaceMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  requireCleanFit: 0
   portalSize: {x: 3.45, y: 6.15}
+  portalLifetime: 20
   muzzle: {fileID: 2691560957918196826}
   portalPrefab: {fileID: 4199670190322545128, guid: d6fc2fe8528fc4cb490859a9665620d4, type: 3}
   projectilePrefab: {fileID: 2960875294640515459, guid: 0274e5c58817b4d748d90478375fdd21, type: 3}
   bodyRenderer: {fileID: 7645022471465218355}
-  orangeMaterialName: Mat_Emissive_Portal_Orange
-  blueMaterialName: Mat_Emissive_Portal_Blue
+  primaryMaterialName: Mat_Emissive_Portal_Orange
+  secondaryMaterialName: Mat_Emissive_Portal_Blue
   requiresCharge: 0
   chargePerShot: 0.22
   rechargePerSecond: 0.28
-  orangeColour: {r: 1, g: 0.54, b: 0.12, a: 1}
-  blueColour: {r: 0.18, g: 0.72, b: 1, a: 1}
+  primaryColour: {r: 1, g: 0.54, b: 0.12, a: 1}
+  secondaryColour: {r: 0.18, g: 0.72, b: 1, a: 1}
 --- !u!114 &4228520648812962165
 MonoBehaviour:
   m_ObjectHideFlags: 0

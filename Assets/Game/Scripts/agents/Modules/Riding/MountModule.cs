@@ -157,6 +157,16 @@ namespace SpaceGame.Agents
         /// it. Null on every ordinary dismount, which is the dismount point's business as before.
         /// </summary>
         private Vector3? dismountPositionOverride;
+
+        /// <summary>
+        /// Where the last dismount actually put the rider, and whether there has been one.
+        ///
+        /// Read by <see cref="MountNetworkSync"/> so the position can travel with the announcement
+        /// instead of every peer guessing at it. Survives the dismount that set it — the peers are
+        /// told a tick later, once the seat is observed to be empty.
+        /// </summary>
+        private Vector3 lastDismountPosition;
+        private bool hasLastDismountPosition;
         private bool playerRigidbodyWasKinematic;
         private bool playerRigidbodyHadGravity;
         private RigidbodyInterpolation playerRigidbodyInterpolation;
@@ -241,6 +251,12 @@ namespace SpaceGame.Agents
         public float MountedPitch => mountedPitch;
         public float OrbitPitch => orbitPitch;
         public Vector3 SeatOffset => seatOffset;
+
+        /// <summary>Where the last dismount left the rider. Only meaningful with <see cref="HasLastDismountPosition"/>.</summary>
+        public Vector3 LastDismountPosition => lastDismountPosition;
+
+        /// <summary>Whether a rider has ever been put down by this mount. False after AbandonRider, which places nobody.</summary>
+        public bool HasLastDismountPosition => hasLastDismountPosition;
 
         public override string ModuleDescription =>
             "Mount lifecycle + interaction surface + AI suppression. Drop this + SteerModule to make anything mountable.\n\n" +

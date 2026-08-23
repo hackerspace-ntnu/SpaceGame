@@ -113,8 +113,6 @@ namespace SpaceGame.Tests
             m.ExternallyPosed = true;
 
             // One large jump, of the kind a spawn, a save restore or a chunk migration produces.
-            // The clamp inside FollowBody exists for this: an unclamped delta winds the gait clock
-            // through whole cycles in a frame and throws every foot at once.
             Vector3 placed = m.transform.position + new Vector3(120f, 0f, -80f);
             m.transform.position = placed;
             Physics.SyncTransforms();
@@ -123,8 +121,26 @@ namespace SpaceGame.Tests
 
             Assert.AreEqual(placed, m.transform.position,
                 "the follower moved a body it was handed");
+
+            // The feet are of course left 140 m behind on the frame of the jump — that is not the
+            // question. The question is whether they CATCH UP, which they do by stepping, under the
+            // gait's own step-early rule. The clamp in FollowBody is what makes that possible: an
+            // unclamped delta would wind the clock through whole cycles in one frame and throw
+            // every foot at once, and the machine would arrive doing the splits.
+            //
+            // Standing still afterwards is the harder case deliberately. With no travel the clock
+            // does not turn at all, so recovery rests entirely on the step-early rule rather than
+            // on the machine happening to walk its feet back underneath itself.
+            for (int i = 0; i < 300; i++)
+            {
+                m.transform.position = placed;
+                Physics.SyncTransforms();
+                m.Step(1f / 60f);
+            }
+
             Assert.AreEqual(0, m.LastFrame.UnreachableLegs,
-                "a teleport threw the legs off their footholds");
+                "the legs never recovered from a teleport; a replicated machine would arrive at " +
+                "every chunk migration stuck in the splits");
         }
 
         [Test]

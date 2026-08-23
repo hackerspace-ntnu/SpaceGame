@@ -224,6 +224,14 @@ namespace SpaceGame.Agents
                 ? dismountPoint.position
                 : transform.position + transform.right * fallbackDismountDistance);
 
+            // Recorded so the dismount can be replicated as a PLACE rather than as a bare event.
+            // Every peer re-derives this position from its own copy of the mount, which is only the
+            // same answer while the two copies agree — and the one case that matters most is the
+            // one where they do not: a crashed aircraft is dismounted at ground the server probed
+            // for, and a peer that recomputes puts its pilot under the wreck instead.
+            lastDismountPosition = dismountPosition;
+            hasLastDismountPosition = true;
+
             // Strip any tilt the rider inherited from a tilted mount — keep only yaw so the
             // player stands upright after dismount.
             Quaternion dismountRotation = Quaternion.Euler(0f, rider.eulerAngles.y, 0f);
@@ -522,7 +530,17 @@ namespace SpaceGame.Agents
         {
             if (runtimeThirdPersonCamera == null)
                 return;
-            Destroy(runtimeThirdPersonCamera.gameObject);
+
+            // DestroyImmediate outside play mode, because plain Destroy there is an editor ERROR
+            // ("Destroy may not be called from edit mode") and the object survives regardless. That
+            // is not hypothetical tidiness: mounting spawns this camera from ApplyPerspective, so
+            // every EditMode test that mounts and dismounts something raises it, and an unhandled
+            // error log fails the test that provoked it whatever it was actually asserting.
+            if (Application.isPlaying)
+                Destroy(runtimeThirdPersonCamera.gameObject);
+            else
+                DestroyImmediate(runtimeThirdPersonCamera.gameObject);
+
             runtimeThirdPersonCamera = null;
         }
     }

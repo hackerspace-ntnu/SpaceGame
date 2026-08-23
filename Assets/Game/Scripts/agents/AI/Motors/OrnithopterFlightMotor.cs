@@ -7,6 +7,7 @@
 // pure functions, so it can be tested without a scene. This class is the shell that owns the
 // Rigidbody, translates rider input, and publishes state for the wing animator.
 using System;
+using SpaceGame.Locomotion;
 using SpaceGame.Vehicles.Ornithopter;
 using UnityEngine;
 
@@ -14,8 +15,8 @@ namespace SpaceGame.Agents
 {
     [DefaultExecutionOrder(-100)]
     [RequireComponent(typeof(Rigidbody))]
-    public class OrnithopterFlightMotor : MonoBehaviour, IMovementMotor, IRiderControllable,
-                                          IOrnithopterFlightState
+    public partial class OrnithopterFlightMotor : MonoBehaviour, IMovementMotor, IRiderControllable,
+                                                  IOrnithopterFlightState, IExternallyPosed
     {
         [Header("References")]
         [SerializeField] private Rigidbody body;
@@ -134,6 +135,10 @@ namespace SpaceGame.Agents
             // Snap the pose rather than going through MoveRotation: Launch runs on the render loop,
             // where MoveRotation would defer the attitude to the next physics step and render one
             // frame of the craft still pointing wherever it was instantiated.
+            //
+            // ApplyPose is a no-op while externally posed, which is the right answer on a machine
+            // that is only watching: the launch attitude it would write is a guess, and the real
+            // one is already on its way over the wire.
             ApplyPose(snap: true);
         }
 
@@ -142,7 +147,12 @@ namespace SpaceGame.Agents
         {
             flying = false;
             hasPendingInput = false;
-            if (body)
+
+            // Kinematic is the ordinary state here, not an exceptional one: NetAuthority freezes
+            // the body on every machine that does not own the craft, and PhysX refuses velocity
+            // writes to a frozen body with an error per call. The craft is not going anywhere on
+            // those machines anyway — the wire is moving it.
+            if (body && !body.isKinematic)
             {
                 body.linearVelocity = Vector3.zero;
                 body.angularVelocity = Vector3.zero;
@@ -188,7 +198,7 @@ namespace SpaceGame.Agents
 
         private void FixedUpdate()
         {
-            if (!flying || body == null)
+            if (!flying || body == null || ExternallyPosed)
                 return;
 
             float dt = Time.fixedDeltaTime;
@@ -211,7 +221,7 @@ namespace SpaceGame.Agents
         /// </summary>
         private void ApplyPose(bool snap = false)
         {
-            if (body == null) return;
+            if (body == null || ExternallyPosed) return;
 
             body.linearVelocity = OrnithopterFlightModel.VelocityOf(state);
 
@@ -254,7 +264,10 @@ namespace SpaceGame.Agents
         /// </summary>
         private void OnCollisionEnter(Collision collision)
         {
-            if (!flying || !PastLaunchGrace || collision.contactCount == 0)
+            // Externally posed means another machine is flying this craft and is the one that gets
+            // to say how the flight ended. A second opinion from here would report a touchdown the
+            // pilot never had, from a copy that is one interpolation step behind them.
+            if (!flying || ExternallyPosed || !PastLaunchGrace || collision.contactCount == 0)
                 return;
 
             ContactPoint contact = collision.GetContact(0);
@@ -287,8 +300,15 @@ namespace SpaceGame.Agents
             float closingSpeed = OrnithopterCrash.ClosingSpeed(velocity, normal);
             Vector3 ground = ResolveGroundPosition(point, normal);
 
+            var touchdown = new OrnithopterTouchdown(point, normal, closingSpeed, ground, wasImpact);
+
             EndFlight();
-            Landed?.Invoke(new OrnithopterTouchdown(point, normal, closingSpeed, ground, wasImpact));
+
+            // The wire first, then the listeners. Only the machine simulating the flight can see it
+            // end, and only the server may decide what that cost and tear the craft down — so the
+            // report goes out before anything local starts unwinding the flight it describes.
+            PublishTouchdown(touchdown);
+            Landed?.Invoke(touchdown);
         }
 
         /// <summary>
@@ -345,7 +365,21 @@ namespace SpaceGame.Agents
             return found;
         }
 
-        public void ForceStop() => EndFlight();
+        /// <summary>
+        /// The AI channel's "stop what you are doing". For a ground motor that means dropping the
+        /// nav destination; for this one it must mean nothing at all while the craft is airborne.
+        ///
+        /// MountModule calls it on every mount, so a rider climbing aboard a craft that is already
+        /// flying — the wing pack's own launch order, a save restored mid-flight, a peer replaying
+        /// the mount a moment late — would otherwise switch the flight model off underneath them
+        /// and turn the aircraft into a falling prop.
+        /// </summary>
+        public void ForceStop()
+        {
+            if (flying) return;
+
+            EndFlight();
+        }
 
         private void OnValidate()
         {

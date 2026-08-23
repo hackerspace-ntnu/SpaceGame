@@ -46,7 +46,15 @@ namespace SpaceGame.Portals
 
         private readonly HashSet<Portal> insidePortals = new HashSet<Portal>();
         private readonly List<Collider> ownColliders = new List<Collider>();
-        private readonly Dictionary<Portal, Collider> ignoredWalls = new Dictionary<Portal, Collider>();
+
+        /// <summary>
+        /// Which walls each aperture has this object being let through, so they can be put back.
+        ///
+        /// A list per portal, not one collider: a wall in a real level is several colliders and an
+        /// aperture is routinely cut across the seam between them. See Portal.HostSurfaces.
+        /// </summary>
+        private readonly Dictionary<Portal, List<Collider>> ignoredWalls =
+            new Dictionary<Portal, List<Collider>>();
 
         private GameObject clone;
         private Renderer[] cloneRenderers;
@@ -160,8 +168,9 @@ namespace SpaceGame.Portals
             // Restore every wall this object was allowed through. A traveller
             // destroyed or pooled mid-traversal would otherwise leave the
             // ignore in place for the next user of that collider pair.
-            foreach (KeyValuePair<Portal, Collider> pair in ignoredWalls)
-                SetWallIgnored(pair.Value, false);
+            foreach (KeyValuePair<Portal, List<Collider>> pair in ignoredWalls)
+                foreach (Collider wall in pair.Value)
+                    SetWallIgnored(wall, false);
 
             ignoredWalls.Clear();
             insidePortals.Clear();
@@ -175,10 +184,12 @@ namespace SpaceGame.Portals
         {
             if (portal == null || !insidePortals.Add(portal)) return;
 
-            if (portal.HostSurface != null && !ignoredWalls.ContainsKey(portal))
+            if (!ignoredWalls.ContainsKey(portal))
             {
-                ignoredWalls[portal] = portal.HostSurface;
-                SetWallIgnored(portal.HostSurface, true);
+                var walls = new List<Collider>(portal.HostSurfaces);
+                ignoredWalls[portal] = walls;
+
+                foreach (Collider wall in walls) SetWallIgnored(wall, true);
             }
 
             EnsureClone();
@@ -188,16 +199,15 @@ namespace SpaceGame.Portals
         {
             if (portal == null || !insidePortals.Remove(portal)) return;
 
-            if (ignoredWalls.TryGetValue(portal, out Collider wall))
+            if (ignoredWalls.TryGetValue(portal, out List<Collider> walls))
             {
-                // Only restore if no OTHER portal still wants this same wall
-                // passable — two apertures on one long wall is a normal case.
-                bool stillNeeded = false;
-                foreach (KeyValuePair<Portal, Collider> pair in ignoredWalls)
-                    if (pair.Key != portal && pair.Value == wall) stillNeeded = true;
-
-                if (!stillNeeded) SetWallIgnored(wall, false);
                 ignoredWalls.Remove(portal);
+
+                // Only restore a wall no OTHER portal still wants passable — two apertures on one
+                // long wall is a normal case, and one of them closing must not re-solidify the
+                // piece somebody is standing in the middle of.
+                foreach (Collider wall in walls)
+                    if (!StillNeeded(wall)) SetWallIgnored(wall, false);
             }
 
             if (insidePortals.Count == 0)
@@ -205,6 +215,14 @@ namespace SpaceGame.Portals
                 DestroyClone();
                 ClearSlice(ownRenderers);
             }
+        }
+
+        private bool StillNeeded(Collider wall)
+        {
+            foreach (KeyValuePair<Portal, List<Collider>> pair in ignoredWalls)
+                if (pair.Value.Contains(wall)) return true;
+
+            return false;
         }
 
         private void SetWallIgnored(Collider wall, bool ignored)

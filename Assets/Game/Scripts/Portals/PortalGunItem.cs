@@ -45,6 +45,9 @@ namespace SpaceGame.Items
         [Tooltip("Size of the opening, in metres. Big enough to run through without lining yourself up, and to drive something through.")]
         [SerializeField] private Vector2 portalSize = new Vector2(2.4f, 3.4f);
 
+        [Tooltip("Seconds an aperture stays open before it irises shut. Both barrels. 0 would mean forever, which this gun does not offer — a portal you cannot get rid of is a hole in the level.")]
+        [SerializeField] private float portalLifetime = 20f;
+
         [Header("Parts")]
         [Tooltip("Where the blob leaves the horn. Falls back to this transform.")]
         [SerializeField] private Transform muzzle;
@@ -70,9 +73,9 @@ namespace SpaceGame.Items
         [SerializeField] private float rechargePerSecond = 0.28f;
 
         [Header("Colour")]
-        [Tooltip("Both apertures are yellow, told apart by value rather than hue.")]
-        [SerializeField] private Color primaryColour = new Color(1.00f, 0.76f, 0.10f);
-        [SerializeField] private Color secondaryColour = new Color(1.00f, 0.91f, 0.54f);
+        [Tooltip("The two apertures, told apart by hue so a player can identify either end from across a room — including through the other one.")]
+        [SerializeField] private Color primaryColour = new Color(1.00f, 0.54f, 0.12f);
+        [SerializeField] private Color secondaryColour = new Color(0.18f, 0.72f, 1.00f);
 
         private static readonly int FillId = Shader.PropertyToID("_Fill");
         private static readonly int AgitationId = Shader.PropertyToID("_Agitation");
@@ -136,6 +139,28 @@ namespace SpaceGame.Items
         public override void OnEquipped(GameObject holder)
         {
             base.OnEquipped(holder);
+            BindAlternateFire();
+        }
+
+        /// <summary>
+        /// Listen for the second trigger, if this machine is entitled to and has not already.
+        ///
+        /// Called from OnEquipped and again from Update, and the retry is the point. Equipping is
+        /// not one moment: a player's inventory is restored, and their hotbar selection re-applied,
+        /// on the frame their NetworkObject arrives — which on a client can be a frame BEFORE
+        /// ownership is settled. <see cref="Network.Owns"/> answers false for that one frame, and a
+        /// one-shot subscription taken there is simply never taken at all. The symptom is the whole
+        /// point of this method: the left trigger works, because it rides EquipmentController's own
+        /// input, and the right one silently does nothing — so the gun can only ever have one
+        /// aperture open.
+        /// </summary>
+        private void BindAlternateFire()
+        {
+            // Unity fake-null: a manager destroyed with the old player body reads as null here,
+            // which is exactly right — the subscription died with it and has to be retaken.
+            if (subscribedInput != null) return;
+
+            GameObject holder = owner;
 
             // Only the machine that owns this player listens for a trigger. A
             // peer's copy of a remote player equips the same prefab, and a peer
@@ -174,6 +199,8 @@ namespace SpaceGame.Items
 
         private void Update()
         {
+            BindAlternateFire();
+
             for (int i = 0; i < 2; i++)
             {
                 if (requiresCharge)
@@ -206,11 +233,12 @@ namespace SpaceGame.Items
         {
             if (owner == null) return;
 
-            // A = -1 deliberately: EquipmentController's server-side handler
-            // only checks the slot when it is non-negative, and this path has no
-            // hotbar index to offer. The item identity is already settled by
-            // whatever the player is holding when the message lands.
-            var arg = new NetArg { A = -1, B = PortalPair.Secondary };
+            // A carries the hotbar slot, exactly as EquipmentController's own press does. The
+            // server refuses a use whose slot is no longer the selected one, and that guard is the
+            // difference between the second barrel taking the same path as the first and taking a
+            // parallel one that is right most of the time: a shot sent as the player scrolls off
+            // the gun would otherwise be presented on every peer by whatever is in their hand now.
+            var arg = new NetArg { A = SelectedSlot(), B = PortalPair.Secondary };
             Aim(ref arg, PortalPair.Secondary);
 
             // Presented here and now, so the trigger never waits for the wire.
@@ -219,6 +247,25 @@ namespace SpaceGame.Items
             // The server relays it to the peers; its own handler runs TryUse,
             // which this item does not use, and then broadcasts ItemUsed.
             this.NetToServer(NetMsg.UseItem, arg);
+        }
+
+        /// <summary>
+        /// The hotbar slot this gun is being held from, or -1 when there is no telling.
+        ///
+        /// -1 is the "do not check" value on the wire, which is the right answer for an item that
+        /// is not in a hotbar at all rather than a way of skipping the check.
+        ///
+        /// Resolved with the same GetComponent PlayerController uses, so the number sent is read
+        /// off the very object the server's guard compares it against. A different route to "an
+        /// inventory" could find the other one on a prefab that carries both, and a slot check
+        /// against the wrong inventory rejects every shot.
+        /// </summary>
+        private int SelectedSlot()
+        {
+            if (owner == null) return -1;
+
+            var inventory = owner.GetComponent<IPlayerInventory>();
+            return inventory?.SelectedSlotIndex ?? -1;
         }
 
         /// <summary>
@@ -315,8 +362,12 @@ namespace SpaceGame.Items
             PortalPair pair = PortalPair.Of(holder);
             if (pair == null) return;
 
+            // The lifetime is a property of the gun, not of the message: every machine opens its
+            // own copy of the aperture from the same placement and starts the same clock, so the
+            // two expire together without a second of it going over the wire.
             pair.Open(index, portalPrefab, position, rotation, host, portalSize,
-                      index == PortalPair.Primary ? primaryColour : secondaryColour);
+                      index == PortalPair.Primary ? primaryColour : secondaryColour,
+                      portalLifetime);
         }
 
         // ── Presentation helpers ───────────────────────────────────────────────

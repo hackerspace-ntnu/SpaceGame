@@ -58,6 +58,21 @@ namespace SpaceGame.Core.Persistence
             public Quaternion rotation;
             public Vector2 size;
             public Color colour;
+
+            /// <summary>
+            /// Seconds this aperture had left when the world was written, or 0 for one that never
+            /// expires.
+            ///
+            /// Remaining rather than a start time, because a save file has no clock the next
+            /// session shares — <c>Time.time</c> restarts at zero and the wall clock is not what
+            /// the aperture was counting. Storing what is LEFT means a portal fired ten seconds
+            /// before a save comes back with ten seconds on it, whenever that turns out to be.
+            ///
+            /// Absent from records written before portals expired at all, where it deserialises to
+            /// 0 — which is the same value a scene-placed aperture writes, and means the same
+            /// thing: this one does not run out.
+            /// </summary>
+            public float remaining;
         }
 
         public struct State
@@ -159,6 +174,14 @@ namespace SpaceGame.Core.Persistence
                 rotation = portal.transform.rotation,
                 size = portal.Size,
                 colour = portal.Colour,
+
+                // Floored just above zero rather than clamped to it: zero is the "never expires"
+                // value, so an aperture with a hundredth of a second left must not come back
+                // immortal. It shuts on the frame after the load instead, which is what it was
+                // about to do anyway.
+                remaining = portal.Lifetime <= 0f
+                    ? 0f
+                    : Mathf.Max(0.01f, portal.Remaining),
             };
         }
 
@@ -167,7 +190,8 @@ namespace SpaceGame.Core.Persistence
             if (!state.open) return;
 
             pair.Open(index, prefab, state.position, state.rotation,
-                      FindHost(state.position, state.rotation), state.size, state.colour);
+                      FindHost(state.position, state.rotation), state.size, state.colour,
+                      state.remaining);
         }
 
         /// <summary>

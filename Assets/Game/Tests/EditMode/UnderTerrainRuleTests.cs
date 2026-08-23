@@ -141,6 +141,48 @@ namespace SpaceGame.Tests
             Assert.AreEqual(UnderTerrainAction.None, Shipped().Evaluate(3f, false, 0f).Action);
         }
 
+        // ── A park that is never going to end ─────────────────────────────────────────
+        //
+        // Parking below the floor assumes the chunk under the body is on its way. When the body
+        // is somewhere the streamer owes nothing — off the grid, or over a chunk authored with no
+        // terrain — that chunk never comes, and "hold until the ground loads" is a body frozen in
+        // the void for the rest of the session. That is not a hypothetical: a wing-pack launch
+        // put a pilot at the world origin, over a chunk with hasTerrain off, and the guard held
+        // them there.
+
+        [Test]
+        public void BelowTheFloorWithTheParkExpired_IsRecoveredRatherThanHeldForever()
+        {
+            var verdict = Shipped().Evaluate(bodyY: -600f, hasTerrain: false, terrainY: 0f,
+                                             groundExpected: false, parkExpired: true);
+
+            Assert.AreEqual(UnderTerrainAction.Recover, verdict.Action);
+        }
+
+        [Test]
+        public void BelowTheFloorBeforeTheParkExpires_IsStillParked()
+        {
+            // The wait is the first answer and usually the whole answer — a chunk that is genuinely
+            // loading arrives in well under the timeout, and moving the body would take it away
+            // from the only place that can rescue it.
+            var verdict = Shipped().Evaluate(bodyY: -600f, hasTerrain: false, terrainY: 0f,
+                                             groundExpected: false, parkExpired: false);
+
+            Assert.AreEqual(UnderTerrainAction.Park, verdict.Action);
+        }
+
+        [Test]
+        public void AnExpiredParkCannotOutrankTerrainThatHasSinceArrived()
+        {
+            // The ordinary way a park ends: the ground turned up. A lift is always the better
+            // answer, so the expiry must not steal that case and teleport a body that can simply
+            // be put back on the surface it fell through.
+            var verdict = Shipped().Evaluate(bodyY: -600f, hasTerrain: true, terrainY: 100f,
+                                             groundExpected: false, parkExpired: true);
+
+            Assert.AreEqual(UnderTerrainAction.Lift, verdict.Action);
+        }
+
         [Test]
         public void NegativeTuningIsClamped_SoTheGuardCannotInvertIntoTheBugItCatches()
         {

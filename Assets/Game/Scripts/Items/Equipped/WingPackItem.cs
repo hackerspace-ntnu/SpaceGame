@@ -156,9 +156,17 @@ namespace SpaceGame.Items
             if (Network.IsNetworked && pilot.TryGetComponent(out NetworkObject pilotNetObj))
                 pilotOwner = pilotNetObj.OwnerClientId;
 
+            // The launch pose is worked out BEFORE the craft exists, from the prefab, because the
+            // pose handed to Spawn is the one that travels: it is what goes into the spawn message
+            // and therefore what every other machine builds its copy at. Moving the craft after
+            // spawning it — which is what this did — moved the server's copy alone, and since the
+            // craft is owner-authoritative the pilot's machine then published its own, uncorrected
+            // pose straight back over it.
+            Vector3 launchPosition = CraftPositionFor(player.position, facing);
+
             // Ownership goes to the pilot so their local flight input drives the craft and replicates
             // outward, rather than the server overwriting it every tick.
-            craft = GameServices.World.Spawn(ornithopterPrefab, player.position, facing, pilotOwner);
+            craft = GameServices.World.Spawn(ornithopterPrefab, launchPosition, facing, pilotOwner);
             if (craft == null)
                 return false;
 
@@ -173,34 +181,87 @@ namespace SpaceGame.Items
                 return false;
             }
 
-            // Place the craft so its SEAT lands where the player already is, rather than its origin.
-            // Mounting parents the player to the seat at identity, so without this the player is
-            // teleported by however far the cradle sits from the prefab root.
-            Transform seat = craftMount.ActiveSeatPoint;
-            if (seat != null)
-            {
-                Vector3 seatOffset = seat.position - craft.transform.position;
-                craft.transform.position = player.position + Vector3.up * launchLift - seatOffset;
-            }
-            else
-            {
-                craft.transform.position = player.position + Vector3.up * launchLift;
-            }
-
             craftMotor.Landed += HandleLanded;
             craftMount.Dismounted += HandleDismounted;
 
             Interactor interactor = pilot.GetComponentInChildren<Interactor>(true);
-            if (interactor == null || !craftMount.TryMount(interactor, null))
+            if (interactor == null || !SeatPilot(interactor))
             {
                 Debug.LogError("WingPackItem: could not mount the player onto the craft.", this);
                 ReleaseCraft(dismountFirst: false);
                 return false;
             }
 
-            craftMotor.Launch(forward, carriedSpeed);
+            // Outward to every machine rather than applied here, because here is not where this
+            // craft is flown. Ownership went to the pilot two lines up; NetAuthority has already
+            // switched this copy to following the wire and frozen its body, so a launch applied
+            // locally would be a launch nothing ever integrates. See
+            // OrnithopterFlightMotor.Replication.cs.
+            craftMotor.NetworkLaunch(forward, carriedSpeed);
             SetHeldVisible(false);
             return true;
+        }
+
+        /// <summary>
+        /// Where the craft has to be for its SEAT to land on the pilot, plus the lift that keeps the
+        /// wings from opening through the ledge just stepped off.
+        ///
+        /// Measured off the PREFAB rather than off a spawned instance, so it can be known before the
+        /// craft exists — which is the whole point, since the spawn pose is the only one that
+        /// replicates. Mounting seats the rider at the seat marker, so without this the pilot is
+        /// teleported by however far the cradle sits from the prefab root the moment they board.
+        /// </summary>
+        private Vector3 CraftPositionFor(Vector3 pilotPosition, Quaternion facing) =>
+            LaunchPosition(ornithopterPrefab, pilotPosition, facing, launchLift);
+
+        /// <summary>
+        /// Strap the pilot in, on every machine rather than just this one.
+        ///
+        /// Through <see cref="MountNetworkSync"/> when the craft has one, for the reason that class
+        /// documents at length: a seat taken by calling <c>MountModule.TryMount</c> directly is
+        /// taken on the server and on nothing else. Nobody is told, so no peer draws the pilot in
+        /// the cradle, and ownership of the craft is never handed over — leaving the pilot in a
+        /// seat they cannot steer while everyone else watches them stand in the sand.
+        ///
+        /// It survived that way because the state channel repaired it a frame later. Repairing a
+        /// seat is what that channel is for; being the only way anybody ever hears about a mount
+        /// is not.
+        /// </summary>
+        private bool SeatPilot(Interactor interactor)
+        {
+            if (craft.TryGetComponent(out MountNetworkSync sync))
+                return sync.ServerMount(interactor);
+
+            return craftMount.TryMount(interactor, null);
+        }
+
+        /// <summary>
+        /// The pose maths, as a static so it can be checked without spawning anything. Answers the
+        /// lifted pilot position unchanged for a craft whose seat cannot be resolved, which is the
+        /// old behaviour and puts the craft's ORIGIN on the pilot — visibly wrong, but not a
+        /// teleport, and only reachable by a prefab with no seat marker.
+        /// </summary>
+        public static Vector3 LaunchPosition(GameObject craftPrefab, Vector3 pilotPosition,
+                                             Quaternion facing, float lift)
+        {
+            Vector3 lifted = pilotPosition + Vector3.up * lift;
+
+            if (craftPrefab == null)
+                return lifted;
+
+            var prefabMount = craftPrefab.GetComponent<MountModule>();
+            Transform seat = prefabMount != null ? prefabMount.ActiveSeatPoint : null;
+            if (seat == null)
+                return lifted;
+
+            // The seat marker in the prefab root's own space, then turned to face the launch
+            // heading — the craft is spawned rotated, and an offset measured in the prefab's frame
+            // has to be rotated with it or the correction points the wrong way for every heading
+            // but north.
+            Vector3 seatLocal = craftPrefab.transform.InverseTransformPoint(
+                seat.TransformPoint(prefabMount.SeatOffset));
+
+            return lifted - facing * seatLocal;
         }
 
         /// <summary>
@@ -252,11 +313,21 @@ namespace SpaceGame.Items
         {
             int damage = ImpactDamage(touchdown);
 
-            ReleaseCraft(dismountFirst: true, standAt: touchdown.GroundPosition);
+            // Two machines see this landing and they have different jobs. The pilot's own machine
+            // flew the craft in and raised it first-hand; the server heard about it a moment later
+            // (OrnithopterFlightMotor.Replication.cs) and is the only one allowed to act on it.
+            //
+            // The pilot's side stops flying and gets its pack back, and no more: dismounting there
+            // would take a rider out of a seat the server still has them in, and MountNetworkSync's
+            // state channel would put them straight back. Charging them for the crash there would
+            // bill the same arrival twice, once locally and once when the server prices it.
+            bool authoritative = craft == null || Network.Simulates(craft.transform);
 
-            // NetDamage rather than the pilot's HealthComponent: this runs on whichever machine was
-            // simulating the flight, and only the server is allowed to decide what a hit did.
-            if (damage > 0 && owner != null)
+            ReleaseCraft(dismountFirst: authoritative, standAt: touchdown.GroundPosition);
+
+            // NetDamage rather than the pilot's HealthComponent: only the server is allowed to
+            // decide what a hit did.
+            if (authoritative && damage > 0 && owner != null)
                 NetDamage.Apply(owner, damage);
         }
 

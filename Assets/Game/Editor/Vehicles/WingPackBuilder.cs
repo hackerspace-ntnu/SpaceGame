@@ -68,6 +68,16 @@ namespace SpaceGame.EditorTools
             SetInt(so, "maxUses", -1);
             so.ApplyModifiedPropertiesWithoutUndo();
 
+            // True size, on the pack and in the hand alike. 1.26 m is the biggest the rack can
+            // carry: at the folded craft's 0.405 : 0.95 proportions its width comes to 0.537 m —
+            // exactly the rack's six columns, the hard limit — while the length rides the rack's
+            // overhang rule (PackOverhang), spanning the full 0.72 m panel and hanging 0.27 m
+            // past each end. Without a grip it would measure at the 0.30 m no-grip default.
+            ItemGrip grip = root.AddComponent<ItemGrip>();
+            var gripSo = new SerializedObject(grip);
+            SetFloat(gripSo, "holdSize", 1.26f);
+            gripSo.ApplyModifiedPropertiesWithoutUndo();
+
             AddIfPresent(root, "DropItemPhysics");
 
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PrefabPath));

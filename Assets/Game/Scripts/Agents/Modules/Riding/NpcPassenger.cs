@@ -11,9 +11,17 @@
 // the saddle with its own drivers switched off, along for the journey. Half the agents, no
 // arbitration between a rider's AI and its mount's, and the rider is still a full NPC the moment it
 // gets off.
+//
+// Online, only the authority seats anyone. Netcode then carries the whole arrangement by itself:
+// it replicates the rider's spawn, it replicates the parenting, and NetAuthority switches the
+// arriving copy's brain off on the machines that are only watching — which is the same suppression
+// this class applies by hand where it is in charge. So there is no message to send and nothing for
+// a late joiner to miss, and the one rule that has to hold is that a client never seats anybody.
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
+using SpaceGame.Core;
 
 namespace SpaceGame.Agents
 {
@@ -62,24 +70,34 @@ namespace SpaceGame.Agents
 
         private void Start()
         {
-            if (spawnOnStart && riderPrefab != null && Rider == null)
-                SpawnRider();
+            if (spawnOnStart) SpawnRider();
         }
 
-        /// <summary>Instantiate <see cref="riderPrefab"/> and seat it.</summary>
+        /// <summary>
+        /// Instantiate <see cref="riderPrefab"/>, spawn it for every peer, and seat it.
+        ///
+        /// Authority only, and answers null elsewhere: a client that made its own rider would be
+        /// the only machine that could see it, sitting in a saddle every other player sees filled
+        /// by the real one.
+        /// </summary>
         public GameObject SpawnRider()
         {
-            if (riderPrefab == null) return null;
+            if (riderPrefab == null || Rider != null) return null;
+            if (!Network.Simulates(this)) return null;
 
-            GameObject rider = Instantiate(riderPrefab, SeatTransform.position, SeatTransform.rotation);
+            (Vector3 position, Quaternion rotation) = SeatPose(null);
+
+            GameObject rider = NpcSpawn.Create(riderPrefab, position, rotation, this);
             ownsRider = true;
             SeatInternal(rider);
             return rider;
         }
 
-        /// <summary>Put an NPC that already exists into the saddle.</summary>
+        /// <summary>Put an NPC that already exists into the saddle. Authority only, as above.</summary>
         public void Seat(GameObject rider)
         {
+            if (!Network.Simulates(this)) return;
+
             ownsRider = false;
             SeatInternal(rider);
         }
@@ -91,10 +109,67 @@ namespace SpaceGame.Agents
             Rider = rider;
 
             Suppress(rider);
+            Attach(rider.transform);
+        }
 
-            rider.transform.SetParent(SeatTransform, worldPositionStays: false);
-            rider.transform.localPosition = seatOffset;
-            rider.transform.localRotation = Quaternion.Euler(seatEuler);
+        /// <summary>
+        /// Park the rider in the saddle so the mount carries them.
+        ///
+        /// <para>
+        /// Netcode will not let a spawned <see cref="NetworkObject"/> sit under a plain transform,
+        /// and <see cref="seatPoint"/> is a bare child marker — so the networked path parents to
+        /// the mount's own NetworkObject, the only legal parent, and folds the marker's offset into
+        /// its local space instead. That is the same fold <c>MountModule.ParentRiderToMount</c>
+        /// does for a human rider on this very saddle; the two share no code because a player rider
+        /// and an NPC passenger share no other requirement.
+        /// </para>
+        /// </summary>
+        private void Attach(Transform rider)
+        {
+            NetworkObject riderNetObj = rider.GetComponent<NetworkObject>();
+            NetworkObject mountNetObj = GetComponentInParent<NetworkObject>();
+
+            if (riderNetObj != null && riderNetObj.IsSpawned &&
+                mountNetObj != null && mountNetObj.IsSpawned &&
+                riderNetObj.TrySetParent(mountNetObj, worldPositionStays: true))
+            {
+                (Vector3 position, Quaternion rotation) = SeatPose(mountNetObj.transform);
+                rider.SetLocalPositionAndRotation(position, rotation);
+                return;
+            }
+
+            // Nothing here is spawned, so netcode has no arrangement to replicate and its parenting
+            // rules are in the way rather than protecting anything: an unspawned NetworkObject
+            // refuses a reparent outright and silently puts the parent back, which left the rider
+            // standing in the air at the spot where the mount was born while the mount walked off.
+            // Clearing the flag is how you say this object's parenting is not netcode's business.
+            if (riderNetObj != null) riderNetObj.AutoObjectParentSync = false;
+
+            rider.SetParent(SeatTransform, worldPositionStays: false);
+            rider.SetLocalPositionAndRotation(seatOffset, Quaternion.Euler(seatEuler));
+        }
+
+        /// <summary>The seat pose, in <paramref name="space"/> or in world space when that is null.</summary>
+        private (Vector3 position, Quaternion rotation) SeatPose(Transform space) =>
+            SeatPoseIn(space, SeatTransform, seatOffset, seatEuler);
+
+        /// <summary>
+        /// Where a rider sits: <paramref name="offset"/> from <paramref name="seat"/>, read in
+        /// <paramref name="space"/> — the mount's root for the netcode path, world space (null) for
+        /// everything else.
+        ///
+        /// The two answers describe the same point in the world. Getting that fold wrong is how a
+        /// mounted rider ends up floating above the saddle on every machine but one.
+        /// </summary>
+        public static (Vector3 position, Quaternion rotation) SeatPoseIn(
+            Transform space, Transform seat, Vector3 offset, Vector3 euler)
+        {
+            Vector3 position = seat.TransformPoint(offset);
+            Quaternion rotation = seat.rotation * Quaternion.Euler(euler);
+
+            return space == null
+                ? (position, rotation)
+                : (space.InverseTransformPoint(position), Quaternion.Inverse(space.rotation) * rotation);
         }
 
         /// <summary>
@@ -111,13 +186,14 @@ namespace SpaceGame.Agents
         public GameObject Dismount()
         {
             if (Rider == null) return null;
+            if (!Network.Simulates(this)) return null;
 
             GameObject rider = Rider;
 
             if (!gameObject.activeInHierarchy)
             {
-                // Nothing safe to do. Leave them seated; whatever is destroying the mount takes the
-                // rider with it, which is the correct outcome for a mount being unloaded.
+                // Nothing safe to do. Leave them seated; OnDestroy takes the rider down with the
+                // mount, which is the correct outcome for a mount being unloaded.
                 return null;
             }
 
@@ -128,7 +204,7 @@ namespace SpaceGame.Agents
             if (NavMesh.SamplePosition(beside, out NavMeshHit hit, dismountSampleDistance, NavMesh.AllAreas))
                 beside = hit.position;
 
-            rider.transform.SetParent(null, worldPositionStays: true);
+            Detach(rider.transform);
             rider.transform.SetPositionAndRotation(beside, Quaternion.LookRotation(transform.forward, Vector3.up));
 
             Restore(rider);
@@ -138,12 +214,34 @@ namespace SpaceGame.Agents
             return rider;
         }
 
+        // Mirror of Attach: a spawned NetworkObject is detached through netcode so the change
+        // reaches everyone, rather than by a raw SetParent(null) that only happens here.
+        private static void Detach(Transform rider)
+        {
+            NetworkObject riderNetObj = rider.GetComponent<NetworkObject>();
+            if (riderNetObj != null && riderNetObj.IsSpawned && riderNetObj.TryRemoveParent(true))
+                return;
+
+            rider.SetParent(null, worldPositionStays: true);
+        }
+
         private void OnDestroy()
         {
             // A rider this passenger created is its responsibility. One it was handed is not — that
             // NPC belongs to whoever seated it and may well be meant to outlive the animal.
-            if (ownsRider && Rider != null)
-                Destroy(Rider);
+            if (!ownsRider || Rider == null) return;
+
+            // Netcode lifts a child NetworkObject up to the scene root when the parent it is under
+            // despawns, so by the time this runs the rider is no longer destroyed along with the
+            // mount — and a spawned one has to be despawned rather than destroyed, or every client
+            // is left with its own copy standing in the desert.
+            if (Network.Server && Rider.TryGetComponent(out NetworkObject riderNetObj) && riderNetObj.IsSpawned)
+            {
+                riderNetObj.Despawn(destroy: true);
+                return;
+            }
+
+            Destroy(Rider);
         }
 
         // ── Suppression ──────────────────────────────────────────────────────────

@@ -394,6 +394,19 @@ namespace SpaceGame.Core
         // the player body is owner-authoritative, so a server-side push is overwritten within a
         // tick. Successor to the retired RopeTug (62) shape.
         public const ushort Flung = 79; // server → everyone, on the VICTIM's relay
+
+        // Something went through this player's portal pair and closeOnTraversal shut it — on the
+        // machine that moved the traveller. Traversal is detected independently per machine from
+        // local physics, and a peer watching an interpolated remote body can miss the plane
+        // crossing entirely (the exit need not even be behind the entry's plane), which left the
+        // pair standing on that machine for the rest of its lifetime while it was gone everywhere
+        // else — and walkable, since that peer owns their own body.
+        //
+        // Sent by the machine that OWNS the traveller: every machine may detect a crossing
+        // cosmetically, but only the owner's detection actually moved the body. No payload — the
+        // pair only ever holds two apertures and a traversal shuts both.
+        public const ushort PortalsUsed = 80; // traveller's owner → server, on the SHOOTER's relay
+        public const ushort PortalsShut = 81; // server → everyone else, on the SHOOTER's relay
     }
 
     /// <summary>What a <see cref="NetMsg.LassoRope"/> message is saying. Append only.</summary>

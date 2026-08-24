@@ -23,8 +23,16 @@
 //
 // WHAT MAY NOT BE WRITTEN TO. arg.A is the hotbar slot index on the press AND on every hold tick,
 // and the server reads it back as its stale-slot guard — a gun that used it for its own flags
-// would be silently refused for every slot but the first two, on the server only. The barrel and
-// the grow flag are packed into arg.B, which is free.
+// would be silently refused for every slot but the first two, on the server only. The gun's own
+// state is packed into the upper bits of arg.B (the barrel, the grow flag, and the dab count the
+// owner paid for), whose low bit EquipmentController owns on hold ticks as the active flag.
+//
+// THE OWNER PAYS FOR THE PAINT, alone. The tank is simulated per machine off local frame times —
+// gun instances are created at different moments, a late joiner's copy spawns full — so two
+// machines asking their own tank "can I afford this dab" disagree exactly when it matters, near
+// empty, and then disagree forever about which dabs exist. The owner's verdict travels in the
+// message and every machine applies it; the local tanks are debited identically and serve only
+// the gauge on the gun.
 //
 // Authority is Owner because a portal shot changes nothing the server arbitrates — no damage, no
 // spawn, no contested resource — and routing it through the server would put a round trip inside
@@ -255,22 +263,35 @@ namespace SpaceGame.Items
             barrel >= 0 && barrel < charge.Length ? charge[barrel] : 0f;
 
         /// <summary>
-        /// Pay for <paramref name="dabs"/> blobs out of <paramref name="barrel"/>, or refuse.
+        /// Could <paramref name="barrel"/> pay for <paramref name="dabs"/> blobs right now?
         ///
         /// All or nothing. Half a stroke is no easier to reason about than none of it, and a
         /// partial payment would let a fast sweep — which is laid as several interpolated blobs —
         /// buy area at a discount.
+        ///
+        /// Asked on the OWNER only, from OnRequestUse/OnRequestHold, and the answer travels in the
+        /// message — see the file header for why no other machine's tank may be consulted.
         /// </summary>
-        public bool TrySpend(int barrel, int dabs)
+        public bool CanSpend(int barrel, int dabs)
         {
             if (barrel < 0 || barrel >= charge.Length) return false;
+            return charge[barrel] >= paintPerDab * Mathf.Max(dabs, 1);
+        }
 
-            float cost = paintPerDab * Mathf.Max(dabs, 1);
-            if (charge[barrel] < cost) return false;
+        /// <summary>
+        /// Deduct <paramref name="dabs"/> blobs from <paramref name="barrel"/>, clamping at empty.
+        ///
+        /// Unconditional: it runs on every machine for every dab the owner paid for, so the gauges
+        /// track. The clamp is what absorbs the drift a peer's tank accumulates from its own frame
+        /// times — the shape is already settled by the owner's verdict, so a peer's gauge reading
+        /// a hair low costs nothing.
+        /// </summary>
+        public void Spend(int barrel, int dabs)
+        {
+            if (barrel < 0 || barrel >= charge.Length) return;
 
-            charge[barrel] -= cost;
+            charge[barrel] = Mathf.Max(0f, charge[barrel] - paintPerDab * Mathf.Max(dabs, 1));
             agitation[barrel] = 1.6f;
-            return true;
         }
 
         // ── Owner side: aim ────────────────────────────────────────────────────
@@ -298,19 +319,42 @@ namespace SpaceGame.Items
                                 jetFlightTime, ~0, out RaycastHit look, out float _))
                 barrel = pair.ChooseSprayBarrel(look.point, growMargin, out grow);
 
-            arg.B = PackBarrel(barrel, grow);
             AimPaint(ref arg);
+
+            // The press is always a single blob — Present seeds the stroke at its own landing
+            // point, so there is no distance to interpolate over. Whether that blob is AFFORDABLE
+            // is decided here and travels with the message; see the file header.
+            int paid = arg.HasOrientation && CanSpend(barrel, 1) ? 1 : 0;
+
+            arg.B = PackBarrel(barrel, grow, paid);
 
             // Only a spray that opens a NEW aperture moves the cursor on. Topping up the one you
             // are already looking at must not burn the other barrel — see PortalPair.PeekBarrel.
             if (!grow) pair?.CommitBarrel(barrel);
         }
 
-        /// <summary>Owner side, every tick: where this instant's paint is going.</summary>
+        /// <summary>
+        /// Owner side, every tick: where this instant's paint is going, and how many dabs of it
+        /// this machine's tank — the only tank with any authority — is paying for.
+        /// </summary>
         public override void OnRequestHold(ref NetArg arg, bool active)
         {
             if (!active) return;
             AimPaint(ref arg);
+
+            // Paint that stuck to nothing costs nothing; the miss is the message.
+            if (!arg.HasOrientation) return;
+
+            // The same measurement SchedulePaint takes, against the presentation state as it
+            // stood BEFORE this tick — which is exactly the state every peer holds when this
+            // message reaches them, the stream being reliable and ordered.
+            int steps = strokeBroken || !spraying
+                ? 1
+                : PortalStencil.StrokeSteps(Vector3.Distance(lastAim, arg.P), dabRadius);
+
+            // The low bit of B is EquipmentController's active flag on hold ticks; the paid dab
+            // count lives above it, in the same bits PackBarrel uses on a press.
+            if (CanSpend(sprayBarrel, steps)) arg.B |= steps << 2;
         }
 
         /// <summary>
@@ -420,37 +464,46 @@ namespace SpaceGame.Items
                 return;
             }
 
-            // A stroke that is resuming after a miss starts again rather than bridging the gap.
-            // The jet was pointing at the sky, or round a corner, and the distance back to wherever
-            // it last stuck is not a sweep the player made — billing them eight blobs for it, and
-            // then stacking all eight on one spot, is wrong twice over.
-            int steps = strokeBroken
-                ? 1
-                : PortalStencil.StrokeSteps(Vector3.Distance(lastAim, arg.P), dabRadius);
+            // How many dabs this tick is worth — and whether the tank covered them — arrived in
+            // the message. The OWNER measured and paid; a peer consulting its own tank here is the
+            // bug this replaces, two machines disagreeing near empty about which dabs exist. The
+            // stroke state is still advanced on every machine so the owner's next measurement and
+            // the peers' stay in step.
+            int paid = UnpackPaid(arg.B);
 
             lastAim = arg.P;
             strokeBroken = false;
 
-            if (!TrySpend(sprayBarrel, steps)) return;
+            if (paid <= 0) return;
+
+            Spend(sprayBarrel, paid);
 
             pending.Add(new Landing
             {
                 At = Time.time + flight,
                 Point = arg.P,
                 Rotation = arg.R,
-                Steps = steps,
+                Steps = paid,
             });
         }
 
-        /// <summary>Lay whatever paint has arrived. Runs on every machine, from the same queue.</summary>
+        /// <summary>
+        /// Lay whatever paint has arrived. Runs on every machine, from the same queue.
+        ///
+        /// Strictly in the order it was sprayed. Flight times are not monotonic — a sweep towards
+        /// the wall schedules a later dab with a SHORTER flight — and the stencil's merging is
+        /// order-dependent, so releasing dabs by arrival time let two machines whose frames cut
+        /// the queue differently lay the same dabs in different orders and drift apart. A dab that
+        /// would land early simply waits for the one sprayed before it.
+        /// </summary>
         private void LandDuePaint()
         {
-            for (int i = pending.Count - 1; i >= 0; i--)
+            while (pending.Count > 0)
             {
-                Landing landing = pending[i];
-                if (Time.time < landing.At) continue;
+                Landing landing = pending[0];
+                if (Time.time < landing.At) break;
 
-                pending.RemoveAt(i);
+                pending.RemoveAt(0);
 
                 // The rotation's forward IS the surface normal — PortalPlacement.FitDab builds it
                 // that way — so a landing that stuck already knows which way the wall faces. One
@@ -502,18 +555,23 @@ namespace SpaceGame.Items
             if (owner != null && owner.TryGetComponent(out PortalPair pair)) pair.EndSpray();
         }
 
-        // ── The barrel, packed into one int ────────────────────────────────────
+        // ── The barrel and the payment, packed into one int ────────────────────
         //
-        // Bit 0 is the barrel, bit 1 says this spray tops up an aperture that is already open
-        // rather than placing a new one. Both in B because A is the hotbar slot index and the
-        // server reads it back — see the file header.
+        // Bit 0 is the barrel on a press (EquipmentController's active flag on a hold tick),
+        // bit 1 says this spray tops up an aperture that is already open rather than placing a
+        // new one, and bits 2–5 are how many dabs the owner's tank paid for — 0 for a dry tick.
+        // All in B because A is the hotbar slot index and the server reads it back — see the
+        // file header.
 
-        private static int PackBarrel(int barrel, bool grow) =>
-            (barrel & 1) | (grow ? 2 : 0);
+        private static int PackBarrel(int barrel, bool grow, int paidSteps) =>
+            (barrel & 1) | (grow ? 2 : 0) | (Mathf.Clamp(paidSteps, 0, 15) << 2);
 
         private static int UnpackBarrel(int packed) => packed & 1;
 
         private static bool UnpackGrow(int packed) => (packed & 2) != 0;
+
+        /// <summary>How many dabs the owner paid for this tick, or 0 for a refused one.</summary>
+        private static int UnpackPaid(int packed) => (packed >> 2) & 15;
 
         // ── Presentation ───────────────────────────────────────────────────────
 

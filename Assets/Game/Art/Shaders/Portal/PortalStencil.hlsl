@@ -27,6 +27,15 @@
 float4 _Dabs[PORTAL_MAX_DABS];
 float  _DabCount;
 float  _Depth;
+
+// The deepest interior point of the CURRENT shape — what the iris must erode by to shut it.
+// Separate from _Depth on purpose: _Depth is pinned to the stroke's radius so the surface does
+// not restyle itself as paint is added, but a merged blob runs deeper than that, and an iris
+// eroding by _Depth left a rump of aperture that vanished in a pop when the object went. This one
+// is only read while opening or closing, where following the growth is the point. Defaults to 0
+// on a material nothing has pushed to, so consumers take max(_CloseDepth, _Depth).
+float  _CloseDepth;
+
 float2 _Centroid;
 float2 _Extents;
 float2 _Ellipse;

@@ -61,25 +61,15 @@ namespace SpaceGame.Portals
         public const int MaxStrokeSteps = 8;
 
         /// <summary>
-        /// How close a new blob has to be to an existing one to POOL into it rather than sit beside
-        /// it, as a fraction of the blob radius.
+        /// How close a new blob must land to an existing one to MERGE into it rather than sit
+        /// beside it, as a fraction of that blob's radius.
         ///
-        /// This is what makes holding the stream still widen the hole. Without it a second blob
-        /// landing on the first is a second identical circle in the same place — the shape does not
-        /// change at all, the player sees paint pouring onto a hole that refuses to grow, and the
-        /// dab cap is eaten by blobs that contributed nothing.
+        /// Merging is compaction, not growth: the two circles are replaced by the smallest circle
+        /// enclosing both, so paint landing on paint already laid changes nothing at all. Holding
+        /// the stream still therefore does not widen the hole — the only way to a big portal is to
+        /// PAINT one — and the dab cap is not eaten by blobs that contributed nothing.
         /// </summary>
-        private const float PoolDistance = 0.45f;
-
-        /// <summary>
-        /// How far a pooling blob may grow, as a multiple of the radius it was sprayed at.
-        ///
-        /// Unbounded pooling would let somebody stand still and open a hole the size of the wall,
-        /// which is the failure the reservoir is supposed to be the only guard against — but paint
-        /// really does stop spreading, and a cap here is what makes SWEEPING rather than waiting
-        /// the way to get a big portal.
-        /// </summary>
-        private const float MaxPoolFactor = 2.6f;
+        private const float MergeDistance = 0.45f;
 
         /// <summary>How far apart consecutive dabs are laid, as a fraction of their radius.</summary>
         private const float StrokeSpacing = 0.6f;
@@ -166,19 +156,21 @@ namespace SpaceGame.Portals
         }
 
         /// <summary>
-        /// Add one blob of paint, pooling it into whatever is already there.
+        /// Add one blob of paint, merging it into whatever it landed on.
         ///
-        /// The opening grows the way paint actually covers a wall: land on bare surface and there
-        /// is a new blob, land on paint you have already laid and that blob WIDENS. Growth is by
-        /// AREA — two blobs' worth of paint in one place makes a circle of twice the area, not
-        /// twice the radius — which is both what a fluid does and what stops a player who parks the
-        /// stream on one spot from opening a hole the size of the room.
+        /// The opening grows the way a coat of paint covers a wall: land on bare surface and there
+        /// is a new blob, land on paint you have already laid and nothing changes — the wall was
+        /// already covered there. Holding the stream still does NOT widen the hole; sweeping is
+        /// painting, and painting is the only growth there is.
         ///
-        /// The pooled blob's centre drifts towards the new paint as well, so a stream held on one
-        /// place and then eased sideways draws the opening after it instead of leaving a bulge.
+        /// A blob near — but not on — an existing one MERGES with it instead of sitting beside it:
+        /// the two circles are replaced by the smallest circle enclosing both. That covers exactly
+        /// what was painted (a stream eased sideways draws the opening after it), keeps a wobbling
+        /// hand from stacking near-identical circles, and never invents area the way the old
+        /// area-additive pooling did.
         ///
-        /// Past <see cref="MaxDabs"/> the nearest blob absorbs everything, which keeps the outline
-        /// moving where the player painted even once the array is full.
+        /// Past <see cref="MaxDabs"/> the nearest blob encloses everything, which keeps the
+        /// outline moving where the player painted even once the array is full.
         /// </summary>
         public void AddDab(Vector2 centre, float radius)
         {
@@ -186,7 +178,7 @@ namespace SpaceGame.Portals
             derived = false;
 
             // The radius the stroke is being sprayed at, remembered from its first blob. Read by
-            // ReferenceScale — see there for why it must not follow the pooling.
+            // ReferenceScale — see there for why it must not follow the merging.
             if (dabs.Count == 0) strokeRadius = radius;
 
             int nearest = dabs.Count > 0 ? Nearest(centre) : -1;
@@ -197,38 +189,41 @@ namespace SpaceGame.Portals
                 PortalDab existing = dabs[nearest];
                 float gap = Vector2.Distance(existing.Centre, centre);
 
-                if (full || gap <= existing.Radius * PoolDistance)
+                // Once the array is full the merge distance is deliberately ignored: the nearest
+                // blob has to REACH the new paint rather than drop it, or the far end of a long
+                // sweep quietly stops being part of the portal.
+                if (full || gap <= existing.Radius * MergeDistance)
                 {
-                    // Area-additive: r' = sqrt(r² + added²), capped. Reaching the cap is not a
-                    // failure — it is the point at which paint stops spreading and sweeping is the
-                    // only way left to make the hole bigger.
-                    float pooled = Mathf.Sqrt(existing.Radius * existing.Radius + radius * radius);
-                    float limit = strokeRadius * MaxPoolFactor;
-
-                    // Once it is full the array cannot grow, so the blob has to REACH the new paint
-                    // rather than merely thicken — otherwise the last stretch of a long sweep stops
-                    // showing up at all.
-                    //
-                    // And in that case the pool cap is DELIBERATELY ignored. The cap is there to
-                    // stop standing still from opening a hole the size of the wall, which is a
-                    // tuning choice; painted area appearing in the aperture at all is not. When the
-                    // two conflict the paint wins, or the promise that every patch you covered is
-                    // part of the portal quietly stops being true at the far end of a long sweep.
-                    float grown = full
-                        ? Mathf.Max(pooled, gap + radius)
-                        : Mathf.Min(pooled, Mathf.Max(limit, existing.Radius));
-
-                    // Drift towards the new paint, by the share of the blob this one just added.
-                    float share = Mathf.Clamp01(radius * radius /
-                                                Mathf.Max(grown * grown, 1e-4f)) * PoolDistance;
-
-                    dabs[nearest] = new PortalDab(Vector2.Lerp(existing.Centre, centre, share),
-                                                  grown);
+                    dabs[nearest] = Enclose(existing, new PortalDab(centre, radius));
                     return;
                 }
             }
 
             dabs.Add(new PortalDab(centre, radius));
+        }
+
+        /// <summary>
+        /// The smallest circle containing both blobs.
+        ///
+        /// A blob wholly inside the other contributes nothing and the bigger one survives
+        /// untouched — which is the whole "holding still does not grow the hole" rule in one line.
+        /// Otherwise the enclosing circle covers exactly the span of the two, no more: growth
+        /// tracks where paint actually landed instead of how long the trigger was down.
+        /// </summary>
+        private static PortalDab Enclose(PortalDab a, PortalDab b)
+        {
+            Vector2 offset = b.Centre - a.Centre;
+            float gap = offset.magnitude;
+
+            if (gap + b.Radius <= a.Radius) return a;
+            if (gap + a.Radius <= b.Radius) return b;
+
+            float radius = (gap + a.Radius + b.Radius) * 0.5f;
+            Vector2 centre = gap > 1e-6f
+                ? a.Centre + offset / gap * (radius - a.Radius)
+                : a.Centre;
+
+            return new PortalDab(centre, radius);
         }
 
         /// <summary>Is <paramref name="local"/> inside the opening? <paramref name="margin"/> widens it.</summary>

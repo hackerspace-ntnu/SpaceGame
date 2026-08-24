@@ -110,7 +110,9 @@ Shader "SpaceGame/Portal/PortalRim"
                 // The halo rides the outline in METRES, the same way the surface does, so it stops
                 // resizing itself every time a blob of paint widens the aperture somewhere else.
                 // _Radius is now how far outside the edge the ring sits, as a share of _Depth.
-                d += (1.0 - open) * _Depth;
+                // The iris erodes by _CloseDepth so the ring follows the surface all the way shut —
+                // see PortalSurface.
+                d += (1.0 - open) * max(_CloseDepth, _Depth);
 
                 float band = max(_Thickness * _Depth, 1e-4);
                 float ringD = _Radius * _Depth;

@@ -57,6 +57,57 @@ namespace SpaceGame.EditorTools
                 { "BallLightningWeapon", new Vector2(30f, 305f) },
             };
 
+        [MenuItem("Tools/Generate Icon For Selected Item")]
+        private static void GenerateForSelection()
+        {
+            var item = Selection.activeObject as InventoryItem;
+            if (item == null)
+            {
+                Debug.LogWarning("Select an InventoryItem asset first.");
+                return;
+            }
+
+            Debug.Log(GenerateFor(item, out string note)
+                ? "Icon regenerated for " + item.name
+                  + (note.Length > 0 ? "   (" + note + ")" : "")
+                : "Could not regenerate " + item.name + " — " + note);
+        }
+
+        /// <summary>
+        /// Re-render one item's icon in place, with the same framing <see cref="GenerateAll"/>
+        /// uses.
+        ///
+        /// <para>
+        /// For the common case of a single model changing. <see cref="GenerateAll"/> rewrites
+        /// every PNG in the set, so a one-model change arrives as forty modified files and the
+        /// reviewer cannot see which one mattered. This writes over the sprite the item already
+        /// owns and touches nothing else — which is also why it only works for an item that has
+        /// one. An item with no icon yet has no path to write to and no claim on one; deciding
+        /// that is the batch pass's job, so this reports and declines.
+        /// </para>
+        /// </summary>
+        public static bool GenerateFor(InventoryItem item, out string note)
+        {
+            note = "";
+            if (item == null) { note = "no item"; return false; }
+            if (item.itemPrefab == null) { note = "itemPrefab is null"; return false; }
+            if (item.icon == null) { note = "no icon yet — run Generate All Item Icons"; return false; }
+
+            string target = AssetDatabase.GetAssetPath(item.icon);
+            Vector2 angle = AngleOverrides.TryGetValue(item.name, out Vector2 a) ? a : DefaultAngle;
+            GameObject renderPrefab = item.iconPrefab != null ? item.iconPrefab : item.itemPrefab;
+
+            Texture2D tex = Render(renderPrefab, angle, out note);
+            if (tex == null) return false;
+
+            File.WriteAllBytes(target, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.Refresh();
+            ImportAsSprite(target);
+            AssetDatabase.SaveAssets();
+            return true;
+        }
+
         [MenuItem("Tools/Generate All Item Icons")]
         public static void GenerateAll()
         {

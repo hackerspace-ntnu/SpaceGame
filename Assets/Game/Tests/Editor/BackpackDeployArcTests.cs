@@ -6,9 +6,12 @@ namespace SpaceGame.Tests
 {
     public class BackpackDeployArcTests
     {
-        // A deploy as the controller actually configures it, with the player standing at the origin
-        // facing +Z: off the back socket at spine height and a little behind the spine, down to a
-        // drop point deployDistance (1.6 m) in front, with the shipped arcHeight and arcOutward.
+        // The over-the-shoulder flight as the controller actually configures it — since the deploy
+        // became a toss from in front of the chest, this chord is the STOW's, flown ground-to-back.
+        // Player standing at the origin facing +Z: the back socket at spine height and a little
+        // behind the spine at one end, a drop point in front at the other, with the shipped
+        // arcHeight and arcOutward. Evaluate is direction-agnostic, so the sweep is tested in the
+        // deploy's old orientation unchanged.
         private static readonly Pose Shouldered =
             new Pose(new Vector3(0f, 1.15f, -0.18f), Quaternion.identity);
 
@@ -99,6 +102,31 @@ namespace SpaceGame.Tests
 
                 Assert.GreaterOrEqual(p.y, floor - 1e-4f, $"{because}: dipped at t = {T(i)}");
             }
+        }
+
+        // ─────────── the toss ───────────
+        //
+        // The deploy no longer flies over the shoulder: it appears at chest height in front of the
+        // player and drops at their feet. The claim worth pinning is the reason it was changed —
+        // no sample of the flight is ever behind the player, or inside them.
+
+        [Test]
+        public void TheToss_StaysInFrontOfThePlayerForTheWholeFlight()
+        {
+            // The shipped toss numbers: tossStartForward 0.45, tossStartHeight 1.25, landing
+            // deployDistance 2.4 m out, tossArcHeight 0.5, no outward bow.
+            var tossStart = new Pose(new Vector3(0f, 1.25f, 0.45f), Grounded.rotation);
+            var tossEnd = new Pose(new Vector3(0f, 0.01f, 2.4f), Grounded.rotation);
+
+            for (int i = 0; i <= Samples; i++)
+            {
+                Vector3 p = BackpackDeployArc.Evaluate(tossStart, tossEnd, T(i), 0.5f, 0f).position;
+
+                Assert.Greater(p.z, BodyRadius,
+                    $"the toss went inside or behind the player at t = {T(i)}");
+            }
+
+            AssertNeverDips(tossStart, tossEnd, 0.5f, 0f, "the toss");
         }
 
         // ─────────── over the shoulder ───────────

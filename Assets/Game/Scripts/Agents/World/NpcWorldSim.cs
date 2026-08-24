@@ -14,7 +14,6 @@
 // Put one of these in the persistent scene. It is server-only — NPC decisions belong on the machine
 // that simulates them, and a client running its own copy would produce a different caravan in a
 // different place with the same name.
-using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
@@ -384,25 +383,7 @@ namespace SpaceGame.Agents
                 ? Quaternion.LookRotation(heading, Vector3.up)
                 : Quaternion.identity;
 
-            GameObject member = Instantiate(prefab, position, rotation);
-
-            // Network-spawn when there is a session and the prefab is registered for one. An
-            // unregistered prefab fails ONLY on clients, so this is deliberately not silent.
-            if (Network.IsNetworked && Network.Server &&
-                member.TryGetComponent(out NetworkObject netObj) && !netObj.IsSpawned)
-            {
-                try
-                {
-                    netObj.Spawn();
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"[NpcWorldSim] '{prefab.name}' has a NetworkObject but could not " +
-                                   $"be spawned — is it in the NetworkManager's prefab list? {e.Message}", this);
-                }
-            }
-
-            return member;
+            return NpcSpawn.Create(prefab, position, rotation, this);
         }
 
         private void Configure(GameObject member, NpcGroup group, NpcGroupTemplate template, bool leads)

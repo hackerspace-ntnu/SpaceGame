@@ -330,6 +330,31 @@ harmless on the rig, whose hinges turn relative to rest, and fatal on a holder, 
 fit componentwise. Both need zero rotation between the prefab root and the `HARD_` empties.
 The wiring script checks for it and refuses rather than shipping sheared hardware.
 
+## 2026-08-24 warm soft-goods pass (`expedition_rig_dress.py`)
+
+Worn, the folded rig read as carried furniture — flat olive boards, legs, no soft mass.
+This pass gives the stowed pack the previous pack's (`expedition_backpack`) warm colours
+and silhouette, in place, without touching any mechanic:
+
+- **Recolour, slot-level:** leaf, wings, back panel and frame tray swap their
+  `Mat_Fabric_Canvas_Faded` slot for the new palette entry `Mat_Fabric_Canvas_Sand`
+  (#F4BD62, derived from the old pack's hand-picked body tone). Webbing stays ochre,
+  harness stays faded — the same warm/dirty split the old pack had.
+- **Eight new objects, one per movable part:** `Mesh_Rig_SidePouch_L/R` +
+  `_SidePouchFlap_L/R` + `_SidePouchStraps_L/R` (bulging sand pods with ochre flaps and
+  brass buckles on the frame ends — stowed they fill the lower flanks below the folded
+  wings, 5 mm clear of the wing ribs; deployed they flank the hub), and `Mesh_Rig_Bedroll`
+  + `_BedrollStraps` riding `PIVOT_Back` along the panel crest (stowed: the classic roll
+  across the pack's top; deployed: a roll on the recliner's crest, 50 mm clear of the tank).
+- No `SURF_*` face is encroached; the empties and hinge lines are untouched.
+
+**Blender stow signs are NOT the HingeTable's.** Measured in this session: Blender stow is
+Back +25 / Leaf -90 / **Wing_L +90 / Wing_R -90** — the wings' signs are opposite to the
+Unity table, exactly the mirror the wiring script's comment warns about. The dress script
+folds the rig with the Blender signs to assert clearance, then saves at authored zero.
+
+Triangles: 20,972 -> 25,184 (+4,212, the pouch lofts and roll). 33 meshes.
+
 ## Hand edits after generation
 
 **2026-08-24 — the stakes ride `PIVOT_Leaf`.** `Mesh_Rig_Stake_L/R` were authored static

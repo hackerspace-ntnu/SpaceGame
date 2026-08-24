@@ -6,8 +6,7 @@ namespace SpaceGame.Items
 {
     /// <summary>
     /// Everything focus mode draws that is not the pack itself: the hover rim, the dragged copy
-    /// and its tint, the ghost left behind at the origin, the projected footprint, and the item's
-    /// name by the cursor.
+    /// and its tint, the ghost left behind at the origin, and the item's name by the cursor.
     ///
     /// <para>
     /// Split out of <c>PackDragController</c> so that file can be about <em>what the player is
@@ -28,9 +27,6 @@ namespace SpaceGame.Items
         /// <summary>Metres the dragged copy floats above the surface it is over.</summary>
         private const float DragLift = 0.06f;
 
-        /// <summary>Metres the footprint quad sits above the surface, clear of z-fighting.</summary>
-        private const float QuadLift = 0.004f;
-
         // Spec 5.2: a flat desaturated grey around 0.55 value with a thin brighter outline, so the
         // silhouette reads against the pack's canvas and against sand. Red on conflict.
         private static readonly Color DragBody = new(0.55f, 0.55f, 0.55f, 1f);
@@ -41,8 +37,10 @@ namespace SpaceGame.Items
         private static readonly Color HoverRim = new(1f, 0.92f, 0.6f, 1f);
         private static readonly Color GhostRim = new(0.6f, 0.62f, 0.66f, 0.5f);
 
-        private static readonly Color QuadClear = new(0.45f, 0.85f, 1f, 0.28f);
-        private static readonly Color QuadBlocked = new(1f, 0.35f, 0.3f, 0.3f);
+        // Same colour as ConflictOutline, by reference rather than by a second matching literal —
+        // the denied rim IS the conflict palette borrowed for a second role, and a literal typed
+        // twice is a literal that can drift the next time one of them is retouched.
+        private static readonly Color DeniedRim = ConflictOutline;
 
         /// <summary>
         /// Outline width as a fraction of the item's own longest side, and the metres it is
@@ -82,14 +80,11 @@ namespace SpaceGame.Items
         private readonly Material dragMaterial;
         private readonly Material hoverMaterial;
         private readonly Material ghostMaterial;
-        private readonly Material quadMaterial;
 
         private GameObject proxy;
         private PackSurface proxySurface;
         private Vector2 proxyUv;
         private float proxyYaw;
-
-        private GameObject quad;
 
         private Canvas labelCanvas;
         private TextMeshProUGUI label;
@@ -114,7 +109,6 @@ namespace SpaceGame.Items
             dragMaterial = Build(shader, "PackDrag");
             hoverMaterial = Build(shader, "PackHover");
             ghostMaterial = Build(shader, "PackGhost");
-            quadMaterial = Build(shader, "PackFootprint");
 
             // The dragged copy: body and outline, depth test off, queued after everything. This is
             // spec 4.3's "visible at all times" — an item halfway across the rig must not vanish
@@ -131,15 +125,6 @@ namespace SpaceGame.Items
             // the item's own size.
             ConfigureRim(hoverMaterial, HoverRim, MinOutlineWidth);
             ConfigureRim(ghostMaterial, GhostRim, MinOutlineWidth);
-
-            // The footprint: body only, transparent, no depth write.
-            quadMaterial.SetFloat(BodyOnId, 1f);
-            quadMaterial.SetFloat(OutlineOnId, 0f);
-            quadMaterial.SetFloat(ZTestId, (float)UnityEngine.Rendering.CompareFunction.LessEqual);
-            quadMaterial.SetFloat(SrcBlendId, (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            quadMaterial.SetFloat(DstBlendId, (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            quadMaterial.SetFloat(ZWriteId, 0f);
-            quadMaterial.renderQueue = 3000;
         }
 
         private static Material Build(Shader shader, string name) =>
@@ -170,6 +155,14 @@ namespace SpaceGame.Items
             rimmed = visual;
             BuildShell(rimmed, hoverMaterial, HoverWeight, rimShell);
         }
+
+        /// <summary>
+        /// Turns the hover rim refusal-red, or back. The one thing a refused take shows —
+        /// there is no message — so it borrows the conflict palette the drag tint already
+        /// taught the player.
+        /// </summary>
+        public void SetHoverDenied(bool denied) =>
+            hoverMaterial.SetColor(OutlineColorId, denied ? DeniedRim : HoverRim);
 
         /// <summary>The outline left standing where a dragged item came from.</summary>
         public void SetGhost(GameObject visual)
@@ -234,7 +227,6 @@ namespace SpaceGame.Items
             proxy = null;
             proxySurface = null;
             SetGhost(null);
-            HideFootprint();
         }
 
         private void Rebuild(GameObject itemPrefab, PackSurface surface, Vector2 uv, float yaw)
@@ -261,73 +253,6 @@ namespace SpaceGame.Items
             // exactly what a shell buys elsewhere.
             dragMaterial.SetFloat(OutlineWidthId, OutlineWidthFor(proxy, DragWeight));
             Paint(proxy, dragMaterial);
-        }
-
-        // ── The footprint ────────────────────────────────────────────────────
-
-        /// <summary>
-        /// The exact rectangle the item would occupy, laid on the target face.
-        ///
-        /// This is what makes free placement feel measured rather than approximate — the player is
-        /// not guessing whether a 1.35 m staff clears the edge, they can see the corner.
-        /// </summary>
-        public void ShowFootprint(PackSurface surface, Vector2 uv, Vector2 footprint, float yaw, bool conflict)
-        {
-            if (surface == null || footprint.x <= 0f || footprint.y <= 0f)
-            {
-                HideFootprint();
-                return;
-            }
-
-            EnsureQuad();
-
-            quad.SetActive(true);
-            quad.transform.SetPositionAndRotation(surface.ToWorld(uv, QuadLift), surface.WorldRotation(yaw));
-
-            // Left unparented and scaled in world metres, so the surface's own scale — the rig's
-            // FBX arrives on the centimetre convention — never multiplies into the rectangle.
-            quad.transform.localScale = new Vector3(footprint.x, 1f, footprint.y);
-
-            quadMaterial.SetColor(ColorId, conflict ? QuadBlocked : QuadClear);
-        }
-
-        public void HideFootprint()
-        {
-            if (quad != null) quad.SetActive(false);
-        }
-
-        private void EnsureQuad()
-        {
-            if (quad != null) return;
-
-            quad = new GameObject("PackFootprintQuad") { hideFlags = HideFlags.HideAndDontSave };
-
-            var filter = quad.AddComponent<MeshFilter>();
-            filter.sharedMesh = UnitPlane();
-
-            var renderer = quad.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = quadMaterial;
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            renderer.receiveShadows = false;
-
-            int layer = BackpackItemVisual.ItemLayer;
-            if (layer >= 0) quad.layer = layer;
-        }
-
-        /// <summary>A 1 x 1 m plane in XZ with its normal up, so a localScale IS the footprint.</summary>
-        private static Mesh UnitPlane()
-        {
-            var mesh = new Mesh { name = "PackFootprintPlane", hideFlags = HideFlags.HideAndDontSave };
-
-            mesh.SetVertices(new List<Vector3>
-            {
-                new(-0.5f, 0f, -0.5f), new(0.5f, 0f, -0.5f), new(0.5f, 0f, 0.5f), new(-0.5f, 0f, 0.5f),
-            });
-            mesh.SetNormals(new List<Vector3> { Vector3.up, Vector3.up, Vector3.up, Vector3.up });
-            mesh.SetTriangles(new[] { 0, 2, 1, 0, 3, 2 }, 0);
-            mesh.RecalculateBounds();
-
-            return mesh;
         }
 
         // ── The name by the cursor ───────────────────────────────────────────
@@ -523,8 +448,8 @@ namespace SpaceGame.Items
             }
         }
 
-        /// <summary>Destroys everything this owns: both outline shells, the quad, the label and
-        /// the four materials.</summary>
+        /// <summary>Destroys everything this owns: both outline shells, the label and
+        /// the three materials.</summary>
         public void Dispose()
         {
             SetHovered(null);
@@ -536,9 +461,6 @@ namespace SpaceGame.Items
             ClearShell(rimShell);
             ClearShell(ghostShell);
 
-            if (quad != null) Object.Destroy(quad);
-            quad = null;
-
             if (labelCanvas != null) Object.Destroy(labelCanvas.gameObject);
             labelCanvas = null;
             label = null;
@@ -546,7 +468,6 @@ namespace SpaceGame.Items
             Object.Destroy(dragMaterial);
             Object.Destroy(hoverMaterial);
             Object.Destroy(ghostMaterial);
-            Object.Destroy(quadMaterial);
         }
     }
 }

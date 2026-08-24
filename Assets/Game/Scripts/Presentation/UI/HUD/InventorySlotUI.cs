@@ -35,6 +35,7 @@ namespace SpaceGame.Presentation
     public sealed class InventorySlotUI : MonoBehaviour,
         IPointerEnterHandler,
         IPointerExitHandler,
+        IPointerClickHandler,
         IBeginDragHandler,
         IDragHandler,
         IEndDragHandler,
@@ -57,6 +58,11 @@ namespace SpaceGame.Presentation
         private bool hovered;
         private bool dropTarget;
         private bool reserved;
+
+        // The shake's own tunables — seconds, starting amplitude, wiggle frequency — live on
+        // HotbarStyle beside every other hotbar visual constant, not here.
+
+        private Coroutine shaking;
 
         /// <summary>Whether this slot holds anything. Read by the drag gesture before it starts.</summary>
         public bool HasItem { get; private set; }
@@ -248,25 +254,40 @@ namespace SpaceGame.Presentation
         /// locked out there anyway.
         ///
         /// <para>
+        /// Left button only. The InputSystemUIInputModule this project's EventSystem uses binds a
+        /// right-click drag exactly like a left one, and the right button already has its own
+        /// discrete gesture — <see cref="OnPointerClick"/>'s stow. A few pixels of hand tremor past
+        /// the drag threshold on a right-click would otherwise fire this too, and the two gestures
+        /// cannot be the same release.
+        /// </para>
+        /// <para>
         /// Declining means clearing <see cref="PointerEventData.pointerDrag"/>, not simply
         /// returning: left set, the EventSystem keeps routing move and end events to a slot that
         /// refused the drag, and the matching <see cref="OnEndDrag"/> would then resolve a gesture
-        /// that never began.
+        /// that never began. The same is true of the right-button case here, for the same reason.
         /// </para>
         /// </summary>
         public void OnBeginDrag(PointerEventData eventData)
         {
+            if (eventData.button != PointerEventData.InputButton.Left)
+            {
+                eventData.pointerDrag = null;
+                return;
+            }
+
             if (parentUI == null || !parentUI.BeginSlotDrag(slotIndex, eventData.position))
                 eventData.pointerDrag = null;
         }
 
         public void OnDrag(PointerEventData eventData)
         {
+            if (eventData.button != PointerEventData.InputButton.Left) return;
             if (parentUI != null) parentUI.DragSlot(eventData.position);
         }
 
         public void OnEndDrag(PointerEventData eventData)
         {
+            if (eventData.button != PointerEventData.InputButton.Left) return;
             if (parentUI != null) parentUI.EndSlotDrag(eventData.position);
         }
 
@@ -283,6 +304,58 @@ namespace SpaceGame.Presentation
         public void OnDrop(PointerEventData eventData)
         {
             if (parentUI != null) parentUI.OnSlotHovered(slotIndex);
+        }
+
+        /// <summary>
+        /// Right-click: this slot's item goes onto the open pack, wherever the pack finds
+        /// room. The rough mirror of right-clicking a pack item to take it — close enough to
+        /// read as the same gesture in both directions, though the pack side fires on the
+        /// press and this one waits for the click to resolve.
+        /// </summary>
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (eventData.button != PointerEventData.InputButton.Right) return;
+            if (parentUI != null) parentUI.RequestSlotStow(slotIndex);
+        }
+
+        // ── Refusal ──────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// The slot saying "no": a short damped wiggle, used where a stow was refused. This is
+        /// the whole refusal — there is deliberately no message to read — so it must be visible
+        /// without being a spasm.
+        /// </summary>
+        public void Shake()
+        {
+            if (shaking != null) StopCoroutine(shaking);
+            shaking = StartCoroutine(ShakeRoutine());
+        }
+
+        private void OnDisable()
+        {
+            // Unity kills a running coroutine outright on disable, without letting it reach its
+            // own trailing Restyle() — so without this a slot deactivated mid-shake could be
+            // reactivated later still sitting up to HotbarStyle.ShakePixels off-centre, with
+            // nothing left to ever put it back.
+            if (shaking == null) return;
+
+            shaking = null;
+            Restyle();
+        }
+
+        private System.Collections.IEnumerator ShakeRoutine()
+        {
+            for (float t = 0f; t < HotbarStyle.ShakeSeconds; t += Time.unscaledDeltaTime)
+            {
+                float fade = 1f - t / HotbarStyle.ShakeSeconds;
+                float x = Mathf.Sin(t * HotbarStyle.ShakeFrequency) * HotbarStyle.ShakePixels * fade;
+
+                frame.anchoredPosition = new Vector2(x, frame.anchoredPosition.y);
+                yield return null;
+            }
+
+            shaking = null;
+            Restyle();
         }
 
         // ── Small builders ───────────────────────────────────────────────────

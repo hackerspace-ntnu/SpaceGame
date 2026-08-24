@@ -6,7 +6,7 @@ edit the palette and regenerate, or the two will disagree.
 Every model and component in this repository links its materials from here.
 Before adding anything, search this table for something that would serve.
 
-**44 material(s)** across 9 categor(ies).
+**52 material(s)** across 10 categor(ies).
 
 ## Emissive
 
@@ -24,12 +24,20 @@ Before adding anything, search this table for something that would serve.
 | Name | Hex | Roughness | Metallic | Intended for |
 |---|---|---|---|---|
 | `Mat_Fabric_Canvas_Faded` | `#6E6A5A` | 0.92 | 0.0 | Bunk bedding, cargo netting, curtains, awning cloth, strapping. |
+| `Mat_Fabric_Canvas_Sand` | `#F4BD62` | 0.88 | 0.0 | Sun-soaked golden-sand pack canvas: the expedition rig's boards, pouches and soft luggage. Warmer and brighter than Wing_Beige; fabric counterpart to Mat_Hide_Sand_Pale, which is creature skin, not cloth. |
 | `Mat_Fabric_Flag_Bleached` | `#D8D2C2` | 0.9 | 0.0 | Off-white sun-bleached flag and pennant cloth, awnings, sun shades. Much lighter than Canvas_Faded, which is dirty webbing. |
 | `Mat_Fabric_Rope_Hemp` | `#B89968` | 0.92 | 0.0 | Twisted natural-fibre rope: lariat coils, lashings, tow lines, rigging. Warmer and lighter than Mat_Fabric_Canvas_Faded, which is dirty grey webbing rather than laid rope. |
 | `Mat_Fabric_Seat_Ochre` | `#8A5A2B` | 0.85 | 0.0 | Crew seat upholstery - cracked ochre vinyl, matches the hull family. |
 | `Mat_Fabric_Tarp_Azure` | `#3E9AD0` | 0.9 | 0.0 | Saturated azure tarpaulin: shade sails and awnings pitched over field workspaces. The only strong colour note on a desert outpost, and nothing in the palette was within deltaE 20. Mat_Fabric_Flag_Bleached is its sun-killed counterpart. |
 | `Mat_Fabric_Wing_Beige` | `#CBB68E` | 0.88 | 0.0 | Sun-cured beige sailcloth stretched over wing blade frames. The ornithopter's primary wing surface - warmer and dirtier than Flag_Bleached, lighter than Canvas_Faded. |
 | `Mat_Fabric_Wing_Ochre` | `#C98551` | 0.88 | 0.0 | Sun-cured orange sailcloth stretched over the ornithopter's wing spars. The warmer, dustier counterpart to Wing_Beige - reads as canvas soaked in desert iron rather than bleached out by it. |
+
+## Foliage
+
+| Name | Hex | Roughness | Metallic | Intended for |
+|---|---|---|---|---|
+| `Mat_Foliage_Leaf_Pale` | `#7E9B55` | 0.88 | 0.0 | Sunlit yellow-green leaf: the lit upper surfaces and hanging tips of the workshop's overgrowth, read against Mat_Foliage_Moss_Deep. Two tones are the minimum for foliage to have any form at all. |
+| `Mat_Foliage_Moss_Deep` | `#4E6B3A` | 0.9 | 0.0 | Deep shaded plant green: the mat of moss and creeper massed on the workshop tank roof, and the shadowed underside of vine drapes. The palette had no living-plant material at all - Mat_Paint_Roof_Green is enamel on a hatch cover and Mat_Metal_Copper_Oxide is verdigris on pipework. |
 
 ## Glass
 
@@ -75,10 +83,14 @@ Before adding anything, search this table for something that would serve.
 | Name | Hex | Roughness | Metallic | Intended for |
 |---|---|---|---|---|
 | `Mat_Paint_Blue_Station` | `#9FB8CE` | 0.6 | 0.35 | Pale powder-blue enamel over steel: the desert outpost's prefab hull skin, tower shaft and sensor cupola. The cool blue member of the painted-hull family alongside Mat_Paint_White_Arctic (arctic off-white) and Mat_Paint_Hull_Bleached (warm desert sun-bleach). Distinct from Mat_Glass_Canopy_Tinted despite a close hue - that is glazing at roughness 0.05, this is chalky paint. |
+| `Mat_Paint_Butter_Pastel` | `#E8CE8C` | 0.6 | 0.25 | Soft warm butter-yellow pastel enamel: workshop settlement cottage walls and shutter panels. Much lighter and creamier than Mat_Paint_Hazard_Yellow, which is a sun-dulled warning colour, and unlike Mat_Plastic_Safety_Yellow it is paint on a surface rather than moulded plastic. |
 | `Mat_Paint_Coral_Faded` | `#D9705E` | 0.62 | 0.25 | Sun-faded coral enamel over steel: the outpost tower's habitat blocks, control cab roof band and machine module skins. The warm mass colour that reads against the grey-blue steelwork of the lattice, matching the reference print's duotone. Distinct from Mat_Paint_Safety_Orange, which is fresh high-vis construction paint, and from Mat_Metal_HullRust_Orange, which is oxidised bare steel rather than a painted surface. |
+| `Mat_Paint_Hazard_Yellow` | `#C9A94E` | 0.55 | 0.3 | Sun-dulled hazard-yellow enamel over steel: the Sucker Puncher's striped shield plate, warning chevrons on machine guards and lifting gear. The painted-hull family (Safety_Orange, White_Arctic, Coral_Faded, Blue_Station) had no yellow member at all. Distinct from Mat_Plastic_Safety_Yellow, which is bright moulded plastic at metallic 0 for trigger guards and pull rings, and from Mat_Hide_Eye_Amber, which is a wet eyeball. |
 | `Mat_Paint_Hull_Bleached` | `#AAA499` | 0.68 | 0.6 | Sun-bleached olive-white paint over steel. The desert crawler's body panels, leg shrouds and container modules. |
+| `Mat_Paint_Mint_Pastel` | `#B9D2BE` | 0.6 | 0.25 | Pale sage-mint pastel enamel over steel and board: the workshop settlement's outbuilding walls. The painted-hull family (Safety_Orange, White_Arctic, Coral_Faded, Blue_Station, Hazard_Yellow) had no green member and no pastel at all. Forced past Mat_Fabric_Flag_Bleached (deltaE 11.8), which is an off-white cloth awning at metallic 0 rather than a green painted wall. |
 | `Mat_Paint_Olive_Deep` | `#3F4A3A` | 0.62 | 0.4 | Deep olive shadow panels and recesses - the contrast tone that keeps large bleached surfaces from flattening out. |
 | `Mat_Paint_Roof_Green` | `#6E7A5E` | 0.6 | 0.4 | Faded military green: roof caps, banded accent panels, hatch covers. Reads as the older paint layer under the bleached topcoat. |
+| `Mat_Paint_Rose_Dusty` | `#D6A79C` | 0.62 | 0.25 | Chalky dusty-rose pastel enamel: workshop settlement cottage walls. The desaturated pale cousin of Mat_Paint_Coral_Faded, which is a much stronger sun-faded coral used as a mass colour on the outpost tower. |
 | `Mat_Paint_Safety_Orange` | `#D9541F` | 0.52 | 0.2 | High-visibility construction orange: the refinery tower's landing legs, cantilever spine, conveyor ramp and accent modules. Reads as fresh paint against Mat_Metal_HullRust_Orange, which is the weathered oxidised version. |
 | `Mat_Paint_Warn_Red` | `#8E2B22` | 0.55 | 0.2 | Matte hazard red: stencilled roundels, danger bands, lifting-point marks. The non-glowing counterpart to Mat_Emissive_Red_Warn. |
 | `Mat_Paint_White_Arctic` | `#D6DAD9` | 0.58 | 0.35 | Cool off-white enamel over steel: the refinery tower's slab cladding and module skins. The arctic counterpart to Mat_Paint_Hull_Bleached, which is warm desert sun-bleach. |
@@ -96,3 +108,4 @@ Before adding anything, search this table for something that would serve.
 | Name | Hex | Roughness | Metallic | Intended for |
 |---|---|---|---|---|
 | `Mat_Wood_Ply_Worn` | `#8C6A44` | 0.75 | 0.0 | Scavenged plywood: galley counter, shelf boards, patched-in cabinetry. The RV domestic touch. |
+| `Mat_Wood_Timber_Silvered` | `#9A9186` | 0.85 | 0.0 | Weathered grey-silvered softwood: scaffold planks, lashed stilt poles, toe boards and shanty cladding. The Wood family had only Mat_Wood_Ply_Worn, a warm brown scavenged plywood - bare timber left out in the sun goes grey, and the two read as different ages of the same settlement. |

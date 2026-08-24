@@ -25,11 +25,12 @@ namespace SpaceGame.Items
     {
         [Header("Rig")]
         [Tooltip("Every part that moves when the pack opens, in any order. The expedition rig " +
-                 "wires PIVOT_Back and PIVOT_Leaf here and names each one's part so it gets its " +
-                 "own beat — the wings, the stakes and the lash rail are CHILDREN of PIVOT_Leaf " +
-                 "and ride it, so the whole front closes as one flap. The older clamshell wired " +
-                 "PIVOT_Door_L and PIVOT_Door_R and left them Generic. Leaving this empty is " +
-                 "legal — a pack with no moving parts still shows and gives up its contents.")]
+                 "wires PIVOT_Back, PIVOT_Leaf and PIVOT_Wing_L/R here and names each one's part " +
+                 "so it gets its own beat. The wing pivots (with the stakes and the lash rail) " +
+                 "are CHILDREN of PIVOT_Leaf, so their ±90 fold is relative to the board and the " +
+                 "closing flap carries them round to hug the pack's flanks. The older clamshell " +
+                 "wired PIVOT_Door_L and PIVOT_Door_R and left them Generic. Leaving this empty " +
+                 "is legal — a pack with no moving parts still shows and gives up its contents.")]
         [SerializeField] private BackpackHinge[] hinges = new BackpackHinge[0];
 
         [Tooltip("The flat faces items can be laid on, in any order — a surface is identified by " +
@@ -369,8 +370,8 @@ namespace SpaceGame.Items
         public bool IsSwinging => doorRoutine != null;
 
         /// <summary>
-        /// Put the whole rig in its stowed pose at once: the front flap — leaf, wings, stakes and
-        /// rail — closed against the panel, panel down, holders gone, rack given up.
+        /// Put the whole rig in its stowed pose at once: side panels folded up to hug the flanks,
+        /// the closed flap against the panel, panel down, stakes up, holders gone, rack given up.
         ///
         /// <para>
         /// <b>The one place that guarantees the closed pose</b>, and it exists because
@@ -429,17 +430,19 @@ namespace SpaceGame.Items
         // ------------------------------------------------------------------ the rack
         //
         // The front leaf flipped up into a vertical rack for the biggest gear — and the WHOLE
-        // front comes with it. The wings, the stakes and the lash rail are children of PIVOT_Leaf
-        // in the model, so the rack is one wide connected flap rising against the back panel
-        // rather than a middle board leaving its sides behind. That is a redesign by playtest:
-        // the wings originally folded on hinges of their own, and however they were staged the
-        // gesture read as the board abandoning its sides instead of the pack closing.
+        // front comes with it, closing like a box. The wings' pivots, the stakes and the lash
+        // rail are children of PIVOT_Leaf in the model, so nothing on the front can ever be left
+        // behind on the sand (the redesign-by-playtest: ground-hinged wings read as the board
+        // abandoning its sides). On top of that ride the side panels' own hinges, ±90 relative
+        // to the BOARD: closing stands them square up off it, and as the board rises they come
+        // round to wrap the pack's flanks, hugging the exterior.
         //
-        // No second hinge was added for the rack and that is the design, not a shortcut: the
-        // leaf's rack travel and its stow travel are the same X -90 from the authored deployed
-        // pose, so stowed and racked are the same place for the whole flap and the only
-        // difference is what the panel and the sheet's other beats are doing. See LeafFromOpen
-        // for how the two demands meet on one hinge.
+        // No extra hinge was added for the rack and that is the design, not a shortcut: every
+        // part the rack moves is asked for the very angle its own stow fold already asks for —
+        // the leaf X -90 from the authored deployed pose, each panel ±90 about the board's edge
+        // — so stowed and racked are the same place for all three and the only difference is
+        // what the panel and the sheet's other beats are doing. See LeafFromOpen and WingFromOpen
+        // for how the two demands meet on each hinge.
         //
         // Which face comes up is what decides everything else. Under X -90 the mat — SURF_Leaf,
         // the wings and the lash line — swings round to face the back panel, and the leaf's
@@ -731,16 +734,25 @@ namespace SpaceGame.Items
         // and the controller; this object is handed the rig at SheetLanded and runs the rest.
         //
         //   0.30-0.55  kickstands snap out, panel tips to 65 deg   (they ride PIVOT_Back)
-        //   0.45-0.85  leaf FALLS forward — wings, stakes and rail riding it — 8 deg overshoot
+        //   0.45-0.85  leaf FALLS forward — stakes and rail riding it — 8 deg overshoot
+        //   0.60-0.96  left side panel folds down flat off the board, 90 deg about its edge
+        //   0.64-1.00  right side panel, 40 ms behind it
         //   0.90-1.20  stakes drop, cords go taut
         //   1.00-1.40  holders pop in, staggered outward from the tank, 0.12 s each
         //
-        // Two of those carry the feel and neither is an ease:
+        // Run backwards for the stow, this is a box being closed: the side panels stand up square
+        // off the board while the flap is already rising, and as it lands against the pack they
+        // come round to hug its flanks. The wings' pivots are CHILDREN of PIVOT_Leaf, so their
+        // 90 is relative to the board and they ride it the rest of the way.
+        //
+        // Three of those carry the feel and none of them is an ease:
         //
         //   * The leaf FALLS. Cloth does not lerp — it accelerates under gravity, hits the ground
         //     with the speed that accumulated on the way down, and rebounds. Slerping it to the
         //     open pose on a smoothstep, which is what every other hinge here does, makes the one
         //     soft part of the rig read as the stiffest.
+        //   * The side panels are staggered 40 ms. Simultaneous motion reads as machinery and
+        //     offset motion reads as physical, and 40 ms is the whole of that difference.
         //   * The holders populate OUTWARD FROM THE TANK over the last 0.4 s, which is what turns
         //     "the pack opened" into "my gear is here". The tank is the rig's fixed landmark, so
         //     it is where the player's eye already is.
@@ -753,6 +765,7 @@ namespace SpaceGame.Items
 
         private const float PanelFrom = 0.30f, PanelTo = 0.55f;
         private const float LeafFrom = 0.45f, LeafTo = 0.85f;
+        private const float WingFrom = 0.60f, WingSpan = 0.36f, WingStagger = 0.04f;
         private const float StakeFrom = 0.90f, StakeTo = 1.20f;
         private const float HolderFrom = 1.00f, HolderTo = 1.40f, HolderPopSeconds = 0.12f;
 
@@ -846,12 +859,25 @@ namespace SpaceGame.Items
             // little past zero mid-rebound. Which way round that has to be applied to the model's
             // rest rotation is the one thing restIsOpen decides.
             //
-            // The leaf is the one part the rack also moves — everything else on the front rides
-            // it as a child — so it alone reconciles two demands on one hinge instead of reading
-            // the sheet straight.
-            float fromOpen = hinge.part == BackpackHingePart.Leaf
-                ? LeafFromOpen(p, hinge.foldAngle)
-                : hinge.foldAngle * (1f - Ease(hinge.part, p));
+            // The leaf and the two side panels are the parts the rack also moves, so each of them
+            // reconciles two demands on one hinge instead of reading the sheet straight.
+            float fromOpen;
+
+            switch (hinge.part)
+            {
+                case BackpackHingePart.Leaf:
+                    fromOpen = LeafFromOpen(p, hinge.foldAngle);
+                    break;
+
+                case BackpackHingePart.WingLeft:
+                case BackpackHingePart.WingRight:
+                    fromOpen = WingFromOpen(hinge.part, p, hinge.foldAngle);
+                    break;
+
+                default:
+                    fromOpen = hinge.foldAngle * (1f - Ease(hinge.part, p));
+                    break;
+            }
 
             float fromRest = hinge.restIsOpen ? fromOpen : hinge.foldAngle - fromOpen;
 
@@ -870,6 +896,12 @@ namespace SpaceGame.Items
                     from = PanelFrom; to = PanelTo; break;
                 case BackpackHingePart.Leaf:
                     from = LeafFrom; to = LeafTo; break;
+                case BackpackHingePart.WingLeft:
+                    from = WingFrom; to = WingFrom + WingSpan; break;
+                case BackpackHingePart.WingRight:
+                    // The 40 ms. It is not a rounding of "at the same time as the left one" — it
+                    // is the difference between a machine and a thing made of cloth and tube.
+                    from = WingFrom + WingStagger; to = WingFrom + WingStagger + WingSpan; break;
                 default:
                     from = SheetLanded; to = SheetLanded + openSeconds; break;
             }
@@ -885,6 +917,14 @@ namespace SpaceGame.Items
                 {
                     float u = 1f - p;
                     return 1f - u * u * u * u;
+                }
+
+                // Ribbed panels flipping over on a hinge: quick, then set down.
+                case BackpackHingePart.WingLeft:
+                case BackpackHingePart.WingRight:
+                {
+                    float u = 1f - p;
+                    return 1f - u * u * u;
                 }
 
                 // The shared smoothstep every pack before the beat sheet opened on.
@@ -958,6 +998,69 @@ namespace SpaceGame.Items
             float rack = fold * RackEase(rackClock);
 
             return Mathf.Abs(rack) > Mathf.Abs(sheet) ? rack : sheet;
+        }
+
+        /// <summary>
+        /// One side panel's angle from the deployed pose, given BOTH the things that can turn it:
+        /// the unfold beat sheet, and the rack. The wing half of <see cref="LeafFromOpen"/>, and
+        /// the same rule for the same reason — whichever demand is further from the open pose wins.
+        ///
+        /// <para>
+        /// <b>The panels stand square UP off the board and hug the pack.</b> Their pivots are
+        /// children of <c>PIVOT_Leaf</c>, so the ±90° here is measured against the board: folded,
+        /// each panel stands perpendicular to it like the raised side of a tray — and because the
+        /// board itself turns X -90 to the pack, the raised sides arrive wrapped round the pack's
+        /// flanks, hugging the exterior. Closing is therefore two visible motions of one
+        /// connected thing: the sides fold up, the closing flap carries them round the body.
+        /// </para>
+        /// <para>
+        /// <b>The racked angle is <see cref="BackpackHinge.foldAngle"/> itself, not a number of
+        /// its own</b>, and that is load-bearing rather than a convenience. It is the same trick
+        /// the leaf plays: because racked and stowed are the same place for the panels too,
+        /// <see cref="ResolveRackForStow"/> still costs exactly zero motion on all three parts, a
+        /// pack stowed from the rack lands in the same pose as one stowed flat, and nothing has
+        /// to unwind on the way to being shouldered.
+        /// </para>
+        /// </summary>
+        private float WingFromOpen(BackpackHingePart part, float p, float fold)
+        {
+            float sheet = fold * (1f - Ease(part, p));
+
+            float rack = fold * RackEase(RackClockFor(part));
+
+            return Mathf.Abs(rack) > Mathf.Abs(sheet) ? rack : sheet;
+        }
+
+        /// <summary>
+        /// The rack's clock as ONE side panel reads it: the right one <see cref="WingStagger"/>
+        /// behind the left, the same 40 ms the deploy and the stow already stagger them by and
+        /// for the same reason — simultaneous motion reads as machinery.
+        ///
+        /// <para>
+        /// Expressed as a lag in CLOCK rather than in seconds so the whole raise still takes
+        /// <see cref="rackSeconds"/>: the lagging panel starts late and the leading one finishes
+        /// early, by the same fraction, and both are exact at 0 and at 1. Exactness at the ends
+        /// is what keeps <see cref="ResolveRackForStow"/> free — a panel sitting at 0.998 of its
+        /// flip when the rack is given up would twitch.
+        /// </para>
+        /// <para>
+        /// A pure function of the clock, deliberately, and not of which way the rack is
+        /// travelling. The rack is reversible mid-swing and two direction-dependent curves read
+        /// through one clock do not meet at the point of reversal. The visible consequence is
+        /// that the panel that folded in last flips out first, which is what a pair of hinged
+        /// panels does anyway.
+        /// </para>
+        /// </summary>
+        private float RackClockFor(BackpackHingePart part)
+        {
+            // Half the clock is the hard ceiling: rackSeconds can be tuned down to 0.05, at which
+            // point 40 ms is most of the swing and an unclamped lag would leave the leading panel
+            // snapping through its whole arc in the first few milliseconds.
+            float lag = Mathf.Clamp(WingStagger / Mathf.Max(0.05f, rackSeconds), 0f, 0.5f);
+
+            float shifted = part == BackpackHingePart.WingRight ? rackClock - lag : rackClock;
+
+            return Mathf.Clamp01(shifted / (1f - lag));
         }
 
         /// <summary>
@@ -1084,10 +1187,11 @@ namespace SpaceGame.Items
         /// reach until the leaf goes up again, which is exactly where the player left it.
         /// </para>
         /// <para>
-        /// <b>The wings follow the leaf's rule now.</b> They are children of <c>PIVOT_Leaf</c> —
-        /// the whole front rises as one flap — so a racked wing has turned round with the mat to
-        /// face the back panel, exactly as <see cref="PackSurfaceId.Leaf"/> has, and first-fit
-        /// offering it would put gear where the player can neither see nor reach it.
+        /// <b>The shipped rig wires no wing or back-panel surfaces any more</b> — only the board
+        /// carries inventory (mat, rack, lash rail), because the side panels fold up to hug the
+        /// pack's flanks when it closes and gear on them would be crushed against the body. The
+        /// wing ids keep the leaf's rule below anyway: they ride <c>PIVOT_Leaf</c>, so on any rig
+        /// that DID wire them a racked wing is somewhere the player can neither see nor reach.
         /// </para>
         /// </summary>
         public bool Reaches(PackSurfaceId id)
@@ -1128,9 +1232,9 @@ namespace SpaceGame.Items
         /// with its mat facing the panel and its UNDERSIDE, which is <see cref="PackSurfaceId.Rack"/>,
         /// facing away from it. The harness is sewn to the panel's other face, so that underside is
         /// the side pointing away from the wearer. Every other face is inside the sandwich: the two
-        /// back panels are covered by the leaf, and <see cref="PackSurfaceId.Leaf"/>, the lash
-        /// line and both wings — children of <c>PIVOT_Leaf</c>, riding the flap — have turned to
-        /// face the panel. Every one of them is inside the sandwich.
+        /// back panels are covered by the leaf, <see cref="PackSurfaceId.Leaf"/> and the lash
+        /// line have turned to face the panel, and the side panels have folded round to hug the
+        /// pack's flanks. Every one of them is inside the fold or pressed against the body.
         /// </para>
         /// <para>
         /// Which also settles a question that looks like it needs new geometry and does not. The
@@ -1640,45 +1744,114 @@ namespace SpaceGame.Items
         /// The interesting answer is the last one. A full hotbar is a SWAP, and a swap needs
         /// somewhere on the pack for the displaced item to go; when there is nowhere, the take is
         /// refused on the server and every machine's pack stays exactly as it was — which on the
-        /// taker's screen is a right-click that did nothing at all. <paramref name="refusal"/> is
-        /// what turns that into something the player can read.
+        /// taker's screen is a right-click that did nothing at all. <paramref name="refused"/>
+        /// distinguishes exactly that case — a blocked swap — from every other reason this can
+        /// answer false, which is what the caller uses to decide whether the refusal is worth a
+        /// visible flash at all. No text: the caller is presentation-only too, and the swap's own
+        /// refusal reads by the server changing nothing.
+        /// </para>
+        /// <para>
+        /// <paramref name="targetSlot"/> answers a DIFFERENT question at -1 than at a real index.
+        /// -1 is <see cref="TryTakeToHotbar"/>'s question — "any empty slot, else swap the
+        /// SELECTED one" — which is what the right-click and 1-4 paths predict, and is today's
+        /// unchanged behaviour. A real index is
+        /// <see cref="BackpackController.TakeIntoSlot"/>'s question — "put it in THIS box,
+        /// swapping only if it is occupied" — which is what a pack item dragged onto a named
+        /// hotbar slot predicts. The two are not interchangeable: an empty NAMED slot never needs
+        /// a swap even when every OTHER slot is full, and its fallback searches every reachable
+        /// face rather than only the one the drag started from.
         /// </para>
         /// </summary>
         public bool CanTakeToHotbar(PackSurfaceId surfaceId, Vector2 uv, IPlayerInventory hotbar,
-                                    out string refusal)
+                                    out bool refused, int targetSlot = -1)
         {
-            refusal = null;
+            refused = false;
 
             if (hotbar == null) return false;
             if (!TryFindAt(surfaceId, uv, out PackPlacement placement)) return false;
-            if (ItemFor(placement.ItemId) == null) return false;
 
-            if (HasEmptySlot(hotbar)) return true;
+            InventoryItem packItem = ItemFor(placement.ItemId);
+            if (packItem == null) return false;
 
-            // The slot the swap will use, chosen exactly as TrySwapWithHotbar chooses it.
-            int target = hotbar.SelectedSlotIndex;
-            if (target < 0 || target >= hotbar.GetInventorySize()) target = 0;
+            InventoryItem held;
 
-            InventorySlot heldSlot = hotbar.GetSlot(target);
-            InventoryItem held = heldSlot != null && !heldSlot.IsEmpty ? heldSlot.Item : null;
+            if (targetSlot >= 0)
+            {
+                if (targetSlot >= hotbar.GetInventorySize()) return false;
+
+                InventorySlot slot = hotbar.GetSlot(targetSlot);
+                held = slot != null && !slot.IsEmpty ? slot.Item : null;
+
+                // An empty NAMED slot needs no swap at all — TakeIntoSlot writes straight into
+                // it, even when every OTHER slot on the bar is full.
+                if (held == null) return true;
+
+                // The same asset already sitting where it would land: TakeIntoSlot refuses this
+                // outright, ahead of any room test, because the layout is keyed by id and no
+                // spot would ever be approved for it.
+                if (held.ID == packItem.ID)
+                {
+                    refused = true;
+                    return false;
+                }
+            }
+            else
+            {
+                if (HasEmptySlot(hotbar)) return true;
+
+                // The slot the swap will use, chosen exactly as TrySwapWithHotbar chooses it.
+                int target = hotbar.SelectedSlotIndex;
+                if (target < 0 || target >= hotbar.GetInventorySize()) target = 0;
+
+                InventorySlot heldSlot = hotbar.GetSlot(target);
+                held = heldSlot != null && !heldSlot.IsEmpty ? heldSlot.Item : null;
+            }
+
             if (held == null || string.IsNullOrEmpty(held.ID)) return false;
 
             PackSurface surface = SurfaceFor(placement.Surface);
             if (surface == null) return false;
 
             PackShape heldShape = PackShapes.For(held, shapes);
+            bool mayTurnHeld = PackShapes.AllowsRotation(held, shapes);
 
-            // The outgoing item ignored in both tests, because the space it is vacating is exactly
-            // the space the incoming one is being offered — the same trick, for the same reason,
-            // that TrySwapWithHotbar uses to avoid mutating the layout to ask the question.
-            if (Layout.CanPlace(placement.Surface, surface.Size, heldShape,
-                                placement.Uv, placement.Yaw, placement.ItemId)) return true;
+            // The outgoing item ignored in both tests, because the space it is vacating is
+            // exactly the space the incoming one is being offered — the same trick, for the same
+            // reason, that TrySwapWithHotbar (targetSlot < 0) and TakeIntoSlot's own TryStowAt
+            // (targetSlot >= 0) both use to avoid mutating the layout to ask the question.
+            // TryStowAt gates its aimed try on Reaches; the selected-slot swap has no such gate,
+            // because TrySwapWithHotbar never had one either.
+            bool aimReaches = targetSlot < 0 || Reaches(placement.Surface);
 
-            if (Layout.TryFindSpot(placement.Surface, surface.Size, heldShape,
-                                   out _, out _, placement.ItemId,
-                                   PackShapes.AllowsRotation(held, shapes))) return true;
+            if (aimReaches && Layout.CanPlace(placement.Surface, surface.Size, heldShape,
+                                              placement.Uv, placement.Yaw, placement.ItemId))
+                return true;
 
-            refusal = $"Hotbar full, no room on the pack for {held.itemName}";
+            if (targetSlot < 0)
+            {
+                // TrySwapWithHotbar's own fallback: the same face, second try, nowhere else.
+                if (Layout.TryFindSpot(placement.Surface, surface.Size, heldShape,
+                                       out _, out _, placement.ItemId, mayTurnHeld)) return true;
+            }
+            else
+            {
+                // TakeIntoSlot's fallback is TryStowAt's own — TryStow(held), first-fit across
+                // EVERY reachable surface, not just this one. The same set CanStow already
+                // predicts a stow against, for the same reason: predicting anything narrower is
+                // a prediction that can say yes to a drop the server then refuses.
+                IReadOnlyList<PackSurface> all = ReachableSurfaces();
+
+                for (int i = 0; i < all.Count; i++)
+                {
+                    PackSurface candidate = all[i];
+                    if (candidate == null) continue;
+
+                    if (Layout.TryFindSpot(candidate.Id, candidate.Size, heldShape,
+                                           out _, out _, placement.ItemId, mayTurnHeld)) return true;
+                }
+            }
+
+            refused = true;
             return false;
         }
 

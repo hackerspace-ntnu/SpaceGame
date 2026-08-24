@@ -75,11 +75,9 @@ namespace SpaceGame.Agents
             activePerspective = perspective;
             bool firstPerson = activePerspective == CameraPerspective.FirstPerson;
 
-            // The head is a VISUAL, so it is decided everywhere. A remote rider is only ever seen
-            // from outside, and hiding their head to match a first-person view nobody on this
-            // machine is looking through leaves a decapitated player sitting on the saddle.
-            mountedPlayerLook?.SetHeadVisible(!RiderIsLocal || !firstPerson);
-
+            // The rider's head takes care of itself: PlayerLook hides it per camera render, only
+            // for the camera that IS this rider's first-person view. The orbit camera below is a
+            // different camera, so switching to it shows the head with no toggle here.
             if (!RiderIsLocal)
                 return;
 

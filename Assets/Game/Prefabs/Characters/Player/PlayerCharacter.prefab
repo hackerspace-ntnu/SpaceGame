@@ -158,6 +158,7 @@ GameObject:
   - component: {fileID: -6458994778177412634}
   - component: {fileID: 7418329057712344101}
   - component: {fileID: 7418329057712344102}
+  - component: {fileID: 6558388417224476658}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Player
@@ -495,7 +496,10 @@ MonoBehaviour:
   wornLocalPosition: {x: 0.003, y: -0.255, z: -0.415}
   wornLocalEuler: {x: 358.96542, y: 180, z: 0}
   deploySeconds: 0.9
-  deployDistance: 1.6
+  deployDistance: 2.4
+  tossStartForward: 0.45
+  tossStartHeight: 1.25
+  tossArcHeight: 0.5
   arcHeight: 2.6
   arcOutward: 0.55
   groundLift: 0.01
@@ -1025,7 +1029,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6988675286898193588, guid: d28914b0eff1de143a8ce0664abe9849, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.2
+      value: 0.507
       objectReference: {fileID: 0}
     - target: {fileID: 6988675286898193588, guid: d28914b0eff1de143a8ce0664abe9849, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1076,3 +1080,18 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 3745584353352685527, guid: d28914b0eff1de143a8ce0664abe9849, type: 3}
   m_PrefabInstance: {fileID: 5507852043821667659}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &6558388417224476658
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a270d8612b6c41729cfd7ab868a8c26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  flungShake: {fileID: 11400000, guid: a523fbd6273bf7440b39814a82fdeb28, type: 2}
+  fovKick: 5
+  fovKickDuration: 0.25

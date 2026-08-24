@@ -9,6 +9,7 @@
 // everyone expects for free: two players each have their own orange and blue,
 // and neither can close the other's.
 using UnityEngine;
+using SpaceGame.Core;
 
 namespace SpaceGame.Portals
 {
@@ -88,6 +89,61 @@ namespace SpaceGame.Portals
 
         /// <summary>Which barrel is being sprayed right now, or -1.</summary>
         public int SprayBarrel => sprayBarrel;
+
+        private void OnEnable()
+        {
+            this.NetOn(NetMsg.PortalsUsed, OnUsedRequested);
+            this.NetOn(NetMsg.PortalsShut, OnShutElsewhere);
+        }
+
+        private void OnDisable()
+        {
+            this.NetOff(NetMsg.PortalsUsed, OnUsedRequested);
+            this.NetOff(NetMsg.PortalsShut, OnShutElsewhere);
+        }
+
+        /// <summary>
+        /// Something went through this pair and closeOnTraversal shut it — on THIS machine.
+        /// Tell the rest.
+        ///
+        /// Traversal is detected per machine from local physics, and a peer watching an
+        /// interpolated remote body can miss the plane crossing entirely — so without this the
+        /// pair stood open on that machine for the rest of its lifetime, and was still walkable
+        /// there, while it was gone everywhere else. Announced by the machine that OWNS the
+        /// traveller, because that is the one machine whose detection actually moved the body;
+        /// every other machine's detection is cosmetic and may simply never fire.
+        /// </summary>
+        internal void AnnounceTraversal(PortalTraveller traveller)
+        {
+            if (traveller == null || !Network.Owns(traveller)) return;
+            this.NetToServer(NetMsg.PortalsUsed);
+        }
+
+        /// <summary>
+        /// Server side. Idempotent — the announcer has already shut its own copy, and offline the
+        /// send above dispatches straight back into this handler on the same machine.
+        /// </summary>
+        private void OnUsedRequested(in NetArg arg, ulong sender)
+        {
+            if (!Network.Simulates(this)) return;
+
+            this.NetToOthers(NetMsg.PortalsShut, arg, except: sender);
+            ShutPair();
+        }
+
+        private void OnShutElsewhere(in NetArg arg, ulong sender) => ShutPair();
+
+        /// <summary>
+        /// Close both apertures without ending a spray in progress — the replicated mirror of
+        /// Portal.ShutBehind, which also leaves the session alone. A spray pointed at a pair
+        /// that has just been used simply opens a fresh aperture with its next blob, on every
+        /// machine alike.
+        /// </summary>
+        private void ShutPair()
+        {
+            Close(Primary);
+            Close(Secondary);
+        }
 
         /// <summary>The pair belonging to <paramref name="owner"/>, created on first use.</summary>
         public static PortalPair Of(GameObject owner)
@@ -299,6 +355,11 @@ namespace SpaceGame.Portals
             // A zero size means "leave the shape alone, dabs are coming" — the spray's way of
             // opening an aperture that has no outline yet. See LayDab.
             if (size.sqrMagnitude > 1e-6f) portal.SetSize(size);
+
+            // On every Open, not only the instantiating one: a restore can hand a slot a portal
+            // this pair has never seen. The back-reference is what lets a traversal replicate its
+            // close — see AnnounceTraversal.
+            portal.Pair = this;
 
             portal.Place(position, rotation, host, index);
             portal.SetLifetime(lifetime);

@@ -129,10 +129,10 @@ namespace SpaceGame.EditorTools
                           "and the last dab still shows up in the shape");
         }
 
-        // ── Paint pools where it lands, and widens the hole ──────────────────
+        // ── Paint merges where it lands; only painting widens the hole ───────
 
         [Test]
-        public void HoldingTheStreamStillWidensTheHoleInsteadOfStackingCircles()
+        public void HoldingTheStreamStillDoesNotWidenTheHole()
         {
             var stencil = new PortalStencil();
             stencil.AddDab(Vector2.zero, 0.6f);
@@ -142,18 +142,41 @@ namespace SpaceGame.EditorTools
             // The same spot, ten more times — a player holding the nozzle still.
             for (int i = 0; i < 10; i++) stencil.AddDab(Vector2.zero, 0.6f);
 
-            Assert.AreEqual(1, stencil.Count, "pooled into one blob, not stacked as eleven");
-            Assert.Greater(stencil.InscribedRadius, first * 1.5f, "and the hole actually widened");
+            Assert.AreEqual(1, stencil.Count, "merged into one blob, not stacked as eleven");
+            Assert.AreEqual(first, stencil.InscribedRadius, 1e-3f,
+                            "and the hole did not widen — growth comes from painting, not waiting");
         }
 
         [Test]
-        public void PoolingStopsAtTheCapSoOneSpotCannotEatTheWall()
+        public void AWobblingStreamHeldInPlaceConvergesInsteadOfSpreading()
+        {
+            // A hand is never perfectly still: dabs land jittered a few centimetres apart. The
+            // hole may grow to COVER the wobble, and no further — waiting must never be a way to
+            // open a hole the size of the wall.
+            var stencil = new PortalStencil();
+            for (int i = 0; i < 60; i++)
+            {
+                float angle = i * 2.4f;
+                var jitter = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 0.05f;
+                stencil.AddDab(jitter, 0.6f);
+            }
+
+            Assert.AreEqual(1, stencil.Count, "one puddle");
+            Assert.Less(stencil.InscribedRadius, 0.75f, "covering the wobble and nothing more");
+        }
+
+        [Test]
+        public void NearbyPaintMergesIntoTheCircleEnclosingBoth()
         {
             var stencil = new PortalStencil();
-            for (int i = 0; i < 200; i++) stencil.AddDab(Vector2.zero, 0.6f);
+            stencil.AddDab(Vector2.zero, 0.6f);
+            stencil.AddDab(new Vector2(0.2f, 0f), 0.6f);
 
-            Assert.Less(stencil.InscribedRadius, 0.6f * 3f,
-                        "paint stops spreading; sweeping is what makes a big portal");
+            Assert.AreEqual(1, stencil.Count, "close enough to be the same puddle");
+            Assert.IsTrue(stencil.Contains(new Vector2(0.75f, 0f)),
+                          "the merged blob reaches the new paint's far edge");
+            Assert.IsTrue(stencil.Contains(new Vector2(-0.55f, 0f)),
+                          "and still covers the old");
         }
 
         [Test]
@@ -599,18 +622,21 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void ADryBarrelLaysNoPaint()
+        public void ADryBarrelRefusesAndTheGaugeClampsAtEmpty()
         {
             var go = new GameObject("Portal Gun");
             spawned.Add(go);
 
             var gun = go.AddComponent<PortalGunItem>();
 
-            Assert.IsTrue(gun.TrySpend(PortalPair.Primary, 1), "a full tank pays for a blob");
+            Assert.IsTrue(gun.CanSpend(PortalPair.Primary, 1), "a full tank pays for a blob");
 
-            for (int i = 0; i < 200; i++) gun.TrySpend(PortalPair.Primary, 1);
+            // Spend is unconditional — it is the peer-side debit for dabs the OWNER already paid
+            // for — so a machine whose gauge drifted low clamps at empty instead of going negative.
+            for (int i = 0; i < 200; i++) gun.Spend(PortalPair.Primary, 1);
 
-            Assert.IsFalse(gun.TrySpend(PortalPair.Primary, 1), "and an empty one does not");
+            Assert.IsFalse(gun.CanSpend(PortalPair.Primary, 1), "an empty tank refuses");
+            Assert.AreEqual(0f, gun.ChargeOf(PortalPair.Primary), 1e-3f, "and never reads negative");
             Assert.AreEqual(1f, gun.ChargeOf(PortalPair.Secondary), 1e-3f,
                             "draining one barrel leaves the other alone");
         }

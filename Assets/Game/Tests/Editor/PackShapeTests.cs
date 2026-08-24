@@ -143,8 +143,8 @@ namespace SpaceGame.Tests
 
             foreach (Vector2 probe in probes)
             {
-                Vector2 once = PackLayout.Snap(hemmed, shape, probe, 0f);
-                Vector2 twice = PackLayout.Snap(hemmed, shape, once, 0f);
+                Vector2 once = PackLayout.Snap(PackSurfaceId.Leaf, hemmed, shape, probe, 0f);
+                Vector2 twice = PackLayout.Snap(PackSurfaceId.Leaf, hemmed, shape, once, 0f);
 
                 Assert.AreEqual(once.x, twice.x, 1e-5f, $"snapping {probe} twice moved it");
                 Assert.AreEqual(once.y, twice.y, 1e-5f, $"snapping {probe} twice moved it");
@@ -157,7 +157,8 @@ namespace SpaceGame.Tests
         {
             var hemmed = new Vector2(0.86f, 0.72f);   // 9 x 8 cells, 0.025 m of hem across
 
-            Vector2 snapped = PackLayout.Snap(hemmed, PackShape.Rect(2, 2), new Vector2(0.2f, 0.3f), 0f);
+            Vector2 snapped = PackLayout.Snap(PackSurfaceId.Leaf, hemmed,
+                                              PackShape.Rect(2, 2), new Vector2(0.2f, 0.3f), 0f);
 
             // Nearest block origin is (1, 2): 0.025 + 1 * 0.09 + 0.09 across, 0 + 2 * 0.09 + 0.09 up.
             Assert.AreEqual(0.205f, snapped.x, 1e-4f);

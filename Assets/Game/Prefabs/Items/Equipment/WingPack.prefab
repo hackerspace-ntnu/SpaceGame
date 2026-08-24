@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 2880262674418430917}
   - component: {fileID: 8796212341434097306}
   - component: {fileID: 4906758643045928377}
+  - component: {fileID: 5123847290138475629}
   m_Layer: 0
   m_Name: WingPack
   m_TagString: Untagged
@@ -209,6 +210,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &5123847290138475629
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7939255268260057349}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 849607e40917c46c396381660647fa88, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
+  gripPoint: {fileID: 0}
+  hand: 0
+  holdStyle: 2
+  rotationOffset: {x: 0, y: 0, z: 0}
+  positionOffset: {x: 0, y: 0, z: 0}
+  holdSize: 1.26
+  sizeReference: {fileID: 0}
+  keepColliders: 0
 --- !u!1001 &8911875902201748093
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -406,16 +406,25 @@ namespace SpaceGame.Items
         private Camera PlayerCamera() => player != null ? player.PlayerCamera : null;
 
         /// <summary>
-        /// Which way the player faces the rig, flattened. The focus camera sits back along it, so
-        /// this is what decides which side of the pack the shot comes from.
+        /// Which way the player faces the rig, flattened. The focus camera sits back along it,
+        /// between the player and the pack, so this is what decides which side of the pack the
+        /// shot comes from.
         ///
-        /// The BODY's facing, frozen at this instant, because the pack is deployed along the very
-        /// same vector — <c>BackpackController.DeployForward</c> — so the shot comes from the
-        /// player's side of the pack by construction, whatever the view camera is doing.
+        /// The actual player→pack line, frozen at this instant, not the body's facing: the
+        /// player may have walked around the pack before opening it, and the camera has to land
+        /// on THEIR side of it, square to it, wherever they stand. The body's facing survives
+        /// only as the fallback for the degenerate case of standing exactly on top of the rig.
         /// </summary>
         private Vector3 ViewDirection()
         {
-            var flat = new Vector3(transform.forward.x, 0f, transform.forward.z);
+            Vector3 toPack = controller != null && controller.Pack != null
+                ? controller.Pack.transform.position - transform.position
+                : transform.forward;
+
+            var flat = new Vector3(toPack.x, 0f, toPack.z);
+            if (flat.sqrMagnitude > 1e-6f) return flat.normalized;
+
+            flat = new Vector3(transform.forward.x, 0f, transform.forward.z);
             return flat.sqrMagnitude > 1e-6f ? flat.normalized : Vector3.forward;
         }
 

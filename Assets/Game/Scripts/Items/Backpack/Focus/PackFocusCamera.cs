@@ -28,6 +28,14 @@ namespace SpaceGame.Items
     public sealed class PackFocusCamera : MonoBehaviour
     {
         // ── The authored pose ────────────────────────────────────────────────
+        //
+        // The shot is ON the player→pack axis, facing the pack square. The player is standing on
+        // that same axis, so the arrangement only works while the camera lands IN FRONT of their
+        // body: the pack is deployed BackpackController.deployDistance (2.4 m) out, the camera
+        // sits DistanceOut back from it, and the difference — 0.5 m — is where the lens ends up,
+        // ahead of the player at head height with their body behind the near plane. Grow
+        // DistanceOut past deployDistance and the player is back between the lens and the pack,
+        // filling the frame.
         private const float DistanceOut = 1.9f;
         private const float HeightUp = 1.5f;
         private const float PitchDown = 38f;
@@ -91,9 +99,9 @@ namespace SpaceGame.Items
         /// </summary>
         /// <param name="rig">The deployed pack. Tracked live rather than sampled once, because it
         /// is still mid-arc when this is called and lands under the camera as it arrives.</param>
-        /// <param name="viewDirection">Which way the player is looking at the rig, flattened. The
-        /// camera sits back along it. Frozen at spawn so the shot cannot swing while the player's
-        /// body drifts.</param>
+        /// <param name="viewDirection">The player→rig line, flattened. The camera sits back along
+        /// it, between the player and the pack, facing the pack square-on. Frozen at spawn so
+        /// the shot cannot swing while the player's body drifts.</param>
         /// <param name="playerCamera">Switched off, with its AudioListener, for the duration.</param>
         public static PackFocusCamera Spawn(Transform rig, Vector3 viewDirection, Camera playerCamera)
         {

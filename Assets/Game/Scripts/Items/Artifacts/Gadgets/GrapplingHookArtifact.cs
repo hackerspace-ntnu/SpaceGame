@@ -162,6 +162,12 @@ namespace SpaceGame.Items
                  "requiring a re-export. The tip offset is scaled with it — see EffectiveTipOffset.")]
         [SerializeField] private float hookHeadScale = 1f;
 
+        [Tooltip("The harpoon modelled sitting in the launcher, if the model has one. Hidden while " +
+                 "the real head is out, so firing reads as the hook leaving the arm rather than as " +
+                 "a second hook appearing from nowhere. Leave empty for a launcher with no seated " +
+                 "head; nothing else depends on it.")]
+        [SerializeField] private GameObject seatedHook;
+
         [Header("Camera")]
         [Tooltip("Extra degrees of field of view at full speed, added on top of the player's own " +
                  "FOV setting. Zero disables the effect.")]
@@ -984,6 +990,7 @@ namespace SpaceGame.Items
             // Unparented and in world space: it has to keep flying while the hand that threw it
             // moves, and stay put in the wall afterwards.
             _head = Instantiate(hookHeadPrefab, at, HeadRotation(forward)).transform;
+            ShowSeatedHook(false);
 
             // Applied to the root, which the library's darts import at scale 1 for exactly this
             // reason — their mesh child sits at 100 and must not be touched.
@@ -1058,9 +1065,29 @@ namespace SpaceGame.Items
 
         private void DestroyHead()
         {
+            // Before the null guard, not after: the rope can be dropped without a head ever having
+            // been spawned — a shot with no hookHeadPrefab, or a StopGrapple on unequip — and the
+            // seated harpoon has to come back in those cases too.
+            ShowSeatedHook(true);
+
             if (_head == null) return;
             Destroy(_head.gameObject);
             _head = null;
+        }
+
+        /// <summary>
+        /// Show or hide the harpoon modelled in the launcher.
+        ///
+        /// <para>
+        /// Called from <see cref="SpawnHead"/> and <see cref="DestroyHead"/>, which both run on
+        /// every machine — the head is cosmetic and instantiated everywhere — so a peer watching
+        /// the shot sees the same empty tube the owner does. Nothing about it is worth saving: the
+        /// held instance is rebuilt from the prefab every time the item is equipped.
+        /// </para>
+        /// </summary>
+        private void ShowSeatedHook(bool visible)
+        {
+            if (seatedHook != null) seatedHook.SetActive(visible);
         }
 
         /// <summary>Aim the model down <paramref name="forward"/>, then correct for its own axis.</summary>

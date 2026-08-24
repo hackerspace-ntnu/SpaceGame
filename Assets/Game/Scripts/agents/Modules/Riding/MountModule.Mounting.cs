@@ -346,7 +346,7 @@ namespace SpaceGame.Agents
             // PlayerLook.OnEnable re-locks the cursor and its LateUpdate keeps re-locking it every
             // frame, which is what makes the respawn button unclickable after dying while flying.
             //
-            // The head stays hidden and the freeze stands until OnRevive hands control back.
+            // The freeze stands until OnRevive hands control back.
             if (RiderIsDead())
                 return;
 
@@ -358,13 +358,7 @@ namespace SpaceGame.Agents
                 mountedPlayerMovement.enabled = true;
 
             if (disablePlayerLook && mountedPlayerLook && riderLookWasEnabled)
-            {
-                // Hiding the head belongs to the first-person view this rider is returning to, so it
-                // travels with the look restore rather than running for a body we only ever see from
-                // the outside.
-                mountedPlayerLook.SetHeadVisible(false);
                 mountedPlayerLook.enabled = true;
-            }
 
             if (disablePlayerInteractor && mountedInteractor && riderInteractorWasEnabled)
                 mountedInteractor.enabled = true;

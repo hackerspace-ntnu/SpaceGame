@@ -132,9 +132,11 @@ Shader "SpaceGame/Portal/PortalSurface"
 
                 // The iris closes by ERODING the shape inward, which works the same on a blob as on
                 // an ellipse. Scaling a coordinate, which is what this used to do, only works on a
-                // shape that is centred on its own origin — and a sprayed one never is.
+                // shape that is centred on its own origin — and a sprayed one never is. Eroded by
+                // _CloseDepth, not _Depth: a merged blob is deeper than the stroke radius, and the
+                // shallower erosion left a rump of aperture on screen at the end of the close.
                 float openness = saturate(_Open);
-                d += (1.0 - openness) * _Depth;
+                d += (1.0 - openness) * max(_CloseDepth, _Depth);
 
                 // Conservative reject BEFORE any noise is evaluated. The crawling edge below can
                 // only move it by _Crawl, so anything past that is outside whatever the noise turns

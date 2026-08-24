@@ -74,8 +74,16 @@ namespace SpaceGame.Items
         /// <summary>Seconds a refused drop takes to slide back where it came from.</summary>
         private const float SpringBackSeconds = 0.14f;
 
-        /// <summary>How long a refusal stays beside the cursor before the hover label takes over.</summary>
-        private const float NoticeSeconds = 2f;
+        /// <summary>Seconds the hover rim stays refusal-red after a refused take.</summary>
+        private const float DeniedFlashSeconds = 0.3f;
+
+        private float deniedUntil;
+
+        /// <summary>
+        /// The visual <see cref="SetHovered"/> last rim-lit, so a change of target can be told
+        /// apart from the same item being re-hit frame after frame — see <see cref="SetHovered"/>.
+        /// </summary>
+        private GameObject hoveredVisual;
 
         private PackFocusCamera focusCamera;
         private BackpackController controller;
@@ -85,17 +93,21 @@ namespace SpaceGame.Items
         private PackDragVisuals visuals;
 
         /// <summary>
-        /// The cells the drop would use, one square each, grey where they are free and red where
-        /// they are not.
-        ///
-        /// <para>
-        /// This replaces the single footprint quad. The quad could say "this does not fit"; it
-        /// could never say <em>which part</em> does not, and with masks that is most of the
-        /// information — an L-shaped item refused by one cell of its own hook looks, under one flat
-        /// rectangle, exactly like an L-shaped item refused by the edge of the mat.
-        /// </para>
+        /// The cells the magnet-snapped ghost will occupy, one square each, plus the lattice of the
+        /// whole hovered face underneath it. One colour, not a verdict: <c>PackLayout.TryFindNearest</c>
+        /// never hands back a spot the release cannot have, so there is nothing left for these cells
+        /// to refuse.
         /// </summary>
         private PackGridVisual cellGrid;
+
+        /// <summary>
+        /// The layout the lattice is subscribed to, cached at <see cref="Attach"/> rather than
+        /// re-read from <c>controller.Pack.Layout</c> at unsubscribe time. A plain C# reference,
+        /// not a <c>UnityEngine.Object</c>, so it carries none of Unity's fake-null semantics —
+        /// <see cref="OnDestroy"/> can always find it and unhook, even torn down in whatever order
+        /// a scene unload happens to destroy this component and the pack in.
+        /// </summary>
+        private PackLayout subscribedLayout;
 
         // ── Drag state ───────────────────────────────────────────────────────
         private bool dragging;
@@ -136,17 +148,53 @@ namespace SpaceGame.Items
         private PackSurface targetSurface;
         private Vector2 targetUv;
         private float yaw;
+
+        /// <summary>
+        /// The yaw the magnet-snapped spot actually uses. Usually equal to <see cref="yaw"/>,
+        /// which is the player's intent and is only written by the wheel; they part when the
+        /// held shape only fits the face turned, and everything drawn or requested reads this
+        /// one so the preview and the placement stay the same cells.
+        /// </summary>
+        private float targetYaw;
+
         private bool dropIsLegal;
+
+        // ── Caching the magnet search ────────────────────────────────────────
+        //
+        // TryFindNearest walks every legal cell on the face, and a still cursor asks it the exact
+        // same question sixty times a second. Its answer only moves when the cursor crosses into a
+        // new grid cell, the wheel turns the player's intent yaw, the drag reaches a different
+        // face, or the layout underneath changes — the last of which reuses the OnChanged signal
+        // OnLayoutChanged already answers for the lattice.
+        //
+        // Keyed on the RAW uv, not the cursor's cell, even though the grid is what the search
+        // snaps to: TryFindNearest minimises distance to each candidate's BLOCK CENTRE, which for
+        // an even-extent shape sits half a cell off the grid's own cell centres. Quantising the key
+        // to a cell would then change answer twice per cell crossed, with the direction of travel
+        // deciding which half got the stale one — a ghost that visibly lags the cursor. A raw-uv
+        // key is exact by construction; it still hits every frame a genuinely still cursor asks the
+        // same question, which is the case this cache exists for, and only re-searches on actual
+        // mouse movement — no worse than before the cache existed.
+        private PackSurface nearestSurfaceKey;
+        private Vector2 nearestUvKey;
+        private float nearestYawKey;
+        private bool nearestSearchDirty = true;
+
+        private bool nearestFound;
+        private Vector2 nearestUv;
+        private float nearestYaw;
 
         /// <summary>
         /// Is the cursor on one of the rig's faces AT ALL this frame?
         ///
         /// <para>
         /// Distinct from <see cref="dropIsLegal"/>, and the distinction is spec 5.1 versus 5.2.
-        /// Over a face but clashing with something placed, or hanging over its edge, is a REFUSED
-        /// placement: red, and it springs back. Off every face is not a refusal at all — it is the
-        /// player throwing the thing on the ground, which is a different verb with a different
-        /// request behind it.
+        /// Clashing with something placed or hanging over the edge is no longer a refusal at all —
+        /// the magnet moves the ghost to the nearest spot that clears both. The one refusal left is
+        /// <see cref="dropIsLegal"/> false while still <c>overSurface</c>: this face has no room for
+        /// the shape at any permitted turn, full stop. Off every face is a different thing again —
+        /// it is the player throwing the thing on the ground, which is a different verb with a
+        /// different request behind it.
         /// </para>
         /// <para>
         /// It cannot be inferred from <see cref="targetSurface"/>, which deliberately keeps the
@@ -187,22 +235,6 @@ namespace SpaceGame.Items
         /// <summary>Where the drag has pulled it to, 0 flat and 1 racked.</summary>
         private float leafProgress;
 
-        // ── Saying something ─────────────────────────────────────────────────
-
-        /// <summary>
-        /// A line to show beside the cursor instead of the hovered item's name, and when it stops
-        /// being shown. Null when there is nothing to say.
-        ///
-        /// <para>
-        /// Every verb in here is a request with no answer coming back, so a refusal the server
-        /// makes is invisible by construction: the pack simply does not change. This is the one
-        /// channel that says anything at all, and it is driven from LOCAL predictions — the pack's
-        /// layout and the player's own hotbar, both of which this machine has — never from a reply.
-        /// </para>
-        /// </summary>
-        private string notice;
-        private float noticeUntil;
-
         public static PackDragController Attach(PackFocusCamera focusCamera, BackpackController controller,
                                                 Interactor interactor, PlayerInputManager input)
         {
@@ -218,6 +250,13 @@ namespace SpaceGame.Items
             // Awake and OnEnable by the time these fields are set — OnEnable saw a null input and
             // hooked nothing, which is a scroll wheel that silently does not rotate anything.
             drag.Subscribe();
+
+            // The lattice shows other items' cells, so any change to the layout — including one
+            // published from another player's move — stales it. Not guarded on controller.Pack:
+            // PackFocusSession.Enter already refused to call here at all with no Pack, so it is
+            // guaranteed by the caller rather than checked again.
+            drag.subscribedLayout = controller.Pack.Layout;
+            drag.subscribedLayout.OnChanged += drag.OnLayoutChanged;
 
             Active = drag;
             return drag;
@@ -251,12 +290,23 @@ namespace SpaceGame.Items
             input.OnPackStowPressed -= OnStowKey;
         }
 
+        /// <summary>The lattice and the cached magnet search both show other items' cells, so any
+        /// layout change stales both.</summary>
+        private void OnLayoutChanged()
+        {
+            if (cellGrid != null) cellGrid.MarkLatticeDirty();
+            nearestSearchDirty = true;
+        }
+
         private void OnDestroy()
         {
             // The leaf belongs to the pack, which outlives this. A controller torn down by a scene
             // load or a destroyed focus camera rather than through Cancel would otherwise leave the
             // board stranded part way up its arc, with nothing left holding it there.
             if (draggingLeaf) ReleaseLeaf(commit: false);
+
+            if (subscribedLayout != null) subscribedLayout.OnChanged -= OnLayoutChanged;
+            subscribedLayout = null;
 
             if (Active == this) Active = null;
 
@@ -334,6 +384,17 @@ namespace SpaceGame.Items
         {
             if (visuals == null) return;
 
+            // Unconditional, ahead of every other early return below: "the flash always ends" is
+            // a promise about the WALL CLOCK, not about whichever state the rest of Update happens
+            // to be in. Behind the cam/pack/springBack return it used to depend on two cooperating
+            // mechanisms — the timer AND the drag machine reaching this line — and a spring-back in
+            // progress is exactly a moment that return would otherwise skip it for.
+            if (deniedUntil > 0f && Time.unscaledTime >= deniedUntil)
+            {
+                deniedUntil = 0f;
+                visuals.SetHoverDenied(false);
+            }
+
             Camera cam = focusCamera != null ? focusCamera.Camera : null;
             BackpackObject pack = controller != null ? controller.Pack : null;
 
@@ -344,12 +405,34 @@ namespace SpaceGame.Items
             if (draggingLeaf) UpdateLeafDrag(cam, pack, mouse);
             else if (dragging) UpdateDrag(cam, pack, mouse);
             else UpdateHover(cam, pack, mouse);
-
-            // Last, so it beats whatever the branch above just wrote to the label.
-            ApplyNotice();
         }
 
         // ── Hovering ─────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Rim-lights <paramref name="visual"/> and un-rims whatever was lit before — every caller
+        /// that used to reach <see cref="PackDragVisuals.SetHovered"/> directly goes through here
+        /// instead, so none of them can forget this part.
+        ///
+        /// <para>
+        /// A denied flash is keyed to the item it was refused on, not to the hover rim material
+        /// itself — the material is shared, so a flash left running would follow the rim onto
+        /// whatever the cursor lands on next. The moment the target actually changes, not merely
+        /// gets re-hit the same frame after frame, the flash ends here; the timed expiry in
+        /// <see cref="Update"/> still covers the cursor sitting still on the refused item.
+        /// </para>
+        /// </summary>
+        private void SetHovered(GameObject visual)
+        {
+            if (visual != hoveredVisual && deniedUntil > 0f)
+            {
+                deniedUntil = 0f;
+                visuals.SetHoverDenied(false);
+            }
+
+            hoveredVisual = visual;
+            visuals.SetHovered(visual);
+        }
 
         private void UpdateHover(Camera cam, BackpackObject pack, Mouse mouse)
         {
@@ -367,9 +450,16 @@ namespace SpaceGame.Items
 
             bool over = PackPointer.TryHitItem(cam, out GameObject visual, out PackSurface surface, out Vector2 uv);
 
+            // The bar is drawn over the same screen the rig is — that overlap is exactly why
+            // InventoryUI.SlotIndexUnder exists. A press over a slot belongs to the HUD, which
+            // resolves it through its own pointer handlers; it must never ALSO register here as a
+            // press on the mat behind it, or one right-click over a slot could both stow that slot
+            // and take whatever pack item happens to be framed underneath.
+            bool overBar = InventoryUI.SlotIndexUnder(PackPointer.CursorPosition) >= 0;
+
             if (!over || !pack.TryFindAt(surface.Id, uv, out PackPlacement placement))
             {
-                visuals.SetHovered(null);
+                SetHovered(null);
 
                 // The leaf grab is offered only on the branch where nothing is under the cursor,
                 // which is what keeps it from ever competing with picking gear up: a board with a
@@ -377,7 +467,7 @@ namespace SpaceGame.Items
                 // bare.
                 bool onBoard = overSurface && CanGrabLeaf(pack, targetSurface, targetUv);
 
-                if (onBoard && mouse != null && mouse.leftButton.wasPressedThisFrame)
+                if (onBoard && !overBar && mouse != null && mouse.leftButton.wasPressedThisFrame)
                 {
                     BeginLeafDrag(pack, targetSurface, targetUv);
                     return;
@@ -387,14 +477,15 @@ namespace SpaceGame.Items
                 // nothing to say, and it is exactly where the stow gesture wants to be offered —
                 // a key with no on-screen affordance is otherwise a verb nobody will ever find.
                 visuals.ShowName(onBoard ? LeafHint(pack.IsRacked)
-                                         : overSurface ? "Drag a hotbar item here, or press 1-4" : null,
+                                         : overSurface ? "Drag or right-click a hotbar item to stow it — or press 1-4"
+                                         : null,
                                  PackPointer.CursorPosition);
                 return;
             }
 
             InventoryItem item = pack.ItemFor(placement.ItemId);
 
-            visuals.SetHovered(visual);
+            SetHovered(visual);
 
             // The name with the verb after it. Right-click straight to the hotbar is the one thing
             // in focus mode a player cannot discover by trying — there is no cursor change and no
@@ -403,7 +494,7 @@ namespace SpaceGame.Items
             visuals.ShowName(item != null ? item.itemName + "   (right-click to take)" : null,
                              PackPointer.CursorPosition);
 
-            if (mouse == null) return;
+            if (mouse == null || overBar) return;
 
             if (mouse.leftButton.wasPressedThisFrame) BeginDrag(pack, item, placement, visual);
             else if (mouse.rightButton.wasPressedThisFrame) SendToHotbar(pack, placement);
@@ -429,16 +520,17 @@ namespace SpaceGame.Items
             // See PackLayout.TryAnchorUv.
             Vector2 grab = pack.AnchorUv(placement);
 
-            if (!pack.CanTakeToHotbar(placement.Surface, grab, Hotbar(), out string refusal)
-                && refusal != null)
+            if (!pack.CanTakeToHotbar(placement.Surface, grab, Hotbar(), out bool refused)
+                && refused)
             {
-                ShowNotice(refusal);
+                deniedUntil = Time.unscaledTime + DeniedFlashSeconds;
+                visuals.SetHoverDenied(true);
                 return;
             }
 
             pack.RequestTake(placement.Surface, grab, interactor);
 
-            visuals.SetHovered(null);
+            SetHovered(null);
             visuals.ShowName(null, Vector2.zero);
         }
 
@@ -446,10 +538,11 @@ namespace SpaceGame.Items
 
         // Two verbs share the bare board — the flip and the stow — so the hint names both. The
         // click is deliberately first: it is the one players kept failing to find while the flip
-        // was an edge-only drag.
+        // was an edge-only drag. The stow half now names all three ways in, matching the bare-mat
+        // label, rather than falling a version behind it.
         private static string LeafHint(bool racked) =>
-            racked ? "Click to lay the board flat — or press 1-4 to stow here"
-                   : "Click to stand the board up — or press 1-4 to stow here";
+            racked ? "Click to lay the board flat — drag, right-click or 1-4 to stow here"
+                   : "Click to stand the board up — drag, right-click or 1-4 to stow here";
 
         /// <summary>
         /// Is the cursor on bare board, with the pack in a state where turning it means anything?
@@ -502,7 +595,7 @@ namespace SpaceGame.Items
             leafGrabCursor = PackPointer.CursorPosition;
             draggingLeaf = true;
 
-            visuals.SetHovered(null);
+            SetHovered(null);
             visuals.ShowName(null, Vector2.zero);
         }
 
@@ -584,22 +677,20 @@ namespace SpaceGame.Items
         /// shortcut, and it keeps working with the cursor nowhere in particular because an
         /// unaimed stow first-fits rather than failing.
         /// </para>
-        /// <para>
-        /// The cursor's target is read from the fields <see cref="UpdateHover"/> maintains rather
-        /// than resolved again here: this arrives on an input callback, which can land either side
-        /// of Update, and a plane intersection taken at that moment would disagree with the
-        /// footprint the player is looking at by however far the mouse moved in between.
-        /// </para>
-        /// <para>
-        /// Nothing is applied locally. Like every other verb in here it is a request, and the item
-        /// stays in the hotbar until the server's answer arrives as a layout change.
-        /// </para>
         /// </summary>
-        private void OnStowKey(int slotIndex)
+        private void OnStowKey(int slotIndex) => StowSlot(slotIndex, aimUnderCursor: true);
+
+        /// <summary>
+        /// Put one hotbar slot's item on the pack: the 1-4 keys aimed at the cursor's spot,
+        /// and a right-click on the slot itself unaimed — the cursor is on the HUD then, which
+        /// is nowhere on the pack, so first-fit is the only honest answer.
+        /// </summary>
+        public void StowSlot(int slotIndex, bool aimUnderCursor)
         {
-            // Mid-drag the player already has something in hand, and the cursor's spot is spoken
-            // for by it. Springing back is a moment where the layout is about to change too, and
-            // mid-flip the face the cursor is aiming at is halfway through ninety degrees.
+            // Mid-drag the player already has something in hand, and the cursor's spot is
+            // spoken for by it. Springing back is a moment where the layout is about to change
+            // too, and mid-flip the face the cursor is aiming at is halfway through ninety
+            // degrees.
             if (dragging || draggingLeaf || springBack != null) return;
 
             BackpackObject pack = controller != null ? controller.Pack : null;
@@ -612,33 +703,32 @@ namespace SpaceGame.Items
 
             InventorySlot slot = hotbar.GetSlot(slotIndex);
             InventoryItem item = slot != null && !slot.IsEmpty ? slot.Item : null;
+            if (item == null) return;
 
-            if (item == null)
-            {
-                ShowNotice($"Hotbar slot {slotIndex + 1} is empty");
-                return;
-            }
-
-            // Over a face is not enough: the spot has to actually take this item, or the aim is a
-            // worse answer than the pack's own first fit. Refusing outright instead would make the
-            // verb unusable with the cursor anywhere but on clear mat.
-            // Snapped before it is tested, so the cell the prediction approves is the cell the
-            // server will place in. A raw cursor uv would answer about a spot nothing ever uses.
+            // Over a face is not enough: the spot has to actually take this item, or the aim
+            // is a worse answer than the pack's own first fit.
             PackShape shape = pack.ShapeFor(item);
 
-            Vector2 aimedUv = overSurface && targetSurface != null
-                ? PackLayout.Snap(targetSurface.Size, shape, targetUv, 0f)
-                : Vector2.zero;
+            bool wantAim = aimUnderCursor && overSurface && targetSurface != null;
 
-            bool aimed = overSurface && targetSurface != null &&
-                         pack.Layout.CanPlace(targetSurface.Id, targetSurface.Size, shape, aimedUv, 0f);
+            // The same magnet the drag path snaps to, not a raw Snap+CanPlace pair: with only
+            // those two, a cursor sitting on an occupied cell collapsed straight to unaimed and
+            // the item teleported to the server's first-fit corner, while a drag released at the
+            // same spot would have landed on the NEAREST free one instead — one intent, two
+            // different spatial stories. Yaw 0 and no turns is what TryStowFromHotbar places at,
+            // so the prediction stays exact.
+            Vector2 aimedUv = default;
+            bool aimed = wantAim &&
+                         pack.Layout.TryFindNearest(targetSurface.Id, targetSurface.Size, shape,
+                                                    targetUv, preferredYaw: 0f, allowTurns: false,
+                                                    out aimedUv, out _);
 
             PackSurfaceId surface = aimed ? targetSurface.Id : default;
             Vector2 uv = aimed ? aimedUv : Vector2.zero;
 
             if (!pack.CanStow(item, aimed, surface, uv))
             {
-                ShowNotice($"No room on the pack for {item.itemName}");
+                InventoryUI.ShakeSlot(slotIndex);
                 return;
             }
 
@@ -652,26 +742,6 @@ namespace SpaceGame.Items
         /// </summary>
         private IPlayerInventory Hotbar() =>
             interactor != null ? interactor.GetComponentInParent<IPlayerInventory>() : null;
-
-        private void ShowNotice(string text)
-        {
-            notice = text;
-            noticeUntil = Time.unscaledTime + NoticeSeconds;
-        }
-
-        /// <summary>Draws the notice over whatever the hover label wanted to say, until it expires.</summary>
-        private void ApplyNotice()
-        {
-            if (notice == null) return;
-
-            if (Time.unscaledTime >= noticeUntil)
-            {
-                notice = null;
-                return;
-            }
-
-            visuals.ShowName(notice, PackPointer.CursorPosition);
-        }
 
         // ── Dragging ─────────────────────────────────────────────────────────
 
@@ -701,6 +771,14 @@ namespace SpaceGame.Items
             targetSurface = surface;
             targetUv = placement.Uv;
             yaw = placement.Yaw;
+            targetYaw = placement.Yaw;
+
+            // The cached magnet search is keyed on surface/uv/yaw alone, and ShowLattice's own key
+            // omits ignoreItemId the same way — neither knows WHICH item, so a new drag with a
+            // different shape or ignoreItemId must not reuse the previous item's answer just
+            // because the cursor happens to land back on the same spot.
+            nearestSearchDirty = true;
+            if (cellGrid != null) cellGrid.MarkLatticeDirty();
 
             // The grab happened ON a face, so that is the state until the first UpdateDrag says
             // otherwise. Left false, a press and release inside one frame would read as a throw.
@@ -708,7 +786,7 @@ namespace SpaceGame.Items
 
             // The hover rim comes off first: hover and ghost both append a material to the same
             // renderers, and the one that gets there first is the one that can be taken back off.
-            visuals.SetHovered(null);
+            SetHovered(null);
             visuals.ShowName(null, Vector2.zero);
 
             // Spec 5.2: an outline stays where the item was, so the player can see what they are
@@ -726,8 +804,8 @@ namespace SpaceGame.Items
         /// <para>
         /// The drag GESTURE belongs to the EventSystem — it began on a <c>Graphic</c>, and Unity's
         /// pointer plumbing is what noticed — but everything that follows is this state machine's:
-        /// the same hit-test against the same faces, the same footprint, the same grey-and-red, and
-        /// on release the same request. That is why this is an entry point rather than a system of
+        /// the same hit-test against the same faces, the same magnet-snapped ghost cells, and on
+        /// release the same request. That is why this is an entry point rather than a system of
         /// its own.
         /// </para>
         /// <para>
@@ -749,10 +827,7 @@ namespace SpaceGame.Items
             // player puts it, and a drag that can only ever end in nothing happening is worse than
             // a drag that refuses to start.
             if (!pack.CanStow(item, aimed: false, default, Vector2.zero))
-            {
-                ShowNotice($"No room on the pack for {item.itemName}");
                 return false;
-            }
 
             dragging = true;
             dragItem = item;
@@ -766,6 +841,12 @@ namespace SpaceGame.Items
             originYaw = 0f;
 
             yaw = 0f;
+            targetYaw = 0f;
+
+            // See the matching note in BeginDrag: a different item means the cached magnet search
+            // and the lattice both no longer apply, even if the cursor lands on the same spot.
+            nearestSearchDirty = true;
+            if (cellGrid != null) cellGrid.MarkLatticeDirty();
 
             // No proxy and no target yet. The cursor is over the HUD at the bottom of the screen,
             // which is not a face, and TryHitSurface is what will say otherwise on some later
@@ -775,7 +856,7 @@ namespace SpaceGame.Items
             dropIsLegal = false;
             proxyBuilt = false;
 
-            visuals.SetHovered(null);
+            SetHovered(null);
             visuals.ShowName(null, Vector2.zero);
 
             return true;
@@ -807,18 +888,21 @@ namespace SpaceGame.Items
                 // hotbar until the server's answer arrives as a layout change and a slot change.
                 controller.RequestStow(originSlot, aimed: true, targetSurface.Id, targetUv, interactor);
             }
-            else if (overSurface)
+            else if (pack != null && overSurface)
             {
-                // Over a face and refused. There is no spring-back to run: nothing left the hotbar,
-                // and the slot the item is still sitting in is the whole of the animation.
-                ShowNotice(dragItem != null
-                    ? $"No room there for {dragItem.itemName}"
-                    : "No room there");
+                // Over a face with no room at THIS spot, at any turn — not the pack being full.
+                // BeginHotbarDrag already proved with CanStow(aimed: false) that the pack has room
+                // SOMEWHERE, and the keys and right-click both fall through to the server's own
+                // first-fit rather than refusing outright — a drag aimed at a crowded corner must
+                // land the same way, or it is the one stow verb on this whole feature that still
+                // gives up instead of finding room itself.
+                controller.RequestStow(originSlot, aimed: false, default, Vector2.zero, interactor);
             }
 
-            // Off the pack entirely is a cancel, not a throw. Dragging out of the PACK and letting
-            // go over the sand is how gear is thrown away — but this item never left the hotbar,
-            // and letting go halfway is how a player says "no, not that one".
+            // Off the pack entirely is a cancel, not a throw: dragging out of the PACK and letting
+            // go over the sand is how gear is thrown away, but this item never left the hotbar, so
+            // letting go halfway is just a player saying "no, not that one" — nothing to animate
+            // back, since nothing left the slot in the first place.
 
             EndHotbarDragVisuals();
         }
@@ -835,6 +919,7 @@ namespace SpaceGame.Items
         private void EndHotbarDragVisuals()
         {
             if (visuals != null) visuals.EndDrag();
+            if (cellGrid != null) cellGrid.Hide();
 
             dragItem = null;
             originSlot = -1;
@@ -855,20 +940,55 @@ namespace SpaceGame.Items
             {
                 targetSurface = surface;
 
-                // SNAPPED, not raw. Everything after this line — the proxy, the cells, the
-                // legality test and the request that goes to the server — reads targetUv, so
-                // snapping once here is what makes the preview and the placement the same thing.
-                // Snapped later, or only inside the layout, the item under the cursor would slide
-                // continuously and then jump on release.
-                targetUv = PackLayout.Snap(targetSurface.Size, shape, uv, yaw);
-            }
+                // MAGNET-SNAPPED, not merely grid-snapped: the ghost is put on the nearest
+                // spot the release can legally have, so everything after this line — the
+                // proxy, the cells and the request — describes a placement that will succeed.
+                // A hotbar drag is pinned to yaw 0 because NetMsg.PackStow carries no yaw and
+                // the server places at zero; letting the preview turn would show cells the
+                // placement then would not use.
+                bool mayTurn = dragFrom == DragSource.Pack &&
+                               PackShapes.AllowsRotation(dragItem, pack.Shapes);
+                float preferredYaw = dragFrom == DragSource.Hotbar ? 0f : yaw;
 
-            // Off the edge of a face, or over something already placed. Both are the same answer to
-            // the player — red, and a release that changes nothing — and the same answer to the
-            // layout, which is why one call covers both.
-            dropIsLegal = overSurface && targetSurface != null &&
-                          pack.Layout.CanPlace(targetSurface.Id, targetSurface.Size, shape,
-                                               targetUv, yaw, ignoreItemId: DragItemId());
+                // Cached: see the field group above. Keyed on the raw uv rather than the cursor's
+                // cell — TryFindNearest answers about block CENTRES, which for an even-extent shape
+                // sit half a cell off the grid's own cell centres, so a cell-quantised key would
+                // change answer twice per cell and lag the cursor by up to one. The raw uv is
+                // exact and still hits on every frame a still cursor asks the same question again.
+                if (nearestSearchDirty || targetSurface != nearestSurfaceKey ||
+                    uv != nearestUvKey || !Mathf.Approximately(preferredYaw, nearestYawKey))
+                {
+                    nearestSurfaceKey = targetSurface;
+                    nearestUvKey = uv;
+                    nearestYawKey = preferredYaw;
+                    nearestSearchDirty = false;
+
+                    nearestFound = pack.Layout.TryFindNearest(
+                        targetSurface.Id, targetSurface.Size, shape, uv,
+                        preferredYaw, mayTurn,
+                        out nearestUv, out nearestYaw,
+                        ignoreItemId: DragItemId());
+                }
+
+                dropIsLegal = nearestFound;
+
+                if (dropIsLegal)
+                {
+                    targetUv = nearestUv;
+                    targetYaw = nearestYaw;
+                }
+                else
+                {
+                    // No room on this face at any turn: the proxy still has to follow the cursor, or
+                    // it strands on the last face at coordinates that face does not have.
+                    targetUv = PackLayout.Snap(targetSurface.Id, targetSurface.Size, shape, uv, yaw);
+                    targetYaw = yaw;
+                }
+            }
+            else
+            {
+                dropIsLegal = false;
+            }
 
             // Where the hotbar is under the cursor, which is a drop target for a pack drag and the
             // way home for a hotbar one. Asked every frame rather than only on release, because
@@ -883,40 +1003,49 @@ namespace SpaceGame.Items
             // the frame the drag began; for a hotbar drag it is whenever the player gets there.
             if (!proxyBuilt && overSurface && targetSurface != null)
             {
-                visuals.BeginDrag(dragItem.itemPrefab, targetSurface, targetUv, yaw);
+                visuals.BeginDrag(dragItem.itemPrefab, targetSurface, targetUv, targetYaw);
                 proxyBuilt = true;
             }
 
             if (proxyBuilt)
             {
-                visuals.MoveDrag(dragItem.itemPrefab, targetSurface, targetUv, yaw);
+                visuals.MoveDrag(dragItem.itemPrefab, targetSurface, targetUv, targetYaw);
 
-                // Held out over the sand is not an error state. Tinting it red there would say the
-                // release is about to do nothing, when it is about to do the most destructive thing
-                // in the whole interaction.
+                // Red over a face with no room at all — the one refusal magnet snap cannot
+                // remove — and never over the sand, where the release is a throw, not an error.
                 visuals.SetDragTint(!dropIsLegal && overSurface);
             }
 
-            // No projected cells off the mat either — there is no surface for the item to occupy,
-            // and drawing them on the face the cursor last crossed points at a spot the release is
-            // not going to use.
-            //
-            // The old single footprint quad is explicitly turned off rather than left to whatever
-            // it last drew: it and the cell grid describe the same placement, and two overlapping
-            // translucent readouts of one answer is worse than either alone.
-            visuals.HideFootprint();
+            // The drag-path twin of the overBar guard in UpdateHover: while a PACK drag hovers a
+            // hotbar slot, Release puts the item in THAT SLOT, not on the face behind the bar —
+            // but the raycast against the rig keeps hitting whatever is back there regardless, so
+            // without this the ghost cells and lattice kept promising a landing the drop was never
+            // going to honour, which is exactly the invariant magnet snap exists to guarantee. A
+            // hotbar drag has no such conflict: it has nowhere else to land, so its own cells stay.
+            bool hidingCellsForHotbar = overHotbar && dragFrom == DragSource.Pack;
 
-            if (overSurface && targetSurface != null && cellGrid != null)
+            if (overSurface && targetSurface != null && cellGrid != null && !hidingCellsForHotbar)
+                cellGrid.ShowLattice(targetSurface, pack.Layout, DragItemId());
+            else if (cellGrid != null)
+                cellGrid.HideLattice();
+
+            if (overSurface && dropIsLegal && targetSurface != null && cellGrid != null && !hidingCellsForHotbar)
             {
-                PackShape oriented = shape.Rotated(PackGrid.QuarterTurns(yaw));
+                PackShape oriented = PackOverhang.Clamp(targetSurface.Id, targetSurface.Size,
+                                                        shape.Rotated(PackGrid.QuarterTurns(targetYaw)));
 
                 cellGrid.Show(targetSurface,
                               PackGrid.BlockOrigin(targetSurface.Size, targetUv, oriented.Size),
-                              oriented, pack.Layout, DragItemId());
+                              oriented);
             }
             else if (cellGrid != null)
             {
-                cellGrid.Hide();
+                // Only the ghost's own cells, not the whole overlay: the lattice's show/hide is
+                // already decided above, on overSurface alone. A face with literally no room is
+                // exactly where the lattice earns its keep — it is the "where WOULD this go"
+                // readout while the red-tinted proxy says "not here" — so it must survive a legality
+                // refusal that only ever concerns the ghost.
+                cellGrid.HideGhost();
             }
 
             if (overHotbar && dragFrom == DragSource.Pack)
@@ -934,8 +1063,7 @@ namespace SpaceGame.Items
         /// <para>
         /// Null for a hotbar drag, and that is the whole point of the distinction: an item lifted
         /// off the mat is not in its own way, but an item still sitting in the hotbar has never
-        /// occupied anything — so if its id is already on the pack, the stow is going to be refused
-        /// and the drop must read red rather than clear.
+        /// occupied anything, so there is no placement of its own to ignore.
         /// </para>
         /// </summary>
         private string DragItemId() =>
@@ -972,8 +1100,10 @@ namespace SpaceGame.Items
         /// Let go. Four outcomes, and which one it is was settled by the last frame of the drag.
         ///
         /// <para>
-        /// <b>Over a hotbar slot</b> — it goes in that slot, swapping with whatever was there.
-        /// Tested first, because the hotbar is drawn over the same screen the sand is.
+        /// <b>Over a hotbar slot</b> — it goes in that slot, swapping with whatever was there, or
+        /// refusing and springing back exactly like the face case below when that swap has
+        /// nowhere to put the displaced item. Tested first, because the hotbar is drawn over the
+        /// same screen the sand is.
         /// </para>
         /// <para>
         /// <b>Off the mat entirely</b> — spec 5.1's fourth verb. The item leaves the pack and lands
@@ -982,7 +1112,10 @@ namespace SpaceGame.Items
         /// away, and a pack that quietly put it back would have no way to get rid of anything.
         /// </para>
         /// <para>
-        /// <b>Over a face, but clashing or overhanging</b> — refused. It slides home.
+        /// <b>Over a face with no room for this shape at any permitted turn</b> — refused. It
+        /// slides home. This is the one refusal magnet snap cannot remove: clashing and overhanging
+        /// are no longer possible outcomes, since the ghost was already sitting on the nearest spot
+        /// that avoids both.
         /// </para>
         /// <para>
         /// <b>Over a face and clear</b> — a move.
@@ -1006,6 +1139,19 @@ namespace SpaceGame.Items
             // the opposite of what the player just did.
             if (hoveredSlot >= 0)
             {
+                // The named-slot twin of SendToHotbar's own predicted refusal: a slot already
+                // holding this asset, or holding something with nowhere else to go, refuses on
+                // the server exactly like a full-hotbar swap does — and until now that refusal
+                // was a silent snap back with nothing on screen to explain it, while the very same
+                // refusal on the right-click path flashed the rim red.
+                if (!pack.CanTakeToHotbar(originSurface, originGrab, Hotbar(), out bool refused, hoveredSlot)
+                    && refused)
+                {
+                    InventoryUI.ShakeSlot(hoveredSlot);
+                    springBack = StartCoroutine(SpringBack());
+                    return;
+                }
+
                 controller.RequestTake(originSurface, originGrab, interactor, hoveredSlot);
 
                 visuals.EndDrag();
@@ -1028,7 +1174,7 @@ namespace SpaceGame.Items
                 return;
             }
 
-            controller.RequestMove(originSurface, originGrab, targetSurface.Id, targetUv, yaw);
+            controller.RequestMove(originSurface, originGrab, targetSurface.Id, targetUv, targetYaw);
 
             visuals.EndDrag();
             FinishPackDrag();
@@ -1041,6 +1187,8 @@ namespace SpaceGame.Items
             originVisual = null;
             proxyBuilt = false;
             hoveredSlot = -1;
+
+            if (cellGrid != null) cellGrid.Hide();
 
             InventoryUI.ClearDragFeedback();
         }

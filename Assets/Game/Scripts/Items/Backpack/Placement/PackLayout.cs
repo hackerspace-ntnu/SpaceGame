@@ -103,17 +103,21 @@ namespace SpaceGame.Items
         public bool CanPlace(PackSurfaceId surface, Vector2 surfaceSize, PackShape shape,
                              Vector2 uv, float yaw, string ignoreItemId = null)
         {
-            return TryResolve(surfaceSize, shape, uv, yaw, out Vector2Int origin, out PackShape oriented)
+            return TryResolve(surface, surfaceSize, shape, uv, yaw, out Vector2Int origin, out PackShape oriented)
                    && !Clashes(surface, origin, oriented, ignoreItemId);
         }
 
         /// <summary>
         /// The uv this placement would actually be stored at. Idempotent — see
-        /// <see cref="PackGrid.Snap"/>, where that matters and why.
+        /// <see cref="PackGrid.Snap"/>, where that matters and why. Snaps the same cells
+        /// <see cref="TryPlace"/> would occupy, overhang clamp included, so the preview and the
+        /// placement never disagree about where an oversized item sits.
         /// </summary>
-        public static Vector2 Snap(Vector2 surfaceSize, PackShape shape, Vector2 uv, float yaw)
+        public static Vector2 Snap(PackSurfaceId surface, Vector2 surfaceSize, PackShape shape,
+                                   Vector2 uv, float yaw)
         {
-            PackShape oriented = shape.Rotated(PackGrid.QuarterTurns(yaw));
+            PackShape oriented = PackOverhang.Clamp(surface, surfaceSize,
+                                                    shape.Rotated(PackGrid.QuarterTurns(yaw)));
 
             return oriented.IsEmpty ? uv : PackGrid.Snap(surfaceSize, uv, oriented.Size);
         }
@@ -127,7 +131,10 @@ namespace SpaceGame.Items
         {
             placement = default;
 
-            Vector2Int cell = PackGrid.CellAt(surfaceSize, uv);
+            // On a face that allows overhang, a click on the part of an item hanging past the
+            // panel is a click on that item — see PackOverhang.ClampCell.
+            Vector2Int cell = PackOverhang.ClampCell(surface, surfaceSize,
+                                                     PackGrid.CellAt(surfaceSize, uv));
 
             if (!PackGrid.OnGrid(surfaceSize, cell)) return false;
 
@@ -147,8 +154,9 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Is one cell of a surface free? For the per-cell drag feedback, which has to colour the
-        /// clashing cells red and the rest of the same item's cells grey.
+        /// Is one cell of a surface free? For <c>PackGridVisual.BuildLatticeHalf</c>, which walks
+        /// every cell of the hovered face and sorts each one into the free half of the drag-time
+        /// lattice or the taken half.
         /// </summary>
         public bool CellIsFree(PackSurfaceId surface, Vector2Int cell, string ignoreItemId = null)
         {
@@ -241,7 +249,7 @@ namespace SpaceGame.Items
             // second copy — moving is TryMove's job.
             if (IndexOf(itemId) >= 0) return false;
 
-            if (!TryResolve(surfaceSize, shape, uv, yaw, out Vector2Int origin, out PackShape oriented))
+            if (!TryResolve(surface, surfaceSize, shape, uv, yaw, out Vector2Int origin, out PackShape oriented))
                 return false;
 
             if (Clashes(surface, origin, oriented, null)) return false;
@@ -262,7 +270,7 @@ namespace SpaceGame.Items
             int index = IndexOf(itemId);
             if (index < 0) return false;
 
-            if (!TryResolve(surfaceSize, shape, uv, yaw, out Vector2Int origin, out PackShape oriented))
+            if (!TryResolve(surface, surfaceSize, shape, uv, yaw, out Vector2Int origin, out PackShape oriented))
                 return false;
 
             // The item's own current cells are not an obstacle to itself — without this, nudging
@@ -336,7 +344,7 @@ namespace SpaceGame.Items
 
             for (int q = 0; q < turns; q++)
             {
-                PackShape oriented = shape.Rotated(q);
+                PackShape oriented = PackOverhang.Clamp(surface, surfaceSize, shape.Rotated(q));
 
                 // The BOUNDING block has to fit, which is very slightly conservative for a mask
                 // whose overhanging quadrant is empty. Left that way on purpose: first-fit is the
@@ -362,17 +370,97 @@ namespace SpaceGame.Items
             return false;
         }
 
+        /// <summary>
+        /// The legal placement nearest a point — what the drag preview magnet-snaps to, so that
+        /// a shown ghost is always a spot the release can actually have.
+        ///
+        /// <para>
+        /// The preferred yaw is searched exhaustively before any other: the player chose it, and
+        /// a search that "improved" on that choice whenever a turned fit happened to be a cell
+        /// closer would wrench the item round under the cursor. Other quarter-turns are tried
+        /// only when the preferred one fits nowhere on the face, and only when
+        /// <paramref name="allowTurns"/>. Rectangles skip the redundant 180-degree pair exactly
+        /// as <see cref="TryFindSpot"/> does.
+        /// </para>
+        /// <para>
+        /// <paramref name="ignoreItemId"/> excludes the item in the air, as everywhere else.
+        /// False means the face has no room for this shape at any permitted orientation.
+        /// </para>
+        /// </summary>
+        public bool TryFindNearest(PackSurfaceId surface, Vector2 surfaceSize, PackShape shape,
+                                   Vector2 cursorUv, float preferredYaw, bool allowTurns,
+                                   out Vector2 uv, out float yaw, string ignoreItemId = null)
+        {
+            uv = cursorUv;
+            yaw = preferredYaw;
+
+            if (shape.IsEmpty) return false;
+
+            Vector2Int grid = PackGrid.CellsOn(surfaceSize);
+            if (grid.x <= 0 || grid.y <= 0) return false;
+
+            int preferred = PackGrid.QuarterTurns(preferredYaw);
+            int turns = !allowTurns ? 1 : shape.IsRectangular ? 2 : 4;
+
+            for (int t = 0; t < turns; t++)
+            {
+                int q = (preferred + t) % 4;
+
+                PackShape oriented = PackOverhang.Clamp(surface, surfaceSize, shape.Rotated(q));
+
+                if (oriented.IsEmpty) continue;
+                if (oriented.Width > grid.x || oriented.Height > grid.y) continue;
+
+                float bestSqr = float.MaxValue;
+                Vector2 bestUv = default;
+                bool found = false;
+
+                for (int y = 0; y <= grid.y - oriented.Height; y++)
+                {
+                    for (int x = 0; x <= grid.x - oriented.Width; x++)
+                    {
+                        var origin = new Vector2Int(x, y);
+
+                        if (Clashes(surface, origin, oriented, ignoreItemId)) continue;
+
+                        Vector2 centre = PackGrid.BlockCentreUv(surfaceSize, origin, oriented.Size);
+                        float d = (centre - cursorUv).sqrMagnitude;
+
+                        if (d < bestSqr)
+                        {
+                            bestSqr = d;
+                            bestUv = centre;
+                            found = true;
+                        }
+                    }
+                }
+
+                if (found)
+                {
+                    uv = bestUv;
+                    yaw = q * 90f;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         // ── Internals ────────────────────────────────────────────────────────
 
         /// <summary>
         /// Turn a loose uv and yaw into the cells an item would occupy. False when the shape is
         /// empty, the surface holds no whole cells, or a FILLED cell would fall off the grid.
+        /// On a face that allows overhang the shape is first clamped to the face's span — the
+        /// cells past the edge become overhang instead of a refusal.
         /// </summary>
-        private static bool TryResolve(Vector2 surfaceSize, PackShape shape, Vector2 uv, float yaw,
+        private static bool TryResolve(PackSurfaceId surface, Vector2 surfaceSize, PackShape shape,
+                                       Vector2 uv, float yaw,
                                        out Vector2Int origin, out PackShape oriented)
         {
             origin = default;
-            oriented = shape.Rotated(PackGrid.QuarterTurns(yaw));
+            oriented = PackOverhang.Clamp(surface, surfaceSize,
+                                          shape.Rotated(PackGrid.QuarterTurns(yaw)));
 
             if (oriented.IsEmpty) return false;
 

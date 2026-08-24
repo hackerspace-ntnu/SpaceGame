@@ -7,18 +7,18 @@ namespace SpaceGame.Items
     /// Draws the cells an item occupies, as a lattice of outlined squares lying on the surface.
     ///
     /// <para>
-    /// Two callers, one geometry. <see cref="BuildPlaced"/> makes a permanent child of the surface
-    /// for an item already on the mat — the ring of cells the player asked to see around attached
-    /// gear. The instance form is the drag preview, which redraws every frame and colours each cell
-    /// separately: the free ones grey, the ones that would clash red. That per-cell split is the
-    /// whole reason this exists rather than reusing the single footprint quad — one rectangle for
-    /// the whole item can say "this does not fit" but never "this corner is what is in the way".
+    /// Three callers, one geometry. <see cref="BuildPlaced"/> makes a permanent child of the
+    /// surface for an item already on the mat — the ring of cells the player asked to see around
+    /// attached gear. The instance form has two passes during a drag: <see cref="Show"/> draws the
+    /// magnet-snapped ghost's own cells, legal by construction now that the search never offers an
+    /// illegal spot; <see cref="ShowLattice"/> draws the WHOLE hovered face underneath it, free
+    /// cells barely-there and occupied ones filled in the rig's webbing ochre, so free space reads
+    /// at a glance through the gear sitting on it.
     /// </para>
     /// <para>
     /// <b>Outlines, not filled squares.</b> An item is drawn at true size on top of its cells, so a
     /// filled quad would be almost entirely hidden under the thing it is describing. A ring per
-    /// cell survives being sat on. Blocked cells are filled as well, because a refusal has to be
-    /// visible through whatever is causing it.
+    /// cell survives being sat on.
     /// </para>
     /// <para>
     /// Geometry is built in the SURFACE's local frame through
@@ -48,14 +48,26 @@ namespace SpaceGame.Items
         private static readonly int DstBlendId = Shader.PropertyToID("_DstBlend");
         private static readonly int ZWriteId = Shader.PropertyToID("_ZWrite");
 
+        /// <summary>The rig's own webbing ochre, full strength. <see cref="PlacedTint"/> and
+        /// <see cref="LatticeTakenTint"/> below are this RGB at two different alphas — by
+        /// reference rather than by two matching literals, so they cannot drift apart.</summary>
+        private static readonly Color WebbingOchre = new(1f, 0.84f, 0.45f, 1f);
+
         /// <summary>The lattice under gear already on the mat: the rig's own webbing ochre.</summary>
-        private static readonly Color PlacedTint = new(1f, 0.84f, 0.45f, 0.5f);
+        private static readonly Color PlacedTint = WithAlpha(WebbingOchre, 0.5f);
 
         /// <summary>A cell the drop would legally use.</summary>
         private static readonly Color ClearTint = new(0.45f, 0.85f, 1f, 0.55f);
 
-        /// <summary>A cell that is off the grid or already taken.</summary>
-        private static readonly Color BlockedTint = new(1f, 0.35f, 0.3f, 0.6f);
+        /// <summary>A free cell of the hovered face while something is in hand: barely there.</summary>
+        private static readonly Color LatticeFreeTint = new(1f, 1f, 1f, 0.10f);
+
+        /// <summary>A cell already under placed gear: the webbing ochre, filled, readable
+        /// through the item sitting on it.</summary>
+        private static readonly Color LatticeTakenTint = WithAlpha(WebbingOchre, 0.30f);
+
+        private static Color WithAlpha(Color colour, float alpha) =>
+            new(colour.r, colour.g, colour.b, alpha);
 
         // ── The ring around a placed item ────────────────────────────────────
 
@@ -128,83 +140,94 @@ namespace SpaceGame.Items
             return placedMaterial;
         }
 
-        // ── The per-cell drag preview ────────────────────────────────────────
+        // ── The magnet-snapped ghost's own cells ─────────────────────────────
 
         private readonly Material clearMaterial;
-        private readonly Material blockedMaterial;
 
         private GameObject clearObject;
-        private GameObject blockedObject;
         private Mesh clearMesh;
-        private Mesh blockedMesh;
+
+        /// <summary>What <see cref="Show"/> last drew, so a frame where the ghost sits on the same
+        /// spot costs nothing. Reset to a surface of null by <see cref="HideGhost"/> and
+        /// <see cref="Dispose"/> so the NEXT Show always rebuilds rather than trusting stale
+        /// geometry a hidden pass never gets to overwrite.</summary>
+        private PackSurface ghostSurface;
+        private Vector2Int ghostOrigin;
+        private PackShape ghostOriented;
 
         private readonly List<Vector3> verts = new();
         private readonly List<int> tris = new();
+
+        // ── The drag-time lattice ────────────────────────────────────────────
+
+        private readonly Material latticeFreeMaterial;
+        private readonly Material latticeTakenMaterial;
+
+        private GameObject latticeFreeObject;
+        private GameObject latticeTakenObject;
+        private Mesh latticeFreeMesh;
+        private Mesh latticeTakenMesh;
+
+        /// <summary>What the lattice currently shows, so a frame where nothing changed costs
+        /// nothing. <see cref="MarkLatticeDirty"/> stales it on any layout change; a showing
+        /// flag rather than an activeSelf test, because a fully-taken face leaves the free
+        /// half's object deactivated even while the lattice is legitimately up.</summary>
+        private PackSurface latticeSurface;
+        private bool latticeShowing;
+        private bool latticeDirty = true;
 
         public PackGridVisual()
         {
             clearMaterial = BuildMaterial("PackGridClear");
             clearMaterial.SetColor(ColorId, ClearTint);
 
-            blockedMaterial = BuildMaterial("PackGridBlocked");
-            blockedMaterial.SetColor(ColorId, BlockedTint);
+            latticeFreeMaterial = BuildMaterial("PackLatticeFree");
+            latticeFreeMaterial.SetColor(ColorId, LatticeFreeTint);
+
+            latticeTakenMaterial = BuildMaterial("PackLatticeTaken");
+            latticeTakenMaterial.SetColor(ColorId, LatticeTakenTint);
+
+            // One queue step behind the ghost cells and the placed ring (both left at the 3000
+            // BuildMaterial sets): all three share the same Lift height, so two transparent passes
+            // at equal queue and equal depth blend in whichever order the renderer happens to
+            // submit them — flicker, not colour. Pinning the lattice a step earlier guarantees the
+            // more specific readout, "here is where THIS placement lands", always wins the pixel.
+            latticeFreeMaterial.renderQueue = 2999;
+            latticeTakenMaterial.renderQueue = 2999;
         }
 
         /// <summary>
-        /// Draw the cells this shape would use if it were dropped here, each one coloured by
-        /// whether it is actually available.
-        ///
-        /// <para>
-        /// <paramref name="ignoreItemId"/> is the item in the air, which must not count as an
-        /// obstacle to itself — the same exclusion <see cref="PackLayout.CanPlace"/> takes.
-        /// </para>
+        /// Draw the cells the magnet-snapped ghost would use. The spot is legal by
+        /// construction — see <c>PackLayout.TryFindNearest</c> — so there is exactly one
+        /// colour: this is "here is where it will land", not a verdict.
         /// </summary>
-        public void Show(PackSurface surface, Vector2Int origin, PackShape oriented,
-                         PackLayout layout, string ignoreItemId)
+        public void Show(PackSurface surface, Vector2Int origin, PackShape oriented)
         {
-            if (surface == null || oriented.IsEmpty || layout == null)
+            if (surface == null || oriented.IsEmpty)
             {
-                Hide();
+                HideGhost();
                 return;
             }
 
-            Build(ref clearObject, ref clearMesh, "PackGridClearCells", clearMaterial,
-                  surface, origin, oriented, layout, ignoreItemId, wantBlocked: false);
+            // Rebuilt only when the ghost actually moved. Compared field-by-field rather than via
+            // oriented.Equals(ghostOriented): PackShape has no Equals override, so that call would
+            // box through ValueType.Equals every single frame. A masked (non-rectangular) shape is
+            // excluded from the early-out outright and always rebuilds — Rotated allocates a fresh
+            // backing array on every call, so a same-Width/Height mask could still be a DIFFERENT
+            // pattern (a rotated L keeps its bounding box but not its cells), and Width/Height alone
+            // cannot tell them apart. Rectangles, the common case, have no such array to distinguish
+            // and cache cleanly.
+            if (surface == ghostSurface && origin == ghostOrigin &&
+                oriented.IsRectangular && ghostOriented.IsRectangular &&
+                oriented.Width == ghostOriented.Width && oriented.Height == ghostOriented.Height)
+                return;
 
-            Build(ref blockedObject, ref blockedMesh, "PackGridBlockedCells", blockedMaterial,
-                  surface, origin, oriented, layout, ignoreItemId, wantBlocked: true);
-        }
+            ghostSurface = surface;
+            ghostOrigin = origin;
+            ghostOriented = oriented;
 
-        public void Hide()
-        {
-            if (clearObject != null) clearObject.SetActive(false);
-            if (blockedObject != null) blockedObject.SetActive(false);
-        }
-
-        /// <summary>Materials and meshes are instances; Unity collects neither on its own.</summary>
-        public void Dispose()
-        {
-            Destroy(clearObject);
-            Destroy(blockedObject);
-            Destroy(clearMesh);
-            Destroy(blockedMesh);
-            Destroy(clearMaterial);
-            Destroy(blockedMaterial);
-
-            clearObject = null;
-            blockedObject = null;
-            clearMesh = null;
-            blockedMesh = null;
-        }
-
-        private void Build(ref GameObject go, ref Mesh mesh, string name, Material material,
-                           PackSurface surface, Vector2Int origin, PackShape oriented,
-                           PackLayout layout, string ignoreItemId, bool wantBlocked)
-        {
             verts.Clear();
             tris.Clear();
-
-            Vector2 size = surface.Size;
 
             for (int y = 0; y < oriented.Height; y++)
             {
@@ -213,21 +236,149 @@ namespace SpaceGame.Items
                     if (!oriented[x, y]) continue;
 
                     var cell = new Vector2Int(origin.x + x, origin.y + y);
+                    if (!PackGrid.OnGrid(surface.Size, cell)) continue;
 
-                    bool blocked = !PackGrid.OnGrid(size, cell)
-                                   || !layout.CellIsFree(surface.Id, cell, ignoreItemId);
-
-                    if (blocked != wantBlocked) continue;
-
-                    // A cell hanging off the face has no square to draw on, so it is counted as
-                    // blocked above and then skipped here: the outline stops at the edge, which is
-                    // exactly the readout "you are over the side".
-                    if (!PackGrid.OnGrid(size, cell)) continue;
-
-                    AddCell(verts, tris, surface, cell, fill: wantBlocked);
+                    AddCell(verts, tris, surface, cell, fill: false);
                 }
             }
 
+            CommitTo(ref clearObject, ref clearMesh, "PackGridClearCells", clearMaterial, surface);
+        }
+
+        /// <summary>Something changed under the lattice — rebuild it next ShowLattice.</summary>
+        public void MarkLatticeDirty() => latticeDirty = true;
+
+        /// <summary>
+        /// The hovered face's whole grid, drawn only while an item is in hand: free cells as a
+        /// faint lattice, occupied cells filled in the webbing ochre so free space reads at a
+        /// glance through the gear sitting on it.
+        ///
+        /// <para>
+        /// Rebuilt only when the face or the layout changes, not per frame — up to 48 cells of
+        /// ring geometry is cheap, but not so cheap it should be built sixty times a second
+        /// for nothing.
+        /// </para>
+        /// <para>
+        /// <paramref name="ignoreItemId"/> is the item in the air: its cells draw as free,
+        /// because for this drag they are.
+        /// </para>
+        /// <para>
+        /// <b>Expected overlap, not a bug.</b> A pack-drag's origin still carries its own
+        /// <see cref="BuildPlaced"/> ring for as long as the drag is undecided — nothing here is
+        /// optimistic, so the placed copy stays exactly where it was until the server answers — and
+        /// the lattice draws that same face's cells free, because with <paramref name="ignoreItemId"/>
+        /// excluded they are. The two rings sit congruent on top of each other for that one item:
+        /// correct, if a reader traces both passes over the same cell and expects to see only one.
+        /// </para>
+        /// </summary>
+        public void ShowLattice(PackSurface surface, PackLayout layout, string ignoreItemId)
+        {
+            if (surface == null || layout == null)
+            {
+                HideLattice();
+                return;
+            }
+
+            if (surface == latticeSurface && !latticeDirty && latticeShowing) return;
+
+            latticeSurface = surface;
+            latticeShowing = true;
+            latticeDirty = false;
+
+            Vector2Int grid = PackGrid.CellsOn(surface.Size);
+
+            BuildLatticeHalf(ref latticeFreeObject, ref latticeFreeMesh, "PackLatticeFree",
+                             latticeFreeMaterial, surface, layout, ignoreItemId, grid,
+                             wantTaken: false);
+            BuildLatticeHalf(ref latticeTakenObject, ref latticeTakenMesh, "PackLatticeTaken",
+                             latticeTakenMaterial, surface, layout, ignoreItemId, grid,
+                             wantTaken: true);
+        }
+
+        public void HideLattice()
+        {
+            latticeSurface = null;
+            latticeShowing = false;
+
+            if (latticeFreeObject != null) latticeFreeObject.SetActive(false);
+            if (latticeTakenObject != null) latticeTakenObject.SetActive(false);
+        }
+
+        private void BuildLatticeHalf(ref GameObject go, ref Mesh mesh, string name,
+                                      Material material, PackSurface surface, PackLayout layout,
+                                      string ignoreItemId, Vector2Int grid, bool wantTaken)
+        {
+            verts.Clear();
+            tris.Clear();
+
+            for (int y = 0; y < grid.y; y++)
+            {
+                for (int x = 0; x < grid.x; x++)
+                {
+                    var cell = new Vector2Int(x, y);
+
+                    bool taken = !layout.CellIsFree(surface.Id, cell, ignoreItemId);
+                    if (taken != wantTaken) continue;
+
+                    AddCell(verts, tris, surface, cell, fill: wantTaken);
+                }
+            }
+
+            CommitTo(ref go, ref mesh, name, material, surface);
+        }
+
+        /// <summary>Hides the ghost's own cells, and only those — see the caller in
+        /// <c>PackDragController.UpdateDrag</c> for why a face with no room still keeps its
+        /// lattice up.</summary>
+        public void HideGhost()
+        {
+            // Forces the next Show to rebuild rather than trust geometry a hidden pass never
+            // touched — the cheap early-out above only helps when the ghost stayed put, never
+            // when it went away and might come back somewhere else.
+            ghostSurface = null;
+
+            if (clearObject != null) clearObject.SetActive(false);
+        }
+
+        /// <summary>Everything this draws, off. The exit every drag shares.</summary>
+        public void Hide()
+        {
+            HideGhost();
+            HideLattice();
+        }
+
+        /// <summary>Materials and meshes are instances; Unity collects neither on its own.</summary>
+        public void Dispose()
+        {
+            // Resets the ghost and lattice caches, not just their objects: without this a
+            // PackGridVisual that outlived its GameObjects — unlikely, but Dispose is the one
+            // place that has to be paranoid about it — would answer a post-Dispose ShowLattice with
+            // a silent early-out instead of rebuilding against the (destroyed) state it remembers.
+            HideGhost();
+            HideLattice();
+
+            Destroy(clearObject);
+            Destroy(latticeFreeObject);
+            Destroy(latticeTakenObject);
+            Destroy(clearMesh);
+            Destroy(latticeFreeMesh);
+            Destroy(latticeTakenMesh);
+            Destroy(clearMaterial);
+            Destroy(latticeFreeMaterial);
+            Destroy(latticeTakenMaterial);
+
+            clearObject = null;
+            latticeFreeObject = null;
+            latticeTakenObject = null;
+            clearMesh = null;
+            latticeFreeMesh = null;
+            latticeTakenMesh = null;
+        }
+
+        /// <summary>Commits the scratch verts/tris into one overlay object on the surface.</summary>
+        private void CommitTo(ref GameObject go, ref Mesh mesh, string name, Material material,
+                              PackSurface surface)
+        {
             if (tris.Count == 0)
             {
                 if (go != null) go.SetActive(false);

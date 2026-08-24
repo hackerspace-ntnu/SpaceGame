@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 using SpaceGame.Core;
 using SpaceGame.World;
 using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
@@ -43,9 +44,13 @@ namespace SpaceGame.Characters
             aimRig = GetComponent<PlayerAimRig>();
             playerRigidbody = playerBody.GetComponent<Rigidbody>();
 
-            // Hide the player head mesh to prevent clipping with the camera
             headRenderer = playerHead.GetComponent<SkinnedMeshRenderer>();
-            headRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
+
+            // Start/OnDestroy, deliberately not OnEnable/OnDisable: mounting disables this
+            // component while first person continues through this same camera, and the head must
+            // stay hidden there. Remote copies never subscribe — their PlayerLook is disabled from
+            // Awake, so Start never runs and their head is left exactly as authored.
+            RenderPipelineManager.beginCameraRendering += ApplyHeadVisibility;
 
             lookCamera = playerCamera != null ? playerCamera.GetComponent<Camera>() : null;
 
@@ -58,7 +63,32 @@ namespace SpaceGame.Characters
             ApplySettings();
         }
 
-        private void OnDestroy() => GameSettings.Changed -= ApplySettings;
+        private void OnDestroy()
+        {
+            GameSettings.Changed -= ApplySettings;
+            RenderPipelineManager.beginCameraRendering -= ApplyHeadVisibility;
+        }
+
+        /// <summary>
+        /// Hide this player's head from their own eyes, and only their own.
+        ///
+        /// <para>
+        /// Per camera render, not a global toggle: <c>ShadowsOnly</c> written once hides the head
+        /// from every camera at once, which is right for this player's own view and wrong for
+        /// everything else — the mount's orbit camera, the death spectator, and any future third
+        /// person view must all keep the head. Deciding at the start of each camera's render means
+        /// no view has to remember to switch it back, and the head still casts its shadow in first
+        /// person because <c>ShadowsOnly</c> keeps the shadow pass.
+        /// </para>
+        /// </summary>
+        private void ApplyHeadVisibility(ScriptableRenderContext context, Camera renderingCamera)
+        {
+            if (headRenderer == null) return;
+
+            headRenderer.shadowCastingMode = renderingCamera == lookCamera
+                ? ShadowCastingMode.ShadowsOnly
+                : ShadowCastingMode.On;
+        }
 
         private void ApplySettings()
         {
@@ -174,14 +204,6 @@ namespace SpaceGame.Characters
                 playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
         }
 
-        public void SetHeadVisible(bool visible)
-        {
-            if (!headRenderer) return;
-            headRenderer.shadowCastingMode = visible
-                ? UnityEngine.Rendering.ShadowCastingMode.On
-                : UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
-        }
-    
         private void OnEnable()
         {
             ApplyCursorLock();

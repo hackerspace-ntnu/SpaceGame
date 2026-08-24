@@ -18,10 +18,10 @@ namespace SpaceGame.Presentation
     /// <para>
     /// <b>The drag bridge.</b> Two gestures cross this boundary in opposite directions and both are
     /// resolved by <c>PackDragController</c>, not here: a hotbar slot dragged onto the pack, and a
-    /// pack item dragged onto a hotbar slot. This side owns three things and no more — which slot
-    /// the cursor is over, what the bar looks like while a drag is in flight, and the icon
-    /// following the cursor. Every decision about whether a drop is legal, and every request that
-    /// goes to the server, is the pack's.
+    /// pack item dragged onto a hotbar slot. This side owns which slot the cursor is over, what the
+    /// bar looks like while a drag is in flight, the icon following the cursor, a slot's refusal
+    /// shake, and forwarding a slot's right-click to the pack. Every decision about whether a drop
+    /// is legal, and every request that goes to the server, is the pack's.
     /// </para>
     /// <para>
     /// The static members exist because the pack has no way to reach this instance: the hotbar is a
@@ -244,6 +244,29 @@ namespace SpaceGame.Presentation
             local.RefreshAll();
         }
 
+        /// <summary>One slot refuses: the item has no room on the pack. Visual, never text.</summary>
+        public static void ShakeSlot(int index)
+        {
+            if (local == null) return;
+
+            // The same guard SlotIndexUnder carries: an inactive bar's InventorySlotUIs are
+            // inactive too, and StartCoroutine on a disabled GameObject logs and does nothing —
+            // which for this refusal means the player gets no feedback at all, silently.
+            if (!local.isActiveAndEnabled || !local.gameObject.activeInHierarchy) return;
+
+            local.ShakeLocal(index);
+        }
+
+        /// <summary>The instance half of a shake, shared by the static entry above and
+        /// <see cref="BeginSlotDrag"/> — which cannot safely call the static one, since <c>local</c>
+        /// is not guaranteed to be <c>this</c> for every hotbar in a session.</summary>
+        private void ShakeLocal(int index)
+        {
+            if (slotUIs == null) return;
+            if (index < 0 || index >= slotUIs.Length) return;
+            if (slotUIs[index] != null) slotUIs[index].Shake();
+        }
+
         /// <summary>
         /// Takes back everything a drag asked the bar to draw.
         ///
@@ -283,7 +306,16 @@ namespace SpaceGame.Presentation
             // The pack is the only place a hotbar item can be dragged TO. Outside focus mode there
             // is no drag, which is also why the cursor is locked out there.
             PackDragController pack = PackDragController.Active;
-            if (pack == null || !pack.BeginHotbarDrag(index, item)) return false;
+            if (pack == null) return false;
+
+            if (!pack.BeginHotbarDrag(index, item))
+            {
+                // The pack is open and the slot has an item, so the decline means "no room
+                // anywhere" (or the same asset already on the mat). The slot says no; the
+                // gesture never starts.
+                ShakeLocal(index);
+                return false;
+            }
 
             dragOriginIndex = index;
             dropTargetIndex = -1;
@@ -295,6 +327,13 @@ namespace SpaceGame.Presentation
         }
 
         public void DragSlot(Vector2 screenPosition) => MoveGhost(screenPosition);
+
+        /// <summary>A slot was right-clicked: stow it on the open pack, unaimed.</summary>
+        public void RequestSlotStow(int index)
+        {
+            PackDragController pack = PackDragController.Active;
+            if (pack != null) pack.StowSlot(index, aimUnderCursor: false);
+        }
 
         /// <summary>
         /// The slot has been let go. The pack resolves it — over one of its faces this is a stow

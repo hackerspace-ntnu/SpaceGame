@@ -64,6 +64,7 @@ namespace SpaceGame.EditorTools
                 var sb = new StringBuilder();
                 sb.AppendLine("Held item pose audit — frame from " + frame.Source);
                 sb.AppendLine();
+                sb.AppendLine(HandReport(anim, hand, frame));
                 sb.AppendLine("item                 palmDist   size   gripNorm (0..1 in its own mesh)");
 
                 var items = Resources.LoadAll<InventoryItem>("Items");
@@ -109,6 +110,44 @@ namespace SpaceGame.EditorTools
             {
                 Object.DestroyImmediate(player);
             }
+        }
+
+        /// <summary>
+        /// How big the hand actually is, in world metres.
+        ///
+        /// The per-item numbers below answer "where did it end up"; this answers "what is it
+        /// being fitted to", which is the question anyone modelling a worn item — a gauntlet, a
+        /// bracer, a glove-mounted tool — has to answer before they open Blender. Guessing it is
+        /// how you model a housing with no room for a hand inside, and the mistake is invisible
+        /// until someone equips the thing.
+        ///
+        /// Measured off the rig rather than off the character's export scale, because the export
+        /// scale is not what the game sees: this rig imports at a factor that makes the raw FBX
+        /// numbers roughly 1.6x the runtime ones.
+        /// </summary>
+        private static string HandReport(Animator anim, Transform hand, HandGripFrame frame)
+        {
+            Transform index = anim.GetBoneTransform(HumanBodyBones.RightIndexProximal);
+            Transform pinky = anim.GetBoneTransform(HumanBodyBones.RightLittleProximal);
+            Transform middle = anim.GetBoneTransform(HumanBodyBones.RightMiddleProximal);
+            Transform tip = anim.GetBoneTransform(HumanBodyBones.RightMiddleDistal);
+            Transform thumb = anim.GetBoneTransform(HumanBodyBones.RightThumbProximal);
+
+            var sb = new StringBuilder();
+            sb.AppendLine("hand (world metres, what a worn item has to fit around)");
+            sb.AppendLine(string.Format("  handLength (wrist→knuckles) {0:F3}", frame.HandLength));
+
+            if (index != null && pinky != null)
+                sb.AppendLine(string.Format("  knuckle span (index→pinky)  {0:F3}",
+                    Vector3.Distance(index.position, pinky.position)));
+            if (middle != null && tip != null)
+                sb.AppendLine(string.Format("  finger reach (knuckle→tip)  {0:F3}",
+                    Vector3.Distance(middle.position, tip.position)));
+            if (thumb != null)
+                sb.AppendLine(string.Format("  thumb base off the palm     {0:F3}",
+                    Vector3.Distance(hand.position, thumb.position)));
+
+            return sb.ToString();
         }
 
         /// <summary>

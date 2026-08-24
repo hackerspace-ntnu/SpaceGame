@@ -37,10 +37,16 @@ namespace SpaceGame.Items
         /// </summary>
         Leaf = 2,
 
-        // 3 and 4 were WingLeft and WingRight. The wings are children of PIVOT_Leaf now — the
-        // whole front closes as one flap — so nothing wires them and the values are retired
-        // rather than reused: a stale hinge row deserialising 3 or 4 must fall to the default
-        // window, not inherit whatever meaning a future part gets.
+        /// <summary>
+        /// The left side panel. Its pivot is a CHILD of <c>PIVOT_Leaf</c>, so this fold is
+        /// relative to the board: ±90° stands the panel square up off it, and when the board
+        /// rises the panel comes round to hug the pack's flank — the side of a box being closed.
+        /// Leads the right one by 40 ms.
+        /// </summary>
+        WingLeft = 3,
+
+        /// <summary>The right side panel. Mirrored fold, 40 ms behind the left.</summary>
+        WingRight = 4,
     }
 
     /// <summary>
@@ -69,14 +75,15 @@ namespace SpaceGame.Items
         public BackpackHingePart part;
 
         [Tooltip("Hinge line in the PIVOT's own local space. The expedition rig's panel and leaf " +
-                 "use (1,0,0); the older clamshell doors used (0,0,1). Normalised at use, so " +
-                 "length is free.")]
+                 "use (1,0,0) and its wings (0,1,0); the older clamshell doors used (0,0,1). " +
+                 "Normalised at use, so length is free.")]
         public Vector3 localAxis;
 
         [Tooltip("Degrees from the model's AUTHORED REST pose to its other pose, signed. With " +
                  "restIsOpen off (the default) rest is closed and this is the closed-to-open " +
                  "travel. With it on the model is authored deployed and this is the STOW travel: " +
-                 "expedition_rig wants PIVOT_Back +25 and PIVOT_Leaf -90.")]
+                 "expedition_rig wants PIVOT_Back +25, PIVOT_Leaf -90, PIVOT_Wing_L -90, " +
+                 "PIVOT_Wing_R +90.")]
         [FormerlySerializedAs("openAngle")]
         public float foldAngle;
 

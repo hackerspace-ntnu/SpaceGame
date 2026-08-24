@@ -11,14 +11,15 @@ namespace SpaceGame.Tests
     /// still carry there.
     ///
     /// <para>
-    /// Three things are being pinned. First, the front closes as ONE FLAP: the wings are children
-    /// of <c>PIVOT_Leaf</c> — they have no hinge of their own any more — so racking or stowing
-    /// turns the leaf and the sides ride it rigidly, connected, instead of being folded (or, for
-    /// one memorable morning, buried) by hinges of their own. Second, a pack stowed from the RACK
-    /// and a pack stowed flat are the same pack: rack pose and stow pose are the same place for
-    /// the flap, so the handover costs zero motion. Third, gear on the one face the fold leaves
-    /// pointing outward stays on it through a whole deploy/stow/deploy cycle, because that face is
-    /// the only place on a worn pack anything can be.
+    /// Three things are being pinned. First, the front closes like a BOX: the side panels' pivots
+    /// are children of <c>PIVOT_Leaf</c>, so closing folds each panel ±90 up off the board and the
+    /// rising flap carries them round to hug the pack's flanks — nothing on the front can be left
+    /// behind on the sand (or,
+    /// for one memorable morning, buried under it). Second, a pack stowed from the RACK and a
+    /// pack stowed flat are the same pack: rack pose and stow pose are the same place for every
+    /// part of the flap, so the handover costs zero motion. Third, gear on the one face the fold
+    /// leaves pointing outward stays on it through a whole deploy/stow/deploy cycle, because that
+    /// face is the only place on a worn pack anything can be.
     /// </para>
     /// <para>
     /// The rigs here are DEACTIVATED on purpose. <c>SetOpen</c>, <c>SetRacked</c> and
@@ -71,10 +72,10 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
-        /// A rig wired like <c>expedition_rig</c>: two hinges — panel and leaf — with its fold
-        /// angles and axes, <c>restIsOpen</c> on both, the two wings as plain CHILDREN of the leaf
-        /// pivot the way the reparented model ships them, and two faces — the leaf, which is
-        /// inside the fold, and the rack, which is not.
+        /// A rig wired like <c>expedition_rig</c>: four hinges with its fold angles and axes,
+        /// <c>restIsOpen</c> on all of them, the wing pivots as CHILDREN of the leaf pivot the
+        /// way the reparented model ships them, and two faces — the leaf, which is inside the
+        /// fold, and the rack, which is not.
         ///
         /// <para>
         /// Every pivot is given a rest rotation that is NOT identity, which is the trap the whole
@@ -95,9 +96,8 @@ namespace SpaceGame.Tests
             Transform panel = Pivot(root, "PIVOT_Back", new Vector3(270.02f, 0f, 0f));
             Transform leaf = Pivot(root, "PIVOT_Leaf", new Vector3(12f, 34f, 56f));
 
-            // Children of the leaf, exactly as the model parents them: the sides have no hinge of
-            // their own, they are carried. Authored a little off-centre so a wing that DID move
-            // would be measurable.
+            // Children of the leaf, exactly as the model parents them: their ±90 fold is
+            // relative to the board, and whatever the leaf's hinge does they ride.
             Transform wingL = Pivot(leaf.gameObject, "PIVOT_Wing_L", new Vector3(0f, 17f, 0f));
             Transform wingR = Pivot(leaf.gameObject, "PIVOT_Wing_R", new Vector3(0f, -17f, 0f));
 
@@ -112,8 +112,10 @@ namespace SpaceGame.Tests
 
             var hinges = new[]
             {
-                Hinge(panel, BackpackHingePart.Panel, Vector3.right,  25f),
-                Hinge(leaf,  BackpackHingePart.Leaf,  Vector3.right, -90f),
+                Hinge(panel, BackpackHingePart.Panel,     Vector3.right,   25f),
+                Hinge(leaf,  BackpackHingePart.Leaf,      Vector3.right,  -90f),
+                Hinge(wingL, BackpackHingePart.WingLeft,  Vector3.up,     -90f),
+                Hinge(wingR, BackpackHingePart.WingRight, Vector3.up,      90f),
             };
 
             typeof(BackpackObject).GetField("hinges", Hidden).SetValue(pack, hinges);
@@ -121,14 +123,14 @@ namespace SpaceGame.Tests
             return new Rig { Pack = pack, Pivots = new[] { panel, leaf, wingL, wingR } };
         }
 
-        /// <summary>The indices into <see cref="Rig.Pivots"/>: the two hinges, then the two riders.</summary>
+        /// <summary>The indices into <see cref="Rig.Pivots"/>, in <c>HingeTable</c> order.</summary>
         private const int Panel = 0, Leaf = 1, WingL = 2, WingR = 3;
 
-        /// <summary>The fold angles the two hinges are wired with.</summary>
-        private static readonly float[] Folds = { 25f, -90f };
+        /// <summary>The fold angles those pivots are wired with, in the same order.</summary>
+        private static readonly float[] Folds = { 25f, -90f, -90f, 90f };
 
         /// <summary>The hinge axes, in the same order.</summary>
-        private static readonly Vector3[] Axes = { Vector3.right, Vector3.right };
+        private static readonly Vector3[] Axes = { Vector3.right, Vector3.right, Vector3.up, Vector3.up };
 
         /// <summary>
         /// The signed degrees a pivot has turned about its own hinge axis since <paramref name="rest"/>.
@@ -207,15 +209,15 @@ namespace SpaceGame.Tests
         // ---------------------------------------------------------------- the fold
 
         /// <summary>
-        /// The front is ONE FLAP: racking turns the leaf, and the sides — children of the leaf,
-        /// with no hinge of their own — ride it rigidly, connected, "like really closing". Pinned
-        /// as: their LOCAL rotations never change while their WORLD rotations follow the board.
-        /// A wing that moved locally has grown a hinge back; a wing whose world pose stayed put
-        /// while the board rose has been left behind on the sand, which is the bug this redesign
-        /// exists to kill.
+        /// Closing is a box being closed: the side panels fold square UP off the board — ±90
+        /// about hinges that are CHILDREN of the leaf — and the rising flap carries them round
+        /// to hug the pack's flanks. Pinned as: racked, each panel stands at exactly its stow
+        /// fold relative to the board, and the fold reverses when the rack comes down. Exactly the stow angle and no other
+        /// number, because that is what lets a pack stowed from the rack cost zero motion — the
+        /// property the test below this one pins.
         /// </summary>
         [Test]
-        public void RackingRaisesTheSidesRigidlyWithTheBoard()
+        public void RackingFoldsTheSidePanelsUpAndRaisesTheBoard()
         {
             Rig rig = BuildRig();
 
@@ -224,22 +226,24 @@ namespace SpaceGame.Tests
             rig.Pack.SetWorn(false);
             rig.Pack.SetOpen(true);
 
-            Quaternion wingLWorld = rig.Pivots[WingL].rotation;
-            Quaternion wingRWorld = rig.Pivots[WingR].rotation;
+            Assert.Less(Quaternion.Angle(rest[WingL], rig.Pivots[WingL].localRotation), 0.01f,
+                        "a deployed pack has its side panels out flat — the sheet is at zero " +
+                        "for them");
+            Assert.Less(Quaternion.Angle(rest[WingR], rig.Pivots[WingR].localRotation), 0.01f);
 
             rig.Pack.SetRacked(true);
 
             Assert.AreEqual(Folds[Leaf], TurnAbout(rig.Pivots[Leaf], rest[Leaf], Axes[Leaf]), 0.01f,
                             "the board itself goes up, which is what the rack always did");
 
-            Assert.Less(Quaternion.Angle(rest[WingL], rig.Pivots[WingL].localRotation), 0.01f,
-                        "the left wing must not turn relative to the board — it is part of it");
-            Assert.Less(Quaternion.Angle(rest[WingR], rig.Pivots[WingR].localRotation), 0.01f);
-
-            Assert.Greater(Quaternion.Angle(wingLWorld, rig.Pivots[WingL].rotation), 45f,
-                           "and it must have RISEN with the board in the world — a wing that " +
-                           "stayed put has been left lying on the sand");
-            Assert.Greater(Quaternion.Angle(wingRWorld, rig.Pivots[WingR].rotation), 45f);
+            // Compared as poses rather than through TurnAbout, so the assertion survives the
+            // fold angle being retuned to 180 (where angle-axis signs become noise).
+            Assert.Less(Quaternion.Angle(rest[WingL] * Quaternion.AngleAxis(Folds[WingL], Axes[WingL]),
+                                         rig.Pivots[WingL].localRotation), 0.01f,
+                        "the left panel has to fold up with it, to its stow angle exactly");
+            Assert.Less(Quaternion.Angle(rest[WingR] * Quaternion.AngleAxis(Folds[WingR], Axes[WingR]),
+                                         rig.Pivots[WingR].localRotation), 0.01f,
+                        "and the right panel mirrored — the two fold inward toward each other");
 
             // The panel is not the rack's business. It is what tells the deployed pack apart from
             // the stowed one once the flap has stopped moving in the same places.
@@ -247,17 +251,17 @@ namespace SpaceGame.Tests
                         "the kickstand panel stays where the deploy left it — the rack moves the " +
                         "front flap and nothing else");
 
-            // Racked, the wings have turned round with the mat to face the back panel, so
+            // Racked, the panels have flipped face-down and ridden round with the mat, so
             // first-fit may not offer them any more than it may offer the mat.
             Assert.IsFalse(rig.Pack.Reaches(PackSurfaceId.WingLeft),
-                           "a racked wing faces the back panel, exactly as the mat does");
+                           "a racked side panel is wrapped against the pack's flank, out of reach");
             Assert.IsFalse(rig.Pack.Reaches(PackSurfaceId.Leaf));
 
             rig.Pack.SetRacked(false);
 
-            Assert.Less(Quaternion.Angle(wingLWorld, rig.Pivots[WingL].rotation), 0.01f,
-                        "and the sides come back down with the board, or the rack is a one-way trip");
-            Assert.Less(Quaternion.Angle(wingRWorld, rig.Pivots[WingR].rotation), 0.01f);
+            Assert.Less(Quaternion.Angle(rest[WingL], rig.Pivots[WingL].localRotation), 0.01f,
+                        "and the panels fold back out with the board, or the rack is a one-way trip");
+            Assert.Less(Quaternion.Angle(rest[WingR], rig.Pivots[WingR].localRotation), 0.01f);
         }
 
         [Test]
@@ -289,10 +293,11 @@ namespace SpaceGame.Tests
 
             Quaternion[] fromRack = Pose(racked);
 
-            Assert.Less(Quaternion.Angle(beforeFold[Leaf], fromRack[Leaf]), 0.01f,
-                        "the leaf moved while a racked pack was stowed — racked and stowed are " +
-                        "supposed to be the same place for it, so the fold should have cost it " +
-                        "exactly zero degrees");
+            foreach (int i in new[] { Leaf, WingL, WingR })
+                Assert.Less(Quaternion.Angle(beforeFold[i], fromRack[i]), 0.01f,
+                            $"pivot {racked.Pivots[i].name} moved while a racked pack was stowed — " +
+                            "racked and stowed are supposed to be the same place for it, so the " +
+                            "fold should have cost it exactly zero degrees");
 
             for (int i = 0; i < fromFlat.Length; i++)
                 Assert.Less(Quaternion.Angle(fromFlat[i], fromRack[i]), 0.01f,
@@ -304,13 +309,14 @@ namespace SpaceGame.Tests
                            "pack that is folded on somebody's back");
 
             // The pose actually moved. Without this the test above would pass just as happily on a
-            // rig whose hinges never turn at all. The wings are measured in WORLD rotation: their
-            // locals never change — they are rigid parts of the flap — so the world pose is the
-            // only place their half of the fold is visible.
+            // rig whose hinges never turn at all.
             Assert.Greater(Quaternion.Angle(deployed[Leaf], fromFlat[Leaf]), 45f,
                            "the leaf must actually fold — a rig that never moves proves nothing");
+            Assert.Greater(Quaternion.Angle(deployed[WingL], fromFlat[WingL]), 45f,
+                           "and the side panels must actually fold up, which is the 'closing " +
+                           "the box' half of it");
             Assert.Greater(Quaternion.Angle(wingWorldDeployed, flat.Pivots[WingL].rotation), 45f,
-                           "and the sides must have been carried with it");
+                           "and be carried up with the board in the world as well");
         }
 
         /// <summary>

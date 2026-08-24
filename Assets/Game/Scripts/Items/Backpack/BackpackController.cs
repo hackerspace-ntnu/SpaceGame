@@ -46,15 +46,40 @@ namespace SpaceGame.Items
         [Tooltip("Metres in front of the player the pack is set down. Measured to the pack's ORIGIN, " +
                  "which is the bottom centre of its footprint — so half its depth is nearer than " +
                  "this number, and a value near the pack's own depth puts it against your chest.")]
-        [SerializeField, Min(0.2f)] private float deployDistance = 1.6f;
+        // Far enough out that the pack focus camera — PackFocusCamera.DistanceOut (1.9 m) back
+        // from the rig along the player→pack line — lands IN FRONT of the player's body instead
+        // of behind it, with half a metre to spare. Shrinking this below DistanceOut puts the
+        // player back between the lens and the pack.
+        [SerializeField, Min(0.2f)] private float deployDistance = 2.4f;
 
-        // ── Over the shoulder ────────────────────────────────────────────────
+        // ── The toss ─────────────────────────────────────────────────────────
         //
-        // These two are the whole of the throw's shape, and both of them are CONTROL POINT offsets,
-        // not distances the pack travels. A quadratic Bezier reaches exactly half its control
-        // point's offset from the chord, so the numbers here read about twice as large as the arc
-        // they describe. That is worth writing down because the pair they replaced looked sensible
-        // and did nothing:
+        // The deploy flight starts HERE, in front of the player, not at the back socket where the
+        // pack is actually worn. The worn pose is behind them, where a first-person camera never
+        // looks: a deploy launched from the back spent its first frames out of frame and read as
+        // the pack appearing behind the player's back. The animation's one job is to say where the
+        // pack went (GDC-L1-ANIM-0003), so the whole flight has to happen on screen — it appears
+        // at chest height in front, as if tossed down, and drops a pace ahead.
+
+        [Tooltip("Where the toss appears: metres in front of the player, on the ground plane.")]
+        [SerializeField, Min(0f)] private float tossStartForward = 0.45f;
+
+        [Tooltip("Where the toss appears: metres above the player's feet. Chest height keeps the " +
+                 "whole flight inside a first-person frame.")]
+        [SerializeField, Min(0f)] private float tossStartHeight = 1.25f;
+
+        [Tooltip("Control-point lift for the toss, in metres. Same convention as arcHeight below: " +
+                 "the pack rises HALF this above the straight chest-to-ground line, so a small " +
+                 "value is a lob and zero is a straight drop.")]
+        [SerializeField, Min(0f)] private float tossArcHeight = 0.5f;
+
+        // ── Over the shoulder (stow only) ────────────────────────────────────
+        //
+        // These two are the whole of the STOW flight's shape — the deploy is the toss above. Both
+        // of them are CONTROL POINT offsets, not distances the pack travels. A quadratic Bezier
+        // reaches exactly half its control point's offset from the chord, so the numbers here read
+        // about twice as large as the arc they describe. That is worth writing down because the
+        // pair they replaced looked sensible and did nothing:
         //
         //   arcHeight 0.6, from a back socket at ~1.2 m to the ground 1.6 m ahead. Height along the
         //   curve works out as y(t) = h0(1-t) + 2A t(1-t), whose peak is at t = (2A - h0) / 4A —
@@ -228,11 +253,12 @@ namespace SpaceGame.Items
 
                 // The pack lands where it was GOING, never where it had got to.
                 //
-                // This is the "it deploys behind me" bug, and it is why fixing the drop direction
-                // never made it go away. The arc starts on the player's back, so a deploy
-                // interrupted in its first frames leaves the pack a few centimetres behind them —
-                // unparented, IsWorn false, state Open. Everything reports a completed deploy and
-                // the pack is behind the player, every time.
+                // This was the "it deploys behind me" bug, and it is why fixing the drop direction
+                // never made it go away: the arc then started on the player's back, so a deploy
+                // interrupted in its first frames left the pack a few centimetres behind them —
+                // unparented, IsWorn false, state Open. The toss now starts in front, but an
+                // interrupted flight would still strand the pack short of its announced pose, so
+                // landing it at the destination stays load-bearing.
                 //
                 // It fires constantly rather than rarely because this is a streaming world: the
                 // player is disabled and re-enabled as scenes load, migrate and respawn around
@@ -533,7 +559,14 @@ namespace SpaceGame.Items
         {
             StopArc();
 
-            Pose start = CurrentWorldPose(Pack);
+            // Not CurrentWorldPose(Pack): the flight starts from the toss point in front of the
+            // player, not from the worn pose behind their back — see the toss fields. The start
+            // shares the landing's rotation, so the pack falls already turned the way it will
+            // stand, the way a pack somebody set down would.
+            Pose start = new(transform.position
+                             + DeployForward() * tossStartForward
+                             + Vector3.up * tossStartHeight,
+                             grounded.rotation);
 
             pendingDeployPose = grounded;
             hasPendingDeploy = true;
@@ -542,7 +575,10 @@ namespace SpaceGame.Items
             Pack.SetWorn(false);
             Pack.transform.SetParent(null, true);
 
-            arcRoutine = StartCoroutine(RunArc(start, () => grounded, () => FinishDeploy(grounded)));
+            // No outward bow: the toss never crosses the player's own body, so there is nothing
+            // for it to clear.
+            arcRoutine = StartCoroutine(RunArc(start, () => grounded, tossArcHeight, 0f,
+                                               () => FinishDeploy(grounded)));
         }
 
         private void StartReshoulder()
@@ -593,7 +629,7 @@ namespace SpaceGame.Items
             //
             // The target is recomputed every frame instead of captured: re-shouldering is allowed
             // from across the map, and the player is usually walking while it flies back.
-            yield return Fly(CurrentWorldPose(Pack), WornWorldPose);
+            yield return Fly(CurrentWorldPose(Pack), WornWorldPose, arcHeight, arcOutward);
 
             arcRoutine = null;
             SnapToWorn();
@@ -969,20 +1005,21 @@ namespace SpaceGame.Items
         /// <see cref="arcRoutine"/> on its way out, and a caller yielding on it would have its own
         /// handle torn up underneath it half way through.
         /// </summary>
-        private IEnumerator Fly(Pose start, Func<Pose> end)
+        private IEnumerator Fly(Pose start, Func<Pose> end, float height, float outward)
         {
             for (float elapsed = 0f; elapsed < deploySeconds; elapsed += Time.deltaTime)
             {
                 float t = Mathf.Clamp01(elapsed / deploySeconds);
-                Pose pose = BackpackDeployArc.Evaluate(start, end(), t, arcHeight, arcOutward);
+                Pose pose = BackpackDeployArc.Evaluate(start, end(), t, height, outward);
                 Pack.transform.SetPositionAndRotation(pose.position, pose.rotation);
                 yield return null;
             }
         }
 
-        private IEnumerator RunArc(Pose start, Func<Pose> end, Action onArrive)
+        private IEnumerator RunArc(Pose start, Func<Pose> end, float height, float outward,
+                                   Action onArrive)
         {
-            yield return Fly(start, end);
+            yield return Fly(start, end, height, outward);
 
             arcRoutine = null;
             onArrive();
@@ -1087,16 +1124,18 @@ namespace SpaceGame.Items
 
             if (!found) return false;
 
-            // The pack STANDS UP where it lands, doors toward the player. Its local +Y is the height
-            // axis and its local +Z is the door side — the frame that rides against the wearer's
-            // back is on -Z — so pointing local +Z at the player is what puts the opening interior
-            // in front of them rather than showing them the back of a cabinet.
-            Vector3 toPlayer = Vector3.ProjectOnPlane(transform.position - ahead, best.normal);
-            if (toPlayer.sqrMagnitude < 1e-6f)
-                toPlayer = Vector3.ProjectOnPlane(-DeployForward(), best.normal);
+            // The pack STANDS UP where it lands, its opening toward the player. Local +Y is the
+            // height axis; WHICH horizontal side the player should be shown is settled by what the
+            // focus camera actually framed in play, not by what the axes are named — local +Z at
+            // the player showed them the closed back of a cabinet, so the side the rig presents is
+            // on -Z and local +Z points AWAY from the player. If the model is ever re-authored and
+            // the pack lands backwards again, this sign is the whole of the fix.
+            Vector3 awayFromPlayer = Vector3.ProjectOnPlane(ahead - transform.position, best.normal);
+            if (awayFromPlayer.sqrMagnitude < 1e-6f)
+                awayFromPlayer = Vector3.ProjectOnPlane(DeployForward(), best.normal);
 
             pose = new Pose(best.point + best.normal * groundLift,
-                            Quaternion.LookRotation(toPlayer.normalized, best.normal));
+                            Quaternion.LookRotation(awayFromPlayer.normalized, best.normal));
             return true;
         }
 

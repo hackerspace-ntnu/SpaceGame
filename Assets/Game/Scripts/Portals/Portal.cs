@@ -98,6 +98,7 @@ namespace SpaceGame.Portals
         private static readonly int DabsId       = Shader.PropertyToID("_Dabs");
         private static readonly int DabCountId   = Shader.PropertyToID("_DabCount");
         private static readonly int DepthId      = Shader.PropertyToID("_Depth");
+        private static readonly int CloseDepthId = Shader.PropertyToID("_CloseDepth");
         private static readonly int CentroidId   = Shader.PropertyToID("_Centroid");
         private static readonly int ExtentsId    = Shader.PropertyToID("_Extents");
         private static readonly int EllipseId    = Shader.PropertyToID("_Ellipse");
@@ -161,6 +162,15 @@ namespace SpaceGame.Portals
 
         /// <summary>What the aperture was cut into, so traversal can ignore it. May be null.</summary>
         public Collider HostSurface => hostSurface;
+
+        /// <summary>
+        /// The pair that opened this aperture, or null for one placed in a scene by hand.
+        ///
+        /// Set by <see cref="PortalPair.Open"/>, read on traversal: the close-on-traversal shut is
+        /// detected independently per machine from local physics, so the pair is told and
+        /// replicates it to the machines whose own sweep never saw the crossing.
+        /// </summary>
+        internal PortalPair Pair;
 
         /// <summary>
         /// Everything a traveller has to be let through to get from one side of this aperture to
@@ -491,6 +501,11 @@ namespace SpaceGame.Portals
                 Collider collider = Sweep[i];
                 if (collider == null || collider.isTrigger) continue;
                 if (collider.attachedRigidbody != null) continue;
+
+                // Not a wall either, and it has no attachedRigidbody to say so: letting one in
+                // means travellers stop colliding with a bystander standing behind the aperture.
+                if (collider is CharacterController) continue;
+
                 if (hostSurfaces.Contains(collider)) continue;
 
                 hostSurfaces.Add(collider);
@@ -629,8 +644,12 @@ namespace SpaceGame.Portals
                     continue;
 
                 // Anything that moves is not the wall — a crate leaning on it, a creature standing
-                // in front of it — and must not be allowed to shove the aperture around.
+                // in front of it — and must not be allowed to shove the aperture around. A
+                // CharacterController has no attachedRigidbody, so it needs naming separately or a
+                // body standing in front of the paint reads as a bulge and shoves the aperture
+                // metres off the wall towards them.
                 if (hit.collider.attachedRigidbody != null) continue;
+                if (hit.collider is CharacterController) continue;
 
                 // Positive means the surface is in FRONT of the plane here, which is the case that
                 // buries the aperture.
@@ -756,6 +775,12 @@ namespace SpaceGame.Portals
             // it, so adding a blob at one end restyled paint at the other. See
             // PortalStencil.ReferenceScale.
             material.SetFloat(DepthId, Mathf.Max(stencil.ReferenceScale, 1e-3f));
+
+            // What the iris must erode to shut the whole shape. _Depth cannot serve: it is pinned
+            // to the radius the stroke was sprayed at precisely so it does NOT follow the growth —
+            // but a merged blob runs deeper than that, and eroding the close by _Depth left a rump
+            // of aperture on screen that vanished in a pop when the GameObject went.
+            material.SetFloat(CloseDepthId, Mathf.Max(stencil.InscribedRadius, 1e-3f));
         }
 
         // ── The transfer matrix — the single source of truth ───────────────────
@@ -1253,7 +1278,19 @@ namespace SpaceGame.Portals
             // step, which at any speed means being shoved back out.
             destination.Adopt(traveller);
 
-            if (closeOnTraversal) ShutBehind(destination);
+            if (closeOnTraversal)
+            {
+                // Read before the close: shutting clears the pair's slots, and outside play mode
+                // destroys this component outright.
+                PortalPair pair = Pair;
+
+                ShutBehind(destination);
+
+                // After the local close, so the offline degradation — the send dispatching
+                // straight back into this machine's own handler — meets a pair that is already
+                // shut and does nothing twice.
+                if (pair != null) pair.AnnounceTraversal(traveller);
+            }
         }
 
         /// <summary>

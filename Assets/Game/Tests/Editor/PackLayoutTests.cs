@@ -223,5 +223,67 @@ namespace SpaceGame.Tests
             Assert.IsFalse(layout.TryFindAt(Left, Surface,
                                             PackGrid.CentreUv(Surface, new Vector2Int(5, 3)), out _));
         }
+
+        // ── Overhang: the rack takes items longer than itself ────────────────
+
+        /// <summary>The rack as wired: 0.80 x 0.60 m -> 8 x 6 cells with a (0.04, 0.03) hem.</summary>
+        private static readonly Vector2 RackSize = new(0.80f, 0.60f);
+
+        /// <summary>The wing pack's derived block: 6 cells wide, 14 long — longer than any face.</summary>
+        private static readonly PackShape Oversized = PackShape.Rect(6, 14);
+
+        [Test]
+        public void AnOversizedRectangleOverhangsTheRackAndOccupiesItsFullSpan()
+        {
+            var layout = new PackLayout();
+
+            // A quarter turn lays the long side along the rack's u axis, the one axis that
+            // allows overhang; the block centre of the clamped 8 x 6 span is (0.40, 0.30).
+            Assert.IsTrue(layout.TryPlace("craft", PackSurfaceId.Rack, RackSize, Oversized,
+                                          new Vector2(0.40f, 0.30f), 90f));
+
+            Assert.IsTrue(layout.TryOccupancy("craft", out _, out Vector2Int origin,
+                                              out PackShape oriented));
+            Assert.AreEqual(new Vector2Int(0, 0), origin);
+            Assert.AreEqual(8, oriented.Width, "occupies the whole span it hangs past");
+            Assert.AreEqual(6, oriented.Height);
+
+            Assert.AreEqual(0.40f, layout.Placements[0].Uv.x, 1e-4f);
+            Assert.AreEqual(0.30f, layout.Placements[0].Uv.y, 1e-4f);
+
+            // First-fit — the world-pickup path — reaches the same answer on its own.
+            var fresh = new PackLayout();
+            Assert.IsTrue(fresh.TryFindSpot(PackSurfaceId.Rack, RackSize, Oversized,
+                                            out _, out float yaw));
+            Assert.AreEqual(90f, yaw, 1e-4f);
+        }
+
+        [Test]
+        public void OnlyTheRackAllowsOverhang()
+        {
+            var layout = new PackLayout();
+            var leaf = new Vector2(0.78f, 0.50f);   // 8 x 5 cells
+
+            Assert.IsFalse(layout.TryPlace("craft", PackSurfaceId.Leaf, leaf, Oversized,
+                                           new Vector2(0.39f, 0.25f), 90f));
+            Assert.IsFalse(layout.TryFindSpot(PackSurfaceId.Leaf, leaf, Oversized, out _, out _));
+        }
+
+        [Test]
+        public void AClickOnTheOverhangingEndStillFindsTheItem()
+        {
+            var layout = new PackLayout();
+            layout.TryPlace("craft", PackSurfaceId.Rack, RackSize, Oversized,
+                            new Vector2(0.40f, 0.30f), 90f);
+
+            // Past the panel's edge along u — where the craft's nose hangs.
+            Assert.IsTrue(layout.TryFindAt(PackSurfaceId.Rack, RackSize, new Vector2(0.95f, 0.30f),
+                                           out PackPlacement found));
+            Assert.AreEqual("craft", found.ItemId);
+
+            // The v axis stays strict: off the side is off the pack.
+            Assert.IsFalse(layout.TryFindAt(PackSurfaceId.Rack, RackSize,
+                                            new Vector2(0.40f, 0.70f), out _));
+        }
     }
 }

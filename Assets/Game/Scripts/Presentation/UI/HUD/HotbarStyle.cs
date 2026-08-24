@@ -60,6 +60,21 @@ namespace SpaceGame.Presentation
         /// <summary>Margin between the tile's edge and the item icon, per side.</summary>
         public const float IconInset = 15f;
 
+        // ── The refusal shake ────────────────────────────────────────────────
+        //
+        // A slot's whole answer to "no room on the pack for this" — see InventorySlotUI.Shake.
+        // There is deliberately no text notice to tune alongside these, which is the point of
+        // the feature these three describe.
+
+        /// <summary>Seconds one refusal shake lasts.</summary>
+        public const float ShakeSeconds = 0.25f;
+
+        /// <summary>The shake's starting amplitude, in pixels.</summary>
+        public const float ShakePixels = 6f;
+
+        /// <summary>The wiggle's own frequency, in radians per second.</summary>
+        public const float ShakeFrequency = 55f;
+
         // ── Generated textures ───────────────────────────────────────────────
 
         private static Sprite hatchSprite;

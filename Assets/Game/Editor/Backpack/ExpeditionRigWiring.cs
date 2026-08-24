@@ -53,8 +53,17 @@ namespace SpaceGame.EditorTools
         // ── The tables this script exists to apply ───────────────────────────
 
         /// <summary>
-        /// The seven usable rectangles, in metres, measured off the built rig.
+        /// The usable rectangles, in metres, measured off the built rig.
         ///
+        /// <para>
+        /// <b>Only the BOARD carries inventory</b> — the mat, its underside (the rack) and the
+        /// lash rail. That is a decision from playtest, not an omission: the side panels fold up
+        /// to hug the pack's flanks when it closes, so gear on them would be crushed against the
+        /// body, and the back-panel pockets went with them to keep the rule legible — one board,
+        /// all the gear. The <c>SURF_Back_*</c> and <c>SURF_Wing_*</c> empties still exist in the
+        /// FBX; they are simply not wired, and a save that references them first-fits back onto
+        /// the board on load.
+        /// </para>
         /// <para>
         /// They are inset from the physical panels so an item placed at the edge does not overhang,
         /// and nothing in the .blend encodes them — the <c>SURF_</c> empties are deliberately
@@ -66,30 +75,28 @@ namespace SpaceGame.EditorTools
         /// out loud. It is the leaf's underside, so it is authored pointing at the sand and only
         /// becomes a usable face once <c>PIVOT_Leaf</c> turns X -90 — but everything below reads
         /// the empty's own transform and inherits its rotation, so a face that is currently upside
-        /// down wires exactly like one that is not. The .blend's <c>dump_surfaces()</c> is what
-        /// checks it points the right way when raised; nothing here has to know.
+        /// down wires exactly like one that is not.
         /// </para>
         /// </summary>
+        // The rack additionally allows items LONGER than its 8-cell span to overhang its u axis —
+        // see PackOverhang for the rule and its limits.
         private static readonly (string node, PackSurfaceId id, Vector2 size)[] SurfaceTable =
         {
-            ("SURF_Back_L",    PackSurfaceId.BackPanelLeft,  new Vector2(0.26f, 0.50f)),
-            ("SURF_Back_R",    PackSurfaceId.BackPanelRight, new Vector2(0.26f, 0.50f)),
-            ("SURF_Leaf",      PackSurfaceId.Leaf,           new Vector2(0.78f, 0.50f)),
-            ("SURF_Wing_L",    PackSurfaceId.WingLeft,       new Vector2(0.38f, 0.40f)),
-            ("SURF_Wing_R",    PackSurfaceId.WingRight,      new Vector2(0.38f, 0.40f)),
-            ("SURF_LongGoods", PackSurfaceId.LongGoods,      new Vector2(1.60f, 0.14f)),
-            ("SURF_Rack",      PackSurfaceId.Rack,           new Vector2(0.80f, 0.60f)),
+            ("SURF_Leaf",      PackSurfaceId.Leaf,      new Vector2(0.78f, 0.50f)),
+            ("SURF_LongGoods", PackSurfaceId.LongGoods, new Vector2(1.60f, 0.14f)),
+            ("SURF_Rack",      PackSurfaceId.Rack,      new Vector2(0.80f, 0.60f)),
         };
 
         /// <summary>
-        /// The two moving parts, with the STOW travel from the authored pose.
+        /// The four moving parts, with the STOW travel from the authored pose.
         ///
         /// <para>
-        /// Two, not four: the wings were reparented under <c>PIVOT_Leaf</c> in the .blend
-        /// (2026-08-24, with the stakes) so the whole front closes as ONE flap — by playtest, a
-        /// board that left its side panels behind never read as the pack closing. The rack is
-        /// <c>PIVOT_Leaf</c> turned to the very angle listed below — rack pose and stow pose are
-        /// the same place for the whole flap — so there is nothing extra to wire for it.
+        /// The wing pivots are CHILDREN of <c>PIVOT_Leaf</c> in the .blend (reparented 2026-08-24
+        /// with the stakes, after ground-hinged wings kept reading as the board abandoning its
+        /// sides) — so their ±90 below is relative to the BOARD: closing folds each side panel
+        /// square up off it, and as the board rises the panels come round to hug the pack's
+        /// flanks, closing it like a box. The rack asks every part for exactly its stow angle,
+        /// so there is nothing extra to wire for it.
         /// </para>
         ///
         /// <para>
@@ -114,6 +121,13 @@ namespace SpaceGame.EditorTools
             // wings once spent a morning folding 0.41 m through the floor.
             ("PIVOT_Back",   BackpackHingePart.Panel,     Vector3.right,  25f),
             ("PIVOT_Leaf",   BackpackHingePart.Leaf,      Vector3.right, -90f),
+            // ±90 folds each side panel square UP off the board, so that when the board rises the
+            // panels wrap round the pack's flanks and hug the exterior. Signs measured on the
+            // imported prefab (deployed pose, leaf at rest):
+            //   Wing_L -90 -> y 0.00..0.44 (up)   Wing_L +90 -> y -0.41..0.03 (through the floor)
+            //   Wing_R mirrored.
+            ("PIVOT_Wing_L", BackpackHingePart.WingLeft,  Vector3.up,    -90f),
+            ("PIVOT_Wing_R", BackpackHingePart.WingRight, Vector3.up,     90f),
         };
 
         private static readonly (string node, HolderKind kind)[] HolderTable =

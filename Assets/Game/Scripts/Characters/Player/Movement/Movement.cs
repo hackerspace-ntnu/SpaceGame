@@ -29,6 +29,11 @@ namespace SpaceGame.Characters
 
         [SerializeField, Range(0f, 1f)] private float airControl = 0.3f;
 
+        [Tooltip("Upward speed, in m/s, above which a carried fling still counts as in flight — " +
+                 "see SteerWithoutBraking. Big enough to ignore the jitter of standing on a " +
+                 "collider, small enough that any real launch clears it.")]
+        [SerializeField] private float momentumRiseThreshold = 0.5f;
+
         [Tooltip("Sideways acceleration available while hanging from a rope, in m/s². Steering " +
                  "only — see SteerTether. It can turn a swing and pump it, never slow one.")]
         [SerializeField] private float tetherAcceleration = 22f;
@@ -251,6 +256,7 @@ namespace SpaceGame.Characters
         ///
         /// Set by <see cref="CarryMomentum"/> and cleared the moment the player
         /// lands or slows to a walk, so it is off for all of ordinary movement.
+        /// "Lands" is stricter than the ground probe — see <see cref="SteerWithoutBraking"/>.
         /// </summary>
         private bool carryingMomentum;
 
@@ -342,13 +348,32 @@ namespace SpaceGame.Characters
         /// that was always wanted. It ends by itself: on touchdown, because the
         /// ground is where speed is supposed to be given back, and at walking
         /// pace, because below that there is no fling left to protect.
+        ///
+        /// <para>
+        /// "On touchdown" cannot be read off <see cref="IsGrounded"/> alone, which is why
+        /// <paramref name="grounded"/> is qualified by whether the body is still RISING. That probe
+        /// sphere-casts a 0.45 m sphere from the capsule's centre over the full half-height plus
+        /// the ground check distance, so with the authored capsule it keeps answering "grounded"
+        /// for roughly the first 0.6 m of clearance. A fling leaves at up to ~10 m/s of vertical,
+        /// which is 0.2 m of rise per physics step — so the launch is still "grounded" for the
+        /// next several ticks, and the unqualified clause cleared the latch on the very first one.
+        /// The horizontal half was then handed to the ordinary <c>control = 1</c> lerp, whose
+        /// target with no input is ZERO: a standing victim popped straight up and landed on the
+        /// spot, and the gauntlet's own recoil died the same way.
+        /// </para>
+        /// <para>
+        /// Rising is not an escape hatch. Gravity spends the launch in well under a second, after
+        /// which a grounded body clears the latch exactly as before; and the walking-pace clause
+        /// is untouched, so it still ends a carry that has nothing left to protect.
+        /// </para>
         /// </summary>
         private Vector3 SteerWithoutBraking(Vector3 current, Vector3 steered, bool grounded)
         {
             if (!carryingMomentum) return steered;
 
             float carried = current.magnitude;
-            if (grounded || carried <= CurrentMoveSpeed)
+            bool rising = rb != null && rb.linearVelocity.y > momentumRiseThreshold;
+            if (ShouldEndCarry(grounded, rising, carried, CurrentMoveSpeed))
             {
                 carryingMomentum = false;
                 return steered;
@@ -356,6 +381,19 @@ namespace SpaceGame.Characters
 
             return steered.sqrMagnitude > 1e-6f ? steered.normalized * carried : current;
         }
+
+        /// <summary>
+        /// Whether a carried fling is finished — the decision <see cref="SteerWithoutBraking"/>
+        /// makes, pulled out as pure arithmetic so it can be pinned by a test without a physics
+        /// scene, and so the reasoning above lives next to something checkable.
+        ///
+        /// <para>
+        /// A body that is still rising has not landed, whatever the ground probe says; and a body
+        /// down to walking pace has no fling left to protect, whether or not it is in the air.
+        /// </para>
+        /// </summary>
+        public static bool ShouldEndCarry(bool grounded, bool rising, float carriedSpeed, float moveSpeed)
+            => (grounded && !rising) || carriedSpeed <= moveSpeed;
 
         private void HandleFallDamage(bool grounded)
         {

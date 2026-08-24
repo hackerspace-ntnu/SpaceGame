@@ -103,6 +103,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6558388417224476658, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      propertyPath: flungShake
+      value: 
+      objectReference: {fileID: 11400000, guid: e3f3f8de9dc7648c9a33232644e78bd4, type: 2}
     m_RemovedComponents:
     - {fileID: 2750247493964292827, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
     - {fileID: 5205092769686626828, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}

@@ -1,5 +1,4 @@
 using System.Collections;
-using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using SpaceGame.Agents;
@@ -756,17 +755,6 @@ namespace SpaceGame.Items
                     _reelHeld = false;
                     return;
             }
-        }
-
-        /// <summary>True when the local player is the one holding this lasso.</summary>
-        private bool OwnerIsLocal()
-        {
-            if (!Network.IsNetworked) return true;
-
-            if (owner != null && owner.TryGetComponent(out NetworkObject netObj) && netObj.IsSpawned)
-                return netObj.IsOwner;
-
-            return true;
         }
 
         /// <summary>Is this the machine that decides what the rope does? Offline, or the server.</summary>

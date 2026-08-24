@@ -1,5 +1,6 @@
 using System;
 using FMODUnity;
+using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Audio;
 using SpaceGame.Core;
@@ -285,6 +286,25 @@ namespace SpaceGame.Items
         {
             var hold = GetComponent<HoldAnimator>();
             if (hold != null) hold.SetHeld(holder, false);
+        }
+
+        /// <summary>
+        /// True when the local player is the one holding this item.
+        ///
+        /// Asked of the OWNER rather than of this item. An equipped artifact is instantiated into
+        /// a hand and never spawned, so its own NetworkObject is dormant and
+        /// <see cref="Network.Simulates"/> would answer "yes, you simulate it" on every machine
+        /// in the session — every peer would then run owner-only effects for a remote player's
+        /// item. The owner's spawned NetworkObject is the one that can actually tell.
+        /// </summary>
+        protected bool OwnerIsLocal()
+        {
+            if (!Network.IsNetworked) return true;
+
+            if (owner != null && owner.TryGetComponent(out NetworkObject netObj) && netObj.IsSpawned)
+                return netObj.IsOwner;
+
+            return true;
         }
 
         /// <summary>Authority-only effect. See the class summary.</summary>

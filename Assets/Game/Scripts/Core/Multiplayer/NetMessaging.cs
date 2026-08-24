@@ -385,6 +385,15 @@ namespace SpaceGame.Core
         //           which asks the server to first-fit it instead.
         //   P       where on that surface the cursor was, in its uv: X and Z, Y unused.
         public const ushort PackStow = 78; // player → server: put my hotbar slot on the pack
+
+        // Server → everyone, on the VICTIM player's relay: this player has been flung and their
+        // owning machine must apply the velocity in P (m/s, world space).
+        //
+        // Broadcast because this layer has no unicast — every machine receives it and only the
+        // machine that owns the victim acts (see FlungBody). The server cannot apply it itself:
+        // the player body is owner-authoritative, so a server-side push is overwritten within a
+        // tick. Successor to the retired RopeTug (62) shape.
+        public const ushort Flung = 79; // server → everyone, on the VICTIM's relay
     }
 
     /// <summary>What a <see cref="NetMsg.LassoRope"/> message is saying. Append only.</summary>

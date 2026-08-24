@@ -1,11 +1,51 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace SpaceGame.Items
 {
     /// <summary>
+    /// Which moving part of the rig a hinge is, so the unfold's beat sheet can give it its own
+    /// window and its own curve.
+    ///
+    /// <para>
+    /// <see cref="Generic"/> is deliberately zero, so every hinge authored before the beat sheet
+    /// existed — the old clamshell's two doors, <c>ExpeditionBackpack</c>'s lid and panel — keeps
+    /// the single shared smoothstep it was tuned against. A rig opts into the beat sheet by naming
+    /// its parts, never by accident.
+    /// </para>
+    /// </summary>
+    public enum BackpackHingePart
+    {
+        /// <summary>No named role: swings with every other generic hinge, on one shared ease.</summary>
+        Generic = 0,
+
+        /// <summary>The back panel the kickstands prop up. Tips to 65&#176;.</summary>
+        Panel = 1,
+
+        /// <summary>
+        /// The front leaf. FALLS rather than eases — see the unfold in BackpackObject.
+        ///
+        /// <para>
+        /// The one hinge with two callers. As well as the unfold, it carries the RACK: the leaf
+        /// flipped up into a vertical panel for the biggest gear, at exactly the
+        /// <see cref="BackpackHinge.foldAngle"/> below. Racked and stowed are the same place for
+        /// this member, so the rack needed no hinge of its own — which is why nothing about it
+        /// appears in this enum. <c>BackpackObject.LeafFromOpen</c> is where the two are combined,
+        /// and it is the only thing that has to know.
+        /// </para>
+        /// </summary>
+        Leaf = 2,
+
+        // 3 and 4 were WingLeft and WingRight. The wings are children of PIVOT_Leaf now — the
+        // whole front closes as one flap — so nothing wires them and the values are retired
+        // rather than reused: a stale hinge row deserialising 3 or 4 must fall to the default
+        // window, not inherit whatever meaning a future part gets.
+    }
+
+    /// <summary>
     /// One part of a pack that moves when it opens: which empty drives it, which of that empty's
-    /// own axes it turns about, and how far.
+    /// own axes it turns about, how far, and which way round the model was authored.
     ///
     /// This exists so the pack's opening lives in the PREFAB rather than in code. The first pack
     /// was a clamshell — two rear vertical hinges, mirrored — and the swing was written that way,
@@ -21,31 +61,57 @@ namespace SpaceGame.Items
     [Serializable]
     public struct BackpackHinge
     {
-        [Tooltip("The empty exported from Blender, e.g. PIVOT_Lid. Its children swing with it.")]
+        [Tooltip("The empty exported from Blender, e.g. PIVOT_Leaf. Its children swing with it.")]
         public Transform pivot;
 
-        [Tooltip("Hinge line in the PIVOT's own local space. Both expedition hinges use (1,0,0); " +
-                 "the older clamshell doors used (0,0,1). Normalised at use, so length is free.")]
+        [Tooltip("Which moving part this is. Generic keeps the old single shared ease; naming a " +
+                 "part opts it into the unfold beat sheet.")]
+        public BackpackHingePart part;
+
+        [Tooltip("Hinge line in the PIVOT's own local space. The expedition rig's panel and leaf " +
+                 "use (1,0,0); the older clamshell doors used (0,0,1). Normalised at use, so " +
+                 "length is free.")]
         public Vector3 localAxis;
 
-        [Tooltip("Degrees from closed to open, signed — flip it to swing the part the other way. " +
-                 "A part hinged on a REAR edge has to come past 90 before its inner face turns " +
-                 "toward the player.")]
-        public float openAngle;
+        [Tooltip("Degrees from the model's AUTHORED REST pose to its other pose, signed. With " +
+                 "restIsOpen off (the default) rest is closed and this is the closed-to-open " +
+                 "travel. With it on the model is authored deployed and this is the STOW travel: " +
+                 "expedition_rig wants PIVOT_Back +25 and PIVOT_Leaf -90.")]
+        [FormerlySerializedAs("openAngle")]
+        public float foldAngle;
+
+        [Tooltip("Tick when the FBX is authored DEPLOYED, as expedition_rig.blend is — every " +
+                 "pivot at rotation zero in the open pose, because that is the pose whose " +
+                 "measurements the spec gives. Leave off for a model authored closed, like " +
+                 "expedition_backpack.")]
+        public bool restIsOpen;
 
         /// <summary>
-        /// The open pose as an offset from whatever the authored rest rotation happens to be. It is
-        /// never absolute: an FBX hands empties back rotated (PIVOT_Clamshell arrived at euler
-        /// (270.02, 0, 0)), and applying an absolute angle to that reorients the whole part instead
-        /// of turning it about its hinge.
+        /// The travel between the two poses, as an offset from whatever the authored rest rotation
+        /// happens to be. It is never absolute: an FBX hands empties back rotated
+        /// (<c>PIVOT_Clamshell</c> arrived at euler (270.02, 0, 0)), and applying an absolute angle
+        /// to that reorients the whole part instead of turning it about its hinge — which on the
+        /// old pack buried a door 0.4 m underground.
         /// </summary>
-        public Quaternion OpenOffset()
+        public Quaternion FoldOffset()
         {
             // A zero axis is an unwired inspector field, not an intention. Falling back to X keeps
             // the part moving in some plausible way rather than silently making the pack look
             // welded shut, which is far harder to spot than a wrong axis.
             Vector3 axis = localAxis.sqrMagnitude > 1e-6f ? localAxis.normalized : Vector3.right;
-            return Quaternion.AngleAxis(openAngle, axis);
+            return Quaternion.AngleAxis(foldAngle, axis);
         }
+
+        /// <summary>
+        /// The deployed pose, given the rest rotation captured off the model.
+        ///
+        /// Which of the two poses rest IS is the whole reason <see cref="restIsOpen"/> exists, and
+        /// it is asked rather than assumed: expedition_rig is authored open and expedition_backpack
+        /// is authored closed, and getting it backwards folds a rig inside out with no error.
+        /// </summary>
+        public Quaternion OpenPose(Quaternion rest) => restIsOpen ? rest : rest * FoldOffset();
+
+        /// <summary>The stowed pose, given the rest rotation captured off the model.</summary>
+        public Quaternion ClosedPose(Quaternion rest) => restIsOpen ? rest * FoldOffset() : rest;
     }
 }

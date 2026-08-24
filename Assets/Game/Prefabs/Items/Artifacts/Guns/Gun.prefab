@@ -157,6 +157,7 @@ GameObject:
   - component: {fileID: 3159199450960473966}
   - component: {fileID: 769968722905706953}
   - component: {fileID: 3187250934521912876}
+  - component: {fileID: 8462109553181147201}
   m_Layer: 0
   m_Name: Gun
   m_TagString: Untagged
@@ -760,3 +761,23 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3016076678442732179, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
   m_PrefabInstance: {fileID: 4742246258193704715}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &8462109553181147201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5032710560570511402}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 849607e40917c46c396381660647fa88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
+  gripPoint: {fileID: 7525129472516688383}
+  hand: 0
+  holdStyle: 2
+  rotationOffset: {x: 0, y: 0, z: 0}
+  positionOffset: {x: 0, y: 0, z: 0}
+  holdSize: 0.6
+  sizeReference: {fileID: 0}
+  keepColliders: 0

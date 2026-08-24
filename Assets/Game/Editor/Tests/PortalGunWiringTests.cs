@@ -33,7 +33,6 @@ namespace SpaceGame.EditorTools
         private const string GunPath    = "Assets/Game/Prefabs/Items/Artifacts/Portals/PortalGun.prefab";
         private const string OrangePath = "Assets/Game/Prefabs/Items/Artifacts/Portals/PortalOrange.prefab";
         private const string BluePath   = "Assets/Game/Prefabs/Items/Artifacts/Portals/PortalBlue.prefab";
-        private const string BlobPath   = "Assets/Game/Prefabs/Items/Artifacts/Portals/PortalBlob.prefab";
 
         private static T Load<T>(string path) where T : Component
         {
@@ -73,7 +72,7 @@ namespace SpaceGame.EditorTools
             // optional and is deliberately not asserted — a test that demands every slot be filled
             // gets switched off the first time somebody authors a legitimate blank.
             AssertReference(so, "muzzle");
-            AssertReference(so, "projectilePrefab");
+            AssertReference(so, "jet");
             AssertReference(so, "bodyRenderer");
         }
 
@@ -96,18 +95,19 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void TheBlobCanBeSeenAndCanReportArrival()
+        public void TheJetIsBuiltButNotRunning()
         {
-            PortalProjectile blob = Load<PortalProjectile>(BlobPath);
+            PortalGunItem gun = Load<PortalGunItem>(GunPath);
+            var so = new SerializedObject(gun);
 
-            // On the ROOT specifically. The blob's Update is what flies it and then fires the
-            // callback that opens the aperture, so a component parked on an inactive child would
-            // leave a bead of light hanging at the muzzle forever — which is very close to what the
-            // incident above looked like from the player's side.
-            Assert.IsTrue(blob.gameObject.activeSelf, "the blob prefab's root is inactive");
-            Assert.IsTrue(blob.enabled, "the blob's PortalProjectile is disabled");
+            var jet = so.FindProperty("jet").objectReferenceValue as ParticleSystem;
+            Assert.IsNotNull(jet, "the gun has no jet, so spraying is invisible");
 
-            AssertReference(new SerializedObject(blob), "blobRenderer", BlobPath);
+            // Play On Awake is the defect worth a test. PortalGunItem.SetJet is what starts and
+            // stops the jet, and a system that begins emitting the moment the gun is equipped
+            // paints the floor at the player's feet with no trigger pull at all.
+            Assert.IsFalse(jet.main.playOnAwake, "the jet emits before the trigger is pulled");
+            Assert.IsTrue(jet.main.loop, "the jet stops after one burst instead of while held");
         }
 
         /// <summary>The hotbar instantiates the InventoryItem's prefab, not the one tests load.</summary>

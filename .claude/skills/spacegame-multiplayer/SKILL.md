@@ -5,6 +5,10 @@ description: Use when adding netcode to an existing single-player system in Spac
 
 # SpaceGame multiplayer wiring
 
+> **Design check:** when the question is what players should experience together, not just how
+> bytes move, read the `MP`, `ARCH` and `PROG` principles in
+> `docs/game-development-constitution/INDEX.md` and cite their IDs.
+
 ## Overview
 
 **The bar: every gameplay system works fully online.** Anything a player can change has to reach

@@ -95,6 +95,25 @@ namespace SpaceGame.Portals
         private static readonly int OpenId       = Shader.PropertyToID("_Open");
         private static readonly int BodyColourId = Shader.PropertyToID("_Colour");
         private static readonly int RimColourId  = Shader.PropertyToID("_Colour");
+        private static readonly int DabsId       = Shader.PropertyToID("_Dabs");
+        private static readonly int DabCountId   = Shader.PropertyToID("_DabCount");
+        private static readonly int DepthId      = Shader.PropertyToID("_Depth");
+        private static readonly int CentroidId   = Shader.PropertyToID("_Centroid");
+        private static readonly int ExtentsId    = Shader.PropertyToID("_Extents");
+        private static readonly int EllipseId    = Shader.PropertyToID("_Ellipse");
+
+        /// <summary>
+        /// The shape of the opening — the ellipse inscribed in <see cref="size"/> until somebody
+        /// sprays paint on it, and the paint itself after that.
+        ///
+        /// Every question that used to be answered from <see cref="size"/> is answered from here
+        /// now. The field survives as the serialized authoring value and as the shape's bounding
+        /// box, which is what the swept volume and the quads are sized to.
+        /// </summary>
+        private readonly PortalStencil stencil = new PortalStencil();
+
+        /// <summary>Scratch for the shader upload. One array, reused: a spray runs this 15 times a second.</summary>
+        private static readonly Vector4[] DabBuffer = new Vector4[PortalStencil.MaxDabs];
 
         /// <summary>
         /// Every portal alive in this scene.
@@ -121,7 +140,11 @@ namespace SpaceGame.Portals
         /// <summary>Which barrel fired it — 0 is the orange aperture, 1 the blue.</summary>
         public int Index => index;
 
+        /// <summary>The bounding box of the opening, in metres. For a plain aperture, the ellipse.</summary>
         public Vector2 Size => size;
+
+        /// <summary>The shape of the opening. Read by traversal, written by the gun's spray.</summary>
+        public PortalStencil Stencil => stencil;
 
         /// <summary>
         /// The tint this aperture was opened with.
@@ -298,7 +321,12 @@ namespace SpaceGame.Portals
         private void Awake()
         {
             EnsureMaterials();
-            ApplySize();
+
+            // Seeded from the inspector, because the stencil starts on its own default rather than
+            // on whatever this particular aperture was authored as.
+            if (stencil.IsEllipse) stencil.SetEllipse(size);
+
+            ApplyShape();
         }
 
         /// <summary>
@@ -432,7 +460,7 @@ namespace SpaceGame.Portals
             // Anything still tracked belonged to the old location.
             ReleaseAll();
 
-            ApplySize();
+            ApplyShape();
             GatherHostSurfaces();
         }
 
@@ -449,8 +477,11 @@ namespace SpaceGame.Portals
             hostSurfaces.Clear();
             if (hostSurface != null) hostSurfaces.Add(hostSurface);
 
-            Vector3 centre = transform.position - transform.forward * (WallThickness * 0.5f);
-            var half = new Vector3(size.x * 0.5f, size.y * 0.5f, WallThickness * 0.5f);
+            Rect box = stencil.Bounds;
+
+            Vector3 centre = transform.TransformPoint(box.center.x, box.center.y,
+                                                      -WallThickness * 0.5f);
+            var half = new Vector3(box.width * 0.5f, box.height * 0.5f, WallThickness * 0.5f);
 
             int count = Physics.OverlapBoxNonAlloc(centre, half, Sweep, transform.rotation, ~0,
                                                    QueryTriggerInteraction.Ignore);
@@ -515,9 +546,118 @@ namespace SpaceGame.Portals
 
         public void SetSize(Vector2 metres)
         {
-            size = metres;
-            ApplySize();
+            stencil.SetEllipse(metres);
+            ApplyShape();
         }
+
+        /// <summary>
+        /// Throw the shape away and start a fresh one, ready for <see cref="AddDab"/>.
+        ///
+        /// Called when a spray begins on this aperture rather than when it is opened, because a
+        /// re-fire MOVES the existing portal object — see <see cref="PortalPair.Open"/> — and a
+        /// stroke laid on top of the last one's paint would grow without bound.
+        /// </summary>
+        public void BeginStroke()
+        {
+            stencil.Clear();
+            ApplyShape();
+        }
+
+        /// <summary>
+        /// Lay one blob of paint at <paramref name="localCentre"/>, in this aperture's own plane.
+        ///
+        /// The transform is deliberately NOT moved to follow the paint. Growing around a fixed
+        /// origin is what keeps <see cref="TransferFrom"/> stable while somebody is walking through
+        /// a portal that is still being sprayed.
+        /// </summary>
+        public void AddDab(Vector2 localCentre, float radius)
+        {
+            stencil.AddDab(localCentre, radius);
+            ApplyShape();
+        }
+
+        /// <summary>
+        /// Lay a whole stroke — <paramref name="steps"/> blobs evenly spaced from just past
+        /// <paramref name="from"/> to <paramref name="to"/> — and re-derive the shape ONCE.
+        ///
+        /// Not a convenience. Every call to <see cref="AddDab"/> re-samples the shape's inscribed
+        /// radius over a grid, and one hold tick can be eight blobs: laying them one at a time
+        /// pays for that eight times to arrive at the same answer, fifteen times a second.
+        /// </summary>
+        public void AddStroke(Vector2 from, Vector2 to, int steps, float radius)
+        {
+            for (int i = 1; i <= steps; i++)
+                stencil.AddDab(Vector2.Lerp(from, to, i / (float)steps), radius);
+
+            ApplyShape();
+        }
+
+        /// <summary>
+        /// Slide the aperture out along its own normal until nothing it is painted on pokes through.
+        ///
+        /// A portal is a FLAT plane and the ground is not. Placed 12 mm off the one point the
+        /// stream happened to hit, an aperture sprayed across terrain has half its area buried:
+        /// every bump in front of the plane occludes the surface behind it, and the player watches
+        /// the portal they are painting disappear into the hillside in patches.
+        ///
+        /// So the plane is pushed forward to clear the highest thing under the paint. Along the
+        /// NORMAL only — the aperture never slides sideways, because its lateral origin is what
+        /// <see cref="TransferFrom"/> is built on and moving that would drag the exit out from
+        /// under anyone walking through. A few centimetres along the normal only moves where you
+        /// come out to slightly further clear of the wall, which is the right direction to be wrong
+        /// in anyway.
+        ///
+        /// Probed at the blobs themselves rather than over a grid: that is where the paint actually
+        /// is, and it keeps this to one raycast per blob on a shape that changes 15 times a second.
+        /// </summary>
+        public void ConformToSurface()
+        {
+            if (stencil.IsEllipse || stencil.Count == 0) return;
+
+            Vector3 normal = transform.forward;
+            float protrusion = 0f;
+
+            for (int i = 0; i < stencil.Count; i++)
+            {
+                PortalDab dab = stencil.Dabs[i];
+                Vector3 at = transform.TransformPoint(dab.Centre.x, dab.Centre.y, 0f);
+
+                // From well in front, looking back at the surface. Starting behind the plane would
+                // miss exactly the bumps this exists to find.
+                if (!Physics.Raycast(at + normal * ConformReach, -normal, out RaycastHit hit,
+                                     ConformReach * 2f, ~0, QueryTriggerInteraction.Ignore))
+                    continue;
+
+                // Anything that moves is not the wall — a crate leaning on it, a creature standing
+                // in front of it — and must not be allowed to shove the aperture around.
+                if (hit.collider.attachedRigidbody != null) continue;
+
+                // Positive means the surface is in FRONT of the plane here, which is the case that
+                // buries the aperture.
+                protrusion = Mathf.Max(protrusion, Vector3.Dot(hit.point - transform.position, normal));
+            }
+
+            if (protrusion <= 0f) return;
+
+            transform.position += normal * (protrusion + ConformClearance);
+        }
+
+        /// <summary>How far in front of the plane the conform probes start, and half how far they reach.</summary>
+        private const float ConformReach = 3f;
+
+        /// <summary>How far clear of the highest bump the aperture is left sitting.</summary>
+        private const float ConformClearance = 0.05f;
+
+        /// <summary>Where <paramref name="worldPoint"/> lands in this aperture's plane.</summary>
+        public Vector2 ToLocalPlane(Vector3 worldPoint)
+        {
+            Vector3 local = transform.InverseTransformPoint(worldPoint);
+            return new Vector2(local.x, local.y);
+        }
+
+        /// <summary>How far <paramref name="worldPoint"/> is off this aperture's plane, in metres.</summary>
+        public float DistanceFromPlane(Vector3 worldPoint) =>
+            Mathf.Abs(Vector3.Dot(worldPoint - transform.position, transform.forward));
 
         /// <summary>Tint both halves of the aperture. Called once, at spawn.</summary>
         public void SetColour(Color colour)
@@ -530,24 +670,43 @@ namespace SpaceGame.Portals
             if (rimMaterial != null) rimMaterial.SetColor(RimColourId, colour);
         }
 
-        private void ApplySize()
+        /// <summary>
+        /// Push the shape onto the quads, the swept volume and the materials.
+        ///
+        /// The quads are MOVED as well as scaled now. A sprayed shape does not straddle the
+        /// transform — the origin is wherever the first dab landed — so a quad centred on the
+        /// portal itself would show half the paint and clip the rest.
+        /// </summary>
+        private void ApplyShape()
         {
+            Rect box = stencil.Bounds;
+            size = box.size;
+
+            var centre = new Vector3(box.center.x, box.center.y, 0f);
+
             // Only the child quads carry the size. The portal root must stay at
             // unit scale, because TransferFrom composes its localToWorldMatrix
             // with another portal's worldToLocalMatrix — any scale there would
             // be applied to the traveller as well, and a player would come out
             // of a wide portal wider than they went in.
             if (surfaceRenderer != null)
-                surfaceRenderer.transform.localScale = new Vector3(size.x, size.y, 1f);
+            {
+                surfaceRenderer.transform.localPosition = centre;
+                surfaceRenderer.transform.localScale = new Vector3(box.width, box.height, 1f);
+            }
 
             if (rimRenderer != null)
-                rimRenderer.transform.localScale = new Vector3(size.x * 1.5f, size.y * 1.35f, 1f);
+            {
+                rimRenderer.transform.localPosition = centre;
+                rimRenderer.transform.localScale =
+                    new Vector3(box.width * 1.5f, box.height * 1.35f, 1f);
+            }
 
             if (travellerVolume != null)
             {
                 travellerVolume.isTrigger = true;
-                travellerVolume.size = new Vector3(size.x, size.y, volumeDepth * 2f);
-                travellerVolume.center = Vector3.zero;
+                travellerVolume.size = new Vector3(box.width, box.height, volumeDepth * 2f);
+                travellerVolume.center = centre;
 
                 // Kept for the inspector and the gizmo, switched off for physics. Traversal sweeps
                 // the same box itself (see the file header), so this collider has no job left — and
@@ -556,6 +715,47 @@ namespace SpaceGame.Portals
                 // them, would find the portal's own volume in front of the wall it is cut into.
                 if (Application.isPlaying) travellerVolume.enabled = false;
             }
+
+            PushStencil();
+        }
+
+        /// <summary>
+        /// Hand the shape to both materials.
+        ///
+        /// _Extents differs between them because the rim's quad is deliberately larger than the
+        /// aperture — the halo spills onto the wall — while both shaders read the dabs in metres
+        /// relative to the SHARED bounds centre. So each has to be told how many metres its own
+        /// quad covers, or the rim would draw the outline at two thirds size.
+        /// </summary>
+        private void PushStencil()
+        {
+            int count = stencil.WriteShaderData(DabBuffer);
+            Rect box = stencil.Bounds;
+            Vector2 centroid = stencil.Centroid - box.center;
+
+            if (surfaceMaterial != null)
+                PushStencil(surfaceMaterial, count, centroid,
+                            new Vector2(box.width * 0.5f, box.height * 0.5f));
+
+            if (rimMaterial != null)
+                PushStencil(rimMaterial, count, centroid,
+                            new Vector2(box.width * 0.75f, box.height * 0.675f));
+        }
+
+        private void PushStencil(Material material, int count, Vector2 centroid, Vector2 extents)
+        {
+            material.SetVectorArray(DabsId, DabBuffer);
+            material.SetFloat(DabCountId, count);
+            material.SetVector(CentroidId, centroid);
+            material.SetVector(ExtentsId, extents);
+            material.SetVector(EllipseId, stencil.SemiAxes);
+
+            // The REFERENCE scale, not the inscribed radius. Handing the shader something that
+            // grows with the paint is what made the whole aperture appear to rescale while it was
+            // being sprayed — the rim band, the throat and the vortex were all normalised against
+            // it, so adding a blob at one end restyled paint at the other. See
+            // PortalStencil.ReferenceScale.
+            material.SetFloat(DepthId, Mathf.Max(stencil.ReferenceScale, 1e-3f));
         }
 
         // ── The transfer matrix — the single source of truth ───────────────────
@@ -582,24 +782,49 @@ namespace SpaceGame.Portals
                  * from.transform.worldToLocalMatrix;
         }
 
+        /// <summary>
+        /// Where something entering this aperture at <paramref name="worldPoint"/> comes out.
+        ///
+        /// The raw transfer maps a point to the SAME place on the far aperture, which is right
+        /// only while the two share an outline. Two ellipses do, so this used not to exist. Two
+        /// sprayed blobs never do, and entering through a lobe the destination has no copy of
+        /// would put the traveller inside the wall that aperture is cut into — the one failure a
+        /// portal must never produce. So the arrival is pulled to the nearest point that is inside
+        /// the destination by at least <paramref name="clearance"/>.
+        ///
+        /// A no-op whenever the shapes agree, which keeps every unsprayed pair exactly as it was.
+        /// </summary>
+        public Vector3 ExitPointFor(Vector3 worldPoint, float clearance)
+        {
+            Portal destination = Linked;
+            if (destination == null) return worldPoint;
+
+            Vector3 raw = destination.TransferFrom(this).MultiplyPoint3x4(worldPoint);
+            Vector3 local = destination.transform.InverseTransformPoint(raw);
+
+            Vector2 clamped =
+                destination.stencil.ClampInside(new Vector2(local.x, local.y), clearance);
+
+            return destination.transform.TransformPoint(clamped.x, clamped.y, local.z);
+        }
+
         /// <summary>Signed distance along the outward normal. Negative means behind the plane.</summary>
         public float SideOf(Vector3 worldPoint) =>
             Vector3.Dot(worldPoint - transform.position, transform.forward);
 
         /// <summary>
-        /// Is <paramref name="worldPoint"/> inside the elliptical opening, rather
-        /// than merely somewhere on its infinite plane?
+        /// Is <paramref name="worldPoint"/> inside the opening, rather than merely
+        /// somewhere on its infinite plane?
         ///
         /// Without this, walking anywhere along the wall a portal is set into
         /// teleports you, because the plane does not end where the picture does.
+        ///
+        /// <paramref name="margin"/> is metres OUTSIDE the edge that still count as in — the same
+        /// slack the ellipse version bought by widening both semi-axes, now expressed against a
+        /// shape that has no semi-axes.
         /// </summary>
-        public bool WithinAperture(Vector3 worldPoint, float margin = 0f)
-        {
-            Vector3 local = transform.InverseTransformPoint(worldPoint);
-            float u = local.x / Mathf.Max(size.x * 0.5f + margin, 1e-4f);
-            float v = local.y / Mathf.Max(size.y * 0.5f + margin, 1e-4f);
-            return u * u + v * v <= 1f;
-        }
+        public bool WithinAperture(Vector3 worldPoint, float margin = 0f) =>
+            stencil.Contains(ToLocalPlane(worldPoint), margin);
 
         /// <summary>
         /// The aperture a straight move from <paramref name="from"/> to <paramref name="to"/>
@@ -719,11 +944,17 @@ namespace SpaceGame.Portals
 
             seen.Clear();
 
-            var half = new Vector3(size.x * 0.5f + SweepMargin,
-                                   size.y * 0.5f + SweepMargin,
+            Rect box = stencil.Bounds;
+
+            var half = new Vector3(box.width * 0.5f + SweepMargin,
+                                   box.height * 0.5f + SweepMargin,
                                    volumeDepth);
 
-            int count = Physics.OverlapBoxNonAlloc(transform.position, half, Sweep,
+            // Centred on the SHAPE, not on the transform. A sprayed aperture's origin is wherever
+            // its first dab landed, which can be right at the edge of the paint.
+            Vector3 centre = transform.TransformPoint(box.center.x, box.center.y, 0f);
+
+            int count = Physics.OverlapBoxNonAlloc(centre, half, Sweep,
                                                    transform.rotation, ~0,
                                                    QueryTriggerInteraction.Ignore);
 
@@ -789,23 +1020,14 @@ namespace SpaceGame.Portals
         /// it always did and cannot pass, which is what a hole smaller than you should feel like —
         /// and it needs no message, no failed-traversal state and nothing to undo.
         ///
-        /// Measured against the ELLIPSE, since that is the opening; the rectangle in
-        /// <see cref="size"/> is only what it is inscribed in. The narrower half of the traveller
-        /// is paired with the narrower semi-axis, so a wide flat thing is judged against a wide
-        /// flat hole rather than against whichever axis it happened to be authored on.
+        /// Measured against the OPENING, never against the rectangle in <see cref="size"/>, which
+        /// is only the box the opening is inscribed in. An unsprayed aperture pairs the narrower
+        /// half of the traveller with the narrower semi-axis, so a wide flat thing is judged
+        /// against a wide flat hole rather than against whichever axis it happened to be authored
+        /// on; a sprayed one is judged against the largest circle that fits in the paint, since a
+        /// blob has no axes to pair anything with. See <see cref="PortalStencil.Fits"/>.
         /// </summary>
-        private bool Fits(PortalTraveller traveller)
-        {
-            Vector2 girth = traveller.Girth;
-
-            float narrow = Mathf.Max(Mathf.Min(size.x, size.y) * 0.5f, 1e-4f);
-            float wide = Mathf.Max(Mathf.Max(size.x, size.y) * 0.5f, 1e-4f);
-
-            float u = girth.x / narrow;
-            float v = girth.y / wide;
-
-            return u * u + v * v <= 1f;
-        }
+        private bool Fits(PortalTraveller traveller) => stencil.Fits(traveller.Girth);
 
         private static bool MightTravel(Collider collider) =>
             collider.attachedRigidbody != null
@@ -1008,6 +1230,20 @@ namespace SpaceGame.Portals
             if (entryOffset != Vector3.zero)
                 transfer *= Matrix4x4.Translate(entryOffset);
 
+            // Pull the arrival inside the destination's own outline, and compose the correction
+            // into the matrix rather than applying it after — the position, the rotation and the
+            // velocity all still come from one transform, which is the rule this file is built on,
+            // and a translation leaves the other two untouched. Zero for any pair of apertures
+            // that share a shape, which is every unsprayed one. See ExitPointFor.
+            Vector3 entered = traveller.transform.position + entryOffset;
+            float clearance = Mathf.Max(traveller.Girth.x, traveller.Girth.y);
+
+            Vector3 correction =
+                ExitPointFor(entered, clearance) - transfer.MultiplyPoint3x4(traveller.transform.position);
+
+            if (correction.sqrMagnitude > 1e-8f)
+                transfer = Matrix4x4.Translate(correction) * transfer;
+
             Release(traveller);
             traveller.Traverse(this, destination, transfer);
 
@@ -1101,11 +1337,14 @@ namespace SpaceGame.Portals
 
         private void OnDrawGizmosSelected()
         {
+            Rect box = stencil.Bounds;
+            var centre = new Vector3(box.center.x, box.center.y, 0f);
+
             Gizmos.matrix = transform.localToWorldMatrix;
             Gizmos.color = new Color(1f, 0.55f, 0.15f, 0.9f);
-            Gizmos.DrawWireCube(Vector3.zero, new Vector3(size.x, size.y, 0.02f));
+            Gizmos.DrawWireCube(centre, new Vector3(box.width, box.height, 0.02f));
             Gizmos.color = new Color(0.2f, 0.7f, 1f, 0.5f);
-            Gizmos.DrawWireCube(Vector3.zero, new Vector3(size.x, size.y, volumeDepth * 2f));
+            Gizmos.DrawWireCube(centre, new Vector3(box.width, box.height, volumeDepth * 2f));
             Gizmos.DrawRay(Vector3.zero, Vector3.forward * 0.6f);
         }
     }

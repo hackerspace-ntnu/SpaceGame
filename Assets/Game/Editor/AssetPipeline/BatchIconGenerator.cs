@@ -21,7 +21,9 @@ namespace SpaceGame.EditorTools
     /// wore the grappling hook's icon, the ball lightning weapon wore a grey sphere.
     ///
     /// So the rule here is that the prefab is never chosen by name, by folder, or by hand: it is
-    /// read from the asset being written to. An item whose <c>itemPrefab</c> is null is skipped
+    /// read from the asset being written to — <see cref="InventoryItem.iconPrefab"/> when the item
+    /// sets one (for items whose held form is not what the icon should show), otherwise
+    /// <see cref="InventoryItem.itemPrefab"/>. An item whose <c>itemPrefab</c> is null is skipped
     /// and reported rather than guessed at.
     /// </summary>
     public static class BatchIconGenerator
@@ -108,7 +110,10 @@ namespace SpaceGame.EditorTools
                     Vector2 angle = AngleOverrides.TryGetValue(item.name, out Vector2 a)
                         ? a : DefaultAngle;
 
-                    Texture2D tex = Render(item.itemPrefab, angle, out string note);
+                    GameObject renderPrefab = item.iconPrefab != null
+                        ? item.iconPrefab : item.itemPrefab;
+
+                    Texture2D tex = Render(renderPrefab, angle, out string note);
                     if (tex == null)
                     {
                         log.Append("\nSKIP  " + item.name + " — " + note);
@@ -120,7 +125,7 @@ namespace SpaceGame.EditorTools
                     written.Add(target);
 
                     log.Append("\nOK    " + item.name.PadRight(22)
-                        + item.itemPrefab.name.PadRight(22)
+                        + renderPrefab.name.PadRight(22)
                         + "-> " + target.Substring(SpriteDir.Length + 1)
                         + (note.Length > 0 ? "   (" + note + ")" : ""));
                 }

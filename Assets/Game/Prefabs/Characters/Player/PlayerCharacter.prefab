@@ -156,6 +156,8 @@ GameObject:
   - component: {fileID: -7011281062608119530}
   - component: {fileID: -7526851245670682667}
   - component: {fileID: -6458994778177412634}
+  - component: {fileID: 7418329057712344101}
+  - component: {fileID: 7418329057712344102}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Player
@@ -293,13 +295,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   moveSpeed: 6
+  sprintSpeed: 9
+  crouchSpeed: 2.6
+  aimSpeed: 3.5
   airControl: 0.3
+  tetherAcceleration: 22
   jumpForce: 7
   jumpCooldown: 0.6
   groundCheckDistance: 0.2
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  runClipSpeed: 7.2
+  crouchClipSpeed: 1.6
   dashSpeed: 10
   playerCamera: {fileID: 0}
   rb: {fileID: 5527306943363674078}
@@ -325,6 +333,9 @@ MonoBehaviour:
   playerBody: {fileID: 6372178186651775710}
   sensitivity: 20
   verticalClamp: 80
+  aimSensitivity: 0.5
+  fovKickInSpeed: 60
+  fovKickOutSpeed: 35
 --- !u!114 &5442324233915425662
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -474,7 +485,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e5473d57746244b7abd7d59d6ce4fee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BackpackController
-  backpackPrefab: {fileID: 8899938055073642016, guid: e620a964e38054ee89e0fc465134b264, type: 3}
+  backpackPrefab: {fileID: 5583164485113273545, guid: ce77f63091d95466c951215f0ebcd089, type: 3}
   backBone: 7
   backBoneNameHints:
   - Spine
@@ -483,11 +494,10 @@ MonoBehaviour:
   backSocketOverride: {fileID: 0}
   wornLocalPosition: {x: 0.003, y: -0.255, z: -0.415}
   wornLocalEuler: {x: 358.96542, y: 180, z: 0}
-  aimTransform: {fileID: 0}
   deploySeconds: 0.9
   deployDistance: 1.6
-  arcHeight: 0.6
-  arcOutward: 0.45
+  arcHeight: 2.6
+  arcOutward: 0.55
   groundLift: 0.01
   groundMask:
     serializedVersion: 2
@@ -705,6 +715,49 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d986d2b9d60bf44f59e2296e9a166530, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.InteriorVisitSaveable
+--- !u!114 &7418329057712344101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f9c2e4a71b04d1f9a6c8d5e2b3a7c10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStance
+  playerCollider: {fileID: 49510756297408105}
+  eye: {fileID: 3211930088316101119}
+  animator: {fileID: 5496312837281773235}
+  movement: {fileID: 1264622234854504379}
+  crouchHeightFraction: 0.6
+  crouchEyeDrop: 0.6
+  stanceBlendTime: 0.12
+  headroomMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  doubleTapWindow: 0.3
+  forwardTapThreshold: 0.5
+  sprintDuration: 10
+  sprintRecharge: 5
+--- !u!114 &7418329057712344102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c1d7e8a90bf42c3ae6d21f47b9c03e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAimRig
+  animator: {fileID: 5496312837281773235}
+  holdBlendTime: 0.18
+  aimBlendTime: 0.15
+  aimHandOffset: {x: 0.06, y: -0.05, z: 0.34}
+  elbowPush: {x: 0.3, y: -0.28, z: -0.05}
 --- !u!1001 &5142600832843963879
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -968,11 +1021,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6988675286898193588, guid: d28914b0eff1de143a8ce0664abe9849, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.6
+      value: 1.45
       objectReference: {fileID: 0}
     - target: {fileID: 6988675286898193588, guid: d28914b0eff1de143a8ce0664abe9849, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.348
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 6988675286898193588, guid: d28914b0eff1de143a8ce0664abe9849, type: 3}
       propertyPath: m_LocalRotation.w

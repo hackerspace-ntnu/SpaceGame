@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01dfd55324f2b4afc9ca3f22c7611ad6, type: 3}
+  m_Name: PackHolderLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.HolderLibrary
+  entries:
+  - kind: 1
+    prefab: {fileID: 3980461942562845020, guid: 3bab09c55372f4ba0b34b88ac0abe99d, type: 3}
+  - kind: 2
+    prefab: {fileID: 1924281008668676630, guid: ab6ce3d1da37d4d54b1f8f8050f87749, type: 3}
+  - kind: 4
+    prefab: {fileID: 563386834173334399, guid: 331e2aecb097541fe837007bcb7655ea, type: 3}
+  - kind: 3
+    prefab: {fileID: 511853439409411173, guid: 0eb29a344a60a49f0b453e62cbdeeb05, type: 3}
+  - kind: 0
+    prefab: {fileID: 5409669836291075860, guid: a3c92da7e349c4f5c8847a1d6133242b, type: 3}

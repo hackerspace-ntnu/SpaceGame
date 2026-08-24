@@ -45,6 +45,50 @@ namespace SpaceGame.Portals
         /// </summary>
         private int nextBarrel = Primary;
 
+        /// <summary>
+        /// How far off an aperture's plane a dab may land and still count as the same surface —
+        /// the floor of it, for a very small blob.
+        ///
+        /// A real wall is bowed, panelled, and made of several colliders, and TERRAIN is none of
+        /// those things: it rolls. A fixed 22 cm was fine on authored geometry and quietly wrong
+        /// outdoors, where a stroke a couple of metres long climbs further than that over ordinary
+        /// ground — so most of a sweep across a hillside was refused and the portal simply stopped
+        /// following where the player was pointing.
+        /// </summary>
+        private const float PlaneToleranceFloor = 0.22f;
+
+        /// <summary>
+        /// How far off-plane paint may land, as a multiple of the blob's own radius.
+        ///
+        /// Scaling with the blob is what makes this self-tuning: how much ground a stroke covers,
+        /// and therefore how much it can rise or fall over its length, is set by how big the blobs
+        /// are. <see cref="Portal.ConformToSurface"/> is what then keeps the flattened result
+        /// sitting on top of the bumps rather than buried in them.
+        /// </summary>
+        private const float PlaneToleranceRadii = 1.6f;
+
+        /// <summary>How far off <paramref name="portal"/>'s plane paint of this size may still land.</summary>
+        private static float PlaneToleranceFor(float radius) =>
+            Mathf.Max(PlaneToleranceFloor, radius * PlaneToleranceRadii);
+
+        /// <summary>
+        /// The barrel a spray in progress is coming out of, or -1 when nobody is spraying.
+        ///
+        /// Here rather than on the gun for the same reason <see cref="nextBarrel"/> is:
+        /// EquipmentController destroys and rebuilds the held item on every hotbar change, and a
+        /// spray that survived a scroll of the wheel would carry on painting from a gun object
+        /// that no longer exists.
+        /// </summary>
+        private int sprayBarrel = -1;
+
+        private bool sprayGrows;
+        private bool sprayStarted;
+        private bool strokeBroken;
+        private Vector3 lastDab;
+
+        /// <summary>Which barrel is being sprayed right now, or -1.</summary>
+        public int SprayBarrel => sprayBarrel;
+
         /// <summary>The pair belonging to <paramref name="owner"/>, created on first use.</summary>
         public static PortalPair Of(GameObject owner)
         {
@@ -106,6 +150,119 @@ namespace SpaceGame.Portals
         }
 
         /// <summary>
+        /// Which barrel a spray starting at <paramref name="aimPoint"/> should come out of, and
+        /// whether it is a top-up rather than a new aperture.
+        ///
+        /// Aiming at your own paint grows that aperture, in its own colour, instead of opening the
+        /// other one. That is the only reason the gun needs an aim to pick a barrel at all — and
+        /// it is what makes a portal that came out too small fixable rather than wasted. Anywhere
+        /// else falls through to <see cref="PeekBarrel"/>, which is unchanged.
+        /// </summary>
+        public int ChooseSprayBarrel(Vector3 aimPoint, float margin, out bool grow)
+        {
+            for (int i = 0; i < portals.Length; i++)
+            {
+                Portal portal = portals[i];
+                if (portal == null) continue;
+
+                if (portal.DistanceFromPlane(aimPoint) > PlaneToleranceFloor) continue;
+                if (!portal.WithinAperture(aimPoint, margin)) continue;
+
+                grow = true;
+                return i;
+            }
+
+            grow = false;
+            return PeekBarrel();
+        }
+
+        /// <summary>
+        /// Begin a spray on <paramref name="barrel"/>. Opens nothing yet — paint has to land first.
+        ///
+        /// <paramref name="grow"/> keeps whatever aperture is already in that slot and adds to its
+        /// paint. False means the next dab to land re-places it somewhere new, with a clean shape.
+        /// </summary>
+        public void BeginSpray(int barrel, bool grow)
+        {
+            if (barrel < 0 || barrel >= portals.Length) return;
+
+            sprayBarrel = barrel;
+            sprayGrows = grow && portals[barrel] != null;
+            sprayStarted = false;
+            strokeBroken = false;
+        }
+
+        /// <summary>
+        /// Lay <paramref name="steps"/> blobs of paint ending at <paramref name="worldPoint"/>,
+        /// opening the aperture if this is the first one of the spray to land.
+        ///
+        /// The intermediate blobs are interpolated in the aperture's own plane by arithmetic and
+        /// never by probing: every machine runs this from the same two points off the same hold
+        /// stream, and a raycast in here would be the one place two machines could disagree about
+        /// what shape the player painted.
+        /// </summary>
+        public Portal LayDab(Portal prefab, Vector3 worldPoint, Quaternion rotation, float radius,
+                             int steps, Color colour, float lifetime, Collider host)
+        {
+            if (sprayBarrel < 0 || prefab == null) return null;
+
+            Portal portal = portals[sprayBarrel];
+
+            if (!sprayStarted)
+            {
+                sprayStarted = true;
+                lastDab = worldPoint;
+
+                if (!sprayGrows)
+                {
+                    // A zero size is how Open is told to leave the shape alone — see there. The
+                    // aperture is placed here and given its outline dab by dab below.
+                    portal = Open(sprayBarrel, prefab, worldPoint, rotation, host,
+                                  Vector2.zero, colour, lifetime);
+                    if (portal == null) return null;
+
+                    portal.BeginStroke();
+                }
+            }
+
+            if (portal == null) return null;
+
+            // Paint that has left this wall does not belong to this aperture. Refused rather than
+            // projected onto the plane anyway: projecting would put part of the opening inside the
+            // masonry round the corner, which is far worse than a gap in the stroke.
+            if (portal.DistanceFromPlane(worldPoint) > PlaneToleranceFor(radius))
+            {
+                lastDab = worldPoint;
+                strokeBroken = true;
+                return portal;
+            }
+
+            // A stroke resuming after paint went round a corner starts again rather than bridging
+            // back to it. The projection of an off-plane point onto this wall is not somewhere the
+            // player pointed, and interpolating from it paints a run of blobs across a stretch of
+            // wall the jet never crossed.
+            portal.AddStroke(portal.ToLocalPlane(lastDab), portal.ToLocalPlane(worldPoint),
+                             strokeBroken ? 1 : steps, radius);
+
+            // The shape just grew, so what it has to clear may have grown with it — a stroke that
+            // reached onto a rise now has a rise under it.
+            portal.ConformToSurface();
+
+            lastDab = worldPoint;
+            strokeBroken = false;
+            return portal;
+        }
+
+        /// <summary>The trigger came up. There is nothing to tear down but the session itself.</summary>
+        public void EndSpray()
+        {
+            sprayBarrel = -1;
+            sprayGrows = false;
+            sprayStarted = false;
+            strokeBroken = false;
+        }
+
+        /// <summary>
         /// Open, or move, one of the two apertures.
         ///
         /// Moving the existing GameObject rather than destroying and respawning
@@ -139,7 +296,10 @@ namespace SpaceGame.Portals
                 portals[index] = portal;
             }
 
-            portal.SetSize(size);
+            // A zero size means "leave the shape alone, dabs are coming" — the spray's way of
+            // opening an aperture that has no outline yet. See LayDab.
+            if (size.sqrMagnitude > 1e-6f) portal.SetSize(size);
+
             portal.Place(position, rotation, host, index);
             portal.SetLifetime(lifetime);
 
@@ -166,6 +326,10 @@ namespace SpaceGame.Portals
         /// <summary>Shut both apertures — on death, on unequip-and-holster, on world unload.</summary>
         public void CloseAll()
         {
+            // First, or a spray in flight is left pointing at an aperture that is being destroyed
+            // and lays its next dab on a Unity fake-null.
+            EndSpray();
+
             for (int i = 0; i < portals.Length; i++) Close(i);
         }
 

@@ -54,6 +54,14 @@ namespace SpaceGame.Characters
         private readonly NetworkVariable<bool> netTorch = new(
             false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
+        /// <summary>
+        /// Is this player aiming? Same argument as the other two: a late joiner has to see a
+        /// player who is already holding their weapon up, and the message announcing the press
+        /// went out long before they connected.
+        /// </summary>
+        private readonly NetworkVariable<bool> netAiming = new(
+            false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
         private PlayerController controller;
         private PlayerLook look;
         private Flashlight torch;
@@ -78,6 +86,26 @@ namespace SpaceGame.Characters
 
         /// <summary>Is this player's torch lit? True on every machine, not just theirs.</summary>
         public bool TorchOn => netTorch.Value;
+
+        /// <summary>Is this player aiming? True on every machine, not just theirs.</summary>
+        public bool Aiming => netAiming.Value;
+
+        /// <summary>
+        /// Owner-only. Called by <see cref="PlayerAimRig"/> once its own decision has been made.
+        ///
+        /// <para>
+        /// Pushed rather than pulled because the rig is the thing that knows, and a pull would
+        /// mean this component reaching for a component that may not be on every character.
+        /// Guarded on IsSpawned for the same reason <see cref="Publish"/> is: writing a
+        /// NetworkVariable before Netcode has spawned this object throws.
+        /// </para>
+        /// </summary>
+        public void PublishAiming(bool aiming)
+        {
+            if (!IsSpawned || !IsOwner) return;
+            if (netAiming.Value == aiming) return;
+            netAiming.Value = aiming;
+        }
 
         private void Awake()
         {

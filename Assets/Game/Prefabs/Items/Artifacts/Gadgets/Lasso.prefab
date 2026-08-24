@@ -443,9 +443,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
   gripPoint: {fileID: 2995474478887713656}
   hand: 0
+  holdStyle: 2
   rotationOffset: {x: 0, y: 0, z: 90}
   positionOffset: {x: 0, y: 0, z: 0}
-  holdSize: 0.45
+  holdSize: 0.3
   sizeReference: {fileID: 6686484516145681275}
   keepColliders: 0
 --- !u!1 &7106407005302916264

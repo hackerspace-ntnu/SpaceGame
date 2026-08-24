@@ -185,6 +185,19 @@ namespace SpaceGame.Weapons
                 return;
             }
 
+            // The holder's arm is doing the aiming, so the item must not also aim itself. Two
+            // things pointing the same weapon do not agree: this method writes a WORLD rotation
+            // about the item's own pivot, which walks the grip out of the palm — it never calls
+            // ReseatGrip, unlike the NPC path — and with the arm now in shot that shows.
+            //
+            // Checked on the holder rather than on a flag we set, so it stays true for a weapon
+            // that changes hands. A holder with no rig (a dropped weapon, a test rig, an NPC)
+            // keeps exactly the behaviour it had.
+            if (owner != null && owner.GetComponent<PlayerAimRig>() != null)
+            {
+                return;
+            }
+
             if (!Network.Owns(this))
             {
                 AimAlongReplicatedView();

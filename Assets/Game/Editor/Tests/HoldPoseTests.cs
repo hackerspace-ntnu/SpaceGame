@@ -18,6 +18,7 @@
 // In Editor/ rather than beside the other EditMode tests because these touch Assembly-CSharp
 // types, and an asmdef cannot reference Assembly-CSharp.
 using NUnit.Framework;
+using SpaceGame.Characters;
 using SpaceGame.Items;
 using UnityEngine;
 
@@ -93,18 +94,65 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void TheAddedAnimator_RequiresStationary()
+        public void EquippingOnAPlayer_PushesTheItemsHoldStyleToTheRig()
         {
-            // Not a style preference. The controller has ONE layer with no avatar mask, so the
-            // hold state replaces the whole body — legs included. Posing while the player walks
-            // freezes the walk cycle and the character glides. Until there is an upper-body mask
-            // layer, an auto-added pose has to yield to movement.
+            // This replaced an assertion that the pose YIELDS TO MOVEMENT. That was correct while
+            // the controller had one unmasked layer — a hold pose replaced the whole body, so
+            // holding it while walking froze the legs and the character glided. The Upper Body
+            // mask layer removed the conflict rather than managing it, so the pose now persists
+            // while walking and the rig is told which pose to strike instead.
+            var rig = holder.AddComponent<PlayerAimRig>();
+            var usable = item.AddComponent<PlainItem>();
+            item.AddComponent<ItemGrip>();
+
+            usable.OnEquipped(holder);
+
+            Assert.AreEqual(ItemGrip.HoldStyle.OneHanded, rig.HeldStyle,
+                "the rig should be holding the style the item's ItemGrip declares");
+        }
+
+        [Test]
+        public void UnequippingOnAPlayer_EmptiesTheRig()
+        {
+            // The arm has to come down. Without this the pose latches on for the rest of the
+            // session and the player walks around cradling an item they put away.
+            var rig = holder.AddComponent<PlayerAimRig>();
+            var usable = item.AddComponent<PlainItem>();
+
+            usable.OnEquipped(holder);
+            usable.OnUnequipped(holder);
+
+            Assert.AreEqual(ItemGrip.HoldStyle.None, rig.HeldStyle,
+                "putting an item away should leave the rig empty-handed");
+        }
+
+        [Test]
+        public void EquippingOnAHolderWithNoRig_StillDrivesTheHoldBool()
+        {
+            // The NPC path. EntityEquipmentController equips items on characters that have no
+            // PlayerAimRig and whose controllers are still built around the `Hold` bool, so
+            // routing everything through the rig would have silently un-posed every NPC.
+            var animator = holder.AddComponent<Animator>();
+            animator.runtimeAnimatorController = BuildControllerWithHoldBool();
+
             var usable = item.AddComponent<PlainItem>();
             usable.OnEquipped(holder);
 
-            var hold = item.GetComponent<HoldAnimator>();
-            Assert.IsTrue(hold.RequiresStationary,
-                "auto-added hold must yield to movement while the rig has a single unmasked layer");
+            Assert.IsTrue(animator.GetBool("Hold"),
+                "a holder with no PlayerAimRig must keep the original bool-driven hold pose");
+        }
+
+        /// <summary>
+        /// The smallest controller that has the parameter HoldAnimator looks for. Built rather
+        /// than loaded so the test does not depend on the player's own controller asset, which
+        /// this test is not about.
+        /// </summary>
+        private static UnityEditor.Animations.AnimatorController BuildControllerWithHoldBool()
+        {
+            var controller = new UnityEditor.Animations.AnimatorController();
+            controller.AddLayer("Base Layer");
+            controller.AddParameter("Hold", UnityEngine.AnimatorControllerParameterType.Bool);
+            return controller;
         }
 
         [Test]

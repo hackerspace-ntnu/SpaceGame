@@ -1,30 +1,37 @@
 # Leash System
 
-A universal "rope between two GameObjects" system for the leash artifact. Lets the
-player attach physics-based leashes to anything with a collider, drag objects around,
-tie objects to other objects, hold multiple leashes at once, and snap ropes that take
-too much force.
+A rope you can tie between any two things in the world. Tie a creature to a post, tow a
+crate, rope another player, or drag a walker along behind you.
+
+Reworked 2026-08-23 — see [the rework design](../superpowers/specs/2026-08-23-leash-rework-design.md)
+for what was wrong with the version this replaced and why each piece changed.
 
 ---
 
-## 1. Concept
+## 1. Using it
 
-A leash has two endpoints. While the player holds a leash, one end is on a clicked
-object and the other end follows the player's hand. The player can:
+**Hook, then hook.** One button — the ordinary Use press — does all of it.
 
-- **Walk around dragging** the leashed object (rope is slack until pulled taut).
-- **Click another object** — but with two distinct rules:
-  - Click a **fresh** GameObject → spawns a *new* held leash on that object. The
-    player now holds multiple leashes at once.
-  - Click an **already-leashed** GameObject → terminates the most recent held
-    leash onto it. That leash is now anchored object-to-object and lives in the
-    scene independently.
-- **Right-click** (or whatever key is bound to the drop action) → disposes the
-  most recent held leash entirely.
+| Hands | Aim | What happens |
+|---|---|---|
+| Empty | A thing | A rope runs from it to your hand |
+| Empty | **A rope** | That rope is untied and gone |
+| Empty | Nothing | Nothing |
+| Holding a rope | Anything solid | Tied. The rope is now a world object and none of the artifact's business |
+| Holding a rope | Nothing | You let go — the rope is gone |
+| — | Unequip | The held rope is gone; tied ropes stay |
 
-Multiple leashes per object, multiple leashes between the same two objects, and
-attaching to colliders without rigidbodies (static walls, terrain) are all
-supported.
+Two clicks tie anything to anything, in either order. You hold one rope at a time.
+
+A rope tied at both ends survives the artifact, the item swap, the chunk its ends were
+streamed in from, and a save/load — until somebody clicks it.
+
+**There is deliberately no second key.** There used to be a `dropAction` bound to right-click, and
+it was wrong twice over: it was read in `Update`, which runs on *every* copy of the artifact on this
+machine including the ones in other players' hands, and an `InputActionReference` reads local input
+— so pressing it dropped every remote player's rope on your screen and never dropped yours on
+theirs. It also bypassed `Use`/`Present`, which is the only channel an item has that reaches other
+machines. Clicking at nothing already means "let go" and goes through that channel.
 
 ---
 
@@ -32,354 +39,273 @@ supported.
 
 | File | Role |
 |---|---|
-| [Assets/Game/Scripts/Artifacts/Leash/Leash.cs](Assets/Game/Scripts/Artifacts/Leash/Leash.cs) | Runtime `MonoBehaviour`. One instance per active leash. Owns endpoints, runs the spring/damper constraint in `FixedUpdate`, draws the rope in `LateUpdate`, snaps under load, self-disposes. |
-| [Assets/Game/Scripts/Artifacts/Leash/LeashAttachable.cs](Assets/Game/Scripts/Artifacts/Leash/LeashAttachable.cs) | Marker added at runtime to any leashed GameObject. Holds a `List<Leash>` and disposes all referencing leashes when the object is destroyed. |
-| [Assets/Game/Scripts/Artifacts/Leash/LeashArtifact.cs](Assets/Game/Scripts/Artifacts/Leash/LeashArtifact.cs) | The `ToolItem` the player equips. Routes left-click into "create new" vs "terminate existing", handles right-click drop, and disposes held leashes when the artifact is unequipped. |
-| `Assets/Game/Prefabs/Item/Artifacts/LeashArtifact.prefab` *(create in Editor — see §6)* | Held prefab with a muzzle Transform and the `LeashArtifact` script. |
-| `Assets/Game/Resources/Items/Artifacts/Leash.asset` *(create in Editor — see §6)* | `InventoryItem` ScriptableObject pointing at the prefab + icon. |
+| [Leash.cs](../../Assets/Game/Scripts/Items/Artifacts/Leash/Leash.cs) | One rope. Two ends, the constraint, breaking, the live registry |
+| [LeashEnd.cs](../../Assets/Game/Scripts/Items/Artifacts/Leash/LeashEnd.cs) | One end: what the knot is tied to, and how that thing may be pulled |
+| [LeashRope.cs](../../Assets/Game/Scripts/Items/Artifacts/Leash/LeashRope.cs) | Drawing only. No physics reaches this file |
+| [LeashGround.cs](../../Assets/Game/Scripts/Items/Artifacts/Leash/LeashGround.cs) | What is underneath the rope, so it can be drawn lying on the world |
+| [LeashedBody.cs](../../Assets/Game/Scripts/Items/Artifacts/Leash/LeashedBody.cs) | The half of the constraint only a player's own machine may run |
+| [LeashAttachable.cs](../../Assets/Game/Scripts/Items/Artifacts/Leash/LeashAttachable.cs) | Marker on a leashed object; answers "what is tied to me" |
+| [LeashArtifact.cs](../../Assets/Game/Scripts/Items/Artifacts/Leash/LeashArtifact.cs) | The equipped item. Aims, and turns clicks into ropes |
+| [LeashSaveable.cs](../../Assets/Game/Scripts/Core/Persistence/Adapters/LeashSaveable.cs) | A global saver, because a rope belongs to neither of its ends |
+| [LeashConstraintTests.cs](../../Assets/Game/Editor/Tests/LeashConstraintTests.cs) | Pins convergence, the mass split, the safety clamps, and that it is not a grappling hook |
+
+Assets: `Prefabs/Items/Artifacts/Gadgets/Leash.prefab`,
+`Resources/Items/Artifacts/Leash.asset`, `Art/Materials/Items/Rope_Leash.mat`,
+`Art/Textures/Items/rope_braid_{albedo,normal}.png`.
 
 ---
 
-## 3. Architecture
+## 3. Who resolves what
 
-```
-┌──────────────────────┐
-│ Inventory hotbar key │
-└──────────┬───────────┘
-           ▼
-┌──────────────────────┐  spawns the prefab into the player's hand socket
-│ EquipmentController  ├─────────────────────────────────────────────┐
-└──────────┬───────────┘                                              │
-   left-click │                                                       │
-           ▼                                                          ▼
-┌──────────────────────┐  Use()        ┌──────────────────────────────┐
-│  LeashArtifact       │──────────────▶│   "click flow" decision      │
-│  (ToolItem)          │               │   ─ fresh target  → create   │
-│  - List<Leash>       │               │   ─ already-leashed →        │
-│    held              │               │       terminate held end     │
-│  - drop input        │               └──────────────────────────────┘
-└──────────┬───────────┘
-   spawns/owns
-           ▼
-┌──────────────────────┐  references  ┌─────────────────────────────────┐
-│  Leash (MonoBehav.)  │◀─────────────│   LeashAttachable (on target)   │
-│  - endpoints A & B   │              │   List<Leash> referencing me    │
-│  - LineRenderer      │              │   OnDestroy → dispose them all  │
-│  - constraint        │              └─────────────────────────────────┘
-│  - render            │
-│  - snap detection    │
-└──────────────────────┘
-```
+**Each machine resolves the ends it owns.** This is the organising decision and everything
+else follows from it.
 
-Each `Leash` is a standalone scene GameObject. When the artifact is unequipped,
-**held** leashes (still in the artifact's `_heldLeashes` list) are disposed, but
-**anchored** leashes (already terminated onto two world objects) survive.
-
----
-
-## 4. Endpoint Model
-
-A leash endpoint is one of three kinds:
-
-| Kind | When | Constraint resolution |
-|---|---|---|
-| `PlayerHand` | The held end while the player has a leash in hand. Tracks the muzzle Transform on the artifact prefab. | A separately stored "reaction" Rigidbody (the player body) absorbs the constraint — via force if non-kinematic, via `MovePosition` if kinematic. |
-| `Object` | World object that has a Rigidbody (NPC, prop, vehicle). | `AddForce` if non-kinematic, `MovePosition` if kinematic. |
-| `Static` | World object with only a Collider (wall, terrain). | Immovable anchor — does not move. |
-
-Each endpoint resolves *independently*, so any mix is supported: kinematic NPC ↔
-non-kinematic player, two kinematic NPCs, kinematic NPC ↔ static wall, etc. See
-§5 for the math.
-
-When the player terminates a held leash onto a target, the `PlayerHand` end gets
-swapped for an `Object` or `Static` end via `Leash.TerminateHandEndOnto`.
-
----
-
-## 5. Constraint Math
-
-Run every `FixedUpdate` per leash:
-
-```
-delta     = posB - posA
-dist      = |delta|
-if dist <= maxLength:    rope is slack → no force, no correction
-n         = delta / dist                       // unit vector A → B
-overshoot = dist - maxLength
-vRel      = (velB - velA) · n                  // positive = separating
-forceMag  = stiffness * overshoot + damping * max(0, vRel)
-if forceMag > breakForce: SNAP                  // rope tension exceeded threshold
-
-mobileSides = #endpoints with any rigidbody (primary or reaction)
-positionStep = overshoot / mobileSides          // shared correction budget
-
-resolveEndpoint(A, +forceMag*n, +n, positionStep)
-resolveEndpoint(B, -forceMag*n, -n, positionStep)
-
-// resolveEndpoint:
-//   if rb is non-kinematic → AddForce(forceTowardOther)        // mass-aware physics
-//   else if rb is kinematic → MovePosition(rb.pos + unit*step) // hard correction
-//   else (no rb)            → no-op (static anchor)
-```
-
-This **dual-mode** resolution lets every mix of endpoint types behave correctly:
-
-| A end | B end | Behavior |
-|---|---|---|
-| non-kin | non-kin | Equal & opposite force; mass-weighted natural physics. |
-| non-kin | kinematic | Force on A pulls it toward B; B snaps half the overshoot toward A. |
-| non-kin | static | Force on A only; B is anchored. |
-| kinematic | kinematic | Each snaps half the overshoot toward the other. |
-| kinematic | static | A snaps the full overshoot toward B; B is anchored. |
-| static | static | No motion (purely visual). |
-
-Damping is one-sided (`max(0, vRel)`) so the rope only resists separation, not
-compression: a rope can pull, not push. The rope is fully slack below
-`maxLength` — endpoints move with zero interference from the constraint until
-it goes taut.
-
-`forceMag` represents rope tension and is checked against `breakForce`
-*regardless* of how each side resolves — even a kinematic-only constraint
-will snap if the implied tension is too high.
-
----
-
-## 6. Unity Editor Setup
-
-### 6.1 Create the prefab
-
-1. In the Hierarchy, **create an empty GameObject** named `LeashArtifact`.
-2. Add the **`LeashArtifact`** component (drag from `Assets/Game/Scripts/Artifacts/Leash/LeashArtifact.cs`).
-3. Inside it, add a child empty named `Muzzle` — position it at the spot the rope
-   should visually start (e.g. just in front of the player's hand). Drag this
-   into the `Muzzle` field on the `LeashArtifact` component.
-4. *(Optional)* Add a child mesh as the visible held leash (a coiled rope model,
-   or just a primitive). Children of the artifact that have colliders should be
-   on a layer NOT included in `Leashable Layers`, otherwise the player will
-   target their own leash. Easiest: remove colliders from these children.
-5. Drag the GameObject into `Assets/Game/Prefabs/Item/Artifacts/LeashArtifact.prefab`.
-6. Delete the scene instance.
-
-### 6.2 Configure inspector fields on `LeashArtifact`
-
-| Field | Suggested value | Notes |
-|---|---|---|
-| `Max Range` | 30 | Click range. |
-| `Leashable Layers` | "Default" + any NPC/prop layer | Must NOT include the player's layer or the artifact's children. |
-| `Max Leash Length` | 8 | Hard cap on rope length. |
-| `Stiffness` | 400 | Spring force per metre of overshoot. |
-| `Damping` | 30 | Resists rapid separation. |
-| `Break Force` | 1500 | Newtons. Tune relative to the masses of likely targets. |
-| `Rope Material` | A simple unlit material | Required — without it the LineRenderer renders magenta/invisible. URP: use an unlit/colored material. Built-in: any standard material works. |
-| `Rope Color` | Tan (`0.6, 0.5, 0.35`) | LineRenderer tint. |
-| `Rope Width` | 0.04 | World units. |
-| `Rope Segments` | 18 | More = smoother sag. |
-| `Rope Sag` | 0.6 | Max droop in world units when rope is fully slack. |
-| `Muzzle` | The child Transform from §6.1 step 3 | Visual rope start. |
-| `Drop Action` | An `InputActionReference` bound to e.g. RightClick | If unassigned, dropping is impossible — the player must unequip the artifact, which also disposes held leashes. |
-
-### 6.3 Create the inventory ScriptableObject
-
-1. In `Assets/Game/Resources/Items/Artifacts/`, right-click → `Create → Items → Item`.
-2. Name it `Leash`.
-3. Set:
-   - `Item Name` = "Leash"
-   - `Item Prefab` = the prefab from §6.1
-   - `Icon` = a sprite. Placeholder: reuse `Assets/Game/Art/Sprites/Items/RocketArtifact.png`.
-4. Make sure the asset is loaded by the inventory registry the same way the
-   other artifacts (`RocketTurret.asset`, `Lasso.asset`) are loaded. They live
-   under `Resources/` so `Resources.Load`-style registry lookups will see it.
-
-### 6.4 Drop input
-
-Bind whatever button you want to drop held leashes. The cleanest path:
-
-1. Open your project's Input Actions asset (the same one Lasso's `reelInAction`
-   references — typically `Assets/Inputs/PlayerInput.inputactions` or similar).
-2. Add an action like `LeashDrop` bound to `<Mouse>/rightButton`.
-3. In the Project window, the action will show up as a child asset; drag it
-   into `Drop Action` on `LeashArtifact`.
-
-The artifact enables the action in `OnEnable` and disables it in `OnDisable`,
-so it's only active while the artifact is equipped.
-
----
-
-## 7. Click Flow (state machine)
-
-```
-                              ┌──────────────┐
-                              │ player click │
-                              └──────┬───────┘
-                                     ▼
-                  ┌───────────── raycast hit valid? ─────────────┐
-                  │ no                                          yes │
-                  ▼                                                 ▼
-              do nothing                                target = root GO
-                                                                ┌───┴───┐
-                                                          target == player?
-                                                            ┌───┴───┐
-                                                          yes      no
-                                                          │         │
-                                                       ignore       ▼
-                                                              already leashed?
-                                                              ┌────┴────┐
-                                                            yes          no
-                                                            │             │
-                                                  any held leashes?     create new
-                                                    ┌────┴────┐         held leash
-                                                  yes          no       (add to list)
-                                                  │             │
-                                       held leash already        create new
-                                       references this object?  held leash
-                                          ┌─────┴─────┐
-                                        yes           no
-                                        │              │
-                                     ignore       terminate held leash
-                                     (no-op)      onto target (pop from list)
-```
-
-This means: to **pair two fresh objects**, click each once (both become
-held leashes), then click one of them again — the most recent held leash
-terminates onto it, leaving the other still in your hand. Click the other
-one to terminate the second leash.
-
-(This matches the spec: clicking a fresh object never auto-pairs; pairing
-only happens on clicks against already-leashed objects.)
-
----
-
-## 8. Lifecycle Rules
-
-| Event | What happens |
+| End | Resolved by |
 |---|---|
-| Click fresh object | New `Leash` GameObject created; A on object, B in player's hand. Added to artifact's `_heldLeashes`. |
-| Click already-leashed object (holding ≥1 leash) | Most recent held leash's hand-end is reconfigured onto the target. Leash leaves `_heldLeashes` and lives independently. |
-| Right-click (drop) | Most recent held leash is disposed (GameObject destroyed, removed from both attachables). |
-| Artifact unequipped / destroyed | All **held** leashes are disposed. Anchored leashes survive. |
-| Leashed object is destroyed | Its `LeashAttachable.OnDestroy` disposes every leash referencing it; the other endpoint's attachable is cleaned up via the leash's own dispose. |
-| Force per `FixedUpdate` exceeds `breakForce` | Leash snaps → disposed. |
-| Both endpoints land within `maxLength` distance | Rope hangs slack with sag; no physics interference. |
+| A player — in their hand, or roped by someone else | That player's own machine |
+| Anything else | The server, or the only machine there is offline |
+| Static | Nobody. It anchors |
+
+Every machine builds the rope (`LeashArtifact.Present` runs everywhere) and every machine
+draws it. Rope length is a constant and both endpoint positions are replicated, so both
+machines compute the same overshoot and each applies only its own share.
+
+**Why not simply "the server runs it".** A player's Rigidbody is the one thing the server is
+not authoritative over: their NetworkTransform is owner-authoritative, so anything the server
+writes into that body is overwritten by the owner's next state update, silently, within a
+tick. The previous design worked around this by banking what the rope owed each player and
+shipping it at 10 Hz as `NetMsg.RopeTug` — a message whose receiver was never installed on any
+player, so no rope ever pulled anyone. That whole path is gone; `RopeTug` is a burnt number.
+
+`LeashedBody` is the player half, and its `[DefaultExecutionOrder(200)]` is load-bearing:
+`PlayerMovement.FixedUpdate` assigns `rb.linearVelocity` outright — `Lerp(current, desired, 1)`
+while grounded — so a pull applied before it runs is not reduced, it is deleted.
 
 ---
 
-## 9. Caveats and Tuning
+## 4. The constraint
 
-### 9.1 Kinematic vs non-kinematic targets
+A distance limit, not a spring. Below its length the rope does nothing at all.
 
-Both are supported. Each endpoint independently picks its resolution mechanism:
+Past it, **two separate terms**, and keeping them apart is what makes it stable:
 
-- **Non-kinematic Rigidbody** → `AddForce`. Mass-aware. Natural inertia. The
-  feel is "rope yanks heavy things less." Best for free physics props.
-- **Kinematic Rigidbody** → `Rigidbody.MovePosition`. Hard correction toward
-  the other endpoint. No inertia. Compatible with `NavMeshAgent` (the agent
-  re-pathfinds from the new position next frame) and with player controllers
-  built on a kinematic Rigidbody. Best for AI-driven NPCs.
-
-Mixed pairings (kinematic ↔ non-kinematic) work — see the table in §5.
-
-**Kinematic damping caveat.** The damping term in `forceMag` is applied via the
-force path, which kinematic bodies ignore. The position-correction path uses
-the raw overshoot, no velocity damping. In practice this is rarely visible:
-`MovePosition` on a kinematic body produces large effective velocities that
-the constraint resolves in 1–2 FixedUpdate steps, so there's no oscillation
-to damp. If you do see jitter on a kinematic-kinematic pairing, lower
-`stiffness` indirectly by lowering `maxLength` margin, or split the
-correction over multiple frames by clamping `positionStep` (would require a
-small code tweak).
-
-**NavMeshAgent compatibility.** With kinematic Rb + `NavMeshAgent`, the leash
-calls `MovePosition` while the agent calls `agent.Move` / sets `nextPosition`.
-Unity reconciles these per FixedUpdate. The agent will continue trying to walk
-to its destination but the leash will pull it back when taut, producing the
-expected tug-of-war feel. If you see fighting or stuttering, set
-`agent.updatePosition = false` and route agent velocity through your own
-movement code so you control resolution order.
-
-### 9.2 Player reaction force
-
-The leash applies the constraint to whatever Rigidbody it finds via
-`owner.GetComponentInParent<Rigidbody>()`. Both kinematic and non-kinematic
-players are now towed correctly (kinematic uses `MovePosition`, non-kinematic
-uses `AddForce`). If your player uses a `CharacterController` with no
-Rigidbody at all, the player is treated as a static anchor — held leashes
-won't tug the player, only the held target. Add a Rigidbody (kinematic is
-fine) to the player root if you want the tug.
-
-### 9.3 Tuning `stiffness` / `breakForce`
-
-Stiffness too high + heavy targets = jitter or explosive forces. Start with
-the suggested values, then:
-
-- If rope feels stretchy beyond `maxLength`: raise `stiffness`.
-- If everything snaps too easily: raise `breakForce`.
-- If targets oscillate at the boundary: raise `damping`.
-- If target gets slingshotted on snap: lower `stiffness`, or raise `damping`.
-
-### 9.4 LineRenderer material
-
-`LineRenderer` requires a material. Without one assigned, you'll see invisible
-or magenta lines. Use a simple unlit/standard material. URP projects need a
-URP-compatible shader.
-
-### 9.5 Self-leashing prevention
-
-The artifact filters out clicks that:
-- Hit a collider that is a child of `owner` (the player root).
-- Resolve to a target whose root GameObject *is* the player.
-- Target an object whose `LeashAttachable` already contains the held leash
-  being terminated (would create a self-loop).
-
-If you have unusual rigging (player hand colliders living outside the player
-hierarchy), adjust the layer mask to exclude them.
-
----
-
-## 10. Public API Cheatsheet
-
-```csharp
-// LeashAttachable
-public bool HasLeashes;
-public List<Leash> leashes;
-public static LeashAttachable GetOrAdd(GameObject go);
-public void AddLeash(Leash l);
-public void RemoveLeash(Leash l);
-
-// Leash
-public bool IsHeld;
-public Vector3 EndAPos;
-public Vector3 EndBPos;
-public bool ReferencesObject(GameObject go);
-public void ConfigureEndpointA_OnObject(GameObject targetRoot, Vector3 worldHitPoint);
-public void ConfigureEndpointB_OnObject(GameObject targetRoot, Vector3 worldHitPoint);
-public void ConfigureEndpointB_OnPlayerHand(Transform muzzle, Rigidbody playerBody);
-public void TerminateHandEndOnto(GameObject targetRoot, Vector3 worldHitPoint);
-public void Snap();
-public void Dispose();
+```
+share  = (1/mySelf) / (1/myMass + 1/otherMass)      // immovable ⇒ 0
+arrest = max(0, separationRate) * share             // velocity is only ever REMOVED
+step   = stretch * share * correction               // the error is given back as a POSITION
 ```
 
-Other systems that want to react to leashing (e.g. NPC AI noticing it's been
-leashed and resisting) can `GetComponent<LeashAttachable>()` and inspect
-`leashes`.
+A position error corrected by *adding velocity* does not converge: the velocity it adds is
+still there next step, so the ends accelerate toward each other, sail through the correct
+distance and collide. So velocity is only ever taken off, and the positional error is repaid
+as a position, which carries no momentum into the next step. The error then decays
+geometrically — a rope 4 m overstretched closes in about a fifth of a second, with no
+overshoot and no ringing. `LeashConstraintTests` pins exactly that.
+
+Both terms are scaled by `share`. Two ends each cancelling the *full* relative speed removes
+it twice over, and a pair that each over-corrects toward the other is a rope that hums.
+
+`share` is by inverse mass — the lighter end moves further, so a player tows a barrel and is
+towed by a vehicle. Mass comes off the prefab and is therefore the same number on every
+machine, which is what lets the two machines resolving the two ends agree on the split
+without exchanging anything.
+
+### How each kind takes it
+
+| End | How |
+|---|---|
+| dynamic Rigidbody | `AddForceAtPosition` **at the knot**, plus a direct position step. The knot is what makes a crate roped by one corner turn to face the pull instead of sliding flat |
+| player | velocity and position directly, no torque — their capsule is upright by construction and spinning it would tip the camera |
+| `NavMeshAgent` | `agent.Move(step)`, the documented API for external motion. **Not `Warp`**: that re-projects onto the NavMesh and resets navigation state, and doing it every physics step was the visible teleport-jitter every leashed creature had |
+| plain kinematic | `MovePosition` |
+| static | nothing |
+
+### Ceilings
+
+`maxCorrectionSpeed` (25 m/s) and `maxCorrectionStep` (0.5 m) bound what one step may do. An
+end that is suddenly hundreds of metres away has been teleported, streamed in, or carried off
+by a vehicle; chasing that error at full rate is how a rope slingshots things across the map.
 
 ---
 
-## 11. Not built yet
+## 5. Breaking
 
-Required — a leash is gameplay state, so it has to reach every machine and survive a reload:
+A rope snaps when it is stretched more than `breakStretch` metres past its length **and stays
+that way** for `breakTime` seconds. `breakStretch = 0` is unbreakable.
 
-- **Net-syncing** — leashes are still local. Creation, endpoint changes and dispose each need to go
-  over `NetMessaging`, and a late joiner has to see the ropes that already exist. See
-  [the networked doors and leash design](../superpowers/specs/2026-08-21-networked-doors-and-leash-design.md).
-- **Persistence** — a leash tying a mount to a post must still be there after save/quit/load, like
-  any other mutable world state (see [Persistence.md](Persistence.md)).
+Stretch rather than force, because distance is the one quantity every machine agrees on — both
+ends' positions are replicated — so every machine reaches the same verdict with no message to
+send. Force cannot do that; it depends on masses and velocities that differ per machine. It is
+also the version a player can see coming.
 
-Polish, whenever somebody wants it:
+---
 
-- **Rope segments with intermediate physics** — current rope is a single
-  spring at max length; for "rope wrapping around a corner" behaviour, a
-  segmented Verlet rope would be needed.
-- **Snap SFX/VFX** — `Leash.Snap()` is the hook point. Currently it just
-  calls `Dispose`. Add particles or an FMOD `EventReference` here.
-- **Visual snap effect** — fade the LineRenderer over a few frames before
-  destroying the GameObject for a cleaner-feeling break.
+## 6. Length
+
+Fixed. Tying across a gap wider than the rope pays out **once**, to
+`min(distance + payOutMargin, maxPaidOutLength)`, and never again.
+
+The version this replaces rewrote its own length to whatever gap it happened to land across,
+every time it was tied, and `LeashSaveable` stored the result — so an 8 m leash quietly became
+a 25 m one, permanently, with no way back.
+
+---
+
+## 7. Drawing
+
+`LeashRope` is a `[Serializable]` tuning class that folds into the artifact's Inspector, the
+same shape as `GrappleRope`. It runs on every machine including the peers who resolve nothing,
+which is the whole reason it is worth doing well — a peer watching someone drag a crate sees
+this and nothing else.
+
+- **Sag from true slack.** `h = 0.5·L·√(1 − (d/L)²)`: zero when the rope is pulled straight,
+  `L/2` when the two knots meet, and within a fifth of the parabolic arc-length answer between.
+  Points are laid on `4h·t(1−t)`, pinned at both knots.
+- **Tension.** The rope narrows and a fine shiver runs down it as it goes taut.
+- **A bite.** A crack runs back down the rope when it is tied or goes tight.
+- **Rounded joints**, 32 segments, and a braid albedo + normal map tiled per metre so the
+  strands stay the same size on a 2 m rope and a 20 m one. The normal map is what makes a
+  camera-facing line read as a cylinder.
+- **The hand end tracks the live muzzle** while the artifact is equipped, falling back to a
+  baked player-root offset when it is not.
+- **It lies on the ground rather than through it** — see §8.
+
+Textures are generated, not painted — see §9.
+
+---
+
+## 8. Resting on the ground
+
+A slack rope sags, and a rope between two things standing on the ground sags *into* it. So every
+point between the two knots is clamped to sit `groundClearance` above whatever is underneath.
+
+`LeashGround` does the probing, kept out of `LeashRope` so that file stays free of physics. Three
+details are load-bearing:
+
+- **The ray starts above the straight line between the knots, not at the sagged point.** A point
+  that has sagged into a hillside is *inside* the mesh, and a downward ray from inside a mesh
+  reports nothing — so probing from where the rope currently is goes blind in precisely the case
+  this exists to fix. Starting above the chord also lets the rope ride *over* a rise between its
+  ends, and keeps the ray short: a taut rope high in the air casts a 1.5 m ray that hits nothing.
+- **Loose bodies are not ground.** A hit on anything with a non-kinematic Rigidbody is skipped, so
+  a rope does not come to rest on a crate that is itself falling. Same rule, same reason, as
+  `WalkerGround.IsLooseBody` — that one was learned by watching a machine climb into the sky on top
+  of its own passenger.
+- **Neither end is ground for its own rope.** Without this a rope tied to a creature's flank gets
+  lifted onto its back, and one tied to the underside of anything is lifted straight through it.
+
+The clamp runs *after* the idle sway, not before: the sway has a vertical component, and applying
+it last would push the rope back down through the surface it was just lifted out of.
+
+The two knots are never moved — they are tied to things, and lifting one would visibly detach the
+rope from what it is attached to.
+
+**Limit:** the probe looks `groundProbeAbove` (1.5 m) above the chord, so a rope strung between two
+points with a whole hill in between still cuts through the hill. Raising that value widens the
+search but lengthens every ray.
+
+---
+
+## 9. Untying — clicking a rope that has no collider
+
+A rope is a `LineRenderer`. It has no collider and is not getting one: a chain of capsules along a
+curve that moves every frame would cost more than the rope does, and would start blocking bullets,
+footsteps and every other raycast in the game. So picking one is analytic —
+`LeashRope.RayToSegment` against the points actually drawn, which means a rope sagging on the
+ground is grabbed where it *lies* rather than where it would be if it were taut.
+
+Two clamps in that solve are load-bearing. Solved as two infinite lines, a rope **behind** you is as
+pickable as one in front — you would untie ropes by looking away from them. And past the end of a
+segment the nearest point is its **endpoint**, not somewhere off along the line it happens to lie
+on. Where the ray runs parallel to the rope every point is equally close and the answer is a tie;
+the near end is returned, so a rope running away from you is grabbed where it starts.
+
+The rope only wins over whatever solid thing the aim also hit if it is nearer along the ray, within
+`grabRadius`. That slack is what lets a rope **lying on the ground** be clicked at all — the rope
+and the ground it rests on are at very nearly the same distance, so without it the ground wins every
+time.
+
+### Naming the rope over the wire
+
+A rope has no `NetworkObject` and therefore no id to send. But it has a *shape*, and that shape is
+derived from two replicated endpoints — so the **world point where it was clicked** names the same
+rope on every machine, exactly as a knot in bare geometry is addressed by its point. The click
+travels as `arg.P` with the `Untie` verb, and each machine runs `Leash.Nearest` on its own copy.
+
+Two ropes tied between the same pair of objects lie on top of each other and are genuinely ambiguous
+here. They are also indistinguishable on screen, so whichever is picked looks identical; the only
+cost is that two machines could drop different ones.
+
+---
+
+## 10. It is not a grappling hook
+
+A leash restrains. It must never be a way to get around, and two specific things enforce that:
+
+- **`LeashEnd.Restrain` caps a player's speed at what it already was.** The arrest term normally
+  only cancels motion that is opening the gap — but the gap also opens when the *other* end leaves,
+  and the same term then reads as a tow and would happily accelerate the player along the rope.
+  Fired at something fast, or at the right moment on a swing, that is a launch. So a leash may take
+  a player's speed away and it may drag them, but it can never hand them any.
+- **Nothing in the leash calls `PlayerMovement.SetTethered`.** That flag is the grappling hook's
+  swing steering: it lets a player pump an arc, preserves the speed built across it, and suppresses
+  fall damage for the whole swing. An early version of this rework set it, which made the leash a
+  second grappling hook with a longer reach. `LeashConstraintTests` pins its absence at the source,
+  because there is no runtime state to assert against — only the temptation to add it back.
+
+Consequences worth knowing: a player leashed to something **static** can only ever be slowed and
+held at the rope's length. A player leashed to a **moving** vehicle is dragged along, because the
+position correction moves them — but they carry no speed the rope gave them, so cutting it never
+flings anyone. And if the vehicle outruns the correction, the rope reaches `breakStretch` and snaps
+rather than teleporting them.
+
+A leashed player takes normal fall damage and keeps normal air control.
+
+---
+
+## 11. Persistence
+
+`LeashSaveable` is a **global** saver: a rope belongs to neither end, so filing the record
+under either would lose it whenever that one unloaded, and filing it under both would restore
+two ropes. It keeps its own retry loop because global savers get no `IDeferredSaveable` pass
+and both endpoints may still be streaming in.
+
+Format — unchanged by the rework, so worlds saved before it still load:
+
+```
+{ a: {anchor, offset, point, held}, b: {…}, maxLength }
+```
+
+An endpoint with no `SaveRef` degrades to its world point rather than losing the rope: it
+comes back tied to that *place* instead of that *thing*, which is wrong in exactly the way an
+unsaved prop is wrong — it was not going to be there either.
+
+---
+
+## 12. Regenerating the rope textures
+
+`rope_braid_albedo.png` and `rope_braid_normal.png` are 256×64, generated. X runs along the
+rope and tiles; Y is the cross-section.
+
+The generator is `Art/Textures/Items/_Source~/rope_braid.py` — in a `~` folder so Unity does
+not import it, beside the PNGs it produces. Run it from that directory; it needs `numpy` and
+`Pillow`. The parameters that matter are three strands at a lay of 1.6 wraps across the width
+per repeat, and a normal map whose strand curve is kept well under its rope curve: at full
+strength the two saturate, the renormalise clamps, and the result is a *flatter* rope than
+either shape alone.
+
+Import settings: albedo sRGB, normal `textureType: 1` with sRGB off, both `wrapU: repeat`
+(along the rope) and `wrapV: clamp` (across it).
+
+---
+
+## 13. Known limits
+
+- **The rope does not wrap around corners.** It is one distance constraint, not a segmented
+  rope. Deliberate — see the rework spec.
+- **AI is not told it has been leashed.** A creature is pulled; its brain keeps pathing where
+  it wanted. A `NavMeshAgent` will visibly lean against the rope, which is the intent.
+- **A rope to an unnetworked dynamic prop stays local.** Such a prop is addressable by neither
+  id nor point, so remote machines pin their copy of the rope to the hit *point*. Its physics
+  already differs per machine, so a shared rope to it could not have been made to agree anyway.
+- **No HUD indicator.** Hook-then-hook is meant to need none.

@@ -11,6 +11,7 @@
       "Mat_Emissive_Red_Warn",
       "Mat_Fabric_Canvas_Faded",
       "Mat_Fabric_Flag_Bleached",
+      "Mat_Fabric_Rope_Hemp",
       "Mat_Fabric_Seat_Ochre",
       "Mat_Fabric_Tarp_Azure",
       "Mat_Fabric_Wing_Beige",
@@ -30091,7 +30092,7 @@
           "Cube.009",
           "Cube.010",
           "Cube.011",
-          "BézierCurve",
+          "B\u00e9zierCurve",
           "Cube.013",
           "Cube.014",
           "Cube.015",
@@ -30105,7 +30106,7 @@
           "Cube.018",
           "Cube.019",
           "Cube.020",
-          "BézierCurve.001",
+          "B\u00e9zierCurve.001",
           "Plane.002",
           "Plane.003",
           "Cylinder.003",
@@ -30118,8 +30119,8 @@
           "Cube.025",
           "Cube.026",
           "Cube.027",
-          "BézierCurve.002",
-          "BézierCurve.003",
+          "B\u00e9zierCurve.002",
+          "B\u00e9zierCurve.003",
           "Plane.004",
           "Plane.005",
           "Cube.028",
@@ -30130,8 +30131,8 @@
           "Cube.033",
           "Cube.034",
           "Cube.035",
-          "BézierCurve.004",
-          "BézierCurve.005",
+          "B\u00e9zierCurve.004",
+          "B\u00e9zierCurve.005",
           "Plane.008",
           "Plane.009",
           "Cube.044",
@@ -30142,16 +30143,16 @@
           "Cube.049",
           "Cube.050",
           "Cube.051",
-          "BézierCurve.008",
-          "BézierCurve.009",
+          "B\u00e9zierCurve.008",
+          "B\u00e9zierCurve.009",
           "Cylinder.005",
           "Cylinder.006",
           "Cylinder.007",
           "Cylinder.008",
-          "BézierCurve.006",
+          "B\u00e9zierCurve.006",
           "Cylinder.009",
           "Cylinder.010",
-          "BézierCurve.007",
+          "B\u00e9zierCurve.007",
           "Cylinder.011",
           "Cylinder.012"
         ],
@@ -30160,7 +30161,7 @@
     ],
     "objects": [
       {
-        "name": "BézierCurve",
+        "name": "B\u00e9zierCurve",
         "type": "CURVE",
         "location": [
           -1.7291,
@@ -30177,7 +30178,7 @@
         ]
       },
       {
-        "name": "BézierCurve.001",
+        "name": "B\u00e9zierCurve.001",
         "type": "CURVE",
         "location": [
           -8.8332,
@@ -30194,7 +30195,7 @@
         ]
       },
       {
-        "name": "BézierCurve.002",
+        "name": "B\u00e9zierCurve.002",
         "type": "CURVE",
         "location": [
           -4.1723,
@@ -30211,7 +30212,7 @@
         ]
       },
       {
-        "name": "BézierCurve.003",
+        "name": "B\u00e9zierCurve.003",
         "type": "CURVE",
         "location": [
           -1.0785,
@@ -30228,7 +30229,7 @@
         ]
       },
       {
-        "name": "BézierCurve.004",
+        "name": "B\u00e9zierCurve.004",
         "type": "CURVE",
         "location": [
           2.7898,
@@ -30245,7 +30246,7 @@
         ]
       },
       {
-        "name": "BézierCurve.005",
+        "name": "B\u00e9zierCurve.005",
         "type": "CURVE",
         "location": [
           5.4028,
@@ -30262,7 +30263,7 @@
         ]
       },
       {
-        "name": "BézierCurve.006",
+        "name": "B\u00e9zierCurve.006",
         "type": "CURVE",
         "location": [
           0.0563,
@@ -30279,7 +30280,7 @@
         ]
       },
       {
-        "name": "BézierCurve.007",
+        "name": "B\u00e9zierCurve.007",
         "type": "CURVE",
         "location": [
           -0.5346,
@@ -30296,7 +30297,7 @@
         ]
       },
       {
-        "name": "BézierCurve.008",
+        "name": "B\u00e9zierCurve.008",
         "type": "CURVE",
         "location": [
           -5.4985,
@@ -30313,7 +30314,7 @@
         ]
       },
       {
-        "name": "BézierCurve.009",
+        "name": "B\u00e9zierCurve.009",
         "type": "CURVE",
         "location": [
           -3.0729,
@@ -32311,15 +32312,15 @@
       "//../../../../../../../../../Applications/Blender.app/Contents/Resources/5.1/datafiles/assets/nodes/geometry_nodes_essentials.blend"
     ],
     "auto_suffixed_names": [
-      "BézierCurve.001",
-      "BézierCurve.002",
-      "BézierCurve.003",
-      "BézierCurve.004",
-      "BézierCurve.005",
-      "BézierCurve.006",
-      "BézierCurve.007",
-      "BézierCurve.008",
-      "BézierCurve.009",
+      "B\u00e9zierCurve.001",
+      "B\u00e9zierCurve.002",
+      "B\u00e9zierCurve.003",
+      "B\u00e9zierCurve.004",
+      "B\u00e9zierCurve.005",
+      "B\u00e9zierCurve.006",
+      "B\u00e9zierCurve.007",
+      "B\u00e9zierCurve.008",
+      "B\u00e9zierCurve.009",
       "Cube.001",
       "Cube.002",
       "Cube.003",
@@ -37864,15 +37865,133 @@
     ],
     "auto_suffixed_names": []
   },
+  "models/vehicles/wing_pack_folded.blend": {
+    "collections": [
+      {
+        "name": "Coll_DuneOrnithopter",
+        "objects": [],
+        "children": [
+          "Coll_Ornithopter_Body",
+          "Coll_Ornithopter_WingL",
+          "Coll_Ornithopter_WingR",
+          "Coll_Ornithopter_Tail",
+          "Coll_Ornithopter_Rider",
+          "Coll_Ornithopter_Rig"
+        ]
+      },
+      {
+        "name": "Coll_Ornithopter_Body",
+        "objects": [],
+        "children": []
+      },
+      {
+        "name": "Coll_Ornithopter_Rider",
+        "objects": [],
+        "children": []
+      },
+      {
+        "name": "Coll_Ornithopter_Rig",
+        "objects": [],
+        "children": []
+      },
+      {
+        "name": "Coll_Ornithopter_Tail",
+        "objects": [],
+        "children": []
+      },
+      {
+        "name": "Coll_Ornithopter_WingL",
+        "objects": [],
+        "children": []
+      },
+      {
+        "name": "Coll_Ornithopter_WingR",
+        "objects": [],
+        "children": []
+      },
+      {
+        "name": "Coll_WingPack_Folded",
+        "objects": [
+          "Mesh_WingPack_Folded"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_WingPack_Folded",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_WingPack_Folded"
+        ],
+        "dimensions": [
+          0.405,
+          0.95,
+          0.1566
+        ],
+        "vertices": 10543,
+        "polygons": 10788,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Warn_Red",
+          "Mat_Paint_Olive_Deep",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Fabric_Seat_Ochre",
+          "Mat_Fabric_Wing_Beige",
+          "Mat_Wood_Ply_Worn"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Fabric_Canvas_Faded",
+      "Mat_Fabric_Seat_Ochre",
+      "Mat_Fabric_Wing_Beige",
+      "Mat_Fabric_Wing_Ochre",
+      "Mat_Glass_Canopy_Tinted",
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Chrome_Scuffed",
+      "Mat_Metal_Rust_Heavy",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Neutral_Black_Matte",
+      "Mat_Paint_Hull_Bleached",
+      "Mat_Paint_Olive_Deep",
+      "Mat_Paint_Warn_Red",
+      "Mat_Plastic_Rubber_Black",
+      "Mat_Wood_Ply_Worn"
+    ],
+    "linked_libraries": [],
+    "auto_suffixed_names": []
+  },
   "models/characters/astronaut/astronaut.blend": {
     "collections": [
       {
         "name": "astronaut",
         "objects": [
           "Armature.002",
-          "BézierCurve.015",
-          "BézierCurve.016",
-          "BézierCurve.017",
+          "B\u00e9zierCurve.015",
+          "B\u00e9zierCurve.016",
+          "B\u00e9zierCurve.017",
           "Cube.058",
           "Cube.059",
           "Cube.060",
@@ -38008,7 +38127,7 @@
         ]
       },
       {
-        "name": "BézierCurve.015",
+        "name": "B\u00e9zierCurve.015",
         "type": "MESH",
         "location": [
           -21.0508,
@@ -38039,7 +38158,7 @@
         ]
       },
       {
-        "name": "BézierCurve.016",
+        "name": "B\u00e9zierCurve.016",
         "type": "MESH",
         "location": [
           -40.3086,
@@ -38069,7 +38188,7 @@
         ]
       },
       {
-        "name": "BézierCurve.017",
+        "name": "B\u00e9zierCurve.017",
         "type": "MESH",
         "location": [
           0.3211,
@@ -38689,9 +38808,9 @@
     "linked_libraries": [],
     "auto_suffixed_names": [
       "Armature.002",
-      "BézierCurve.015",
-      "BézierCurve.016",
-      "BézierCurve.017",
+      "B\u00e9zierCurve.015",
+      "B\u00e9zierCurve.016",
+      "B\u00e9zierCurve.017",
       "Cube.058",
       "Cube.059",
       "Cube.060",
@@ -38721,8 +38840,8 @@
           "Armature",
           "Cube.005",
           "Kneepads",
-          "BézierCurve",
-          "BézierCurve.001",
+          "B\u00e9zierCurve",
+          "B\u00e9zierCurve.001",
           "Cylinder.002",
           "Scarf Remeshed",
           "Cube.001",
@@ -38737,7 +38856,7 @@
           "Plane.005",
           "Cube.004",
           "Cylinder.001",
-          "BézierCurve.002",
+          "B\u00e9zierCurve.002",
           "Plane.006",
           "Helmet",
           "Vest.001",
@@ -38758,9 +38877,9 @@
           "Cube.010",
           "Cube.011",
           "Cube.012",
-          "BézierCurve.003",
-          "BézierCurve.004",
-          "BézierCurve.005",
+          "B\u00e9zierCurve.003",
+          "B\u00e9zierCurve.004",
+          "B\u00e9zierCurve.005",
           "Armature.001",
           "Scarf Remeshed.002",
           "Armature.002",
@@ -39223,7 +39342,7 @@
         ]
       },
       {
-        "name": "BézierCurve",
+        "name": "B\u00e9zierCurve",
         "type": "MESH",
         "location": [
           -1.5945,
@@ -39251,7 +39370,7 @@
         ]
       },
       {
-        "name": "BézierCurve.001",
+        "name": "B\u00e9zierCurve.001",
         "type": "MESH",
         "location": [
           -42.2241,
@@ -39279,7 +39398,7 @@
         ]
       },
       {
-        "name": "BézierCurve.002",
+        "name": "B\u00e9zierCurve.002",
         "type": "MESH",
         "location": [
           -22.9664,
@@ -39307,7 +39426,7 @@
         ]
       },
       {
-        "name": "BézierCurve.003",
+        "name": "B\u00e9zierCurve.003",
         "type": "MESH",
         "location": [
           -21.1814,
@@ -39335,7 +39454,7 @@
         ]
       },
       {
-        "name": "BézierCurve.004",
+        "name": "B\u00e9zierCurve.004",
         "type": "MESH",
         "location": [
           -34.7374,
@@ -39363,7 +39482,7 @@
         ]
       },
       {
-        "name": "BézierCurve.005",
+        "name": "B\u00e9zierCurve.005",
         "type": "MESH",
         "location": [
           0.0,
@@ -41297,11 +41416,11 @@
       "Armature.002",
       "Armature.003",
       "Armature.004",
-      "BézierCurve.001",
-      "BézierCurve.002",
-      "BézierCurve.003",
-      "BézierCurve.004",
-      "BézierCurve.005",
+      "B\u00e9zierCurve.001",
+      "B\u00e9zierCurve.002",
+      "B\u00e9zierCurve.003",
+      "B\u00e9zierCurve.004",
+      "B\u00e9zierCurve.005",
       "Cube.001",
       "Cube.002",
       "Cube.003",
@@ -41372,13 +41491,13 @@
           "Kneepads",
           "Cube.006",
           "Harness",
-          "BézierCurve.002",
+          "B\u00e9zierCurve.002",
           "Plane.001",
           "Gloves.001",
           "Cylinder.003",
           "Cylinder.004",
           "Cube.012",
-          "BézierCurve.003",
+          "B\u00e9zierCurve.003",
           "Armature.001",
           "Cube",
           "Cylinder.007",
@@ -41412,7 +41531,7 @@
           "Cylinder.028",
           "Cylinder.029",
           "Cylinder.030",
-          "BézierCurve",
+          "B\u00e9zierCurve",
           "Cube.026",
           "Cube.027",
           "Cube.028",
@@ -41421,7 +41540,7 @@
           "Scarf Remeshed.010",
           "Scarf Remeshed.011",
           "Scarf Remeshed.012",
-          "BézierCurve.004",
+          "B\u00e9zierCurve.004",
           "Plane.014",
           "Cylinder.021",
           "Icosphere.001",
@@ -41629,7 +41748,7 @@
         ]
       },
       {
-        "name": "BézierCurve",
+        "name": "B\u00e9zierCurve",
         "type": "CURVE",
         "location": [
           6.4692,
@@ -41646,7 +41765,7 @@
         ]
       },
       {
-        "name": "BézierCurve.002",
+        "name": "B\u00e9zierCurve.002",
         "type": "MESH",
         "location": [
           6.9728,
@@ -41676,7 +41795,7 @@
         ]
       },
       {
-        "name": "BézierCurve.003",
+        "name": "B\u00e9zierCurve.003",
         "type": "MESH",
         "location": [
           -21.1814,
@@ -41704,7 +41823,7 @@
         ]
       },
       {
-        "name": "BézierCurve.004",
+        "name": "B\u00e9zierCurve.004",
         "type": "CURVE",
         "location": [
           6.4558,
@@ -43784,9 +43903,9 @@
     "auto_suffixed_names": [
       "Armature.001",
       "Armature.002",
-      "BézierCurve.002",
-      "BézierCurve.003",
-      "BézierCurve.004",
+      "B\u00e9zierCurve.002",
+      "B\u00e9zierCurve.003",
+      "B\u00e9zierCurve.004",
       "Cube.001",
       "Cube.002",
       "Cube.003",
@@ -43848,8 +43967,8 @@
           "Armature",
           "Cube.005",
           "Kneepads",
-          "BézierCurve",
-          "BézierCurve.001",
+          "B\u00e9zierCurve",
+          "B\u00e9zierCurve.001",
           "Cylinder.002",
           "Scarf Remeshed",
           "Cube.001",
@@ -43864,7 +43983,7 @@
           "Plane.005",
           "Cube.004",
           "Cylinder.001",
-          "BézierCurve.002",
+          "B\u00e9zierCurve.002",
           "Plane.006",
           "Helmet",
           "Vest.001",
@@ -43885,9 +44004,9 @@
           "Cube.010",
           "Cube.011",
           "Cube.012",
-          "BézierCurve.003",
-          "BézierCurve.004",
-          "BézierCurve.005",
+          "B\u00e9zierCurve.003",
+          "B\u00e9zierCurve.004",
+          "B\u00e9zierCurve.005",
           "Armature.001",
           "Scarf Remeshed.002",
           "Armature.002",
@@ -44350,7 +44469,7 @@
         ]
       },
       {
-        "name": "BézierCurve",
+        "name": "B\u00e9zierCurve",
         "type": "MESH",
         "location": [
           -1.5945,
@@ -44378,7 +44497,7 @@
         ]
       },
       {
-        "name": "BézierCurve.001",
+        "name": "B\u00e9zierCurve.001",
         "type": "MESH",
         "location": [
           -42.2241,
@@ -44406,7 +44525,7 @@
         ]
       },
       {
-        "name": "BézierCurve.002",
+        "name": "B\u00e9zierCurve.002",
         "type": "MESH",
         "location": [
           -22.9664,
@@ -44434,7 +44553,7 @@
         ]
       },
       {
-        "name": "BézierCurve.003",
+        "name": "B\u00e9zierCurve.003",
         "type": "MESH",
         "location": [
           -21.1814,
@@ -44462,7 +44581,7 @@
         ]
       },
       {
-        "name": "BézierCurve.004",
+        "name": "B\u00e9zierCurve.004",
         "type": "MESH",
         "location": [
           -34.7374,
@@ -44490,7 +44609,7 @@
         ]
       },
       {
-        "name": "BézierCurve.005",
+        "name": "B\u00e9zierCurve.005",
         "type": "MESH",
         "location": [
           0.0,
@@ -46424,11 +46543,11 @@
       "Armature.002",
       "Armature.003",
       "Armature.004",
-      "BézierCurve.001",
-      "BézierCurve.002",
-      "BézierCurve.003",
-      "BézierCurve.004",
-      "BézierCurve.005",
+      "B\u00e9zierCurve.001",
+      "B\u00e9zierCurve.002",
+      "B\u00e9zierCurve.003",
+      "B\u00e9zierCurve.004",
+      "B\u00e9zierCurve.005",
       "Cube.001",
       "Cube.002",
       "Cube.003",
@@ -46500,13 +46619,13 @@
           "Kneepads",
           "Cube.006",
           "Harness",
-          "BézierCurve.002",
+          "B\u00e9zierCurve.002",
           "Plane.001",
           "Gloves.001",
           "Cylinder.003",
           "Cylinder.004",
           "Cube.012",
-          "BézierCurve.003",
+          "B\u00e9zierCurve.003",
           "Armature.001",
           "Armature.002",
           "Cube",
@@ -46560,7 +46679,7 @@
           "Cylinder.028",
           "Cylinder.029",
           "Cylinder.030",
-          "BézierCurve",
+          "B\u00e9zierCurve",
           "Cylinder.017",
           "Cube.026",
           "Cube.027",
@@ -46570,7 +46689,7 @@
           "Scarf Remeshed.010",
           "Scarf Remeshed.011",
           "Scarf Remeshed.012",
-          "BézierCurve.004",
+          "B\u00e9zierCurve.004",
           "Plane.014",
           "Cylinder.021"
         ],
@@ -48091,7 +48210,7 @@
         ]
       },
       {
-        "name": "BézierCurve",
+        "name": "B\u00e9zierCurve",
         "type": "CURVE",
         "location": [
           6.4692,
@@ -48108,7 +48227,7 @@
         ]
       },
       {
-        "name": "BézierCurve.002",
+        "name": "B\u00e9zierCurve.002",
         "type": "MESH",
         "location": [
           697.2844,
@@ -48138,7 +48257,7 @@
         ]
       },
       {
-        "name": "BézierCurve.003",
+        "name": "B\u00e9zierCurve.003",
         "type": "MESH",
         "location": [
           -21.1814,
@@ -48166,7 +48285,7 @@
         ]
       },
       {
-        "name": "BézierCurve.004",
+        "name": "B\u00e9zierCurve.004",
         "type": "CURVE",
         "location": [
           6.4558,
@@ -49855,9 +49974,9 @@
       "Armature.021",
       "Armature.022",
       "Armature.023",
-      "BézierCurve.002",
-      "BézierCurve.003",
-      "BézierCurve.004",
+      "B\u00e9zierCurve.002",
+      "B\u00e9zierCurve.003",
+      "B\u00e9zierCurve.004",
       "Cube.006",
       "Cube.007",
       "Cube.008",
@@ -49918,13 +50037,13 @@
           "Kneepads",
           "Cube.006",
           "Harness",
-          "BézierCurve.002",
+          "B\u00e9zierCurve.002",
           "Plane.001",
           "Gloves.001",
           "Cylinder.003",
           "Cylinder.004",
           "Cube.012",
-          "BézierCurve.003",
+          "B\u00e9zierCurve.003",
           "Armature.001",
           "Cube",
           "Cylinder.007",
@@ -49961,7 +50080,7 @@
           "Cylinder.028",
           "Cylinder.029",
           "Cylinder.030",
-          "BézierCurve",
+          "B\u00e9zierCurve",
           "Cylinder.017",
           "Cube.026",
           "Cube.027",
@@ -49971,7 +50090,7 @@
           "Scarf Remeshed.010",
           "Scarf Remeshed.011",
           "Scarf Remeshed.012",
-          "BézierCurve.004",
+          "B\u00e9zierCurve.004",
           "Plane.014",
           "Cylinder.021",
           "Icosphere.001",
@@ -50156,7 +50275,7 @@
         ]
       },
       {
-        "name": "BézierCurve",
+        "name": "B\u00e9zierCurve",
         "type": "CURVE",
         "location": [
           6.4692,
@@ -50173,7 +50292,7 @@
         ]
       },
       {
-        "name": "BézierCurve.002",
+        "name": "B\u00e9zierCurve.002",
         "type": "MESH",
         "location": [
           6.9728,
@@ -50203,7 +50322,7 @@
         ]
       },
       {
-        "name": "BézierCurve.003",
+        "name": "B\u00e9zierCurve.003",
         "type": "MESH",
         "location": [
           -21.1814,
@@ -50231,7 +50350,7 @@
         ]
       },
       {
-        "name": "BézierCurve.004",
+        "name": "B\u00e9zierCurve.004",
         "type": "CURVE",
         "location": [
           6.4558,
@@ -52115,9 +52234,9 @@
     "auto_suffixed_names": [
       "Armature.001",
       "Armature.002",
-      "BézierCurve.002",
-      "BézierCurve.003",
-      "BézierCurve.004",
+      "B\u00e9zierCurve.002",
+      "B\u00e9zierCurve.003",
+      "B\u00e9zierCurve.004",
       "Cube.001",
       "Cube.002",
       "Cube.003",
@@ -52183,13 +52302,13 @@
           "Kneepads",
           "Cube.006",
           "Harness",
-          "BézierCurve.002",
+          "B\u00e9zierCurve.002",
           "Plane.001",
           "Gloves.001",
           "Cylinder.003",
           "Cylinder.004",
           "Cube.012",
-          "BézierCurve.003",
+          "B\u00e9zierCurve.003",
           "Armature.001",
           "Cube",
           "Cylinder.007",
@@ -52224,7 +52343,7 @@
           "Cylinder.028",
           "Cylinder.029",
           "Cylinder.030",
-          "BézierCurve",
+          "B\u00e9zierCurve",
           "Cube.026",
           "Cube.027",
           "Cube.028",
@@ -52233,7 +52352,7 @@
           "Scarf Remeshed.010",
           "Scarf Remeshed.011",
           "Scarf Remeshed.012",
-          "BézierCurve.004",
+          "B\u00e9zierCurve.004",
           "Plane.014",
           "Cylinder.021",
           "Icosphere.001",
@@ -52426,7 +52545,7 @@
         ]
       },
       {
-        "name": "BézierCurve",
+        "name": "B\u00e9zierCurve",
         "type": "CURVE",
         "location": [
           6.4692,
@@ -52443,7 +52562,7 @@
         ]
       },
       {
-        "name": "BézierCurve.002",
+        "name": "B\u00e9zierCurve.002",
         "type": "MESH",
         "location": [
           6.9728,
@@ -52473,7 +52592,7 @@
         ]
       },
       {
-        "name": "BézierCurve.003",
+        "name": "B\u00e9zierCurve.003",
         "type": "MESH",
         "location": [
           -21.1814,
@@ -52501,7 +52620,7 @@
         ]
       },
       {
-        "name": "BézierCurve.004",
+        "name": "B\u00e9zierCurve.004",
         "type": "CURVE",
         "location": [
           6.4558,
@@ -54355,9 +54474,9 @@
     "auto_suffixed_names": [
       "Armature.001",
       "Armature.002",
-      "BézierCurve.002",
-      "BézierCurve.003",
-      "BézierCurve.004",
+      "B\u00e9zierCurve.002",
+      "B\u00e9zierCurve.003",
+      "B\u00e9zierCurve.004",
       "Cube.001",
       "Cube.002",
       "Cube.003",
@@ -54420,13 +54539,13 @@
           "Kneepads",
           "Cube.006",
           "Harness",
-          "BézierCurve.002",
+          "B\u00e9zierCurve.002",
           "Plane.001",
           "Gloves.001",
           "Cylinder.003",
           "Cylinder.004",
           "Cube.012",
-          "BézierCurve.003",
+          "B\u00e9zierCurve.003",
           "Armature.001",
           "Cube",
           "Cylinder.007",
@@ -54464,7 +54583,7 @@
           "Cylinder.028",
           "Cylinder.029",
           "Cylinder.030",
-          "BézierCurve",
+          "B\u00e9zierCurve",
           "Cylinder.017",
           "Cube.026",
           "Cube.027",
@@ -54474,7 +54593,7 @@
           "Scarf Remeshed.010",
           "Scarf Remeshed.011",
           "Scarf Remeshed.012",
-          "BézierCurve.004",
+          "B\u00e9zierCurve.004",
           "Plane.014",
           "Cylinder.021"
         ],
@@ -54567,7 +54686,7 @@
         ]
       },
       {
-        "name": "BézierCurve",
+        "name": "B\u00e9zierCurve",
         "type": "CURVE",
         "location": [
           6.4692,
@@ -54584,7 +54703,7 @@
         ]
       },
       {
-        "name": "BézierCurve.002",
+        "name": "B\u00e9zierCurve.002",
         "type": "MESH",
         "location": [
           6.9728,
@@ -54614,7 +54733,7 @@
         ]
       },
       {
-        "name": "BézierCurve.003",
+        "name": "B\u00e9zierCurve.003",
         "type": "MESH",
         "location": [
           -21.1814,
@@ -54642,7 +54761,7 @@
         ]
       },
       {
-        "name": "BézierCurve.004",
+        "name": "B\u00e9zierCurve.004",
         "type": "CURVE",
         "location": [
           6.4558,
@@ -56353,9 +56472,9 @@
     "linked_libraries": [],
     "auto_suffixed_names": [
       "Armature.001",
-      "BézierCurve.002",
-      "BézierCurve.003",
-      "BézierCurve.004",
+      "B\u00e9zierCurve.002",
+      "B\u00e9zierCurve.003",
+      "B\u00e9zierCurve.004",
       "Cube.006",
       "Cube.007",
       "Cube.008",
@@ -71962,6 +72081,1130 @@
     ],
     "auto_suffixed_names": []
   },
+  "components/props/expedition_rig.blend": {
+    "collections": [
+      {
+        "name": "Coll_Rig_Expedition",
+        "objects": [
+          "PIVOT_Back",
+          "PIVOT_Leaf",
+          "PIVOT_Wing_L",
+          "PIVOT_Wing_R",
+          "Mesh_Rig_Frame",
+          "Mesh_Rig_HipBelt_L",
+          "Mesh_Rig_HipBelt_R",
+          "Mesh_Rig_BackPanel",
+          "Mesh_Rig_BackWebbing_L",
+          "Mesh_Rig_BackWebbing_R",
+          "Mesh_Rig_Harness_L",
+          "Mesh_Rig_Harness_R",
+          "Mesh_Rig_OxygenTank",
+          "Mesh_Rig_OxygenTank_Bands",
+          "Mesh_Rig_OxygenTank_Manifold",
+          "Mesh_Rig_Kickstand_L",
+          "Mesh_Rig_Kickstand_R",
+          "Mesh_Rig_FrontLeaf",
+          "Mesh_Rig_LeafGrommets",
+          "Mesh_Rig_LashRail",
+          "Mesh_Rig_RackLadder",
+          "Mesh_Rig_RackHooks",
+          "Mesh_Rig_RackHandle",
+          "Mesh_Rig_Wing_L",
+          "Mesh_Rig_WingRib_L",
+          "Mesh_Rig_Wing_R",
+          "Mesh_Rig_WingRib_R",
+          "Mesh_Rig_Stake_L",
+          "Mesh_Rig_Stake_R",
+          "SURF_Back_L",
+          "SURF_Back_R",
+          "SURF_Leaf",
+          "SURF_Wing_L",
+          "SURF_Wing_R",
+          "SURF_LongGoods",
+          "SURF_Rack"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_Rig_BackPanel",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.86,
+          0.3412,
+          0.5992
+        ],
+        "vertices": 342,
+        "polygons": 326,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_BackWebbing_L",
+        "type": "MESH",
+        "location": [
+          -0.287,
+          0.131,
+          0.281
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.238,
+          0.2345,
+          0.4631
+        ],
+        "vertices": 312,
+        "polygons": 352,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_BackWebbing_R",
+        "type": "MESH",
+        "location": [
+          0.287,
+          0.131,
+          0.281
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.238,
+          0.2345,
+          0.4631
+        ],
+        "vertices": 312,
+        "polygons": 352,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_Frame",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.864,
+          0.318,
+          0.2209
+        ],
+        "vertices": 860,
+        "polygons": 712,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_FrontLeaf",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.8608,
+          0.73,
+          0.0376
+        ],
+        "vertices": 598,
+        "polygons": 619,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_Harness_L",
+        "type": "MESH",
+        "location": [
+          -0.12,
+          0.3357,
+          0.4834
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.2916,
+          0.2648,
+          0.5408
+        ],
+        "vertices": 408,
+        "polygons": 464,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_Harness_R",
+        "type": "MESH",
+        "location": [
+          0.12,
+          0.3357,
+          0.4834
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.2916,
+          0.2648,
+          0.5408
+        ],
+        "vertices": 408,
+        "polygons": 464,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_HipBelt_L",
+        "type": "MESH",
+        "location": [
+          -0.386,
+          0.058,
+          0.118
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.1332,
+          0.1478,
+          0.1224
+        ],
+        "vertices": 154,
+        "polygons": 182,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_HipBelt_R",
+        "type": "MESH",
+        "location": [
+          0.386,
+          0.058,
+          0.118
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.1332,
+          0.1478,
+          0.1224
+        ],
+        "vertices": 154,
+        "polygons": 182,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_Kickstand_L",
+        "type": "MESH",
+        "location": [
+          -0.3,
+          0.2506,
+          0.3245
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.2707,
+          0.1444,
+          0.4731
+        ],
+        "vertices": 136,
+        "polygons": 116,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_Kickstand_R",
+        "type": "MESH",
+        "location": [
+          0.3,
+          0.2506,
+          0.3245
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.2707,
+          0.1444,
+          0.4731
+        ],
+        "vertices": 136,
+        "polygons": 116,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_LashRail",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.625,
+          0.018
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          1.7,
+          0.14,
+          0.038
+        ],
+        "vertices": 752,
+        "polygons": 816,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_LeafGrommets",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.295,
+          0.01
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.804,
+          0.89,
+          0.055
+        ],
+        "vertices": 696,
+        "polygons": 660,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_OxygenTank",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0262,
+          0.3519
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.2206,
+          0.3821,
+          0.5321
+        ],
+        "vertices": 216,
+        "polygons": 186,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_OxygenTank_Bands",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0262,
+          0.3519
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.332,
+          0.4137,
+          0.4616
+        ],
+        "vertices": 432,
+        "polygons": 424,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_OxygenTank_Manifold",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.0964,
+          0.0891
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.3677,
+          0.1361,
+          0.145
+        ],
+        "vertices": 392,
+        "polygons": 320,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_RackHandle",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.735,
+          0.014
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.222,
+          0.0657,
+          0.0556
+        ],
+        "vertices": 276,
+        "polygons": 286,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_RackHooks",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.345,
+          -0.05
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.717,
+          0.4639,
+          0.0564
+        ],
+        "vertices": 900,
+        "polygons": 996,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_RackLadder",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.37,
+          -0.04
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.732,
+          0.725,
+          0.05
+        ],
+        "vertices": 416,
+        "polygons": 364,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_Stake_L",
+        "type": "MESH",
+        "location": [
+          -0.492,
+          -0.886,
+          0.062
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.1406,
+          0.0778,
+          0.16
+        ],
+        "vertices": 140,
+        "polygons": 154,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_Stake_R",
+        "type": "MESH",
+        "location": [
+          0.492,
+          -0.886,
+          0.062
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.1406,
+          0.0778,
+          0.16
+        ],
+        "vertices": 140,
+        "polygons": 154,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_Wing_L",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.4329,
+          0.6005,
+          0.0665
+        ],
+        "vertices": 1066,
+        "polygons": 1165,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_Wing_R",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.4329,
+          0.6005,
+          0.0665
+        ],
+        "vertices": 1066,
+        "polygons": 1165,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_WingRib_L",
+        "type": "MESH",
+        "location": [
+          -0.407,
+          0.0,
+          0.004
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.114,
+          0.594,
+          0.04
+        ],
+        "vertices": 168,
+        "polygons": 156,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_WingRib_R",
+        "type": "MESH",
+        "location": [
+          0.407,
+          0.0,
+          0.004
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.114,
+          0.594,
+          0.04
+        ],
+        "vertices": 168,
+        "polygons": 156,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "PIVOT_Back",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.135,
+          0.12
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ]
+      },
+      {
+        "name": "PIVOT_Leaf",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          -0.135,
+          0.016
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ]
+      },
+      {
+        "name": "PIVOT_Wing_L",
+        "type": "EMPTY",
+        "location": [
+          -0.435,
+          -0.545,
+          0.016
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ]
+      },
+      {
+        "name": "PIVOT_Wing_R",
+        "type": "EMPTY",
+        "location": [
+          0.435,
+          -0.545,
+          0.016
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ]
+      },
+      {
+        "name": "SURF_Back_L",
+        "type": "EMPTY",
+        "location": [
+          -0.285,
+          0.1256,
+          0.2835
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ]
+      },
+      {
+        "name": "SURF_Back_R",
+        "type": "EMPTY",
+        "location": [
+          0.285,
+          0.1256,
+          0.2835
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ]
+      },
+      {
+        "name": "SURF_Leaf",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          -0.295,
+          0.015
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ]
+      },
+      {
+        "name": "SURF_LongGoods",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          -0.625,
+          0.034
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ]
+      },
+      {
+        "name": "SURF_Rack",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          -0.37,
+          -0.067
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ]
+      },
+      {
+        "name": "SURF_Wing_L",
+        "type": "EMPTY",
+        "location": [
+          -0.22,
+          0.065,
+          0.015
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ]
+      },
+      {
+        "name": "SURF_Wing_R",
+        "type": "EMPTY",
+        "location": [
+          0.22,
+          0.065,
+          0.015
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ]
+      }
+    ],
+    "materials": [
+      "Mat_Emissive_Amber",
+      "Mat_Fabric_Canvas_Faded",
+      "Mat_Fabric_Wing_Ochre",
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Rust_Heavy",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Paint_Safety_Orange",
+      "Mat_Plastic_Rubber_Black"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "components/props/field_backpack.blend": {
     "collections": [
       {
@@ -73411,6 +74654,443 @@
     ],
     "auto_suffixed_names": []
   },
+  "components/props/grapple_dart.blend": {
+    "collections": [
+      {
+        "name": "Coll_GrappleDart_Barbed",
+        "objects": [
+          "Mesh_GrappleDart_Barbed",
+          "Marker_RopeAnchor_Barbed",
+          "Marker_Tip_Barbed"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_GrappleDart_Light",
+        "objects": [
+          "Mesh_GrappleDart_Light",
+          "Marker_RopeAnchor_Light",
+          "Marker_Tip_Light"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_GrappleDart_Piton",
+        "objects": [
+          "Mesh_GrappleDart_Piton",
+          "Marker_RopeAnchor_Piton",
+          "Marker_Tip_Piton"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_GrappleHarpoon",
+        "objects": [
+          "Mesh_GrappleHarpoon",
+          "Marker_RopeAnchor_Harpoon",
+          "Marker_Tip_Harpoon"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Marker_RopeAnchor_Barbed",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GrappleDart_Barbed"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_RopeAnchor_Harpoon",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GrappleHarpoon"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_RopeAnchor_Light",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GrappleDart_Light"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_RopeAnchor_Piton",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GrappleDart_Piton"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_Tip_Barbed",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.37,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GrappleDart_Barbed"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_Tip_Harpoon",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.9,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GrappleHarpoon"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_Tip_Light",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.319,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GrappleDart_Light"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_Tip_Piton",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.332,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GrappleDart_Piton"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_GrappleDart_Barbed",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GrappleDart_Barbed"
+        ],
+        "dimensions": [
+          0.1395,
+          0.4,
+          0.1395
+        ],
+        "vertices": 862,
+        "polygons": 698,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_GrappleDart_Light",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GrappleDart_Light"
+        ],
+        "dimensions": [
+          0.0386,
+          0.3395,
+          0.0856
+        ],
+        "vertices": 564,
+        "polygons": 484,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_GrappleDart_Piton",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GrappleDart_Piton"
+        ],
+        "dimensions": [
+          0.1,
+          0.3583,
+          0.1054
+        ],
+        "vertices": 1006,
+        "polygons": 943,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_GrappleHarpoon",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GrappleHarpoon"
+        ],
+        "dimensions": [
+          0.3081,
+          0.9435,
+          0.2668
+        ],
+        "vertices": 1206,
+        "polygons": 1000,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Paint_Safety_Orange",
+      "Mat_Plastic_Rubber_Black"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "components/props/handheld_terminal.blend": {
     "collections": [
       {
@@ -74055,6 +75735,140 @@
     ],
     "auto_suffixed_names": []
   },
+  "components/props/lasso_coil.blend": {
+    "collections": [
+      {
+        "name": "Coll_Lasso_Coil",
+        "objects": [
+          "Mesh_Lasso_Coil"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Lasso_Hank",
+        "objects": [
+          "Mesh_Lasso_Hank"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Lasso_Saddle",
+        "objects": [
+          "Mesh_Lasso_Saddle"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_Lasso_Coil",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Lasso_Coil"
+        ],
+        "dimensions": [
+          0.2672,
+          0.2313,
+          0.1178
+        ],
+        "vertices": 2168,
+        "polygons": 2158,
+        "materials": [
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Seat_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Lasso_Hank",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Lasso_Hank"
+        ],
+        "dimensions": [
+          0.2251,
+          0.1516,
+          0.2212
+        ],
+        "vertices": 2798,
+        "polygons": 2783,
+        "materials": [
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Seat_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Lasso_Saddle",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Lasso_Saddle"
+        ],
+        "dimensions": [
+          0.2424,
+          0.2011,
+          0.1064
+        ],
+        "vertices": 1854,
+        "polygons": 1847,
+        "materials": [
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Seat_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Fabric_Canvas_Faded",
+      "Mat_Fabric_Rope_Hemp",
+      "Mat_Fabric_Seat_Ochre",
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Steel_Worn"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "components/props/leash_device.blend": {
     "collections": [
       {
@@ -74431,6 +76245,1493 @@
     ],
     "auto_suffixed_names": []
   },
+  "components/props/pack_holders.blend": {
+    "collections": [
+      {
+        "name": "Coll_Holder_Bungee",
+        "objects": [
+          "Holder_Bungee",
+          "Mesh_Bungee_Cords",
+          "Mesh_Bungee_Hook",
+          "HARD_Bungee_Hook",
+          "Mesh_Bungee_Anchor_0",
+          "HARD_Bungee_Anchor_0",
+          "Mesh_Bungee_Anchor_1",
+          "HARD_Bungee_Anchor_1",
+          "Mesh_Bungee_Anchor_2",
+          "HARD_Bungee_Anchor_2",
+          "Mesh_Bungee_Anchor_3",
+          "HARD_Bungee_Anchor_3"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Holder_Clip",
+        "objects": [
+          "Holder_Clip",
+          "Mesh_Clip_Tail",
+          "Mesh_Clip_Hook",
+          "HARD_Clip_Hook",
+          "Mesh_Clip_Anchor",
+          "HARD_Clip_Anchor"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Holder_Cord",
+        "objects": [
+          "Holder_Cord",
+          "Mesh_Cord_Ring_Lo",
+          "Mesh_Cord_Tensioner_Lo",
+          "HARD_Cord_Tensioner_Lo",
+          "Mesh_Cord_Ring_Hi",
+          "Mesh_Cord_Tensioner_Hi",
+          "HARD_Cord_Tensioner_Hi",
+          "Mesh_Cord_Tails",
+          "Mesh_Cord_Anchor_L",
+          "HARD_Cord_Anchor_L",
+          "Mesh_Cord_Anchor_R",
+          "HARD_Cord_Anchor_R"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Holder_Sleeve",
+        "objects": [
+          "Holder_Sleeve",
+          "Mesh_Sleeve_Body",
+          "Mesh_Sleeve_Mouth",
+          "Mesh_Sleeve_Strap",
+          "Mesh_Sleeve_Buckle",
+          "HARD_Sleeve_Buckle",
+          "Mesh_Sleeve_Anchor_N",
+          "HARD_Sleeve_Anchor_N",
+          "Mesh_Sleeve_Anchor_P",
+          "HARD_Sleeve_Anchor_P"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Holder_Webbing",
+        "objects": [
+          "Holder_Webbing",
+          "Mesh_Web_Strap_A",
+          "Mesh_Web_Buckle_A",
+          "HARD_Web_Buckle_A",
+          "Mesh_Web_Anchor_AN",
+          "HARD_Web_Anchor_AN",
+          "Mesh_Web_Anchor_AP",
+          "HARD_Web_Anchor_AP",
+          "Mesh_Web_Strap_B",
+          "Mesh_Web_Buckle_B",
+          "HARD_Web_Buckle_B",
+          "Mesh_Web_Anchor_BN",
+          "HARD_Web_Anchor_BN",
+          "Mesh_Web_Anchor_BP",
+          "HARD_Web_Anchor_BP"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "HARD_Bungee_Anchor_0",
+        "type": "EMPTY",
+        "location": [
+          -0.47,
+          0.014,
+          -0.47
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Bungee"
+        ]
+      },
+      {
+        "name": "HARD_Bungee_Anchor_1",
+        "type": "EMPTY",
+        "location": [
+          0.47,
+          0.014,
+          -0.47
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Bungee"
+        ]
+      },
+      {
+        "name": "HARD_Bungee_Anchor_2",
+        "type": "EMPTY",
+        "location": [
+          0.47,
+          0.014,
+          0.47
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Bungee"
+        ]
+      },
+      {
+        "name": "HARD_Bungee_Anchor_3",
+        "type": "EMPTY",
+        "location": [
+          -0.47,
+          0.014,
+          0.47
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Bungee"
+        ]
+      },
+      {
+        "name": "HARD_Bungee_Hook",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.898,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Bungee"
+        ]
+      },
+      {
+        "name": "HARD_Clip_Anchor",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.014,
+          0.47
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Clip"
+        ]
+      },
+      {
+        "name": "HARD_Clip_Hook",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          1.01,
+          0.17
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Clip"
+        ]
+      },
+      {
+        "name": "HARD_Cord_Anchor_L",
+        "type": "EMPTY",
+        "location": [
+          -0.44,
+          0.014,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Cord"
+        ]
+      },
+      {
+        "name": "HARD_Cord_Anchor_R",
+        "type": "EMPTY",
+        "location": [
+          0.44,
+          0.014,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Cord"
+        ]
+      },
+      {
+        "name": "HARD_Cord_Tensioner_Hi",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.75,
+          -0.52
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Cord"
+        ]
+      },
+      {
+        "name": "HARD_Cord_Tensioner_Lo",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.25,
+          -0.52
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Cord"
+        ]
+      },
+      {
+        "name": "HARD_Sleeve_Anchor_N",
+        "type": "EMPTY",
+        "location": [
+          0.34,
+          0.012,
+          -0.54
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Sleeve"
+        ]
+      },
+      {
+        "name": "HARD_Sleeve_Anchor_P",
+        "type": "EMPTY",
+        "location": [
+          0.34,
+          0.012,
+          0.54
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Sleeve"
+        ]
+      },
+      {
+        "name": "HARD_Sleeve_Buckle",
+        "type": "EMPTY",
+        "location": [
+          0.34,
+          0.74,
+          -0.556
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Sleeve"
+        ]
+      },
+      {
+        "name": "HARD_Web_Anchor_AN",
+        "type": "EMPTY",
+        "location": [
+          -0.25,
+          0.012,
+          -0.54
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ]
+      },
+      {
+        "name": "HARD_Web_Anchor_AP",
+        "type": "EMPTY",
+        "location": [
+          -0.25,
+          0.012,
+          0.54
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ]
+      },
+      {
+        "name": "HARD_Web_Anchor_BN",
+        "type": "EMPTY",
+        "location": [
+          0.25,
+          0.012,
+          -0.54
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ]
+      },
+      {
+        "name": "HARD_Web_Anchor_BP",
+        "type": "EMPTY",
+        "location": [
+          0.25,
+          0.012,
+          0.54
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ]
+      },
+      {
+        "name": "HARD_Web_Buckle_A",
+        "type": "EMPTY",
+        "location": [
+          -0.25,
+          0.74,
+          -0.556
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ]
+      },
+      {
+        "name": "HARD_Web_Buckle_B",
+        "type": "EMPTY",
+        "location": [
+          0.25,
+          0.74,
+          -0.556
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ]
+      },
+      {
+        "name": "Holder_Bungee",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Bungee"
+        ]
+      },
+      {
+        "name": "Holder_Clip",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Clip"
+        ]
+      },
+      {
+        "name": "Holder_Cord",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Cord"
+        ]
+      },
+      {
+        "name": "Holder_Sleeve",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Sleeve"
+        ]
+      },
+      {
+        "name": "Holder_Webbing",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ]
+      },
+      {
+        "name": "Mesh_Bungee_Anchor_0",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Bungee"
+        ],
+        "dimensions": [
+          0.0372,
+          0.0176,
+          0.0372
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Bungee_Anchor_1",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Bungee"
+        ],
+        "dimensions": [
+          0.0372,
+          0.0176,
+          0.0372
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Bungee_Anchor_2",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Bungee"
+        ],
+        "dimensions": [
+          0.0372,
+          0.0176,
+          0.0372
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Bungee_Anchor_3",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Bungee"
+        ],
+        "dimensions": [
+          0.0372,
+          0.0176,
+          0.0372
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Bungee_Cords",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.5,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Bungee"
+        ],
+        "dimensions": [
+          0.973,
+          0.8631,
+          0.9768
+        ],
+        "vertices": 168,
+        "polygons": 112,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Bungee_Hook",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Bungee"
+        ],
+        "dimensions": [
+          0.0434,
+          0.0744,
+          0.0507
+        ],
+        "vertices": 280,
+        "polygons": 346,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Clip_Anchor",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Clip"
+        ],
+        "dimensions": [
+          0.0446,
+          0.0211,
+          0.0446
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Clip_Hook",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Clip"
+        ],
+        "dimensions": [
+          0.0083,
+          0.0635,
+          0.078
+        ],
+        "vertices": 608,
+        "polygons": 683,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Clip_Tail",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.5,
+          0.45
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Clip"
+        ],
+        "dimensions": [
+          0.19,
+          0.9649,
+          0.2802
+        ],
+        "vertices": 72,
+        "polygons": 78,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Cord_Anchor_L",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Cord"
+        ],
+        "dimensions": [
+          0.0372,
+          0.0176,
+          0.0372
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Cord_Anchor_R",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Cord"
+        ],
+        "dimensions": [
+          0.0372,
+          0.0176,
+          0.0372
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Cord_Ring_Hi",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.75,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Cord"
+        ],
+        "dimensions": [
+          1.04,
+          0.0346,
+          1.04
+        ],
+        "vertices": 120,
+        "polygons": 120,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Cord_Ring_Lo",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.25,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Cord"
+        ],
+        "dimensions": [
+          1.04,
+          0.0346,
+          1.04
+        ],
+        "vertices": 120,
+        "polygons": 120,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Cord_Tails",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.25,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Cord"
+        ],
+        "dimensions": [
+          1.0277,
+          0.7242,
+          0.032
+        ],
+        "vertices": 64,
+        "polygons": 48,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Cord_Tensioner_Hi",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Cord"
+        ],
+        "dimensions": [
+          0.057,
+          0.0442,
+          0.035
+        ],
+        "vertices": 124,
+        "polygons": 102,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Cord_Tensioner_Lo",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Cord"
+        ],
+        "dimensions": [
+          0.057,
+          0.0442,
+          0.035
+        ],
+        "vertices": 124,
+        "polygons": 102,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Sleeve_Anchor_N",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Sleeve"
+        ],
+        "dimensions": [
+          0.0372,
+          0.0176,
+          0.0372
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Sleeve_Anchor_P",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Sleeve"
+        ],
+        "dimensions": [
+          0.0372,
+          0.0176,
+          0.0372
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Sleeve_Body",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Sleeve"
+        ],
+        "dimensions": [
+          0.62,
+          0.68,
+          1.028
+        ],
+        "vertices": 132,
+        "polygons": 150,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Sleeve_Buckle",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Sleeve"
+        ],
+        "dimensions": [
+          0.0598,
+          0.0756,
+          0.0345
+        ],
+        "vertices": 120,
+        "polygons": 130,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Sleeve_Mouth",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Sleeve"
+        ],
+        "dimensions": [
+          0.6353,
+          0.6437,
+          1.0597
+        ],
+        "vertices": 1008,
+        "polygons": 1094,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Sleeve_Strap",
+        "type": "MESH",
+        "location": [
+          0.34,
+          0.5,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Sleeve"
+        ],
+        "dimensions": [
+          0.1,
+          1.0361,
+          1.1119
+        ],
+        "vertices": 168,
+        "polygons": 182,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Web_Anchor_AN",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ],
+        "dimensions": [
+          0.0372,
+          0.0176,
+          0.0372
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Web_Anchor_AP",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ],
+        "dimensions": [
+          0.0372,
+          0.0176,
+          0.0372
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Web_Anchor_BN",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ],
+        "dimensions": [
+          0.0372,
+          0.0176,
+          0.0372
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Web_Anchor_BP",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ],
+        "dimensions": [
+          0.0372,
+          0.0176,
+          0.0372
+        ],
+        "vertices": 80,
+        "polygons": 74,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Web_Buckle_A",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ],
+        "dimensions": [
+          0.0598,
+          0.0756,
+          0.0345
+        ],
+        "vertices": 120,
+        "polygons": 130,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Web_Buckle_B",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ],
+        "dimensions": [
+          0.0598,
+          0.0756,
+          0.0345
+        ],
+        "vertices": 120,
+        "polygons": 130,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Web_Strap_A",
+        "type": "MESH",
+        "location": [
+          -0.25,
+          0.5,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ],
+        "dimensions": [
+          0.11,
+          1.0371,
+          1.1139
+        ],
+        "vertices": 168,
+        "polygons": 182,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Web_Strap_B",
+        "type": "MESH",
+        "location": [
+          0.25,
+          0.5,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Holder_Webbing"
+        ],
+        "dimensions": [
+          0.11,
+          1.0371,
+          1.1139
+        ],
+        "vertices": 168,
+        "polygons": 182,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Fabric_Canvas_Faded",
+      "Mat_Fabric_Wing_Ochre",
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Plastic_Rubber_Black"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "components/props/portal_gun.blend": {
     "collections": [
       {
@@ -74470,8 +77771,8 @@
         "type": "MESH",
         "location": [
           0.0,
-          0.004,
-          0.404
+          0.006,
+          0.429
         ],
         "scale": [
           1.0,
@@ -74509,8 +77810,8 @@
         "type": "MESH",
         "location": [
           0.0,
-          -0.151,
-          0.348
+          -0.204,
+          0.346
         ],
         "scale": [
           1.0,
@@ -74560,12 +77861,12 @@
           "Coll_PortalGun_Extinguisher"
         ],
         "dimensions": [
-          0.135,
-          0.2134,
-          0.4325
+          0.1178,
+          0.2659,
+          0.4445
         ],
-        "vertices": 2202,
-        "polygons": 1682,
+        "vertices": 2846,
+        "polygons": 2272,
         "materials": [
           "Mat_Metal_Steel_Worn",
           "Mat_Metal_Chrome_Scuffed",
@@ -74599,12 +77900,12 @@
           "Coll_PortalGun_Spent"
         ],
         "dimensions": [
-          0.1409,
-          0.2134,
-          0.4325
+          0.1408,
+          0.2629,
+          0.4445
         ],
-        "vertices": 2118,
-        "polygons": 1640,
+        "vertices": 2602,
+        "polygons": 2070,
         "materials": [
           "Mat_Metal_Steel_Worn",
           "Mat_Metal_Chrome_Scuffed",
@@ -74642,7 +77943,7 @@
           0.3321,
           0.3515
         ],
-        "vertices": 1198,
+        "vertices": 1196,
         "polygons": 897,
         "materials": [
           "Mat_Metal_Steel_Worn",

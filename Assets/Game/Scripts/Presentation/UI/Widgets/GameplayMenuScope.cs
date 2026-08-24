@@ -83,7 +83,22 @@ namespace SpaceGame.Presentation
         /// the cursor without stopping the clock — for a screen you are meant to use while the game
         /// carries on, like the chat box.
         /// </summary>
-        public static bool Enter(object owner, bool freezeTime)
+        public static bool Enter(object owner, bool freezeTime) =>
+            Enter(owner, freezeTime, hideHud: true);
+
+        /// <summary>
+        /// As <see cref="Enter(object, bool)"/>, but <paramref name="hideHud"/> false keeps the
+        /// HUD on screen — for a screen the player uses alongside their gear rather than instead
+        /// of it. Backpack focus mode needs the hotbar visible, because items are dragged onto it.
+        ///
+        /// <para>
+        /// Only honoured by the owner that actually takes control, which is the first one in. A
+        /// second screen opening over the first cannot change what the first handed over, and
+        /// unwinding that would mean tracking a HUD claim per owner for a case — the pause menu
+        /// opened on top of an open pack — where the pack's own exit is about to run anyway.
+        /// </para>
+        /// </summary>
+        public static bool Enter(object owner, bool freezeTime, bool hideHud)
         {
             if (owner == null) return false;
 
@@ -91,7 +106,7 @@ namespace SpaceGame.Presentation
             if (player == null) return false;
 
             if (owners.Add(owner) && owners.Count == 1)
-                TakeControl(player);
+                TakeControl(player, hideHud);
 
             if (freezeTime) freezers.Add(owner);
             SyncFreeze();
@@ -137,7 +152,7 @@ namespace SpaceGame.Presentation
 
         // ------------------------------------------------------------------ internals
 
-        private static void TakeControl(PlayerController player)
+        private static void TakeControl(PlayerController player, bool hideHud)
         {
             // PlayerLook re-locks the cursor every LateUpdate while it is enabled, so a cursor
             // merely unlocked here would be recaptured before the first click landed.
@@ -149,7 +164,7 @@ namespace SpaceGame.Presentation
             // control the cutscene never gave up.
             if (!player.InCutsceneMode)
             {
-                player.EnterCutsceneMode();
+                player.EnterCutsceneMode(hideHud);
                 releasedPlayer = player;
             }
 

@@ -841,3 +841,27 @@ MonoBehaviour:
     maxDistance: 0
     volume: 0.8
     note: ''
+  - id: 1000
+    eventRef:
+      Guid:
+        Data1: 244983765
+        Data2: 1082068725
+        Data3: 1235189431
+        Data4: -2011481048
+      Path: event:/SFX/ElectricHum
+    cooldown: 0.0
+    maxDistance: 30
+    volume: 0.7
+    note: 'Portal gun jet. Shares ElectricHum until a real spray hiss is authored.'
+  - id: 1001
+    eventRef:
+      Guid:
+        Data1: -1179107196
+        Data2: 1337426091
+        Data3: -1864092773
+        Data4: 339326117
+      Path: event:/SFX/Slurp
+    cooldown: 0.04
+    maxDistance: 35
+    volume: 0.55
+    note: 'Paint landing on a wall. Shares Slurp.'

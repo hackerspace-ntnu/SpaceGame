@@ -190,12 +190,16 @@ namespace SpaceGame.Core
         // ── Ropes ──
         // Sent to the PLAYER's channel, carrying a velocity delta in P.
         //
-        // A rope is simulated by the server, but a player's body is owner-authoritative, so a
-        // server-side push on it is overwritten by that owner's next state update — the same way a
-        // server-side teleport is. So the server accumulates what the rope owes that player and
-        // sends it to them; only the owner applies it. Broadcast rather than unicast because the
-        // layer has no unicast, and filtered by ownership on arrival.
-        public const ushort RopeTug   = 62; // server → the roped player's owner
+        // RETIRED. A rope used to be simulated entirely by the server, which cannot push a player's
+        // body — theirs is owner-authoritative, so a server-side push is overwritten by their next
+        // state update. So the server banked what the rope owed each player and shipped it here at
+        // 10 Hz for that player's own machine to apply.
+        //
+        // Leash now splits the rope by end instead: a player's end is resolved on their own machine
+        // and everything else on the server, so there is nothing left to send. The number stays
+        // burnt rather than reused — a peer on an older build must never decode a different message
+        // as this one.
+        public const ushort RopeTug   = 62; // retired 2026-08, see LeashedBody
 
         // ── Latches (doors, levers, and anything else with a held open/closed state) ──
         // The same shape as PartToggle/PartState above, and deliberately so: a door and a lever
@@ -227,8 +231,17 @@ namespace SpaceGame.Core
 
         // ── Backpacks ──
         // Sent to the PACK OWNER's channel. A carries the deploy state for PackState
-        // (0 shouldered, 1 deploying, 2 open, 3 stowing); for PackTake, A is the compartment and
-        // B the slot index within it, and Target is the player reaching in.
+        // (0 shouldered, 1 deploying, 2 open, 3 stowing).
+        //
+        // PackTake names what is being taken POSITIONALLY, like its three neighbours below:
+        //
+        //   Target  the player reaching in. Their hotbar is the destination.
+        //   A       the surface the point is on.
+        //   P       the point, in that surface's uv: X and Z, Y unused.
+        //   B       which hotbar slot to put it in, or -1 for "wherever it fits", which is what a
+        //           right-click sends and what every caller that does not name a slot gets. A
+        //           named slot is a DRAG let go over that slot, and it swaps: whatever was in the
+        //           box goes back onto the pack, into the space the taken item is vacating.
         //
         // A pack is a container two people can reach into at once, so the server has to be the one
         // deciding which of them got the last water cell — the same rule that puts Trade on the
@@ -316,6 +329,62 @@ namespace SpaceGame.Core
         // hands over. Speeds travel as centimetres per second because NetArg has no float field.
         public const ushort CraftLaunch = 74; // server → everyone, on the CRAFT's relay
         public const ushort CraftDown   = 75; // owner → server, on the CRAFT's relay
+
+        // ── Backpacks, continued: free placement ──
+        // Sent to the PACK OWNER's channel, like PackTake, and for the same reason: two people can
+        // be reaching into one pack and only one machine may decide which of them got the space.
+        //
+        // There is no answer coming back and none is needed. A move that the server allows changes
+        // the pack's layout, and BackpackNetwork's NetworkList publishes that to everyone on its
+        // own; a move it refuses changes nothing, and the requester's display is already showing
+        // the truth because nothing was applied optimistically.
+        //
+        // The item is named POSITIONALLY — "whatever is under this point" — rather than by id, the
+        // same trick PackTake uses. An InventoryItem.ID is a string and NetArg has no string
+        // field, and an index would name different items on two machines mid-reconcile.
+        //
+        //   A  the source surface in the low byte, the destination surface in the next one up.
+        //   B  yaw in whole degrees, 0..359.
+        //   P  the point that was grabbed, in the source surface's uv: X and Z, Y unused.
+        //   R  where it is being put, in the destination surface's uv: X and Z, Y and W unused.
+        //      Abusing a Quaternion as two floats is ugly and deliberate — a placement needs two
+        //      uvs, NetArg carries one Vector3, and inventing a second message to hold the other
+        //      half would make a single placement a two-packet handshake that can half-arrive.
+        public const ushort PackMove = 76; // player → server: slide this item to there
+
+        // Dragging something off the mat and letting go: it leaves the pack and lands on the
+        // ground. On the PACK OWNER's channel with the other two, and positional for the same
+        // reason — "whatever is under this point", never an index or an id.
+        //
+        // It is a separate message rather than a PackMove with a sentinel destination surface,
+        // because the two do genuinely different things on the server: a move rearranges state
+        // BackpackNetwork already replicates, while a drop spawns a world object, which only the
+        // server may do and which nothing about the pack's own list would carry to anyone.
+        //
+        //   A  the surface the item was grabbed from.
+        //   P  the point that was grabbed, in that surface's uv: X and Z, Y unused.
+        public const ushort PackDrop = 77; // player → server: take this off the pack and drop it
+
+        // The way IN from the hotbar, and the only one: pressing a hotbar key while focused on an
+        // open pack puts that slot's item on the pack. PackTake is its mirror and this is the half
+        // that was missing — before it, an item that reached the hotbar could only ever leave it
+        // by being dropped on the ground.
+        //
+        // On the PACK OWNER's channel with the other three, and the server does BOTH halves of the
+        // transfer: PlayerInventoryNetwork replicates the hotbar losing a slot and BackpackNetwork
+        // replicates the pack gaining a placement, so nothing here has to travel back.
+        //
+        // Unlike its three neighbours the item is named by INDEX rather than positionally, and the
+        // difference is real rather than an inconsistency: a hotbar slot is a fixed numbered box
+        // the player pressed a numbered key for, where a pack placement is a point on a mat whose
+        // contents two people are rearranging.
+        //
+        //   Target  the player reaching in, as for PackTake. Their hotbar is the source.
+        //   A       the hotbar slot index.
+        //   B       the surface the cursor was over, or -1 for "the cursor was not on the pack",
+        //           which asks the server to first-fit it instead.
+        //   P       where on that surface the cursor was, in its uv: X and Z, Y unused.
+        public const ushort PackStow = 78; // player → server: put my hotbar slot on the pack
     }
 
     /// <summary>What a <see cref="NetMsg.LassoRope"/> message is saying. Append only.</summary>

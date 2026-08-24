@@ -15,8 +15,8 @@ Shader "SpaceGame/Portal/PortalRim"
         _HotColour  ("Hot colour", Color) = (1.00, 0.96, 0.72, 1)
         _Intensity  ("Intensity", Range(0.0, 12.0)) = 3.2
 
-        _Radius     ("Ring radius", Range(0.1, 1.0)) = 0.62
-        _Thickness  ("Ring thickness", Range(0.01, 0.6)) = 0.10
+        _Radius     ("Ring offset outside the edge (x depth)", Range(-0.5, 1.0)) = 0.06
+        _Thickness  ("Ring thickness (x depth)", Range(0.01, 1.0)) = 0.22
         _Falloff    ("Outer falloff", Range(0.5, 8.0)) = 2.6
 
         _Sparks     ("Spark density", Range(0.0, 40.0)) = 14.0
@@ -44,6 +44,12 @@ Shader "SpaceGame/Portal/PortalRim"
             ZTest LEqual
             Cull Off
 
+            // Biased towards the camera. The aperture is a flat plane lying on ground that is not
+            // flat, and Portal.ConformToSurface already lifts it clear of the highest bump under
+            // the paint — this covers the residual, so a portal sprayed on terrain can never lose
+            // the depth test to the hillside it is painted on and vanish in patches.
+            Offset -1, -1
+
             HLSLPROGRAM
             #pragma target 3.5
             #pragma vertex vert
@@ -51,6 +57,7 @@ Shader "SpaceGame/Portal/PortalRim"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "PortalNoise.hlsl"
+            #include "PortalStencil.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _Colour;
@@ -94,20 +101,29 @@ Shader "SpaceGame/Portal/PortalRim"
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(IN);
 
                 float2 p = IN.uv * 2.0 - 1.0;
-                float  r = length(p);
-                float  angle = atan2(p.y, p.x);
+                float  angle;
+                float  d = PortalStencilDistance(IN.uv, angle);
                 float  t = _Time.y;
 
                 float open = saturate(_Open);
-                float ringR = _Radius * lerp(0.35, 1.0, open);
+
+                // The halo rides the outline in METRES, the same way the surface does, so it stops
+                // resizing itself every time a blob of paint widens the aperture somewhere else.
+                // _Radius is now how far outside the edge the ring sits, as a share of _Depth.
+                d += (1.0 - open) * _Depth;
+
+                float band = max(_Thickness * _Depth, 1e-4);
+                float ringD = _Radius * _Depth;
 
                 // Ring, wobbled around its circumference so it never reads as
                 // a perfect circle drawn on the wall.
                 float wobble = (PortalFbm(float2(angle * 3.0, t * 0.4), 3) - 0.5)
-                             * _Thickness * _Churn * 2.0;
-                float d = abs(r - (ringR + wobble));
+                             * band * _Churn * 2.0;
 
-                float ring = saturate(1.0 - d / max(_Thickness, 1e-4));
+                // Distance from the ring, which sits ringD metres OUTSIDE the aperture's edge.
+                float off = abs(d - (ringD + wobble));
+
+                float ring = saturate(1.0 - off / band);
                 ring = pow(ring, _Falloff);
 
                 // Sparks orbiting the rim. One-dimensional noise in the angle,
@@ -117,12 +133,15 @@ Shader "SpaceGame/Portal/PortalRim"
                 float spark = PortalValueNoise(float2(orbit * _Sparks, t * 1.7));
                 spark = pow(saturate(spark), 8.0);
 
-                float radial = saturate(1.0 - abs(r - ringR) / (_Thickness * 2.2));
+                float radial = saturate(1.0 - abs(d - ringD) / (band * 2.2));
                 float glow = ring + spark * radial * 2.0;
 
                 // Fade the whole halo as the aperture closes, and kill anything
                 // outside the quad's inscribed circle so the corners stay clean.
-                glow *= open * saturate(1.0 - smoothstep(0.94, 1.0, r));
+                // Kill the corners in QUAD space, not aperture space: r is the aperture's own
+                // coordinate and on a sprayed shape it says nothing about how close to the edge
+                // of the quad we are.
+                glow *= open * saturate(1.0 - smoothstep(0.94, 1.0, length(p)));
 
                 // Hot core, warm falloff: a halo that is one flat colour reads
                 // as a decal. The brightest part of a real discharge is nearly

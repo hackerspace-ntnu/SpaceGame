@@ -50,10 +50,15 @@ namespace SpaceGame.EditorTools
             return go;
         }
 
+        /// <summary>
+        /// An item with an id. The pack's layout is keyed by <see cref="InventoryItem.ID"/> rather
+        /// than by a slot number, so an item without one cannot be placed at all.
+        /// </summary>
         private InventoryItem Item(string itemName)
         {
             var item = ScriptableObject.CreateInstance<InventoryItem>();
             item.itemName = itemName;
+            item.ID = itemName;
             assets.Add(item);
             return item;
         }
@@ -77,8 +82,25 @@ namespace SpaceGame.EditorTools
         private (BackpackController controller, BackpackObject pack) DeployedPack()
         {
             GameObject packGo = NewObject("pack");
+
+            // One face to lay things on. BackpackObject falls back to every PackSurface under the
+            // rig when its authored array is empty, so a child is all it takes — and PackSurface
+            // keeps its id and size in private serialized fields, which a test that is not loading
+            // a prefab has to write directly.
+            var surfaceGo = new GameObject("SURF_Leaf");
+            surfaceGo.transform.SetParent(packGo.transform, false);
+
+            var surface = surfaceGo.AddComponent<PackSurface>();
+            surface.GetType().GetField("id", Hidden).SetValue(surface, PackSurfaceId.Leaf);
+            surface.GetType().GetField("size", Hidden).SetValue(surface, new Vector2(0.86f, 0.72f));
+
             var pack = packGo.AddComponent<BackpackObject>();
             Invoke(pack, "Awake");
+
+            // Deployed, which is what the name says and what every test here assumes. A pack
+            // defaults to WORN, and Reaches answers a worn pack with its exterior face alone —
+            // every face of a folded rig but that one is inside the fold.
+            pack.SetWorn(false);
 
             GameObject wearerGo = NewObject("wearer");
             var controller = wearerGo.AddComponent<BackpackController>();
@@ -104,6 +126,9 @@ namespace SpaceGame.EditorTools
 
         // ─────────── The server settles the race ───────────
 
+        /// <summary>Where a test item is laid down, and the point a take names it by.</summary>
+        private static readonly Vector2 Spot = new(0.4f, 0.3f);
+
         [Test]
         public void OneItemGoesToOneTakerNoMatterHowManyAskForIt()
         {
@@ -111,16 +136,38 @@ namespace SpaceGame.EditorTools
             (Interactor interactor, FakeHotbar hotbar) = Taker();
 
             InventoryItem cell = Item("Water Cell");
-            Assert.IsTrue(pack.Container.TryAdd(BackpackCompartment.Main, cell, out int slot));
+            Assert.IsTrue(pack.TryPlace(cell, PackSurfaceId.Leaf, Spot, 0f));
 
-            controller.RequestTake(BackpackCompartment.Main, slot, interactor);
-            controller.RequestTake(BackpackCompartment.Main, slot, interactor);
+            controller.RequestTake(PackSurfaceId.Leaf, Spot, interactor);
+            controller.RequestTake(PackSurfaceId.Leaf, Spot, interactor);
 
             Assert.AreEqual(1, hotbar.Count(cell),
                 "The second request is what the loser of a race between two players looks like " +
-                "from the server's side. It has to find the slot already empty and answer no, or " +
-                "the last water cell in a pack is handed to both of them.");
-            Assert.IsTrue(pack.Container.GetSlot(BackpackCompartment.Main, slot).IsEmpty);
+                "from the server's side. It has to find nothing under that point any more and " +
+                "answer no, or the last water cell in a pack is handed to both of them.");
+            Assert.AreEqual(0, pack.Layout.Placements.Count);
+        }
+
+        /// <summary>
+        /// A take names a POINT, not a list index. Indices are the thing that cannot be trusted
+        /// across a reconcile: the list is republished whole on every change, so the client's
+        /// element 3 and the server's element 3 are the same item only while nobody else is
+        /// touching the pack. A point means whatever is under it when the server reads it.
+        /// </summary>
+        [Test]
+        public void ATakeNamesTheSpotThePlayerClicked()
+        {
+            (BackpackController controller, BackpackObject pack) = DeployedPack();
+            (Interactor interactor, FakeHotbar hotbar) = Taker();
+
+            InventoryItem cell = Item("Water Cell");
+            pack.TryPlace(cell, PackSurfaceId.Leaf, Spot, 0f);
+
+            // Bare canvas, well clear of the only thing on the mat.
+            controller.RequestTake(PackSurfaceId.Leaf, new Vector2(0.8f, 0.65f), interactor);
+
+            Assert.AreEqual(0, hotbar.Count(cell), "a click on nothing must take nothing");
+            Assert.AreEqual(1, pack.Layout.Placements.Count, "…and disturb nothing");
         }
 
         [Test]
@@ -132,34 +179,38 @@ namespace SpaceGame.EditorTools
             SetAutoProperty(controller, "CurrentState", BackpackController.State.Shouldered);
 
             InventoryItem cell = Item("Water Cell");
-            pack.Container.TryAdd(BackpackCompartment.Main, cell, out int slot);
+            pack.TryPlace(cell, PackSurfaceId.Leaf, Spot, 0f);
 
-            controller.RequestTake(BackpackCompartment.Main, slot, interactor);
+            controller.RequestTake(PackSurfaceId.Leaf, Spot, interactor);
 
             Assert.AreEqual(0, hotbar.Count(cell),
                 "The state is re-checked on the server, not trusted from the machine that asked — " +
                 "the pack can have been re-shouldered while that request was in flight.");
         }
 
+        /// <summary>
+        /// The pack routes a take through its wearer rather than moving the item where it stands.
+        ///
+        /// This used to be BackpackSlotView's job, and the view is gone with the crosshair path to
+        /// individual items — but the rule it was proving outlives it, and focus mode's cursor will
+        /// call exactly this method.
+        /// </summary>
         [Test]
-        public void TheSlotViewAsksTheOwnerRatherThanMovingTheItemItself()
+        public void ThePackAsksItsOwnerRatherThanMovingTheItemItself()
         {
             (BackpackController controller, BackpackObject pack) = DeployedPack();
             (Interactor interactor, FakeHotbar hotbar) = Taker();
 
             InventoryItem cell = Item("Water Cell");
-            pack.Container.TryAdd(BackpackCompartment.Main, cell, out int slot);
+            pack.TryPlace(cell, PackSurfaceId.Leaf, Spot, 0f);
 
-            // Open enough to be interacted with, but the wearer has already asked for it back — so
-            // the server will refuse. The old slot view could not know that: it reached into
-            // whatever IPlayerInventory it could find on the interactor and moved the item.
+            // Open enough to be handled, but the wearer has already asked for it back — so the
+            // server will refuse. A pack that moved the item itself could not know that: it would
+            // reach into whatever IPlayerInventory it could find on the interactor and hand it over.
             SetAutoProperty(pack, "IsOpen", true);
             SetAutoProperty(controller, "CurrentState", BackpackController.State.Stowing);
 
-            var view = NewObject("stowed item").AddComponent<BackpackSlotView>();
-            view.Bind(pack, BackpackCompartment.Main, slot);
-
-            view.Interact(interactor);
+            pack.RequestTake(PackSurfaceId.Leaf, Spot, interactor);
 
             Assert.AreEqual(0, hotbar.Count(cell),
                 "A take has to travel to the machine that owns the pack. Moving the item here " +
@@ -180,57 +231,164 @@ namespace SpaceGame.EditorTools
             hotbar.TryAddItem(held);
             hotbar.Select(0);
 
-            pack.Container.TryAdd(BackpackCompartment.Main, cell, out int slot);
+            pack.TryPlace(cell, PackSurfaceId.Leaf, Spot, 0f);
 
-            controller.RequestTake(BackpackCompartment.Main, slot, interactor);
+            controller.RequestTake(PackSurfaceId.Leaf, Spot, interactor);
 
             Assert.AreEqual(1, hotbar.Count(cell), "The swap must hand over the pack's item.");
             Assert.AreEqual(0, hotbar.SelectedSlotIndex,
                 "PlayerInventoryNetwork.SelectSlot is a TOGGLE — re-selecting a slot that is " +
                 "already selected DESELECTS it. Re-selecting unconditionally after a swap therefore " +
                 "left the player holding nothing on exactly the implementation that ships.");
-            Assert.AreSame(held, pack.Container.GetSlot(BackpackCompartment.Main, slot).Item,
-                "…and the displaced item goes into the socket the player was aiming at.");
+
+            Assert.AreEqual(1, pack.Layout.Placements.Count);
+            Assert.AreEqual(held.ID, pack.Layout.Placements[0].ItemId,
+                "…and the displaced item goes onto the pack, in the spot the player was aiming at.");
+            Assert.AreEqual(Spot, pack.Layout.Placements[0].Uv);
+        }
+
+        // ─────────── Dragged onto a NAMED hotbar slot ───────────
+        //
+        // A right-click takes an item to "wherever it fits"; a drag takes it to the box the player
+        // let go over. Same message, same channel, same contest — the only new thing on the wire is
+        // NetArg.B, which is -1 for the old behaviour and a slot index for the new one.
+
+        [Test]
+        public void ADragOntoAnEmptySlotLandsInThatSlotAndDisturbsNoOther()
+        {
+            (BackpackController controller, BackpackObject pack) = DeployedPack();
+            (Interactor interactor, FakeHotbar hotbar) = Taker();
+
+            InventoryItem rope = Item("Rope");
+            Assert.IsTrue(hotbar.TryAddItem(rope), "slot 0 is the first free one");
+
+            InventoryItem cell = Item("Water Cell");
+            Assert.IsTrue(pack.TryPlace(cell, PackSurfaceId.Leaf, Spot, 0f));
+
+            controller.RequestTake(PackSurfaceId.Leaf, Spot, interactor, hotbarSlot: 1);
+
+            Assert.AreSame(cell, hotbar.GetSlot(1).Item,
+                "The item has to land in the slot the drag was let go over. TryAddItem — which is " +
+                "what the right-click path uses — fills the first hole instead, which here is the " +
+                "same slot every time whatever the player aimed at.");
+            Assert.AreSame(rope, hotbar.GetSlot(0).Item,
+                "…and the rest of the hotbar is not rewritten on the way past.");
+            Assert.AreEqual(0, pack.Layout.Placements.Count);
+        }
+
+        [Test]
+        public void ADragOntoAnOccupiedSlotSwapsWithWhatWasInIt()
+        {
+            (BackpackController controller, BackpackObject pack) = DeployedPack();
+            (Interactor interactor, FakeHotbar hotbar) = Taker();
+
+            InventoryItem lamp = Item("Lamp");
+            hotbar.TryAddItem(lamp);
+
+            InventoryItem cell = Item("Water Cell");
+            pack.TryPlace(cell, PackSurfaceId.Leaf, Spot, 0f);
+
+            controller.RequestTake(PackSurfaceId.Leaf, Spot, interactor, hotbarSlot: 0);
+
+            Assert.AreSame(cell, hotbar.GetSlot(0).Item, "the dragged item takes the box");
+            Assert.AreEqual(0, hotbar.Count(lamp), "and the one that was in it leaves the hotbar");
+
+            Assert.AreEqual(1, pack.Layout.Placements.Count);
+            Assert.AreEqual(lamp.ID, pack.Layout.Placements[0].ItemId,
+                "The displaced item goes onto the pack, into the space the dragged one vacated — " +
+                "not onto the floor, and not into limbo.");
+            Assert.AreEqual(Spot, pack.Layout.Placements[0].Uv);
+        }
+
+        [Test]
+        public void ADragOntoASlotIsIdempotentLikeEveryOtherTake()
+        {
+            (BackpackController controller, BackpackObject pack) = DeployedPack();
+            (Interactor interactor, FakeHotbar hotbar) = Taker();
+
+            InventoryItem cell = Item("Water Cell");
+            pack.TryPlace(cell, PackSurfaceId.Leaf, Spot, 0f);
+
+            controller.RequestTake(PackSurfaceId.Leaf, Spot, interactor, hotbarSlot: 1);
+            controller.RequestTake(PackSurfaceId.Leaf, Spot, interactor, hotbarSlot: 1);
+
+            Assert.AreEqual(1, hotbar.Count(cell),
+                "The second request is the losing half of a race between two players. It has to " +
+                "find nothing under the point and answer no, exactly as an unaimed take does.");
+            Assert.AreEqual(0, pack.Layout.Placements.Count);
+        }
+
+        [Test]
+        public void ADragOntoASlotOutsideTheHotbarChangesNothing()
+        {
+            (BackpackController controller, BackpackObject pack) = DeployedPack();
+            (Interactor interactor, FakeHotbar hotbar) = Taker();
+
+            InventoryItem cell = Item("Water Cell");
+            pack.TryPlace(cell, PackSurfaceId.Leaf, Spot, 0f);
+
+            controller.RequestTake(PackSurfaceId.Leaf, Spot, interactor, hotbarSlot: 9);
+
+            Assert.AreEqual(0, hotbar.Count(cell));
+            Assert.AreEqual(1, pack.Layout.Placements.Count,
+                "A slot index off the end of the hotbar is a malformed request. Degrading it to " +
+                "first-fit would put gear somewhere the sender never asked for.");
         }
 
         // ─────────── Contents on the wire ───────────
 
+        /// <summary>
+        /// Every placement converts to the wire without losing anything, and two that differ in any
+        /// one field compare as different.
+        ///
+        /// <para>
+        /// The equality half is the one that would fail silently. NetworkList uses
+        /// <c>IEquatable</c> to decide whether a write is a change worth telling anyone about, so a
+        /// comparison that ignored — say — yaw would replicate a placement's position and never its
+        /// rotation, and only for the players who were not watching when it was made.
+        /// </para>
+        /// </summary>
         [Test]
-        public void EverySlotOfBothCompartmentsHasItsOwnPlaceOnTheWire()
+        public void APlacementSurvivesTheRoundTripThroughTheWireStruct()
         {
-            MethodInfo toWire = typeof(BackpackNetwork).GetMethod("WireIndex", HiddenStatic);
-            MethodInfo fromWire = typeof(BackpackNetwork).GetMethod("FromWireIndex", HiddenStatic);
+            MethodInfo toWire = typeof(BackpackNetwork).GetMethod("ToWire", HiddenStatic);
+            Assert.IsNotNull(toWire, "BackpackNetwork.ToWire was renamed; rename it here too.");
 
-            Assert.IsNotNull(toWire, "BackpackNetwork.WireIndex was renamed; rename it here too.");
-            Assert.IsNotNull(fromWire, "BackpackNetwork.FromWireIndex was renamed; rename it here too.");
+            var placement = new PackPlacement("abc123", PackSurfaceId.WingRight, new Vector2(0.43f, 0.36f), 39f);
+            var wire = (PackPlacementWire)toWire.Invoke(null, new object[] { placement });
 
-            var seen = new HashSet<int>();
+            Assert.AreEqual("abc123", wire.ItemId.Value);
+            Assert.AreEqual((byte)PackSurfaceId.WingRight, wire.Surface);
+            Assert.AreEqual(0.43f, wire.U, 1e-5f);
+            Assert.AreEqual(0.36f, wire.V, 1e-5f);
+            Assert.AreEqual(39f, wire.Yaw, 1e-5f);
 
-            foreach (BackpackCompartment compartment in
-                     new[] { BackpackCompartment.Strap, BackpackCompartment.Main })
+            Assert.IsTrue(wire.Equals(wire));
+
+            var moved = (PackPlacementWire)toWire.Invoke(null, new object[]
             {
-                int count = compartment == BackpackCompartment.Strap
-                    ? BackpackContainer.StrapSlots
-                    : BackpackContainer.MainSlots;
+                new PackPlacement("abc123", PackSurfaceId.WingRight, new Vector2(0.43f, 0.36f), 40f)
+            });
 
-                for (int slot = 0; slot < count; slot++)
-                {
-                    var wire = (int)toWire.Invoke(null, new object[] { compartment, slot });
+            Assert.IsFalse(wire.Equals(moved), "a yaw change is a change and has to replicate");
+        }
 
-                    Assert.IsTrue(seen.Add(wire),
-                        $"{compartment} slot {slot} shares wire index {wire} with another slot. " +
-                        "Two compartments packed end to end into one list is only safe while the " +
-                        "mapping is a bijection — a collision silently scrambles which anchor an " +
-                        "item comes back on.");
+        /// <summary>
+        /// An empty item id must reach the wire as <c>default(FixedString64Bytes)</c>.
+        ///
+        /// <c>cond ? item.ID : default</c> types the whole expression as string, so the empty arm
+        /// converts <c>default(string)</c> — null — and FixedString64Bytes throws an NRE on null
+        /// from inside Unity.Collections. It took the entire inventory restore down once already.
+        /// </summary>
+        [Test]
+        public void AnEmptyItemIdDoesNotThrowOnTheWay()
+        {
+            MethodInfo toWire = typeof(BackpackNetwork).GetMethod("ToWire", HiddenStatic);
 
-                    object[] round = { wire, null, null };
-                    Assert.IsTrue((bool)fromWire.Invoke(null, round));
-                    Assert.AreEqual(compartment, round[1]);
-                    Assert.AreEqual(slot, round[2]);
-                }
-            }
-
-            Assert.AreEqual(BackpackContainer.StrapSlots + BackpackContainer.MainSlots, seen.Count);
+            Assert.DoesNotThrow(() => toWire.Invoke(null, new object[]
+            {
+                new PackPlacement(null, PackSurfaceId.Leaf, Vector2.zero, 0f)
+            }));
         }
 
         [Test]

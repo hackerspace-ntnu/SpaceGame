@@ -64,22 +64,45 @@ MonoBehaviour:
       Data3: -533523275
       Data4: -1075932117
     Path: event:/SFX/Hit
-  maxRange: 5
+  maxRange: 30
   leashableLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  maxLeashLength: 8
-  stiffness: 400
-  damping: 30
-  breakForce: 1500
-  ropeMaterial: {fileID: 2100000, guid: 4d56c25c72db74282ba53196017fc7f0, type: 2}
-  ropeColor: {r: 0.6, g: 0.5, b: 0.35, a: 1}
-  ropeWidth: 0.04
-  ropeSegments: 18
-  ropeSag: 0.6
-  muzzle: {fileID: 0}
-  dropAction: {fileID: -4090225696740746782, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  debugLogs: 1
+  length: 8
+  correction: 0.35
+  maxCorrectionSpeed: 25
+  maxCorrectionStep: 0.5
+  breakStretch: 2.5
+  breakTime: 0.35
+  payOutMargin: 0.4
+  maxPaidOutLength: 16
+  rope:
+    segments: 32
+    cornerVertices: 3
+    capVertices: 3
+    material: {fileID: 2100000, guid: 7a1c4e9b2d3f44e0a8c5b1d6e9f30a33, type: 2}
+    color: {r: 0.62, g: 0.51, b: 0.34, a: 1}
+    width: 0.05
+    tensionThinning: 0.3
+    braidsPerMetre: 6
+    maxSag: 3
+    restOnGround: 1
+    groundMask:
+      serializedVersion: 2
+      m_Bits: 4294967295
+    groundClearance: 0.03
+    groundProbeAbove: 1.5
+    swayAmplitude: 0.06
+    swaySpeed: 0.9
+    shiverAmplitude: 0.035
+    shiverSpeed: 26
+    biteAmplitude: 0.35
+    biteWaves: 4
+    biteSpeed: 30
+    biteDuration: 0.4
+  muzzle: {fileID: 2954033591135063780}
+  grabRadius: 0.4
+  untieTolerance: 1
 --- !u!114 &3831389210071514068
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -229,6 +252,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
   gripPoint: {fileID: 3684836452186458371}
   hand: 0
+  holdStyle: 2
   rotationOffset: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
   holdSize: 0.26
@@ -318,11 +342,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: adfc491b4037e4d7fa8d2beda34d4191, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.7071067
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: adfc491b4037e4d7fa8d2beda34d4191, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.7071068
+      value: -0.0000000842937
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: adfc491b4037e4d7fa8d2beda34d4191, type: 3}
       propertyPath: m_LocalRotation.y
@@ -330,7 +354,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: adfc491b4037e4d7fa8d2beda34d4191, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: adfc491b4037e4d7fa8d2beda34d4191, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x

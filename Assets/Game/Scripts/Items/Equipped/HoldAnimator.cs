@@ -1,199 +1,118 @@
 using UnityEngine;
-using SpaceGame.Core;
+using SpaceGame.Characters;
 
 namespace SpaceGame.Items
 {
     /// <summary>
-    /// Drop-anywhere companion for any UsableItem prefab whose hand/hold animation
-    /// needs a "being held" flag. Drives a boolean (default "Hold") on a target
-    /// Animator.
+    /// Tells a holder's rig what is in its hand.
     ///
-    /// Hold = true requires ALL of:
-    ///   1. Item is currently equipped.
-    ///   2. Holder isn't moving — measured directly from PlayerInputManager.MoveInput
-    ///      (raw input; zero the instant the player releases WASD) and optionally
-    ///      Rigidbody velocity. Reading the raw input avoids races with locomotion-
-    ///      blend-tree smoothing in the player's Animator.
-    ///   3. After Hold drops to false, a short re-arm cooldown must elapse before
-    ///      it can flip back on. Stops chatter from micro-pauses while moving.
-    ///
-    /// Animator lookup order (first non-null wins):
-    ///   1. The holder GameObject passed to UsableItem.OnEquipped (player rig).
-    ///   2. Serialized `animator` field.
-    ///   3. Any Animator in the artifact's child tree.
+    /// <para>
+    /// This used to be much larger. It measured the holder's input, rigidbody, NavMeshAgent and
+    /// CharacterController every frame, and dropped the pose whenever any of them reported motion,
+    /// because the player's controller had a single unmasked layer and a hold pose therefore
+    /// replaced the whole body — legs included. A player who held a gun and walked either glided
+    /// with frozen legs or lost the pose. There was no third option.
+    /// </para>
+    /// <para>
+    /// The Upper Body layer removed the problem rather than managing it: the pose is masked to the
+    /// chest and arms, the legs keep running the Base Layer, and the item can stay in the hand
+    /// while the player walks. All of the movement gating went with it.
+    /// </para>
+    /// <para>
+    /// Two kinds of holder, because they have different rigs. A player has a
+    /// <see cref="PlayerAimRig"/> and gets a hold style. Anything else — an NPC, a turret — keeps
+    /// the original <c>Hold</c> bool, which is what its controller is still built around.
+    /// </para>
     /// </summary>
     public class HoldAnimator : MonoBehaviour
     {
-        [Tooltip("Optional explicit Animator. If null, the component first tries the holder's Animator (player rig), then any Animator in this object's children.")]
+        [Tooltip("Optional explicit Animator for the fallback bool. If null, the component first " +
+                 "tries the holder's Animator, then any Animator in this object's children.")]
         [SerializeField] private Animator animator;
-        [Tooltip("Bool parameter name to drive on the resolved animator.")]
+
+        [Tooltip("Bool parameter driven on holders that have no PlayerAimRig — NPCs and turrets.")]
         [SerializeField] private string boolParameter = "Hold";
 
-        [Header("Movement gating")]
-        [Tooltip("If true, ANY movement (input pressed or rigidbody velocity above threshold) forces Hold = false.")]
-        [SerializeField] private bool requireStationary = true;
-        [Tooltip("Raw move-input magnitude above which the holder counts as moving. Tiny epsilon — release WASD => 0 immediately.")]
-        [SerializeField] private float inputDeadzone = 0.01f;
-        [Tooltip("Horizontal Rigidbody speed (m/s) above which the holder counts as moving, even with no input. Catches sliding/knockback.")]
-        [SerializeField] private float velocityThreshold = 0.15f;
+        private Animator resolvedAnimator;
+        private PlayerAimRig rig;
+        private bool wroteBool;
 
-        [Header("Re-arm cooldown")]
-        [Tooltip("Seconds Hold must stay false after movement stops before it's allowed to flip true again. Prevents flicker.")]
-        [SerializeField] private float holdReArmDelay = 0.2f;
-
-        [Header("Debug")]
-        [Tooltip("Log resolved animator on equip and Hold transitions while held.")]
-        [SerializeField] private bool debugLog;
+        private int cachedHash;
+        private string cachedFor;
 
         /// <summary>
-        /// Whether this instance yields the pose while the holder is moving.
+        /// The hashed parameter name, resolved on demand rather than in Awake.
         ///
         /// <para>
-        /// Read by tests rather than by gameplay. It matters because the player's controller has
-        /// a single unmasked layer, so the hold state replaces the whole body — a pose held while
-        /// walking freezes the legs and the character glides.
+        /// Awake is not guaranteed to have run by the time <see cref="SetHeld"/> is called.
+        /// <c>UsableItem.OnEquipped</c> adds this component and calls straight into it on the very
+        /// next line, and a component whose hash is still 0 silently matches no parameter and
+        /// poses nothing — an NPC standing in its idle tree holding a rifle, with no error to say
+        /// why. Resolving here removes the ordering dependency instead of relying on it.
+        /// </para>
+        /// <para>
+        /// Cached against the name it was built from so a caller that retunes
+        /// <see cref="boolParameter"/> in the inspector is not left driving the old one.
         /// </para>
         /// </summary>
-        public bool RequiresStationary => requireStationary;
-
-        private Animator resolvedAnimator;
-        private GameObject heldByHolder;
-        private PlayerInputManager holderInputs;
-        private Rigidbody holderRb;
-        private UnityEngine.AI.NavMeshAgent holderAgent;
-        private CharacterController holderCc;
-        private bool canGateMovement;
-        private bool equipped;
-        private int paramHash;
-
-        private bool currentHold;
-        private float earliestReArmTime;
-
-        private void Awake()
+        private int ParamHash
         {
-            paramHash = Animator.StringToHash(boolParameter);
+            get
+            {
+                if (cachedFor != boolParameter)
+                {
+                    cachedFor = boolParameter;
+                    cachedHash = Animator.StringToHash(boolParameter);
+                }
+                return cachedHash;
+            }
         }
 
-        /// <summary>Called by UsableItem.OnEquipped/OnUnequipped. `holder` is the player.</summary>
+        /// <summary>Called by UsableItem.OnEquipped/OnUnequipped. <paramref name="holder"/> is the holder.</summary>
         public void SetHeld(GameObject holder, bool value)
         {
-            equipped = value;
             if (value)
             {
-                heldByHolder = holder;
-                resolvedAnimator = ResolveAnimator(holder);
-                holderInputs = holder != null ? holder.GetComponent<PlayerInputManager>() : null;
-                holderRb     = holder != null ? holder.GetComponent<Rigidbody>()         : null;
-                holderAgent  = holder != null ? holder.GetComponentInChildren<UnityEngine.AI.NavMeshAgent>(true) : null;
-                holderCc     = holder != null ? holder.GetComponent<CharacterController>() : null;
-                canGateMovement = holderInputs != null || holderRb != null
-                               || holderAgent != null || holderCc != null;
-                // Block immediate Hold = true on equip if already moving — let the
-                // player settle first.
-                earliestReArmTime = Time.time + holdReArmDelay;
-                if (debugLog) LogResolution(holder);
+                rig = holder != null ? holder.GetComponent<PlayerAimRig>() : null;
+                resolvedAnimator = rig != null ? null : ResolveAnimator(holder);
+
+                if (rig != null)
+                {
+                    var grip = GetComponent<ItemGrip>();
+                    rig.SetHeldStyle(grip != null ? grip.Style : ItemGrip.HoldStyle.OneHanded);
+                }
+                else
+                {
+                    WriteBool(true);
+                }
+
+                return;
             }
-            else
-            {
-                heldByHolder = null;
-                holderInputs = null;
-                holderRb = null;
-                holderAgent = null;
-                holderCc = null;
-                canGateMovement = false;
-            }
-            ApplyImmediate(false); // start clean
+
+            if (rig != null) rig.SetHeldStyle(ItemGrip.HoldStyle.None);
+            else WriteBool(false);
+
+            rig = null;
+            resolvedAnimator = null;
         }
 
-        private void Update()
+        /// <summary>
+        /// The NPC path, unchanged in behaviour from the version this replaced.
+        ///
+        /// <para>
+        /// Tracked with <see cref="wroteBool"/> so the parameter is only ever cleared by whoever
+        /// set it — an item destroyed after its holder has already picked up something else must
+        /// not switch that new item's pose off.
+        /// </para>
+        /// </summary>
+        private void WriteBool(bool value)
         {
-            if (!equipped) return;
-            Apply();
-        }
+            if (resolvedAnimator == null || resolvedAnimator.runtimeAnimatorController == null) return;
+            if (!HasParam(resolvedAnimator, ParamHash)) return;
+            if (!value && !wroteBool) return;
 
-        private void Apply()
-        {
-            if (resolvedAnimator == null) return;
-            if (!HasParam(resolvedAnimator, paramHash)) return;
-
-            bool desired = true;
-
-            if (requireStationary && IsMoving())
-            {
-                desired = false;
-                // Push out the re-arm window so we don't snap Hold back to true the
-                // very first frame the player stops.
-                earliestReArmTime = Time.time + holdReArmDelay;
-            }
-            else if (!currentHold && Time.time < earliestReArmTime)
-            {
-                // Waiting for re-arm — keep Hold false.
-                desired = false;
-            }
-
-            ApplyImmediate(desired);
-        }
-
-        private void ApplyImmediate(bool desired)
-        {
-            if (resolvedAnimator == null) return;
-            if (!HasParam(resolvedAnimator, paramHash)) return;
-            if (desired == currentHold) return;
-
-            currentHold = desired;
-            resolvedAnimator.SetBool(paramHash, desired);
-
-            if (debugLog)
-            {
-                Vector2 mi = holderInputs != null ? holderInputs.MoveInput : Vector2.zero;
-                float vmag = holderRb != null
-    #if UNITY_6000_0_OR_NEWER
-                    ? new Vector2(holderRb.linearVelocity.x, holderRb.linearVelocity.z).magnitude
-    #else
-                    ? new Vector2(holderRb.velocity.x, holderRb.velocity.z).magnitude
-    #endif
-                    : 0f;
-                Debug.Log($"[HoldAnimator] {name}: Hold={desired} (move={mi}, vel={vmag:F2})", this);
-            }
-        }
-
-        private bool IsMoving()
-        {
-            // Raw input — true the moment WASD is pressed, false the moment released.
-            if (holderInputs != null && holderInputs.MoveInput.sqrMagnitude > inputDeadzone * inputDeadzone)
-                return true;
-
-            // Velocity check catches sliding, knockback, vehicles — anything moving
-            // the player without an input press.
-            if (holderRb != null)
-            {
-    #if UNITY_6000_0_OR_NEWER
-                Vector3 v = holderRb.linearVelocity;
-    #else
-                Vector3 v = holderRb.velocity;
-    #endif
-                if (Horizontal(v)) return true;
-            }
-
-            // NPCs are steered by a NavMeshAgent and have neither of the above. Without this an
-            // NPC reads as permanently stationary, the pose latches on, and because the rig has
-            // one unmasked layer its legs stop moving while it walks.
-            if (holderAgent != null && Horizontal(holderAgent.velocity)) return true;
-            if (holderCc != null && Horizontal(holderCc.velocity)) return true;
-
-            // Nothing on the holder reports motion. Rather than declare it stationary — which
-            // latches the pose on forever for anything this component does not understand — treat
-            // it as moving and simply never pose. A missing pose is a small loss; a body frozen
-            // mid-stride is a visible bug.
-            if (!canGateMovement) return true;
-
-            return false;
-        }
-
-        private bool Horizontal(Vector3 v)
-        {
-            v.y = 0f;
-            return v.sqrMagnitude > velocityThreshold * velocityThreshold;
+            resolvedAnimator.SetBool(ParamHash, value);
+            wroteBool = value;
         }
 
         private Animator ResolveAnimator(GameObject holder)
@@ -214,16 +133,6 @@ namespace SpaceGame.Items
             for (int i = 0; i < ps.Length; i++)
                 if (ps[i].nameHash == hash) return true;
             return false;
-        }
-
-        private void LogResolution(GameObject holder)
-        {
-            var msg = $"[HoldAnimator] {name}: animator='{(resolvedAnimator != null ? resolvedAnimator.name : "<null>")}' "
-                    + $"ctrl='{(resolvedAnimator != null && resolvedAnimator.runtimeAnimatorController != null ? resolvedAnimator.runtimeAnimatorController.name : "<null>")}' "
-                    + $"hasHold={HasParam(resolvedAnimator, paramHash)} "
-                    + $"inputs={(holderInputs != null ? "found" : "<null>")} "
-                    + $"rb={(holderRb != null ? "found" : "<null>")}";
-            Debug.Log(msg, this);
         }
     }
 }

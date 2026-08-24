@@ -21,6 +21,10 @@ namespace SpaceGame.Characters
         public float sensitivity = 1f;
         public float verticalClamp = 80f;
 
+        [Tooltip("Mouse sensitivity is multiplied by this while aiming, eased over the aim blend. " +
+                 "Below 1 makes fine aim possible; 1 disables the effect.")]
+        [SerializeField, Range(0.1f, 1f)] private float aimSensitivity = 0.5f;
+
         private float pitch = 0f;
 
         /// Yaw accumulated by Update since the last physics step, in degrees. See Update.
@@ -31,9 +35,12 @@ namespace SpaceGame.Characters
 
         private Camera lookCamera;
 
+        private PlayerAimRig aimRig;
+
         private void Start()
         {
             inputs = GetComponent<PlayerController>().Input;
+            aimRig = GetComponent<PlayerAimRig>();
             playerRigidbody = playerBody.GetComponent<Rigidbody>();
 
             // Hide the player head mesh to prevent clipping with the camera
@@ -55,8 +62,56 @@ namespace SpaceGame.Characters
 
         private void ApplySettings()
         {
-            if (lookCamera != null)
-                lookCamera.fieldOfView = GameSettings.FieldOfView;
+            // Only the base changed. The composed value is written every frame by ApplyFieldOfView,
+            // which is what keeps a kick from being wiped the next time any setting is touched.
+            ApplyFieldOfView();
+        }
+
+        // ── Field of view ──────────────────────────────────────────────────────
+        //
+        // The player's own FieldOfView setting is the base and is never written to. Effects add
+        // DEGREES ON TOP of it, so a player who chose 95 keeps 95 as their resting view and still
+        // gets the same size of kick as a player who chose 60. Writing an absolute FOV — the
+        // obvious way to do this — silently overwrites a preference the pause menu owns, and the
+        // player's slider stops matching what they see.
+
+        [Header("Field of view")]
+        [Tooltip("Degrees per second the view opens up toward a requested kick.")]
+        [SerializeField] private float fovKickInSpeed = 60f;
+
+        [Tooltip("Degrees per second it settles back. Slower than the way in, so speed arrives as " +
+                 "a punch and leaves as a glide.")]
+        [SerializeField] private float fovKickOutSpeed = 35f;
+
+        private float fovOffsetTarget;
+        private float fovOffset;
+
+        /// <summary>
+        /// Ask for <paramref name="degrees"/> of extra field of view, eased in and out.
+        ///
+        /// <para>
+        /// Additive and idempotent: callers set a target every frame and set 0 when they are done.
+        /// Today the grappling hook drives it from how fast the player is actually travelling,
+        /// which is most of what makes a fast swing read as fast — the geometry alone does not,
+        /// because nothing in the frame changes size when the whole view moves together.
+        /// </para>
+        /// </summary>
+        public void SetFovOffset(float degrees) => fovOffsetTarget = degrees;
+
+        private void ApplyFieldOfView()
+        {
+            if (lookCamera == null) return;
+            lookCamera.fieldOfView = GameSettings.FieldOfView + fovOffset;
+        }
+
+        private void TickFieldOfView()
+        {
+            if (Mathf.Approximately(fovOffset, fovOffsetTarget)) return;
+
+            float speed = fovOffsetTarget > fovOffset ? fovKickInSpeed : fovKickOutSpeed;
+            fovOffset = Mathf.MoveTowards(fovOffset, fovOffsetTarget, speed * Time.deltaTime);
+
+            ApplyFieldOfView();
         }
 
         /// <summary>
@@ -160,11 +215,20 @@ namespace SpaceGame.Characters
     
         void Update()
         {
+            TickFieldOfView();
+
             lookInput = inputs.LookInput;
 
             // The serialized sensitivity is the rig's own scale; the setting is a multiplier on top
             // of it, so tuning the prefab and the player's preference stay independent.
-            float scaled = sensitivity * GameSettings.MouseSensitivity;
+            // Eased on the aim blend rather than switched on the button, so the sensitivity change
+            // arrives with the weapon rather than a fifth of a second before it. Never written back
+            // to GameSettings — that is the player's own preference and must survive aiming.
+            float aimScale = aimRig != null
+                ? Mathf.Lerp(1f, aimSensitivity, aimRig.AimBlend)
+                : 1f;
+
+            float scaled = sensitivity * GameSettings.MouseSensitivity * aimScale;
 
             // Yaw is banked here and spent in FixedUpdate, because it turns a Rigidbody and a
             // Rigidbody may only be posed on the physics clock. Calling MoveRotation from here span

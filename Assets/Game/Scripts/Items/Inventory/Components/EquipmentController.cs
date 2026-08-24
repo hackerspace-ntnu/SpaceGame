@@ -67,6 +67,18 @@ namespace SpaceGame.Items
         private float nextHoldSend;
 
 
+        /// <summary>
+        /// The main hand's grip rotation, in that hand bone's own space.
+        ///
+        /// <para>
+        /// Identity when there is no main hand, which is the right answer for a character with no
+        /// rig to speak of: aim the hand at the target and accept that the item sits however the
+        /// prefab sits.
+        /// </para>
+        /// </summary>
+        public Quaternion MainHandGripLocalRotation =>
+            equipmentSocket != null ? equipmentSocket.FrameLocalRotation : Quaternion.identity;
+
         private void Awake()
         {
             var anim = GetComponentInChildren<Animator>(true);

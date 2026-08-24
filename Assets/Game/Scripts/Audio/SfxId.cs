@@ -106,5 +106,9 @@ namespace SpaceGame.Audio
         UiBack = 902,
         UiError = 903,
         UiNotify = 904,
+
+        // ---- Portals (1000) ----
+        PortalSprayLoop = 1000,
+        PortalPaintSplat = 1001,
     }
 }

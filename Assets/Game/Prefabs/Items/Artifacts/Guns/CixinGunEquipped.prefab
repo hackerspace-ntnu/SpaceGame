@@ -216,6 +216,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2490650498845839401, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5276326449323464433}
+    - targetCorrespondingSourceObject: {fileID: 2490650498845839401, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4913772400156239841}
   m_SourcePrefab: {fileID: 100100000, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
 --- !u!54 &2250821488904886895 stripped
 Rigidbody:
@@ -318,3 +321,23 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 323723913112813014, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
   m_PrefabInstance: {fileID: 8541725427507261345}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &4913772400156239841
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6060401903264006024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 849607e40917c46c396381660647fa88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
+  gripPoint: {fileID: 3084344953206891883}
+  hand: 0
+  holdStyle: 2
+  rotationOffset: {x: 0, y: 0, z: 0}
+  positionOffset: {x: 0, y: 0, z: 0}
+  holdSize: 0.7
+  sizeReference: {fileID: 0}
+  keepColliders: 0

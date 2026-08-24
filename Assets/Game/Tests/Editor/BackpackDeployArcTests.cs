@@ -6,17 +6,28 @@ namespace SpaceGame.Tests
 {
     public class BackpackDeployArcTests
     {
-        // A deploy as the controller actually configures it: off the back socket at chest height on
-        // a 2 m player, down to a drop point 0.9 m in front (deployDistance), with the shipped
-        // arcHeight and arcOutward.
+        // A deploy as the controller actually configures it, with the player standing at the origin
+        // facing +Z: off the back socket at spine height and a little behind the spine, down to a
+        // drop point deployDistance (1.6 m) in front, with the shipped arcHeight and arcOutward.
         private static readonly Pose Shouldered =
-            new Pose(new Vector3(0f, 1.3f, 0f), Quaternion.identity);
+            new Pose(new Vector3(0f, 1.15f, -0.18f), Quaternion.identity);
 
         private static readonly Pose Grounded =
-            new Pose(new Vector3(0f, 0.1f, 0.9f), Quaternion.Euler(-90f, 35f, 0f));
+            new Pose(new Vector3(0f, 0.01f, 1.6f), Quaternion.Euler(-90f, 35f, 0f));
 
-        private const float ArcHeight = 0.45f;
-        private const float Outward = 0.35f;
+        private const float ArcHeight = 2.6f;
+        private const float Outward = 0.55f;
+
+        // ─────────── the player the pack is thrown over ───────────
+        //
+        // A standing astronaut, in the frame above: the spine is the vertical line through the
+        // origin and these are the heights and the girth measured off it.
+        private const float HeadTop = 1.80f;
+        private const float ShoulderHeight = 1.45f;
+        private const float BodyRadius = 0.30f;
+
+        /// <summary>Half the shoulder span. What "a shoulder's offset" has to beat to mean anything.</summary>
+        private const float ShoulderHalfWidth = 0.22f;
 
         /// The path has to be swept, not spot-checked: the pack is kinematic, so a single frame
         /// spent under the surface is a frame of the pack buried in a dune, and a midpoint-only
@@ -87,6 +98,135 @@ namespace SpaceGame.Tests
                 Vector3 p = BackpackDeployArc.Evaluate(start, end, T(i), arcHeight, outward).position;
 
                 Assert.GreaterOrEqual(p.y, floor - 1e-4f, $"{because}: dipped at t = {T(i)}");
+            }
+        }
+
+        // ─────────── over the shoulder ───────────
+        //
+        // The claim the deploy makes is that the pack goes up and OVER one shoulder, clears the
+        // head, and lands in front. That is three checkable statements about a pure function, and
+        // the numbers on BackpackController were picked to satisfy them rather than by eye.
+
+        [Test]
+        public void TheApex_ClearsAStandingPlayersHead()
+        {
+            // Height along the arc is y(t) = h0(1-t) + 2A t(1-t) -- the run contributes nothing,
+            // because the control point sits exactly at the midpoint along it. That peaks at
+            // t = (2A - h0) / 4A with apex (h0 + A) / 2 + h0^2 / 8A, which for a 1.15 m socket and
+            // A = 2.6 is 1.94 m at t = 0.39.
+            Sweep(out float apex, out float apexAt, out _);
+
+            Assert.Greater(apex, HeadTop,
+                "the pack has to pass over the player's head, not through their chest");
+
+            // A throw peaks early and falls further than it rose. Peaking in the second half would
+            // read as the pack being lifted onto the sand rather than lobbed at it.
+            Assert.Less(apexAt, 0.5f, "the apex belongs in the first half of the flight");
+            Assert.Greater(apexAt, 0.2f, "and not so early that the pack leaves the back sideways");
+        }
+
+        [Test]
+        public void AnArcHeightNearHalfTheSocketHeight_DoesNotRiseInAnyVisibleSense()
+        {
+            // The bug this replaced, kept as a test because it was invisible on screen. The peak of
+            // y(t) = h0(1-t) + 2A t(1-t) is at t = (2A - h0) / 4A, which is at or below zero for any
+            // A up to h0/2 -- so with the shipped arcHeight of 0.6 out of a 1.15 m socket the pack's
+            // whole "arc" was half a millimetre of climb and then a slow fall through the chest.
+            // Every frame of it looked arced, because the sideways bow was doing all the work.
+            const float Old = 0.6f;
+
+            float start = Shouldered.position.y;
+            float peak = float.MinValue;
+
+            for (int i = 0; i <= Samples; i++)
+                peak = Mathf.Max(peak, BackpackDeployArc.Evaluate(
+                    Shouldered, Grounded, T(i), Old, Outward).position.y);
+
+            Assert.Less(peak - start, 0.01f,
+                $"arcHeight {Old} climbed {peak - start} m, which is not what it was believed to do");
+
+            Assert.Less(peak, ShoulderHeight, "and it never reached the shoulder, let alone the head");
+        }
+
+        [Test]
+        public void ThePath_LeavesTheBodyUpward_AndNeverSweepsBackThroughTheTorso()
+        {
+            // "Over the shoulder" is a statement about the player's own body, so this is the one
+            // test that measures against it. Two things have to hold while the pack is still within
+            // a body's radius of the spine: it must never be lower than the socket it left -- that
+            // is the sweep through the chest -- and by the time it clears the body it must be above
+            // shoulder height, because that is what going over a shoulder means.
+            float socket = Shouldered.position.y;
+            float lastInside = -1f;
+            float heightLeaving = 0f;
+
+            for (int i = 0; i <= Samples; i++)
+            {
+                Vector3 p = BackpackDeployArc.Evaluate(Shouldered, Grounded, T(i), ArcHeight, Outward).position;
+
+                if (Horizontal(p) >= BodyRadius) continue;
+
+                Assert.GreaterOrEqual(p.y, socket - 1e-4f,
+                    $"the pack sank to {p.y} while still over the player, at t = {T(i)}");
+
+                lastInside = T(i);
+                heightLeaving = p.y;
+            }
+
+            Assert.Greater(lastInside, 0f, "the fixture starts inside the body; a socket is on a back");
+
+            Assert.Greater(heightLeaving, ShoulderHeight,
+                $"the pack left the player's own girth at {heightLeaving} m, below the shoulder");
+
+            // Early, too. Reaching shoulder height only once the pack is already a metre out in
+            // front is not going over a shoulder, it is being pushed off a table.
+            Assert.Less(lastInside, 0.4f, "the pack should be clear of the player early in the flight");
+        }
+
+        [Test]
+        public void TheBow_CarriesThePackAShouldersWidthOffTheSpine()
+        {
+            // The sideways term is what picks a shoulder rather than the top of the head. It has to
+            // be worth a shoulder: a quadratic Bezier reaches half its control-point offset, so the
+            // 0.55 the controller ships is 0.275 m of actual clearance.
+            Sweep(out _, out _, out float bow);
+
+            Assert.Greater(bow, ShoulderHalfWidth,
+                "the pack is meant to pass beside the head, not skim the top of it");
+
+            Assert.AreEqual(Outward * 0.5f, bow, 1e-3f, "and that is exactly half the control offset");
+        }
+
+        [Test]
+        public void ThePack_StillLandsInFrontOfThePlayer()
+        {
+            // The throw is not allowed to have moved the drop point. Everything above is about the
+            // journey; this is the thing the player asked for.
+            Vector3 end = BackpackDeployArc.Evaluate(Shouldered, Grounded, 1f, ArcHeight, Outward).position;
+
+            Assert.AreEqual(Grounded.position, end);
+            Assert.Greater(end.z, 1f, "in front, along the deploy direction");
+            Assert.Less(Mathf.Abs(end.x), 1e-4f, "and square on, whatever the arc did on the way");
+        }
+
+        /// <summary>Horizontal distance from the spine, which the fixture puts on the world Y axis.</summary>
+        private static float Horizontal(Vector3 p) => new Vector2(p.x, p.z).magnitude;
+
+        /// <summary>One pass over the shipped arc, reporting the peak and the widest bow.</summary>
+        private static void Sweep(out float apex, out float apexAt, out float bow)
+        {
+            apex = float.MinValue;
+            apexAt = 0f;
+            bow = 0f;
+
+            for (int i = 0; i <= Samples; i++)
+            {
+                Vector3 p = BackpackDeployArc.Evaluate(Shouldered, Grounded, T(i), ArcHeight, Outward).position;
+
+                if (p.y > apex) { apex = p.y; apexAt = T(i); }
+
+                // The run is along +Z in this fixture, so the bow square to it is the world X.
+                bow = Mathf.Max(bow, Mathf.Abs(p.x));
             }
         }
 

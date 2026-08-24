@@ -149,7 +149,30 @@ namespace SpaceGame.Characters
 
         public bool InCutsceneMode => inCutsceneMode;
 
-        public void EnterCutsceneMode()
+        /// <summary>
+        /// The whole HUD instance — crosshair, helmet, health, death screen and the hotbar.
+        ///
+        /// Exposed so a screen that takes control with <c>hideHud: false</c> can reach in and hide
+        /// the one part of it that would be wrong. Backpack focus mode is the case that needed it:
+        /// items are dragged onto the hotbar, so the hotbar has to stay, but there is nothing to
+        /// aim at and a crosshair over a cursor reads as two cursors.
+        /// </summary>
+        public GameObject HudRoot => playerHUD;
+
+        public void EnterCutsceneMode() => EnterCutsceneMode(hideHud: true);
+
+        /// <summary>
+        /// As <see cref="EnterCutsceneMode()"/>, but <paramref name="hideHud"/> false leaves the
+        /// HUD on screen.
+        ///
+        /// <para>
+        /// A separate overload rather than a changed signature because the no-argument form is
+        /// what <c>CutsceneDirector</c>, <c>MatchResultUI</c> and <c>GameplayMenuScope</c> all
+        /// call, and hiding the HUD is right for every one of them. Only a screen the player is
+        /// meant to use *with* their gear visible wants the other behaviour.
+        /// </para>
+        /// </summary>
+        public void EnterCutsceneMode(bool hideHud)
         {
             if (inCutsceneMode) return;
             inCutsceneMode = true;
@@ -164,7 +187,11 @@ namespace SpaceGame.Characters
             playerMovement.enabled = false;
             playerLook.enabled = false;
             damageFeedback.enabled = false;
-            playerHUD.SetActive(false);
+
+            // Left alone rather than re-asserted when hideHud is false: ExitCutsceneMode restores
+            // savedHudActive either way, so a HUD that was already off stays off and one that was
+            // on is handed back exactly as it was found.
+            if (hideHud) playerHUD.SetActive(false);
         }
 
         public void ExitCutsceneMode()

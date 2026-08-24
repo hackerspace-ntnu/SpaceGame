@@ -28,6 +28,23 @@ namespace SpaceGame.Items
             Left
         }
 
+        /// <summary>
+        /// How the upper body holds this item. Selects a state on the holder's Upper Body layer.
+        ///
+        /// <para>
+        /// <see cref="None"/> is not authorable — it means "nothing in this hand" and exists so
+        /// the rig has a value for empty-handed. It is deliberately 0 so an unset animator
+        /// parameter reads as empty rather than as some pose nobody chose.
+        /// </para>
+        /// </summary>
+        public enum HoldStyle
+        {
+            None = 0,
+            Relaxed = 1,
+            OneHanded = 2,
+            TwoHanded = 3
+        }
+
         [Header("Where the hand closes")]
         [Tooltip("Child transform the hand grips. Leave empty to grip the prefab root. Its position " +
                  "is what lands in the palm; its rotation is ignored — use rotationOffset for angle.")]
@@ -35,6 +52,11 @@ namespace SpaceGame.Items
 
         [Tooltip("Which hand this is held in. Left mirrors the grip frame.")]
         [SerializeField] private Hand hand = Hand.Right;
+
+        [Tooltip("How the body holds this. OneHanded suits most things; TwoHanded brings the off " +
+                 "hand onto the item's second handle; Relaxed is for something carried rather " +
+                 "than wielded, like a potion.")]
+        [SerializeField] private HoldStyle holdStyle = HoldStyle.OneHanded;
 
         [Header("Pose")]
         [Tooltip("Rotation applied in hand space. Start from zero: the item's +Z points where the " +
@@ -68,6 +90,9 @@ namespace SpaceGame.Items
         public Transform GripPoint => gripPoint != null ? gripPoint : transform;
 
         public Hand HeldIn => hand;
+
+        /// <summary>How the upper body poses around this item. Never <see cref="HoldStyle.None"/>.</summary>
+        public HoldStyle Style => holdStyle == HoldStyle.None ? HoldStyle.OneHanded : holdStyle;
         public Vector3 RotationOffset => rotationOffset;
         public Vector3 PositionOffset => positionOffset;
 
@@ -82,6 +107,11 @@ namespace SpaceGame.Items
         private void OnValidate()
         {
             holdSize = Mathf.Max(0f, holdSize);
+
+            // None means empty-handed and is not something an item may claim. Silently corrected
+            // rather than warned about, because the only way to get here is the inspector's own
+            // enum popup and the correction is unambiguous.
+            if (holdStyle == HoldStyle.None) holdStyle = HoldStyle.OneHanded;
 
             // A grip point outside this prefab is a reference that survives in the inspector and
             // dies the moment the prefab is instantiated, leaving the item to grip its own root

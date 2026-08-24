@@ -263,6 +263,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
   gripPoint: {fileID: 3775171016891511374}
   hand: 0
+  holdStyle: 1
   rotationOffset: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
   holdSize: 0.3
@@ -290,11 +291,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 7fcaa9cb13d084a3eb444ea261913966, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.7071067
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 7fcaa9cb13d084a3eb444ea261913966, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.7071068
+      value: -0.0000000842937
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 7fcaa9cb13d084a3eb444ea261913966, type: 3}
       propertyPath: m_LocalRotation.y
@@ -302,7 +303,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 7fcaa9cb13d084a3eb444ea261913966, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 7fcaa9cb13d084a3eb444ea261913966, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x

@@ -5,6 +5,10 @@ description: Use when something must survive save/quit/load in SpaceGame — sta
 
 # SpaceGame Persistence
 
+> **Design check:** when deciding *what* the game should remember, or how saving is surfaced to the
+> player, read the `ARCH`, `UX` and `PROG` principles in
+> `docs/game-development-constitution/INDEX.md` and cite their IDs.
+
 Persistence in this project fails **silently**: nothing throws, no test goes red, and the player's
 session is simply gone. The core principle is that a saved object is addressed by **identity, never
 by scene** (`WorldStreamer` migrates entities between chunks, so scene membership is where a thing

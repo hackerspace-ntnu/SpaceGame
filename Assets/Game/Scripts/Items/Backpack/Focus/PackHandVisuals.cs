@@ -5,11 +5,12 @@ using UnityEngine;
 namespace SpaceGame.Items
 {
     /// <summary>
-    /// Everything focus mode draws that is not the pack itself: the hover rim, the dragged copy
-    /// and its tint, the ghost left behind at the origin, and the item's name by the cursor.
+    /// Everything focus mode draws that is not the pack itself: the hover rim, the carried copy —
+    /// in the item's own materials — the ghost left behind at the origin, and the item's name by
+    /// the cursor.
     ///
     /// <para>
-    /// Split out of <c>PackDragController</c> so that file can be about <em>what the player is
+    /// Split out of <c>PackHandController</c> so that file can be about <em>what the player is
     /// doing</em> and this one about <em>what that looks like</em>. They are genuinely separable:
     /// nothing here reads input, decides a placement or talks to the network, and nothing there
     /// touches a material.
@@ -20,27 +21,27 @@ namespace SpaceGame.Items
     /// hundreds of times.
     /// </para>
     /// </summary>
-    public sealed class PackDragVisuals
+    public sealed class PackHandVisuals
     {
         private const string ShaderName = "SpaceGame/PackDragTint";
 
-        /// <summary>Metres the dragged copy floats above the surface it is over.</summary>
-        private const float DragLift = 0.06f;
+        /// <summary>
+        /// Metres the carried copy floats above the surface it is over. Low on purpose: the copy
+        /// is depth-tested against the verdict cells lying on the face (see
+        /// <see cref="PackGridVisual"/>), and under the focus camera's pitch every centimetre of
+        /// lift slides the patch of cells the copy occludes about a centimetre across the face —
+        /// at 0.03 m the cut-out still sits on the copy's own footprint rather than a visible
+        /// cell toward the camera, while the copy still reads as picked up.
+        /// </summary>
+        private const float CarryLift = 0.03f;
 
-        // Spec 5.2: a flat desaturated grey around 0.55 value with a thin brighter outline, so the
-        // silhouette reads against the pack's canvas and against sand. Red on conflict.
-        private static readonly Color DragBody = new(0.55f, 0.55f, 0.55f, 1f);
-        private static readonly Color DragOutline = new(0.88f, 0.88f, 0.88f, 1f);
-        private static readonly Color ConflictBody = new(0.62f, 0.16f, 0.14f, 1f);
-        private static readonly Color ConflictOutline = new(1f, 0.42f, 0.36f, 1f);
+        /// <summary>The refusal flash: a red outline shell traced round the carried copy. The
+        /// copy keeps the item's own materials at all times, so the flash is a rim, never a
+        /// repaint — the verdict colour itself lives in the cells under the copy.</summary>
+        private static readonly Color DeniedRim = new(1f, 0.42f, 0.36f, 1f);
 
         private static readonly Color HoverRim = new(1f, 0.92f, 0.6f, 1f);
         private static readonly Color GhostRim = new(0.6f, 0.62f, 0.66f, 0.5f);
-
-        // Same colour as ConflictOutline, by reference rather than by a second matching literal —
-        // the denied rim IS the conflict palette borrowed for a second role, and a literal typed
-        // twice is a literal that can drift the next time one of them is retouched.
-        private static readonly Color DeniedRim = ConflictOutline;
 
         /// <summary>
         /// Outline width as a fraction of the item's own longest side, and the metres it is
@@ -58,16 +59,15 @@ namespace SpaceGame.Items
         private const float MinOutlineWidth = 0.0015f;
         private const float MaxOutlineWidth = 0.010f;
 
-        /// Relative weights, keeping the ghost the widest and the hover rim the finest — the
-        /// proportions the three roles were originally authored with.
+        /// Relative weights, keeping the ghost the widest, the denied flash between, and the
+        /// hover rim the finest — the proportions the three roles were originally authored with.
         private const float HoverWeight = 1f;
-        private const float DragWeight = 1.2f;
+        private const float DeniedWeight = 1.2f;
         private const float GhostWeight = 1.4f;
 
         /// <summary>Marks the shell objects this class adds, so it never re-shells its own work.</summary>
         private const string ShellName = "PackOutlineShell";
 
-        private static readonly int ColorId = Shader.PropertyToID("_Color");
         private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
         private static readonly int OutlineWidthId = Shader.PropertyToID("_OutlineWidth");
         private static readonly int BodyOnId = Shader.PropertyToID("_BodyOn");
@@ -77,54 +77,64 @@ namespace SpaceGame.Items
         private static readonly int DstBlendId = Shader.PropertyToID("_DstBlend");
         private static readonly int ZWriteId = Shader.PropertyToID("_ZWrite");
 
-        private readonly Material dragMaterial;
+        private readonly Material deniedMaterial;
         private readonly Material hoverMaterial;
         private readonly Material ghostMaterial;
 
         private GameObject proxy;
         private PackSurface proxySurface;
-        private Vector2 proxyUv;
         private float proxyYaw;
+
+        /// <summary>
+        /// The world point the copy's footprint is currently centred over — the seat uv while it
+        /// is on a face, the free point the controller picked while it is not. A world anchor
+        /// rather than a remembered uv, because the copy travels off the faces entirely (see
+        /// <see cref="MoveCarryFree"/>) and a uv only means anything while it is on one; every
+        /// move is a translation against this, so the seating offset the copy was built with
+        /// rides along unchanged wherever it goes.
+        /// </summary>
+        private Vector3 proxyAnchor;
 
         private Canvas labelCanvas;
         private TextMeshProUGUI label;
 
-        // The shell objects standing in for the hover rim and the ghost. They are parented to the
-        // renderers they trace, so a display copy destroyed under us — a layout change from
-        // another player does exactly that — takes its shells with it and leaves nothing dangling.
+        // The shell objects standing in for the hover rim, the ghost and the refusal flash. They
+        // are parented to the renderers they trace, so a display copy destroyed under us — a
+        // layout change from another player does exactly that — takes its shells with it and
+        // leaves nothing dangling.
         private readonly List<GameObject> rimShell = new();
         private readonly List<GameObject> ghostShell = new();
+        private readonly List<GameObject> deniedShell = new();
         private GameObject rimmed;
         private GameObject ghosted;
 
-        public PackDragVisuals()
+        public PackHandVisuals()
         {
             Shader shader = Shader.Find(ShaderName);
 
-            // Same fallback shape HelmetDangerVignette uses. Without the custom shader the tint
-            // still reads — it just loses the outline and the draw-on-top, which are polish on
-            // something that still communicates.
+            // Same fallback shape HelmetDangerVignette uses, so a missing project shader keeps
+            // the session alive rather than null-reffing it. It is a keep-running fallback, not a
+            // visual one: URP/Unlit knows nothing of the outline pass, so the three rim shells
+            // would render as plain colour instead of a rim. The carried copy itself is immune —
+            // it wears the item's own materials, never one of these.
             if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
 
-            dragMaterial = Build(shader, "PackDrag");
+            deniedMaterial = Build(shader, "PackDeniedRim");
             hoverMaterial = Build(shader, "PackHover");
             ghostMaterial = Build(shader, "PackGhost");
 
-            // The dragged copy: body and outline, depth test off, queued after everything. This is
-            // spec 4.3's "visible at all times" — an item halfway across the rig must not vanish
-            // behind the back panel it is passing.
-            dragMaterial.SetFloat(BodyOnId, 1f);
-            dragMaterial.SetFloat(OutlineOnId, 1f);
-            dragMaterial.SetFloat(ZTestId, (float)UnityEngine.Rendering.CompareFunction.Always);
-            dragMaterial.renderQueue = 4000;
-            SetDragTint(conflict: false);
-
-            // Hover and ghost: the outline pass only, depth-tested normally, drawn on a shell that
-            // traces the real item so the ITEM lights up. Spec 5.2 is explicit that there is no
-            // floating UI box. The widths here are placeholders — every Apply sets a real one from
-            // the item's own size.
+            // No carry material at all: the carried copy keeps the ITEM'S OWN materials, so what
+            // the player holds looks exactly like the thing they are placing. The verdict is not
+            // painted onto it — it is the green/red cells on the face beneath it — and the
+            // refusal flash below is an outline shell round it, never a repaint.
+            //
+            // Hover, ghost and the denied flash: the outline pass only, depth-tested normally,
+            // drawn on a shell that traces the real item so the ITEM lights up — no floating UI
+            // box. The widths here are placeholders — every Apply sets a real one from the item's
+            // own size.
             ConfigureRim(hoverMaterial, HoverRim, MinOutlineWidth);
             ConfigureRim(ghostMaterial, GhostRim, MinOutlineWidth);
+            ConfigureRim(deniedMaterial, DeniedRim, MinOutlineWidth);
         }
 
         private static Material Build(Shader shader, string name) =>
@@ -156,15 +166,7 @@ namespace SpaceGame.Items
             BuildShell(rimmed, hoverMaterial, HoverWeight, rimShell);
         }
 
-        /// <summary>
-        /// Turns the hover rim refusal-red, or back. The one thing a refused take shows —
-        /// there is no message — so it borrows the conflict palette the drag tint already
-        /// taught the player.
-        /// </summary>
-        public void SetHoverDenied(bool denied) =>
-            hoverMaterial.SetColor(OutlineColorId, denied ? DeniedRim : HoverRim);
-
-        /// <summary>The outline left standing where a dragged item came from.</summary>
+        /// <summary>The outline left standing where a carried item came from.</summary>
         public void SetGhost(GameObject visual)
         {
             if (visual != null && ghosted == visual) return;
@@ -173,33 +175,43 @@ namespace SpaceGame.Items
             BuildShell(ghosted, ghostMaterial, GhostWeight, ghostShell);
         }
 
-        // ── The dragged copy ─────────────────────────────────────────────────
+        // ── The carried copy ─────────────────────────────────────────────────
 
         /// <summary>
         /// Put a copy of <paramref name="itemPrefab"/> in the player's hand, at true size.
         ///
+        /// <para>
         /// A separate copy rather than the placed one, because the placed one belongs to
         /// <c>BackpackObject</c> and is destroyed and rebuilt wholesale on every layout change —
-        /// including the one this drag is about to cause.
+        /// including the one this carry is about to cause.
+        /// </para>
+        /// <para>
+        /// Answers whether a copy is actually standing there. <see cref="BackpackItemVisual"/>
+        /// hands back null for a prefab it cannot build, and the caller records "the copy exists"
+        /// to decide whether to keep moving it — so reporting the attempt rather than the result
+        /// would leave the carry running invisibly while the cells kept promising a landing.
+        /// </para>
         /// </summary>
-        public void BeginDrag(GameObject itemPrefab, PackSurface surface, Vector2 uv, float yaw)
+        public bool BeginCarry(GameObject itemPrefab, PackSurface surface, Vector2 uv, float yaw)
         {
-            EndDrag();
+            EndCarry();
             Rebuild(itemPrefab, surface, uv, yaw);
+
+            return proxy != null;
         }
 
         /// <summary>
-        /// Follow the cursor.
+        /// Follow the cursor across a face.
         ///
         /// <para>
         /// Within one face this is a translation, because a surface is planar and rigid: the world
-        /// delta between two uvs is exact, and re-seating from scratch every frame would mean an
-        /// Instantiate and a DestroyImmediate per frame. Crossing to another face, or turning,
-        /// changes the seating, so those rebuild — both are things a player does a handful of times
-        /// per drag.
+        /// delta between two anchor points is exact, and re-seating from scratch every frame would
+        /// mean an Instantiate and a DestroyImmediate per frame. Crossing to another face, or
+        /// turning, changes the seating, so those rebuild — both are things a player does a
+        /// handful of times per carry.
         /// </para>
         /// </summary>
-        public void MoveDrag(GameObject itemPrefab, PackSurface surface, Vector2 uv, float yaw)
+        public void MoveCarry(GameObject itemPrefab, PackSurface surface, Vector2 uv, float yaw)
         {
             if (proxy == null || surface == null) return;
 
@@ -209,19 +221,73 @@ namespace SpaceGame.Items
                 return;
             }
 
-            proxy.transform.position += surface.ToWorld(uv, 0f) - surface.ToWorld(proxyUv, 0f);
-            proxyUv = uv;
+            MoveTo(surface.ToWorld(uv, 0f));
         }
 
-        /// <summary>Grey, or red where the drop would be refused.</summary>
-        public void SetDragTint(bool conflict)
+        /// <summary>
+        /// Follow the cursor where there is no face under it at all.
+        ///
+        /// <para>
+        /// The carry is on screen everywhere, not only over the rig: off the faces the copy rides
+        /// a point the controller picks on the cursor ray, keeping the seating it had when it
+        /// left the last face — its scale, that face's orientation, the lift. Nothing snaps and
+        /// no cells are drawn out here; the copy is simply the thing in the player's hand,
+        /// travelling.
+        /// </para>
+        /// <para>
+        /// A turn rebuilds, exactly as it does in <see cref="MoveCarry"/>: the copy is the single
+        /// readout of what is in the hand, so a click on the sand that rotates the item has to be
+        /// visible on the sand — not held in state until the cursor next crosses a face and then
+        /// snapping a quarter turn there. The rebuild re-seats against the face the copy kept
+        /// (scale and orientation frame) and the translation below puts it straight back on the
+        /// cursor point, so nothing moves but the turn.
+        /// </para>
+        /// </summary>
+        public void MoveCarryFree(GameObject itemPrefab, Vector3 worldPoint, float yaw)
         {
-            dragMaterial.SetColor(ColorId, conflict ? ConflictBody : DragBody);
-            dragMaterial.SetColor(OutlineColorId, conflict ? ConflictOutline : DragOutline);
+            if (proxy == null) return;
+
+            if (!Mathf.Approximately(yaw, proxyYaw) && proxySurface != null)
+            {
+                Rebuild(itemPrefab, proxySurface, proxySurface.Size * 0.5f, yaw);
+                if (proxy == null) return;
+            }
+
+            MoveTo(worldPoint);
         }
 
-        public void EndDrag()
+        /// <summary>Translate the copy so its anchor lands on <paramref name="worldPoint"/> —
+        /// translation only, so the built-in seating offset (centre height, pivot correction,
+        /// lift) rides along unchanged.</summary>
+        private void MoveTo(Vector3 worldPoint)
         {
+            proxy.transform.position += worldPoint - proxyAnchor;
+            proxyAnchor = worldPoint;
+        }
+
+        /// <summary>
+        /// Flashes a refusal round the held copy, or clears it: a red outline shell traced over
+        /// the copy's renderers — the same machinery as the hover rim — so the item's own
+        /// materials are never touched.
+        ///
+        /// Not the ordinary "this spot is taken" readout — the ghost cells carry that, in green
+        /// and red, on every frame. This is the one click that can change nothing at all: red
+        /// cells under a SYMMETRIC item, where the quarter turn a refused click answers with
+        /// would occupy the identical cells. A click that does nothing has to say so, or the
+        /// button reads as broken.
+        /// </summary>
+        public void SetCarryDenied(bool denied)
+        {
+            if (denied && proxy != null) BuildShell(proxy, deniedMaterial, DeniedWeight, deniedShell);
+            else ClearShell(deniedShell);
+        }
+
+        public void EndCarry()
+        {
+            // The shell parts die with the proxy either way; clearing the list here is what stops
+            // it accumulating dead references across carries.
+            ClearShell(deniedShell);
+
             if (proxy != null) Object.Destroy(proxy);
 
             proxy = null;
@@ -231,12 +297,18 @@ namespace SpaceGame.Items
 
         private void Rebuild(GameObject itemPrefab, PackSurface surface, Vector2 uv, float yaw)
         {
+            // The flash's shell traces renderers on the copy that is about to go; a flash caught
+            // mid-air ends here rather than dangling on destroyed objects. (The controller's
+            // timer clears its own half of the state on its own schedule — SetCarryDenied(false)
+            // on an already-clear shell is a no-op.)
+            ClearShell(deniedShell);
+
             if (proxy != null) Object.Destroy(proxy);
 
             proxy = BackpackItemVisual.Build(itemPrefab, surface, uv, yaw);
             proxySurface = surface;
-            proxyUv = uv;
             proxyYaw = yaw;
+            proxyAnchor = surface != null ? surface.ToWorld(uv, 0f) : Vector3.zero;
 
             if (proxy == null) return;
 
@@ -246,13 +318,12 @@ namespace SpaceGame.Items
             foreach (Collider collider in proxy.GetComponentsInChildren<Collider>(true))
                 Object.Destroy(collider);
 
-            proxy.transform.position += surface.transform.up * DragLift;
+            proxy.transform.position += surface.transform.up * CarryLift;
 
-            // The proxy is ours alone, so its own materials can be replaced outright rather than
-            // shelled — one material per submesh means every submesh gets both passes, which is
-            // exactly what a shell buys elsewhere.
-            dragMaterial.SetFloat(OutlineWidthId, OutlineWidthFor(proxy, DragWeight));
-            Paint(proxy, dragMaterial);
+            // And that is ALL: the copy keeps the item's original materials — Build never touches
+            // a renderer — so the thing in the player's hand has its normal colours, looking
+            // exactly as it will placed. Being opaque and lifted, it also writes depth over the
+            // verdict cells on the face below, which is what cuts its silhouette out of them.
         }
 
         // ── The name by the cursor ───────────────────────────────────────────
@@ -288,7 +359,7 @@ namespace SpaceGame.Items
             labelCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
 
             // Over the HUD, which is still on screen: focus mode keeps the hotbar because items
-            // are dragged onto it.
+            // are carried onto it.
             labelCanvas.sortingOrder = 500;
 
             var textGo = new GameObject("Text");
@@ -427,45 +498,26 @@ namespace SpaceGame.Items
             return Mathf.Clamp(span * OutlineFraction * weight, MinOutlineWidth, MaxOutlineWidth);
         }
 
-        private static void Paint(GameObject visual, Material material)
-        {
-            foreach (Renderer renderer in visual.GetComponentsInChildren<Renderer>(true))
-            {
-                if (renderer == null) continue;
-
-                // One slot per SUBMESH, not per existing material. A prop whose renderer ships
-                // fewer materials than submeshes would otherwise keep drawing its own material on
-                // the submeshes past the end of the array, and the drag tint would come out
-                // patchy on exactly the multi-submesh props this roster is full of.
-                Mesh mesh = MeshOf(renderer);
-                int slots = Mathf.Max(mesh != null ? mesh.subMeshCount : 0,
-                                      renderer.sharedMaterials.Length);
-
-                var all = new Material[Mathf.Max(1, slots)];
-                for (int i = 0; i < all.Length; i++) all[i] = material;
-
-                renderer.sharedMaterials = all;
-            }
-        }
-
-        /// <summary>Destroys everything this owns: both outline shells, the label and
+        /// <summary>Destroys everything this owns: the outline shells, the label and
         /// the three materials.</summary>
         public void Dispose()
         {
             SetHovered(null);
             SetGhost(null);
-            EndDrag();
+            EndCarry();
 
-            // SetHovered(null) and SetGhost(null) above already cleared these unless nothing was
-            // lit, in which case the early-out skipped them. Cheap and idempotent either way.
+            // SetHovered(null), SetGhost(null) and EndCarry above already cleared these unless
+            // nothing was lit, in which case the early-out skipped them. Cheap and idempotent
+            // either way.
             ClearShell(rimShell);
             ClearShell(ghostShell);
+            ClearShell(deniedShell);
 
             if (labelCanvas != null) Object.Destroy(labelCanvas.gameObject);
             labelCanvas = null;
             label = null;
 
-            Object.Destroy(dragMaterial);
+            Object.Destroy(deniedMaterial);
             Object.Destroy(hoverMaterial);
             Object.Destroy(ghostMaterial);
         }

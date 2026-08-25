@@ -187,6 +187,16 @@ namespace SpaceGame.Items
         [SerializeField] private SfxId biteSoundId = SfxId.ImpactMetal;
         [SerializeField] private EventReference biteSound;
 
+        [Header("Networking")]
+        [Tooltip("Seconds of silence after which a rope in flight or a swing lets go by itself. " +
+                 "The safety net for a hold stream that stopped — a dropped packet, or a swinger " +
+                 "who disconnected mid-arc. Must comfortably exceed EquipmentController's send " +
+                 "interval.\n\nLarger than the lasso's on purpose: a grapple's hold stream " +
+                 "legitimately runs for the whole of a long swing, and cutting a swinger loose " +
+                 "over a canyon on one dropped packet is worse than holding a rope half a second " +
+                 "too long.")]
+        [SerializeField] private float holdTimeout = 1.5f;
+
         // What the press meant, carried in NetArg.B. A is already the hotbar slot, so B it is.
         private const int Release = 0;
         private const int Attach  = 1;
@@ -194,7 +204,19 @@ namespace SpaceGame.Items
         // ── Runtime state ──────────────────────────────────────────────────────
         private bool _isGrappling;
         private bool _isShooting;
-        private bool _winching;
+
+        /// <summary>Whether the winch is running. See <see cref="WinchLatch"/> for why it is not a bool.</summary>
+        private readonly WinchLatch _winch = new();
+
+        /// <summary>
+        /// When the last hold tick arrived, for the timeout below.
+        ///
+        /// A release is one message, and one message is exactly the kind of thing that goes
+        /// missing — along with the player who was holding the button.
+        /// EquipmentController.OnDisable ends a hold LOCALLY on death and leaves the remote halves
+        /// to the item's own timeout, which is the convention LaserStaffArtifact set.
+        /// </summary>
+        private float _lastHoldTime;
 
         private Vector3 _hookPoint;
         private Vector3 _hitNormal = Vector3.up;
@@ -228,6 +250,146 @@ namespace SpaceGame.Items
 
             if (showAimHint && OwnsMovement())
                 _crosshair = FindFirstObjectByType<CrosshairUI>();
+
+            // Every machine equips from the replicated hotbar, so every machine — the swinger's,
+            // the server's and every peer's — gets its own instance and its own registration.
+            Listen(holder != null ? holder.transform : null);
+        }
+
+        public override void OnUnequipped(GameObject holder)
+        {
+            base.OnUnequipped(holder);
+            Listen(null);
+        }
+
+        // ── Across the network ─────────────────────────────────────────────────
+        //
+        // On the SWINGER's channel rather than this item's. This prefab carries a NetworkObject of
+        // its own — it has to, because dropping the item routes through World.Spawn — and that
+        // NetworkObject is never spawned while the item is in a hand, so a send from here would
+        // resolve to a dormant relay and quietly run on the local machine only. The lasso rides the
+        // thrower's channel for exactly the same reason.
+
+        /// <summary>The transform whose channel we are registered on, so we unregister from it.</summary>
+        private Transform _channel;
+
+        private void Listen(Transform channel)
+        {
+            if (_channel == channel) return;
+
+            NetworkManager manager = NetworkManager.Singleton;
+
+            if (_channel != null)
+            {
+                _channel.NetOff(NetMsg.GrappleRope, OnRopeMessage);
+                if (manager != null) manager.OnClientConnectedCallback -= OnPeerJoined;
+            }
+
+            _channel = channel;
+            if (_channel == null) return;
+
+            _channel.NetOn(NetMsg.GrappleRope, OnRopeMessage);
+            if (manager != null) manager.OnClientConnectedCallback += OnPeerJoined;
+        }
+
+        /// <summary>
+        /// Owner-side: tell everyone the rope has let go on its own.
+        ///
+        /// <para>
+        /// Only from the owner, because only the owner's release is real — a peer's copy runs no
+        /// swing and has nothing to announce. It exists because a peer cannot observe this: the
+        /// auto-release fires inside one physics step and the exit boost carries the body straight
+        /// back out of the arrival sphere, so a peer watching an interpolated transform may have no
+        /// sample inside it at all, and would draw the rope until something else stopped it.
+        /// </para>
+        /// <para>
+        /// NetTo.Server rather than All: a client may not broadcast, and the server relays it on.
+        /// </para>
+        /// </summary>
+        private void AnnounceRelease()
+        {
+            if (owner == null || !OwnsMovement()) return;
+
+            NetMessaging.NetSendTo(owner, NetMsg.GrappleRope,
+                                   new NetArg { A = GrappleVerb.Off }, NetTo.Server);
+        }
+
+        /// <summary>
+        /// Somebody joined. If this rope is still out, say so again.
+        ///
+        /// <para>
+        /// From the authority only — a client may not broadcast, and the server holds its own copy
+        /// of every equipped item, so it can answer for any player's rope. GrappleVerb.On is an
+        /// absolute state rather than an edge, so re-sending it costs everyone already drawing the
+        /// rope one idempotent no-op.
+        /// </para>
+        /// </summary>
+        private void OnPeerJoined(ulong clientId)
+        {
+            if (!Network.Server || !_isGrappling || owner == null) return;
+            if (clientId == NetworkManager.ServerClientId) return;
+
+            NetMessaging.NetSendTo(owner, NetMsg.GrappleRope, new NetArg
+            {
+                A = GrappleVerb.On,
+                P = _hookPoint,
+                R = Quaternion.LookRotation(_hitNormal),
+            }.With(_hookAttach != null ? _hookAttach.gameObject : null), NetTo.All);
+        }
+
+        /// <summary>
+        /// The rope changed state somewhere else. Runs on every machine, and twice on the host —
+        /// once for a client's request and once for the broadcast it makes — which is why both
+        /// branches below are safe to run against state that already matches.
+        /// </summary>
+        private void OnRopeMessage(in NetArg arg, ulong sender)
+        {
+            // The server is the only machine allowed to broadcast, so it passes the news on before
+            // acting. Excluding the sender keeps the announcing client from presenting twice.
+            if (Network.Server && sender != Network.LocalClientId)
+                NetMessaging.NetSendTo(owner, NetMsg.GrappleRope, arg, NetTo.Others);
+
+            if (arg.A == GrappleVerb.On)
+            {
+                AdoptRope(arg);
+                return;
+            }
+
+            StopGrapple();
+        }
+
+        /// <summary>
+        /// Take up a rope that was already out when this machine started listening — a joiner, or a
+        /// peer that missed the press.
+        ///
+        /// <para>
+        /// Idempotent: a machine already drawing this rope keeps it rather than starting a rival
+        /// throw, which is the guard <see cref="Present"/> uses for the same reason.
+        /// </para>
+        /// </summary>
+        private void AdoptRope(in NetArg arg)
+        {
+            if (_isGrappling || _isShooting) return;
+            if (owner == null) return;
+
+            CacheOwner();
+
+            _hookPoint = arg.P;
+            _hitNormal = arg.HasOrientation ? arg.R * Vector3.forward : Vector3.up;
+
+            BindAttach(arg.Resolve());
+
+            // Straight to the bite, skipping the flight: the dart landed before this machine was
+            // listening, and replaying its arc would draw a rope flying to a place it already is.
+            _winch.Reset();
+            _lastHoldTime = Time.time;
+
+            _isShooting = false;
+            rope.Bind(lineRenderer);
+            rope.Show();
+            SpawnHead(GetRopeStart(), _hookPoint - GetRopeStart());
+
+            Bite();
         }
 
         /// <summary>
@@ -302,6 +464,12 @@ namespace SpaceGame.Items
             if (_isGrappling || _isShooting) return;
             if (owner == null) return;
 
+            // A fresh throw. The trigger is down by definition — a press is what started this — and
+            // the clock has to be stamped or the timeout below fires before the first hold tick
+            // arrives.
+            _winch.Reset();
+            _lastHoldTime = Time.time;
+
             CacheOwner();
 
             _hookPoint = UseArg.P;
@@ -334,8 +502,16 @@ namespace SpaceGame.Items
         /// </summary>
         protected override void PresentHold(NetArg arg, bool active)
         {
-            if (!_isGrappling) return;
-            _winching = active;
+            _lastHoldTime = Time.time;
+
+            // Observed UNCONDITIONALLY, including while the dart is still in the air, and that is
+            // the whole fix. This used to return early when !_isGrappling, so a release that beat
+            // the dart was discarded on the machines where it arrived early and honoured on the
+            // ones where it arrived late — and since the bite comes off a LOCAL flight timer while
+            // the release comes off a RELAYED message, which of those happened differed per machine
+            // by network jitter. The two never reconciled: the loser drew the rope forever and then
+            // silently discarded the thrower's NEXT throw. See WinchLatch.
+            _winch.Observe(active);
         }
 
         // ── The throw ──────────────────────────────────────────────────────────
@@ -388,7 +564,7 @@ namespace SpaceGame.Items
             // Catching IS the reel. Waiting for the trigger to still be down meant a tapped
             // grapple caught and then hung, because the release beat the dart to the wall. Letting
             // go from here trades the climb for a swing; see PresentHold.
-            _winching = true;
+            _winch.Bite();
 
             PlantHead(anchor);
             rope.Bite();
@@ -438,6 +614,20 @@ namespace SpaceGame.Items
         private void Update()
         {
             TickAimHint();
+
+            // The safety net — the convention LaserStaffArtifact set, and the lasso follows.
+            // EquipmentController.OnDisable ends a hold LOCALLY on death or teardown and leaves the
+            // remote halves to this. Without it, a swinger who dies or disconnects mid-arc leaves
+            // every other machine drawing their rope for the rest of the session — and the stale
+            // attach flag then discards their next throw after they respawn.
+            //
+            // Only where a stream is expected to be running: a rope let go deliberately has no
+            // ticks left to miss.
+            if ((_isShooting || _isGrappling) && Time.time - _lastHoldTime > holdTimeout)
+            {
+                StopGrapple();
+                return;
+            }
 
             if (_isShooting)
             {
@@ -541,31 +731,34 @@ namespace SpaceGame.Items
         /// <summary>
         /// A peer's half of the swing: the rope, and only the rope. Returns true if it just ended.
         ///
-        /// Everything here is derived from where the swinging player actually is, which their
-        /// NetworkTransform is already delivering, and from the one latch <see cref="PresentHold"/>
-        /// keeps. That is deliberate — it means the reel and the auto-release need no messages of
-        /// their own, and a peer cannot end up drawing a rope the owner has already dropped.
+        /// <para>
+        /// The rope's SHAPE is derived from where the swinging player actually is, which their
+        /// NetworkTransform is already delivering, plus the latch <see cref="PresentHold"/> keeps.
         /// This routine must never touch that body: the owner is its only authority.
+        /// </para>
+        /// <para>
+        /// It no longer decides when the rope ENDS. It used to re-derive the owner's two
+        /// auto-releases here, against an interpolated transform, because the owner's release sent
+        /// nothing — and it could not do that reliably: the winch closes the arrival sphere in less
+        /// than one network sample and the exit boost carries the body straight back out of it, so
+        /// a peer could have no sample inside it at all and would draw the rope forever. The owner
+        /// announces it now instead (<see cref="NetMsg.GrappleRope"/>).
+        /// </para>
         /// </summary>
         private bool TickRemoteRope(Vector3 anchor)
         {
             float dist = Vector3.Distance(OwnerPosition(), anchor);
 
-            if (!_winching)
+            if (!_winch.Winching)
             {
                 _stallTime = 0f;
                 _lastDistance = dist;
                 return false;
             }
 
+            // Still ratcheted, so a peer's rope shortens with the climb rather than being drawn
+            // slack for the whole of it.
             Ratchet(dist);
-
-            // The same two auto-releases the owner runs, against the same numbers.
-            if (dist <= arrivalDistance || IsStalled(dist, Time.deltaTime))
-            {
-                StopGrapple();
-                return true;
-            }
 
             return false;
         }
@@ -596,7 +789,7 @@ namespace SpaceGame.Items
 
             Vector3 radial = toHook / dist;
 
-            if (_winching)
+            if (_winch.Winching)
             {
                 Winch(radial, dist, dt);
                 Ratchet(dist);
@@ -604,7 +797,7 @@ namespace SpaceGame.Items
 
             ApplyRopeConstraint(anchor, radial, dist, dt);
 
-            if (_winching && dist <= arrivalDistance)
+            if (_winch.Winching && dist <= arrivalDistance)
             {
                 ReleaseInto(radial, arrived: true);
                 return;
@@ -687,7 +880,7 @@ namespace SpaceGame.Items
         /// </summary>
         private bool IsStalled(float dist, float dt)
         {
-            if (!_winching)
+            if (!_winch.Winching)
             {
                 _stallTime = 0f;
                 _lastDistance = dist;
@@ -736,6 +929,10 @@ namespace SpaceGame.Items
             // The horizontal half of that is otherwise confiscated inside a fifth of a second by
             // the air-control lerp. The portal gun learned this the same way — see CarryMomentum.
             _movement?.CarryMomentum();
+
+            // Announced BEFORE the teardown, while owner is still set. A peer cannot see this
+            // happen for itself — see AnnounceRelease.
+            AnnounceRelease();
 
             StopGrapple();
         }
@@ -802,8 +999,12 @@ namespace SpaceGame.Items
             // Resumed now rather than in the deferred pass, because the swing is self-contained:
             // a world point is a complete anchor on its own. The reference below only REFINES it,
             // for the case where the thing it is set into has moved since the save.
-            ResumeGrapple(state.GetVector3(HookKey), state.GetFloat(RopeKey),
-                          state.GetVector3(NormKey), state.GetVector3(DirKey));
+            //
+            // A refusal is a rope that is gone, so there is nothing left for that reference to
+            // refine either — fall out rather than leave a pending re-anchor pointing at it.
+            if (!ResumeGrapple(state.GetVector3(HookKey), state.GetFloat(RopeKey),
+                               state.GetVector3(NormKey), state.GetVector3(DirKey)))
+                return;
 
             SaveRef anchor = state.GetRef(AttachKey);
             if (!anchor.IsSet) return;
@@ -843,11 +1044,40 @@ namespace SpaceGame.Items
         /// the same reason <see cref="Bite"/> starts it: reeling is what this hook does, and it
         /// ends by itself at the anchor. Coming back hanging motionless from a rope with no way to
         /// climb it, on a save made over a canyon, is the worse of the two guesses.
+        ///
+        /// <para>
+        /// Answers whether the rope came back, because a record is not evidence that the player is
+        /// still attached to what it describes — see the reach test below.
+        /// </para>
         /// </summary>
-        private void ResumeGrapple(Vector3 hookPoint, float ropeLength, Vector3 normal, Vector3 fired)
+        private bool ResumeGrapple(Vector3 hookPoint, float ropeLength, Vector3 normal, Vector3 fired)
         {
-            if (owner == null) return;
-            if (_isGrappling || _isShooting) return;
+            if (owner == null) return false;
+            if (_isGrappling || _isShooting) return false;
+
+            float length = ropeLength > 0.01f
+                ? ropeLength
+                : Vector3.Distance(owner.transform.position, hookPoint);
+
+            // Only onto a rope the player could still be hanging from.
+            //
+            // The bag is written on every unequip, not only on save: EquipmentController.Unequip
+            // captures the state BEFORE OnUnequipped tears the item down, so swapping hotbar slot
+            // mid-swing leaves a live rope in the slot describing an attachment that stops
+            // existing a moment later. The player is then free to walk, fly or fall any distance
+            // before they come back to that slot.
+            //
+            // Resuming from out there is not a resumed swing. The constraint's over-stretch clamp
+            // writes rb.position onto the rope's sphere, so re-equipping the hook a couple of
+            // hundred metres away teleports the player back to wherever they last used it — the
+            // wing-pack "I land, swap item, and I am back where I took off" report. Measured with
+            // the clamp's own bound, so this refuses exactly the resumes it would have had to
+            // teleport and no others.
+            //
+            // A hook set into something that has since MOVED that far is dropped too, and that is
+            // the same answer: the player is not on that rope any more either.
+            if (Vector3.Distance(owner.transform.position, hookPoint) > length + maxStretch)
+                return false;
 
             CacheOwner();
 
@@ -860,11 +1090,14 @@ namespace SpaceGame.Items
 
             _hookAttach = null;
             _attachOffset = Vector3.zero;
-            _winching = true;
 
-            _ropeLength = ropeLength > 0.01f
-                ? ropeLength
-                : Vector3.Distance(owner.transform.position, hookPoint);
+            // Resumed already bitten and already winching: the dart landed before the save, so
+            // there is no flight left to time and no press coming to start the reel.
+            _winch.Reset();
+            _winch.Bite();
+            _lastHoldTime = Time.time;
+
+            _ropeLength = length;
 
             _isShooting = false;
             _isGrappling = true;
@@ -878,6 +1111,7 @@ namespace SpaceGame.Items
             PlantHead(hookPoint);
 
             if (OwnsMovement()) _movement?.SetTethered(true);
+            return true;
         }
 
         // ── Teardown ───────────────────────────────────────────────────────────
@@ -890,7 +1124,15 @@ namespace SpaceGame.Items
         /// hotbar slots mid-swing would otherwise keep rope steering and lose fall damage for the
         /// rest of the session.
         /// </summary>
-        private void OnDisable() => StopGrapple();
+        private void OnDisable()
+        {
+            StopGrapple();
+
+            // OnUnequipped is not guaranteed — the item is destroyed outright when the player dies
+            // or the slot empties — and a handler left registered on the player's channel would
+            // point at a destroyed component, as would the join callback.
+            Listen(null);
+        }
 
         private void StopGrapple()
         {
@@ -900,7 +1142,7 @@ namespace SpaceGame.Items
 
             _isGrappling = false;
             _isShooting = false;
-            _winching = false;
+            _winch.Reset();
             _hookAttach = null;
             _attachOffset = Vector3.zero;
             _pendingRestore = false;
@@ -1095,6 +1337,65 @@ namespace SpaceGame.Items
         {
             if (forward.sqrMagnitude < 1e-6f) forward = Vector3.forward;
             return Quaternion.LookRotation(forward.normalized) * Quaternion.Euler(hookHeadEuler);
+        }
+
+        /// <summary>
+        /// Whether the winch is running, decided so that it does not matter whether the release
+        /// arrived before or after the dart landed.
+        ///
+        /// <para>
+        /// Pure and separate from the artifact because the ordering IS the bug. The bite comes off
+        /// a LOCAL flight timer and the release comes off a RELAYED message, so which of them
+        /// happens first differs from machine to machine by network jitter plus the interpolation
+        /// lag on a remote muzzle — a window of tens of milliseconds around the bite, which an
+        /// ordinary quick-release shot lands squarely inside.
+        /// </para>
+        /// <para>
+        /// A latch that simply reads the last hold state at the moment of the bite gives every
+        /// machine the same answer from the same two facts, in whichever order they turned up.
+        /// Being pure, that property is shown by HoldLatchTests rather than judged by feel.
+        /// </para>
+        /// </summary>
+        public sealed class WinchLatch
+        {
+            private bool held = true;
+            private bool bitten;
+
+            /// <summary>The winch state the dart landing would adopt right now.</summary>
+            public bool WinchAtBite => held || !bitten;
+
+            /// <summary>Whether the winch is running.</summary>
+            public bool Winching { get; private set; }
+
+            /// <summary>A hold tick arrived. <paramref name="active"/> false is the release.</summary>
+            public void Observe(bool active)
+            {
+                held = active;
+
+                // Before the bite there is nothing to winch, so the tick is only REMEMBERED. That
+                // is what makes a tapped grapple reel in: its release always beats the dart, and
+                // discarding it was how a tap caught and then hung.
+                if (bitten) Winching = active;
+            }
+
+            /// <summary>The dart landed. Catching IS the reel — see <see cref="Bite"/>.</summary>
+            public void Bite()
+            {
+                // WinchAtBite, not `held`. A tap releases the trigger while the dart is still in the
+                // air, so `held` is false by the time it lands — reading it here is precisely the
+                // bug this class exists to remove, and it is what made a tapped grapple catch and
+                // then hang there doing nothing.
+                Winching = WinchAtBite;
+                bitten = true;
+            }
+
+            /// <summary>A fresh throw. The trigger is down by definition, since a press started it.</summary>
+            public void Reset()
+            {
+                held = true;
+                bitten = false;
+                Winching = false;
+            }
         }
     }
 }

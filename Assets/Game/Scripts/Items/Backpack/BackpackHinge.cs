@@ -47,6 +47,19 @@ namespace SpaceGame.Items
 
         /// <summary>The right side panel. Mirrored fold, 40 ms behind the left.</summary>
         WingRight = 4,
+
+        /// <summary>
+        /// The lid apron on the board's leading edge (2026-08-25). Like the wings its pivot is a
+        /// CHILD of <c>PIVOT_Leaf</c>, so its fold is relative to the board: -90&#176; stands it up
+        /// as the stow's end wall, and riding the board's own -90&#176; it arrives flat on top,
+        /// capping the closed pack — the box's top, where the wings are its sides. In the rack
+        /// pose the same relative fold turns it into a hood over the board's top edge. On the
+        /// beat sheet it is the last slot of the flap stagger chain — one 40 ms stagger behind
+        /// the right wing, so the stow's fold-up wave runs lid, right wing, left wing and never
+        /// interleaves — and it follows the rack clock with the wings, which is what carries the
+        /// hood up with the racked board. See <c>BackpackObject.FlapFromOpen</c>.
+        /// </summary>
+        Lid = 5,
     }
 
     /// <summary>
@@ -83,7 +96,7 @@ namespace SpaceGame.Items
                  "restIsOpen off (the default) rest is closed and this is the closed-to-open " +
                  "travel. With it on the model is authored deployed and this is the STOW travel: " +
                  "expedition_rig wants PIVOT_Back +25, PIVOT_Leaf -90, PIVOT_Wing_L -90, " +
-                 "PIVOT_Wing_R +90.")]
+                 "PIVOT_Wing_R +90, PIVOT_Lid -90 (relative to the board it rides).")]
         [FormerlySerializedAs("openAngle")]
         public float foldAngle;
 

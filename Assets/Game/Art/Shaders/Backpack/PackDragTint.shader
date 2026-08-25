@@ -29,7 +29,7 @@ Shader "SpaceGame/PackDragTint"
         // 12 mm that was meant and the Cixin gun's child scales (up to 82,000) got tens of metres.
         // Four orders of magnitude of spread from one number, none of it authored.
         //
-        // In world space the number means what it says. PackDragVisuals still scales it per item —
+        // In world space the number means what it says. PackHandVisuals still scales it per item —
         // see OutlineWidthFor — so the line stays proportional to the thing it surrounds instead
         // of swallowing the small ones.
         _OutlineWidth ("Outline Width", Range(0, 0.2)) = 0.006
@@ -85,9 +85,17 @@ Shader "SpaceGame/PackDragTint"
         // ── Outline ──────────────────────────────────────────────────────────
         // Front faces culled, so what is left is the inside of the shell: it shows only where the
         // inflated copy sticks out past the real silhouette, which is exactly a line around it.
+        //
+        // Both passes carry an explicit LightMode tag because URP schedules passes BY that tag.
+        // One untagged pass still lands in the implicit SRPDefaultUnlit slot, but a shader with
+        // two untagged passes is skipped in its entirety — silently, no warning, no magenta —
+        // which left every material on this shader (drag tint, hover rim, grid cells) drawing
+        // nothing at all. SRPDefaultUnlit and UniversalForward are both in URP's forward draw
+        // list, so tagging one pass each way is what lets a two-pass shader draw both.
         Pass
         {
             Name "PackOutline"
+            Tags { "LightMode" = "SRPDefaultUnlit" }
             Cull Front
             ZTest [_ZTest]
             ZWrite [_ZWrite]
@@ -137,6 +145,7 @@ Shader "SpaceGame/PackDragTint"
         Pass
         {
             Name "PackBody"
+            Tags { "LightMode" = "UniversalForward" }
             Cull Back
             ZTest [_ZTest]
             ZWrite [_ZWrite]

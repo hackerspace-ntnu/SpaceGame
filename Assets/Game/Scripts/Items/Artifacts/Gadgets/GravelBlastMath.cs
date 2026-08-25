@@ -43,6 +43,35 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// How much of a pellet's damage survives the flight to <paramref name="distance"/>: all of
+        /// it inside <paramref name="fullDamageRange"/>, then falling linearly to
+        /// <paramref name="farFraction"/> at <paramref name="range"/> and no lower.
+        ///
+        /// <para>
+        /// The reason the gun can reach seventy metres without becoming the answer to every
+        /// question (GDC-L1-BAL-0002). Range and pellet count are what make a shot LOOK violent;
+        /// the falloff is what keeps the weapon's niche intact — devastating in a corridor, a
+        /// nuisance across a valley — so the interesting decision stays *how close do I dare get*
+        /// rather than *why would I carry anything else* (GDC-L1-BAL-0004).
+        /// </para>
+        /// </summary>
+        public static float DamageFalloff(float distance, float fullDamageRange, float range,
+                                          float farFraction)
+        {
+            if (distance <= fullDamageRange) return 1f;
+
+            // A taper with no room to run means the full-damage band covers the whole reach, so
+            // everything the gravel can get to is worth all of it. Reachable from the Inspector:
+            // OnValidate clamps fullDamageRange to range, and the two being equal is a legitimate
+            // way to say "no falloff at all".
+            float taper = range - fullDamageRange;
+            if (taper <= 0f) return 1f;
+
+            float t = Mathf.Clamp01((distance - fullDamageRange) / taper);
+            return Mathf.Lerp(1f, Mathf.Clamp01(farFraction), t);
+        }
+
+        /// <summary>
         /// Velocity handed to the holder when the gun backfires: horizontally opposite the aim,
         /// tilted upward. The tilt is load-bearing, not flavour — PlayerMovement never touches
         /// vertical velocity, so the up-component survives unconditionally and un-grounds the

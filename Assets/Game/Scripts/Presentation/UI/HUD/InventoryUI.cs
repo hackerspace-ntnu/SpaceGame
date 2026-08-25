@@ -7,8 +7,8 @@ using SpaceGame.Items;
 namespace SpaceGame.Presentation
 {
     /// <summary>
-    /// The hotbar: four slots across the bottom of the screen, and the bridge that lets items be
-    /// dragged between them and an open backpack.
+    /// The hotbar: four slots across the bottom of the screen, and the bridge that lets items
+    /// move between them and an open backpack.
     ///
     /// <para>
     /// <b>The bar draws itself.</b> <c>Slot.prefab</c> is no longer instantiated — see
@@ -16,17 +16,18 @@ namespace SpaceGame.Presentation
     /// are the rect it lives in and the layout group on it.
     /// </para>
     /// <para>
-    /// <b>The drag bridge.</b> Two gestures cross this boundary in opposite directions and both are
-    /// resolved by <c>PackDragController</c>, not here: a hotbar slot dragged onto the pack, and a
-    /// pack item dragged onto a hotbar slot. This side owns which slot the cursor is over, what the
-    /// bar looks like while a drag is in flight, the icon following the cursor, a slot's refusal
-    /// shake, and forwarding a slot's right-click to the pack. Every decision about whether a drop
+    /// <b>The click bridge.</b> One verb crosses this boundary in both directions and it is
+    /// resolved by <c>PackHandController</c>, not here: a click on a slot either lifts its item
+    /// into the player's hand or puts what is already in that hand into it. This side owns which
+    /// slot the cursor is over, what the bar looks like while something is in hand, and a slot's
+    /// refusal shake. What is IN the hand is drawn by the pack's own true-size copy, everywhere
+    /// on screen — the bar never draws a stand-in icon. Every decision about whether a placement
     /// is legal, and every request that goes to the server, is the pack's.
     /// </para>
     /// <para>
     /// The static members exist because the pack has no way to reach this instance: the hotbar is a
-    /// prefab under the player, and the drag controller is added at runtime to a camera that did
-    /// not exist a frame earlier. There is one local player and therefore one of these.
+    /// prefab under the player, and the hand is added at runtime to a camera that did not exist a
+    /// frame earlier. There is one local player and therefore one of these.
     /// </para>
     /// </summary>
     public class InventoryUI : MonoBehaviour
@@ -51,15 +52,15 @@ namespace SpaceGame.Presentation
         private int selectedIndex = -1;
         private int hoveredIndex = -1;
 
-        /// <summary>The slot a drag came OUT of, drawn empty-but-reserved. -1 when nothing is in hand.</summary>
-        private int dragOriginIndex = -1;
+        /// <summary>The slot whose item is in the player's hand, drawn empty-but-reserved. -1 when
+        /// the hand is empty.</summary>
+        private int heldOriginIndex = -1;
 
-        /// <summary>The slot a drag would land IN, drawn as a live target. -1 when there is none.</summary>
+        /// <summary>The slot a click would land the held item IN, drawn as a live target. -1 when
+        /// there is none.</summary>
         private int dropTargetIndex = -1;
 
         private Canvas canvas;
-        private RectTransform ghost;
-        private Image ghostIcon;
 
         private void Start()
         {
@@ -81,9 +82,9 @@ namespace SpaceGame.Presentation
                 return;
             }
 
-            // Dragging is EventSystem work, and the world scenes are not all guaranteed to carry
-            // one — persistentScene does, the test scenes vary. Same guard MinigameConfigUI and
-            // DevInventoryUI use, and it is a no-op when a scene already has one.
+            // A slot's click and hover come through the EventSystem, and the world scenes are not
+            // all guaranteed to carry one — persistentScene does, the test scenes vary. Same guard
+            // MinigameConfigUI and DevInventoryUI use, and a no-op when a scene already has one.
             UIBuilder.EnsureEventSystem();
 
             canvas = GetComponentInParent<Canvas>();
@@ -183,7 +184,7 @@ namespace SpaceGame.Presentation
                                    i == selectedIndex,
                                    i == hoveredIndex,
                                    i == dropTargetIndex,
-                                   i == dragOriginIndex);
+                                   i == heldOriginIndex);
             }
         }
 
@@ -209,11 +210,10 @@ namespace SpaceGame.Presentation
         /// Which hotbar slot the cursor is over, or -1.
         ///
         /// <para>
-        /// A rectangle test against each slot rather than an EventSystem raycast, and the reason
-        /// is the direction that matters most: a drag that began on the PACK is not a UI drag at
-        /// all — the EventSystem never saw it start, so it will never deliver an <c>OnDrop</c> —
-        /// and the release still has to know whether it landed on the bar. One test that answers
-        /// for both directions is one answer to keep straight.
+        /// A rectangle test against each slot rather than an EventSystem raycast, because the
+        /// question is asked every frame from OUTSIDE the EventSystem: the pack's hand polls it to
+        /// decide which slot to light up and — the load-bearing one — whether the click under the
+        /// cursor belongs to the bar rather than to the mat behind it.
         /// </para>
         /// </summary>
         public static int SlotIndexUnder(Vector2 screenPosition)
@@ -235,7 +235,7 @@ namespace SpaceGame.Presentation
             return -1;
         }
 
-        /// <summary>Lights one slot as the place a drag would land.  -1 clears it.</summary>
+        /// <summary>Lights one slot as the place a click would put the held item.  -1 clears it.</summary>
         public static void SetDropTarget(int index)
         {
             if (local == null || local.dropTargetIndex == index) return;
@@ -258,7 +258,7 @@ namespace SpaceGame.Presentation
         }
 
         /// <summary>The instance half of a shake, shared by the static entry above and
-        /// <see cref="BeginSlotDrag"/> — which cannot safely call the static one, since <c>local</c>
+        /// <see cref="ClickSlot"/> — which cannot safely call the static one, since <c>local</c>
         /// is not guaranteed to be <c>this</c> for every hotbar in a session.</summary>
         private void ShakeLocal(int index)
         {
@@ -268,180 +268,67 @@ namespace SpaceGame.Presentation
         }
 
         /// <summary>
-        /// Takes back everything a drag asked the bar to draw.
+        /// Takes back everything the pack asked the bar to draw.
         ///
         /// <para>
         /// Static and idempotent because the HUD outlives the focus session that drives it. Focus
-        /// mode ends on any movement key, mid-drag included, and a bar left showing a reserved
-        /// slot and a floating icon would never recover on its own.
+        /// mode ends on any movement key, with something in hand included, and a bar left showing
+        /// a reserved slot would never recover on its own.
         /// </para>
         /// </summary>
-        public static void ClearDragFeedback()
+        public static void ClearPackFeedback()
         {
             if (local == null) return;
 
-            local.HideGhost();
+            if (local.heldOriginIndex < 0 && local.dropTargetIndex < 0) return;
 
-            if (local.dragOriginIndex < 0 && local.dropTargetIndex < 0) return;
-
-            local.dragOriginIndex = -1;
+            local.heldOriginIndex = -1;
             local.dropTargetIndex = -1;
+            local.RefreshAll();
+        }
+
+        /// <summary>The slot whose item is in the player's hand. Its tile reads as empty, but as
+        /// an empty tile that is spoken for. -1 clears it.</summary>
+        public static void SetHeldOrigin(int index)
+        {
+            if (local == null || local.heldOriginIndex == index) return;
+
+            local.heldOriginIndex = index;
             local.RefreshAll();
         }
 
         // ── The bridge: what a slot asks the pack ───────────────────────────
 
         /// <summary>
-        /// A slot has been picked up. Answers false when there is nothing to carry or nowhere to
-        /// carry it to, and the slot then declines the gesture outright.
+        /// A hotbar slot was clicked while the pack is open. The pack's hand resolves it: an empty
+        /// hand lifts the slot's item, a full one puts what it is holding into the slot.
+        ///
+        /// <para>
+        /// Outside focus mode there is no hand and this does nothing, which is correct — the cursor
+        /// is locked out there and the bar is not clickable at all.
+        /// </para>
         /// </summary>
-        public bool BeginSlotDrag(int index, Vector2 screenPosition)
+        public void ClickSlot(int index)
         {
-            if (playerInventory == null) return false;
+            PackHandController hand = PackHandController.Active;
+            if (hand == null) return;
+
+            if (hand.IsCarrying)
+            {
+                hand.PutIntoSlot(index);
+                return;
+            }
+
+            if (playerInventory == null) return;
 
             InventorySlot slot = playerInventory.GetSlot(index);
             InventoryItem item = slot != null && !slot.IsEmpty ? slot.Item : null;
-            if (item == null) return false;
+            if (item == null) return;
 
-            // The pack is the only place a hotbar item can be dragged TO. Outside focus mode there
-            // is no drag, which is also why the cursor is locked out there.
-            PackDragController pack = PackDragController.Active;
-            if (pack == null) return false;
-
-            if (!pack.BeginHotbarDrag(index, item))
-            {
-                // The pack is open and the slot has an item, so the decline means "no room
-                // anywhere" (or the same asset already on the mat). The slot says no; the
-                // gesture never starts.
-                ShakeLocal(index);
-                return false;
-            }
-
-            dragOriginIndex = index;
-            dropTargetIndex = -1;
-
-            ShowGhost(item, screenPosition);
-            RefreshAll();
-
-            return true;
-        }
-
-        public void DragSlot(Vector2 screenPosition) => MoveGhost(screenPosition);
-
-        /// <summary>A slot was right-clicked: stow it on the open pack, unaimed.</summary>
-        public void RequestSlotStow(int index)
-        {
-            PackDragController pack = PackDragController.Active;
-            if (pack != null) pack.StowSlot(index, aimUnderCursor: false);
-        }
-
-        /// <summary>
-        /// The slot has been let go. The pack resolves it — over one of its faces this is a stow
-        /// request, anywhere else it is a cancel — and this side only stops drawing.
-        /// </summary>
-        public void EndSlotDrag(Vector2 screenPosition)
-        {
-            PackDragController pack = PackDragController.Active;
-            if (pack != null) pack.EndHotbarDrag();
-
-            ClearDragFeedback();
-        }
-
-        // ── The icon under the cursor ────────────────────────────────────────
-
-        /// <summary>
-        /// The dragged item's icon, following the pointer.
-        ///
-        /// <para>
-        /// Deliberately not the slot itself moving. The slot stays in the row showing that its
-        /// place is being kept — see <c>isReserved</c> on <see cref="InventorySlotUI.Refresh"/> —
-        /// and what travels is the thing being carried.
-        /// </para>
-        /// <para>
-        /// Parented to the root canvas rather than to the bar, so it is not clipped by the row and
-        /// not laid out by the group, and put last so it draws over the rest of the HUD.
-        /// </para>
-        /// </summary>
-        private void ShowGhost(InventoryItem item, Vector2 screenPosition)
-        {
-            if (canvas == null || item == null || item.icon == null) return;
-
-            if (ghost == null) BuildGhost();
-
-            ghostIcon.sprite = item.icon;
-
-            ghost.gameObject.SetActive(true);
-            ghost.SetAsLastSibling();
-
-            MoveGhost(screenPosition);
-        }
-
-        private void BuildGhost()
-        {
-            var go = new GameObject("HotbarDragGhost", typeof(RectTransform));
-            go.layer = canvas.gameObject.layer;
-
-            ghost = (RectTransform)go.transform;
-            ghost.SetParent(canvas.transform, false);
-            ghost.anchorMin = new Vector2(0.5f, 0.5f);
-            ghost.anchorMax = new Vector2(0.5f, 0.5f);
-            ghost.pivot = new Vector2(0.5f, 0.5f);
-            // The same size the icon has in its slot, so picking an item up does not shrink it.
-            ghost.sizeDelta = new Vector2(HotbarStyle.SlotWidth - HotbarStyle.IconInset * 2f,
-                                          HotbarStyle.SlotHeight - HotbarStyle.IconInset * 2f);
-
-            var halo = new GameObject("Halo", typeof(RectTransform));
-            halo.layer = go.layer;
-
-            var haloRect = (RectTransform)halo.transform;
-            haloRect.SetParent(ghost, false);
-            haloRect.anchorMin = Vector2.zero;
-            haloRect.anchorMax = Vector2.one;
-            haloRect.offsetMin = new Vector2(-16f, -16f);
-            haloRect.offsetMax = new Vector2(16f, 16f);
-
-            // The icon has to stay legible over sand, over the pack's canvas and over the sky.
-            var glow = halo.AddComponent<Image>();
-            glow.sprite = UITheme.GlowSprite;
-            glow.color = new Color(0f, 0f, 0f, 0.38f);
-            glow.raycastTarget = false;
-
-            var iconGo = new GameObject("Icon", typeof(RectTransform));
-            iconGo.layer = go.layer;
-
-            var iconRect = (RectTransform)iconGo.transform;
-            iconRect.SetParent(ghost, false);
-            iconRect.anchorMin = Vector2.zero;
-            iconRect.anchorMax = Vector2.one;
-            iconRect.offsetMin = Vector2.zero;
-            iconRect.offsetMax = Vector2.zero;
-
-            ghostIcon = iconGo.AddComponent<Image>();
-            ghostIcon.preserveAspect = true;
-            ghostIcon.color = new Color(1f, 1f, 1f, 0.92f);
-
-            // Never a target. A ghost that swallowed the pointer would break the very drag it is
-            // drawing, and would sit between the cursor and every slot it passes over.
-            ghostIcon.raycastTarget = false;
-        }
-
-        private void MoveGhost(Vector2 screenPosition)
-        {
-            if (ghost == null || !ghost.gameObject.activeSelf || canvas == null) return;
-
-            var canvasRect = canvas.transform as RectTransform;
-            if (canvasRect == null) return;
-
-            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    canvasRect, screenPosition, EventCamera(), out Vector2 point))
-            {
-                ghost.localPosition = point;
-            }
-        }
-
-        private void HideGhost()
-        {
-            if (ghost != null) ghost.gameObject.SetActive(false);
+            // The hand declines when the same asset is already on the mat, where it could never be
+            // put down. TryLiftFromSlot marks the slot reserved itself on success — see
+            // SetHeldOrigin — so there is nothing to do on the way out.
+            if (!hand.TryLiftFromSlot(index, item)) ShakeLocal(index);
         }
 
         /// <summary>

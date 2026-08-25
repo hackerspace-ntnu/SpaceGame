@@ -101,6 +101,43 @@ namespace SpaceGame.Items
         private const int Untie = 2;
 
         /// <summary>
+        /// A tie to something with no networked identity — a loose prop nobody opted into saving.
+        ///
+        /// <para>
+        /// Presented only on the machine that clicked. The alternative is what this replaces: the
+        /// id is 0 on the wire and <see cref="NetArg"/>'s local reference deliberately does not
+        /// travel, so every peer resolved null and pinned the rope to a phantom point where the
+        /// prop had been. That is worse than no rope at all — the two machines then disagree about
+        /// the rope's shape, its break verdict and its identity for an untie. Such a prop's physics
+        /// already differs per machine, so a shared rope to it could never have been made to agree,
+        /// which is what OnRequestUse's own doc comment has always claimed happened.
+        /// </para>
+        /// </summary>
+        private const int HitLocal = 3;
+
+        // ── The verb and the rope's length, packed into NetArg.B ───────────────
+        //
+        // Both, because there is nowhere else. A is the hotbar slot — EquipmentController's
+        // stale-slot guard reads it — and P is carrying the knot. So B holds the verb in its low
+        // byte and the paid-out length in centimetres above it, which is the same byte packing
+        // NetMsg.PackMove uses for its two surfaces.
+        //
+        // The length has to travel at all because a tie measured per machine is a DIFFERENT tie per
+        // machine: each runs Present at its own moment, a relay apart, so a rope tied across
+        // anything moving settled on a length that differed by a metre and stayed that way for
+        // good. Centimetres because NetArg has no float field, the convention CraftLaunch uses.
+
+        private const int VerbMask = 0xFF;
+
+        private static int Encode(int verb, float paidOutLength) =>
+            (verb & VerbMask) | (Mathf.Max(0, Mathf.RoundToInt(paidOutLength * 100f)) << 8);
+
+        private static int VerbOf(int packed) => packed & VerbMask;
+
+        /// <summary>The paid-out length in metres, or 0 for "this click starts a rope, not ends one".</summary>
+        private static float LengthOf(int packed) => (packed >> 8) * 0.01f;
+
+        /// <summary>
         /// Owner side: aim, and put the answer in the message.
         ///
         /// <para>
@@ -120,7 +157,7 @@ namespace SpaceGame.Items
         public override void OnRequestUse(ref NetArg arg)
         {
             base.OnRequestUse(ref arg);
-            arg.B = Miss;
+            arg.B = Encode(Miss, 0f);
 
             if (aimProvider == null) return;
 
@@ -149,8 +186,29 @@ namespace SpaceGame.Items
             if (root == owner) return;
 
             arg = arg.With(root);
-            arg.P = hit.point;
-            arg.B = Hit;
+
+            // The knot in the TARGET's local space, not in the world.
+            //
+            // Measured here because this is the only machine whose copy of a moving target is the
+            // one the player actually clicked. A world point re-projected on each machine is
+            // measured against that machine's interpolated pose a relay later, which on anything
+            // moving puts the knot on a different part of the animal — and the rope then has a
+            // different shape, a different standing stretch and a different break verdict on every
+            // machine, permanently, because both are fixed once tied.
+            arg.P = root.transform.InverseTransformPoint(hit.point);
+
+            // Paid out ONCE, here, on the machine that can see both ends now. Zero when this click
+            // starts a rope rather than finishing one, which leaves the authored length alone.
+            float paidOut = held == null
+                ? 0f
+                : Mathf.Min(Vector3.Distance(held.A.Position, hit.point) + payOutMargin,
+                            maxPaidOutLength);
+
+            // A rope to something with no networked identity cannot be shared — see HitLocal. The
+            // id is minted by With() above, so this is the first point at which we can tell.
+            bool shareable = arg.Target != 0 || !Network.IsNetworked;
+
+            arg.B = Encode(shareable ? Hit : HitLocal, paidOut);
         }
 
         /// <summary>
@@ -178,8 +236,22 @@ namespace SpaceGame.Items
 
             if (distance > surfaceDistance + grabRadius) return false;
 
-            arg.P = point;
-            arg.B = Untie;
+            // Named relative to one of the rope's own ANCHORS, so the point rides whatever the rope
+            // is tied to. A bare world point names nothing once that thing starts moving: the click
+            // travels for a relay, and a rope on an animal running at 8 m/s has left the tolerance
+            // by the time a peer looks — so the rope came off on the clicking machine alone, and
+            // the server went on constraining a creature nobody could see a rope on.
+            //
+            // The NEARER end, because that is the one the player was looking at, and because a
+            // rope's two ends can be on objects moving in different directions.
+            Transform anchor = Vector3.SqrMagnitude(point - rope.A.Position) <=
+                               Vector3.SqrMagnitude(point - rope.B.Position)
+                ? rope.A.Anchor
+                : rope.B.Anchor;
+
+            arg = arg.With(anchor != null ? anchor.gameObject : null);
+            arg.P = anchor != null ? anchor.InverseTransformPoint(point) : point;
+            arg.B = Encode(Untie, 0f);
             return true;
         }
 
@@ -193,16 +265,30 @@ namespace SpaceGame.Items
         protected override void Present()
         {
             NetArg arg = UseArg;
+            int verb = VerbOf(arg.B);
+            float paidOut = LengthOf(arg.B);
 
-            if (arg.B == Untie)
+            if (verb == Untie)
             {
-                UntieAt(arg.P);
+                GameObject anchorObject = arg.Resolve();
+                UntieAt(anchorObject != null ? anchorObject.transform : null, arg.P);
+                return;
+            }
+
+            // A rope to an unnetworked prop is the clicking machine's business alone. Every other
+            // machine has no identity to resolve and would pin it to thin air — see HitLocal.
+            if (verb == HitLocal)
+            {
+                if (!OwnerIsLocal()) return;
+
+                GameObject local = arg.Resolve();
+                if (local != null) TieTo(local, arg.P, paidOut);
                 return;
             }
 
             // A click at nothing lets go of what you are holding. It is the same gesture as
             // throwing a rope away and needs no second key.
-            if (arg.B != Hit)
+            if (verb != Hit)
             {
                 DropHeld();
                 return;
@@ -214,29 +300,40 @@ namespace SpaceGame.Items
             // and Resolve has already answered, or the endpoint is bare geometry, which has no
             // NetworkObject and needs none — the point is the anchor and it is the same point on
             // every machine.
-            if (root != null) TieTo(root, arg.P);
-            else PinTo(arg.P);
+            //
+            // Note the two carry different things in P: a resolved root gets a LOCAL offset, bare
+            // geometry a world point. Which is right — geometry has no local space to speak of, and
+            // its point is identical everywhere by definition.
+            if (root != null) TieTo(root, arg.P, paidOut);
+            else PinTo(arg.P, paidOut);
         }
 
         // ── The two clicks ─────────────────────────────────────────────────────
 
-        private void TieTo(GameObject root, Vector3 point)
+        /// <summary>
+        /// <paramref name="localOffset"/> is the knot in <paramref name="root"/>'s own space, and
+        /// <paramref name="paidOutLength"/> the length the clicking machine settled on. Neither is
+        /// measured here — see <see cref="OnRequestUse"/> for why both have to travel.
+        /// </summary>
+        private void TieTo(GameObject root, Vector3 localOffset, float paidOutLength)
         {
             if (held == null)
             {
-                Hook(leash => leash.TieEndTo(true, root, point));
+                Hook(leash => leash.TieEndTo(true, root, localOffset));
                 return;
             }
 
             // Tying a rope to the thing already on its other end would be a loop that does nothing.
             if (held.ReferencesObject(root)) return;
 
-            held.TieHandEndOnto(root, point, payOutMargin, maxPaidOutLength);
+            held.TieHandEndOnto(root, localOffset, paidOutLength);
             held = null;
-            Sfx.Play(SfxId.InteractLever, point);
+
+            // Read from the object rather than from `held`, which was just nulled.
+            Sfx.Play(SfxId.InteractLever, root.transform.TransformPoint(localOffset));
         }
 
-        private void PinTo(Vector3 point)
+        private void PinTo(Vector3 point, float paidOutLength)
         {
             if (held == null)
             {
@@ -244,7 +341,7 @@ namespace SpaceGame.Items
                 return;
             }
 
-            held.PinHandEndAt(point, payOutMargin, maxPaidOutLength);
+            held.PinHandEndAt(point, paidOutLength);
             held = null;
             Sfx.Play(SfxId.InteractLever, point);
         }
@@ -280,16 +377,20 @@ namespace SpaceGame.Items
         /// other question about that rope.
         /// </para>
         /// </summary>
-        private void UntieAt(Vector3 point)
+        private void UntieAt(Transform anchor, Vector3 point)
         {
-            Leash rope = Leash.Nearest(point, untieTolerance);
+            Leash rope = Leash.Nearest(anchor, point, untieTolerance);
             if (rope == null) return;
+
+            // Read before the rope goes: Dispose releases both ends, so A.Position answers zero
+            // afterwards and the sound would play at the world origin.
+            Vector3 heard = rope.A.Position;
 
             // If this was the rope in our hand, the hand is empty now.
             if (rope == held) held = null;
 
             rope.Dispose();
-            Sfx.Play(SfxId.InteractDrop, point);
+            Sfx.Play(SfxId.InteractDrop, heard);
         }
 
         // ── Settings ───────────────────────────────────────────────────────────

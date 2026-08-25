@@ -56,6 +56,16 @@ namespace SpaceGame.Core
         private static void Report(string key, object value) =>
             Debug.Log($"[MPTEST] {key}={value}");
 
+        /// <summary>
+        /// How many portal apertures stand on this machine.
+        ///
+        /// Counted by finding them rather than asked of a pair, because the question is what this
+        /// MACHINE has: a client that never heard about a shooter's portals has no PortalPair to
+        /// ask in the first place, which is exactly the state being tested for.
+        /// </summary>
+        private static int CountPortals() =>
+            Object.FindObjectsByType<SpaceGame.Portals.Portal>(FindObjectsSortMode.None).Length;
+
         /// <summary>The MonoBehaviour half — coroutines need one.</summary>
         private class AutotestRunner : MonoBehaviour
         {
@@ -119,6 +129,14 @@ namespace SpaceGame.Core
                 // Give the client time to send its relay message and read the replicated health.
                 yield return new WaitForSeconds(12f);
                 Report("HOST_RELAY_FROM_CLIENT", relayFromPeer);
+
+                // The counterpart of CLIENT_LEASHES_SEEN / CLIENT_PORTALS_SEEN. Ropes and portal
+                // apertures are not spawned NetworkObjects — every machine builds its own from a
+                // message — so nothing in SpawnManager can speak for them, and until SessionSnapshot
+                // existed a joining client got neither. The two numbers must match.
+                Report("HOST_LEASHES", SpaceGame.Items.Leash.All.Count);
+                Report("HOST_PORTALS", CountPortals());
+
                 Report("HOST_DONE", true);
                 Finish();
             }
@@ -204,6 +222,15 @@ namespace SpaceGame.Core
                 }
 
                 yield return new WaitForSeconds(6f);
+
+                // What a joiner was never told about. Neither a rope nor a portal aperture is a
+                // spawned NetworkObject — every machine builds its own copy from a message it had
+                // to be present for — so before SessionSnapshot a client that joined after the
+                // event had none of either, and no way to ever learn. Compared against
+                // HOST_LEASHES / HOST_PORTALS.
+                Report("CLIENT_LEASHES_SEEN", SpaceGame.Items.Leash.All.Count);
+                Report("CLIENT_PORTALS_SEEN", CountPortals());
+
                 Report("CLIENT_DONE", true);
                 Finish();
             }

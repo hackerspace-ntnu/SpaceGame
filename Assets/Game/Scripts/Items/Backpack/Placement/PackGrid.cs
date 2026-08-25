@@ -26,23 +26,24 @@ namespace SpaceGame.Items
     /// <para>
     /// <b>One global cell, not one per surface.</b> Seven cell sizes would mean an item's authored
     /// shape meant a different physical size on every face, so a mask drawn for the leaf would be a
-    /// different object on the rack — which defeats the point of authoring a shape at all. The cost
-    /// is that no face divides evenly, and each one therefore rounds DOWN to whole cells:
+    /// different object on the rack — which defeats the point of authoring a shape at all. Since
+    /// the 2026-08-25 re-cell the shared cell also costs nothing: every face was RESIZED to an
+    /// exact multiple of it, and the model's stitching and webbing pitch re-drawn onto the same
+    /// boundaries. The rows below must equal <c>ExpeditionRigWiring.SurfaceTable</c>:
     /// </para>
     /// <list type="table">
-    /// <item><description>BackPanelLeft / Right, 0.26 x 0.50 m -> 2 x 5 cells</description></item>
-    /// <item><description>Leaf, 0.78 x 0.50 m -> 8 x 5</description></item>
-    /// <item><description>WingLeft / Right, 0.38 x 0.40 m -> 4 x 4</description></item>
-    /// <item><description>LongGoods, 1.60 x 0.14 m -> 17 x 1</description></item>
-    /// <item><description>Rack, 0.80 x 0.60 m -> 8 x 6</description></item>
+    /// <item><description>BackPanelLeft / Right, 0.27 x 0.54 m -> 3 x 6 cells</description></item>
+    /// <item><description>Leaf, 0.72 x 0.72 m -> 8 x 8</description></item>
+    /// <item><description>WingLeft / Right, 0.36 x 0.63 m -> 4 x 7</description></item>
+    /// <item><description>LongGoods, 1.62 x 0.09 m -> 18 x 1</description></item>
+    /// <item><description>Rack, 0.81 x 0.81 m -> 9 x 9</description></item>
     /// </list>
     /// <para>
-    /// 157 cells over the rig, covering 77% of the seven rectangles. The remainder becomes a
-    /// <see cref="Hem"/>: the grid is CENTRED on its surface rather than pushed into the (0,0)
-    /// corner, so the leftover is split evenly on both sides and reads as the inset border the
-    /// surface rectangles already are. On the back panel that lands exactly right — 2 columns of
-    /// 90 mm is 180 mm, and the ladder's two vertical webbing tapes are at x = 0.196 and 0.378,
-    /// i.e. 182 mm apart. The grid IS the ladder there.
+    /// 255 cells over the rig, filling the seven rectangles edge to edge with zero
+    /// <see cref="Hem"/>. The hem arithmetic stays, and stays CENTRED, because it is how a face
+    /// that is NOT an exact multiple — a future pack's, a downsized variant's — degrades: the
+    /// leftover splits evenly on both sides and reads as the inset border the surface rectangles
+    /// already are, instead of piling into one lopsided margin.
     /// </para>
     /// <para>
     /// Nothing here allocates or touches UnityEngine beyond <see cref="Vector2"/> and

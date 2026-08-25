@@ -230,11 +230,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 0}
   boolParameter: Hold
-  requireStationary: 0
-  inputDeadzone: 0.01
-  velocityThreshold: 0.15
-  holdReArmDelay: 0.2
-  debugLog: 1
 --- !u!114 &4878038827178583030
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -305,7 +300,7 @@ MonoBehaviour:
   holdStyle: 2
   rotationOffset: {x: 0, y: 90, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
-  holdSize: 0.42
+  holdSize: 0.65
   sizeReference: {fileID: 0}
   keepColliders: 0
 --- !u!1001 &2901115164315845238

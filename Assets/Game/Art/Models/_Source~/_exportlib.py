@@ -95,7 +95,26 @@ def _drop_armatures():
     return len(rigs)
 
 
-def export(src, dst, keep_armature=False):
+def _keep_only(names):
+    """Delete every object except `names`. Returns how many were dropped.
+
+    Component files hold several VARIATIONS of one thing stacked at the origin,
+    which is right for the library and useless as an FBX — exported whole, the
+    three rocket variations arrive in Unity as one interpenetrating lump. A
+    model file needs no filter and passes none.
+    """
+    wanted = set(names)
+    missing = wanted - {o.name for o in bpy.data.objects}
+    if missing:
+        raise SystemExit("Not in the file: %s" % ", ".join(sorted(missing)))
+
+    doomed = [o for o in bpy.data.objects if o.name not in wanted]
+    for obj in doomed:
+        bpy.data.objects.remove(obj, do_unlink=True)
+    return len(doomed)
+
+
+def export(src, dst, keep_armature=False, keep=None):
     """Open `src`, export it to `dst`, and never write back to `src`.
 
     `keep_armature` is the one real decision per model. Keep the rig when
@@ -103,11 +122,19 @@ def export(src, dst, keep_armature=False):
     model is static set dressing, where a rig is dead weight, or when a builder
     script reparents the meshes itself and a bone hierarchy would get in the way
     (see `ship_rv_export.py`).
+
+    `keep` names the objects to ship when the source is a COMPONENT file rather
+    than a model — see `_keep_only`. Omit it for a model file, whose objects are
+    already exactly the model.
     """
     if not os.path.exists(src):
         raise SystemExit("No model at %s" % src)
 
     bpy.ops.wm.open_mainfile(filepath=src)
+
+    if keep is not None:
+        print("  keeping %d object(s), dropped %d other variation object(s)"
+              % (len(keep), _keep_only(keep)))
 
     localised = _localise_materials()
 

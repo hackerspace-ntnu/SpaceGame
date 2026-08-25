@@ -9,16 +9,21 @@ namespace SpaceGame.Items
     /// <para>
     /// Three callers, one geometry. <see cref="BuildPlaced"/> makes a permanent child of the
     /// surface for an item already on the mat — the ring of cells the player asked to see around
-    /// attached gear. The instance form has two passes during a drag: <see cref="Show"/> draws the
-    /// magnet-snapped ghost's own cells, legal by construction now that the search never offers an
-    /// illegal spot; <see cref="ShowLattice"/> draws the WHOLE hovered face underneath it, free
-    /// cells barely-there and occupied ones filled in the rig's webbing ochre, so free space reads
-    /// at a glance through the gear sitting on it.
+    /// attached gear. The instance form has two passes while an item is in hand:
+    /// <see cref="Show"/> draws the held item's own cells, green where the placement is legal and
+    /// red where it is not; <see cref="ShowLattice"/> draws the WHOLE hovered face underneath it,
+    /// free cells barely-there and occupied ones filled in the rig's webbing ochre, so free space
+    /// reads at a glance through the gear sitting on it.
     /// </para>
     /// <para>
-    /// <b>Outlines, not filled squares.</b> An item is drawn at true size on top of its cells, so a
-    /// filled quad would be almost entirely hidden under the thing it is describing. A ring per
-    /// cell survives being sat on.
+    /// <b>Outlines for the lattice and the placed ring; filled quads for the ghost.</b> The lattice
+    /// and the placed ring lie UNDER an item drawn at true size, so a filled quad there would be
+    /// almost entirely hidden by the thing it is describing — a ring per cell survives being sat
+    /// on. The ghost is the exception the other way round: the carried copy is lifted clear of the
+    /// surface and depth-tested like anything else (see <see cref="PackHandVisuals"/>), so a solid
+    /// quad lying on the surface is hidden exactly where the copy covers it and reads as whole
+    /// verdict colour everywhere around the silhouette — behind the item, never painted over it.
+    /// See <see cref="AddGhostCell"/> and the queue note in the constructor.
     /// </para>
     /// <para>
     /// Geometry is built in the SURFACE's local frame through
@@ -38,6 +43,28 @@ namespace SpaceGame.Items
         /// <summary>Metres of line width in the outline itself.</summary>
         private const float Line = 0.006f;
 
+        /// <summary>
+        /// Metres of gutter left on each side of a GHOST cell's filled quad, so the footprint still
+        /// reads as a grid of cells rather than one solid slab.
+        ///
+        /// <para>
+        /// Deliberately not <see cref="Border"/>. Inset by that 5 mm, a 90 mm cell drew as an 80 mm
+        /// mark and the highlight read visibly smaller than the rig's own webbing cell it is
+        /// supposed to be naming. At 2 mm the quad is 98% of the real cell — the same size as the
+        /// backpack's grid for every practical purpose — while adjacent cells still stop short of
+        /// touching, which also means coplanar neighbours never share an edge to z-fight over.
+        /// </para>
+        /// </summary>
+        private const float GhostGutter = 0.002f;
+
+        /// <summary>
+        /// Render queue for the ghost's two verdict materials: one step past the placed ring's
+        /// 3000, which is itself a step past the lattice's 2999. All three passes sit at the same
+        /// <see cref="Lift"/> with depth writes off, so at equal depth the queue is the only thing
+        /// deciding the pixel — see the constructor for the full ordering argument.
+        /// </summary>
+        private const int GhostQueue = 3001;
+
         private const string ShaderName = "SpaceGame/PackDragTint";
 
         private static readonly int ColorId = Shader.PropertyToID("_Color");
@@ -56,8 +83,34 @@ namespace SpaceGame.Items
         /// <summary>The lattice under gear already on the mat: the rig's own webbing ochre.</summary>
         private static readonly Color PlacedTint = WithAlpha(WebbingOchre, 0.5f);
 
-        /// <summary>A cell the drop would legally use.</summary>
-        private static readonly Color ClearTint = new(0.45f, 0.85f, 1f, 0.55f);
+        /// <summary>A cell the placement would legally use: a solid green fill of the whole cell,
+        /// lying on the surface UNDER the carried copy. The copy is lifted and depth-tested, so it
+        /// hides exactly the cells it covers and the verdict reads as whole colour around its
+        /// silhouette. The alpha is strong rather than a wash, because the fill no longer has to
+        /// be seen through the item — the item occludes it — it has to be SEEN.</summary>
+        private static readonly Color LegalTint = new(0.38f, 0.92f, 0.45f, 0.5f);
+
+        /// <summary>
+        /// A cell the placement is refused on — clashing with placed gear, or hanging off an edge
+        /// this face does not allow overhang on. Same solid full-cell fill as
+        /// <see cref="LegalTint"/>, under the carried copy, at the same alpha for the same
+        /// reason.
+        ///
+        /// Drawn on the WHOLE footprint rather than only the offending cells. The question the
+        /// player is asking is "can this go here", which has one answer for the whole item; a
+        /// footprint that was part green and part red would read as a partial placement, which is
+        /// not a thing that can happen.
+        ///
+        /// <para>
+        /// <b>Known gap, not fixed here.</b> The cell loop in <see cref="Show"/> skips any cell that
+        /// falls off-grid, on the reasoning that the refusal is still carried by every OTHER cell of
+        /// the footprint reading red. That reasoning has no cell left to lean on for a 1x1 item: a
+        /// cursor in the hem band can put its single-cell origin one column outside the grid, the
+        /// loop skips the only cell there is, and the player sees neither colour. Left for a later
+        /// task to cure at the controller level, not by touching the cell loop here.
+        /// </para>
+        /// </summary>
+        private static readonly Color RefusedTint = new(1f, 0.30f, 0.28f, 0.5f);
 
         /// <summary>A free cell of the hovered face while something is in hand: barely there.</summary>
         private static readonly Color LatticeFreeTint = new(1f, 1f, 1f, 0.10f);
@@ -140,12 +193,13 @@ namespace SpaceGame.Items
             return placedMaterial;
         }
 
-        // ── The magnet-snapped ghost's own cells ─────────────────────────────
+        // ── The held item's own cells ────────────────────────────────────────
 
-        private readonly Material clearMaterial;
+        private readonly Material legalMaterial;
+        private readonly Material refusedMaterial;
 
-        private GameObject clearObject;
-        private Mesh clearMesh;
+        private GameObject ghostObject;
+        private Mesh ghostMesh;
 
         /// <summary>What <see cref="Show"/> last drew, so a frame where the ghost sits on the same
         /// spot costs nothing. Reset to a surface of null by <see cref="HideGhost"/> and
@@ -155,10 +209,15 @@ namespace SpaceGame.Items
         private Vector2Int ghostOrigin;
         private PackShape ghostOriented;
 
+        /// <summary>Which of the two tints the cached geometry is currently painted with. Part of
+        /// the early-out key, because legality can flip without the ghost moving a pixel — another
+        /// player placing something under it does exactly that.</summary>
+        private bool ghostLegal;
+
         private readonly List<Vector3> verts = new();
         private readonly List<int> tris = new();
 
-        // ── The drag-time lattice ────────────────────────────────────────────
+        // ── The carry-time lattice ───────────────────────────────────────────
 
         private readonly Material latticeFreeMaterial;
         private readonly Material latticeTakenMaterial;
@@ -178,8 +237,22 @@ namespace SpaceGame.Items
 
         public PackGridVisual()
         {
-            clearMaterial = BuildMaterial("PackGridClear");
-            clearMaterial.SetColor(ColorId, ClearTint);
+            legalMaterial = BuildMaterial("PackGridLegal");
+            legalMaterial.SetColor(ColorId, LegalTint);
+
+            refusedMaterial = BuildMaterial("PackGridRefused");
+            refusedMaterial.SetColor(ColorId, RefusedTint);
+
+            // The ghost's two verdict materials stay depth-tested, exactly as BuildMaterial hands
+            // them out. The carried copy renders normally in the item's own opaque materials,
+            // lifted CarryLift off the surface (see PackHandVisuals), so it writes depth ABOVE
+            // these cells: every pixel the copy covers fails the cells' depth test, and the
+            // verdict colour survives only around the silhouette — solid green or red BEHIND the
+            // item, which is the whole readout. The previous design drew the cells ZTest-Always
+            // over a grey-painted copy instead, and was imperceptible by construction: a
+            // low-alpha wash on top of the very thing it was describing.
+            legalMaterial.renderQueue = GhostQueue;
+            refusedMaterial.renderQueue = GhostQueue;
 
             latticeFreeMaterial = BuildMaterial("PackLatticeFree");
             latticeFreeMaterial.SetColor(ColorId, LatticeFreeTint);
@@ -187,21 +260,29 @@ namespace SpaceGame.Items
             latticeTakenMaterial = BuildMaterial("PackLatticeTaken");
             latticeTakenMaterial.SetColor(ColorId, LatticeTakenTint);
 
-            // One queue step behind the ghost cells and the placed ring (both left at the 3000
-            // BuildMaterial sets): all three share the same Lift height, so two transparent passes
-            // at equal queue and equal depth blend in whichever order the renderer happens to
-            // submit them — flicker, not colour. Pinning the lattice a step earlier guarantees the
-            // more specific readout, "here is where THIS placement lands", always wins the pixel.
+            // One queue step behind the placed ring (left at the 3000 BuildMaterial sets): both
+            // share the same Lift height, so two transparent passes at equal queue and equal depth
+            // blend in whichever order the renderer happens to submit them — flicker, not colour.
+            // Pinning the lattice a step earlier guarantees the more specific readout always wins
+            // the pixel. The ghost sits one step past the ring again at GhostQueue, so where the
+            // held item's own cells land on either, the verdict wins the pixel.
             latticeFreeMaterial.renderQueue = 2999;
             latticeTakenMaterial.renderQueue = 2999;
         }
 
         /// <summary>
-        /// Draw the cells the magnet-snapped ghost would use. The spot is legal by
-        /// construction — see <c>PackLayout.TryFindNearest</c> — so there is exactly one
-        /// colour: this is "here is where it will land", not a verdict.
+        /// Draw the cells the held item would occupy, green when the placement is legal and red
+        /// when it is not.
+        ///
+        /// <para>
+        /// This is the whole refusal readout. There is no message and no cursor change: the cells
+        /// the player is aiming at say yes or no. A click on red turns the item rather than doing
+        /// nothing; a SYMMETRIC shape, whose quarter turn occupies the very same cells, has no
+        /// turn to offer and gets a timed refusal flash on the held copy instead — this readout
+        /// still carries the verdict either way, only the response to a refused click differs.
+        /// </para>
         /// </summary>
-        public void Show(PackSurface surface, Vector2Int origin, PackShape oriented)
+        public void Show(PackSurface surface, Vector2Int origin, PackShape oriented, bool legal)
         {
             if (surface == null || oriented.IsEmpty)
             {
@@ -209,15 +290,15 @@ namespace SpaceGame.Items
                 return;
             }
 
-            // Rebuilt only when the ghost actually moved. Compared field-by-field rather than via
-            // oriented.Equals(ghostOriented): PackShape has no Equals override, so that call would
-            // box through ValueType.Equals every single frame. A masked (non-rectangular) shape is
-            // excluded from the early-out outright and always rebuilds — Rotated allocates a fresh
-            // backing array on every call, so a same-Width/Height mask could still be a DIFFERENT
-            // pattern (a rotated L keeps its bounding box but not its cells), and Width/Height alone
-            // cannot tell them apart. Rectangles, the common case, have no such array to distinguish
-            // and cache cleanly.
-            if (surface == ghostSurface && origin == ghostOrigin &&
+            // Rebuilt only when the ghost actually moved or changed verdict. Compared field-by-field
+            // rather than via oriented.Equals(ghostOriented): PackShape has no Equals override, so
+            // that call would box through ValueType.Equals every single frame. A masked
+            // (non-rectangular) shape is excluded from the early-out outright and always rebuilds —
+            // Rotated allocates a fresh backing array on every call, so a same-Width/Height mask
+            // could still be a DIFFERENT pattern (a rotated L keeps its bounding box but not its
+            // cells), and Width/Height alone cannot tell them apart. Rectangles, the common case,
+            // have no such array to distinguish and cache cleanly.
+            if (surface == ghostSurface && origin == ghostOrigin && legal == ghostLegal &&
                 oriented.IsRectangular && ghostOriented.IsRectangular &&
                 oriented.Width == ghostOriented.Width && oriented.Height == ghostOriented.Height)
                 return;
@@ -225,6 +306,7 @@ namespace SpaceGame.Items
             ghostSurface = surface;
             ghostOrigin = origin;
             ghostOriented = oriented;
+            ghostLegal = legal;
 
             verts.Clear();
             tris.Clear();
@@ -238,11 +320,12 @@ namespace SpaceGame.Items
                     var cell = new Vector2Int(origin.x + x, origin.y + y);
                     if (!PackGrid.OnGrid(surface.Size, cell)) continue;
 
-                    AddCell(verts, tris, surface, cell, fill: false);
+                    AddGhostCell(verts, tris, surface, cell);
                 }
             }
 
-            CommitTo(ref clearObject, ref clearMesh, "PackGridClearCells", clearMaterial, surface);
+            CommitTo(ref ghostObject, ref ghostMesh, "PackGridGhostCells",
+                     legal ? legalMaterial : refusedMaterial, surface);
         }
 
         /// <summary>Something changed under the lattice — rebuild it next ShowLattice.</summary>
@@ -260,15 +343,16 @@ namespace SpaceGame.Items
         /// </para>
         /// <para>
         /// <paramref name="ignoreItemId"/> is the item in the air: its cells draw as free,
-        /// because for this drag they are.
+        /// because for this carry they are.
         /// </para>
         /// <para>
-        /// <b>Expected overlap, not a bug.</b> A pack-drag's origin still carries its own
-        /// <see cref="BuildPlaced"/> ring for as long as the drag is undecided — nothing here is
-        /// optimistic, so the placed copy stays exactly where it was until the server answers — and
-        /// the lattice draws that same face's cells free, because with <paramref name="ignoreItemId"/>
-        /// excluded they are. The two rings sit congruent on top of each other for that one item:
-        /// correct, if a reader traces both passes over the same cell and expects to see only one.
+        /// <b>Expected overlap, not a bug.</b> The held item's origin still carries its own
+        /// <see cref="BuildPlaced"/> ring for as long as the placement is undecided — nothing here
+        /// is optimistic, so the placed copy stays exactly where it was until the server answers —
+        /// and the lattice draws that same face's cells free, because with
+        /// <paramref name="ignoreItemId"/> excluded they are. The two rings sit congruent on top of
+        /// each other for that one item: correct, if a reader traces both passes over the same cell
+        /// and expects to see only one.
         /// </para>
         /// </summary>
         public void ShowLattice(PackSurface surface, PackLayout layout, string ignoreItemId)
@@ -327,9 +411,11 @@ namespace SpaceGame.Items
             CommitTo(ref go, ref mesh, name, material, surface);
         }
 
-        /// <summary>Hides the ghost's own cells, and only those — see the caller in
-        /// <c>PackDragController.UpdateDrag</c> for why a face with no room still keeps its
-        /// lattice up.</summary>
+        /// <summary>Hides the ghost's own cells, and only those — <see cref="Hide"/> and
+        /// <see cref="Dispose"/> route through here, and <see cref="ShowLattice"/>'s free/taken
+        /// lattice is untouched. <see cref="Show"/>'s <c>oriented.IsEmpty</c> guard also lands
+        /// here, but purely defensively: <see cref="PackOverhang.Clamp"/> never returns an empty
+        /// shape and no shape for a real item is empty, so nothing reaches it today.</summary>
         public void HideGhost()
         {
             // Forces the next Show to rebuild rather than trust geometry a hidden pass never
@@ -337,10 +423,11 @@ namespace SpaceGame.Items
             // when it went away and might come back somewhere else.
             ghostSurface = null;
 
-            if (clearObject != null) clearObject.SetActive(false);
+            if (ghostObject != null) ghostObject.SetActive(false);
         }
 
-        /// <summary>Everything this draws, off. The exit every drag shares.</summary>
+        /// <summary>Everything this draws, off. Called every frame the cursor is off a face while
+        /// something is held, not only when the carry ends.</summary>
         public void Hide()
         {
             HideGhost();
@@ -357,20 +444,21 @@ namespace SpaceGame.Items
             HideGhost();
             HideLattice();
 
-            Destroy(clearObject);
+            Destroy(ghostObject);
             Destroy(latticeFreeObject);
             Destroy(latticeTakenObject);
-            Destroy(clearMesh);
+            Destroy(ghostMesh);
             Destroy(latticeFreeMesh);
             Destroy(latticeTakenMesh);
-            Destroy(clearMaterial);
+            Destroy(legalMaterial);
+            Destroy(refusedMaterial);
             Destroy(latticeFreeMaterial);
             Destroy(latticeTakenMaterial);
 
-            clearObject = null;
+            ghostObject = null;
             latticeFreeObject = null;
             latticeTakenObject = null;
-            clearMesh = null;
+            ghostMesh = null;
             latticeFreeMesh = null;
             latticeTakenMesh = null;
         }
@@ -389,6 +477,8 @@ namespace SpaceGame.Items
 
             Commit(mesh, verts, tris);
 
+            MeshRenderer renderer;
+
             if (go == null)
             {
                 go = new GameObject(name) { hideFlags = HideFlags.HideAndDontSave };
@@ -396,17 +486,29 @@ namespace SpaceGame.Items
                 var filter = go.AddComponent<MeshFilter>();
                 filter.sharedMesh = mesh;
 
-                var renderer = go.AddComponent<MeshRenderer>();
-                renderer.sharedMaterial = material;
+                renderer = go.AddComponent<MeshRenderer>();
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
 
                 int layer = BackpackItemVisual.ItemLayer;
                 if (layer >= 0) go.layer = layer;
             }
+            else
+            {
+                renderer = go.GetComponent<MeshRenderer>();
+            }
 
-            // Re-parented every call rather than once: a drag crosses faces, and the mesh is in
-            // the surface's own frame, so the object has to follow the face it was measured on.
+            // Assigned on every commit, not only on the first: the ghost swaps between the legal
+            // and refused materials on the same object, and a material set once at construction
+            // would leave it stuck on whichever verdict happened to be first. The two lattice
+            // halves pass the same material every time, so for them this is a harmless no-op —
+            // one caller needs the write, so all three get it, rather than threading a "did the
+            // verdict change" flag down from Show alone.
+            renderer.sharedMaterial = material;
+
+            // Re-parented every call rather than once: carrying the held item crosses faces, and
+            // the mesh is in the surface's own frame, so the object has to follow the face it was
+            // measured on.
             go.transform.SetParent(surface.transform, false);
             go.transform.localPosition = Vector3.zero;
             go.transform.localRotation = Quaternion.identity;
@@ -468,6 +570,42 @@ namespace SpaceGame.Items
 
             tris.Add(f); tris.Add(f + 2); tris.Add(f + 1);
             tris.Add(f); tris.Add(f + 3); tris.Add(f + 2);
+        }
+
+        /// <summary>
+        /// One GHOST cell: a single quad covering the cell's whole footprint bar
+        /// <see cref="GhostGutter"/> on each side, in the surface's local frame.
+        ///
+        /// <para>
+        /// Separate from <see cref="AddCell"/> rather than another flag on it, because the two
+        /// shapes answer different questions. <see cref="AddCell"/>'s ring is inset by
+        /// <see cref="Border"/> and hollowed by <see cref="Line"/> so it can be read THROUGH an
+        /// item sitting on it; the ghost lies UNDER the lifted carried copy and is hidden by it
+        /// wherever they overlap, so it states the footprint at full size as a solid fill and
+        /// lets the depth test do the cutting-out.
+        /// </para>
+        /// </summary>
+        private static void AddGhostCell(List<Vector3> verts, List<int> tris, PackSurface surface,
+                                         Vector2Int cell)
+        {
+            Vector2 corner = PackGrid.CornerUv(surface.Size, cell);
+
+            float x0 = corner.x + GhostGutter;
+            float y0 = corner.y + GhostGutter;
+            float x1 = corner.x + PackGrid.Cell - GhostGutter;
+            float y1 = corner.y + PackGrid.Cell - GhostGutter;
+
+            if (x1 <= x0 || y1 <= y0) return;
+
+            int b = verts.Count;
+
+            verts.Add(surface.ToLocal(new Vector2(x0, y0), Lift));
+            verts.Add(surface.ToLocal(new Vector2(x1, y0), Lift));
+            verts.Add(surface.ToLocal(new Vector2(x1, y1), Lift));
+            verts.Add(surface.ToLocal(new Vector2(x0, y1), Lift));
+
+            tris.Add(b); tris.Add(b + 2); tris.Add(b + 1);
+            tris.Add(b); tris.Add(b + 3); tris.Add(b + 2);
         }
 
         private static void Commit(Mesh mesh, List<Vector3> verts, List<int> tris)

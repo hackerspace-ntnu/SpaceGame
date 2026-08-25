@@ -204,9 +204,12 @@ namespace SpaceGame.Agents
         private RigidbodyConstraints ownRigidbodyConstraints;
         private bool ownRigidbodyConstraintsCaptured;
 
-        // Rider<->mount collider pairs ignored while mounted so the rider's kinematic collider
-        // doesn't push the mount around. Restored on dismount.
-        private (Collider a, Collider b)[] ignoredCollisionPairs;
+        // Rider/mount collider pairs ignored while mounted so the rider's kinematic collider
+        // doesn't push the mount around. Restored on dismount. The pairs live in a shared helper
+        // because NpcPassenger seats a different kind of rider in this same saddle and needs the
+        // identical suspension — and, just as importantly, must not reach for the other tool that
+        // stops a rider shoving its mount, which is switching the rider's colliders off.
+        private readonly RiderCollisionIgnore riderCollisions = new RiderCollisionIgnore();
 
         public event Action<PlayerMovement> Mounted;
         public event Action<PlayerMovement> Dismounted;

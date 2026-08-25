@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 4531718026956320851}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.96855974, z: 0.24878113, w: 0}
-  m_LocalPosition: {x: 0, y: 0.134, z: 0}
+  m_LocalPosition: {x: 0, y: 0.13, z: 0.045999996}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -47,6 +47,7 @@ GameObject:
   - component: {fileID: 8313801932572061942}
   - component: {fileID: 8731320524975282463}
   - component: {fileID: 3484486221819894140}
+  - component: {fileID: 1657853047534475620}
   - component: {fileID: 8273833650709271290}
   - component: {fileID: 724272998110527728}
   - component: {fileID: 3639992378135062944}
@@ -200,6 +201,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &1657853047534475620
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6096933643893021070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 567644cf9405343ee897952b3fb64d93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetChannel
 --- !u!114 &8273833650709271290
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -245,7 +258,7 @@ MonoBehaviour:
   holdStyle: 2
   rotationOffset: {x: 0, y: 0, z: -90}
   positionOffset: {x: 0, y: 0, z: 0}
-  holdSize: 0.59
+  holdSize: 0.674
   sizeReference: {fileID: 0}
   keepColliders: 0
 --- !u!114 &2928250347572000585
@@ -273,27 +286,29 @@ MonoBehaviour:
   punchRadius: 0.45
   punchOriginHeight: 1.35
   directDamage: 55
-  directFlingSpeed: 20
-  directUpwardTilt: 22
-  shockRadius: 5
+  directFlingSpeed: 34
+  directUpwardTilt: 26
+  shockRadius: 7
   shockDamage: 15
-  shockMinSpeed: 12
-  shockMaxSpeed: 17
+  shockMinSpeed: 20
+  shockMaxSpeed: 28
   shockUpwardTilt: 30
-  shockEdgeFalloff: 0.3
+  shockCoreFraction: 0
+  shockEdgeFalloff: 0.35
   itemMassReference: 10
-  recoilSpeed: 6
+  recoilSpeed: 11
   recoilUpwardTilt: 35
   cooldownTime: 1
   ramParts:
   - {fileID: 8315335645706910076}
   - {fileID: 5215105257714676941}
   - {fileID: 3844000961654243830}
+  - {fileID: 2290161592673677471}
   ramAxis: {x: 0, y: 0, z: 1}
-  ramThrow: 0.07
-  ramOutTime: 0.06
+  ramThrow: 0.17
+  ramOutTime: 0.07
   ramHoldTime: 0.1
-  ramReturnTime: 0.4
+  ramReturnTime: 0.55
   steamBurst: {fileID: 6241882462039540053}
   ringMaterial: {fileID: 2100000, guid: 649f848b509454974ac038f02bca93c0, type: 2}
   ringDuration: 0.3
@@ -5300,6 +5315,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c66c218995a754413a6e41a9e5a8a040, type: 3}
+--- !u!4 &2290161592673677471 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5673432829905096193, guid: c66c218995a754413a6e41a9e5a8a040, type: 3}
+  m_PrefabInstance: {fileID: 5869418246453001886}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3844000961654243830 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7218423914428350312, guid: c66c218995a754413a6e41a9e5a8a040, type: 3}

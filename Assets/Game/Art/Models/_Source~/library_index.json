@@ -31,6 +31,7 @@
       "Mat_Metal_Brass_Tarnished",
       "Mat_Metal_Chrome_Scuffed",
       "Mat_Metal_Copper_Oxide",
+      "Mat_Metal_Gold_Leaf",
       "Mat_Metal_HullRust_Orange",
       "Mat_Metal_Rust_Heavy",
       "Mat_Metal_Steel_Dark",
@@ -43,6 +44,7 @@
       "Mat_Paint_Coral_Faded",
       "Mat_Paint_Hazard_Yellow",
       "Mat_Paint_Hull_Bleached",
+      "Mat_Paint_Lacquer_Vermilion",
       "Mat_Paint_Mint_Pastel",
       "Mat_Paint_Olive_Deep",
       "Mat_Paint_Roof_Green",
@@ -25592,6 +25594,427 @@
     ],
     "auto_suffixed_names": []
   },
+  "models/gear/dragon_bazooka.blend": {
+    "collections": [
+      {
+        "name": "Coll_DragonBazooka",
+        "objects": [
+          "Mesh_LaunchTube_Banded",
+          "Mesh_DragonHead_Roaring",
+          "Mesh_DragonJaw_Roaring",
+          "Mesh_WeaponGrip_Pistol",
+          "Mesh_WeaponGrip_Fore",
+          "Mesh_WeaponGrip_Saddle",
+          "Mesh_DragonBazooka_Tassel",
+          "Mesh_DragonBazooka_SlingLoops",
+          "Marker_Muzzle",
+          "Marker_Grip",
+          "Marker_Breech",
+          "Marker_JawHinge"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Marker_Breech",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.098,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonBazooka"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Fabric_Rope_Hemp"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_Grip",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.29,
+          -0.132
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonBazooka"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Fabric_Rope_Hemp"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_JawHinge",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.9917,
+          -0.0073
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonBazooka"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Fabric_Rope_Hemp"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_Muzzle",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -1.1991,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonBazooka"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Fabric_Rope_Hemp"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_DragonBazooka_SlingLoops",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonBazooka"
+        ],
+        "dimensions": [
+          0.01,
+          0.594,
+          0.044
+        ],
+        "vertices": 256,
+        "polygons": 256,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Fabric_Rope_Hemp"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_DragonBazooka_Tassel",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonBazooka"
+        ],
+        "dimensions": [
+          0.0505,
+          0.0505,
+          0.1927
+        ],
+        "vertices": 536,
+        "polygons": 430,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Fabric_Rope_Hemp"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_DragonHead_Roaring",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.96,
+          -0.0146
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonBazooka"
+        ],
+        "dimensions": [
+          0.2305,
+          0.3903,
+          0.2618
+        ],
+        "vertices": 1303,
+        "polygons": 1111,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Hide_Ivory_Spine",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_DragonJaw_Roaring",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.9917,
+          -0.0073
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonBazooka"
+        ],
+        "dimensions": [
+          0.1513,
+          0.2625,
+          0.1755
+        ],
+        "vertices": 442,
+        "polygons": 424,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Hide_Ivory_Spine",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_LaunchTube_Banded",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonBazooka"
+        ],
+        "dimensions": [
+          0.17,
+          1.048,
+          0.171
+        ],
+        "vertices": 2632,
+        "polygons": 2598,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_WeaponGrip_Fore",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.64,
+          -0.072
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonBazooka"
+        ],
+        "dimensions": [
+          0.0507,
+          0.052,
+          0.1245
+        ],
+        "vertices": 624,
+        "polygons": 546,
+        "materials": [
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Wood_Ply_Worn",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_WeaponGrip_Pistol",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.3,
+          -0.072
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonBazooka"
+        ],
+        "dimensions": [
+          0.044,
+          0.1373,
+          0.1525
+        ],
+        "vertices": 988,
+        "polygons": 964,
+        "materials": [
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Wood_Ply_Worn",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_WeaponGrip_Saddle",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.14,
+          -0.064
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonBazooka"
+        ],
+        "dimensions": [
+          0.1126,
+          0.15,
+          0.0703
+        ],
+        "vertices": 592,
+        "polygons": 590,
+        "materials": [
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Wood_Ply_Worn",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Emissive_Amber",
+      "Mat_Fabric_Canvas_Faded",
+      "Mat_Fabric_Rope_Hemp",
+      "Mat_Hide_Ivory_Spine",
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Copper_Oxide",
+      "Mat_Metal_Gold_Leaf",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Neutral_Black_Matte",
+      "Mat_Paint_Lacquer_Vermilion",
+      "Mat_Plastic_Rubber_Black",
+      "Mat_Wood_Ply_Worn"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "models/gear/grapple_bracer.blend": {
     "collections": [
       {
@@ -26074,7 +26497,7 @@
           "Mesh_GauntletShell_Boiler",
           "Mesh_RamSlide_Rails",
           "Mesh_RamSlide_Cylinder",
-          "Mesh_RamSlide_SpringReturn",
+          "Mesh_RamSlide_Rod",
           "Mesh_RamSlide_Carriage",
           "Mesh_KnuckleBlock_Segmented",
           "Mesh_SuckerPuncher_RamArm",
@@ -26126,8 +26549,8 @@
         "type": "MESH",
         "location": [
           0.0,
-          0.12,
-          0.106
+          0.19,
+          0.098
         ],
         "scale": [
           1.0,
@@ -26192,8 +26615,8 @@
         "type": "MESH",
         "location": [
           0.0,
-          0.0,
-          0.134
+          -0.046,
+          0.13
         ],
         "scale": [
           1.0,
@@ -26226,23 +26649,23 @@
         "location": [
           0.0,
           0.109,
-          0.0355
+          0.014
         ],
         "scale": [
-          1.5695,
-          1.5695,
-          1.5695
+          1.0,
+          1.0,
+          1.0
         ],
         "collections": [
           "Coll_SuckerPuncher"
         ],
         "dimensions": [
-          0.2119,
-          0.3352,
-          0.1827
+          0.1376,
+          0.2537,
+          0.1342
         ],
-        "vertices": 752,
-        "polygons": 568,
+        "vertices": 1228,
+        "polygons": 1038,
         "materials": [
           "Mat_Metal_Steel_Worn",
           "Mat_Metal_Steel_Dark",
@@ -26261,8 +26684,8 @@
         "type": "MESH",
         "location": [
           0.0,
-          0.194,
-          0.07
+          0.264,
+          0.062
         ],
         "scale": [
           1.0,
@@ -26332,9 +26755,9 @@
         "name": "Mesh_GauntletShell_HazardPlate",
         "type": "MESH",
         "location": [
-          0.0043,
-          0.0013,
-          -0.0261
+          0.0,
+          0.0,
+          0.0
         ],
         "scale": [
           1.0,
@@ -26346,11 +26769,11 @@
         ],
         "dimensions": [
           0.166,
-          0.214,
+          0.31,
           0.074
         ],
-        "vertices": 472,
-        "polygons": 421,
+        "vertices": 490,
+        "polygons": 434,
         "materials": [
           "Mat_Metal_Steel_Worn",
           "Mat_Metal_Steel_Dark",
@@ -26471,7 +26894,7 @@
         "type": "MESH",
         "location": [
           0.0,
-          0.081,
+          0.19,
           0.104
         ],
         "scale": [
@@ -26483,12 +26906,12 @@
           "Coll_SuckerPuncher"
         ],
         "dimensions": [
-          0.0452,
-          0.1859,
-          0.0677
+          0.05,
+          0.2609,
+          0.0713
         ],
-        "vertices": 316,
-        "polygons": 234,
+        "vertices": 184,
+        "polygons": 114,
         "materials": [
           "Mat_Metal_Steel_Worn",
           "Mat_Metal_Steel_Dark",
@@ -26517,7 +26940,7 @@
         ],
         "dimensions": [
           0.136,
-          0.176,
+          0.281,
           0.0605
         ],
         "vertices": 456,
@@ -26533,12 +26956,12 @@
         "modifiers": []
       },
       {
-        "name": "Mesh_RamSlide_SpringReturn",
+        "name": "Mesh_RamSlide_Rod",
         "type": "MESH",
         "location": [
-          -0.036,
-          -0.04,
-          0.136
+          0.0,
+          -0.088,
+          0.092
         ],
         "scale": [
           1.0,
@@ -26549,12 +26972,12 @@
           "Coll_SuckerPuncher"
         ],
         "dimensions": [
-          0.042,
-          0.088,
-          0.0401
+          0.037,
+          0.2202,
+          0.037
         ],
-        "vertices": 680,
-        "polygons": 484,
+        "vertices": 172,
+        "polygons": 144,
         "materials": [
           "Mat_Metal_Steel_Worn",
           "Mat_Metal_Steel_Dark",
@@ -26583,8 +27006,8 @@
         ],
         "dimensions": [
           0.13,
-          0.2348,
-          0.0389
+          0.2915,
+          0.039
         ],
         "vertices": 408,
         "polygons": 354,
@@ -71022,6 +71445,212 @@
     ],
     "auto_suffixed_names": []
   },
+  "components/props/dragon_rocket.blend": {
+    "collections": [
+      {
+        "name": "Coll_DragonRocket_Firework",
+        "objects": [
+          "Mesh_DragonRocket_Firework",
+          "Marker_Exhaust",
+          "Marker_Nose"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_DragonRocket_Spent",
+        "objects": [
+          "Mesh_DragonRocket_Spent"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_DragonRocket_Whelp",
+        "objects": [
+          "Mesh_DragonRocket_Whelp"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Marker_Exhaust",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.006,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonRocket_Firework"
+        ],
+        "dimensions": [
+          0.003,
+          0.003,
+          0.003
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Fabric_Flag_Bleached",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_Nose",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.3,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonRocket_Firework"
+        ],
+        "dimensions": [
+          0.003,
+          0.003,
+          0.003
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Fabric_Flag_Bleached",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_DragonRocket_Firework",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonRocket_Firework"
+        ],
+        "dimensions": [
+          0.0806,
+          0.3,
+          0.0806
+        ],
+        "vertices": 1452,
+        "polygons": 1364,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Fabric_Flag_Bleached",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_DragonRocket_Spent",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonRocket_Spent"
+        ],
+        "dimensions": [
+          0.0823,
+          0.3127,
+          0.0765
+        ],
+        "vertices": 1336,
+        "polygons": 1254,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Fabric_Flag_Bleached",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_DragonRocket_Whelp",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonRocket_Whelp"
+        ],
+        "dimensions": [
+          0.0425,
+          0.15,
+          0.0442
+        ],
+        "vertices": 936,
+        "polygons": 870,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Fabric_Flag_Bleached",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Fabric_Flag_Bleached",
+      "Mat_Metal_Gold_Leaf",
+      "Mat_Metal_Rust_Heavy",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Neutral_Black_Matte",
+      "Mat_Paint_Lacquer_Vermilion"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "components/props/expedition_backpack.blend": {
     "collections": [
       {
@@ -73003,6 +73632,7 @@
           "PIVOT_Leaf",
           "PIVOT_Wing_L",
           "PIVOT_Wing_R",
+          "PIVOT_Lid",
           "Mesh_Rig_Frame",
           "Mesh_Rig_HipBelt_L",
           "Mesh_Rig_HipBelt_R",
@@ -73022,6 +73652,8 @@
           "Mesh_Rig_RackLadder",
           "Mesh_Rig_RackNets",
           "Mesh_Rig_RackHandle",
+          "Mesh_Rig_Lid",
+          "Mesh_Rig_LidGrommets",
           "Mesh_Rig_Wing_L",
           "Mesh_Rig_WingRib_L",
           "Mesh_Rig_Wing_R",
@@ -73087,9 +73719,9 @@
         "name": "Mesh_Rig_BackWebbing_L",
         "type": "MESH",
         "location": [
-          -0.287,
-          0.131,
-          0.281
+          -0.285,
+          0.1268,
+          0.2719
         ],
         "scale": [
           1.0,
@@ -73100,9 +73732,9 @@
           "Coll_Rig_Expedition"
         ],
         "dimensions": [
-          0.238,
-          0.2345,
-          0.4631
+          0.322,
+          0.2451,
+          0.4945
         ],
         "vertices": 312,
         "polygons": 352,
@@ -73122,9 +73754,9 @@
         "name": "Mesh_Rig_BackWebbing_R",
         "type": "MESH",
         "location": [
-          0.287,
-          0.131,
-          0.281
+          0.285,
+          0.1268,
+          0.2719
         ],
         "scale": [
           1.0,
@@ -73135,9 +73767,9 @@
           "Coll_Rig_Expedition"
         ],
         "dimensions": [
-          0.238,
-          0.2345,
-          0.4631
+          0.322,
+          0.2451,
+          0.4945
         ],
         "vertices": 312,
         "polygons": 352,
@@ -73271,12 +73903,12 @@
           "Coll_Rig_Expedition"
         ],
         "dimensions": [
-          0.8608,
-          0.73,
+          0.8613,
+          0.93,
           0.0376
         ],
-        "vertices": 598,
-        "polygons": 619,
+        "vertices": 622,
+        "polygons": 645,
         "materials": [
           "Mat_Fabric_Canvas_Sand",
           "Mat_Fabric_Wing_Ochre",
@@ -73504,7 +74136,7 @@
         "type": "MESH",
         "location": [
           0.0,
-          -0.625,
+          -0.825,
           0.018
         ],
         "scale": [
@@ -73539,7 +74171,7 @@
         "type": "MESH",
         "location": [
           0.0,
-          -0.295,
+          -0.39,
           0.01
         ],
         "scale": [
@@ -73552,11 +74184,81 @@
         ],
         "dimensions": [
           0.804,
-          0.89,
+          0.7589,
           0.055
         ],
-        "vertices": 696,
-        "polygons": 660,
+        "vertices": 648,
+        "polygons": 612,
+        "materials": [
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_Lid",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.86,
+          0.368,
+          0.0376
+        ],
+        "vertices": 550,
+        "polygons": 567,
+        "materials": [
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Rig_LidGrommets",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.415,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ],
+        "dimensions": [
+          0.804,
+          0.06,
+          0.026
+        ],
+        "vertices": 144,
+        "polygons": 144,
         "materials": [
           "Mat_Fabric_Canvas_Faded",
           "Mat_Fabric_Wing_Ochre",
@@ -73621,9 +74323,9 @@
           "Coll_Rig_Expedition"
         ],
         "dimensions": [
-          0.332,
-          0.4137,
-          0.4616
+          0.324,
+          0.4228,
+          0.4658
         ],
         "vertices": 432,
         "polygons": 424,
@@ -73679,8 +74381,8 @@
         "type": "MESH",
         "location": [
           0.0,
-          -0.735,
-          0.014
+          -0.375,
+          0.004
         ],
         "scale": [
           1.0,
@@ -73714,7 +74416,7 @@
         "type": "MESH",
         "location": [
           0.0,
-          -0.37,
+          -0.47,
           -0.04
         ],
         "scale": [
@@ -73726,8 +74428,8 @@
           "Coll_Rig_Expedition"
         ],
         "dimensions": [
-          0.732,
-          0.725,
+          0.722,
+          0.915,
           0.05
         ],
         "vertices": 384,
@@ -73749,7 +74451,7 @@
         "type": "MESH",
         "location": [
           0.0,
-          -0.37,
+          -0.47,
           -0.061
         ],
         "scale": [
@@ -73762,7 +74464,7 @@
         ],
         "dimensions": [
           0.6886,
-          0.6542,
+          0.8542,
           0.0287
         ],
         "vertices": 1376,
@@ -73982,8 +74684,8 @@
         "type": "MESH",
         "location": [
           -0.492,
-          -0.751,
-          0.046
+          -0.391,
+          0.036
         ],
         "scale": [
           1.0,
@@ -74017,8 +74719,8 @@
         "type": "MESH",
         "location": [
           0.492,
-          -0.751,
-          0.046
+          -0.391,
+          0.036
         ],
         "scale": [
           1.0,
@@ -74064,12 +74766,12 @@
           "Coll_Rig_Expedition"
         ],
         "dimensions": [
-          0.4329,
-          0.6005,
+          0.433,
+          0.8,
           0.0665
         ],
-        "vertices": 1066,
-        "polygons": 1165,
+        "vertices": 1250,
+        "polygons": 1367,
         "materials": [
           "Mat_Fabric_Canvas_Sand",
           "Mat_Fabric_Wing_Ochre",
@@ -74099,12 +74801,12 @@
           "Coll_Rig_Expedition"
         ],
         "dimensions": [
-          0.4329,
-          0.6005,
+          0.433,
+          0.8,
           0.0665
         ],
-        "vertices": 1066,
-        "polygons": 1165,
+        "vertices": 1250,
+        "polygons": 1367,
         "materials": [
           "Mat_Fabric_Canvas_Sand",
           "Mat_Fabric_Wing_Ochre",
@@ -74135,11 +74837,11 @@
         ],
         "dimensions": [
           0.114,
-          0.594,
+          0.794,
           0.04
         ],
-        "vertices": 168,
-        "polygons": 156,
+        "vertices": 192,
+        "polygons": 182,
         "materials": [
           "Mat_Fabric_Canvas_Faded",
           "Mat_Fabric_Wing_Ochre",
@@ -74170,11 +74872,11 @@
         ],
         "dimensions": [
           0.114,
-          0.594,
+          0.794,
           0.04
         ],
-        "vertices": 168,
-        "polygons": 156,
+        "vertices": 192,
+        "polygons": 182,
         "materials": [
           "Mat_Fabric_Canvas_Faded",
           "Mat_Fabric_Wing_Ochre",
@@ -74211,6 +74913,23 @@
           0.0,
           -0.135,
           0.016
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Rig_Expedition"
+        ]
+      },
+      {
+        "name": "PIVOT_Lid",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          -0.92,
+          0.01
         ],
         "scale": [
           1.0,
@@ -74260,8 +74979,8 @@
         "type": "EMPTY",
         "location": [
           -0.285,
-          0.1256,
-          0.2835
+          0.1213,
+          0.2744
         ],
         "scale": [
           1.0,
@@ -74277,8 +74996,8 @@
         "type": "EMPTY",
         "location": [
           0.285,
-          0.1256,
-          0.2835
+          0.1213,
+          0.2744
         ],
         "scale": [
           1.0,
@@ -74294,7 +75013,7 @@
         "type": "EMPTY",
         "location": [
           0.0,
-          -0.295,
+          -0.39,
           0.015
         ],
         "scale": [
@@ -74311,7 +75030,7 @@
         "type": "EMPTY",
         "location": [
           0.0,
-          -0.625,
+          -0.825,
           0.034
         ],
         "scale": [
@@ -74328,7 +75047,7 @@
         "type": "EMPTY",
         "location": [
           0.0,
-          -0.37,
+          -0.47,
           -0.067
         ],
         "scale": [
@@ -74345,7 +75064,7 @@
         "type": "EMPTY",
         "location": [
           -0.22,
-          0.065,
+          -0.045,
           0.015
         ],
         "scale": [
@@ -74362,7 +75081,7 @@
         "type": "EMPTY",
         "location": [
           0.22,
-          0.065,
+          -0.045,
           0.015
         ],
         "scale": [
@@ -76116,11 +76835,11 @@
         ],
         "dimensions": [
           0.166,
-          0.214,
+          0.31,
           0.074
         ],
-        "vertices": 472,
-        "polygons": 421,
+        "vertices": 490,
+        "polygons": 434,
         "materials": [
           "Mat_Metal_Steel_Worn",
           "Mat_Metal_Steel_Dark",
@@ -82139,6 +82858,348 @@
     ],
     "auto_suffixed_names": []
   },
+  "components/organic/dragon_head.blend": {
+    "collections": [
+      {
+        "name": "Coll_DragonHead_Roaring",
+        "objects": [
+          "Mesh_DragonHead_Roaring",
+          "Mesh_DragonJaw_Roaring",
+          "Marker_Throat",
+          "Marker_Collar",
+          "Marker_JawHinge"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_DragonHead_Snarling",
+        "objects": [
+          "Mesh_DragonHead_Snarling",
+          "Mesh_DragonJaw_Snarling"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_DragonHead_Whelp",
+        "objects": [
+          "Mesh_DragonHead_Whelp",
+          "Mesh_DragonJaw_Whelp"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Marker_Collar",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.02,
+          0.012
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonHead_Roaring"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Hide_Ivory_Spine",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_JawHinge",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.026,
+          0.006
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonHead_Roaring"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Hide_Ivory_Spine",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_Throat",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.196,
+          0.012
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonHead_Roaring"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Hide_Ivory_Spine",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_DragonHead_Roaring",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonHead_Roaring"
+        ],
+        "dimensions": [
+          0.1889,
+          0.32,
+          0.2146
+        ],
+        "vertices": 1303,
+        "polygons": 1111,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Hide_Ivory_Spine",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_DragonHead_Snarling",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonHead_Snarling"
+        ],
+        "dimensions": [
+          0.1889,
+          0.3199,
+          0.1891
+        ],
+        "vertices": 1207,
+        "polygons": 1027,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Hide_Ivory_Spine",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_DragonHead_Whelp",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonHead_Whelp"
+        ],
+        "dimensions": [
+          0.0835,
+          0.1555,
+          0.0905
+        ],
+        "vertices": 980,
+        "polygons": 813,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Hide_Ivory_Spine",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_DragonJaw_Roaring",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.026,
+          0.006
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonHead_Roaring"
+        ],
+        "dimensions": [
+          0.124,
+          0.2151,
+          0.1438
+        ],
+        "vertices": 442,
+        "polygons": 424,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Hide_Ivory_Spine",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_DragonJaw_Snarling",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.026,
+          0.006
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonHead_Snarling"
+        ],
+        "dimensions": [
+          0.124,
+          0.2306,
+          0.077
+        ],
+        "vertices": 442,
+        "polygons": 424,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Hide_Ivory_Spine",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_DragonJaw_Whelp",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.013,
+          0.003
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_DragonHead_Whelp"
+        ],
+        "dimensions": [
+          0.062,
+          0.1044,
+          0.0771
+        ],
+        "vertices": 442,
+        "polygons": 424,
+        "materials": [
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Hide_Ivory_Spine",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Emissive_Amber",
+      "Mat_Hide_Ivory_Spine",
+      "Mat_Metal_Copper_Oxide",
+      "Mat_Metal_Gold_Leaf",
+      "Mat_Neutral_Black_Matte",
+      "Mat_Paint_Lacquer_Vermilion"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "components/organic/foot_pad.blend": {
     "collections": [
       {
@@ -86405,6 +87466,246 @@
     ],
     "auto_suffixed_names": []
   },
+  "components/mechanical/launch_tube.blend": {
+    "collections": [
+      {
+        "name": "Coll_LaunchTube_Banded",
+        "objects": [
+          "Mesh_LaunchTube_Banded",
+          "Marker_Muzzle",
+          "Marker_Breech",
+          "Marker_Mount"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_LaunchTube_Twin",
+        "objects": [
+          "Mesh_LaunchTube_Twin"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_LaunchTube_Vented",
+        "objects": [
+          "Mesh_LaunchTube_Vented"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Marker_Breech",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.09,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_LaunchTube_Banded"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_Mount",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.45,
+          -0.072
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_LaunchTube_Banded"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_Muzzle",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.95,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_LaunchTube_Banded"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_LaunchTube_Banded",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_LaunchTube_Banded"
+        ],
+        "dimensions": [
+          0.17,
+          1.048,
+          0.171
+        ],
+        "vertices": 2632,
+        "polygons": 2598,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_LaunchTube_Twin",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_LaunchTube_Twin"
+        ],
+        "dimensions": [
+          0.22,
+          0.938,
+          0.148
+        ],
+        "vertices": 2326,
+        "polygons": 2284,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_LaunchTube_Vented",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_LaunchTube_Vented"
+        ],
+        "dimensions": [
+          0.208,
+          0.898,
+          0.208
+        ],
+        "vertices": 2256,
+        "polygons": 2208,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Paint_Lacquer_Vermilion",
+          "Mat_Metal_Gold_Leaf",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Metal_Gold_Leaf",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Neutral_Black_Matte",
+      "Mat_Paint_Lacquer_Vermilion",
+      "Mat_Plastic_Rubber_Black"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "components/mechanical/leg_shroud.blend": {
     "collections": [
       {
@@ -87484,6 +88785,13 @@
         "children": []
       },
       {
+        "name": "Coll_RamSlide_Rod",
+        "objects": [
+          "Mesh_RamSlide_Rod"
+        ],
+        "children": []
+      },
+      {
         "name": "Coll_RamSlide_SpringReturn",
         "objects": [
           "Mesh_RamSlide_SpringReturn"
@@ -87542,12 +88850,12 @@
           "Coll_RamSlide_Cylinder"
         ],
         "dimensions": [
-          0.0452,
-          0.1859,
-          0.0677
+          0.05,
+          0.2609,
+          0.0713
         ],
-        "vertices": 316,
-        "polygons": 234,
+        "vertices": 184,
+        "polygons": 114,
         "materials": [
           "Mat_Metal_Steel_Worn",
           "Mat_Metal_Steel_Dark",
@@ -87576,11 +88884,44 @@
         ],
         "dimensions": [
           0.136,
-          0.176,
+          0.281,
           0.0605
         ],
         "vertices": 456,
         "polygons": 382,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Amber"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_RamSlide_Rod",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_RamSlide_Rod"
+        ],
+        "dimensions": [
+          0.037,
+          0.2202,
+          0.037
+        ],
+        "vertices": 172,
+        "polygons": 144,
         "materials": [
           "Mat_Metal_Steel_Worn",
           "Mat_Metal_Steel_Dark",
@@ -89364,6 +90705,184 @@
       "Mat_Metal_Steel_Dark",
       "Mat_Metal_Steel_Worn",
       "Mat_Paint_Hull_Bleached"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
+  "components/mechanical/weapon_grip.blend": {
+    "collections": [
+      {
+        "name": "Coll_WeaponGrip_Fore",
+        "objects": [
+          "Mesh_WeaponGrip_Fore"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_WeaponGrip_Pistol",
+        "objects": [
+          "Mesh_WeaponGrip_Pistol"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_WeaponGrip_Saddle",
+        "objects": [
+          "Mesh_WeaponGrip_Saddle"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_WeaponGrip_Spade",
+        "objects": [
+          "Mesh_WeaponGrip_Spade"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_WeaponGrip_Fore",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_WeaponGrip_Fore"
+        ],
+        "dimensions": [
+          0.0507,
+          0.052,
+          0.1245
+        ],
+        "vertices": 624,
+        "polygons": 546,
+        "materials": [
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Wood_Ply_Worn",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_WeaponGrip_Pistol",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_WeaponGrip_Pistol"
+        ],
+        "dimensions": [
+          0.044,
+          0.1373,
+          0.1525
+        ],
+        "vertices": 988,
+        "polygons": 964,
+        "materials": [
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Wood_Ply_Worn",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_WeaponGrip_Saddle",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_WeaponGrip_Saddle"
+        ],
+        "dimensions": [
+          0.1126,
+          0.15,
+          0.0703
+        ],
+        "vertices": 592,
+        "polygons": 590,
+        "materials": [
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Wood_Ply_Worn",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_WeaponGrip_Spade",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_WeaponGrip_Spade"
+        ],
+        "dimensions": [
+          0.1828,
+          0.073,
+          0.12
+        ],
+        "vertices": 808,
+        "polygons": 740,
+        "materials": [
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Wood_Ply_Worn",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Metal_Brass_Tarnished"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Fabric_Canvas_Faded",
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Plastic_Rubber_Black",
+      "Mat_Wood_Ply_Worn"
     ],
     "linked_libraries": [
       "//../../palette.blend"

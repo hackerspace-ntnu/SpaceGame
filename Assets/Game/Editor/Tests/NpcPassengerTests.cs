@@ -11,6 +11,8 @@ using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 using SpaceGame.Agents;
+using SpaceGame.Characters;
+using SpaceGame.Gameplay;
 
 namespace SpaceGame.Tests
 {
@@ -128,6 +130,113 @@ namespace SpaceGame.Tests
             Assert.IsFalse(passenger.HasRider);
         }
 
+        // ─────────── The rider is still part of the world while they ride ───────────
+
+        [Test]
+        public void ASeatedRiderKeepsASolidBody()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            GameObject rider = NewObject("rider");
+            var capsule = rider.AddComponent<CapsuleCollider>();
+
+            passenger.Seat(rider);
+
+            Assert.IsTrue(capsule.enabled,
+                "Switching the rider's colliders off is what made mounted nomads impossible to " +
+                "shoot, lasso, rope or even aim at: every one of those is a query, and a query " +
+                "passes straight through a disabled collider.");
+        }
+
+        [Test]
+        public void ASeatedRiderCannotShoveTheMount()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            var mountCollider = passenger.gameObject.AddComponent<BoxCollider>();
+            GameObject rider = NewObject("rider");
+            var riderCollider = rider.AddComponent<CapsuleCollider>();
+
+            passenger.Seat(rider);
+
+            Assert.IsTrue(Physics.GetIgnoreCollision(riderCollider, mountCollider),
+                "A rider's collider sits inside the mount's, and physics resolves that overlap by " +
+                "shoving one of them. Suspending the pair is how the body stays solid to queries " +
+                "without the mount spinning under its own rider.");
+        }
+
+        [Test]
+        public void DismountingHandsTheCollisionBack()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            var mountCollider = passenger.gameObject.AddComponent<BoxCollider>();
+            GameObject rider = NewObject("rider");
+            var riderCollider = rider.AddComponent<CapsuleCollider>();
+
+            passenger.Seat(rider);
+            passenger.Dismount();
+
+            Assert.IsFalse(Physics.GetIgnoreCollision(riderCollider, mountCollider),
+                "IgnoreCollision is global and permanent until it is undone. A rider who walks " +
+                "away still ignoring the animal walks through it.");
+        }
+
+        // ─────────── Who this machine thinks it is carrying ───────────
+
+        [Test]
+        public void SeatingPosesTheRiderItSeated()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            GameObject rider = NewObject("rider");
+
+            passenger.Seat(rider);
+
+            Assert.AreSame(rider.transform, passenger.PosedRider);
+        }
+
+        [Test]
+        public void AWatchingMachineAdoptsTheRiderNetcodeParentedIn()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            GameObject rider = NewObject("rider");
+            rider.AddComponent<AgentController>();
+
+            // What a client is handed: the parenting, and nothing else. Seat() was never called
+            // here, so Rider stays null and the pose has to be worked out from what is visible.
+            rider.transform.SetParent(passenger.transform, worldPositionStays: false);
+            passenger.RefreshSeatedRider();
+
+            Assert.IsFalse(passenger.HasRider, "Only the authority seats anybody.");
+            Assert.AreSame(rider.transform, passenger.PosedRider,
+                "A machine that was told nothing still has to sit the rider in the saddle, or the " +
+                "caravan rides past every client with its nomads standing bolt upright.");
+        }
+
+        [Test]
+        public void TheMountsOwnBrainIsNotItsRider()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            passenger.gameObject.AddComponent<AgentController>();
+
+            passenger.RefreshSeatedRider();
+
+            Assert.IsNull(passenger.PosedRider,
+                "The mount IS the agent here, so its own AgentController is the first thing a " +
+                "search below itself finds.");
+        }
+
+        [Test]
+        public void APlayerRiderIsLeftToTheMountModule()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            GameObject player = NewObject("player");
+
+            // No AgentController — that is exactly what tells the two kinds of rider apart, and
+            // adopting a player here would mean two components posing one body.
+            player.transform.SetParent(passenger.transform, worldPositionStays: false);
+            passenger.RefreshSeatedRider();
+
+            Assert.IsNull(passenger.PosedRider);
+        }
+
         [Test]
         public void ADismountDuringTeardownIsRefused()
         {
@@ -142,6 +251,111 @@ namespace SpaceGame.Tests
                 "would leave the rider parented to something about to be destroyed.");
             Assert.AreSame(seat, rider.transform.parent);
             Assert.IsTrue(passenger.HasRider);
+        }
+
+        // ─────────── Taking the saddle off them ───────────
+
+        [Test]
+        public void MountingTurfsTheNpcRiderOut()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            MountModule mount = NewMount(passenger);
+
+            GameObject nomad = NewObject("nomad");
+            nomad.AddComponent<AgentController>();
+            passenger.Seat(nomad);
+
+            GameObject player = NewObject("player");
+            player.AddComponent<PlayerMovement>();
+            var interactor = player.AddComponent<Interactor>();
+
+            Assert.IsTrue(mount.TryMount(interactor, null), "The player should have got the seat.");
+
+            Assert.IsFalse(passenger.HasRider,
+                "MountModule tracks only its own PlayerMovement rider, so an occupied saddle read " +
+                "as free and the player was seated straight through the nomad already in it.");
+            Assert.IsNull(nomad.transform.parent, "The evicted rider is put down beside the animal.");
+            Assert.AreSame(player.transform, mount.MountedPlayerTransform);
+        }
+
+        [Test]
+        public void MountingAnEmptySaddleAsksNothingOfNobody()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            MountModule mount = NewMount(passenger);
+
+            GameObject player = NewObject("player");
+            player.AddComponent<PlayerMovement>();
+            var interactor = player.AddComponent<Interactor>();
+
+            Assert.IsTrue(mount.TryMount(interactor, null));
+            Assert.IsFalse(passenger.HasRider);
+        }
+
+        // ─────────── Hurting a rider ───────────
+
+        [Test]
+        public void AWoundedRiderGetsOffAndCanFightBack()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            GameObject rider = NewObject("rider");
+            var health = rider.AddComponent<HealthComponent>();
+            var brain = rider.AddComponent<AgentController>();
+
+            passenger.Seat(rider);
+            health.Damage(1);
+
+            Assert.IsFalse(passenger.HasRider);
+            Assert.IsTrue(brain.enabled,
+                "A passenger's brain is off — that is what makes them a passenger. Shootable and " +
+                "unable to answer reads as a broken enemy, not a peaceful one.");
+        }
+
+        [Test]
+        public void ADeadRiderIsNotHandedItsBrainBack()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            GameObject rider = NewObject("rider");
+            var health = rider.AddComponent<HealthComponent>();
+            var brain = rider.AddComponent<AgentController>();
+
+            passenger.Seat(rider);
+            health.Damage(health.GetMaxHealth);
+
+            Assert.IsFalse(passenger.HasRider);
+            Assert.IsFalse(brain.enabled,
+                "HealthReactionModule has already switched the brain off and started the despawn " +
+                "timer by now. Handing back a working AgentController stands the corpse up.");
+        }
+
+        // ─────────── Ropes take a rider off ───────────
+
+        [Test]
+        public void ARopeOnASeatedRiderTakesThemOutOfTheSaddle()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            GameObject rider = NewObject("rider");
+            passenger.Seat(rider);
+
+            Assert.IsTrue(NpcPassenger.UnseatRider(rider));
+
+            Assert.IsFalse(passenger.HasRider);
+            Assert.IsNull(rider.transform.parent,
+                "A seated rider's transform belongs to the animal, so a rope tied to one hauls on " +
+                "a body that cannot move while the mount walks on regardless.");
+        }
+
+        [Test]
+        public void ARopeOnSomebodyWhoIsNotRidingChangesNothing()
+        {
+            (NpcPassenger passenger, _) = NewPassenger(Vector3.zero);
+            GameObject seated = NewObject("seated");
+            passenger.Seat(seated);
+
+            GameObject bystander = NewObject("bystander");
+
+            Assert.IsFalse(NpcPassenger.UnseatRider(bystander));
+            Assert.IsTrue(passenger.HasRider, "Roping a bystander must not empty somebody's saddle.");
         }
 
         // ─────────── Fixtures ───────────
@@ -181,13 +395,33 @@ namespace SpaceGame.Tests
             return (passenger, seat);
         }
 
-        private static void Plant(NpcPassenger passenger, string field, object value)
+        /// <summary>
+        /// A mount whose saddle can actually be taken.
+        ///
+        /// <para>
+        /// The cooldown is zeroed rather than left at its authored 0.25 s because
+        /// <c>IsAvailableForMount</c> reads <c>Time.time</c>, and <c>Time.time</c> is 0 in edit mode
+        /// — it keeps whatever value play mode left behind and a domain reload resets it. So the
+        /// gate is <c>0 >= 0.25</c> and no mount can ever be seated here. Left in, the failure looks
+        /// intermittent (it passes only if somebody has been in play mode since the last reload) and
+        /// reads exactly like a regression in whatever was edited last.
+        /// </para>
+        /// </summary>
+        private static MountModule NewMount(NpcPassenger passenger)
         {
-            FieldInfo info = typeof(NpcPassenger)
+            var mount = passenger.gameObject.AddComponent<MountModule>();
+            Plant(mount, "mountCooldown", 0f);
+            return mount;
+        }
+
+        private static void Plant(Component component, string field, object value)
+        {
+            FieldInfo info = component.GetType()
                 .GetField(field, BindingFlags.Instance | BindingFlags.NonPublic);
 
-            Assert.IsNotNull(info, $"NpcPassenger.{field} was renamed; this test plants it directly.");
-            info.SetValue(passenger, value);
+            Assert.IsNotNull(info,
+                $"{component.GetType().Name}.{field} was renamed; this test plants it directly.");
+            info.SetValue(component, value);
         }
     }
 }

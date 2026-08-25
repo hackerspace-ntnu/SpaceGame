@@ -144,6 +144,57 @@ namespace SpaceGame.EditorTools
             Assert.Greater(Vector3.Dot(flat.normalized, Vector3.forward), 0.99f);
         }
 
+        // ── PushDirection / DirectedFling ──────────────────────────────────────
+        //
+        // The dial between a detonation and a directed blast. Worth pinning because both ends of it
+        // are load-bearing and both fail silently: at 0 the gauntlet goes back to throwing bodies
+        // in every direction it spans, and at 1 the rocket and the punch would stop being
+        // explosions at all.
+
+        [Test]
+        public void PushDirection_AtGauntletBias_ThrowsASideOnBodyForward()
+        {
+            // A body standing 60 degrees off the aim — well inside a 70 degree cone, and exactly
+            // the case that made the old radial blast read as going everywhere. It must leave
+            // mostly DOWN THE AIM, not out to the side it happened to be standing on.
+            var target = new Vector3(Mathf.Sin(60f * Mathf.Deg2Rad), 0f, Mathf.Cos(60f * Mathf.Deg2Rad)) * 8f;
+
+            Vector3 dir = RepulsorBlast.PushDirection(Vector3.zero, Vector3.forward, target, 0.8f);
+
+            Assert.Greater(Vector3.Dot(dir, Vector3.forward), 0.9f);
+            Assert.Greater(dir.x, 0f, "the radial minority must survive, or the crowd stacks");
+        }
+
+        [Test]
+        public void PushDirection_AtZeroBias_IsPurelyRadial_AndMatchesFlingVelocity()
+        {
+            var target = new Vector3(3f, 0f, 4f);
+
+            Vector3 dir = RepulsorBlast.PushDirection(Vector3.zero, Vector3.forward, target, 0f);
+            Assert.Greater(Vector3.Dot(dir, new Vector3(0.6f, 0f, 0.8f)), 0.999f);
+
+            // The rocket and the punch reach this through FlingVelocity, which is DirectedFling
+            // pinned to bias 0. If the two ever disagree, those two artifacts changed shape without
+            // anybody editing them.
+            Vector3 flung = RepulsorBlast.FlingVelocity(Vector3.zero, Vector3.forward, target,
+                1f, 10f, 22f, 22f, 27f, CoreFraction, EdgeFalloff);
+            Vector3 directed = RepulsorBlast.DirectedFling(Vector3.zero, Vector3.forward, target,
+                10f, 22f, 27f, CoreFraction, EdgeFalloff, aimBias: 0f);
+            Assert.AreEqual(0f, (flung - directed).magnitude, 1e-4f);
+        }
+
+        [Test]
+        public void PushDirection_BodyBehindTheCaster_StillGetsADirection()
+        {
+            // The one degenerate case in the blend: radial and aim are exactly opposed, so at
+            // bias 0.5 the lerp lands on the zero vector and a naive normalize returns NaN.
+            Vector3 dir = RepulsorBlast.PushDirection(Vector3.zero, Vector3.forward,
+                                                      new Vector3(0f, 0f, -6f), 0.5f);
+
+            Assert.AreEqual(1f, dir.magnitude, 1e-3f);
+            Assert.IsFalse(float.IsNaN(dir.x) || float.IsNaN(dir.z));
+        }
+
         // ── Launch ─────────────────────────────────────────────────────────────
         //
         // The shared tail of every knockback in the game: the repulsor's blast, the Sucker

@@ -7,7 +7,7 @@ namespace SpaceGame.Items
     /// where a grabbed point on it travels to, and how far along that travel the cursor has got.
     ///
     /// <para>
-    /// Split out of <see cref="PackDragController"/> for the same reason <see cref="PackPointer"/>
+    /// Split out of <see cref="PackHandController"/> for the same reason <see cref="PackPointer"/>
     /// was: it is the half with no state. Everything here is a pure function, so the drag state
     /// machine never has to reason about hinges and this can be read — and tested — on its own.
     /// </para>

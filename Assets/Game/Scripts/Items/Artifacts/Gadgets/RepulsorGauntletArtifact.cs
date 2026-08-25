@@ -5,6 +5,7 @@ using SpaceGame.Audio;
 using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
+using SpaceGame.Gameplay.Ragdoll;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -27,10 +28,13 @@ namespace SpaceGame.Items
     ///
     /// <para>
     /// Physics is server-authoritative (Authority=Server): loose bodies are pushed directly,
-    /// players via NetMsg.Flung applied by their own machine (FlungBody), leap-capable mounts via
-    /// IMountLeapMotor. Cosmetics (cone, ring, dust, thunder, hurt flinches, recoil on the caster)
-    /// run per machine in <see cref="Present"/>. A press the magazine refuses travels as
-    /// <see cref="MissVerb"/> and presents nothing at all.
+    /// players via NetMsg.Flung applied by their own machine (FlungBody), and everything with a
+    /// skeleton is put on the ground by NetMsg.Knockdown, which every machine presents as a ragdoll
+    /// of its own. The one exception is a creature carrying a rider — ragdolling under one would
+    /// drag them through the ground — which is thrown as a leap via IMountLeapMotor instead.
+    /// Cosmetics (cone, ring, dust, thunder, hurt flinches, recoil on the caster) run per machine
+    /// in <see cref="Present"/>. A press the magazine refuses travels as <see cref="MissVerb"/> and
+    /// presents nothing at all.
     /// </para>
     /// </summary>
     public class RepulsorGauntletArtifact : ToolItem
@@ -54,8 +58,17 @@ namespace SpaceGame.Items
         [Header("Blast")]
         [Tooltip("Blast reach in metres. Every hit inside it is a full-power hit; there is no charge to shorten it.")]
         [SerializeField] private float range = 20f;
-        [Tooltip("Full cone angle, degrees. Wide is the point — this weapon is aimed at a crowd, not a target.")]
-        [SerializeField, Range(10f, 180f)] private float blastAngle = 100f;
+        [Tooltip("Full cone angle, degrees. Wide enough to catch a crowd, narrow enough that the " +
+                 "player can see where it went — past roughly 90 the wave has no direction left to " +
+                 "read and the weapon starts feeling like a bomb you are standing on.")]
+        [SerializeField, Range(10f, 180f)] private float blastAngle = 70f;
+        [Tooltip("How far the push is turned from radial toward the AIM.\n\n" +
+                 "0 throws every body straight away from the caster's chest, which is a detonation " +
+                 "and is what this weapon used to be: the man beside you went sideways and the one " +
+                 "behind your shoulder went backwards. 1 throws the whole cone down the crosshair " +
+                 "and stacks the crowd into one pile. The default keeps a minority of radial so the " +
+                 "fan still spreads, while the aim decides where the fan goes.")]
+        [SerializeField, Range(0f, 1f)] private float aimBias = 0.8f;
         [Tooltip("Launch speed, point-blank. Read against a 9 m/s sprint and the 7 m/s jump: this is " +
                  "the number that decides whether a blast reads as a launch or a shove, so it is " +
                  "deliberately several times a player's own top speed.")]
@@ -69,6 +82,12 @@ namespace SpaceGame.Items
         [SerializeField] private float blastOriginHeight = 1.2f;
         [Tooltip("Damage per body caught in the blast. 0 = pure force.")]
         [SerializeField] private int blastDamage = 0;
+        [Tooltip("How long a victim stays on the ground before getting up, seconds.\n\n" +
+                 "Travels with the blast rather than being each victim's own business, so every " +
+                 "machine watching a knockdown agrees on when it ends — a watcher does not " +
+                 "simulate the flight and cannot work the moment out for itself. This is the " +
+                 "price of being caught, and it is the whole price: the blast does no damage.")]
+        [SerializeField] private float downedSeconds = 1.2f;
         [Tooltip("Impulse scaling reference for loose items: a body this heavy takes the full fling speed.")]
         [SerializeField] private float itemMassReference = 18f;
         [Tooltip("Bounds on that mass scaling. The floor is what stops a crate from shrugging the " +
@@ -77,7 +96,7 @@ namespace SpaceGame.Items
         [Tooltip("Fraction of the radius that takes UNDIMINISHED force. Without a core, falloff " +
                  "measured from the caster's chest makes the ordinary mid-cone hit a weak one no " +
                  "matter how high the peak speed is tuned.")]
-        [SerializeField, Range(0f, 1f)] private float coreFraction = 0.4f;
+        [SerializeField, Range(0f, 1f)] private float coreFraction = 0.55f;
         [Tooltip("Fling strength at the cone edge relative to the core — an edge hit is a puff, not a launch.")]
         [SerializeField, Range(0f, 1f)] private float edgeFalloff = 0.5f;
 
@@ -91,10 +110,12 @@ namespace SpaceGame.Items
                  "is what keeps the backward half from being deleted on the next movement tick.")]
         [SerializeField] private float recoilUpwardBias = 0.35f;
 
-        [Header("Mount leap (kinematic agents that support it)")]
-        [Tooltip("A creature's transform is owned by its motor, so a leap is the only knockback it " +
-                 "can be given. This distance is what the blast LOOKS like against everything " +
-                 "that is not a player, so it is read against flingSpeed, not against a step.")]
+        [Header("Mount leap (creatures carrying a rider)")]
+        [Tooltip("How far a RIDDEN creature is thrown, metres. Everything else goes limp instead; " +
+                 "a mount with somebody on its back cannot, because the rider is parented to the " +
+                 "seat and would be dragged through the ground with it. Read against flingSpeed " +
+                 "rather than against a step — this is what the blast looks like on the one thing " +
+                 "it cannot knock down.")]
         [SerializeField] private float leapDistance = 13f;
         [SerializeField] private float leapHeight = 3f;
         [SerializeField] private float leapDuration = 0.6f;
@@ -112,27 +133,31 @@ namespace SpaceGame.Items
         [SerializeField] private float capacitorGlowScale = 0.14f;
         [Tooltip("RepulsorShockwave-shader material for the ground ring. Assigned by the builder.")]
         [SerializeField] private Material ringMaterial;
-        [SerializeField] private float ringDuration = 0.35f;
+        [SerializeField] private float ringDuration = 0.45f;
         [Tooltip("Material for the swept air cone — the shape of the blast, drawn where it actually " +
                  "reaches. Assigned by the builder.")]
         [SerializeField] private Material coneMaterial;
-        [SerializeField] private float coneDuration = 0.28f;
+        [SerializeField] private float coneDuration = 0.42f;
         [Tooltip("Compressed-air dust wall leaving the gauntlet. Cosmetic; every machine plays it.")]
         [SerializeField] private ParticleSystem blastDust;
         [Tooltip("Streaked air lines down the cone axis — the direction the force went.")]
         [SerializeField] private ParticleSystem blastStreaks;
         [Tooltip("Grit and small debris torn off the ground by the blast.")]
         [SerializeField] private ParticleSystem blastDebris;
+        [Tooltip("The ground wave: a wide, flat sheet of sand driven along the aim, hugging the " +
+                 "floor. This is the system that makes the blast read as something that travelled " +
+                 "OUT rather than something that happened at the hand.")]
+        [SerializeField] private ParticleSystem blastShockSheet;
         [Tooltip("Muzzle flash at the emitter. Enabled by Present, cut by Update.")]
         [SerializeField] private Light muzzleFlash;
         [Tooltip("Seconds the muzzle flash stays lit.")]
-        [SerializeField] private float flashSeconds = 0.09f;
+        [SerializeField] private float flashSeconds = 0.13f;
         [SerializeField] private ShakeData blastShake;
         [Tooltip("Only cameras within this range of the blast shake.")]
         [SerializeField] private float shakeRadius = 20f;
         [Tooltip("Shake magnitude before distance attenuation. Flat, because the blast itself is " +
                  "flat now — every shot is a full-power shot, so a varying kick would be lying.")]
-        [SerializeField] private float shakeMagnitude = 1.8f;
+        [SerializeField] private float shakeMagnitude = 2.8f;
         [Tooltip("The crack of the thunderclap. Layered with blastId (GDC-L1-FEEL-0004).")]
         [SerializeField] private SfxId thunderId = SfxId.AmbThunder;
         [Tooltip("The body of the thunderclap, under the crack.")]
@@ -142,8 +167,8 @@ namespace SpaceGame.Items
                  "purpose (see SuckerPuncherArtifact) because Time.timeScale on a host stalls the " +
                  "authoritative simulation for every other player. The camera has to sell the " +
                  "impact on its own.")]
-        [SerializeField] private float blastFovKick = 14f;
-        [SerializeField] private float blastFovKickDuration = 0.2f;
+        [SerializeField] private float blastFovKick = 18f;
+        [SerializeField] private float blastFovKickDuration = 0.26f;
 
         /// <summary>
         /// Shots in hand, the trickle that refills them, and the refire lock.
@@ -272,54 +297,49 @@ namespace SpaceGame.Items
                 Vector3 targetPos = hit.bounds.center;
                 if (!RepulsorBlast.InCone(origin, dir, targetPos, range, blastAngle * 0.5f)) continue;
 
-                // charge = 1 and min = max = flingSpeed. The gauntlet has no charge any more, but
-                // RepulsorBlast is SHARED with the Sucker Puncher, which still has one — collapsing
-                // the helper's signature to match this artifact would break that one. The constant
-                // belongs here, at the call site that has nothing left to vary.
-                Vector3 fling = RepulsorBlast.FlingVelocity(origin, dir, targetPos, 1f,
-                    range, flingSpeed, flingSpeed, upwardTilt, coreFraction, edgeFalloff);
+                // DirectedFling, not FlingVelocity: the plain one is pinned to aimBias 0, which
+                // is right for a detonation centred on the point of contact (the rocket, the
+                // punch) and wrong for a wall of air leaving a hand. This blast's origin is the
+                // caster's own chest, so a radial push throws the cone in every direction it
+                // happens to span — see RepulsorBlast.PushDirection.
+                Vector3 fling = RepulsorBlast.DirectedFling(origin, dir, targetPos, range,
+                    flingSpeed, upwardTilt, coreFraction, edgeFalloff, aimBias);
 
-                if (root.GetComponent<PlayerMovement>() != null)
-                {
-                    // Owner-authoritative body: the victim's own machine applies it (FlungBody).
-                    NetMessaging.NetSendTo(root, NetMsg.Flung, new NetArg { P = fling }, NetTo.All);
-                }
-                else if (root.GetComponentInChildren<AgentController>() != null)
-                {
-                    // Kinematic, motor-owned transform — forces never land. Leap if the motor can;
-                    // otherwise the cosmetic sweep's hurt flinch is all v1 gives (deferred by spec).
-                    var leaper = root.GetComponentInChildren<IMountLeapMotor>();
-                    if (leaper != null && leaper.IsLeapAvailable)
-                    {
-                        // Priced off the fling this body would have taken had it been a loose
-                        // one, so a creature standing where a player would have been launched is
-                        // thrown the same distance rather than nudged. The ratio is against the
-                        // authored peak, so retuning flingSpeed retunes the knockback with it.
-                        float falloff = fling.magnitude / Mathf.Max(flingSpeed, 0.01f);
-                        Vector3 away = Vector3.ProjectOnPlane(fling, Vector3.up).normalized;
-                        leaper.RequestLeap(away, leapDistance * falloff, leapHeight * falloff,
-                                           leapDuration);
-                    }
-                }
-                else
-                {
-                    Rigidbody body = hit.attachedRigidbody;
-                    if (body == null) continue;
-                    if (body.isKinematic)
-                    {
-                        // Only un-kinematic a body this machine simulates — a kinematic replica is
-                        // kinematic on purpose (the LassoTether guard).
-                        if (!Network.Simulates(body)) continue;
-                        body.isKinematic = false;
-                    }
-                    float massScale = Mathf.Clamp(itemMassReference / Mathf.Max(body.mass, 0.1f),
-                                                  itemMassScaleRange.x, itemMassScaleRange.y);
-                    body.AddForce(fling * massScale, ForceMode.VelocityChange);
-                }
+                // Three kinds of target, three routes — see BlastPush, which the Sucker Puncher
+                // and the dragon bazooka's burst share. The knockdown hook is what makes this
+                // gauntlet's version the rich one: a player takes the fling AND goes down, and a
+                // creature that can be knocked down does that INSTEAD of leaping.
+                //
+                // The leap is priced off the fling this body would have taken had it been a loose
+                // one, so a creature standing where a player would have been launched is thrown
+                // the same distance rather than nudged. Proportional, so an edge hit fades out —
+                // right for a wave centred on the caster's own chest.
+                BlastPush.Apply(hit, root, fling, flingSpeed,
+                                BlastPush.Leap.Proportional(leapDistance, leapHeight, leapDuration),
+                                itemMassReference, itemMassScaleRange, Knock);
 
                 if (blastDamage > 0)
                     NetDamage.Apply(root, blastDamage, owner.transform);
             }
+        }
+
+        /// <summary>
+        /// Tell every machine to put this body on the ground.
+        ///
+        /// <para>
+        /// Sent on the VICTIM's relay, like the damage and the fling: the message is about their
+        /// state, and it is the attacker who happens to be sending it. <c>NetTo.All</c> because a
+        /// ragdoll has to be presented everywhere — bone transforms do not replicate, so each
+        /// machine runs its own and only the root converges.
+        /// </para>
+        /// </summary>
+        private void Knock(GameObject victim, Vector3 fling)
+        {
+            NetMessaging.NetSendTo(victim, NetMsg.Knockdown, new NetArg
+            {
+                P = fling,
+                A = Mathf.RoundToInt(downedSeconds * 1000f),
+            }, NetTo.All);
         }
 
         private void PlayBlastFx(Vector3 dir)
@@ -328,12 +348,23 @@ namespace SpaceGame.Items
             Vector3 feet = owner.transform.position + Vector3.up * 0.1f;
             Vector3 origin = owner.transform.position + Vector3.up * blastOriginHeight;
 
-            RepulsorBlastRing.Spawn(feet, range, ringDuration, ringMaterial);
+            // The ARC, not the full ring. A 360 ring under a weapon that just threw one cone of
+            // people one way is the loudest thing in the frame telling the player it went
+            // everywhere, and it contradicts what the physics did. Same half-angle as the sweep, so
+            // the scorch covers exactly the bodies that were thrown.
+            RepulsorBlastRing.SpawnArc(feet, dir, blastAngle * 0.5f, range, ringDuration, ringMaterial);
             RepulsorBlastCone.Spawn(origin, dir, range, blastAngle * 0.5f, coneDuration, coneMaterial);
 
             PlayBurst(blastDust, dir);
             PlayBurst(blastStreaks, dir);
             PlayBurst(blastDebris, dir);
+            // Flattened onto the ground rather than fired along the aim: a wave that climbs with a
+            // shot aimed slightly up stops looking like it is scouring the floor, which is the one
+            // thing this system is here to say. A shot straight up or down has no ground direction
+            // at all, and PlayBurst's own fallback leaves the sheet pointing wherever it last was —
+            // so it is skipped outright there rather than fired sideways.
+            Vector3 alongGround = Vector3.ProjectOnPlane(dir, Vector3.up);
+            if (alongGround.sqrMagnitude > 1e-4f) PlayBurst(blastShockSheet, alongGround);
 
             if (muzzleFlash != null)
             {

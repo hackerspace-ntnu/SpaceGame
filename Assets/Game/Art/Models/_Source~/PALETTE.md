@@ -6,7 +6,7 @@ edit the palette and regenerate, or the two will disagree.
 Every model and component in this repository links its materials from here.
 Before adding anything, search this table for something that would serve.
 
-**52 material(s)** across 10 categor(ies).
+**54 material(s)** across 10 categor(ies).
 
 ## Emissive
 
@@ -65,6 +65,7 @@ Before adding anything, search this table for something that would serve.
 | `Mat_Metal_Brass_Tarnished` | `#9C7B3F` | 0.45 | 1.0 | Scavenged brass: gear teeth, bearing collars, crank pins, linkage bushings. The homemade machined-from-scrap look on the ornithopter's wing drive. |
 | `Mat_Metal_Chrome_Scuffed` | `#C9CDD2` | 0.22 | 1.0 | Bright trim: handles, grab rails, wheel rim, galley fittings, RV chrome mouldings. |
 | `Mat_Metal_Copper_Oxide` | `#4E8C7A` | 0.6 | 0.8 | Verdigris pipework and coil windings - coolant runs, reactor plumbing, old wiring conduit. |
+| `Mat_Metal_Gold_Leaf` | `#E0B33A` | 0.26 | 1.0 | Bright polished gold leaf: the dragon head's horns, fangs, brow ridge, whisker wire and the tube's ceremonial banding. Mat_Metal_Brass_Tarnished (#9C7B3F, roughness 0.45) is scavenged machine brass - dull, dark and deliberately cheap-looking - and using it here made the dragon read as plumbing. Gold has to out-shine the vermilion it sits on or the ornament disappears at arm's length. |
 | `Mat_Metal_HullRust_Orange` | `#764E2A` | 0.72 | 0.15 | (existing) Primary hull skin of the RV ship - oxidised orange-brown steel. Main exterior body colour. |
 | `Mat_Metal_Rust_Heavy` | `#9A5D1D` | 1.0 | 0.5 | (existing) Deep corrosion: weld-on repair patches, streak damage, exhaust scorching, rotted panel edges. |
 | `Mat_Metal_Steel_Dark` | `#3A3E42` | 0.45 | 1.0 | Machined mechanism metal: brackets, bolts, hydraulic rams, engine internals, tool bodies. |
@@ -87,6 +88,7 @@ Before adding anything, search this table for something that would serve.
 | `Mat_Paint_Coral_Faded` | `#D9705E` | 0.62 | 0.25 | Sun-faded coral enamel over steel: the outpost tower's habitat blocks, control cab roof band and machine module skins. The warm mass colour that reads against the grey-blue steelwork of the lattice, matching the reference print's duotone. Distinct from Mat_Paint_Safety_Orange, which is fresh high-vis construction paint, and from Mat_Metal_HullRust_Orange, which is oxidised bare steel rather than a painted surface. |
 | `Mat_Paint_Hazard_Yellow` | `#C9A94E` | 0.55 | 0.3 | Sun-dulled hazard-yellow enamel over steel: the Sucker Puncher's striped shield plate, warning chevrons on machine guards and lifting gear. The painted-hull family (Safety_Orange, White_Arctic, Coral_Faded, Blue_Station) had no yellow member at all. Distinct from Mat_Plastic_Safety_Yellow, which is bright moulded plastic at metallic 0 for trigger guards and pull rings, and from Mat_Hide_Eye_Amber, which is a wet eyeball. |
 | `Mat_Paint_Hull_Bleached` | `#AAA499` | 0.68 | 0.6 | Sun-bleached olive-white paint over steel. The desert crawler's body panels, leg shrouds and container modules. |
+| `Mat_Paint_Lacquer_Vermilion` | `#C1272D` | 0.28 | 0.0 | Deep glossy vermilion lacquer: the dragon bazooka's tube body, the dragon head's scaled crown and the rocket casings. The Paint family's reds were Mat_Paint_Warn_Red (#8E2B22), a matte stencilled hazard band at roughness 0.55, and Mat_Paint_Coral_Faded, a sun-killed hull tone - neither reads as the wet ceremonial lacquer a dragon is finished in. Low roughness is the point: this is the only glossy painted surface in the palette. |
 | `Mat_Paint_Mint_Pastel` | `#B9D2BE` | 0.6 | 0.25 | Pale sage-mint pastel enamel over steel and board: the workshop settlement's outbuilding walls. The painted-hull family (Safety_Orange, White_Arctic, Coral_Faded, Blue_Station, Hazard_Yellow) had no green member and no pastel at all. Forced past Mat_Fabric_Flag_Bleached (deltaE 11.8), which is an off-white cloth awning at metallic 0 rather than a green painted wall. |
 | `Mat_Paint_Olive_Deep` | `#3F4A3A` | 0.62 | 0.4 | Deep olive shadow panels and recesses - the contrast tone that keeps large bleached surfaces from flattening out. |
 | `Mat_Paint_Roof_Green` | `#6E7A5E` | 0.6 | 0.4 | Faded military green: roof caps, banded accent panels, hatch covers. Reads as the older paint layer under the bleached topcoat. |

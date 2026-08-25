@@ -20,7 +20,6 @@ using UnityEngine;
 using UnityEngine.AI;
 using SpaceGame.Characters;
 using SpaceGame.Core;
-using SpaceGame.Core.Persistence;
 using SpaceGame.World;
 
 namespace SpaceGame.Agents
@@ -416,12 +415,9 @@ namespace SpaceGame.Agents
                 tracked.SetKeepChunksLoaded(false);
 
             // This group's record owns its members, so the world store must not also save them
-            // individually. Every member is an agent, and agents qualify for saving — so without
-            // this a save taken next to a caravan captures each animal as a world entity, and the
-            // load both re-instantiates them from their prefabs AND lets this simulator spawn the
-            // group again from its own record. One caravan in, two caravans out.
-            if (member.TryGetComponent(out SaveableEntity saveable))
-                saveable.DisownToExternal();
+            // individually — one caravan in, two caravans out. That disowning is NpcSpawn.Create's
+            // job now, so that it also covers the riders a member seats on itself; see the note
+            // there for what a member's own world record actually costs.
         }
 
         // ── Despawning ───────────────────────────────────────────────────────────

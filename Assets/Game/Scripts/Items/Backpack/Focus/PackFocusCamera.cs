@@ -18,9 +18,15 @@ namespace SpaceGame.Items
     /// ground, and would have to put every one of them back.
     /// </para>
     /// <para>
-    /// The pose is authored, not orbited: on the rig's centre axis, 1.9 m back, 1.5 m up, pitched
-    /// 38&#176; down, at FOV 40. That triangle is not arbitrary — atan(1.5 / 1.9) is 38.3&#176;, so
-    /// the pitch aims the camera at the rig's base by construction. FOV 40 is narrower than
+    /// The pose is authored, not orbited: on the rig's centre axis, 2.46 m out on the side of it
+    /// AWAY from the player, 1.5 m up, pitched 38&#176; down, at FOV 40, looking back down the
+    /// player&#8594;pack line. The distance was 1.9 m until the 2026-08-25 board deepening pushed
+    /// the leading edge from 0.94 m to 1.50 m out from the rig root and left the near cells
+    /// 0.40 m from the lens, cropped out of the bottom of the frame; the lens moved back by
+    /// exactly the growth — 0.56 m — so the near edge sits the 0.96 m from the lens it always
+    /// did. The 38&#176; pitch aimed the camera at the rig's base by construction while
+    /// atan(1.5 / 1.9) was 38.3&#176;; from 2.46 m it centres a half-step short of the base, on
+    /// the mat itself, which is where the items are. FOV 40 is narrower than
     /// gameplay FOV on purpose: a narrow lens flattens perspective, which is what makes comparing
     /// two items' true sizes honest and makes a placement easy to judge.
     /// </para>
@@ -29,14 +35,18 @@ namespace SpaceGame.Items
     {
         // ── The authored pose ────────────────────────────────────────────────
         //
-        // The shot is ON the player→pack axis, facing the pack square. The player is standing on
-        // that same axis, so the arrangement only works while the camera lands IN FRONT of their
-        // body: the pack is deployed BackpackController.deployDistance (2.4 m) out, the camera
-        // sits DistanceOut back from it, and the difference — 0.5 m — is where the lens ends up,
-        // ahead of the player at head height with their body behind the near plane. Grow
-        // DistanceOut past deployDistance and the player is back between the lens and the pack,
-        // filling the frame.
-        private const float DistanceOut = 1.9f;
+        // The shot is ON the player→pack axis, facing the pack square — from the FAR side of the
+        // rig, looking back down that axis. The mat unfolds away from the player's feet, so a lens
+        // on the player's own side of the pack frames the closed harness back and none of the
+        // items; crossing over is what puts the mat, and everything laid out on it, toward the
+        // camera.
+        //
+        // The player's body is consequently IN the shot, standing beyond the rig at
+        // BackpackController.deployDistance + DistanceOut (5.4 m) from the lens, small in a 40°
+        // lens and mostly behind the raised board. It reads as the owner kneeling over their pack
+        // rather than as an obstruction, and nothing about the framing depends on the two
+        // distances any more — the lens can no longer end up between the player and the pack.
+        private const float DistanceOut = 2.46f;
         private const float HeightUp = 1.5f;
         private const float PitchDown = 38f;
         private const float Fov = 40f;
@@ -57,6 +67,14 @@ namespace SpaceGame.Items
         // rides along with it to give the flat, narrow-lens view some depth. Small enough that a
         // player never has to think about steering it, which is why the numbers are degrees and
         // not a sensitivity.
+        //
+        // They are added to the shot's YAW and PITCH as numbers, never multiplied onto its
+        // rotation. Composing them the other way — target.rotation * Euler(pitch, yaw, 0) — turns
+        // the yaw about the camera's OWN up axis, which a 38° pitch has already tipped out of
+        // vertical, and the horizon comes out rolled by sin(PitchDown) * yawOffset: up to 3.7°,
+        // proportional to how far off centre the cursor sits, so the whole view sat very slightly
+        // crooked whenever the mouse was not dead centre. Adding the angles keeps roll at exactly
+        // zero at every cursor position.
         private const float MaxYawOffset = 6f;
         private const float MaxPitchOffset = 4f;
         private const float ParallaxSmoothTime = 0.25f;
@@ -66,7 +84,10 @@ namespace SpaceGame.Items
         private const float FocalLength = 65f;
 
         private Transform rig;
-        private Vector3 viewDirection = Vector3.forward;
+
+        // Where the LENS looks: down the player→pack line, from beyond the pack back toward the
+        // player. The reverse of what the caller hands over, reversed once on the way in.
+        private Vector3 lensForward = Vector3.forward;
 
         private Camera cam;
         private Camera playerCamera;
@@ -78,7 +99,13 @@ namespace SpaceGame.Items
         private VolumeProfile profile;
         private DepthOfField dof;
 
-        private Pose flyFrom;
+        // The flight is interpolated as position + yaw + pitch, not as a pose: Quaternion.Slerp
+        // takes the geodesic between two rotations, and between the player's eyeline and a shot
+        // 180° round the other side of the pack that path rolls through 19° at the halfway point —
+        // the camera cartwheels on its way over. Lerping the two angles keeps it level throughout.
+        private Vector3 flyFromPosition;
+        private float flyFromYaw;
+        private float flyFromPitch;
         private float flyFromFov = 60f;
         private float flyElapsed;
         private bool flying;
@@ -99,9 +126,10 @@ namespace SpaceGame.Items
         /// </summary>
         /// <param name="rig">The deployed pack. Tracked live rather than sampled once, because it
         /// is still mid-arc when this is called and lands under the camera as it arrives.</param>
-        /// <param name="viewDirection">The player→rig line, flattened. The camera sits back along
-        /// it, between the player and the pack, facing the pack square-on. Frozen at spawn so
-        /// the shot cannot swing while the player's body drifts.</param>
+        /// <param name="viewDirection">The player→rig line, flattened. The camera sits DistanceOut
+        /// PAST the rig along it and looks back down it, so the mat faces the lens square-on and
+        /// the player stands beyond the pack. Frozen at spawn so the shot cannot swing while the
+        /// player's body drifts.</param>
         /// <param name="playerCamera">Switched off, with its AudioListener, for the duration.</param>
         public static PackFocusCamera Spawn(Transform rig, Vector3 viewDirection, Camera playerCamera)
         {
@@ -117,8 +145,9 @@ namespace SpaceGame.Items
         {
             rig = target;
 
+            // Reversed here, once: the caller measures player→pack, the lens looks pack→player.
             Vector3 flat = new Vector3(direction.x, 0f, direction.z);
-            viewDirection = flat.sqrMagnitude > 1e-6f ? flat.normalized : Vector3.forward;
+            lensForward = flat.sqrMagnitude > 1e-6f ? -flat.normalized : Vector3.forward;
 
             playerCamera = fromCamera;
 
@@ -126,10 +155,21 @@ namespace SpaceGame.Items
             // shot starts where the player was actually looking. With no player camera to borrow
             // from — a test scene, a spectator — there is nothing to fly from and it simply starts
             // where it ends.
-            flyFrom = playerCamera != null
-                ? new Pose(playerCamera.transform.position, playerCamera.transform.rotation)
-                : TargetPose();
-            flyFromFov = playerCamera != null ? playerCamera.fieldOfView : Fov;
+            if (playerCamera != null)
+            {
+                Vector3 eye = playerCamera.transform.rotation.eulerAngles;
+                flyFromPosition = playerCamera.transform.position;
+                flyFromPitch = eye.x;
+                flyFromYaw = eye.y;
+                flyFromFov = playerCamera.fieldOfView;
+            }
+            else
+            {
+                flyFromPosition = LensPosition();
+                flyFromPitch = PitchDown;
+                flyFromYaw = LensYaw();
+                flyFromFov = Fov;
+            }
 
             cam = gameObject.AddComponent<Camera>();
             cam.fieldOfView = Fov;
@@ -142,7 +182,7 @@ namespace SpaceGame.Items
             // first 0.15 s.
             cam.enabled = false;
 
-            transform.SetPositionAndRotation(flyFrom.position, flyFrom.rotation);
+            transform.SetPositionAndRotation(flyFromPosition, Quaternion.Euler(flyFromPitch, flyFromYaw, 0f));
 
             BuildDepthOfField();
 
@@ -218,23 +258,29 @@ namespace SpaceGame.Items
         {
             if (rig == null) return;
 
-            Pose target = TargetPose();
+            Vector3 targetPosition = LensPosition();
 
             UpdateParallax();
 
-            Quaternion aimed = target.rotation * Quaternion.Euler(pitchOffset, yawOffset, 0f);
+            // Roll is not a term anywhere in here. Both angles are absolute — measured about world
+            // up and about the horizontal — so whatever the cursor and the flight are doing, the
+            // horizon stays level.
+            float aimPitch = PitchDown + pitchOffset;
+            float aimYaw = LensYaw() + yawOffset;
 
             if (flying)
             {
                 float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(flyElapsed / FlyInSeconds));
                 transform.SetPositionAndRotation(
-                    Vector3.Lerp(flyFrom.position, target.position, t),
-                    Quaternion.Slerp(flyFrom.rotation, aimed, t));
+                    Vector3.Lerp(flyFromPosition, targetPosition, t),
+                    Quaternion.Euler(Mathf.LerpAngle(flyFromPitch, aimPitch, t),
+                                     Mathf.LerpAngle(flyFromYaw, aimYaw, t),
+                                     0f));
                 if (cam != null) cam.fieldOfView = Mathf.Lerp(flyFromFov, Fov, t);
             }
             else
             {
-                transform.SetPositionAndRotation(target.position, aimed);
+                transform.SetPositionAndRotation(targetPosition, Quaternion.Euler(aimPitch, aimYaw, 0f));
                 if (cam != null) cam.fieldOfView = Fov;
             }
 
@@ -243,19 +289,24 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// The authored shot, recomputed every frame off the rig's live position.
+        /// Where the lens sits, recomputed every frame off the rig's live position.
         ///
         /// Live rather than sampled once, because the rig is still travelling along its deploy arc
         /// when the camera spawns. Tracking it means the shot converges on the landing pose instead
         /// of framing the patch of sand the pack was over when the key was pressed.
         /// </summary>
-        private Pose TargetPose()
-        {
-            Vector3 position = rig.position - viewDirection * DistanceOut + Vector3.up * HeightUp;
-            float yaw = Quaternion.LookRotation(viewDirection, Vector3.up).eulerAngles.y;
+        private Vector3 LensPosition() =>
+            rig.position - lensForward * DistanceOut + Vector3.up * HeightUp;
 
-            return new Pose(position, Quaternion.Euler(PitchDown, yaw, 0f));
-        }
+        /// <summary>
+        /// Which way the shot faces, as a compass angle about world up.
+        ///
+        /// Frozen with <see cref="lensForward"/> at spawn, so unlike the position this does not
+        /// move — but it is a number rather than a rotation on purpose: the pitch and the cursor
+        /// parallax are added to it, and a rotation composed instead of added is what puts roll in
+        /// a shot that should be level.
+        /// </summary>
+        private float LensYaw() => Quaternion.LookRotation(lensForward, Vector3.up).eulerAngles.y;
 
         /// <summary>
         /// Cursor offset from screen centre, damped into a small rotation.

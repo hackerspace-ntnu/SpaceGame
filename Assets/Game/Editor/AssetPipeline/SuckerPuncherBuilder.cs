@@ -38,15 +38,20 @@ namespace SpaceGame.EditorTools
         private const int GroundLayerMask = 128;
 
         /// <summary>
-        /// The three objects that ride the rails. They share one origin in the .blend
-        /// (see sucker_puncher_BUILD.md), which is what lets the artifact slide all three by the
+        /// The four objects that ride the rails. They share one origin in the .blend
+        /// (see sucker_puncher_BUILD.md), which is what lets the artifact slide all four by the
         /// same local offset instead of carrying a per-part rest pose.
+        ///
+        /// The piston rod is one of them. At the throw this item now uses, a rod welded to the
+        /// cylinder shell visibly tears away from the carriage it is supposed to be driving;
+        /// riding along with the ram, it slides out of the shell as a real one does.
         /// </summary>
         private static readonly string[] RamParts =
         {
             "Mesh_RamSlide_Carriage",
             "Mesh_SuckerPuncher_RamArm",
             "Mesh_KnuckleBlock_Segmented",
+            "Mesh_RamSlide_Rod",
         };
 
         /// <summary>Hot white steam shading to soot, not the repulsor's cold blue.</summary>
@@ -150,7 +155,7 @@ namespace SpaceGame.EditorTools
             // stops a future rig or export change from silently resizing a part that has to fit a
             // hand. Re-measure if the model's extents change: it is the Y extent of the .blend's
             // bounding box (see sucker_puncher_BUILD.md).
-            SetPrivate(itemGrip, "holdSize", 0.59f);
+            SetPrivate(itemGrip, "holdSize", 0.674f);
 
             // A quarter turn about the item's own forward, so the guard plate ends up on the BACK
             // OF THE HAND rather than out past the thumb.

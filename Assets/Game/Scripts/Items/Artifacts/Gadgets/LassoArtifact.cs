@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using SpaceGame.Agents;
@@ -98,6 +99,11 @@ namespace SpaceGame.Items
         [Tooltip("Seconds of twirl to reach full reach and a fully open loop.")]
         [SerializeField] private float twirlChargeTime = 1.2f;
 
+        [Tooltip("Seconds of silence after which a wind-up puts itself away. The safety net for a " +
+                 "release that never arrived — a dropped packet, or a thrower who died mid-twirl. " +
+                 "Must comfortably exceed EquipmentController's hold send interval.")]
+        [SerializeField] private float holdTimeout = 0.5f;
+
         [Tooltip("Metres above the player's ROOT that the loop is spun while winding up.\n\n" +
                  "The capsule is 2 m tall centred on the root, so the top of the head is at 1.0 — " +
                  "anything near that value puts the loop on the player's ear. A full arm's length " +
@@ -173,9 +179,23 @@ namespace SpaceGame.Items
         private bool _isThrowing;
         private bool _isTwirling;
         private float _twirlCharge;
+
+        /// <summary>
+        /// When the last hold tick arrived. Meaningless while not twirling.
+        ///
+        /// EquipmentController.OnDisable ends a hold LOCALLY on death and teardown, and explicitly
+        /// leaves the remote halves to the item's own timeout — the convention LaserStaffArtifact
+        /// set. Without one, a thrower who dies mid-twirl leaves every other machine spinning a
+        /// loop over their corpse for the rest of the session, and the stale _isTwirling then
+        /// refuses their next throw after they respawn.
+        /// </summary>
+        private float _lastHoldTime;
         private Rigidbody _targetRb;
         private Transform _targetTransform;   // used when target has no Rigidbody
         private LassoTether _tether;
+
+        /// <summary>Set instead of <see cref="_tether"/> when the far end is a player. See LassoedBody.</summary>
+        private LassoedBody _caughtPlayer;
         private float _currentRopeLength;
         private Coroutine _routine;
         private Vector3 _ropeEndPoint;   // world-space point drawn as rope tip
@@ -316,6 +336,8 @@ namespace SpaceGame.Items
         /// </summary>
         protected override void PresentHold(NetArg arg, bool active)
         {
+            _lastHoldTime = Time.time;
+
             if (active || !_isTwirling) return;
 
             if (!arg.HasOrientation)
@@ -339,6 +361,9 @@ namespace SpaceGame.Items
         {
             _isTwirling = true;
             _twirlCharge = 0f;
+
+            // Stamped here or the timeout fires before the first hold tick has had time to arrive.
+            _lastHoldTime = Time.time;
 
             if (lassoModel != null) lassoModel.SetActive(false);
 
@@ -587,14 +612,47 @@ namespace SpaceGame.Items
             _currentRopeLength = Vector3.Distance(GetRopeStart(), attachWorldPos) + ropeSlack;
             _ropeEndPoint = attachWorldPos;
 
-            // Taking a creature's legs off its AI and driving them is a change to the creature, not
-            // to the rope, so it belongs only on the machine that simulates it. On a peer the
-            // replica is kinematic on purpose — NetworkRigidbody makes it so — and a second tether
-            // there would be a second authority fighting the NetworkTransform.
-            if (SimulatesTarget())
+            Transform ropeAnchor = muzzle != null ? muzzle : owner.transform;
+
+            // A PLAYER is not a creature, and the difference is which machine may move them.
+            //
+            // A player's body is owner-authoritative, so the pull has to be applied by the machine
+            // that owns them — which is never this one unless they happen to be the local player.
+            // The component is created on EVERY machine and gates itself, exactly as FlungBody and
+            // LeashedBody do, because a catch is announced to everybody and only one of them turns
+            // out to own the victim. Before this, roping a player put a tether on the server, whose
+            // every write was discarded: it worked on the host and did nothing to a client.
+            if (root.CompareTag("Player"))
             {
-                _tether = LassoTether.Ensure(root.gameObject);
-                _tether.Bind(muzzle != null ? muzzle : owner.transform, _currentRopeLength, struggle);
+                LassoedBody caught = LassoedBody.Ensure(root.gameObject);
+
+                if (caught == null || !caught.Bind(ropeAnchor, _currentRopeLength, AssumedPlayerMass))
+                {
+                    _isLassoed = false;
+                    return;
+                }
+
+                _caughtPlayer = caught;
+            }
+
+            // Taking a creature's legs off its AI and driving them is a change to the creature, not
+            // to the rope, so it belongs only on the machine that OWNS it. On a peer the replica is
+            // kinematic on purpose — NetworkRigidbody makes it so — and a second tether there would
+            // be a second authority fighting the NetworkTransform.
+            else if (OwnsTarget())
+            {
+                LassoTether tether = LassoTether.Ensure(root.gameObject);
+
+                // A creature already on somebody else's rope is not catchable. Refusing here rather
+                // than drawing a rope that constrains nothing is what stops a second thrower being
+                // dragged around by an animal that cannot feel them.
+                if (tether == null || !tether.Bind(ropeAnchor, _currentRopeLength, struggle))
+                {
+                    _isLassoed = false;
+                    return;
+                }
+
+                _tether = tether;
             }
 
             rope.Bind(lineRenderer);
@@ -624,7 +682,16 @@ namespace SpaceGame.Items
 
             // Only ever non-null on the machine that took the creature's legs — see Attach — so
             // this hands navigation back exactly where it was taken away.
-            if (_tether != null) { _tether.Release(); _tether = null; }
+            //
+            // The anchor is passed so a release from THIS rope cannot free a creature another
+            // thrower has since taken hold of. Written out rather than inlined because Release is
+            // reached from OnDestroy, where owner may already be gone.
+            Transform ropeAnchor = muzzle != null ? muzzle
+                                 : owner != null ? owner.transform
+                                 : null;
+
+            if (_tether != null) { _tether.Release(ropeAnchor); _tether = null; }
+            if (_caughtPlayer != null) { _caughtPlayer.Release(ropeAnchor); _caughtPlayer = null; }
 
             _targetRb        = null;
             _targetTransform = null;
@@ -690,10 +757,13 @@ namespace SpaceGame.Items
         {
             if (_channel == channel) return;
 
+            NetworkManager manager = NetworkManager.Singleton;
+
             if (_channel != null)
             {
                 _channel.NetOff(NetMsg.LassoRope, OnRopeRequested);
                 _channel.NetOff(NetMsg.LassoRoped, OnRopeAnnounced);
+                if (manager != null) manager.OnClientConnectedCallback -= OnPeerJoined;
             }
 
             _channel = channel;
@@ -701,6 +771,7 @@ namespace SpaceGame.Items
 
             _channel.NetOn(NetMsg.LassoRope, OnRopeRequested);
             _channel.NetOn(NetMsg.LassoRoped, OnRopeAnnounced);
+            if (manager != null) manager.OnClientConnectedCallback += OnPeerJoined;
         }
 
         /// <summary>Owner-side: tell the session what the rope just did.</summary>
@@ -708,8 +779,45 @@ namespace SpaceGame.Items
         {
             if (owner == null) return;
 
+            // A carries the rope's length in centimetres — NetArg has no float field, the same
+            // convention CraftLaunch uses for its speeds.
+            //
+            // It has to travel because the two ends would otherwise disagree after a load: the
+            // authority restores the length the player had reeled to, while every other machine
+            // recomputes one from wherever the two ends happen to be standing now. Zero means "work
+            // it out yourself", which is what a fresh catch sends.
             NetMessaging.NetSendTo(owner, NetMsg.LassoRope,
-                new NetArg { B = verb }.With(subject), NetTo.Server);
+                new NetArg
+                {
+                    B = verb,
+                    A = _isLassoed ? Mathf.RoundToInt(_currentRopeLength * 100f) : 0,
+                }.With(subject), NetTo.Server);
+        }
+
+        /// <summary>
+        /// Somebody joined. If this rope is on something, say so again.
+        ///
+        /// <para>
+        /// <see cref="LassoVerb.Caught"/> is an absolute state rather than an edge — it says "this
+        /// is roped", not "this was just roped" — so re-sending it costs a joiner one Attach and
+        /// costs everyone else one idempotent no-op. Without it a joiner watched the creature
+        /// struggling under an invisible force with no rope on it, which is precisely the symptom
+        /// this whole rework was written to remove.
+        /// </para>
+        /// <para>
+        /// From the authority only: a client may not broadcast, and the server holds its own copy
+        /// of every equipped item, so it can answer for any player's rope.
+        /// </para>
+        /// </summary>
+        private void OnPeerJoined(ulong clientId)
+        {
+            if (!IsAuthority || !_isLassoed) return;
+            if (clientId == NetworkManager.ServerClientId) return;
+
+            Transform root = _targetRb != null ? _targetRb.transform : _targetTransform;
+            if (root == null) return;
+
+            SendRope(LassoVerb.Caught, root.gameObject);
         }
 
         /// <summary>
@@ -745,6 +853,17 @@ namespace SpaceGame.Items
                     if (caught == null) return;
 
                     Attach(caught.GetComponentInParent<Rigidbody>(), caught.transform);
+
+                    // AFTER Attach, which sets a length of its own from the gap it can see right
+                    // now. That is the safe answer; an announced length is the better one, because
+                    // the thrower may have reeled the creature most of the way in already. See
+                    // SendRope.
+                    if (arg.A > 0 && _isLassoed)
+                    {
+                        _currentRopeLength = arg.A * 0.01f;
+                        _tether?.SetRopeLength(_currentRopeLength);
+                        _caughtPlayer?.SetRopeLength(_currentRopeLength);
+                    }
                     return;
 
                 case LassoVerb.ReelOn:
@@ -763,14 +882,18 @@ namespace SpaceGame.Items
         /// <summary>
         /// May this machine move what is on the end of the rope?
         ///
-        /// Asked of the TARGET, not of this item: a networked creature answers "the server only",
-        /// while a prop nobody networked answers "yes" everywhere — which is right, because every
-        /// machine then has its own unshared copy of it to move.
+        /// <para>
+        /// Ownership, asked of the TARGET rather than of this item. A loose creature is owned by
+        /// the server, a ridden mount by its RIDER, and a prop nobody networked by everyone — and
+        /// in each case that is the one machine whose writes to the transform survive. Asking
+        /// Simulates, which this used to, put the tether on the server even for a client-ridden
+        /// mount, where every write it made was overwritten within a tick.
+        /// </para>
         /// </summary>
-        private bool SimulatesTarget()
+        private bool OwnsTarget()
         {
             Component target = _targetRb != null ? _targetRb : (Component)_targetTransform;
-            return target != null && Network.Simulates(target);
+            return target != null && Network.Owns(target);
         }
 
         // ── Riding the catch ───────────────────────────────────────────────────
@@ -872,11 +995,6 @@ namespace SpaceGame.Items
             // replaying the arc would give the player a second chance to miss.
             Attach(target.GetComponent<Rigidbody>(), target.transform);
 
-            // A load is restored on the authority, from a per-slot bag that PlayerInventoryNetwork
-            // does not replicate — so without this the rope comes back on the server and on nobody
-            // else's screen. Announced rather than re-derived for the same reason a catch is.
-            if (IsAuthority) SendRope(LassoVerb.Caught, target);
-
             // After Attach, never before — it writes both of these itself, from the authored
             // defaults and from where the two ends are standing right now. That is the safe answer;
             // the saved pair is the better one, because the player may have reeled the creature
@@ -886,7 +1004,18 @@ namespace SpaceGame.Items
             {
                 _currentRopeLength = _pendingRopeLength;
                 _tether?.SetRopeLength(_currentRopeLength);
+                _caughtPlayer?.SetRopeLength(_currentRopeLength);
             }
+
+            // LAST, and the ordering is load-bearing: SendRope reads _currentRopeLength, so
+            // announcing before the two lines above would publish the length Attach guessed from
+            // the current gap rather than the one the player actually reeled to — which is the
+            // divergence this carries the length to remove.
+            //
+            // A load is restored on the authority, from a per-slot bag that PlayerInventoryNetwork
+            // does not replicate, so without this the rope comes back on the server and on nobody
+            // else's screen.
+            if (IsAuthority) SendRope(LassoVerb.Caught, target);
         }
 
         // ── Right-click reel-in ───────────────────────────────────────────────
@@ -901,6 +1030,11 @@ namespace SpaceGame.Items
         private void Update()
         {
             if (OwnerIsLocal()) ReadReelInput();
+
+            // The safety net. A release is one message, and one message is exactly the kind of
+            // thing that goes missing — along with the player who was holding the button. See
+            // _lastHoldTime, and LaserStaffArtifact, which is where this convention comes from.
+            if (_isTwirling && Time.time - _lastHoldTime > holdTimeout) CancelTwirl();
 
             TickTwirl(Time.deltaTime);
         }
@@ -950,6 +1084,7 @@ namespace SpaceGame.Items
             {
                 _currentRopeLength = Mathf.Max(ropeSlack, _currentRopeLength - reelInForce * Time.fixedDeltaTime);
                 _tether?.SetRopeLength(_currentRopeLength);
+                _caughtPlayer?.SetRopeLength(_currentRopeLength);
             }
 
             ApplyOwnerPull();
@@ -980,7 +1115,11 @@ namespace SpaceGame.Items
             Vector3 toTarget = attachWorld - ropeStart;
             float distance = toTarget.magnitude;
 
+            // A roped player weighs what every player weighs — see AssumedPlayerMass. Taken from
+            // the constant rather than from their Rigidbody so that the thrower's machine and the
+            // victim's reach the same split without exchanging a number.
             float targetMass = _tether != null ? _tether.Mass
+                             : _caughtPlayer != null ? AssumedPlayerMass
                              : _targetRb != null ? _targetRb.mass
                              : AssumedPlayerMass;
 

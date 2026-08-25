@@ -46,11 +46,11 @@ namespace SpaceGame.Items
         [Tooltip("Metres in front of the player the pack is set down. Measured to the pack's ORIGIN, " +
                  "which is the bottom centre of its footprint — so half its depth is nearer than " +
                  "this number, and a value near the pack's own depth puts it against your chest.")]
-        // Far enough out that the pack focus camera — PackFocusCamera.DistanceOut (1.9 m) back
-        // from the rig along the player→pack line — lands IN FRONT of the player's body instead
-        // of behind it, with half a metre to spare. Shrinking this below DistanceOut puts the
-        // player back between the lens and the pack.
-        [SerializeField, Min(0.2f)] private float deployDistance = 2.4f;
+        // Also how far behind the pack the player stands in the focus shot: the lens sits
+        // PackFocusCamera.DistanceOut (2.46 m) beyond the rig looking back down the player→pack
+        // line, so the body lands this much further away again — near enough to read as the
+        // pack's owner, far enough not to crowd the mat.
+        [SerializeField, Min(0.2f)] private float deployDistance = 2.96f;
 
         // ── The toss ─────────────────────────────────────────────────────────
         //
@@ -223,7 +223,6 @@ namespace SpaceGame.Items
             this.NetOn(NetMsg.PackState, OnPackStateMessage);
             this.NetOn(NetMsg.PackTake, OnTakeRequested);
             this.NetOn(NetMsg.PackMove, OnMoveRequested);
-            this.NetOn(NetMsg.PackDrop, OnDropRequested);
             this.NetOn(NetMsg.PackStow, OnStowRequested);
 
             // Decided here rather than in the coroutine's first line, so an EditMode test and a
@@ -241,7 +240,6 @@ namespace SpaceGame.Items
             this.NetOff(NetMsg.PackState, OnPackStateMessage);
             this.NetOff(NetMsg.PackTake, OnTakeRequested);
             this.NetOff(NetMsg.PackMove, OnMoveRequested);
-            this.NetOff(NetMsg.PackDrop, OnDropRequested);
             this.NetOff(NetMsg.PackStow, OnStowRequested);
 
             // A coroutine dies with the component. Without this the pack is left hanging in mid-air,
@@ -782,16 +780,7 @@ namespace SpaceGame.Items
 
             if (Pack.TakeOut(grabbed.ItemId) == null) return false;
 
-            // Aimed at the vacated spot first, first-fit after: a displaced item that will not fit
-            // where the other one was lying should still end up on the pack rather than blocking
-            // the drag. This is the OLD drag interaction — a pack item dragged onto a named hotbar
-            // slot, not the click-to-stow path — so it keeps the fallback BackpackObject.TryStowAt
-            // used to give every aimed stow, inlined here now that that method is gone.
-            bool displacedLanded = held != null &&
-                ((Pack.Reaches(grabbed.Surface) && Pack.TryPlace(held, grabbed.Surface, grabbed.Uv, grabbed.Yaw))
-                 || Pack.TryStow(held));
-
-            if (held != null && !displacedLanded)
+            if (held != null && !TryPlaceDisplaced(held, grabbed))
             {
                 // Nowhere for the displaced item to go. Put the dragged one back exactly where it
                 // was and change nothing: every machine's pack, this one included, then agrees
@@ -803,6 +792,23 @@ namespace SpaceGame.Items
             WriteHotbarSlot(hotbar, slotIndex, packItem);
             return true;
         }
+
+        /// <summary>
+        /// Put the item a named-slot drag is displacing back onto the pack, aimed at the space the
+        /// dragged item is vacating, first-fit elsewhere if that space will not take it.
+        ///
+        /// <para>
+        /// First-fit is the right fallback here in a way it is NOT in
+        /// <see cref="BackpackObject.TryStowFromHotbar"/>: the displaced item has no player-chosen
+        /// destination at all. The player pointed at a hotbar slot, not at a pack cell — there was
+        /// never a cell they watched turn green — so there is no aim for a wider search to betray.
+        /// A stow's fallback would answer a question nobody asked; this one is the only answer
+        /// there ever was a question for.
+        /// </para>
+        /// </summary>
+        private bool TryPlaceDisplaced(InventoryItem held, PackPlacement vacated) =>
+            (Pack.Reaches(vacated.Surface) && Pack.TryPlace(held, vacated.Surface, vacated.Uv, vacated.Yaw))
+            || Pack.TryStow(held);
 
         /// <summary>
         /// Put <paramref name="item"/> in one named hotbar slot, leaving the others alone.
@@ -858,6 +864,45 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// Pack a hotbar slot and a pack surface into <see cref="NetArg.A"/> for
+        /// <see cref="NetMsg.PackStow"/> — slot in the low byte, surface in the next one up.
+        /// <see cref="RequestMove"/>'s own <c>A</c> already does exactly this for its two surfaces,
+        /// and yaw already has a home on <c>B</c> in whole degrees, so a stow needing to carry one
+        /// more small value than a move does is packed the same way rather than inventing a second
+        /// encoding six lines from the first.
+        ///
+        /// <para>
+        /// A static pair with <see cref="TryDecodeStowTarget"/> — rather than each half doing its
+        /// own bit-twiddling — so the two ends of the wire cannot drift apart, and so the one
+        /// genuinely tricky piece of arithmetic here is callable, and testable, without a live
+        /// <c>NetworkManager</c>.
+        /// </para>
+        /// </summary>
+        public static int EncodeStowTarget(int slotIndex, PackSurfaceId surface) =>
+            slotIndex | ((int)surface << 8);
+
+        /// <summary>
+        /// The inverse of <see cref="EncodeStowTarget"/>. False on anything a malformed or hostile
+        /// <paramref name="raw"/> could produce: a negative value, or a surface byte that is not a
+        /// real <see cref="PackSurfaceId"/>. The slot half is masked to a byte either way, so it can
+        /// never come back negative or larger than a byte — whether it names a real slot on the
+        /// hotbar it arrived with is <see cref="BackpackObject.TryStowFromHotbar"/>'s own bounds
+        /// check to make, not this one's, because this function has no hotbar to ask.
+        /// </summary>
+        public static bool TryDecodeStowTarget(int raw, out int slotIndex, out PackSurfaceId surface)
+        {
+            slotIndex = 0;
+            surface = default;
+
+            if (raw < 0) return false;
+            if (!TryDecodeSurface((raw >> 8) & 0xFF, out PackSurfaceId decoded)) return false;
+
+            slotIndex = raw & 0xFF;
+            surface = decoded;
+            return true;
+        }
+
+        /// <summary>
         /// Somebody has dragged an item to a new spot on the pack and let go. Ask the server.
         ///
         /// <para>
@@ -905,44 +950,6 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Somebody has dragged an item clean off the mat and let go: it leaves the pack and lands
-        /// on the ground (spec 5.1).
-        ///
-        /// <para>
-        /// Same shape as <see cref="RequestTake"/> and <see cref="RequestMove"/>, and for the same
-        /// reason. Two players can be in one pack; whether the thing you dragged off the edge was
-        /// still there to drop is the server's to decide. This one has the sharper edge of the
-        /// three, because the answer creates a world object — only the server may spawn, and a
-        /// client doing it optimistically produces a pickup nobody else can see.
-        /// </para>
-        /// <para>
-        /// The item is named by where it was GRABBED, positionally, for the reasons written out
-        /// over <see cref="RequestTake"/>. No interactor is needed: unlike a take there is no
-        /// second party's inventory involved, so the message carries only the point.
-        /// </para>
-        /// </summary>
-        public void RequestDrop(PackSurfaceId from, Vector2 fromUv)
-        {
-            var arg = new NetArg { A = (int)from, P = new Vector3(fromUv.x, 0f, fromUv.y) };
-
-            this.NetToServer(NetMsg.PackDrop, arg);
-        }
-
-        /// <summary>Server side: put it on the ground, if it is still on the pack.</summary>
-        private void OnDropRequested(in NetArg arg, ulong sender)
-        {
-            if (!Network.Simulates(this)) return;
-            if (Pack == null || CurrentState != State.Open) return;
-
-            if (!TryDecodeSurface(arg.A, out PackSurfaceId surface)) return;
-
-            // Dropped at the PACK, not at the player. The pack is what the player is looking at in
-            // focus mode and may be several metres away by the time a remote request lands; an
-            // item that left the mat should be beside the mat.
-            Pack.TryDropToWorld(surface, new Vector2(arg.P.x, arg.P.z), Pack.transform);
-        }
-
-        /// <summary>
         /// The way IN, and the mirror of <see cref="RequestTake"/>: an item held in the player's
         /// hand goes onto this pack, at the spot and turn they lined it up at.
         ///
@@ -963,8 +970,9 @@ namespace SpaceGame.Items
         {
             if (interactor == null) return;
 
-            // The low byte of A is the slot and the next one up is the turn, so a slot that will
-            // not fit in a byte would silently corrupt the yaw beside it.
+            // The low byte of A is the slot and the next one up is the surface — see
+            // EncodeStowTarget. Guarded here rather than left to silently corrupt the surface byte:
+            // a slot index that does not fit in a byte would bleed into it.
             if (slotIndex < 0 || slotIndex > byte.MaxValue) return;
 
             // The stower's BODY, resolved the way the messaging layer resolves it — see the note
@@ -974,8 +982,8 @@ namespace SpaceGame.Items
 
             var arg = new NetArg
             {
-                A = slotIndex | (PackGrid.QuarterTurns(yaw) << 8),
-                B = (int)surface,
+                A = EncodeStowTarget(slotIndex, surface),
+                B = Mathf.RoundToInt(Mathf.Repeat(yaw, 360f)),
                 P = new Vector3(uv.x, 0f, uv.y),
             };
 
@@ -997,16 +1005,13 @@ namespace SpaceGame.Items
             var hotbar = stower.GetComponentInChildren<IPlayerInventory>(true);
             if (hotbar == null) return;
 
-            // Every stow is aimed now — there is no first-fit sentinel to fall back to — so a
-            // surface that does not decode is a malformed request and is refused outright.
-            if (!TryDecodeSurface(arg.B, out PackSurfaceId surface)) return;
-
-            int slot = arg.A & byte.MaxValue;
-            float yaw = ((arg.A >> 8) & 3) * 90f;
+            // Every stow is aimed now — there is no first-fit sentinel to fall back to — so a slot
+            // or surface that does not decode is a malformed request and is refused outright.
+            if (!TryDecodeStowTarget(arg.A, out int slot, out PackSurfaceId surface)) return;
 
             // Idempotent the way the take is: the second request finds the slot already empty and
             // answers false rather than placing a second copy.
-            Pack.TryStowFromHotbar(hotbar, slot, surface, new Vector2(arg.P.x, arg.P.z), yaw);
+            Pack.TryStowFromHotbar(hotbar, slot, surface, new Vector2(arg.P.x, arg.P.z), arg.B);
         }
 
         /// <summary>
@@ -1136,16 +1141,20 @@ namespace SpaceGame.Items
 
             // The pack STANDS UP where it lands, its opening toward the player. Local +Y is the
             // height axis; WHICH horizontal side the player should be shown is settled by what the
-            // focus camera actually framed in play, not by what the axes are named — local +Z at
-            // the player showed them the closed back of a cabinet, so the side the rig presents is
-            // on -Z and local +Z points AWAY from the player. If the model is ever re-authored and
-            // the pack lands backwards again, this sign is the whole of the fix.
-            Vector3 awayFromPlayer = Vector3.ProjectOnPlane(ahead - transform.position, best.normal);
-            if (awayFromPlayer.sqrMagnitude < 1e-6f)
-                awayFromPlayer = Vector3.ProjectOnPlane(DeployForward(), best.normal);
+            // focus camera actually framed, not by what the axes are named — and the 2026-08-25
+            // re-author (even-cell regrid + lid) flipped that answer. Measured on the rebuilt rig:
+            // the boards now unfold along local +Z, so +Z away from the player framed the closed
+            // harness back and not one pixel of mat (verified by capture, s5_faithful_focus vs
+            // s5_mirrored_focus). +Z therefore points AT the player now. The previous model was the
+            // mirror of this, with the same sign flipped the other way — if the model is ever
+            // re-authored and the pack lands backwards again, this sign is still the whole of the
+            // fix.
+            Vector3 towardPlayer = Vector3.ProjectOnPlane(transform.position - ahead, best.normal);
+            if (towardPlayer.sqrMagnitude < 1e-6f)
+                towardPlayer = Vector3.ProjectOnPlane(-DeployForward(), best.normal);
 
             pose = new Pose(best.point + best.normal * groundLift,
-                            Quaternion.LookRotation(awayFromPlayer.normalized, best.normal));
+                            Quaternion.LookRotation(towardPlayer.normalized, best.normal));
             return true;
         }
 

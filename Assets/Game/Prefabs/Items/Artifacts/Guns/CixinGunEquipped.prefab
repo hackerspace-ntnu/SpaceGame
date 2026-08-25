@@ -316,11 +316,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
   ShowTopMostFoldoutHeaderGroup: 1
---- !u!4 &8283341453566841463 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 323723913112813014, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
-  m_PrefabInstance: {fileID: 8541725427507261345}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &4913772400156239841
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -338,6 +333,11 @@ MonoBehaviour:
   holdStyle: 2
   rotationOffset: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
-  holdSize: 0.7
+  holdSize: 1.2
   sizeReference: {fileID: 0}
   keepColliders: 0
+--- !u!4 &8283341453566841463 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 323723913112813014, guid: a9bb107e033c06b4bb06e5173ada154b, type: 3}
+  m_PrefabInstance: {fileID: 8541725427507261345}
+  m_PrefabAsset: {fileID: 0}

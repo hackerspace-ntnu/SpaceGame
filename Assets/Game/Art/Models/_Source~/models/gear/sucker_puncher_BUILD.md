@@ -97,12 +97,13 @@ Origin at the **rear mounting face**; strikes along −Y. 0.13 × 0.115 × 0.075
 - `Coll_RamSlide_Rails` — **used.** Anchor plate, twin chromed rails, stop yoke.
 - `Coll_RamSlide_Carriage` — **used.** Origin on the **rail axis at its centre of travel**, because
   a carriage is bolted to nothing — it is positioned by sliding.
-- `Coll_RamSlide_Cylinder` — **used.** Steam cylinder, gland, rod, fittings.
-- `Coll_RamSlide_SpringReturn` — **used.** A real helix, not a stack of rings: from the side a ring
-  stack reads as a threaded bar, and the part's whole job is to look sprung.
+- `Coll_RamSlide_Cylinder` — **used.** The shell: barrel, gland, tie rods, steam fittings.
+- `Coll_RamSlide_Rod` — **used, and it MOVES.** Origin at the clevis pin, geometry running backward
+  into the shell (the one part in the file built along +Y, called out so nobody "fixes" it).
+- `Coll_RamSlide_SpringReturn` — built, **not used here**. See below.
 
-Stated contract: 0.175 m of rail, a 0.062 m carriage, so **usable stroke ≈ 0.09 m**; the model uses
-0.060.
+Stated contract: 0.280 m of rail, a 0.062 m carriage, so **usable stroke ≈ 0.19 m**; the model uses
+**0.170**.
 
 **It hangs geometry below its own mounting plane** — bolt bosses and the bottom of the anchor plate,
 ~20 mm down. That is correct for a track bolted through a chassis and wrong for one sitting on a
@@ -137,9 +138,29 @@ All four share the **grip point** as their origin, so they assemble by placement
 
 ## The ram pivot — the one number Unity depends on
 
-`Mesh_RamSlide_Carriage`, `Mesh_SuckerPuncher_RamArm` and `Mesh_KnuckleBlock_Segmented` all have
-their origin at **`(0, −0.088, 0.092)`**. The prefab slides all three by one shared local offset
-instead of carrying a rest pose per part; `SuckerPuncherBuilder` warns if they ever stop agreeing.
+`Mesh_RamSlide_Carriage`, `Mesh_SuckerPuncher_RamArm`, `Mesh_KnuckleBlock_Segmented` and
+`Mesh_RamSlide_Rod` all have their origin at **`(0, −0.088, 0.092)`**. The prefab slides all four by
+one shared local offset instead of carrying a rest pose per part; `SuckerPuncherBuilder` warns if
+they ever stop agreeing.
+
+### The stroke is 0.170 m, and that has consequences
+
+Three things follow from a long throw that did not follow from the original 0.060:
+
+- **The piston rod had to leave the cylinder object.** Welded to the shell it stays put while the
+  carriage it is driving walks 17 cm away from it. Split out and ridden along with the ram, it slides
+  out of the shell exactly as a real one does — and the shell was lengthened to 0.230 m so it can
+  swallow the rod at rest.
+- **The spring return was dropped from the assembly.** At a 6 cm twitch a decorative coil beside the
+  carriage was harmless; at 17 cm there is nowhere on the deck it can sit that the carriage, the
+  guard plate or the now much longer cylinder does not already occupy. The component still exists in
+  the library for anything else that wants it.
+- **The guard plate was extended to −0.286.** A linear actuator with a long throw necessarily
+  exposes bare rail at rest — the carriage has to have somewhere to go — and 19 cm of naked guide
+  rail past the fist reads as an unfinished model. The plate now shrouds the whole travel, which is
+  what a hazard-striped guard is for anyway.
+
+The boiler also moved 7 cm further up the forearm to clear the longer cylinder.
 
 Blender −Y maps to Unity +Z under `_exportlib`'s flags, so the ram slides along the item's own
 forward in both.
@@ -193,9 +214,13 @@ to unpick on import. Same call as `item_scanner.blend`.
 
 ## Dimensions and judgement calls
 
-- **0.590 × 0.216 × 0.178 m**, 13.8k triangles. `holdSize` is 0.59 (the Y extent) — **re-measure it
-  if the model's extents change**, or world scale silently drifts off 1.0 again.
-- The gauntlet covers 87% of the arm from elbow to fingertip. That is faithful to the concept sheet,
+- **0.674 × 0.216 × 0.178 m**, 12.8k triangles. `holdSize` is 0.674 (the Y extent) — **re-measure it
+  whenever the model's extents change**, or world scale silently drifts off 1.0. It has already moved
+  once, from 0.59, when the stroke grew.
+- The gauntlet is longer than the arm it is worn on — 0.674 m against 0.679 m from elbow to
+  fingertip — because the rails have to reach out to where the fist ends up. That is the honest cost
+  of a 17 cm punch on a linear slide, and it is what the concept sheet's own rails do.
+- The gauntlet covers essentially all of the arm from elbow to fingertip. That is faithful to the concept sheet,
   which shows the device running well up the forearm.
 - **It is tall** — 0.216 m through, against a hand 0.104 m thick. That is structural: the mechanism
   has to clear the back of the hand, the carriage has to clear the rails, and the guard has to clear

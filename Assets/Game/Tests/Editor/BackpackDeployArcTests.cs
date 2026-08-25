@@ -114,9 +114,9 @@ namespace SpaceGame.Tests
         public void TheToss_StaysInFrontOfThePlayerForTheWholeFlight()
         {
             // The shipped toss numbers: tossStartForward 0.45, tossStartHeight 1.25, landing
-            // deployDistance 2.4 m out, tossArcHeight 0.5, no outward bow.
+            // deployDistance 2.96 m out, tossArcHeight 0.5, no outward bow.
             var tossStart = new Pose(new Vector3(0f, 1.25f, 0.45f), Grounded.rotation);
-            var tossEnd = new Pose(new Vector3(0f, 0.01f, 2.4f), Grounded.rotation);
+            var tossEnd = new Pose(new Vector3(0f, 0.01f, 2.96f), Grounded.rotation);
 
             for (int i = 0; i <= Samples; i++)
             {

@@ -8,13 +8,17 @@ to by name, the holders are five small prefabs the code instantiates and stretch
 
 | File | Holds |
 |---|---|
-| `expedition_rig.blend` | `Coll_Rig_Expedition` — 25 meshes, 4 `PIVOT_*`, 7 `SURF_*`. 21.0k tris. |
+| `expedition_rig.blend` | `Coll_Rig_Expedition` — 35 meshes, 5 `PIVOT_*`, 7 `SURF_*`. 27.3k tris. |
 | `pack_holders.blend` | `Coll_Holder_*` x5 — 30 meshes, 20 `HARD_*`. 8.9k tris. |
 
 Updated 2026-08-24 with the **rack**: the front leaf flipped up. See the section below.
 
 Updated again 2026-08-24: the rack's cradle horns were **replaced by two cargo nets**. See
 "Nets, not horns".
+
+Updated 2026-08-25 (second pass that day): every `SURF_*` rectangle became an **exact multiple
+of the 0.09 m cell**, and the rig gained a **fifth hinge — `PIVOT_Lid`**, the stowed box's top.
+See "Even cells + the lid" at the bottom.
 
 ## Why new files rather than an edit
 
@@ -43,6 +47,7 @@ To stow, drive the hinges from the authored zero:
     PIVOT_Leaf    X  -90      leaf up off the ground, against the panel
     PIVOT_Wing_L  Y  -90      wing folds up onto the leaf
     PIVOT_Wing_R  Y  +90
+    PIVOT_Lid     X  -90      the apron, relative to the LEAF it rides: caps the box
 
 `BackpackDeployArc` and the `NetMsg.PackState` machine are unchanged; only the sign of the
 hinge travel is.
@@ -52,9 +57,10 @@ hinge travel is.
 The deployed rig has a **third configuration**: `PIVOT_Leaf` at X -90 while the panel, the wings
 and the stakes stay open, standing the front leaf up as a vertical rack for the biggest gear.
 
-**No fifth hinge, and that is the design.** The rack angle *is* the leaf's stow angle — same
-pivot, same number — so racked and stowed are the same place for the leaf and the only difference
-is what the rest of the rig is doing. `HingeTable` in `ExpeditionRigWiring.cs` is still four rows.
+**No hinge of the rack's own, and that is the design.** The rack angle *is* the leaf's stow
+angle — same pivot, same number — so racked and stowed are the same place for the leaf and the
+only difference is what the rest of the rig is doing. (The `PIVOT_Lid` hinge added 2026-08-25 is
+the stowed box's top, not a rack member — see "Even cells + the lid".)
 
 **The rack is the leaf's UNDERSIDE**, and that follows from the fold rather than being a choice.
 Under X -90 the mat — `SURF_Leaf` and the lash line — swings round to face the back panel, and the
@@ -207,11 +213,15 @@ which at the 1.9 m the focus camera sits at is invisible.
 
 Objects are split by what they hang off, then by what someone might plausibly restyle alone.
 
-    root          Frame, Harness is NOT here (see below), HipBelt_L/R, Stake_L/R
+    root          Frame, Harness is NOT here (see below), HipBelt_L/R
     PIVOT_Back    BackPanel, BackWebbing_L/R, OxygenTank + _Bands + _Manifold,
                   Harness_L/R, Kickstand_L/R
-    PIVOT_Leaf    FrontLeaf, LeafGrommets, LashRail
-    PIVOT_Wing_L  Wing_L, WingRib_L        (likewise _R)
+    PIVOT_Leaf    FrontLeaf, LeafGrommets, LashRail, RackLadder + RackNets
+    PIVOT_Wing_L  Wing_L, WingRib_L        (likewise _R; a CHILD of PIVOT_Leaf)
+    PIVOT_Lid     Lid, LidGrommets, RackHandle, Stake_L/R   (a CHILD of PIVOT_Leaf)
+
+(As first written this block predated the rack, the 2026-08-24 reparents and the lid; it is
+kept current, the dated sections below carry the history.)
 
 **The kickstands ride `PIVOT_Back`** rather than a fifth hinge, because the spec names exactly
 four moving parts. A leg that stows flat against the back of the panel it props is where a
@@ -367,3 +377,158 @@ up with the board in the rack and fold with it in the stow. `BackpackObject.Appl
 parent-relative and needed no change; the stake-drop beat plays after the leaf has landed, so
 the deploy looks identical. Re-run `Tools/SpaceGame/Items/Build Expedition Rig Prefab` after
 any re-export — the stake transforms' fileIDs change with the hierarchy.
+
+## 2026-08-25 — the board was DEEPENED (`LEAF_EXTRA = 0.200`)
+
+`ItemScaleLadder` (`Assets/Game/Editor/Items/ItemScaleLadder.cs`) roughly doubled the held
+gear that day: the Dragon Bazooka's 1.25 m was adopted as the anchor and twelve items climbed
+to meet it. The mat could not hold what it was drawn for any more — at 0.50 m deep its widest
+axis-aligned run was 8 cells, so nothing longer than 0.72 m fitted it at any yaw, and a single
+1.25 m launcher took half the rack.
+
+So the leaf grew **0.200 m at its leading edge only**. The hinge end did not move, which is
+why the frame, the panel and every fold still meet the board exactly where they did.
+
+| | before | after |
+|---|---|---|
+| `SURF_Leaf` | 0.78 x 0.50 (8x5 cells) | **0.78 x 0.70** (8x7) |
+| `SURF_Rack` | 0.80 x 0.60 (8x6) | **0.80 x 0.80** (8x8) |
+| `SURF_Wing_L/R` | 0.38 x 0.40 | 0.38 x 0.60 |
+| `SURF_LongGoods` | 1.60 x 0.14 | 1.60 x 0.14 (unchanged, moved out with the edge) |
+| board inventory area | 0.87 m² | **1.19 m²** (+37%) |
+| open bounds | 1.728 x 1.447 x 0.819 | 1.728 x **1.647** x 0.819 |
+| triangles | 20,972 | 22,016 |
+
+**The lash rail stayed 0.14 m deep.** Deepening it to 0.27 was drawn up alongside this and
+dropped: the rail has to sit between the mat's far edge and the board's end, so a 0.27 m rail
+costs a further 0.13 m of board on top of the mat's 0.20. That stops being "a bit taller" on
+the wearer's back, and the rack's overhang rule already takes every long item — verified, see
+below.
+
+### What moved, and what that cost
+
+Everything measured from the LEADING edge carries `LEAF_EXTRA`: `LEAF_Y0`, `WING_Y0`,
+`RACK_Y0`, `RAIL_HEAD_Y`, the new `RAIL_MID`, and the rack band (`RACK_MID_Y`, `RACK_D`).
+Three things needed more than a shift:
+
+- **The stakes travel with the board.** `_stake`'s head and tip were hardcoded just past the
+  old `LEAF_Y0`. Left alone they stayed put while their guy-cord's anchor grommet moved
+  0.20 m out, stretching each cord from 0.078 m to 0.274 m — caught by the dimension diff, not
+  by eye. They are authored against `LEAF_Y0` now and keep their drawn slack.
+- **One more quilt line and one more grommet row**, at the pitch the existing ones use
+  (0.180 m and 0.190 m). A longer quilted mat has more stitch lines, not wider panels, and
+  without the extra grommet row the new 0.20 m would be untethered canvas.
+- **The wings kept pace** (0.60 -> 0.80 m long, plus a third rib strap and a fourth hinge
+  knuckle), so the front still closes like a box over the taller board instead of leaving its
+  top fifth unhugged.
+
+### Why re-running the generator was safe here
+
+The header rule — never regenerate over a hand-edited `.blend` — was honoured by *proving* the
+rule did not bite, not by ignoring it. Before any edit, the shipped file was rebuilt from
+`expedition_rig.py` + `expedition_rig_dress.py` + the 2026-08-24 reparent above and diffed
+object-by-object against what was on disk: **44 objects, 0 differences** across parent,
+location, rotation, scale, vertex count, polygon count and dimensions. The file held no hand
+edit those three steps do not reproduce, so the depth change is a parameter change and nothing
+was lost. Anyone repeating this must re-run that control first — the answer will stop being
+zero the moment somebody models on this file by hand.
+
+Verified after the change: `_zverify.py` reports **0 clashing pairs** (same as before), the
+object set is unchanged at 44 with no reparenting or rescaling, and every difference is a
+shift or a stretch along -Y.
+
+Re-run `Tools/SpaceGame/Items/Build Expedition Rig Prefab` after re-export, then
+`Tools/SpaceGame/Items/Reseed Undrawn Pack Shapes` — surfaces changing size does not touch the
+shape library, but the item resize that prompted this does.
+## 2026-08-25 — even cells + the lid (second pass that day)
+
+Two demands in one rebuild: **every `SURF_*` rectangle is now an exact multiple of
+`PackGrid.Cell` (0.090 m)** so the placement grid fills each face edge to edge with zero hem,
+and the stowed rig — until now an open-topped box — **closes, on a fifth hinge**.
+
+### The rectangles
+
+| SURF | was | now (cells) | centre moved |
+|---|---|---|---|
+| `SURF_Leaf` | 0.78 x 0.70 | **0.72 x 0.72** (8x8) | y -0.530 -> -0.525 |
+| `SURF_Wing_L/R` | 0.38 x 0.60 | **0.36 x 0.63** (4x7) | y -0.580 -> -0.590 |
+| `SURF_Back_L/R` | 0.26 x 0.50 | **0.27 x 0.54** (3x6) | s 0.310 -> 0.300 |
+| `SURF_LongGoods` | 1.60 x 0.14 | **1.62 x 0.09** (18x1) | unchanged |
+| `SURF_Rack` | 0.80 x 0.80 | **0.81 x 0.81** (9x9) | unchanged |
+
+205 usable cells -> **255**, coverage 100%. `PackGrid.CellsOn` floors and `Hem` centres the
+leftover, so exact multiples mean zero hem with **no code change**; only
+`ExpeditionRigWiring.SurfaceTable` carries the new numbers.
+
+**The decoration moved onto the same grid.** Stitch/grommet/webbing pitch is now 0.180 m = two
+cells, phase-aligned to cell boundaries: leaf grommets `(-0.270..0.270, -0.255..-0.795)` and
+quilt `xs (-0.18, 0, 0.18) / ys (-0.345..-0.885)` (rows interleaved with grommets), wing
+grommets `(±0.565..±0.745, -0.365..-0.905)` and quilt to match, lash keepers on `±0.270/±0.540`,
+and the back webbing rebuilt as **the grid itself**: vertical tapes ON the rect's outer cell
+columns (x 0.150/0.420), six rungs on the row centres at the cell's own 0.090 pitch, eyelets on
+row boundaries. Resize a surface only in whole cells and move its decoration with it.
+
+Two cradle nudges paid for the wider back rects: the tank foot posts moved in to x 0.124 (outer
+face 0.146, 4 mm clear of the rect edge at 0.150), and their flanges sank to `off -0.016` with
+thickness 0.020 — crest +0.004, under the +0.006 item plane, **and** 6 mm clear of the webbing
+tapes' inner face at -0.010, which at the first attempt (`off -0.010`) was a same-facing
+coplanar abutment `_zverify.py` correctly flagged. The rack's skid pads shrank r 0.030 -> 0.025
+so the 9x9 rect keeps the same 5 mm foot-pad overlap the 8x8 already accepted.
+
+### The lid
+
+Stowed, the folded rig was an open-topped box — leaf in front, wings as flanks, panel and
+bedroll behind, sky above the tank. **No fixed geometry can close it**: the stow maps every
+candidate carrier's plane to vertical, so the top had to be a hinge. Candidates measured and
+rejected: a leaf-fixed wall (shadows 30-59% of the mat and the whole lash rail deployed), a
+panel-fixed visor (fouls the back rects' top row and the bedroll owns the crest), wing-fixed
+(their stowed free edges are vertical lines — wrong axis), frame-fixed (floats).
+
+**`PIVOT_Lid`** sits on the leaf's leading edge at `(0, LEAF_Y0, CLOTH_T)` and is a **child of
+`PIVOT_Leaf`**, exactly like the wing pivots. Its apron (`Mesh_Rig_Lid`) is authored deployed as
+`LID_D = 0.360` more metres of mat — same slab, hem, and quilt language, two 0.180 m panels deep
+— coplanar with the leaf beyond `LEAF_Y0`, the slab ending exactly on the leaf's end face
+(opposed faces, an occluded joint, not a z-fight). Three r 0.012 knuckles straddle the seam.
+Folding it **X -90 relative to the leaf** stands it up mid-choreography as the end wall, then it
+rides the leaf's own -90 to horizontal, capping the box at z 0.936..0.962 — 10 mm above the wing
+crests, 54 mm above the bedroll — measured on the imported prefab (stowed lid mesh: a thin
+horizontal band y 0.924..0.962 across the opening). In the **rack pose** the same relative -90
+turns it into a hood over the board's top edge; the "every moved part is asked for its own stow
+angle" rule covers it with zero special cases.
+
+**The leading-edge furniture moved out with the edge, onto the lid**: the pull handle (fixing a
+latent bug — it was hardcoded at the pre-`LEAF_EXTRA` edge and had sat mid-board over the lash
+rail since the deepening; it is authored against `LID_Y0` now), the leading corner-grommet pair
+(`Mesh_Rig_LidGrommets`, at ±0.372 / `LID_Y0 - 0.055`), and **both stakes** — their guy cords
+tie to those grommets, the same travel-with-the-edge rule the deepening established. Stowed the
+stakes lie lashed across the lid's rear corners, tips to z ~1.03.
+
+Unity side: `BackpackHingePart.Lid = 5` (append-only), `HingeTable` +
+`("PIVOT_Lid", Lid, Vector3.right, -90f)` — sign **measured on the imported prefab** (X-hinges
+arrive sign-true, unlike the wings' mirrored Y: -90 caps the box, +90 buries the apron). Until
+`BackpackObject`'s beat sheet names the part, the lid swings on the shared generic ease and does
+not follow the rack raise — the follow-the-board rule the wings use is the known follow-up.
+
+### Reproducibility, proven again
+
+Control first, as the deepening demanded: the shipped `.blend` was rebuilt from
+`expedition_rig.py` + `expedition_rig_dress.py` + the two 2026-08-24 reparents and diffed
+object-by-object — **44 objects, 0 differences**, so regenerating lost nothing. The rebuild was
+then diffed the same way: 47 objects, **22 deltas, every one prescribed** (the lid trio new;
+webbing/grommets/keepers re-gridded; cradle nudged; pads shrunk; handle and stakes re-homed;
+five `SURF_*` centres moved). `_zverify.py`: **0 clashing pairs**.
+
+**The hand-edit step is gone**: the wing-pivot reparents (and the new lid pivot's) are folded
+into `expedition_rig.py`'s `main()`, and the stakes are simply authored on `PIVOT_Lid`, so a
+future regeneration is generator + dress pass and nothing else. The dress script gained the lid
+in its `RECOLOUR` list and its `STOW` clearance pose.
+
+Triangles: 26,228 -> **27,284** (+1,056 lid, +288 lid grommets, -288 the migrated grommet
+pair). Open bounds 1.728 x **2.007** x 0.819 (the apron and stakes extend -Y). Palette relink
+after copying out of scratch was needed again (the known trap) and verified by colour.
+
+Re-run `Tools/SpaceGame/Items/Build Expedition Rig Prefab` after re-export, then
+`Tools/SpaceGame/Items/Reseed Undrawn Pack Shapes` — done 2026-08-25; the wiring verified all
+7 surfaces, 5 hinges, 5 holders and the player reference off disk. Old saves: every face grew
+in cells except LongGoods, hem recentring shifts stored uvs at most half a cell, and
+`AdoptPlacements` first-fits any refusal — same behaviour as the deepening.

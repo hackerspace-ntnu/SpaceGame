@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 3343479139714316671}
   - component: {fileID: 5820174963310482277}
   - component: {fileID: -3328959335672301551}
+  - component: {fileID: 5789852136957963805}
   m_Layer: 0
   m_Name: NetworkGameManager
   m_TagString: Untagged
@@ -116,3 +117,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SandstormSaveable
   director: {fileID: 0}
+--- !u!114 &5789852136957963805
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4215243703015739838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16f2d20f4f899450ebe5e1e4a60886fb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.SessionSnapshot
+  ShowTopMostFoldoutHeaderGroup: 1

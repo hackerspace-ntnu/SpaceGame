@@ -30,6 +30,7 @@ namespace SpaceGame.Agents
             if (prefab == null) return null;
 
             GameObject instance = UnityEngine.Object.Instantiate(prefab, position, rotation);
+            DisownFromWorldSave(instance);
 
             if (!Network.IsNetworked || !Network.Server) return instance;
             if (!instance.TryGetComponent(out NetworkObject netObj) || netObj.IsSpawned) return instance;
@@ -48,6 +49,25 @@ namespace SpaceGame.Agents
             }
 
             return instance;
+        }
+
+        /// <summary>
+        /// Take the new NPC out of the world save, because whoever spawned it saves it themselves.
+        ///
+        /// <para>
+        /// The header above says these are "saved by nobody", and plain Instantiate was taken as
+        /// enough to make that true. It is not: <c>SaveableEntity</c> registers itself in Awake
+        /// whatever route brought the object into the world, and every NPC prefab ships one on
+        /// <c>SaveScope.World</c>. So a caravan's rider quietly got a world record of its own, and a
+        /// load both re-instantiated it from that record AND let the mount seat a fresh one — two
+        /// nomads, one saddle. <c>NpcWorldSim</c> already disowns its own members by hand for
+        /// exactly this reason; doing it here means the next caller cannot forget.
+        /// </para>
+        /// </summary>
+        private static void DisownFromWorldSave(GameObject instance)
+        {
+            if (instance.TryGetComponent(out SpaceGame.Core.Persistence.SaveableEntity saveable))
+                saveable.DisownToExternal();
         }
     }
 }

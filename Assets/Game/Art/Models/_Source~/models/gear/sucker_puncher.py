@@ -35,8 +35,8 @@ should be stated rather than inherited.
 | `Mesh_GauntletShell_Boiler`       | fixed  | reused component |
 | `Mesh_GauntletShell_HazardPlate`  | fixed  | the guard over the mechanism |
 | `Mesh_RamSlide_Rails`             | fixed  | the track |
-| `Mesh_RamSlide_Cylinder`          | fixed  | what throws the ram |
-| `Mesh_RamSlide_SpringReturn`      | fixed  | what drags it home |
+| `Mesh_RamSlide_Cylinder`          | fixed  | the shell the steam pushes against |
+| `Mesh_RamSlide_Rod`               | **ram** | slides out of the shell as the ram runs |
 | `Mesh_SuckerPuncher_Bracket`      | fixed  | plumbing and seats — unique to this model |
 | `Mesh_RamSlide_Carriage`          | **ram** | rides the rails |
 | `Mesh_SuckerPuncher_RamArm`       | **ram** | unique to this model |
@@ -44,9 +44,13 @@ should be stated rather than inherited.
 
 ## The ram pivot, and the one thing Unity has to know
 
-The three moving objects all have their origin at the **same point**, `RAM_PIVOT`, on the
-rail axis. So the Unity prefab parents all three under one transform placed there and
-animates a single local Z — no per-part offsets, no pivot to rediscover in the editor.
+The **four** moving objects all have their origin at the same point, `RAM_PIVOT`, on the
+rail axis. So the Unity prefab parents them under one transform placed there and animates a
+single local Z — no per-part offsets, no pivot to rediscover in the editor.
+
+The piston rod is one of them. At 0.17 m of throw a rod welded to the shell would visibly
+tear away from the carriage it is driving; ridden along with the ram it slides out of the
+shell exactly as a real one does.
 
 The ram arm lives entirely **forward of the knuckle bridge** (y < -0.122). That is what
 keeps it out of the hand: the earlier version ran side struts down past the fingers, which
@@ -117,19 +121,28 @@ MECH_Z = DECK_Z + 0.010
 RAIL_AXIS_Z = MECH_Z + 0.018
 
 RAM_PIVOT = Vector((0.0, -0.088, MECH_Z))
-STROKE = 0.060
+
+# 0.17 m of visible throw. The rails are 0.280 long and the carriage 0.062 deep, so the
+# stop yoke sits at 0.178 of travel — this leaves 8 mm and no more.
+STROKE = 0.170
 HEAD_MOUNT = Vector((0.0, -0.152, 0.022))
 
+# Where the rod is pinned to the carriage: the carriage's clevis, in world terms. The rod
+# rides the ram group from here and slides back into the shell at rest.
+ROD_PIN = Vector((0.0, RAM_PIVOT.y + 0.034, MECH_Z + 0.012))
+
 RAILS_AT = Vector((0.0, -0.030, MECH_Z))
-CYLINDER_AT = Vector((0.0, 0.081, RAIL_AXIS_Z - 0.006))
-SPRING_AT = Vector((-0.036, -0.040, RAIL_AXIS_Z + 0.026))
+# Far enough back that the 0.230 m shell swallows the rod's 0.215 m at rest, and on the
+# rod's own axis so the two read as one machine.
+CYLINDER_AT = Vector((0.0, 0.190, ROD_PIN.z))
 CUFF_AT = Vector((0.0, WRIST_Y + 0.030, 0.014))
 
 # The cuff is a 0.215 m component built for a human forearm. This rig's forearm is 0.404 m
 # and correspondingly thick, so the component is scaled rather than replaced — a bracer at
 # its authored size would be swallowed by the arm it is supposed to clamp.
 CUFF_SCALE = 1.18
-BOILER_AT = Vector((0.0, WRIST_Y + 0.115, 0.070))
+# Pushed back up the forearm to clear the longer cylinder, which now reaches y +0.190.
+BOILER_AT = Vector((0.0, WRIST_Y + 0.185, 0.062))
 
 
 def audit_cavity():
@@ -154,7 +167,7 @@ def audit_cavity():
     cavity = {"x": (-0.072, 0.072), "y": (-0.108, 0.092), "z": (-0.038, 0.066)}
     handle = {"y": (-0.032, 0.026), "z": (-0.032, 0.024)}
     ram = {"Mesh_RamSlide_Carriage", "Mesh_SuckerPuncher_RamArm",
-           "Mesh_KnuckleBlock_Segmented"}
+           "Mesh_KnuckleBlock_Segmented", "Mesh_RamSlide_Rod"}
 
     worst = 0
     for obj in bpy.data.objects:
@@ -323,8 +336,9 @@ def markers(coll, mats):
         "Marker_Grip": (0.0, 0.0, 0.0),
         # The strike face at rest. Impact effects and the melee trace start here.
         "Marker_Fist": (0.0, HEAD_MOUNT.y - 0.075, HEAD_MOUNT.z),
-        # Where the cylinder dumps its steam on firing.
-        "Marker_Vent": (0.0, 0.000, RAIL_AXIS_Z + 0.024),
+        # Where the cylinder dumps its steam on firing: at the gland, the front of the
+        # shell, which is the one place a real ram vents from.
+        "Marker_Vent": (0.0, -0.046, ROD_PIN.z + 0.026),
         # The pressure gauge face, for a charge/cooldown readout.
         "Marker_Gauge": (0.0, BOILER_AT.y - 0.074, BOILER_AT.z + 0.036),
     }
@@ -357,12 +371,16 @@ def main():
     place(bpy.data.objects["Mesh_GauntletShell_Boiler"], Matrix.Translation(BOILER_AT))
 
     # Mechanism.
+    # `Coll_RamSlide_SpringReturn` is deliberately NOT used. At a 6 cm twitch a decorative
+    # coil beside the carriage was harmless; at 17 cm there is nowhere on the deck it can
+    # sit that the carriage, the guard plate or the cylinder does not already occupy — and
+    # the rod sliding out of its shell now shows the mechanism working on its own.
     append_objects(SLIDE, ["Mesh_RamSlide_Rails", "Mesh_RamSlide_Cylinder",
-                           "Mesh_RamSlide_SpringReturn",
-                           "Mesh_RamSlide_Carriage"], coll)
+                           "Mesh_RamSlide_Rod", "Mesh_RamSlide_Carriage"], coll)
     place(bpy.data.objects["Mesh_RamSlide_Rails"], Matrix.Translation(RAILS_AT))
     place(bpy.data.objects["Mesh_RamSlide_Cylinder"], Matrix.Translation(CYLINDER_AT))
-    place(bpy.data.objects["Mesh_RamSlide_SpringReturn"], Matrix.Translation(SPRING_AT))
+    place(bpy.data.objects["Mesh_RamSlide_Rod"],
+          Matrix.Translation(ROD_PIN), origin=RAM_PIVOT)
 
     # The ram: one shared origin across all three, so Unity animates one number.
     place(bpy.data.objects["Mesh_RamSlide_Carriage"],

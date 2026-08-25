@@ -94,12 +94,16 @@ namespace SpaceGame.Portals
         {
             this.NetOn(NetMsg.PortalsUsed, OnUsedRequested);
             this.NetOn(NetMsg.PortalsShut, OnShutElsewhere);
+            this.NetOn(NetMsg.PortalExpired, OnExpiryRequested);
+            this.NetOn(NetMsg.PortalGone, OnExpiredElsewhere);
         }
 
         private void OnDisable()
         {
             this.NetOff(NetMsg.PortalsUsed, OnUsedRequested);
             this.NetOff(NetMsg.PortalsShut, OnShutElsewhere);
+            this.NetOff(NetMsg.PortalExpired, OnExpiryRequested);
+            this.NetOff(NetMsg.PortalGone, OnExpiredElsewhere);
         }
 
         /// <summary>
@@ -319,6 +323,32 @@ namespace SpaceGame.Portals
         }
 
         /// <summary>
+        /// How much longer than the shooter's copy everybody else's aperture lives.
+        ///
+        /// Every machine starts the twenty seconds when its own copy of the paint lands, so the
+        /// same aperture runs out a message's flight apart on each of them — and which machine
+        /// leads decides what a top-up sprayed in that window does. Ordering it deliberately, so a
+        /// peer is never the first to let go, is what makes the answer the same everywhere: the
+        /// shooter is the only machine that can decide a spray is a top-up (see
+        /// <see cref="ChooseSprayBarrel"/>, and PortalGunItem, which sends that verdict rather than
+        /// letting anyone re-derive it), and a peer that still holds the aperture can always obey
+        /// it. The other way round it could not, and grew a fresh outline nobody else had.
+        ///
+        /// <para>
+        /// Comfortably longer than a bad connection's one-way trip and short enough that a peer's
+        /// leftover is never something a player notices.
+        /// </para>
+        /// <para>
+        /// It works WITH <see cref="NetMsg.PortalExpired"/> rather than instead of it, and the two
+        /// halves do different jobs. The message is what actually ends the aperture everywhere, on
+        /// the shooter's clock; this grace is what guarantees the message is never overtaken by a
+        /// peer's own timer, which would leave that peer having dropped an aperture the shooter
+        /// still holds — the same fork in the other direction.
+        /// </para>
+        /// </summary>
+        private const float RemoteExpiryGrace = 0.5f;
+
+        /// <summary>
         /// Open, or move, one of the two apertures.
         ///
         /// Moving the existing GameObject rather than destroying and respawning
@@ -362,7 +392,10 @@ namespace SpaceGame.Portals
             portal.Pair = this;
 
             portal.Place(position, rotation, host, index);
-            portal.SetLifetime(lifetime);
+
+            // The shooter's copy runs the clock; everybody else's outlives it by a hair. See
+            // RemoteExpiryGrace, and Portal.SetLifetime for what the drift used to cost.
+            portal.SetLifetime(lifetime, Network.Owns(this) ? 0f : RemoteExpiryGrace);
 
             Portal other = portals[1 - index];
             Portal.Link(portal, other);
@@ -404,9 +437,42 @@ namespace SpaceGame.Portals
         /// </summary>
         private void Forget(Portal portal)
         {
+            int barrel = -1;
+
             for (int i = 0; i < portals.Length; i++)
-                if (portals[i] == portal) portals[i] = null;
+            {
+                if (portals[i] != portal) continue;
+
+                portals[i] = null;
+                barrel = i;
+            }
+
+            // Still holding the slot means the aperture closed ITSELF — its time ran out. Close()
+            // nulls the slot before it closes the portal, so a deliberate close arrives here with
+            // nothing left to clear, and that is the whole discriminator between the two.
+            //
+            // Only the shooter announces, because only the shooter's clock is the one everybody
+            // else is supposed to be following. See NetMsg.PortalExpired.
+            if (barrel < 0 || !Network.Owns(this)) return;
+
+            this.NetToServer(NetMsg.PortalExpired, new NetArg { A = barrel });
         }
+
+        /// <summary>
+        /// Server side: the shooter's aperture has run out. Tell everyone else, and drop ours.
+        ///
+        /// Idempotent, as it has to be — the host runs this and the broadcast it makes inline, one
+        /// inside the other, and Close on an already-empty slot does nothing.
+        /// </summary>
+        private void OnExpiryRequested(in NetArg arg, ulong sender)
+        {
+            if (!Network.Simulates(this)) return;
+
+            this.NetToOthers(NetMsg.PortalGone, arg, except: sender);
+            Close(arg.A);
+        }
+
+        private void OnExpiredElsewhere(in NetArg arg, ulong sender) => Close(arg.A);
 
         private void OnDestroy() => CloseAll();
     }

@@ -325,38 +325,60 @@ MonoBehaviour:
       Data3: -533523275
       Data4: -1075932117
     Path: event:/SFX/Hit
-  maxRange: 30
   hookableLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  throwDelay: 1
+  minThrowRange: 12
+  maxRange: 30
+  twirlChargeTime: 1.2
+  twirlHeight: 2.1
   throwSpeed: 30
-  throwRadius: 1
   reelSpeed: 18
   ropeSlack: 1.5
-  ropeTension: 600
   reelInForce: 18
+  maxDragSpeed: 14
   reelInAction: {fileID: -4090225696740746782, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   npcAttachHeightOffset: 1.2
   throwTrigger: Throw
   lassoModel: {fileID: 6305314979930376641}
   lineRenderer: {fileID: 6756972679757077413}
   muzzle: {fileID: 4202001528767388540}
-  ropeSegments: 24
-  ropeGravity: 3
-  ropeWidth: 0.04
+  rope:
+    points: 30
+    iterations: 8
+    gravity: 14
+    damping: 0.96
+    simulationStep: 0.011111111
+    stiffness: 1
+    bendResistance: 0.3
+    cornerVertices: 2
+    capVertices: 2
+    width: 0.062
+    snapAmplitude: 0.4
+    snapWaves: 3
   loopRenderer: {fileID: 2281198309816797548}
-  loopSegments: 24
-  loopRadius: 0.35
-  loopSpinSpeed: 360
-  loopTiltAngle: 60
-  loopDistortAmount: 0.12
-  loopDistortSpeed: 1.8
+  loop:
+    segments: 28
+    coilRadius: 0.22
+    openRadius: 0.8
+    collarRadius: 0.45
+    spinSpeed: 620
+    twirlTilt: 74
+    flightTilt: 50
+    orbitRadius: 0.35
+    cinchDuration: 0.25
+    wobbleAmount: 0.1
+    wobbleSpeed: 1.8
+    width: 0.062
+  struggle:
+    attachHeight: 1.2
+    struggleSeconds: 6
+    struggleSpeed: 4.5
+    thrashFrequency: 2.2
+    thrashShare: 0.45
+    turnSpeed: 220
   throwArcHeight: 4
   throwGravity: 18
-  wobbleAmplitude: 0.3
-  wobbleFrequency: 2.5
-  wobbleDecay: 2
 --- !u!114 &4400000000000000002
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -371,11 +393,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 0}
   boolParameter: Hold
-  requireStationary: 1
-  inputDeadzone: 0.01
-  velocityThreshold: 0.15
-  holdReArmDelay: 0.2
-  debugLog: 0
 --- !u!114 &2409302174725578370
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -446,7 +463,7 @@ MonoBehaviour:
   holdStyle: 2
   rotationOffset: {x: 0, y: 0, z: 90}
   positionOffset: {x: 0, y: 0, z: 0}
-  holdSize: 0.3
+  holdSize: 0.6
   sizeReference: {fileID: 6686484516145681275}
   keepColliders: 0
 --- !u!1 &7106407005302916264

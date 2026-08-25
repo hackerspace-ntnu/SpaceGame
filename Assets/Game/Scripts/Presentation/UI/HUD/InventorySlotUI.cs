@@ -25,21 +25,17 @@ namespace SpaceGame.Presentation
     /// be readable in peripheral vision while the player is looking elsewhere.
     /// </para>
     /// <para>
-    /// <b>Dragging.</b> The pointer handlers here are the only EventSystem drag plumbing in the
-    /// project. They do not implement a drag — they hand the gesture to
-    /// <c>PackDragController</c>, which is already hit-testing the pack every frame and already
-    /// knows what a legal placement is. <see cref="InventoryUI"/> is the bridge.
+    /// <b>Clicking.</b> The pointer handlers here resolve nothing themselves — they hand the click
+    /// to <c>PackHandController</c> through <see cref="InventoryUI"/>, which is already hit-testing
+    /// the pack every frame and already knows what a legal placement is. This project has no
+    /// EventSystem drag plumbing at all any more.
     /// </para>
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class InventorySlotUI : MonoBehaviour,
         IPointerEnterHandler,
         IPointerExitHandler,
-        IPointerClickHandler,
-        IBeginDragHandler,
-        IDragHandler,
-        IEndDragHandler,
-        IDropHandler
+        IPointerClickHandler
     {
         private const float HatchInset = 14f;
 
@@ -64,8 +60,10 @@ namespace SpaceGame.Presentation
 
         private Coroutine shaking;
 
-        /// <summary>Whether this slot holds anything. Read by the drag gesture before it starts.</summary>
-        public bool HasItem { get; private set; }
+        /// <summary>Whether this slot holds anything, which is what decides how bright the tile
+        /// sits. Private: what a click on this slot MEANS is the pack's question, not the tile's —
+        /// see <see cref="InventoryUI.ClickSlot"/>.</summary>
+        private bool hasItem;
 
         /// <summary>This slot's rectangle, for the cursor hit-test in <see cref="InventoryUI"/>.</summary>
         public RectTransform Rect { get; private set; }
@@ -157,9 +155,10 @@ namespace SpaceGame.Presentation
         }
 
         /// <summary>Shows the slot as it now stands.</summary>
-        /// <param name="isDropTarget">A drag is hovering here and would land in this slot.</param>
-        /// <param name="isReserved">This slot's item is in the player's hand, mid-drag. The tile
-        /// reads as empty, but as an empty tile that is spoken for.</param>
+        /// <param name="isDropTarget">The cursor is over this slot with something in hand, so a
+        /// click would land it here.</param>
+        /// <param name="isReserved">This slot's item is in the player's hand. The tile reads as
+        /// empty, but as an empty tile that is spoken for.</param>
         public void Refresh(InventorySlot slot, bool isSelected, bool isHovered,
                             bool isDropTarget = false, bool isReserved = false)
         {
@@ -169,7 +168,7 @@ namespace SpaceGame.Presentation
             reserved = isReserved;
 
             InventoryItem item = slot != null && !slot.IsEmpty ? slot.Item : null;
-            HasItem = item != null;
+            hasItem = item != null;
 
             if (itemIcon != null)
             {
@@ -204,7 +203,7 @@ namespace SpaceGame.Presentation
             // further than a full one, which is the hierarchy doing its job.
             tile.color = Tone(HotbarStyle.Tile,
                               selected ? 1.35f : hovered ? 1.15f : 1f,
-                              HasItem || reserved ? 0.82f : 0.55f);
+                              hasItem || reserved ? 0.82f : 0.55f);
 
             // Safety orange beats amber here, deliberately: a live drop target is something about
             // to happen, and it has to out-shout the slot the player merely has selected.
@@ -236,7 +235,7 @@ namespace SpaceGame.Presentation
                 : Fade(HotbarStyle.Stencil, 0.65f);
         }
 
-        // ── Pointer and drag ─────────────────────────────────────────────────
+        // ── Pointer ──────────────────────────────────────────────────────────
 
         public void OnPointerEnter(PointerEventData eventData)
         {
@@ -249,73 +248,15 @@ namespace SpaceGame.Presentation
         }
 
         /// <summary>
-        /// A press that has started to move. Offered to the pack, which either takes the gesture or
-        /// is not there — outside focus mode there is nowhere to drag an item TO, and the cursor is
-        /// locked out there anyway.
-        ///
-        /// <para>
-        /// Left button only. The InputSystemUIInputModule this project's EventSystem uses binds a
-        /// right-click drag exactly like a left one, and the right button already has its own
-        /// discrete gesture — <see cref="OnPointerClick"/>'s stow. A few pixels of hand tremor past
-        /// the drag threshold on a right-click would otherwise fire this too, and the two gestures
-        /// cannot be the same release.
-        /// </para>
-        /// <para>
-        /// Declining means clearing <see cref="PointerEventData.pointerDrag"/>, not simply
-        /// returning: left set, the EventSystem keeps routing move and end events to a slot that
-        /// refused the drag, and the matching <see cref="OnEndDrag"/> would then resolve a gesture
-        /// that never began. The same is true of the right-button case here, for the same reason.
-        /// </para>
-        /// </summary>
-        public void OnBeginDrag(PointerEventData eventData)
-        {
-            if (eventData.button != PointerEventData.InputButton.Left)
-            {
-                eventData.pointerDrag = null;
-                return;
-            }
-
-            if (parentUI == null || !parentUI.BeginSlotDrag(slotIndex, eventData.position))
-                eventData.pointerDrag = null;
-        }
-
-        public void OnDrag(PointerEventData eventData)
-        {
-            if (eventData.button != PointerEventData.InputButton.Left) return;
-            if (parentUI != null) parentUI.DragSlot(eventData.position);
-        }
-
-        public void OnEndDrag(PointerEventData eventData)
-        {
-            if (eventData.button != PointerEventData.InputButton.Left) return;
-            if (parentUI != null) parentUI.EndSlotDrag(eventData.position);
-        }
-
-        /// <summary>
-        /// A drag let go over this slot.
-        ///
-        /// <para>
-        /// It resolves nothing. <c>OnDrop</c> and <c>OnEndDrag</c> both fire for the same release,
-        /// so exactly one of them may act — and it has to be the one that fires even when the
-        /// release lands on nothing at all, which is <see cref="OnEndDrag"/>. What this is for is
-        /// the slot under the pointer saying so, which is the same thing a hover says.
-        /// </para>
-        /// </summary>
-        public void OnDrop(PointerEventData eventData)
-        {
-            if (parentUI != null) parentUI.OnSlotHovered(slotIndex);
-        }
-
-        /// <summary>
-        /// Right-click: this slot's item goes onto the open pack, wherever the pack finds
-        /// room. The rough mirror of right-clicking a pack item to take it — close enough to
-        /// read as the same gesture in both directions, though the pack side fires on the
-        /// press and this one waits for the click to resolve.
+        /// Left click: this slot's item goes into the player's hand, or whatever is already in
+        /// their hand goes into this slot. The same verb the mat uses, on the same button — the
+        /// bar and the pack are one surface as far as the player is concerned, and a slot that
+        /// needed a different gesture would break that.
         /// </summary>
         public void OnPointerClick(PointerEventData eventData)
         {
-            if (eventData.button != PointerEventData.InputButton.Right) return;
-            if (parentUI != null) parentUI.RequestSlotStow(slotIndex);
+            if (eventData.button != PointerEventData.InputButton.Left) return;
+            if (parentUI != null) parentUI.ClickSlot(slotIndex);
         }
 
         // ── Refusal ──────────────────────────────────────────────────────────

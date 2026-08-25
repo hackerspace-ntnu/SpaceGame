@@ -608,7 +608,9 @@ namespace SpaceGame.EditorTools.Portals
             {
                 var serializedGrip = new SerializedObject(itemGrip);
                 serializedGrip.FindProperty("gripPoint").objectReferenceValue = grip;
-                serializedGrip.FindProperty("holdSize").floatValue = 0.42f;
+                // The Gun bracket of ItemScaleLadder. Only written for a grip this builder just
+                // added, so the ladder's value on the shipped prefab stands either way.
+                serializedGrip.FindProperty("holdSize").floatValue = 1.25f;
                 serializedGrip.ApplyModifiedPropertiesWithoutUndo();
             }
 

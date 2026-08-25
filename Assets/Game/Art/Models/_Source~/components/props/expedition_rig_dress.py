@@ -34,10 +34,10 @@ Two kinds of change:
    sits along the reclined panel's crest; neither reaches any `SURF_*` face.
 
 The script verifies clearance itself: it folds the rig to the Blender stow
-pose (Back +25, Leaf -90, Wing_L +90, Wing_R -90 — measured in this session;
-the Unity HingeTable signs do NOT transfer 1:1, see the wiring script's
-warning), asserts the new parts stay clear of the folded wings, then resets
-every pivot to authored zero before saving.
+pose (Back +25, Leaf -90, Wing_L +90, Wing_R -90, Lid -90 relative to the
+leaf — measured in this session; the Unity HingeTable signs do NOT transfer
+1:1, see the wiring script's warning), asserts the new parts stay clear of the
+folded wings, then resets every pivot to authored zero before saving.
 
 Historical record once applied. The .blend stays the source of truth; do not
 re-run this over a file it has already dressed (it refuses by name).
@@ -65,7 +65,7 @@ MATS = [
 SAND, OCHRE, CANVAS, STEEL, BRASS, RUBBER = range(6)
 
 RECOLOUR = ["Mesh_Rig_FrontLeaf", "Mesh_Rig_Wing_L", "Mesh_Rig_Wing_R",
-            "Mesh_Rig_BackPanel", "Mesh_Rig_Frame"]
+            "Mesh_Rig_BackPanel", "Mesh_Rig_Frame", "Mesh_Rig_Lid"]
 
 NEW_NAMES = ["Mesh_Rig_SidePouch_L", "Mesh_Rig_SidePouch_R",
              "Mesh_Rig_SidePouchFlap_L", "Mesh_Rig_SidePouchFlap_R",
@@ -76,7 +76,9 @@ NEW_NAMES = ["Mesh_Rig_SidePouch_L", "Mesh_Rig_SidePouch_R",
 STOW = {"PIVOT_Back": (math.radians(25), 0, 0),
         "PIVOT_Leaf": (math.radians(-90), 0, 0),
         "PIVOT_Wing_L": (0, math.radians(90), 0),
-        "PIVOT_Wing_R": (0, math.radians(-90), 0)}
+        "PIVOT_Wing_R": (0, math.radians(-90), 0),
+        # Relative to PIVOT_Leaf, its parent: the lid caps the folded box.
+        "PIVOT_Lid": (math.radians(-90), 0, 0)}
 
 # --- pouch pods ------------------------------------------------------------
 # The frame tray spans x +-0.43, y +-0.16, z 0..0.22. Each pod hangs on a frame

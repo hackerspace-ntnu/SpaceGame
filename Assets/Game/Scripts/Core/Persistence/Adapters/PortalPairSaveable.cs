@@ -118,6 +118,23 @@ namespace SpaceGame.Core.Persistence
             };
         }
 
+        /// <summary>
+        /// Restore and re-open in one go, for a caller with no deferred pass to wait for.
+        ///
+        /// <para>
+        /// <see cref="RestoreState"/> only STAGES — the aperture is actually cut in
+        /// <see cref="OnLoadComplete"/>, which <c>SaveManager</c> invokes from its deferred load
+        /// passes. A client joining a running session never runs one, so a staged record would sit
+        /// there for ever. <c>SessionSnapshot</c> calls this instead, and only once the shooter
+        /// exists on this machine, which is the one thing the deferred pass was buying.
+        /// </para>
+        /// </summary>
+        public void ApplyNow(JObject state)
+        {
+            RestoreState(state);
+            OnLoadComplete();
+        }
+
         public void RestoreState(JObject state)
         {
             hasPending = false;

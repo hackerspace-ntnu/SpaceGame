@@ -54,6 +54,97 @@ namespace SpaceGame.EditorTools
             EditorGUIUtility.PingObject(library);
         }
 
+        /// <summary>
+        /// Bring every UNDRAWN row back into agreement with the item it describes.
+        ///
+        /// <para>
+        /// A row is undrawn when its mask is a solid rectangle: that is exactly what
+        /// <see cref="Populate"/> seeds, so it carries no authorship and re-deriving it loses
+        /// nothing. A row with any hole in it is somebody's drawing and is never touched — the same
+        /// rule <see cref="Populate"/> follows, applied to rows that already exist.
+        /// </para>
+        /// <para>
+        /// It is needed because a seeded row is a snapshot of a size that can move afterwards.
+        /// <c>ItemScaleLadder</c> resized twelve items on 2026-08-25 and every one of their rows
+        /// still described the old size — which does not shrink the item, because the pack draws
+        /// gear at true size regardless. It makes the item overhang the cells the layout reserved
+        /// for it and lie through whatever is in the next cell along, which is what
+        /// <c>PackShapes.WarnIfOversized</c> spends its time complaining about.
+        /// </para>
+        /// </summary>
+        [MenuItem("Tools/SpaceGame/Items/Reseed Undrawn Pack Shapes")]
+        public static void Reseed()
+        {
+            var log = new StringBuilder("Pack shape reseed\n");
+
+            var library = AssetDatabase.LoadAssetAtPath<PackShapeLibrary>(AssetPath);
+
+            if (library == null)
+            {
+                Debug.LogError($"No shape library at {AssetPath}. Run 'Create Pack Shape Library' first.");
+                return;
+            }
+
+            ItemFootprint.ClearCache();
+
+            int changed = 0;
+            int drawn = 0;
+
+            for (int i = 0; i < library.Entries.Count; i++)
+            {
+                PackShapeLibrary.Entry entry = library.Entries[i];
+
+                if (entry?.item == null) continue;
+
+                if (!IsSolidRectangle(entry))
+                {
+                    drawn++;
+                    log.Append($"  kept   {entry.item.itemName}: {entry.width} x {entry.height} is drawn\n");
+                    continue;
+                }
+
+                PackShape derived = PackShape.ForFootprint(ItemFootprint.FootprintOf(entry.item));
+
+                if (derived.Width == entry.width && derived.Height == entry.height) continue;
+
+                log.Append($"  reseed {entry.item.itemName}: {entry.width} x {entry.height} -> ")
+                   .Append($"{derived.Width} x {derived.Height}\n");
+
+                entry.width = derived.Width;
+                entry.height = derived.Height;
+                entry.cells = new bool[derived.Width * derived.Height];
+
+                for (int c = 0; c < entry.cells.Length; c++) entry.cells[c] = true;
+
+                changed++;
+            }
+
+            EditorUtility.SetDirty(library);
+            AssetDatabase.SaveAssets();
+            library.Invalidate();
+
+            // The warning is once-per-item-per-session, so without this a row that has just been
+            // corrected still reads as already-complained-about and the fix cannot be confirmed.
+            PackShapes.ClearWarnings();
+
+            log.Append($"  {changed} row(s) reseeded, {drawn} drawn row(s) left alone.\n");
+            Debug.Log(log.ToString(), library);
+        }
+
+        /// <summary>
+        /// Is this row still the plain block <see cref="Populate"/> seeds — every cell filled?
+        /// A single hole means somebody drew it, and drawn shapes are not this tool's to change.
+        /// </summary>
+        private static bool IsSolidRectangle(PackShapeLibrary.Entry entry)
+        {
+            if (entry.cells == null || entry.cells.Length != entry.width * entry.height) return false;
+
+            for (int i = 0; i < entry.cells.Length; i++)
+                if (!entry.cells[i]) return false;
+
+            return true;
+        }
+
         private static PackShapeLibrary LoadOrCreate(StringBuilder log)
         {
             var existing = AssetDatabase.LoadAssetAtPath<PackShapeLibrary>(AssetPath);

@@ -21,18 +21,18 @@ Shader "SpaceGame/Artifacts/RepulsorAirWarp"
         _Progress      ("Progress",          Range(0, 1))      = 0
 
         [Header(Refraction)]
-        _WarpStrength  ("Warp Strength",     Range(0, 0.15))   = 0.045
+        _WarpStrength  ("Warp Strength",     Range(0, 0.25))   = 0.085
         _NoiseScale    ("Noise Scale",       Float)            = 6
-        _NoiseSpeed    ("Noise Speed",       Float)            = 3
-        _LeadingEdge   ("Leading Edge",      Range(0, 1))      = 0.75
-        _BandWidth     ("Front Band Width",  Range(0.02, 1))   = 0.28
+        _NoiseSpeed    ("Noise Speed",       Float)            = 5
+        _LeadingEdge   ("Leading Edge",      Range(0, 1.2))    = 0.75
+        _BandWidth     ("Front Band Width",  Range(0.02, 1))   = 0.22
         _SkirtStrength ("Trailing Skirt",    Range(0, 1))      = 0.35
         _FlowBias      ("Outward Flow Bias", Range(0, 1))      = 0.6
 
         [Header(Rim)]
         [HDR] _RimColor ("Rim Color",        Color)            = (0.62, 0.82, 1.0, 1)
         _RimPower      ("Rim Power",         Range(0.5, 8))    = 3
-        _RimIntensity  ("Rim Intensity",     Range(0, 8))      = 2
+        _RimIntensity  ("Rim Intensity",     Range(0, 8))      = 3.2
     }
 
     SubShader

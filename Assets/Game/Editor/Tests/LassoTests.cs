@@ -256,7 +256,7 @@ namespace SpaceGame.EditorTools
 
             Assert.IsTrue(motor.Suspended, "the tether never took the creature's legs");
 
-            tether.Release();
+            tether.Release(anchor);
             Assert.IsFalse(motor.Suspended, "the creature never got its own legs back");
         }
 
@@ -271,8 +271,105 @@ namespace SpaceGame.EditorTools
             LassoTether tether = LassoTether.Ensure(creature);
             tether.Bind(anchor, 8f, new LassoStruggle());
 
-            tether.Release();
-            Assert.DoesNotThrow(() => tether.Release());
+            tether.Release(anchor);
+            Assert.DoesNotThrow(() => tether.Release(anchor));
+        }
+
+        [Test]
+        public void ASecondRopeCannotStealABoundTether()
+        {
+            // Ensure returns whatever component is already on the creature, so without a binder
+            // check a second thrower rebound the SAME tether: the first rope's constraint vanished
+            // while its item went on drawing a rope and dragging its holder, and whichever thrower
+            // released first freed the creature from both.
+            GameObject creature = NewGameObject("creature");
+            Transform first = NewGameObject("rope-a").transform;
+            Transform second = NewGameObject("rope-b").transform;
+
+            LassoTether tether = LassoTether.Ensure(creature);
+
+            Assert.IsTrue(tether.Bind(first, 6f, new LassoStruggle()), "the first rope did not take hold");
+            Assert.IsFalse(tether.Bind(second, 6f, new LassoStruggle()),
+                           "a creature already on a rope accepted a second one instead of refusing it");
+
+            tether.Release(second);
+            Assert.IsTrue(tether.IsBound, "a release from the wrong rope freed the creature");
+
+            tether.Release(first);
+            Assert.IsFalse(tether.IsBound, "the rope that took hold could not let go");
+        }
+
+        [Test]
+        public void AKinematicBodyIsGivenBackTheWayItWasFound()
+        {
+            // Bind un-kinematics a body so the struggle can move it. Release used not to put that
+            // back, so the flag outlived the rope — and a quit-time autosave could capture it,
+            // which is the "cannot move in the loaded world" trap from the other direction.
+            GameObject creature = NewGameObject("creature");
+            Rigidbody body = creature.AddComponent<Rigidbody>();
+            body.isKinematic = true;
+
+            Transform anchor = NewGameObject("anchor").transform;
+
+            LassoTether tether = LassoTether.Ensure(creature);
+            tether.Bind(anchor, 8f, new LassoStruggle());
+
+            Assert.IsFalse(body.isKinematic, "the struggle cannot move a body that is still kinematic");
+
+            tether.Release(anchor);
+            Assert.IsTrue(body.isKinematic, "the rope left the creature's body changed after it let go");
+        }
+
+        [Test]
+        public void ARopedPlayerIsHeldByTheirOwnMachine()
+        {
+            // Roping a player used to put a LassoTether on the server, which cannot move an
+            // owner-authoritative body — so it worked against the host and did nothing whatever to
+            // a client. LassoedBody is the same shape as FlungBody: created everywhere, applied by
+            // the one machine that owns the victim.
+            GameObject victim = NewGameObject("victim");
+            victim.tag = "Player";
+
+            Rigidbody body = victim.AddComponent<Rigidbody>();
+            body.useGravity = false;
+            body.position = new Vector3(20f, 0f, 0f);
+
+            Transform anchor = NewGameObject("thrower").transform;
+            anchor.position = Vector3.zero;
+
+            LassoedBody held = LassoedBody.Ensure(victim);
+            Assert.IsTrue(held.Bind(anchor, 8f, 80f));
+
+            // Offline this machine owns the body, which is the single-player case and the
+            // local-player case in a session. The remote case has no second machine to be wrong on
+            // here; the two-process run covers it.
+            held.Step();
+
+            Assert.Less(body.position.x, 20f, "a player past the rope's length was not pulled back");
+            Assert.Greater(body.position.x, 8f,
+                "one step resolved the whole error, which is a snap rather than a rope");
+        }
+
+        [Test]
+        public void ASecondRopeCannotStealABoundPlayer()
+        {
+            GameObject victim = NewGameObject("victim");
+            victim.tag = "Player";
+            victim.AddComponent<Rigidbody>();
+
+            Transform first = NewGameObject("rope-a").transform;
+            Transform second = NewGameObject("rope-b").transform;
+
+            LassoedBody held = LassoedBody.Ensure(victim);
+
+            Assert.IsTrue(held.Bind(first, 6f, 80f));
+            Assert.IsFalse(held.Bind(second, 6f, 80f), "a roped player accepted a second rope");
+
+            held.Release(second);
+            Assert.IsTrue(held.IsBound, "a release from the wrong rope freed the player");
+
+            held.Release(first);
+            Assert.IsFalse(held.IsBound, "the rope that took hold could not let go");
         }
 
         [Test]

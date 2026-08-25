@@ -1,63 +1,60 @@
-using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using SpaceGame.Core;
 using SpaceGame.Gameplay;
 using SpaceGame.Presentation;
 
-// UnityEngine.InputSystem has a PlayerInputManager of its own, for local multiplayer join
-// handling. This project has never used it; the one meant here is always ours.
+// UnityEngine.InputSystem is imported above for Mouse, and it has a PlayerInputManager of its own
+// for local multiplayer join handling. This project has never used that one; the alias is what
+// keeps the bare name meaning ours.
 using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
 
 namespace SpaceGame.Items
 {
     /// <summary>
-    /// The hands of focus mode: hover, pick up, turn, put down, or send straight to the hotbar.
+    /// The hands of focus mode: hover, pick up, turn, put down.
     ///
     /// <para>
-    /// Lives on the focus camera's own GameObject and dies with it, so there is no path where a
-    /// drag outlives the view it was being performed in.
+    /// Lives on the focus camera's own GameObject and dies with it, so there is no path where an
+    /// item is left in a hand belonging to a view that has gone.
     /// </para>
     /// <para>
-    /// <b>Nothing here is optimistic.</b> A release sends a request and the display does not move;
-    /// what moves it is the layout change the server publishes back. Two players can be in one
-    /// pack, and an item that appeared in your hand and then vanished again is worse than a round
-    /// trip you can see coming.
+    /// <b>One button, one verb, two states.</b> The hand is either empty or holding one item, and
+    /// every action in focus mode is a left click resolved against which of the two it is. Nothing
+    /// is ever held down: no press-and-hold, no threshold, no gesture that can be started and then
+    /// left half-finished. The one exception is the leaf, which is a continuous pull on the pack's
+    /// own board rather than anything to do with an item.
+    /// </para>
+    /// <para>
+    /// <b>Nothing here is optimistic.</b> Putting an item down sends a request and the display does
+    /// not move; what moves it is the layout change the server publishes back. Two players can be
+    /// in one pack, and an item that appeared in your hand and then vanished again is worse than a
+    /// round trip you can see coming. Lifting, by contrast, is purely local — nothing is sent and
+    /// nothing has changed, which is why letting go of the hand needs no undo at all.
     /// </para>
     /// <para>
     /// Hit-testing is in <see cref="PackPointer"/> and everything drawn is in
-    /// <see cref="PackDragVisuals"/>; what is left here is the state machine and the requests.
+    /// <see cref="PackHandVisuals"/>; what is left here is the state machine and the requests.
     /// </para>
     /// <para>
-    /// <b>The hotbar is the fifth surface.</b> A drag that starts on a hotbar slot and a drag that
-    /// starts on the mat run through the same state machine and the same frame of hit-testing —
-    /// see <see cref="DragSource"/>. The alternative was a second drag system living in the HUD
-    /// with its own idea of what a legal placement is, which is two things to keep in agreement
-    /// about a question with one answer.
+    /// <b>The hotbar is the fifth surface.</b> An item lifted out of a slot and one lifted off the
+    /// mat run through the same hand and the same frame of hit-testing — see <c>HandSource</c>.
+    /// The alternative was a second placement system living in the HUD with its own idea of what a
+    /// legal spot is, which is two things to keep in agreement about a question with one answer.
     /// </para>
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class PackDragController : MonoBehaviour
+    public sealed class PackHandController : MonoBehaviour
     {
         /// <summary>
-        /// The drag controller of the session on screen, or null when there is no focus session.
+        /// The hand of the session on screen, or null when there is no focus session.
         ///
         /// The HUD needs a way to reach this and has no reference to it: the hotbar is a prefab
-        /// under the player, and the controller is a component added at runtime to a camera that
+        /// under the player, and the hand is a component added at runtime to a camera that
         /// did not exist a frame ago. There is at most one focus session on one machine — see
         /// <see cref="PackFocusSession.Active"/> — so there is at most one of these.
         /// </summary>
-        public static PackDragController Active { get; private set; }
-
-        /// <summary>Where the thing in the player's hand came from.</summary>
-        private enum DragSource
-        {
-            /// <summary>Lifted off the mat. Released by the mouse button, and it can be thrown away.</summary>
-            Pack,
-
-            /// <summary>Dragged off a hotbar slot. Released by the EventSystem, and it cannot.</summary>
-            Hotbar,
-        }
+        public static PackHandController Active { get; private set; }
 
         /// <summary>
         /// Degrees of yaw per wheel notch.
@@ -71,32 +68,31 @@ namespace SpaceGame.Items
         /// </summary>
         private const float YawPerNotch = 90f;
 
-        /// <summary>Seconds a refused drop takes to slide back where it came from.</summary>
-        private const float SpringBackSeconds = 0.14f;
-
-        /// <summary>Seconds the hover rim stays refusal-red after a refused take.</summary>
+        /// <summary>Seconds a refusal stays red — see <see cref="ClearDeniedFlash"/>.</summary>
         private const float DeniedFlashSeconds = 0.3f;
 
-        private float deniedUntil;
-
         /// <summary>
-        /// The visual <see cref="SetHovered"/> last rim-lit, so a change of target can be told
-        /// apart from the same item being re-hit frame after frame — see <see cref="SetHovered"/>.
+        /// Metres along the cursor ray the carried copy sits when the ray misses the pack's
+        /// horizontal plane entirely — cursor on the sky, or a ray running parallel to the
+        /// ground. Roughly the rig's own distance from the focus camera, so the copy neither
+        /// balloons in the player's face nor shrinks toward the horizon when it leaves the faces.
         /// </summary>
-        private GameObject hoveredVisual;
+        private const float FreeCarryRayMetres = 2f;
+
+        private float deniedUntil;
 
         private PackFocusCamera focusCamera;
         private BackpackController controller;
         private Interactor interactor;
         private PlayerInputManager input;
 
-        private PackDragVisuals visuals;
+        private PackHandVisuals visuals;
 
         /// <summary>
-        /// The cells the magnet-snapped ghost will occupy, one square each, plus the lattice of the
-        /// whole hovered face underneath it. One colour, not a verdict: <c>PackLayout.TryFindNearest</c>
-        /// never hands back a spot the release cannot have, so there is nothing left for these cells
-        /// to refuse.
+        /// The cells the held item would occupy, one square each, plus the lattice of the whole
+        /// hovered face underneath it. They carry the verdict: green where the placement is legal
+        /// and red where it is not. Nothing corrects the player's aim, so those cells are the only
+        /// thing telling them whether the click they are about to make will land.
         /// </summary>
         private PackGridVisual cellGrid;
 
@@ -109,109 +105,114 @@ namespace SpaceGame.Items
         /// </summary>
         private PackLayout subscribedLayout;
 
-        // ── Drag state ───────────────────────────────────────────────────────
-        private bool dragging;
-        private InventoryItem dragItem;
-        private DragSource dragFrom;
+        // ── The hand ─────────────────────────────────────────────────────────
+        //
+        // Two states and nothing else: empty, or holding one item. Every verb in focus mode is a
+        // left click resolved against which of the two it is, which is why there is no gesture
+        // state here at all — no button-down origin, no drag threshold, no source enum for "which
+        // machine started this". A lift is local and costs nothing; only putting it down is a
+        // request.
+
+        private bool carrying;
+        private InventoryItem heldItem;
+
+        /// <summary>Where the held item came from, and therefore what putting it down means.</summary>
+        private enum HandSource
+        {
+            /// <summary>Lifted off the mat. Putting it down is a move; putting it in a slot is a take.</summary>
+            Pack,
+
+            /// <summary>Lifted out of a hotbar slot. Putting it down is a stow.</summary>
+            Hotbar,
+        }
+
+        private HandSource heldFrom;
+
+        /// <summary>The display copy the held item was lifted off, left rim-ghosted where it was.</summary>
         private GameObject originVisual;
+
         private PackSurfaceId originSurface;
-        private Vector2 originUv;
 
         /// <summary>
-        /// A cell the dragged item really fills, as opposed to <see cref="originUv"/>, which is
-        /// where its block is centred. This is what goes on the wire — see
+        /// A cell the held item really filled, as opposed to its placement uv, which is where its
+        /// block is centred. This is what names it to the server — see
         /// <see cref="PackLayout.TryAnchorUv"/> for why the two had to come apart.
         /// </summary>
         private Vector2 originGrab;
 
-        private float originYaw;
-
-        /// <summary>The hotbar slot a <see cref="DragSource.Hotbar"/> drag came out of.</summary>
+        /// <summary>The hotbar slot a <see cref="HandSource.Hotbar"/> item came out of.</summary>
         private int originSlot = -1;
 
         /// <summary>
-        /// Has the dragged copy been built yet?
+        /// The turn the held item is being shown at. Written by the wheel and by any click that
+        /// does not place — red cells and off the faces alike — and read by the preview, the
+        /// cells and the request, so there is no second "the yaw it will actually use" any more:
+        /// nothing turns the item on the player's behalf, and the item lands wherever its shown
+        /// turn fits.
+        /// </summary>
+        private float yaw;
+
+        /// <summary>
+        /// Has the carried copy been built yet? Built on the same frame as ANY lift — off the mat
+        /// and out of a hotbar slot alike — because the copy is the single readout of what is in
+        /// the hand, everywhere on screen: no icon stands in for it over the bar any more, so a
+        /// carry without a copy would be an invisible carry. A hotbar lift has no face under the
+        /// cursor, so its copy is built against any wired face for scale and moved onto the
+        /// cursor ray in the same call — see <see cref="TryLiftFromSlot"/>.
         ///
         /// <para>
-        /// A pack drag starts on a surface, so it has one from the first frame. A hotbar drag
-        /// starts over the HUD, which is nowhere near the rig, and there is no face to seat a
-        /// true-size proxy against until the cursor reaches one — so the copy appears the moment
-        /// the player brings the item over the mat, and there is nothing floating in the corner of
-        /// the screen before that.
+        /// Written from what <see cref="PackHandVisuals.BeginCarry"/> ANSWERS, never from the fact
+        /// that it was called: a prefab it cannot build leaves no copy, and a flag that recorded the
+        /// attempt would leave the carry running invisibly while the cells went on promising a
+        /// landing.
         /// </para>
         /// </summary>
         private bool proxyBuilt;
 
-        /// <summary>The hotbar slot under the cursor this frame, or -1. Only tracked mid-drag.</summary>
+        /// <summary>The hotbar slot under the cursor this frame, or -1.</summary>
         private int hoveredSlot = -1;
 
         private PackSurface targetSurface;
         private Vector2 targetUv;
-        private float yaw;
 
-        /// <summary>
-        /// The yaw the magnet-snapped spot actually uses. Usually equal to <see cref="yaw"/>,
-        /// which is the player's intent and is only written by the wheel; they part when the
-        /// held shape only fits the face turned, and everything drawn or requested reads this
-        /// one so the preview and the placement stay the same cells.
-        /// </summary>
-        private float targetYaw;
-
-        private bool dropIsLegal;
-
-        // ── Caching the magnet search ────────────────────────────────────────
-        //
-        // TryFindNearest walks every legal cell on the face, and a still cursor asks it the exact
-        // same question sixty times a second. Its answer only moves when the cursor crosses into a
-        // new grid cell, the wheel turns the player's intent yaw, the drag reaches a different
-        // face, or the layout underneath changes — the last of which reuses the OnChanged signal
-        // OnLayoutChanged already answers for the lattice.
-        //
-        // Keyed on the RAW uv, not the cursor's cell, even though the grid is what the search
-        // snaps to: TryFindNearest minimises distance to each candidate's BLOCK CENTRE, which for
-        // an even-extent shape sits half a cell off the grid's own cell centres. Quantising the key
-        // to a cell would then change answer twice per cell crossed, with the direction of travel
-        // deciding which half got the stale one — a ghost that visibly lags the cursor. A raw-uv
-        // key is exact by construction; it still hits every frame a genuinely still cursor asks the
-        // same question, which is the case this cache exists for, and only re-searches on actual
-        // mouse movement — no worse than before the cache existed.
-        private PackSurface nearestSurfaceKey;
-        private Vector2 nearestUvKey;
-        private float nearestYawKey;
-        private bool nearestSearchDirty = true;
-
-        private bool nearestFound;
-        private Vector2 nearestUv;
-        private float nearestYaw;
-
-        /// <summary>
-        /// Is the cursor on one of the rig's faces AT ALL this frame?
-        ///
-        /// <para>
-        /// Distinct from <see cref="dropIsLegal"/>, and the distinction is spec 5.1 versus 5.2.
-        /// Clashing with something placed or hanging over the edge is no longer a refusal at all —
-        /// the magnet moves the ghost to the nearest spot that clears both. The one refusal left is
-        /// <see cref="dropIsLegal"/> false while still <c>overSurface</c>: this face has no room for
-        /// the shape at any permitted turn, full stop. Off every face is a different thing again —
-        /// it is the player throwing the thing on the ground, which is a different verb with a
-        /// different request behind it.
-        /// </para>
-        /// <para>
-        /// It cannot be inferred from <see cref="targetSurface"/>, which deliberately keeps the
-        /// last face the cursor was over so the drag proxy has somewhere to sit while the cursor is
-        /// off in the sand.
-        /// </para>
-        /// </summary>
+        /// <summary>Is the cursor on one of the rig's faces at all this frame?</summary>
         private bool overSurface;
 
-        private Coroutine springBack;
+        /// <summary>
+        /// Would a click put the held item down where it is being shown?
+        ///
+        /// <para>
+        /// Asked of <see cref="PackLayout.CanPlace"/> about the exact cells being drawn, at the
+        /// exact turn being drawn — not about a nearby spot the item could be moved to. That is
+        /// the whole difference from the magnet this replaced: the answer describes the player's
+        /// aim rather than correcting it, so a red readout is information about where they are
+        /// pointing instead of a spot that quietly moved out from under them.
+        /// </para>
+        /// </summary>
+        private bool placementLegal;
+
+        public bool IsCarrying => carrying;
+
+        // ── Cached labels ────────────────────────────────────────────────────
+        //
+        // Both hints below are read on EVERY frame the cursor rests where they apply, and resting
+        // is the steady state rather than the transient: a player reads the name of the thing under
+        // the cursor by leaving the cursor on it. Building the string there means one garbage
+        // string per frame for as long as they look, so each is built once and kept until the thing
+        // it names changes.
+
+        private InventoryItem hintItem;
+        private string hintText;
+
+        private int slotHintIndex = -1;
+        private string slotHintText;
 
         // ── Flipping the leaf ────────────────────────────────────────────────
         //
-        // A second drag, running through the same button and the same frame of hit-testing as the
-        // one above but carrying no item: the player grabs the front leaf's free edge and pulls it
-        // through its arc into the rack, or pulls it back down. R still does it as a toggle — this
-        // is a gesture ADDED beside the key, not a replacement for it.
+        // The one thing in focus mode that is held down rather than clicked, and it carries no
+        // item: the player grabs the front leaf's free edge and pulls it through its arc into the
+        // rack, or pulls it back down. R still does it as a toggle — this is a gesture ADDED beside
+        // the key, not a replacement for it.
         //
         // It cannot collide with picking gear up, because the item hit is resolved first and this
         // is only ever reached on the branch where there was nothing under the cursor. Grabbing the
@@ -235,36 +236,36 @@ namespace SpaceGame.Items
         /// <summary>Where the drag has pulled it to, 0 flat and 1 racked.</summary>
         private float leafProgress;
 
-        public static PackDragController Attach(PackFocusCamera focusCamera, BackpackController controller,
+        public static PackHandController Attach(PackFocusCamera focusCamera, BackpackController controller,
                                                 Interactor interactor, PlayerInputManager input)
         {
             if (focusCamera == null || controller == null) return null;
 
-            var drag = focusCamera.gameObject.AddComponent<PackDragController>();
-            drag.focusCamera = focusCamera;
-            drag.controller = controller;
-            drag.interactor = interactor;
-            drag.input = input;
+            var hand = focusCamera.gameObject.AddComponent<PackHandController>();
+            hand.focusCamera = focusCamera;
+            hand.controller = controller;
+            hand.interactor = interactor;
+            hand.input = input;
 
             // Subscribed here and not only in OnEnable, because AddComponent has already run both
             // Awake and OnEnable by the time these fields are set — OnEnable saw a null input and
             // hooked nothing, which is a scroll wheel that silently does not rotate anything.
-            drag.Subscribe();
+            hand.Subscribe();
 
             // The lattice shows other items' cells, so any change to the layout — including one
             // published from another player's move — stales it. Not guarded on controller.Pack:
             // PackFocusSession.Enter already refused to call here at all with no Pack, so it is
             // guaranteed by the caller rather than checked again.
-            drag.subscribedLayout = controller.Pack.Layout;
-            drag.subscribedLayout.OnChanged += drag.OnLayoutChanged;
+            hand.subscribedLayout = controller.Pack.Layout;
+            hand.subscribedLayout.OnChanged += hand.OnLayoutChanged;
 
-            Active = drag;
-            return drag;
+            Active = hand;
+            return hand;
         }
 
         private void Awake()
         {
-            visuals = new PackDragVisuals();
+            visuals = new PackHandVisuals();
             cellGrid = new PackGridVisual();
         }
 
@@ -278,8 +279,8 @@ namespace SpaceGame.Items
             input.OnPackYawScrolled -= OnYawScrolled;
             input.OnPackYawScrolled += OnYawScrolled;
 
-            input.OnPackStowPressed -= OnStowKey;
-            input.OnPackStowPressed += OnStowKey;
+            input.OnPackStowPressed -= OnHotbarKey;
+            input.OnPackStowPressed += OnHotbarKey;
         }
 
         private void OnDisable()
@@ -287,15 +288,47 @@ namespace SpaceGame.Items
             if (input == null) return;
 
             input.OnPackYawScrolled -= OnYawScrolled;
-            input.OnPackStowPressed -= OnStowKey;
+            input.OnPackStowPressed -= OnHotbarKey;
         }
 
-        /// <summary>The lattice and the cached magnet search both show other items' cells, so any
-        /// layout change stales both.</summary>
+        /// <summary>
+        /// The lattice shows other items' cells, so any layout change stales it — and a layout
+        /// change is also the only thing that can invalidate what is in the player's hand.
+        /// </summary>
         private void OnLayoutChanged()
         {
             if (cellGrid != null) cellGrid.MarkLatticeDirty();
-            nearestSearchDirty = true;
+
+            if (carrying && heldFrom == HandSource.Pack && !OriginStillThere()) ReturnToOrigin();
+        }
+
+        /// <summary>
+        /// Is the placement an item was lifted OFF still sitting where it was left?
+        ///
+        /// <para>
+        /// A lift off the mat is local: the item never moved, and the hand holds a copy of
+        /// something still addressed by the cell it came from. Two players can be in one pack, so
+        /// the other one can move or take that item while it is in this player's hand — and then
+        /// both ways of putting it down name a placement that no longer exists. The server refuses
+        /// those by publishing nothing, which is correct, but this side empties the hand either
+        /// way, so the item appears to evaporate: the copy stops being drawn and nothing lands.
+        /// </para>
+        /// <para>
+        /// The ID is checked as well as the cell, because a cell that has been vacated and refilled
+        /// resolves perfectly well — to somebody else's item.
+        /// </para>
+        /// <para>
+        /// One lookup per PUBLISHED change, not per frame. The subscription already exists for the
+        /// lattice.
+        /// </para>
+        /// </summary>
+        private bool OriginStillThere()
+        {
+            BackpackObject pack = controller != null ? controller.Pack : null;
+            if (pack == null || heldItem == null) return false;
+
+            return pack.TryFindAt(originSurface, originGrab, out PackPlacement placement)
+                   && placement.ItemId == heldItem.ID;
         }
 
         private void OnDestroy()
@@ -310,7 +343,7 @@ namespace SpaceGame.Items
 
             if (Active == this) Active = null;
 
-            InventoryUI.ClearDragFeedback();
+            InventoryUI.ClearPackFeedback();
 
             visuals?.Dispose();
             cellGrid?.Dispose();
@@ -318,56 +351,118 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Puts down whatever is in hand without resolving it, and lets go of the leaf. The
+        /// Puts whatever is in hand back where it came from, and lets go of the leaf. The
         /// component stays alive and usable.
         ///
         /// <para>
-        /// The half of <see cref="Cancel"/> that is not the teardown. It exists because the rack
-        /// key needs to abandon a drag mid-flight — the surface the ghost is tracking is about to
-        /// swing through ninety degrees — and calling Cancel for that destroyed the drag controller
-        /// for the rest of the session, so one press of R silently stopped the player picking
-        /// anything up.
+        /// There is nothing to undo. A lift is local — no request went out and no layout changed —
+        /// so the item has been sitting where it always was for the whole time it looked like it
+        /// was in the player's hand, and letting go is just no longer drawing the copy.
+        /// </para>
+        /// <para>
+        /// The rack key needs this: the surface the ghost is tracking is about to swing through
+        /// ninety degrees. Calling <see cref="Cancel"/> for that destroyed the controller for the
+        /// rest of the session, so one press of R silently stopped the player picking anything up.
         /// </para>
         /// </summary>
-        public void AbandonDrag()
+        public void ReturnToOrigin()
         {
-            if (springBack != null) { StopCoroutine(springBack); springBack = null; }
-
             if (draggingLeaf) ReleaseLeaf(commit: false);
 
-            if (!dragging) return;
+            LetGo();
+        }
 
-            dragging = false;
+        /// <summary>
+        /// Stop drawing the hand and clear it. What letting go MEANS, whether or not a request is
+        /// about to go out — the item has not moved either way, so this is the same teardown for a
+        /// placement, a take and an abandon alike.
+        ///
+        /// <para>
+        /// Every commit runs this BEFORE it sends, not after. On a host the request can come back
+        /// through the layout's own OnChanged inside the same call, and a hand still holding
+        /// something at that moment would see its origin gone and try to let go a second time.
+        /// </para>
+        /// </summary>
+        private void LetGo()
+        {
+            if (!carrying) return;
 
-            if (visuals != null) visuals.EndDrag();
+            carrying = false;
+
+            if (visuals != null) visuals.EndCarry();
             if (cellGrid != null) cellGrid.Hide();
 
-            dragItem = null;
+            ClearHand();
+        }
+
+        /// <summary>
+        /// Every field the carry wrote, put back the way an empty hand finds them.
+        ///
+        /// <para>
+        /// All of them, including the several that both lift sites overwrite anyway. A reader
+        /// auditing the exits should not have to work out which half of the state is stale and
+        /// which is live, and the day a third way into the hand appears, the one field it forgets
+        /// to initialise is the bug this makes impossible. <c>heldFrom</c> is the exception and has
+        /// to be: it is an enum with no empty value, and it means nothing at all while
+        /// <see cref="carrying"/> is false.
+        /// </para>
+        /// </summary>
+        private void ClearHand()
+        {
+            heldItem = null;
             originVisual = null;
+            originSurface = default;
+            originGrab = Vector2.zero;
             originSlot = -1;
+
+            yaw = 0f;
+
             proxyBuilt = false;
             hoveredSlot = -1;
 
-            InventoryUI.ClearDragFeedback();
+            targetSurface = null;
+            targetUv = Vector2.zero;
+            overSurface = false;
+            placementLegal = false;
+
+            // The refusal flash belongs to the copy that has just stopped being drawn, so it ends
+            // with the carry rather than outliving it on a material the next one will reuse.
+            ClearDeniedFlash();
+
+            InventoryUI.ClearPackFeedback();
         }
 
-        /// <summary>Abandons whatever is in hand and tears the display down. The session's exit.</summary>
+        /// <summary>
+        /// Ends the refusal flash on the carried copy.
+        ///
+        /// <para>
+        /// Called from the timer AND from every exit from the hand. The flash is an outline shell
+        /// on the copy, so a copy destroyed mid-flash takes the shell with it — but the deadline
+        /// would survive into the next carry with the timer that owned it gone, so every exit
+        /// resets both halves of the state together.
+        /// </para>
+        /// </summary>
+        private void ClearDeniedFlash()
+        {
+            deniedUntil = 0f;
+
+            if (visuals != null) visuals.SetCarryDenied(false);
+        }
+
+        /// <summary>Lets go of whatever is in hand and tears the display down. The session's exit.</summary>
         public void Cancel()
         {
-            if (springBack != null) { StopCoroutine(springBack); springBack = null; }
-
             // Before the fields are cleared: the leaf is the pack's own state, not this
             // component's, and leaving focus mid-flip must not leave it stranded halfway.
             if (draggingLeaf) ReleaseLeaf(commit: false);
 
-            dragging = false;
-            dragItem = null;
-            proxyBuilt = false;
+            carrying = false;
 
             // The HUD is not ours and outlives the session, so anything we asked it to draw has to
-            // be taken back explicitly. Exiting focus mid-drag is a normal way out — any movement
-            // key does it — and a hotbar left showing a reserved slot would never recover.
-            InventoryUI.ClearDragFeedback();
+            // be taken back explicitly — ClearHand does that. Exiting focus with something in hand
+            // is a normal way out — any movement key does it — and a hotbar left showing a reserved
+            // slot would never recover.
+            ClearHand();
 
             if (visuals != null) visuals.Dispose();
             visuals = null;
@@ -386,60 +481,29 @@ namespace SpaceGame.Items
 
             // Unconditional, ahead of every other early return below: "the flash always ends" is
             // a promise about the WALL CLOCK, not about whichever state the rest of Update happens
-            // to be in. Behind the cam/pack/springBack return it used to depend on two cooperating
-            // mechanisms — the timer AND the drag machine reaching this line — and a spring-back in
-            // progress is exactly a moment that return would otherwise skip it for.
-            if (deniedUntil > 0f && Time.unscaledTime >= deniedUntil)
-            {
-                deniedUntil = 0f;
-                visuals.SetHoverDenied(false);
-            }
+            // to be in.
+            if (deniedUntil > 0f && Time.unscaledTime >= deniedUntil) ClearDeniedFlash();
 
             Camera cam = focusCamera != null ? focusCamera.Camera : null;
             BackpackObject pack = controller != null ? controller.Pack : null;
 
-            if (cam == null || pack == null || springBack != null) return;
+            if (cam == null || pack == null) return;
 
             Mouse mouse = Mouse.current;
 
             if (draggingLeaf) UpdateLeafDrag(cam, pack, mouse);
-            else if (dragging) UpdateDrag(cam, pack, mouse);
+            else if (carrying) UpdateCarry(cam, pack, mouse);
             else UpdateHover(cam, pack, mouse);
         }
 
         // ── Hovering ─────────────────────────────────────────────────────────
 
-        /// <summary>
-        /// Rim-lights <paramref name="visual"/> and un-rims whatever was lit before — every caller
-        /// that used to reach <see cref="PackDragVisuals.SetHovered"/> directly goes through here
-        /// instead, so none of them can forget this part.
-        ///
-        /// <para>
-        /// A denied flash is keyed to the item it was refused on, not to the hover rim material
-        /// itself — the material is shared, so a flash left running would follow the rim onto
-        /// whatever the cursor lands on next. The moment the target actually changes, not merely
-        /// gets re-hit the same frame after frame, the flash ends here; the timed expiry in
-        /// <see cref="Update"/> still covers the cursor sitting still on the refused item.
-        /// </para>
-        /// </summary>
-        private void SetHovered(GameObject visual)
-        {
-            if (visual != hoveredVisual && deniedUntil > 0f)
-            {
-                deniedUntil = 0f;
-                visuals.SetHoverDenied(false);
-            }
-
-            hoveredVisual = visual;
-            visuals.SetHovered(visual);
-        }
-
         private void UpdateHover(Camera cam, BackpackObject pack, Mouse mouse)
         {
-            // Kept up to date while hovering as well as while dragging, because the stow key needs
-            // to know where the cursor is and it arrives on an input callback rather than in here.
-            // It is the same plane intersection UpdateDrag uses — arithmetic against each face, not
-            // a second raycast — so tracking it in both states costs nothing.
+            // Tracked with an empty hand as well as a full one, because the leaf grab is offered on
+            // bare board — a question about the face under the cursor — and the bare-mat hint reads
+            // it too. It is the same plane intersection UpdateCarry uses, arithmetic against each
+            // face rather than a second raycast, so tracking it in both states costs nothing.
             overSurface = PackPointer.TryHitSurface(cam, pack.Surfaces,
                                                     out PackSurface hovered, out Vector2 hoveredUv);
             if (overSurface)
@@ -451,15 +515,15 @@ namespace SpaceGame.Items
             bool over = PackPointer.TryHitItem(cam, out GameObject visual, out PackSurface surface, out Vector2 uv);
 
             // The bar is drawn over the same screen the rig is — that overlap is exactly why
-            // InventoryUI.SlotIndexUnder exists. A press over a slot belongs to the HUD, which
+            // InventoryUI.SlotIndexUnder exists. A click over a slot belongs to the HUD, which
             // resolves it through its own pointer handlers; it must never ALSO register here as a
-            // press on the mat behind it, or one right-click over a slot could both stow that slot
-            // and take whatever pack item happens to be framed underneath.
+            // click on the mat behind it, or one press over a slot would both lift that slot's item
+            // and lift whatever pack item happens to be framed underneath.
             bool overBar = InventoryUI.SlotIndexUnder(PackPointer.CursorPosition) >= 0;
 
             if (!over || !pack.TryFindAt(surface.Id, uv, out PackPlacement placement))
             {
-                SetHovered(null);
+                visuals.SetHovered(null);
 
                 // The leaf grab is offered only on the branch where nothing is under the cursor,
                 // which is what keeps it from ever competing with picking gear up: a board with a
@@ -474,10 +538,10 @@ namespace SpaceGame.Items
                 }
 
                 // Clear mat under the cursor is the one place in focus mode where the label has
-                // nothing to say, and it is exactly where the stow gesture wants to be offered —
-                // a key with no on-screen affordance is otherwise a verb nobody will ever find.
+                // nothing to say, and it is exactly where the way IN wants to be named — a verb
+                // with no on-screen affordance is one nobody will ever find.
                 visuals.ShowName(onBoard ? LeafHint(pack.IsRacked)
-                                         : overSurface ? "Drag or right-click a hotbar item to stow it — or press 1-4"
+                                         : overSurface ? "Click a hotbar item to take it in hand — or press 1-4"
                                          : null,
                                  PackPointer.CursorPosition);
                 return;
@@ -485,64 +549,22 @@ namespace SpaceGame.Items
 
             InventoryItem item = pack.ItemFor(placement.ItemId);
 
-            SetHovered(visual);
+            visuals.SetHovered(visual);
 
-            // The name with the verb after it. Right-click straight to the hotbar is the one thing
-            // in focus mode a player cannot discover by trying — there is no cursor change and no
-            // affordance drawn for it — and it was doing nothing visible on a full hotbar too,
-            // which reads as a feature that is simply broken rather than one nobody found.
-            visuals.ShowName(item != null ? item.itemName + "   (right-click to take)" : null,
-                             PackPointer.CursorPosition);
+            visuals.ShowName(HoverHint(item), PackPointer.CursorPosition);
 
             if (mouse == null || overBar) return;
 
-            if (mouse.leftButton.wasPressedThisFrame) BeginDrag(pack, item, placement, visual);
-            else if (mouse.rightButton.wasPressedThisFrame) SendToHotbar(pack, placement);
-        }
-
-        /// <summary>
-        /// Right mouse: straight onto the hotbar, through the path a take already travels.
-        ///
-        /// <see cref="BackpackObject.RequestTake"/> forwards to the pack's owner, which asks the
-        /// server — the same round trip a placement makes, and the same reason: it is the server
-        /// that decides which of two players got the last water cell.
-        /// </summary>
-        private void SendToHotbar(BackpackObject pack, PackPlacement placement)
-        {
-            if (interactor == null) return;
-
-            // Asked before the request goes out, and asked LOCALLY. A full hotbar is not a refusal
-            // — BackpackObject.TryTakeToHotbar swaps, and that path is reached from right here —
-            // but a swap with nowhere to put the displaced item is, and the server refuses it by
-            // changing nothing, which on this screen is indistinguishable from a lost packet.
-            // The ANCHOR, not the placement's own uv: an item is named to the server by a point on
-            // a face, and the centre of an L-shaped item's block is the corner the L does not fill.
-            // See PackLayout.TryAnchorUv.
-            Vector2 grab = pack.AnchorUv(placement);
-
-            if (!pack.CanTakeToHotbar(placement.Surface, grab, Hotbar(), out bool refused)
-                && refused)
-            {
-                deniedUntil = Time.unscaledTime + DeniedFlashSeconds;
-                visuals.SetHoverDenied(true);
-                return;
-            }
-
-            pack.RequestTake(placement.Surface, grab, interactor);
-
-            SetHovered(null);
-            visuals.ShowName(null, Vector2.zero);
+            if (mouse.leftButton.wasPressedThisFrame) Lift(pack, item, placement, visual);
         }
 
         // ── Flipping the leaf ────────────────────────────────────────────────
 
-        // Two verbs share the bare board — the flip and the stow — so the hint names both. The
-        // click is deliberately first: it is the one players kept failing to find while the flip
-        // was an edge-only drag. The stow half now names all three ways in, matching the bare-mat
-        // label, rather than falling a version behind it.
+        // The board is bare, so the only verb it has is its own. Lifting gear out of the hotbar
+        // is named on the bare-MAT hint instead, where there is no board to talk about.
         private static string LeafHint(bool racked) =>
-            racked ? "Click to lay the board flat — drag, right-click or 1-4 to stow here"
-                   : "Click to stand the board up — drag, right-click or 1-4 to stow here";
+            racked ? "Click to lay the board flat"
+                   : "Click to stand the board up";
 
         /// <summary>
         /// Is the cursor on bare board, with the pack in a state where turning it means anything?
@@ -595,7 +617,7 @@ namespace SpaceGame.Items
             leafGrabCursor = PackPointer.CursorPosition;
             draggingLeaf = true;
 
-            SetHovered(null);
+            visuals.SetHovered(null);
             visuals.ShowName(null, Vector2.zero);
         }
 
@@ -665,74 +687,88 @@ namespace SpaceGame.Items
             pack.SettleRack();
         }
 
-        // ── Stowing from the hotbar ──────────────────────────────────────────
+        // ── Lifting out of the hotbar ────────────────────────────────────────
 
         /// <summary>
-        /// A hotbar key while the pack is open: that slot's item goes onto the pack, under the
-        /// cursor when the cursor is over a spot that will take it.
+        /// Take a hotbar slot's item into the hand. Called by the HUD when a slot is clicked, and
+        /// by the 1-4 keys, which are the same verb on a key.
         ///
         /// <para>
-        /// A way IN, and the mirror of the right-click above. Dragging the pouch onto the pack is
-        /// the other and does the same thing through <see cref="BeginHotbarDrag"/>; this is the
-        /// shortcut, and it keeps working with the cursor nowhere in particular because an
-        /// unaimed stow first-fits rather than failing.
+        /// Answers false when it will not take the item, so the slot can shake rather than start a
+        /// carry that can only ever end in nothing happening.
         /// </para>
         /// </summary>
-        private void OnStowKey(int slotIndex) => StowSlot(slotIndex, aimUnderCursor: true);
-
-        /// <summary>
-        /// Put one hotbar slot's item on the pack: the 1-4 keys aimed at the cursor's spot,
-        /// and a right-click on the slot itself unaimed — the cursor is on the HUD then, which
-        /// is nowhere on the pack, so first-fit is the only honest answer.
-        /// </summary>
-        public void StowSlot(int slotIndex, bool aimUnderCursor)
+        public bool TryLiftFromSlot(int slotIndex, InventoryItem item)
         {
-            // Mid-drag the player already has something in hand, and the cursor's spot is
-            // spoken for by it. Springing back is a moment where the layout is about to change
-            // too, and mid-flip the face the cursor is aiming at is halfway through ninety
-            // degrees.
-            if (dragging || draggingLeaf || springBack != null) return;
+            if (carrying || draggingLeaf) return false;
+            if (visuals == null || item == null || item.itemPrefab == null) return false;
 
             BackpackObject pack = controller != null ? controller.Pack : null;
-            if (pack == null || interactor == null) return;
+            if (pack == null || interactor == null) return false;
+
+            // The layout is keyed by id, so this asset already lying on the mat is going to be
+            // refused wherever the player tries to put it down. Refusing the lift is honest about
+            // that up front; the alternative is an item in hand with no legal cell anywhere.
+            if (pack.Holds(item.ID)) return false;
+
+            carrying = true;
+            heldItem = item;
+            heldFrom = HandSource.Hotbar;
+            originSlot = slotIndex;
+
+            originVisual = null;
+            originSurface = default;
+            originGrab = Vector2.zero;
+
+            yaw = 0f;
+
+            if (cellGrid != null) cellGrid.MarkLatticeDirty();
+
+            // No target yet — the cursor is over the HUD, which is not a face, and TryHitSurface
+            // is what will say otherwise on some later frame.
+            targetSurface = null;
+            overSurface = false;
+            placementLegal = false;
+
+            visuals.SetHovered(null);
+            visuals.ShowName(null, Vector2.zero);
+
+            // The copy is built NOW, not deferred until the cursor reaches the mat: it is the
+            // only readout of what is in the hand, so it exists from the first frame of the
+            // carry. There is no face under the cursor to seat it on, so any wired face serves as
+            // the scale-and-orientation frame to build against, and the free move puts it under
+            // the cursor in the same breath.
+            PackSurface seat = FirstSurface(pack);
+
+            proxyBuilt = seat != null &&
+                         visuals.BeginCarry(item.itemPrefab, seat, seat.Size * 0.5f, yaw);
+
+            if (proxyBuilt) visuals.MoveCarryFree(item.itemPrefab, FreeCarryPoint(pack), yaw);
+
+            InventoryUI.SetHeldOrigin(slotIndex);
+
+            return true;
+        }
+
+        /// <summary>
+        /// A hotbar key while the pack is open, with an empty hand: that slot's item comes into it.
+        ///
+        /// The click verb on a key, and nothing more. It used to be an aimed stow that leaned on
+        /// the magnet to find a spot, which is exactly the auto-placement this interaction removed.
+        /// </summary>
+        private void OnHotbarKey(int slotIndex)
+        {
+            if (carrying || draggingLeaf) return;
 
             IPlayerInventory hotbar = Hotbar();
             if (hotbar == null) return;
-
             if (slotIndex < 0 || slotIndex >= hotbar.GetInventorySize()) return;
 
             InventorySlot slot = hotbar.GetSlot(slotIndex);
             InventoryItem item = slot != null && !slot.IsEmpty ? slot.Item : null;
             if (item == null) return;
 
-            // Over a face is not enough: the spot has to actually take this item, or the aim
-            // is a worse answer than the pack's own first fit.
-            PackShape shape = pack.ShapeFor(item);
-
-            bool wantAim = aimUnderCursor && overSurface && targetSurface != null;
-
-            // The same magnet the drag path snaps to, not a raw Snap+CanPlace pair: with only
-            // those two, a cursor sitting on an occupied cell collapsed straight to unaimed and
-            // the item teleported to the server's first-fit corner, while a drag released at the
-            // same spot would have landed on the NEAREST free one instead — one intent, two
-            // different spatial stories. Yaw 0 and no turns is what TryStowFromHotbar places at,
-            // so the prediction stays exact.
-            Vector2 aimedUv = default;
-            bool aimed = wantAim &&
-                         pack.Layout.TryFindNearest(targetSurface.Id, targetSurface.Size, shape,
-                                                    targetUv, preferredYaw: 0f, allowTurns: false,
-                                                    out aimedUv, out _);
-
-            PackSurfaceId surface = aimed ? targetSurface.Id : default;
-            Vector2 uv = aimed ? aimedUv : Vector2.zero;
-
-            if (!pack.CanStow(item, aimed, surface, uv))
-            {
-                InventoryUI.ShakeSlot(slotIndex);
-                return;
-            }
-
-            pack.RequestStow(slotIndex, aimed, surface, uv, interactor);
+            if (!TryLiftFromSlot(slotIndex, item)) InventoryUI.ShakeSlot(slotIndex);
         }
 
         /// <summary>
@@ -743,482 +779,465 @@ namespace SpaceGame.Items
         private IPlayerInventory Hotbar() =>
             interactor != null ? interactor.GetComponentInParent<IPlayerInventory>() : null;
 
-        // ── Dragging ─────────────────────────────────────────────────────────
+        // ── Lifting off the mat ──────────────────────────────────────────────
 
-        private void BeginDrag(BackpackObject pack, InventoryItem item, PackPlacement placement, GameObject visual)
+        /// <summary>Take a placed item off the mat and into the hand. Local only — nothing is
+        /// sent, and the copy on the mat stays exactly where it is until a placement moves it.</summary>
+        private void Lift(BackpackObject pack, InventoryItem item, PackPlacement placement,
+                          GameObject visual)
         {
             if (item == null || item.itemPrefab == null) return;
 
             PackSurface surface = pack.SurfaceFor(placement.Surface);
             if (surface == null) return;
 
-            dragging = true;
-            dragItem = item;
-            dragFrom = DragSource.Pack;
+            carrying = true;
+            heldItem = item;
+            heldFrom = HandSource.Pack;
             originSlot = -1;
 
             originVisual = visual;
             originSurface = placement.Surface;
-            originUv = placement.Uv;
-            originYaw = placement.Yaw;
 
-            // Kept apart from originUv on purpose. originUv is where the item VISUALLY sits, which
-            // is what a spring-back has to slide home to; originGrab is a cell the item actually
-            // fills, which is the only point the server can resolve it from. For a rectangle they
-            // are the same; for a mask with a hole in the middle of its block they are not.
+            // Kept apart from the placement's own uv on purpose. That is where the item VISUALLY
+            // sits; this is a cell it actually fills, which is the only point the server can
+            // resolve it from. For a rectangle they are the same; for a mask with a hole in the
+            // middle of its block they are not.
             originGrab = pack.AnchorUv(placement);
+
+            yaw = placement.Yaw;
 
             targetSurface = surface;
             targetUv = placement.Uv;
-            yaw = placement.Yaw;
-            targetYaw = placement.Yaw;
 
-            // The cached magnet search is keyed on surface/uv/yaw alone, and ShowLattice's own key
-            // omits ignoreItemId the same way — neither knows WHICH item, so a new drag with a
-            // different shape or ignoreItemId must not reuse the previous item's answer just
-            // because the cursor happens to land back on the same spot.
-            nearestSearchDirty = true;
-            if (cellGrid != null) cellGrid.MarkLatticeDirty();
-
-            // The grab happened ON a face, so that is the state until the first UpdateDrag says
-            // otherwise. Left false, a press and release inside one frame would read as a throw.
+            // The lift happened ON a face, so that is the state until the first UpdateCarry says
+            // otherwise — and the item is trivially legal where it already is.
             overSurface = true;
+            placementLegal = true;
 
-            // The hover rim comes off first: hover and ghost both append a material to the same
-            // renderers, and the one that gets there first is the one that can be taken back off.
-            SetHovered(null);
-            visuals.ShowName(null, Vector2.zero);
-
-            // Spec 5.2: an outline stays where the item was, so the player can see what they are
-            // about to leave empty.
-            visuals.SetGhost(originVisual);
-            visuals.BeginDrag(item.itemPrefab, surface, placement.Uv, placement.Yaw);
-            proxyBuilt = true;
-        }
-
-        // ── Dragging off the hotbar ──────────────────────────────────────────
-
-        /// <summary>
-        /// A hotbar slot has been picked up and is being carried towards the pack.
-        ///
-        /// <para>
-        /// The drag GESTURE belongs to the EventSystem — it began on a <c>Graphic</c>, and Unity's
-        /// pointer plumbing is what noticed — but everything that follows is this state machine's:
-        /// the same hit-test against the same faces, the same magnet-snapped ghost cells, and on
-        /// release the same request. That is why this is an entry point rather than a system of
-        /// its own.
-        /// </para>
-        /// <para>
-        /// Answers false when it will not take the item, so the HUD can decline the drag rather
-        /// than start one that can only end in nothing happening.
-        /// </para>
-        /// </summary>
-        public bool BeginHotbarDrag(int slotIndex, InventoryItem item)
-        {
-            if (dragging || draggingLeaf || springBack != null) return false;
-            if (visuals == null || item == null || item.itemPrefab == null) return false;
-
-            BackpackObject pack = controller != null ? controller.Pack : null;
-            if (pack == null || interactor == null) return false;
-
-            // Asked unaimed, which is "is there room for this ANYWHERE on the pack" — and it also
-            // answers the one refusal a footprint test cannot see: the same asset already lying on
-            // the mat. The layout is keyed by id, so that stow is going to be refused wherever the
-            // player puts it, and a drag that can only ever end in nothing happening is worse than
-            // a drag that refuses to start.
-            if (!pack.CanStow(item, aimed: false, default, Vector2.zero))
-                return false;
-
-            dragging = true;
-            dragItem = item;
-            dragFrom = DragSource.Hotbar;
-            originSlot = slotIndex;
-
-            originVisual = null;
-            originSurface = default;
-            originUv = Vector2.zero;
-            originGrab = Vector2.zero;
-            originYaw = 0f;
-
-            yaw = 0f;
-            targetYaw = 0f;
-
-            // See the matching note in BeginDrag: a different item means the cached magnet search
-            // and the lattice both no longer apply, even if the cursor lands on the same spot.
-            nearestSearchDirty = true;
             if (cellGrid != null) cellGrid.MarkLatticeDirty();
 
-            // No proxy and no target yet. The cursor is over the HUD at the bottom of the screen,
-            // which is not a face, and TryHitSurface is what will say otherwise on some later
-            // frame — see proxyBuilt.
-            targetSurface = null;
-            overSurface = false;
-            dropIsLegal = false;
-            proxyBuilt = false;
-
-            SetHovered(null);
+            // The hover rim comes off before the ghost goes on: both are outline shells traced
+            // over the same display copy, and the copy the player just lifted off is about to be
+            // re-shelled as the origin ghost.
+            visuals.SetHovered(null);
             visuals.ShowName(null, Vector2.zero);
 
-            return true;
+            proxyBuilt = visuals.BeginCarry(item.itemPrefab, surface, placement.Uv, placement.Yaw);
+
+            // AFTER the copy, never before: BeginCarry ends whatever carry was running, and ending
+            // one clears the origin outline. Set first, the outline was wiped in the same breath by
+            // the call meant to put the item in the player's hand — so the space they were about to
+            // free was never actually marked.
+            visuals.SetGhost(originVisual);
         }
 
-        /// <summary>
-        /// The hotbar drag has been let go. Called by the HUD, never by the mouse poll.
-        ///
-        /// <para>
-        /// A pack drag ends when the button comes up, read straight off the device. This one must
-        /// not: the button comes up in the same frame the EventSystem raises its own end-of-drag,
-        /// and which of the two this component sees first is not defined. Ending it in exactly one
-        /// place means the gesture cannot be resolved twice — once as a stow and once as nothing —
-        /// and it is the HUD's <c>OnEndDrag</c> that is guaranteed to arrive.
-        /// </para>
-        /// </summary>
-        public void EndHotbarDrag()
-        {
-            if (!dragging || dragFrom != DragSource.Hotbar) return;
+        // ── Carrying ─────────────────────────────────────────────────────────
 
-            dragging = false;
-
-            BackpackObject pack = controller != null ? controller.Pack : null;
-
-            if (pack != null && overSurface && dropIsLegal && targetSurface != null)
-            {
-                // The same request the 1-4 keys send, with the cursor's spot rather than the
-                // cursor's last known spot. Nothing is applied locally: the item stays in the
-                // hotbar until the server's answer arrives as a layout change and a slot change.
-                controller.RequestStow(originSlot, aimed: true, targetSurface.Id, targetUv, interactor);
-            }
-            else if (pack != null && overSurface)
-            {
-                // Over a face with no room at THIS spot, at any turn — not the pack being full.
-                // BeginHotbarDrag already proved with CanStow(aimed: false) that the pack has room
-                // SOMEWHERE, and the keys and right-click both fall through to the server's own
-                // first-fit rather than refusing outright — a drag aimed at a crowded corner must
-                // land the same way, or it is the one stow verb on this whole feature that still
-                // gives up instead of finding room itself.
-                controller.RequestStow(originSlot, aimed: false, default, Vector2.zero, interactor);
-            }
-
-            // Off the pack entirely is a cancel, not a throw: dragging out of the PACK and letting
-            // go over the sand is how gear is thrown away, but this item never left the hotbar, so
-            // letting go halfway is just a player saying "no, not that one" — nothing to animate
-            // back, since nothing left the slot in the first place.
-
-            EndHotbarDragVisuals();
-        }
-
-        /// <summary>Drops the hotbar drag on the floor without resolving it. The session's exit.</summary>
-        public void CancelHotbarDrag()
-        {
-            if (!dragging || dragFrom != DragSource.Hotbar) return;
-
-            dragging = false;
-            EndHotbarDragVisuals();
-        }
-
-        private void EndHotbarDragVisuals()
-        {
-            if (visuals != null) visuals.EndDrag();
-            if (cellGrid != null) cellGrid.Hide();
-
-            dragItem = null;
-            originSlot = -1;
-            proxyBuilt = false;
-            hoveredSlot = -1;
-
-            InventoryUI.ClearDragFeedback();
-        }
-
-        private void UpdateDrag(Camera cam, BackpackObject pack, Mouse mouse)
+        private void UpdateCarry(Camera cam, BackpackObject pack, Mouse mouse)
         {
             overSurface = PackPointer.TryHitSurface(cam, pack.Surfaces,
                                                     out PackSurface surface, out Vector2 uv);
 
-            PackShape shape = pack.ShapeFor(dragItem);
+            PackShape shape = pack.ShapeFor(heldItem);
 
-            if (overSurface)
-            {
-                targetSurface = surface;
-
-                // MAGNET-SNAPPED, not merely grid-snapped: the ghost is put on the nearest
-                // spot the release can legally have, so everything after this line — the
-                // proxy, the cells and the request — describes a placement that will succeed.
-                // A hotbar drag is pinned to yaw 0 because NetMsg.PackStow carries no yaw and
-                // the server places at zero; letting the preview turn would show cells the
-                // placement then would not use.
-                bool mayTurn = dragFrom == DragSource.Pack &&
-                               PackShapes.AllowsRotation(dragItem, pack.Shapes);
-                float preferredYaw = dragFrom == DragSource.Hotbar ? 0f : yaw;
-
-                // Cached: see the field group above. Keyed on the raw uv rather than the cursor's
-                // cell — TryFindNearest answers about block CENTRES, which for an even-extent shape
-                // sit half a cell off the grid's own cell centres, so a cell-quantised key would
-                // change answer twice per cell and lag the cursor by up to one. The raw uv is
-                // exact and still hits on every frame a still cursor asks the same question again.
-                if (nearestSearchDirty || targetSurface != nearestSurfaceKey ||
-                    uv != nearestUvKey || !Mathf.Approximately(preferredYaw, nearestYawKey))
-                {
-                    nearestSurfaceKey = targetSurface;
-                    nearestUvKey = uv;
-                    nearestYawKey = preferredYaw;
-                    nearestSearchDirty = false;
-
-                    nearestFound = pack.Layout.TryFindNearest(
-                        targetSurface.Id, targetSurface.Size, shape, uv,
-                        preferredYaw, mayTurn,
-                        out nearestUv, out nearestYaw,
-                        ignoreItemId: DragItemId());
-                }
-
-                dropIsLegal = nearestFound;
-
-                if (dropIsLegal)
-                {
-                    targetUv = nearestUv;
-                    targetYaw = nearestYaw;
-                }
-                else
-                {
-                    // No room on this face at any turn: the proxy still has to follow the cursor, or
-                    // it strands on the last face at coordinates that face does not have.
-                    targetUv = PackLayout.Snap(targetSurface.Id, targetSurface.Size, shape, uv, yaw);
-                    targetYaw = yaw;
-                }
-            }
-            else
-            {
-                dropIsLegal = false;
-            }
-
-            // Where the hotbar is under the cursor, which is a drop target for a pack drag and the
-            // way home for a hotbar one. Asked every frame rather than only on release, because
-            // the slot has to light up while the player is still deciding.
+            // Where the hotbar is under the cursor. Asked every frame rather than only on the
+            // click, because the slot has to light up while the player is still deciding.
             hoveredSlot = InventoryUI.SlotIndexUnder(PackPointer.CursorPosition);
 
             bool overHotbar = hoveredSlot >= 0;
 
-            InventoryUI.SetDropTarget(dragFrom == DragSource.Pack ? hoveredSlot : -1);
+            // The bar is drawn over the same screen the rig is, so a face under the cursor is not
+            // enough on its own: seating and cells belong to the MAT, and while the cursor is
+            // over the bar the click means something else entirely — there the copy free-follows
+            // the cursor instead of snapping to the face behind the HUD.
+            bool overMat = overSurface && !overHotbar;
 
-            // The proxy is built the first time the cursor reaches a face. For a pack drag that is
-            // the frame the drag began; for a hotbar drag it is whenever the player gets there.
-            if (!proxyBuilt && overSurface && targetSurface != null)
+            if (overMat)
             {
-                visuals.BeginDrag(dragItem.itemPrefab, targetSurface, targetUv, targetYaw);
-                proxyBuilt = true;
+                targetSurface = surface;
+
+                // Grid-snapped and NOTHING else. The item goes exactly where the cursor is
+                // pointing, at exactly the turn it is being shown at, and the only question left
+                // is whether that is legal — which is what the cells answer.
+                targetUv = PackLayout.Snap(surface.Id, surface.Size, shape, uv, yaw);
+
+                placementLegal = pack.Layout.CanPlace(surface.Id, surface.Size, shape,
+                                                      targetUv, yaw, HeldItemId());
+            }
+            else
+            {
+                placementLegal = false;
             }
 
+            InventoryUI.SetDropTarget(hoveredSlot);
+
+            // Built at the lift for both sources; this is the safety net for the rare copy that
+            // failed to build there, retried where a face gives it a seat. BeginCarry ends the
+            // failed carry, which clears the origin outline — put back after, null for a hotbar
+            // lift and a harmless no-op then.
+            if (!proxyBuilt && overMat)
+            {
+                proxyBuilt = visuals.BeginCarry(heldItem.itemPrefab, targetSurface, targetUv, yaw);
+                visuals.SetGhost(originVisual);
+            }
+
+            // The copy is the ONE readout of what is in the hand, and it is on screen wherever
+            // the cursor goes: seated and grid-snapped over a face, riding the cursor ray at the
+            // pack's height everywhere else — across the sand, past the rig's edge, under the
+            // bar. Nothing hides it and nothing stands in for it.
             if (proxyBuilt)
             {
-                visuals.MoveDrag(dragItem.itemPrefab, targetSurface, targetUv, targetYaw);
-
-                // Red over a face with no room at all — the one refusal magnet snap cannot
-                // remove — and never over the sand, where the release is a throw, not an error.
-                visuals.SetDragTint(!dropIsLegal && overSurface);
+                if (overMat) visuals.MoveCarry(heldItem.itemPrefab, targetSurface, targetUv, yaw);
+                else visuals.MoveCarryFree(heldItem.itemPrefab, FreeCarryPoint(pack), yaw);
             }
 
-            // The drag-path twin of the overBar guard in UpdateHover: while a PACK drag hovers a
-            // hotbar slot, Release puts the item in THAT SLOT, not on the face behind the bar —
-            // but the raycast against the rig keeps hitting whatever is back there regardless, so
-            // without this the ghost cells and lattice kept promising a landing the drop was never
-            // going to honour, which is exactly the invariant magnet snap exists to guarantee. A
-            // hotbar drag has no such conflict: it has nowhere else to land, so its own cells stay.
-            bool hidingCellsForHotbar = overHotbar && dragFrom == DragSource.Pack;
-
-            if (overSurface && targetSurface != null && cellGrid != null && !hidingCellsForHotbar)
-                cellGrid.ShowLattice(targetSurface, pack.Layout, DragItemId());
-            else if (cellGrid != null)
-                cellGrid.HideLattice();
-
-            if (overSurface && dropIsLegal && targetSurface != null && cellGrid != null && !hidingCellsForHotbar)
+            // Cells only mean something on a face: they answer "can this land HERE", and off the
+            // faces there is no here. Over the bar the click puts the item in the slot, so cells
+            // drawn on the face behind it would promise a landing the click was never going to
+            // honour.
+            if (overMat)
             {
+                cellGrid.ShowLattice(targetSurface, pack.Layout, HeldItemId());
+
                 PackShape oriented = PackOverhang.Clamp(targetSurface.Id, targetSurface.Size,
-                                                        shape.Rotated(PackGrid.QuarterTurns(targetYaw)));
+                                                        shape.Rotated(PackGrid.QuarterTurns(yaw)));
 
                 cellGrid.Show(targetSurface,
                               PackGrid.BlockOrigin(targetSurface.Size, targetUv, oriented.Size),
-                              oriented);
+                              oriented, placementLegal);
             }
-            else if (cellGrid != null)
+            else
             {
-                // Only the ghost's own cells, not the whole overlay: the lattice's show/hide is
-                // already decided above, on overSurface alone. A face with literally no room is
-                // exactly where the lattice earns its keep — it is the "where WOULD this go"
-                // readout while the red-tinted proxy says "not here" — so it must survive a legality
-                // refusal that only ever concerns the ghost.
-                cellGrid.HideGhost();
+                cellGrid.Hide();
             }
 
-            if (overHotbar && dragFrom == DragSource.Pack)
-                visuals.ShowName($"Drop into slot {hoveredSlot + 1}", PackPointer.CursorPosition);
+            visuals.ShowName(overHotbar ? SlotHint(hoveredSlot) : null,
+                             PackPointer.CursorPosition);
 
-            // A hotbar drag is ended by the EventSystem, in EndHotbarDrag, and must not also be
-            // ended here — see the note there. Only a drag that began on the mat is released by
-            // the button coming up.
-            if (dragFrom == DragSource.Pack && mouse != null && !mouse.leftButton.isPressed) Release(pack);
+            // Over the bar the click belongs to the HUD, which resolves it on the pointer's RELEASE
+            // through InventoryUI.ClickSlot — see PutIntoSlot. Polling the button here as well
+            // would resolve one press twice: the placement on the press, and then, on the release,
+            // a lift of whatever now sits in the slot it was just put into.
+            if (!overHotbar && mouse != null && mouse.leftButton.wasPressedThisFrame)
+                ClickWhileCarrying(pack);
         }
 
         /// <summary>
-        /// The id a legality test should ignore, which is the one currently in the air.
+        /// The click that resolves a carry anywhere but over the bar. Three outcomes, and which
+        /// one it is was settled by where the cursor is standing.
         ///
         /// <para>
-        /// Null for a hotbar drag, and that is the whole point of the distinction: an item lifted
-        /// off the mat is not in its own way, but an item still sitting in the hotbar has never
+        /// <b>Over a face, cells green</b> — put down there, at the turn shown.
+        /// </para>
+        /// <para>
+        /// <b>Over a face, cells red</b> — the item turns a quarter and stays in hand. This is the
+        /// refusal, and it is a useful one: the commonest reason a spot is refused is that the item
+        /// is the wrong way round for it, so the refusal and the fix are the same click. The one
+        /// shape with no turn to offer — a square, whose quarter turn occupies the identical
+        /// cells — gets the refusal flash instead; see <see cref="Turn"/>.
+        /// </para>
+        /// <para>
+        /// <b>Anywhere else — the sand, the sky, past the rig's edge</b> — the item turns a
+        /// quarter too, silently. Rotation is the one verb a click off the faces can usefully
+        /// mean, so it means it everywhere: the player squares an item up wherever they are and
+        /// then aims it, and because legality is always judged at the turn being shown, the item
+        /// lands wherever its rotated shape fits. A square turning out here is a silent no-op
+        /// rather than a flash — nothing was refused.
+        /// </para>
+        /// <para>
+        /// The fourth outcome — over a hotbar slot, where it goes in that slot and swaps with
+        /// whatever was there — is not reached from here. That click is the HUD's, and it arrives
+        /// at <see cref="PutIntoSlot"/> through <c>InventoryUI.ClickSlot</c>; see the note at the
+        /// call site above for why exactly one of the two may own it.
+        /// </para>
+        /// </summary>
+        private void ClickWhileCarrying(BackpackObject pack)
+        {
+            bool overFace = overSurface && targetSurface != null;
+
+            if (overFace && placementLegal)
+            {
+                PutDown();
+                return;
+            }
+
+            // On red cells the click was a refusal looking for a fix, so a turn that cannot
+            // change anything flashes; off the faces nothing was refused and the same turn
+            // passes silently.
+            Turn(pack, flashIfUnchanged: overFace);
+        }
+
+        /// <summary>
+        /// A quarter turn, in the player's hand. The answer to a refused click, and to any click
+        /// off the faces.
+        ///
+        /// <para>
+        /// Rotation in the hand is unconditional. The shape library's per-item
+        /// <c>allowRotation</c> rows are deliberately NOT consulted here (nor in
+        /// <see cref="OnYawScrolled"/>): being able to turn the thing you are holding is a hard
+        /// interaction requirement, and a row that vetoed it produced a click that did nothing
+        /// with nothing on screen to say why. The library itself is untouched — its rows still
+        /// author shapes — it just no longer vetoes the hand.
+        /// </para>
+        /// <para>
+        /// One shape has no answer to give: a SYMMETRIC one — a 1x1, a 2x2, any square — whose
+        /// quarter turn occupies the very same cells. Turning it succeeds, changes the yaw, and
+        /// changes nothing the player can see. Where the click was a refusal looking for a fix,
+        /// that reads as a button that does not work, so <paramref name="flashIfUnchanged"/>
+        /// makes it flash instead; off the faces the same turn just passes as the no-op it is.
+        /// </para>
+        /// </summary>
+        private void Turn(BackpackObject pack, bool flashIfUnchanged)
+        {
+            if (flashIfUnchanged && !TurningWouldChangeAnything(pack))
+            {
+                deniedUntil = Time.unscaledTime + DeniedFlashSeconds;
+                visuals.SetCarryDenied(true);
+                return;
+            }
+
+            yaw = PackGrid.SnapYaw(Mathf.Repeat(yaw + YawPerNotch, 360f));
+        }
+
+        /// <summary>
+        /// Would a quarter turn land the held item on a different set of cells?
+        ///
+        /// <para>
+        /// <see cref="PackShape"/> has no equality operator, and adding one for this would be a
+        /// public API for a private question — so the two orientations are compared cell by cell
+        /// here. Cheap: this runs once per refused click, not per frame.
+        /// </para>
+        /// </summary>
+        private bool TurningWouldChangeAnything(BackpackObject pack)
+        {
+            PackShape shape = pack.ShapeFor(heldItem);
+
+            int turns = PackGrid.QuarterTurns(yaw);
+
+            PackShape now = shape.Rotated(turns);
+            PackShape next = shape.Rotated(turns + 1);
+
+            if (now.Width != next.Width || now.Height != next.Height) return true;
+
+            for (int y = 0; y < now.Height; y++)
+                for (int x = 0; x < now.Width; x++)
+                    if (now[x, y] != next[x, y]) return true;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Put the held item down on the spot being shown.
+        ///
+        /// <para>
+        /// A REQUEST and nothing else — no local move, no optimistic visual. The placed copy stays
+        /// exactly where it is until the layout changes underneath it, which is what a server that
+        /// allowed the action publishes; a server that refuses publishes nothing, and the item was
+        /// never anywhere else.
+        /// </para>
+        /// </summary>
+        private void PutDown()
+        {
+            // Read off before LetGo clears them, because letting go has to happen first — see
+            // LetGo for why the request cannot be the thing that goes first.
+            HandSource from = heldFrom;
+            int slot = originSlot;
+            PackSurfaceId fromSurface = originSurface;
+            Vector2 grab = originGrab;
+
+            PackSurfaceId toSurface = targetSurface.Id;
+            Vector2 toUv = targetUv;
+            float turn = yaw;
+
+            // The stow names its source by INDEX — a hotbar slot is a numbered box — while every
+            // part of what the player lined up came from the ITEM: its shape, its snap, its
+            // legality, the copy under the cursor. A slot whose contents changed in between still
+            // resolves, and would land a different item on cells chosen for this one's footprint.
+            if (from == HandSource.Hotbar && !StillInOriginSlot())
+            {
+                ReturnToOrigin();
+                return;
+            }
+
+            LetGo();
+
+            if (from == HandSource.Pack)
+                controller.RequestMove(fromSurface, grab, toSurface, toUv, turn);
+            else
+                controller.RequestStow(slot, toSurface, toUv, turn, interactor);
+        }
+
+        /// <summary>
+        /// Is the item in hand still the one sitting in the slot it was lifted out of?
+        ///
+        /// Compared by REFERENCE, against the asset the whole preview was built from. This project
+        /// addresses shared and saved things by identity rather than by position everywhere else,
+        /// and a hotbar index is exactly the kind of name that keeps resolving after it has stopped
+        /// meaning what it meant.
+        /// </summary>
+        private bool StillInOriginSlot()
+        {
+            IPlayerInventory hotbar = Hotbar();
+            if (hotbar == null) return false;
+            if (originSlot < 0 || originSlot >= hotbar.GetInventorySize()) return false;
+
+            InventorySlot slot = hotbar.GetSlot(originSlot);
+
+            return slot != null && !slot.IsEmpty && slot.Item == heldItem;
+        }
+
+        /// <summary>
+        /// Put the held item into a hotbar slot. Called by the HUD, which resolves a click on a
+        /// slot through <c>InventoryUI.ClickSlot</c>.
+        /// </summary>
+        public void PutIntoSlot(int slotIndex)
+        {
+            if (!carrying) return;
+
+            BackpackObject pack = controller != null ? controller.Pack : null;
+            if (pack == null) return;
+
+            if (heldFrom == HandSource.Hotbar)
+            {
+                // Hotbar reordering is not this feature — IPlayerInventory has no move — so the
+                // only slot a hotbar item may go back into is its own, and that is a cancel.
+                if (slotIndex != originSlot)
+                {
+                    InventoryUI.ShakeSlot(slotIndex);
+                    return;
+                }
+
+                ReturnToOrigin();
+                return;
+            }
+
+            // The placement this take names is the one the item was lifted off, and another player
+            // in the same pack can have moved or taken it since. CanTakeToHotbar answers false with
+            // refused FALSE for that case — it cannot tell a vanished placement from a hotbar it
+            // was handed null for — so the guard below would wave it through into a request that
+            // can only be refused, with the hand already emptied. OnLayoutChanged normally catches
+            // this the moment the change is published; this is the same question asked at the last
+            // possible instant instead of the first.
+            if (!OriginStillThere())
+            {
+                InventoryUI.ShakeSlot(slotIndex);
+                ReturnToOrigin();
+                return;
+            }
+
+            // Asked before the request goes out, and asked LOCALLY. A full hotbar is not a refusal
+            // — TryTakeToHotbar swaps — but a swap with nowhere to put the displaced item is, and
+            // the server refuses it by changing nothing, which on this screen is indistinguishable
+            // from a lost packet.
+            if (!pack.CanTakeToHotbar(originSurface, originGrab, Hotbar(), out bool refused, slotIndex)
+                && refused)
+            {
+                InventoryUI.ShakeSlot(slotIndex);
+                return;
+            }
+
+            PackSurfaceId from = originSurface;
+            Vector2 grab = originGrab;
+
+            LetGo();
+
+            controller.RequestTake(from, grab, interactor, slotIndex);
+        }
+
+        /// <summary>
+        /// The id a legality test should ignore, which is the one currently in the hand.
+        ///
+        /// <para>
+        /// Null for a hotbar lift, and that is the whole point of the distinction: an item lifted
+        /// off the mat is not in its own way, but one still sitting in the hotbar has never
         /// occupied anything, so there is no placement of its own to ignore.
         /// </para>
         /// </summary>
-        private string DragItemId() =>
-            dragFrom == DragSource.Pack && dragItem != null ? dragItem.ID : null;
+        private string HeldItemId() =>
+            heldFrom == HandSource.Pack && heldItem != null ? heldItem.ID : null;
+
+        /// <summary>The label for the item under the cursor, built once per item rather than once
+        /// per frame — see the cached-label note on the fields.</summary>
+        private string HoverHint(InventoryItem item)
+        {
+            if (item == null) return null;
+
+            if (item != hintItem)
+            {
+                hintItem = item;
+                hintText = item.itemName + "   (click to pick up)";
+            }
+
+            return hintText;
+        }
 
         /// <summary>
-        /// The wheel turns what is in hand — but only when it came off the mat.
+        /// The label for the slot under the cursor, built once per slot.
         ///
-        /// <para>
-        /// A hotbar drag ends in <see cref="NetMsg.PackStow"/>, and that message has no yaw field:
-        /// <see cref="BackpackObject.TryStowFromHotbar"/> places at zero. Letting the preview
-        /// rotate anyway would be worse than not rotating at all — the footprint the player lined
-        /// up would be the one the legality test used and NOT the one the server places, so a drop
-        /// that read clear could land clashing, or be refused with no explanation. Held at zero, the
-        /// prediction and the placement are the same rectangle. Rotating a stowed item is then an
-        /// ordinary in-pack drag.
-        /// </para>
+        /// Keyed on the index rather than pre-built for the four keys the hotbar has today, because
+        /// the bar's length is <c>IPlayerInventory.GetInventorySize</c>'s to decide: a fixed table
+        /// would answer a fifth slot with no label at all, silently.
+        /// </summary>
+        private string SlotHint(int index)
+        {
+            if (index != slotHintIndex)
+            {
+                slotHintIndex = index;
+                slotHintText = index >= 0 ? $"Click to put it in slot {index + 1}" : null;
+            }
+
+            return slotHintText;
+        }
+
+        /// <summary>
+        /// The wheel turns what is in hand, in either direction — the click's rotate only goes one
+        /// way, and three clicks to get back one quarter is a worse deal than a notch of scroll.
+        /// Unconditional for the same reason the click's turn is — see <see cref="Turn"/>.
         /// </summary>
         private void OnYawScrolled(int notches)
         {
-            if (!dragging || dragFrom != DragSource.Pack) return;
-
-            // An item whose authored row forbids turning ignores the wheel outright, rather than
-            // turning in the preview and straightening on release.
-            BackpackObject pack = controller != null ? controller.Pack : null;
-            PackShapeLibrary shapes = pack != null ? pack.Shapes : null;
-
-            if (!PackShapes.AllowsRotation(dragItem, shapes)) return;
+            if (!carrying) return;
 
             yaw = PackGrid.SnapYaw(Mathf.Repeat(yaw + notches * YawPerNotch, 360f));
         }
 
-        /// <summary>
-        /// Let go. Four outcomes, and which one it is was settled by the last frame of the drag.
-        ///
-        /// <para>
-        /// <b>Over a hotbar slot</b> — it goes in that slot, swapping with whatever was there, or
-        /// refusing and springing back exactly like the face case below when that swap has
-        /// nowhere to put the displaced item. Tested first, because the hotbar is drawn over the
-        /// same screen the sand is.
-        /// </para>
-        /// <para>
-        /// <b>Off the mat entirely</b> — spec 5.1's fourth verb. The item leaves the pack and lands
-        /// on the ground. This is not the same as a refused placement and must not spring back:
-        /// dragging something out of the pack and letting go over the sand is how you throw it
-        /// away, and a pack that quietly put it back would have no way to get rid of anything.
-        /// </para>
-        /// <para>
-        /// <b>Over a face with no room for this shape at any permitted turn</b> — refused. It
-        /// slides home. This is the one refusal magnet snap cannot remove: clashing and overhanging
-        /// are no longer possible outcomes, since the ghost was already sitting on the nearest spot
-        /// that avoids both.
-        /// </para>
-        /// <para>
-        /// <b>Over a face and clear</b> — a move.
-        /// </para>
-        /// <para>
-        /// All three of them are REQUESTS and nothing else — no local move, no optimistic visual,
-        /// and above all no locally spawned pickup. The placed copy stays exactly where it is until
-        /// the layout changes underneath it, which is what a server that allowed the action
-        /// publishes; a server that refuses publishes nothing and the item was never anywhere else.
-        /// A drop taken locally would be worse than a move taken locally, because only the server
-        /// may spawn: the thrower would be the only player who ever saw the thing hit the ground.
-        /// </para>
-        /// </summary>
-        private void Release(BackpackObject pack)
+        // ── Carrying off the faces ───────────────────────────────────────────
+
+        /// <summary>The first wired face: the frame a free-floating copy is built against, and
+        /// the height reference when no face has been hovered yet. Null only for a rig with no
+        /// surfaces at all — which has nothing to place on and never gets this far.</summary>
+        private static PackSurface FirstSurface(BackpackObject pack)
         {
-            dragging = false;
+            IReadOnlyList<PackSurface> surfaces = pack != null ? pack.Surfaces : null;
+            if (surfaces == null) return null;
 
-            // Asked BEFORE the off-the-mat test, and that order is the point. The hotbar is drawn
-            // across the bottom of the same screen the sand is, so without this a drag onto the
-            // hotbar is a drag off the pack — the item lands on the ground under the rig, which is
-            // the opposite of what the player just did.
-            if (hoveredSlot >= 0)
-            {
-                // The named-slot twin of SendToHotbar's own predicted refusal: a slot already
-                // holding this asset, or holding something with nowhere else to go, refuses on
-                // the server exactly like a full-hotbar swap does — and until now that refusal
-                // was a silent snap back with nothing on screen to explain it, while the very same
-                // refusal on the right-click path flashed the rim red.
-                if (!pack.CanTakeToHotbar(originSurface, originGrab, Hotbar(), out bool refused, hoveredSlot)
-                    && refused)
-                {
-                    InventoryUI.ShakeSlot(hoveredSlot);
-                    springBack = StartCoroutine(SpringBack());
-                    return;
-                }
+            for (int i = 0; i < surfaces.Count; i++)
+                if (surfaces[i] != null) return surfaces[i];
 
-                controller.RequestTake(originSurface, originGrab, interactor, hoveredSlot);
-
-                visuals.EndDrag();
-                FinishPackDrag();
-                return;
-            }
-
-            if (!overSurface)
-            {
-                controller.RequestDrop(originSurface, originGrab);
-
-                visuals.EndDrag();
-                FinishPackDrag();
-                return;
-            }
-
-            if (!dropIsLegal || targetSurface == null)
-            {
-                springBack = StartCoroutine(SpringBack());
-                return;
-            }
-
-            controller.RequestMove(originSurface, originGrab, targetSurface.Id, targetUv, targetYaw);
-
-            visuals.EndDrag();
-            FinishPackDrag();
-        }
-
-        /// <summary>Clears the per-drag state every exit from a pack drag shares.</summary>
-        private void FinishPackDrag()
-        {
-            dragItem = null;
-            originVisual = null;
-            proxyBuilt = false;
-            hoveredSlot = -1;
-
-            if (cellGrid != null) cellGrid.Hide();
-
-            InventoryUI.ClearDragFeedback();
+            return null;
         }
 
         /// <summary>
-        /// A refused drop slides home rather than blinking out, so the player sees that the item
-        /// went back rather than wondering whether it went somewhere.
+        /// Where the carried copy sits while the cursor is over no face: the cursor ray
+        /// intersected with a horizontal plane at the pack's own surface height, so the copy
+        /// slides across the sand at mat level rather than diving to the ground or pinning to
+        /// the camera — with <see cref="FreeCarryRayMetres"/> along the ray as the fallback when
+        /// the ray never meets that plane.
         /// </summary>
-        private IEnumerator SpringBack()
+        private Vector3 FreeCarryPoint(BackpackObject pack)
         {
-            PackSurface home = controller.Pack != null ? controller.Pack.SurfaceFor(originSurface) : null;
-            Vector2 from = targetUv;
+            Camera cam = focusCamera != null ? focusCamera.Camera : null;
 
-            if (home != null && dragItem != null)
-            {
-                // Surface and yaw snap on the first step and the uv slides. Both of those rebuild
-                // the proxy where the uv only translates it, so this is one rebuild rather than
-                // one per frame.
-                for (float elapsed = 0f; elapsed < SpringBackSeconds; elapsed += Time.unscaledDeltaTime)
-                {
-                    float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / SpringBackSeconds));
-                    visuals.MoveDrag(dragItem.itemPrefab, home, Vector2.Lerp(from, originUv, t), originYaw);
-                    yield return null;
-                }
-            }
+            // The last face the carry was over keeps the height continuous as the copy slides
+            // off its edge; before it has ever been over one, any wired face is the pack's level.
+            PackSurface reference = targetSurface != null ? targetSurface : FirstSurface(pack);
 
-            visuals.EndDrag();
+            float height = reference != null
+                ? reference.ToWorld(reference.Size * 0.5f, 0f).y
+                : 0f;
 
-            FinishPackDrag();
-            springBack = null;
+            return PackPointer.CursorPointAtHeight(cam, height, FreeCarryRayMetres);
         }
     }
 }

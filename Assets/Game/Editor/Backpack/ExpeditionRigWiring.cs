@@ -48,6 +48,11 @@ namespace SpaceGame.EditorTools
         private const string LibraryFolder = "Assets/Game/ScriptableObjects/Items";
         private const string LibraryAsset = LibraryFolder + "/PackHolderLibrary.asset";
 
+        // PackShapeLibraryTool creates and fills this; the rig only needs the reference. Wired here
+        // too because a rebuild used to ship `shapes` null — nothing failed, every drawn mask was
+        // just silently ignored in favour of the derived default.
+        private const string ShapeLibraryAsset = LibraryFolder + "/PackShapes.asset";
+
         private const string PlayerPrefab = "Assets/Game/Prefabs/Characters/Player/PlayerCharacter.prefab";
 
         // ── The tables this script exists to apply ───────────────────────────
@@ -56,13 +61,14 @@ namespace SpaceGame.EditorTools
         /// The usable rectangles, in metres, measured off the built rig.
         ///
         /// <para>
-        /// <b>Only the BOARD carries inventory</b> — the mat, its underside (the rack) and the
-        /// lash rail. That is a decision from playtest, not an omission: the side panels fold up
-        /// to hug the pack's flanks when it closes, so gear on them would be crushed against the
-        /// body, and the back-panel pockets went with them to keep the rule legible — one board,
-        /// all the gear. The <c>SURF_Back_*</c> and <c>SURF_Wing_*</c> empties still exist in the
-        /// FBX; they are simply not wired, and a save that references them first-fits back onto
-        /// the board on load.
+        /// <b>Every face the model has carries inventory</b> — the board (mat, rack, lash rail),
+        /// both back panels and both wings. An earlier pass wired only the board, on the theory
+        /// that gear on the folding flanks would be crushed when the pack closes; playtest
+        /// (2026-08-25) overruled it, because an unwired face does not read as forbidden — the
+        /// placement outline just dies over it with nothing to say why. WHEN a face is usable
+        /// (worn, racked) is <c>BackpackObject.Reaches</c>' question, not this table's: wiring
+        /// puts a face on the rig, <c>Reaches</c> decides the moment. The board rows stay first
+        /// so first-fit still prefers the board.
         /// </para>
         /// <para>
         /// They are inset from the physical panels so an item placed at the edge does not overhang,
@@ -78,17 +84,34 @@ namespace SpaceGame.EditorTools
         /// down wires exactly like one that is not.
         /// </para>
         /// </summary>
-        // The rack additionally allows items LONGER than its 8-cell span to overhang its u axis —
-        // see PackOverhang for the rule and its limits.
+        // Overhang: the rack additionally lets items LONGER than its 9-cell u span hang past both
+        // ends ski-fashion, and the two back panels — the smallest wired faces — allow it on BOTH
+        // axes, bedroll-fashion. See PackOverhang for the rule and its limits.
+        //
+        // DEEPENED 2026-08-25 by the .blend's `LEAF_EXTRA` (0.20 m at the board's leading edge),
+        // after ItemScaleLadder roughly doubled the gear. These numbers are measurements of the
+        // model, not preferences: they must equal the `SURFACES` table in
+        // `_Source~/components/props/expedition_rig.py`, and `Verify` below re-reads the built
+        // prefab to say so out loud. Changing one without the other lays gear out over sand.
+        //
+        // RE-CELLED 2026-08-25 (second pass): every rectangle is now an EXACT multiple of
+        // PackGrid.Cell (0.09 m) — Leaf 8x8, LongGoods 18x1, Rack 9x9, Back 3x6, Wings 4x7 —
+        // so the grid fills each face edge to edge with zero hem. The model's stitching and
+        // webbing pitch was re-drawn onto the same cell boundaries in the same pass, so resizing
+        // a row here without moving the .blend's decoration un-aligns the two.
         private static readonly (string node, PackSurfaceId id, Vector2 size)[] SurfaceTable =
         {
-            ("SURF_Leaf",      PackSurfaceId.Leaf,      new Vector2(0.78f, 0.50f)),
-            ("SURF_LongGoods", PackSurfaceId.LongGoods, new Vector2(1.60f, 0.14f)),
-            ("SURF_Rack",      PackSurfaceId.Rack,      new Vector2(0.80f, 0.60f)),
+            ("SURF_Leaf",      PackSurfaceId.Leaf,           new Vector2(0.72f, 0.72f)),
+            ("SURF_LongGoods", PackSurfaceId.LongGoods,      new Vector2(1.62f, 0.09f)),
+            ("SURF_Rack",      PackSurfaceId.Rack,           new Vector2(0.81f, 0.81f)),
+            ("SURF_Back_L",    PackSurfaceId.BackPanelLeft,  new Vector2(0.27f, 0.54f)),
+            ("SURF_Back_R",    PackSurfaceId.BackPanelRight, new Vector2(0.27f, 0.54f)),
+            ("SURF_Wing_L",    PackSurfaceId.WingLeft,       new Vector2(0.36f, 0.63f)),
+            ("SURF_Wing_R",    PackSurfaceId.WingRight,      new Vector2(0.36f, 0.63f)),
         };
 
         /// <summary>
-        /// The four moving parts, with the STOW travel from the authored pose.
+        /// The five moving parts, with the STOW travel from the authored pose.
         ///
         /// <para>
         /// The wing pivots are CHILDREN of <c>PIVOT_Leaf</c> in the .blend (reparented 2026-08-24
@@ -128,6 +151,12 @@ namespace SpaceGame.EditorTools
             //   Wing_R mirrored.
             ("PIVOT_Wing_L", BackpackHingePart.WingLeft,  Vector3.up,    -90f),
             ("PIVOT_Wing_R", BackpackHingePart.WingRight, Vector3.up,     90f),
+            // The lid rides the board like the wings do — PIVOT_Lid is a child of PIVOT_Leaf —
+            // so its -90 is relative to the BOARD: mid-stow it stands up as the end wall, then
+            // rides the leaf over to cap the closed pack. Sign measured on the imported prefab
+            // (X-hinges arrive sign-true, unlike the wings' mirrored Y): rest * AngleAxis(-90,
+            // right) carries the apron's far edge up over the board, +90 buries it.
+            ("PIVOT_Lid",    BackpackHingePart.Lid,       Vector3.right, -90f),
         };
 
         private static readonly (string node, HolderKind kind)[] HolderTable =
@@ -713,6 +742,15 @@ namespace SpaceGame.EditorTools
             SetObject(so, "holders", library, log);
             SetObject(so, "holderOrigin", tank, log);
 
+            // Without this every rebuild ships `shapes` null and PackShapes.For silently falls
+            // back to the derived footprint for every item, drawn masks included. Null stays a
+            // legitimate value only while the asset genuinely does not exist yet.
+            var shapeLibrary = AssetDatabase.LoadAssetAtPath<PackShapeLibrary>(ShapeLibraryAsset);
+            if (shapeLibrary == null)
+                log.Append("  note     no ").Append(ShapeLibraryAsset)
+                   .Append("; items keep their derived footprint shapes.\n");
+            SetObject(so, "shapes", shapeLibrary, log);
+
             SerializedProperty stakeArray = so.FindProperty("stakes");
             if (stakeArray != null)
             {
@@ -900,6 +938,15 @@ namespace SpaceGame.EditorTools
                     SerializedProperty holders = so.FindProperty("holders");
                     if (holders == null || holders.objectReferenceValue == null)
                         problems.Add("the saved rig's holder library reference is null.");
+
+                    var shapeLibrary = AssetDatabase.LoadAssetAtPath<PackShapeLibrary>(ShapeLibraryAsset);
+                    if (shapeLibrary != null)
+                    {
+                        SerializedProperty shapes = so.FindProperty("shapes");
+                        if (shapes == null || shapes.objectReferenceValue != shapeLibrary)
+                            problems.Add("the saved rig's shapes reference does not point at " +
+                                         ShapeLibraryAsset + ".");
+                    }
                 }
             }
 

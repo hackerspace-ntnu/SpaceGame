@@ -94,6 +94,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4907140462652658823}
+    - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6563901792496781801}
+    - targetCorrespondingSourceObject: {fileID: 8793624777589779848, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8273322765894220807}
   m_SourcePrefab: {fileID: 100100000, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}
 --- !u!1 &3760312103620484764 stripped
 GameObject:
@@ -288,6 +294,51 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
+--- !u!114 &6563901792496781801
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3760312103620484764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 799144613dd0248308d224e1b781730d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.RagdollRig
+  minBoneWeightFraction: 0.015
+  maxBones: 20
+  limbAspect: 0.3
+  minRadius: 0.04
+  totalMass: 70
+  minBoneMass: 0.6
+  swingLimit: 45
+  twistLimit: 25
+  settleLinearSpeed: 0.35
+  settleAngularSpeed: 1.2
+  settleSeconds: 0.45
+  maxLimpSeconds: 4
+  recoverBlendSeconds: 0.35
+  groundProbeHeight: 3
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  maxConcurrentRagdolls: 12
+--- !u!114 &8273322765894220807
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3760312103620484764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c3228468ae154479b82793460d24b66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.AgentRagdoll
+  deathImpulse: 2.5
+  deathImpulseLift: 0.35
+  downedSeconds: 1.2
 --- !u!4 &8750788233840712177 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3987795919156751077, guid: 6f66a112ca7394a55a59ec06aba3635b, type: 3}

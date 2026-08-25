@@ -12,8 +12,13 @@ namespace SpaceGame.Characters
     {
         private PlayerInputManager inputs;
         [Header("References")]
-        public GameObject playerCamera;    
-        public Transform playerHead; 
+        public GameObject playerCamera;
+
+        [Tooltip("Everything between this player's eye and the world now that the camera sits " +
+                 "inside the helmet: the helmet itself, the scarf. Hidden from their own view " +
+                 "only — shadows and every other camera keep them.")]
+        [SerializeField] private SkinnedMeshRenderer[] firstPersonHidden;
+
         public Transform playerBody;
         public Transform cameraRoot => playerCamera != null ? playerCamera.transform : null;
         private Rigidbody playerRigidbody;
@@ -32,7 +37,6 @@ namespace SpaceGame.Characters
         private float pendingYaw;
 
         private Vector2 lookInput;
-        private SkinnedMeshRenderer headRenderer;
 
         private Camera lookCamera;
 
@@ -44,13 +48,11 @@ namespace SpaceGame.Characters
             aimRig = GetComponent<PlayerAimRig>();
             playerRigidbody = playerBody.GetComponent<Rigidbody>();
 
-            headRenderer = playerHead.GetComponent<SkinnedMeshRenderer>();
-
             // Start/OnDestroy, deliberately not OnEnable/OnDisable: mounting disables this
             // component while first person continues through this same camera, and the head must
             // stay hidden there. Remote copies never subscribe — their PlayerLook is disabled from
             // Awake, so Start never runs and their head is left exactly as authored.
-            RenderPipelineManager.beginCameraRendering += ApplyHeadVisibility;
+            RenderPipelineManager.beginCameraRendering += ApplyFirstPersonVisibility;
 
             lookCamera = playerCamera != null ? playerCamera.GetComponent<Camera>() : null;
 
@@ -66,28 +68,51 @@ namespace SpaceGame.Characters
         private void OnDestroy()
         {
             GameSettings.Changed -= ApplySettings;
-            RenderPipelineManager.beginCameraRendering -= ApplyHeadVisibility;
+            RenderPipelineManager.beginCameraRendering -= ApplyFirstPersonVisibility;
         }
 
         /// <summary>
-        /// Hide this player's head from their own eyes, and only their own.
+        /// Hide this player's own head gear from their own eyes, and only their own.
         ///
         /// <para>
-        /// Per camera render, not a global toggle: <c>ShadowsOnly</c> written once hides the head
+        /// Per camera render, not a global toggle: <c>ShadowsOnly</c> written once hides these
         /// from every camera at once, which is right for this player's own view and wrong for
         /// everything else — the mount's orbit camera, the death spectator, and any future third
-        /// person view must all keep the head. Deciding at the start of each camera's render means
-        /// no view has to remember to switch it back, and the head still casts its shadow in first
+        /// person view must all keep them. Deciding at the start of each camera's render means
+        /// no view has to remember to switch it back, and they still cast their shadows in first
         /// person because <c>ShadowsOnly</c> keeps the shadow pass.
         /// </para>
         /// </summary>
-        private void ApplyHeadVisibility(ScriptableRenderContext context, Camera renderingCamera)
-        {
-            if (headRenderer == null) return;
+        /// <summary>
+        /// Whether this player's own camera still hides their helmet and scarf.
+        ///
+        /// <para>
+        /// True is the resting state and the whole reason <see cref="firstPersonHidden"/> exists.
+        /// It is lifted while the camera is not in the helmet — a ragdolled player watches their own
+        /// body from outside it (<c>PlayerRagdoll</c>), and hiding the head from the only camera
+        /// looking at it leaves them staring at a headless corpse.
+        /// </para>
+        ///
+        /// <para>
+        /// A field rather than something derived from the camera's parent, because the callback
+        /// below runs from the render pipeline for every camera every frame and must not be doing
+        /// hierarchy work. Whoever lifts it puts it back.
+        /// </para>
+        /// </summary>
+        public void SetFirstPersonHidden(bool hidden) => firstPersonHiddenActive = hidden;
 
-            headRenderer.shadowCastingMode = renderingCamera == lookCamera
+        private bool firstPersonHiddenActive = true;
+
+        private void ApplyFirstPersonVisibility(ScriptableRenderContext context, Camera renderingCamera)
+        {
+            ShadowCastingMode mode = renderingCamera == lookCamera && firstPersonHiddenActive
                 ? ShadowCastingMode.ShadowsOnly
                 : ShadowCastingMode.On;
+
+            foreach (SkinnedMeshRenderer renderer in firstPersonHidden)
+            {
+                if (renderer != null) renderer.shadowCastingMode = mode;
+            }
         }
 
         private void ApplySettings()

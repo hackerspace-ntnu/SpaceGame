@@ -25,16 +25,16 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _BandWidth: 0.28
-    - _FlowBias: 0.6
+    - _BandWidth: 0.22
+    - _FlowBias: 0.65
     - _LeadingEdge: 0.75
-    - _NoiseScale: 6
-    - _NoiseSpeed: 3
+    - _NoiseScale: 7
+    - _NoiseSpeed: 5
     - _Progress: 0
-    - _RimIntensity: 2
+    - _RimIntensity: 3.2
     - _RimPower: 3
     - _SkirtStrength: 0.35
-    - _WarpStrength: 0.045
+    - _WarpStrength: 0.085
     m_Colors:
     - _RimColor: {r: 0.62, g: 0.82, b: 1, a: 1}
   m_BuildTextureStacks: []

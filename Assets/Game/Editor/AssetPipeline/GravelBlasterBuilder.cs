@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using FirstGearGames.SmoothCameraShaker;
 using Unity.Netcode;
 using UnityEditor;
 using UnityEngine;
@@ -31,6 +32,14 @@ namespace SpaceGame.EditorTools
         private const string SmokeMatPath  = MaterialDir + "/LaserSmoke.mat";
         private const string NetworkPrefabsPath =
             "Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset";
+
+        /// <summary>
+        /// The shake asset is SEEDED from the shared damage shake on first run and then belongs to
+        /// this weapon — copied rather than referenced so tuning the gun's kick cannot retune what
+        /// being hit feels like. EnsureShake never overwrites a live asset.
+        /// </summary>
+        private const string ShakeSourcePath = "Assets/Game/ScriptableObjects/Shake/DamageShake.asset";
+        private const string BlastShakePath  = "Assets/Game/ScriptableObjects/Shake/GravelBlastShake.asset";
 
         /// <summary>The ground layer DropItemPhysics settles against, shared by every artifact.</summary>
         private const int GroundLayerMask = 128;
@@ -65,7 +74,10 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
-            GameObject root = BuildHierarchy(model, debrisMat, sparkMat, smokeMat);
+            ShakeData blastShake = EnsureShake();
+            if (blastShake == null) return;
+
+            GameObject root = BuildHierarchy(model, debrisMat, sparkMat, smokeMat, blastShake);
 
             Directory.CreateDirectory(Path.GetDirectoryName(PrefabPath) ?? ".");
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
@@ -85,7 +97,8 @@ namespace SpaceGame.EditorTools
         // ── Hierarchy ──────────────────────────────────────────────────────────
 
         private static GameObject BuildHierarchy(GameObject model, Material debrisMat,
-                                                 Material sparkMat, Material smokeMat)
+                                                 Material sparkMat, Material smokeMat,
+                                                 ShakeData blastShake)
         {
             var root = new GameObject("GravelBlaster");
 
@@ -117,31 +130,42 @@ namespace SpaceGame.EditorTools
 
             // ── Muzzle effects ──
             ParticleSystem gravelBurst = BuildGravel(muzzle, debrisMat, "GravelBurst",
-                                                     count: 90, minSpeed: 16f, maxSpeed: 30f,
-                                                     cone: 9f);
-            ParticleSystem muzzleDust = BuildDust(muzzle, smokeMat, "MuzzleDust", count: 26,
-                                                  cone: 15f);
-            ParticleSystem muzzleSparks = BuildSparks(muzzle, sparkMat, "MuzzleSparks", count: 42,
-                                                      cone: 12f);
+                                                     count: 150, minSpeed: 22f, maxSpeed: 44f,
+                                                     cone: 11f);
+            ParticleSystem muzzleDust = BuildDust(muzzle, smokeMat, "MuzzleDust", count: 44,
+                                                  cone: 18f);
+            ParticleSystem muzzleSparks = BuildSparks(muzzle, sparkMat, "MuzzleSparks", count: 90,
+                                                      cone: 14f);
+            ParticleSystem muzzleSmoke = BuildMuzzleSmoke(muzzle, smokeMat);
+            ParticleSystem blastWave = BuildBlastWave(muzzle, smokeMat);
 
             var flashObject = new GameObject("MuzzleFlash");
             flashObject.transform.SetParent(muzzle, false);
             Light flash = flashObject.AddComponent<Light>();
             flash.type = LightType.Point;
             flash.color = FlashWarm;
-            flash.range = 7f;
-            flash.intensity = 8f;
+            flash.range = 12f;
+            flash.intensity = 16f;
             flash.shadows = LightShadows.None;
             flash.enabled = false;
+
+            // ── Per-pellet effects ──
+            // Parented to the ROOT rather than to the muzzle, because these are moved to wherever
+            // a pellet landed — a hundred metres from the gun, in a direction the barrels are no
+            // longer pointing. See Manual: they are emitted into by hand and never played.
+            ParticleSystem tracers = BuildTracers(root.transform, sparkMat);
+            ParticleSystem impactSparks = BuildImpactSparks(root.transform, sparkMat);
+            ParticleSystem impactDust = BuildImpactDust(root.transform, smokeMat);
+            ParticleSystem impactDebris = BuildImpactDebris(root.transform, debrisMat);
 
             // ── Backfire rig: one parent system, played with its children ──
             // Slower, wider and dirtier than the muzzle blast: this one goes off in the holder's
             // face, and it has to read as the gun failing rather than as a second shot.
             ParticleSystem backfire = BuildGravel(breech.transform, debrisMat, "BackfireBurst",
-                                                  count: 40, minSpeed: 6f, maxSpeed: 14f,
-                                                  cone: 40f);
-            BuildSparks(backfire.transform, sparkMat, "BackfireSparks", count: 60, cone: 55f);
-            BuildDust(backfire.transform, smokeMat, "BackfireSmoke", count: 30, cone: 45f,
+                                                  count: 70, minSpeed: 6f, maxSpeed: 16f,
+                                                  cone: 42f);
+            BuildSparks(backfire.transform, sparkMat, "BackfireSparks", count: 100, cone: 60f);
+            BuildDust(backfire.transform, smokeMat, "BackfireSmoke", count: 50, cone: 50f,
                       dark: true);
 
             // ── Pickup / world presence ──
@@ -169,20 +193,34 @@ namespace SpaceGame.EditorTools
 
             // ── Grip ──
             // Zero offsets, like the portal gun: the same Blender front (-Y) and export flags
-            // land the same orientation in the hand. holdSize per the longarm bracket (0.9–1.2).
+            // land the same orientation in the hand. holdSize is the Gun bracket of
+            // ItemScaleLadder — change it there and here together, because this builder rewrites
+            // the prefab wholesale and would otherwise quietly undo the ladder on its next run.
             var itemGrip = root.AddComponent<ItemGrip>();
             SetPrivate(itemGrip, "gripPoint", grip);
-            SetPrivate(itemGrip, "holdSize", 1.05f);
+            SetPrivate(itemGrip, "holdSize", 1.25f);
             SetPrivate(itemGrip, "sizeReference", modelInstance.transform);
+
+            // ── Presentation ──
+            // Every emitter hangs off one component so the artifact keeps only the shot itself.
+            var fx = root.AddComponent<GravelBlastFx>();
+            SetPrivate(fx, "muzzle", muzzle);
+            SetPrivate(fx, "gravelBurst", gravelBurst);
+            SetPrivate(fx, "muzzleDust", muzzleDust);
+            SetPrivate(fx, "muzzleSparks", muzzleSparks);
+            SetPrivate(fx, "muzzleSmoke", muzzleSmoke);
+            SetPrivate(fx, "blastWave", blastWave);
+            SetPrivate(fx, "pelletTracers", tracers);
+            SetPrivate(fx, "impactSparks", impactSparks);
+            SetPrivate(fx, "impactDust", impactDust);
+            SetPrivate(fx, "impactDebris", impactDebris);
+            SetPrivate(fx, "backfireBurst", backfire);
+            SetPrivate(fx, "muzzleFlash", flash);
+            SetPrivate(fx, "blastShake", blastShake);
 
             // ── The artifact ──
             var artifact = root.AddComponent<GravelBlasterArtifact>();
-            SetPrivate(artifact, "muzzle", muzzle);
-            SetPrivate(artifact, "gravelBurst", gravelBurst);
-            SetPrivate(artifact, "muzzleDust", muzzleDust);
-            SetPrivate(artifact, "muzzleSparks", muzzleSparks);
-            SetPrivate(artifact, "backfireBurst", backfire);
-            SetPrivate(artifact, "muzzleFlash", flash);
+            SetPrivate(artifact, "fx", fx);
             SetPrivateEnum(artifact, "useSoundId", "WeaponGunFire");
 
             return root;
@@ -299,6 +337,169 @@ namespace SpaceGame.EditorTools
             return ps;
         }
 
+        /// <summary>
+        /// The plume that hangs off the barrels once the shot has gone: slow, thin and long-lived,
+        /// so the discharge leaves a mark on the frame after the flash is over.
+        /// </summary>
+        private static ParticleSystem BuildMuzzleSmoke(Transform parent, Material material)
+        {
+            ParticleSystem ps = BuildDust(parent, material, "MuzzleSmoke", count: 20, cone: 12f);
+
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(1.2f, 2.8f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.6f, 2.4f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.42f);
+            main.gravityModifier = new ParticleSystem.MinMaxCurve(-0.12f, -0.02f);
+            return ps;
+        }
+
+        /// <summary>
+        /// The pressure wave: a handful of big sheets thrown a couple of metres down the barrels
+        /// and gone inside a quarter of a second. This is what gives the discharge a silhouette —
+        /// without it thirty thin streaks read as a spray of dots rather than as a blast.
+        /// </summary>
+        private static ParticleSystem BuildBlastWave(Transform parent, Material material)
+        {
+            ParticleSystem ps = NewSystem(parent, "BlastWave");
+
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.16f, 0.26f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(8f, 14f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.45f, 0.8f);
+            main.gravityModifier = 0f;
+            main.maxParticles = 12;
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.startColor = new ParticleSystem.MinMaxGradient(DustLight, DustDark);
+
+            Burst(ps, 4);
+            Cone(ps, 20f, 0.04f);
+
+            var colour = ps.colorOverLifetime;
+            colour.enabled = true;
+            colour.color = new ParticleSystem.MinMaxGradient(Ramp(
+                new[] { (Color.white, 0f), (Color.white, 1f) },
+                new[] { (0.9f, 0f), (0.5f, 0.35f), (0f, 1f) }));
+
+            var size = ps.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+                new Keyframe(0f, 0.35f), new Keyframe(1f, 3.4f)));
+
+            ConfigureRenderer(ps.GetComponent<ParticleSystemRenderer>(), material,
+                              ParticleSystemRenderMode.Billboard);
+            return ps;
+        }
+
+        /// <summary>
+        /// The pellets themselves, one stretched streak each.
+        ///
+        /// <para>
+        /// No shape and no start speed: <see cref="GravelBlastFx"/> hands every particle its own
+        /// direction and a lifetime measured from the traced flight, so a streak dies exactly on
+        /// the surface its pellet struck. Anything the shape module contributed here would be
+        /// spread the trace did not agree to.
+        /// </para>
+        /// </summary>
+        private static ParticleSystem BuildTracers(Transform parent, Material material)
+        {
+            ParticleSystem ps = Manual(NewSystem(parent, "PelletTracers"));
+
+            var main = ps.main;
+            main.startLifetime = 1f;                 // overwritten per pellet
+            main.startSpeed = 0f;                    // the emit carries the velocity
+            main.startSize = new ParticleSystem.MinMaxCurve(0.035f, 0.07f);
+            main.gravityModifier = 0f;               // 70 m at 165 m/s: gravity is not the point
+            main.maxParticles = 400;
+            main.startColor = new ParticleSystem.MinMaxGradient(SparkHot, DustLight);
+
+            var shape = ps.shape;
+            shape.enabled = false;
+
+            var colour = ps.colorOverLifetime;
+            colour.enabled = true;
+            colour.color = new ParticleSystem.MinMaxGradient(Ramp(
+                new[] { (SparkHot, 0f), (DustDark, 1f) },
+                new[] { (1f, 0f), (0.85f, 0.6f), (0f, 1f) }));
+
+            var renderer = ps.GetComponent<ParticleSystemRenderer>();
+            ConfigureRenderer(renderer, material, ParticleSystemRenderMode.Stretch);
+            renderer.velocityScale = 0.022f;
+            renderer.lengthScale = 2f;
+            return ps;
+        }
+
+        /// <summary>Sparks struck off the surface a pellet hit.</summary>
+        private static ParticleSystem BuildImpactSparks(Transform parent, Material material)
+        {
+            ParticleSystem ps = Manual(BuildSparks(parent, material, "ImpactSparks", count: 0,
+                                                   cone: 55f));
+
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.1f, 0.32f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(3f, 11f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.01f, 0.03f);
+            main.maxParticles = 400;
+            return ps;
+        }
+
+        /// <summary>The puff punched out of whatever a pellet hit; tinted red on something alive.</summary>
+        private static ParticleSystem BuildImpactDust(Transform parent, Material material)
+        {
+            ParticleSystem ps = Manual(BuildDust(parent, material, "ImpactDust", count: 0,
+                                                 cone: 60f));
+
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.35f, 0.9f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(1.2f, 4f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.12f, 0.34f);
+            main.maxParticles = 300;
+            return ps;
+        }
+
+        /// <summary>Chips knocked loose, which bounce and settle where the shot landed.</summary>
+        private static ParticleSystem BuildImpactDebris(Transform parent, Material material)
+        {
+            ParticleSystem ps = Manual(BuildGravel(parent, material, "ImpactDebris", count: 0,
+                                                   minSpeed: 2f, maxSpeed: 7f, cone: 45f));
+
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.5f, 1.4f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.008f, 0.024f);
+            main.maxParticles = 300;
+            return ps;
+        }
+
+        /// <summary>
+        /// Turn a built system into one that is EMITTED INTO rather than played.
+        ///
+        /// <para>
+        /// Three things have to be true at once for that: it must be playing (a stopped system
+        /// never simulates the particles handed to it), it must not emit on its own (an authored
+        /// burst on a looping system goes off at the gun the moment it is equipped), and it must
+        /// keep simulating while the emitter is off screen — the gun is in the player's hands and
+        /// the impacts are seventy metres away, so the emitter's own visibility says nothing about
+        /// theirs.
+        /// </para>
+        /// <para>
+        /// Local scaling as well: these hang off a prefab that <see cref="ItemGrip"/> rescales to
+        /// fit the hand, and a hit on a distant wall must not be drawn at the size of the gun.
+        /// </para>
+        /// </summary>
+        private static ParticleSystem Manual(ParticleSystem ps)
+        {
+            var main = ps.main;
+            main.loop = true;
+            main.duration = 5f;
+            main.playOnAwake = true;
+            main.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
+            main.scalingMode = ParticleSystemScalingMode.Local;
+
+            var emission = ps.emission;
+            emission.enabled = false;
+            emission.SetBursts(Array.Empty<ParticleSystem.Burst>());
+            return ps;
+        }
+
         private static ParticleSystem NewSystem(Transform parent, string name)
         {
             var go = new GameObject(name);
@@ -379,6 +580,24 @@ namespace SpaceGame.EditorTools
             material.SetFloat("_Smoothness", 0.05f);
             EditorUtility.SetDirty(material);
             return material;
+        }
+
+        /// <summary>
+        /// This weapon's camera kick, seeded from the shared damage shake on first run. Never
+        /// overwrites an existing asset — once it is on disk it is somebody's tuning.
+        /// </summary>
+        private static ShakeData EnsureShake()
+        {
+            var shake = AssetDatabase.LoadAssetAtPath<ShakeData>(BlastShakePath);
+            if (shake != null) return shake;
+
+            if (!AssetDatabase.CopyAsset(ShakeSourcePath, BlastShakePath))
+            {
+                Debug.LogError($"[GravelBlaster] Could not copy {ShakeSourcePath} to {BlastShakePath}.");
+                return null;
+            }
+
+            return AssetDatabase.LoadAssetAtPath<ShakeData>(BlastShakePath);
         }
 
         // ── Markers ────────────────────────────────────────────────────────────

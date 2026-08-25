@@ -250,6 +250,8 @@ GameObject:
   - component: {fileID: 564348676825084328}
   - component: {fileID: 2091000706576258740}
   - component: {fileID: 1595347361566028885}
+  - component: {fileID: 7132514660291543766}
+  - component: {fileID: 626761283798352739}
   m_Layer: 0
   m_Name: PatrolRobot
   m_TagString: Untagged
@@ -1186,6 +1188,51 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b7179e995e114656a7c05b0bf39e686, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MotorStateSaveable
+--- !u!114 &7132514660291543766
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 799144613dd0248308d224e1b781730d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.RagdollRig
+  minBoneWeightFraction: 0.015
+  maxBones: 20
+  limbAspect: 0.3
+  minRadius: 0.04
+  totalMass: 70
+  minBoneMass: 0.6
+  swingLimit: 45
+  twistLimit: 25
+  settleLinearSpeed: 0.35
+  settleAngularSpeed: 1.2
+  settleSeconds: 0.45
+  maxLimpSeconds: 4
+  recoverBlendSeconds: 0.35
+  groundProbeHeight: 3
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  maxConcurrentRagdolls: 12
+--- !u!114 &626761283798352739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971402422321702955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c3228468ae154479b82793460d24b66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.AgentRagdoll
+  deathImpulse: 2.5
+  deathImpulseLift: 0.35
+  downedSeconds: 1.2
 --- !u!1 &972329710984439990
 GameObject:
   m_ObjectHideFlags: 0

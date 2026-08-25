@@ -37,6 +37,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Core;
 
 namespace SpaceGame.Portals
 {
@@ -188,6 +189,9 @@ namespace SpaceGame.Portals
 
         private readonly List<Collider> hostSurfaces = new List<Collider>();
 
+        /// <summary>Has this aperture found anything at all to be cut into? See <see cref="TickConformRetry"/>.</summary>
+        private bool HasHostSurface => hostSurfaces.Count > 0;
+
         /// <summary>How thick a wall an aperture is assumed to be cut through, for the pass-through.</summary>
         private const float WallThickness = 1f;
 
@@ -203,9 +207,14 @@ namespace SpaceGame.Portals
         /// <summary>
         /// Seconds left before this aperture shuts, or <see cref="float.PositiveInfinity"/> for
         /// one placed in a scene by hand.
+        ///
+        /// The grace is part of the deadline rather than something bolted on after it, so that the
+        /// iris finishes exactly when this copy of the aperture actually goes — see
+        /// <see cref="SetLifetime"/>. A shape that has irised shut but is still walkable is worse
+        /// than one that lingers for half a second.
         /// </summary>
         public float Remaining =>
-            lifetime > 0f ? Mathf.Max(0f, lifetime - Age) : float.PositiveInfinity;
+            lifetime > 0f ? Mathf.Max(0f, lifetime + expiryGrace - Age) : float.PositiveInfinity;
 
         /// <summary>
         /// Has this aperture outlived its <see cref="Lifetime"/>?
@@ -214,7 +223,7 @@ namespace SpaceGame.Portals
         /// let go of the slot in the same frame the aperture closes rather than a frame later
         /// holding a destroyed reference.
         /// </summary>
-        public bool Expired => lifetime > 0f && Age >= lifetime;
+        public bool Expired => lifetime > 0f && Remaining <= 0f;
 
         /// <summary>Where a traveller was, last time this aperture looked.</summary>
         private struct Sample
@@ -289,6 +298,16 @@ namespace SpaceGame.Portals
         private const float SweepMargin = 0.4f;
 
         private bool closing;
+
+        /// <summary>
+        /// Extra seconds this copy of the aperture waits before it shuts. See
+        /// <see cref="SetLifetime"/>.
+        ///
+        /// Zero by default, so anything that never goes through <see cref="PortalPair.Open"/> — a
+        /// pair authored in a scene, a portal opened offline — times itself out exactly as it
+        /// always has.
+        /// </summary>
+        private float expiryGrace;
 
         // Per-portal MATERIAL INSTANCES, not MaterialPropertyBlocks.
         //
@@ -472,6 +491,11 @@ namespace SpaceGame.Portals
 
             ApplyShape();
             GatherHostSurfaces();
+
+            // Placement is one probe of local physics, and on a machine whose copy of this chunk has
+            // not streamed in yet that probe finds nothing. Keep looking for a while — see
+            // TickConformRetry.
+            conformRetryUntil = Clock + ConformRetrySeconds;
         }
 
         /// <summary>
@@ -513,18 +537,82 @@ namespace SpaceGame.Portals
         }
 
         /// <summary>
-        /// How long this aperture has left, counted from now. 0 means it never expires.
+        /// How long an aperture keeps looking for the wall it was cut into.
+        ///
+        /// Long enough for a chunk to stream in around a player on the far side of the world, short
+        /// enough that an aperture genuinely opened on nothing stops probing.
+        /// </summary>
+        private const float ConformRetrySeconds = 30f;
+
+        /// <summary>Clock at which the search below gives up. See <see cref="TickConformRetry"/>.</summary>
+        private float conformRetryUntil;
+
+        /// <summary>
+        /// Look for the wall again, for a while, if it was not there the first time.
+        ///
+        /// <para>
+        /// Both probes below read LOCAL physics, and a peer that received the placement while that
+        /// piece of the world was still streaming in has none: it found no host surfaces at all and
+        /// never looked again, so its copy of the aperture kept the wall solid and sat wherever the
+        /// unconformed plane happened to land. That player alone then walked into a portal everybody
+        /// else walked through — the worst kind of divergence, because nothing about it is visible
+        /// until somebody tries to use the thing.
+        /// </para>
+        ///
+        /// <para>
+        /// The first answer that finds anything is kept, and the search disarms: re-probing a wall
+        /// that is already known would let a creature wandering past the far side of the opening
+        /// take a piece of the pass-through list with it.
+        /// </para>
+        /// </summary>
+        private void TickConformRetry()
+        {
+            if (Clock > conformRetryUntil) return;
+
+            // The ordinary case, and the one that has to cost nothing: the placement probe found
+            // its wall, so there is nothing to keep looking for.
+            if (HasHostSurface)
+            {
+                conformRetryUntil = 0f;
+                return;
+            }
+
+            // One overlap box a frame while the search runs. The conform probes — a ray per blob —
+            // are paid only on the frame the wall actually turns up, which is also the last one.
+            GatherHostSurfaces();
+            if (!HasHostSurface) return;
+
+            ConformToSurface();
+            conformRetryUntil = 0f;
+        }
+
+        /// <summary>
+        /// How long this aperture has left, counted from now, and how long past that this
+        /// particular copy of it waits before shutting. 0 seconds means it never expires.
         ///
         /// Set per shot rather than authored on the prefab, so the gun owns "portals last twenty
-        /// seconds" while a pair placed in a scene by hand stays put. Every machine calls this with
-        /// the same number the moment it opens its own copy of the aperture, which is why the
-        /// lifetime needs nothing on the wire: the placement message is what synchronises them, and
-        /// two machines timing the same twenty seconds from within a few milliseconds of each other
-        /// is as synchronised as an expiry ever needs to be.
+        /// seconds" while a pair placed in a scene by hand stays put.
+        ///
+        /// <para>
+        /// <paramref name="grace"/> is what stops two machines disagreeing about an aperture that
+        /// is nearly out of time. Every machine starts its own twenty seconds when its own copy of
+        /// the paint lands, so the same aperture expires a message's flight apart on each of them —
+        /// and a top-up sprayed inside that window found the aperture still there on one machine and
+        /// already gone on another, so one grew the old outline while the other opened a clean one,
+        /// and the two never reconciled for the rest of its life. A peer that outlives the shooter's
+        /// copy can only ever be told to grow something it still has, so the fork cannot open.
+        /// </para>
+        ///
+        /// <para>
+        /// It defaults to zero, so a portal placed in a scene by hand, or opened offline, behaves
+        /// exactly as it always did. Only <see cref="PortalPair.Open"/> ever passes more, and only
+        /// on a machine that does not own the pair.
+        /// </para>
         /// </summary>
-        public void SetLifetime(float seconds)
+        public void SetLifetime(float seconds, float grace = 0f)
         {
             lifetime = Mathf.Max(0f, seconds);
+            expiryGrace = Mathf.Max(0f, grace);
             closing = false;
         }
 
@@ -923,7 +1011,14 @@ namespace SpaceGame.Portals
             // where there is none, and doing that while somebody is editing a scene would quietly
             // attach components to authored objects and dirty the scene they are working in. Play
             // mode, or a test calling AdvanceTraversal deliberately.
-            if (Application.isPlaying) AdvanceTraversal();
+            if (!Application.isPlaying) return;
+
+            // Play mode only for the same reason and one more: the retry MOVES the aperture onto
+            // whatever wall it finds, and a component that nudges its own transform while a designer
+            // is placing it is a scene that will not stop asking to be saved.
+            TickConformRetry();
+
+            AdvanceTraversal();
         }
 
         /// <summary>
@@ -1278,19 +1373,29 @@ namespace SpaceGame.Portals
             // step, which at any speed means being shoved back out.
             destination.Adopt(traveller);
 
-            if (closeOnTraversal)
-            {
-                // Read before the close: shutting clears the pair's slots, and outside play mode
-                // destroys this component outright.
-                PortalPair pair = Pair;
+            if (!closeOnTraversal) return;
 
-                ShutBehind(destination);
+            // Only the machine that OWNS the traveller may consume the pair, and it is the same
+            // question AnnounceTraversal asks — deliberately, because the two must never disagree.
+            //
+            // Every machine detects crossings from its own physics, but only the owner's detection
+            // actually moved a body; everyone else's is cosmetic. A peer's sweep fires for an
+            // interpolated replica drifting near the opening — the contact pull needs no motion at
+            // all, only proximity — and shutting on that destroyed the shooter's portals on that
+            // machine with nobody having travelled and no message sent to put it back. A bystander
+            // who could not even see the pair could eat it.
+            if (!Network.Owns(traveller)) return;
 
-                // After the local close, so the offline degradation — the send dispatching
-                // straight back into this machine's own handler — meets a pair that is already
-                // shut and does nothing twice.
-                if (pair != null) pair.AnnounceTraversal(traveller);
-            }
+            // Read before the close: shutting clears the pair's slots, and outside play mode
+            // destroys this component outright.
+            PortalPair pair = Pair;
+
+            ShutBehind(destination);
+
+            // After the local close, so the offline degradation — the send dispatching
+            // straight back into this machine's own handler — meets a pair that is already
+            // shut and does nothing twice.
+            if (pair != null) pair.AnnounceTraversal(traveller);
         }
 
         /// <summary>

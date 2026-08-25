@@ -21,6 +21,7 @@ namespace SpaceGame.Agents
             if (!playerMovement)
                 return false;
 
+            VacateSeatForPlayer();
             CacheMountedPlayerReferences(playerMovement, mountPointOverride);
             // Arm before anything parents the rider: the beacon is the only thing that can tell a
             // later Dismount that the rider is being destroyed rather than merely leaving.
@@ -76,47 +77,37 @@ namespace SpaceGame.Agents
             ownRigidbodyConstraintsCaptured = false;
         }
 
-        // Disable collision between every rider collider and every mount collider so the rider's
-        // kinematic body can't shove the mount via contacts at the seat point.
-        private void IgnoreRiderMountCollisions()
+        // Stop the rider's kinematic body shoving the mount via contacts at the seat point. The
+        // pairs themselves are RiderCollisionIgnore's business — NpcPassenger seats a rider in this
+        // same saddle and needs the identical suspension.
+        private void IgnoreRiderMountCollisions() => riderCollisions.Apply(mountedPlayer, transform);
+
+        private void RestoreRiderMountCollisions() => riderCollisions.Restore();
+
+        /// <summary>
+        /// Turf out whoever is already in the saddle, before a player is seated on top of them.
+        ///
+        /// <para>
+        /// A caravan animal carries an NPC seated by <see cref="NpcPassenger"/>, which this class
+        /// deliberately knows nothing about — so the seat reads as free and the mount happily put
+        /// the player inside the nomad. Asked through <see cref="ISeatOccupant"/> so the eviction
+        /// stays a question the seat can pose without knowing who is in it.
+        /// </para>
+        /// <para>
+        /// Before the player is cached and parented, so the seat changes hands in one direction
+        /// only and the riding pose is never asked to hold two riders at once.
+        /// </para>
+        /// </summary>
+        private void VacateSeatForPlayer()
         {
-            if (mountedPlayer == null)
-                return;
+            var occupants = new System.Collections.Generic.List<ISeatOccupant>();
+            GetComponents(occupants);
 
-            Collider[] riderColliders = mountedPlayer.GetComponentsInChildren<Collider>(true);
-            Collider[] mountColliders = GetComponentsInChildren<Collider>(true);
-            if (riderColliders.Length == 0 || mountColliders.Length == 0)
-                return;
-
-            var pairs = new System.Collections.Generic.List<(Collider, Collider)>(
-                riderColliders.Length * mountColliders.Length);
-
-            foreach (Collider r in riderColliders)
+            foreach (ISeatOccupant occupant in occupants)
             {
-                if (!r) continue;
-                foreach (Collider m in mountColliders)
-                {
-                    if (!m || r == m) continue;
-                    Physics.IgnoreCollision(r, m, true);
-                    pairs.Add((r, m));
-                }
+                if (occupant.HasRider)
+                    occupant.VacateSeat();
             }
-
-            ignoredCollisionPairs = pairs.ToArray();
-        }
-
-        private void RestoreRiderMountCollisions()
-        {
-            if (ignoredCollisionPairs == null)
-                return;
-
-            foreach (var (a, b) in ignoredCollisionPairs)
-            {
-                if (a && b)
-                    Physics.IgnoreCollision(a, b, false);
-            }
-
-            ignoredCollisionPairs = null;
         }
 
         // Animator root motion can translate/rotate the mount transform even when every module
@@ -273,7 +264,7 @@ namespace SpaceGame.Agents
             // hierarchy this method exists to give up on. Dropping the reference alone leaves a live
             // camera and a second AudioListener in the scene for the rest of the session.
             ReleaseRuntimeThirdPersonCamera();
-            ignoredCollisionPairs = null;
+            riderCollisions.Forget();
             suppressibleAnimators = null;
             suppressibleAnimatorRootMotion = null;
             ownRigidbodyConstraintsCaptured = false;

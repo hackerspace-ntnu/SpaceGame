@@ -78,40 +78,107 @@ namespace SpaceGame.EditorTools
 
         // ── Blast VFX tuning ───────────────────────────────────────────────────
         //
-        // Read every number below against the artifact's own: a 20 m reach and a 100° cone, spent
-        // in one instant. The particles are not the blast — the cone shell and the ground ring draw
-        // that — they are its MASS, the thing that makes a wall of air visible on the way out. So
-        // they are wide, fast and brief: a narrow slow puff would read as a nozzle venting, which
-        // is the opposite of what a thundergun is.
+        // Read every number below against the artifact's own: a 20 m reach and a 70° cone, spent in
+        // one instant. The particles are not the blast — the air-warp shell and the ground arc draw
+        // that — they are its MASS, the thing that makes a wall of air visible on the way out.
+        //
+        // Every emitter cone here is narrower than the blast's own half-angle and every speed is
+        // well past it. That is deliberate and it is the whole directional read: particles thrown
+        // at the full 35° of the sweep fill the cone evenly and the eye gets a puff with no axis in
+        // it, while a tight fast core with a slower skirt around it gets read as something that
+        // WENT somewhere (GDC-L1-FEEL-0004 — the layers have to agree on the same story, and the
+        // story here is a direction).
 
         /// <summary>Where the blast leaves the gauntlet: metres in front of the cuff, along +Z.</summary>
         private const float EmitterForwardOffset = 0.16f;
 
-        private const float DustCone = 45f;
-        private const short DustCount = 55;
-        private const float DustSpeedMin = 15f, DustSpeedMax = 22f;
-        private const float DustLifeMin = 0.45f, DustLifeMax = 0.7f;
-        private const float DustSizeMin = 0.35f, DustSizeMax = 0.9f;
+        private const float DustCone = 26f;
+        private const short DustCount = 95;
+        private const float DustSpeedMin = 24f, DustSpeedMax = 38f;
+        private const float DustLifeMin = 0.5f, DustLifeMax = 0.85f;
+        private const float DustSizeMin = 0.45f, DustSizeMax = 1.3f;
         /// <summary>Negative: displaced air billows UP for the moment before it settles.</summary>
         private const float DustGravityMin = -0.12f, DustGravityMax = -0.02f;
+        /// <summary>
+        /// Drag, in Unity's per-second units. The dust has to leave FAST and stop SHORT — that
+        /// deceleration is what separates a pressure wave from a jet, and without it a cloud thrown
+        /// at 38 m/s simply exits the frame and the blast has no visible extent at all.
+        /// </summary>
+        private const float DustDrag = 3.2f;
 
-        private const float StreakCone = 40f;
-        private const short StreakCount = 70;
-        private const float StreakSpeedMin = 34f, StreakSpeedMax = 45f;
-        private const float StreakLifeMin = 0.18f, StreakLifeMax = 0.3f;
-        private const float StreakSizeMin = 0.05f, StreakSizeMax = 0.14f;
+        private const float StreakCone = 18f;
+        private const short StreakCount = 130;
+        private const float StreakSpeedMin = 58f, StreakSpeedMax = 88f;
+        private const float StreakLifeMin = 0.16f, StreakLifeMax = 0.28f;
+        private const float StreakSizeMin = 0.05f, StreakSizeMax = 0.16f;
         /// <summary>Stretch: the streak is the frame's motion, so it is length that carries speed.</summary>
-        private const float StreakLengthScale = 4f, StreakVelocityScale = 0.12f;
+        private const float StreakLengthScale = 7f, StreakVelocityScale = 0.16f;
 
-        private const float DebrisCone = 30f;
-        private const short DebrisCount = 35;
-        private const float DebrisSpeedMin = 18f, DebrisSpeedMax = 25f;
-        private const float DebrisLifeMin = 0.9f, DebrisLifeMax = 1.4f;
-        private const float DebrisSizeMin = 0.02f, DebrisSizeMax = 0.06f;
+        private const float DebrisCone = 16f;
+        private const short DebrisCount = 65;
+        private const float DebrisSpeedMin = 26f, DebrisSpeedMax = 42f;
+        private const float DebrisLifeMin = 1.1f, DebrisLifeMax = 1.8f;
+        private const float DebrisSizeMin = 0.02f, DebrisSizeMax = 0.08f;
         private const float DebrisGravityMin = 0.9f, DebrisGravityMax = 1.4f;
 
+        /// <summary>
+        /// The ground wave. Wide across, almost flat vertically, and slower than the streaks so it
+        /// is still rolling outward after they have gone.
+        /// </summary>
+        private const float SheetCone = 34f;
+        private const short SheetCount = 70;
+        private const float SheetSpeedMin = 20f, SheetSpeedMax = 30f;
+        private const float SheetLifeMin = 0.7f, SheetLifeMax = 1.1f;
+        private const float SheetSizeMin = 0.8f, SheetSizeMax = 2.2f;
+        private const float SheetDrag = 2.4f;
+        /// <summary>
+        /// Non-uniform emitter scale: Y squashed almost flat turns the cone into a horizontal FAN.
+        /// This one number is what makes the system read as a wave scouring the ground rather than
+        /// a fourth cloud fired down the same axis as the other three.
+        /// </summary>
+        private static readonly Vector3 SheetShapeScale = new Vector3(1f, 0.16f, 1f);
+        /// <summary>Mild positive gravity, so the sheet settles onto the floor as it travels.</summary>
+        private const float SheetGravityMin = 0.25f, SheetGravityMax = 0.5f;
+
         /// <summary>Point light at the emitter, lit for the artifact's flashSeconds.</summary>
-        private const float FlashRange = 9f, FlashIntensity = 14f;
+        private const float FlashRange = 16f, FlashIntensity = 30f;
+
+        // ── Ground-arc material ────────────────────────────────────────────────
+        //
+        // Written on every build rather than left to whatever the .mat happens to hold: the asset
+        // predates the arc and still carries the flat, soft numbers the old full ring used.
+
+        /// <summary>Additive brightness of the ground arc.</summary>
+        private const float RingIntensity = 5.5f;
+        /// <summary>How thin the bright leading line is. High keeps it a WAVE, not a lit disc.</summary>
+        private const float RingEdgeSharpness = 6.5f;
+        /// <summary>How much the front breaks up as it travels. 0 is a machined ring.</summary>
+        private const float RingTurbulence = 0.5f;
+        private const float RingTrailStrength = 0.3f;
+
+        // ── Air-warp material ──────────────────────────────────────────────────
+        //
+        // Same story as the arc's, and the same trap: a material is serialized from whatever the
+        // shader's defaults were on the day it was first created, and then never moves again.
+        //
+        // _LeadingEdge and _SkirtStrength are deliberately absent. RepulsorBlastCone drives both of
+        // them every frame of every shot, so whatever is written here is overwritten before anybody
+        // sees it, and pinning them would only invite somebody to tune a number that does nothing.
+
+        /// <summary>
+        /// How far the shell shoves the world behind it, in screen UV. The single number that
+        /// decides whether the blast reads as pressure or as a blue cone painted on the camera.
+        /// </summary>
+        private const float WarpStrength = 0.085f;
+        /// <summary>How fast the turbulence rushes outward along the shell.</summary>
+        private const float WarpNoiseSpeed = 5f;
+        private const float WarpNoiseScale = 7f;
+        /// <summary>Thickness of the compression front. Thin keeps it a FRONT and not a haze.</summary>
+        private const float WarpBandWidth = 0.22f;
+        /// <summary>Grazing-angle glow. The only part of the shell visible against a flat sky.</summary>
+        private const float WarpRimIntensity = 3.2f;
+        /// <summary>How much of the refraction follows the shell outward rather than the noise.</summary>
+        private const float WarpFlowBias = 0.65f;
 
         /// <summary>
         /// Rest scale of the capacitor sphere. The artifact overwrites this every frame from its own
@@ -235,6 +302,7 @@ namespace SpaceGame.EditorTools
             ParticleSystem dust = BuildBlastDust(emitter.transform, blastMats.Dust);
             ParticleSystem streaks = BuildBlastStreaks(emitter.transform, blastMats.Streaks);
             ParticleSystem debris = BuildBlastDebris(emitter.transform, blastMats.Debris);
+            ParticleSystem sheet = BuildBlastShockSheet(emitter.transform, blastMats.Dust);
             Light flash = BuildMuzzleFlash(emitter.transform);
 
             // ── Pickup / world presence ──
@@ -273,6 +341,7 @@ namespace SpaceGame.EditorTools
             SetPrivate(artifact, "blastDust", dust);
             SetPrivate(artifact, "blastStreaks", streaks);
             SetPrivate(artifact, "blastDebris", debris);
+            SetPrivate(artifact, "blastShockSheet", sheet);
             SetPrivate(artifact, "muzzleFlash", flash);
             SetPrivate(artifact, "blastShake", blastShake);
 
@@ -310,6 +379,7 @@ namespace SpaceGame.EditorTools
 
             Burst(ps, DustCount);
             Cone(ps, DustCone, 0.06f);
+            Drag(ps, DustDrag);
 
             // Snap in, drift out. A cloud that faded in symmetrically would put its brightest frame
             // after the thunderclap had already landed, which is the whole reason the old effect
@@ -405,6 +475,56 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
+        /// The ground wave: a wide, almost flat fan of sand driven along the aim and settling onto
+        /// the floor as it goes.
+        ///
+        /// <para>
+        /// The other three systems all fire down the same axis at different speeds, which stacks
+        /// depth but adds no new shape — from the caster's own first-person view they overlap into
+        /// one plume at the hand. This one is the only part of the blast the player can watch
+        /// TRAVEL, because it is the only part with a surface to travel across. It shares the dust
+        /// material rather than taking a fourth: the two are the same sand, thrown differently.
+        /// </para>
+        /// </summary>
+        private static ParticleSystem BuildBlastShockSheet(Transform parent, Material material)
+        {
+            ParticleSystem ps = NewBurstSystem(parent, "BlastShockSheet");
+
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(SheetLifeMin, SheetLifeMax);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(SheetSpeedMin, SheetSpeedMax);
+            main.startSize = new ParticleSystem.MinMaxCurve(SheetSizeMin, SheetSizeMax);
+            main.gravityModifier = new ParticleSystem.MinMaxCurve(SheetGravityMin, SheetGravityMax);
+            main.maxParticles = SheetCount * 2;
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.startColor = new ParticleSystem.MinMaxGradient(DustDark, DustLight);
+
+            Burst(ps, SheetCount);
+            Cone(ps, SheetCone, 0.1f);
+            Drag(ps, SheetDrag);
+
+            var shape = ps.shape;
+            shape.scale = SheetShapeScale; // squashed to a horizontal fan — see SheetShapeScale
+
+            var colour = ps.colorOverLifetime;
+            colour.enabled = true;
+            colour.color = new ParticleSystem.MinMaxGradient(Ramp(
+                new[] { (Color.white, 0f), (Color.white, 1f) },
+                new[] { (0.55f, 0f), (0.5f, 0.35f), (0f, 1f) }));
+
+            // The sheet grows harder than the dust does. A ground wave has nothing behind it after
+            // the first instant, so all it can do is spread — and the spreading is the read.
+            var size = ps.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+                new Keyframe(0f, 0.35f), new Keyframe(1f, 2.3f)));
+
+            ConfigureRenderer(ps.GetComponent<ParticleSystemRenderer>(), material,
+                              ParticleSystemRenderMode.Billboard);
+            return ps;
+        }
+
+        /// <summary>
         /// The flash at the emitter. Built DISABLED: the artifact switches it on in Present and off
         /// again on its flashSeconds deadline, so a light left enabled here would be a lamp welded
         /// to the player's hand.
@@ -463,6 +583,21 @@ namespace SpaceGame.EditorTools
             shape.radius = radius;
         }
 
+        /// <summary>
+        /// Velocity damping over lifetime. Present on the two systems that have to STOP inside the
+        /// blast's own 20 m rather than fly out of it — without it the numbers that make the wave
+        /// leave hard also make it leave the frame.
+        /// </summary>
+        private static void Drag(ParticleSystem ps, float drag)
+        {
+            var limit = ps.limitVelocityOverLifetime;
+            limit.enabled = true;
+            limit.dampen = 0f;          // the drag term below, not a hard speed ceiling
+            limit.drag = new ParticleSystem.MinMaxCurve(drag);
+            limit.multiplyDragByParticleSize = true;
+            limit.multiplyDragByParticleVelocity = true;
+        }
+
         private static void ConfigureRenderer(ParticleSystemRenderer renderer, Material material,
                                               ParticleSystemRenderMode mode)
         {
@@ -510,6 +645,20 @@ namespace SpaceGame.EditorTools
             // shockwave shader had compiled left the material on the URP Unlit fallback, and
             // without this the re-run that would fix it silently returns the broken one.
             material.shader = shader;
+
+            // The tuning constants are written every run for the same reason. The asset on disk
+            // predates the arc and still holds the flat, soft numbers the old full ring used; a
+            // material only initialised at creation keeps them forever and the constants above
+            // would be a lie. Guarded on the shader actually having the properties, so the URP
+            // Unlit fallback path does not spew warnings on top of its own error.
+            if (material.HasFloat("_Intensity"))
+            {
+                material.SetFloat("_Intensity", RingIntensity);
+                material.SetFloat("_EdgeSharpness", RingEdgeSharpness);
+                material.SetFloat("_Turbulence", RingTurbulence);
+                material.SetFloat("_TrailStrength", RingTrailStrength);
+            }
+
             EditorUtility.SetDirty(material);
             return material;
         }
@@ -578,6 +727,20 @@ namespace SpaceGame.EditorTools
             // shader had compiled leaves the material stuck on the URP Unlit fallback, and without
             // this the re-run that would fix it silently hands back the broken one.
             material.shader = shader;
+
+            // And re-tuned on every run for the same reason too. A material is serialized from the
+            // shader defaults that were live the day it was created; editing the shader's
+            // Properties block afterwards moves nothing on disk.
+            if (material.HasFloat("_WarpStrength"))
+            {
+                material.SetFloat("_WarpStrength", WarpStrength);
+                material.SetFloat("_NoiseSpeed", WarpNoiseSpeed);
+                material.SetFloat("_NoiseScale", WarpNoiseScale);
+                material.SetFloat("_BandWidth", WarpBandWidth);
+                material.SetFloat("_RimIntensity", WarpRimIntensity);
+                material.SetFloat("_FlowBias", WarpFlowBias);
+            }
+
             EditorUtility.SetDirty(material);
             return material;
         }

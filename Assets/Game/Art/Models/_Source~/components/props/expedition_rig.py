@@ -36,6 +36,9 @@ axis, from the authored zero):
   PIVOT_Leaf    X  -90      leaf up off the ground, against the panel
   PIVOT_Wing_L  Y  +90      wing L folds UP onto the leaf
   PIVOT_Wing_R  Y  -90      wing R folds UP onto the leaf
+  PIVOT_Lid     X  -90      the apron, relative to the LEAF it rides: mid-fold
+                            it stands up as the end wall, then rides the leaf
+                            over to cap the stowed box
 
 `BackpackDeployArc` and the state machine are unchanged; only the sign of the
 hinge travel is.
@@ -47,12 +50,12 @@ reaches 0.420 m outboard, so its tip lands at
     x = +/-(0.435 + 0.420 cos t),   z = 0.016 + 0.420 sin t
 
 for a turn of t. `PIVOT_Wing_L Y +90` puts the left wing at z 0.005 .. 0.445;
-`Y -90` puts it at z -0.413 .. 0.027, i.e. through the ground. `HingeTable` in
-`ExpeditionRigWiring.cs` still carries the old pair (`WingLeft -90`,
-`WingRight +90`) and is therefore folding both wings DOWNWARD through the floor
-on every stow. It is left alone here on purpose — it is one line in a file
-another change is in flight over — but it is wrong and it is the same one line
-whoever next touches the rack pose will be editing.
+`Y -90` puts it at z -0.413 .. 0.027, i.e. through the ground. These are
+BLENDER-frame signs. Unity's `HingeTable` carries the MIRRORED pair
+(`WingLeft -90`, `WingRight +90`) and that pair is right THERE — measured on
+the imported prefab, Y rotations arrive mirrored while X rotations arrive
+sign-true — which is why the wiring file insists every hinge sign be measured
+on the import rather than read out of this table.
 
 The rack: a third configuration, on no new hinge
 -------------------------------------------------------------------------------
@@ -61,7 +64,9 @@ the wings and the stakes stay where they are**, standing the front leaf up as a
 vertical rack for the biggest gear. That is the same angle as the leaf's stow
 travel, on the same pivot, and it is deliberate: stowed and racked are the same
 place for the leaf, and the only difference is what the rest of the rig is
-doing. Nothing needed a fifth hinge.
+doing. The rack needed no hinge of its own. (The rig DOES carry a fifth hinge
+since 2026-08-25 — PIVOT_Lid — but it is the stowed box's top, not a rack
+member; see "The lid" below.)
 
 Which face ends up pointing at the player is the part worth stating, because it
 decides where every piece of new geometry went. Under X -90 the leaf's top face
@@ -78,7 +83,7 @@ X -90 the mat direction -Y becomes world +Z, so the leaf's LEADING edge
 (y = -0.855, where the pull handle is) ends up at the top of the rack and the
 hinge end (y = -0.135) is the foot. Length along the mat is height up the rack.
 
-`SURF_Rack` is 0.80 x 0.60 m: 0.48 m^2, the largest rectangle on the rig, and
+`SURF_Rack` is 0.81 x 0.81 m: 0.66 m^2, the largest rectangle on the rig, and
 the only one with both axes over half a metre. That is what it is FOR — not
 length (the 1.60 m lash line already owns that) but bulk, the wing panel and the
 crate that fit nothing else.
@@ -105,14 +110,33 @@ The back panel stands at 65 degrees from the ground. That number is not a
 stylistic choice: the panel is 0.62 m long hinged 0.12 m up the frame, and
 0.12 + 0.62*sin(65) = 0.682, which is the spec's 0.68 m standing height exactly.
 
-The four moving groups
+The five moving groups
 ----------------------
-  root          frame, harness, hip belt, ground stakes.
+  root          frame, harness, hip belt.
   PIVOT_Back    back panel, its webbing ladders, the oxygen tank and its bands
                 and manifold, and both kickstands.
   PIVOT_Leaf    front leaf, its grommet field, the lash rail, and the rack —
-                the underside ladder, its two cargo nets and the edge handle.
+                the underside ladder and its two cargo nets.
   PIVOT_Wing_L  left wing and its spine rib.   (likewise _R)
+  PIVOT_Lid     the lid apron beyond the leaf's leading edge, its corner
+                grommets, the pull handle and both ground stakes. A child of
+                PIVOT_Leaf, like the wing pivots: it rides the board and folds
+                relative to it.
+
+The lid (2026-08-25)
+--------------------
+Stowed, the folded rig used to be an open-topped box: leaf in front, wings as
+flanks, panel and bedroll behind — and sky above the tank. No fixed piece of
+geometry can close that, because the stow maps every candidate carrier's plane
+to vertical, so the top had to be the fifth hinge. PIVOT_Lid sits on the leaf's
+LEADING edge and its apron is authored deployed like everything else: LID_D
+more metres of mat, coplanar with the leaf beyond LEAF_Y0. Folding it X -90
+relative to the leaf mid-choreography stands it up as the end wall; riding the
+leaf's own -90 it arrives flat on top, capping the box 10 mm above the folded
+wing crests. In the RACK pose the same relative -90 turns it into a hood over
+the board's top edge. The handle and the stakes moved out to the apron's
+leading edge with it — the handle is the lid's pull now, and the stakes still
+pin the assembly's front corners through the lid's own corner grommets.
 
 The kickstands hang off PIVOT_Back rather than off a fifth hinge because the
 spec names exactly four moving parts. A leg that stows flat against the back of
@@ -140,10 +164,16 @@ items under them and a scaled parent would rescale every item. The intended
 extent of each is in SURFACES below and is printed at build time for whoever
 fills in the `PackSurface` inspector.
 
+Every rectangle is an EXACT multiple of PackGrid's 0.090 m cell (2026-08-25),
+so the grid fills each face edge to edge with zero hem, and the decorative
+stitching, grommet and webbing pitch is 0.180 m = two cells, phase-aligned to
+the cell boundaries. Resize a surface only in whole cells, and move its
+decoration with it.
+
 `SURF_LongGoods` exists because the 1.35 m LaserStaff fits nothing else. The
-biggest open face is 0.86 x 0.72, whose diagonal is 1.1216 m, so the staff does
-not fit at any yaw. The lash rail is 1.60 x 0.14 across the full open width;
-diagonal 1.606 m, square on with room to spare.
+biggest open rect is the 0.81 x 0.81 rack, whose diagonal is 1.1455 m, so the
+staff does not fit at any yaw. The lash rail is 1.62 x 0.09 across the full
+open width; diagonal 1.6225 m, square on with room to spare.
 
 Convexity
 ---------
@@ -196,12 +226,37 @@ WING_HINGE_L = Vector((-0.435, -0.545, 0.016))
 WING_HINGE_R = Vector((0.435, -0.545, 0.016))
 
 HALF_W = 0.430                # frame and leaf half width
-LEAF_Y0, LEAF_Y1 = -0.855, -0.135
-WING_Y0, WING_Y1 = -0.845, -0.245
+
+# 2026-08-25: the board was DEEPENED by this much at its leading edge, and
+# nothing else moved. Items roughly doubled in size (see ItemScaleLadder.cs) and
+# the mat could no longer hold the gear it was drawn for: at 0.50 m deep its
+# widest axis-aligned run was 8 cells, so nothing longer than 0.72 m fitted it at
+# any yaw. Everything below that ends in `_Y0`, plus the lash rail and the whole
+# rack band, is measured from the LEADING edge and therefore carries this term;
+# the hinge end is untouched, so the frame, the panel and the fold all still meet
+# the board exactly where they did.
+#
+# 0.200 and not more: the mat wanted 0.70 m, and the deeper rail that was drawn
+# up alongside it (0.14 -> 0.27) would have cost a further 0.13 m of board. That
+# stops being "a bit taller" on the wearer's back, and the rack's overhang rule
+# already takes every long item, so the rail stayed as it is.
+LEAF_EXTRA = 0.200
+
+LEAF_Y0, LEAF_Y1 = -0.855 - LEAF_EXTRA, -0.135
+WING_Y0, WING_Y1 = -0.845 - LEAF_EXTRA, -0.245
 WING_X0, WING_X1 = 0.435, 0.855
 CLOTH_T = 0.026               # leaf / wing canvas thickness
 
-RAIL_Y = (-0.805, -0.715)     # the two webbing runs of the lash line
+# 2026-08-25: the LID — the stowed box's top (see "The lid" in the header). A
+# flat apron of the same quilted canvas, hinged on the leaf's leading edge and
+# authored DEPLOYED like everything else: coplanar with the mat, LID_D deeper.
+# Two 0.180 m quilt panels deep, so its seams keep the mat's two-cell pitch.
+LID_D = 0.360
+LID_Y0, LID_Y1 = LEAF_Y0 - LID_D, LEAF_Y0
+LID_HINGE = Vector((0.0, LEAF_Y0, CLOTH_T))
+
+RAIL_MID = -0.760 - LEAF_EXTRA   # the lash line's centre, and its fittings'
+RAIL_Y = (RAIL_MID - 0.045, RAIL_MID + 0.045)   # the two webbing runs
 RAIL_HALF = 0.800             # 1.60 m across
 RAIL_Z = 0.034
 
@@ -217,7 +272,7 @@ RAIL_Z = 0.034
 # closer than 6 mm to the canvas underside at z = 0 or `_zverify.py` flags it as
 # a coplanar abutment.
 RACK_HALF = 0.336             # outer runners, half gauge
-RACK_Y0, RACK_Y1 = -0.845, -0.180     # the runners' span along the mat
+RACK_Y0, RACK_Y1 = -0.845 - LEAF_EXTRA, -0.180   # the runners' span along the mat
 LADDER_R = 0.018
 LADDER_Z = -0.024
 RUNG_R = 0.013
@@ -237,7 +292,7 @@ RACK_POSTS = (-RACK_HALF, 0.0, RACK_HALF)
 # cross members the nets actually need survive: a foot rail on the gussets at
 # the hinge end and a head rail at the leading edge.
 RAIL_FOOT_Y = -0.195          # hinge end     -> the BOTTOM of the raised rack
-RAIL_HEAD_Y = -0.830          # leading edge  -> the TOP of the raised rack
+RAIL_HEAD_Y = -0.830 - LEAF_EXTRA   # leading edge  -> the TOP of the raised rack
 RACK_RAILS = (RAIL_FOOT_Y, RAIL_HEAD_Y)
 
 # --- the two nets ----------------------------------------------------------
@@ -272,10 +327,12 @@ NET_COLS, NET_ROWS = 3, 5     # ~0.107 x 0.127 m mesh
 # load settles onto the cords instead of through them.
 RACK_FACE = -0.051
 
-# Band of the mat the rack rectangle covers, as distance from PIVOT_Leaf. It
-# stops short of both skid pads: 0.070 .. 0.670 m, i.e. y -0.205 .. -0.805.
-RACK_MID_Y = -0.505
-RACK_W, RACK_D = 0.800, 0.600
+# Band of the mat the rack rectangle covers, as distance from PIVOT_Leaf.
+# 9x9 cells exactly (0.810 = 9 x 0.090), y -0.200 .. -1.010: the head skid
+# pads stay 5 mm clear, and the foot pads (r 0.025 now) sit 5 mm inside the
+# foot edge — the same nominal overlap the old 8x8 rect already accepted.
+RACK_MID_Y = -0.505 - LEAF_EXTRA / 2.0
+RACK_W, RACK_D = 0.810, 0.610 + LEAF_EXTRA
 
 TANK_S = 0.330                # tank centre along the panel's slope
 TANK_R = 0.110
@@ -331,13 +388,29 @@ def tcen(ds=0.0):
 # an item placed at the edge does not overhang it. They are printed at build
 # time; nothing in the .blend encodes them, because a scaled empty would rescale
 # every item Unity parents under it.
+#
+# 2026-08-25: every rectangle is an EXACT multiple of PackGrid's 0.090 m cell —
+# Back panels 3x6, Leaf 8x8, Wings 4x7, LongGoods 18x1, Rack 9x9 — so the grid
+# fills each face with zero hem. The centres moved with the resize; each entry
+# says where its rect now runs.
 SURFACES = [
-    ("SURF_Back_L", "back", pface(-0.285, 0.310) + BN * 0.006, ROT_PANEL, 0.260, 0.500),
-    ("SURF_Back_R", "back", pface(0.285, 0.310) + BN * 0.006, ROT_PANEL, 0.260, 0.500),
-    ("SURF_Leaf", "leaf", Vector((0.0, -0.430, CLOTH_T + 0.005)), ROT_UP, 0.780, 0.500),
-    ("SURF_Wing_L", "wing_l", Vector((-0.655, -0.480, CLOTH_T + 0.005)), ROT_UP, 0.380, 0.400),
-    ("SURF_Wing_R", "wing_r", Vector((0.655, -0.480, CLOTH_T + 0.005)), ROT_UP, 0.380, 0.400),
-    ("SURF_LongGoods", "leaf", Vector((0.0, -0.760, RAIL_Z + 0.016)), ROT_UP, 1.600, 0.140),
+    # x 0.150..0.420, s 0.030..0.570 up the slope: clear of the hinge knuckles
+    # at the foot, on the loft to within a 3 mm corner sliver at the head.
+    ("SURF_Back_L", "back", pface(-0.285, 0.300) + BN * 0.006, ROT_PANEL, 0.270, 0.540),
+    ("SURF_Back_R", "back", pface(0.285, 0.300) + BN * 0.006, ROT_PANEL, 0.270, 0.540),
+    # y -0.165..-0.885: 26 mm clear of the hinge knuckles, 5 mm clear of the
+    # lash rail's near webbing run.
+    ("SURF_Leaf", "leaf", Vector((0.0, -0.525, CLOTH_T + 0.005)),
+     ROT_UP, 0.720, 0.720),
+    # x 0.475..0.835, y -0.275..-0.905: hem-tangent clear at the hinge end,
+    # over the rib pads outboard exactly as the old rect already was.
+    ("SURF_Wing_L", "wing_l", Vector((-0.655, -0.590, CLOTH_T + 0.005)),
+     ROT_UP, 0.360, 0.630),
+    ("SURF_Wing_R", "wing_r", Vector((0.655, -0.590, CLOTH_T + 0.005)),
+     ROT_UP, 0.360, 0.630),
+    # One 0.090 row on RAIL_MID, the keeper line; 1.62 wide runs 10 mm into
+    # the flat end-buckle loops, which are the anchors.
+    ("SURF_LongGoods", "leaf", Vector((0.0, RAIL_MID, RAIL_Z + 0.016)), ROT_UP, 1.620, 0.090),
     ("SURF_Rack", "leaf", Vector((0.0, RACK_MID_Y, RACK_FACE)), ROT_RACK,
      RACK_W, RACK_D),
 ]
@@ -691,19 +764,23 @@ def _back_webbing(sx):
     what an empty pack shows is this ladder.
     """
     def build(p, sx=sx):
-        for x in (0.196, 0.378):
-            pbox(p, sx * x, 0.310, 0.052, 0.500, 0.018, OCHRE, off=-0.010)
-        for s in (0.090, 0.180, 0.270, 0.360, 0.450, 0.540):
-            pbox(p, sx * 0.287, s, 0.238, 0.036, 0.026, OCHRE, off=-0.002)
-        for s in (0.135, 0.405):
-            p.tube(pface(sx * 0.287, s) + BN * 0.020, 0.020, 0.007, 0.014,
+        # The ladder IS the grid (2026-08-25): verticals ON the rect's outer
+        # cell columns (x 0.150 / 0.420), rungs on the six ROW CENTRES at the
+        # cell's own 0.090 pitch spanning tape to tape, eyelets on row
+        # boundaries. su covers the full 0.540 rect depth.
+        for x in (0.150, 0.420):
+            pbox(p, sx * x, 0.300, 0.052, 0.540, 0.018, OCHRE, off=-0.010)
+        for s in (0.075, 0.165, 0.255, 0.345, 0.435, 0.525):
+            pbox(p, sx * 0.285, s, 0.322, 0.036, 0.026, OCHRE, off=-0.002)
+        for s in (0.120, 0.390):
+            p.tube(pface(sx * 0.285, s) + BN * 0.020, 0.020, 0.007, 0.014,
                    axis='Z', seg=6, mat=BRASS)
     return build
 
 
 for _sx, _side in ((-1, "L"), (1, "R")):
     part("Mesh_Rig_BackWebbing_" + _side,
-         origin=pface(_sx * 0.287, 0.310),
+         origin=pface(_sx * 0.285, 0.300),
          parent="back")(_back_webbing(_sx))
 
 
@@ -766,8 +843,14 @@ def _tank_bands(p):
         p.box(c, (0.062, 0.062, 0.026), STEEL, rot=BROT)
         p.box(c + BN * 0.020, (0.030, 0.088, 0.016), BRASS, rot=BROT)
         for sx in (-1, 1):
-            pbox(p, sx * 0.128, TANK_S + ds, 0.044, 0.052, 0.124, STEEL, off=0.0)
-            pbox(p, sx * 0.128, TANK_S + ds, 0.076, 0.076, 0.014, STEEL, off=-0.006)
+            # 0.124, not 0.128 (2026-08-25): the grown back rects reach in to
+            # x 0.150, and at 0.128 the posts' outer faces sat flush on that
+            # line. 4 mm of air now. The flange sinks to crest +0.004, under
+            # the rect plane's +0.006 — and its INNER face sits at -0.016, not
+            # the webbing tapes' -0.010: the tapes moved onto x 0.150 and two
+            # same-facing faces on one plane is exactly what _zverify.py flags.
+            pbox(p, sx * 0.124, TANK_S + ds, 0.044, 0.052, 0.124, STEEL, off=0.0)
+            pbox(p, sx * 0.124, TANK_S + ds, 0.076, 0.076, 0.020, STEEL, off=-0.016)
 
 
 @part("Mesh_Rig_OxygenTank_Manifold", origin=pface(0.0, 0.040) + BN * 0.125,
@@ -836,28 +919,36 @@ def _leaf(p):
     """Quilted stiffened canvas that falls forward onto the ground."""
     p.slab((-HALF_W, LEAF_Y0, 0.0), (HALF_W, LEAF_Y1, CLOTH_T), CANVAS)
     hem(p, -0.416, 0.416, LEAF_Y0 + 0.014, LEAF_Y1 - 0.014, 0.024, r=0.013)
+    # Quilt lines on cell boundaries (0.180 pitch = two cells), interleaved
+    # with the grommet rows.
     quilt(p, -HALF_W, HALF_W, LEAF_Y0, LEAF_Y1,
-          (-0.215, 0.0, 0.215), (-0.315, -0.495, -0.675), CLOTH_T)
+          (-0.180, 0.0, 0.180), (-0.345, -0.525, -0.705, -0.885), CLOTH_T)
     for cx in (-0.300, 0.0, 0.300):
         p.cyl((cx, LEAF_Y1 - 0.004, 0.018), 0.014, 0.096, axis='X', seg=10,
               mat=STEEL)
 
 
-@part("Mesh_Rig_LeafGrommets", origin=(0.0, -0.430, CLOTH_T), parent="leaf",
+@part("Mesh_Rig_LeafGrommets", origin=(0.0, -0.525, CLOTH_T),
+      parent="leaf",
       bevel=0.0)
 def _leaf_grommets(p):
-    """The grommet-and-loop field: the leaf's base holder, and its four corners."""
-    grommet_field(p, -0.300, 0.300, -0.240, -0.620, 4, 3, CLOTH_T,
+    """The grommet-and-loop field: the leaf's base holder, and its rear corners.
+
+    The field sits ON the cell grid (2026-08-25): 0.180 pitch both ways, every
+    eyelet on a cell boundary. The LEADING corner pair moved out to the lid —
+    the assembly's leading edge is the lid's now (see Mesh_Rig_LidGrommets).
+    """
+    grommet_field(p, -0.270, 0.270, -0.255, -0.795, 4, 4, CLOTH_T,
                   loops={(0, 0), (3, 0), (1, 2), (2, 1)})
     for sx in (-1, 1):
-        for gy in (LEAF_Y1 + 0.055, LEAF_Y0 - 0.055):
-            p.tube((sx * 0.372, gy, CLOTH_T), 0.024, 0.008, 0.026, axis='Z',
-                   seg=10, mat=BRASS)
-            p.tube((sx * 0.372, gy, CLOTH_T - 0.004), 0.030, 0.010, 0.014,
-                   axis='Z', seg=8, mat=RUBBER)
+        gy = LEAF_Y1 + 0.055
+        p.tube((sx * 0.372, gy, CLOTH_T), 0.024, 0.008, 0.026, axis='Z',
+               seg=10, mat=BRASS)
+        p.tube((sx * 0.372, gy, CLOTH_T - 0.004), 0.030, 0.010, 0.014,
+               axis='Z', seg=8, mat=RUBBER)
 
 
-@part("Mesh_Rig_LashRail", origin=(0.0, -0.760, RAIL_Z), parent="leaf")
+@part("Mesh_Rig_LashRail", origin=(0.0, RAIL_MID, RAIL_Z), parent="leaf")
 def _lash_rail(p):
     """The lash line for long tools, across the full open width.
 
@@ -870,19 +961,20 @@ def _lash_rail(p):
                width=0.050, depth=0.020, axis='Z', mat=OCHRE)
 
     for sx in (-1, 1):
-        loop_buckle(p, (sx * 0.775, -0.760, RAIL_Z + 0.010), 0.086, 0.130, 0.014,
+        loop_buckle(p, (sx * 0.775, RAIL_MID, RAIL_Z + 0.010), 0.086, 0.130, 0.014,
                     BRASS, plane='XY')
         for gy in RAIL_Y:
-            p.seam((sx * 0.700, gy, RAIL_Z), (sx * 0.828, -0.760, RAIL_Z + 0.008),
+            p.seam((sx * 0.700, gy, RAIL_Z), (sx * 0.828, RAIL_MID, RAIL_Z + 0.008),
                    width=0.042, depth=0.016, axis='Z', mat=OCHRE)
-        p.tube((sx * 0.830, -0.760, CLOTH_T), 0.020, 0.007, 0.026, axis='Z',
+        p.tube((sx * 0.830, RAIL_MID, CLOTH_T), 0.020, 0.007, 0.026, axis='Z',
                seg=8, mat=BRASS)
 
     # Keepers: short tabs pinching both runs down onto the canvas, so the rail
     # reads as lashed to the mat rather than hovering over it.
-    for cx in (-0.560, -0.230, 0.230, 0.560):
-        p.box((cx, -0.760, RAIL_Z + 0.006), (0.048, 0.128, 0.018), CANVAS)
-        p.tube((cx, -0.760, CLOTH_T + 0.002), 0.015, 0.006, 0.024, axis='Z',
+    # On cell boundaries: three and six cells out from the mat's centre line.
+    for cx in (-0.540, -0.270, 0.270, 0.540):
+        p.box((cx, RAIL_MID, RAIL_Z + 0.006), (0.048, 0.128, 0.018), CANVAS)
+        p.tube((cx, RAIL_MID, CLOTH_T + 0.002), 0.015, 0.006, 0.024, axis='Z',
                seg=8, mat=BRASS)
 
 
@@ -922,7 +1014,10 @@ def _rack_ladder(p):
               (0.048, 0.056, 0.028), STEEL)
 
         for gy in (RACK_Y1, RACK_Y0):
-            p.cyl((sx * RACK_HALF, gy, LADDER_FLOOR + 0.008), 0.030, 0.016,
+            # r 0.025 (was 0.030, 2026-08-25): the 9x9 rack rect reaches the
+            # pads now, and the smaller foot keeps the overlap at the 5 mm the
+            # 8x8 rect already accepted.
+            p.cyl((sx * RACK_HALF, gy, LADDER_FLOOR + 0.008), 0.025, 0.016,
                   axis='Z', seg=8, mat=RUST)
 
         # Webbing tape down the inboard face of each runner: the one soft line
@@ -992,23 +1087,68 @@ def _rack_nets(p):
             NET_COLS, NET_ROWS, NET_CORD, RUBBER, plane='XY')
 
 
-@part("Mesh_Rig_RackHandle", origin=(0.0, -0.870, 0.030), parent="leaf")
+@part("Mesh_Rig_RackHandle", origin=(0.0, LID_Y0 - 0.015, 0.030), parent="lid")
 def _rack_handle(p):
-    """The pull loop on the leaf's leading edge: how you know the mat lifts.
+    """The pull loop on the assembly's leading edge: how you know the mat lifts.
 
     The whole rack is under the mat while the mat is down, so without something
-    on the visible side there is nothing at all to say the leaf does anything
+    on the visible side there is nothing at all to say the board does anything
     but lie there. This is the one part of the feature that reads from the
     focus camera in the deployed pose, and it becomes the grab handle at the top
     of the rack once it is up.
+
+    On the LID since 2026-08-25 — and back on the true leading edge: the loop
+    was hardcoded at the pre-LEAF_EXTRA edge and had sat mid-board over the
+    lash rail's near webbing run since the deepening. Authored against LID_Y0
+    now, so the next edge move carries it automatically.
     """
-    loop = [(-0.092, -0.856, 0.028), (-0.064, -0.892, 0.050),
-            (0.064, -0.892, 0.050), (0.092, -0.856, 0.028)]
+    loop = [(-0.092, LID_Y0 - 0.001, 0.028), (-0.064, LID_Y0 - 0.037, 0.050),
+            (0.064, LID_Y0 - 0.037, 0.050), (0.092, LID_Y0 - 0.001, 0.028)]
     bent_tube(p, loop, 0.011, OCHRE, seg=6, collar=True)
 
     for sx in (-1, 1):
-        p.tube((sx * 0.092, -0.850, 0.026), 0.019, 0.007, 0.022, axis='Y',
-               seg=8, mat=BRASS)
+        p.tube((sx * 0.092, LID_Y0 + 0.005, 0.026), 0.019, 0.007, 0.022,
+               axis='Y', seg=8, mat=BRASS)
+
+
+# --- the lid (the stowed box's top) -----------------------------------------
+
+@part("Mesh_Rig_Lid", origin=LID_HINGE, parent="lid")
+def _lid(p):
+    """The apron that closes the stowed box — see "The lid" in the header.
+
+    Deployed it is simply LID_D more metres of mat past the leaf's leading
+    edge: same slab, same rolled hem, same quilt language, two 0.180 m quilt
+    panels deep so the seams keep the mat's two-cell pitch. Its slab ends
+    EXACTLY on LEAF_Y0 — the leaf's end face and the lid's are opposed there,
+    which _zverify.py correctly reads as an occluded joint, and the two
+    chamfered edges groove into the hinge crease. Three steel knuckles
+    straddle the seam the way the leaf's own knuckles straddle its hinge line.
+    """
+    p.slab((-HALF_W, LID_Y0, 0.0), (HALF_W, LID_Y1, CLOTH_T), CANVAS)
+    hem(p, -0.416, 0.416, LID_Y0 + 0.014, LID_Y1 - 0.014, 0.024, r=0.013)
+    quilt(p, -HALF_W, HALF_W, LID_Y0, LID_Y1,
+          (-0.180, 0.0, 0.180), (-1.235,), CLOTH_T)
+    for cx in (-0.300, 0.0, 0.300):
+        p.cyl((cx, LID_Y1 - 0.004, 0.018), 0.012, 0.096, axis='X', seg=10,
+              mat=STEEL)
+
+
+@part("Mesh_Rig_LidGrommets", origin=(0.0, LID_Y0 - 0.055, CLOTH_T),
+      parent="lid", bevel=0.0)
+def _lid_grommets(p):
+    """The assembly's leading corner grommets, carried out from the leaf.
+
+    Same brass-plus-washer pair the leaf's rear corners wear. The stakes' guy
+    cords tie to these, so they had to travel with the edge or the cords would
+    have stretched by LID_D — the exact failure the deepening already hit once
+    with LEAF_EXTRA.
+    """
+    for sx in (-1, 1):
+        p.tube((sx * 0.372, LID_Y0 - 0.055, CLOTH_T), 0.024, 0.008, 0.026,
+               axis='Z', seg=10, mat=BRASS)
+        p.tube((sx * 0.372, LID_Y0 - 0.055, CLOTH_T - 0.004), 0.030, 0.010,
+               0.014, axis='Z', seg=8, mat=RUBBER)
 
 
 # --- the wings ------------------------------------------------------------
@@ -1021,10 +1161,10 @@ def _wing(sx):
         hem(p, sx * (WING_X0 + 0.014), sx * (WING_X1 - 0.014),
             WING_Y0 + 0.014, WING_Y1 - 0.014, 0.024, r=0.013)
         quilt(p, sx * WING_X0, sx * WING_X1, WING_Y0, WING_Y1,
-              (sx * 0.645,), (-0.395, -0.695), CLOTH_T)
-        grommet_field(p, sx * 0.520, sx * 0.780, -0.310, -0.650, 2, 3, CLOTH_T,
+              (sx * 0.645,), (-0.395, -0.695, -0.995), CLOTH_T)
+        grommet_field(p, sx * 0.520, sx * 0.780, -0.310, -0.850, 2, 4, CLOTH_T,
                       loops={(0, 0), (1, 2)})
-        for gy in (-0.760, -0.545, -0.330):
+        for gy in (-0.975, -0.760, -0.545, -0.330):
             p.cyl((sx * 0.437, gy, 0.018), 0.014, 0.088, axis='Y', seg=10,
                   mat=STEEL)
     return build
@@ -1043,7 +1183,7 @@ def _wing_rib(sx):
         p.seam(a, b, width=0.044, depth=0.020, axis='Z', mat=OCHRE)
         for c in (a, b):
             p.cyl(c, 0.020, 0.034, axis='Y', seg=8, mat=STEEL)
-        for gy in (-0.400, -0.690):
+        for gy in (-0.400, -0.690, -0.980):
             p.box((sx * 0.800, gy, 0.024), (0.100, 0.038, 0.026), OCHRE)
     return build
 
@@ -1059,20 +1199,27 @@ for _sx, _side in ((-1, "L"), (1, "R")):
 # --- the stakes -----------------------------------------------------------
 
 def _stake(sx):
-    """Pins the leaf's front corner to the ground.
+    """Pins the assembly's front corner to the ground.
 
     Not decoration: it is the answer to "why is this mat lying flat on rocky
-    ground". Static, because a stake driven into the sand does not ride a hinge;
-    the cord to the corner grommet is the part that would be unhooked to fold.
+    ground". It RIDES the lid (2026-08-25; a 2026-08-24 hand edit had it riding
+    PIVOT_Leaf before that): its cord and grommet are one rigid mesh with it,
+    so the moment the board moved without it the pair read as debris on the
+    sand. Stowed, the two lie lashed across the lid's rear corners.
     """
     def build(p, sx=sx):
-        head = Vector((sx * 0.492, -0.886, 0.062))
-        tip = Vector((sx * 0.452, -0.846, -0.078))
+        # Pinned to the LID's leading corner, so the stake travels with the
+        # assembly's true edge rather than staying put and paying for a deeper
+        # board in cord: authored against LID_Y0, the guy line keeps the slack
+        # it was drawn with instead of stretching by LID_D — the same trap the
+        # deepening hit and fixed once already with LEAF_EXTRA.
+        head = Vector((sx * 0.492, LID_Y0 - 0.031, 0.062))
+        tip = Vector((sx * 0.452, LID_Y0 + 0.009, -0.078))
         bent_tube(p, [tuple(head), tuple(tip)], 0.011, STEEL, seg=6, collar=False)
         p.box(tuple(head + Vector((0.0, 0.0, 0.008))), (0.026, 0.046, 0.016),
               STEEL)
         p.cyl(tuple(head), 0.019, 0.012, axis='Z', seg=8, mat=RUST)
-        g = Vector((sx * 0.372, LEAF_Y0 - 0.055, CLOTH_T + 0.010))
+        g = Vector((sx * 0.372, LID_Y0 - 0.055, CLOTH_T + 0.010))
         mid = (head + g) / 2.0 + Vector((0.0, 0.0, 0.026))
         bent_tube(p, [tuple(head), tuple(mid), tuple(g)], 0.007, RUBBER, seg=6,
                   collar=False)
@@ -1081,7 +1228,8 @@ def _stake(sx):
 
 for _sx, _side in ((-1, "L"), (1, "R")):
     part("Mesh_Rig_Stake_" + _side,
-         origin=(_sx * 0.492, -0.886, 0.062))(_stake(_sx))
+         origin=(_sx * 0.492, LID_Y0 - 0.031, 0.062),
+         parent="lid")(_stake(_sx))
 
 
 # ---------------------------------------------------------------------------
@@ -1151,9 +1299,11 @@ def dump_surfaces():
 
     print("  --- fold angles from the authored (deployed) zero ---")
     print("    PIVOT_Back    X %+6.1f    PIVOT_Leaf    X %+6.1f" % (25.0, -90.0))
-    print("    PIVOT_Wing_L  Y %+6.1f    PIVOT_Wing_R  Y %+6.1f" % (-90.0, 90.0))
-    print("    the RACK is PIVOT_Leaf X -90 alone, with the other three held "
-          "at zero")
+    print("    PIVOT_Wing_L  Y %+6.1f    PIVOT_Wing_R  Y %+6.1f"
+          "  (Blender frame; Unity mirrors Y)" % (90.0, -90.0))
+    print("    PIVOT_Lid     X %+6.1f  (relative to the LEAF it rides)" % -90.0)
+    print("    the RACK is PIVOT_Leaf X -90 plus the lid's own relative -90, "
+          "with the other three held at zero")
 
     # Where the rack actually stands, since nothing else in this dump shows it.
     rack = bpy.data.objects.get("Mesh_Rig_RackLadder")
@@ -1190,7 +1340,17 @@ def main():
         "leaf": (empty("PIVOT_Leaf", LEAF_HINGE, coll, size=0.16), LEAF_HINGE),
         "wing_l": (empty("PIVOT_Wing_L", WING_HINGE_L, coll, size=0.13), WING_HINGE_L),
         "wing_r": (empty("PIVOT_Wing_R", WING_HINGE_R, coll, size=0.13), WING_HINGE_R),
+        "lid": (empty("PIVOT_Lid", LID_HINGE, coll, size=0.13), LID_HINGE),
     }
+
+    # The wing pivots and the lid ride the BOARD: children of PIVOT_Leaf, so
+    # their fold is relative to it. The wings were reparented by hand on
+    # 2026-08-24 (ground-hinged wings read as the board abandoning its sides);
+    # folded into the build on 2026-08-25 so a regeneration needs no hand-edit
+    # pass any more.
+    leaf_host, leaf_world = pivots["leaf"]
+    for rider in ("wing_l", "wing_r", "lid"):
+        attach(pivots[rider][0], leaf_host, leaf_world)
 
     for name, fn, origin, parent, bevel, seg in PARTS:
         p = Part(mats)

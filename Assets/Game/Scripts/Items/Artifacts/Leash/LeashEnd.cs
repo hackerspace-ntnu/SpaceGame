@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using SpaceGame.Agents;
 using SpaceGame.Core;
 
 namespace SpaceGame.Items
@@ -107,10 +108,27 @@ namespace SpaceGame.Items
 
         // ── Tying ──────────────────────────────────────────────────────────────
 
-        /// <summary>Tie this end to a world object at a point on its surface.</summary>
-        public void TieTo(GameObject targetRoot, Vector3 worldHitPoint, Leash rope)
+        /// <summary>
+        /// Tie this end to a world object at a knot offset in that object's own local space.
+        ///
+        /// <para>
+        /// An OFFSET rather than a world point, deliberately. The point was measured on the
+        /// clicking machine and arrives here a relay later, by which time a moving target has
+        /// moved — so re-projecting it against this machine's interpolated pose puts the knot
+        /// somewhere the player never clicked, and somewhere different on every machine. Both the
+        /// rope's shape and its break verdict follow from that number, and it is fixed once tied.
+        /// See LeashArtifact.OnRequestUse.
+        /// </para>
+        /// </summary>
+        public void TieTo(GameObject targetRoot, Vector3 localOffset, Leash rope)
         {
             Release(rope);
+
+            // Tying to somebody in a saddle takes them out of it. Until they are down their
+            // transform belongs to the animal carrying them, so the rope pulls on something that
+            // cannot move — and the offset below would be measured against a mount that is about to
+            // walk away with it. See NpcPassenger.UnseatRider.
+            NpcPassenger.UnseatRider(targetRoot);
 
             var body = targetRoot.GetComponentInParent<Rigidbody>();
             Transform root = body != null ? body.transform : targetRoot.transform;
@@ -119,7 +137,10 @@ namespace SpaceGame.Items
             Anchor = root;
             Body = body;
             Agent = root.GetComponentInParent<NavMeshAgent>();
-            LocalOffset = root.InverseTransformPoint(worldHitPoint);
+
+            // Taken, not measured. The caller resolved it against the copy the player actually
+            // clicked; this machine's copy is somewhere else by now.
+            LocalOffset = localOffset;
 
             Attachable = LeashAttachable.GetOrAdd(root.gameObject);
             Attachable.AddLeash(rope);
@@ -175,8 +196,10 @@ namespace SpaceGame.Items
         /// <summary>Restore-only: tie to an object at a knot offset that was recorded, not measured.</summary>
         public void RestoreOnto(GameObject root, Vector3 localOffset, bool held, Leash rope)
         {
+            // No TransformPoint round trip any more: TieTo takes the offset directly, so a restore
+            // and a fresh tie now travel the same path with the same units.
             if (held) TieToHand(root, null, rope);
-            else TieTo(root, root.transform.TransformPoint(localOffset), rope);
+            else TieTo(root, localOffset, rope);
 
             LocalOffset = localOffset;
         }
@@ -187,7 +210,9 @@ namespace SpaceGame.Items
             if (Attachable != null) Attachable.RemoveLeash(rope);
             Attachable = null;
 
-            if (ownedAnchor != null) Object.Destroy(ownedAnchor);
+            // Leash.Remove rather than Object.Destroy: this stand-in is a bare runtime GameObject
+            // and is torn down from EditMode tests and editor tooling too, where Destroy is refused.
+            if (ownedAnchor != null) Leash.Remove(ownedAnchor);
             ownedAnchor = null;
 
             Anchor = null;
@@ -202,14 +227,26 @@ namespace SpaceGame.Items
         /// Is this end mine to move?
         ///
         /// <para>
-        /// A player's body is theirs and nobody else's — their transform is owner-authoritative, so
-        /// anything another machine writes into it is overwritten within the tick, silently. That is
-        /// the rule this whole split exists to respect. Everything else belongs to the server, or to
-        /// the only machine there is when offline.
+        /// Ownership, and only ownership. A transform is written by the machine that owns its
+        /// NetworkObject, and anything another machine writes into it is overwritten within the
+        /// tick, silently — which is the rule this whole split exists to respect.
+        /// </para>
+        /// <para>
+        /// The owner is NOT always the server, and that is what the earlier
+        /// <c>Network.Server</c> test here got wrong. A ridden mount belongs to its RIDER —
+        /// <c>MountNetworkSync</c> hands ownership over so the motion replicates outward from
+        /// them — so the server's pulls on it were thrown away while the rider's machine declined
+        /// to resolve an end it did not consider its own. The rope held a host-ridden animal and
+        /// was inert against a client-ridden one. A player answers the same question the same way,
+        /// so the two branches collapse into one.
+        /// </para>
+        /// <para>
+        /// Anything with no spawned NetworkObject is owned by every machine, which is right: each
+        /// then resolves its own unshared copy, and single-player keeps working.
         /// </para>
         /// </summary>
         public bool ResolvedHere =>
-            IsPlayer ? Body != null && Network.Owns(Body) : !Network.IsNetworked || Network.Server;
+            Network.Owns(Body != null ? (Component)Body : Anchor);
 
         /// <summary>
         /// Pull this end toward the other one.

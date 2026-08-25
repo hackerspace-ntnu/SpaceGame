@@ -5,13 +5,14 @@ using UnityEngine.InputSystem;
 namespace SpaceGame.Items
 {
     /// <summary>
-    /// Turns the cursor into two questions about a deployed pack: <em>which item is under it</em>
-    /// and <em>where on the rig is it pointing</em>.
+    /// Turns the cursor into questions about a deployed pack: <em>which item is under it</em>,
+    /// <em>where on the rig is it pointing</em> — and, for a carry crossing open ground, where
+    /// the cursor ray passes the pack's height.
     ///
     /// <para>
-    /// Split out of <c>PackDragController</c> because it is the half with no state at all. Every
-    /// method here is a pure function of the camera, the cursor and the rig, which means the drag
-    /// state machine never has to reason about geometry and this can be read on its own.
+    /// Split out of <c>PackHandController</c> because it is the half with no state at all. Every
+    /// method here is a pure function of the camera, the cursor and the rig, which means the hand
+    /// never has to reason about geometry and this can be read on its own.
     /// </para>
     /// <para>
     /// <c>Camera.ScreenPointToRay</c> is a new pattern in this project — every other pick in the
@@ -35,6 +36,25 @@ namespace SpaceGame.Items
         /// <summary>The ray under the cursor. Degenerate — origin, zero direction — with no camera.</summary>
         public static Ray CursorRay(Camera cam) =>
             cam != null ? cam.ScreenPointToRay(CursorPosition) : new Ray(Vector3.zero, Vector3.zero);
+
+        /// <summary>
+        /// Where the cursor ray meets a horizontal plane at <paramref name="height"/> — the seat
+        /// for a carried copy crossing ground that has no face under it. A ray that misses the
+        /// plane, by pointing at the sky or by grazing it so shallowly the hit runs out past
+        /// <see cref="Reach"/>, answers with a point <paramref name="fallbackMetres"/> along the
+        /// ray instead, so the caller always gets somewhere under the cursor.
+        /// </summary>
+        public static Vector3 CursorPointAtHeight(Camera cam, float height, float fallbackMetres)
+        {
+            Ray ray = CursorRay(cam);
+            if (ray.direction.sqrMagnitude < 1e-6f) return ray.origin;
+
+            var plane = new Plane(Vector3.up, new Vector3(0f, height, 0f));
+
+            if (plane.Raycast(ray, out float along) && along <= Reach) return ray.GetPoint(along);
+
+            return ray.GetPoint(fallbackMetres);
+        }
 
         /// <summary>
         /// The display copy under the cursor, if there is one.

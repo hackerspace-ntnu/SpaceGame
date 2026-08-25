@@ -291,11 +291,18 @@ def hazard_plate(coll, mats):
     frame's own side uprights. The plate is then a cantilever over the mechanism with
     nothing beneath it, which is also how a real machine guard is built.
 
-    `PLATE_Z` clears the carriage's top (0.124 once mounted) rather than the deck.
+    `PLATE_Z` clears the carriage's top (0.128 once mounted) rather than the deck.
+
+    ## Why it reaches so far forward
+
+    It spans the ram's whole stroke, not just the parked mechanism. A linear actuator with
+    a long throw necessarily exposes bare rail at rest — the carriage has to have somewhere
+    to go — and 0.19 m of naked guide rail sticking out past the fist reads as an unfinished
+    model. Shrouding the travel is also what a hazard-striped guard is actually for.
     """
     p = TrackedPart(mats)
     x0, x1 = -0.076, 0.076
-    y0, y1 = -0.190, 0.010
+    y0, y1 = -0.286, 0.010
     BRACKET_X = 0.076
     BRACKET_Y = (-0.020, -0.079)     # over the frame's middle and front uprights
     z = 0.144

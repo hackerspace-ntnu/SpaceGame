@@ -224,7 +224,11 @@ namespace SpaceGame.Characters
             ApplyDeathFreeze();
             OnPlayerDeath?.Invoke();
 
-            // TODO: ragdoll
+            // The body going limp is PlayerRagdoll's, and it is deliberately not called from here.
+            // This method only runs on the machine that owns this player — DisablePlayer drops
+            // these handlers everywhere else — and a corpse has to be limp on every machine looking
+            // at it. PlayerRagdoll subscribes to the HealthComponent directly for that reason, so a
+            // peer's copy goes down off the same death this one did.
         }
 
         // Input.enabled is part of the freeze, not an extra: jump and dash are delivered as input

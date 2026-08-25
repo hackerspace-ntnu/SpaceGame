@@ -279,5 +279,117 @@ namespace SpaceGame.EditorTools
             // And in between it is monotone: more span, less droop.
             Assert.That(LeashRope.SagDepth(2f, 8f), Is.GreaterThan(LeashRope.SagDepth(6f, 8f)));
         }
+
+        // ── What has to AGREE between two machines ─────────────────────────────
+        //
+        // A rope's shape and its break verdict both follow from two numbers fixed at the moment of
+        // the tie: where the knot sits, and how much rope was paid out. Both used to be MEASURED on
+        // each machine, at its own Present moment a relay apart — so a rope tied across anything
+        // moving settled on a different knot and a different length everywhere, permanently. These
+        // pin that both are now taken from the message instead.
+
+        [Test]
+        public void AKnotIsAnOffsetSoItRidesAMovingAnchor()
+        {
+            var target = new GameObject("runner");
+            target.transform.position = Vector3.zero;
+
+            var rope = Leash.Create(new Leash.Settings { length = 8f, rope = new LeashRope() });
+            rope.TieEndTo(true, target, new Vector3(0f, 1f, 0.5f));
+
+            Vector3 before = rope.A.Position;
+            target.transform.position = new Vector3(10f, 0f, 0f);
+
+            Assert.That(rope.A.Position, Is.EqualTo(before + new Vector3(10f, 0f, 0f)).Using(Vec),
+                        "the knot did not ride the anchor, so two machines hold different parts of it");
+
+            rope.Dispose();
+            Object.DestroyImmediate(target);
+        }
+
+        [Test]
+        public void APaidOutLengthIsTakenNotMeasured()
+        {
+            var target = new GameObject("post");
+
+            var player = new GameObject("holder") { tag = "Player" };
+
+            var rope = Leash.Create(new Leash.Settings { length = 8f, rope = new LeashRope() });
+            rope.PinEndTo(true, Vector3.zero);
+
+            // The hand end has to exist before it can be moved onto anything — TieHandEndOnto acts
+            // on whichever end IS in a hand and does nothing at all when neither is.
+            rope.TieEndToHand(false, player, null);
+
+            // Deliberately unrelated to the gap between the ends: the point is that the number
+            // arrives rather than being derived from whatever this machine can currently see.
+            rope.TieHandEndOnto(target, Vector3.zero, 12.5f);
+
+            Assert.That(rope.Length, Is.EqualTo(12.5f).Within(1e-3f),
+                        "the length the clicking machine settled on is not the length this one used");
+
+            rope.Dispose();
+            Object.DestroyImmediate(target);
+            Object.DestroyImmediate(player);
+        }
+
+        [Test]
+        public void ATieNeverShortensARopeThatIsAlreadyLonger()
+        {
+            var target = new GameObject("post");
+
+            var player = new GameObject("holder") { tag = "Player" };
+
+            var rope = Leash.Create(new Leash.Settings { length = 16f, rope = new LeashRope() });
+            rope.PinEndTo(true, Vector3.zero);
+            rope.TieEndToHand(false, player, null);
+            rope.TieHandEndOnto(target, Vector3.zero, 4f);
+
+            Assert.That(rope.Length, Is.EqualTo(16f).Within(1e-3f),
+                        "a short tie shrank a rope somebody had already paid out");
+
+            rope.Dispose();
+            Object.DestroyImmediate(target);
+            Object.DestroyImmediate(player);
+        }
+
+        [Test]
+        public void ARopeIsFoundByAPointInItsAnchorsSpace()
+        {
+            // How an untie and a snap name a rope on a machine that did not click it. Addressed
+            // against the anchor so the point rides whatever the rope is tied to: a bare world
+            // point has left the tolerance by the time a peer looks at an animal running at 8 m/s.
+            //
+            // Leash.Nearest searches the LIVE registry, which OnEnable fills — and Unity does not
+            // raise OnEnable for a runtime AddComponent outside play mode, so a rope built here is
+            // never in it. What can be pinned without play mode is the ADDRESSING itself: that a
+            // point resolved through an anchor rides that anchor, which is the whole property the
+            // fix turns on.
+            var runner = new GameObject("runner");
+            runner.transform.position = Vector3.zero;
+
+            var rope = Leash.Create(new Leash.Settings { length = 8f, rope = new LeashRope() });
+            rope.TieEndTo(true, runner, new Vector3(0f, 1f, 0f));
+
+            Vector3 clickedAt = rope.A.Position;
+            Vector3 inAnchorSpace = runner.transform.InverseTransformPoint(clickedAt);
+
+            // The target runs eight metres while the click is in flight — further than the one-metre
+            // untie tolerance, which is exactly the case that used to lose the rope.
+            runner.transform.position = new Vector3(8f, 0f, 0f);
+
+            Assert.That(runner.transform.TransformPoint(inAnchorSpace),
+                        Is.EqualTo(rope.A.Position).Using(Vec),
+                        "the addressed point did not ride the anchor, so a peer would resolve it " +
+                        "eight metres behind the rope and find nothing");
+
+            Assert.That(Vector3.Distance(clickedAt, rope.A.Position), Is.GreaterThan(1f),
+                        "test setup: the anchor must move further than the untie tolerance, or " +
+                        "this passes for the wrong reason");
+
+            rope.Dispose();
+            Object.DestroyImmediate(runner);
+        }
+
     }
 }

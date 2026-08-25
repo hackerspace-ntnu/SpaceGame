@@ -31,10 +31,10 @@ from _exportlib import export, unity_path  # noqa: E402
 SRC = os.path.join(HERE, "sucker_puncher.blend")
 DST = unity_path("Items", "sucker_puncher.fbx")
 
-# The three objects the prefab parents under one moving transform. Kept here as
+# The four objects the prefab parents under one moving transform. Kept here as
 # well as in the model script because this is the list the Unity side consumes.
 RAM_OBJECTS = ("Mesh_RamSlide_Carriage", "Mesh_SuckerPuncher_RamArm",
-               "Mesh_KnuckleBlock_Segmented")
+               "Mesh_KnuckleBlock_Segmented", "Mesh_RamSlide_Rod")
 
 
 def main():

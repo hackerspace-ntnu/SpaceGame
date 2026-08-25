@@ -59,6 +59,15 @@ namespace SpaceGame.Items
         private float mass = MinMass;
         private Vector3 lastAnimatedPosition;
 
+        /// <summary>The rope anchor that took hold. Only that rope may let go again.</summary>
+        private Transform binder;
+
+        /// <summary>Set when this tether — and not something else — made the body dynamic.</summary>
+        private bool madeDynamic;
+
+        /// <summary>Whether a rope currently holds this creature.</summary>
+        public bool IsBound => bound;
+
         public static LassoTether Ensure(GameObject creature)
         {
             if (creature == null) return null;
@@ -86,9 +95,28 @@ namespace SpaceGame.Items
         public float StruggleFraction =>
             settings == null ? 0f : Mathf.Clamp01(1f - struggleClock / settings.StruggleSeconds);
 
-        /// <summary>Take hold of this creature.</summary>
-        public void Bind(Transform ropeAnchor, float length, LassoStruggle struggleSettings)
+        /// <summary>
+        /// Take hold of this creature. False when somebody else's rope already has it.
+        ///
+        /// <para>
+        /// One rope at a time. <see cref="Ensure"/> returns whatever component is already here, so
+        /// without this a second thrower rebound the SAME tether: the first rope's constraint
+        /// vanished while its item went on drawing a rope and dragging its holder, and whichever
+        /// thrower released first freed the creature from both.
+        /// </para>
+        /// </summary>
+        public bool Bind(Transform ropeAnchor, float length, LassoStruggle struggleSettings)
         {
+            if (bound && binder != ropeAnchor) return false;
+
+            binder = ropeAnchor;
+
+            // A rope on somebody riding an animal takes them off it first, before anything below
+            // reads a position or a body: a seated rider's transform belongs to the mount, so the
+            // rope would go taut against an animal that walks on regardless. See
+            // NpcPassenger.UnseatRider.
+            NpcPassenger.UnseatRider(gameObject);
+
             anchor = ropeAnchor;
             settings = struggleSettings ?? new LassoStruggle();
             ropeLength = length;
@@ -115,10 +143,19 @@ namespace SpaceGame.Items
             selfDriving ??= GetComponentInParent<ISelfDrivingMotor>();
             selfDriving?.SuspendSelfDrive();
 
-            // Only a real, simulated body. A kinematic replica is kinematic on purpose.
-            if (body != null && body.isKinematic && Network.Simulates(body)) body.isKinematic = false;
+            // Only a body this machine OWNS. A replica is kinematic on purpose, and flipping one
+            // here handed it gravity and collisions it must not have — a corruption that outlived
+            // the rope, because Release used not to put it back, and that a quit-time autosave
+            // could capture. Simulates was the wrong question: it is true on the server for every
+            // remote player's and every ridden mount's replica.
+            if (body != null && body.isKinematic && Network.Owns(body))
+            {
+                body.isKinematic = false;
+                madeDynamic = true;
+            }
 
             bound = true;
+            return true;
         }
 
         /// <summary>The rope was reeled in or paid out. Kept in step so the constraint agrees with the visual.</summary>
@@ -129,10 +166,19 @@ namespace SpaceGame.Items
         /// underneath it — this is reached from the press, from unequip, from the item's OnDestroy
         /// and from this component's own, and more than one of those fires for a single release.
         /// </summary>
-        public void Release()
+        public void Release(Transform ropeAnchor)
         {
-            if (!bound) return;
+            // Addressed by the rope that took hold, so a release travelling from another thrower's
+            // item — or from a stale instance being torn down — cannot free a creature somebody
+            // else is still holding.
+            if (!bound || (ropeAnchor != null && ropeAnchor != binder)) return;
+
             bound = false;
+            binder = null;
+
+            // Put back exactly what Bind changed, and only if Bind was the thing that changed it.
+            if (madeDynamic && body != null) body.isKinematic = true;
+            madeDynamic = false;
 
             selfDriving?.ResumeSelfDrive();
             selfDriving = null;
@@ -151,7 +197,8 @@ namespace SpaceGame.Items
             animatorDriver = null;
         }
 
-        private void OnDestroy() => Release();
+        /// <summary>Going away releases whatever holds this creature, whoever that is.</summary>
+        private void OnDestroy() => Release(binder);
 
         /// <summary>Advance the struggle clock without a frame. The seam the EditMode tests use.</summary>
         public void AdvanceStruggle(float seconds) => struggleClock += Mathf.Max(0f, seconds);

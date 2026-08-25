@@ -25,12 +25,13 @@ namespace SpaceGame.Items
     {
         [Header("Rig")]
         [Tooltip("Every part that moves when the pack opens, in any order. The expedition rig " +
-                 "wires PIVOT_Back, PIVOT_Leaf and PIVOT_Wing_L/R here and names each one's part " +
-                 "so it gets its own beat. The wing pivots (with the stakes and the lash rail) " +
-                 "are CHILDREN of PIVOT_Leaf, so their ±90 fold is relative to the board and the " +
-                 "closing flap carries them round to hug the pack's flanks. The older clamshell " +
-                 "wired PIVOT_Door_L and PIVOT_Door_R and left them Generic. Leaving this empty " +
-                 "is legal — a pack with no moving parts still shows and gives up its contents.")]
+                 "wires PIVOT_Back, PIVOT_Leaf, PIVOT_Wing_L/R and PIVOT_Lid here and names each " +
+                 "one's part so it gets its own beat. The wing and lid pivots (with the stakes " +
+                 "and the lash rail) are CHILDREN of PIVOT_Leaf, so their folds are relative to " +
+                 "the board and the closing flap carries them round to hug the pack's flanks and " +
+                 "cap its top. The older clamshell wired PIVOT_Door_L and PIVOT_Door_R and left " +
+                 "them Generic. Leaving this empty is legal — a pack with no moving parts still " +
+                 "shows and gives up its contents.")]
         [SerializeField] private BackpackHinge[] hinges = new BackpackHinge[0];
 
         [Tooltip("The flat faces items can be laid on, in any order — a surface is identified by " +
@@ -166,6 +167,20 @@ namespace SpaceGame.Items
         /// </summary>
         private readonly Dictionary<string, GameObject> gridVisuals = new();
 
+        /// <summary>
+        /// The strap bands lashing each placed item down, keyed the same way again.
+        ///
+        /// <para>
+        /// A fourth parallel dictionary, for the grid's reason: the bands are built in the
+        /// SURFACE's frame from the item's sampled silhouette, so parenting them under the item's
+        /// fitted display copy would multiply the item's scale into webbing that is supposed to
+        /// measure the mat. Handles rather than GameObjects, because each band's mesh has to be
+        /// destroyable after Unity has already torn the band object down with the pack — see
+        /// <see cref="PackStrapVisual.Destroy"/>.
+        /// </para>
+        /// </summary>
+        private readonly Dictionary<string, PackStrapVisual.Handle> strapVisuals = new();
+
         private BackpackController owner;
         private Coroutine doorRoutine;
         private Coroutine rackRoutine;
@@ -255,6 +270,16 @@ namespace SpaceGame.Items
             // The field, not the property: a pack destroyed before anything ever asked for its
             // contents should not build a layout on its way out.
             if (layout != null) layout.OnChanged -= RebuildVisuals;
+
+            // The strap meshes are per-placement builds Unity never collects on its own. The
+            // display hierarchy dies with the pack, but a HideAndDontSave mesh dies only when
+            // somebody destroys it — RebuildVisuals covers every rebuild, this covers the last.
+            // The handles keep the meshes reachable even when Unity took the band objects down
+            // before this ran.
+            foreach (PackStrapVisual.Handle straps in strapVisuals.Values)
+                PackStrapVisual.Destroy(straps);
+
+            strapVisuals.Clear();
         }
 
         /// <summary>Who is carrying this. Null once it is dropped for good.</summary>
@@ -430,18 +455,19 @@ namespace SpaceGame.Items
         // ------------------------------------------------------------------ the rack
         //
         // The front leaf flipped up into a vertical rack for the biggest gear — and the WHOLE
-        // front comes with it, closing like a box. The wings' pivots, the stakes and the lash
-        // rail are children of PIVOT_Leaf in the model, so nothing on the front can ever be left
-        // behind on the sand (the redesign-by-playtest: ground-hinged wings read as the board
-        // abandoning its sides). On top of that ride the side panels' own hinges, ±90 relative
-        // to the BOARD: closing stands them square up off it, and as the board rises they come
-        // round to wrap the pack's flanks, hugging the exterior.
+        // front comes with it, closing like a box. The wing and lid pivots, the stakes and the
+        // lash rail are children of PIVOT_Leaf in the model, so nothing on the front can ever be
+        // left behind on the sand (the redesign-by-playtest: ground-hinged wings read as the
+        // board abandoning its sides). On top of that ride the flaps' own hinges, 90 relative
+        // to the BOARD: closing stands them square up off it, and as the board rises the sides
+        // come round to wrap the pack's flanks and the lid over its top, hugging the exterior.
         //
         // No extra hinge was added for the rack and that is the design, not a shortcut: every
         // part the rack moves is asked for the very angle its own stow fold already asks for —
-        // the leaf X -90 from the authored deployed pose, each panel ±90 about the board's edge
-        // — so stowed and racked are the same place for all three and the only difference is
-        // what the panel and the sheet's other beats are doing. See LeafFromOpen and WingFromOpen
+        // the leaf X -90 from the authored deployed pose, each panel ±90 about the board's edge,
+        // the lid -90 about its leading one, arriving as a hood over the raised board's top —
+        // so stowed and racked are the same place for all four and the only difference is
+        // what the panel and the sheet's other beats are doing. See LeafFromOpen and FlapFromOpen
         // for how the two demands meet on each hinge.
         //
         // Which face comes up is what decides everything else. Under X -90 the mat — SURF_Leaf,
@@ -737,13 +763,16 @@ namespace SpaceGame.Items
         //   0.45-0.85  leaf FALLS forward — stakes and rail riding it — 8 deg overshoot
         //   0.60-0.96  left side panel folds down flat off the board, 90 deg about its edge
         //   0.64-1.00  right side panel, 40 ms behind it
+        //   0.68-1.04  lid apron unfolds past the board's leading edge, 40 ms behind that
         //   0.90-1.20  stakes drop, cords go taut
         //   1.00-1.40  holders pop in, staggered outward from the tank, 0.12 s each
         //
-        // Run backwards for the stow, this is a box being closed: the side panels stand up square
-        // off the board while the flap is already rising, and as it lands against the pack they
-        // come round to hug its flanks. The wings' pivots are CHILDREN of PIVOT_Leaf, so their
-        // 90 is relative to the board and they ride it the rest of the way.
+        // Run backwards for the stow, this is a box being closed: the lid stands up off the
+        // board's leading edge first, the side panels follow it up square off the board while the
+        // flap is already rising, and as the flap lands against the pack the sides come round to
+        // hug its flanks and the lid rides over the top to cap it. The wing and lid pivots are
+        // CHILDREN of PIVOT_Leaf, so their folds are relative to the board and they ride it the
+        // rest of the way.
         //
         // Three of those carry the feel and none of them is an ease:
         //
@@ -859,8 +888,9 @@ namespace SpaceGame.Items
             // little past zero mid-rebound. Which way round that has to be applied to the model's
             // rest rotation is the one thing restIsOpen decides.
             //
-            // The leaf and the two side panels are the parts the rack also moves, so each of them
-            // reconciles two demands on one hinge instead of reading the sheet straight.
+            // The leaf, the two side panels and the lid are the parts the rack also moves, so
+            // each of them reconciles two demands on one hinge instead of reading the sheet
+            // straight.
             float fromOpen;
 
             switch (hinge.part)
@@ -871,7 +901,8 @@ namespace SpaceGame.Items
 
                 case BackpackHingePart.WingLeft:
                 case BackpackHingePart.WingRight:
-                    fromOpen = WingFromOpen(hinge.part, p, hinge.foldAngle);
+                case BackpackHingePart.Lid:
+                    fromOpen = FlapFromOpen(hinge.part, p, hinge.foldAngle);
                     break;
 
                 default:
@@ -897,11 +928,17 @@ namespace SpaceGame.Items
                 case BackpackHingePart.Leaf:
                     from = LeafFrom; to = LeafTo; break;
                 case BackpackHingePart.WingLeft:
-                    from = WingFrom; to = WingFrom + WingSpan; break;
                 case BackpackHingePart.WingRight:
-                    // The 40 ms. It is not a rounding of "at the same time as the left one" — it
-                    // is the difference between a machine and a thing made of cloth and tube.
-                    from = WingFrom + WingStagger; to = WingFrom + WingStagger + WingSpan; break;
+                case BackpackHingePart.Lid:
+                    // One window per slot in the flap chain, each 40 ms behind the one before.
+                    // The stagger is not a rounding of "all at the same time" — it is the
+                    // difference between a machine and a thing made of cloth and tube — and
+                    // reading the slot off FlapStep is what makes the order STRICT: the lid sits
+                    // past both wings, so the stow can never interleave it between them, however
+                    // the tunables move.
+                    from = WingFrom + FlapStep(part) * WingStagger;
+                    to = from + WingSpan;
+                    break;
                 default:
                     from = SheetLanded; to = SheetLanded + openSeconds; break;
             }
@@ -919,9 +956,11 @@ namespace SpaceGame.Items
                     return 1f - u * u * u * u;
                 }
 
-                // Ribbed panels flipping over on a hinge: quick, then set down.
+                // Ribbed panels and the lid's quilted apron flipping over on a hinge: quick,
+                // then set down.
                 case BackpackHingePart.WingLeft:
                 case BackpackHingePart.WingRight:
+                case BackpackHingePart.Lid:
                 {
                     float u = 1f - p;
                     return 1f - u * u * u;
@@ -1001,28 +1040,32 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// One side panel's angle from the deployed pose, given BOTH the things that can turn it:
-        /// the unfold beat sheet, and the rack. The wing half of <see cref="LeafFromOpen"/>, and
-        /// the same rule for the same reason — whichever demand is further from the open pose wins.
+        /// One board-riding flap's angle from the deployed pose — a side panel or the lid — given
+        /// BOTH the things that can turn it: the unfold beat sheet, and the rack. The flap half of
+        /// <see cref="LeafFromOpen"/>, and the same rule for the same reason — whichever demand is
+        /// further from the open pose wins.
         ///
         /// <para>
-        /// <b>The panels stand square UP off the board and hug the pack.</b> Their pivots are
-        /// children of <c>PIVOT_Leaf</c>, so the ±90° here is measured against the board: folded,
-        /// each panel stands perpendicular to it like the raised side of a tray — and because the
-        /// board itself turns X -90 to the pack, the raised sides arrive wrapped round the pack's
-        /// flanks, hugging the exterior. Closing is therefore two visible motions of one
-        /// connected thing: the sides fold up, the closing flap carries them round the body.
+        /// <b>The flaps fold UP off the board and ride it round the pack.</b> Their pivots are
+        /// children of <c>PIVOT_Leaf</c>, so the 90° here is measured against the board: folded,
+        /// each side panel stands perpendicular to it like the raised side of a tray and the lid
+        /// stands up off its leading edge as the end wall — and because the board itself turns
+        /// X -90 to the pack, the raised sides arrive wrapped round the pack's flanks and the lid
+        /// arrives flat on top, capping the box. Closing is therefore two visible motions of one
+        /// connected thing: the flaps fold up, the closing board carries them round the body. On
+        /// the rack the very same relative fold is what turns the lid into a hood over the raised
+        /// board's top edge instead of a flat apron prolonging it.
         /// </para>
         /// <para>
         /// <b>The racked angle is <see cref="BackpackHinge.foldAngle"/> itself, not a number of
         /// its own</b>, and that is load-bearing rather than a convenience. It is the same trick
-        /// the leaf plays: because racked and stowed are the same place for the panels too,
-        /// <see cref="ResolveRackForStow"/> still costs exactly zero motion on all three parts, a
+        /// the leaf plays: because racked and stowed are the same place for the flaps too,
+        /// <see cref="ResolveRackForStow"/> still costs exactly zero motion on all four parts, a
         /// pack stowed from the rack lands in the same pose as one stowed flat, and nothing has
         /// to unwind on the way to being shouldered.
         /// </para>
         /// </summary>
-        private float WingFromOpen(BackpackHingePart part, float p, float fold)
+        private float FlapFromOpen(BackpackHingePart part, float p, float fold)
         {
             float sheet = fold * (1f - Ease(part, p));
 
@@ -1032,36 +1075,55 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// The rack's clock as ONE side panel reads it: the right one <see cref="WingStagger"/>
-        /// behind the left, the same 40 ms the deploy and the stow already stagger them by and
-        /// for the same reason — simultaneous motion reads as machinery.
+        /// The rack's clock as ONE board-riding flap reads it: each slot in the chain
+        /// <see cref="WingStagger"/> behind the one before, the same 40 ms the deploy and the
+        /// stow already stagger them by and for the same reason — simultaneous motion reads as
+        /// machinery.
         ///
         /// <para>
         /// Expressed as a lag in CLOCK rather than in seconds so the whole raise still takes
-        /// <see cref="rackSeconds"/>: the lagging panel starts late and the leading one finishes
-        /// early, by the same fraction, and both are exact at 0 and at 1. Exactness at the ends
-        /// is what keeps <see cref="ResolveRackForStow"/> free — a panel sitting at 0.998 of its
-        /// flip when the rack is given up would twitch.
+        /// <see cref="rackSeconds"/>: a lagging flap starts late and a leading one finishes
+        /// early, by the same fraction, and every slot is exact at 0 and at 1. Exactness at the
+        /// ends is what keeps <see cref="ResolveRackForStow"/> free — a flap sitting at 0.998 of
+        /// its flip when the rack is given up would twitch.
         /// </para>
         /// <para>
         /// A pure function of the clock, deliberately, and not of which way the rack is
         /// travelling. The rack is reversible mid-swing and two direction-dependent curves read
         /// through one clock do not meet at the point of reversal. The visible consequence is
-        /// that the panel that folded in last flips out first, which is what a pair of hinged
-        /// panels does anyway.
+        /// that the flap that folded in last flips out first, which is what a row of hinged
+        /// flaps does anyway.
         /// </para>
         /// </summary>
         private float RackClockFor(BackpackHingePart part)
         {
-            // Half the clock is the hard ceiling: rackSeconds can be tuned down to 0.05, at which
-            // point 40 ms is most of the swing and an unclamped lag would leave the leading panel
-            // snapping through its whole arc in the first few milliseconds.
-            float lag = Mathf.Clamp(WingStagger / Mathf.Max(0.05f, rackSeconds), 0f, 0.5f);
+            // Half the clock is the hard ceiling for the WHOLE chain: rackSeconds can be tuned
+            // down to 0.05, at which point two 40 ms lags are most of the swing and an unclamped
+            // chain would leave the leading wing snapping through its whole arc in the first few
+            // milliseconds.
+            float lag = Mathf.Clamp(WingStagger / Mathf.Max(0.05f, rackSeconds),
+                                    0f, 0.5f / LastFlapStep);
 
-            float shifted = part == BackpackHingePart.WingRight ? rackClock - lag : rackClock;
+            float shifted = rackClock - FlapStep(part) * lag;
 
-            return Mathf.Clamp01(shifted / (1f - lag));
+            return Mathf.Clamp01(shifted / (1f - LastFlapStep * lag));
         }
+
+        /// <summary>
+        /// Where a flap stands in the stagger chain the board's riders fold on: the left wing
+        /// leads, the right wing follows, the lid brings up the rear. One list, read by the beat
+        /// sheet's windows and the rack's clock alike, so the two choreographies can never order
+        /// the flaps differently.
+        /// </summary>
+        private static int FlapStep(BackpackHingePart part) => part switch
+        {
+            BackpackHingePart.WingRight => 1,
+            BackpackHingePart.Lid => LastFlapStep,
+            _ => 0,
+        };
+
+        /// <summary>The last slot in the flap stagger chain — the lid's.</summary>
+        private const int LastFlapStep = 2;
 
         /// <summary>
         /// A damped bounce over <c>v</c> in [0,1]: one hump to +1, a shallow dip past it, and
@@ -1172,12 +1234,12 @@ namespace SpaceGame.Items
         /// Can a player put something on this face right now?
         ///
         /// <para>
-        /// Three of the rig's seven faces ride the leaf, and the leaf has two positions, so at any
+        /// Five of the rig's seven faces ride the leaf, and the leaf has two positions, so at any
         /// moment one set of them is against the sand. Down, the rack is the underside of a mat
-        /// lying on the ground; up, the mat and the lash line have swung round behind the board.
-        /// Neither is somewhere a player can reach or even see, and first-fit would happily use
-        /// them — the rack is last in the surface list, so an overflowing world pickup would slide
-        /// an item under the mat with nothing at all to say where it went.
+        /// lying on the ground; up, the mat, the wings and the lash line have swung round behind
+        /// the board. Neither is somewhere a player can reach or even see, and first-fit would
+        /// happily use them — the rack sits after the board in the surface list, so an overflowing
+        /// world pickup would slide an item under the mat with nothing at all to say where it went.
         /// </para>
         /// <para>
         /// <b>This gates player actions only, never a restore.</b> An explicit placement that names
@@ -1187,11 +1249,12 @@ namespace SpaceGame.Items
         /// reach until the leaf goes up again, which is exactly where the player left it.
         /// </para>
         /// <para>
-        /// <b>The shipped rig wires no wing or back-panel surfaces any more</b> — only the board
-        /// carries inventory (mat, rack, lash rail), because the side panels fold up to hug the
-        /// pack's flanks when it closes and gear on them would be crushed against the body. The
-        /// wing ids keep the leaf's rule below anyway: they ride <c>PIVOT_Leaf</c>, so on any rig
-        /// that DID wire them a racked wing is somewhere the player can neither see nor reach.
+        /// <b>The shipped rig wires all seven faces</b> (2026-08-25 — an earlier pass wired only
+        /// the board, and the unwired flanks read as broken rather than forbidden: the placement
+        /// outline just died over them). The wing ids share the leaf's rule below because they
+        /// ride <c>PIVOT_Leaf</c>: a racked wing has swung round behind the board, where the
+        /// player can neither see nor reach it. The back panels are the open rig's fixed spine,
+        /// so they take the default and are reachable whenever the pack is deployed.
         /// </para>
         /// </summary>
         public bool Reaches(PackSurfaceId id)
@@ -1250,10 +1313,12 @@ namespace SpaceGame.Items
         /// The faces a player can use, for first-fit.
         ///
         /// <para>
-        /// Into a reused buffer, because <see cref="CanTakeToHotbar"/> is a prediction the drag
-        /// controller asks for on every frame of a drag and a fresh list per frame is garbage for
-        /// nothing. The result is only ever read before the next call — there is no path where one
-        /// of these walks is still in progress when another starts.
+        /// Into a reused buffer rather than a fresh list per call, because both callers can call
+        /// this often enough over a session to make the churn worth avoiding: <see cref="TryStow"/>
+        /// once for every item a world pickup overflows onto the pack, and
+        /// <see cref="CanTakeToHotbar"/>'s displaced-item prediction once for every named-slot drag
+        /// release it is asked to predict. The result is only ever read before the next call —
+        /// there is no path where one of these walks is still in progress when another starts.
         /// </para>
         /// </summary>
         private IReadOnlyList<PackSurface> ReachableSurfaces()
@@ -1758,9 +1823,9 @@ namespace SpaceGame.Items
 
             // The outgoing item ignored in both tests, because the space it is vacating is
             // exactly the space the incoming one is being offered — the same trick, for the same
-            // reason, that TrySwapWithHotbar (targetSlot < 0) and TakeIntoSlot's own aimed-then-
-            // first-fit fallback (targetSlot >= 0) both use to avoid mutating the layout to ask
-            // the question. The aimed try is gated on Reaches; the selected-slot swap has no such
+            // reason, that TrySwapWithHotbar (targetSlot < 0) and BackpackController's own
+            // TryPlaceDisplaced (targetSlot >= 0) both use to avoid mutating the layout to ask the
+            // question. The aimed try is gated on Reaches; the selected-slot swap has no such
             // gate, because TrySwapWithHotbar never had one either.
             bool aimReaches = targetSlot < 0 || Reaches(placement.Surface);
 
@@ -1776,10 +1841,11 @@ namespace SpaceGame.Items
             }
             else
             {
-                // TakeIntoSlot's own fallback: TryStow(held), first-fit across EVERY reachable
-                // surface, not just this one. Predicted here against the same reachable set for
-                // the same reason as everywhere else in this file: predicting anything narrower
-                // is a prediction that can say yes to a drop the server then refuses.
+                // BackpackController.TryPlaceDisplaced's own fallback: TryStow(held), first-fit
+                // across EVERY reachable surface, not just this one. Predicted here against the
+                // same reachable set for the same reason as everywhere else in this file:
+                // predicting anything narrower is a prediction that can say yes to a drop the
+                // server then refuses.
                 IReadOnlyList<PackSurface> all = ReachableSurfaces();
 
                 for (int i = 0; i < all.Count; i++)
@@ -1805,39 +1871,6 @@ namespace SpaceGame.Items
             }
 
             return false;
-        }
-
-        /// <summary>
-        /// Take whatever is under a point off the pack and put it on the ground. <b>Server side
-        /// only</b> — callers want <see cref="BackpackController.RequestDrop"/>.
-        ///
-        /// <para>
-        /// The spawn goes through <see cref="GameServices.ItemDropService"/>, which is the same
-        /// path a hotbar slot emptied with the drop key takes and the only one that stamps the
-        /// world object with a <c>SaveableEntity</c> so it survives a reload. Reaching for
-        /// <c>IWorldService.Spawn</c> directly here would work and would silently drop items that
-        /// vanish on the next load.
-        /// </para>
-        /// <para>
-        /// Idempotent for the same reason the take is: the second request finds nothing under the
-        /// point and answers false rather than conjuring a duplicate.
-        /// </para>
-        /// </summary>
-        public bool TryDropToWorld(PackSurfaceId surfaceId, Vector2 uv, Transform origin)
-        {
-            if (!TryFindAt(surfaceId, uv, out PackPlacement placement)) return false;
-
-            InventoryItem item = ItemFor(placement.ItemId);
-            if (item == null || item.itemPrefab == null) return false;
-
-            // Removed BEFORE the spawn, unlike the hotbar take, and deliberately: a world spawn
-            // cannot be tested in advance the way IPlayerInventory.TryAddItem can, and an item
-            // that were spawned and then failed to leave the pack would exist twice. Failing the
-            // other way round — off the pack and never spawned — is a bug the drop service reports.
-            if (TakeOut(placement.ItemId) == null) return false;
-
-            GameServices.ItemDropService.DropItem(origin != null ? origin : transform, item);
-            return true;
         }
 
         /// <summary>
@@ -1975,6 +2008,14 @@ namespace SpaceGame.Items
 
             gridVisuals.Clear();
 
+            // Same pass once more, but through PackStrapVisual.Destroy: a band's mesh is built
+            // fresh per placement, so destroying only the GameObject would strand one mesh per
+            // rebuild for the rest of the session.
+            foreach (PackStrapVisual.Handle straps in strapVisuals.Values)
+                PackStrapVisual.Destroy(straps);
+
+            strapVisuals.Clear();
+
             // Resolved once. Unwired, this walks the rig's hierarchy, and asking per item would
             // walk it once per placed item on every change.
             IReadOnlyList<PackSurface> all = ResolvedSurfaces();
@@ -2019,6 +2060,13 @@ namespace SpaceGame.Items
                 GameObject grid = PackGridVisual.BuildPlaced(surface, origin, oriented);
 
                 if (grid != null) gridVisuals[placement.ItemId] = grid;
+
+                // The bands lashing the item to the mat: one per grid line crossing its footprint,
+                // wrapped over the silhouette the display copy actually renders — which is why the
+                // copy is the argument, and why this runs only after it is fully seated.
+                PackStrapVisual.Handle straps = PackStrapVisual.Build(surface, origin, oriented, visual);
+
+                if (!straps.IsEmpty) strapVisuals[placement.ItemId] = straps;
             }
 
             // Re-ordered and re-sized to wherever the unfold currently stands. Without this a

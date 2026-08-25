@@ -94,7 +94,59 @@ namespace SpaceGame.Items
             if (!LiveLeashes.Contains(this)) LiveLeashes.Add(this);
         }
 
-        private void OnDisable() => LiveLeashes.Remove(this);
+        private void OnDisable()
+        {
+            LiveLeashes.Remove(this);
+
+            if (listening != null) listening.NetOff(NetMsg.LeashSnap, OnSnapAnnounced);
+            listening = null;
+        }
+
+        // ── Breaking, across the network ───────────────────────────────────────
+        //
+        // A rope has no NetworkObject and no relay of its own, so a snap rides the channel of one
+        // of its own ANCHORS — whichever of the two has a networked identity.
+
+        /// <summary>How near the announced point a rope must pass to be the one that broke.</summary>
+        private const float SnapTolerance = 1f;
+
+        /// <summary>The anchor whose channel this rope's snap travels on, or null for a local rope.</summary>
+        private Transform Channel =>
+            NetArg.IdOf(A.Anchor != null ? A.Anchor.gameObject : null) != 0 ? A.Anchor
+          : NetArg.IdOf(B.Anchor != null ? B.Anchor.gameObject : null) != 0 ? B.Anchor
+          : null;
+
+        private Transform listening;
+
+        /// <summary>
+        /// Keep the snap handler on an anchor that can carry it.
+        ///
+        /// Re-checked each step rather than registered once, because an end can be REPLACED — the
+        /// hand end moving onto an object is the whole second half of a tie — and because an
+        /// anchor's NetworkObject may spawn after the rope was built.
+        /// </summary>
+        private void RefreshChannel()
+        {
+            Transform wanted = Channel;
+            if (wanted == listening) return;
+
+            if (listening != null) listening.NetOff(NetMsg.LeashSnap, OnSnapAnnounced);
+
+            listening = wanted;
+            if (listening != null) listening.NetOn(NetMsg.LeashSnap, OnSnapAnnounced);
+        }
+
+        /// <summary>
+        /// A rope broke somewhere else. Addressed the way an untie is, so every machine picks the
+        /// same one. Idempotent: Dispose is, and a machine that no longer has the rope finds none.
+        /// </summary>
+        private void OnSnapAnnounced(in NetArg arg, ulong sender)
+        {
+            GameObject anchorObject = arg.Resolve();
+            Transform anchor = anchorObject != null ? anchorObject.transform : null;
+
+            Nearest(anchor, arg.P, SnapTolerance)?.Snap();
+        }
 
         // ── Construction ───────────────────────────────────────────────────────
 
@@ -128,27 +180,12 @@ namespace SpaceGame.Items
             DontDestroyOnLoad(gameObject);
         }
 
-        /// <summary>
-        /// Let the rope out to reach a knot that is already further away than its length.
-        ///
-        /// <para>
-        /// Once, and capped. This is the fix for a rope that used to grow every time it was tied:
-        /// <c>TerminateHandEndOnto</c> rewrote its own length to whatever gap it happened to land
-        /// across, and <c>LeashSaveable</c> stored the result, so an 8 m leash quietly became a 25 m
-        /// one for good. A player should be able to predict how long their rope is.
-        /// </para>
-        /// </summary>
-        private void PayOutTo(float distance, float margin, float ceiling)
-        {
-            if (distance <= Length) return;
-            Length = Mathf.Min(distance + margin, ceiling);
-        }
-
         // ── Tying ──────────────────────────────────────────────────────────────
 
-        public void TieEndTo(bool isA, GameObject targetRoot, Vector3 worldHitPoint)
+        /// <summary><paramref name="localOffset"/> is the knot in the target's own space. See LeashEnd.TieTo.</summary>
+        public void TieEndTo(bool isA, GameObject targetRoot, Vector3 localOffset)
         {
-            (isA ? A : B).TieTo(targetRoot, worldHitPoint, this);
+            (isA ? A : B).TieTo(targetRoot, localOffset, this);
         }
 
         public void TieEndToHand(bool isA, GameObject playerRoot, Transform muzzle)
@@ -161,29 +198,38 @@ namespace SpaceGame.Items
         /// <summary>
         /// Move whichever end is in a hand onto a world object — the second click of a tie.
         /// </summary>
-        public void TieHandEndOnto(GameObject targetRoot, Vector3 worldHitPoint,
-                                   float payOutMargin, float payOutCeiling)
+        /// <param name="paidOutLength">
+        /// The rope's new length, decided once by the clicking machine and sent. Zero leaves the
+        /// length alone. It is deliberately not measured here: each machine runs this at its own
+        /// moment, a relay apart, so measuring gave a rope tied across anything moving a different
+        /// length on every machine — permanently, since the length is fixed once tied.
+        /// </param>
+        public void TieHandEndOnto(GameObject targetRoot, Vector3 localOffset, float paidOutLength)
         {
             LeashEnd hand = A.IsPlayer ? A : B.IsPlayer ? B : null;
             if (hand == null) return;
 
-            hand.TieTo(targetRoot, worldHitPoint, this);
-            FinishTie(payOutMargin, payOutCeiling);
+            hand.TieTo(targetRoot, localOffset, this);
+            FinishTie(paidOutLength);
         }
 
         /// <summary>Drive the hand end into bare geometry — a wall, the ground — rather than an object.</summary>
-        public void PinHandEndAt(Vector3 worldPoint, float payOutMargin, float payOutCeiling)
+        public void PinHandEndAt(Vector3 worldPoint, float paidOutLength)
         {
             LeashEnd hand = A.IsPlayer ? A : B.IsPlayer ? B : null;
             if (hand == null) return;
 
             hand.PinTo(worldPoint, this);
-            FinishTie(payOutMargin, payOutCeiling);
+            FinishTie(paidOutLength);
         }
 
-        private void FinishTie(float payOutMargin, float payOutCeiling)
+        private void FinishTie(float paidOutLength)
         {
-            PayOutTo(Vector3.Distance(A.Position, B.Position), payOutMargin, payOutCeiling);
+            // Only ever longer. The caller has already applied its own margin and ceiling — see
+            // LeashArtifact.OnRequestUse — so all that is left here is to refuse a shrink, which is
+            // what stops a second tie quietly shortening a rope somebody paid out.
+            if (paidOutLength > Length) Length = paidOutLength;
+
             settings.rope?.Bite();
         }
 
@@ -236,13 +282,24 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// The rope passing closest to a world point, within <paramref name="tolerance"/>.
+        /// The rope tied to <paramref name="anchor"/> passing closest to <paramref name="point"/>,
+        /// which is given in that anchor's own local space.
         ///
         /// <para>
-        /// This is how an untie reaches every machine. A rope has no NetworkObject and therefore no
-        /// id to send, but it does have a SHAPE, and that shape is derived from two replicated
-        /// endpoints — so the point where one player clicked a rope identifies the same rope
-        /// everywhere, the same way a knot in bare geometry is addressed by its point.
+        /// This is how an untie — and a snap — reaches every machine. A rope has no NetworkObject
+        /// and therefore no id to send, but it does have a SHAPE derived from two replicated
+        /// endpoints, so a point on it identifies the same rope everywhere.
+        /// </para>
+        /// <para>
+        /// Anchored rather than bare-world, because a bare world point names nothing once the thing
+        /// it was clicked on starts moving: the click travels for a relay, and a rope on an animal
+        /// running at 8 m/s has left the tolerance by the time a peer looks — so the rope came off
+        /// on the clicking machine alone while the server went on constraining a creature nobody
+        /// else could see a rope on. Resolved against the anchor, the point rides the animal.
+        /// </para>
+        /// <para>
+        /// A null anchor searches every rope by world point, which is the right answer for an end
+        /// pinned to bare geometry: that point is identical on every machine by definition.
         /// </para>
         /// <para>
         /// Two ropes tied between the same pair of objects lie on top of each other and are
@@ -250,8 +307,10 @@ namespace SpaceGame.Items
         /// picked looks identical; the only cost is that two machines could drop different ones.
         /// </para>
         /// </summary>
-        public static Leash Nearest(Vector3 worldPoint, float tolerance)
+        public static Leash Nearest(Transform anchor, Vector3 point, float tolerance)
         {
+            Vector3 world = anchor != null ? anchor.TransformPoint(point) : point;
+
             Leash best = null;
             float nearest = tolerance;
 
@@ -260,7 +319,11 @@ namespace SpaceGame.Items
                 Leash rope = LiveLeashes[i];
                 if (rope == null || rope.settings.rope == null) continue;
 
-                float distance = rope.settings.rope.DistanceTo(worldPoint);
+                // Narrowed to ropes that actually touch this anchor, which removes most of the
+                // ambiguity the bare-world search had as a side effect of being correct.
+                if (anchor != null && !rope.Touches(anchor)) continue;
+
+                float distance = rope.settings.rope.DistanceTo(world);
                 if (distance > nearest) continue;
 
                 nearest = distance;
@@ -269,6 +332,10 @@ namespace SpaceGame.Items
 
             return best;
         }
+
+        /// <summary>Whether either end of this rope is tied to <paramref name="anchor"/>.</summary>
+        public bool Touches(Transform anchor) =>
+            anchor != null && (A.Anchor == anchor || B.Anchor == anchor);
 
         public bool ReferencesObject(GameObject go) =>
             go != null && ((A.Anchor != null && A.Anchor.gameObject == go) ||
@@ -305,10 +372,24 @@ namespace SpaceGame.Items
                 return;
             }
 
+            RefreshChannel();
+
             float stretch = MeasureStretch(out _);
 
             UpdateTension(stretch);
-            if (HasBroken(stretch)) return;
+
+            // The break verdict is the SERVER's, or this machine's when there is nothing to
+            // disagree with. Every machine can compute the stretch, but they compute it from
+            // interpolated endpoints and can land on opposite sides of the threshold — and that
+            // disagreement is permanent, because the machine that kept the rope goes on
+            // constraining a creature nobody else can see a rope on, and which nobody can untie
+            // because it is not drawn for them.
+            //
+            // A rope with no networked anchor is local to every machine anyway (see Channel), so
+            // each is entitled to break its own copy.
+            bool mineToDecide = !Network.IsNetworked || Network.Server || listening == null;
+
+            if (mineToDecide && HasBroken(stretch)) return;
 
             // Player ends are deliberately skipped here. They are resolved by LeashedBody instead,
             // which runs after PlayerMovement — a pull applied before it is overwritten by the move
@@ -493,8 +574,30 @@ namespace SpaceGame.Items
         /// <summary>The rope has been pulled apart. Sounds like it, then goes.</summary>
         public void Snap()
         {
+            if (disposed) return;
+
+            // Claimed BEFORE the send, and that ordering is load-bearing rather than tidy.
+            // NetTo.All dispatches INLINE on the host — the broadcast runs inside this very call —
+            // and the handler it reaches resolves this same rope by its point and calls Snap on it
+            // again. Setting the flag after the send is unbounded recursion; setting it here makes
+            // the re-entrant call a no-op, which is what every handler on this layer has to be.
+            disposed = true;
+
+            // Announced while the anchors are still here to address it with, and only by the
+            // machine that DECIDED. Everyone else reaches Snap FROM the announcement, and a
+            // re-broadcast from there would be a second loop.
+            if (listening != null && (!Network.IsNetworked || Network.Server))
+            {
+                Transform anchor = listening;
+
+                NetMessaging.NetSendTo(anchor.gameObject, NetMsg.LeashSnap,
+                                       new NetArg { P = anchor.InverseTransformPoint(A.Position) }
+                                           .With(anchor.gameObject),
+                                       NetTo.All);
+            }
+
             Sfx.Play(SfxId.ImpactMetal, A.Position);
-            Dispose();
+            Teardown();
         }
 
         private bool disposed;
@@ -504,10 +607,38 @@ namespace SpaceGame.Items
             if (disposed) return;
             disposed = true;
 
+            Teardown();
+        }
+
+        /// <summary>
+        /// Let both ends go and remove the rope. Shared by <see cref="Dispose"/> and
+        /// <see cref="Snap"/> so the flag that guards them can be claimed before either does
+        /// anything that can re-enter.
+        /// </summary>
+        private void Teardown()
+        {
             A.Release(this);
             B.Release(this);
 
-            if (this != null) Destroy(gameObject);
+            if (this != null) Remove(gameObject);
+        }
+
+        /// <summary>
+        /// Destroy something, from either mode.
+        ///
+        /// <para>
+        /// A rope is a bare <c>new GameObject</c> with no prefab behind it, so it is built and torn
+        /// down by editor tooling and EditMode tests as readily as by play. <c>Destroy</c> is
+        /// refused outside play mode — Unity logs an error and the object survives — which left
+        /// ropes behind in the editor and failed any test that disposed one.
+        /// </para>
+        /// </summary>
+        internal static void Remove(GameObject target)
+        {
+            if (target == null) return;
+
+            if (Application.isPlaying) Destroy(target);
+            else DestroyImmediate(target);
         }
 
         private void OnDestroy()

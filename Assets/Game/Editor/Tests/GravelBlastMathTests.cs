@@ -70,6 +70,33 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
+        public void DamageFalloff_InsideFullDamageRange_IsUndiminished()
+        {
+            Assert.AreEqual(1f, GravelBlastMath.DamageFalloff(0f, 15f, 70f, 0.25f), 1e-4f);
+            Assert.AreEqual(1f, GravelBlastMath.DamageFalloff(15f, 15f, 70f, 0.25f), 1e-4f);
+        }
+
+        [Test]
+        public void DamageFalloff_TapersToTheFarFraction_AndNoFurther()
+        {
+            // The whole point of the taper: a seventy-metre shot must not be a point-blank shot,
+            // and it must not be nothing either.
+            Assert.AreEqual(0.625f, GravelBlastMath.DamageFalloff(42.5f, 15f, 70f, 0.25f), 1e-3f);
+            Assert.AreEqual(0.25f, GravelBlastMath.DamageFalloff(70f, 15f, 70f, 0.25f), 1e-4f);
+            Assert.AreEqual(0.25f, GravelBlastMath.DamageFalloff(500f, 15f, 70f, 0.25f), 1e-4f);
+        }
+
+        [Test]
+        public void DamageFalloff_TaperWithNoRoomToRun_IsFullDamage_NotADivideByZero()
+        {
+            // Reachable from the Inspector: fullDamageRange is clamped to range, so the two can be
+            // equal. That says "no falloff", so the whole reach is worth full damage — and nothing
+            // divides by the zero-metre taper on the way there.
+            Assert.AreEqual(1f, GravelBlastMath.DamageFalloff(70f, 70f, 70f, 0.25f), 1e-4f);
+            Assert.AreEqual(1f, GravelBlastMath.DamageFalloff(69f, 70f, 70f, 0.25f), 1e-4f);
+        }
+
+        [Test]
         public void BackfireVelocity_PushesOppositeTheAim_WithLift()
         {
             Vector3 v = GravelBlastMath.BackfireVelocity(Vector3.forward, 9f, 35f);

@@ -352,18 +352,10 @@ namespace SpaceGame.Core
         //      half would make a single placement a two-packet handshake that can half-arrive.
         public const ushort PackMove = 76; // player → server: slide this item to there
 
-        // Dragging something off the mat and letting go: it leaves the pack and lands on the
-        // ground. On the PACK OWNER's channel with the other two, and positional for the same
-        // reason — "whatever is under this point", never an index or an id.
-        //
-        // It is a separate message rather than a PackMove with a sentinel destination surface,
-        // because the two do genuinely different things on the server: a move rearranges state
-        // BackpackNetwork already replicates, while a drop spawns a world object, which only the
-        // server may do and which nothing about the pack's own list would carry to anyone.
-        //
-        //   A  the surface the item was grabbed from.
-        //   P  the point that was grabbed, in that surface's uv: X and Z, Y unused.
-        public const ushort PackDrop = 77; // player → server: take this off the pack and drop it
+        // 77 was PackDrop, retired 2026-08-25: an item dragged clean off the mat left the pack and
+        // landed on the ground. The click interaction has no such verb — gear lives in the hotbar
+        // or on the pack and there is no third place for it to be — so there is nothing left to
+        // send. The number is not reused.
 
         // The way IN from the hotbar, and the only one: an item taken into the player's hand and
         // put down on the pack. PackTake is its mirror and this is the half that was missing —
@@ -380,14 +372,15 @@ namespace SpaceGame.Core
         // contents two people are rearranging.
         //
         //   Target  the player reaching in, as for PackTake. Their hotbar is the source.
-        //   A       the hotbar slot index in the low byte, the placement's quarter turns (0-3) in
-        //           the next one up — the same byte packing PackMove uses for its two surfaces.
-        //           Yaw has to travel: an item is turned in the player's hand before it is put
-        //           down, and a server that placed everything at zero would land it on cells the
-        //           player never saw highlighted.
-        //   B       the surface being placed on. There is no "the cursor was nowhere" sentinel any
-        //           more — a stow is only ever sent for a spot the player pointed at and watched
-        //           go green, and a spot the server finds taken is refused rather than first-fitted.
+        //   A       the hotbar slot index in the low byte, the surface being placed on in the next
+        //           one up — BackpackController.EncodeStowTarget, the same byte packing PackMove
+        //           uses for its two surfaces.
+        //   B       yaw in whole degrees 0-359, PackMove's own convention: yaw has to travel now,
+        //           because an item is turned in the player's hand before it is put down, and a
+        //           server that placed everything at zero would land it on cells the player never
+        //           saw highlighted. There is no "the cursor was nowhere" sentinel any more — a
+        //           stow is only ever sent for a spot the player pointed at and watched go green,
+        //           and a spot the server finds taken is refused rather than first-fitted.
         //   P       where on that surface, in its uv: X and Z, Y unused.
         public const ushort PackStow = 78; // player → server: put my hotbar slot on the pack
 
@@ -427,6 +420,91 @@ namespace SpaceGame.Core
         // (GravelBlasterArtifact.Backfire). A ragdoll hung off Flung would knock players down every
         // time they fired their own gravel blaster.
         public const ushort Knockdown = 82; // server → everyone, on the VICTIM's relay
+
+        // Server → everyone, on the MOUNT's relay: this agent has been thrown and the machine that
+        // owns it must run the leap.
+        //
+        // The agent counterpart of Flung (79), and it exists for the same reason. A mount is owned
+        // by its RIDER while ridden — MountNetworkSync hands ownership over so the motion
+        // replicates outward from them — so a leap applied on the server writes a transform the
+        // rider's next state update overwrites, silently. Broadcast because this layer has no
+        // unicast; every machine hears it and only the owner acts (see NavMeshAgentMotor).
+        //
+        //   P  the leap, as direction × horizontal distance in metres. One field rather than two
+        //      because that is exactly what the caller already computed, and a magnitude carries
+        //      the distance for free.
+        //   A  peak height, in centimetres — NetArg has no float field, the same reason
+        //      CraftLaunch sends speeds in centimetres per second.
+        //   B  duration, in milliseconds.
+        public const ushort Leap = 83; // server → everyone, on the MOUNT's relay
+
+        // What the swinger's rope is doing, when the item's own use messages cannot say it.
+        //
+        // On the SWINGER's channel, like the lasso's rope verbs and for the same reason: the
+        // artifact prefab carries a NetworkObject — it has to, because dropping the item routes
+        // through World.Spawn — and that NetworkObject is never spawned while the item is in a
+        // hand, so a send from the item itself would resolve to a dormant relay and quietly run on
+        // the local machine only.
+        //
+        // Two things need saying that a press cannot. A rope that let GO by itself — the swinger
+        // reached the anchor, or the winch stalled — fires inside one physics step and boosts the
+        // body straight back out of the arrival sphere, so a peer watching an interpolated
+        // transform may have no sample inside it at all and would draw that rope forever. And a
+        // rope that is still OUT has to be re-stated for somebody who has just joined, who was not
+        // listening when the press went round and would otherwise watch a player arc through the
+        // air on nothing.
+        //
+        //   A       the verb — see GrappleVerb.
+        //   P       the anchor point, and R the surface normal, for On. Unused for Off.
+        //   Target  what the rope is set into, for On, when that has a networked identity.
+        public const ushort GrappleRope = 84; // owner/server → everyone, on the SWINGER's channel
+
+        // Server → everyone: this rope has been pulled apart.
+        //
+        // On the channel of one of the rope's own ANCHORS, because a Leash is a bare GameObject
+        // with no NetworkObject and therefore no relay of its own. Which anchor is in Target, and
+        // P names the rope in that anchor's local space — the same addressing an untie uses, and
+        // for the same reason: a bare world point stops naming a rope the moment the thing it is
+        // tied to moves.
+        //
+        // The verdict is the server's alone. Every machine can compute the stretch, but they
+        // compute it from interpolated endpoints and can land on opposite sides of the threshold —
+        // and a rope that broke on one machine and not another is permanent, because the machine
+        // that kept it goes on constraining a creature nobody else can see a rope on.
+        public const ushort LeashSnap = 85; // server → everyone, on one of the rope's ANCHORS
+
+        // One aperture's time ran out. On the SHOOTER's channel, with A naming which barrel.
+        //
+        // A pair of its own rather than reusing PortalsUsed/PortalsShut (80/81), which are
+        // deliberately payload-free because a traversal shuts BOTH ends: routing an expiry through
+        // them would destroy an aperture's partner everywhere, and PeekBarrel's "an EMPTY barrel
+        // always wins" rule exists precisely for the state where one has expired and the other has
+        // not. Losing both when one times out would be a feel regression, not a fix.
+        //
+        // It exists because the lifetime is counted from each machine's own Present moment, so the
+        // same aperture reaches zero up to a round trip apart on different machines. A peer that
+        // still holds one the shooter has dropped is a portal only that player can walk through —
+        // and since they own their own body, walking through it genuinely moves them, on a machine
+        // where nobody else sees a portal at all.
+        //
+        //   A  the barrel, PortalPair.Primary or PortalPair.Secondary.
+        public const ushort PortalExpired = 86; // owner → server, on the SHOOTER's channel
+        public const ushort PortalGone    = 87; // server → everyone else, on the SHOOTER's channel
+    }
+
+    /// <summary>What a <see cref="NetMsg.GrappleRope"/> message is saying. Append only.</summary>
+    public static class GrappleVerb
+    {
+        /// <summary>The rope has let go. Stop drawing it.</summary>
+        public const int Off = 0;
+
+        /// <summary>
+        /// The rope is out, attached where <see cref="NetArg.P"/> says.
+        ///
+        /// An absolute state rather than an edge — "this rope is attached", not "this rope just
+        /// attached" — so re-sending it to a joiner costs everybody else one idempotent no-op.
+        /// </summary>
+        public const int On = 1;
     }
 
     /// <summary>What a <see cref="NetMsg.LassoRope"/> message is saying. Append only.</summary>

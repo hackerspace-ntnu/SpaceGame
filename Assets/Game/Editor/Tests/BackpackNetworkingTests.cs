@@ -247,14 +247,14 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(Spot, pack.Layout.Placements[0].Uv);
         }
 
-        // ─────────── Dragged onto a NAMED hotbar slot ───────────
+        // ─────────── Clicked onto a NAMED hotbar slot ───────────
         //
-        // A right-click takes an item to "wherever it fits"; a drag takes it to the box the player
-        // let go over. Same message, same channel, same contest — the only new thing on the wire is
-        // NetArg.B, which is -1 for the old behaviour and a slot index for the new one.
+        // A take can go to "wherever it fits" or to the exact hotbar slot the player clicked to
+        // put a held item down. Same message, same channel, same contest — the only difference on
+        // the wire is NetArg.B: -1 for an unaimed take, a slot index when the player named one.
 
         [Test]
-        public void ADragOntoAnEmptySlotLandsInThatSlotAndDisturbsNoOther()
+        public void AClickOntoAnEmptySlotLandsInThatSlotAndDisturbsNoOther()
         {
             (BackpackController controller, BackpackObject pack) = DeployedPack();
             (Interactor interactor, FakeHotbar hotbar) = Taker();
@@ -268,16 +268,16 @@ namespace SpaceGame.EditorTools
             controller.RequestTake(PackSurfaceId.Leaf, Spot, interactor, hotbarSlot: 1);
 
             Assert.AreSame(cell, hotbar.GetSlot(1).Item,
-                "The item has to land in the slot the drag was let go over. TryAddItem — which is " +
-                "what the right-click path uses — fills the first hole instead, which here is the " +
-                "same slot every time whatever the player aimed at.");
+                "The item has to land in the slot the player clicked. An unaimed take fills the " +
+                "first hole instead, which here is the same slot every time whatever the player " +
+                "aimed at.");
             Assert.AreSame(rope, hotbar.GetSlot(0).Item,
                 "…and the rest of the hotbar is not rewritten on the way past.");
             Assert.AreEqual(0, pack.Layout.Placements.Count);
         }
 
         [Test]
-        public void ADragOntoAnOccupiedSlotSwapsWithWhatWasInIt()
+        public void AClickOntoAnOccupiedSlotSwapsWithWhatWasInIt()
         {
             (BackpackController controller, BackpackObject pack) = DeployedPack();
             (Interactor interactor, FakeHotbar hotbar) = Taker();
@@ -290,18 +290,18 @@ namespace SpaceGame.EditorTools
 
             controller.RequestTake(PackSurfaceId.Leaf, Spot, interactor, hotbarSlot: 0);
 
-            Assert.AreSame(cell, hotbar.GetSlot(0).Item, "the dragged item takes the box");
+            Assert.AreSame(cell, hotbar.GetSlot(0).Item, "the clicked item takes the box");
             Assert.AreEqual(0, hotbar.Count(lamp), "and the one that was in it leaves the hotbar");
 
             Assert.AreEqual(1, pack.Layout.Placements.Count);
             Assert.AreEqual(lamp.ID, pack.Layout.Placements[0].ItemId,
-                "The displaced item goes onto the pack, into the space the dragged one vacated — " +
+                "The displaced item goes onto the pack, into the space the clicked one vacated — " +
                 "not onto the floor, and not into limbo.");
             Assert.AreEqual(Spot, pack.Layout.Placements[0].Uv);
         }
 
         [Test]
-        public void ADragOntoASlotIsIdempotentLikeEveryOtherTake()
+        public void AClickOntoASlotIsIdempotentLikeEveryOtherTake()
         {
             (BackpackController controller, BackpackObject pack) = DeployedPack();
             (Interactor interactor, FakeHotbar hotbar) = Taker();
@@ -319,7 +319,7 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void ADragOntoASlotOutsideTheHotbarChangesNothing()
+        public void AClickOntoASlotOutsideTheHotbarChangesNothing()
         {
             (BackpackController controller, BackpackObject pack) = DeployedPack();
             (Interactor interactor, FakeHotbar hotbar) = Taker();

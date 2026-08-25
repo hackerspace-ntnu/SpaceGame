@@ -30,6 +30,7 @@ namespace SpaceGame.Tests
 
         private readonly List<InventoryItem> created = new();
         private readonly List<GameObject> spawned = new();
+        private readonly List<PackShapeLibrary> libraries = new();
 
         [SetUp]
         public void ClearMeasurementCache() => ItemFootprint.ClearCache();
@@ -43,8 +44,12 @@ namespace SpaceGame.Tests
             foreach (InventoryItem item in created)
                 if (item != null) UnityEngine.Object.DestroyImmediate(item);
 
+            foreach (PackShapeLibrary library in libraries)
+                if (library != null) UnityEngine.Object.DestroyImmediate(library);
+
             spawned.Clear();
             created.Clear();
+            libraries.Clear();
         }
 
         /// <summary>
@@ -85,6 +90,29 @@ namespace SpaceGame.Tests
         }
 
         private BackpackObject Pack() => Pack(new Vector2(0.86f, 0.72f));
+
+        /// <summary>
+        /// Give one item a non-square authored footprint, so a test can tell "the yaw field was
+        /// threaded through" from "the shape actually turned" — <see cref="Item"/>'s default
+        /// footprint is a 0.1 m square, on which a 90 degree turn is geometrically a no-op. Mirrors
+        /// the "rod" fixture <c>PackLayoutTests</c> uses for the same reason at the raw-layout
+        /// level; this one goes through <see cref="BackpackObject.Shapes"/> because that is the
+        /// field a real item's row would arrive on.
+        /// </summary>
+        private void GiveRodShape(BackpackObject pack, InventoryItem item, int width, int height)
+        {
+            var library = ScriptableObject.CreateInstance<PackShapeLibrary>();
+            libraries.Add(library);
+
+            library.Entries.Add(new PackShapeLibrary.Entry
+            {
+                item = item,
+                width = width,
+                height = height,
+            });
+
+            typeof(BackpackObject).GetField("shapes", Hidden).SetValue(pack, library);
+        }
 
         /// The real PlayerInventory, exposed through the interface the pack talks to.
         private sealed class Hotbar : IPlayerInventory
@@ -217,7 +245,10 @@ namespace SpaceGame.Tests
 
         /// <summary>
         /// The whole point of removing the magnet: a stow goes where it was pointed, at the turn
-        /// it was shown at, and nowhere else.
+        /// it was shown at, and nowhere else — and the turn has to be a real turn of the
+        /// footprint, not just a number recorded beside it. A rod-shaped item proves that: 9 cells
+        /// (0.81 m) is taller than this pack's 0.72 m face, so lying flat it cannot land ANYWHERE
+        /// on it, and the only way it fits at all is turned on its side.
         /// </summary>
         [Test]
         public void Stow_PlacesAtTheYawItWasGiven()
@@ -226,11 +257,20 @@ namespace SpaceGame.Tests
             var hotbar = new Hotbar(4);
 
             InventoryItem carried = Item("carried");
+            GiveRodShape(pack, carried, width: 2, height: 9);
             Assert.IsTrue(hotbar.TryAddItem(carried));
 
-            var spot = new Vector2(0.4f, 0.3f);
+            // Centred so the rod's 0.81 m length clears the 0.86 m face turned sideways, with only
+            // 0.05 m to spare either way — not a position a 2 x 9 rod could occupy lying flat at
+            // any yaw the pack understands as "flat".
+            var spot = new Vector2(0.43f, 0.3f);
 
-            Assert.IsTrue(pack.TryStowFromHotbar(hotbar, 0, PackSurfaceId.Leaf, spot, 90f));
+            Assert.IsFalse(pack.TryStowFromHotbar(hotbar, 0, PackSurfaceId.Leaf, spot, 0f),
+                           "flat, the rod is taller than the face and cannot land anywhere on it");
+
+            Assert.IsTrue(pack.TryStowFromHotbar(hotbar, 0, PackSurfaceId.Leaf, spot, 90f),
+                         "turned on its side the same rod fits — this only succeeds if the turn " +
+                         "actually swapped its footprint's width and height");
 
             Assert.IsTrue(TryPlacementOf(pack, carried, out PackPlacement placed));
             Assert.AreEqual(90f, placed.Yaw, "the turn the player lined up is the turn it lands at");

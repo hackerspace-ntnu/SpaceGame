@@ -8,7 +8,8 @@ a powered fist, a breaching ram, a pile driver, a bolt thrower.
 |---|---|---|
 | `Rails`        | fixed  | anchor plate, twin guide rails, front stop yoke |
 | `Carriage`     | slides | the bushing block a head bolts to |
-| `Cylinder`     | fixed  | the steam cylinder that throws the carriage |
+| `Cylinder`     | fixed  | the shell the steam pushes against |
+| `Rod`          | slides | the piston rod and its clevis — travels with the carriage |
 | `SpringReturn` | fixed  | the coil stack that drags the carriage home |
 
 ## Axes and origins
@@ -25,10 +26,18 @@ Unity side a single `localPosition.z` animation with no offset to unpick.
 
 ## Travel
 
-The rails are 0.175 m long and the carriage is 0.062 m deep, so usable stroke is
-about 0.09 m once the stop yoke and the rear plate are accounted for. That number
+The rails are 0.280 m long and the carriage is 0.062 m deep, so usable stroke is
+about 0.19 m once the stop yoke and the rear plate are accounted for. That number
 is the mechanism's contract with whatever animates it — a longer stroke drives
 the carriage through the yoke.
+
+## Why the rod is its own object
+
+A cylinder whose rod is part of the body is fine for a 6 cm twitch and obviously
+broken at 19 cm: the fork stays welded to the shell while the carriage it is
+supposed to be driving walks away from it. So `Rod` ships separately and belongs
+to the MOVING group — it slides out of the shell exactly as a real ram does, and
+the shell is long enough to swallow it again at rest.
 
 Generation script — historical record. The .blend is the source of truth; never
 re-run this over the file it produced.
@@ -63,8 +72,9 @@ BEVEL_W = 0.0012
 RAIL_X = 0.052       # half-spacing of the twin rails
 RAIL_Z = 0.018       # rail height above the mounting plane
 RAIL_R = 0.0052
-RAIL_LEN = 0.175
+RAIL_LEN = 0.280
 CARRIAGE_DEPTH = 0.062
+ROD_LEN = 0.215        # stroke plus engagement; the shell has to be longer still
 
 
 def _f(d):
@@ -152,10 +162,14 @@ def carriage(coll, mats):
 
 
 def cylinder(coll, mats):
-    """The steam cylinder: shell, gland, rod, and the fittings that feed it."""
+    """The cylinder shell: barrel, gland, tie rods and the fittings that feed it.
+
+    Long enough to swallow the rod at rest — `ROD_LEN` plus engagement — because a
+    shell shorter than its own stroke is a ram that bottoms out in mid-air.
+    """
     p = TrackedPart(mats)
-    body_len = 0.098
-    r = 0.019
+    body_len = 0.230
+    r = 0.021
 
     # Shell, with the end cap and gland as separate rings so the barrel does not
     # read as a single extruded tube.
@@ -171,12 +185,6 @@ def cylinder(coll, mats):
         p.cyl((r * 1.05 * math.cos(a), _f(body_len / 2), r * 1.05 * math.sin(a)),
               0.0028, body_len - 0.004, 'Y', 6, CHROME)
 
-    # Piston rod emerging through the gland, ending in a fork.
-    p.cyl((0.0, _f(body_len + 0.021), 0.0), 0.0062, 0.046, 'Y', 10, CHROME)
-    for sx in (-1, 1):
-        hard += p.box((sx * 0.009, _f(body_len + 0.046), 0.0),
-                      (0.006, 0.022, 0.020), DARK)
-
     # Steam union and a hose stub at the rear.
     p.cyl((0.0, _f(0.004), r * 0.55), 0.007, 0.016, 'Z', 8, BRASS)
     tube_path(p, [(0.0, _f(0.004), r * 0.55 + 0.008),
@@ -186,6 +194,32 @@ def cylinder(coll, mats):
     p.restamp("cylinder")
     p.bevel(hard, width=BEVEL_W, segments=2)
     return p.finish("Mesh_RamSlide_Cylinder", coll)
+
+
+def rod(coll, mats):
+    """The piston rod and its clevis. MOVES with the carriage.
+
+    Origin at the **clevis pin** — the point it is pinned to the carriage — because that
+    is the only place it is attached to anything, and an assembly positions it by where it
+    joins rather than by where it disappears into the shell.
+
+    Geometry therefore runs BACKWARD (+Y) from the origin into the cylinder, which is the
+    opposite of everything else in this file and is called out here so nobody 'fixes' it.
+    """
+    p = TrackedPart(mats)
+
+    p.cyl((0.0, ROD_LEN / 2, 0.0), 0.0075, ROD_LEN, 'Y', 10, CHROME)
+    # Piston head at the far end, sized to the bore so the shell reads as sealed.
+    p.cyl((0.0, ROD_LEN - 0.008, 0.0), 0.0185, 0.016, 'Y', 12, DARK)
+
+    hard = []
+    for sx in (-1, 1):
+        hard += p.box((sx * 0.010, 0.014, 0.0), (0.007, 0.028, 0.022), DARK)
+    p.cyl((0.0, 0.0, 0.0), 0.0052, 0.036, 'X', 8, CHROME)
+
+    p.restamp("rod")
+    p.bevel(hard, width=BEVEL_W, segments=2)
+    return p.finish("Mesh_RamSlide_Rod", coll)
 
 
 def spring_return(coll, mats):
@@ -230,6 +264,7 @@ def main():
     rails(collection("Coll_RamSlide_Rails"), mats)
     carriage(collection("Coll_RamSlide_Carriage"), mats)
     cylinder(collection("Coll_RamSlide_Cylinder"), mats)
+    rod(collection("Coll_RamSlide_Rod"), mats)
     spring_return(collection("Coll_RamSlide_SpringReturn"), mats)
 
     save(out)

@@ -41,7 +41,7 @@ namespace SpaceGame.Items
         private PlayerController player;
 
         private PackFocusCamera focusCamera;
-        private PackDragController drag;
+        private PackHandController hand;
         private GameObject hiddenCrosshair;
 
         /// <summary>
@@ -122,9 +122,10 @@ namespace SpaceGame.Items
             // would take a cursor that is already spoken for and hand it back at the wrong time.
             if (GameplayMenuScope.IsActive) return;
 
-            // hideHud false, because the hotbar is a drop target: an item dragged out of the pack
-            // goes onto the bar, and a bar that is not on screen cannot be aimed at. The crosshair
-            // is the part of the HUD that has to go, and it goes below.
+            // hideHud false, because the bar is half of the interaction: a click on a slot lifts
+            // its item into the player's hand, and a click on a slot puts one back — neither of
+            // which can happen to a bar that is not on screen. The crosshair is the part of the HUD
+            // that has to go, and it goes below.
             if (!GameplayMenuScope.Enter(this, freezeTime: false, hideHud: false)) return;
 
             Active = this;
@@ -162,7 +163,7 @@ namespace SpaceGame.Items
             focusCamera = PackFocusCamera.Spawn(controller.Pack.transform, ViewDirection(), PlayerCamera());
 
             if (focusCamera != null)
-                drag = PackDragController.Attach(focusCamera, controller, LocalInteractor(), input);
+                hand = PackHandController.Attach(focusCamera, controller, LocalInteractor(), input);
         }
 
         // ── Leaving ──────────────────────────────────────────────────────────
@@ -177,8 +178,8 @@ namespace SpaceGame.Items
 
             Active = null;
 
-            if (drag != null) drag.Cancel();
-            drag = null;
+            if (hand != null) hand.Cancel();
+            hand = null;
 
             if (focusCamera != null) focusCamera.Dismiss();
             focusCamera = null;
@@ -342,7 +343,7 @@ namespace SpaceGame.Items
         ///
         /// <para>
         /// The shortcut. The gesture is <see cref="PackLeafDrag"/> — grab the board's free edge and
-        /// pull it through its arc — and the two are deliberately both here: the drag is what makes
+        /// pull it through its arc — and the two are deliberately both here: the pull is what makes
         /// the rack feel like a thing you do to the pack, and the key is what makes it something you
         /// can do without aiming. The one worry a click on the leaf raised, that it could not be
         /// told apart from the click that PICKS UP whatever is lying on the leaf, is answered by
@@ -360,12 +361,13 @@ namespace SpaceGame.Items
             BackpackObject pack = Pack;
             if (pack == null || !pack.IsOpen) return;
 
-            // A drag in flight is over a surface that is about to swing through ninety degrees, so
-            // the ghost would be left tracking a face that has gone. Abandoning it puts the item
-            // back where it was picked up — and, unlike Cancel, leaves the drag controller alive:
-            // Cancel is the session's exit and destroys it, so this used to mean one press of R
-            // silently stopped the player picking anything else up for the rest of the session.
-            if (drag != null) drag.AbandonDrag();
+            // A held item is being lined up against a surface that is about to swing through
+            // ninety degrees, so the ghost would be left tracking a face that has gone. Putting it
+            // back where it was picked up costs nothing — the lift was never sent — and, unlike
+            // Cancel, leaves the hand alive: Cancel is the session's exit and destroys it, so this
+            // used to mean one press of R silently stopped the player picking anything else up for
+            // the rest of the session.
+            if (hand != null) hand.ReturnToOrigin();
 
             pack.RequestRack(!pack.IsRacked);
         }
@@ -406,14 +408,14 @@ namespace SpaceGame.Items
         private Camera PlayerCamera() => player != null ? player.PlayerCamera : null;
 
         /// <summary>
-        /// Which way the player faces the rig, flattened. The focus camera sits back along it,
-        /// between the player and the pack, so this is what decides which side of the pack the
-        /// shot comes from.
+        /// Which way the player faces the rig, flattened. The focus camera sits along it, on the
+        /// far side of the pack looking back down it, so this is what decides which side of the
+        /// pack the shot comes from.
         ///
         /// The actual player→pack line, frozen at this instant, not the body's facing: the
         /// player may have walked around the pack before opening it, and the camera has to land
-        /// on THEIR side of it, square to it, wherever they stand. The body's facing survives
-        /// only as the fallback for the degenerate case of standing exactly on top of the rig.
+        /// square to the mat wherever they stand. The body's facing survives only as the
+        /// fallback for the degenerate case of standing exactly on top of the rig.
         /// </summary>
         private Vector3 ViewDirection()
         {

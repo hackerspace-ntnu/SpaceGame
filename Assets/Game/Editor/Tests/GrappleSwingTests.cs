@@ -46,8 +46,23 @@ namespace SpaceGame.EditorTools
                 .GetField("playerCamera", BindingFlags.NonPublic | BindingFlags.Instance)
                 .SetValue(player.GetComponent<AimProvider>(), cam.GetComponent<Camera>());
 
+            artifact = NewArtifact();
+
+            // Near face at z = 9.5, straight down the camera's forward.
+            target = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            target.transform.position = new Vector3(0f, 0f, 10f);
+            Physics.SyncTransforms();
+        }
+
+        /// <summary>
+        /// A hook straight out of the prefab, which is what an equip actually hands the player —
+        /// <see cref="EquipItemSocket"/> instantiates the item on every equip and destroys it on
+        /// every unequip, so nothing survives a hotbar swap except the slot's ItemState bag.
+        /// </summary>
+        private GrapplingHookArtifact NewArtifact()
+        {
             hook = new GameObject("grapple", typeof(LineRenderer));
-            artifact = hook.AddComponent<GrapplingHookArtifact>();
+            var made = hook.AddComponent<GrapplingHookArtifact>();
 
             // Silence the bite. Sfx routes through FMOD's RuntimeManager, which logs an ERROR the
             // moment it is touched outside play mode, and the test framework fails a test on any
@@ -57,12 +72,9 @@ namespace SpaceGame.EditorTools
             // one input Sfx.Play returns on before it reaches FMOD at all.
             typeof(GrapplingHookArtifact)
                 .GetField("biteSoundId", BindingFlags.NonPublic | BindingFlags.Instance)
-                .SetValue(artifact, SfxId.None);
+                .SetValue(made, SfxId.None);
 
-            // Near face at z = 9.5, straight down the camera's forward.
-            target = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            target.transform.position = new Vector3(0f, 0f, 10f);
-            Physics.SyncTransforms();
+            return made;
         }
 
         [TearDown]
@@ -112,6 +124,17 @@ namespace SpaceGame.EditorTools
         private T Get<T>(string field) => (T)typeof(GrapplingHookArtifact)
             .GetField(field, BindingFlags.NonPublic | BindingFlags.Instance)
             .GetValue(artifact);
+
+        /// <summary>
+        /// Whether the winch is running.
+        ///
+        /// Read off the latch rather than a bare bool, which is what this used to be. Whether a
+        /// grapple reels depends on the ORDER the release and the bite arrived in, and that order
+        /// differs per machine — a local flight timer against a relayed message — so the answer
+        /// moved into GrapplingHookArtifact.WinchLatch where it can be reasoned about on its own.
+        /// See HoldLatchTests.
+        /// </summary>
+        private bool Winching => Get<GrapplingHookArtifact.WinchLatch>("_winch").Winching;
 
         // ── The hit is what takes control ──────────────────────────────────────
 
@@ -164,7 +187,7 @@ namespace SpaceGame.EditorTools
 
             LandTheDart();
 
-            Assert.IsTrue(Get<bool>("_winching"),
+            Assert.IsTrue(Winching,
                 "The bite starts the winch. A release that arrived while the dart was still in " +
                 "the air is not the player declining to be reeled in — it is just a click ending " +
                 "sooner than a 50 m throw. Honouring it is what made a tapped grapple catch and " +
@@ -184,7 +207,7 @@ namespace SpaceGame.EditorTools
             // Trigger released AFTER the rope caught — the deliberate gesture for trading the
             // climb for a swing, and the one release the item does honour.
             artifact.PlayHold(player, default, active: false);
-            Assert.IsFalse(Get<bool>("_winching"),
+            Assert.IsFalse(Winching,
                 "Letting go once the rope is taut has to stop the winch, or there is no way to " +
                 "choose a swing at all.");
 
@@ -317,6 +340,42 @@ namespace SpaceGame.EditorTools
                 "The tether never expires by itself, unlike the 999-second timer it replaced. A " +
                 "player who swapped weapons mid-swing would keep rope steering and lose fall " +
                 "damage for the rest of the session.");
+        }
+
+        // ── A rope in the bag is not a rope you are still on ───────────────────
+
+        [Test]
+        public void ARopeLeftInTheSlotDoesNotHaulThePlayerBackToItsAnchor()
+        {
+            Throw();
+            LandTheDart();
+
+            // Swapping hotbar slot mid-swing. EquipmentController.Unequip captures the state
+            // BEFORE OnUnequipped tears the item down, so the bag records a rope that stops
+            // existing a moment later.
+            var bag = new ItemState();
+            artifact.CaptureItemState(bag);
+            Assert.IsTrue(bag.Has("hook"), "Test setup: the swap should have recorded the live rope.");
+
+            Object.DestroyImmediate(hook);
+            artifact = NewArtifact();
+            artifact.OnEquipped(player);
+
+            // Then the player goes somewhere else entirely and comes back to the hook. A wing-pack
+            // flight is what found this; anything that covers ground does it.
+            var landed = new Vector3(0f, 0f, -200f);
+            player.transform.position = landed;
+            player.GetComponent<Rigidbody>().position = landed;
+            Physics.SyncTransforms();
+
+            artifact.RestoreItemState(bag);
+            Invoke("FixedUpdate");
+
+            Assert.AreEqual(landed, player.GetComponent<Rigidbody>().position,
+                "Re-equipping put the player back on a rope whose anchor is 200 m away, and the " +
+                "constraint's over-stretch clamp then wrote their Rigidbody onto that rope's " +
+                "sphere — a silent teleport back to wherever they last used the hook. A record " +
+                "the player cannot possibly still be attached to describes a rope that is gone.");
         }
     }
 }

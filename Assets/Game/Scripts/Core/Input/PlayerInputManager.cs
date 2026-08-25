@@ -119,7 +119,7 @@ namespace SpaceGame.Core
         public event Action OnBackpackPressed;
 
         /// <summary>
-        /// Wheel notches while an item is being dragged around a deployed pack: +1 per notch up,
+        /// Wheel notches while an item is held in hand over a deployed pack: +1 per notch up,
         /// -1 per notch down. The consumer turns them into yaw.
         ///
         /// <para>
@@ -140,15 +140,15 @@ namespace SpaceGame.Core
         private float packYawAccumulator;
 
         /// <summary>
-        /// A hotbar key pressed while a pack is open in front of the player: that slot's item goes
-        /// onto the pack, at the cursor if the cursor is over a free spot. The 0-based slot index.
+        /// A hotbar key pressed while a pack is open in front of the player: that slot's item comes
+        /// into the player's hand, to be put down wherever they then click. The 0-based slot index.
         ///
         /// <para>
-        /// The SHORTCUT way in from the hotbar. Dragging a pouch onto the pack is the other, and
-        /// the one most players will find — <c>InventorySlotUI</c> implements the EventSystem drag
-        /// handlers and hands the gesture to <c>PackDragController</c>. This stays because a key
-        /// the player already associates with that slot costs nothing, needs no aim, and reads as
-        /// "put this one away".
+        /// The click verb on a key. The mouse counterpart is a left-click on the slot itself, which
+        /// <c>InventorySlotUI</c> hands to <c>PackHandController</c> through <c>InventoryUI</c>, and
+        /// that is the one most players will find. This stays because a key the player already
+        /// associates with that slot costs nothing and needs no aim — and because it lifts rather
+        /// than places, it cannot put anything anywhere the player did not point at.
         /// </para>
         /// <para>
         /// Separate actions on the same physical keys rather than a second subscriber to
@@ -204,7 +204,7 @@ namespace SpaceGame.Core
         /// </para>
         /// <para>
         /// <see cref="OnDisable"/> still turns it off. A focus session enters the menu scope first
-        /// and enables this second, so the ordering works out; and a player who dies mid-drag has
+        /// and enables this second, so the ordering works out; and a player who dies holding an item has
         /// their input disabled again, which takes the wheel with it.
         /// </para>
         /// </summary>
@@ -422,7 +422,7 @@ namespace SpaceGame.Core
         }
 
         /// <summary>
-        /// The same wheel, counted into its own accumulator, for rotating a dragged pack item.
+        /// The same wheel, counted into its own accumulator, for turning the pack item in hand.
         ///
         /// A separate accumulator so a flick that half-fills one is not carried into the other:
         /// the two are never live at the same time, but leftovers from before a focus session
@@ -447,7 +447,7 @@ namespace SpaceGame.Core
         /// <para>
         /// <see cref="measuredScrollUnit"/> is deliberately shared by both consumers: it is a fact
         /// about the DEVICE, not about what the wheel is currently driving, and measuring it twice
-        /// would mean the first notch of a drag arrives on a scale nothing has calibrated yet.
+        /// would mean the first notch of a carry arrives on a scale nothing has calibrated yet.
         /// </para>
         /// </summary>
         private int NotchesFrom(float delta, ref float accumulator)

@@ -38,6 +38,15 @@ namespace SpaceGame.Items
     /// the caster's own recoil — run per machine in <see cref="Present"/>.
     /// </para>
     /// <para>
+    /// <b>The knockback is deliberately extreme.</b> A direct hit leaves at 34 m/s and the wave
+    /// carries 7 m, which is well past what the numbers need to be to kill — the launch IS the
+    /// point of the item, and a punch that merely nudges is the version nobody reaches for. What
+    /// keeps it from dominating (GDC-L1-BAL-0002) is unchanged and load-bearing: it costs a
+    /// 2.4 m approach, it does nothing at all on a whiff, and the cooldown is the whole price.
+    /// Watch the recoil in particular — it is the same figure that sets the rocket-jump, so it
+    /// buys traversal as well as feel.
+    /// </para>
+    /// <para>
     /// <b>Persistence:</b> nothing here is worth saving, and that is a decision rather than an
     /// oversight. The only runtime state is a sub-second cooldown and the ram's animation position,
     /// and both *should* come back reset — a fist restored mid-swing, or still cooling down from a
@@ -64,29 +73,36 @@ namespace SpaceGame.Items
         [Header("Direct hit")]
         [SerializeField] private int directDamage = 55;
         [Tooltip("Launch speed for whatever the fist actually lands on. Below ~9 m/s CarryMomentum " +
-                 "self-cancels, so keep this well clear of it.")]
-        [SerializeField] private float directFlingSpeed = 20f;
+                 "self-cancels, so keep this well clear of it. This is the headline number of " +
+                 "the item: a direct hit should read as being HIT BY A TRAIN, not shoved.")]
+        [SerializeField] private float directFlingSpeed = 34f;
         [Tooltip("Upward tilt of the direct launch, degrees. Load-bearing: the vertical half is " +
                  "the one PlayerMovement never deletes.")]
-        [SerializeField] private float directUpwardTilt = 22f;
+        [SerializeField] private float directUpwardTilt = 26f;
 
         [Header("Shockwave")]
         [Tooltip("Radius of the wave off the point of contact.")]
-        [SerializeField] private float shockRadius = 5f;
+        [SerializeField] private float shockRadius = 7f;
         [Tooltip("Damage to everything caught in the wave, excluding what was punched directly.")]
         [SerializeField] private int shockDamage = 15;
-        [SerializeField] private float shockMinSpeed = 12f;
-        [SerializeField] private float shockMaxSpeed = 17f;
+        [SerializeField] private float shockMinSpeed = 20f;
+        [SerializeField] private float shockMaxSpeed = 28f;
         [SerializeField] private float shockUpwardTilt = 30f;
+        [Tooltip("Fraction of the radius that takes undiminished force. Zero on purpose: this wave " +
+                 "is centred on the point of CONTACT, so a body at the centre IS the body that was " +
+                 "already punched, and falling off from there is the behaviour a punch wants. The " +
+                 "repulsor's wave centres on the caster's own chest and needs a core instead.")]
+        [SerializeField, Range(0f, 1f)] private float shockCoreFraction = 0f;
         [Tooltip("Launch strength at the edge of the wave relative to the centre.")]
-        [SerializeField, Range(0f, 1f)] private float shockEdgeFalloff = 0.3f;
+        [SerializeField, Range(0f, 1f)] private float shockEdgeFalloff = 0.35f;
         [Tooltip("Impulse scaling reference for loose items: a body this heavy takes the full speed.")]
         [SerializeField] private float itemMassReference = 10f;
 
         [Header("Recoil")]
         [Tooltip("Backward speed handed to the puncher. Punching the ground while airborne is the " +
-                 "traversal use, and it falls out of this rather than being a separate mode.")]
-        [SerializeField] private float recoilSpeed = 6f;
+                 "traversal use, and it falls out of this rather than being a separate mode — so " +
+                 "raising it lengthens the rocket-jump as much as it sells the punch.")]
+        [SerializeField] private float recoilSpeed = 11f;
         [Tooltip("Upward tilt of the recoil, degrees. Load-bearing for the same reason as the " +
                  "other tilts: the vertical half is what PlayerMovement never deletes, so it is " +
                  "what keeps the shove alive into the next tick.")]
@@ -97,23 +113,24 @@ namespace SpaceGame.Items
         [SerializeField] private float cooldownTime = 1f;
 
         [Header("Ram")]
-        [Tooltip("The carriage, its frame and the knuckle block. All three share one origin on the " +
-                 "rail axis, so they slide together by the same offset. Assigned by the builder.")]
+        [Tooltip("The carriage, its frame, the knuckle block and the cylinder's piston rod. All " +
+                 "four share one origin on the rail axis, so they slide together by the same " +
+                 "offset. Assigned by the builder.")]
         [SerializeField] private Transform[] ramParts;
         [Tooltip("Slide direction in the ram parts' own parent space. The builder derives it from " +
                  "the prefab's forward rather than assuming the FBX importer's axis convention.")]
         [SerializeField] private Vector3 ramAxis = Vector3.forward;
-        [Tooltip("Stroke, in metres. The rails' stop yoke is at 0.070 — past that the ram is " +
+        [Tooltip("Stroke, in metres. The rails' stop yoke is at 0.178 — past that the ram is " +
                  "drawn through its own frame.")]
-        [SerializeField] private float ramThrow = 0.07f;
-        [SerializeField] private float ramOutTime = 0.06f;
+        [SerializeField] private float ramThrow = 0.17f;
+        [SerializeField] private float ramOutTime = 0.07f;
         [Tooltip("Seconds the ram holds at full extension on a connect, and only on a connect. " +
                  "This is hitstop (GDC-L1-FEEL-0005) done to the striking actor's geometry rather " +
                  "than to Time.timeScale, which on a host would stall the authoritative simulation " +
                  "for every other player. The camera, particles and the player's next input all " +
                  "keep running, which is what that principle asks for anyway.")]
         [SerializeField] private float ramHoldTime = 0.1f;
-        [SerializeField] private float ramReturnTime = 0.4f;
+        [SerializeField] private float ramReturnTime = 0.55f;
 
         [Header("Presentation")]
         [Tooltip("Steam vented at the gland when the ram fires. Assigned by the builder.")]
@@ -195,7 +212,7 @@ namespace SpaceGame.Items
 
                 Vector3 fling = RepulsorBlast.FlingVelocity(
                     hit.point, dir, caught.bounds.center, 1f, shockRadius,
-                    shockMinSpeed, shockMaxSpeed, shockUpwardTilt, shockEdgeFalloff);
+                    shockMinSpeed, shockMaxSpeed, shockUpwardTilt, shockCoreFraction, shockEdgeFalloff);
 
                 Push(caught, root, fling);
                 if (shockDamage > 0) NetDamage.Apply(root, shockDamage, owner.transform);
@@ -289,44 +306,27 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Hand `velocity` to whatever kind of thing this is. Three kinds, three routes — the split
-        /// is the same one the repulsor makes, because the reasons are properties of the targets
-        /// rather than of the weapon.
+        /// The leap a creature caught by the punch is asked for.
+        ///
+        /// The floor is 2 m rather than 0: a creature at the very edge of the wave should still
+        /// visibly hop, because on a punch the edge of the wave is still contact. The repulsor
+        /// wants the opposite and uses a proportional leap — see <see cref="BlastPush.Leap"/>.
         /// </summary>
-        private void Push(Collider collider, GameObject root, Vector3 velocity)
-        {
-            if (root.GetComponent<PlayerMovement>() != null)
-            {
-                // Owner-authoritative body: the victim's own machine applies it (FlungBody).
-                NetMessaging.NetSendTo(root, NetMsg.Flung, new NetArg { P = velocity }, NetTo.All);
-                return;
-            }
+        private static readonly BlastPush.Leap PunchLeap =
+            new BlastPush.Leap(2f, 6f, 1.2f, 1.2f, 0.45f);
 
-            if (root.GetComponentInChildren<AgentController>() != null)
-            {
-                // Kinematic, motor-owned transform — forces never land. Leap if the motor can.
-                var leaper = root.GetComponentInChildren<IMountLeapMotor>();
-                if (leaper == null || !leaper.IsLeapAvailable) return;
+        /// <summary>Clamp on the mass compensation handed to a loose Rigidbody.</summary>
+        private static readonly Vector2 PunchMassScaleRange = new Vector2(0.2f, 1.5f);
 
-                float falloff = Mathf.Clamp01(velocity.magnitude / Mathf.Max(shockMaxSpeed, 0.01f));
-                leaper.RequestLeap(Vector3.ProjectOnPlane(velocity, Vector3.up).normalized,
-                                   Mathf.Lerp(2f, 6f, falloff), 1.2f, 0.45f);
-                return;
-            }
-
-            Rigidbody body = collider.attachedRigidbody;
-            if (body == null) return;
-            if (body.isKinematic)
-            {
-                // Only un-kinematic a body this machine simulates — a kinematic replica is
-                // kinematic on purpose (the LassoTether guard).
-                if (!Network.Simulates(body)) return;
-                body.isKinematic = false;
-            }
-
-            float massScale = Mathf.Clamp(itemMassReference / Mathf.Max(body.mass, 0.1f), 0.2f, 1.5f);
-            body.AddForce(velocity * massScale, ForceMode.VelocityChange);
-        }
+        /// <summary>
+        /// Hand `velocity` to whatever kind of thing this is. Three kinds, three routes — the
+        /// split lives in <see cref="BlastPush"/> because the reasons are properties of the
+        /// targets rather than of the weapon, and the repulsor and the dragon bazooka need the
+        /// identical rules.
+        /// </summary>
+        private void Push(Collider collider, GameObject root, Vector3 velocity) =>
+            BlastPush.Apply(collider, root, velocity, shockMaxSpeed, PunchLeap,
+                            itemMassReference, PunchMassScaleRange);
 
         private void ApplyRecoil(Vector3 dir)
         {

@@ -366,9 +366,15 @@ namespace SpaceGame.Tests
             InventoryItem lamp = Item("lamp");
             var spot = new Vector2(0.40f, 0.30f);
 
-            Assert.IsTrue(rig.Pack.TryPlace(lamp, PackSurfaceId.Rack, spot, 0f),
+            // TryPlace is deliberately NOT gated on Reaches (BackpackObject.cs:1330), so it would
+            // place onto the Rack face here whether or not the leaf being racked actually made it
+            // reachable. Asserted separately so this test still proves the thing its message
+            // claims rather than only proving TryPlace can write to an id.
+            Assert.IsTrue(rig.Pack.Reaches(PackSurfaceId.Rack),
                           "the exterior face is reachable while the leaf is racked, which is the " +
                           "only configuration it points at the focus camera in");
+
+            Assert.IsTrue(rig.Pack.TryPlace(lamp, PackSurfaceId.Rack, spot, 0f));
 
             rig.Pack.SnapStowed();
             rig.Pack.SetWorn(true);

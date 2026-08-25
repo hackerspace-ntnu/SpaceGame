@@ -365,10 +365,10 @@ namespace SpaceGame.Core
         //   P  the point that was grabbed, in that surface's uv: X and Z, Y unused.
         public const ushort PackDrop = 77; // player → server: take this off the pack and drop it
 
-        // The way IN from the hotbar, and the only one: pressing a hotbar key while focused on an
-        // open pack puts that slot's item on the pack. PackTake is its mirror and this is the half
-        // that was missing — before it, an item that reached the hotbar could only ever leave it
-        // by being dropped on the ground.
+        // The way IN from the hotbar, and the only one: an item taken into the player's hand and
+        // put down on the pack. PackTake is its mirror and this is the half that was missing —
+        // before it, an item that reached the hotbar could only ever leave it by being dropped on
+        // the ground.
         //
         // On the PACK OWNER's channel with the other three, and the server does BOTH halves of the
         // transfer: PlayerInventoryNetwork replicates the hotbar losing a slot and BackpackNetwork
@@ -380,10 +380,15 @@ namespace SpaceGame.Core
         // contents two people are rearranging.
         //
         //   Target  the player reaching in, as for PackTake. Their hotbar is the source.
-        //   A       the hotbar slot index.
-        //   B       the surface the cursor was over, or -1 for "the cursor was not on the pack",
-        //           which asks the server to first-fit it instead.
-        //   P       where on that surface the cursor was, in its uv: X and Z, Y unused.
+        //   A       the hotbar slot index in the low byte, the placement's quarter turns (0-3) in
+        //           the next one up — the same byte packing PackMove uses for its two surfaces.
+        //           Yaw has to travel: an item is turned in the player's hand before it is put
+        //           down, and a server that placed everything at zero would land it on cells the
+        //           player never saw highlighted.
+        //   B       the surface being placed on. There is no "the cursor was nowhere" sentinel any
+        //           more — a stow is only ever sent for a spot the player pointed at and watched
+        //           go green, and a spot the server finds taken is refused rather than first-fitted.
+        //   P       where on that surface, in its uv: X and Z, Y unused.
         public const ushort PackStow = 78; // player → server: put my hotbar slot on the pack
 
         // Server → everyone, on the VICTIM player's relay: this player has been flung and their
@@ -407,6 +412,21 @@ namespace SpaceGame.Core
         // pair only ever holds two apertures and a traversal shuts both.
         public const ushort PortalsUsed = 80; // traveller's owner → server, on the SHOOTER's relay
         public const ushort PortalsShut = 81; // server → everyone else, on the SHOOTER's relay
+
+        // Server → everyone, on the VICTIM's relay: this body has been knocked down. Every machine
+        // presents it going limp, with P as the impulse handed to the hips (m/s, world space).
+        //
+        // Broadcast for the same reason Flung (79) is: bone transforms are not replicated, so a
+        // ragdoll is not something one machine can do on another's behalf — every machine has to
+        // run its own. Position still converges, through the authority split the entity already
+        // has: an agent's root follows the server's NetworkTransform, a player's follows its owner.
+        // Only the limb poses differ between machines, and nothing reads a corpse's elbow.
+        //
+        // A message of its own rather than a flag on Flung, because Flung is shared three ways and
+        // one of them is self-inflicted: GravelBlasterArtifact flings the HOLDER as self-propulsion
+        // (GravelBlasterArtifact.Backfire). A ragdoll hung off Flung would knock players down every
+        // time they fired their own gravel blaster.
+        public const ushort Knockdown = 82; // server → everyone, on the VICTIM's relay
     }
 
     /// <summary>What a <see cref="NetMsg.LassoRope"/> message is saying. Append only.</summary>

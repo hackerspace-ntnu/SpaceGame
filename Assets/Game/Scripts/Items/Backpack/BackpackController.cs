@@ -782,10 +782,16 @@ namespace SpaceGame.Items
 
             if (Pack.TakeOut(grabbed.ItemId) == null) return false;
 
-            // Aimed at the vacated spot first, first-fit after — TryStowAt's own fallback, and the
-            // right one: a displaced item that will not fit where the other one was lying should
-            // still end up on the pack rather than blocking the drag.
-            if (held != null && !Pack.TryStowAt(held, grabbed.Surface, grabbed.Uv, grabbed.Yaw))
+            // Aimed at the vacated spot first, first-fit after: a displaced item that will not fit
+            // where the other one was lying should still end up on the pack rather than blocking
+            // the drag. This is the OLD drag interaction — a pack item dragged onto a named hotbar
+            // slot, not the click-to-stow path — so it keeps the fallback BackpackObject.TryStowAt
+            // used to give every aimed stow, inlined here now that that method is gone.
+            bool displacedLanded = held != null &&
+                ((Pack.Reaches(grabbed.Surface) && Pack.TryPlace(held, grabbed.Surface, grabbed.Uv, grabbed.Yaw))
+                 || Pack.TryStow(held));
+
+            if (held != null && !displacedLanded)
             {
                 // Nowhere for the displaced item to go. Put the dragged one back exactly where it
                 // was and change nothing: every machine's pack, this one included, then agrees
@@ -937,8 +943,8 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// The way IN, and the mirror of <see cref="RequestTake"/>: a hotbar key pressed while
-        /// focused on this pack puts that slot's item onto it.
+        /// The way IN, and the mirror of <see cref="RequestTake"/>: an item held in the player's
+        /// hand goes onto this pack, at the spot and turn they lined it up at.
         ///
         /// <para>
         /// Same channel, same direction, same rule that nothing happens locally — two people can be
@@ -946,16 +952,20 @@ namespace SpaceGame.Items
         /// to decide, exactly as which of them gets the last water cell is.
         /// </para>
         /// <para>
-        /// The hotbar slot travels as an INDEX where the other three messages are positional, and
-        /// that difference is deliberate: a hotbar slot is a numbered box the player pressed a
-        /// numbered key for, and it is not a thing anybody else is rearranging underneath them.
-        /// See <see cref="NetMsg.PackStow"/> for the field layout.
+        /// The hotbar slot travels as an INDEX where the other messages are positional, and that
+        /// difference is deliberate: a hotbar slot is a numbered box, and it is not a thing anybody
+        /// else is rearranging underneath them. See <see cref="NetMsg.PackStow"/> for the field
+        /// layout.
         /// </para>
         /// </summary>
-        public void RequestStow(int slotIndex, bool aimed, PackSurfaceId aimedSurface,
-                                Vector2 aimedUv, Interactor interactor)
+        public void RequestStow(int slotIndex, PackSurfaceId surface, Vector2 uv, float yaw,
+                                Interactor interactor)
         {
             if (interactor == null) return;
+
+            // The low byte of A is the slot and the next one up is the turn, so a slot that will
+            // not fit in a byte would silently corrupt the yaw beside it.
+            if (slotIndex < 0 || slotIndex > byte.MaxValue) return;
 
             // The stower's BODY, resolved the way the messaging layer resolves it — see the note
             // in RequestTake, which this is the other half of.
@@ -964,15 +974,16 @@ namespace SpaceGame.Items
 
             var arg = new NetArg
             {
-                A = slotIndex,
-                B = aimed ? (int)aimedSurface : -1,
-                P = new Vector3(aimedUv.x, 0f, aimedUv.y),
+                A = slotIndex | (PackGrid.QuarterTurns(yaw) << 8),
+                B = (int)surface,
+                P = new Vector3(uv.x, 0f, uv.y),
             };
 
             this.NetToServer(NetMsg.PackStow, arg.With(stower));
         }
 
-        /// <summary>Server side: put it on the pack, if it is still in that slot and it fits.</summary>
+        /// <summary>Server side: put it on the pack, if it is still in that slot and the spot is
+        /// still free.</summary>
         private void OnStowRequested(in NetArg arg, ulong sender)
         {
             if (!Network.Simulates(this)) return;
@@ -986,17 +997,16 @@ namespace SpaceGame.Items
             var hotbar = stower.GetComponentInChildren<IPlayerInventory>(true);
             if (hotbar == null) return;
 
-            // B is -1 when the cursor was not over a usable spot, which asks for first-fit. An
-            // out-of-range value that is not the sentinel is a malformed request, and degrading it
-            // to first-fit would put gear somewhere the sender never asked for — so it is refused.
-            bool aimed = arg.B >= 0;
-            if (aimed && !TryDecodeSurface(arg.B, out _)) return;
+            // Every stow is aimed now — there is no first-fit sentinel to fall back to — so a
+            // surface that does not decode is a malformed request and is refused outright.
+            if (!TryDecodeSurface(arg.B, out PackSurfaceId surface)) return;
 
-            PackSurfaceId surface = aimed ? (PackSurfaceId)arg.B : default;
+            int slot = arg.A & byte.MaxValue;
+            float yaw = ((arg.A >> 8) & 3) * 90f;
 
             // Idempotent the way the take is: the second request finds the slot already empty and
             // answers false rather than placing a second copy.
-            Pack.TryStowFromHotbar(hotbar, arg.A, aimed, surface, new Vector2(arg.P.x, arg.P.z));
+            Pack.TryStowFromHotbar(hotbar, slot, surface, new Vector2(arg.P.x, arg.P.z), yaw);
         }
 
         /// <summary>

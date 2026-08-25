@@ -366,7 +366,7 @@ namespace SpaceGame.Tests
             InventoryItem lamp = Item("lamp");
             var spot = new Vector2(0.40f, 0.30f);
 
-            Assert.IsTrue(rig.Pack.TryStowAt(lamp, PackSurfaceId.Rack, spot, 0f),
+            Assert.IsTrue(rig.Pack.TryPlace(lamp, PackSurfaceId.Rack, spot, 0f),
                           "the exterior face is reachable while the leaf is racked, which is the " +
                           "only configuration it points at the focus camera in");
 

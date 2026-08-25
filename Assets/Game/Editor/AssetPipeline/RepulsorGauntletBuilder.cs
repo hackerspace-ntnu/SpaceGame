@@ -12,9 +12,10 @@ using SpaceGame.Items;
 namespace SpaceGame.EditorTools
 {
     /// <summary>
-    /// Builds the Repulsor Gauntlet artifact: its blast-ring material, its two shake assets, its
-    /// prefab, its <see cref="InventoryItem"/> asset, its entry in the network prefab list, and
-    /// the <see cref="FlungBody"/> landing on the player prefab.
+    /// Builds the Repulsor Gauntlet artifact: its blast-ring and air-warp materials, its two shake
+    /// assets, its prefab — greybox model, ammo capacitor and the whole blast VFX rig — its
+    /// <see cref="InventoryItem"/> asset, its entry in the network prefab list, and the
+    /// <see cref="FlungBody"/> landing on the player prefab.
     ///
     /// <para>
     /// The model is a GREYBOX built from primitives — the real mesh is a deferred follow-up, and
@@ -25,6 +26,9 @@ namespace SpaceGame.EditorTools
     /// the inspector afterwards is destroyed by the next run, so tuning belongs in the numbers
     /// below rather than in the scene.
     /// </para>
+    /// <para>
+    /// <b>The shipped prefab is STALE and this builder has to be run.</b> See <see cref="Build"/>.
+    /// </para>
     /// </summary>
     public static class RepulsorGauntletBuilder
     {
@@ -32,12 +36,28 @@ namespace SpaceGame.EditorTools
         private const string ItemPath    = "Assets/Game/Resources/Items/Artifacts/RepulsorGauntlet.asset";
         private const string RingMatPath = "Assets/Game/Art/Materials/Artifacts/RepulsorBlastRing.mat";
         private const string GlowMatPath = "Assets/Game/Art/Materials/Artifacts/RepulsorChargeGlow.mat";
+        private const string ConeMatPath = "Assets/Game/Art/Materials/Artifacts/RepulsorAirWarp.mat";
         private const string ShockwaveShaderPath = "Assets/Game/Art/Shaders/Artifacts/RepulsorShockwave.shader";
+        private const string AirWarpShaderPath   = "Assets/Game/Art/Shaders/Artifacts/RepulsorAirWarp.shader";
 
-        /// <summary>Charge-glow tint. Alpha is the additive strength, not an opacity.</summary>
+        /// <summary>
+        /// The particle materials the blast BORROWS from the weapon builds. Dust and sparks belong
+        /// to the laser staff, the debris rock to the gravel blaster; one grit-and-smoke look
+        /// across the artifacts is worth more than a fourth private copy of the same three shaders.
+        /// </summary>
+        private const string WeaponMaterialDir = "Assets/Game/Art/Materials/Weapons";
+        private const string SmokeMatPath  = WeaponMaterialDir + "/LaserSmoke.mat";
+        private const string SparkMatPath  = WeaponMaterialDir + "/LaserSpark.mat";
+        private const string DebrisMatPath = WeaponMaterialDir + "/GravelDebris.mat";
+
+        /// <summary>Capacitor tint. Alpha is the additive strength, not an opacity.</summary>
         private static readonly Color GlowColor = new Color(0.45f, 0.85f, 1f, 1f);
 
-        /// <summary>Both shakes start as copies of the shipped damage shake and are tuned in the Inspector.</summary>
+        /// <summary>
+        /// A shake asset that does not exist yet starts as a copy of the shipped damage shake and is
+        /// tuned in the Inspector afterwards. Both of these already exist and are authored — the copy
+        /// is only the first-run path, and EnsureShake deliberately never overwrites a live asset.
+        /// </summary>
         private const string ShakeSourcePath = "Assets/Game/ScriptableObjects/Shake/DamageShake.asset";
         private const string BlastShakePath  = "Assets/Game/ScriptableObjects/Shake/RepulsorBlastShake.asset";
         private const string FlungShakePath  = "Assets/Game/ScriptableObjects/Shake/RepulsorFlungShake.asset";
@@ -56,15 +76,84 @@ namespace SpaceGame.EditorTools
         /// <summary>The ground layer DropItemPhysics settles against, shared by every artifact.</summary>
         private const int GroundLayerMask = 128;
 
+        // ── Blast VFX tuning ───────────────────────────────────────────────────
+        //
+        // Read every number below against the artifact's own: a 20 m reach and a 100° cone, spent
+        // in one instant. The particles are not the blast — the cone shell and the ground ring draw
+        // that — they are its MASS, the thing that makes a wall of air visible on the way out. So
+        // they are wide, fast and brief: a narrow slow puff would read as a nozzle venting, which
+        // is the opposite of what a thundergun is.
+
+        /// <summary>Where the blast leaves the gauntlet: metres in front of the cuff, along +Z.</summary>
+        private const float EmitterForwardOffset = 0.16f;
+
+        private const float DustCone = 45f;
+        private const short DustCount = 55;
+        private const float DustSpeedMin = 15f, DustSpeedMax = 22f;
+        private const float DustLifeMin = 0.45f, DustLifeMax = 0.7f;
+        private const float DustSizeMin = 0.35f, DustSizeMax = 0.9f;
+        /// <summary>Negative: displaced air billows UP for the moment before it settles.</summary>
+        private const float DustGravityMin = -0.12f, DustGravityMax = -0.02f;
+
+        private const float StreakCone = 40f;
+        private const short StreakCount = 70;
+        private const float StreakSpeedMin = 34f, StreakSpeedMax = 45f;
+        private const float StreakLifeMin = 0.18f, StreakLifeMax = 0.3f;
+        private const float StreakSizeMin = 0.05f, StreakSizeMax = 0.14f;
+        /// <summary>Stretch: the streak is the frame's motion, so it is length that carries speed.</summary>
+        private const float StreakLengthScale = 4f, StreakVelocityScale = 0.12f;
+
+        private const float DebrisCone = 30f;
+        private const short DebrisCount = 35;
+        private const float DebrisSpeedMin = 18f, DebrisSpeedMax = 25f;
+        private const float DebrisLifeMin = 0.9f, DebrisLifeMax = 1.4f;
+        private const float DebrisSizeMin = 0.02f, DebrisSizeMax = 0.06f;
+        private const float DebrisGravityMin = 0.9f, DebrisGravityMax = 1.4f;
+
+        /// <summary>Point light at the emitter, lit for the artifact's flashSeconds.</summary>
+        private const float FlashRange = 9f, FlashIntensity = 14f;
+
+        /// <summary>
+        /// Rest scale of the capacitor sphere. The artifact overwrites this every frame from its own
+        /// capacitorGlowScale — this is only what the prefab looks like sitting in the project view.
+        /// </summary>
+        private const float CapacitorRestScale = 0.14f;
+
+        /// <summary>Compressed air and the desert it tears up.</summary>
+        private static readonly Color DustLight  = new Color(0.78f, 0.72f, 0.60f);
+        private static readonly Color DustDark   = new Color(0.46f, 0.42f, 0.35f);
+        private static readonly Color StreakCore = new Color(0.88f, 0.95f, 1.00f);
+        private static readonly Color StreakEdge = new Color(0.45f, 0.70f, 1.00f);
+        private static readonly Color Grit       = new Color(0.42f, 0.36f, 0.29f);
+        /// <summary>Matches the air-warp shader's authored rim colour, so flash and cone agree.</summary>
+        private static readonly Color FlashCool  = new Color(0.62f, 0.82f, 1.00f);
+
+        /// <summary>
+        /// Build the gauntlet.
+        ///
+        /// <para>
+        /// <b>This has to be RUN after the instant-fire rewrite.</b> The prefab currently on disk was
+        /// saved by an older run and pins <c>blastAngle</c>, <c>upwardTilt</c>, <c>recoilSpeed</c>,
+        /// <c>leapHeight</c> and <c>blastFovKick</c> to the charge-era values, which OVERRIDE the new
+        /// defaults in <see cref="RepulsorGauntletArtifact"/> — a serialized prefab value always
+        /// wins over a field initialiser. It also still carries the pre-rename <c>chargeGlow</c> and
+        /// has no cone material, particle systems or muzzle flash at all. A re-run replaces the
+        /// prefab wholesale and is the only thing that clears all of it.
+        /// </para>
+        /// </summary>
         [MenuItem("Tools/SpaceGame/Items/Build Repulsor Gauntlet")]
         public static void Build()
         {
             Material ringMat = EnsureRingMaterial();
             Material glowMat = EnsureGlowMaterial();
+            Material coneMat = EnsureAirWarpMaterial();
+            BlastMaterials blastMats = LoadBlastMaterials();
+            if (!blastMats.Complete) return;
+
             ShakeData blastShake = EnsureShake(BlastShakePath);
             if (blastShake == null) return;
 
-            GameObject root = BuildHierarchy(ringMat, glowMat, blastShake);
+            GameObject root = BuildHierarchy(ringMat, glowMat, coneMat, blastMats, blastShake);
 
             Directory.CreateDirectory(Path.GetDirectoryName(PrefabPath) ?? ".");
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
@@ -84,7 +173,8 @@ namespace SpaceGame.EditorTools
 
         // ── Hierarchy ──────────────────────────────────────────────────────────
 
-        private static GameObject BuildHierarchy(Material ringMat, Material glowMat, ShakeData blastShake)
+        private static GameObject BuildHierarchy(Material ringMat, Material glowMat, Material coneMat,
+                                                 BlastMaterials blastMats, ShakeData blastShake)
         {
             var root = new GameObject("RepulsorGauntlet");
 
@@ -115,22 +205,37 @@ namespace SpaceGame.EditorTools
             grip.transform.SetParent(root.transform, false);
             grip.transform.localPosition = new Vector3(0f, 0f, -0.05f);
 
-            // ── Charge glow ──
-            // The sphere the artifact scales up between chargeGlowScale.x and .y while the Use
-            // button is held. Off until a press; the artifact turns it on.
+            // ── Ammo capacitor ──
+            // Lit while a shot is loaded, dark while it recharges — the gauntlet's whole magazine
+            // readout, driven by the artifact's UpdateCapacitor. Built inactive; the artifact turns
+            // it on from Awake, so a gauntlet lying in the sand already shows a full magazine.
             //
             // Its own flat additive material, NOT the ring's. The shockwave shader reads uv.y as
             // "across the annulus width" and sweeps it with _Progress; on a sphere that coordinate
             // is latitude and nothing animates _Progress, so the ring material renders the glow
             // bright at one pole and invisible at the other.
             GameObject glow = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            glow.name = "ChargeGlow";
+            glow.name = "Capacitor";
             glow.transform.SetParent(root.transform, false);
             glow.transform.localPosition = new Vector3(0f, 0f, 0.12f);
-            glow.transform.localScale = Vector3.one * 0.03f;
+            glow.transform.localScale = Vector3.one * CapacitorRestScale;
             UnityEngine.Object.DestroyImmediate(glow.GetComponent<Collider>());
             glow.GetComponent<MeshRenderer>().sharedMaterial = glowMat;
             glow.SetActive(false);
+
+            // ── Blast emitter ──
+            // One transform carrying the muzzle position, with the three bursts and the flash at
+            // zero offset under it. That split is load-bearing: the artifact's PlayBurst writes each
+            // system's world ROTATION every shot and never its position, so a system that carried an
+            // offset of its own would swing around the hand as the player turned.
+            var emitter = new GameObject("BlastEmitter");
+            emitter.transform.SetParent(root.transform, false);
+            emitter.transform.localPosition = new Vector3(0f, 0f, EmitterForwardOffset);
+
+            ParticleSystem dust = BuildBlastDust(emitter.transform, blastMats.Dust);
+            ParticleSystem streaks = BuildBlastStreaks(emitter.transform, blastMats.Streaks);
+            ParticleSystem debris = BuildBlastDebris(emitter.transform, blastMats.Debris);
+            Light flash = BuildMuzzleFlash(emitter.transform);
 
             // ── Pickup / world presence ──
             // Mirrors LightningSpell.prefab component for component: the same prefab is both the
@@ -162,11 +267,222 @@ namespace SpaceGame.EditorTools
 
             // ── The artifact ──
             var artifact = root.AddComponent<RepulsorGauntletArtifact>();
-            SetPrivate(artifact, "chargeGlow", glow.transform);
+            SetPrivate(artifact, "capacitorGlow", glow.transform);
             SetPrivate(artifact, "ringMaterial", ringMat);
+            SetPrivate(artifact, "coneMaterial", coneMat);
+            SetPrivate(artifact, "blastDust", dust);
+            SetPrivate(artifact, "blastStreaks", streaks);
+            SetPrivate(artifact, "blastDebris", debris);
+            SetPrivate(artifact, "muzzleFlash", flash);
             SetPrivate(artifact, "blastShake", blastShake);
 
             return root;
+        }
+
+        // ── The blast emitters ─────────────────────────────────────────────────
+        //
+        // All bursts, never rates: the thundergun empties itself in one frame, so everything it
+        // throws exists from frame one. The recipes are the gravel blaster's, widened and sped up —
+        // that build already proved this shape of system reads at speed, and the difference here is
+        // one of scale, not of kind.
+        //
+        // The four plumbing helpers at the bottom (NewBurstSystem/Burst/Cone/ConfigureRenderer, and
+        // Ramp) are now the SECOND copy of GravelBlasterBuilder's; they want lifting into a shared
+        // editor utility the next time one of these builders is opened, which is a change to that
+        // file and not to this one.
+
+        /// <summary>
+        /// The wall itself: a broad billowing sheet of displaced air and sand, the widest and
+        /// slowest of the three so it is still hanging there after the streaks have gone.
+        /// </summary>
+        private static ParticleSystem BuildBlastDust(Transform parent, Material material)
+        {
+            ParticleSystem ps = NewBurstSystem(parent, "BlastDust");
+
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(DustLifeMin, DustLifeMax);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(DustSpeedMin, DustSpeedMax);
+            main.startSize = new ParticleSystem.MinMaxCurve(DustSizeMin, DustSizeMax);
+            main.gravityModifier = new ParticleSystem.MinMaxCurve(DustGravityMin, DustGravityMax);
+            main.maxParticles = DustCount * 2;
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.startColor = new ParticleSystem.MinMaxGradient(DustDark, DustLight);
+
+            Burst(ps, DustCount);
+            Cone(ps, DustCone, 0.06f);
+
+            // Snap in, drift out. A cloud that faded in symmetrically would put its brightest frame
+            // after the thunderclap had already landed, which is the whole reason the old effect
+            // read as weak (GDC-L1-FEEL-0002: the peak belongs on the frame of the input).
+            var colour = ps.colorOverLifetime;
+            colour.enabled = true;
+            colour.color = new ParticleSystem.MinMaxGradient(Ramp(
+                new[] { (Color.white, 0f), (Color.white, 1f) },
+                new[] { (0.9f, 0f), (0.75f, 0.25f), (0f, 1f) }));
+
+            // Growth is what turns a spray of dots into a front: each puff keeps expanding as the
+            // pressure behind it drops.
+            var size = ps.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+                new Keyframe(0f, 0.45f), new Keyframe(1f, 1.6f)));
+
+            ConfigureRenderer(ps.GetComponent<ParticleSystemRenderer>(), material,
+                              ParticleSystemRenderMode.Billboard);
+            return ps;
+        }
+
+        /// <summary>
+        /// Stretched air lines down the cone axis: the fastest and shortest-lived of the three, and
+        /// the only one that says which WAY the force went. Stretch mode draws each particle along
+        /// its own velocity, so speed becomes visible length rather than an invisible dot.
+        /// </summary>
+        private static ParticleSystem BuildBlastStreaks(Transform parent, Material material)
+        {
+            ParticleSystem ps = NewBurstSystem(parent, "BlastStreaks");
+
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(StreakLifeMin, StreakLifeMax);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(StreakSpeedMin, StreakSpeedMax);
+            main.startSize = new ParticleSystem.MinMaxCurve(StreakSizeMin, StreakSizeMax);
+            main.gravityModifier = new ParticleSystem.MinMaxCurve(0f);
+            main.maxParticles = StreakCount * 2;
+            main.startColor = new ParticleSystem.MinMaxGradient(StreakCore, StreakEdge);
+
+            Burst(ps, StreakCount);
+            Cone(ps, StreakCone, 0.03f);
+
+            var colour = ps.colorOverLifetime;
+            colour.enabled = true;
+            colour.color = new ParticleSystem.MinMaxGradient(Ramp(
+                new[] { (StreakCore, 0f), (StreakEdge, 0.6f), (StreakEdge, 1f) },
+                new[] { (1f, 0f), (0.8f, 0.4f), (0f, 1f) }));
+
+            var renderer = ps.GetComponent<ParticleSystemRenderer>();
+            ConfigureRenderer(renderer, material, ParticleSystemRenderMode.Stretch);
+            renderer.velocityScale = StreakVelocityScale;
+            renderer.lengthScale = StreakLengthScale;
+            return ps;
+        }
+
+        /// <summary>
+        /// Grit torn off the ground and thrown down the cone. The narrowest and longest-lived
+        /// system, and the only one that collides: chunks skipping off the sand are what tie the
+        /// blast to the world it went off in rather than leaving it a decal on the camera.
+        /// </summary>
+        private static ParticleSystem BuildBlastDebris(Transform parent, Material material)
+        {
+            ParticleSystem ps = NewBurstSystem(parent, "BlastDebris");
+
+            var main = ps.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(DebrisLifeMin, DebrisLifeMax);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(DebrisSpeedMin, DebrisSpeedMax);
+            main.startSize = new ParticleSystem.MinMaxCurve(DebrisSizeMin, DebrisSizeMax);
+            main.gravityModifier = new ParticleSystem.MinMaxCurve(DebrisGravityMin, DebrisGravityMax);
+            main.maxParticles = DebrisCount * 2;
+            main.startColor = new ParticleSystem.MinMaxGradient(Grit, Grit * 0.7f);
+            main.startRotation3D = true;
+            main.startRotationX = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.startRotationY = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.startRotationZ = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+
+            Burst(ps, DebrisCount);
+            Cone(ps, DebrisCone, 0.04f);
+
+            var collision = ps.collision;
+            collision.enabled = true;
+            collision.type = ParticleSystemCollisionType.World;
+            collision.mode = ParticleSystemCollisionMode.Collision3D;
+            collision.quality = ParticleSystemCollisionQuality.Medium;
+            collision.bounce = new ParticleSystem.MinMaxCurve(0.15f, 0.4f);
+            collision.dampen = new ParticleSystem.MinMaxCurve(0.4f, 0.7f);
+            collision.lifetimeLoss = 0.2f;
+
+            var renderer = ps.GetComponent<ParticleSystemRenderer>();
+            ConfigureRenderer(renderer, material, ParticleSystemRenderMode.Mesh);
+            renderer.mesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+            return ps;
+        }
+
+        /// <summary>
+        /// The flash at the emitter. Built DISABLED: the artifact switches it on in Present and off
+        /// again on its flashSeconds deadline, so a light left enabled here would be a lamp welded
+        /// to the player's hand.
+        /// </summary>
+        private static Light BuildMuzzleFlash(Transform parent)
+        {
+            var flashObject = new GameObject("MuzzleFlash");
+            flashObject.transform.SetParent(parent, false);
+
+            Light flash = flashObject.AddComponent<Light>();
+            flash.type = LightType.Point;
+            flash.color = FlashCool;
+            flash.range = FlashRange;
+            flash.intensity = FlashIntensity;
+            flash.shadows = LightShadows.None;
+            flash.enabled = false;
+            return flash;
+        }
+
+        private static ParticleSystem NewBurstSystem(Transform parent, string name)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+            var main = ps.main;
+            main.duration = 1f;
+            main.loop = false;
+            main.playOnAwake = false;
+            // World space, so air already thrown keeps its own arc when the hand swings away.
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            // Shape, NOT Hierarchy: EquipItemSocket rescales the whole gauntlet to ItemGrip.holdSize
+            // when it is seated in a hand, and under Hierarchy that prop-sized factor would multiply
+            // every particle's SPEED as well. The blast has to reach the same distance the artifact's
+            // 20 m range says it does, whatever size the model ended up being held at.
+            main.scalingMode = ParticleSystemScalingMode.Shape;
+            return ps;
+        }
+
+        private static void Burst(ParticleSystem ps, short count)
+        {
+            var emission = ps.emission;
+            emission.enabled = true;
+            emission.rateOverTime = 0f;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, count) });
+        }
+
+        private static void Cone(ParticleSystem ps, float angle, float radius)
+        {
+            var shape = ps.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = angle;
+            shape.radius = radius;
+        }
+
+        private static void ConfigureRenderer(ParticleSystemRenderer renderer, Material material,
+                                              ParticleSystemRenderMode mode)
+        {
+            renderer.sharedMaterial = material;
+            renderer.renderMode = mode;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            renderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            renderer.sortMode = ParticleSystemSortMode.None;
+        }
+
+        private static Gradient Ramp((Color colour, float time)[] colours,
+                                     (float alpha, float time)[] alphas)
+        {
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                colours.Select(c => new GradientColorKey(c.colour, c.time)).ToArray(),
+                alphas.Select(a => new GradientAlphaKey(a.alpha, a.time)).ToArray());
+            return gradient;
         }
 
         // ── Materials and shakes ───────────────────────────────────────────────
@@ -231,6 +547,71 @@ namespace SpaceGame.EditorTools
 
             EditorUtility.SetDirty(material);
             return material;
+        }
+
+        /// <summary>
+        /// The swept air cone's material: the RepulsorAirWarp shader, which refracts
+        /// _CameraOpaqueTexture instead of painting over it. Every parameter it has is authored in
+        /// the shader's own Properties block and animated per shot by RepulsorBlastCone through
+        /// _Progress, so this only has to exist and point at the right shader.
+        /// </summary>
+        private static Material EnsureAirWarpMaterial()
+        {
+            Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(AirWarpShaderPath);
+            if (shader == null)
+            {
+                Debug.LogError($"[RepulsorGauntlet] No shader at {AirWarpShaderPath}; " +
+                               "falling back to URP Unlit — the cone will be a flat decal.");
+                shader = Shader.Find("Universal Render Pipeline/Unlit");
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(ConeMatPath) ?? ".");
+
+            var material = AssetDatabase.LoadAssetAtPath<Material>(ConeMatPath);
+            if (material == null)
+            {
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, ConeMatPath);
+            }
+
+            // Re-pointed on every run for the same reason as the ring's: a build that ran before the
+            // shader had compiled leaves the material stuck on the URP Unlit fallback, and without
+            // this the re-run that would fix it silently hands back the broken one.
+            material.shader = shader;
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        /// <summary>The three shared particle materials, loaded together so one miss reports once.</summary>
+        private readonly struct BlastMaterials
+        {
+            public readonly Material Dust;
+            public readonly Material Streaks;
+            public readonly Material Debris;
+
+            public BlastMaterials(Material dust, Material streaks, Material debris)
+            {
+                Dust = dust;
+                Streaks = streaks;
+                Debris = debris;
+            }
+
+            public bool Complete => Dust != null && Streaks != null && Debris != null;
+        }
+
+        private static BlastMaterials LoadBlastMaterials()
+        {
+            var materials = new BlastMaterials(
+                AssetDatabase.LoadAssetAtPath<Material>(SmokeMatPath),
+                AssetDatabase.LoadAssetAtPath<Material>(SparkMatPath),
+                AssetDatabase.LoadAssetAtPath<Material>(DebrisMatPath));
+
+            if (!materials.Complete)
+                Debug.LogError($"[RepulsorGauntlet] Missing a particle material under {WeaponMaterialDir}. " +
+                               "Run Tools/Build Laser Staff Artifact (LaserSmoke, LaserSpark) and " +
+                               "Tools/Build Gravel Blaster Artifact (GravelDebris) first.");
+
+            return materials;
         }
 
         private static ShakeData EnsureShake(string path)

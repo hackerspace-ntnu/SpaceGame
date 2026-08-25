@@ -164,8 +164,7 @@ namespace SpaceGame.Tests
 
             var spot = new Vector2(0.4f, 0.3f);
 
-            Assert.IsTrue(pack.TryStowFromHotbar(hotbar, 0, aimed: true,
-                                                 PackSurfaceId.Leaf, spot));
+            Assert.IsTrue(pack.TryStowFromHotbar(hotbar, 0, PackSurfaceId.Leaf, spot, 0f));
 
             Assert.IsFalse(IsInSlot(hotbar, 0, carried), "the hotbar slot must be empty afterwards");
 
@@ -191,8 +190,8 @@ namespace SpaceGame.Tests
             InventoryItem carried = Item("carried");
             Assert.IsTrue(hotbar.TryAddItem(carried));
 
-            Assert.IsFalse(pack.TryStowFromHotbar(hotbar, 0, aimed: true,
-                                                  PackSurfaceId.Leaf, new Vector2(0.02f, 0.02f)));
+            Assert.IsFalse(pack.TryStowFromHotbar(hotbar, 0, PackSurfaceId.Leaf,
+                                                  new Vector2(0.02f, 0.02f), 0f));
 
             Assert.IsTrue(IsInSlot(hotbar, 0, carried), "the item must still be in the hotbar");
             Assert.AreEqual(0, pack.Layout.Placements.Count, "and nothing may have landed on the pack");
@@ -208,12 +207,59 @@ namespace SpaceGame.Tests
             Assert.IsTrue(hotbar.TryAddItem(carried));
 
             var spot = new Vector2(0.4f, 0.3f);
-            Assert.IsTrue(pack.TryStowFromHotbar(hotbar, 0, aimed: true, PackSurfaceId.Leaf, spot));
+            Assert.IsTrue(pack.TryStowFromHotbar(hotbar, 0, PackSurfaceId.Leaf, spot, 0f));
 
             Assert.IsTrue(pack.TryTakeToHotbar(PackSurfaceId.Leaf, spot, hotbar));
 
             Assert.IsTrue(IsInSlot(hotbar, 0, carried), "the round trip must end where it started");
             Assert.AreEqual(0, pack.Layout.Placements.Count, "and leave nothing behind on the pack");
+        }
+
+        /// <summary>
+        /// The whole point of removing the magnet: a stow goes where it was pointed, at the turn
+        /// it was shown at, and nowhere else.
+        /// </summary>
+        [Test]
+        public void Stow_PlacesAtTheYawItWasGiven()
+        {
+            BackpackObject pack = Pack();
+            var hotbar = new Hotbar(4);
+
+            InventoryItem carried = Item("carried");
+            Assert.IsTrue(hotbar.TryAddItem(carried));
+
+            var spot = new Vector2(0.4f, 0.3f);
+
+            Assert.IsTrue(pack.TryStowFromHotbar(hotbar, 0, PackSurfaceId.Leaf, spot, 90f));
+
+            Assert.IsTrue(TryPlacementOf(pack, carried, out PackPlacement placed));
+            Assert.AreEqual(90f, placed.Yaw, "the turn the player lined up is the turn it lands at");
+        }
+
+        /// <summary>
+        /// The other half of "no auto placement". A spot that is taken is a REFUSAL — the item
+        /// stays in the hotbar. It used to fall through to a first-fit search and land somewhere
+        /// the player never pointed at.
+        /// </summary>
+        [Test]
+        public void Stow_OntoATakenSpot_RefusesRatherThanFindingRoomElsewhere()
+        {
+            BackpackObject pack = Pack();
+            var hotbar = new Hotbar(4);
+
+            InventoryItem sitting = Item("sitting");
+            var spot = new Vector2(0.4f, 0.3f);
+            Assert.IsTrue(pack.TryPlace(sitting, PackSurfaceId.Leaf, spot, 0f));
+
+            InventoryItem carried = Item("carried");
+            Assert.IsTrue(hotbar.TryAddItem(carried));
+
+            Assert.IsFalse(pack.TryStowFromHotbar(hotbar, 0, PackSurfaceId.Leaf, spot, 0f),
+                           "the spot is taken, so the stow is refused");
+
+            Assert.IsTrue(IsInSlot(hotbar, 0, carried), "the item must still be in the hotbar");
+            Assert.AreEqual(1, pack.Layout.Placements.Count,
+                            "and nothing may have been first-fitted onto the pack");
         }
     }
 }

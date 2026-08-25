@@ -1250,10 +1250,10 @@ namespace SpaceGame.Items
         /// The faces a player can use, for first-fit.
         ///
         /// <para>
-        /// Into a reused buffer, because <see cref="CanStow"/> is a prediction the drag controller
-        /// asks for on every frame of a drag and a fresh list per frame is garbage for nothing. The
-        /// result is only ever read before the next call — there is no path where one of these
-        /// walks is still in progress when another starts.
+        /// Into a reused buffer, because <see cref="CanTakeToHotbar"/> is a prediction the drag
+        /// controller asks for on every frame of a drag and a fresh list per frame is garbage for
+        /// nothing. The result is only ever read before the next call — there is no path where one
+        /// of these walks is still in progress when another starts.
         /// </para>
         /// </summary>
         private IReadOnlyList<PackSurface> ReachableSurfaces()
@@ -1335,8 +1335,8 @@ namespace SpaceGame.Items
         /// restore is not a player choosing a face, it is a record of where the gear already is.
         /// Refusing it because the leaf happens to be the other way up would either lose the item
         /// or shuffle it somewhere nobody asked for. The gate lives on the player-facing paths:
-        /// <see cref="TryMove"/>, <see cref="TryStow"/>, <see cref="TryStowAt"/>,
-        /// <see cref="CanStow"/>.
+        /// <see cref="TryMove"/>, <see cref="TryStow"/>, and <see cref="TryStowFromHotbar"/>'s own
+        /// <see cref="Reaches"/> check.
         /// </para>
         /// </summary>
         public bool TryPlace(InventoryItem item, PackSurfaceId surfaceId, Vector2 uv, float yaw)
@@ -1414,28 +1414,8 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Stow something at a spot the player chose, falling back to first-fit when that spot will
-        /// not take it.
-        ///
-        /// <para>
-        /// The aimed spot comes first because the gesture behind this is "point at where you want
-        /// it, then press the key", and a pack that silently put the thing somewhere else would be
-        /// answering a question nobody asked. The fallback is there because the cursor is very
-        /// often nowhere useful — hanging off the edge of a face, or over gear already placed —
-        /// and refusing outright in that case would make the verb feel broken rather than precise.
-        /// </para>
-        /// <para>
-        /// <paramref name="yaw"/> only applies to the aimed placement. A fallback picks its own
-        /// angle, because <see cref="PackLayout.TryFindSpot"/> has to try several to find room at
-        /// all.
-        /// </para>
-        /// </summary>
-        public bool TryStowAt(InventoryItem item, PackSurfaceId surfaceId, Vector2 uv, float yaw) =>
-            (Reaches(surfaceId) && TryPlace(item, surfaceId, uv, yaw)) || TryStow(item);
-
-        /// <summary>
-        /// Move a hotbar slot's item onto the pack. <b>Server side only</b> — callers want
-        /// <see cref="RequestStow"/>.
+        /// Move a hotbar slot's item onto the pack, at the exact spot and turn given.
+        /// <b>Server side only</b> — callers want <see cref="RequestStow"/>.
         ///
         /// <para>
         /// The way in, and the mirror of <see cref="TryTakeToHotbar"/>. Both halves of the transfer
@@ -1450,13 +1430,15 @@ namespace SpaceGame.Items
         /// way round means every "the pack is full" is an item deleted out of the world.
         /// </para>
         /// <para>
-        /// <paramref name="aimed"/> false means the cursor was not over anything usable and the
-        /// pack should find its own spot. It is a separate flag rather than a sentinel surface id
-        /// because every value of <see cref="PackSurfaceId"/> is a real face.
+        /// <b>There is no fallback.</b> A spot that is taken by the time this runs — another player
+        /// got there first — is a refusal, and the item stays in the hotbar. It used to fall
+        /// through to a first-fit search, which put gear somewhere nobody pointed at; the player
+        /// only ever sends this for cells they watched turn green, so anything else is a lie about
+        /// what they asked for.
         /// </para>
         /// </summary>
         public bool TryStowFromHotbar(IPlayerInventory hotbar, int slotIndex,
-                                      bool aimed, PackSurfaceId aimedSurface, Vector2 aimedUv)
+                                      PackSurfaceId surfaceId, Vector2 uv, float yaw)
         {
             if (hotbar == null) return false;
             if (slotIndex < 0 || slotIndex >= hotbar.GetInventorySize()) return false;
@@ -1472,11 +1454,7 @@ namespace SpaceGame.Items
             // at once: the hotbar holds items by reference, not by instance.
             if (TryFindPlacement(item.ID, out _)) return false;
 
-            bool placed = aimed
-                ? TryStowAt(item, aimedSurface, aimedUv, 0f)
-                : TryStow(item);
-
-            if (!placed) return false;
+            if (!Reaches(surfaceId) || !TryPlace(item, surfaceId, uv, yaw)) return false;
 
             // Cannot fail: the index was bounds-checked against this very hotbar and the slot was
             // read out of it. Undone rather than trusted anyway, because the failure would be one
@@ -1489,6 +1467,10 @@ namespace SpaceGame.Items
 
             return true;
         }
+
+        /// <summary>Is this asset already lying on the pack? The layout is keyed by id, so a
+        /// second copy of one can never be placed — see <see cref="TryStowFromHotbar"/>.</summary>
+        public bool Holds(string itemId) => TryFindPlacement(itemId, out _);
 
         /// <summary>Where an id currently sits on the pack, if it is on it at all.</summary>
         private bool TryFindPlacement(string itemId, out PackPlacement placement)
@@ -1639,63 +1621,21 @@ namespace SpaceGame.Items
         /// on the pack owner's channel and nothing happens locally.
         /// </para>
         /// </summary>
-        public void RequestStow(int slotIndex, bool aimed, PackSurfaceId aimedSurface,
-                                Vector2 aimedUv, Interactor interactor)
+        public void RequestStow(int slotIndex, PackSurfaceId surfaceId, Vector2 uv, float yaw,
+                                Interactor interactor)
         {
             if (interactor == null) return;
 
             if (owner != null)
             {
-                owner.RequestStow(slotIndex, aimed, aimedSurface, aimedUv, interactor);
+                owner.RequestStow(slotIndex, surfaceId, uv, yaw, interactor);
                 return;
             }
 
             // Same unowned-pack degradation RequestTake documents, and unreachable for the same
             // reason: every pack is bound to a wearer in BackpackController.Awake.
             IPlayerInventory hotbar = interactor.GetComponentInParent<IPlayerInventory>();
-            if (hotbar != null) TryStowFromHotbar(hotbar, slotIndex, aimed, aimedSurface, aimedUv);
-        }
-
-        /// <summary>
-        /// Would a stow land anywhere? Non-mutating, and <b>presentation only</b> — the server
-        /// still decides, and by the time it does another player may have taken the space.
-        ///
-        /// <para>
-        /// It exists because a stow is a request with no answer coming back, so the requester's
-        /// machine has no other way to tell "the server refused" from "the message is still in
-        /// flight". Predicting it here is honest about being a prediction: it is used to say
-        /// something to the player, never to move an item.
-        /// </para>
-        /// </summary>
-        public bool CanStow(InventoryItem item, bool aimed, PackSurfaceId aimedSurface, Vector2 aimedUv)
-        {
-            if (item == null || string.IsNullOrEmpty(item.ID)) return false;
-            if (TryFindPlacement(item.ID, out _)) return false;
-
-            PackShape shape = PackShapes.For(item, shapes);
-            bool mayTurn = PackShapes.AllowsRotation(item, shapes);
-
-            if (aimed && Reaches(aimedSurface))
-            {
-                PackSurface surface = SurfaceFor(aimedSurface);
-                if (surface != null && Layout.CanPlace(aimedSurface, surface.Size, shape, aimedUv, 0f))
-                    return true;
-            }
-
-            // The same reachable set TryStow will actually search, or this predicts a stow that
-            // then does not happen — which is worse than no prediction at all.
-            IReadOnlyList<PackSurface> all = ReachableSurfaces();
-
-            for (int i = 0; i < all.Count; i++)
-            {
-                PackSurface surface = all[i];
-                if (surface == null) continue;
-
-                if (Layout.TryFindSpot(surface.Id, surface.Size, shape, out _, out _,
-                                       ignoreItemId: null, allowTurns: mayTurn)) return true;
-            }
-
-            return false;
+            if (hotbar != null) TryStowFromHotbar(hotbar, slotIndex, surfaceId, uv, yaw);
         }
 
         /// <summary>
@@ -1737,8 +1677,9 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Would a take land? Non-mutating, and <b>presentation only</b> — the same caveat
-        /// <see cref="CanStow"/> carries, and the same reason for existing.
+        /// Would a take land? Non-mutating, and <b>presentation only</b> — it is a prediction, not
+        /// a decision: the server still decides, and by the time it does another player may have
+        /// taken the space.
         ///
         /// <para>
         /// The interesting answer is the last one. A full hotbar is a SWAP, and a swap needs
@@ -1817,10 +1758,10 @@ namespace SpaceGame.Items
 
             // The outgoing item ignored in both tests, because the space it is vacating is
             // exactly the space the incoming one is being offered — the same trick, for the same
-            // reason, that TrySwapWithHotbar (targetSlot < 0) and TakeIntoSlot's own TryStowAt
-            // (targetSlot >= 0) both use to avoid mutating the layout to ask the question.
-            // TryStowAt gates its aimed try on Reaches; the selected-slot swap has no such gate,
-            // because TrySwapWithHotbar never had one either.
+            // reason, that TrySwapWithHotbar (targetSlot < 0) and TakeIntoSlot's own aimed-then-
+            // first-fit fallback (targetSlot >= 0) both use to avoid mutating the layout to ask
+            // the question. The aimed try is gated on Reaches; the selected-slot swap has no such
+            // gate, because TrySwapWithHotbar never had one either.
             bool aimReaches = targetSlot < 0 || Reaches(placement.Surface);
 
             if (aimReaches && Layout.CanPlace(placement.Surface, surface.Size, heldShape,
@@ -1835,10 +1776,10 @@ namespace SpaceGame.Items
             }
             else
             {
-                // TakeIntoSlot's fallback is TryStowAt's own — TryStow(held), first-fit across
-                // EVERY reachable surface, not just this one. The same set CanStow already
-                // predicts a stow against, for the same reason: predicting anything narrower is
-                // a prediction that can say yes to a drop the server then refuses.
+                // TakeIntoSlot's own fallback: TryStow(held), first-fit across EVERY reachable
+                // surface, not just this one. Predicted here against the same reachable set for
+                // the same reason as everywhere else in this file: predicting anything narrower
+                // is a prediction that can say yes to a drop the server then refuses.
                 IReadOnlyList<PackSurface> all = ReachableSurfaces();
 
                 for (int i = 0; i < all.Count; i++)

@@ -1,36 +1,45 @@
 # Repulsor Gauntlet — design
 
-**Date:** 2026-08-24 · **Status:** draft, awaiting review
+**Date:** 2026-08-24 · **Revised:** 2026-08-25 (v2 — see §1) · **Status:** built; awaiting
+in-editor and multiplayer playtest
 
-A hand-worn artifact: hold Use to charge, release to fire a directional force blast that
-flings players, loose items, and (bounded, v1-scoped) creatures away from the caster,
-with layered VFX on every machine. The first deliberate knockback system in the game —
-prior systems (lasso, leash) were explicitly forbidden from giving players speed; this
-one exists to do exactly that, on purpose, behind a charge commitment and a cooldown.
+A hand-worn artifact: press Use to fire an instant directional force blast that flings
+players, loose items, and (bounded, v1-scoped) creatures away from the caster, with
+layered VFX on every machine. The first deliberate knockback system in the game — prior
+systems (lasso, leash) were explicitly forbidden from giving players speed; this one
+exists to do exactly that, on purpose, priced by scarce ammunition.
 
-Design principles applied: GDC-L1-FEEL-0008 (charge = commitment, input acknowledged
-instantly, action resolves on its own schedule), GDC-L1-FEEL-0004 (layered multi-sensory
-feedback on charge and blast), GDC-L1-FEEL-0006 (directional, dosed, capped camera
-kick), GDC-L1-SYS-0007 (bound the griefing loop with cooldown + charge time),
-GDC-L1-MP-0001 (the point of the item is player-to-player interaction).
+Design principles applied: GDC-L1-FEEL-0008 (deliberately placed at the *responsive* end
+of the responsiveness–commitment axis — see §1), GDC-L1-FEEL-0004 (layered multi-sensory
+feedback), GDC-L1-FEEL-0006 (directional, dosed, capped camera kick), GDC-L1-FEEL-0005
+(hitstop — considered and rejected, see §5), GDC-L1-SYS-0007 (bound the griefing loop
+with limited ammo), GDC-L1-MP-0001 (the point of the item is player-to-player
+interaction).
 
 ---
 
 ## 1. Interaction model
 
-- **Press Use** → charge begins. Acknowledged on frame one everywhere (`Present()` runs
-  locally before the round trip): gauntlet emissive ramps, charge loop starts.
-- **Hold** → charge accumulates over `chargeTime` (default 1.2 s), clamped 0–1, with a
-  floor `minCharge` (0.25) so a tap still puffs.
-- **Release** → blast fires along the owner's aim. Charge scales radius, fling speed,
-  and recoil.
-- **Cancel** paths (no blast, charge refunded visually): hotbar switch, unequip, death,
-  disconnect, hold-stream timeout.
-- **Cooldown** `cooldownTime` (2.5 s) after a blast — the commitment half of
-  FEEL-0008 and the primary anti-spam bound (SYS-0007).
-- **Recoil**: the caster is pushed backward, scaled by charge. Full-charge airborne
-  recoil is deliberately strong enough to be a movement tech (repulsor-jump) — a
-  feature, priced by the cooldown.
+**v2, after playtest.** v1 was hold-to-charge with a cooldown. Playtesting judged it "way
+too weak", and the chosen direction was an instant-fire wonder weapon in the mould of the
+Thundergun — so the charge came out entirely. This is a deliberate move along
+FEEL-0008's axis: v1 bought its risk/reward with *commitment* (a wind-up you could be
+punished during), v2 buys it with *scarcity* (two shots, then a wait). Both are valid
+positions on that axis; the choice is now recorded rather than assumed.
+
+- **Press Use** → blast fires immediately along the owner's aim. No wind-up, no release
+  tick. Acknowledged on frame one everywhere (`Present()` runs locally before the round
+  trip).
+- **Ammunition** is the price: `shotCapacity` (2) shots held, one regained every
+  `rechargeSeconds` (7 s), with a `refireDelay` (0.45 s) so a double-tap can't dump both
+  in a frame. This is the primary anti-spam bound (SYS-0007), replacing v1's cooldown.
+- **Legibility** (SYS-0006): the gauntlet's capacitor glow is the ammo readout — lit when
+  a shot is ready, dark while recharging. The magazine is persisted per hotbar slot, so
+  scrolling away and back does not refill it.
+- **Safety**: a `NetArg` carrying no orientation (the default one `EquipmentController`
+  sends on unequip/death) never fires — inherited from v1's cancel semantics.
+- **Recoil**: the caster is pushed backward hard enough that an airborne shot is a
+  movement tech (repulsor-jump) — a feature, priced by the ammo.
 
 All tunables are serialized fields — no magic numbers.
 
@@ -52,30 +61,26 @@ All tunables are serialized fields — no magic numbers.
 - Mesh via the blender-model skill; greybox first (GDC-L1-PROTO-0003) — the mechanic is
   provable with a placeholder cylinder.
 
-## 3. Charge: what travels and what doesn't
+## 3. What travels
 
-Copying the Lasso's proven encoding (`LassoArtifact.cs:210-330`):
+v2 has no hold stream at all, so the entire release-tick encoding of v1 is gone — one
+press message carries everything:
 
-- On the **press** message, `NetArg.B` carries a verb: `MissVerb = 0` (CanUse refused —
-  cooldown), `ChargeVerb = 1`. `Present()` on every machine starts the local charge
-  clock on `ChargeVerb`.
-- **The charge level itself never travels.** `A` is the hotbar slot and `B` is the
-  active flag on the hold stream, so there is no free scalar — and there doesn't need
-  to be. Every machine saw the press, so every machine runs its own charge clock:
-  cosmetics use the local value, and the *authority* computes blast strength from its
-  own elapsed time between receiving press and release. Each machine is
-  self-consistent; cross-machine drift is ≤ one network latency of charge (~4 % at
-  50 ms RTT), the same tolerance the Lasso shipped with.
-- On the **release tick** (`OnRequestHold` with `active == false`, owner only):
-  `arg.P` = aim ray origin, `arg.R` = aim rotation. **`!arg.HasOrientation` on a
-  release means cancel, never fire** — `EquipmentController.EndHold(send:false)`
-  delivers a default NetArg on unequip/death, and treating it as a fire launches a
-  blast on every hotbar scroll (the documented Lasso trap).
-- `Hold()` (authority) and `PresentHold()` (every machine) both route to one
-  **idempotent** `ApplyRelease` — on a host both run for the same tick
-  (LaserStaff `ApplyHold` precedent).
-- `holdTimeout = 0.5f` safety: if charging and no hold tick arrives for longer, cancel
-  (dropped release packet, disconnect mid-charge) — LaserStaff pattern.
+- `NetArg.B` carries a verb: `MissVerb = 0` (refused — out of ammo or inside the refire
+  delay), `FireVerb = 1`.
+- `arg.P` = aim ray origin and `arg.R` = aim rotation, captured in `OnRequestUse` on the
+  **owner** — the only machine where the aim is honest, since a peer's copy of a player
+  has an `AimProvider` with no live camera behind it.
+- **A NetArg with no orientation never fires.** Inherited from v1's cancel semantics:
+  `EquipmentController` delivers a default NetArg on unequip/death, and a zero quaternion
+  would otherwise blast along an arbitrary axis. Both `Use()` and `Present()` guard on
+  `HasOrientation`.
+- **Ammo state never travels either.** The owner and the authority each run their own
+  magazine, exactly as v1's cooldown was tracked per machine — the owner's copy gates the
+  press, the authority's gates the effect. They must be separate objects: on a host
+  `Present()` runs *before* `Use()`, so one shared counter would be spent by the
+  presentation and then refused by its own authority. A remote peer's copy is cosmetic
+  (it drives that peer's view of the capacitor glow) and self-corrects.
 
 ## 4. The blast: three target classes, three mechanisms
 
@@ -147,28 +152,49 @@ no knockback/stagger seam exists anywhere. v1 scope, honest about the bound:
 - Optional `blastDamage` (default small or 0) through `NetDamage.Apply` with the same
   once-per-root billing.
 
-## 5. Feel and VFX (all in `Present`/`PresentHold`, every machine)
+## 5. Feel and VFX (all in `Present()`, every machine)
 
-Layered per FEEL-0004 — each channel on a different sense, intensity scaled to charge:
+Layered per FEEL-0004 — each channel on a different sense. v1 shipped only a flat
+additive ground ring, a shake and an FOV kick, which playtest called "very boring"; v2
+adds the volume of air itself, particle mass, light and a thunderclap.
 
-**Charging:** gauntlet emissive ramp + inward-streaming particles; charge loop
-`SfxId.WeaponEnergyChargeLoop` (→ `event:/SFX/ElectricHum`, a real loop) via
-`LoopingEmitter`; owner-only slow FOV **pull-in** via `PlayerLook.SetFovOffset`
-(−4° at full charge — anticipation; always reset to 0 on cancel/unequip, the grapple's
-documented reset trap).
+**The air wall (the signature effect):** `RepulsorBlastCone` builds a procedural cone
+shell along the aim at the *same half-angle the authority swept* — the cone you see is
+the cone that threw you — rendered with a new `RepulsorAirWarp.shader`. That shader is
+the first in this project to sample `_CameraOpaqueTexture` (already enabled in
+`PC_RPAsset.asset`), refracting the world behind the blast front so the air visibly
+bends, with the distortion banded at the leading edge and a faint fresnel rim so it still
+reads against an empty sky. The half-res opaque texture makes the refraction soft, which
+happens to read as hazy compressed air.
 
-**Blast:** expanding ground ring with a **new dedicated shader**
-(`RepulsorShockwave.shader` — additive, hot leading edge at the outer rim, fades as the
-wave completes; the RuinScanner pulse shader is explicitly NOT reused, per review) + a
-dust/grit burst;
-`SfxId.ImpactExplosion` (→ `event:/SFX/Explosion`, the one distinct blast in the bank —
-deliberately *not* an ElectricHum-mapped id, or charge and release sound identical);
-FOV snaps from −4° to a brief +6° kick and eases out (asymmetric in/out speeds are
-built into PlayerLook). Camera shake through the existing
-`CameraShakerHandler.Shake(ShakeData)` with a new authored `RepulsorBlastShake.asset`
-(only `DamageShake` exists today): full strength for caster and victims, distance-
-attenuated for bystanders, capped — dosed and directional per FEEL-0006, and it
-inherits the shaker's user setting.
+**Ground ring:** the existing `RepulsorShockwave.shader` annulus, for where the blast
+meets the ground (a shot aimed up or down still gets the cone).
+
+**Particle mass:** three one-shot bursts authored in the builder from the GravelBlaster
+recipes — billowing billboard **dust** (45° cone), high-speed stretched **streaks** (40°,
+reading as thrown air), and **debris** that bounces off the sand via the collision module.
+
+**Light:** a point `MuzzleFlash` armed off and enabled for `flashSeconds` on the shot —
+which matters most at night, where the blast now lights the terrain.
+
+**Audio:** two layered ids on distinct source keys so the catalog's per-(id, sourceKey)
+cooldown can't swallow either — `SfxId.AmbThunder` (→ `event:/SFX/Thunder`, mapped from
+exactly one id, so a genuine thunderclap) over `SfxId.ImpactExplosion`
+(→ `event:/SFX/Explosion`).
+
+**Camera:** a +14° FOV kick, and shake through `CameraShakerHandler` with
+`RepulsorBlastShake.asset` **actually authored** this time (v1 shipped it as a byte-copy
+of `DamageShake` — a soft 0.15 s tick, so a blast felt exactly like taking a hit): 0.55 s,
+magnitude 3.5, roughness 13, with real Z positional and stronger rotational influence.
+Distance-attenuated per-viewer via `ShakerInstance.MultiplyMagnitude` — dosed and capped
+per FEEL-0006, inheriting the shaker's user setting.
+
+**Hitstop (FEEL-0005) — considered and rejected.** A time-freeze would sell the impact,
+but `Time.timeScale` is global and on a host would stall the authoritative simulation for
+every other player. This codebase has already made and documented that decision
+(`SuckerPuncherArtifact`, `GameplayMenuScope` freezes only in a solo session), so the
+FOV kick and shake deliberately do the work hitstop would — this is FEEL-0005's own
+"does not apply" clause, not an oversight.
 
 **Victims:** the flung player's machine plays its own shake + short FOV kick when
 `FlungBody` drains (the hit you feel, not just see).
@@ -181,35 +207,41 @@ shipped events.
 
 ## 6. Persistence
 
-The gauntlet holds **no runtime state worth persisting** — charge and cooldown are
-transient by design (a reload mid-charge simply cancels, matching every other cancel
-path). Item-in-inventory persistence is already handled by the existing item pipeline;
-mid-arc leap displacement on shoved mounts already saves via `MotorStateSaveable`.
-Stated explicitly per the repo rule: nothing new to save.
+**v2 has state worth persisting: the magazine.** It is captured into the hotbar slot's
+item state (`CaptureItemState`/`RestoreItemState`), because without it the player refills
+by scrolling off the hotbar and back — the held instance is destroyed and rebuilt on every
+equip, so anything held only in fields is silently free ammo. Everything else is
+unchanged: item-in-inventory persistence rides the existing pipeline, and mid-arc leap
+displacement on shoved mounts already saves via `MotorStateSaveable`.
 
 ## 7. Multiplayer verification (definition of done)
 
 Host-only testing proves nothing here. On an actual client:
 
-1. Client charges and fires → host player is flung on the host's screen (and sees the
-   ring/shake/audio).
+1. Client fires → host player is flung on the host's screen (and sees cone/ring/particles/
+   flash/shake/audio).
 2. Host fires → client is flung *on the client's machine* (the FlungBody path).
-3. Both machines see identical ring/particles/audio for a third party's blast.
+3. Both machines see identical VFX and audio for a third party's blast.
 4. Dropped items scatter identically on both machines.
-5. Hotbar-scroll and death mid-charge cancel cleanly on all machines (no phantom blast
-   — the `HasOrientation` guard).
-6. Drop the gauntlet, client picks it up — network prefab registration proof.
-7. `Tools/Tests/Run EditMode Tests (headless)` — `NetworkPrefabRegistrationTests` and
-   `HoldPoseTests` green, plus new edit-mode tests: release-tick cancel discriminator,
-   cone/falloff math, fling-speed floor.
+5. Death or a hotbar scroll never produces a phantom blast (the `HasOrientation` guard),
+   and the magazine does not refill by scrolling away and back (the persistence above).
+6. Ammo: two shots, then the capacitor goes dark and a shot returns after
+   `rechargeSeconds`; a client's readout matches what it can actually fire.
+7. Drop the gauntlet, client picks it up — network prefab registration proof.
+8. `Tools/Tests/Run EditMode Tests (headless)` — `NetworkPrefabRegistrationTests` and
+   `HoldPoseTests` green, plus the feature's own suites (cone/falloff math including the
+   edge-hit launch floor, `FlungBody`, `CarryMomentum`).
 
 ## 8. Balance bounds (SYS-0007)
 
-Griefing loop (chain-flinging a teammate) is bounded by: charge time (a full-power
-fling costs 1.2 s of visible, audible telegraph — counterplay per BAL-0004), cooldown,
-fall damage staying live, and `maxFlingSpeed` capping stacked flings implicitly via
-`+=` against drag. Numbers are serialized and expected to move after playtests —
-tune with play, not math alone (BAL-0005).
+v2 is deliberately a wonder weapon, so the bounds moved from telegraph to scarcity:
+two shots and a 7 s-per-shot recharge, plus fall damage staying live on victims, plus
+`flingSpeed` capping stacked flings implicitly via `+=` against drag. What v2 *loses* is
+v1's wind-up counterplay (BAL-0004) — an instant blast cannot be reacted to, only
+positioned against, which is the accepted cost of the chosen fantasy. If chain-flinging
+turns out to grief in practice, the lever is ammo and recharge, not a reinstated charge.
+Numbers are serialized and expected to move after playtests — tune with play, not math
+alone (BAL-0005).
 
 ## 9. Build order
 

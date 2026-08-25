@@ -44,10 +44,10 @@ def new_action(name, length):
 # forward/back swing is a rotation about world 'Y', and a side lean is about 'X'.
 
 # ------------------------------------------------------------------ IDLE
-# 90 frames @30fps = 3.0s loop. Slow hover: body breathes, arms drift out of phase,
+# 120 frames @30fps = 4.0s loop. Slow hover: body breathes, arms drift out of phase,
 # halo turns steadily.
-A = new_action("Idle", 90)
-for f, k in ((1,0.0), (23,1.0), (45,0.0), (68,-1.0), (90,0.0)):
+A = new_action("Idle", 120)
+for f, k in ((1,0.0), (31,1.0), (61,0.0), (91,-1.0), (120,0.0)):
     key(f, {
         "Root":       ('LOC', Vector((0.0,  0.18*k, 0.0))),   # local Y == world Z
         "Spine":      ('Y',  1.4*k),
@@ -63,11 +63,15 @@ for f, k in ((1,0.0), (23,1.0), (45,0.0), (68,-1.0), (90,0.0)):
         "Thigh.L":    ('Y',  1.0*k),
         "Thigh.R":    ('Y', -1.0*k),
     })
-for f, ang in ((1,0), (90,90)):        # halo keeps turning; 90 deg tiles seamlessly on a 4-fold-symmetric cube
+for f, ang in ((1,0), (120,90)):        # halo keeps turning; 90 deg tiles seamlessly on a 4-fold-symmetric cube
     key(f, {"Halo": ('Z', ang)})
 
 # ------------------------------------------------------------------ WALK
-# 40 frames @30fps = 1.333s full cycle.
+# 72 frames @30fps = 2.4s full cycle. Deliberately ponderous: at 18 m this
+# thing is six times the player's height, and a giant that steps at a human
+# cadence reads as a toy. Step frequency in nature falls off roughly as
+# 1/sqrt(length), so doubling the size alone argues for ~0.7x; the rest is
+# taste, and the brief asked for slower.
 #
 # SIGN CONVENTION, the thing that makes or breaks this: world_rot(bone, 'Y', d)
 # turns the bone about world +Y, and forward is world +X. Rotating a bone that
@@ -78,7 +82,8 @@ for f, ang in ((1,0), (90,90)):        # halo keeps turning; 90 deg tiles seamle
 # The knee therefore has to be POSITIVE to fold the way a knee folds. A negative
 # knee angle rotates the shin forward past straight, which puts the joint behind
 # the hip-ankle line - a leg hyperextending through itself.
-W = new_action("Walk", 40)
+WALK_FRAMES = 72
+W = new_action("Walk", WALK_FRAMES)
 
 SW   = 24.0   # thigh swing, degrees either side of vertical
 KN   = 34.0   # peak knee flexion during swing
@@ -114,9 +119,9 @@ def leg_pose(side, phase):
             f"Shin.{side}":  ('Y', knee),
             f"Foot.{side}":  ('Y', foot)}
 
-for i in range(0, 41, 2):
+for i in range(0, WALK_FRAMES + 1, 3):
     f = i + 1
-    p = i / 40.0
+    p = i / float(WALK_FRAMES)
     pose = {}
     pose.update(leg_pose("L", p))
     pose.update(leg_pose("R", (p + 0.5) % 1.0))
@@ -142,7 +147,7 @@ for i in range(0, 41, 2):
         "Hand.R":     ('Y',  -5.0 * sway),
     })
     key(f, pose)
-for f, ang in ((1, 0), (41, 90)):
+for f, ang in ((1, 0), (WALK_FRAMES + 1, 90)):
     key(f, {"Halo": ('Z', ang)})
 
 def iter_fcurves(act):

@@ -3,7 +3,52 @@ guid: d9a5b53ec7025ec5aeba5f6590d7366f
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Mat_Emissive_Portal_Blue
+    second: {fileID: 2100000, guid: 1f9d26d2ed6d9e7438e71db9bd9d2135, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Mat_Metal_Brass_Tarnished
+    second: {fileID: 2100000, guid: cedc3d8816a977d4290d57d637e42432, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Mat_Metal_Chrome_Scuffed
+    second: {fileID: 2100000, guid: 03267e5a1237a144ca1ae4cde63ebf78, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Mat_Metal_Copper_Oxide
+    second: {fileID: 2100000, guid: 545c9bbd2c33f854288f2336c7a12438, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Mat_Metal_Steel_Dark
+    second: {fileID: 2100000, guid: 3f897732d1a9f5549bb7f5822819c521, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Mat_Metal_Steel_Worn
+    second: {fileID: 2100000, guid: e78474fae2728ab4f9c7a690c0a60781, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Mat_Neutral_Black_Matte
+    second: {fileID: 2100000, guid: 4f08d20e173fea541946b09e17a998e5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Mat_Neutral_Slate_Dark
+    second: {fileID: 2100000, guid: 43b7e0f72e82b194497551f723221803, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Mat_Paint_White_Arctic
+    second: {fileID: 2100000, guid: f777f82cba9f96c45a3e7c223714bd60, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -35,7 +80,7 @@ ModelImporter:
       takeName: ConjurerRig|Idle
       internalID: 7870497464709093272
       firstFrame: 1
-      lastFrame: 90
+      lastFrame: 120
       wrapMode: 2
       orientationOffsetY: 0
       level: 0
@@ -64,7 +109,7 @@ ModelImporter:
       takeName: ConjurerRig|Walk
       internalID: 3382843397916427621
       firstFrame: 1
-      lastFrame: 41
+      lastFrame: 73
       wrapMode: 2
       orientationOffsetY: 0
       level: 0
@@ -83,7 +128,21 @@ ModelImporter:
       mirror: 0
       bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
       curves: []
-      events: []
+      events:
+      - time: 0.2
+        functionName: OnFootPlant
+        data: 
+        objectReferenceParameter: {instanceID: 0}
+        floatParameter: 1
+        intParameter: 0
+        messageOptions: 0
+      - time: 1.4
+        functionName: OnFootPlant
+        data: 
+        objectReferenceParameter: {instanceID: 0}
+        floatParameter: 1
+        intParameter: 0
+        messageOptions: 0
       transformMask: []
       maskType: 3
       maskSource: {instanceID: 0}
@@ -91,7 +150,7 @@ ModelImporter:
     isReadable: 1
   meshes:
     lODScreenPercentages: []
-    globalScale: 0.26076066
+    globalScale: 0.52152133
     meshCompression: 0
     addColliders: 0
     useSRGBMaterialColor: 1
@@ -149,7 +208,7 @@ ModelImporter:
     armStretch: 0.05
     legStretch: 0.05
     feetSpacing: 0
-    globalScale: 0.26076066
+    globalScale: 0.005215213
     rootMotionBoneName: 
     hasTranslationDoF: 0
     hasExtraRoot: 0

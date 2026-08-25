@@ -11,6 +11,7 @@
 // and the controller, prefab and scene instance are rebuilt in place.
 //
 // Re-run from: Tools > Creatures > Build Lightning Conjurer
+using FirstGearGames.SmoothCameraShaker;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.Animations;
@@ -31,6 +32,53 @@ namespace SpaceGame.EditorTools
         private const string PrefabPath = PrefabDir + "/LightningConjurer.prefab";
         private const string ScenePath = "Assets/Game/Scenes/Tests/Marius test scene.unity";
         private const string InstanceName = "LightningConjurer";
+        private const string MaterialDir = "Assets/Game/Art/Materials/Palette";
+        private const string ShakeDir = "Assets/Game/ScriptableObjects/Shake";
+        private const string ShakeDataPath = ShakeDir + "/ConjurerFootstepShake.asset";
+
+        /// One URP material per palette entry the model uses.
+        ///
+        /// These have to exist Unity-side because FBX material export is lossy: it
+        /// carries a base colour and nothing else. Metallic, smoothness and above
+        /// all EMISSION do not survive the trip, and the palette's own "Emissive"
+        /// materials sit at emission strength 0 in palette.blend anyway - there the
+        /// category records intent and hue, not glow. So the glow is authored here.
+        ///
+        /// Colours are the palette hex written straight as hex/255, matching
+        /// DuneRat.mat (which stores 0.905882 for the #E7B345 of Mat_Hide_Sand_Pale
+        /// rather than its linearised 0.799). Consistency with the project's
+        /// existing materials matters more here than colour-space theory.
+        private readonly struct Pal
+        {
+            public readonly string Name;
+            public readonly int Hex;
+            public readonly float Metallic, Roughness, Emission;
+            public Pal(string name, int hex, float metallic, float roughness, float emission = 0f)
+            {
+                Name = name; Hex = hex; Metallic = metallic;
+                Roughness = roughness; Emission = emission;
+            }
+            public Color Colour => new Color(((Hex >> 16) & 0xFF) / 255f,
+                                             ((Hex >> 8) & 0xFF) / 255f,
+                                             (Hex & 0xFF) / 255f, 1f);
+        }
+
+        private static readonly Pal[] Palette =
+        {
+            new Pal("Mat_Metal_Steel_Dark",      0x3A3E42, 1.00f, 0.45f),
+            new Pal("Mat_Metal_Steel_Worn",      0x7A7D80, 1.00f, 0.55f),
+            new Pal("Mat_Metal_Brass_Tarnished", 0x9C7B3F, 1.00f, 0.45f),
+            new Pal("Mat_Metal_Chrome_Scuffed",  0xC9CDD2, 1.00f, 0.22f),
+            new Pal("Mat_Metal_Copper_Oxide",    0x4E8C7A, 0.80f, 0.60f),
+            new Pal("Mat_Neutral_Slate_Dark",    0x1F2736, 0.00f, 0.70f),
+            new Pal("Mat_Neutral_Black_Matte",   0x272727, 0.00f, 0.55f),
+            new Pal("Mat_Paint_White_Arctic",    0xD6DAD9, 0.35f, 0.58f),
+            // The iris, the palm emitters and the halo share this one material, so
+            // its intensity is a compromise: the halo is a big surface and blows
+            // out long before a surface the size of the iris does. 2.0 reads as a
+            // lit crystal on the halo while still carrying the eye.
+            new Pal("Mat_Emissive_Portal_Blue",  0x2FB8FF, 0.00f, 0.15f, 2.0f),
+        };
 
         // ---- Geometry, in the .blend's own units (Z up, model faces +X) --------
         // Measured off the source meshes; see the rig table in rig.py.
@@ -38,11 +86,12 @@ namespace SpaceGame.EditorTools
         private const float BlenderTop = 37.49f;     // top of Eyelid, i.e. the body
         private const float BodyX = 0.19f;           // body centre line
         private const float BodyY = -0.06f;
+        private const float BlenderBodyWidth = 9.3f;  // the head/body sphere across
 
         // The player model (AstronautArmature) is 3.019 m to the top of the head;
-        // the brief was "3 times the size of the player model".
+        // the brief was three times that, then doubled again to six.
         private const float PlayerHeight = 3.019f;
-        private const float TargetHeight = PlayerHeight * 3f;
+        private const float TargetHeight = PlayerHeight * 6f;
 
         /// Metres per Blender unit. Applied via ModelImporter.globalScale, NOT by
         /// scaling the armature: see ConfigureImporter.
@@ -50,22 +99,21 @@ namespace SpaceGame.EditorTools
 
         /// Ground speed at which the Walk clip's feet skate least, in m/s.
         ///
-        /// MEASURED, not derived. A closed form over the thigh swing alone
-        /// (2 * 2 * L * sin(swing) / cycle) gives 6.47, but that ignores the knee:
-        /// the shin flexes through swing and carries the contact further back than
-        /// the hip angle by itself accounts for. stride.py samples the planted
+        /// MEASURED, not derived. A closed form over the thigh swing alone ignores
+        /// the knee: the shin flexes through swing and carries the contact further
+        /// back than the hip angle by itself accounts for. stride.py samples the planted
         /// foot's actual backward velocity across the stance frames and reports
         /// the mean, which is this number. Re-run it after ANY change to SW, KN or
         /// the cycle length in anim.py.
         ///
         /// Unlike the golem's clips this walk is NOT foot-locked -- there is no IK
         /// pinning a contact -- so the instantaneous speed varies over stance
-        /// (measured range 5.4 to 10.3 m/s about this mean). Matching the mean
+        /// (measured range 6.6 to 11.5 m/s about this mean). Matching the mean
         /// minimises the skating; it does not eliminate it.
         ///
         /// This is the number to put in AgentAnimatorDriver.animatorSpeedScale as
         /// `groundSpeed / StrideSpeed` once this creature gets a motor.
-        private const float StrideSpeed = 8.19f;
+        private const float StrideSpeed = 8.99f;
 
         private readonly struct Clip
         {
@@ -77,13 +125,70 @@ namespace SpaceGame.EditorTools
             }
         }
 
+        private const float Fps = 30f;
+
+        /// Frames where a foot's lowest point reaches the ground in the Walk clip,
+        /// measured by _Source~/contacts.py rather than eyeballed. The two sit
+        /// exactly 36 frames apart, which is half of the 72-frame cycle -- the
+        /// check that the gait is actually symmetric.
+        private static readonly int[] FootPlantFrames = { 7, 43 };
+
         // Frame ranges match the actions authored in anim.py. Both are cycles whose
-        // last frame duplicates the first, so they loop without a seam.
+        // last frame duplicates the first, so they loop without a seam. Slowed from
+        // 40/90 to 72/120 frames when the creature doubled in size.
         private static readonly Clip[] Clips =
         {
-            new Clip("Idle", "ConjurerRig|Idle", 1, 90),
-            new Clip("Walk", "ConjurerRig|Walk", 1, 41),
+            new Clip("Idle", "ConjurerRig|Idle", 1, 120),
+            new Clip("Walk", "ConjurerRig|Walk", 1, 73),
         };
+
+        /// One event per footfall, at the frame the contact actually lands.
+        /// AnimationEvent.time is seconds from the clip start, and the clip starts at
+        /// frame 1, hence (frame - 1) / fps.
+        private static AnimationEvent[] FootPlantEvents()
+        {
+            return FootPlantFrames.Select(f => new AnimationEvent
+            {
+                time = (f - 1) / Fps,
+                functionName = "OnFootPlant",
+                floatParameter = 1f,
+            }).ToArray();
+        }
+
+        /// A heavier, shorter shake than DamageShake: a footfall is a single vertical
+        /// jolt that dies quickly, not the sustained rattle of taking a hit.
+        private static void BuildShakeData()
+        {
+            EnsureFolder(ShakeDir);
+            if (AssetDatabase.LoadAssetAtPath<ShakeData>(ShakeDataPath) != null) return;
+
+            ShakeData data = ScriptableObject.CreateInstance<ShakeData>();
+            AssetDatabase.CreateAsset(data, ShakeDataPath);
+
+            var so = new SerializedObject(data);
+            void F(string n, float v) { so.FindProperty(n).floatValue = v; }
+            F("_totalDuration", 0.45f);
+            F("_fadeInDuration", 0f);
+            F("_fadeOutDuration", 0.35f);
+            F("_magnitude", 0.8f);
+            F("_magnitudeNoise", 0.15f);
+            F("_roughness", 12f);
+            F("_roughnessNoise", 0.2f);
+            // Mostly a vertical thump, with a little roll so it does not read as a
+            // pure elevator drop.
+            so.FindProperty("_positionalInfluence").vector3Value = new Vector3(0.25f, 1f, 0.25f);
+            so.FindProperty("_rotationalInfluence").vector3Value = new Vector3(0.3f, 0f, 0.6f);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(data);
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void SetField(Object target, string field, Object value)
+        {
+            var so = new SerializedObject(target);
+            so.FindProperty(field).objectReferenceValue = value;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
 
         [MenuItem("Tools/Creatures/Build Lightning Conjurer")]
         public static void Build()
@@ -95,6 +200,8 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
+            BuildMaterials();
+            BuildShakeData();
             ConfigureImporter();
             AnimatorController controller = BuildController();
             GameObject prefab = BuildPrefab(controller);
@@ -104,6 +211,50 @@ namespace SpaceGame.EditorTools
             AssetDatabase.Refresh();
             Debug.Log($"[LightningConjurer] Built. Height {TargetHeight:0.00} m " +
                       $"(scale {Scale:0.0000}), stride speed {StrideSpeed:0.00} m/s.");
+        }
+
+        /// Creates or updates a URP material per palette entry, in a shared folder
+        /// so a later model using the same palette entry reuses the asset rather
+        /// than minting a second copy of the same grey.
+        private static void BuildMaterials()
+        {
+            EnsureFolder(MaterialDir);
+            Shader lit = Shader.Find("Universal Render Pipeline/Lit");
+            if (lit == null)
+            {
+                Debug.LogError("[LightningConjurer] URP Lit shader not found.");
+                return;
+            }
+
+            foreach (Pal p in Palette)
+            {
+                string path = $"{MaterialDir}/{p.Name}.mat";
+                var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+                bool isNew = mat == null;
+                if (isNew) mat = new Material(lit);
+                else mat.shader = lit;
+
+                mat.SetColor("_BaseColor", p.Colour);
+                mat.SetFloat("_Metallic", p.Metallic);
+                mat.SetFloat("_Smoothness", 1f - p.Roughness);   // URP is smoothness, palette is roughness
+
+                if (p.Emission > 0f)
+                {
+                    mat.EnableKeyword("_EMISSION");
+                    mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+                    mat.SetColor("_EmissionColor", p.Colour * p.Emission);
+                }
+                else
+                {
+                    mat.DisableKeyword("_EMISSION");
+                    mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+                    mat.SetColor("_EmissionColor", Color.black);
+                }
+
+                if (isNew) AssetDatabase.CreateAsset(mat, path);
+                else EditorUtility.SetDirty(mat);
+            }
+            AssetDatabase.SaveAssets();
         }
 
         private static void ConfigureImporter()
@@ -151,6 +302,7 @@ namespace SpaceGame.EditorTools
             {
                 name = c.Name,
                 takeName = c.Take,
+                events = c.Name == "Walk" ? FootPlantEvents() : new AnimationEvent[0],
                 firstFrame = c.First,
                 lastFrame = c.Last,
                 loopTime = true,
@@ -163,6 +315,21 @@ namespace SpaceGame.EditorTools
                 lockRootHeightY = true,
                 lockRootPositionXZ = true,
             }).ToArray();
+
+            // Point every material slot in the FBX at the authored URP asset. The
+            // key is the material NAME as Blender wrote it, which is the palette
+            // name because the .blend links its materials straight from
+            // palette.blend rather than making local copies.
+            int remapped = 0;
+            foreach (Pal p in Palette)
+            {
+                var mat = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialDir}/{p.Name}.mat");
+                if (mat == null) continue;
+                importer.AddRemap(
+                    new AssetImporter.SourceAssetIdentifier(typeof(Material), p.Name), mat);
+                remapped++;
+            }
+            Debug.Log($"[LightningConjurer] Remapped {remapped} materials.");
 
             EditorUtility.SetDirty(importer);
             importer.SaveAndReimport();
@@ -279,8 +446,13 @@ namespace SpaceGame.EditorTools
 
             var capsule = root.AddComponent<CapsuleCollider>();
             capsule.height = TargetHeight;
-            capsule.radius = 1.2f;
+            capsule.radius = BlenderBodyWidth * Scale * 0.5f;   // tracks the model, not a magic number
             capsule.center = new Vector3(0f, TargetHeight * 0.5f, 0f);
+
+            // Footstep camera shake, driven by animation events on the Walk clip.
+            var footstep = root.AddComponent<Presentation.FootstepCameraShake>();
+            var shake = AssetDatabase.LoadAssetAtPath<ShakeData>(ShakeDataPath);
+            if (shake != null) SetField(footstep, "shakeData", shake);
 
             GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
@@ -312,6 +484,23 @@ namespace SpaceGame.EditorTools
             // and facing +Z towards MovementCamera.
             instance.transform.SetPositionAndRotation(new Vector3(8f, 0f, 0f),
                                                       Quaternion.identity);
+
+            // Without a CameraShaker in the scene the footstep events fire into
+            // nothing: CameraShakerHandler.Shake returns null when there is no
+            // default shaker, silently. The real player camera prefab
+            // ("Assets/Game/Prefabs/Camera/3rd person.prefab") already carries one,
+            // but this test scene has plain cameras, so give one a shaker here.
+            GameObject[] roots = scene.GetRootGameObjects();
+            Camera cam = roots.Select(g => g.GetComponentInChildren<Camera>(true))
+                              .FirstOrDefault(c => c != null && c.name == "MovementCamera")
+                        ?? roots.Select(g => g.GetComponentInChildren<Camera>(true))
+                                .FirstOrDefault(c => c != null);
+            if (cam != null && cam.GetComponent<CameraShaker>() == null)
+            {
+                cam.gameObject.AddComponent<CameraShaker>();
+                Debug.Log($"[LightningConjurer] Added a CameraShaker to '{cam.name}' " +
+                          "so the footstep shake is visible in the test scene.");
+            }
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);

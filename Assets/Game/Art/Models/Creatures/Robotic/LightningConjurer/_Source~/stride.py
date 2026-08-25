@@ -2,11 +2,11 @@ import bpy, math
 arm=bpy.data.objects["ConjurerRig"]
 arm.animation_data.action=bpy.data.actions["Walk"]
 sc=bpy.context.scene
-SCALE=(3.019*3)/(37.49-2.757)
+SCALE=(3.019*6)/(37.49-2.757)   # 6x player height
 FPS=30.0
 prev=None; vels=[]
 samples=[]
-for f in range(1,42):
+for f in range(1,74):
     sc.frame_set(f); bpy.context.view_layer.update()
     sh=arm.pose.bones["Shin.L"]; ft=arm.pose.bones["Foot.L"]
     ank=sh.tail.copy(); toe=ft.tail.copy()

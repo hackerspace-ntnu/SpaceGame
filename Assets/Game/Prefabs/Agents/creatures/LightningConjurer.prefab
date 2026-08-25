@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6191886827059924758}
   - component: {fileID: 3071649828410369263}
+  - component: {fileID: 7639154370863827505}
   m_Layer: 0
   m_Name: LightningConjurer
   m_TagString: Untagged
@@ -52,10 +53,26 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 1.2
-  m_Height: 9.057
+  m_Radius: 2.4250743
+  m_Height: 18.114
   m_Direction: 1
-  m_Center: {x: 0, y: 4.5285, z: 0}
+  m_Center: {x: 0, y: 9.057, z: 0}
+--- !u!114 &7639154370863827505
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9126126734686017781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9f1152da60a5864f8785414ac3583c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.FootstepCameraShake
+  shakeData: {fileID: 11400000, guid: cd8daa0bf167e3e45982a100a7307b96, type: 2}
+  fullStrengthRange: 15
+  maxRange: 70
+  minInterval: 0.2
 --- !u!1001 &949234609638625119
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -66,15 +83,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: d9a5b53ec7025ec5aeba5f6590d7366f, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.015645647
+      value: 0.031291295
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d9a5b53ec7025ec5aeba5f6590d7366f, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.71891713
+      value: -1.4378343
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d9a5b53ec7025ec5aeba5f6590d7366f, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.049544528
+      value: -0.099089056
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d9a5b53ec7025ec5aeba5f6590d7366f, type: 3}
       propertyPath: m_LocalRotation.w

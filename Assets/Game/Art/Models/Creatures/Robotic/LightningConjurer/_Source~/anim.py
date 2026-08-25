@@ -67,47 +67,82 @@ for f, ang in ((1,0), (90,90)):        # halo keeps turning; 90 deg tiles seamle
     key(f, {"Halo": ('Z', ang)})
 
 # ------------------------------------------------------------------ WALK
-# 40 frames @30fps = 1.333s full cycle. Contact 1 / 21, passes at 11 / 31.
+# 40 frames @30fps = 1.333s full cycle.
+#
+# SIGN CONVENTION, the thing that makes or breaks this: world_rot(bone, 'Y', d)
+# turns the bone about world +Y, and forward is world +X. Rotating a bone that
+# points DOWN by angle d moves its tail to
+#     tail = head + (-L*sin(d), 0, -L*cos(d))
+# so a NEGATIVE angle swings the tail FORWARD and a positive one swings it back.
+#
+# The knee therefore has to be POSITIVE to fold the way a knee folds. A negative
+# knee angle rotates the shin forward past straight, which puts the joint behind
+# the hip-ankle line - a leg hyperextending through itself.
 W = new_action("Walk", 40)
-SW, KN, FT = 24.0, 34.0, 16.0        # thigh swing, knee bend, foot pitch
 
-def leg(side, phase):
-    """phase 0..1 through the cycle for this leg; returns pose fragment."""
-    t = phase * 2*math.pi
-    thigh = SW * math.sin(t)                       # +: forward
-    knee  = -KN * max(0.0, math.sin(t - 1.2)) - 4  # bends on the back-swing
-    foot  = FT * math.sin(t + 0.9)
+SW   = 24.0   # thigh swing, degrees either side of vertical
+KN   = 34.0   # peak knee flexion during swing
+BIAS = 4.0    # never fully lock the knee; a locked leg reads as a stilt
+FT   = 12.0   # foot pitch: toe-down at toe-off, toe-up at heel strike
+
+# Segment lengths straight off the bone table.
+HIP_Z, KNEE_Z, ANKLE_Z = 25.42, 13.93, 5.10
+LT, LS = HIP_Z - KNEE_Z, KNEE_Z - ANKLE_Z
+
+def leg_angles(phase):
+    """(thigh, knee) in degrees. thigh is a world angle, knee is relative to it."""
+    t = phase * 2 * math.pi
+    thigh = SW * math.sin(t)
+    # Flexes through the swing phase only; max(0, ...) keeps the knee straight
+    # while the foot is carrying weight.
+    knee = KN * max(0.0, math.sin(t - 1.2)) + BIAS
+    return thigh, knee
+
+def ankle_height(phase):
+    """Forward kinematics: where this leg's ankle sits, hips held at rest."""
+    thigh, knee = leg_angles(phase)
+    return (HIP_Z
+            - LT * math.cos(math.radians(thigh))
+            - LS * math.cos(math.radians(thigh + knee)))
+
+def leg_pose(side, phase):
+    thigh, knee = leg_angles(phase)
+    # Counter-rotate the foot by the shin's total world angle so the sole stays
+    # parallel to the ground, then add the natural toe-down / toe-up pitch.
+    foot = -(thigh + knee) + FT * math.sin(phase * 2 * math.pi)
     return {f"Thigh.{side}": ('Y', thigh),
             f"Shin.{side}":  ('Y', knee),
             f"Foot.{side}":  ('Y', foot)}
 
-for i in range(0, 41, 4):
+for i in range(0, 41, 2):
     f = i + 1
     p = i / 40.0
     pose = {}
-    pose.update(leg("L", p))
-    pose.update(leg("R", (p + 0.5) % 1.0))
-    # cos: body sits highest at passing (p=0,.5) and drops onto each contact
-    # (p=.25,.75), which is what reads as weight
-    bob = math.cos(p * 4*math.pi)
-    sway = math.sin(p * 2*math.pi)
+    pose.update(leg_pose("L", p))
+    pose.update(leg_pose("R", (p + 0.5) % 1.0))
+
+    # Ride the hips on whichever foot is lower, so the planted foot stays on the
+    # ground instead of the body floating at a fixed height while the legs
+    # scissor underneath it. This is the cheap stand-in for foot IK.
+    drop = ANKLE_Z - min(ankle_height(p), ankle_height((p + 0.5) % 1.0))
+    sway = math.sin(p * 2 * math.pi)
     pose.update({
-        "Root":  ('LOC', Vector((0.0, 0.55*bob, 0.0))),
-        "Hips":  ('X',  3.0*sway),                 # pelvis roll
-        "Spine": ('Y',  3.5 + 1.2*bob),            # slight forward lean
-        "Head":  ('Y', -2.0 - 1.0*bob),
+        "Root":  ('LOC', Vector((0.0, drop, 0.0))),   # local Y == world Z
+        "Hips":  ('X',  3.0 * sway),                  # pelvis roll
+        "Spine": ('Y',  3.5),                         # slight forward lean
+        "Head":  ('Y', -2.5),
         # floating arms trail the body and counter-swing
-        "ArmRoot.L": ('LOC', Vector((0.0,  0.7*math.sin(p*2*math.pi + 0.6), 0.0))),
-        "ArmRoot.R": ('LOC', Vector((0.0, -0.7*math.sin(p*2*math.pi + 0.6), 0.0))),
-        "UpperArm.L": ('Y', -10.0*sway),
-        "UpperArm.R": ('Y',  10.0*sway),
-        "Forearm.L":  ('Y',   7.0*sway - 5),
-        "Forearm.R":  ('Y',  -7.0*sway - 5),
-        "Hand.L":     ('Y',   5.0*sway),
-        "Hand.R":     ('Y',  -5.0*sway),
+        "ArmRoot.L": ('LOC', Vector((0.0,  0.7 * math.sin(p * 2 * math.pi + 0.6), 0.0))),
+        "ArmRoot.R": ('LOC', Vector((0.0, -0.7 * math.sin(p * 2 * math.pi + 0.6), 0.0))),
+        "UpperArm.L": ('Y', -10.0 * sway),
+        "UpperArm.R": ('Y',  10.0 * sway),
+        "Forearm.L":  ('Y',   7.0 * sway - 5),
+        "Forearm.R":  ('Y',  -7.0 * sway - 5),
+        "Hand.L":     ('Y',   5.0 * sway),
+        "Hand.R":     ('Y',  -5.0 * sway),
     })
     key(f, pose)
-for f, ang in ((1,0), (41,90)):
+for f, ang in ((1, 0), (41, 90)):
     key(f, {"Halo": ('Z', ang)})
 
 def iter_fcurves(act):

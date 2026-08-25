@@ -38,10 +38,6 @@ namespace SpaceGame.EditorTools
         private const float BlenderTop = 37.49f;     // top of Eyelid, i.e. the body
         private const float BodyX = 0.19f;           // body centre line
         private const float BodyY = -0.06f;
-        private const float HipZ = 25.42f;           // hip joint
-        private const float AnkleZ = 5.10f;          // ankle joint
-        private const float SwingDegrees = 24f;      // thigh swing in Walk
-        private const float WalkCycleSeconds = 40f / 30f;  // 40 frames at 30 fps
 
         // The player model (AstronautArmature) is 3.019 m to the top of the head;
         // the brief was "3 times the size of the player model".
@@ -52,28 +48,24 @@ namespace SpaceGame.EditorTools
         /// scaling the armature: see ConfigureImporter.
         private static float Scale => TargetHeight / (BlenderTop - BlenderFloor);
 
-        /// Ground speed at which the Walk clip's feet do not skate, in m/s.
+        /// Ground speed at which the Walk clip's feet skate least, in m/s.
         ///
-        /// The leg is a rigid two-bar from hip to ankle, so a thigh swinging
-        /// +/-SwingDegrees moves a contact 2 * L * sin(swing) per step, and the
-        /// cycle contains two steps:
-        ///
-        ///     speed = 2 * (2 * L * sin(swing)) / cycleSeconds
+        /// MEASURED, not derived. A closed form over the thigh swing alone
+        /// (2 * 2 * L * sin(swing) / cycle) gives 6.47, but that ignores the knee:
+        /// the shin flexes through swing and carries the contact further back than
+        /// the hip angle by itself accounts for. stride.py samples the planted
+        /// foot's actual backward velocity across the stance frames and reports
+        /// the mean, which is this number. Re-run it after ANY change to SW, KN or
+        /// the cycle length in anim.py.
         ///
         /// Unlike the golem's clips this walk is NOT foot-locked -- there is no IK
-        /// holding a contact to the ground -- so this is the ideal figure rather
-        /// than an exact one. It is the number to put in
-        /// AgentAnimatorDriver.animatorSpeedScale as `groundSpeed / StrideSpeed`
-        /// once this creature gets a motor.
-        private static float StrideSpeed
-        {
-            get
-            {
-                float legMetres = (HipZ - AnkleZ) * Scale;
-                float step = 2f * legMetres * Mathf.Sin(SwingDegrees * Mathf.Deg2Rad);
-                return 2f * step / WalkCycleSeconds;
-            }
-        }
+        /// pinning a contact -- so the instantaneous speed varies over stance
+        /// (measured range 5.4 to 10.3 m/s about this mean). Matching the mean
+        /// minimises the skating; it does not eliminate it.
+        ///
+        /// This is the number to put in AgentAnimatorDriver.animatorSpeedScale as
+        /// `groundSpeed / StrideSpeed` once this creature gets a motor.
+        private const float StrideSpeed = 8.19f;
 
         private readonly struct Clip
         {

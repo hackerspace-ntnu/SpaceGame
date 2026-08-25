@@ -65,6 +65,15 @@ public class AudioManager : MonoBehaviour
         RuntimeManager.AttachInstanceToGameObject(aSoundInstance, gameObject, rigidbody);
     }
 
+    public EventInstance AttachEvent(EventReference myevent, GameObject gameObject, Rigidbody rigidbody)
+    {
+        FMOD.Studio.EventInstance aSoundInstance = RuntimeManager.CreateInstance(myevent);
+        aSoundInstance.start();        
+        RuntimeManager.AttachInstanceToGameObject(aSoundInstance, gameObject, rigidbody);
+        //aSoundInstance.setParameterByName("CaseSensitive", 0.5f);
+        return aSoundInstance;
+    }
+
     public void PlaySFX(string sound)
     {
         RuntimeManager.PlayOneShot(sound);

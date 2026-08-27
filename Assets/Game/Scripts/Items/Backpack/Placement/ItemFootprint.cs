@@ -7,10 +7,12 @@ namespace SpaceGame.Items
     /// How big an item really is, and what should hold it.
     ///
     /// <para>
-    /// The size is the one <see cref="ItemGrip.HoldSize"/> already declares — a real metre value
-    /// tuned per prefab for the hand, spanning 0.26 m for the Leash to 1.35 m for the LaserStaff.
-    /// Reusing it rather than adding a second size field means true scale needs no new art data
-    /// and cannot drift out of agreement with what the player sees in their hand.
+    /// The size is <see cref="ItemGrip.PackSize"/> — a real metre value in the same units as the
+    /// hand, and for most items literally <see cref="ItemGrip.HoldSize"/>, which is what that
+    /// property falls back to. An item only carries a pack size of its own where being sized for
+    /// the feel of a 1.7x hand made it absurd lying on a mat: the Leash and Lasso came out as long
+    /// as sidearms, and the Grappling Hook at 1.00 m fit on no surface but the rack. See
+    /// <see cref="ItemGrip.PackSize"/> for what that asymmetry buys and what it costs.
     /// </para>
     /// <para>
     /// Measured once per prefab and cached. Measuring walks every renderer's bounds, and the drag
@@ -18,7 +20,7 @@ namespace SpaceGame.Items
     /// </para>
     /// <para>
     /// The cache never expires by itself, which is right for a play session — a prefab cannot
-    /// change shape mid-game — and wrong in the Editor, where <c>holdSize</c> is edited and FBXs
+    /// change shape mid-game — and wrong in the Editor, where <c>packSize</c> is edited and FBXs
     /// are reimported. <c>ItemFootprintCacheInvalidator</c> in the neighbouring <c>Editor</c> folder
     /// calls <see cref="ClearCache"/> on every asset import so a stale measurement cannot outlive
     /// the asset it measured.
@@ -35,7 +37,7 @@ namespace SpaceGame.Items
         /// Fraction of its own length a long item's bulk must sit off centre to be a hand tool.
         private const float SleeveOffset = 0.15f;
 
-        /// An <see cref="ItemGrip"/> whose `holdSize` is 0 is saying "keep the size the artist
+        /// An <see cref="ItemGrip"/> whose sizes are both 0 is saying "keep the size the artist
         /// built" — a deliberate choice, honoured. It is NOT the same as having no grip at all.
         private const float Unset = 0f;
 
@@ -80,7 +82,7 @@ namespace SpaceGame.Items
 
         private static readonly Dictionary<GameObject, Measurement> cache = new();
 
-        /// <summary>True size in metres, from ItemGrip.HoldSize where authored.</summary>
+        /// <summary>True size in metres, from ItemGrip.PackSize where authored.</summary>
         public static Vector3 SizeOf(GameObject itemPrefab)
         {
             if (itemPrefab == null) return Vector3.zero;
@@ -254,14 +256,16 @@ namespace SpaceGame.Items
             // DefaultHoldSize is not a new invention: EquipItemSocket has answered this same
             // question with the same 0.30 m since long before the pack existed
             // (`grip != null ? grip.HoldSize : DefaultHoldSize`). Diverging from it was the bug.
-            float authored = grip != null ? grip.HoldSize : DefaultHoldSize;
+            // PackSize, not HoldSize: an item is allowed to be a different size on the mat than
+            // in the hand, and falls back to the hand size when it has not asked to be.
+            float authored = grip != null ? grip.PackSize : DefaultHoldSize;
 
-            // An ItemGrip that IS present with holdSize 0 means something different and deliberate:
+            // An ItemGrip that IS present and sizes to 0 means something different and deliberate:
             // "keep the size the artist built". That is honoured, because somebody made that call.
             if (authored <= Unset) return new Measurement(measured, local.center);
 
-            // holdSize names the LONGEST axis, so scale the measured proportions to match it
-            // rather than making a cube of it.
+            // The authored size names the LONGEST axis, so scale the measured proportions to match
+            // it rather than making a cube of it.
             float longest = Mathf.Max(measured.x, Mathf.Max(measured.y, measured.z));
             if (longest < 1e-5f) return new Measurement(new Vector3(authored, authored, authored), Vector3.zero);
 
@@ -294,8 +298,8 @@ namespace SpaceGame.Items
             Debug.LogWarning(
                 $"ItemFootprint: '{itemPrefab.name}' measures {longest:F2} m on its longest axis, " +
                 "which is larger than any surface on the pack. Give its prefab an ItemGrip with a " +
-                "holdSize in metres — without one the raw mesh bounds are used, and an oversized " +
-                "item fills the screen while it is being dragged.", itemPrefab);
+                "holdSize (or a packSize) in metres — without one the raw mesh bounds are used, " +
+                "and an oversized item fills the screen while it is being carried.", itemPrefab);
         }
     }
 }

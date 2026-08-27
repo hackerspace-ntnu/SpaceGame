@@ -59,6 +59,26 @@ namespace SpaceGame.Presentation
             return rect;
         }
 
+        /// <summary>
+        /// A fixed-width column inside <paramref name="parent"/>, measured from the parent's left
+        /// edge and stretched to its full height.
+        ///
+        /// Hoisted here once it existed as three verbatim private copies — in
+        /// <c>LobbyRosterView</c>, <c>LobbyPreviewRank</c> and <c>MenuStepper</c> — each building the
+        /// identical anchored column for a row of controls laid out left to right without a nested
+        /// layout group.
+        /// </summary>
+        public static RectTransform Slice(RectTransform parent, string name, float fromLeft, float width)
+        {
+            RectTransform rect = Rect(name, parent);
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 0.5f);
+            rect.offsetMin = new Vector2(fromLeft, 0f);
+            rect.offsetMax = new Vector2(fromLeft + width, 0f);
+            return rect;
+        }
+
         public static Image Sprite(RectTransform host, Sprite sprite, Color color,
             Image.Type type = Image.Type.Sliced)
         {

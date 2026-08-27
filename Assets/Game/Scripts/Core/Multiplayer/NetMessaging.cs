@@ -490,6 +490,30 @@ namespace SpaceGame.Core
         //   A  the barrel, PortalPair.Primary or PortalPair.Secondary.
         public const ushort PortalExpired = 86; // owner → server, on the SHOOTER's channel
         public const ushort PortalGone    = 87; // server → everyone else, on the SHOOTER's channel
+
+        // ── Net gun ──
+        // Sent to the SHOOTER's channel, not the net's. The net carries no NetworkObject at all —
+        // it is drawn from a shared seed rather than replicated — so it has no relay of its own to
+        // send from, and the player holding the gun is the entity with a live wire.
+        //
+        // The SHOT needs nothing here: it rides UseItem/ItemUsed like every other artifact, and
+        // NetGunFlight is closed-form, so every machine draws the identical arc from the muzzle,
+        // aim and seed the press already carried.
+        //
+        // The CATCH cannot ride that. Two machines integrating one arc at different frame rates can
+        // pick different creatures out of a crowd — the same reason LassoRoped exists — so the
+        // server decides what was caught and says so, and everyone else nets what they are told.
+        // NetArg has no list field, so a net that sweeps up three creatures sends three messages
+        // sharing one net id in A.
+        //
+        //   Snared      server → everyone. Target = the captive, A = net id.
+        //   SnareFreed  server → everyone. A = net id; Target = 0 for the whole net.
+        //
+        // Broadcast to All rather than Others, and both handlers act only when the state differs,
+        // so a machine that missed one is corrected by the next — the idempotence rule
+        // NetLatch.Apply documents.
+        public const ushort Snared     = 88; // server → everyone, on the SHOOTER's relay
+        public const ushort SnareFreed = 89; // server → everyone, on the SHOOTER's relay
     }
 
     /// <summary>What a <see cref="NetMsg.GrappleRope"/> message is saying. Append only.</summary>

@@ -128,9 +128,6 @@ namespace SpaceGame.Items
 
         private HandSource heldFrom;
 
-        /// <summary>The display copy the held item was lifted off, left rim-ghosted where it was.</summary>
-        private GameObject originVisual;
-
         private PackSurfaceId originSurface;
 
         /// <summary>
@@ -192,6 +189,11 @@ namespace SpaceGame.Items
         private bool placementLegal;
 
         public bool IsCarrying => carrying;
+
+        /// <summary>The pack this session is looking into. Every caller tests it: the pack can be
+        /// despawned while this component is still running on a focus camera that has not been torn
+        /// down yet.</summary>
+        private BackpackObject Pack => controller != null ? controller.Pack : null;
 
         // ── Cached labels ────────────────────────────────────────────────────
         //
@@ -324,7 +326,7 @@ namespace SpaceGame.Items
         /// </summary>
         private bool OriginStillThere()
         {
-            BackpackObject pack = controller != null ? controller.Pack : null;
+            BackpackObject pack = Pack;
             if (pack == null || heldItem == null) return false;
 
             return pack.TryFindAt(originSurface, originGrab, out PackPlacement placement)
@@ -343,7 +345,12 @@ namespace SpaceGame.Items
 
             if (Active == this) Active = null;
 
+            // The HUD and the pack both outlive this component, so anything either of them was
+            // asked to hold has to be handed back explicitly. A session torn down by a scene load
+            // or a destroyed focus camera never reaches Cancel, and a pack still hiding the item
+            // in a hand that no longer exists would hide it for the rest of the session.
             InventoryUI.ClearPackFeedback();
+            RestoreOrigin();
 
             visuals?.Dispose();
             cellGrid?.Dispose();
@@ -357,12 +364,14 @@ namespace SpaceGame.Items
         /// <para>
         /// There is nothing to undo. A lift is local — no request went out and no layout changed —
         /// so the item has been sitting where it always was for the whole time it looked like it
-        /// was in the player's hand, and letting go is just no longer drawing the copy.
+        /// was in the player's hand; letting go stops drawing the copy in the hand and starts
+        /// drawing the placement again.
         /// </para>
         /// <para>
-        /// The rack key needs this: the surface the ghost is tracking is about to swing through
-        /// ninety degrees. Calling <see cref="Cancel"/> for that destroyed the controller for the
-        /// rest of the session, so one press of R silently stopped the player picking anything up.
+        /// The rack key needs this: the surface the carried copy is tracking is about to swing
+        /// through ninety degrees. Calling <see cref="Cancel"/> for that destroyed the controller
+        /// for the rest of the session, so one press of R silently stopped the player picking
+        /// anything up.
         /// </para>
         /// </summary>
         public void ReturnToOrigin()
@@ -409,8 +418,12 @@ namespace SpaceGame.Items
         /// </summary>
         private void ClearHand()
         {
+            // The mat has not been drawing this hand's item since the lift; that ends here, with
+            // every other trace of the carry. Idempotent, so the empty hand this also runs on —
+            // Cancel with nothing held — costs nothing.
+            RestoreOrigin();
+
             heldItem = null;
-            originVisual = null;
             originSurface = default;
             originGrab = Vector2.zero;
             originSlot = -1;
@@ -485,7 +498,7 @@ namespace SpaceGame.Items
             if (deniedUntil > 0f && Time.unscaledTime >= deniedUntil) ClearDeniedFlash();
 
             Camera cam = focusCamera != null ? focusCamera.Camera : null;
-            BackpackObject pack = controller != null ? controller.Pack : null;
+            BackpackObject pack = Pack;
 
             if (cam == null || pack == null) return;
 
@@ -555,7 +568,7 @@ namespace SpaceGame.Items
 
             if (mouse == null || overBar) return;
 
-            if (mouse.leftButton.wasPressedThisFrame) Lift(pack, item, placement, visual);
+            if (mouse.leftButton.wasPressedThisFrame) Lift(pack, item, placement);
         }
 
         // ── Flipping the leaf ────────────────────────────────────────────────
@@ -667,7 +680,7 @@ namespace SpaceGame.Items
 
             if (visuals != null) visuals.ShowName(null, Vector2.zero);
 
-            BackpackObject pack = controller != null ? controller.Pack : null;
+            BackpackObject pack = Pack;
             if (pack == null) return;
 
             if (commit)
@@ -703,7 +716,7 @@ namespace SpaceGame.Items
             if (carrying || draggingLeaf) return false;
             if (visuals == null || item == null || item.itemPrefab == null) return false;
 
-            BackpackObject pack = controller != null ? controller.Pack : null;
+            BackpackObject pack = Pack;
             if (pack == null || interactor == null) return false;
 
             // The layout is keyed by id, so this asset already lying on the mat is going to be
@@ -716,7 +729,6 @@ namespace SpaceGame.Items
             heldFrom = HandSource.Hotbar;
             originSlot = slotIndex;
 
-            originVisual = null;
             originSurface = default;
             originGrab = Vector2.zero;
 
@@ -782,9 +794,9 @@ namespace SpaceGame.Items
         // ── Lifting off the mat ──────────────────────────────────────────────
 
         /// <summary>Take a placed item off the mat and into the hand. Local only — nothing is
-        /// sent, and the copy on the mat stays exactly where it is until a placement moves it.</summary>
-        private void Lift(BackpackObject pack, InventoryItem item, PackPlacement placement,
-                          GameObject visual)
+        /// sent, and the layout still holds the item exactly where it was until a placement moves
+        /// it; all that changes here is which machine draws it, and where.</summary>
+        private void Lift(BackpackObject pack, InventoryItem item, PackPlacement placement)
         {
             if (item == null || item.itemPrefab == null) return;
 
@@ -796,7 +808,6 @@ namespace SpaceGame.Items
             heldFrom = HandSource.Pack;
             originSlot = -1;
 
-            originVisual = visual;
             originSurface = placement.Surface;
 
             // Kept apart from the placement's own uv on purpose. That is where the item VISUALLY
@@ -817,19 +828,33 @@ namespace SpaceGame.Items
 
             if (cellGrid != null) cellGrid.MarkLatticeDirty();
 
-            // The hover rim comes off before the ghost goes on: both are outline shells traced
-            // over the same display copy, and the copy the player just lifted off is about to be
-            // re-shelled as the origin ghost.
+            // The rim is traced over the display copy that is about to stop being drawn, and a
+            // hover that outlived it would light up the next item to be built into that slot.
             visuals.SetHovered(null);
             visuals.ShowName(null, Vector2.zero);
 
-            proxyBuilt = visuals.BeginCarry(item.itemPrefab, surface, placement.Uv, placement.Yaw);
+            // Off the mat and into the hand, which is one item moving rather than two of it on
+            // screen: the pack stops drawing the placement — copy, holder, cells and straps — for
+            // as long as this hand holds it, and the copy below is the only one left.
+            pack.SetInHand(item.ID);
 
-            // AFTER the copy, never before: BeginCarry ends whatever carry was running, and ending
-            // one clears the origin outline. Set first, the outline was wiped in the same breath by
-            // the call meant to put the item in the player's hand — so the space they were about to
-            // free was never actually marked.
-            visuals.SetGhost(originVisual);
+            proxyBuilt = visuals.BeginCarry(item.itemPrefab, surface, placement.Uv, placement.Yaw);
+        }
+
+        /// <summary>
+        /// Give the mat back the item this hand took off it, if it took one.
+        ///
+        /// <para>
+        /// Asked by ID and not by the display copy, because the copy the item was lifted off is
+        /// destroyed and rebuilt by every layout change there is — another player's move, an
+        /// unfold, the rack — and the one standing when the hand lets go is rarely the one it
+        /// lifted off. The id outlives all of them.
+        /// </para>
+        /// </summary>
+        private void RestoreOrigin()
+        {
+            BackpackObject pack = Pack;
+            if (pack != null) pack.SetInHand(null);
         }
 
         // ── Carrying ─────────────────────────────────────────────────────────
@@ -873,14 +898,9 @@ namespace SpaceGame.Items
             InventoryUI.SetDropTarget(hoveredSlot);
 
             // Built at the lift for both sources; this is the safety net for the rare copy that
-            // failed to build there, retried where a face gives it a seat. BeginCarry ends the
-            // failed carry, which clears the origin outline — put back after, null for a hotbar
-            // lift and a harmless no-op then.
+            // failed to build there, retried where a face gives it a seat.
             if (!proxyBuilt && overMat)
-            {
                 proxyBuilt = visuals.BeginCarry(heldItem.itemPrefab, targetSurface, targetUv, yaw);
-                visuals.SetGhost(originVisual);
-            }
 
             // The copy is the ONE readout of what is in the hand, and it is on screen wherever
             // the cursor goes: seated and grid-snapped over a face, riding the cursor ray at the
@@ -1095,7 +1115,7 @@ namespace SpaceGame.Items
         {
             if (!carrying) return;
 
-            BackpackObject pack = controller != null ? controller.Pack : null;
+            BackpackObject pack = Pack;
             if (pack == null) return;
 
             if (heldFrom == HandSource.Hotbar)

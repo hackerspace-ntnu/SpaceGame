@@ -23,7 +23,7 @@ namespace SpaceGame.Tests
             // Written at creation rather than by a follow-up UpdateLobbyAsync. A client that polled
             // in the gap between the two saw a lobby with no join code and read straight past the
             // missing key.
-            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand", 0);
+            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand", 0, VersusSetup.None);
 
             Assert.IsTrue(options.Data.ContainsKey(LobbySession.KeyRelayJoinCode));
             Assert.AreEqual("RELAY99", options.Data[LobbySession.KeyRelayJoinCode].Value);
@@ -32,7 +32,7 @@ namespace SpaceGame.Tests
         [Test]
         public void CreateOptions_StartsInTheWaitingState()
         {
-            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand", 0);
+            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand", 0, VersusSetup.None);
 
             Assert.AreEqual(LobbySession.StateWaiting, options.Data[LobbySession.KeyGameState].Value);
         }
@@ -42,7 +42,7 @@ namespace SpaceGame.Tests
         {
             // The lobby browser labels rows the player has not joined, so this key has to be
             // visible to non-members. Member visibility would render every row blank.
-            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand", 0);
+            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand", 0, VersusSetup.None);
 
             Assert.AreEqual(DataObject.VisibilityOptions.Public,
                 options.Data[LobbySession.KeyGameState].Visibility);
@@ -51,7 +51,7 @@ namespace SpaceGame.Tests
         [Test]
         public void CreateOptions_CarriesThePlayerName()
         {
-            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand", 0);
+            CreateLobbyOptions options = LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand", 0, VersusSetup.None);
 
             Assert.AreEqual("Ferdinand", options.Player.Data[LobbySession.KeyPlayerName].Value);
         }
@@ -63,7 +63,7 @@ namespace SpaceGame.Tests
             // Sessions are reached by their code or from the browser, never by a password. Lobby
             // also rejects an empty-string password outright rather than ignoring it, so the only
             // safe value to send is none at all.
-            CreateLobbyOptions options = LobbySession.BuildCreateOptions(isPrivate, "RELAY99", "Ferdinand", 0);
+            CreateLobbyOptions options = LobbySession.BuildCreateOptions(isPrivate, "RELAY99", "Ferdinand", 0, VersusSetup.None);
 
             Assert.IsNull(options.Password);
         }
@@ -73,8 +73,8 @@ namespace SpaceGame.Tests
         {
             // Compared against true/false rather than asserted directly: IsPrivate is a bool?, and
             // spelling the comparison out keeps this off NUnit's nullable overloads.
-            Assert.IsTrue(LobbySession.BuildCreateOptions(true, "RELAY99", "Ferdinand", 0).IsPrivate == true);
-            Assert.IsTrue(LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand", 0).IsPrivate == false);
+            Assert.IsTrue(LobbySession.BuildCreateOptions(true, "RELAY99", "Ferdinand", 0, VersusSetup.None).IsPrivate == true);
+            Assert.IsTrue(LobbySession.BuildCreateOptions(false, "RELAY99", "Ferdinand", 0, VersusSetup.None).IsPrivate == false);
         }
 
         [Test]

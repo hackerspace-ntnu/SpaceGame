@@ -181,6 +181,29 @@ namespace SpaceGame.Items
         /// </summary>
         private readonly Dictionary<string, PackStrapVisual.Handle> strapVisuals = new();
 
+        /// <summary>
+        /// The one placed item that is in a hand on THIS machine, and is therefore not drawn on
+        /// the mat. Null the rest of the time.
+        ///
+        /// <para>
+        /// Lifting an item is local — nothing is sent and the layout still holds it exactly where
+        /// it was — so between the lift and the click that puts it down the item is on screen
+        /// twice: the copy under the cursor and the one it was lifted off. Two of the same thing,
+        /// one of which cannot be interacted with, reads as a bug rather than as a preview.
+        /// </para>
+        /// <para>
+        /// Kept here rather than in the hand because a placed item is FOUR objects — the display
+        /// copy, its holder, the cells it sits on and the straps over it — and only this class
+        /// knows all four; and because every rebuild has to put the item straight back out of
+        /// sight, which nothing outside this class gets a chance to do.
+        /// </para>
+        /// <para>
+        /// Local by construction: it is a field on this machine's component, so the other player
+        /// in the same pack goes on seeing the item lying where the server says it still is.
+        /// </para>
+        /// </summary>
+        private string inHandItemId;
+
         private BackpackController owner;
         private Coroutine doorRoutine;
         private Coroutine rackRoutine;
@@ -1977,6 +2000,43 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// Stop drawing one placed item because it has been lifted into a hand on this machine, or
+        /// pass null to draw everything again. See <see cref="inHandItemId"/>.
+        /// </summary>
+        public void SetInHand(string itemId)
+        {
+            if (inHandItemId == itemId) return;
+
+            string released = inHandItemId;
+            inHandItemId = itemId;
+
+            ShowPlaced(released, true);
+            ShowPlaced(inHandItemId, false);
+        }
+
+        /// <summary>
+        /// Show or hide everything the mat draws for one placed item. Silent about ids it does not
+        /// know: an item taken out from under a carry has no display left to restore, and the hand
+        /// asks for exactly that on its way to letting go.
+        /// </summary>
+        private void ShowPlaced(string itemId, bool shown)
+        {
+            if (string.IsNullOrEmpty(itemId)) return;
+
+            if (visuals.TryGetValue(itemId, out GameObject visual) && visual != null)
+                visual.SetActive(shown);
+
+            if (holderVisuals.TryGetValue(itemId, out GameObject holder) && holder != null)
+                holder.SetActive(shown);
+
+            if (gridVisuals.TryGetValue(itemId, out GameObject grid) && grid != null)
+                grid.SetActive(shown);
+
+            if (strapVisuals.TryGetValue(itemId, out PackStrapVisual.Handle straps) && straps.Object != null)
+                straps.Object.SetActive(shown);
+        }
+
+        /// <summary>
         /// Tear the whole display down and build it again.
         ///
         /// <see cref="PackLayout.OnChanged"/> is one coarse event with no index in it, on purpose:
@@ -2068,6 +2128,11 @@ namespace SpaceGame.Items
 
                 if (!straps.IsEmpty) strapVisuals[placement.ItemId] = straps;
             }
+
+            // Straight back out of sight, because everything above was built afresh and knows
+            // nothing of the carry. Last, after the straps: PackStrapVisual samples the display
+            // copy's silhouette, and it can only sample a copy that is still there to sample.
+            ShowPlaced(inHandItemId, false);
 
             // Re-ordered and re-sized to wherever the unfold currently stands. Without this a
             // holder built mid-unfold — or while the pack is stowed — sits at full size through a

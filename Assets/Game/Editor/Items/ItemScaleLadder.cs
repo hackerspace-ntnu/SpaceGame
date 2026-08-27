@@ -32,6 +32,14 @@ namespace SpaceGame.EditorTools
     /// whole set of gripped prefabs, so "was this one considered?" is answerable without grepping.
     /// </para>
     ///
+    /// <para><b>This ladder is the HAND only.</b> How big an item is lying on the pack is a second,
+    /// independent number — <c>ItemGrip.packSize</c>, which falls back to <c>holdSize</c> wherever
+    /// nobody authored it. The two questions genuinely differ: this ladder answers "what feels
+    /// right to hold in a hand 1.7x a human's", the pack answers "what does this read as among a
+    /// dozen others on a finite mat, and how much of that mat is it worth". Three items diverge
+    /// today — the Grappling Hook, the Lasso and the Leash — and <see cref="Audit"/> names any
+    /// prefab that does. Grep <c>packSize:</c> for the current set.</para>
+    ///
     /// <para><b>Idempotent.</b> Every entry names the value it expects to find before it will write,
     /// so a second run reports "already at 1.25" rather than climbing the ladder twice.</para>
     ///
@@ -244,8 +252,15 @@ namespace SpaceGame.EditorTools
 
                 log.Append("  ").Append(name).Append("  [").Append(step.Bracket).Append("]\n")
                    .Append("    now      holdSize ").Append(grip.HoldSize.ToString("F3"))
-                   .Append(", true size ").Append(size.ToString("F3")).Append('\n')
-                   .Append(step.IsPinned ? "    pinned   " : "    would    ")
+                   .Append(", true size ").Append(size.ToString("F3")).Append('\n');
+
+                // Only when it actually diverges. Printing "packSize == holdSize" on sixteen of
+                // nineteen rows would bury the three that carry a real second number.
+                if (Mathf.Abs(grip.PackSize - grip.HoldSize) > Slack)
+                    log.Append("    on pack  packSize ").Append(grip.PackSize.ToString("F3"))
+                       .Append(" — deliberately not the hand size\n");
+
+                log.Append(step.IsPinned ? "    pinned   " : "    would    ")
                    .Append(step.IsPinned
                        ? "left alone"
                        : $"{step.From:F3} -> {step.To:F3}")

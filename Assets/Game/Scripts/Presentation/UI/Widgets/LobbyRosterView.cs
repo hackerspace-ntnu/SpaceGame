@@ -1,8 +1,8 @@
 using TMPro;
-using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.UI;
 using SpaceGame.Core;
+using SpaceGame.Gameplay;
 
 namespace SpaceGame.Presentation
 {
@@ -18,20 +18,22 @@ namespace SpaceGame.Presentation
     /// </para>
     ///
     /// <para>
-    /// Who is here is answered by <see cref="LobbyPreviewRank"/> — four astronauts standing in the
-    /// menu scene with their names over their heads — and not by a list of text rows any more. The
-    /// list said exactly what the names above their heads say, and the page had no room for the first
-    /// copy: everything on it has to sit below <see cref="MenuEntry.Horizon"/> to be legible against
-    /// ground, and a title, a code, a copy action, a four-row roster, a privacy toggle, a status line
-    /// and a footer never fitted in the bottom half of the screen. What is left is one narrow column
-    /// of controls and a footer, which does.
+    /// Who is here is answered by <see cref="LobbyPreviewRank"/> — astronauts standing in the menu
+    /// scene with their names over their heads, one cluster per team in a VS lobby — and not by a
+    /// list of text rows any more. The list said exactly what the names above their heads say, and
+    /// the page had no room for the first copy: everything on it has to sit below
+    /// <see cref="MenuEntry.Horizon"/> to be legible against ground, and a title, a code, a copy
+    /// action, a roster, a privacy toggle, a status line and a footer never fitted in the bottom half
+    /// of the screen. What is left is one narrow column of controls and a footer, which does.
     /// </para>
     ///
     /// <para>
-    /// It performs no service calls of its own. Everything it can do arrives as a callback, and the
-    /// two things it cannot work out from a <see cref="Lobby"/> alone — which row is us — is passed
-    /// in. That is what lets it be built and rendered without a lobby, a network, or Unity Gaming
-    /// Services.
+    /// It performs no service calls of its own, and it never sees a <c>Lobby</c> — everything it
+    /// needs arrives either through <see cref="RosterSnapshot"/> (see <see cref="Render"/>) or
+    /// through <see cref="SetSession"/> for the handful of things a snapshot does not carry (the
+    /// session's own name, its code, whether the host has already started, and its privacy). That
+    /// split is what lets this whole view be built and driven without a lobby, a network, or Unity
+    /// Gaming Services at all.
     /// </para>
     /// </summary>
     public class LobbyRosterView
@@ -48,7 +50,7 @@ namespace SpaceGame.Presentation
         /// The session name, at a fraction of a page title's size.
         ///
         /// Down from <see cref="MenuEntry.TitleSize"/> because this page is now mostly a picture:
-        /// four astronauts are what the player is looking at, and a 110pt word beside them competes
+        /// the astronauts are what the player is looking at, and a 110pt word beside them competes
         /// with them for no benefit — you already know which session you are in.
         /// </summary>
         private const int TitleSize = 44;
@@ -103,6 +105,19 @@ namespace SpaceGame.Presentation
         private const float PrivacyStateWidth = 40f;
 
         /// <summary>
+        /// Where the VS team-rules strip sits, under the top bar rather than squeezed inside it.
+        ///
+        /// A <see cref="MenuStepper"/> is authored at <see cref="MenuStepper.Height"/> (74px) tall —
+        /// nearly double <see cref="TopBarHeight"/> — because it is a control built for a full page
+        /// column elsewhere (<c>VersusRulesUI</c>), not for a caption strip. Rather than squash it
+        /// into 48px and have it read as cramped on the one page where the host is actually deciding
+        /// something (not just glancing at a code), it gets its own row directly beneath the strip.
+        /// </summary>
+        private const float TeamStripTop = TopBarTop - TopBarHeight - 16f;
+
+        private const float TeamStripSpacing = 64f;
+
+        /// <summary>
         /// Where a busy rule sits, measured up from the bottom of the page.
         ///
         /// In the gap between the two rows already pinned down there: the status line runs from 168
@@ -128,14 +143,23 @@ namespace SpaceGame.Presentation
             /// <summary>Called with -1 or +1 when a suit colour chevron is pressed.</summary>
             public readonly System.Action<int> StepColor;
 
+            /// <summary>Called with a team number when its plate is clicked.</summary>
+            public readonly System.Action<int> JoinTeam;
+
+            /// <summary>Called with (teamCount, teamSize) when a team-rules chevron is pressed.</summary>
+            public readonly System.Action<int, int> SetTeamRules;
+
             public Actions(System.Action start, System.Action leave, System.Action copyCode,
-                System.Action<bool> setPrivacy, System.Action<int> stepColor)
+                System.Action<bool> setPrivacy, System.Action<int> stepColor,
+                System.Action<int> joinTeam, System.Action<int, int> setTeamRules)
             {
                 Start = start;
                 Leave = leave;
                 CopyCode = copyCode;
                 SetPrivacy = setPrivacy;
                 StepColor = stepColor;
+                JoinTeam = joinTeam;
+                SetTeamRules = setTeamRules;
             }
         }
 
@@ -155,6 +179,8 @@ namespace SpaceGame.Presentation
         private TextMeshProUGUI privacyState;
         private GameObject startAction;
 
+        private RectTransform teamStripRow;
+
         private LobbyPreviewRank rank;
 
         /// <summary>Mirrors the lobby's own flag so the toggle knows which way to flip.</summary>
@@ -162,6 +188,22 @@ namespace SpaceGame.Presentation
 
         /// <summary>Set while the status line is holding a failure the poll must not overwrite.</summary>
         private bool statusIsSticky;
+
+        // ─────────────────────────────────────────────────────── the session, off the lobby
+        //
+        // The three things a snapshot cannot answer — see the class doc — mirrored here so Render
+        // can read them without ever being handed a Lobby.
+
+        private string sessionName;
+        private string sessionCode;
+        private bool sessionPlaying;
+        private bool sessionIsPrivate;
+
+        // Kept so each stepper's onChanged can report the OTHER axis's value alongside the one that
+        // was actually pressed — VersusRules.ClampTeams/ClampTeamSize both need both numbers, and a
+        // stepper only ever knows its own.
+        private int shownTeamCount;
+        private int shownTeamSize;
 
         // ─────────────────────────────────────────────────────────── the busy state
         //
@@ -184,6 +226,21 @@ namespace SpaceGame.Presentation
 
             Build(page);
         }
+
+        /// <summary>The Teams stepper in the host strip, exposed so a test can read it.</summary>
+        public MenuStepper TeamsStepper { get; private set; }
+
+        /// <summary>The Team size stepper in the host strip, exposed so a test can read it.</summary>
+        public MenuStepper TeamSizeStepper { get; private set; }
+
+        /// <summary>Whether the host strip is showing at all — only true for a VS lobby.</summary>
+        public bool TeamRulesShown => teamStripRow != null && teamStripRow.gameObject.activeSelf;
+
+        /// <summary>Whether Start is offered — only true for the host.</summary>
+        public bool StartShown => startAction != null && startAction.activeSelf;
+
+        /// <summary>The status line's current text, exposed so a test can read it.</summary>
+        public string StatusText => status != null ? status.text : string.Empty;
 
         /// <summary>
         /// Tears down the astronauts.
@@ -214,11 +271,12 @@ namespace SpaceGame.Presentation
             BuildTopBar(page);
             BuildFooter(page);
 
-            rank = LobbyPreviewRank.Create(page, entryPrefab, Step);
+            rank = LobbyPreviewRank.Create(page, entryPrefab, Step, JoinTeam);
         }
 
         /// <summary>
-        /// The code, the copy action and the privacy toggle, in one small strip across the top.
+        /// The code, the copy action, the privacy toggle and — for a VS lobby — the team-rules
+        /// steppers, in a strip across the top.
         ///
         /// A single row rather than the stack this page used to have down the left. The rank of
         /// astronauts now occupies the middle and lower half of the frame, and controls sitting in
@@ -234,7 +292,7 @@ namespace SpaceGame.Presentation
             code = Shadowed(bar, "CodeValue", "—", CodeValueX, CodeValueWidth, TopBarValueSize,
                             out codeShadow);
 
-            RectTransform copySlot = Slice(bar, "CopySlot", CopyX, CopyWidth);
+            RectTransform copySlot = UIBuilder.Slice(bar, "CopySlot", CopyX, CopyWidth);
             Button copy = MenuEntry.Create(entryPrefab, copySlot, "CopyButton", "Copy",
                                            TopBarValueSize, TopBarHeight,
                                            () => actions.CopyCode?.Invoke(),
@@ -242,7 +300,7 @@ namespace SpaceGame.Presentation
             MenuEntry.MakeLight(copy, copyLabel);
             copyAction = copy.gameObject;
 
-            RectTransform privacySlot = Slice(bar, "PrivacySlot", PrivacyX, PrivacyWidth);
+            RectTransform privacySlot = UIBuilder.Slice(bar, "PrivacySlot", PrivacyX, PrivacyWidth);
             privacyRow = privacySlot.gameObject;
 
             Button toggle = MenuEntry.Create(entryPrefab, privacySlot, "PrivacyButton", "Private",
@@ -251,6 +309,67 @@ namespace SpaceGame.Presentation
             MenuEntry.MakeLight(toggle, label);
 
             privacyState = MenuField.Trailing(toggle, label, "off", PrivacyStateWidth, PrivacyOff);
+
+            BuildTeamRulesStrip(page);
+        }
+
+        /// <summary>
+        /// The host's Teams / Team size steppers, hidden entirely outside a VS lobby.
+        ///
+        /// <para>
+        /// A joiner sees these too, but never gets to press them: they need to know whether a team
+        /// still has room before clicking its plate, which the plate's own dimming already answers
+        /// visually, but the steppers say it in numbers as well. Only the host can change what is
+        /// shown — see <see cref="Render"/>, which is the only place either stepper's own displayed
+        /// value is ever written.
+        /// </para>
+        /// </summary>
+        private void BuildTeamRulesStrip(RectTransform page)
+        {
+            teamStripRow = Pinned(page, "TeamRules", TeamStripTop, ColumnWidth, MenuStepper.Height);
+
+            var layout = teamStripRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            layout.spacing = TeamStripSpacing;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = true;
+            layout.childAlignment = TextAnchor.MiddleLeft;
+
+            TeamsStepper = MenuStepper.Create(entryPrefab, teamStripRow, "Teams",
+                VersusRules.DefaultTeams, VersusRules.MinTeams, VersusRules.MaxTeams,
+                value => actions.SetTeamRules?.Invoke(value, shownTeamSize));
+            FixedStepperWidth(TeamsStepper);
+
+            TeamSizeStepper = MenuStepper.Create(entryPrefab, teamStripRow, "Team size",
+                VersusRules.DefaultTeamSize, VersusRules.MinTeamSize, VersusRules.MaxTeamSize,
+                value => actions.SetTeamRules?.Invoke(shownTeamCount, value));
+            FixedStepperWidth(TeamSizeStepper);
+
+            teamStripRow.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// Gives a stepper's row an explicit width inside the strip's <see cref="HorizontalLayoutGroup"/>.
+        ///
+        /// <see cref="MenuStepper"/> only ever sizes its own HEIGHT (its own <c>Create</c> already
+        /// added a <see cref="LayoutElement"/> for that, via <c>UIBuilder.FixedHeight</c>) — it was
+        /// built to sit in a vertical column that expands its children to the full column width,
+        /// which this strip does not do (two steppers share one row). The existing element is reused
+        /// rather than a second one added — <see cref="LayoutElement"/> carries no
+        /// <c>DisallowMultipleComponent</c>, so Unity would happily attach two, and which one the
+        /// layout system then honours is not a bet worth making.
+        /// </summary>
+        private static void FixedStepperWidth(MenuStepper stepper)
+        {
+            float width = MenuStepper.LabelWidth + MenuStepper.ChevronWidth * 2f + MenuStepper.ValueWidth;
+
+            var element = stepper.Root.GetComponent<LayoutElement>();
+            if (element == null) element = stepper.Root.gameObject.AddComponent<LayoutElement>();
+
+            element.minWidth = width;
+            element.preferredWidth = width;
+            element.flexibleWidth = 0f;
         }
 
         /// <summary>
@@ -264,7 +383,7 @@ namespace SpaceGame.Presentation
         private static TextMeshProUGUI Shadowed(RectTransform bar, string name, string text,
             float fromLeft, float width, int size, out TextMeshProUGUI shadowLabel)
         {
-            RectTransform slot = Slice(bar, name, fromLeft, width);
+            RectTransform slot = UIBuilder.Slice(bar, name, fromLeft, width);
 
             RectTransform shadow = UIBuilder.Fill(UIBuilder.Rect("Shadow", slot));
             shadow.anchoredPosition = new Vector2(2f, -2f);
@@ -274,19 +393,6 @@ namespace SpaceGame.Presentation
             RectTransform front = UIBuilder.Fill(UIBuilder.Rect("Front", slot));
             return UIBuilder.Label(front, text, size, MenuEntry.Title, TextAlignmentOptions.Left,
                                    FontStyles.Bold);
-        }
-
-        /// <summary>A fixed-width column inside the strip, measured from its left edge.</summary>
-        private static RectTransform Slice(RectTransform parent, string name, float fromLeft,
-            float width)
-        {
-            RectTransform rect = UIBuilder.Rect(name, parent);
-            rect.anchorMin = new Vector2(0f, 0f);
-            rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 0.5f);
-            rect.offsetMin = new Vector2(fromLeft, 0f);
-            rect.offsetMax = new Vector2(fromLeft + width, 0f);
-            return rect;
         }
 
         private void BuildFooter(RectTransform page)
@@ -325,66 +431,104 @@ namespace SpaceGame.Presentation
         // ───────────────────────────────────────────────────────────────────── render
 
         /// <summary>
-        /// Redraws from the session's current lobby. Called on every change, so it has to be cheap
-        /// enough to run twice a second — and it is the only thing that writes the privacy label, so
-        /// what the toggle reads is always the lobby's own flag rather than the last thing the host
-        /// clicked.
+        /// Tells this view the handful of things a <see cref="RosterSnapshot"/> cannot answer.
+        ///
+        /// Called by <see cref="LobbyUI"/> immediately before every <see cref="Render"/>, since those
+        /// two are what stand in for the <c>Lobby</c> this view no longer sees at all.
         /// </summary>
-        /// <param name="localSlot">
-        /// Which row of the lobby is us, or -1. Passed in rather than worked out here because
-        /// answering it needs the authentication service, and this view is deliberately testable
-        /// without one.
-        /// </param>
-        public void Render(Lobby lobby, bool isHost, string hostTitle, int localSlot)
+        public void SetSession(string name, string code, bool playing, bool isPrivate)
         {
-            if (lobby == null)
-            {
-                title.text = (hostTitle ?? "Session").ToUpperInvariant();
-                SetCode("—");
-                if (copyAction != null) copyAction.SetActive(false);
-                if (privacyRow != null) privacyRow.SetActive(false);
-                if (startAction != null) startAction.SetActive(false);
+            sessionName = name;
+            sessionCode = code;
+            sessionPlaying = playing;
+            sessionIsPrivate = isPrivate;
+        }
 
-                if (rank != null)
-                    rank.Render(System.Array.Empty<string>(), System.Array.Empty<int>(), -1, -1,
-                                GameSettings.SuitColorIndex);
-                return;
-            }
-
-            title.text = (isHost && !string.IsNullOrEmpty(hostTitle) ? hostTitle : lobby.Name)
+        /// <summary>
+        /// Redraws from the session's current roster. Called on every change, so it has to be cheap
+        /// enough to run twice a second.
+        /// </summary>
+        /// <param name="snapshot">Everything about who is here and how the teams are shaped.</param>
+        /// <param name="isHost">
+        /// Whether this peer is genuinely running the session — false, notably, for the second or so
+        /// while a host is still waiting on <c>CreateAsync</c>. Gates Start, privacy and the team
+        /// steppers, but not the title — see <paramref name="hostTitle"/>.
+        /// </param>
+        /// <param name="hostTitle">
+        /// The world's own display name, for a story host only — a VS lobby has no world, and its
+        /// title is its own session name instead. Trusted unconditionally rather than gated on
+        /// <paramref name="isHost"/>, because the caller already only ever hands one over for a
+        /// story host, and does so from the moment the roster goes up — before <c>session.IsHost</c>
+        /// can even answer true, while <c>CreateAsync</c> is still in flight.
+        /// </param>
+        public void Render(RosterSnapshot snapshot, bool isHost, string hostTitle)
+        {
+            // Not gated on isHost: the caller (LobbyUI.HostTitle) already only ever hands over a
+            // non-null hostTitle for a story host, and it does so unconditionally — including for
+            // the second or so while CreateAsync is still running and session.IsHost is therefore
+            // still false. Gating here too would blank the world's name for exactly that window.
+            title.text = (!string.IsNullOrEmpty(hostTitle) ? hostTitle : sessionName ?? "Session")
                 .ToUpperInvariant();
 
-            SetCode(string.IsNullOrEmpty(lobby.LobbyCode) ? "—" : lobby.LobbyCode);
-            if (copyAction != null) copyAction.SetActive(!string.IsNullOrEmpty(lobby.LobbyCode));
+            SetCode(string.IsNullOrEmpty(sessionCode) ? "—" : sessionCode);
+            if (copyAction != null) copyAction.SetActive(!string.IsNullOrEmpty(sessionCode));
 
             // Only the host can start, and only the host can change privacy. A client shown either
             // gets a control whose whole behaviour is to refuse.
             if (startAction != null) startAction.SetActive(isHost);
             if (privacyRow != null) privacyRow.SetActive(isHost);
 
-            isPrivate = lobby.IsPrivate;
+            isPrivate = sessionIsPrivate;
 
             if (privacyState != null)
             {
-                privacyState.text = lobby.IsPrivate ? "on" : "off";
-                privacyState.color = lobby.IsPrivate ? PrivacyOn : PrivacyOff;
+                privacyState.text = isPrivate ? "on" : "off";
+                privacyState.color = isPrivate ? PrivacyOn : PrivacyOff;
             }
 
-            // Only what has to be read. The old page said "Share the code. Start when everyone is
-            // in." on every redraw, which is a sentence that is true forever and therefore stops
-            // being read — and it took the room the astronauts now stand in. A host is told nothing;
-            // a joiner is told the one thing they cannot see for themselves, which is whether they
-            // are waiting or already being pulled into a running world.
+            // Only what has to be read. A host is told nothing; a joiner is told the one thing they
+            // cannot see for themselves, which is whether they are waiting or already being pulled
+            // into a running world.
             SetPolledStatus(isHost
                 ? string.Empty
-                : LobbySession.IsPlaying(lobby)
+                : sessionPlaying
                     ? "The host is already playing. Joining the world…"
                     : "Waiting for the host to start.");
 
-            if (rank != null)
+            RenderTeamRules(snapshot, isHost);
+
+            if (rank != null) rank.Render(snapshot);
+        }
+
+        /// <summary>
+        /// Shows and fills the Teams / Team size strip for a VS lobby, and hides it entirely for a
+        /// story one. A joiner sees the rules in force but cannot press them — see
+        /// <see cref="BuildTeamRulesStrip"/> for why they are shown at all.
+        /// </summary>
+        private void RenderTeamRules(RosterSnapshot snapshot, bool isHost)
+        {
+            if (teamStripRow == null) return;
+
+            teamStripRow.gameObject.SetActive(snapshot.IsVersus);
+            if (!snapshot.IsVersus) return;
+
+            shownTeamCount = snapshot.TeamCount;
+            shownTeamSize = snapshot.TeamSize;
+
+            if (TeamsStepper != null)
             {
-                rank.Render(LobbySession.PlayerNames(lobby), LobbySession.SuitColors(lobby),
-                            localSlot, LobbySession.HostSlot(lobby), GameSettings.SuitColorIndex);
+                TeamsStepper.SetLimits(VersusRules.MinTeams,
+                                       VersusRules.ClampTeams(VersusRules.MaxTeams, shownTeamSize));
+                TeamsStepper.SetValue(shownTeamCount);
+                TeamsStepper.SetInteractable(isHost);
+            }
+
+            if (TeamSizeStepper != null)
+            {
+                TeamSizeStepper.SetLimits(VersusRules.MinTeamSize,
+                                          VersusRules.ClampTeamSize(VersusRules.MaxTeamSize, shownTeamCount));
+                TeamSizeStepper.SetValue(shownTeamSize);
+                TeamSizeStepper.SetInteractable(isHost);
             }
         }
 
@@ -498,9 +642,9 @@ namespace SpaceGame.Presentation
         /// <summary>
         /// Reports the privacy the host asked for.
         ///
-        /// The label is not written here. It is rendered from the lobby the service hands back, so
-        /// what the toggle says is what is actually in force rather than what was last asked for —
-        /// which matters precisely when the update fails.
+        /// The label is not written here. It is rendered from the session the caller hands back
+        /// through <see cref="SetSession"/>, so what the toggle says is what is actually in force
+        /// rather than what was last asked for — which matters precisely when the update fails.
         /// </summary>
         private void TogglePrivacy()
         {
@@ -512,6 +656,8 @@ namespace SpaceGame.Presentation
         }
 
         private void Step(int direction) => actions.StepColor?.Invoke(direction);
+
+        private void JoinTeam(int team) => actions.JoinTeam?.Invoke(team);
 
         /// <summary>
         /// Repaints our own astronaut, without waiting for the poll.

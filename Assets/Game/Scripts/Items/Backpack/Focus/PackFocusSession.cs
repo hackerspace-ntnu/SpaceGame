@@ -362,8 +362,8 @@ namespace SpaceGame.Items
             if (pack == null || !pack.IsOpen) return;
 
             // A held item is being lined up against a surface that is about to swing through
-            // ninety degrees, so the ghost would be left tracking a face that has gone. Putting it
-            // back where it was picked up costs nothing — the lift was never sent — and, unlike
+            // ninety degrees, so the carried copy would be left tracking a face that has gone.
+            // Putting it back where it was picked up costs nothing — the lift was never sent — and, unlike
             // Cancel, leaves the hand alive: Cancel is the session's exit and destroys it, so this
             // used to mean one press of R silently stopped the player picking anything else up for
             // the rest of the session.

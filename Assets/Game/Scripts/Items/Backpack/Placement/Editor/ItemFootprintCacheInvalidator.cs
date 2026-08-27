@@ -9,7 +9,7 @@ namespace SpaceGame.Items.EditorTools
     /// <para>
     /// The cache is keyed by prefab <c>GameObject</c> and, left alone, never expires — it is sized
     /// for a play session, where a prefab's geometry cannot change. In the Editor it can, and
-    /// silently: edit <c>holdSize</c> on the LaserStaff, or reimport its FBX, and every consumer
+    /// silently: edit <c>packSize</c> on the LaserStaff, or reimport its FBX, and every consumer
     /// goes on using the size measured the first time anything asked, for the rest of the session.
     /// The pack then reserves a rectangle of one size and draws an item of another, and nothing in
     /// the console says why.

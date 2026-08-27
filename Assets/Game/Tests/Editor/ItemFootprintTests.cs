@@ -43,6 +43,11 @@ namespace SpaceGame.Tests
         /// </para>
         /// </summary>
         /// <param name="holdSize">Authored metres. Only meaningful with <paramref name="withGrip"/>.</param>
+        /// <param name="packSize">
+        /// Authored metres for the pack. 0 — the default, and what nearly every shipped prefab
+        /// carries — means "the same size as in the hand", so a plain Prefab(size, holdSize) call
+        /// still asks the question the older tests were written against.
+        /// </param>
         /// <param name="withGrip">
         /// Whether the prefab carries an <see cref="ItemGrip"/> at all. Distinct from a holdSize of
         /// zero, and the distinction matters: no grip means nobody ever sized this thing for a hand,
@@ -50,7 +55,8 @@ namespace SpaceGame.Tests
         /// the authored size on purpose. Defaults to true so a plain Prefab(size) call still asks
         /// the "authored size, deliberately" question the older tests were written against.
         /// </param>
-        private GameObject Prefab(Vector3 meshSize, float holdSize = 0f, bool withGrip = true)
+        private GameObject Prefab(Vector3 meshSize, float holdSize = 0f, bool withGrip = true,
+                                  float packSize = 0f)
         {
             var root = new GameObject("prefab");
             spawned.Add(root);
@@ -63,6 +69,7 @@ namespace SpaceGame.Tests
             {
                 var grip = root.AddComponent<ItemGrip>();
                 typeof(ItemGrip).GetField("holdSize", Hidden).SetValue(grip, holdSize);
+                typeof(ItemGrip).GetField("packSize", Hidden).SetValue(grip, packSize);
             }
 
             return root;
@@ -242,6 +249,72 @@ namespace SpaceGame.Tests
 
             // Proportions still honoured — it is scaled down, not turned into a cube.
             Assert.AreEqual(huge.x / huge.z, size.x / size.z, 1e-3f);
+        }
+
+        // ── The pack size is allowed to disagree with the hand ───────────────────
+
+        /// <summary>
+        /// The point of the whole asymmetry: an item authored with a <c>packSize</c> lies on the
+        /// mat at THAT size, not at the size it is in the hand.
+        ///
+        /// <para>
+        /// The Grappling Hook is the case it was added for. At its hand size of 1.00 m it is
+        /// twelve cells long, and the widest face on the deployed rig is eight — so it fit nowhere
+        /// but the rack, while reading as a rifle-length object lying next to actual rifles.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void PackSizeOverridesHoldSizeOnTheMat()
+        {
+            Vector3 size = ItemFootprint.SizeOf(
+                Prefab(new Vector3(0.20f, 0.10f, 0.50f), holdSize: 1.00f, packSize: 0.54f));
+
+            Assert.AreEqual(0.54f, Mathf.Max(size.x, Mathf.Max(size.y, size.z)), 1e-3f,
+                            "packSize names the longest axis on the pack, in metres");
+
+            // Proportions still come from the mesh, exactly as they do for holdSize.
+            Assert.AreEqual(0.20f / 0.50f, size.x / size.z, 1e-3f);
+        }
+
+        /// <summary>
+        /// And with no <c>packSize</c> the hand size stands. This is what keeps every prefab that
+        /// predates the field — which is nearly all of them, since the YAML simply has no such key
+        /// and deserializes to 0 — measuring exactly as it did before.
+        /// </summary>
+        [Test]
+        public void WithNoPackSizeTheHoldSizeStands()
+        {
+            Vector3 size = ItemFootprint.SizeOf(Prefab(new Vector3(0.20f, 0.10f, 0.50f), 1.35f));
+
+            Assert.AreEqual(1.35f, Mathf.Max(size.x, Mathf.Max(size.y, size.z)), 1e-3f);
+        }
+
+        /// <summary>
+        /// A <c>packSize</c> must not be able to resurrect an item whose grip deliberately says
+        /// "keep the size the artist built" — but the reverse, sizing the pack copy of an
+        /// otherwise-unsized item, has to work. The Item Scanner is the shipped holdSize-0 case.
+        /// </summary>
+        [Test]
+        public void PackSizeSizesAnItemWhoseHoldSizeIsZero()
+        {
+            Vector3 size = ItemFootprint.SizeOf(
+                Prefab(new Vector3(0.20f, 0.10f, 0.50f), holdSize: 0f, packSize: 0.25f));
+
+            Assert.AreEqual(0.25f, Mathf.Max(size.x, Mathf.Max(size.y, size.z)), 1e-3f);
+        }
+
+        /// <summary>
+        /// A negative <c>packSize</c> typed into the inspector must read as "unset", not as a
+        /// mirrored item. <c>OnValidate</c> clamps it, and the property clamps again so a value
+        /// written by reflection or by an older serialized file cannot get past.
+        /// </summary>
+        [Test]
+        public void ANegativePackSizeIsTreatedAsUnset()
+        {
+            Vector3 size = ItemFootprint.SizeOf(
+                Prefab(new Vector3(0.20f, 0.10f, 0.50f), holdSize: 0.80f, packSize: -1f));
+
+            Assert.AreEqual(0.80f, Mathf.Max(size.x, Mathf.Max(size.y, size.z)), 1e-3f);
         }
     }
 }

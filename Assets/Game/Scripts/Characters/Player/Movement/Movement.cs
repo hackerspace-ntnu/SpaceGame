@@ -304,6 +304,32 @@ namespace SpaceGame.Characters
         public bool IsTethered => tethered;
 
         /// <summary>
+        /// True while the player is riding something sprung — today the jumping rod.
+        ///
+        /// <para>
+        /// Deliberately much narrower than <see cref="tethered"/>, and the narrowness is the point.
+        /// A tether takes over horizontal motion; this changes nothing about how the player moves.
+        /// It suppresses <b>fall damage only</b>, because the whole business of a pogo stick is
+        /// arriving hard and leaving harder: at this project's -18 gravity a three-metre hop lands
+        /// at about -11 m/s, which the fall table prices at a fifth of the player's health — so a
+        /// rod that bounced you well would kill you in five bounces.
+        /// </para>
+        /// <para>
+        /// The rod is left to write <c>linearVelocity.y</c> directly rather than being given a
+        /// method here, because <see cref="FixedUpdate"/> only ever writes x and z: the vertical
+        /// axis is already free for anything that wants it, and a second jump API would be a second
+        /// thing to keep in step with this one.
+        /// </para>
+        /// </summary>
+        public void SetBouncing(bool value) => bouncing = value;
+
+        /// <summary>Whether something sprung is absorbing this player's landings.</summary>
+        public bool IsBouncing => bouncing;
+
+        /// <summary>See <see cref="SetBouncing"/>. Owner-side only; nothing replicates it.</summary>
+        private bool bouncing;
+
+        /// <summary>
         /// Air steering for a player hanging on a rope.
         ///
         /// The ordinary air lerp cannot be used here, for the same reason
@@ -403,6 +429,11 @@ namespace SpaceGame.Characters
                 // Fired for every landing, including harmless ones — audio wants the soft touchdowns
                 // too, and the impact speed lets a listener pick between a step and a thud.
                 OnLanded?.Invoke(lastYVelocity);
+
+                // A sprung landing costs nothing. The event above still fires — the landing did
+                // happen and audio still wants it — but the arrival was absorbed by something the
+                // player is deliberately standing on rather than by their legs.
+                if (bouncing) return;
 
                 // Only apply if falling fast enough
                 if (lastYVelocity < minFallSpeed)

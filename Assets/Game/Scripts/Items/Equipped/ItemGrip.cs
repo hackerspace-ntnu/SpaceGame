@@ -73,11 +73,17 @@ namespace SpaceGame.Items
                  "scale untouched. A hand tool is roughly 0.2-0.4; a rifle 0.9-1.2.")]
         [SerializeField] private float holdSize;
 
-        [Tooltip("Measure holdSize against this subtree only, instead of the whole prefab. For an " +
-                 "item that carries geometry it is not: the Lasso's rope is a 4.4 m mesh sitting in " +
-                 "the same prefab as its handle, and sizing the pair to fit a hand shrinks the " +
-                 "handle to nothing. Point this at the handle and the rope comes along at whatever " +
-                 "scale the handle needed.")]
+        [Tooltip("Longest-axis size of the item in metres, once stowed on the pack. 0 means " +
+                 "'the same size as in the hand'. Set it only where an item that is sized for the " +
+                 "feel of holding it reads as absurd lying on the mat — a coiled leash is not as " +
+                 "long as a rifle.")]
+        [SerializeField] private float packSize;
+
+        [Tooltip("Measure the sizes above against this subtree only, instead of the whole prefab. " +
+                 "For an item that carries geometry it is not: the Lasso's rope is a 4.4 m mesh " +
+                 "sitting in the same prefab as its handle, and sizing the pair to fit a hand " +
+                 "shrinks the handle to nothing. Point this at the handle and the rope comes " +
+                 "along at whatever scale the handle needed.")]
         [SerializeField] private Transform sizeReference;
 
         [Header("Escape hatches")]
@@ -99,7 +105,30 @@ namespace SpaceGame.Items
         /// <summary>Longest-axis size in metres, or 0 to keep the prefab's own scale.</summary>
         public float HoldSize => Mathf.Max(0f, holdSize);
 
-        /// <summary>What holdSize is measured against. Null means the whole prefab.</summary>
+        /// <summary>
+        /// Longest-axis size in metres once stowed on the pack, falling back to
+        /// <see cref="HoldSize"/> where nobody authored a separate one.
+        ///
+        /// <para>
+        /// The two are allowed to disagree because they answer different questions.
+        /// <see cref="HoldSize"/> is tuned for the sensation of holding the thing against a hand
+        /// that is roughly 1.7x a human's, so a real leash's 0.2 m reads as nothing
+        /// (<c>GDC-L1-FEEL-0007</c>). The pack asks instead what the item reads as at a glance
+        /// among a dozen others on a mat, and how much of a finite surface it is worth
+        /// (<c>GDC-L1-UX-0003</c>). Holding both to one number meant one of the two was always
+        /// wrong for the items where they diverge.
+        /// </para>
+        /// <para>
+        /// The cost is real and is why this is opt-in per item rather than a global pack scale:
+        /// the pack sells itself on items lying there at true size, and FEEL-0007's own caution is
+        /// to keep the simulated space internally consistent. An item that is visibly a different
+        /// length in the pack than in the hand spends some of that. Author it where the absurdity
+        /// is worse than the inconsistency, and leave it at 0 everywhere else.
+        /// </para>
+        /// </summary>
+        public float PackSize => packSize > 0f ? packSize : HoldSize;
+
+        /// <summary>What both sizes are measured against. Null means the whole prefab.</summary>
         public Transform SizeReference => sizeReference;
 
         public bool KeepColliders => keepColliders;
@@ -107,6 +136,7 @@ namespace SpaceGame.Items
         private void OnValidate()
         {
             holdSize = Mathf.Max(0f, holdSize);
+            packSize = Mathf.Max(0f, packSize);
 
             // None means empty-handed and is not something an item may claim. Silently corrected
             // rather than warned about, because the only way to get here is the inspector's own

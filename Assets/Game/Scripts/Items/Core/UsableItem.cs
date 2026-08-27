@@ -185,6 +185,39 @@ namespace SpaceGame.Items
             currentUses = state == null ? 0 : state.GetInt(UsesKey, 0);
         }
 
+        /// <summary>How many uses are left, or -1 when this item is unlimited.</summary>
+        protected int ChargesLeft => maxUses < 0 ? -1 : Mathf.Max(0, maxUses - currentUses);
+
+        /// <summary>
+        /// The authored charge limit, or -1 when unlimited.
+        ///
+        /// Exposed so a refilling item can tell when it is full without carrying a second copy of
+        /// the number. A subclass that hardcoded its own maximum would be a magic number that
+        /// silently disagrees with the prefab the moment a designer changes one of them.
+        /// </summary>
+        protected int MaxCharges => maxUses;
+
+        /// <summary>
+        /// Give one charge back.
+        ///
+        /// <para>
+        /// The count is otherwise monotonic, which was right while every limited item in the game
+        /// was strictly consumable. An item that REFILLS — the net gun is the first — has no way to
+        /// express that without this, and the alternative is a second ammo counter running beside
+        /// this one, which would then be the one that persists incorrectly.
+        /// </para>
+        /// <para>
+        /// Note that an item which refills must also override <see cref="OnMaxUsesReached"/> to
+        /// stay silent: the default raises <c>OnItemDepleted</c>, and
+        /// <c>EquipmentController.ItemDepleted</c> answers that by removing the item from the
+        /// inventory altogether.
+        /// </para>
+        /// </summary>
+        protected void RefundUse()
+        {
+            if (currentUses > 0) currentUses--;
+        }
+
         protected virtual bool CanUse()
         {
             // Prevent use if max uses reached

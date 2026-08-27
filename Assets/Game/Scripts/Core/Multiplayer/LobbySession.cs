@@ -8,6 +8,7 @@ using Unity.Services.Lobbies.Models;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using SpaceGame.Characters;
+using SpaceGame.Gameplay;
 
 namespace SpaceGame.Core
 {
@@ -114,13 +115,16 @@ namespace SpaceGame.Core
         private bool busy;
 
         /// <summary>Long enough to swallow a burst of arrow presses, short enough to feel immediate.</summary>
-        private const float SuitColorDebounce = 0.75f;
+        private const float PublishDebounce = 0.75f;
 
-        /// <summary>The colour waiting to be published, or -1 when there is nothing pending.</summary>
-        private int pendingSuitColor = -1;
+        /// <summary>Publishes this player's suit colour, in a story lobby.</summary>
+        private readonly DebouncedPublish<int> suitColorPublisher = new(PublishDebounce);
 
-        private float suitColorTimer;
-        private bool suitColorInFlight;
+        /// <summary>Publishes which team this player stands on, in a VS lobby.</summary>
+        private readonly DebouncedPublish<int> teamPublisher = new(PublishDebounce);
+
+        /// <summary>Publishes this player's opinion of their VS team's colour.</summary>
+        private readonly DebouncedPublish<int> teamColorPublisher = new(PublishDebounce);
 
         /// <summary>
         /// Keeps <see cref="HandleClientDisconnect"/> attached to whichever NetworkManager is live.
@@ -155,7 +159,7 @@ namespace SpaceGame.Core
 
             Heartbeat();
             Poll();
-            FlushSuitColor();
+            FlushPublishers();
         }
 
         // ─────────────────────────────────────────────
@@ -176,8 +180,18 @@ namespace SpaceGame.Core
         /// Relay first. If it fails there is no lobby to clean up — the reverse order created the
         /// lobby, then allocated Relay, and on an allocation failure left an orphan lobby
         /// advertised to everyone with a join code that led nowhere.
+        ///
+        /// <para>
+        /// A VS host allocates Relay for <see cref="VersusRules.MaxSeats"/> — the hard ceiling —
+        /// however small the match they are starting is, never for <paramref name="versus"/>'s own
+        /// (smaller) seat count. Relay's allocation size is fixed the moment it is made and cannot
+        /// grow afterward, but the whole point of the rules page's live steppers is that the host
+        /// can grow a team once people are already standing in the lobby. Sizing Relay off the
+        /// starting rules would mean that grow request succeeds in the lobby's own bookkeeping and
+        /// then advertises seats nobody can actually connect to.
+        /// </para>
         /// </summary>
-        public async Task<bool> CreateAsync(string lobbyName, bool isPrivate)
+        public async Task<bool> CreateAsync(string lobbyName, bool isPrivate, VersusSetup versus)
         {
             if (!TryBegin()) return false;
 
@@ -185,13 +199,19 @@ namespace SpaceGame.Core
             {
                 if (!await EnsureReadyAsync()) return false;
 
-                SessionResult host = await SessionLauncher.HostRelayAsync(MaxPlayers);
+                int relaySeats = versus.IsVersus ? VersusRules.MaxSeats : MaxPlayers;
+                SessionResult host = await SessionLauncher.HostRelayAsync(relaySeats);
                 if (!host.Success) { Failed?.Invoke(host.Error); return false; }
 
                 string name = string.IsNullOrWhiteSpace(lobbyName) ? $"{PlayerName}'s game" : lobbyName;
 
-                Current = await LobbyService.Instance.CreateLobbyAsync(name, MaxPlayers,
-                    BuildCreateOptions(isPrivate, host.JoinCode, PlayerName, SuitColor));
+                // The lobby's own advertised max follows the (possibly much smaller) starting
+                // rules, not the Relay ceiling above — a joiner reading "3/8" from the browser has
+                // to be able to trust that an eighth seat actually exists right now.
+                int lobbySeats = versus.IsVersus ? versus.Seats : MaxPlayers;
+
+                Current = await LobbyService.Instance.CreateLobbyAsync(name, lobbySeats,
+                    BuildCreateOptions(isPrivate, host.JoinCode, PlayerName, SuitColor, versus));
 
                 State = LobbyState.InLobby;
                 Changed?.Invoke();
@@ -442,75 +462,122 @@ namespace SpaceGame.Core
         }
 
         /// <summary>
-        /// Publishes the local player's suit colour to the lobby, coalescing bursts.
+        /// Retunes a live VS lobby's team rules: how many teams, how big.
         ///
-        /// <para>
-        /// Nothing here paints anything — the local figure is repainted by the screen the instant the
-        /// arrow is pressed, and this only tells everyone else. That split is what lets the cycler
-        /// feel immediate while the service call is allowed to be slow.
-        /// </para>
+        /// Host-only, because <c>UpdateLobbyAsync</c> is host-only. Refused — rather than silently
+        /// reassigning anyone — when the change would evict someone already standing where the new
+        /// rules leave no room: see <see cref="VersusRules.CanSetTeamCount"/> and
+        /// <see cref="VersusRules.CanSetTeamSize"/>, checked against the roster's own
+        /// <see cref="Occupancy(Lobby)"/>.
         ///
-        /// <para>
-        /// Debounced because Lobby rate-limits UpdatePlayer to five calls per five seconds per
-        /// player, and stepping through fourteen swatches to see them all is fourteen presses in
-        /// about two seconds. Without this, a player browsing the list trips the limiter and the
-        /// colour they settle on is the one request that gets refused — leaving everyone else looking
-        /// at whatever they happened to be on when the budget ran out.
-        /// </para>
-        ///
-        /// <para>
         /// Not routed through <see cref="TryBegin"/>, for the same reason
         /// <see cref="SetPrivacyAsync"/> is not: that guard exists to stop a double-click allocating
-        /// two Relay servers, and blocking here would silently drop the press.
-        /// </para>
+        /// two Relay servers, and this allocates nothing.
         /// </summary>
-        public void PublishSuitColor(int suitColor)
+        public async Task<bool> SetTeamRulesAsync(int teamCount, int teamSize)
         {
-            pendingSuitColor = SuitPalette.Clamp(suitColor);
-            suitColorTimer = SuitColorDebounce;
-        }
-
-        /// <summary>
-        /// Sends the pending colour once the player has stopped pressing.
-        ///
-        /// Failures are logged, not raised: the local astronaut and the stored preference are
-        /// already correct, so the only casualty is that other people see the previous colour until
-        /// the next press — and a warning pinned over the roster for that would be worse than the
-        /// problem.
-        /// </summary>
-        private async void FlushSuitColor()
-        {
-            if (pendingSuitColor < 0 || suitColorInFlight) return;
-
-            suitColorTimer -= Time.deltaTime;
-            if (suitColorTimer > 0f) return;
-
-            if (Current == null || !AuthenticationService.Instance.IsSignedIn)
-            {
-                // Nothing to publish to. Dropped rather than held, or it would fire at whatever
-                // lobby this peer joins next.
-                pendingSuitColor = -1;
-                return;
-            }
-
-            int sending = pendingSuitColor;
-            pendingSuitColor = -1;
-            suitColorInFlight = true;
-
             try
             {
-                Current = await LobbyService.Instance.UpdatePlayerAsync(
-                    Current.Id, AuthenticationService.Instance.PlayerId,
-                    BuildSuitColorOptions(sending));
+                if (Current == null) { Failed?.Invoke("You are not in a lobby."); return false; }
+                if (!IsHost) { Failed?.Invoke("Only the host can change this."); return false; }
+
+                int[] occupancy = Occupancy(Current);
+
+                if (!VersusRules.CanSetTeamCount(teamCount, occupancy, out string countRefusal))
+                {
+                    Failed?.Invoke(countRefusal);
+                    return false;
+                }
+
+                if (!VersusRules.CanSetTeamSize(teamSize, occupancy, out string sizeRefusal))
+                {
+                    Failed?.Invoke(sizeRefusal);
+                    return false;
+                }
+
+                Current = await LobbyService.Instance.UpdateLobbyAsync(Current.Id,
+                    BuildTeamRulesOptions(teamCount, teamSize));
 
                 Changed?.Invoke();
+                return true;
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[LobbySession] Could not publish suit colour {sending}: {e.Message}");
+                Debug.LogException(e);
+                Failed?.Invoke(Describe(e, "Could not change the team rules."));
+
+                // The screen renders from Current, so a failed update has to be announced or the
+                // steppers keep showing the rules the host asked for rather than the ones in force.
+                Changed?.Invoke();
+                return false;
             }
-            finally { suitColorInFlight = false; }
         }
+
+        /// <summary>
+        /// Publishes the local player's suit colour to the lobby, coalescing bursts.
+        ///
+        /// Nothing here paints anything — the local figure is repainted by the screen the instant
+        /// the arrow is pressed, and this only tells everyone else. That split is what lets the
+        /// cycler feel immediate while the service call is allowed to be slow. See
+        /// <see cref="DebouncedPublish{T}"/> for why this is debounced at all.
+        ///
+        /// Not routed through <see cref="TryBegin"/>, for the same reason
+        /// <see cref="SetPrivacyAsync"/> is not: that guard exists to stop a double-click allocating
+        /// two Relay servers, and blocking here would silently drop the press.
+        /// </summary>
+        public void PublishSuitColor(int suitColor) => suitColorPublisher.Request(SuitPalette.Clamp(suitColor));
+
+        /// <summary>Publishes which team the local player has moved to, in a VS lobby. See <see cref="PublishSuitColor"/>.</summary>
+        public void PublishTeam(int team) => teamPublisher.Request(team);
+
+        /// <summary>Publishes the local player's opinion of their VS team's colour. See <see cref="PublishSuitColor"/>.</summary>
+        public void PublishTeamColor(int swatch) => teamColorPublisher.Request(SuitPalette.Clamp(swatch));
+
+        /// <summary>
+        /// Sends whatever the three publishers are holding, once each has stopped being pressed.
+        ///
+        /// When there is no lobby to publish to — left, or not yet signed in — every publisher is
+        /// cancelled rather than left holding its value: a value that fired anyway would land on
+        /// whatever lobby this peer joins next, not the one it was meant for.
+        /// </summary>
+        private void FlushPublishers()
+        {
+            if (Current == null || !AuthenticationService.Instance.IsSignedIn)
+            {
+                suitColorPublisher.Cancel();
+                teamPublisher.Cancel();
+                teamColorPublisher.Cancel();
+                return;
+            }
+
+            float deltaTime = Time.deltaTime;
+
+            suitColorPublisher.Tick(deltaTime, async swatch =>
+            {
+                Current = await LobbyService.Instance.UpdatePlayerAsync(
+                    Current.Id, AuthenticationService.Instance.PlayerId, BuildSuitColorOptions(swatch));
+                Changed?.Invoke();
+            });
+
+            teamPublisher.Tick(deltaTime, async team =>
+            {
+                Current = await LobbyService.Instance.UpdatePlayerAsync(
+                    Current.Id, AuthenticationService.Instance.PlayerId, BuildTeamOptions(team));
+                Changed?.Invoke();
+            });
+
+            teamColorPublisher.Tick(deltaTime, async swatch =>
+            {
+                long stampMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                Current = await LobbyService.Instance.UpdatePlayerAsync(
+                    Current.Id, AuthenticationService.Instance.PlayerId,
+                    BuildTeamColorOptions(swatch, stampMs));
+                Changed?.Invoke();
+            });
+        }
+
+        /// <summary>This peer's own view of the roster, ready for a screen to read.</summary>
+        public RosterSnapshot CurrentSnapshot() => Snapshot(Current, LocalSlot, SuitPalette.Count);
 
         /// <summary>The names to show in the roster, in lobby order.</summary>
         public static string[] PlayerNames(Lobby lobby)

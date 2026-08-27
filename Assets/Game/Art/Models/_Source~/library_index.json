@@ -26485,6 +26485,514 @@
     ],
     "auto_suffixed_names": []
   },
+  "models/gear/jumping_rod.blend": {
+    "collections": [
+      {
+        "name": "Coll_JumpingRod",
+        "objects": [
+          "Mesh_JumpingRod_Shaft",
+          "Mesh_JumpingRod_Collar",
+          "Mesh_JumpingRod_Band",
+          "Mesh_JumpingRod_Gauge",
+          "Mesh_JumpingRod_Piston",
+          "Mesh_JumpingRod_SpringSeat",
+          "Mesh_JumpingRod_Spring",
+          "Mesh_JumpingRod_Foot",
+          "Mesh_JumpingRod_Peg_L",
+          "Mesh_JumpingRod_Peg_R",
+          "Mesh_JumpingRod_Handlebar",
+          "Mesh_JumpingRod_Grip_L",
+          "Mesh_JumpingRod_Grip_R"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_JumpingRod_Band",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          1.2
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_JumpingRod"
+        ],
+        "dimensions": [
+          0.104,
+          0.104,
+          0.1
+        ],
+        "vertices": 80,
+        "polygons": 80,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_JumpingRod_Collar",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.43
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_JumpingRod"
+        ],
+        "dimensions": [
+          0.136,
+          0.136,
+          0.086
+        ],
+        "vertices": 288,
+        "polygons": 236,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_JumpingRod_Foot",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_JumpingRod"
+        ],
+        "dimensions": [
+          0.152,
+          0.152,
+          0.066
+        ],
+        "vertices": 224,
+        "polygons": 162,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_JumpingRod_Gauge",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.054,
+          1.05
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_JumpingRod"
+        ],
+        "dimensions": [
+          0.063,
+          0.0546,
+          0.0684
+        ],
+        "vertices": 180,
+        "polygons": 132,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_JumpingRod_Grip_L",
+        "type": "MESH",
+        "location": [
+          -0.15,
+          0.01,
+          1.62
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_JumpingRod"
+        ],
+        "dimensions": [
+          0.1201,
+          0.0946,
+          0.0723
+        ],
+        "vertices": 308,
+        "polygons": 200,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_JumpingRod_Grip_R",
+        "type": "MESH",
+        "location": [
+          0.15,
+          0.01,
+          1.62
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_JumpingRod"
+        ],
+        "dimensions": [
+          0.1201,
+          0.0946,
+          0.0723
+        ],
+        "vertices": 308,
+        "polygons": 200,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_JumpingRod_Handlebar",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          1.62
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_JumpingRod"
+        ],
+        "dimensions": [
+          0.4875,
+          0.0916,
+          0.0588
+        ],
+        "vertices": 292,
+        "polygons": 216,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_JumpingRod_Peg_L",
+        "type": "MESH",
+        "location": [
+          -0.052,
+          0.0,
+          0.52
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_JumpingRod"
+        ],
+        "dimensions": [
+          0.165,
+          0.086,
+          0.06
+        ],
+        "vertices": 288,
+        "polygons": 256,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_JumpingRod_Peg_R",
+        "type": "MESH",
+        "location": [
+          0.052,
+          0.0,
+          0.52
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_JumpingRod"
+        ],
+        "dimensions": [
+          0.165,
+          0.086,
+          0.06
+        ],
+        "vertices": 288,
+        "polygons": 256,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_JumpingRod_Piston",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.72
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_JumpingRod"
+        ],
+        "dimensions": [
+          0.07,
+          0.07,
+          0.656
+        ],
+        "vertices": 128,
+        "polygons": 100,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_JumpingRod_Shaft",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.41
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_JumpingRod"
+        ],
+        "dimensions": [
+          0.116,
+          0.116,
+          1.209
+        ],
+        "vertices": 368,
+        "polygons": 344,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_JumpingRod_Spring",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.4
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_JumpingRod"
+        ],
+        "dimensions": [
+          0.1329,
+          0.1276,
+          0.2998
+        ],
+        "vertices": 600,
+        "polygons": 400,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_JumpingRod_SpringSeat",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.105
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_JumpingRod"
+        ],
+        "dimensions": [
+          0.148,
+          0.148,
+          0.029
+        ],
+        "vertices": 240,
+        "polygons": 204,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Paint_Hazard_Yellow",
+          "Mat_Emissive_Amber",
+          "Mat_Glass_Canopy_Tinted",
+          "Mat_Fabric_Canvas_Faded"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Emissive_Amber",
+      "Mat_Fabric_Canvas_Faded",
+      "Mat_Glass_Canopy_Tinted",
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Chrome_Scuffed",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Paint_Hazard_Yellow",
+      "Mat_Plastic_Rubber_Black"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "models/gear/sucker_puncher.blend": {
     "collections": [
       {
@@ -78715,6 +79223,242 @@
       "Mat_Metal_Steel_Worn",
       "Mat_Plastic_Cream_Aged",
       "Mat_Plastic_Rubber_Black"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
+  "components/props/net_gun.blend": {
+    "collections": [
+      {
+        "name": "Coll_NetGun_Loaded",
+        "objects": [
+          "Mesh_NetGun_Body",
+          "Mesh_NetGun_Bundle",
+          "Marker_Muzzle",
+          "Marker_Grip"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_NetGun_Spent",
+        "objects": [
+          "Mesh_NetGun_Spent"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Marker_Grip",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.2018,
+          -0.107
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_NetGun_Loaded"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Neutral_Panel_Grey",
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Fabric_Tarp_Azure",
+          "Mat_Paint_Coral_Faded",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Neutral_Black_Matte"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Marker_Muzzle",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -0.31,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_NetGun_Loaded"
+        ],
+        "dimensions": [
+          0.004,
+          0.004,
+          0.004
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Neutral_Panel_Grey",
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Fabric_Tarp_Azure",
+          "Mat_Paint_Coral_Faded",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Neutral_Black_Matte"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_NetGun_Body",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_NetGun_Loaded"
+        ],
+        "dimensions": [
+          0.274,
+          0.6292,
+          0.4421
+        ],
+        "vertices": 3200,
+        "polygons": 2850,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Neutral_Panel_Grey",
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Fabric_Tarp_Azure",
+          "Mat_Paint_Coral_Faded",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Neutral_Black_Matte"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_NetGun_Bundle",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_NetGun_Loaded"
+        ],
+        "dimensions": [
+          0.193,
+          0.1037,
+          0.1901
+        ],
+        "vertices": 286,
+        "polygons": 274,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Neutral_Panel_Grey",
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Fabric_Tarp_Azure",
+          "Mat_Paint_Coral_Faded",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Neutral_Black_Matte"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_NetGun_Spent",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_NetGun_Spent"
+        ],
+        "dimensions": [
+          0.274,
+          0.6292,
+          0.4421
+        ],
+        "vertices": 3200,
+        "polygons": 2850,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Neutral_Panel_Grey",
+          "Mat_Metal_HullRust_Orange",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Fabric_Canvas_Faded",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Fabric_Tarp_Azure",
+          "Mat_Paint_Coral_Faded",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Neutral_Black_Matte"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Emissive_Green_CRT",
+      "Mat_Fabric_Canvas_Faded",
+      "Mat_Fabric_Rope_Hemp",
+      "Mat_Fabric_Tarp_Azure",
+      "Mat_Metal_Chrome_Scuffed",
+      "Mat_Metal_HullRust_Orange",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Neutral_Black_Matte",
+      "Mat_Neutral_Panel_Grey",
+      "Mat_Paint_Coral_Faded",
+      "Mat_Paint_Safety_Orange"
     ],
     "linked_libraries": [
       "//../../palette.blend"

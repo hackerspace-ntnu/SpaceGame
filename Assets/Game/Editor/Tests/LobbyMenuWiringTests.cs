@@ -21,6 +21,8 @@ namespace SpaceGame.Tests
     {
         private const BindingFlags Public = BindingFlags.Public | BindingFlags.Instance;
 
+        [TestCase("StartStory")]
+        [TestCase("StartVersus")]
         [TestCase("StartMultiPlayer")]
         [TestCase("StartSinglePlayer")]
         [TestCase("StartMinigame")]
@@ -33,17 +35,34 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
-        /// The host/join split is a chain of three calls, and only the first is by name.
-        /// MainMenu.unity → StartMultiPlayer (string) → MultiplayerChoiceUI (compiled) →
-        /// HostMultiplayer/JoinMultiplayer (compiled). Pinning the two endpoints is what keeps a
-        /// rename from turning "Multiplayer" back into a button that opens the world list.
+        /// Each fork is a chain of three calls, and only the first is by name. MainMenu.unity →
+        /// StartStory/StartVersus/StartMultiPlayer (string) → MenuChoiceUI (compiled) →
+        /// HostMultiplayer/JoinMultiplayer/HostVersus/JoinVersus (compiled), and HostVersus's own
+        /// screen calls back into EnterVersusLobby the same way. Pinning the far endpoints is what
+        /// keeps a rename from turning "Host a game" back into a dead button.
         /// </summary>
         [TestCase("HostMultiplayer")]
         [TestCase("JoinMultiplayer")]
-        public void MainMenuUI_KeepsTheMultiplayerRoutes(string methodName)
+        [TestCase("HostVersus")]
+        [TestCase("JoinVersus")]
+        [TestCase("EnterVersusLobby")]
+        public void MainMenuUI_KeepsTheRoutesItsChoicePagesCallBackInto(string methodName)
         {
             Assert.IsNotNull(typeof(MainMenuUI).GetMethod(methodName, Public),
-                $"MultiplayerChoiceUI calls MainMenuUI.{methodName}.");
+                $"MenuChoiceUI or VersusRulesUI calls MainMenuUI.{methodName}.");
+        }
+
+        /// <summary>
+        /// MenuChoiceUI is built at runtime rather than authored into a scene, but MainMenuUI's own
+        /// StartStory/StartVersus/StartMultiPlayer call it by name — a rename here breaks all three
+        /// with a compile error, which is the point, but only if Open still exists to be renamed.
+        /// </summary>
+        [Test]
+        public void MenuChoiceUI_KeepsItsStaticOpen()
+        {
+            Assert.IsNotNull(typeof(MenuChoiceUI).GetMethod("Open",
+                    BindingFlags.Public | BindingFlags.Static),
+                "MainMenuUI.StartStory/StartVersus/StartMultiPlayer call MenuChoiceUI.Open.");
         }
 
         /// <summary>

@@ -6,8 +6,13 @@ namespace SpaceGame.Items
 {
     /// <summary>
     /// Everything focus mode draws that is not the pack itself: the hover rim, the carried copy —
-    /// in the item's own materials — the ghost left behind at the origin, and the item's name by
-    /// the cursor.
+    /// in the item's own materials — and the item's name by the cursor.
+    ///
+    /// <para>
+    /// Nothing is drawn where a carried item CAME from, because nothing is left there: an item in
+    /// the hand stops being drawn on the mat for as long as it is held — see
+    /// <see cref="BackpackObject.SetInHand"/>.
+    /// </para>
     ///
     /// <para>
     /// Split out of <c>PackHandController</c> so that file can be about <em>what the player is
@@ -41,7 +46,6 @@ namespace SpaceGame.Items
         private static readonly Color DeniedRim = new(1f, 0.42f, 0.36f, 1f);
 
         private static readonly Color HoverRim = new(1f, 0.92f, 0.6f, 1f);
-        private static readonly Color GhostRim = new(0.6f, 0.62f, 0.66f, 0.5f);
 
         /// <summary>
         /// Outline width as a fraction of the item's own longest side, and the metres it is
@@ -59,11 +63,10 @@ namespace SpaceGame.Items
         private const float MinOutlineWidth = 0.0015f;
         private const float MaxOutlineWidth = 0.010f;
 
-        /// Relative weights, keeping the ghost the widest, the denied flash between, and the
-        /// hover rim the finest — the proportions the three roles were originally authored with.
+        /// Relative weights, keeping the denied flash the wider of the two and the hover rim the
+        /// finer — the proportions both roles were originally authored with.
         private const float HoverWeight = 1f;
         private const float DeniedWeight = 1.2f;
-        private const float GhostWeight = 1.4f;
 
         /// <summary>Marks the shell objects this class adds, so it never re-shells its own work.</summary>
         private const string ShellName = "PackOutlineShell";
@@ -79,7 +82,6 @@ namespace SpaceGame.Items
 
         private readonly Material deniedMaterial;
         private readonly Material hoverMaterial;
-        private readonly Material ghostMaterial;
 
         private GameObject proxy;
         private PackSurface proxySurface;
@@ -98,15 +100,12 @@ namespace SpaceGame.Items
         private Canvas labelCanvas;
         private TextMeshProUGUI label;
 
-        // The shell objects standing in for the hover rim, the ghost and the refusal flash. They
-        // are parented to the renderers they trace, so a display copy destroyed under us — a
-        // layout change from another player does exactly that — takes its shells with it and
-        // leaves nothing dangling.
+        // The shell objects standing in for the hover rim and the refusal flash. They are parented
+        // to the renderers they trace, so a display copy destroyed under us — a layout change from
+        // another player does exactly that — takes its shells with it and leaves nothing dangling.
         private readonly List<GameObject> rimShell = new();
-        private readonly List<GameObject> ghostShell = new();
         private readonly List<GameObject> deniedShell = new();
         private GameObject rimmed;
-        private GameObject ghosted;
 
         public PackHandVisuals()
         {
@@ -121,19 +120,17 @@ namespace SpaceGame.Items
 
             deniedMaterial = Build(shader, "PackDeniedRim");
             hoverMaterial = Build(shader, "PackHover");
-            ghostMaterial = Build(shader, "PackGhost");
 
             // No carry material at all: the carried copy keeps the ITEM'S OWN materials, so what
             // the player holds looks exactly like the thing they are placing. The verdict is not
             // painted onto it — it is the green/red cells on the face beneath it — and the
             // refusal flash below is an outline shell round it, never a repaint.
             //
-            // Hover, ghost and the denied flash: the outline pass only, depth-tested normally,
+            // The hover rim and the denied flash: the outline pass only, depth-tested normally,
             // drawn on a shell that traces the real item so the ITEM lights up — no floating UI
             // box. The widths here are placeholders — every Apply sets a real one from the item's
             // own size.
             ConfigureRim(hoverMaterial, HoverRim, MinOutlineWidth);
-            ConfigureRim(ghostMaterial, GhostRim, MinOutlineWidth);
             ConfigureRim(deniedMaterial, DeniedRim, MinOutlineWidth);
         }
 
@@ -164,15 +161,6 @@ namespace SpaceGame.Items
 
             rimmed = visual;
             BuildShell(rimmed, hoverMaterial, HoverWeight, rimShell);
-        }
-
-        /// <summary>The outline left standing where a carried item came from.</summary>
-        public void SetGhost(GameObject visual)
-        {
-            if (visual != null && ghosted == visual) return;
-
-            ghosted = visual;
-            BuildShell(ghosted, ghostMaterial, GhostWeight, ghostShell);
         }
 
         // ── The carried copy ─────────────────────────────────────────────────
@@ -292,7 +280,6 @@ namespace SpaceGame.Items
 
             proxy = null;
             proxySurface = null;
-            SetGhost(null);
         }
 
         private void Rebuild(GameObject itemPrefab, PackSurface surface, Vector2 uv, float yaw)
@@ -408,7 +395,8 @@ namespace SpaceGame.Items
 
             foreach (Renderer source in visual.GetComponentsInChildren<Renderer>(true))
             {
-                // Never shell our own shells: a hover and a ghost can land on the same visual.
+                // Never shell our own shells: Unity's Destroy is deferred, so the parts cleared a
+                // moment ago are still hanging on these renderers for the rest of the frame.
                 if (source == null || source.gameObject.name == ShellName) continue;
 
                 Mesh mesh = MeshOf(source);
@@ -499,18 +487,15 @@ namespace SpaceGame.Items
         }
 
         /// <summary>Destroys everything this owns: the outline shells, the label and
-        /// the three materials.</summary>
+        /// the two materials.</summary>
         public void Dispose()
         {
             SetHovered(null);
-            SetGhost(null);
             EndCarry();
 
-            // SetHovered(null), SetGhost(null) and EndCarry above already cleared these unless
-            // nothing was lit, in which case the early-out skipped them. Cheap and idempotent
-            // either way.
+            // SetHovered(null) and EndCarry above already cleared these unless nothing was lit, in
+            // which case the early-out skipped them. Cheap and idempotent either way.
             ClearShell(rimShell);
-            ClearShell(ghostShell);
             ClearShell(deniedShell);
 
             if (labelCanvas != null) Object.Destroy(labelCanvas.gameObject);
@@ -519,7 +504,6 @@ namespace SpaceGame.Items
 
             Object.Destroy(deniedMaterial);
             Object.Destroy(hoverMaterial);
-            Object.Destroy(ghostMaterial);
         }
     }
 }

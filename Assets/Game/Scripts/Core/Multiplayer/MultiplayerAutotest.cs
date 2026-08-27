@@ -14,12 +14,20 @@
 // Each side prints [MPTEST] key=value lines. The caller asserts across both logs — a fact only one
 // side can observe (a client's view of health the server changed) is only meaningful when read
 // against the other side's report of what it did.
+//
+// There is a third mode, `persist`, which runs alone and asks the other half of this project's
+// non-negotiables: that a feature survives save, quit and load. It has no peer because none of what
+// it asks is a question about one.
+//
+//   Player.app/Contents/MacOS/<exe> -batchmode -nographics -sgmode persist -logFile persist.log
 using System.Collections;
 using System.Threading.Tasks;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using SpaceGame.Agents;
 using SpaceGame.Gameplay;
+using SpaceGame.Items;
 
 namespace SpaceGame.Core
 {
@@ -28,6 +36,20 @@ namespace SpaceGame.Core
         private const string WorldScene = "persistentScene";
         private const ushort Port = 7897;
         private const float StepTimeout = 120f;
+
+        /// <summary>The net gun, by its Resources path. The only artifact this test fires.</summary>
+        private const string NetGunPath = "Items/Artifacts/NetGun";
+
+        /// <summary>
+        /// Longest the client waits for a net the host said it fired.
+        ///
+        /// Generous, and deliberately not a <c>WaitFor</c> deadline: "no net ever arrived" is the
+        /// answer this step exists to catch, so it has to be reported rather than end the run.
+        /// </summary>
+        private const float NetWaitSeconds = 45f;
+
+        /// <summary>The world the save/load run creates for itself. Its own slot, never a player's.</summary>
+        private const string PersistWorldName = "mptest";
 
         // Counts relay traffic arriving from the other process. Static because the listener is
         // registered against a networked object that may be replaced during the run.
@@ -66,10 +88,54 @@ namespace SpaceGame.Core
         private static int CountPortals() =>
             Object.FindObjectsByType<SpaceGame.Portals.Portal>(FindObjectsSortMode.None).Length;
 
+        /// <summary>
+        /// How many nets stand on this machine, and how many bodies they hold between them.
+        ///
+        /// Found rather than asked of a shooter's <c>SnareReceiver</c>, for the reason
+        /// <see cref="CountPortals"/> gives: a machine that was never told about a net has no
+        /// receiver entry to ask, which is precisely the state under test. A net that exists but
+        /// holds nothing is the other half of the same failure, so both numbers come out together.
+        /// </summary>
+        private static int CountNets(out int captives)
+        {
+            SnareCatch[] nets = Object.FindObjectsByType<SnareCatch>(FindObjectsSortMode.None);
+
+            captives = 0;
+            foreach (SnareCatch net in nets) captives += net.Captives.Count;
+
+            return nets.Length;
+        }
+
+        /// <summary>
+        /// Whether a net is holding this creature.
+        ///
+        /// Asked of the children as well as the root because the two machines can bind different
+        /// objects: the server captures whatever collider its <c>OverlapBox</c> returned, while a
+        /// peer is told a NetworkObjectId and <c>NetArg.Resolve</c> only ever answers with the
+        /// spawned ROOT. Both end up hobbling the same NavMeshAgent, and both count as bound.
+        /// </summary>
+        private static bool IsNetted(GameObject creature)
+        {
+            if (creature == null) return false;
+
+            SnareTether tether = creature.GetComponentInChildren<SnareTether>();
+            SnaredBody snared = creature.GetComponentInChildren<SnaredBody>();
+
+            return (tether != null && tether.IsBound) || (snared != null && snared.IsBound);
+        }
+
         /// <summary>The MonoBehaviour half — coroutines need one.</summary>
         private class AutotestRunner : MonoBehaviour
         {
-            public void Begin(string mode) => StartCoroutine(mode == "host" ? RunHost() : RunClient());
+            public void Begin(string mode)
+            {
+                StartCoroutine(mode switch
+                {
+                    "host" => RunHost(),
+                    "persist" => RunPersistence(),
+                    _ => RunClient(),
+                });
+            }
 
             // ─────────── Host ───────────
 
@@ -137,8 +203,99 @@ namespace SpaceGame.Core
                 Report("HOST_LEASHES", SpaceGame.Items.Leash.All.Count);
                 Report("HOST_PORTALS", CountPortals());
 
+                yield return FireNetGunAtQuarry();
+
+                // The client reads its own net count after the host has fired, and cannot do that
+                // once the host has taken the session down with it.
+                yield return new WaitForSeconds(12f);
+
                 Report("HOST_DONE", true);
                 Finish();
+            }
+
+            // ─────────── The net gun ───────────
+
+            /// <summary>
+            /// Put a net gun in the host's hands and fire it at a creature.
+            ///
+            /// <para>
+            /// The shot goes through <c>EquipmentController.UseHeldItem</c>, which is
+            /// <c>OnUse</c> — the same request/present/hop-to-server path a button press takes. Only
+            /// the binding from the Use action to that method is left out, because a C# event
+            /// cannot be raised from outside the class that declares it.
+            /// </para>
+            /// <para>
+            /// The creature is MOVED to where the shot comes down rather than aimed at, because the
+            /// aim is not this test's to choose: it comes out of the muzzle on the end of an
+            /// animated arm. Asking the gun where its next shot would land and putting the quarry
+            /// there tests the same thing a player walking into range tests, and it does not depend
+            /// on the hold pose happening to point the barrel anywhere in particular.
+            /// </para>
+            /// </summary>
+            private IEnumerator FireNetGunAtQuarry()
+            {
+                GameObject shooter = LocalPlayerObject();
+                AgentController quarry = FindNetworkedQuarry(out ulong quarryId);
+
+                if (shooter == null || quarry == null)
+                {
+                    Report("HOST_NETGUN", shooter == null ? "no player object" : "no creature to net");
+                    yield break;
+                }
+
+                Report("HOST_QUARRY_ID", quarryId);
+                Report("HOST_QUARRY_NAME", quarry.name);
+
+                var gun = Resources.Load<InventoryItem>(NetGunPath);
+                var inventory = shooter.GetComponent<IPlayerInventory>();
+                var equipment = shooter.GetComponent<EquipmentController>();
+
+                if (gun == null || inventory == null || equipment == null)
+                {
+                    Report("HOST_NETGUN", gun == null ? "item asset missing" : "player has no inventory");
+                    yield break;
+                }
+
+                inventory.TryAddItem(gun);
+                yield return WaitAtMost(() => SlotHolding(inventory, gun) >= 0, 10f);
+
+                int slot = SlotHolding(inventory, gun);
+                Report("HOST_NETGUN_SLOT", slot);
+                if (slot < 0) yield break;
+
+                // Only when it is not already the selection: SelectSlot TOGGLES, so asking for the
+                // slot that is already held puts the gun away instead of taking it out.
+                if (inventory.SelectedSlotIndex != slot) inventory.SelectSlot(slot);
+                yield return WaitAtMost(() => equipment.HeldUsable is NetGunArtifact, 10f);
+
+                var netGun = equipment.HeldUsable as NetGunArtifact;
+                Report("HOST_NETGUN_EQUIPPED", netGun != null);
+                if (netGun == null) yield break;
+
+                Report("HOST_NETGUN_CHARGES", netGun.ChargesRemaining);
+
+                Vector3 landing = GroundUnder(PredictedLanding(netGun));
+                Persistence.SaveTeleport.Move(quarry.gameObject, landing, quarry.transform.rotation);
+
+                Report("HOST_NETGUN_MUZZLE_TO_QUARRY",
+                       Vector3.Distance(shooter.transform.position, quarry.transform.position).ToString("F1"));
+
+                equipment.UseHeldItem();
+                Report("HOST_NETGUN_FIRED", true);
+
+                // The net flies for MaxFlightSeconds and the capture pass runs on the first frame
+                // after that, so this is the flight plus room for the drape to settle.
+                yield return WaitAtMost(() => CountNets(out int held) > 0 && held > 0, 10f);
+
+                int nets = CountNets(out int captives);
+                Report("HOST_NETS", nets);
+                Report("HOST_NET_CAPTIVES", captives);
+                Report("HOST_QUARRY_BOUND", IsNetted(quarry.gameObject));
+                Report("HOST_NETGUN_CHARGES_AFTER", netGun.ChargesRemaining);
+
+                // Only interesting when nothing was caught, and then it is the whole story: it says
+                // whether the net missed or whether the capture pass refused what it found.
+                if (captives == 0) Report("HOST_NET_MISS_BY", NetToQuarryDistance(quarry).ToString("F1"));
             }
 
             // ─────────── Client ───────────
@@ -231,8 +388,210 @@ namespace SpaceGame.Core
                 Report("CLIENT_LEASHES_SEEN", SpaceGame.Items.Leash.All.Count);
                 Report("CLIENT_PORTALS_SEEN", CountPortals());
 
+                // The net gun, and the reason the whole two-process apparatus exists for it. A net
+                // is not a spawned NetworkObject: every machine draws its own from the origin, aim
+                // and seed that came with the press, and is then TOLD by the server what that net
+                // caught. So a client seeing no net means the shot never crossed, and a client
+                // seeing a net that holds nothing means the catch never did — two different
+                // failures that both look like a working feature on the host.
+                yield return WaitAtMost(() => CountNets(out int held) > 0 && held > 0, NetWaitSeconds);
+
+                int nets = CountNets(out int captives);
+                Report("CLIENT_NETS_SEEN", nets);
+                Report("CLIENT_NET_CAPTIVES", captives);
+
+                AgentController quarry = FindNetworkedQuarry(out ulong quarryId);
+                if (quarry == null)
+                {
+                    Report("CLIENT_QUARRY", "none");
+                }
+                else
+                {
+                    Report("CLIENT_QUARRY_ID", quarryId);
+                    Report("CLIENT_QUARRY_NAME", quarry.name);
+                    Report("CLIENT_QUARRY_BOUND", IsNetted(quarry.gameObject));
+                }
+
                 Report("CLIENT_DONE", true);
                 Finish();
+            }
+
+            // ─────────── Save and load ───────────
+
+            /// <summary>
+            /// One process, host of one, netting a creature and then saving and reloading the world.
+            ///
+            /// <para>
+            /// Alone rather than alongside a client, because none of what it asks is a question
+            /// about a peer. Being netted is deliberately NOT persisted — thirty seconds of state is
+            /// not worth a record — so what has to hold is the pair of things that would break
+            /// silently if it were persisted by accident: the creature comes back FREE and able to
+            /// move, and the gun comes back with the charges it had actually spent.
+            /// </para>
+            /// <para>
+            /// The charge count is read the moment the gun is back in the hand rather than at the
+            /// end. It refills on a timer while held, so a report taken a few seconds later says
+            /// nothing about what was loaded.
+            /// </para>
+            /// </summary>
+            private IEnumerator RunPersistence()
+            {
+                yield return WaitFor(() => NetworkManager.Singleton != null, "networkmanager");
+
+                // A world has to be ACTIVE before anything can be written: SaveManager saves to
+                // WorldSession.WorldId and refuses outright when there is none, which is what a
+                // world scene opened straight from the editor gets. This is what the main menu's
+                // "create world" does, with no config because this build has no chunk scenes to
+                // belong to — an empty id on a save is accepted by WorldIdentity.AcceptsConfig.
+                Persistence.WorldSession.StageNew(PersistWorldName, null);
+
+                SessionResult started = SessionLauncher.HostDirect(Port);
+                Report("PERSIST_STARTED", started.Success);
+                if (!started.Success)
+                {
+                    Report("PERSIST_ERROR", started.Error);
+                    Finish();
+                    yield break;
+                }
+
+                NetworkManager.Singleton.SceneManager.LoadScene(WorldScene, LoadSceneMode.Single);
+                yield return WaitFor(() => SceneManager.GetActiveScene().name == WorldScene, "world scene");
+                yield return WaitFor(() => LocalPlayerObject() != null, "a player");
+                yield return new WaitForSeconds(6f);
+
+                // The creature's own numbers before a net has touched it. Everything after the load
+                // is compared against these rather than against a guess: a leaked hobble is only
+                // visible as a speed that does not come back to what the creature authored.
+                AgentController before = FindNetworkedQuarry(out _);
+                Report("PERSIST_QUARRY_SPEED_AUTHORED", NavSpeedOf(before));
+                Report("PERSIST_QUARRY_DRIVERS_AUTHORED", DriversEnabled(before));
+
+                yield return FireNetGunAtQuarry();
+
+                var equipment = LocalPlayerObject() != null
+                    ? LocalPlayerObject().GetComponent<EquipmentController>()
+                    : null;
+
+                var gun = equipment != null ? equipment.HeldUsable as NetGunArtifact : null;
+                if (gun == null)
+                {
+                    Report("PERSIST_GUN", "not in hand");
+                    Finish();
+                    yield break;
+                }
+
+                // Twice, so the loaded count can only be right by being loaded: one shot leaves a
+                // number that a fresh gun with an off-by-one would also produce.
+                equipment.UseHeldItem();
+                yield return new WaitForSeconds(2f);
+
+                AgentController quarry = FindNetworkedQuarry(out _);
+                Report("PERSIST_CHARGES_BEFORE_SAVE", gun.ChargesRemaining);
+                Report("PERSIST_QUARRY_BOUND_BEFORE_SAVE", IsNetted(quarry != null ? quarry.gameObject : null));
+                Report("PERSIST_QUARRY_SPEED_BEFORE_SAVE", NavSpeedOf(quarry));
+
+                string worldId = Persistence.WorldSession.WorldId;
+                Persistence.SaveManager manager = Persistence.SaveManager.Instance;
+                if (manager == null)
+                {
+                    Report("PERSIST_SAVE", "no SaveManager in the world scene");
+                    Finish();
+                    yield break;
+                }
+
+                Report("PERSIST_SAVED", manager.Save(worldId, "MPTest", synchronous: true));
+                Report("PERSIST_SAVE_PATH", manager.Slots.PathFor(worldId));
+
+                if (!Persistence.WorldSession.StageExisting(worldId, null, out string error))
+                {
+                    Report("PERSIST_STAGE_ERROR", error);
+                    Finish();
+                    yield break;
+                }
+
+                NetworkManager.Singleton.SceneManager.LoadScene(WorldScene, LoadSceneMode.Single);
+
+                // Long enough for the old scene to actually go. Asking for the player straight away
+                // finds the one that has not been despawned yet, and reads the charge count off the
+                // gun that is about to be destroyed rather than off the one the save produced.
+                yield return new WaitForSeconds(4f);
+                yield return WaitFor(() => LocalPlayerObject() != null, "a player after the load");
+
+                // Read before the recharge clock can reach twelve seconds. See the summary.
+                yield return WaitAtMost(() => HeldNetGun() != null, 30f);
+                NetGunArtifact loaded = HeldNetGun();
+                Report("PERSIST_CHARGES_AFTER_LOAD", loaded != null ? loaded.ChargesRemaining : -1);
+
+                AgentController freed = FindNetworkedQuarry(out _);
+                if (freed == null)
+                {
+                    Report("PERSIST_QUARRY_AFTER_LOAD", "none");
+                    Finish();
+                    yield break;
+                }
+
+                Report("PERSIST_QUARRY_BOUND_AFTER_LOAD", IsNetted(freed.gameObject));
+                Report("PERSIST_QUARRY_SPEED_AFTER_LOAD", NavSpeedOf(freed));
+                Report("PERSIST_QUARRY_DRIVERS_AFTER_LOAD", DriversEnabled(freed));
+                Report("PERSIST_NETS_AFTER_LOAD", CountNets(out _));
+
+                // A creature that reloads with a hobbled speed or a switched-off motor still stands
+                // there looking perfectly normal, so the only honest question is whether it moves.
+                Vector3 from = freed.transform.position;
+                yield return new WaitForSeconds(12f);
+                Report("PERSIST_QUARRY_TRAVELLED",
+                       Vector3.Distance(from, freed.transform.position).ToString("F2"));
+
+                Report("PERSIST_DONE", true);
+                Finish();
+            }
+
+            private static NetGunArtifact HeldNetGun()
+            {
+                GameObject player = LocalPlayerObject();
+                var equipment = player != null ? player.GetComponent<EquipmentController>() : null;
+
+                return equipment != null ? equipment.HeldUsable as NetGunArtifact : null;
+            }
+
+            /// <summary>
+            /// The creature's navigation speed, or -1 when it does not steer by one.
+            ///
+            /// The number the hobble writes to and the number a leaked hobble would come back with.
+            /// A -1 is not a failure — several of this game's creatures are driven by legs rather
+            /// than by an agent — it means this particular hazard does not apply to this creature,
+            /// and PERSIST_QUARRY_TRAVELLED is then the only witness left.
+            /// </summary>
+            private static float NavSpeedOf(AgentController creature)
+            {
+                if (creature == null) return -1f;
+
+                var agent = creature.GetComponentInChildren<UnityEngine.AI.NavMeshAgent>();
+                return agent != null ? agent.speed : -1f;
+            }
+
+            /// <summary>
+            /// How many of a creature's motors and brains are switched on, as "on/total".
+            ///
+            /// The other half of "came back able to move", and the half a speed cannot answer: a
+            /// creature whose driver was switched off by a runtime effect and then captured that way
+            /// reloads standing perfectly still with its authored speed intact. Read through the
+            /// same <c>NetAuthority.Discover</c> the client step counts, so the two numbers mean the
+            /// same thing.
+            /// </summary>
+            private static string DriversEnabled(AgentController creature)
+            {
+                if (creature == null) return "none";
+
+                int on = 0, total = 0;
+                foreach (Behaviour driver in NetAuthority.Discover(creature.gameObject))
+                {
+                    if (driver == null) continue;
+                    total++;
+                    if (driver.enabled) on++;
+                }
+
+                return $"{on}/{total}";
             }
 
             // ─────────── Helpers ───────────
@@ -267,6 +626,109 @@ namespace SpaceGame.Core
                 }
 
                 return best;
+            }
+
+            /// <summary>
+            /// A networked creature, chosen by the same lowest-id rule
+            /// <see cref="FindNetworkedVictim"/> uses and for the same reason: both processes have
+            /// to land on the same one without either being told which.
+            ///
+            /// An <c>AgentController</c> rather than merely something with health, because that is
+            /// exactly what <c>SnareCatch.Capture</c> will accept — anything that is neither a
+            /// player nor a creature is refused however wide the gun's layer mask is.
+            /// </summary>
+            private static AgentController FindNetworkedQuarry(out ulong id)
+            {
+                AgentController best = null;
+                id = 0;
+
+                foreach (var pair in NetworkManager.Singleton.SpawnManager.SpawnedObjects)
+                {
+                    NetworkObject netObj = pair.Value;
+                    if (netObj == null || netObj.IsPlayerObject) continue;
+
+                    var agent = netObj.GetComponentInChildren<AgentController>();
+                    if (agent == null) continue;
+
+                    if (best == null || pair.Key < id)
+                    {
+                        best = agent;
+                        id = pair.Key;
+                    }
+                }
+
+                return best;
+            }
+
+            private static GameObject LocalPlayerObject()
+            {
+                NetworkObject player = NetworkManager.Singleton.LocalClient?.PlayerObject;
+                return player != null ? player.gameObject : null;
+            }
+
+            /// <summary>Which hotbar slot an item ended up in, or -1.</summary>
+            private static int SlotHolding(IPlayerInventory inventory, InventoryItem item)
+            {
+                for (int i = 0; i < inventory.GetInventorySize(); i++)
+                {
+                    InventorySlot slot = inventory.GetSlot(i);
+                    if (slot != null && slot.Item == item) return i;
+                }
+
+                return -1;
+            }
+
+            /// <summary>
+            /// Where this gun's next shot would come down.
+            ///
+            /// Asked of the gun itself — <c>OnRequestUse</c> is what fills in the muzzle and the
+            /// aim, and it is the only thing that knows where the barrel is on the end of an
+            /// animated arm. The seed it rolls here is not the one the real shot rolls, and that
+            /// does not matter: the seed scatters the aim by a fraction of a degree, and the net is
+            /// six metres across.
+            /// </summary>
+            private static Vector3 PredictedLanding(NetGunArtifact gun)
+            {
+                var probe = new NetArg();
+                gun.OnRequestUse(ref probe);
+
+                return NetGunFlight.PositionAt(probe.P, probe.R * Vector3.forward, probe.B,
+                                               NetGunFlight.MaxFlightSeconds);
+            }
+
+            /// <summary>
+            /// The ground under a point, or the point itself where there is none.
+            ///
+            /// The fallback is not defensive padding. This build's scene set is Bootstrap, MainMenu
+            /// and persistentScene — the terrain lives in the chunk scenes, which are left out
+            /// because they are most of the build time and none of the netcode. With no ground to
+            /// hit, <c>SnareCatch</c>'s own height sample also falls back to the net's position, so
+            /// putting the quarry at the raw landing point is what keeps the two agreeing.
+            /// </summary>
+            private static Vector3 GroundUnder(Vector3 point)
+            {
+                const float probeUp = 200f;
+                const float probeRange = 400f;
+
+                return Physics.Raycast(point + Vector3.up * probeUp, Vector3.down,
+                                       out RaycastHit hit, probeRange,
+                                       ~0, QueryTriggerInteraction.Ignore)
+                    ? hit.point
+                    : point;
+            }
+
+            /// <summary>How far the nearest net's footprint is from a creature. For a miss report.</summary>
+            private static float NetToQuarryDistance(AgentController quarry)
+            {
+                float nearest = float.PositiveInfinity;
+
+                foreach (SnareCatch net in Object.FindObjectsByType<SnareCatch>(FindObjectsSortMode.None))
+                {
+                    float distance = Vector3.Distance(net.Footprint.center, quarry.transform.position);
+                    if (distance < nearest) nearest = distance;
+                }
+
+                return nearest;
             }
 
             /// <summary>The relay on the lowest-id spawned object — same answer in both processes.</summary>
@@ -314,6 +776,20 @@ namespace SpaceGame.Core
 
                     yield return null;
                 }
+            }
+
+            /// <summary>
+            /// Waits, and gives up quietly.
+            ///
+            /// The counterpart of <see cref="WaitFor"/>, for the steps where not arriving is an
+            /// ANSWER rather than a broken run. "The client never saw the net" is the finding the
+            /// net gun step exists to produce, and ending the process on it would throw away the
+            /// numbers that say how badly it failed.
+            /// </summary>
+            private IEnumerator WaitAtMost(System.Func<bool> condition, float seconds)
+            {
+                float deadline = Time.realtimeSinceStartup + seconds;
+                while (!condition() && Time.realtimeSinceStartup < deadline) yield return null;
             }
 
             private void Finish()

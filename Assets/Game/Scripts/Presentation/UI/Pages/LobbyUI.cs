@@ -7,9 +7,32 @@ using UnityEngine.UI;
 using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
+using SpaceGame.Gameplay;
 
 namespace SpaceGame.Presentation
 {
+    /// <summary>Which door into this screen the player took: host or join, story or VS.</summary>
+    public enum LobbyRoute { StoryHost, StoryJoin, VersusHost, VersusJoin }
+
+    /// <summary>
+    /// What a <see cref="LobbyRoute"/> means, in the terms the rest of the screen needs.
+    ///
+    /// Small on purpose: the route is a value from a fixed set of four, and every question this
+    /// screen asks of it is answerable by a switch rather than by state stashed somewhere else.
+    /// </summary>
+    public static class LobbyRouteExtensions
+    {
+        public static bool IsHosting(this LobbyRoute route) =>
+            route == LobbyRoute.StoryHost || route == LobbyRoute.VersusHost;
+
+        public static bool IsVersus(this LobbyRoute route) =>
+            route == LobbyRoute.VersusHost || route == LobbyRoute.VersusJoin;
+
+        /// <summary>Whether a lobby found in the browser belongs on a route's list.</summary>
+        public static bool Accepts(this LobbyRoute route, bool lobbyIsVersus) =>
+            route.IsVersus() == lobbyIsVersus;
+    }
+
     /// <summary>
     /// The multiplayer lobby, drawn in the main menu's own language.
     ///
@@ -22,9 +45,13 @@ namespace SpaceGame.Presentation
     /// drops anything it cannot find. Nothing here is resolved by name.
     ///
     /// Two pages, one component: find a session, and wait in the one you are in. Which page you
-    /// start on is not a mode flag — it is read from <see cref="WorldSession.IsActive"/>, because a
-    /// staged world IS the difference between the two routes. MainMenuUI.HostMultiplayer stages one
-    /// and JoinMultiplayer clears it, so a flag beside it could only ever disagree.
+    /// start on used to be read from <see cref="WorldSession.IsActive"/> rather than carried as a
+    /// flag of its own, because a staged world genuinely WAS the difference between the two routes
+    /// while every host picked one — MainMenuUI.HostMultiplayer stages one and JoinMultiplayer
+    /// clears it, so a flag beside it could only ever disagree. VS broke that premise: a VS host
+    /// stages no world at all, so the same inference reports every VS host as a joiner and sends
+    /// them to the browser to look for their own session. It is now carried explicitly as a
+    /// <see cref="LobbyRoute"/>, handed in by <see cref="Open"/>.
     ///
     /// <para>
     /// There are no passwords anywhere in this flow. A session is either listed in the browser or
@@ -200,6 +227,9 @@ namespace SpaceGame.Presentation
         private MainMenuUI menu;
         private LobbySession session;
 
+        /// <summary>Which door into this screen the player took. Set once, by <see cref="Open"/>.</summary>
+        private LobbyRoute route;
+
         private Page current = Page.None;
         private RectTransform page;
 
@@ -304,13 +334,14 @@ namespace SpaceGame.Presentation
         /// </summary>
         private string lastWarning;
 
-        public static LobbyUI Open(MainMenuUI owner)
+        public static LobbyUI Open(MainMenuUI owner, LobbyRoute route)
         {
             var existing = FindFirstObjectByType<LobbyUI>();
             if (existing != null) return existing;
 
             var ui = new GameObject(nameof(LobbyUI)).AddComponent<LobbyUI>();
             ui.menu = owner;
+            ui.route = route;
             ui.Present();
             return ui;
         }
@@ -318,7 +349,7 @@ namespace SpaceGame.Presentation
         private GameObject EntryPrefab => menu != null ? menu.MenuButtonPrefab : null;
 
         /// <summary>True when this screen is here to run a session rather than find one.</summary>
-        private static bool IsHosting => WorldSession.IsActive;
+        private bool IsHosting => route.IsHosting();
 
         protected override void Build()
         {
@@ -370,13 +401,21 @@ namespace SpaceGame.Presentation
 
             if (!await session.EnsureReadyAsync()) { EndHosting(); return; }
 
-            // The world's name, not the player's. It is what the host chose one screen ago and what
-            // everyone in the browser is being invited into.
+            // A story lobby is named after the world the host chose one screen ago — everyone in
+            // the browser is being invited into it. A VS lobby has no world to be named after, so
+            // null is passed instead; CreateAsync already falls back to "{PlayerName}'s game" on a
+            // blank name, which is the identity a VS host actually has at this point.
             //
             // Public to start with. A host who wanted it hidden can say so on the roster, and
             // creating it listed is the choice that matches pressing "Host a game" — the one that
             // lets people find you without being told anything first.
-            await session.CreateAsync(WorldSession.DisplayName, false);
+            string lobbyName = route.IsVersus() ? null : WorldSession.DisplayName;
+
+            VersusSetup versus = route.IsVersus()
+                ? new VersusSetup(VersusRulesUI.StagedTeams, VersusRulesUI.StagedTeamSize)
+                : VersusSetup.None;
+
+            await session.CreateAsync(lobbyName, false, versus);
 
             EndHosting();
         }
@@ -803,6 +842,12 @@ namespace SpaceGame.Presentation
             // A host's staged world must not follow them back to the menu, or the next thing they
             // do — joining someone else — starts with a save of their own waiting to be restored.
             WorldSession.Clear();
+
+            // A VS host's staged team rules are statics that outlive this screen, the same reason
+            // WorldSession's staged world does. Left alone, the next visit to the rules page would
+            // start from whatever this match left behind instead of VersusRules.DefaultTeams/Size.
+            if (route.IsVersus()) VersusRulesUI.ResetToDefaults();
+
             Close();
         }
 
@@ -818,25 +863,79 @@ namespace SpaceGame.Presentation
         private async void SetPrivacy(bool isPrivate) => await session.SetPrivacyAsync(isPrivate);
 
         /// <summary>
-        /// Steps the local player's suit colour by one swatch.
+        /// Steps a suit colour by one swatch — the local player's own, in a story lobby; the local
+        /// player's whole TEAM's colour, in a VS one.
         ///
-        /// Three things happen, in this order and for three different reasons. The preference is
-        /// stored first, because it is the player's outfit and it has to survive them backing out of
-        /// the lobby without starting anything. Our own astronaut is repainted second, synchronously,
-        /// because a cycler that waits on a service call before showing anything feels broken.
-        /// Everyone else is told last, through a debounced publish, because Lobby rate-limits player
-        /// updates and browsing the whole palette is a dozen presses in a couple of seconds.
+        /// In the story case, three things happen, in this order and for three different reasons.
+        /// The preference is stored first, because it is the player's outfit and it has to survive
+        /// them backing out of the lobby without starting anything. Our own astronaut is repainted
+        /// second, synchronously, because a cycler that waits on a service call before showing
+        /// anything feels broken. Everyone else is told last, through a debounced publish, because
+        /// Lobby rate-limits player updates and browsing the whole palette is a dozen presses in a
+        /// couple of seconds.
+        ///
+        /// The VS case does not touch <see cref="GameSettings.SuitColorIndex"/> at all: that
+        /// preference belongs to the install, not to one match, and a team colour is a property of
+        /// the match. <see cref="TeamColorRules.Step"/> is handed every OTHER team's colour so it
+        /// never lands the local team on a swatch a teammate would then be unable to tell apart.
         /// </summary>
         private void StepSuitColor(int direction)
         {
-            int next = SuitPalette.Step(GameSettings.SuitColorIndex, direction);
+            if (route.IsVersus())
+            {
+                RosterSnapshot snapshot = session.CurrentSnapshot();
+                int team = snapshot.LocalTeam;
+                if (team < 0) return;
 
-            GameSettings.SuitColorIndex = next;
+                var takenByOtherTeams = new int[Mathf.Max(0, snapshot.TeamCount - 1)];
+                int slot = 0;
+                for (int other = 0; other < snapshot.TeamCount; other++)
+                {
+                    if (other == team) continue;
+                    takenByOtherTeams[slot++] = snapshot.ColorOfTeam(other);
+                }
+
+                int next = TeamColorRules.Step(snapshot.ColorOfTeam(team), direction, SuitPalette.Count,
+                                               takenByOtherTeams);
+
+                roster?.SetLocalColor(next);
+                session.PublishTeamColor(next);
+                return;
+            }
+
+            int nextSuit = SuitPalette.Step(GameSettings.SuitColorIndex, direction);
+
+            GameSettings.SuitColorIndex = nextSuit;
             GameSettings.Save();
 
-            roster?.SetLocalColor(next);
-            session.PublishSuitColor(next);
+            roster?.SetLocalColor(nextSuit);
+            session.PublishSuitColor(nextSuit);
         }
+
+        // ─────────────────────────────────────────────────────────────────────── VS team controls
+        //
+        // Wired into LobbyRosterView.Actions in ShowRoster — a team plate's click raises JoinTeam,
+        // and a Teams/Team size chevron raises SetTeamRules.
+
+        /// <summary>Moves the local player onto a different team, refusing one that has no room.</summary>
+        private void JoinTeam(int team)
+        {
+            RosterSnapshot snapshot = session.CurrentSnapshot();
+            if (team < 0 || team >= snapshot.TeamCount || team == snapshot.LocalTeam) return;
+
+            if (!snapshot.HasRoomOn(team))
+            {
+                roster?.SetWarning($"{VersusRules.TeamName(team)} is full.");
+                return;
+            }
+
+            roster?.SetStatus(string.Empty);
+            session.PublishTeam(team);
+        }
+
+        /// <summary>Retunes the VS lobby's team rules. A refusal — someone displaced — arrives through Failed.</summary>
+        private async void SetTeamRules(int teamCount, int teamSize) =>
+            await session.SetTeamRulesAsync(teamCount, teamSize);
 
         // ───────────────────────────────────────────────────────────────────── render
 
@@ -864,9 +963,36 @@ namespace SpaceGame.Presentation
 
             if (current != Page.Roster) return;
 
-            roster.Render(session.Current, session.IsHost,
-                          IsHosting ? WorldSession.DisplayName : null, session.LocalSlot);
+            RenderRoster();
         }
+
+        /// <summary>
+        /// Hands the roster the two things it needs to redraw and asks it to.
+        ///
+        /// Split out because it has two callers — the poll, above, and <see cref="ShowRoster"/>'s
+        /// first paint — and both have to give <see cref="LobbyRosterView.SetSession"/> the session
+        /// fields a <see cref="RosterSnapshot"/> does not carry before calling
+        /// <see cref="LobbyRosterView.Render"/>, or the strip along the top would be one poll behind
+        /// the astronauts underneath it.
+        /// </summary>
+        private void RenderRoster()
+        {
+            Lobby lobby = session.Current;
+
+            roster.SetSession(
+                lobby?.Name,
+                lobby?.LobbyCode,
+                lobby != null && LobbySession.IsPlaying(lobby),
+                lobby != null && lobby.IsPrivate);
+
+            roster.Render(session.CurrentSnapshot(), session.IsHost, HostTitle);
+        }
+
+        /// <summary>
+        /// The world's own display name, for a story host only — a VS lobby stages no world (see
+        /// <see cref="StartHosting"/>) and its title is its own session name instead.
+        /// </summary>
+        private string HostTitle => IsHosting && !route.IsVersus() ? WorldSession.DisplayName : null;
 
         private void Warn(string text)
         {
@@ -988,10 +1114,20 @@ namespace SpaceGame.Presentation
         /// the scroll, and the click the player is halfway through making. Only arrivals cost an
         /// Instantiate and only departures a Destroy.
         /// </para>
+        ///
+        /// <para>
+        /// Filtered to <see cref="route"/> here, rather than in the query itself: Lobby's own query
+        /// filters cannot reliably express "this custom key equals this value" across SDK versions,
+        /// and a filter that quietly matched nothing would read as "nobody is hosting" on the one
+        /// screen whose entire job is to say otherwise. A VS joiner must never see a story lobby in
+        /// their list, or a story joiner a VS one.
+        /// </para>
         /// </summary>
         private void ApplyLobbies(List<Lobby> lobbies)
         {
             if (browser == null) return;
+
+            lobbies = lobbies.FindAll(lobby => route.Accepts(LobbySession.IsVersus(lobby)));
 
             var seen = new HashSet<string>();
             foreach (Lobby lobby in lobbies) seen.Add(lobby.Id);
@@ -1235,10 +1371,10 @@ namespace SpaceGame.Presentation
             RectTransform root = NewPage(Page.Roster, null);
 
             roster = new LobbyRosterView(root, EntryPrefab,
-                new LobbyRosterView.Actions(StartGame, Leave, CopyCode, SetPrivacy, StepSuitColor));
+                new LobbyRosterView.Actions(StartGame, Leave, CopyCode, SetPrivacy, StepSuitColor,
+                                            JoinTeam, SetTeamRules));
 
-            roster.Render(session.Current, session.IsHost,
-                          IsHosting ? WorldSession.DisplayName : null, session.LocalSlot);
+            RenderRoster();
         }
 
         // ──────────────────────────────────────────────────────────────────── plumbing

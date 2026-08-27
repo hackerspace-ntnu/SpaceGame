@@ -55,7 +55,7 @@ namespace SpaceGame.Items
         {
             if (itemPrefab == null || surface == null) return null;
 
-            // Read BEFORE the copy is stripped. The true size comes from ItemGrip.HoldSize, and
+            // Read BEFORE the copy is stripped. The true size comes from ItemGrip.PackSize, and
             // ItemGrip is a MonoBehaviour — Strip destroys it — so this has to be measured off the
             // PREFAB, which still has its grip, rather than off the copy.
             Vector3 trueSize = ItemFootprint.SizeOf(itemPrefab);
@@ -106,8 +106,10 @@ namespace SpaceGame.Items
             // constant, so a Leash and a 1.35 m LaserStaff came out the same length.
             //
             // Uniform, and taken from the longest axis of the REFERENCE bounds, because that is
-            // literally EquipItemSocket's `holdSize / longest` — the same fit, so an item is the
-            // same size in the pack as it is in the hand, and the same size the layout reserved.
+            // EquipItemSocket's `holdSize / longest` fit with the pack's own size substituted for
+            // the hand's — so a copy is drawn at exactly the size the layout reserved for it. Most
+            // items answer both questions with one number; the few that do not (see
+            // ItemGrip.PackSize) are deliberately smaller here than they are in the hand.
             float worldScale = measured > 1e-6f && target > 1e-6f ? target / measured : 1f;
 
             Transform anchor = surface.transform;

@@ -39,7 +39,19 @@ namespace SpaceGame.EditorTools
                 options = BuildOptions.Development,
             };
 
-            BuildReport report = BuildPipeline.BuildPlayer(options);
+            // None of the 48 chunk scenes are in this player, so the world NavMesh bake this build
+            // would otherwise be refused over is a bake nothing here can use. See the flag.
+            BuildReport report;
+            World.NavMeshTools.WorldNavMeshBuildCheck.BuildingWithoutChunks = true;
+            try
+            {
+                report = BuildPipeline.BuildPlayer(options);
+            }
+            finally
+            {
+                World.NavMeshTools.WorldNavMeshBuildCheck.BuildingWithoutChunks = false;
+            }
+
             EditorUtility.ClearProgressBar();
 
             if (report.summary.result != BuildResult.Succeeded)
@@ -75,7 +87,15 @@ namespace SpaceGame.EditorTools
                 "  CLIENT_DRIVERS_DISABLED > 0          ...and it was the motors/brains that were switched off\n" +
                 "  CLIENT_HEALTH_SEEN == HOST_HEALTH_AFTER   damage the SERVER applied arrived here\n" +
                 "  HOST_RELAY_FROM_CLIENT=1             a client-to-server relay message crossed the wire\n" +
-                "  CLIENT_PLAYER_OBJECT=True            the joining player got a body\n\n" +
+                "  CLIENT_PLAYER_OBJECT=True            the joining player got a body\n" +
+                "  CLIENT_NETS_SEEN == HOST_NETS        the net the host fired was drawn here too\n" +
+                "  CLIENT_NET_CAPTIVES > 0              ...and this machine was told what it caught\n\n" +
+                "Then the save/load half, which runs alone because none of it is about a peer:\n\n" +
+                $"  \"{exe}\" -batchmode -nographics -sgmode persist -logFile /tmp/mp_persist.log\n\n" +
+                "  PERSIST_CHARGES_BEFORE_SAVE=1        two of three charges spent\n" +
+                "  PERSIST_CHARGES_AFTER_LOAD=1         ...and the gun came back spent, not full\n" +
+                "  PERSIST_QUARRY_BOUND_AFTER_LOAD=False   nobody reloaded still netted\n" +
+                "  PERSIST_QUARRY_TRAVELLED > 0         ...and the creature can still move\n\n" +
                 "To PLAY this build against the editor instead of running the autotest, launch it with\n" +
                 "its own Unity Services profile — a player and the editor share one PlayerPrefs file, so\n" +
                 "they otherwise sign in as the same anonymous PlayerId and the lobby refuses the second\n" +

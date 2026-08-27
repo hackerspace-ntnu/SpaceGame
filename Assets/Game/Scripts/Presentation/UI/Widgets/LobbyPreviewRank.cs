@@ -1,15 +1,19 @@
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using SpaceGame.Characters;
 using SpaceGame.Core;
+using SpaceGame.Gameplay;
 
 namespace SpaceGame.Presentation
 {
     /// <summary>
-    /// The rank of astronauts standing in the lobby: one per player, in their own suit colour, with
-    /// their name above their head, and a colour cycler under your own.
+    /// The rank of astronauts standing in the lobby: one cluster per team, each in its team's
+    /// colour (or one line in a story lobby, each in their own suit colour), with names above their
+    /// heads, a team nameplate above each cluster you click to join it, and a colour cycler under
+    /// your own figure.
     ///
     /// <para>
     /// They stand in the <b>real menu scene</b> rather than in a RenderTexture, lit by the menu's own
@@ -20,9 +24,9 @@ namespace SpaceGame.Presentation
     /// </para>
     ///
     /// <para>
-    /// This replaces the roster's text list. The names above their heads say everything the list
-    /// said, so keeping both would be the same information twice on a page that had no room for the
-    /// first copy.
+    /// Where everyone stands is <see cref="RankLayout"/>'s job, not this class's: it addresses a seat
+    /// positionally whether or not anyone stands in it, which is what stops a figure sliding
+    /// sideways because somebody else joined — the rule the rank held even before there were teams.
     /// </para>
     ///
     /// <para>
@@ -65,15 +69,6 @@ namespace SpaceGame.Presentation
         /// <summary>Under Assets/Game/Resources, so it loads without a serialized reference.</summary>
         private const string PrefabResource = "LobbyPreviewAstronaut";
 
-        /// <summary>
-        /// Metres between figures.
-        ///
-        /// 1.55 rather than the 1.15 this started at: at 1.15 a rank of four read as a huddle, with
-        /// each figure's shoulder occluding the next one's arm, and an occluded suit is a suit whose
-        /// colour is half hidden. Wide enough that all four are separate silhouettes.
-        /// </summary>
-        private const float Spacing = 1.45f;
-
         /// <summary>How far above the head bone the name floats.</summary>
         private const float LabelLift = 0.42f;
 
@@ -87,6 +82,31 @@ namespace SpaceGame.Presentation
         /// </summary>
         private const float CyclerDrop = 0.4f;
 
+        /// <summary>
+        /// How far above a team's centre its plate floats, in metres of world space.
+        ///
+        /// High enough to clear a second row of heads (<see cref="RankLayout.RowSpacing"/> stacks a
+        /// back row behind the front one, not above it, but a name plate already sits
+        /// <see cref="LabelLift"/> above a head roughly 1.8m tall) without drifting so far up that it
+        /// reads as unrelated to the cluster underneath it. Not measured against a capture — flag
+        /// this if the plate reads too high or too low once someone can see it rendered.
+        /// </summary>
+        private const float PlateLift = 2.35f;
+
+        private const float PlateWidth = 520f;
+        private const float PlateHeight = 72f;
+        private const int PlateSize = 46;
+
+        /// <summary>What a team plate fades to when it cannot be joined right now. Present, not gone.</summary>
+        private const float PlateDimmedAlpha = 0.45f;
+
+        /// <summary>
+        /// How much air the fitted camera leaves around the rank — see
+        /// <see cref="RankLayout.CameraDistance"/>. 1.2 leaves about a sixth of the frame as margin.
+        /// Not measured against a capture — flag this if the rank reads cramped or lost in the frame.
+        /// </summary>
+        private const float CameraFitMargin = 1.2f;
+
         // ASCII, not ◀ and ▶. The project's TMP default is LiberationSans SDF, which has neither
         // U+25C0 nor U+25B6 and no fallback that does — TMP silently substitutes U+25A1 and both
         // arrows render as empty BOXES. Caught from a warning in a capture, where the cycler read as
@@ -99,9 +119,6 @@ namespace SpaceGame.Presentation
         private const float CyclerHeight = 74f;
         private const float ChevronWidth = 74f;
 
-        /// <summary>Slots are fixed, so nobody slides sideways when somebody joins.</summary>
-        private static readonly int Slots = LobbySession.MaxPlayers;
-
         private GameObject figurePrefab;
         private Transform anchor;
         private bool anchorIsOurs;
@@ -113,15 +130,42 @@ namespace SpaceGame.Presentation
         private Vector3 returnPosition;
         private Quaternion returnRotation;
 
-        private readonly GameObject[] figures = new GameObject[LobbySession.MaxPlayers];
-        private readonly Transform[] heads = new Transform[LobbySession.MaxPlayers];
-        private readonly SuitRecolor[] recolors = new SuitRecolor[LobbySession.MaxPlayers];
+        /// <summary>
+        /// The pose <see cref="CameraViewName"/> was authored at, kept apart from
+        /// <see cref="returnPosition"/>/<see cref="returnRotation"/> (the menu's OWN pose, put back on
+        /// teardown). The camera fit measures and pushes back from this one, never from wherever the
+        /// camera happens to be sitting when a render runs.
+        /// </summary>
+        private Vector3 viewPosition;
+        private Quaternion viewRotation;
+
+        // One entry per player, grown as the roster grows. Never shrunk — a figure for a player who
+        // has left is switched off, not destroyed, in case they rejoin.
+        private readonly List<GameObject> figures = new();
+        private readonly List<Transform> heads = new();
+        private readonly List<SuitRecolor> recolors = new();
+        private readonly List<bool> occupied = new();
 
         private RectTransform labelLayer;
-        private readonly RectTransform[] labelRows = new RectTransform[LobbySession.MaxPlayers];
-        private readonly TextMeshProUGUI[] labels = new TextMeshProUGUI[LobbySession.MaxPlayers];
-        private readonly TextMeshProUGUI[] labelShadows = new TextMeshProUGUI[LobbySession.MaxPlayers];
-        private readonly RectTransform[] underlines = new RectTransform[LobbySession.MaxPlayers];
+        private readonly List<RectTransform> labelRows = new();
+        private readonly List<TextMeshProUGUI> labels = new();
+        private readonly List<TextMeshProUGUI> labelShadows = new();
+        private readonly List<RectTransform> underlines = new();
+
+        /// <summary>One nameplate per team, rebuilt only when the team shape changes.</summary>
+        private sealed class TeamPlate
+        {
+            public RectTransform Row;
+            public TextMeshProUGUI Label;
+            public TextMeshProUGUI Shadow;
+            public Button Button;
+        }
+
+        private readonly List<TeamPlate> plates = new();
+
+        /// <summary>The team shape the plates were last built for, so they are rebuilt only when it moves.</summary>
+        private int plateTeamCount = -1;
+        private int plateTeamSize = -1;
 
         private RectTransform cyclerRow;
         private TextMeshProUGUI cyclerName;
@@ -129,15 +173,11 @@ namespace SpaceGame.Presentation
 
         private GameObject entryPrefab;
         private Action<int> onStep;
+        private Action<int> onJoinTeam;
 
         /// <summary>Which figure the cycler belongs under, or -1 while that is unknown.</summary>
         private int localSlot = -1;
 
-        // What the lobby says should be on screen, kept apart from what is actually visible this
-        // frame. LateUpdate hides an overlay whose world point went behind the camera, and without
-        // somewhere to record intent it could never put it back — a label hidden once would stay
-        // hidden until the next poll happened to rebuild it.
-        private readonly bool[] occupied = new bool[LobbySession.MaxPlayers];
         private bool cyclerWanted;
 
         /// <summary>
@@ -145,16 +185,18 @@ namespace SpaceGame.Presentation
         ///
         /// <paramref name="page"/> is the screen's own rect, which the name labels are built into so
         /// they are destroyed with the page. <paramref name="onStep"/> is called with -1 or +1 when a
-        /// chevron is pressed.
+        /// chevron is pressed. <paramref name="onJoinTeam"/> is called with a team number when its
+        /// plate is clicked.
         /// </summary>
         public static LobbyPreviewRank Create(RectTransform page, GameObject entryPrefab,
-            Action<int> onStep)
+            Action<int> onStep, Action<int> onJoinTeam)
         {
             var host = new GameObject(nameof(LobbyPreviewRank));
             var rank = host.AddComponent<LobbyPreviewRank>();
 
             rank.entryPrefab = entryPrefab;
             rank.onStep = onStep;
+            rank.onJoinTeam = onJoinTeam;
             rank.labelLayer = UIBuilder.Fill(UIBuilder.Rect("PreviewLabels", page));
 
             // Before the anchor is resolved, because the anchor's own fallback is computed from where
@@ -170,23 +212,25 @@ namespace SpaceGame.Presentation
         /// Tears down everything the rank put in the world.
         ///
         /// The figures are NOT children of this component's GameObject — they hang off the scene's
-        /// anchor so they inherit its transform — so destroying this object would leave four
-        /// astronauts standing in the menu with nothing driving them. Which is exactly what happened
-        /// before this method existed: backing out to the join page left the rank behind, and opening
-        /// the roster again built a second one on top of it.
+        /// anchor so they inherit its transform — so destroying this object would leave astronauts
+        /// standing in the menu with nothing driving them. Which is exactly what happened before this
+        /// method existed: backing out to the join page left the rank behind, and opening the roster
+        /// again built a second one on top of it.
         /// </summary>
         public void Dispose()
         {
-            for (int i = 0; i < figures.Length; i++)
-            {
-                if (figures[i] != null) Destroy(figures[i]);
-                figures[i] = null;
-            }
+            foreach (GameObject figure in figures)
+                if (figure != null) Destroy(figure);
+            figures.Clear();
 
             // Only if we invented it. An authored anchor belongs to the scene.
             if (anchorIsOurs && anchor != null) Destroy(anchor.gameObject);
 
+            // The plates and the nameplates are both children of labelLayer, so destroying it takes
+            // them all with it. Cleared here too so nothing on this dying object still points at a
+            // GameObject that no longer exists.
             if (labelLayer != null) Destroy(labelLayer.gameObject);
+            plates.Clear();
 
             RestoreCamera();
 
@@ -200,7 +244,9 @@ namespace SpaceGame.Presentation
         ///
         /// Silently does nothing when the scene has no <see cref="CameraViewName"/>, which is the right
         /// answer rather than an error: the menu's own framing is a perfectly usable shot, and a
-        /// missing view means nobody has composed a better one yet.
+        /// missing view means nobody has composed a better one yet. It also means the rank never
+        /// fits the camera — see <see cref="FitCamera"/> — because there is no authored backward
+        /// direction to push it along.
         /// </summary>
         private void AdoptCameraView()
         {
@@ -214,7 +260,10 @@ namespace SpaceGame.Presentation
             returnPosition = borrowedCamera.position;
             returnRotation = borrowedCamera.rotation;
 
-            borrowedCamera.SetPositionAndRotation(view.transform.position, view.transform.rotation);
+            viewPosition = view.transform.position;
+            viewRotation = view.transform.rotation;
+
+            borrowedCamera.SetPositionAndRotation(viewPosition, viewRotation);
         }
 
         /// <summary>
@@ -232,32 +281,60 @@ namespace SpaceGame.Presentation
             borrowedCamera = null;
         }
 
+        /// <summary>
+        /// Backs the camera off from the authored view so the whole rank fits in frame.
+        ///
+        /// <para>
+        /// Measured from <see cref="viewPosition"/>/<see cref="viewRotation"/> — the authored pose —
+        /// and only ever pushed FURTHER back along that pose's own backward direction, never
+        /// recomputed from the anchor outright. That is what guarantees a small rank (today's default
+        /// story line, or a 2-a-side VS match) reproduces the exact composed shot rather than drifting
+        /// off its axis: when the rank already fits at the authored distance, the extra distance below
+        /// is zero and the camera sits exactly where <see cref="CameraViewName"/> put it.
+        /// </para>
+        /// </summary>
+        private void FitCamera(int teams, int teamSize)
+        {
+            // No adopted view means no authored backward direction to push along, so there is
+            // nothing safe to fit against — the rank keeps whatever framing the scene already has.
+            if (borrowedCamera == null || anchor == null) return;
+
+            Camera camera = Camera.main;
+            if (camera == null) return;
+
+            float vFovRad = camera.fieldOfView * Mathf.Deg2Rad;
+            float horizontalFov = 2f * Mathf.Atan(Mathf.Tan(vFovRad * 0.5f) * camera.aspect) * Mathf.Rad2Deg;
+
+            float width = RankLayout.TotalWidth(teams, teamSize);
+            float wanted = RankLayout.CameraDistance(width, horizontalFov, CameraFitMargin);
+            float authoredDistance = Vector3.Distance(viewPosition, anchor.position);
+
+            // Never negative: a rank that already fits inside the authored shot must not pull the
+            // camera IN, which is the one thing the class doc promises it never does.
+            float extra = Mathf.Max(0f, wanted - authoredDistance);
+
+            Vector3 backward = viewRotation * Vector3.back;
+            borrowedCamera.SetPositionAndRotation(viewPosition + backward * extra, viewRotation);
+        }
+
         // ─────────────────────────────────────────────────────────────────────── render
 
         /// <summary>
-        /// Fills the rank from the lobby.
-        ///
-        /// <paramref name="localColor"/> is passed separately and wins for the local slot, because
-        /// the lobby's own copy of our colour is up to a poll and a debounce behind what the player
-        /// just pressed. Reading it from the poll would make our own astronaut the last one on screen
-        /// to show our choice.
+        /// Fills the rank from the roster snapshot: one cluster per team in a VS lobby, or the single
+        /// line a story lobby has always drawn (<c>teams = 1</c>, seated at the roster's own current
+        /// length so the line is exactly as wide as the people standing in it).
         /// </summary>
-        public void Render(string[] names, int[] colors, int localSlotIndex, int hostSlot,
-            int localColor)
+        public void Render(RosterSnapshot snapshot)
         {
-            localSlot = localSlotIndex;
+            localSlot = snapshot.LocalSlot;
 
-            for (int i = 0; i < Slots; i++)
+            bool versus = snapshot.IsVersus;
+            int teams = versus ? Mathf.Max(1, snapshot.TeamCount) : 1;
+            int teamSize = versus ? Mathf.Max(1, snapshot.TeamSize) : Mathf.Max(1, snapshot.Names.Length);
+            int[] teamsBySlot = versus ? snapshot.Teams : null;
+
+            for (int i = 0; i < snapshot.Names.Length; i++)
             {
-                bool present = names != null && i < names.Length;
-
-                if (!present)
-                {
-                    occupied[i] = false;
-                    if (figures[i] != null) figures[i].SetActive(false);
-                    continue;
-                }
-
                 EnsureFigure(i);
 
                 if (figures[i] == null)
@@ -269,23 +346,59 @@ namespace SpaceGame.Presentation
                 occupied[i] = true;
                 figures[i].SetActive(true);
 
-                int color = i == localSlot
-                    ? localColor
-                    : colors != null && i < colors.Length ? colors[i] : 0;
+                int team = versus && i < snapshot.Teams.Length ? snapshot.Teams[i] : 0;
+                int seat = SeatOf(i, teamsBySlot);
+                figures[i].transform.localPosition = RankLayout.SeatPosition(team, seat, teams, teamSize);
+
+                int color = versus
+                    ? snapshot.ColorOfTeam(team)
+                    : i < snapshot.SuitColors.Length ? snapshot.SuitColors[i] : 0;
 
                 if (recolors[i] != null) recolors[i].Apply(color);
 
                 EnsureLabel(i);
-                labels[i].text = names[i];
-                labelShadows[i].text = names[i];
+                labels[i].text = snapshot.Names[i];
+                labelShadows[i].text = snapshot.Names[i];
 
-                // An underline instead of the word "host": the page has no room for a caption per
-                // figure, and a rank of four only ever needs to mark one of them.
-                if (underlines[i] != null) underlines[i].gameObject.SetActive(i == hostSlot);
+                // An underline instead of the word "host": there is no room for a caption per figure,
+                // and the rank only ever needs to mark one of them.
+                if (underlines[i] != null) underlines[i].gameObject.SetActive(i == snapshot.HostSlot);
             }
 
-            cyclerWanted = localSlot >= 0 && localSlot < Slots && occupied[localSlot];
-            if (cyclerWanted) SetCyclerColor(localColor);
+            // Anyone the snapshot no longer lists has left. Switched off, not destroyed — they keep
+            // their figure and their place if they rejoin.
+            for (int i = snapshot.Names.Length; i < figures.Count; i++)
+            {
+                occupied[i] = false;
+                if (figures[i] != null) figures[i].SetActive(false);
+            }
+
+            if (versus)
+            {
+                EnsurePlates(teams, teamSize);
+                UpdatePlates(snapshot, teamSize);
+            }
+            else if (plates.Count > 0)
+            {
+                // A story lobby shows no plates at all — there is nothing to click, since there is
+                // only ever the one line.
+                DestroyPlates();
+            }
+
+            cyclerWanted = localSlot >= 0 && localSlot < occupied.Count && occupied[localSlot];
+            if (cyclerWanted)
+            {
+                int cyclerColor = versus ? snapshot.ColorOfTeam(snapshot.LocalTeam) : snapshot.SuitColors[localSlot];
+                SetCyclerColor(cyclerColor);
+            }
+
+            FitCamera(teams, teamSize);
+
+            // Re-faced after the fit, not before: FaceCamera reads the camera's CURRENT position, and
+            // fitting is what just moved it.
+            for (int i = 0; i < figures.Count; i++)
+                if (i < occupied.Count && occupied[i] && figures[i] != null)
+                    FaceCamera(figures[i].transform);
 
             PositionOverlays();
         }
@@ -293,11 +406,40 @@ namespace SpaceGame.Presentation
         /// <summary>Repaints only our own figure, for the frame an arrow is pressed.</summary>
         public void SetLocalColor(int color)
         {
-            if (localSlot >= 0 && localSlot < recolors.Length && recolors[localSlot] != null)
+            if (localSlot >= 0 && localSlot < recolors.Count && recolors[localSlot] != null)
                 recolors[localSlot].Apply(color);
 
             SetCyclerColor(color);
         }
+
+        /// <summary>
+        /// Which seat of their OWN team a player occupies: their position among the players on that
+        /// team, counted in lobby order.
+        ///
+        /// A null or empty <paramref name="teams"/> means every player is on the same, single team —
+        /// the story-lobby case — so the seat is just the slot itself, reproducing the plain line the
+        /// rank has always drawn.
+        /// </summary>
+        public static int SeatOf(int slot, int[] teams)
+        {
+            if (teams == null || teams.Length == 0) return slot;
+            if (slot < 0 || slot >= teams.Length) return 0;
+
+            int team = teams[slot];
+            int seat = 0;
+
+            for (int i = 0; i < slot; i++)
+                if (teams[i] == team) seat++;
+
+            return seat;
+        }
+
+        /// <summary>
+        /// Whether a team's plate may be clicked to join it: not the team already standing on, and
+        /// not full under the lobby's current team size.
+        /// </summary>
+        public static bool CanJoin(int team, int localTeam, int headsOn, int teamSize) =>
+            team != localTeam && headsOn < teamSize;
 
         /// <summary>
         /// Keeps the labels over the heads.
@@ -313,23 +455,41 @@ namespace SpaceGame.Presentation
             Camera camera = Camera.main;
             if (camera == null || labelLayer == null) return;
 
-            for (int i = 0; i < Slots; i++)
+            for (int i = 0; i < labelRows.Count; i++)
             {
                 if (labelRows[i] == null) continue;
 
-                bool visible = occupied[i] && heads[i] != null
-                               && Place(camera, labelRows[i],
-                                        heads[i].position + Vector3.up * LabelLift);
+                bool visible = i < occupied.Count && occupied[i] && i < heads.Count && heads[i] != null
+                               && Place(camera, labelRows[i], heads[i].position + Vector3.up * LabelLift);
 
                 labelRows[i].gameObject.SetActive(visible);
             }
 
+            // Recomputed every frame from the cached team shape rather than stored once at build
+            // time: the anchor never moves, but a plate's world position still has to be re-derived
+            // through Place() like every other overlay so it goes through the same behind-the-camera
+            // guard the nameplates and the cycler already rely on.
+            if (anchor != null)
+            {
+                for (int team = 0; team < plates.Count; team++)
+                {
+                    TeamPlate plate = plates[team];
+                    if (plate.Row == null) continue;
+
+                    Vector3 worldPoint = anchor.TransformPoint(
+                        RankLayout.TeamCenter(team, plateTeamCount, plateTeamSize) + Vector3.up * PlateLift);
+
+                    bool visible = Place(camera, plate.Row, worldPoint);
+                    plate.Row.gameObject.SetActive(visible);
+                }
+            }
+
             if (cyclerRow == null) return;
 
-            bool cyclerVisible = cyclerWanted && localSlot >= 0 && figures[localSlot] != null
+            bool cyclerVisible = cyclerWanted && localSlot >= 0 && localSlot < figures.Count
+                                 && figures[localSlot] != null
                                  && Place(camera, cyclerRow,
-                                          figures[localSlot].transform.position
-                                          - Vector3.up * CyclerDrop);
+                                          figures[localSlot].transform.position - Vector3.up * CyclerDrop);
 
             cyclerRow.gameObject.SetActive(cyclerVisible);
         }
@@ -358,6 +518,11 @@ namespace SpaceGame.Presentation
 
         private void EnsureFigure(int slot)
         {
+            Grow(figures, slot);
+            Grow(heads, slot);
+            Grow(recolors, slot);
+            Grow(occupied, slot);
+
             if (figures[slot] != null) return;
 
             if (figurePrefab == null)
@@ -378,10 +543,8 @@ namespace SpaceGame.Presentation
             GameObject figure = Instantiate(figurePrefab, anchor);
             figure.name = $"PreviewAstronaut{slot}";
 
-            // Centred on MaxPlayers rather than on how many are here, so a figure never shifts
-            // sideways because somebody else joined or left.
-            float offset = (slot - (Slots - 1) * 0.5f) * Spacing;
-            figure.transform.localPosition = new Vector3(offset, 0f, 0f);
+            // No local position set here: RankLayout.SeatPosition depends on the team and the seat
+            // within it, which is settled per Render call, not at creation time.
 
             figures[slot] = figure;
             heads[slot] = FindHead(figure.transform) ?? figure.transform;
@@ -389,6 +552,12 @@ namespace SpaceGame.Presentation
 
             FaceCamera(figure.transform);
             SetupAnimator(figure, slot);
+        }
+
+        /// <summary>Pads a list with defaults up to and including <paramref name="index"/>.</summary>
+        private static void Grow<T>(List<T> list, int index)
+        {
+            while (list.Count <= index) list.Add(default);
         }
 
         /// <summary>
@@ -430,11 +599,11 @@ namespace SpaceGame.Presentation
         /// Stands the figure still.
         ///
         /// IsGrounded is set even though the controller already defaults it true: the default is a
-        /// property of the asset, and a future edit that flips it would leave four astronauts falling
-        /// on the spot in the menu with nothing to explain why.
+        /// property of the asset, and a future edit that flips it would leave astronauts falling on
+        /// the spot in the menu with nothing to explain why.
         ///
-        /// IdleIndex is staggered so a rank of four does not breathe in perfect lockstep, which is
-        /// the single clearest tell that they are clones.
+        /// IdleIndex is staggered so the rank does not breathe in perfect lockstep, which is the
+        /// single clearest tell that they are clones.
         /// </summary>
         private static void SetupAnimator(GameObject figure, int slot)
         {
@@ -520,6 +689,11 @@ namespace SpaceGame.Presentation
         /// </summary>
         private void EnsureLabel(int slot)
         {
+            Grow(labelRows, slot);
+            Grow(labels, slot);
+            Grow(labelShadows, slot);
+            Grow(underlines, slot);
+
             if (labelRows[slot] != null) return;
 
             RectTransform row = Centred(labelLayer, $"Name{slot}", 600f, 60f);
@@ -550,6 +724,88 @@ namespace SpaceGame.Presentation
         }
 
         /// <summary>
+        /// Builds one plate per team, only when the team shape (<paramref name="teamCount"/>,
+        /// <paramref name="teamSize"/>) is not what the standing plates were already built for — that
+        /// pair is the only thing that ever moves a plate, so anything else in a poll must not pay
+        /// for a rebuild.
+        /// </summary>
+        private void EnsurePlates(int teamCount, int teamSize)
+        {
+            if (teamCount == plateTeamCount && teamSize == plateTeamSize) return;
+
+            DestroyPlates();
+
+            for (int team = 0; team < teamCount; team++)
+                plates.Add(BuildPlate(team));
+
+            plateTeamCount = teamCount;
+            plateTeamSize = teamSize;
+        }
+
+        private void DestroyPlates()
+        {
+            foreach (TeamPlate plate in plates)
+                if (plate.Row != null) Destroy(plate.Row.gameObject);
+
+            plates.Clear();
+            plateTeamCount = -1;
+            plateTeamSize = -1;
+        }
+
+        /// <summary>
+        /// One team's plate: its name, drawn the same white-over-navy way the nameplates are — see
+        /// <see cref="EnsureLabel"/> — because a plate hangs over the same sky and heads. A
+        /// <see cref="Button"/> over the whole row rather than just the text, so the click target is
+        /// as wide as the plate reads.
+        /// </summary>
+        private TeamPlate BuildPlate(int team)
+        {
+            RectTransform row = Centred(labelLayer, $"TeamPlate{team}", PlateWidth, PlateHeight);
+
+            RectTransform shadowRect = UIBuilder.Fill(UIBuilder.Rect("Shadow", row));
+            shadowRect.anchoredPosition = new Vector2(3f, -3f);
+            TextMeshProUGUI shadow = UIBuilder.Label(shadowRect, VersusRules.TeamName(team), PlateSize,
+                                                     MenuEntry.Idle, TextAlignmentOptions.Center,
+                                                     FontStyles.Bold);
+
+            RectTransform frontRect = UIBuilder.Fill(UIBuilder.Rect("Front", row));
+            TextMeshProUGUI label = UIBuilder.Label(frontRect, VersusRules.TeamName(team), PlateSize,
+                                                    MenuEntry.Title, TextAlignmentOptions.Center,
+                                                    FontStyles.Bold);
+            label.raycastTarget = true;
+
+            Button button = row.gameObject.AddComponent<Button>();
+            button.targetGraphic = label;
+            button.transition = Selectable.Transition.None;
+
+            int capturedTeam = team;
+            button.onClick.AddListener(() => onJoinTeam?.Invoke(capturedTeam));
+
+            return new TeamPlate { Row = row, Label = label, Shadow = shadow, Button = button };
+        }
+
+        /// <summary>
+        /// Repaints every plate from the current snapshot: the team's own colour, and whether it can
+        /// be joined right now — greyed to <see cref="PlateDimmedAlpha"/> and unclickable when it
+        /// cannot, rather than hidden, because a full or your-own team is still part of the match.
+        /// </summary>
+        private void UpdatePlates(RosterSnapshot snapshot, int teamSize)
+        {
+            for (int team = 0; team < plates.Count; team++)
+            {
+                TeamPlate plate = plates[team];
+                if (plate.Row == null) continue;
+
+                Color color = SuitPalette.ColorOf(snapshot.ColorOfTeam(team));
+                bool canJoin = CanJoin(team, snapshot.LocalTeam, snapshot.HeadsOn(team), teamSize);
+                float alpha = canJoin ? 1f : PlateDimmedAlpha;
+
+                if (plate.Label != null) plate.Label.color = new Color(color.r, color.g, color.b, alpha);
+                if (plate.Button != null) plate.Button.interactable = canJoin;
+            }
+        }
+
+        /// <summary>
         /// The colour cycler: a chevron, the swatch, its name, a chevron.
         ///
         /// The name is its own object rather than a chevron's label, because the menu button's
@@ -561,16 +817,16 @@ namespace SpaceGame.Presentation
             cyclerRow = Centred(labelLayer, "SuitCycler", CyclerWidth, CyclerHeight);
             cyclerRow.gameObject.SetActive(false);
 
-            RectTransform left = Slice(cyclerRow, "LeftSlot", 0f, ChevronWidth);
+            RectTransform left = UIBuilder.Slice(cyclerRow, "LeftSlot", 0f, ChevronWidth);
             MenuEntry.Create(entryPrefab, left, "PrevColor", PreviousGlyph, MenuEntry.ActionSize,
                              CyclerHeight, () => onStep?.Invoke(-1), out _);
 
-            RectTransform right = Slice(cyclerRow, "RightSlot", CyclerWidth - ChevronWidth,
+            RectTransform right = UIBuilder.Slice(cyclerRow, "RightSlot", CyclerWidth - ChevronWidth,
                                        ChevronWidth);
             MenuEntry.Create(entryPrefab, right, "NextColor", NextGlyph, MenuEntry.ActionSize,
                              CyclerHeight, () => onStep?.Invoke(1), out _);
 
-            RectTransform middle = Slice(cyclerRow, "Value", ChevronWidth,
+            RectTransform middle = UIBuilder.Slice(cyclerRow, "Value", ChevronWidth,
                                         CyclerWidth - ChevronWidth * 2f);
 
             // The swatch itself, because a colour's name is not a colour. "Aqua" and "Cyan" are
@@ -607,19 +863,6 @@ namespace SpaceGame.Presentation
             RectTransform rect = UIBuilder.Rect(name, parent);
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
             rect.sizeDelta = new Vector2(width, height);
-            return rect;
-        }
-
-        /// <summary>A fixed-width column inside a row, measured from its left edge.</summary>
-        private static RectTransform Slice(RectTransform parent, string name, float fromLeft,
-            float width)
-        {
-            RectTransform rect = UIBuilder.Rect(name, parent);
-            rect.anchorMin = new Vector2(0f, 0f);
-            rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 0.5f);
-            rect.offsetMin = new Vector2(fromLeft, 0f);
-            rect.offsetMax = new Vector2(fromLeft + width, 0f);
             return rect;
         }
     }

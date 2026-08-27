@@ -337,8 +337,25 @@ namespace SpaceGame.Items
 
         // ── Mass ───────────────────────────────────────────────────────────────
 
-        private float EstimateMass()
+        private float EstimateMass() => EstimateMassOf(gameObject);
+
+        /// <summary>
+        /// What a creature weighs, without needing a tether on it.
+        ///
+        /// <para>
+        /// Static and public because the estimate is a pure function of a GameObject and more than
+        /// one system wants it — <see cref="SnareTether"/> weighs a netted creature the same way.
+        /// Reaching it through <c>Ensure(creature).Mass</c> instead would do two wrong things:
+        /// leave a <see cref="LassoTether"/> component on every creature that was merely weighed,
+        /// and answer <see cref="MinMass"/> for any creature that has never been roped, because
+        /// the instance field is only filled in by <see cref="Bind"/>.
+        /// </para>
+        /// </summary>
+        public static float EstimateMassOf(GameObject creature)
         {
+            if (creature == null) return MinMass;
+
+            Rigidbody body = creature.GetComponentInParent<Rigidbody>();
             if (body != null) return Mathf.Clamp(body.mass, MinMass, MaxMass);
 
             // The BIGGEST collider, not the first one found. A creature's hierarchy is full of
@@ -346,7 +363,7 @@ namespace SpaceGame.Items
             // of them can come back first, which would weigh a walker by its own mouth.
             float volume = 0f;
 
-            foreach (Collider collider in GetComponentsInChildren<Collider>())
+            foreach (Collider collider in creature.GetComponentsInChildren<Collider>())
             {
                 if (collider == null || collider.isTrigger) continue;
 

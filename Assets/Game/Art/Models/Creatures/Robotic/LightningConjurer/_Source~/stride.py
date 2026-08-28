@@ -8,7 +8,7 @@ prev=None; vels=[]
 samples=[]
 for f in range(1,74):
     sc.frame_set(f); bpy.context.view_layer.update()
-    sh=arm.pose.bones["Shin.L"]; ft=arm.pose.bones["Foot.L"]
+    sh=arm.pose.bones["Knee_L"]; ft=arm.pose.bones["Ankle_L"]
     ank=sh.tail.copy(); toe=ft.tail.copy()
     contact=min(ank.z, toe.z)          # lowest point of the foot
     samples.append((f, ank.x, ank.z, toe.x, toe.z, contact))

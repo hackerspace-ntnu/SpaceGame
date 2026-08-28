@@ -60,8 +60,8 @@ for f, k in ((1,0.0), (31,1.0), (61,0.0), (91,-1.0), (120,0.0)):
         "Forearm.R":  ('Y',  5.0*k),
         "Hand.L":     ('Y',  4.0*k),
         "Hand.R":     ('Y', -4.0*k),
-        "Thigh.L":    ('Y',  1.0*k),
-        "Thigh.R":    ('Y', -1.0*k),
+        "Hip_L":    ('Y',  1.0*k),
+        "Hip_R":    ('Y', -1.0*k),
     })
 for f, ang in ((1,0), (120,90)):        # halo keeps turning; 90 deg tiles seamlessly on a 4-fold-symmetric cube
     key(f, {"Halo": ('Z', ang)})
@@ -115,9 +115,9 @@ def leg_pose(side, phase):
     # Counter-rotate the foot by the shin's total world angle so the sole stays
     # parallel to the ground, then add the natural toe-down / toe-up pitch.
     foot = -(thigh + knee) + FT * math.sin(phase * 2 * math.pi)
-    return {f"Thigh.{side}": ('Y', thigh),
-            f"Shin.{side}":  ('Y', knee),
-            f"Foot.{side}":  ('Y', foot)}
+    return {f"Hip_{side}": ('Y', thigh),
+            f"Knee_{side}":  ('Y', knee),
+            f"Ankle_{side}":  ('Y', foot)}
 
 for i in range(0, WALK_FRAMES + 1, 3):
     f = i + 1

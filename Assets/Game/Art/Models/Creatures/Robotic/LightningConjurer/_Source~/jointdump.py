@@ -8,7 +8,7 @@ print(f"{'f':>3} {'hipX':>7}{'hipZ':>7} {'kneeX':>7}{'kneeZ':>7} {'ankX':>7}{'an
 for f in range(1,42,4):
     sc.frame_set(f)
     bpy.context.view_layer.update()
-    th=arm.pose.bones["Thigh.L"]; sh=arm.pose.bones["Shin.L"]; ft=arm.pose.bones["Foot.L"]
+    th=arm.pose.bones["Hip_L"]; sh=arm.pose.bones["Knee_L"]; ft=arm.pose.bones["Ankle_L"]
     hip=th.head.copy(); knee=th.tail.copy(); ank=sh.tail.copy(); toe=ft.tail.copy()
     # signed forward offset of knee from the straight hip->ankle line, in +X
     t=(knee.z-hip.z)/(ank.z-hip.z) if abs(ank.z-hip.z)>1e-6 else 0

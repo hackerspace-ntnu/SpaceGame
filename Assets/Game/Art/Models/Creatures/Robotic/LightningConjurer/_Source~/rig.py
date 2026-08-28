@@ -2,6 +2,16 @@
 # Creates one armature at the world origin with an identity transform and rigid
 # bone-parents every existing part to it. No mesh data, object transform, or
 # existing armature is modified.
+#
+# STEP 1 OF 4. The leg bones this creates are named Thigh/Shin/Foot, which is not
+# the naming SpaceGame's procedural IK locomotion discovers limbs by, and it has
+# no azimuth or sole-roll joint and no hinge pins. walkerize.py fixes all three on
+# the rig this produces. From a cold start the order is:
+#
+#     rig.py -> walkerize.py -> anim.py -> export.py
+#
+# anim.py already keys the WALKERIZED names (Hip_/Knee_/Ankle_), so running it
+# before walkerize.py will fail on a missing bone.
 import bpy, math
 from mathutils import Matrix, Vector
 

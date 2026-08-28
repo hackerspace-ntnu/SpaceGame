@@ -10,6 +10,30 @@
 // Re-running is safe and is the intended workflow. Re-export the FBX, run this,
 // and the controller, prefab and scene instance are rebuilt in place.
 //
+// ---- the legs are IK, not animation ------------------------------------
+//
+// This creature does NOT walk on its baked Walk clip. It walks on the project's
+// procedural IK locomotion (Assets/Game/Scripts/Locomotion), through
+// ConjurerLocomotion + ConjurerDriver, exactly as the ostrich, the horse, the crab
+// and the humanoid robot do.
+//
+// That was a deliberate swap and it cost a re-rig. The baked walk was never
+// foot-locked -- _Source~/stride.py measures the planted foot sliding across a
+// range of 6.6 to 11.5 m/s about its mean, which is the skating you cannot tune
+// out of a clip that has no idea where the ground is. LeggedLocomotion chooses a
+// foothold against the real ground each step, so the feet stay where they are put,
+// on terrain, on slopes, at any speed the driver asks for.
+//
+// The rig had to change to be discoverable at all: WalkerRig finds limbs by the
+// names Coxa_/Hip_/Knee_/Ankle_/Foot_ and measures every hinge off a modelled pin.
+// _Source~/walkerize.py does that conversion and verifies it before saving. The
+// cold-start order is now rig.py -> walkerize.py -> anim.py -> export.py.
+//
+// The Idle clip is still used, and still comes from anim.py. It drives the halo,
+// the eyelid, the floating arms and the hover -- everything that is NOT a leg. The
+// Walk clip is still imported but nothing plays it; it is kept because it is the
+// one-line fallback if the IK ever has to be backed out.
+//
 // Re-run from: Tools > Creatures > Build Lightning Conjurer
 using FirstGearGames.SmoothCameraShaker;
 using System.Linq;
@@ -18,6 +42,11 @@ using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using SpaceGame.Agents;
+using SpaceGame.Core.Persistence;
+using SpaceGame.Creatures;
+using SpaceGame.Creatures.Conjurer;
+using SpaceGame.Locomotion;
 
 namespace SpaceGame.EditorTools
 {
@@ -35,6 +64,18 @@ namespace SpaceGame.EditorTools
         private const string MaterialDir = "Assets/Game/Art/Materials/Palette";
         private const string ShakeDir = "Assets/Game/ScriptableObjects/Shake";
         private const string ShakeDataPath = ShakeDir + "/ConjurerFootstepShake.asset";
+        private const string FactionDir = "Assets/Game/ScriptableObjects/Factions/Core";
+        private const string RobotFactionPath = FactionDir + "/RobotFaction.asset";
+        private const string RelationshipsPath = FactionDir + "/GlobalRelationships.asset";
+
+        /// How close a player must come before the creature wakes up, in metres.
+        ///
+        /// This is the whole of the brief's first half and it is a SMALL number for a
+        /// creature 18.1 m tall -- the player is inside the thing's own footprint before it
+        /// reacts, close enough to look up at it. That is the intended effect: it reads as
+        /// something inert that you walk up to and disturb, not as a sentry with a picket
+        /// line. Raise it if the creature should notice you across a clearing instead.
+        private const float ActivationRange = 10f;
 
         /// One URP material per palette entry the model uses.
         ///
@@ -97,22 +138,16 @@ namespace SpaceGame.EditorTools
         /// scaling the armature: see ConfigureImporter.
         private static float Scale => TargetHeight / (BlenderTop - BlenderFloor);
 
-        /// Ground speed at which the Walk clip's feet skate least, in m/s.
+        /// Ground speed at which the Walk clip's feet skated least, in m/s.
         ///
-        /// MEASURED, not derived. A closed form over the thigh swing alone ignores
-        /// the knee: the shin flexes through swing and carries the contact further
-        /// back than the hip angle by itself accounts for. stride.py samples the planted
-        /// foot's actual backward velocity across the stance frames and reports
-        /// the mean, which is this number. Re-run it after ANY change to SW, KN or
-        /// the cycle length in anim.py.
-        ///
-        /// Unlike the golem's clips this walk is NOT foot-locked -- there is no IK
-        /// pinning a contact -- so the instantaneous speed varies over stance
-        /// (measured range 6.6 to 11.5 m/s about this mean). Matching the mean
-        /// minimises the skating; it does not eliminate it.
-        ///
-        /// This is the number to put in AgentAnimatorDriver.animatorSpeedScale as
-        /// `groundSpeed / StrideSpeed` once this creature gets a motor.
+        /// HISTORICAL. Nothing reads it any more: the legs are solved by
+        /// ConjurerLocomotion, which derives its own top speed from the measured
+        /// stride and cadence rather than from a clip. Kept because it is the
+        /// number that made the case for the swap -- _Source~/stride.py reports the
+        /// planted foot's instantaneous speed varying from 6.6 to 11.5 m/s about
+        /// this mean, and that spread IS the skating. It is also the sanity check
+        /// on the IK: LeggedLocomotion.MaxSpeed should land in the same
+        /// neighbourhood, because it is the same legs at the same cadence.
         private const float StrideSpeed = 8.99f;
 
         private readonly struct Clip
@@ -125,14 +160,6 @@ namespace SpaceGame.EditorTools
             }
         }
 
-        private const float Fps = 30f;
-
-        /// Frames where a foot's lowest point reaches the ground in the Walk clip,
-        /// measured by _Source~/contacts.py rather than eyeballed. The two sit
-        /// exactly 36 frames apart, which is half of the 72-frame cycle -- the
-        /// check that the gait is actually symmetric.
-        private static readonly int[] FootPlantFrames = { 7, 43 };
-
         // Frame ranges match the actions authored in anim.py. Both are cycles whose
         // last frame duplicates the first, so they loop without a seam. Slowed from
         // 40/90 to 72/120 frames when the creature doubled in size.
@@ -141,19 +168,6 @@ namespace SpaceGame.EditorTools
             new Clip("Idle", "ConjurerRig|Idle", 1, 120),
             new Clip("Walk", "ConjurerRig|Walk", 1, 73),
         };
-
-        /// One event per footfall, at the frame the contact actually lands.
-        /// AnimationEvent.time is seconds from the clip start, and the clip starts at
-        /// frame 1, hence (frame - 1) / fps.
-        private static AnimationEvent[] FootPlantEvents()
-        {
-            return FootPlantFrames.Select(f => new AnimationEvent
-            {
-                time = (f - 1) / Fps,
-                functionName = "OnFootPlant",
-                floatParameter = 1f,
-            }).ToArray();
-        }
 
         /// A heavier, shorter shake than DamageShake: a footfall is a single vertical
         /// jolt that dies quickly, not the sustained rattle of taking a hit.
@@ -190,6 +204,16 @@ namespace SpaceGame.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// Run just this creature's rig checks, headless, and write the result to
+        /// Temp/headless_tests.txt.
+        ///
+        /// The Test Runner window carries some six hundred tests and these five are needles in it.
+        /// More to the point, the thing they check -- whether the FBX round trip preserved a rig
+        /// the IK can actually bind to -- is the question you want answered right after a re-export
+        /// and right before wondering why the creature is standing in the ground.
+        [MenuItem("Tools/Creatures/Verify Lightning Conjurer Rig")]
+        private static void VerifyRig() => HeadlessTestRunner.RunEditMode(".*ConjurerRigDiscovery.*");
+
         [MenuItem("Tools/Creatures/Build Lightning Conjurer")]
         public static void Build()
         {
@@ -209,8 +233,29 @@ namespace SpaceGame.EditorTools
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+
+            // A state with no MOTION is the failure worth catching -- that is what an FBX
+            // whose clips did not import produces, and it is invisible in the inspector until
+            // something plays it.
+            //
+            // Deliberately NOT checking parameters. This controller is meant to have none:
+            // there is no locomotion blend tree to drive and no AgentAnimatorDriver to write
+            // SpeedX/SpeedY, because the legs are solved by ConjurerLocomotion. Requiring a
+            // parameter here rejected a perfectly good controller.
+            AnimatorState[] states = controller.layers[0].stateMachine.states
+                .Select(c => c.state).ToArray();
+            if (states.Length == 0 || states.Any(st => st.motion == null))
+            {
+                Debug.LogError("[LightningConjurer] Controller has a state with no motion - " +
+                               "not reporting success. The FBX's clips are missing; re-run " +
+                               "_Source~/walkerize.py (it retargets and verifies the actions) " +
+                               "and re-export.");
+                return;
+            }
+
             Debug.Log($"[LightningConjurer] Built. Height {TargetHeight:0.00} m " +
-                      $"(scale {Scale:0.0000}), stride speed {StrideSpeed:0.00} m/s.");
+                      $"(scale {Scale:0.0000}); legs solved by ConjurerLocomotion " +
+                      $"(the old baked walk measured {StrideSpeed:0.00} m/s).");
         }
 
         /// Creates or updates a URP material per palette entry, in a shared folder
@@ -302,7 +347,11 @@ namespace SpaceGame.EditorTools
             {
                 name = c.Name,
                 takeName = c.Take,
-                events = c.Name == "Walk" ? FootPlantEvents() : new AnimationEvent[0],
+                // No animation events. The footfall shake is driven off the gait's own
+                // swing-to-stance edge now (LeggedFootstepShake), because a procedural
+                // gait's cadence changes with speed and terrain and a baked event's
+                // cannot. Leaving the events here as well would double-fire.
+                events = new AnimationEvent[0],
                 firstFrame = c.First,
                 lastFrame = c.Last,
                 loopTime = true,
@@ -333,6 +382,14 @@ namespace SpaceGame.EditorTools
 
             EditorUtility.SetDirty(importer);
             importer.SaveAndReimport();
+
+            // SaveAndReimport does not guarantee the clips are queryable by the time
+            // it returns. Without this the very next LoadAllAssetsAtPath can come
+            // back with no AnimationClips at all, the blend tree gets no motions,
+            // and the build finishes "successfully" with an empty controller --
+            // which is exactly what happened on the second run of this builder.
+            AssetDatabase.ImportAsset(
+                Fbx, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
         }
 
         private static AnimationClip FindClip(string name)
@@ -341,10 +398,35 @@ namespace SpaceGame.EditorTools
                 .OfType<AnimationClip>()
                 .FirstOrDefault(c => c.name == name);
             if (clip == null)
-                Debug.LogError($"[LightningConjurer] Clip '{name}' missing from the FBX.");
+            {
+                string found = string.Join(", ", AssetDatabase.LoadAllAssetsAtPath(Fbx)
+                    .OfType<AnimationClip>().Select(c => c.name));
+                throw new System.InvalidOperationException(
+                    $"[LightningConjurer] Clip '{name}' missing from the FBX. " +
+                    $"Clips present: [{(found.Length == 0 ? "none" : found)}]. " +
+                    "Building on would produce an animator with no motion. An FBX that " +
+                    "imports with NO clips at all usually means an action in the .blend is " +
+                    "keying bones that no longer exist -- the exporter skips those silently. " +
+                    "Re-run _Source~/walkerize.py, which retargets and verifies them.");
+            }
             return clip;
         }
 
+        /// One state, one clip, no parameters.
+        ///
+        /// There is no locomotion blend tree any more and no AgentAnimatorDriver to
+        /// drive one. The legs belong to ConjurerLocomotion, which poses them in
+        /// LateUpdate -- after the Animator has written its pass -- so anything this
+        /// controller had to say about them would be overwritten every frame anyway.
+        ///
+        /// What the Animator still owns is everything that is NOT a leg: the halo's
+        /// turn, the eyelid, the floating arms, the spine and the hover. That is the
+        /// whole of the Idle clip, and losing it to go procedural would have meant
+        /// reimplementing it as a component for no gain.
+        ///
+        /// The one clip has to keep playing while the creature walks, which is why
+        /// there is no transition and no Walk state: Idle is not an idle POSE here,
+        /// it is the creature's ambient life.
         private static AnimatorController BuildController()
         {
             EnsureFolder(ControllerDir);
@@ -352,45 +434,10 @@ namespace SpaceGame.EditorTools
             AnimatorController controller =
                 AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
 
-            // These names are AgentAnimatorDriver's, verbatim, misspellings and all:
-            // it calls SetFloat/SetBool on them unconditionally and a parameter it
-            // cannot find is a warning every frame. They are here so this creature
-            // can be dropped onto an AgentController later without a second pass.
-            controller.AddParameter("SpeedX", AnimatorControllerParameterType.Float);
-            controller.AddParameter("SpeedY", AnimatorControllerParameterType.Float);
-            controller.AddParameter("FallSpeed", AnimatorControllerParameterType.Float);
-            controller.AddParameter("IsGrounded", AnimatorControllerParameterType.Bool);
-            controller.AddParameter("IsImmobalized", AnimatorControllerParameterType.Bool);
-            controller.AddParameter("IsAiming", AnimatorControllerParameterType.Bool);
-
-            var tree = new BlendTree
-            {
-                name = "Locomotion",
-                blendType = BlendTreeType.Simple1D,
-                blendParameter = "SpeedY",
-                useAutomaticThresholds = false,
-            };
-            AssetDatabase.AddObjectToAsset(tree, controller);
-            tree.AddChild(FindClip("Idle"), 0f);
-            tree.AddChild(FindClip("Walk"), StrideSpeed);
-
             AnimatorStateMachine root = controller.layers[0].stateMachine;
-            AnimatorState locomotion = root.AddState("Locomotion");
-            locomotion.motion = tree;
-            root.defaultState = locomotion;
-
-            // There is no motor on this prefab yet, so nothing writes SpeedY at
-            // runtime. Defaulting it to the stride speed means dropping the prefab
-            // in a scene and pressing play shows the walk cycle rather than a
-            // creature standing still. An AgentAnimatorDriver overwrites this every
-            // frame once one is attached, so it costs nothing later.
-            AnimatorControllerParameter[] ps = controller.parameters;
-            foreach (AnimatorControllerParameter p in ps)
-            {
-                if (p.name == "SpeedY") p.defaultFloat = StrideSpeed;
-                if (p.name == "IsGrounded") p.defaultBool = true;
-            }
-            controller.parameters = ps;
+            AnimatorState idle = root.AddState("Idle");
+            idle.motion = FindClip("Idle");
+            root.defaultState = idle;
 
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();
@@ -449,14 +496,286 @@ namespace SpaceGame.EditorTools
             capsule.radius = BlenderBodyWidth * Scale * 0.5f;   // tracks the model, not a magic number
             capsule.center = new Vector3(0f, TargetHeight * 0.5f, 0f);
 
-            // Footstep camera shake, driven by animation events on the Walk clip.
+            // Kinematic, gravity off. ConjurerLocomotion writes the body transform directly
+            // (invariant I4 -- it is the single owner of the pose), so a dynamic body would
+            // fight it every frame and win. The Rigidbody is here anyway because without one
+            // every collider on this object is a STATIC collider, and moving static colliders
+            // makes PhysX rebuild its broadphase every frame.
+            var body = root.AddComponent<Rigidbody>();
+            body.isKinematic = true;
+            body.useGravity = false;
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+            body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+
+            WireLocomotion(root);
+            WireBrain(root);
+
+            // Footstep camera shake. No longer driven by animation events -- see
+            // LeggedFootstepShake, which watches the gait's own swing-to-stance edge.
             var footstep = root.AddComponent<Presentation.FootstepCameraShake>();
             var shake = AssetDatabase.LoadAssetAtPath<ShakeData>(ShakeDataPath);
             if (shake != null) SetField(footstep, "shakeData", shake);
+            root.AddComponent<Presentation.LeggedFootstepShake>();
+
+            // TEMPORARY -- remove once the creature walks. Prints the acquisition chain in order
+            // once a second, so the first line that reads wrong IS the fault.
+            root.AddComponent<ConjurerDebugReadout>();
+
+            // Save support, decided by the POLICY rather than by a list written out here.
+            //
+            // AgentController implements IPersistentEntity, so this creature is save-eligible with
+            // no extra opt-in -- but the savers still have to be present or it reloads at its
+            // authored position with its gait mid-stride. They go in the BUILDER because this
+            // script overwrites the prefab wholesale on every re-run, which is exactly how the
+            // Golem lost its SaveableEntity.
+            //
+            // SaveablePolicy.Ensure is the same call Tools > Save System > Wire Saveable Prefabs
+            // makes, and the same one PersistenceProbe asserts against. Naming the components here
+            // instead -- which is what this did first -- means the builder holds a second opinion
+            // about which savers this prefab needs, and the moment the policy learns about a new
+            // one the two disagree and the persistence sweep fails. Asking the policy cannot drift.
+            if (SaveablePolicy.Ensure(root, out string savers))
+                Debug.Log($"[LightningConjurer] Save wiring added: {savers}");
+
+            // The savers are on the prefab now, but its prefabId is NOT: that lives in the asset
+            // file, and SaveAsPrefabAsset below replaces the file wholesale, so every rebuild
+            // blanks it. Only Tools > Save System > Wire Saveable Prefabs can stamp it back, and
+            // it is deliberately not called from here because it sweeps every prefab in the
+            // project -- far more than building one creature should touch. So: say so, every time,
+            // rather than leaving it to be remembered.
+            Debug.LogWarning("[LightningConjurer] Rebuilt prefab needs its save id re-stamped. " +
+                             "Run Tools > Save System > Wire Saveable Prefabs, or SaveWiringOnDisk" +
+                             "Tests will fail and the creature will be dropped on load in a build.");
 
             GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
             return saved;
+        }
+
+        /// The IK walker: ConjurerLocomotion solves the legs, ConjurerDriver commands them.
+        ///
+        /// Almost every number here is a consequence of ONE fact -- this creature is 18.1 m
+        /// tall, six times the player. A biped's numbers do not scale linearly with height,
+        /// and the two places that bite are cadence and lookahead:
+        ///
+        ///   * Step frequency in nature falls off roughly as 1/sqrt(length), which is the
+        ///     reasoning already written into anim.py's WALK note when the cycle was slowed
+        ///     to 2.4 s. stepDuration carries that decision now.
+        ///   * Every distance the DRIVER works in -- stop distance, corner radius, NavMesh
+        ///     sample distance -- is a distance this machine crosses in a fraction of a
+        ///     stride. Left at the humanoid's defaults it grinds against corners it is
+        ///     already standing on.
+        private static void WireLocomotion(GameObject root)
+        {
+            // WalkerRig's OWN discovery, not a lookup by name.
+            //
+            // This used to be `model.Find("ConjurerRig")`, which failed for a boring reason --
+            // Transform.Find searches direct children only, and the armature is not one -- but
+            // it was the wrong question either way. A name says nothing about whether the rig
+            // is discoverable; FindArmature picks whichever transform holds the most limb
+            // ROOTS, which is exactly the answer LeggedLocomotion will reach at runtime.
+            //
+            // So this asks the runtime's question at build time. If it comes up short here, it
+            // would have come up short in play, and the difference is an error naming the cause
+            // rather than a creature standing inert in a scene with a clean console.
+            Transform armature = WalkerRig.FindArmature(root.transform);
+            int legs = WalkerRig.Build(armature, root.transform).Count;
+            if (legs != 2)
+            {
+                Debug.LogError(
+                    $"[LightningConjurer] Discovered {legs} limb(s) under " +
+                    $"'{(armature != null ? armature.name : "<nothing>")}', expected 2 legs. " +
+                    "The rig is not in the walker convention (Coxa_/Hip_/Knee_/Ankle_/Foot_ " +
+                    "plus a *Pin* mesh per joint). Re-run _Source~/walkerize.py and re-export.",
+                    root);
+            }
+
+            ConjurerLocomotion loco = root.AddComponent<ConjurerLocomotion>();
+            var so = new SerializedObject(loco);
+            SetProp(so, "armatureRoot", armature);
+            SetProp(so, "body", root.transform);
+
+            // Joint travel. The coxa is NOT the stride on a biped -- the feet sit under the
+            // hips, so a yaw arc buys almost nothing. Its job is holding a planted foot still
+            // while the body turns over it, and 30 degrees is plenty for that.
+            SetFloat(so, "yawRange", 30f);
+            SetFloat(so, "hipRange", 45f);
+            SetFloat(so, "kneeRange", 60f);
+            SetFloat(so, "ankleRange", 45f);
+            SetFloat(so, "rollRange", 25f);
+
+            // 1.1 s of swing, against the baked clip's ~1.0 s at a 2.4 s cycle. Deliberately
+            // ponderous: a giant that steps at a human cadence reads as a toy.
+            SetFloat(so, "stepDuration", 1.1f);
+            SetFloat(so, "stepClearance", 0.08f);    // fraction of reach; ~0.9 m on this leg
+            SetFloat(so, "obstacleClearance", 1.5f);
+
+            // Measure the ride height rather than guessing it. The rig's origin sits at foot
+            // level, so a hand-authored number here launches the machine on frame one.
+            SetBool(so, "autoCalibrateRideHeight", true);
+            SetFloat(so, "heightSmooth", 5f);
+
+            SetFloat(so, "fallGravity", 20f);
+            SetFloat(so, "maxFallSpeed", 40f);
+            // Scaled off the machine, not the default 0.25 m. A foot on a leg this long sits
+            // further from its idealised contact than a person's does, and too tight a
+            // tolerance reports a planted foot as stranded in the air -- which reads as the
+            // creature falling through the world the moment it steps onto anything uneven.
+            SetFloat(so, "footGroundTolerance", 0.6f);
+
+            // Every layer. Left unset this serialises as 0, and a walker whose ground mask
+            // matches nothing finds no ground at all: it never snaps down, never places a
+            // foothold, and stands perfectly still looking exactly like a rig fault. The
+            // machine's own colliders are rejected by WalkerGround regardless of mask.
+            SetInt(so, "groundMask", ~0);
+            SetFloat(so, "rayStartAbove", 6f);
+            SetFloat(so, "rayLength", 120f);
+            SetBool(so, "snapToGroundOnStart", true);
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            ConjurerDriver driver = root.AddComponent<ConjurerDriver>();
+            var dso = new SerializedObject(driver);
+            // Clamped to what the legs can actually carry, so this is a ceiling rather than a
+            // speed. The old baked walk measured 8.99 m/s at this cadence and stride, which is
+            // the neighbourhood ConjurerLocomotion.MaxSpeed should come out in.
+            SetFloat(dso, "moveSpeed", 9f);
+            SetFloat(dso, "turnSpeed", 20f);
+            SetFloat(dso, "acceleration", 1.2f);     // low: this thing has mass
+            // All four sized to the machine. A stride is metres long, so a 1 m corner radius
+            // is a corner it is already past by the time it notices.
+            SetFloat(dso, "defaultStopDistance", 12f);
+            SetFloat(dso, "turnInPlaceAngle", 45f);
+            SetFloat(dso, "cornerArriveRadius", 10f);
+            SetFloat(dso, "navMeshSampleDistance", 25f);
+            SetBool(dso, "autoWalk", false);         // stands still until something provokes it
+            dso.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// Stand still; wake when a player comes inside ActivationRange; then follow.
+        ///
+        /// Composed, not coded. There is no conjurer-specific brain class and there should not
+        /// be one -- this is three stock components and a priority number:
+        ///
+        ///   EntityFaction    makes it visible to targeting at all. Without it the creature
+        ///                    can never acquire anything, silently.
+        ///   AgentTargeting   owns WHO. Every module reads its answer, which is what stops a
+        ///                    creature chasing one entity while facing another.
+        ///   ChaseModule      owns how to get there, at Reactive priority.
+        ///
+        /// The standing still is the ABSENCE of a module. There is deliberately no
+        /// WanderModule and no PatrolModule: with nothing at Fallback priority,
+        /// AgentController.EvaluateModules falls off the end of the ladder and returns
+        /// MoveIntent.Idle, and ConjurerDriver holds position. Adding a wander module later is
+        /// what would break the brief, not what would complete it.
+        private static void WireBrain(GameObject root)
+        {
+            var faction = AssetDatabase.LoadAssetAtPath<FactionDefinition>(RobotFactionPath);
+            var table = AssetDatabase.LoadAssetAtPath<FactionRelationshipTable>(RelationshipsPath);
+            if (faction == null || table == null)
+            {
+                Debug.LogError("[LightningConjurer] Faction assets missing; the creature will " +
+                               "never acquire a target. Expected " + RobotFactionPath + " and " +
+                               RelationshipsPath + ".");
+            }
+
+            // RobotFaction is already Hostile toward PlayerFaction in GlobalRelationships.asset,
+            // so no new row is needed and none should be added -- that table is global, and a
+            // row added here changes every robot in the game.
+            var entityFaction = root.AddComponent<EntityFaction>();
+            SetField(entityFaction, "faction", faction);
+            SetField(entityFaction, "relationshipTable", table);
+
+            // Added explicitly rather than left to AgentController's Awake, because the ranges
+            // below are the entire behaviour and an auto-added component would carry defaults
+            // (35 m acquisition) that are nothing like the brief.
+            var targeting = root.AddComponent<AgentTargeting>();
+            var tso = new SerializedObject(targeting);
+            SetEnum(tso, "relationship", (int)FactionRelationship.Hostile);
+            SetFloat(tso, "acquisitionRange", ActivationRange);
+            // Above acquisition so a player hovering exactly on the line does not flip the
+            // creature between chasing and inert every frame.
+            SetFloat(tso, "loseRange", ActivationRange * 1.4f);
+            // Distance alone decides, which is what "comes within 10 metres" means. With line
+            // of sight required, walking up behind its own leg would leave it inert.
+            SetBool(tso, "requireLineOfSightToAcquire", false);
+            SetFloat(tso, "proximityAcquireRange", ActivationRange);
+            tso.ApplyModifiedPropertiesWithoutUndo();
+
+            var chase = root.AddComponent<ChaseModule>();
+            var cso = new SerializedObject(chase);
+            // Set EXPLICITLY. Unity does not call Reset() for AddComponent, so a module added
+            // from a script keeps the serialized default of Fallback (0) -- which here would
+            // leave the one module that makes this creature move sitting at the bottom of the
+            // ladder for no reason.
+            SetInt(cso, "priority", ModulePriority.Reactive);
+            // Sized against the ACQUISITION RANGE, not just against the creature.
+            //
+            // This was 8 m, reasoned from the creature's size alone -- an 18 m robot stopping at
+            // ChaseModule's default 1.3 m would put a foot on the player. True, and useless: with
+            // ActivationRange at 10 m it left a two-metre chase band. The creature noticed you at
+            // 10 m, took two steps, decided it had arrived, and stood there -- which from the
+            // outside is indistinguishable from never having reacted at all.
+            //
+            // The floor that actually matters is the capsule: its radius is BlenderBodyWidth/2
+            // (~2.4 m), so anything under that walks the body through the player. 4 m clears it
+            // with margin and leaves a real chase band -- 4 m out to the 15 m lose range.
+            SetFloat(cso, "chaseStopDistance", 4f);
+            SetFloat(cso, "chaseSpeedMultiplier", 1f);
+            cso.ApplyModifiedPropertiesWithoutUndo();
+
+            var agent = root.AddComponent<AgentController>();
+            var aso = new SerializedObject(agent);
+            // The driver IS the motor: LeggedDriver implements IMovementMotor.
+            SetProp(aso, "MotorComponent", root.GetComponent<ConjurerDriver>());
+            // Left null on purpose. AgentAnimatorDriver drives a locomotion blend tree, and
+            // this creature has no locomotion clips -- its legs are IK and its Animator only
+            // plays the ambient Idle.
+            SetProp(aso, "animatorDriver", null);
+            SetFloat(aso, "nearbyAgentScanRadius", 0f);   // no flocking; skips the neighbour scan
+            aso.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // Private [SerializeField] fields are not reachable from an editor script any other
+        // way, and making them public purely so this could set them would widen the runtime API
+        // for a build-time convenience. A missing name warns loudly rather than silently doing
+        // nothing -- a typo here is a tuning value that never lands.
+        private static SerializedProperty Find(SerializedObject so, string field)
+        {
+            SerializedProperty p = so.FindProperty(field);
+            if (p == null)
+                Debug.LogWarning($"[LightningConjurer] {so.targetObject.GetType().Name} has no " +
+                                 $"serialized field '{field}'; it was renamed or removed.");
+            return p;
+        }
+
+        private static void SetProp(SerializedObject so, string field, Object value)
+        {
+            SerializedProperty p = Find(so, field);
+            if (p != null) p.objectReferenceValue = value;
+        }
+
+        private static void SetFloat(SerializedObject so, string field, float value)
+        {
+            SerializedProperty p = Find(so, field);
+            if (p != null) p.floatValue = value;
+        }
+
+        private static void SetInt(SerializedObject so, string field, int value)
+        {
+            SerializedProperty p = Find(so, field);
+            if (p != null) p.intValue = value;
+        }
+
+        private static void SetBool(SerializedObject so, string field, bool value)
+        {
+            SerializedProperty p = Find(so, field);
+            if (p != null) p.boolValue = value;
+        }
+
+        private static void SetEnum(SerializedObject so, string field, int value)
+        {
+            SerializedProperty p = Find(so, field);
+            if (p != null) p.enumValueIndex = value;
         }
 
         private static void AddToTestScene(GameObject prefab)

@@ -4,7 +4,7 @@
 // Assets/Game/Tests/EditMode/ has its own asmdef and cannot reference it. MenuStepperTests.cs
 // carries the same note.
 using NUnit.Framework;
-using SpaceGame.Presentation;
+using SpaceGame.Presentation.Lobbies;
 
 namespace SpaceGame.Tests
 {

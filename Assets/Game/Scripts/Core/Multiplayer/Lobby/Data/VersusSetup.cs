@@ -1,6 +1,6 @@
 using SpaceGame.Gameplay;
 
-namespace SpaceGame.Core
+namespace SpaceGame.Core.Lobbies
 {
     /// <summary>
     /// The team shape a VS lobby is created or retuned with: how many teams, how big each one is.
@@ -15,7 +15,7 @@ namespace SpaceGame.Core
     ///
     /// <para>
     /// <see cref="Seats"/> is what the lobby advertises as its <c>MaxPlayers</c>. It is
-    /// <b>NOT</b> what Relay allocates: a later task allocates Relay for
+    /// <b>NOT</b> what Relay allocates: <see cref="LobbySession.CreateAsync"/> allocates Relay for
     /// <see cref="VersusRules.MaxSeats"/> — the hard ceiling — once, at creation, because Relay's
     /// allocation size cannot change afterward. A host who grew the roster past whatever this
     /// struct's product happened to be at creation would be advertising seats nobody could

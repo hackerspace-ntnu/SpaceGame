@@ -24,7 +24,6 @@
 // and hands a statement back to DayNightCycle; the cycle remains the only thing that knows what time
 // it is. With no NetworkManager at all this component is simply never spawned, nothing subscribes,
 // and the offline single-player path in DayNightCycle is untouched.
-using System;
 using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.World;
@@ -33,57 +32,12 @@ namespace SpaceGame.Core
 {
     /// <summary>
     /// Replicates the day/night anchor once, so a client joining a world the host LOADED derives the
-    /// saved hour instead of the authored one.
+    /// saved hour instead of the authored one. The statement itself is a <see cref="SkyAnchor"/>.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(NetworkObject))]
     public class SkyNetwork : NetworkBehaviour
     {
-        /// <summary>
-        /// What the server states about the sky: at clock reading <see cref="SkyAnchor.Clock"/> the
-        /// world reads <see cref="SkyAnchor.Phase"/>.
-        /// <para>
-        /// One struct rather than two NetworkVariables, because the two numbers are only meaningful
-        /// together. Netcode reads a behaviour's variables one at a time and raises each callback as
-        /// it goes, so a separate pair would be observed half-updated — a new phase against a stale
-        /// clock reading is an arbitrary hour, and the sun would be pointed at it before the second
-        /// value landed.
-        /// </para>
-        /// </summary>
-        public struct SkyAnchor : INetworkSerializable, IEquatable<SkyAnchor>
-        {
-            /// <summary>
-            /// False until the server has actually said something. Without it the default value —
-            /// phase 0 at clock 0 — is indistinguishable from a genuine statement that the world is
-            /// at midnight, and every client joining before the host's sun had woken up would be
-            /// told so.
-            /// </summary>
-            public bool Stated;
-
-            /// <summary>Time of day, 0 midnight to 1 midnight.</summary>
-            public float Phase;
-
-            /// <summary>The reading of the shared clock that <see cref="Phase"/> was measured at.</summary>
-            public double Clock;
-
-            public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
-            {
-                serializer.SerializeValue(ref Stated);
-                serializer.SerializeValue(ref Phase);
-                serializer.SerializeValue(ref Clock);
-            }
-
-            /// <summary>
-            /// Netcode compares the old and new value before it marks the variable dirty, so an
-            /// exact re-statement of the same anchor costs nothing. This is what makes it safe for
-            /// <c>Publish</c> to run on every announcement without rate-limiting itself.
-            /// </summary>
-            public bool Equals(SkyAnchor other) =>
-                Stated == other.Stated &&
-                Phase.Equals(other.Phase) &&
-                Clock.Equals(other.Clock);
-        }
-
         // Server-write, everyone-read: the hour is the server's to state. Not Owner — this object is
         // scene-placed, so its owner is the server anyway, and Owner permission on a server-owned
         // object is a permission nobody holds.

@@ -1,24 +1,24 @@
 using System;
 
-namespace SpaceGame.Core
+namespace SpaceGame.Core.Lobbies
 {
     /// <summary>
     /// Everything a lobby view needs to draw the roster, taken off a <c>Lobby</c> once per poll.
     ///
     /// <para>
     /// Deliberately free of <c>Unity.Services.Lobbies.Models.Lobby</c> and everything else the SDK
-    /// carries. Building one is <see cref="LobbySession"/>'s job — see its <c>Snapshot</c> method —
-    /// and keeping this struct itself off the SDK is what lets the views that read it be exercised
-    /// without a network, an authentication service, or UGS at all: construct one by hand in a test
-    /// or an editor preview, and every view built against it runs unchanged.
+    /// carries. Building one is <see cref="LobbyRoster.Snapshot"/>'s job, and keeping this struct
+    /// itself off the SDK is what lets the views that read it be exercised without a network, an
+    /// authentication service, or UGS at all: construct one by hand in a test or an editor preview,
+    /// and every view built against it runs unchanged.
     /// </para>
     ///
     /// <para>
     /// Every array defaults to <see cref="Array.Empty{T}"/> rather than null when the constructor is
-    /// handed null, and every accessor is index-guarded — the same defensiveness
-    /// <c>LobbySessionOptions</c>'s readers already need, for the same reason: a lobby mid-poll, a
-    /// peer on an older build, or a team index nobody has claimed yet must never turn into a thrown
-    /// exception that kills the roster.
+    /// handed null, and every accessor is index-guarded — the same defensiveness the readers in
+    /// <see cref="LobbyData"/> already need, for the same reason: a lobby mid-poll, a peer on an
+    /// older build, or a team index nobody has claimed yet must never turn into a thrown exception
+    /// that kills the roster.
     /// </para>
     /// </summary>
     public readonly struct RosterSnapshot
@@ -77,6 +77,25 @@ namespace SpaceGame.Core
 
         /// <summary>Whether a team has a free seat under this lobby's team size.</summary>
         public bool HasRoomOn(int team) => HeadsOn(team) < TeamSize;
+
+        /// <summary>
+        /// The swatches every OTHER team wears, so a team's colour can be stepped past the ones
+        /// its rivals already have — see <c>TeamColorRules.Step</c>.
+        /// </summary>
+        public int[] ColorsOfOtherTeams(int team)
+        {
+            bool teamIsOurs = team >= 0 && team < TeamCount;
+            var colors = new int[teamIsOurs ? TeamCount - 1 : TeamCount];
+
+            int slot = 0;
+            for (int other = 0; other < TeamCount; other++)
+            {
+                if (other == team) continue;
+                colors[slot++] = ColorOfTeam(other);
+            }
+
+            return colors;
+        }
 
         private int TeamOf(int slot) => slot >= 0 && slot < Teams.Length ? Teams[slot] : -1;
     }

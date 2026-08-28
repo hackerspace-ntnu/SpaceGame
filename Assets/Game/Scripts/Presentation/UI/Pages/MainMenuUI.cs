@@ -5,6 +5,7 @@ using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
 using SpaceGame.Presentation;
+using SpaceGame.Presentation.Lobbies;
 using SpaceGame.World;
 public class MainMenuUI : MonoBehaviour
 {

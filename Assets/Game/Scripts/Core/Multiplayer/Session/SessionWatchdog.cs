@@ -1,7 +1,8 @@
 using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
-using SpaceGame.Presentation;
+using SpaceGame.Core.Lobbies;
+using SpaceGame.Presentation.Lobbies;
 
 namespace SpaceGame.Core
 {

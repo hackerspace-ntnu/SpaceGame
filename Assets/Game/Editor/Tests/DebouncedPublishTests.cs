@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 using NUnit.Framework;
-using SpaceGame.Core;
+using SpaceGame.Core.Lobbies;
 
 namespace SpaceGame.Tests
 {

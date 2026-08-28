@@ -25,7 +25,7 @@ namespace SpaceGame.Presentation
     /// <para>
     /// Built from <see cref="MenuScreen"/>'s shared page skeleton — <c>Title</c>, <c>Column</c>,
     /// <c>Entry</c> — rather than its own copy of the anchors and constants. This screen sits between
-    /// the main menu and whatever it routes to — the world list, <see cref="LobbyUI"/>, another
+    /// the main menu and whatever it routes to — the world list, <c>LobbyUI</c>, another
     /// instance of itself — all of which clone the menu's own button prefab and draw in its navy
     /// palette; a screen in the middle with its own colours and its own type scale reads as a seam in
     /// a flow that is supposed to be one.

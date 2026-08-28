@@ -6,19 +6,25 @@ All paths are relative to the repository root. Every symbol below exists in the 
 
 | File | Role |
 |---|---|
-| `Assets/Game/Scripts/Core/Multiplayer/NetMessaging.cs` | `NetArg`, `NetHandler`, `NetMsg`, `NetTo`, `NetTarget`, the extension API |
-| `Assets/Game/Scripts/Core/Multiplayer/NetChannel.cs` | Per-entity handler table. Plain MonoBehaviour, `[AddComponentMenu("")]`, added on demand |
-| `Assets/Game/Scripts/Core/Multiplayer/NetRelay.cs` | The wire. `[RequireComponent(typeof(NetworkObject))]`, three RPCs |
-| `Assets/Game/Scripts/Core/Multiplayer/NetAuthority.cs` | Switches off local simulation drivers on machines that do not own the entity |
-| `Assets/Game/Scripts/Core/Multiplayer/Networking.cs` | `static class Network` — `IsNetworked`, `Server`, `Client`, `LocalClientId`, `Simulates`, `Owns`, `Execute` |
-| `Assets/Game/Scripts/Core/Multiplayer/NetworkedTeleport.cs` | Authoritative placement of an owner-driven body |
-| `Assets/Game/Scripts/Core/Multiplayer/ClientNetworkTransform.cs` / `ClientNetworkAnimator.cs` | `OnIsServerAuthoritative() => false` |
-| `Assets/Game/Scripts/Core/Multiplayer/NetworkBootstrap.cs` | Backfills the NetworkManager in-editor, strips inert scene NetworkObjects, `LogRegisteredPrefabCount()` |
-| `Assets/Game/Scripts/Core/Multiplayer/NetworkGameManager.cs` | Per-client spawn flow (`SpawnWhenReady`), scene waits, saved-spawn restore |
-| `Assets/Game/Scripts/Core/Multiplayer/SessionLauncher.cs` | `HostRelayAsync`, `JoinRelayAsync`, `HostDirect`, `HostLocal`, `JoinDirectAsync`, `WaitForClientConnectedAsync`, `ProfileArg` |
-| `Assets/Game/Scripts/Core/Multiplayer/LobbySession.cs`, `LobbySessionOptions.cs` | Lobby lifecycle, `JoinWithConflictRecoveryAsync` |
+| `Assets/Game/Scripts/Core/Multiplayer/Messaging/NetMessaging.cs` | The extension API: `NetOn`/`NetOff`, `NetToServer`/`NetToAll`/`NetToOthers`, `NetSendTo` |
+| `Assets/Game/Scripts/Core/Multiplayer/Messaging/NetArg.cs`, `NetMsg.cs`, `NetHandler.cs`, `NetTo.cs`, `NetTarget.cs` | The payload, the id catalog, the delegate, the addressing. `Vocabulary/` holds the per-message A/B constants (`GrappleVerb`, `LassoVerb`, `SceneEffectPhase`, `AgentAction`) |
+| `Assets/Game/Scripts/Core/Multiplayer/Messaging/NetChannel.cs` | Per-entity handler table. Plain MonoBehaviour, `[AddComponentMenu("")]`, added on demand |
+| `Assets/Game/Scripts/Core/Multiplayer/Messaging/NetRelay.cs` | The wire. `[RequireComponent(typeof(NetworkObject))]`, three RPCs |
+| `Assets/Game/Scripts/Core/Multiplayer/Authority/NetAuthority.cs` | Switches off local simulation drivers on machines that do not own the entity. `SimulationDrivers.cs` beside it is the discovery (`Discover`, `BelongsTo`) |
+| `Assets/Game/Scripts/Core/Multiplayer/Authority/Network.cs` | `static class Network` — `IsNetworked`, `Server`, `Client`, `LocalClientId`, `Simulates`, `Owns`, `Execute` |
+| `Assets/Game/Scripts/Core/Multiplayer/Authority/NetworkedTeleport.cs` | Authoritative placement of an owner-driven body |
+| `Assets/Game/Scripts/Core/Multiplayer/Authority/ClientNetworkTransform.cs` / `ClientNetworkAnimator.cs` | `OnIsServerAuthoritative() => false` |
+| `Assets/Game/Scripts/Core/Multiplayer/Session/NetworkBootstrap.cs` | Backfills the NetworkManager in-editor, strips inert scene NetworkObjects, `LogRegisteredPrefabCount()` |
+| `Assets/Game/Scripts/Core/Multiplayer/Session/SessionLauncher.cs` (+ `.Relay.cs`, `.Direct.cs`) | `HostLocal`, `WaitForClientConnectedAsync`, `Shutdown`; Relay: `HostRelayAsync`, `JoinRelayAsync`; test-only direct: `HostDirect`, `JoinDirectAsync`. `SessionResult.cs` is the return type |
+| `Assets/Game/Scripts/Core/Multiplayer/Session/SessionProfile.cs` | Which UGS profile to sign in under (`Resolve`, `Arg` = `-sgprofile`); `CommandLineArgs.cs` reads the flags |
+| `Assets/Game/Scripts/Core/Multiplayer/Session/SessionExit.cs`, `SessionWatchdog.cs`, `DisconnectHook.cs`, `SessionEndedScreen.cs` | The one way out of a session, the client-side disconnect listener, and what the player reads afterwards |
+| `Assets/Game/Scripts/Core/Multiplayer/Joining/NetworkGameManager.cs` (+ `.Profiles.cs`) | Per-client spawn flow (`SpawnWhenReady`), scene waits; the profile report and saved-spawn restore in the partial |
+| `Assets/Game/Scripts/Core/Multiplayer/Joining/SessionSnapshot.cs` (+ `SnapshotPayload`, `SnapshotCapture`, `SnapshotRestore`) | What a late joiner is handed: ropes and portals, addressed by NetworkObjectId |
+| `Assets/Game/Scripts/Core/Multiplayer/Joining/SkyNetwork.cs`, `SkyAnchor.cs` | Replicates the day/night anchor once for late joiners |
+| `Assets/Game/Scripts/Core/Multiplayer/Players/PlayerIdentity.cs`, `PlayerRoster.cs` | Name and suit colour per player; the roster rows a player list draws |
+| `Assets/Game/Scripts/Core/Multiplayer/Lobby/` (`LobbySession*.cs`, `LobbyJoinRecovery.cs`, `Data/`) | Lobby lifecycle, the 409 sweep, keys/options/readers — see `docs/architecture/Lobby.md` |
 | `Assets/Game/Scripts/Core/Multiplayer/Chat/ChatNetwork.cs` | The one system that cannot ride NetMessaging |
-| `Assets/Game/Scripts/Core/Multiplayer/MultiplayerAutotest.cs` | Two-process client-side test harness |
+| `Assets/Game/Scripts/Core/Multiplayer/Autotest/` (`MultiplayerAutotest.cs`, `AutotestRunner*.cs`, `AutotestProbes.cs`) | Two-process client-side test harness |
 | `Assets/Game/Editor/Multiplayer/NetworkPrefabRegistrar.cs` | `Tools/SpaceGame/Multiplayer/Sync Network Prefabs`, plus `Audit()` |
 | `Assets/Game/Editor/Tests/NetworkPrefabRegistrationTests.cs` | EditMode guard for the prefab list |
 | `Assets/Game/Editor/Tests/NetMessagingTests.cs` | Id uniqueness, `NetArg` serialization, offline dispatch |
@@ -105,7 +111,7 @@ remaining handlers still run.
 copy is how an id gets allocated twice:
 
 ```
-grep -n "public const ushort" Assets/Game/Scripts/Core/Multiplayer/NetMessaging.cs
+grep -n "public const ushort" Assets/Game/Scripts/Core/Multiplayer/Messaging/NetMsg.cs
 ```
 
 Every id carries a one-line comment in that file giving its direction, its channel and what each

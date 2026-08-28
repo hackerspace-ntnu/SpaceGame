@@ -34,7 +34,7 @@ namespace SpaceGame.Presentation
         public const float LabelWidth = 330f;
 
         /// <summary>
-        /// Matches <see cref="LobbyPreviewRank"/>'s own chevron column (its <c>ChevronWidth</c>,
+        /// Matches <c>LobbyPreviewRank</c>'s own chevron column (its <c>ChevronWidth</c>,
         /// beside its colour cycler) rather than inventing a second number for the same idea.
         /// </summary>
         public const float ChevronWidth = 74f;
@@ -42,7 +42,7 @@ namespace SpaceGame.Presentation
         public const float ValueWidth = 96f;
 
         /// <summary>
-        /// Also <see cref="LobbyPreviewRank"/>'s number: its cycler is the same shape as this row —
+        /// Also <c>LobbyPreviewRank</c>'s number: its cycler is the same shape as this row —
         /// chevron, value, chevron — just spent on a colour name instead of an integer, and there is
         /// no reason the two should end up a different height by accident.
         /// </summary>
@@ -88,7 +88,7 @@ namespace SpaceGame.Presentation
 
         /// <summary>
         /// Builds one row. <paramref name="prefab"/> is forwarded to <see cref="MenuEntry.Create"/>
-        /// for both chevrons exactly the way <see cref="LobbyPreviewRank"/> forwards its own
+        /// for both chevrons exactly the way <c>LobbyPreviewRank</c> forwards its own
         /// <c>entryPrefab</c> into its cycler's chevrons — pass null for a plain, unanimated pair
         /// built from scratch.
         /// </summary>

@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using SpaceGame.Presentation;
+using SpaceGame.Presentation.Lobbies;
 
 namespace SpaceGame.Tests
 {
@@ -30,16 +31,16 @@ namespace SpaceGame.Tests
         [Test]
         public void TheColumnsDoNotOverlap()
         {
-            float listRight = LobbyUI.ListX + LobbyUI.ListWidth;
+            float listRight = LobbyJoinLayout.ListX + LobbyJoinLayout.ListWidth;
 
-            Assert.Less(listRight, LobbyUI.CodeX,
+            Assert.Less(listRight, LobbyJoinLayout.CodeX,
                         "the session list runs into the code column");
         }
 
         [Test]
         public void BothColumnsFitOnTheCanvas()
         {
-            Assert.LessOrEqual(LobbyUI.CodeX + LobbyUI.CodeWidth, ReferenceWidth,
+            Assert.LessOrEqual(LobbyJoinLayout.CodeX + LobbyJoinLayout.CodeWidth, ReferenceWidth,
                                "the code column runs off the right-hand edge");
         }
 
@@ -50,7 +51,7 @@ namespace SpaceGame.Tests
         [Test]
         public void TheCodeFieldFitsItsColumn()
         {
-            Assert.LessOrEqual(LobbyUI.FieldWidth, LobbyUI.CodeWidth);
+            Assert.LessOrEqual(LobbyJoinLayout.FieldWidth, LobbyJoinLayout.CodeWidth);
         }
 
         /// <summary>
@@ -61,7 +62,7 @@ namespace SpaceGame.Tests
         [Test]
         public void TheSessionListIsTheWiderColumn()
         {
-            Assert.Greater(LobbyUI.ListWidth, LobbyUI.CodeWidth);
+            Assert.Greater(LobbyJoinLayout.ListWidth, LobbyJoinLayout.CodeWidth);
         }
 
         // ─────────────────────────────────────────────────── the vertical bands
@@ -73,8 +74,8 @@ namespace SpaceGame.Tests
         private static float ListBandHeight()
         {
             // ContentTop is negative, measured down from the top of the canvas.
-            float topFromBottom = 1080f - (-MenuEntry.ContentTop - LobbyUI.ListTopDrop);
-            float bottomFromBottom = MenuEntry.MessageBottom + LobbyUI.ListBottomGap;
+            float topFromBottom = 1080f - (-MenuEntry.ContentTop - LobbyJoinLayout.ListTopDrop);
+            float bottomFromBottom = MenuEntry.MessageBottom + LobbyJoinLayout.ListBottomGap;
 
             return topFromBottom - bottomFromBottom;
         }
@@ -82,7 +83,7 @@ namespace SpaceGame.Tests
         [Test]
         public void TheListHasRoomForSeveralSessions()
         {
-            float rows = ListBandHeight() / (LobbyUI.RowHeight + 6f);
+            float rows = ListBandHeight() / (LobbyJoinLayout.RowHeight + 6f);
 
             // Three is the floor, not the target: below that the list stops reading as a list and
             // the scroll becomes the only way to see anything.
@@ -97,7 +98,7 @@ namespace SpaceGame.Tests
         [Test]
         public void TheListClearsTheStatusLine()
         {
-            Assert.Greater(LobbyUI.ListBottomGap, 0f);
+            Assert.Greater(LobbyJoinLayout.ListBottomGap, 0f);
             Assert.Greater(ListBandHeight(), 0f, "the list band has collapsed");
         }
 
@@ -112,11 +113,11 @@ namespace SpaceGame.Tests
         {
             const float headingHeight = 44f;
 
-            Assert.GreaterOrEqual(LobbyUI.ListRuleDrop, headingHeight,
+            Assert.GreaterOrEqual(LobbyJoinLayout.ListRuleDrop, headingHeight,
                                   "the busy rule is drawn over the heading");
 
-            Assert.LessOrEqual(LobbyUI.ListRuleDrop + MenuBusy.RuleThickness,
-                               LobbyUI.ListTopDrop + 1f,
+            Assert.LessOrEqual(LobbyJoinLayout.ListRuleDrop + MenuBusy.RuleThickness,
+                               LobbyJoinLayout.ListTopDrop + 1f,
                                "the busy rule is drawn over the first session row");
         }
 
@@ -132,10 +133,10 @@ namespace SpaceGame.Tests
 
             float fieldBottom = fieldTop + MenuField.Height;
 
-            Assert.GreaterOrEqual(LobbyUI.CodeRuleDrop, fieldBottom,
+            Assert.GreaterOrEqual(LobbyJoinLayout.CodeRuleDrop, fieldBottom,
                                   "the busy rule is drawn over the code field");
 
-            Assert.LessOrEqual(LobbyUI.CodeRuleDrop + MenuBusy.RuleThickness, joinTop,
+            Assert.LessOrEqual(LobbyJoinLayout.CodeRuleDrop + MenuBusy.RuleThickness, joinTop,
                                "the busy rule is drawn over the Join button");
         }
 
@@ -146,14 +147,14 @@ namespace SpaceGame.Tests
         {
             float pips = LobbySessionPips();
 
-            return LobbyUI.StateWidth
-                   + LobbyUI.PipsGap + pips
-                   + LobbyUI.PipsGap + LobbyUI.PlayingWidth;
+            return LobbyJoinLayout.StateWidth
+                   + LobbyJoinLayout.PipsGap + pips
+                   + LobbyJoinLayout.PipsGap + LobbyJoinLayout.PlayingWidth;
         }
 
         private static float LobbySessionPips() =>
-            SpaceGame.Core.LobbySession.MaxPlayers * LobbyUI.PipWidth
-            + (SpaceGame.Core.LobbySession.MaxPlayers - 1) * LobbyUI.PipGap;
+            SpaceGame.Core.Lobbies.LobbySession.MaxPlayers * LobbyJoinLayout.PipWidth
+            + (SpaceGame.Core.Lobbies.LobbySession.MaxPlayers - 1) * LobbyJoinLayout.PipGap;
 
         /// <summary>
         /// The name is what the player is scanning for, so it has to keep the majority of the row.
@@ -163,10 +164,10 @@ namespace SpaceGame.Tests
         [Test]
         public void TheSessionNameKeepsMostOfTheRow()
         {
-            float nameWidth = LobbyUI.ListWidth - FurnitureWidth() - 24f;
+            float nameWidth = LobbyJoinLayout.ListWidth - FurnitureWidth() - 24f;
 
-            Assert.Greater(nameWidth, LobbyUI.ListWidth * 0.5f,
-                           $"only {nameWidth:0} of {LobbyUI.ListWidth:0} is left for the name");
+            Assert.Greater(nameWidth, LobbyJoinLayout.ListWidth * 0.5f,
+                           $"only {nameWidth:0} of {LobbyJoinLayout.ListWidth:0} is left for the name");
         }
 
         /// <summary>
@@ -179,7 +180,7 @@ namespace SpaceGame.Tests
             // "Joining..." at CaptionSize, bold, measured generously at 0.62em per glyph.
             float caption = "Joining...".Length * MenuEntry.CaptionSize * 0.62f;
 
-            Assert.GreaterOrEqual(LobbyUI.StateWidth, caption,
+            Assert.GreaterOrEqual(LobbyJoinLayout.StateWidth, caption,
                                   "the Joining caption will truncate in its slot");
         }
 
@@ -187,7 +188,7 @@ namespace SpaceGame.Tests
         public void ThePipsFitBesideTheState()
         {
             Assert.Greater(LobbySessionPips(), 0f);
-            Assert.Less(FurnitureWidth(), LobbyUI.ListWidth,
+            Assert.Less(FurnitureWidth(), LobbyJoinLayout.ListWidth,
                         "a row's furniture is wider than the row");
         }
     }

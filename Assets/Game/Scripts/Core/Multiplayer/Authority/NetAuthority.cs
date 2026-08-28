@@ -7,12 +7,10 @@
 //
 // What gets switched off is only the layer that DRIVES motion. Animators, renderers, colliders,
 // audio and every visual component stay on, because a remote copy still has to look right while
-// something else moves it.
+// something else moves it. Which behaviours count as drivers is SimulationDrivers' question.
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.AI;
-using SpaceGame.Agents;
 using SpaceGame.Locomotion;
 
 namespace SpaceGame.Core
@@ -178,16 +176,16 @@ namespace SpaceGame.Core
         /// <summary>
         /// Tell every kinematic posing layer on this entity whether it still owns its transform.
         ///
-        /// Filtered by <see cref="BelongsTo"/> for the same reason the drivers are: a rider is
-        /// parented INTO their mount while mounted, so an unfiltered sweep would reach down into
-        /// the player sitting on the saddle.
+        /// Filtered by <see cref="SimulationDrivers.BelongsTo"/> for the same reason the drivers
+        /// are: a rider is parented INTO their mount while mounted, so an unfiltered sweep would
+        /// reach down into the player sitting on the saddle.
         /// </summary>
         private void SetExternallyPosed(bool value)
         {
             foreach (MonoBehaviour behaviour in GetComponentsInChildren<MonoBehaviour>(true))
             {
                 if (behaviour is not IExternallyPosed posed) continue;
-                if (!BelongsTo(gameObject, behaviour)) continue;
+                if (!SimulationDrivers.BelongsTo(gameObject, behaviour)) continue;
 
                 posed.ExternallyPosed = value;
             }
@@ -209,53 +207,8 @@ namespace SpaceGame.Core
                 yield break;
             }
 
-            foreach (Behaviour driver in Discover(gameObject))
+            foreach (Behaviour driver in SimulationDrivers.Discover(gameObject))
                 yield return driver;
-        }
-
-        /// <summary>
-        /// Everything on <paramref name="root"/> that moves it of its own accord: the agent brain,
-        /// its motor, and the NavMeshAgent underneath both.
-        ///
-        /// Matched by interface and base type, never by name, so a new motor or a renamed
-        /// controller is covered the day it is written.
-        /// </summary>
-        public static List<Behaviour> Discover(GameObject root)
-        {
-            var found = new List<Behaviour>();
-            if (root == null) return found;
-
-            foreach (MonoBehaviour behaviour in root.GetComponentsInChildren<MonoBehaviour>(true))
-            {
-                if (behaviour == null || !BelongsTo(root, behaviour)) continue;
-
-                if (behaviour is AgentController or IMovementMotor)
-                    found.Add(behaviour);
-            }
-
-            foreach (NavMeshAgent agent in root.GetComponentsInChildren<NavMeshAgent>(true))
-                if (BelongsTo(root, agent)) found.Add(agent);
-
-            return found;
-        }
-
-        /// <summary>
-        /// Is <paramref name="candidate"/> part of <paramref name="root"/>'s own entity, rather
-        /// than a separate one that happens to be parented under it?
-        ///
-        /// A rider is parented into their mount's hierarchy while mounted, so without this a
-        /// mount's remote copy would reach down and switch off the player sitting on it — and,
-        /// worse, switch them back on again when the rider dismounted, handing a remote player's
-        /// controls to the wrong machine. The boundary between two entities is a NetworkObject.
-        /// </summary>
-        private static bool BelongsTo(GameObject root, Component candidate)
-        {
-            NetworkObject owner = candidate.GetComponentInParent<NetworkObject>();
-            NetworkObject mine = root.GetComponentInParent<NetworkObject>();
-
-            // Neither is networked: the old whole-hierarchy behaviour, which is right for a plain
-            // prefab whose parts are all one thing.
-            return owner == null || mine == null || owner == mine;
         }
 
 #if UNITY_EDITOR
@@ -263,7 +216,7 @@ namespace SpaceGame.Core
         private void RefreshDrivers()
         {
             simulationDrivers.Clear();
-            simulationDrivers.AddRange(Discover(gameObject));
+            simulationDrivers.AddRange(SimulationDrivers.Discover(gameObject));
             UnityEditor.EditorUtility.SetDirty(this);
         }
 #endif

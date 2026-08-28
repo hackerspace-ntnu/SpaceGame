@@ -52,7 +52,7 @@ namespace SpaceGame.Presentation
         protected GameObject EntryPrefab => Menu != null ? Menu.MenuButtonPrefab : null;
 
         /// <summary>The height every <see cref="Entry"/> row in this menu is built at.</summary>
-        protected const float ActionHeight = 78f;
+        protected const float ActionHeight = MenuEntry.ActionHeight;
 
         private readonly List<Canvas> hidden = new();
         private GameObject canvasObject;
@@ -127,15 +127,8 @@ namespace SpaceGame.Presentation
         /// <see cref="Title"/> uses this for the page's heading; a page with its own row above the
         /// column (a subtitle, a status line) can use it directly.
         /// </summary>
-        protected static RectTransform PinnedRow(RectTransform parent, float fromTop, float height)
-        {
-            RectTransform rect = UIBuilder.Rect("Row", parent);
-            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = new Vector2(MenuEntry.ColumnX, fromTop);
-            rect.sizeDelta = new Vector2(MenuEntry.ColumnWidth, height);
-            return rect;
-        }
+        protected static RectTransform PinnedRow(RectTransform parent, float fromTop, float height) =>
+            UIBuilder.PinnedTop(parent, "Row", MenuEntry.ColumnX, fromTop, MenuEntry.ColumnWidth, height);
 
         /// <summary>
         /// The page's title, white and pinned at <see cref="MenuEntry.TitleTop"/>. Above the

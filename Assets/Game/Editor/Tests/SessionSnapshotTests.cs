@@ -4,7 +4,7 @@
 // machine builds its own copy from a message it had to be present for — so a client that joins
 // afterwards has neither, and no way to ever learn.
 //
-// WHAT CANNOT BE TESTED HERE, and why it is not for want of trying. BuildPayload reads Leash.All,
+// WHAT CANNOT BE TESTED HERE, and why it is not for want of trying. SnapshotCapture.Build reads Leash.All,
 // which is filled by Leash.OnEnable — and Unity does not raise OnEnable for a runtime AddComponent
 // outside play mode, so a rope built by an EditMode test never joins the registry and the payload
 // is always empty. That was measured, not assumed. Writing a test that asserts a rope travels would
@@ -30,7 +30,7 @@ namespace SpaceGame.EditorTools
         {
             // Sending an empty payload would cost a round trip to say nothing, and would make every
             // joiner run an apply that does nothing.
-            Assert.IsNull(SessionSnapshot.BuildPayload());
+            Assert.IsNull(SnapshotCapture.Build());
         }
 
         [Test]
@@ -39,7 +39,7 @@ namespace SpaceGame.EditorTools
             // It is called from a connection callback, and a callback that throws takes the rest of
             // the join with it. No NetworkManager, no players, no ropes: the answer is "nothing to
             // send", never an exception.
-            Assert.DoesNotThrow(() => SessionSnapshot.BuildPayload());
+            Assert.DoesNotThrow(() => SnapshotCapture.Build());
         }
     }
 }

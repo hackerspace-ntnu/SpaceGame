@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using SpaceGame.Presentation;
+using SpaceGame.Presentation.Lobbies;
 
 namespace SpaceGame.Tests
 {

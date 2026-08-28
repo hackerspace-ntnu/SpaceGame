@@ -5,9 +5,9 @@
 // carries the same note.
 using NUnit.Framework;
 using UnityEngine;
-using SpaceGame.Core;
+using SpaceGame.Core.Lobbies;
 using SpaceGame.Gameplay;
-using SpaceGame.Presentation;
+using SpaceGame.Presentation.Lobbies;
 
 namespace SpaceGame.Tests
 {

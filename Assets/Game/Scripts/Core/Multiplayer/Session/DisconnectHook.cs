@@ -11,7 +11,7 @@ namespace SpaceGame.Core
     /// reports. The only NetworkManager in the project lives in the Bootstrap scene, and
     /// <see cref="NetworkBootstrap"/> backfills one AfterSceneLoad whenever a scene is entered
     /// directly in the editor — so anything created before that backfill sees a null Singleton,
-    /// skips its subscription and never gets another chance. <see cref="LobbySession"/> was written
+    /// skips its subscription and never gets another chance. <c>LobbySession</c> was written
     /// that way: it creates itself on first use, and if that happened to be before the manager
     /// existed, the entire disconnect path went missing with no error anywhere. Nobody would find
     /// that by reading the code, because the code looks like it subscribed.

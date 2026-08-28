@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace SpaceGame.Core
+namespace SpaceGame.Core.Lobbies
 {
     /// <summary>
     /// Coalesces a burst of requests into the one send that actually matters: the last one.
@@ -13,12 +13,6 @@ namespace SpaceGame.Core
     /// seconds. Without this, browsing the palette trips the limiter and the colour a player
     /// settles on is the one request that gets refused — everyone else keeps seeing whatever they
     /// happened to be on when the budget ran out.
-    /// </para>
-    ///
-    /// <para>
-    /// The suit cycler already carried a private version of exactly this shape. VS needs the same
-    /// thing three times over — suit colour, team, team colour — so it is pulled out once here
-    /// rather than copied twice more.
     /// </para>
     ///
     /// <para>

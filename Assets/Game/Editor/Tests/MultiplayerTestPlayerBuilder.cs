@@ -99,7 +99,7 @@ namespace SpaceGame.EditorTools
                 "To PLAY this build against the editor instead of running the autotest, launch it with\n" +
                 "its own Unity Services profile — a player and the editor share one PlayerPrefs file, so\n" +
                 "they otherwise sign in as the same anonymous PlayerId and the lobby refuses the second\n" +
-                "one as already a member (see SessionLauncher.ProfileArg):\n\n" +
+                "one as already a member (see SessionProfile.Arg):\n\n" +
                 $"  open \"{OutputPath}\" --args -sgprofile client";
         }
     }

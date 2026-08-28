@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using SpaceGame.Core.Lobbies;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Presentation;
 
@@ -14,7 +15,7 @@ namespace SpaceGame.Core
     /// menu's "Main Menu" saved the world, cleared the staged session, shut Netcode down and loaded
     /// the menu — but never handed the lobby membership back, so a host's lobby stayed listed until
     /// its 30-second heartbeat lapsed and the membership survived as exactly the ghost
-    /// <see cref="LobbySession.JoinWithConflictRecoveryAsync"/> exists to clean up. A client whose
+    /// <see cref="LobbyJoinRecovery"/> exists to clean up. A client whose
     /// host vanished did none of it at all: the only thing listening for that was the lobby screen,
     /// which the load into the world had already destroyed, so the world simply stopped updating
     /// around a player whose only way out was killing the process.

@@ -10,7 +10,7 @@ namespace SpaceGame.Tests
     /// This file used to be much longer, because LobbyMenu.unity bound every control in the lobby
     /// to a method name through a UnityEvent — which resolves at runtime and silently drops any
     /// target it cannot find, no exception and no console entry. Those bindings are gone with the
-    /// scene: <see cref="LobbyUI"/> calls <c>LobbySession</c> directly, so a rename is a build
+    /// scene: <c>LobbyUI</c> calls <c>LobbySession</c> directly, so a rename is a build
     /// error and needs no test to catch it.
     ///
     /// What is left is the boundary that is still authored in a scene. MainMenu.unity binds its
@@ -89,20 +89,6 @@ namespace SpaceGame.Tests
         {
             Assert.IsNotNull(typeof(MainMenuUI).GetMethod("EnterLobby", Public),
                 "WorldSelectUI finishes the host route by calling MainMenuUI.EnterLobby.");
-        }
-
-        /// <summary>
-        /// The one thing about the lobby that is still not compile-checked: which page it opens on
-        /// is decided by whether a world is staged, not by an argument. If WorldSession stops being
-        /// the source of that answer, a joiner lands on the host's page and hosts a session with no
-        /// world behind it — which is the exact fault the host/join split exists to prevent.
-        /// </summary>
-        [Test]
-        public void LobbyUI_ReadsItsModeFromTheStagedWorld()
-        {
-            Assert.IsNotNull(typeof(SpaceGame.Core.Persistence.WorldSession).GetProperty("IsActive",
-                    BindingFlags.Public | BindingFlags.Static),
-                "LobbyUI decides host vs join from WorldSession.IsActive.");
         }
     }
 }

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using NUnit.Framework;
-using SpaceGame.Core;
+using SpaceGame.Core.Lobbies;
 using SpaceGame.Gameplay;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
@@ -11,7 +11,7 @@ namespace SpaceGame.Tests
     /// <summary>
     /// The pure half of VS's lobby data: keys, encoding, and the readers that turn a
     /// <see cref="Lobby"/> into a <see cref="RosterSnapshot"/>. No service calls — see
-    /// <see cref="LobbySessionTests"/> for the sibling coverage of the non-VS option builders.
+    /// <see cref="LobbyOptionsTests"/> for the sibling coverage of the non-VS option builders.
     /// </summary>
     public class VersusLobbyDataTests
     {
@@ -22,13 +22,13 @@ namespace SpaceGame.Tests
         [Test]
         public void IsVersus_TrueForAModeKeySetToVersus()
         {
-            Assert.IsTrue(LobbySession.IsVersus(LobbyWithMode(LobbySession.ModeVersus)));
+            Assert.IsTrue(LobbyTeams.IsVersus(LobbyWithMode(LobbyKeys.ModeVersus)));
         }
 
         [Test]
         public void IsVersus_FalseForAStoryLobby()
         {
-            Assert.IsFalse(LobbySession.IsVersus(LobbyWithMode(LobbySession.ModeStory)));
+            Assert.IsFalse(LobbyTeams.IsVersus(LobbyWithMode(LobbyKeys.ModeStory)));
         }
 
         [Test]
@@ -37,7 +37,7 @@ namespace SpaceGame.Tests
             // A lobby created by a build that shipped before VS existed carries no Mode key at
             // all. It must keep reading as the story lobby it always was.
             Lobby lobby = new(id: "l", data: new Dictionary<string, DataObject>());
-            Assert.IsFalse(LobbySession.IsVersus(lobby));
+            Assert.IsFalse(LobbyTeams.IsVersus(lobby));
         }
 
         // ─────────────────────────────────────────────
@@ -74,24 +74,24 @@ namespace SpaceGame.Tests
         [Test]
         public void CreatingAVersusLobbyStampsItsModeAndRules()
         {
-            CreateLobbyOptions options = LobbySession.BuildCreateOptions(
+            CreateLobbyOptions options = LobbyOptions.Create(
                 isPrivate: false, relayJoinCode: "RELAY", playerName: "Pilot", suitColor: 0,
                 versus: new VersusSetup(teamCount: 3, teamSize: 4));
 
-            Assert.AreEqual(LobbySession.ModeVersus, options.Data[LobbySession.KeyMode].Value);
-            Assert.AreEqual("3", options.Data[LobbySession.KeyTeamCount].Value);
-            Assert.AreEqual("4", options.Data[LobbySession.KeyTeamSize].Value);
+            Assert.AreEqual(LobbyKeys.ModeVersus, options.Data[LobbyKeys.Mode].Value);
+            Assert.AreEqual("3", options.Data[LobbyKeys.TeamCount].Value);
+            Assert.AreEqual("4", options.Data[LobbyKeys.TeamSize].Value);
         }
 
         [Test]
         public void CreatingAStoryLobbyStampsTheStoryModeAndNoTeamRules()
         {
-            CreateLobbyOptions options = LobbySession.BuildCreateOptions(
+            CreateLobbyOptions options = LobbyOptions.Create(
                 isPrivate: false, relayJoinCode: "RELAY", playerName: "Pilot", suitColor: 0,
                 versus: VersusSetup.None);
 
-            Assert.AreEqual(LobbySession.ModeStory, options.Data[LobbySession.KeyMode].Value);
-            Assert.IsFalse(options.Data.ContainsKey(LobbySession.KeyTeamCount),
+            Assert.AreEqual(LobbyKeys.ModeStory, options.Data[LobbyKeys.Mode].Value);
+            Assert.IsFalse(options.Data.ContainsKey(LobbyKeys.TeamCount),
                            "a story lobby has no teams to describe");
         }
 
@@ -102,11 +102,11 @@ namespace SpaceGame.Tests
         [Test]
         public void TheModeIsVisibleToPlayersWhoHaveNotJoined()
         {
-            CreateLobbyOptions options = LobbySession.BuildCreateOptions(
+            CreateLobbyOptions options = LobbyOptions.Create(
                 false, "RELAY", "Pilot", 0, new VersusSetup(2, 2));
 
             Assert.AreEqual(DataObject.VisibilityOptions.Public,
-                            options.Data[LobbySession.KeyMode].Visibility);
+                            options.Data[LobbyKeys.Mode].Visibility);
         }
 
         // ─────────────────────────────────────────────
@@ -116,17 +116,17 @@ namespace SpaceGame.Tests
         [Test]
         public void TeamRules_RoundTripThroughBuildAndRead()
         {
-            UpdateLobbyOptions options = LobbySession.BuildTeamRulesOptions(3, 4);
+            UpdateLobbyOptions options = LobbyOptions.TeamRules(3, 4);
             Lobby lobby = new(id: "l", data: options.Data);
 
-            Assert.AreEqual(3, LobbySession.TeamCountOf(lobby));
-            Assert.AreEqual(4, LobbySession.TeamSizeOf(lobby));
+            Assert.AreEqual(3, LobbyTeams.TeamCountOf(lobby));
+            Assert.AreEqual(4, LobbyTeams.TeamSizeOf(lobby));
         }
 
         [Test]
         public void TeamRules_SetMaxPlayersToTheSeatProduct()
         {
-            UpdateLobbyOptions options = LobbySession.BuildTeamRulesOptions(3, 4);
+            UpdateLobbyOptions options = LobbyOptions.TeamRules(3, 4);
             Assert.AreEqual(12, options.MaxPlayers);
         }
 
@@ -135,8 +135,8 @@ namespace SpaceGame.Tests
         {
             Lobby lobby = new(id: "l", data: new Dictionary<string, DataObject>());
 
-            Assert.AreEqual(VersusRules.DefaultTeams, LobbySession.TeamCountOf(lobby));
-            Assert.AreEqual(VersusRules.DefaultTeamSize, LobbySession.TeamSizeOf(lobby));
+            Assert.AreEqual(VersusRules.DefaultTeams, LobbyTeams.TeamCountOf(lobby));
+            Assert.AreEqual(VersusRules.DefaultTeamSize, LobbyTeams.TeamSizeOf(lobby));
         }
 
         [Test]
@@ -144,12 +144,12 @@ namespace SpaceGame.Tests
         {
             Lobby lobby = new(id: "l", data: new Dictionary<string, DataObject>
             {
-                { LobbySession.KeyTeamCount, new DataObject(DataObject.VisibilityOptions.Member, "not-a-number") },
-                { LobbySession.KeyTeamSize, new DataObject(DataObject.VisibilityOptions.Member, "also garbage") }
+                { LobbyKeys.TeamCount, new DataObject(DataObject.VisibilityOptions.Member, "not-a-number") },
+                { LobbyKeys.TeamSize, new DataObject(DataObject.VisibilityOptions.Member, "also garbage") }
             });
 
-            Assert.AreEqual(VersusRules.DefaultTeams, LobbySession.TeamCountOf(lobby));
-            Assert.AreEqual(VersusRules.DefaultTeamSize, LobbySession.TeamSizeOf(lobby));
+            Assert.AreEqual(VersusRules.DefaultTeams, LobbyTeams.TeamCountOf(lobby));
+            Assert.AreEqual(VersusRules.DefaultTeamSize, LobbyTeams.TeamSizeOf(lobby));
         }
 
         // ─────────────────────────────────────────────
@@ -164,14 +164,14 @@ namespace SpaceGame.Tests
                 PlayerWithTeam("b", 1),
                 PlayerWithTeam("c", 0));
 
-            CollectionAssert.AreEqual(new[] { 0, 1, 0 }, LobbySession.Teams(lobby));
+            CollectionAssert.AreEqual(new[] { 0, 1, 0 }, LobbyTeams.Teams(lobby));
         }
 
         [Test]
         public void Teams_APlayerWithNoTeamKeyIsTeamZero()
         {
             Lobby lobby = LobbyWithPlayers(new Player(id: "a"));
-            CollectionAssert.AreEqual(new[] { 0 }, LobbySession.Teams(lobby));
+            CollectionAssert.AreEqual(new[] { 0 }, LobbyTeams.Teams(lobby));
         }
 
         [Test]
@@ -182,7 +182,7 @@ namespace SpaceGame.Tests
             // being clamped to 0, which would dump every stray index onto the same team.
             Lobby lobby = LobbyWithPlayers(PlayerWithTeam("a", 7));
 
-            CollectionAssert.AreEqual(new[] { 1 }, LobbySession.Teams(lobby));
+            CollectionAssert.AreEqual(new[] { 1 }, LobbyTeams.Teams(lobby));
         }
 
         // ─────────────────────────────────────────────
@@ -197,7 +197,7 @@ namespace SpaceGame.Tests
                 PlayerWithTeam("b", 1),
                 PlayerWithTeam("c", 1));
 
-            CollectionAssert.AreEqual(new[] { 1, 2 }, LobbySession.Occupancy(lobby));
+            CollectionAssert.AreEqual(new[] { 1, 2 }, LobbyTeams.Occupancy(lobby));
         }
 
         // ─────────────────────────────────────────────
@@ -207,9 +207,9 @@ namespace SpaceGame.Tests
         [Test]
         public void TeamColor_RoundTripsThroughEncodeAndDecode()
         {
-            string encoded = LobbySession.EncodeTeamColor(5, 123456789L);
+            string encoded = TeamColorOpinion.Encode(5, 123456789L);
 
-            Assert.IsTrue(LobbySession.TryDecodeTeamColor(encoded, out int swatch, out long stampMs));
+            Assert.IsTrue(TeamColorOpinion.TryDecode(encoded, out int swatch, out long stampMs));
             Assert.AreEqual(5, swatch);
             Assert.AreEqual(123456789L, stampMs);
         }
@@ -224,8 +224,8 @@ namespace SpaceGame.Tests
         [TestCase("5:")]
         public void TeamColor_UnrecognisedValuesDecodeAsFalseRatherThanThrowing(string value)
         {
-            Assert.DoesNotThrow(() => LobbySession.TryDecodeTeamColor(value, out _, out _));
-            Assert.IsFalse(LobbySession.TryDecodeTeamColor(value, out _, out _));
+            Assert.DoesNotThrow(() => TeamColorOpinion.TryDecode(value, out _, out _));
+            Assert.IsFalse(TeamColorOpinion.TryDecode(value, out _, out _));
         }
 
         // ─────────────────────────────────────────────
@@ -241,7 +241,7 @@ namespace SpaceGame.Tests
                 PlayerWithTeamColor("a", team: 0, swatch: 2, stampMs: 100),
                 PlayerWithTeamColor("b", team: 0, swatch: 5, stampMs: 200));
 
-            int[] colors = LobbySession.TeamColorsOf(lobby, swatchCount: 12);
+            int[] colors = LobbyTeams.TeamColorsOf(lobby, swatchCount: 12);
             Assert.AreEqual(5, colors[0]);
         }
 
@@ -254,7 +254,7 @@ namespace SpaceGame.Tests
                 PlayerWithTeamColor("a", team: 0, swatch: 2, stampMs: 100),
                 PlayerWithTeamColor("b", team: 0, swatch: 5, stampMs: 100));
 
-            int[] colors = LobbySession.TeamColorsOf(lobby, swatchCount: 12);
+            int[] colors = LobbyTeams.TeamColorsOf(lobby, swatchCount: 12);
             Assert.AreEqual(2, colors[0], "An exact tie must leave the earlier player's colour standing.");
         }
 
@@ -265,7 +265,7 @@ namespace SpaceGame.Tests
                 PlayerWithTeamColor("a", team: 0, swatch: 5, stampMs: 100),
                 PlayerWithTeam("b", 1));
 
-            int[] colors = LobbySession.TeamColorsOf(lobby, swatchCount: 12);
+            int[] colors = LobbyTeams.TeamColorsOf(lobby, swatchCount: 12);
             int[] defaults = TeamColorRules.DefaultColors(2, 12);
 
             Assert.AreEqual(5, colors[0]);
@@ -277,10 +277,10 @@ namespace SpaceGame.Tests
         {
             Lobby lobby = new(id: "l", data: new Dictionary<string, DataObject>
             {
-                { LobbySession.KeyTeamCount, new DataObject(DataObject.VisibilityOptions.Member, "5") }
+                { LobbyKeys.TeamCount, new DataObject(DataObject.VisibilityOptions.Member, "5") }
             });
 
-            Assert.AreEqual(5, LobbySession.TeamColorsOf(lobby, swatchCount: 12).Length);
+            Assert.AreEqual(5, LobbyTeams.TeamColorsOf(lobby, swatchCount: 12).Length);
         }
 
         [Test]
@@ -292,7 +292,7 @@ namespace SpaceGame.Tests
             Lobby lobby = LobbyWithPlayers(PlayerWithTeamColor("a", team: 7, swatch: 3, stampMs: 100));
 
             int[] colors = null;
-            Assert.DoesNotThrow(() => colors = LobbySession.TeamColorsOf(lobby, swatchCount: 12));
+            Assert.DoesNotThrow(() => colors = LobbyTeams.TeamColorsOf(lobby, swatchCount: 12));
             Assert.AreEqual(2, colors.Length);
             Assert.AreEqual(3, colors[1], "Team 7 folds to team 1 of 2 — the same slot Teams() reports.");
         }
@@ -309,9 +309,9 @@ namespace SpaceGame.Tests
                 hostId: "host",
                 data: new Dictionary<string, DataObject>
                 {
-                    { LobbySession.KeyMode, new DataObject(DataObject.VisibilityOptions.Public, LobbySession.ModeVersus) },
-                    { LobbySession.KeyTeamCount, new DataObject(DataObject.VisibilityOptions.Member, "2") },
-                    { LobbySession.KeyTeamSize, new DataObject(DataObject.VisibilityOptions.Member, "2") }
+                    { LobbyKeys.Mode, new DataObject(DataObject.VisibilityOptions.Public, LobbyKeys.ModeVersus) },
+                    { LobbyKeys.TeamCount, new DataObject(DataObject.VisibilityOptions.Member, "2") },
+                    { LobbyKeys.TeamSize, new DataObject(DataObject.VisibilityOptions.Member, "2") }
                 },
                 players: new List<Player>
                 {
@@ -319,7 +319,7 @@ namespace SpaceGame.Tests
                     PlayerWithTeamAndColor("guest", team: 1, suit: 4, swatch: 6, stampMs: 20)
                 });
 
-            RosterSnapshot snapshot = LobbySession.Snapshot(lobby, localSlot: 1, swatchCount: 12);
+            RosterSnapshot snapshot = LobbyRoster.Snapshot(lobby, localSlot: 1, swatchCount: 12);
 
             Assert.IsTrue(snapshot.IsVersus);
             Assert.AreEqual(2, snapshot.TeamCount);
@@ -340,7 +340,7 @@ namespace SpaceGame.Tests
         {
             Lobby lobby = LobbyWithPlayers(PlayerWithSuit("a", suit: 3));
 
-            RosterSnapshot snapshot = LobbySession.Snapshot(lobby, localSlot: 0, swatchCount: 12);
+            RosterSnapshot snapshot = LobbyRoster.Snapshot(lobby, localSlot: 0, swatchCount: 12);
 
             Assert.IsFalse(snapshot.IsVersus);
             CollectionAssert.AreEqual(new[] { 3 }, snapshot.SuitColors);
@@ -349,7 +349,7 @@ namespace SpaceGame.Tests
         [Test]
         public void Snapshot_ANullLobbyGivesASafeEmptySnapshot()
         {
-            RosterSnapshot snapshot = LobbySession.Snapshot(null, localSlot: -1, swatchCount: 12);
+            RosterSnapshot snapshot = LobbyRoster.Snapshot(null, localSlot: -1, swatchCount: 12);
 
             Assert.IsFalse(snapshot.IsVersus);
             CollectionAssert.IsEmpty(snapshot.Names);
@@ -363,13 +363,27 @@ namespace SpaceGame.Tests
             Assert.AreEqual(0, snapshot.ColorOfTeam(0));
         }
 
+        [Test]
+        public void Snapshot_ColorsOfOtherTeamsLeavesOurOwnOut()
+        {
+            // What the colour cycler hands TeamColorRules.Step so a team never lands on a rival's
+            // swatch. Our own team's colour must not be in it, or stepping would refuse to stay put.
+            var snapshot = new RosterSnapshot(new[] { "a" }, null, new[] { 1 }, new[] { 3, 6, 9 }, null,
+                                              teamCount: 3, teamSize: 2, localSlot: 0, hostSlot: 0,
+                                              isVersus: true);
+
+            CollectionAssert.AreEqual(new[] { 3, 9 }, snapshot.ColorsOfOtherTeams(1));
+            CollectionAssert.AreEqual(new[] { 3, 6, 9 }, snapshot.ColorsOfOtherTeams(-1),
+                                      "a player with no team yet is barred from every team's colour");
+        }
+
         // ─────────────────────────────────────────────
         //  Helpers
         // ─────────────────────────────────────────────
 
         private static Lobby LobbyWithMode(string mode) => new(id: "l", data: new Dictionary<string, DataObject>
         {
-            { LobbySession.KeyMode, new DataObject(DataObject.VisibilityOptions.Public, mode) }
+            { LobbyKeys.Mode, new DataObject(DataObject.VisibilityOptions.Public, mode) }
         });
 
         private static Lobby LobbyWithPlayers(params Player[] players) =>
@@ -378,30 +392,30 @@ namespace SpaceGame.Tests
         private static Player PlayerWithTeam(string id, int team) => new(id: id,
             data: new Dictionary<string, PlayerDataObject>
             {
-                { LobbySession.KeyTeam, TextData(team) }
+                { LobbyKeys.Team, TextData(team) }
             });
 
         private static Player PlayerWithSuit(string id, int suit) => new(id: id,
             data: new Dictionary<string, PlayerDataObject>
             {
-                { LobbySession.KeySuitColor, TextData(suit) }
+                { LobbyKeys.SuitColor, TextData(suit) }
             });
 
         private static Player PlayerWithTeamColor(string id, int team, int swatch, long stampMs) => new(id: id,
             data: new Dictionary<string, PlayerDataObject>
             {
-                { LobbySession.KeyTeam, TextData(team) },
-                { LobbySession.KeyTeamColor, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member,
-                    LobbySession.EncodeTeamColor(swatch, stampMs)) }
+                { LobbyKeys.Team, TextData(team) },
+                { LobbyKeys.TeamColor, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member,
+                    TeamColorOpinion.Encode(swatch, stampMs)) }
             });
 
         private static Player PlayerWithTeamAndColor(string id, int team, int suit, int swatch, long stampMs) =>
             new(id: id, data: new Dictionary<string, PlayerDataObject>
             {
-                { LobbySession.KeyTeam, TextData(team) },
-                { LobbySession.KeySuitColor, TextData(suit) },
-                { LobbySession.KeyTeamColor, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member,
-                    LobbySession.EncodeTeamColor(swatch, stampMs)) }
+                { LobbyKeys.Team, TextData(team) },
+                { LobbyKeys.SuitColor, TextData(suit) },
+                { LobbyKeys.TeamColor, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member,
+                    TeamColorOpinion.Encode(swatch, stampMs)) }
             });
 
         private static PlayerDataObject TextData(int value) =>

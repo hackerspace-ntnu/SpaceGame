@@ -180,6 +180,72 @@ namespace SpaceGame.Presentation
             return group;
         }
 
+        /// <summary>
+        /// A row of controls laid out left to right — the counterpart of <see cref="Column"/>.
+        /// Children keep their own widths, so give each a <see cref="LayoutElement"/> (see
+        /// <c>MenuEntry.Width</c>); a child that is inactive is skipped and unsized until shown.
+        /// </summary>
+        public static HorizontalLayoutGroup Row(RectTransform host, float spacing)
+        {
+            var group = host.gameObject.AddComponent<HorizontalLayoutGroup>();
+            group.spacing = spacing;
+            group.childControlWidth = true;
+            group.childControlHeight = true;
+            group.childForceExpandWidth = false;
+            group.childForceExpandHeight = true;
+            group.childAlignment = TextAnchor.MiddleLeft;
+            return group;
+        }
+
+        /// <summary>
+        /// A fixed-size rect hung from the parent's top-left corner. <paramref name="y"/> is the
+        /// anchored position, so it is negative to sit below the top edge — the convention every
+        /// <c>MenuEntry</c> offset already follows.
+        /// </summary>
+        public static RectTransform PinnedTop(RectTransform parent, string name, float x, float y,
+            float width, float height)
+        {
+            RectTransform rect = Rect(name, parent);
+            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(x, y);
+            rect.sizeDelta = new Vector2(width, height);
+            return rect;
+        }
+
+        /// <summary>A fixed-size rect hung from the parent's bottom-left corner, its base <paramref name="fromBottom"/> up.</summary>
+        public static RectTransform PinnedBottom(RectTransform parent, string name, float x, float fromBottom,
+            float width, float height)
+        {
+            RectTransform rect = Rect(name, parent);
+            rect.anchorMin = rect.anchorMax = Vector2.zero;
+            rect.pivot = Vector2.zero;
+            rect.anchoredPosition = new Vector2(x, fromBottom);
+            rect.sizeDelta = new Vector2(width, height);
+            return rect;
+        }
+
+        /// <summary>
+        /// A bold label over a copy of itself in a second colour, offset by a few pixels.
+        ///
+        /// The drop shadow is doing real work, not decoration. The menu's rule is that white reads
+        /// against sky and navy reads against sand, and a label that can sit over either — a name
+        /// over an astronaut's head, a strip along the top of a page — cannot pick one. Two offset
+        /// copies read against both, and unlike a TMP outline they cost no per-label material
+        /// instance. Both copies must be written together or the shadow goes stale, which is why
+        /// the shadow label is handed back.
+        /// </summary>
+        public static TextMeshProUGUI ShadowedLabel(RectTransform slot, string text, int size, Color front,
+            Color shadow, Vector2 offset, TextAlignmentOptions alignment, out TextMeshProUGUI shadowLabel)
+        {
+            RectTransform back = Fill(Rect("Shadow", slot));
+            back.anchoredPosition = offset;
+            shadowLabel = Label(back, text, size, shadow, alignment, FontStyles.Bold);
+
+            RectTransform face = Fill(Rect("Front", slot));
+            return Label(face, text, size, front, alignment, FontStyles.Bold);
+        }
+
         public static LayoutElement FixedHeight(RectTransform rect, float height)
         {
             var element = rect.gameObject.AddComponent<LayoutElement>();

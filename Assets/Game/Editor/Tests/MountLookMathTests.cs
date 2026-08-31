@@ -130,5 +130,23 @@ namespace SpaceGame.EditorTools
             float seconds = frames * deltaTime;
             Assert.That(seconds, Is.EqualTo(11.25f).Within(0.1f));
         }
+
+        [Test]
+        public void ClampYaw_AtAHalfTurn_LetsASeatedRiderLookAllTheWayRound()
+        {
+            // The default, and the case a plain Mathf.Clamp gets wrong by looking right: the offset
+            // is already wrapped, so nothing can exceed ±180 and the "limit" must never bite. A
+            // rider turning past the back of the seat comes round the near side and keeps going.
+            Assert.AreEqual(180f, MountLookMath.ClampYaw(180f, 180f), Tolerance);
+            Assert.AreEqual(-179f, MountLookMath.ClampYaw(MountLookMath.WrapAngle(181f), 180f), Tolerance);
+        }
+
+        [Test]
+        public void ClampYaw_BelowAHalfTurn_StopsTheHeadAtTheSeatsLimit()
+        {
+            Assert.AreEqual(90f, MountLookMath.ClampYaw(120f, 90f), Tolerance);
+            Assert.AreEqual(-90f, MountLookMath.ClampYaw(-120f, 90f), Tolerance);
+            Assert.AreEqual(45f, MountLookMath.ClampYaw(45f, 90f), Tolerance);
+        }
     }
 }

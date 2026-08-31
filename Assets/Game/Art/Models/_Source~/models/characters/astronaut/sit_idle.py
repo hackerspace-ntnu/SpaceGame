@@ -66,7 +66,15 @@ B = "mixamorig:%s"
 # limb's rest direction, which is exactly the trap MountedRiderPose documents.
 
 HIPS_PITCH = -5.0        # pelvis rolled back into the seat back
-THIGH_FROM_VERTICAL = 80.0   # 80 leaves the thigh 10 degrees below horizontal
+
+# Limbs are AIMED at a direction rather than pitched by a delta. Same result, but a
+# direction is checkable against the rest pose ("the shin hangs plumb") where a chain
+# of deltas is only checkable by rendering it -- and it means the thigh's splay below
+# cannot quietly throw the shin off vertical the way composed pitch deltas would.
+# Both angles are degrees: `forward` swings toward +Z, `out` away from the midline.
+THIGH_DIP = 10.0         # thigh this far BELOW horizontal
+THIGH_SPLAY = 9.0        # knees apart, so this very wide character's thighs do not
+                         # intersect each other
 FOOT_PITCH = 4.0         # a relaxed foot, not a plank
 
 SPINE_PITCH = -3.0       # ~8 degrees of recline spread over three joints, so the
@@ -76,11 +84,20 @@ NECK_PITCH = 3.0
 HEAD_PITCH = 4.0         # counter-pitch, so the recline does not leave them stargazing
 
 SHOULDER_PITCH = -4.0    # collarbone forward a touch; the arms hang off a leaning chest
-ARM_DOWN = 52.0          # roll about +Z, mirrored: brings the A-pose arm down the side
-ARM_PITCH = -14.0        # and forward, toward the lap
-ELBOW = -58.0            # forearms in across the lap
-FOREARM_YAW = 10.0       # mirrored, so the hands meet rather than run parallel
+ARM_BACK = 2.0           # upper arm barely off vertical
+ARM_SPLAY = 27.0         # elbows OUT, past the hips -- see the note below
+FOREARM_FWD = 32.0       # forearm forward of vertical, bringing the hands to the hips
+FOREARM_OUT = 5.0        # and staying outboard rather than crossing into the belly
 HAND_PITCH = -8.0
+
+# Why the arms hang at the sides rather than resting on the thighs, which is what a
+# seated idle usually wants: on this character they cannot. The shoulder sits 77 cm
+# above the top of the thigh and the whole arm is only ~86 cm long, so reaching the
+# thigh forces the forearm near-vertical -- which lands the hand at the SHOULDER's
+# depth, and the shoulder is 12 cm behind the hips. Every version that aimed for the
+# thighs put the hands inside the belly instead; the waist is 94 cm across here.
+# So the arms are splayed clear of the hips and the hands come to rest beside them,
+# which is both reachable and what a bulky suit actually does when you sit down.
 
 # ─────────── Idle motion ───────────
 # GDC-L1-ANIM-0005: the life is in the secondary motion. Deliberately tiny -- a
@@ -136,6 +153,47 @@ def rotate(arm, name, deg, axis):
     sync()
 
 
+def limb_dir(sign, forward, out):
+    """An armature-space direction for a limb, in the terms a pose is described in.
+
+    `forward` swings the limb from straight down (0) toward the character's front
+    (90); `out` is the angle OUT OF THE SAGITTAL PLANE, away from the midline.
+    `sign` is +1 on the left, -1 on the right, so one pair of angles describes both
+    sides.
+
+    `out` is deliberately the out-of-plane angle rather than a yaw or a roll, because
+    those two each collapse to nothing at one end of the range a pose needs: a yaw
+    does nothing to a vertical arm, and a roll does nothing to a horizontal thigh.
+    Defined this way, 9 degrees opens the knees by the same 9 degrees whatever
+    `forward` is doing.
+    """
+    f = math.radians(forward)
+    o = math.radians(out)
+    return (sign * math.sin(o),
+            -math.cos(f) * math.cos(o),
+            math.sin(f) * math.cos(o))
+
+
+def aim(arm, name, direction):
+    """Point a bone along an armature-space direction, pinning its head.
+
+    Applied as the MINIMAL rotation from where the bone currently points, so the
+    limb's twist carries over from the rest pose instead of being invented here --
+    which is what keeps the palms and knees facing the way the rig intends.
+    """
+    pb = arm.pose.bones[B % name]
+    sync()
+    m = pb.matrix.copy()
+    head = m.to_translation()
+    # Blender bones run along their own local +Y.
+    current = (m.to_3x3() @ mathutils.Vector((0.0, 1.0, 0.0))).normalized()
+    delta = current.rotation_difference(mathutils.Vector(direction).normalized())
+    out = (delta.to_matrix() @ m.to_3x3()).to_4x4()
+    out.translation = head
+    pb.matrix = out
+    sync()
+
+
 def translate(arm, name, offset):
     pb = arm.pose.bones[B % name]
     sync()
@@ -176,15 +234,11 @@ def apply_base_pose(arm):
 
     rotate(arm, "Hips", HIPS_PITCH, 'X')
 
-    # Thigh: swung forward to an ABSOLUTE angle, so the pelvis tilt above does not
-    # quietly change how deep the sit is.
-    thigh = -THIGH_FROM_VERTICAL - HIPS_PITCH
-    for side in ("Left", "Right"):
-        rotate(arm, side + "UpLeg", thigh, 'X')
-        # Shin back to vertical. The thigh carried it forward by exactly
-        # THIGH_FROM_VERTICAL, so undoing that leaves it hanging plumb -- which is
-        # what a knee at ~80 degrees over the front edge of a seat actually looks like.
-        rotate(arm, side + "Leg", THIGH_FROM_VERTICAL, 'X')
+    for side, sign in (("Left", 1.0), ("Right", -1.0)):
+        aim(arm, side + "UpLeg", limb_dir(sign, 90.0 - THIGH_DIP, THIGH_SPLAY))
+        # The shin hangs plumb -- which is what a knee bent over the front edge of a
+        # seat actually looks like, and what puts the sole flat on the deck.
+        aim(arm, side + "Leg", limb_dir(sign, 0.0, 0.0))
         rotate(arm, side + "Foot", FOOT_PITCH, 'X')
 
     rotate(arm, "Spine", SPINE_PITCH, 'X')
@@ -195,10 +249,8 @@ def apply_base_pose(arm):
 
     for side, sign in (("Left", 1.0), ("Right", -1.0)):
         rotate(arm, side + "Shoulder", SHOULDER_PITCH, 'X')
-        rotate(arm, side + "Arm", -sign * ARM_DOWN, 'Z')
-        rotate(arm, side + "Arm", ARM_PITCH, 'X')
-        rotate(arm, side + "ForeArm", ELBOW, 'X')
-        rotate(arm, side + "ForeArm", sign * FOREARM_YAW, 'Y')
+        aim(arm, side + "Arm", limb_dir(sign, -ARM_BACK, ARM_SPLAY))
+        aim(arm, side + "ForeArm", limb_dir(sign, FOREARM_FWD, FOREARM_OUT))
         rotate(arm, side + "Hand", HAND_PITCH, 'X')
 
 
@@ -258,6 +310,46 @@ def build_action(arm, drop):
     return action
 
 
+def report(arm):
+    """Where the posed joints actually land, in armature-space centimetres.
+
+    Kept because the renders answer "does this read as sitting" but not "is the hand
+    8 cm inside the belly" -- and on a character this wide those are different
+    questions.
+    """
+    scene = bpy.context.scene
+    scene.frame_set(1)
+    sync()
+    for name in ("Hips", "LeftUpLeg", "LeftLeg", "LeftFoot", "LeftToe_End",
+                 "LeftArm", "LeftForeArm", "LeftHand", "Head"):
+        key = B % name
+        if key not in arm.pose.bones:
+            continue
+        p = arm.pose.bones[key].matrix.to_translation()
+        print("  %-12s x %7.1f  y %7.1f  z %7.1f" % (name, p.x, p.y, p.z))
+
+    # The torso's own width and depth at the waist, so "outside the belly" is a
+    # measured claim rather than an impression from one camera angle.
+    inv = arm.matrix_world.inverted()
+    lo = [1e9] * 3
+    hi = [-1e9] * 3
+    dg = bpy.context.evaluated_depsgraph_get()
+    for o in bpy.data.objects:
+        if o.type != 'MESH' or o.name == "SitFloor":
+            continue
+        ev = o.evaluated_get(dg)
+        mesh = ev.to_mesh()
+        for v in mesh.vertices:
+            p = inv @ (ev.matrix_world @ v.co)
+            if not (78.0 < p.y < 100.0):      # a waist-height slice
+                continue
+            for i in range(3):
+                lo[i] = min(lo[i], p[i])
+                hi[i] = max(hi[i], p[i])
+        ev.to_mesh_clear()
+    print("  waist slice  x %.1f..%.1f  z %.1f..%.1f" % (lo[0], hi[0], lo[2], hi[2]))
+
+
 def preview(path, drop):
     """Render the posed astronaut from the side and the front, side by side.
 
@@ -276,6 +368,13 @@ def preview(path, drop):
     light = bpy.data.objects.new("SitKey", light_data)
     scene.collection.objects.link(light)
     light.rotation_euler = (math.radians(55), 0, math.radians(35))
+
+    # A floor at world z=0, so "are the soles actually on the ground" is something the
+    # render answers rather than something the maths is trusted about.
+    floor_mesh = bpy.data.meshes.new("SitFloor")
+    floor_mesh.from_pydata(
+        [(-3, -3, 0), (3, -3, 0), (3, 3, 0), (-3, 3, 0)], [], [(0, 1, 2, 3)])
+    scene.collection.objects.link(bpy.data.objects.new("SitFloor", floor_mesh))
 
     cam_data = bpy.data.cameras.new("SitCam")
     cam_data.type = 'ORTHO'
@@ -341,6 +440,7 @@ def main():
     print("Sit drop: %.2f cm (%.3f m)" % (drop, drop * 0.01))
 
     build_action(arm, drop)
+    report(arm)
 
     if "--preview" in argv:
         preview(argv[argv.index("--preview") + 1], drop)

@@ -433,5 +433,15 @@ namespace SpaceGame.Core
         // (92 and 93 were SeatRequest/SeatRelease, retired: passenger chairs are ordinary mounts —
         //  PlayerShipBuilder gives every non-helm chair its own MountModule — so a second, bespoke
         //  way to sit down was two mechanisms for one job. Not reused; ids travel between builds.)
+
+        // "Let me out of my arrival seat." Client → server, on the SHIP's relay.
+        //
+        // Its own message rather than a client-side call to SeatedRider.Release, because releasing
+        // is a server decision and the seat's occupancy is server-written state. The server
+        // releases the SENDER's own body and nobody else's — see SeatedRider.OnLeaveSeatRequested,
+        // which checks ownership rather than trusting the reference on the wire.
+        //
+        //   Target  the player asking to get up.
+        public const ushort LeaveSeatRequest = 94; // client → server, on the SHIP's relay
     }
 }

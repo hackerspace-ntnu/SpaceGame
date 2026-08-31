@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using SpaceGame.Core;
 
 namespace SpaceGame.Gameplay.Arrival
@@ -86,6 +87,25 @@ namespace SpaceGame.Gameplay.Arrival
         /// </summary>
         private readonly NetworkList<ulong> occupants = new();
 
+        /// <summary>
+        /// Whether the crew are allowed to get up yet. False for the whole descent, true once the
+        /// hull is down.
+        ///
+        /// <para>
+        /// A replicated variable rather than a local check, because the machine that knows the
+        /// flight is over is the SERVER and the machine that has to draw the prompt and read the
+        /// key is the CLIENT. It also survives a late join, which a one-shot event would not: a
+        /// player who connects after the landing still needs to be told they may stand up.
+        /// </para>
+        /// <para>
+        /// This is what stops Escape being a bail-out button halfway down the arc.
+        /// </para>
+        /// </summary>
+        private readonly NetworkVariable<bool> releasable = new(false);
+
+        /// <summary>Raised on this machine when its own player may (or may not) leave their seat.</summary>
+        public static event Action<bool> LocalPlayerMayLeaveChanged;
+
 
         /// <summary>Seats in the order <see cref="SeatOrdering"/> put them, resolved once.</summary>
         private readonly List<ShipSeat> seats = new();
@@ -123,6 +143,21 @@ namespace SpaceGame.Gameplay.Arrival
         private SpaceGame.Vehicles.CabinAlert CabinAlert =>
             cabinAlert != null ? cabinAlert : cabinAlert = GetComponentInChildren<SpaceGame.Vehicles.CabinAlert>(true);
 
+        /// <summary>
+        /// The seated idle, so riders sit in the chairs instead of standing to attention in them.
+        ///
+        /// <para>
+        /// One component for all four seats, and driven from here rather than left to
+        /// <c>MountModule</c>: the descent deliberately does not use mounts, so a chair that waited
+        /// for a mount event would have nobody to hear from. Attach and Detach already run on every
+        /// machine for every player, which is exactly the reach the pose needs.
+        /// </para>
+        /// </summary>
+        private SpaceGame.Agents.ChairPose chairPose;
+
+        private SpaceGame.Agents.ChairPose ChairPose =>
+            chairPose != null ? chairPose : chairPose = GetComponentInChildren<SpaceGame.Agents.ChairPose>(true);
+
         private readonly struct SeatedBody
         {
             public readonly int SeatIndex;
@@ -150,6 +185,9 @@ namespace SpaceGame.Gameplay.Arrival
         {
             this.NetOn(NetMsg.TakeSeat, OnTakeSeat);
             this.NetOn(NetMsg.LeaveSeat, OnLeaveSeat);
+            this.NetOn(NetMsg.LeaveSeatRequest, OnLeaveSeatRequested);
+
+            releasable.OnValueChanged += OnReleasableChanged;
 
             ResolveSeats();
 
@@ -167,6 +205,13 @@ namespace SpaceGame.Gameplay.Arrival
         {
             this.NetOff(NetMsg.TakeSeat, OnTakeSeat);
             this.NetOff(NetMsg.LeaveSeat, OnLeaveSeat);
+            this.NetOff(NetMsg.LeaveSeatRequest, OnLeaveSeatRequested);
+
+            releasable.OnValueChanged -= OnReleasableChanged;
+
+            // The prompt is drawn from this, and the hull going away is one of the ways a player
+            // stops being able to answer it.
+            if (HoldsLocalPlayer) LocalPlayerMayLeaveChanged?.Invoke(false);
 
             // The hull can be despawned with players still recorded in it — a host quitting mid
             // descent. Releasing here rather than leaving them frozen means the bodies get their
@@ -208,6 +253,81 @@ namespace SpaceGame.Gameplay.Arrival
             // peer does instead of a private one that can drift from it.
             this.NetToAll(NetMsg.TakeSeat, new NetArg(a: seatIndex).With(player));
             return true;
+        }
+
+        /// <summary>
+        /// Does this machine's own player sit in one of these seats?
+        /// </summary>
+        public bool HoldsLocalPlayer
+        {
+            get
+            {
+                foreach (ulong id in seated.Keys)
+                {
+                    GameObject player = ResolveById(id);
+                    if (player != null && Network.Owns(player.transform)) return true;
+                }
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Server-only. Lets the crew get up when they choose to, which is what ends the arrival
+        /// now that landing no longer turfs everybody out automatically.
+        /// </summary>
+        public void AllowRelease()
+        {
+            if (!IsServer) return;
+            releasable.Value = true;
+        }
+
+        private void OnReleasableChanged(bool _, bool now)
+        {
+            if (HoldsLocalPlayer) LocalPlayerMayLeaveChanged?.Invoke(now);
+        }
+
+        /// <summary>
+        /// A client asking to stand up.
+        ///
+        /// <para>
+        /// The reference on the wire is checked rather than trusted: a client may only release the
+        /// body it OWNS, so a malformed or hostile message cannot turf a crewmate out of their seat
+        /// mid-descent. And it is refused outright until <see cref="releasable"/> — the server
+        /// decides when the flight is over, not the machine holding the key.
+        /// </para>
+        /// </summary>
+        private void OnLeaveSeatRequested(in NetArg arg, ulong sender)
+        {
+            if (!IsServer || !releasable.Value) return;
+
+            GameObject player = arg.Resolve();
+            if (player == null) return;
+
+            var netObj = player.GetComponent<NetworkObject>();
+            if (netObj == null || netObj.OwnerClientId != sender) return;
+
+            Release(player);
+        }
+
+        /// <summary>
+        /// This machine's own player asks to get up. Does nothing until the server says the flight
+        /// is over.
+        /// </summary>
+        public void RequestLocalRelease()
+        {
+            if (!releasable.Value) return;
+
+            foreach (ulong id in seated.Keys)
+            {
+                GameObject player = ResolveById(id);
+                if (player == null || !Network.Owns(player.transform)) continue;
+
+                // Offline there is no server to ask and no spawn manager to resolve against, so the
+                // host path and the single-player path meet at the same Release rather than at two.
+                if (IsServer) Release(player);
+                else this.NetToServer(NetMsg.LeaveSeatRequest, new NetArg().With(player));
+                return;
+            }
         }
 
         /// <summary>Server-only. Empties every seat and tells everyone.</summary>
@@ -274,6 +394,20 @@ namespace SpaceGame.Gameplay.Arrival
             //
             // Bookkeeping only. The actual placement is in LateUpdate; see the note on the class.
             ApplyStateChannel();
+
+            // Escape gets you out of the chair, the same key that gets you off every mount in the
+            // game. Read here rather than from the UI because the seat owns standing up; the
+            // prompt only draws what this will answer.
+            //
+            // Gated on the shared menu scope, or Escape would mean two things at once: the chat
+            // box and the settings fields both use it for "never mind", and closing one of those
+            // would eject the player from their seat as a side effect. The scope is also false
+            // while the arrival cutscene holds the controls, which is a second reason the descent
+            // cannot be bailed out of.
+            if (releasable.Value && HoldsLocalPlayer &&
+                SpaceGame.Presentation.GameplayMenuScope.AcceptsGameplayInput &&
+                Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+                RequestLocalRelease();
         }
 
         private void LateUpdate()
@@ -480,8 +614,19 @@ namespace SpaceGame.Gameplay.Arrival
                     body.interpolation = RigidbodyInterpolation.None;
                 }
 
-                if (Network.Owns(player.transform)) LocalPlayerSeated?.Invoke();
+                if (Network.Owns(player.transform))
+                {
+                    LocalPlayerSeated?.Invoke();
+                    // A late joiner can be seated into an already-landed hull, so the prompt has to
+                    // be told the current answer rather than waiting for the flag to change.
+                    LocalPlayerMayLeaveChanged?.Invoke(releasable.Value);
+                }
             }
+
+            // Outside the alreadyHeld branch, and for every player rather than only our own: the
+            // pose is what remote machines see of a crewmate through the canopy, and a body moved
+            // between seats still needs to be sitting in the new one.
+            if (ChairPose != null) ChairPose.PoseRider(player.transform);
 
             // Placed immediately rather than waiting for the next HoldSeats, so the body never
             // renders for a frame at wherever it was spawned.
@@ -524,10 +669,11 @@ namespace SpaceGame.Gameplay.Arrival
             seated.Clear();
         }
 
-        /// <summary>Undo everything seating did to the body, physics and cargo status alike.</summary>
+        /// <summary>Undo everything seating did to the body, physics, pose and cargo status alike.</summary>
         private void ReleaseBody(GameObject player, SeatedBody before)
         {
             if (HoverMotor != null) HoverMotor.StopCarrying(player);
+            if (ChairPose != null) ChairPose.ReleaseRider(player.transform);
 
             RestorePhysics(player, before);
         }

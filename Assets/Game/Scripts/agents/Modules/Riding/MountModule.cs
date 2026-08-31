@@ -99,6 +99,13 @@ namespace SpaceGame.Agents
         [SerializeField] private float lookSensitivity = 20f;
         [Tooltip("Pitch limit for the FIRST-PERSON head. The third-person boom has its own, below.")]
         [SerializeField] private float lookPitchClamp = 75f;
+        [Tooltip("How far the FIRST-PERSON view may turn from the seat's own forward, in degrees " +
+                 "each way. 180 is the whole circle and the default: somebody sitting in a seat " +
+                 "with no controls to work has nothing to do but look, and a passenger who cannot " +
+                 "turn their head is a passenger staring at a bulkhead for the whole journey. " +
+                 "Lower it for a seat whose fantasy is a fixed station facing one way. The " +
+                 "third-person orbit ignores this — it is unbounded by design.")]
+        [SerializeField] private float firstPersonYawClamp = 180f;
         [SerializeField] private float defaultMountedPitch = -15f;
         [Tooltip("Lowest the third-person boom swings, in degrees. Negative drops the camera and " +
                  "looks up at the mount; going much past this digs it into the ground.")]
@@ -364,6 +371,10 @@ namespace SpaceGame.Agents
             fallbackDismountDistance = Mathf.Max(0.1f, fallbackDismountDistance);
             lookSensitivity = Mathf.Max(0f, lookSensitivity);
             lookPitchClamp = Mathf.Clamp(lookPitchClamp, 0f, 89f);
+            // Past 180 is not a wider view, it is the same circle counted twice: the offset is
+            // wrapped into (-180, 180] before it is ever clamped, so a larger number here would
+            // read as a limit and do nothing.
+            firstPersonYawClamp = Mathf.Clamp(firstPersonYawClamp, 0f, 180f);
             orbitPitchMin = Mathf.Clamp(orbitPitchMin, -89f, 0f);
             orbitPitchMax = Mathf.Clamp(orbitPitchMax, 0f, 89f);
             thirdPersonDistance = Mathf.Max(0.1f, thirdPersonDistance);

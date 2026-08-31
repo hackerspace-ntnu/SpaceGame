@@ -35,7 +35,11 @@ namespace SpaceGame.Agents
             float scaled = lookSensitivity * GameSettings.MouseSensitivity * deltaTime;
             float pitchInput = GameSettings.InvertLookY ? -lookInput.y : lookInput.y;
 
+            bool firstPerson = activePerspective == CameraPerspective.FirstPerson;
+
             cameraYawOffset = MountLookMath.WrapAngle(cameraYawOffset + lookInput.x * scaled);
+            if (firstPerson)
+                cameraYawOffset = MountLookMath.ClampYaw(cameraYawOffset, firstPersonYawClamp);
             mountedPitch = Mathf.Clamp(mountedPitch - pitchInput * scaled, -lookPitchClamp, lookPitchClamp);
             orbitPitch = Mathf.Clamp(orbitPitch - pitchInput * scaled, orbitPitchMin, orbitPitchMax);
 
@@ -47,15 +51,27 @@ namespace SpaceGame.Agents
             else
                 timeSinceLastLookInput += deltaTime;
 
-            cameraYawOffset = MountLookMath.StepRecentre(cameraYawOffset, timeSinceLastLookInput,
-                                                         cameraAutoAlignDelay, cameraAutoAlignSpeed,
-                                                         deltaTime);
+            // The drift home is the ORBIT's behaviour and stays there. A third-person camera has a
+            // neutral worth returning to — behind the vehicle — and a flank view that never came
+            // back would strand the camera out to one side for the rest of the ride. A head has no
+            // such neutral: it points where the person is looking, and turning it back on its own
+            // is the view overriding the player rather than serving them. A passenger watching the
+            // dunes go past would have the window slide out from under them every three seconds.
+            if (!firstPerson)
+                cameraYawOffset = MountLookMath.StepRecentre(cameraYawOffset, timeSinceLastLookInput,
+                                                             cameraAutoAlignDelay, cameraAutoAlignSpeed,
+                                                             deltaTime);
             orbitPitch = MountLookMath.StepRecentre(orbitPitch, timeSinceLastLookInput,
                                                     cameraAutoAlignDelay, cameraAutoAlignSpeed,
                                                     deltaTime);
 
+            // Yaw as well as pitch. Without the Y term the look stick's whole horizontal axis was
+            // read, accumulated into cameraYawOffset and then dropped on the floor in first person
+            // — the camera answered half the control, so a seated rider could look up and down and
+            // not left or right.
             if (mountedFirstPersonCameraRoot)
-                mountedFirstPersonCameraRoot.localRotation = Quaternion.Euler(mountedPitch, 0f, 0f);
+                mountedFirstPersonCameraRoot.localRotation =
+                    Quaternion.Euler(mountedPitch, cameraYawOffset, 0f);
         }
 
         /// <summary>

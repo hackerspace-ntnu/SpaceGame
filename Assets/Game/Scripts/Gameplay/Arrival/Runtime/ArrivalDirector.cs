@@ -100,10 +100,16 @@ namespace SpaceGame.Gameplay.Arrival
         [Tooltip("How far the hull sits above the measured ground once it has stopped.")]
         [SerializeField] private float wreckGroundClearance = 1.2f;
 
-        [Tooltip("How long the wreck sits still, with the screen already black, before players are " +
-                 "let out of their seats. Covers the release so nobody watches their own body be " +
-                 "handed back its physics.")]
+        [Tooltip("How long the wreck sits still after landing before the crew are told they may " +
+                 "get up. Long enough for the cutscene's blackout to lift, so the prompt is not " +
+                 "offered to somebody still looking at a black screen.")]
         [SerializeField] private float releaseDelay = 1.6f;
+
+        [Tooltip("Backstop. Anyone still sitting in a landed hull this many seconds after being " +
+                 "told they may leave is turfed out. Only ever reached by a player who CANNOT " +
+                 "get up — a lost binding, a prompt that never drew — never by one taking their " +
+                 "time, which is why it is minutes rather than seconds.")]
+        [SerializeField] private float strandedSeatTimeout = 180f;
 
         /// <summary>Every hull on its way down, by team. A story world files its one under -1.</summary>
         private readonly Dictionary<int, ArrivalFlight> flights = new();
@@ -418,16 +424,42 @@ namespace SpaceGame.Gameplay.Arrival
             while (descending > 0)
                 yield return null;
 
-            // Held open until the cutscene's own blackout has covered the release, so nobody watches
-            // their own body drop out of its seat and take its weight back.
+            // Held open until the cutscene's own blackout has lifted, so the prompt is not offered
+            // to somebody still looking at a black screen.
             yield return new WaitForSeconds(releaseDelay);
+
+            // Unlocked rather than emptied. The crew stay in their chairs and get up when they
+            // press the key — landing in a wreck and then being teleported out of your own seat
+            // reads as the game taking the controls back at the exact moment it hands them over.
+            foreach (ArrivalFlight flight in flights.Values)
+                if (flight.IsAlive)
+                    flight.Seating.AllowRelease();
+
+            HasArrived = true;
+            IsRunning = false;
+
+            StartCoroutine(EmptySeatsEventually());
+        }
+
+        /// <summary>
+        /// The backstop: turfs out anybody still sitting in a landed hull long after they were told
+        /// they could leave.
+        ///
+        /// <para>
+        /// Here because "get up when you like" and "cannot get up at all" look identical from the
+        /// outside, and one of them is a player stuck in a chair for the rest of the session — a
+        /// dropped input binding, a prompt that never drew, someone who walked away mid-landing.
+        /// The timeout is long enough that nobody who is simply taking their time will ever meet
+        /// it.
+        /// </para>
+        /// </summary>
+        private IEnumerator EmptySeatsEventually()
+        {
+            yield return new WaitForSeconds(strandedSeatTimeout);
 
             foreach (ArrivalFlight flight in flights.Values)
                 if (flight.IsAlive)
                     flight.Seating.ReleaseAll();
-
-            HasArrived = true;
-            IsRunning = false;
         }
 
         /// <summary>

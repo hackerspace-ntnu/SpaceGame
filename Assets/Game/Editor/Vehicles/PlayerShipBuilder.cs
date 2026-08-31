@@ -85,6 +85,30 @@ namespace SpaceGame.EditorTools
         // a smooth ramp does the actual carrying and the treads stay visual.
         private const float BoardingRampAngle = 32f;
 
+        // Radius of the player's capsule. The doorway threshold sweeps the floor a body-width in
+        // from the plank, which is as far as a body standing in the doorway can reach.
+        private const float PlayerBodyRadius = 0.5f;
+
+        // How far above the walk-out plank a floor still counts as this doorway's threshold. The
+        // bay floor just inside the side door stands 0.8 m over the plank; the cockpit dais a
+        // metre further in is a different deck, and a ramp reaching for that would be a wall of
+        // its own kind.
+        private const float MaxThresholdRise = 1f;
+
+        // Steepest the measured threshold may come out at before it is a wall again. Reported
+        // rather than assumed: it depends entirely on where the artist put the floor.
+        private const float MaxThresholdAngle = 45f;
+
+        // Step the threshold sweeps the floor with, hunting the slab's edge and its width, and
+        // how far the floor may vary across it and still count as the same floor.
+        private const float ThresholdProbeStep = 0.05f;
+        private const float ThresholdTolerance = 0.05f;
+
+        // Thickness of the invisible threshold slab, and the overlap it carries past each end so
+        // there is no seam where it meets the plank or the floor.
+        private const float ThresholdThickness = 0.1f;
+        private const float ThresholdOverlap = 0.15f;
+
         // Named meshes the build measures from. The export script guarantees these names; anything
         // else in the model is treated generically (structural collision by measurement).
         private static readonly string[] RequiredParts =
@@ -154,7 +178,6 @@ namespace SpaceGame.EditorTools
             ArticulatedPart backDoor = BuildBackDoor(model.transform, parts);
             ArticulatedPart[] leaves = BuildSlidingLeaves(model.transform, parts);
             ArticulatedPart stair = BuildBoardingStair(model.transform, parts);
-            ArticulatedPart platform = BuildSillPlatform(model.transform, parts);
 
             // Double-sided materials: the hull is a surface, not a solid, so this is what makes
             // the interior visible from inside — and it is also what fixes the two belly tracks,
@@ -168,6 +191,11 @@ namespace SpaceGame.EditorTools
                 Object.DestroyImmediate(root);
                 return;
             }
+
+            // AFTER the collision pass, unlike the other three moving parts: the plank carries the
+            // threshold that gets a body off it and onto the bay floor, and that threshold measures
+            // the floor off the ship's own collision, which does not exist until the line above.
+            ArticulatedPart platform = BuildSillPlatform(root.transform, model.transform, parts);
 
             // After the collision pass, because a socket adopts the fitting hull that pass gave the
             // module — it is the collider a socket switches off to make the hole a hole.
@@ -450,15 +478,24 @@ namespace SpaceGame.EditorTools
             var result = new ArticulatedPart[names.Length];
             for (int i = 0; i < names.Length; i++)
             {
-                Transform pivot = MakePivot(model, "SlidingDoorLeaf" + (i + 1), bounds[i].center,
-                                            parts.T(names[i]));
+                // Grabbed BEFORE MakePivot reparents it — Transform.Find searches direct children
+                // only, so a second lookup afterwards comes back null.
+                Transform leaf = parts.T(names[i]);
+                Transform pivot = MakePivot(model, "SlidingDoorLeaf" + (i + 1), bounds[i].center, leaf);
 
                 Vector3 delta = i > 0 ? firstCentre - bounds[i].center : step * 0.55f;
                 float distance = delta.magnitude;
                 float duration = Mathf.Max(0.8f, distance / DoorSlideSpeed);
 
                 result[i] = AddSlide(pivot, delta.normalized, distance, duration, duration);
-                AddPanelCollider(pivot, bounds[i]);
+
+                // The leaf's OWN hull, never the world AABB of a panel that leans ~20°: the four
+                // boxes held 103 m³ around 17 m³ of door. Closed that is merely wasteful; opened,
+                // all four stack at the aft-upper end and the phantom corners reach back down
+                // across the sill plank and half the boarding ramp, so the way in is a 0.9 m slot
+                // beside a 3 m drop. A door leaf is a modelled slab, so a convex hull of it is
+                // exact — the same treatment the fittings get, for the same reason.
+                AddConvexCollider(leaf.GetComponent<MeshFilter>());
             }
 
             return result;
@@ -521,7 +558,7 @@ namespace SpaceGame.EditorTools
         }
 
         // The walk-out plate under the side-door sill, stowed inboard under the doorway floor.
-        private static ArticulatedPart BuildSillPlatform(Transform model, PartLookup parts)
+        private static ArticulatedPart BuildSillPlatform(Transform root, Transform model, PartLookup parts)
         {
             Bounds plate = parts.B("Mesh_SillPlatform");
             // Grabbed once, BEFORE MakePivot reparents it — Transform.Find only searches direct
@@ -533,6 +570,7 @@ namespace SpaceGame.EditorTools
             // its offset is computed against the stowed pivot and the walkable box ends up a
             // plate-width outboard of the extended plank.
             AddPanelCollider(pivot, plate);
+            BuildDoorThreshold(root, pivot, plate);
 
             float inwardX = -Mathf.Sign(plate.center.x);
             Vector3 stow = new Vector3(inwardX * (plate.size.x + 0.2f), 0f, 0f);
@@ -554,6 +592,154 @@ namespace SpaceGame.EditorTools
                 SetArray(so, "parts", new Object[] { part });
             });
             return part;
+        }
+
+        /// <summary>
+        /// The invisible slope that carries a body off the walk-out plank and onto the bay floor.
+        ///
+        /// <para>
+        /// The plank's top surface sits 0.82 m BELOW the floor immediately inside the doorway, in
+        /// two lips — 0.29 m onto the deck plate and 0.54 m onto the raised slab behind it — with
+        /// 0.43 m of run between them. The player is a Rigidbody capsule with no step offset, so
+        /// both are walls, and a 0.5 m radius cannot stand on the ledge in between either. Opened,
+        /// the side door therefore led onto the plank and stopped there. Same answer as the
+        /// boarding stair's 0.7 m treads: a thin ramp does the carrying and the modelled geometry
+        /// is left alone (GDC-L1-FEEL-0007 — tune for the sensation, not for the collision's
+        /// literal truth; GDC-L1-FEEL-0003 on rejecting a clear intention at a corner).
+        /// </para>
+        ///
+        /// <para>
+        /// Both ends are MEASURED off the ship's own collision, not off the meshes: the floor here
+        /// is three stacked slabs and none of them is the one a renderer-bounds guess would name.
+        /// The ray is dropped from one rise above the plank rather than from the roof, so it cannot
+        /// find the hull overhead, and moving parts are excluded so a leaf standing in its closed
+        /// pose is not mistaken for the floor.
+        /// </para>
+        ///
+        /// <para>
+        /// The ramp is then cut to exactly the floor it climbs to, in both axes. Reaching past that
+        /// slab's edge would leave a phantom slope standing on the open deck — and since the ramp
+        /// rides the plank's pivot, the stowed pose would push that overhang up through the cabin
+        /// floor as an invisible hump. Cut to the slab, the stowed ramp is buried under it.
+        /// </para>
+        /// </summary>
+        private static void BuildDoorThreshold(Transform root, Transform pivot, Bounds plate)
+        {
+            // The collision colliders were added this frame; queries read the physics scene, which
+            // does not know about them until their transforms are pushed across.
+            Physics.SyncTransforms();
+
+            float inward = -Mathf.Sign(plate.center.x);
+            float innerEdge = plate.center.x + inward * plate.extents.x;
+            float outerEdge = plate.center.x - inward * plate.extents.x;
+            float rayTop = plate.max.y + MaxThresholdRise;
+            float rayLength = MaxThresholdRise * 2f;
+
+            // The floor to climb to is the HIGHEST one within a body's reach of the doorway, not
+            // the one under a single probe point: the raised slab's edge is barely 0.15 m past
+            // where a capsule first stands, and a probe falling short of it would ramp onto the
+            // deck plate and leave the 0.54 m lip behind it untouched. The ray starts one rise up,
+            // so anything higher than a threshold is simply never seen.
+            float reach = PlayerBodyRadius * 2f;
+            float floor = float.NegativeInfinity;
+            float floorZ = plate.center.z;
+            float floorX = innerEdge;
+            for (float d = 0f; d <= reach; d += ThresholdProbeStep)
+            {
+                float x = innerEdge + inward * d;
+                float measured = FloorAt(root, new Vector3(x, rayTop, floorZ), rayLength);
+                if (measured <= floor) continue;
+                floor = measured;
+                floorX = x;
+            }
+
+            if (float.IsNegativeInfinity(floor) || floor <= plate.max.y + ThresholdTolerance)
+                return; // the plank already meets the floor: nothing to climb, nothing to build
+
+            // The outboard edge of that floor — the first place, coming in from the door, that
+            // stands at it. That is where the ramp has to arrive.
+            float edgeX = floorX;
+            for (float d = 0f; d <= reach; d += ThresholdProbeStep)
+            {
+                float x = innerEdge + inward * d;
+                if (!IsSameFloor(root, new Vector3(x, rayTop, floorZ), rayLength, floor)) continue;
+                edgeX = x;
+                break;
+            }
+
+            // ...and how wide it is, across the doorway, bounded by the plank itself.
+            float near = floorZ;
+            float far = floorZ;
+            while (near - ThresholdProbeStep >= plate.min.z
+                   && IsSameFloor(root, new Vector3(floorX, rayTop, near - ThresholdProbeStep),
+                                  rayLength, floor))
+                near -= ThresholdProbeStep;
+            while (far + ThresholdProbeStep <= plate.max.z
+                   && IsSameFloor(root, new Vector3(floorX, rayTop, far + ThresholdProbeStep),
+                                  rayLength, floor))
+                far += ThresholdProbeStep;
+
+            Vector3 bottom = new Vector3(outerEdge, plate.max.y, (near + far) * 0.5f);
+            Vector3 top = new Vector3(edgeX, floor, (near + far) * 0.5f);
+
+            float rise = floor - plate.max.y;
+            float run = Mathf.Abs(edgeX - outerEdge);
+            float slope = Mathf.Atan2(rise, run) * Mathf.Rad2Deg;
+            if (slope > MaxThresholdAngle)
+            {
+                // Built anyway — a steep ramp still beats a wall — but this is the shape of the
+                // bug it exists to fix, so it must not pass silently.
+                Debug.LogError($"[PlayerShipBuilder] The side door's threshold measures {slope:F0}° " +
+                               $"({rise:F2} m over {run:F2} m), past the {MaxThresholdAngle:F0}° a " +
+                               "body can walk. The floor inside the doorway has moved relative to " +
+                               "the sill plank; the door is not enterable as built.");
+            }
+
+            GameObject ramp = new GameObject("DoorThreshold");
+            ramp.transform.SetParent(pivot, false);
+            ramp.transform.rotation = Quaternion.LookRotation(top - bottom, Vector3.up);
+            // Sunk half its thickness, so the WALKING surface is the measured line itself: flush
+            // with the plank at the bottom and with the floor at the top. That is also what keeps
+            // the stowed ramp under the cabin floor rather than proud of it.
+            ramp.transform.position = (bottom + top) * 0.5f
+                                      - ramp.transform.up * (ThresholdThickness * 0.5f);
+
+            BoxCollider box = ramp.AddComponent<BoxCollider>();
+            box.size = new Vector3(far - near, ThresholdThickness,
+                                   Vector3.Distance(bottom, top) + ThresholdOverlap * 2f);
+        }
+
+        /// <summary>
+        /// The highest point of the ship's own STRUCTURE under <paramref name="from"/>, or
+        /// <see cref="float.NegativeInfinity"/> if nothing is within <paramref name="distance"/>.
+        ///
+        /// <para>
+        /// Restricted to colliders under <paramref name="root"/>: the ship is built in whatever
+        /// scene the menu item was invoked from, and a ray that hit that scene's terrain would
+        /// answer with a height no rebuild could reproduce. Moving parts are excluded as well —
+        /// a door leaf or the plank itself standing in its authored pose is not a floor, and here
+        /// the answer becomes geometry, so measuring one would bake the door's pose into the hull.
+        /// </para>
+        /// </summary>
+        private static float FloorAt(Transform root, Vector3 from, float distance)
+        {
+            float best = float.NegativeInfinity;
+            foreach (RaycastHit hit in Physics.RaycastAll(from, Vector3.down, distance, ~0,
+                                                          QueryTriggerInteraction.Ignore))
+            {
+                if (!hit.collider.transform.IsChildOf(root)) continue;
+                if (hit.collider.GetComponentInParent<ArticulatedPart>() != null) continue;
+                if (hit.point.y > best) best = hit.point.y;
+            }
+            return best;
+        }
+
+        /// <summary>Whether the structure under <paramref name="from"/> is still the same floor.</summary>
+        private static bool IsSameFloor(Transform root, Vector3 from, float distance, float height)
+        {
+            float measured = FloorAt(root, from, distance);
+            return !float.IsNegativeInfinity(measured)
+                   && Mathf.Abs(measured - height) <= ThresholdTolerance;
         }
 
         // ─────────── Collision ───────────
@@ -705,12 +891,22 @@ namespace SpaceGame.EditorTools
                     || NoStructuralCollider.Contains(filter.name))
                     continue;
 
-                MeshCollider collider = filter.gameObject.AddComponent<MeshCollider>();
-                collider.sharedMesh = filter.sharedMesh;
-                collider.convex = true;
+                AddConvexCollider(filter);
                 fitted++;
             }
             return fitted;
+        }
+
+        /// <summary>
+        /// One convex MeshCollider on a mesh's own object — the mesh's true hull rather than the
+        /// fat local-bounds box. Exact for anything modelled as a slab or a block, which is what
+        /// the fittings and the door leaves both are.
+        /// </summary>
+        private static void AddConvexCollider(MeshFilter filter)
+        {
+            MeshCollider collider = filter.gameObject.AddComponent<MeshCollider>();
+            collider.sharedMesh = filter.sharedMesh;
+            collider.convex = true;
         }
 
         /// <summary>
@@ -1010,16 +1206,16 @@ namespace SpaceGame.EditorTools
                     pilotChair = chair;
             }
 
-            Vector3 seatPos;
-            if (pilotChair != null)
-            {
-                Bounds pb = RendererBounds(pilotChair);
-                seatPos = new Vector3(pb.center.x, pb.min.y + 0.02f, pb.center.z);
-            }
-            else
-            {
-                seatPos = new Vector3(canopy.center.x, floorTop + 0.02f, canopy.center.z - 1.0f);
-            }
+            // On the cushion and facing the way the chair faces — see MeasureSeat. The
+            // chair-less fallback has no cushion to read, so it stands a body on the deck.
+            SeatPose helm = pilotChair != null
+                ? MeasureSeat(pilotChair)
+                : new SeatPose(new Vector3(canopy.center.x, floorTop + PlayerPivotHeight,
+                                           canopy.center.z - 1.0f),
+                               Quaternion.identity,
+                               new Vector3(canopy.center.x + 1.0f, floorTop + PlayerPivotHeight,
+                                           canopy.center.z - 1.4f));
+            Vector3 seatPos = helm.Pivot;
 
             // The wheel is scenery — the chair is where you sit down. It keeps its collider so the
             // helm is solid to stand against, and like every other surface on the hull a click on
@@ -1030,10 +1226,13 @@ namespace SpaceGame.EditorTools
             else
                 BuildSteeringWheel(group.transform, seatPos + new Vector3(0f, 1.05f, 1.45f));
 
+            // The pilot's own facing. MountModule takes the rider's rotation from this marker, so
+            // this is what turns a body to face its chair rather than the ship.
             Transform seat = Empty(group.transform, "SeatPoint", seatPos);
-            // Beside the chair, not outside the hull — dismounting mid-flight must not drop the
-            // pilot through the sky.
-            Transform dismount = Empty(group.transform, "DismountPoint", seatPos + new Vector3(1.0f, 0f, -0.4f));
+            seat.localRotation = helm.Rotation;
+            // Behind the chair and on the deck — the helm faces the console, so there is nowhere
+            // forward to stand, and dismounting mid-flight must not drop the pilot through the sky.
+            Transform dismount = Empty(group.transform, "DismountPoint", helm.Dismount);
 
             int seatIndex = 0;
             foreach (Transform chair in chairs)
@@ -1066,9 +1265,11 @@ namespace SpaceGame.EditorTools
         /// <para>
         /// The module cannot simply go on the chair mesh instead: the chairs arrive from the FBX
         /// at ~150x scale and with the exporter's axis rotation baked into them, and MountModule
-        /// reads its own transform's rotation for the mounted camera's yaw. This seat object is
-        /// unrotated and unscaled, which is what makes a first-person passenger face down the
-        /// ship rather than off its own chair's axis.
+        /// reads its own transform's rotation for the mounted camera's yaw. Riding the chair's own
+        /// transform would therefore inherit both — a passenger scaled 150x, facing whatever the
+        /// exporter's baked yaw happens to be (it reads 180 on all four, whichever way the chair
+        /// really points). This object is unscaled, and takes its rotation from the chair's
+        /// GEOMETRY instead: see <see cref="MeasureSeat"/>.
         /// </para>
         /// </summary>
         private static void BuildPassengerSeat(Transform cockpit, Transform chair,
@@ -1076,15 +1277,24 @@ namespace SpaceGame.EditorTools
         {
             Bounds cb = RendererBounds(chair);
 
+            SeatPose pose = MeasureSeat(chair);
+
             GameObject seatGo = new GameObject("PassengerSeat" + index);
             seatGo.transform.SetParent(cockpit, false);
+            // Turned to face the chair, which the mounted CAMERA reads off this transform (the
+            // body reads the SeatPoint below). Two of these four chairs face sideways, and a
+            // passenger in one of them was looking out of the side of their own head.
+            seatGo.transform.localRotation = pose.Rotation;
 
-            Vector3 seatPos = new Vector3(cb.center.x, cb.min.y + 0.02f, cb.center.z);
-            Transform seatPoint = Empty(seatGo.transform, "SeatPoint", seatPos);
-            // Step out toward the centre aisle, never into the hull wall.
-            float aisleSign = cb.center.x <= 0f ? 1f : -1f;
-            Transform dismount = Empty(seatGo.transform, "DismountPoint",
-                                       seatPos + new Vector3(aisleSign * 1.0f, 0f, 0f));
+            // Positions are still expressed in the cockpit's frame, so they are taken back out of
+            // the rotation just applied — otherwise the seat swings around the cockpit origin
+            // instead of staying on its own chair.
+            Quaternion unturn = Quaternion.Inverse(pose.Rotation);
+
+            Transform seatPoint = Empty(seatGo.transform, "SeatPoint", unturn * pose.Pivot);
+            // Out of the chair and onto the deck — forwards for a chair that faces across the hull,
+            // backwards for one that faces along it. See MeasureSeat.
+            Transform dismount = Empty(seatGo.transform, "DismountPoint", unturn * pose.Dismount);
 
             MountModule seatModule = seatGo.AddComponent<MountModule>();
             Apply(seatModule, so =>
@@ -1098,14 +1308,22 @@ namespace SpaceGame.EditorTools
                 SerializedFields.SetFloat(so, "fallbackDismountDistance", 3f);
             });
             seatGo.AddComponent<MountNetworkSync>();
+            // Its own, not the hull's: a ChairPose seats the rider of the MountModule beside it,
+            // and each passenger chair is a separate module with a separate occupant.
+            seatGo.AddComponent<ChairPose>();
 
             // The click surface. Padded past the chair so the volume is reached before the chair's
             // own mesh collider along any ray that ends on the chair, and kept snug enough that
             // standing beside it and looking at the hull still offers the helm.
             BoxCollider volume = seatGo.AddComponent<BoxCollider>();
             volume.isTrigger = true;
-            volume.center = cb.center;
-            volume.size = cb.size + Vector3.one * SeatVolumePadding;
+            // Taken out of the seat's rotation like the markers above, and the SIZE swapped with
+            // it: a box on a chair turned 90 degrees has its depth and width exchanged, so keeping
+            // the axis-aligned extents would wrap the chair in a box of the wrong shape.
+            volume.center = unturn * cb.center;
+            Vector3 extents = unturn * cb.size;
+            volume.size = new Vector3(Mathf.Abs(extents.x), Mathf.Abs(extents.y), Mathf.Abs(extents.z))
+                          + Vector3.one * SeatVolumePadding;
         }
 
         // ─────────── Cabin alert ───────────
@@ -1196,14 +1414,10 @@ namespace SpaceGame.EditorTools
         /// </para>
         ///
         /// <para>
-        /// <b>The floor is found PER SEAT, by dropping a ray onto the ship's own collision.</b> The
-        /// first version measured one height off the <c>Mesh_Deck_*</c> renderer bounds and used it
-        /// for all four, which is wrong twice over: those meshes are sub-floor structure rather than
-        /// the surface anyone stands on, and this hull has TWO levels — the cockpit sits 1.08 m
-        /// above the cabin. One number therefore buried the two forward crew to the chest, putting
-        /// their eyes at waist height inside the console for the whole descent. What a body stands
-        /// on is what it would collide with, so that is what gets asked. Runs after
-        /// <see cref="BuildStructuralCollision"/> for exactly that reason.
+        /// <b>Pose and facing are measured PER SEAT</b> off the chair's own mesh — see
+        /// <see cref="MeasureSeat"/>. Per seat and not one figure for the hull, because no two of
+        /// these chairs are alike: their cushions stand at four different heights, and two of the
+        /// four face sideways.
         /// </para>
         ///
         /// <para>
@@ -1215,10 +1429,6 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private static void BuildArrivalSeats(Transform root, PartLookup parts)
         {
-            // The colliders were added this frame; queries read the physics scene, which does not
-            // know about them until their transforms are pushed across.
-            Physics.SyncTransforms();
-
             GameObject group = new GameObject("ArrivalSeats");
             group.transform.SetParent(root, false);
 
@@ -1227,12 +1437,12 @@ namespace SpaceGame.EditorTools
 
             foreach (Transform chair in chairs)
             {
-                Bounds cb = RendererBounds(chair);
-                float floor = FloorUnder(root, cb);
+                SeatPose pose = MeasureSeat(chair);
 
-                Transform marker = Empty(group.transform, "ArrivalSeat" + (order + 1),
-                                         new Vector3(cb.center.x, floor + PlayerPivotHeight,
-                                                     cb.center.z));
+                Transform marker = Empty(group.transform, "ArrivalSeat" + (order + 1), pose.Pivot);
+                // SeatedRider writes the rider's rotation from this marker every frame, so the two
+                // sideways chairs seat their crew sideways instead of everyone facing the nose.
+                marker.localRotation = pose.Rotation;
 
                 var seat = marker.gameObject.AddComponent<SpaceGame.Gameplay.ShipSeat>();
                 int index = order++;
@@ -1241,36 +1451,196 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// The height of the deck a body standing at <paramref name="chair"/> would rest on.
+        /// Where a body sits in <paramref name="chair"/>: on its cushion, facing the way the chair
+        /// faces.
         ///
         /// <para>
-        /// Cast from just above the chair's own seat pan rather than from the roof, because a ray
-        /// dropped from outside the hull finds the canopy first. Restricted to colliders belonging
-        /// to <paramref name="root"/>: the ship is built in whatever scene the menu item was invoked
-        /// from, and a ray that hit that scene's terrain would stand the crew somewhere no rebuild
-        /// could reproduce.
+        /// Both numbers are read off the chair's MESH, and both have to be. The chairs come from a
+        /// hand-built blockout, so no two are alike — the cushions measure 0.83, 0.88, 0.92 and
+        /// 1.56 m above their own decks — and their transforms are no help either: all four arrive
+        /// from the FBX at ~150x scale with the exporter's axis rotation baked in, reading yaw 180
+        /// whichever way the chair actually points. Asking the geometry is the only thing that
+        /// distinguishes the two chairs that face the nose from the two that face sideways.
+        /// </para>
+        ///
+        /// <para>
+        /// An earlier version put the seat on the chair's BASE instead, which sank a body a metre
+        /// into the pedestal; and the version before that raycast down for the deck and hit the
+        /// chair's own MeshCollider, placing every seat on the BACKREST — the arrival crew rode the
+        /// descent standing in mid-air two metres up. Neither the deck nor a raycast is the right
+        /// question. The cushion is.
         /// </para>
         /// </summary>
-        private static float FloorUnder(Transform root, Bounds chair)
+        private readonly struct SeatPose
         {
-            Vector3 from = new Vector3(chair.center.x, chair.max.y + 0.05f, chair.center.z);
+            /// <summary>Where the player's pivot goes — already lifted off the cushion.</summary>
+            public readonly Vector3 Pivot;
 
-            float best = float.NegativeInfinity;
-            foreach (RaycastHit hit in Physics.RaycastAll(from, Vector3.down, 8f, ~0,
-                                                          QueryTriggerInteraction.Ignore))
+            /// <summary>Which way the occupant faces.</summary>
+            public readonly Quaternion Rotation;
+
+            /// <summary>Where they stand up — on the DECK, not at cushion height.</summary>
+            public readonly Vector3 Dismount;
+
+            public SeatPose(Vector3 pivot, Quaternion rotation, Vector3 dismount)
             {
-                if (!hit.collider.transform.IsChildOf(root)) continue;
-                if (hit.point.y > best) best = hit.point.y;
+                Pivot = pivot;
+                Rotation = rotation;
+                Dismount = dismount;
+            }
+        }
+
+        /// <summary>
+        /// Gap between the chair's own edge and the spot its occupant stands up on, so nobody is
+        /// left standing inside the seat they just left.
+        /// </summary>
+        private const float SeatDismountClearance = 0.7f;
+
+        /// <summary>
+        /// How far the player pivot rides above the surface it is sitting on.
+        ///
+        /// <para>
+        /// Measured off the "Sit Idle" clip rather than guessed: the pivot sits 1.0 m above the
+        /// soles (<see cref="PlayerPivotHeight"/>), and in that pose the body's underside runs
+        /// 0.43–0.49 m above the sole plane across the seat pan. 0.55 puts the middle of that on
+        /// the cushion. Re-measure it if the seated pose's hip height changes —
+        /// <c>sit_idle.py</c> prints the underside profile.
+        /// </para>
+        /// </summary>
+        private const float SeatedPivotAboveCushion = 0.55f;
+
+        private static SeatPose MeasureSeat(Transform chair)
+        {
+            Bounds bounds = RendererBounds(chair);
+            float cushion = CushionHeight(chair, bounds);
+            Vector3 forward = ChairForward(chair, cushion);
+
+            // Which side you get out on, and it is not the same answer for every chair. A chair
+            // facing down the ship has the console in front of it, so its occupant steps out
+            // BACKWARDS into the cabin; a chair facing across the ship has the aisle in front of
+            // it, so its occupant steps out FORWARDS. Decided by whether the chair looks along the
+            // hull or across it, so a chair added later is handled without being named here.
+            bool facesAlongHull = Mathf.Abs(Vector3.Dot(forward, Vector3.forward)) > 0.7f;
+            Vector3 stepDirection = facesAlongHull ? -forward : forward;
+
+            // Cleared past the chair's own edge along whichever axis we are stepping, so the
+            // clearance means the same thing on a deep command chair and a shallow bench.
+            float halfDepth = Mathf.Abs(Vector3.Dot(bounds.extents, stepDirection));
+            Vector3 step = stepDirection * (halfDepth + SeatDismountClearance);
+
+            // Standing height off the DECK the chair stands on, not off the cushion the body sits
+            // on — otherwise getting up leaves the player hanging in the air by however high the
+            // seat was.
+            Vector3 dismount = new Vector3(bounds.center.x + step.x,
+                                           bounds.min.y + PlayerPivotHeight,
+                                           bounds.center.z + step.z);
+
+            return new SeatPose(
+                new Vector3(bounds.center.x, cushion + SeatedPivotAboveCushion, bounds.center.z),
+                Quaternion.LookRotation(forward, Vector3.up),
+                dismount);
+        }
+
+        /// <summary>
+        /// The seat pan: the height with the most UPWARD-facing area in the chair's middle band,
+        /// over the middle of its footprint.
+        ///
+        /// <para>
+        /// Both filters are load-bearing. Without the height band the chair's base plate wins,
+        /// which is a floor and not a seat; without the footprint one an armrest does. Measured on
+        /// all four chairs before being trusted.
+        /// </para>
+        /// </summary>
+        private static float CushionHeight(Transform chair, Bounds bounds)
+        {
+            var area = new Dictionary<int, float>();
+
+            foreach (MeshFilter filter in chair.GetComponentsInChildren<MeshFilter>(true))
+            {
+                Mesh mesh = filter.sharedMesh;
+                if (mesh == null) continue;
+
+                Vector3[] verts = mesh.vertices;
+                int[] tris = mesh.triangles;
+                Matrix4x4 toWorld = filter.transform.localToWorldMatrix;
+
+                for (int i = 0; i < tris.Length; i += 3)
+                {
+                    Vector3 a = toWorld.MultiplyPoint3x4(verts[tris[i]]);
+                    Vector3 b = toWorld.MultiplyPoint3x4(verts[tris[i + 1]]);
+                    Vector3 c = toWorld.MultiplyPoint3x4(verts[tris[i + 2]]);
+
+                    Vector3 cross = Vector3.Cross(b - a, c - a);
+                    float magnitude = cross.magnitude;
+                    if (magnitude < 1e-6f) continue;
+                    if (Vector3.Dot(cross / magnitude, Vector3.up) < 0.8f) continue;
+
+                    Vector3 mid = (a + b + c) / 3f;
+                    float height = Mathf.InverseLerp(bounds.min.y, bounds.max.y, mid.y);
+                    if (height < 0.15f || height > 0.65f) continue;
+                    if (Mathf.Abs(mid.x - bounds.center.x) > bounds.extents.x * 0.6f) continue;
+                    if (Mathf.Abs(mid.z - bounds.center.z) > bounds.extents.z * 0.6f) continue;
+
+                    int band = Mathf.RoundToInt(mid.y * 20f);   // 5 cm bands
+                    area[band] = area.TryGetValue(band, out float sum)
+                        ? sum + magnitude * 0.5f
+                        : magnitude * 0.5f;
+                }
             }
 
-            if (!float.IsNegativeInfinity(best)) return best;
+            if (area.Count > 0)
+            {
+                float best = float.NegativeInfinity;
+                int bestBand = 0;
+                foreach (KeyValuePair<int, float> entry in area)
+                {
+                    if (entry.Value <= best) continue;
+                    best = entry.Value;
+                    bestBand = entry.Key;
+                }
+                return bestBand / 20f;
+            }
 
-            // Loud, not silent: a chair with no deck under it means the collision pass changed shape
-            // and every arrival on this hull would put a body somewhere invented.
-            Debug.LogError($"[PlayerShipBuilder] No collision under the chair at " +
-                           $"({chair.center.x:F2}, {chair.center.z:F2}) — arrival seat placed on " +
-                           "the chair's own base instead. Check BuildStructuralCollision.");
-            return chair.min.y;
+            Debug.LogWarning($"[PlayerShipBuilder] No seat pan found on '{chair.name}' — seating " +
+                             "from its bounds instead. Its occupant will sit at the wrong height.",
+                             chair);
+            return bounds.min.y + bounds.size.y * 0.3f;
+        }
+
+        /// <summary>
+        /// Which way the chair faces, from the mass of it: the backrest is what stands ABOVE the
+        /// cushion, the pan is what lies just below, and a chair faces from its back toward its
+        /// front. Falls back to the ship's nose for a chair with no discernible back.
+        /// </summary>
+        private static Vector3 ChairForward(Transform chair, float cushion)
+        {
+            Vector3 back = Vector3.zero, pan = Vector3.zero;
+            int backCount = 0, panCount = 0;
+
+            foreach (MeshFilter filter in chair.GetComponentsInChildren<MeshFilter>(true))
+            {
+                Mesh mesh = filter.sharedMesh;
+                if (mesh == null) continue;
+
+                Matrix4x4 toWorld = filter.transform.localToWorldMatrix;
+                foreach (Vector3 local in mesh.vertices)
+                {
+                    Vector3 p = toWorld.MultiplyPoint3x4(local);
+                    if (p.y > cushion + 0.15f) { back += p; backCount++; }
+                    else if (p.y > cushion - 0.25f) { pan += p; panCount++; }
+                }
+            }
+
+            if (backCount > 0 && panCount > 0)
+            {
+                Vector3 forward = (pan / panCount) - (back / backCount);
+                forward.y = 0f;
+                if (forward.sqrMagnitude > 1e-6f) return forward.normalized;
+            }
+
+            Debug.LogWarning($"[PlayerShipBuilder] Could not tell which way '{chair.name}' faces; " +
+                             "seating its occupant facing the nose.", chair);
+            return Vector3.forward;
         }
 
         private static Transform Empty(Transform parent, string name, Vector3 localPosition)
@@ -1417,6 +1787,12 @@ namespace SpaceGame.EditorTools
                 SerializedFields.SetFloat(so, "thirdPersonLookAhead", 20f);
                 SerializedFields.SetFloat(so, "fallbackDismountDistance", 6f);
             });
+
+            // Sits the pilot down in the helm chair. On the root, so it serves BOTH ways a body
+            // ends up in a cockpit seat: this module's rider, and the whole crew that SeatedRider
+            // straps in for the descent — that one finds this component on the hull and drives it
+            // directly, because the arrival deliberately does not go through a mount.
+            root.AddComponent<ChairPose>();
 
             SteerModule steer = root.AddComponent<SteerModule>();
             Apply(steer, so =>

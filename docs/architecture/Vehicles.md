@@ -175,6 +175,156 @@ own that span. See "The cabin walls" above.
 
 ---
 
+# PlayerShip
+
+`Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab`, built from
+`Assets/Game/Art/Models/Vehicles/PlayerShip/player_ship.fbx` by
+[`PlayerShipBuilder`](../../Assets/Game/Editor/Vehicles/PlayerShipBuilder.cs) — **Tools ▸
+Vehicles ▸ Build PlayerShip Prefab**. The FBX is exported by `player_ship_export.py` from the
+user's **hand-built** `ship_lander_blockout.blend` (never edited by tooling; the export renames
+role meshes in memory and drops the Tripo reference hull). Everything is measured off the meshes
+at build time; renamed meshes fail the build loudly.
+
+## What moves
+
+| Node | Motion | Driven by |
+|---|---|---|
+| `Model/BackDoor` | ribbed aft panel + its three ribs, **hinged along the bottom edge** like ShipRV's cargo ramp: swings down and aft to ~10° past horizontal, so the lowered door IS the aft boarding ramp (swing angle measured off the mesh — the panel is authored leaning ~35° over the bay) | Player (Interact), closed on mount |
+| `Model/SlidingDoorLeaf1..4` | telescoping side door: each leaf slides up the shared hull diagonal onto the TOP leaf (right→left seen from outside), equal speed / unequal distance, so they arrive staggered and collect at the aft-upper side; the cleared span sits directly over the stair and platform | **Every leaf carries its own switch** driving all four + stair + platform |
+| `Model/BoardingStair` | the stepped stair to the ground, authored DEPLOYED; its pivot is re-based so stowed-inboard is the closed pose. Carries an invisible ≤32° `BoardingRamp` box — the player capsule has no step offset and cannot climb the 0.7 m treads | Opens with the side door, closed on mount |
+| `Model/SillPlatform` | walk plate under the side-door sill, same re-basing, slides out inboard→outboard. **Invisible while stowed**: a `ShellVariantSwitcher` with only `openShell` set enables the renderer the moment the part leaves its closed pose, so the plank never shows hanging in the open under-deck void | Opens with the side door, closed on mount |
+
+One press on any leaf therefore opens the whole side assembly (mixed states resolve toward
+"close everything", so four switches cannot wedge the group); `ArticulatedPartInteraction`
+carries the netcode (no new NetMsg ids) and `ArticulatedPartsSaveable` persists every pose by
+hierarchy path.
+
+## Collision — three tiers, accurate everywhere, hollow inside
+
+The model has a real hand-built interior (140+ separate slabs), and the whole hull is solid:
+
+- **Thin slabs** (floors/walls/ceilings — boxes and simple lofts) → an exact convex
+  `MeshCollider` each. This is what makes the inside walkable.
+- **Fittings** (`Turbine_*`, `Thruster_*`, `Intake_*`, `RCS_*`, `Sensor_*`) → one oriented box
+  from the mesh's local bounds.
+- **Hollow shells** (hull skins, the two belly tracks, tail booms, nose) → **shrink-wrapped**:
+  the surface is point-sampled (triangles lattice-sampled, not just vertices — the faces span
+  metres), binned into a ~1.2 m horizontal grid, and every occupied cell becomes a snug
+  `BoxCollider` spanning just that cell's vertical extent (all cells of one shell live as
+  colliders on one `Collision/COL_<mesh>` child). Under an arch the centre cells hug the roof
+  band, so rooms stay open — a convex hull would fill them solid, which is why that is banned.
+
+The canopy dome stays collider-free on purpose: a 3 m character's head occupies the glass
+ball's lower half. The ship rests on the shrink-wrapped belly tracks. Those tracks are also why
+`DoubleSidedMaterials.Apply` (shared with ShipRV) runs in the build: one track is a mirrored
+copy whose negative scale flipped its winding, making it invisible from one side.
+
+## Boarding, flight, weight
+
+Walk up the stair (or the lowered back-door ramp: it droops 40° below horizontal so its tip
+reaches the sand, and its walk collider is a thin plane-aligned box clipped at the ground line —
+never the fat AABB of the leaning panel, and never below the sand where it could lever the
+parked ship). The stair's invisible ramp and the sill plank's collider are attached *before*
+their pivots are re-based to the stowed pose — attached after, they deploy a stow-offset away
+from the visuals, which shipped once as an unwalkable ghost ramp.
+
+**The front-left command chair is the helm**: its `MountStation` resolves the ship's root
+`MountModule` — the one `SteerModule` is bound to — so clicking that chair takes the controls
+(the modelled wheel is scenery; the primitive wheel remains only as a chair-less-export
+fallback). The other chairs are **passenger seats**: each carries its own child `MountModule` +
+`MountNetworkSync` + a chair-mounted `MountStation` wired to it. No `SteerModule` references
+those modules and `allowAISelfMovementWhenMounted` stays on, so sitting grants a ride, not a
+helm, and never switches off the ship's driver. Chair roles are picked by measurement (front
+row = max Z, then min X), so rearranging seats in the .blend re-sorts them on rebuild.
+`MakeCanopyGlass` rewrites the canopy's double-sided material copy to URP Lit transparent every
+build (the export arrives opaque, and the double-sided pass re-derives its copies each run), so
+the pilot can see out through the dome.
+`mountableByDirectInteraction` is off. Flight is `HoverRigidbodyMotor` like ShipRV — but with
+the motor's `restWhenParked` flag on: **whenever nobody is flying and the AI has no order, the
+motor hands the hull to physics** (gravity on, no velocity/attitude writes), so the empty ship
+stands on its tracks as dead weight, collides like sixty tonnes and barely moves when shoved;
+taking the helm hands it back to the hover servo, which re-seeds its heading from wherever
+physics left the hull. Tuned ponderous: mass 60 t, `linearDamping` 1.0, maxSpeed 32,
+acceleration 10, turn 45°/s, ride height 0.5 m. Root component set matches ShipRV
+(NetworkObject/NetRelay/NetAuthority/ClientNetworkTransform/MountNetworkSync +
+SaveableEntity/TransformSaveable/MotorStateSaveable/ArticulatedPartsSaveable +
+UnderTerrainGuard/SandstormShelter) minus `AgentGoal` (no NPC flies it) and minus `AudioLoop`
+(no free catalog slot yet).
+
+## What comes off — the salvage loop
+
+The ship is authored **wrecked**: eleven bolt-on modules across seven kinds are present in the
+prefab but hidden, and a player finds them out in the desert, hauls them home and fits them.
+
+| Kind | Sockets | Blend meshes |
+|---|---|---|
+| `AntiGravity` | 1 | `anti_gravity` |
+| `NuclearMotor` | 2 | `nuclear_motor`, `nuclear_motor.001` |
+| `ReactorCore` | 2 | `reactor_core`, `reactor_core.001` |
+| `SmallMotor` | 2 | `small_turbine`, `Turbine_Stub_BellyPort` |
+| `AirIntake` | 1 | `air_intake` |
+| `LongTurbine` | 2 | `Turbine_Long_Stbd`, `Turbine_Ducted_Stbd.001` |
+| `Gun` | 1 | `gun` |
+
+`ship_parts.py` is the one place those names live; `player_ship_export.py` renames them to
+`Part_<Kind>_<Side>` in the exported ship, and `ship_parts_export.py` writes each kind out again
+as its own FBX — the carried item. The `_A`/`_B` suffix is derived from the mesh's X, because the
+names in the .blend cannot be trusted for it (`Turbine_Ducted_Stbd.001` is a *long* turbine on the
+opposite flank).
+
+**Nothing is spawned or despawned by a fit.** `ShipPartSocket` shows or hides geometry the prefab
+already carries, which is what lets an unfitted socket draw a perfectly accurate ghost of the
+missing module: the ghost *is* the module, painted. `ShipPartRack` on the root owns which are
+fitted, as a `NetworkVariable<int>` bitmask over its socket array — **state, not messages**, so a
+joining player is answered by construction. `ShipPartsSaveable` (key `shipparts`) persists it.
+
+The socket array's order is the bit order of that mask, so the builder sorts it by name rather
+than by hierarchy: hierarchy order is stable only until somebody reorders the FBX, and the mask
+has to outlive that.
+
+### The item
+
+`ShipPartItem : ToolItem`, `UseAuthority.Server` (a socket is shared world state — two players
+pointing the same motor at the same mount must produce one fitted motor). Prefabs and items are
+built by [`ShipPartItemBuilder`](../../Assets/Game/Editor/Items/ShipPartItemBuilder.cs) —
+**Tools ▸ Items ▸ Build Ship Parts**. Two deliberate departures from every other artifact:
+
+- **No `DropItemPhysics`.** That component freezes a dropped gadget where it lands. A module is
+  meant to be shoved, roped and hauled, and every verb that hauls it — lasso, leash, grapple
+  winch, walking into it — moves a Rigidbody and nothing else. Leaving the body live *is* the
+  drag feature; `NetAuthority` freezes it on machines that do not simulate it.
+- **A drawn 9×9 pack shape** in `PackShapes.asset`. The rack is the only face on the expedition
+  rig that is nine cells square, so a module fits the rack, fits it only while it is clear, and
+  fits nowhere else. That is the cost the loop is built on — haul an engine *or* carry your gear
+  — and it needs nothing added to `PackLayout`.
+
+Modules keep **true ship scale** in the world: a dropped nuclear motor really is 11.14 m long and
+is the same mesh that ends up on the roof. `ItemGrip.holdSize` shrinks it for the hand and
+`packSize` for the mat; neither touches the object in the world.
+
+### The red/green ghost
+
+While a module is equipped, `ShipPartHighlighter` paints every empty socket within range red and
+the aimed socket that would take *this* module green — red means "something belongs here", green
+means "yours goes here". A socket you cannot fill stays red, because hiding it would hide the
+information a player out salvaging is looking for.
+
+The aim is an analytic `Bounds.IntersectRay` against each empty socket, **not** a physics cast:
+the module's collider is disabled while the socket is empty (that is what makes the hole a hole),
+so a cast would find only the hull behind it, and giving eleven sockets trigger volumes would put
+eleven new answers into every other query in the game. The bounds are grown by `aimMargin` and
+occlusion is not tested — the skill being tested is finding the module, not hitting a nacelle
+from thirty metres (`GDC-L1-FEEL-0003`). Tints come from `PlacementTint`, shared with the
+backpack, so the ship and the pack say yes and no in the same colours.
+
+Tests: `Assets/Game/Editor/Tests/PlayerShipTests.cs` — door-state persistence round trip, built
+shape, and the side-switch-drives-stair-and-platform wiring.
+`Assets/Game/Editor/Tests/ShipPartsTests.cs` — a registered item per kind, a socket per kind on
+the hull, the fitting rules, and the whole-rack pack cost. Client proof lives in
+`AutotestRunner.ShipParts.cs` (the two-process run).
+
+---
+
 # Spider Walker
 
 `Assets/Game/Prefabs/agents/vehicle/rig_walker.prefab` — the six-legged walking station.

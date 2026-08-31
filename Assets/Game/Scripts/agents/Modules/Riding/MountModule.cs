@@ -239,6 +239,7 @@ namespace SpaceGame.Agents
         public bool RiderIsLocal => mountedPlayer != null && Network.Owns(mountedPlayer);
         public bool IsAvailableForMount => !IsMounted && Time.time >= lastMountChangeTime + mountCooldown;
         public bool AllowAISelfMovementWhenMounted => allowAISelfMovementWhenMounted;
+        public bool MountableByDirectInteraction => mountableByDirectInteraction;
         public Transform ActiveSeatPoint => activeSeatPoint != null ? activeSeatPoint : seatPoint;
         public Transform MountedPlayerTransform => mountedPlayer;
         public PlayerMovement MountedPlayerMovement => mountedPlayerMovement;
@@ -323,6 +324,37 @@ namespace SpaceGame.Agents
 
             EnsureLookActionEnabled();
             HandleLookInput(Time.deltaTime);
+
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+                RequestDismount();
+        }
+
+        /// <summary>
+        /// Get up out of the seat.
+        ///
+        /// <para>
+        /// Here rather than in SteerModule, where it used to live, because standing up belongs to
+        /// the SEAT and not to the controls: only the helm has a SteerModule, so a passenger chair
+        /// — every non-helm chair on the PlayerShip is its own MountModule with no steering — had
+        /// nothing reading the key at all. It went unnoticed while a mount request reached every
+        /// module on the hull, because sitting anywhere also mounted the helm, which then answered
+        /// for everybody. See MountNetworkSync.MountIndex for the half of that this is the other
+        /// side of.
+        /// </para>
+        /// <para>
+        /// Through the sync when this mount is networked, or the rider stands up on their own
+        /// screen and stays welded to the saddle on everyone else's.
+        /// </para>
+        /// </summary>
+        private void RequestDismount()
+        {
+            if (TryGetComponent(out MountNetworkSync sync))
+            {
+                sync.RequestDismount();
+                return;
+            }
+
+            Dismount();
         }
 
         protected override void OnValidate()

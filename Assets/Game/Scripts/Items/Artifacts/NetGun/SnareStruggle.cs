@@ -44,6 +44,7 @@ namespace SpaceGame.Items
                  "makes a captive drag the net with it rather than walk out from under it.")]
         [SerializeField] private float dragInfluence = 0.9f;
 
+
         public float HoldSeconds => Mathf.Max(holdSeconds, 0.01f);
         public float ShuffleRadius => Mathf.Max(shuffleRadius, 0.01f);
         public float HobbleSpeed => hobbleSpeed;

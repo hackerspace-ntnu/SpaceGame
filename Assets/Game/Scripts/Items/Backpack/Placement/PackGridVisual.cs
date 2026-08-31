@@ -88,7 +88,7 @@ namespace SpaceGame.Items
         /// hides exactly the cells it covers and the verdict reads as whole colour around its
         /// silhouette. The alpha is strong rather than a wash, because the fill no longer has to
         /// be seen through the item — the item occludes it — it has to be SEEN.</summary>
-        private static readonly Color LegalTint = new(0.38f, 0.92f, 0.45f, 0.5f);
+        private static readonly Color LegalTint = Presentation.PlacementTint.Legal;
 
         /// <summary>
         /// A cell the placement is refused on — clashing with placed gear, or hanging off an edge
@@ -110,7 +110,7 @@ namespace SpaceGame.Items
         /// task to cure at the controller level, not by touching the cell loop here.
         /// </para>
         /// </summary>
-        private static readonly Color RefusedTint = new(1f, 0.30f, 0.28f, 0.5f);
+        private static readonly Color RefusedTint = Presentation.PlacementTint.Refused;
 
         /// <summary>A free cell of the hovered face while something is in hand: barely there.</summary>
         private static readonly Color LatticeFreeTint = new(1f, 1f, 1f, 0.10f);

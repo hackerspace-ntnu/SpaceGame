@@ -20,6 +20,17 @@ namespace SpaceGame.Items
     /// simply more correct for the job: the net has to slide off shoulders and haunches, and the
     /// exact geometry of a horn is noise at mesh spacing.
     /// </para>
+    /// <para>
+    /// <b>Contacts, not clamps.</b> Both halves below hand the correction to
+    /// <see cref="SnareLattice.PlaceOnSurface"/> rather than writing the position outright. A
+    /// clamp that only moves the position gives the node the penetration depth as outward
+    /// SPEED, so a net dropped on an animal takes an impulse off every node at once and jumps
+    /// clear of it — and no amount of friction, weight or stiffness anywhere else can hold down
+    /// a sheet that is being kicked. There is deliberately nothing here that gathers cord onto
+    /// a body on purpose: a net wraps because its hem is weighted and the cord it lies on has
+    /// friction, and a version of this that projected the nearby nodes onto the capsule instead
+    /// drew a capsule.
+    /// </para>
     /// </summary>
     public class SnareDrape
     {
@@ -96,27 +107,40 @@ namespace SpaceGame.Items
 
             for (int i = 0; i < nodes.Length; i++)
             {
-                Vector3 node = nodes[i];
-
                 for (int c = 0; c < captives.Count; c++)
-                    node = PushOut(node, captives[c]);
+                {
+                    if (!Contact(nodes[i], captives[c], out Vector3 surface, out Vector3 normal))
+                        continue;
 
-                if (node.y < groundHeight) node.y = groundHeight;
+                    // Through the lattice rather than by writing the position here, because a
+                    // contact is not only a place — it is also what the node's velocity does next.
+                    // See PlaceOnSurface: written straight into the array, the correction reads as
+                    // outward speed and the net bounces off whatever it landed on.
+                    lattice.PlaceOnSurface(i, surface, normal, lattice.BodyGrip);
+                }
 
-                nodes[i] = node;
+                if (nodes[i].y >= groundHeight) continue;
+
+                // Friction zero here, and not because the sand is slippery: GripGround is the pass
+                // that holds cord ALREADY lying on the floor, and it works on a contact band rather
+                // than on penetration, so it catches resting nodes this one never sees. Applying it
+                // in both places would take the same speed off twice.
+                lattice.PlaceOnSurface(i, new Vector3(nodes[i].x, groundHeight, nodes[i].z),
+                                       Vector3.up, friction: 0f);
             }
         }
 
         /// <summary>
-        /// Move one node to the surface of a capsule if it is inside it.
+        /// Where a node has ended up inside a capsule, and which way is out.
         ///
-        /// The node is written straight to the surface rather than given a velocity away from it.
-        /// That is deliberate and is the same rule <see cref="LassoedBody.Step"/> states: a
-        /// position error given back as velocity is still there on the next step, which is how a
-        /// solver gains energy and how a draped net starts to buzz.
+        /// Returns false when the node is clear, which is the common case by a wide margin — the
+        /// early exit is what keeps this affordable at two hundred-odd nodes a substep.
         /// </summary>
-        private static Vector3 PushOut(Vector3 node, Capsule capsule)
+        private static bool Contact(Vector3 node, Capsule capsule, out Vector3 surface, out Vector3 normal)
         {
+            surface = node;
+            normal = Vector3.up;
+
             Vector3 axis = capsule.Top - capsule.Bottom;
             float lengthSquared = axis.sqrMagnitude;
 
@@ -128,15 +152,16 @@ namespace SpaceGame.Items
             Vector3 outward = node - onAxis;
             float distance = outward.magnitude;
 
-            if (distance >= capsule.Radius) return node;
+            if (distance >= capsule.Radius) return false;
 
             // A node exactly on the axis has no direction of its own to be pushed along, so one is
             // chosen rather than dividing by zero and writing a NaN into the lattice.
-            Vector3 direction = distance < 1e-5f
+            normal = distance < 1e-5f
                 ? LateralTo(axis, lengthSquared)
                 : outward / distance;
 
-            return onAxis + direction * capsule.Radius;
+            surface = onAxis + normal * capsule.Radius;
+            return true;
         }
 
         /// <summary>

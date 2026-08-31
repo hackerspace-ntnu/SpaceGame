@@ -52,6 +52,12 @@ namespace SpaceGame.Items
         private readonly HashSet<int> announcedTorn = new HashSet<int>();
         private readonly HashSet<int> resolvedLanding = new HashSet<int>();
 
+        /// <summary>
+        /// Net ids oldest-first. A Dictionary does not promise an order, and the eviction below
+        /// needs one — "the oldest" has to mean the same net on every machine.
+        /// </summary>
+        private readonly List<int> order = new List<int>();
+
         /// <summary>Reused so the per-frame passes do not allocate a key list every frame.</summary>
         private readonly List<int> scratchIds = new List<int>();
 
@@ -65,6 +71,29 @@ namespace SpaceGame.Items
         /// again inside it simply keeps the receiver they already had.
         /// </summary>
         private const float RetireSeconds = 2f;
+
+        /// <summary>
+        /// How many nets one gun may have in the world at once. A fourth tears the oldest.
+        ///
+        /// <para>
+        /// Three because the gun carries three charges — but the charges alone do not bound this,
+        /// which is why the cap has to exist separately. A charge comes back on a timer while a net
+        /// lasts up to its full hold, so a player who fires three, waits for the recharge and fires
+        /// again has four nets out, and can keep going. Every one of them is a lattice being solved
+        /// at ninety substeps a second.
+        /// </para>
+        /// <para>
+        /// Per GUN rather than per world, and that is not a smaller version of the same thing: it
+        /// is the only version that works. Eviction here is purely local — every machine runs the
+        /// same <c>Present</c> for the same shots and so evicts the same net without a word being
+        /// sent — and that holds only because ONE shooter's shots are ordered identically
+        /// everywhere. Two players' shots interleave differently on different machines, so a
+        /// world-wide cap would evict different nets on different machines and free a captive on
+        /// one that is still held on another. It would also let one player's shot silently destroy
+        /// another player's catch, which is a worse game than a slightly busier world.
+        /// </para>
+        /// </summary>
+        private const int MaxLiveNets = 3;
 
         private float idleSeconds;
 
@@ -122,10 +151,15 @@ namespace SpaceGame.Items
                 : shooter.AddComponent<SnareReceiver>();
         }
 
-        /// <summary>Start watching a net the gun has just put in the world.</summary>
+        /// <summary>
+        /// Start watching a net the gun has just put in the world, tearing the oldest if this one
+        /// takes the count past <see cref="MaxLiveNets"/>.
+        /// </summary>
         public void Track(int netId, SnareCatch net, LayerMask catchableLayers, float captureHeight)
         {
             if (net == null) return;
+
+            if (!live.ContainsKey(netId)) order.Add(netId);
 
             live[netId] = new Tracked
             {
@@ -135,6 +169,33 @@ namespace SpaceGame.Items
             };
 
             idleSeconds = 0f;
+
+            while (order.Count > MaxLiveNets) Retire(order[0]);
+        }
+
+        /// <summary>
+        /// Take one net out of the world and stop watching it.
+        ///
+        /// <para>
+        /// <c>Tear</c> rather than <c>Destroy</c>: it releases the captives and starts the rot, so
+        /// an evicted net slackens and fades the way one that gave out does instead of blinking
+        /// out of existence in front of whoever was watching it.
+        /// </para>
+        /// </summary>
+        private void Retire(int netId)
+        {
+            if (live.TryGetValue(netId, out Tracked tracked) && tracked.Net != null) tracked.Net.Tear();
+
+            Forget(netId);
+        }
+
+        /// <summary>Drop every record of a net. The four collections have to stay in step.</summary>
+        private void Forget(int netId)
+        {
+            live.Remove(netId);
+            order.Remove(netId);
+            announcedTorn.Remove(netId);
+            resolvedLanding.Remove(netId);
         }
 
         // ── Hearing about a catch ──────────────────────────────────────────────
@@ -176,6 +237,7 @@ namespace SpaceGame.Items
                 if (tracked.Net != null) tracked.Net.Tear();
 
             live.Clear();
+            order.Clear();
         }
 
         private void OnSnared(in NetArg arg, ulong sender)
@@ -285,9 +347,7 @@ namespace SpaceGame.Items
 
                 if (tracked.Net == null)
                 {
-                    live.Remove(netId);
-                    announcedTorn.Remove(netId);
-                    resolvedLanding.Remove(netId);
+                    Forget(netId);
                     continue;
                 }
 

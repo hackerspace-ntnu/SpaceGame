@@ -109,6 +109,12 @@ namespace SpaceGame.Items
         public bool HasLanded => landed;
 
         /// <summary>
+        /// This net has given out and is slackening away. Read by the HUD, and by anything that
+        /// needs to know a net it still holds a reference to is no longer holding anything.
+        /// </summary>
+        public bool IsTearing => rotElapsed >= 0f;
+
+        /// <summary>
         /// Seconds since touchdown, or 0 while still in the air. Read by <see cref="SnareReceiver"/>
         /// to know how long it may keep asking what this net has come down on.
         /// </summary>
@@ -278,6 +284,7 @@ namespace SpaceGame.Items
             DragTowardCaptives(delta);
 
             lattice.Simulate(delta);
+
             drape.Resolve(lattice, proxies, groundHeight);
 
             // After the drape, because the drape is what decides which nodes are touching at all.

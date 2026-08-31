@@ -53,6 +53,24 @@ namespace SpaceGame.Core
         private readonly NetworkVariable<int> suitColor = new(
             -1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
+        /// <summary>
+        /// Which team this player stands on in a versus match, or -1 outside one.
+        /// <para>
+        /// SERVER-write, unlike the name and the colour above. Those are owner-write because each
+        /// client is the authority on how it presents itself; a team is the opposite kind of value.
+        /// The server needs it BEFORE it places a body — the spawn flow reads it to pick which
+        /// ship the player starts in — and an owner-written value would arrive after the spawn it
+        /// was supposed to inform. Owner-write would also let a client put itself on whichever side
+        /// it liked.
+        /// </para>
+        /// <para>
+        /// Assigned by <see cref="VersusTeamRoster"/> during the spawn flow. -1 rather than 0 so a
+        /// story-world player reads as "no team" instead of as a member of the first one.
+        /// </para>
+        /// </summary>
+        private readonly NetworkVariable<int> team = new(
+            -1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
         [Tooltip("The component that paints this player's astronaut. Found in children when unset.")]
         [SerializeField] private SuitRecolor recolor;
 
@@ -92,11 +110,34 @@ namespace SpaceGame.Core
         /// <summary>True for the peer hosting the session, which is worth marking in a player list.</summary>
         public bool IsSessionHost => OwnerClientId == NetworkManager.ServerClientId;
 
+        /// <summary>Which team this player is on, or -1 when they are not in a versus match.</summary>
+        public int Team => team.Value;
+
+        /// <summary>
+        /// Publishes this player's team to every peer. Server-only — see <see cref="team"/>.
+        ///
+        /// Warns rather than failing silently when called from anywhere else, because the write
+        /// would be rejected by Netcode and the player would simply stay teamless, which looks
+        /// exactly like nobody having called this at all.
+        /// </summary>
+        public void SetTeam(int value)
+        {
+            if (!IsServer)
+            {
+                Debug.LogWarning($"[Net] '{name}' was told to join team {value} by a machine that is " +
+                                 "not the server. Ignored — the write would not have replicated.", this);
+                return;
+            }
+
+            team.Value = value;
+        }
+
         public override void OnNetworkSpawn()
         {
             instances.Add(this);
             displayName.OnValueChanged += OnNameChanged;
             suitColor.OnValueChanged += OnSuitColorChanged;
+            team.OnValueChanged += OnTeamChanged;
 
             if (IsOwner)
             {
@@ -117,6 +158,7 @@ namespace SpaceGame.Core
             instances.Remove(this);
             displayName.OnValueChanged -= OnNameChanged;
             suitColor.OnValueChanged -= OnSuitColorChanged;
+            team.OnValueChanged -= OnTeamChanged;
 
             if (IsOwner)
                 GameSettings.Changed -= PublishLocalProfile;
@@ -145,6 +187,10 @@ namespace SpaceGame.Core
             => RosterChanged?.Invoke();
 
         private void OnSuitColorChanged(int previous, int current) => ApplySuitColor();
+
+        // A team is shown beside a name wherever players are listed, so a change to it changes the
+        // list the same way a rename does.
+        private void OnTeamChanged(int previous, int current) => RosterChanged?.Invoke();
 
         /// <summary>
         /// Pushes this peer's stored name and suit colour onto the wire.

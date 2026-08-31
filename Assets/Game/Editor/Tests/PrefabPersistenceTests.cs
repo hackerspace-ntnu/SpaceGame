@@ -30,6 +30,7 @@ using UnityEngine;
 using SpaceGame.Agents;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
+using SpaceGame.Vehicles;
 using SpaceGame.Vehicles.DuneFoil;
 
 namespace SpaceGame.EditorTools
@@ -80,6 +81,7 @@ namespace SpaceGame.EditorTools
         private const string Golem = "Assets/Game/Prefabs/agents/creatures/Golem.prefab";
         private const string DuneFoil = "Assets/Game/Prefabs/agents/Vehicles/Ground/DuneFoil.prefab";
         private const string PatrolRobot = "Assets/Game/Prefabs/agents/Robots/PatrolRobot.prefab";
+        private const string PlayerShip = "Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab";
 
         [Test]
         public void Ostrich_IsWiredForSaving() =>
@@ -136,6 +138,25 @@ namespace SpaceGame.EditorTools
         public void DuneFoil_StaysMoored() =>
             PersistenceProbe.For(DuneFoil)
                 .Mutate(go => go.GetComponent<DuneFoilLocomotion>().HoldStation = true)
+                .AssertSurvivesRoundTrip();
+
+        /// <summary>
+        /// The hull modules a player found, hauled home and fitted. This is the entire reward of the
+        /// salvage loop, and it is the one thing on a wrecked ship that a reload must not undo —
+        /// coming back to the same hole in the roof with the motor gone from the pack too is worse
+        /// than never having found it.
+        /// </summary>
+        [Test]
+        public void PlayerShip_KeepsTheModulesFittedToIt() =>
+            PersistenceProbe.For(PlayerShip)
+                .Mutate(go =>
+                {
+                    ShipPartRack rack = go.GetComponent<ShipPartRack>();
+
+                    // Two, not all: a mask that happens to equal "everything" would pass even if the
+                    // saver were writing a constant.
+                    rack.RestoreMask(0b101);
+                })
                 .AssertSurvivesRoundTrip();
 
         // ─────────────────────────────────────────────

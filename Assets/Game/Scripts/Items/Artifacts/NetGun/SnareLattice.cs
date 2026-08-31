@@ -95,12 +95,28 @@ namespace SpaceGame.Items
                  "that proves the mesh locks.")]
         [SerializeField, Range(1.02f, 1.30f)] private float shearLimit = 1.30f;
 
-        [Tooltip("Resistance to bending, 0-1. A net is FLOPPY: this wants to be barely above zero, " +
-                 "just enough to erase the one-node zigzag that distance constraints cannot see " +
-                 "(a concertina has every segment at exactly its rest length, so the solver has no " +
-                 "reason to undo it). LassoRope needs 0.3 because a rope holds a curve; anything " +
-                 "near that here is a bedsheet.")]
-        [SerializeField, Range(0f, 0.2f)] private float bendResistance = 0.02f;
+        [Tooltip("How hard the diagonals pull back once a cell reaches the limit above, 0-1.\n\n" +
+                 "At 1 the limit is a WALL: the diagonal pass yanks the cell back the whole way in " +
+                 "one go, the strand pass then has to undo the stretch that caused, and the two " +
+                 "spend the iteration budget fighting each other. Neither converges, so every " +
+                 "substep ends holding a different residual and the net buzzes. A soft limit " +
+                 "converges on the strands instead of arguing with them, which is the whole " +
+                 "difference between cloth and a rattling frame.")]
+        [SerializeField, Range(0.02f, 1f)] private float shearStiffness = 0.3f;
+
+        [Tooltip("Resistance to bending, 0-1. A net is FLOPPY: this wants to be low, just enough " +
+                 "to erase the one-node zigzag that distance constraints cannot see (a concertina " +
+                 "has every segment at exactly its rest length, so the strands have no reason to " +
+                 "undo it). LassoRope needs 0.3 because a rope holds a curve; anything near that " +
+                 "here is a bedsheet.\n\n" +
+                 "This is a CONSTRAINT the solver relaxes, not a smoothing pass run afterwards — " +
+                 "see ConstrainBend for why that distinction is the difference between a net that " +
+                 "settles and one that shivers.\n\n" +
+                 "There is a CLIFF just above this range. Measured against a net dropped onto a " +
+                 "shoulder, 0.016 drapes over it and holds the centre 2.2 m up; 0.030 slides " +
+                 "straight off onto the floor and 0.050 never folds at all. The Range stops short " +
+                 "of it on purpose — past there the net is a board, and a board is not a net.")]
+        [SerializeField, Range(0f, 0.025f)] private float bendStiffness = 0.016f;
 
         [Tooltip("How hard the mesh resists moving broadside-on through air, 0-1. This is what " +
                  "makes the net flutter as it falls and what slows the bloom without a tuned curve.")]
@@ -128,6 +144,23 @@ namespace SpaceGame.Items
                  "life. Cord on sand does not slide, so this is high.")]
         [SerializeField, Range(0f, 1f)] private float groundGrip = 0.45f;
 
+        [Tooltip("The same, for cord lying against a captive rather than against the ground.\n\n" +
+                 "This is what decides whether a net STAYS on the animal it landed on. With no " +
+                 "friction against a body the net is on a frictionless dome: the weighted hem " +
+                 "pulls, the cord slides over the shoulders, and the whole thing ends up in a ring " +
+                 "on the floor around a creature standing perfectly free in the middle of it.")]
+        [SerializeField, Range(0f, 1f)] private float bodyGrip = 0.6f;
+
+        [Tooltip("How much harder gravity pulls on the hem than on the mesh.\n\n" +
+                 "The lead line, and it is a FORCE, not the inertia rimMassMultiplier gives. Those " +
+                 "two are different things and only one of them holds a net down: gravity is an " +
+                 "acceleration, so a hem that is merely heavier falls at exactly the rate the mesh " +
+                 "does and its weight shows up only when the two fight over a strand. A real cast " +
+                 "net has lead on the hem and cord everywhere else, and what that buys is a skirt " +
+                 "that drives itself down and under while the light mesh drifts — which is the " +
+                 "whole of how a net ends up beneath an animal instead of tented over it.")]
+        [SerializeField, Min(1f)] private float hemWeight = 3f;
+
         /// <summary>Seconds of backlog the solver will try to catch up on before dropping the rest.</summary>
         private const float MaxCatchUpSeconds = 0.1f;
 
@@ -142,14 +175,20 @@ namespace SpaceGame.Items
 
         private Vector3[] pos;
         private Vector3[] prev;
-        private Vector3[] smoothed;
         private float[] inverseMass;
+
+        /// <summary>Which nodes are the hem. Stored rather than derived, so Integrate stays a loop.</summary>
+        private bool[] onRim;
         private int side;
         private float restSpacing;
         private float openSpacing;
         private float bundleSpacing;
         private float unfurlClock;
         private float accumulator;
+
+        /// <summary>The authored stiffnesses divided across this substep's passes. See PerPass.</summary>
+        private float shearPerPass;
+        private float bendPerPass;
 
         /// <summary>
         /// Nodes per side. Reports the authored count before <see cref="Deploy"/> and the live one
@@ -166,6 +205,9 @@ namespace SpaceGame.Items
 
         /// <summary>Backing array, for the mesh builder. Read-only by contract.</summary>
         public Vector3[] Positions => pos;
+
+        /// <summary>How much of a node's sideways speed a captive's body takes off it per substep.</summary>
+        public float BodyGrip => bodyGrip;
 
         public Vector3 NodeAt(int row, int col) => pos[Index(row, col)];
 
@@ -225,10 +267,9 @@ namespace SpaceGame.Items
             for (int row = 0; row < side; row++)
             for (int col = 0; col < side; col++)
             {
-                bool onRim = row == 0 || col == 0 || row == side - 1 || col == side - 1;
-                if (!onRim) continue;
-
                 int i = Index(row, col);
+                if (!onRim[i]) continue;
+
                 Vector3 outward = pos[i] - centre;
                 if (outward.sqrMagnitude < 1e-6f) continue;
 
@@ -259,12 +300,24 @@ namespace SpaceGame.Items
         /// designer put on the gun prefab. Anything in the game that wants a differently sized net
         /// should carry its own authored lattice instead of reaching in and rewriting this one.
         /// </summary>
-        public void ConfigureForTest(int nodesPerSide, float rimMassMultiplier, float shearLimit)
+        public void ConfigureForTest(int nodesPerSide, float rimMassMultiplier, float shearLimit,
+                                    float shearStiffness, float bendStiffness)
         {
             this.nodesPerSide = nodesPerSide;
             this.rimMassMultiplier = rimMassMultiplier;
             this.shearLimit = shearLimit;
+            this.shearStiffness = shearStiffness;
+            this.bendStiffness = bendStiffness;
         }
+
+        /// <summary>
+        /// Override how hard a captive's body holds the cord lying on it. For tests, which have to
+        /// be able to turn one contribution off to show it is the one doing the work.
+        /// </summary>
+        public void ConfigureGripForTest(float bodyGrip) => this.bodyGrip = bodyGrip;
+
+        /// <summary>Override the lead line's pull. For tests and for tuning sweeps.</summary>
+        public void ConfigureHemForTest(float hemWeight) => this.hemWeight = hemWeight;
 
         /// <summary>
         /// A fresh lattice with the same tunables and none of the state.
@@ -282,12 +335,15 @@ namespace SpaceGame.Items
             simulationStep = simulationStep,
             rimMassMultiplier = rimMassMultiplier,
             shearLimit = shearLimit,
-            bendResistance = bendResistance,
+            shearStiffness = shearStiffness,
+            bendStiffness = bendStiffness,
             faceDrag = faceDrag,
             bloomSpeed = bloomSpeed,
             bundleFraction = bundleFraction,
             unfurlSeconds = unfurlSeconds,
             groundGrip = groundGrip,
+            bodyGrip = bodyGrip,
+            hemWeight = hemWeight,
         };
 
         /// <summary>
@@ -369,6 +425,42 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// Put one node on a surface it was about to pass through, without bouncing it off.
+        ///
+        /// <para>
+        /// The bounce is the whole reason this exists. Moving <see cref="pos"/> to the surface and
+        /// leaving <see cref="prev"/> where it was does not park the node there — velocity here IS
+        /// the gap between the two, so shoving <c>pos</c> outward by the penetration depth hands
+        /// the node that depth as outward SPEED, every substep it is in contact. A net dropped on
+        /// an animal took that as an impulse off every node at once and jumped clear of it, which
+        /// is a net bouncing off the thing it was supposed to catch.
+        /// </para>
+        /// <para>
+        /// So the correction is applied to both, and the velocity is then edited directly: the part
+        /// driving the node INTO the surface is dropped outright, and the part sliding it ALONG the
+        /// surface is scaled by <paramref name="friction"/>. That second half is what keeps a net
+        /// on a shoulder — without it the cord is on a frictionless dome and the weighted hem
+        /// simply drags the whole sheet off onto the floor.
+        /// </para>
+        /// </summary>
+        public void PlaceOnSurface(int index, Vector3 surface, Vector3 normal, float friction)
+        {
+            if (pos == null) return;
+
+            Vector3 velocity = pos[index] - prev[index];
+
+            float into = Vector3.Dot(velocity, normal);
+            Vector3 alongSurface = velocity - normal * into;
+
+            // Only the inward half goes. An outward-moving node in contact is one the solver is
+            // already pulling clear, and cancelling that would fight it.
+            if (into > 0f) alongSurface += normal * into;
+
+            pos[index] = surface;
+            prev[index] = surface - alongSurface * (1f - Mathf.Clamp01(friction));
+        }
+
+        /// <summary>
         /// Let the ground hold onto the cord lying on it.
         ///
         /// <para>
@@ -436,6 +528,7 @@ namespace SpaceGame.Items
                 pos = new Vector3[count];
                 prev = new Vector3[count];
                 inverseMass = new float[count];
+                onRim = new bool[count];
             }
 
             float span = halfWidth * 2f;
@@ -477,8 +570,8 @@ namespace SpaceGame.Items
                 // The hem is every node on the outer ring. Mass is expressed as its inverse
                 // because that is the form the constraint solver wants, and because a pinned node
                 // is then simply one with an inverse mass of zero.
-                bool onRim = row == 0 || col == 0 || row == side - 1 || col == side - 1;
-                inverseMass[i] = onRim ? 1f / Mathf.Max(rimMassMultiplier, 0.0001f) : 1f;
+                onRim[i] = row == 0 || col == 0 || row == side - 1 || col == side - 1;
+                inverseMass[i] = onRim[i] ? 1f / Mathf.Max(rimMassMultiplier, 0.0001f) : 1f;
             }
 
             accumulator = 0f;
@@ -515,8 +608,7 @@ namespace SpaceGame.Items
         ///
         /// <para>
         /// <b>The order of these stages is load-bearing.</b> Position-based solvers do not commute,
-        /// and each of the two obvious rearrangements is wrong in a way that looks like a tuning
-        /// problem rather than an ordering one.
+        /// and getting it wrong looks like a tuning problem rather than an ordering one.
         /// </para>
         /// <para>
         /// <b>Drag runs before the constraint passes, not after.</b> Drag reads velocity as the gap
@@ -526,13 +618,14 @@ namespace SpaceGame.Items
         /// pulled the slower it converges, and a taut net creeps instead of holding.
         /// </para>
         /// <para>
-        /// <b>De-kinking runs after them, not before.</b> A Laplacian smooth moves nodes off their
-        /// rest lengths by construction, so a smooth run before the passes is simply undone by
-        /// them: <see cref="bendResistance"/> would read as inert however far it were raised, and
-        /// the passes would spend their budget repairing damage the smooth had just done. Running
-        /// it last means the substep ENDS slightly off-constraint and the next one cleans up —
-        /// which is the trade <see cref="LassoRope"/> makes for the same reason, and the reason
-        /// bendResistance has to stay small.
+        /// <b>Nothing runs after the passes.</b> This is what a cloth solver is: every rule the
+        /// cord obeys is a constraint the solve relaxes, so the substep ENDS satisfying all of them
+        /// together. Bending used to be a Laplacian smoothing pass applied after the loop instead,
+        /// and that is a different thing entirely — a filter that moves nodes off their rest
+        /// lengths by construction, leaving every substep ending off-constraint for the next one to
+        /// yank back. At ninety substeps a second that is not a small residual, it is a permanent
+        /// vibration, and it is what the net's shivering and jumping actually was. Bending is now
+        /// <see cref="ConstrainBend"/>, inside the loop, sharing the same budget as everything else.
         /// </para>
         /// </summary>
         public void Step(float step)
@@ -545,6 +638,9 @@ namespace SpaceGame.Items
             AdvanceUnfurl(step);
             Integrate(step);
             ApplyFaceDrag();
+
+            shearPerPass = PerPass(shearStiffness);
+            bendPerPass = PerPass(bendStiffness);
 
             // Alternating direction, because this is Gauss-Seidel: a pass carries tension from the
             // corner it starts at across the whole lattice, so running every pass the same way
@@ -559,9 +655,35 @@ namespace SpaceGame.Items
             {
                 ConstrainStrands(forward: (pass & 1) == 0);
                 ConstrainShear();
+                ConstrainBend();
             }
+        }
 
-            Unkink();
+        /// <summary>
+        /// One pass's share of an authored stiffness.
+        ///
+        /// <para>
+        /// A soft constraint relaxed <see cref="iterations"/> times is not soft: each pass takes
+        /// its fraction of what the last one left, so the total is
+        /// <c>1 - (1 - k)^iterations</c> and the authored number means nothing on its own. At eight
+        /// passes an authored 0.06 arrives as 0.39, and that is not a subtle difference — it was
+        /// the whole of why the first cloth build turned the net into a board that slid off the
+        /// shoulder it landed on instead of folding over it.
+        /// </para>
+        /// <para>
+        /// Inverting it here is the standard position-based fix, and what it buys is that the
+        /// authored value means the same thing at any iteration count: raising
+        /// <see cref="iterations"/> for convergence no longer silently stiffens the net as a side
+        /// effect. Strands are exempt because they are not soft — inextensibility is applied whole,
+        /// every pass.
+        /// </para>
+        /// </summary>
+        private float PerPass(float stiffness)
+        {
+            if (stiffness <= 0f) return 0f;
+            if (stiffness >= 1f) return 1f;
+
+            return 1f - Mathf.Pow(1f - stiffness, 1f / Mathf.Max(iterations, 1));
         }
 
         /// <summary>
@@ -588,61 +710,97 @@ namespace SpaceGame.Items
             restSpacing = Mathf.Lerp(bundleSpacing, openSpacing, Mathf.SmoothStep(0f, 1f, t));
         }
 
+        /// <summary>
+        /// One Verlet step, with the hem pulled down harder than the mesh.
+        ///
+        /// <para>
+        /// Gravity is an acceleration, so it is deliberately NOT divided by mass — a heavy rim node
+        /// falls at exactly the rate a light mesh node does, and <see cref="rimMassMultiplier"/>
+        /// shows up only where the two fight over a constraint. That is correct, and on its own it
+        /// is also why a net used to tent over an animal rather than closing under it: nothing was
+        /// driving the skirt DOWN relative to the rest of the sheet.
+        /// </para>
+        /// <para>
+        /// <see cref="hemWeight"/> is the lead line, and it is a separate quantity from the inertia
+        /// for exactly that reason. Weights sewn into a hem are not the same claim as a hem that is
+        /// harder to move; they are a hem being pulled on. Modelling it as extra gravity on the rim
+        /// is what makes the sides fall first, hang below the mesh, and gather under whatever the
+        /// net came down on.
+        /// </para>
+        /// </summary>
         private void Integrate(float step)
         {
-            // Gravity is an ACCELERATION and is deliberately not divided by mass. A heavy rim node
-            // falls at exactly the rate a light mesh node does; its mass matters only when the two
-            // are fighting over a constraint, which is where the bloom comes from.
             Vector3 fall = Vector3.down * (gravity * step * step);
+            Vector3 hemFall = fall * Mathf.Max(hemWeight, 1f);
 
             for (int i = 0; i < pos.Length; i++)
             {
                 Vector3 velocity = (pos[i] - prev[i]) * damping;
                 prev[i] = pos[i];
-                pos[i] += velocity + fall;
+                pos[i] += velocity + (onRim[i] ? hemFall : fall);
             }
         }
 
         /// <summary>
-        /// Take the sharp folds out, and only the sharp folds.
+        /// Bending: how hard the cord resists being folded back on itself.
         ///
         /// <para>
-        /// A Laplacian smooth, chosen for how sharply it discriminates by frequency: a one-node
-        /// zigzag loses a slice of its amplitude every substep and is gone within a tenth of a
-        /// second, while the long sag of a draped net loses a fraction of a percent and is
-        /// continuously replaced by gravity. It removes the fold without flattening the net.
+        /// The third thing a cloth solver needs, after inextensible strands and a shear rule.
+        /// Four-neighbour distance constraints are completely blind to it — a concertina has every
+        /// segment at exactly its rest length, so nothing in <see cref="ConstrainStrands"/> has any
+        /// reason to undo one, and a net without this crumples into hard creases with no scale to
+        /// them.
         /// </para>
         /// <para>
-        /// Through a scratch buffer rather than in place, for the reason
-        /// <see cref="LassoRope"/> gives: smoothing a node against an already-smoothed neighbour
-        /// drags the whole lattice toward the corner the loop started at.
-        /// </para>
-        /// <para>
-        /// Interior nodes only — a rim node has no neighbour on its outer side to average against.
-        /// The hem therefore keeps whatever fold it lands in, which is what a weighted hem does.
+        /// Run over every straight triple along a row or a column, pulling the middle node back
+        /// toward the line between its neighbours. That is still frequency-selective the way the
+        /// Laplacian this replaces was — a one-node zigzag is a large violation and a draped net's
+        /// long sag is a fraction of a percent, so the fold goes and the sag stays — but it is a
+        /// CONSTRAINT rather than a filter, so it is relaxed alongside the strands and the shear
+        /// instead of undoing their work after the fact. See <see cref="Step"/>.
         /// </para>
         /// </summary>
-        private void Unkink()
+        private void ConstrainBend()
         {
-            if (bendResistance <= 0f) return;
+            if (bendPerPass <= 0f) return;
 
-            if (smoothed == null || smoothed.Length != pos.Length)
-                smoothed = new Vector3[pos.Length];
+            for (int row = 0; row < side; row++)
+            for (int col = 0; col < side - 2; col++)
+                Straighten(Index(row, col), Index(row, col + 1), Index(row, col + 2));
 
-            System.Array.Copy(pos, smoothed, pos.Length);
+            for (int col = 0; col < side; col++)
+            for (int row = 0; row < side - 2; row++)
+                Straighten(Index(row, col), Index(row + 1, col), Index(row + 2, col));
+        }
 
-            for (int row = 1; row < side - 1; row++)
-            for (int col = 1; col < side - 1; col++)
-            {
-                int i = Index(row, col);
+        /// <summary>
+        /// Move one bent triple toward straight, sharing the move across all three nodes.
+        ///
+        /// <para>
+        /// All three, and weighted by inverse mass, because a correction applied only to the middle
+        /// node is a force with nothing on the other end of it: over a whole lattice those add up
+        /// and the net drifts under its own bending. The weights are the standard position-based
+        /// ones for the constraint "b sits on the line ac" — the middle node has twice the gradient
+        /// of either end, so it takes four times the share.
+        /// </para>
+        /// </summary>
+        private void Straighten(int a, int b, int c)
+        {
+            Vector3 bend = (pos[a] + pos[c]) * 0.5f - pos[b];
+            if (bend.sqrMagnitude < 1e-10f) return;
 
-                Vector3 neighbours = pos[Index(row - 1, col)] + pos[Index(row + 1, col)]
-                                   + pos[Index(row, col - 1)] + pos[Index(row, col + 1)];
+            float weightA = inverseMass[a];
+            float weightB = inverseMass[b];
+            float weightC = inverseMass[c];
 
-                smoothed[i] = Vector3.Lerp(pos[i], neighbours * 0.25f, bendResistance);
-            }
+            float share = weightB + (weightA + weightC) * 0.25f;
+            if (share <= 0f) return;
 
-            System.Array.Copy(smoothed, pos, pos.Length);
+            Vector3 correction = bend * (bendPerPass / share);
+
+            pos[b] += correction * weightB;
+            pos[a] -= correction * (weightA * 0.5f);
+            pos[c] -= correction * (weightC * 0.5f);
         }
 
         /// <summary>
@@ -728,6 +886,13 @@ namespace SpaceGame.Items
         /// in <see cref="ResolveMaximum"/>; making it two-sided is a rigid sheet, and removing it
         /// is a trellis.
         /// </para>
+        /// <para>
+        /// Relaxed at <see cref="shearStiffness"/> rather than snapped back the whole way. The two
+        /// families genuinely fight — pulling a stretched strand in racks its cell further over,
+        /// and yanking a diagonal back stretches the strands again — and at full stiffness neither
+        /// ever wins, so every substep ends holding a different residual and the net shivers. Soft,
+        /// they converge on each other across the iteration budget instead.
+        /// </para>
         /// </summary>
         private void ConstrainShear()
         {
@@ -754,7 +919,10 @@ namespace SpaceGame.Items
             float length = delta.magnitude;
             if (length < 1e-5f) return;
 
-            ShareCorrection(a, b, delta, length, rest);
+            // Full stiffness, and only here. Inextensibility is the one property of cord that is
+            // not a matter of degree: a strand that gives is a rubber band, and the drape over a
+            // captive becomes a sag that never settles.
+            ShareCorrection(a, b, delta, length, rest, stiffness: 1f);
         }
 
         /// <summary>
@@ -770,7 +938,7 @@ namespace SpaceGame.Items
             float length = delta.magnitude;
             if (length <= maximum || length < 1e-5f) return;
 
-            ShareCorrection(a, b, delta, length, maximum);
+            ShareCorrection(a, b, delta, length, maximum, shearPerPass);
         }
 
         /// <summary>
@@ -792,12 +960,13 @@ namespace SpaceGame.Items
         /// must have ruled out a zero <paramref name="length"/>.
         /// </para>
         /// </summary>
-        private void ShareCorrection(int a, int b, Vector3 delta, float length, float target)
+        private void ShareCorrection(int a, int b, Vector3 delta, float length, float target,
+                                    float stiffness)
         {
             float weightSum = inverseMass[a] + inverseMass[b];
             if (weightSum <= 0f) return;
 
-            Vector3 correction = delta * ((length - target) / length);
+            Vector3 correction = delta * (stiffness * (length - target) / length);
 
             pos[a] += correction * (inverseMass[a] / weightSum);
             pos[b] -= correction * (inverseMass[b] / weightSum);

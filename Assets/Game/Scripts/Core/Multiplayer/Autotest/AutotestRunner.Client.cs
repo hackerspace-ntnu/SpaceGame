@@ -107,6 +107,8 @@ namespace SpaceGame.Core
             Report("CLIENT_LEASHES_SEEN", SpaceGame.Items.Leash.All.Count);
             Report("CLIENT_PORTALS_SEEN", AutotestProbes.CountPortals());
 
+            yield return ReadShipPartsAsClient();
+
             // The net gun, and the reason the whole two-process apparatus exists for it. A net
             // is not a spawned NetworkObject: every machine draws its own from the origin, aim
             // and seed that came with the press, and is then TOLD by the server what that net

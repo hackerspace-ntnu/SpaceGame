@@ -45,6 +45,10 @@ namespace SpaceGame.Core
         public const ushort Damaged   = 11; // server → peers, on the VICTIM's relay
 
         // ── Riding ──
+        // A = which mount on the vehicle, as MountNetworkSync.MountIndex. A vehicle may carry
+        // several — every non-helm chair on the PlayerShip is its own MountModule, see the retired
+        // 92/93 below — and they share the entity's one channel, so without the number one press
+        // seats the same player in all of them.
         public const ushort Mount     = 20; // → server, on the MOUNT's relay. Target = rider
         public const ushort Mounted   = 21; // server → peers
         public const ushort Dismount  = 22; // → server, on the MOUNT's relay
@@ -406,5 +410,28 @@ namespace SpaceGame.Core
         // NetLatch.Apply documents.
         public const ushort Snared     = 88; // server → everyone, on the SHOOTER's relay
         public const ushort SnareFreed = 89; // server → everyone, on the SHOOTER's relay
+
+        // ── Arrival ──
+        // Sent on the SHIP's channel, not the player's. The ship is the thing that has seats, it is
+        // a spawned NetworkObject with a relay of its own, and it outlives any one player's seating.
+        //
+        // Two channels here for the reason MountNetworkSync sets out at length. This pair is the
+        // EVENT, acted on immediately by everybody present. SeatedRider's own NetworkVariable is the
+        // STATE, and it has to exist because NetworkVariable change events never replay: a client
+        // that connects while the ship is already falling was not here for the event, and with only
+        // this pair it would spawn standing on the ground watching its crew drop out of the sky.
+        //
+        // Broadcast to All rather than Others, and both handlers act only when the state differs, so
+        // a machine that missed one is corrected by the next — the idempotence rule NetLatch.Apply
+        // documents.
+        //
+        //   Target  the player being seated or released.
+        //   A       which seat, as an index into the ship's ordered ShipSeat list.
+        public const ushort TakeSeat  = 90; // server → everyone, on the SHIP's relay
+        public const ushort LeaveSeat = 91; // server → everyone, on the SHIP's relay
+
+        // (92 and 93 were SeatRequest/SeatRelease, retired: passenger chairs are ordinary mounts —
+        //  PlayerShipBuilder gives every non-helm chair its own MountModule — so a second, bespoke
+        //  way to sit down was two mechanisms for one job. Not reused; ids travel between builds.)
     }
 }

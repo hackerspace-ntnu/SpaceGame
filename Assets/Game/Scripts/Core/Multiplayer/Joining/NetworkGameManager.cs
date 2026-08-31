@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
+using SpaceGame.Gameplay.Arrival;
 using SpaceGame.World;
 
 namespace SpaceGame.Core
@@ -26,6 +27,11 @@ namespace SpaceGame.Core
                  "the spawn point have loaded, before giving up and using the spawn point's own " +
                  "position (clamped above the terrain).")]
         [SerializeField] private float spawnResolveTimeout = 10f;
+
+        [Tooltip("Seconds to wait for a SpawnPoint to appear before giving up. One that is merely " +
+                 "late arrives with an additively loaded scene; one that is not authored at all " +
+                 "never arrives, and this is what keeps that from being a silent hang.")]
+        [SerializeField] private float spawnPointWaitTimeout = 15f;
 
         /// <summary>
         /// Set by a launcher (e.g. MainMenuUI.StartMinigame) that additively loads a second scene
@@ -65,10 +71,19 @@ namespace SpaceGame.Core
 
         public override void OnNetworkSpawn()
         {
+            // Before anything else, on every peer: this is what decides whether the spawn flow
+            // below takes the versus route at all, and it must be settled before that flow starts.
+            AdoptVersusSessionFromLobby();
+
             // Sent by everyone, host included. The host's own answer is redundant — it reads
             // PlayerProfile.LocalId directly — but a special case here would be one more branch
             // that only the rarely-tested path exercises.
             ReportProfileServerRpc(PlayerProfile.LocalId);
+
+            // Only in a match, and only from a peer that knows its own side. Outside versus there
+            // is no team to report and the server has no roster to put it in.
+            if (VersusSession.IsActive && VersusSession.LocalTeam >= 0)
+                ReportVersusTeamServerRpc(VersusSession.LocalTeam);
 
             if (!IsServer) return;
 
@@ -95,6 +110,12 @@ namespace SpaceGame.Core
 
         public override void OnNetworkDespawn()
         {
+            // Before the guard below, which returns early during a shutdown that has already torn
+            // the singleton down — the one exit where a roster would otherwise be left standing.
+            // Its lifetime is this networked session, and a match that inherited the last one's
+            // team allocations would start its sides uneven.
+            VersusTeamRoster.Clear();
+
             if (NetworkManager.Singleton == null) return;
 
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
@@ -123,6 +144,14 @@ namespace SpaceGame.Core
         {
             handledClients.Remove(clientId);
             profileByClient.Remove(clientId);
+
+            // Frees their place on a versus team, so the sides stay even for whoever joins next.
+            // Harmless outside a match, where the roster is empty anyway.
+            VersusTeamRoster.Release(clientId);
+
+            // Frees their seat if they dropped mid-descent, so the hull is not left
+            // carrying a body that no longer exists. Harmless once the arrival is over.
+            if (ArrivalDirector.Instance != null) ArrivalDirector.Instance.ReleaseClient(clientId);
         }
 
         private IEnumerator SpawnWhenReady(ulong clientId)
@@ -144,6 +173,15 @@ namespace SpaceGame.Core
             if (!string.IsNullOrEmpty(pendingScene))
                 yield return WaitForPendingScene(pendingScene);
 
+            // A versus match starts everybody inside their own team's ship rather than on a
+            // SpawnPoint, so it takes a different route to a position entirely. Checked after the
+            // pending scene has loaded, because that load is what brings the spawner into being.
+            if (VersusSession.IsActive && VersusShipSpawner.Instance != null)
+            {
+                yield return SpawnIntoTeamShip(clientId);
+                yield break;
+            }
+
             if (worldStreamer)
             {
                 // NetworkBehaviour.OnNetworkSpawn order across objects in the same scene load is not
@@ -156,8 +194,25 @@ namespace SpaceGame.Core
                     yield return null;
                 }
 
+                // Bounded, and loudly. "Not yet" and "never" look identical from here: a point that
+                // is merely late arrives with an additively loaded scene, while one that was never
+                // authored never comes — and polling for it forever is indistinguishable from a
+                // hang. Nothing below this line runs, so there is no player, no chunk preload and
+                // no arrival, and the loading screen it all feeds deliberately never times out
+                // either. The result is a world that streams and simulates behind a Loading caption
+                // with an empty console. That is what this wait cost once already.
+                float spawnPointDeadline = Time.time + spawnPointWaitTimeout;
+
                 while (!SpawnManager.Instance.SpawnPointsAvailable())
                 {
+                    if (Time.time >= spawnPointDeadline)
+                    {
+                        Debug.LogError($"[NGM] No SpawnPoint appeared in {spawnPointWaitTimeout}s, so " +
+                                       $"client {clientId} has nowhere to be put and the world has no " +
+                                       "anchor to stream around. Is one authored in the scene?");
+                        yield break;
+                    }
+
                     yield return new WaitForSeconds(1f);
                 }
 
@@ -222,6 +277,21 @@ namespace SpaceGame.Core
                     }
 
                     yield return null;
+                }
+
+                // A brand new world starts everybody strapped into a ship on its way down, so it
+                // takes a different route to a body entirely. Checked here, at the very end, and
+                // deliberately AFTER the restoringPlayer branch above has already returned: a
+                // loaded save has had its arrival, and replaying the crash on somebody standing in
+                // the wreck is the one outcome worth engineering against.
+                //
+                // spawnPos is handed on rather than re-resolved, for the reason written out above:
+                // a second resolve returns a different point from the one the terrain was streamed
+                // around.
+                if (ArrivalDirector.Instance != null && ArrivalDirector.Instance.IsPending)
+                {
+                    yield return ArrivalDirector.Instance.SpawnIntoArrival(clientId, spawnPos);
+                    yield break;
                 }
 
                 SpawnManager.Instance.SpawnPlayerForClient(clientId, spawnPos);

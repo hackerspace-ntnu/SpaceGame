@@ -37887,6 +37887,4794 @@
     ],
     "auto_suffixed_names": []
   },
+  "models/vehicles/ship_lander_blockout.blend": {
+    "collections": [
+      {
+        "name": "Coll_Blockout_ExteriorChanges",
+        "objects": [],
+        "children": []
+      },
+      {
+        "name": "Coll_Blockout_Openings",
+        "objects": [],
+        "children": []
+      },
+      {
+        "name": "Coll_Blockout_Rooms",
+        "objects": [],
+        "children": []
+      },
+      {
+        "name": "Coll_Lander_Cockpit",
+        "objects": [
+          "Cockpit_Console_Bridge",
+          "Cockpit_Steering_Wheel",
+          "Cockpit_Seat_Command"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Lander_Fittings",
+        "objects": [
+          "RCS_NosePort",
+          "Intake_Scoop_Port",
+          "Intake_Scoop_Stbd"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Lander_Turbines",
+        "objects": [
+          "Turbine_Long_Stbd",
+          "Turbine_Stub_BellyPort"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Ref_Characters",
+        "objects": [],
+        "children": []
+      },
+      {
+        "name": "Coll_Ref_ExampleHull",
+        "objects": [
+          "Ref_ExampleHull",
+          "Cube",
+          "Cube.001",
+          "Cube.002",
+          "back_door",
+          "Cube.004",
+          "Cube.005",
+          "Cube.006",
+          "Cube.007",
+          "Cube.008",
+          "Cube.009",
+          "Cube.010",
+          "Cube.011",
+          "Cube.012",
+          "Cube.013",
+          "Cube.014",
+          "Cube.015",
+          "Cube.016",
+          "Cube.017",
+          "Cube.018",
+          "Cube.019",
+          "Cube.020",
+          "Cube.021",
+          "Cube.023",
+          "Cube.022",
+          "Cube.024",
+          "Cube.025",
+          "Cube.026",
+          "Icosphere",
+          "Cube.027",
+          "Cube.028",
+          "Cube.029",
+          "Cube.030",
+          "Cube.032",
+          "Cube.033",
+          "Cube.035",
+          "Cube.036",
+          "Cube.037",
+          "Cube.039",
+          "sliding_door_1",
+          "Cube.041",
+          "Cube.042",
+          "Cube.046",
+          "Cube.049",
+          "Cube.061",
+          "Cube.045",
+          "Cube.062",
+          "Cube.063",
+          "Cube.064",
+          "Cube.066",
+          "Cube.068",
+          "Cube.069",
+          "Cube.070",
+          "Cube.073",
+          "Cube.075",
+          "Cube.077",
+          "Cube.078",
+          "Cube.079",
+          "Cube.080",
+          "Cube.081",
+          "Cube.082",
+          "Cube.083",
+          "Cube.084",
+          "Cube.085",
+          "Cube.086",
+          "nuclear_motor.001",
+          "nuclear_motor",
+          "Cube.047",
+          "Cube.048",
+          "reactor_core",
+          "Turbine_Ducted_Stbd.001",
+          "Cube.052",
+          "Cube.053",
+          "Cube.054",
+          "Cube.055",
+          "Cube.056",
+          "Cube.057",
+          "Cube.058",
+          "Cube.059",
+          "Cube.060",
+          "Cube.071",
+          "Cube.072",
+          "Cube.074",
+          "Cube.076",
+          "Cube.087",
+          "reactor_core.001",
+          "Cube.089",
+          "Cube.090",
+          "Cube.091",
+          "Cube.092",
+          "Plane.001",
+          "Cube.093",
+          "Cube.094",
+          "Cube.095",
+          "Cube.096",
+          "Cube.097",
+          "Cube.098",
+          "Cube.100",
+          "Cube.099",
+          "Cube.101",
+          "Cube.102",
+          "Cube.103",
+          "Cube.104",
+          "Cube.105",
+          "anti_gravity",
+          "Cube.112",
+          "gun",
+          "Plane.002",
+          "Cube.119",
+          "Cube.120",
+          "Cube.121",
+          "Cube.122",
+          "Cube.123",
+          "Cylinder",
+          "Cylinder.001",
+          "Cylinder.002",
+          "Cube.124",
+          "Cube.125",
+          "back_door_support.002",
+          "back_door_support",
+          "back_door_support.001",
+          "Cube.034",
+          "Cube.043",
+          "Cube.051",
+          "Cube.129",
+          "Cube.130",
+          "sliding_door_2",
+          "sliding_door_3",
+          "sliding_door_4",
+          "Cube.134",
+          "Cube.135",
+          "Cube.136",
+          "Cube.044",
+          "air_intake",
+          "Cube.118",
+          "Icosphere.001",
+          "Cube.067",
+          "Cube.003",
+          "Cockpit_Seat_Command.001",
+          "Cockpit_Seat_Command.002",
+          "Cockpit_Seat_Command.003",
+          "small_turbine",
+          "Cube.031",
+          "Cube.038"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "air_intake",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -14.4618,
+          2.6064
+        ],
+        "scale": [
+          1.4335,
+          0.1837,
+          0.391
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.8671,
+          0.4049,
+          1.3151
+        ],
+        "vertices": 65,
+        "polygons": 57,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "anti_gravity",
+        "type": "MESH",
+        "location": [
+          3.9861,
+          -5.203,
+          3.8508
+        ],
+        "scale": [
+          0.631,
+          1.762,
+          0.7416
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.773,
+          7.1959,
+          1.6931
+        ],
+        "vertices": 113,
+        "polygons": 99,
+        "materials": [
+          "Mat_Lander_Hull_Primary",
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "back_door",
+        "type": "MESH",
+        "location": [
+          0.1908,
+          6.5282,
+          5.4117
+        ],
+        "scale": [
+          2.1922,
+          3.0167,
+          0.0865
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          4.3843,
+          6.0333,
+          0.173
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Door"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "back_door_support",
+        "type": "MESH",
+        "location": [
+          0.0987,
+          6.5282,
+          5.312
+        ],
+        "scale": [
+          0.2831,
+          3.0622,
+          0.0878
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.5661,
+          6.1244,
+          0.1757
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "back_door_support.001",
+        "type": "MESH",
+        "location": [
+          -1.725,
+          6.5282,
+          5.312
+        ],
+        "scale": [
+          0.2831,
+          3.0622,
+          0.0878
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.5661,
+          6.1244,
+          0.1757
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "back_door_support.002",
+        "type": "MESH",
+        "location": [
+          1.8755,
+          6.5282,
+          5.312
+        ],
+        "scale": [
+          0.2831,
+          3.0622,
+          0.0878
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.5661,
+          6.1244,
+          0.1757
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cockpit_Console_Bridge",
+        "type": "MESH",
+        "location": [
+          -0.15,
+          -9.45,
+          4.04
+        ],
+        "scale": [
+          1.5475,
+          1.5475,
+          1.5475
+        ],
+        "collections": [
+          "Coll_Lander_Cockpit"
+        ],
+        "dimensions": [
+          1.2721,
+          3.8542,
+          2.0606
+        ],
+        "vertices": 2010,
+        "polygons": 1887,
+        "materials": [
+          "Mat_Metal_Steel_Dark",
+          "Mat_Neutral_Panel_Grey",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Emissive_Amber",
+          "Mat_Emissive_Red_Warn",
+          "Mat_Neutral_Black_Matte"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cockpit_Seat_Command",
+        "type": "MESH",
+        "location": [
+          0.8118,
+          -7.6113,
+          4.7245
+        ],
+        "scale": [
+          1.4848,
+          1.4848,
+          1.4848
+        ],
+        "collections": [
+          "Coll_Lander_Cockpit"
+        ],
+        "dimensions": [
+          2.0317,
+          1.2027,
+          3.079
+        ],
+        "vertices": 1556,
+        "polygons": 1486,
+        "materials": [
+          "Mat_Paint_White_Arctic",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Green_CRT"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cockpit_Seat_Command.001",
+        "type": "MESH",
+        "location": [
+          -0.917,
+          -7.49,
+          4.7005
+        ],
+        "scale": [
+          1.4485,
+          1.4485,
+          1.4485
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.982,
+          1.1733,
+          3.0244
+        ],
+        "vertices": 1556,
+        "polygons": 1486,
+        "materials": [
+          "Mat_Paint_White_Arctic",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Green_CRT"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cockpit_Seat_Command.002",
+        "type": "MESH",
+        "location": [
+          1.7007,
+          -4.8986,
+          3.3547
+        ],
+        "scale": [
+          1.5405,
+          1.5405,
+          1.5405
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.1079,
+          1.2478,
+          2.4098
+        ],
+        "vertices": 1552,
+        "polygons": 1482,
+        "materials": [
+          "Mat_Paint_White_Arctic",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Green_CRT"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cockpit_Seat_Command.003",
+        "type": "MESH",
+        "location": [
+          1.7392,
+          -2.5647,
+          3.3547
+        ],
+        "scale": [
+          1.5759,
+          1.5759,
+          1.5759
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.1564,
+          1.2765,
+          2.4653
+        ],
+        "vertices": 1552,
+        "polygons": 1482,
+        "materials": [
+          "Mat_Paint_White_Arctic",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Emissive_Green_CRT"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cockpit_Steering_Wheel",
+        "type": "MESH",
+        "location": [
+          0.9797,
+          -8.6635,
+          6.1064
+        ],
+        "scale": [
+          1.7809,
+          1.7809,
+          1.7809
+        ],
+        "collections": [
+          "Coll_Lander_Cockpit"
+        ],
+        "dimensions": [
+          1.6601,
+          1.8099,
+          0.5343
+        ],
+        "vertices": 1052,
+        "polygons": 978,
+        "materials": [
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Emissive_Amber"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -8.8757,
+          1.1688
+        ],
+        "scale": [
+          1.3891,
+          2.5007,
+          0.0688
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.7782,
+          5.0013,
+          0.1376
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Deck"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.001",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.8473,
+          2.9869
+        ],
+        "scale": [
+          3.5893,
+          3.7408,
+          0.0865
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          7.1785,
+          7.4815,
+          0.173
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Deck"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.002",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -3.8239,
+          2.2878
+        ],
+        "scale": [
+          3.3182,
+          1.2596,
+          0.0865
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          6.6364,
+          2.5191,
+          0.173
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Deck"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.003",
+        "type": "MESH",
+        "location": [
+          -1.701,
+          -6.5674,
+          7.517
+        ],
+        "scale": [
+          0.7556,
+          0.7556,
+          0.122
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.5111,
+          2.781,
+          0.2808
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Deck"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.004",
+        "type": "MESH",
+        "location": [
+          -3.4745,
+          -2.8359,
+          3.5465
+        ],
+        "scale": [
+          0.0698,
+          0.1668,
+          1.5767
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9534,
+          0.3336,
+          7.0025
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.005",
+        "type": "MESH",
+        "location": [
+          -3.7269,
+          0.863,
+          4.3148
+        ],
+        "scale": [
+          0.0706,
+          3.8181,
+          1.3523
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9784,
+          7.6363,
+          6.0223
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.006",
+        "type": "MESH",
+        "location": [
+          3.3756,
+          -1.801,
+          4.3126
+        ],
+        "scale": [
+          0.0706,
+          0.0735,
+          1.3523
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9784,
+          0.1471,
+          6.0223
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.007",
+        "type": "MESH",
+        "location": [
+          -3.4247,
+          0.8072,
+          4.3148
+        ],
+        "scale": [
+          0.0696,
+          0.1431,
+          1.3523
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9397,
+          0.2861,
+          6.0061
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.008",
+        "type": "MESH",
+        "location": [
+          -3.4745,
+          4.473,
+          4.2605
+        ],
+        "scale": [
+          0.0696,
+          0.1431,
+          1.3523
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9891,
+          0.2861,
+          6.1068
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.009",
+        "type": "MESH",
+        "location": [
+          3.501,
+          0.863,
+          4.3148
+        ],
+        "scale": [
+          0.0706,
+          3.8181,
+          1.3523
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9784,
+          7.6363,
+          6.0223
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.010",
+        "type": "MESH",
+        "location": [
+          -3.4745,
+          0.863,
+          4.3148
+        ],
+        "scale": [
+          0.0706,
+          3.8181,
+          1.3523
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9784,
+          7.6363,
+          6.0223
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.011",
+        "type": "MESH",
+        "location": [
+          3.3255,
+          -2.8359,
+          3.5465
+        ],
+        "scale": [
+          0.0698,
+          0.1668,
+          1.5767
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9534,
+          0.3336,
+          7.0025
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.012",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -2.3012,
+          2.6093
+        ],
+        "scale": [
+          3.5893,
+          -0.2059,
+          0.3916
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          7.1785,
+          0.4118,
+          0.7832
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.013",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -4.8043,
+          1.6275
+        ],
+        "scale": [
+          3.3012,
+          -0.1894,
+          0.6625
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          6.6024,
+          0.3787,
+          1.325
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.014",
+        "type": "MESH",
+        "location": [
+          -3.2909,
+          -3.5639,
+          3.4421
+        ],
+        "scale": [
+          0.0664,
+          0.5158,
+          1.2728
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.7445,
+          1.0317,
+          5.6683
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.015",
+        "type": "MESH",
+        "location": [
+          3.1459,
+          -3.4973,
+          3.4421
+        ],
+        "scale": [
+          0.0664,
+          0.5107,
+          1.2728
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.7445,
+          1.0215,
+          5.6683
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.016",
+        "type": "MESH",
+        "location": [
+          3.3255,
+          -3.2769,
+          3.5465
+        ],
+        "scale": [
+          0.0698,
+          0.1668,
+          1.5767
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9534,
+          0.3336,
+          7.0025
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.017",
+        "type": "MESH",
+        "location": [
+          -3.4498,
+          -3.2769,
+          3.5465
+        ],
+        "scale": [
+          0.0698,
+          0.1668,
+          1.5767
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9534,
+          0.3336,
+          7.0025
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.018",
+        "type": "MESH",
+        "location": [
+          3.2961,
+          4.473,
+          4.2634
+        ],
+        "scale": [
+          0.0696,
+          0.1431,
+          1.3523
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9397,
+          0.4904,
+          6.0061
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.019",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -9.2454,
+          2.014
+        ],
+        "scale": [
+          1.8962,
+          3.1178,
+          0.0734
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.7925,
+          6.2357,
+          0.1468
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Deck"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.020",
+        "type": "MESH",
+        "location": [
+          3.3693,
+          0.8072,
+          4.3148
+        ],
+        "scale": [
+          0.0696,
+          0.1431,
+          1.3523
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9397,
+          0.2861,
+          6.0061
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.021",
+        "type": "MESH",
+        "location": [
+          3.3693,
+          2.6167,
+          4.3148
+        ],
+        "scale": [
+          0.0696,
+          0.1431,
+          1.3523
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9397,
+          0.2951,
+          6.0061
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.022",
+        "type": "MESH",
+        "location": [
+          -3.4762,
+          -1.147,
+          4.3148
+        ],
+        "scale": [
+          0.0696,
+          0.1431,
+          1.3523
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          4.0174,
+          0.2951,
+          6.0061
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.023",
+        "type": "MESH",
+        "location": [
+          -3.4762,
+          2.6167,
+          4.3148
+        ],
+        "scale": [
+          0.0696,
+          0.1431,
+          1.3523
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          4.0174,
+          0.2951,
+          6.0061
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.024",
+        "type": "MESH",
+        "location": [
+          3.3547,
+          -1.147,
+          4.3148
+        ],
+        "scale": [
+          0.0696,
+          0.1431,
+          1.3523
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          4.0174,
+          0.2951,
+          6.0061
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.025",
+        "type": "MESH",
+        "location": [
+          2.997,
+          -5.5989,
+          3.4252
+        ],
+        "scale": [
+          0.0636,
+          0.5982,
+          1.4294
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.588,
+          1.1964,
+          6.3655
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.026",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -8.1468,
+          2.9364
+        ],
+        "scale": [
+          2.6322,
+          5.5005,
+          0.0865
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          5.2644,
+          11.0009,
+          0.173
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Deck"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.027",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -12.39,
+          4.1705
+        ],
+        "scale": [
+          2.0546,
+          0.2093,
+          0.6432
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.6517,
+          0.4186,
+          1.2321
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.028",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -11.4204,
+          4.2212
+        ],
+        "scale": [
+          2.0546,
+          0.1419,
+          1.1189
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          4.1093,
+          0.3211,
+          2.3287
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.029",
+        "type": "MESH",
+        "location": [
+          -0.0176,
+          -6.1423,
+          3.2039
+        ],
+        "scale": [
+          2.8773,
+          4.0435,
+          0.4677
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          5.7546,
+          8.087,
+          0.6166
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Deck"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.030",
+        "type": "MESH",
+        "location": [
+          0.5726,
+          -9.0538,
+          3.6839
+        ],
+        "scale": [
+          2.1168,
+          1.9874,
+          0.7583
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          4.2335,
+          3.9747,
+          1.5165
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Deck"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.031",
+        "type": "MESH",
+        "location": [
+          0.3307,
+          -7.8547,
+          3.5933
+        ],
+        "scale": [
+          1.679,
+          2.788,
+          0.2956
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.358,
+          5.5761,
+          0.5913
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Deck.001"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.032",
+        "type": "MESH",
+        "location": [
+          2.9936,
+          -7.3372,
+          3.3831
+        ],
+        "scale": [
+          0.0229,
+          0.1265,
+          1.0681
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.3228,
+          0.261,
+          4.7436
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.033",
+        "type": "MESH",
+        "location": [
+          -3.1136,
+          -4.1194,
+          4.3673
+        ],
+        "scale": [
+          0.0622,
+          0.1279,
+          1.2091
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.5917,
+          0.2638,
+          5.3698
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.034",
+        "type": "MESH",
+        "location": [
+          -4.7253,
+          5.4548,
+          4.2556
+        ],
+        "scale": [
+          1.1287,
+          1.8709,
+          1.8709
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.2574,
+          6.2533,
+          3.6641
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Nacelle"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.035",
+        "type": "MESH",
+        "location": [
+          3.0066,
+          -4.1194,
+          4.3673
+        ],
+        "scale": [
+          0.0622,
+          0.1279,
+          1.2091
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.5223,
+          0.2638,
+          5.3698
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.036",
+        "type": "MESH",
+        "location": [
+          3.0066,
+          -5.6665,
+          3.9893
+        ],
+        "scale": [
+          0.0622,
+          0.1297,
+          1.3704
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.5223,
+          0.2594,
+          6.0864
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.037",
+        "type": "MESH",
+        "location": [
+          2.9412,
+          -2.519,
+          4.8088
+        ],
+        "scale": [
+          0.0622,
+          0.1279,
+          1.2091
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.5223,
+          0.2558,
+          5.3698
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.038",
+        "type": "MESH",
+        "location": [
+          -4.0409,
+          2.3936,
+          1.8847
+        ],
+        "scale": [
+          0.6274,
+          0.6274,
+          0.6274
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.8149,
+          3.6682,
+          1.4474
+        ],
+        "vertices": 24,
+        "polygons": 22,
+        "materials": [
+          "Mat_Lander_Hull_Secondary.001"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.039",
+        "type": "MESH",
+        "location": [
+          2.9675,
+          -8.2193,
+          3.3884
+        ],
+        "scale": [
+          0.0218,
+          0.1449,
+          0.9932
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.237,
+          0.2898,
+          4.4113
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.041",
+        "type": "MESH",
+        "location": [
+          3.0153,
+          -5.6187,
+          3.9087
+        ],
+        "scale": [
+          0.0262,
+          3.3914,
+          1.0964
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.4765,
+          6.7828,
+          4.8825
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.042",
+        "type": "MESH",
+        "location": [
+          -3.1121,
+          -2.5182,
+          4.8063
+        ],
+        "scale": [
+          0.0622,
+          0.1279,
+          1.2091
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.5223,
+          0.2558,
+          5.3698
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.043",
+        "type": "MESH",
+        "location": [
+          -3.2952,
+          -6.3707,
+          2.9567
+        ],
+        "scale": [
+          0.4842,
+          2.1706,
+          0.1021
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.9684,
+          4.3412,
+          0.2041
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Deck"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.044",
+        "type": "MESH",
+        "location": [
+          3.3233,
+          -7.8555,
+          3.5818
+        ],
+        "scale": [
+          0.0259,
+          1.3682,
+          1.0526
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.4586,
+          2.7364,
+          4.6481
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.045",
+        "type": "MESH",
+        "location": [
+          -1.701,
+          -6.5674,
+          7.517
+        ],
+        "scale": [
+          0.7556,
+          0.7556,
+          0.122
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.5111,
+          2.781,
+          0.2808
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Deck"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.046",
+        "type": "MESH",
+        "location": [
+          -3.1121,
+          -8.5397,
+          2.5191
+        ],
+        "scale": [
+          0.0208,
+          0.1458,
+          1.0879
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.176,
+          0.2916,
+          4.8317
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.047",
+        "type": "MESH",
+        "location": [
+          2.9214,
+          6.2036,
+          9.4272
+        ],
+        "scale": [
+          0.6284,
+          0.1296,
+          0.6244
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.2568,
+          0.4683,
+          1.1667
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.048",
+        "type": "MESH",
+        "location": [
+          2.9214,
+          2.6741,
+          9.4272
+        ],
+        "scale": [
+          0.6284,
+          0.1296,
+          0.6244
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.2568,
+          0.4683,
+          1.1667
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.049",
+        "type": "MESH",
+        "location": [
+          -0.0057,
+          -5.2849,
+          2.7693
+        ],
+        "scale": [
+          3.209,
+          3.3444,
+          0.0774
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          6.418,
+          6.6889,
+          0.1547
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Deck"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.051",
+        "type": "MESH",
+        "location": [
+          -2.2089,
+          -6.5621,
+          7.0955
+        ],
+        "scale": [
+          -0.1166,
+          -3.1567,
+          -0.1166
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.2331,
+          6.3133,
+          0.2331
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.052",
+        "type": "MESH",
+        "location": [
+          -7.4598,
+          3.4959,
+          4.8476
+        ],
+        "scale": [
+          -0.5582,
+          0.5582,
+          0.5582
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.1165,
+          2.8634,
+          1.3129
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Nacelle"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.053",
+        "type": "MESH",
+        "location": [
+          -6.221,
+          3.4959,
+          4.7379
+        ],
+        "scale": [
+          -1.017,
+          1.017,
+          1.017
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.0341,
+          3.7646,
+          2.3775
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Nacelle"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.054",
+        "type": "MESH",
+        "location": [
+          -8.9436,
+          6.4056,
+          6.3951
+        ],
+        "scale": [
+          -1.0899,
+          1.0899,
+          0.6266
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.1797,
+          3.7904,
+          1.1624
+        ],
+        "vertices": 18,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.055",
+        "type": "MESH",
+        "location": [
+          -10.1936,
+          4.8826,
+          6.0209
+        ],
+        "scale": [
+          -0.7465,
+          1.3428,
+          0.7465
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.4929,
+          4.7823,
+          1.3911
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.056",
+        "type": "MESH",
+        "location": [
+          -3.5756,
+          4.8367,
+          5.9349
+        ],
+        "scale": [
+          -1.1351,
+          1.9886,
+          0.8539
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          7.5878,
+          14.881,
+          2.7661
+        ],
+        "vertices": 24,
+        "polygons": 12,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.057",
+        "type": "MESH",
+        "location": [
+          -10.4943,
+          7.1459,
+          6.273
+        ],
+        "scale": [
+          -0.7465,
+          0.7465,
+          0.7465
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.4929,
+          2.6966,
+          1.3949
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.058",
+        "type": "MESH",
+        "location": [
+          -5.4423,
+          6.2914,
+          5.9867
+        ],
+        "scale": [
+          -0.9094,
+          0.9094,
+          0.9094
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.8188,
+          1.8188,
+          1.8188
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Nacelle"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.059",
+        "type": "MESH",
+        "location": [
+          -2.5811,
+          4.8367,
+          7.5905
+        ],
+        "scale": [
+          -0.5828,
+          1.0209,
+          0.5828
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.8955,
+          7.6398,
+          1.8878
+        ],
+        "vertices": 24,
+        "polygons": 12,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.060",
+        "type": "MESH",
+        "location": [
+          -2.5726,
+          4.8367,
+          6.4212
+        ],
+        "scale": [
+          -1.1351,
+          1.9886,
+          0.8539
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          7.5878,
+          14.881,
+          2.7661
+        ],
+        "vertices": 24,
+        "polygons": 12,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.061",
+        "type": "MESH",
+        "location": [
+          -3.6208,
+          -3.1361,
+          4.3478
+        ],
+        "scale": [
+          0.077,
+          1.051,
+          1.3758
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          4.3384,
+          2.1019,
+          6.1269
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.062",
+        "type": "MESH",
+        "location": [
+          1.4771,
+          -6.5674,
+          7.6702
+        ],
+        "scale": [
+          0.6768,
+          0.7475,
+          0.0818
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.3537,
+          2.1888,
+          0.1637
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.063",
+        "type": "MESH",
+        "location": [
+          -2.0523,
+          -10.5179,
+          5.4603
+        ],
+        "scale": [
+          0.9602,
+          0.9602,
+          0.1551
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.4477,
+          3.6654,
+          1.5445
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.064",
+        "type": "MESH",
+        "location": [
+          1.8987,
+          -10.7057,
+          5.3892
+        ],
+        "scale": [
+          1.0687,
+          1.0687,
+          0.1726
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.7845,
+          3.3042,
+          1.2563
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.066",
+        "type": "MESH",
+        "location": [
+          -2.7455,
+          -10.2723,
+          3.2241
+        ],
+        "scale": [
+          0.0154,
+          1.2385,
+          0.6411
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.1631,
+          2.477,
+          2.8689
+        ],
+        "vertices": 50,
+        "polygons": 48,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.067",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -14.4049,
+          2.6064
+        ],
+        "scale": [
+          1.4335,
+          0.1837,
+          0.391
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.8671,
+          0.3673,
+          0.782
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.068",
+        "type": "MESH",
+        "location": [
+          -1.7965,
+          4.4273,
+          4.1031
+        ],
+        "scale": [
+          0.0369,
+          0.358,
+          1.0092
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.0552,
+          0.7229,
+          4.5289
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.069",
+        "type": "MESH",
+        "location": [
+          2.0516,
+          4.4273,
+          4.1031
+        ],
+        "scale": [
+          0.0413,
+          0.358,
+          1.0143
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.3438,
+          0.7229,
+          4.5521
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.070",
+        "type": "MESH",
+        "location": [
+          -0.0465,
+          -14.2851,
+          2.9659
+        ],
+        "scale": [
+          2.2411,
+          2.0471,
+          0.067
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          5.2603,
+          4.8049,
+          4.8031
+        ],
+        "vertices": 279,
+        "polygons": 267,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.071",
+        "type": "MESH",
+        "location": [
+          -4.3756,
+          -0.5308,
+          6.6106
+        ],
+        "scale": [
+          0.9234,
+          0.9234,
+          0.9234
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.8467,
+          3.3357,
+          2.1807
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.072",
+        "type": "MESH",
+        "location": [
+          -3.9258,
+          -0.9667,
+          7.0576
+        ],
+        "scale": [
+          0.7411,
+          0.7411,
+          0.7411
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.4822,
+          2.6772,
+          1.7502
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.073",
+        "type": "MESH",
+        "location": [
+          2.9134,
+          5.8209,
+          6.4212
+        ],
+        "scale": [
+          1.1351,
+          1.9886,
+          0.8539
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          7.5878,
+          14.881,
+          2.7661
+        ],
+        "vertices": 24,
+        "polygons": 12,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.074",
+        "type": "MESH",
+        "location": [
+          -3.1986,
+          9.699,
+          8.0323
+        ],
+        "scale": [
+          -0.5691,
+          -1.5395,
+          0.4778
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.1381,
+          5.5616,
+          0.8929
+        ],
+        "vertices": 28,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Door"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.075",
+        "type": "MESH",
+        "location": [
+          2.922,
+          5.8209,
+          7.6424
+        ],
+        "scale": [
+          0.5828,
+          1.0209,
+          0.5828
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.8955,
+          7.6398,
+          1.8878
+        ],
+        "vertices": 24,
+        "polygons": 12,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.076",
+        "type": "MESH",
+        "location": [
+          -3.7626,
+          10.4634,
+          6.5375
+        ],
+        "scale": [
+          -0.5691,
+          -1.5395,
+          0.4778
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.1381,
+          5.5616,
+          0.8929
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Door"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.077",
+        "type": "MESH",
+        "location": [
+          5.7832,
+          7.2757,
+          5.9867
+        ],
+        "scale": [
+          0.9094,
+          0.9094,
+          0.9094
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.8188,
+          1.8188,
+          1.8188
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Nacelle"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.078",
+        "type": "MESH",
+        "location": [
+          4.0865,
+          -0.5308,
+          6.0486
+        ],
+        "scale": [
+          0.9234,
+          0.9234,
+          0.9234
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.8467,
+          3.3357,
+          2.1807
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.079",
+        "type": "MESH",
+        "location": [
+          4.0865,
+          -0.5308,
+          6.6685
+        ],
+        "scale": [
+          0.7411,
+          0.7411,
+          0.7411
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.4822,
+          2.6772,
+          1.7502
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.080",
+        "type": "MESH",
+        "location": [
+          10.8202,
+          7.6479,
+          6.2133
+        ],
+        "scale": [
+          0.7465,
+          0.7465,
+          0.7465
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.4929,
+          2.6966,
+          1.3949
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.081",
+        "type": "MESH",
+        "location": [
+          3.9164,
+          5.8209,
+          5.9349
+        ],
+        "scale": [
+          1.1351,
+          1.9886,
+          0.8539
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          7.5878,
+          14.881,
+          2.7661
+        ],
+        "vertices": 24,
+        "polygons": 12,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.082",
+        "type": "MESH",
+        "location": [
+          10.5345,
+          5.8669,
+          6.0209
+        ],
+        "scale": [
+          0.7465,
+          1.3428,
+          0.7465
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.4929,
+          4.7823,
+          1.3911
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.083",
+        "type": "MESH",
+        "location": [
+          9.2845,
+          7.3898,
+          6.3951
+        ],
+        "scale": [
+          1.0899,
+          1.0899,
+          0.6266
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.1797,
+          3.7904,
+          1.1624
+        ],
+        "vertices": 18,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.084",
+        "type": "MESH",
+        "location": [
+          6.5618,
+          4.4801,
+          4.7379
+        ],
+        "scale": [
+          1.017,
+          1.017,
+          1.017
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.0341,
+          3.7646,
+          2.3775
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Nacelle"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.085",
+        "type": "MESH",
+        "location": [
+          7.8007,
+          4.4801,
+          4.8476
+        ],
+        "scale": [
+          0.5582,
+          0.5582,
+          0.5582
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.1165,
+          2.8634,
+          1.3129
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Nacelle"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.086",
+        "type": "MESH",
+        "location": [
+          4.8878,
+          5.4548,
+          4.2556
+        ],
+        "scale": [
+          1.1287,
+          1.8709,
+          1.8709
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.2574,
+          6.2533,
+          3.6641
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Nacelle"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.087",
+        "type": "MESH",
+        "location": [
+          -3.7626,
+          10.1615,
+          7.276
+        ],
+        "scale": [
+          -0.5691,
+          -1.5395,
+          0.4778
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.1381,
+          5.5616,
+          0.8929
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Door"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.089",
+        "type": "MESH",
+        "location": [
+          0.1222,
+          5.342,
+          9.1207
+        ],
+        "scale": [
+          0.5273,
+          1.381,
+          0.7929
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.0546,
+          4.9185,
+          1.4777
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.090",
+        "type": "MESH",
+        "location": [
+          -1.3914,
+          -0.0887,
+          8.9922
+        ],
+        "scale": [
+          0.3408,
+          0.8925,
+          0.4165
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.6815,
+          3.1787,
+          0.7763
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.091",
+        "type": "MESH",
+        "location": [
+          1.4271,
+          -0.0887,
+          8.9683
+        ],
+        "scale": [
+          0.3408,
+          0.8925,
+          0.4165
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.6815,
+          3.1787,
+          0.7763
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.092",
+        "type": "MESH",
+        "location": [
+          -3.1986,
+          9.699,
+          8.5888
+        ],
+        "scale": [
+          -0.5691,
+          -0.5954,
+          0.4778
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.1381,
+          2.1509,
+          0.8929
+        ],
+        "vertices": 28,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.093",
+        "type": "MESH",
+        "location": [
+          -3.4745,
+          0.8211,
+          4.613
+        ],
+        "scale": [
+          0.0706,
+          3.8181,
+          1.3523
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9784,
+          7.6363,
+          6.0223
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.094",
+        "type": "MESH",
+        "location": [
+          3.379,
+          0.863,
+          4.5664
+        ],
+        "scale": [
+          0.0706,
+          3.8181,
+          1.3523
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.9784,
+          7.6363,
+          6.0223
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.095",
+        "type": "MESH",
+        "location": [
+          3.5675,
+          7.9806,
+          6.3565
+        ],
+        "scale": [
+          0.0582,
+          3.1503,
+          1.1158
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.5864,
+          6.9065,
+          4.9689
+        ],
+        "vertices": 80,
+        "polygons": 78,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.096",
+        "type": "MESH",
+        "location": [
+          -3.3809,
+          7.9806,
+          6.3565
+        ],
+        "scale": [
+          0.0582,
+          3.1503,
+          1.1158
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.5847,
+          6.9001,
+          4.9689
+        ],
+        "vertices": 44,
+        "polygons": 42,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.097",
+        "type": "MESH",
+        "location": [
+          3.3525,
+          9.699,
+          8.5957
+        ],
+        "scale": [
+          -0.5691,
+          -0.5954,
+          0.4778
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.1381,
+          2.1509,
+          0.8929
+        ],
+        "vertices": 28,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.098",
+        "type": "MESH",
+        "location": [
+          3.4118,
+          9.699,
+          8.0323
+        ],
+        "scale": [
+          -0.5691,
+          -1.5395,
+          0.4778
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.1381,
+          5.5616,
+          0.8929
+        ],
+        "vertices": 28,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Door"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.099",
+        "type": "MESH",
+        "location": [
+          3.694,
+          10.1615,
+          7.276
+        ],
+        "scale": [
+          0.5691,
+          -1.5395,
+          0.4778
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.1381,
+          5.5616,
+          0.8929
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Door"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.100",
+        "type": "MESH",
+        "location": [
+          3.694,
+          10.4634,
+          6.5375
+        ],
+        "scale": [
+          0.5691,
+          -1.5395,
+          0.4778
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.1381,
+          5.5616,
+          0.8929
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Door"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.101",
+        "type": "MESH",
+        "location": [
+          6.2321,
+          -0.4378,
+          5.7162
+        ],
+        "scale": [
+          0.5808,
+          0.5808,
+          0.5808
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.3642,
+          2.9615,
+          1.771
+        ],
+        "vertices": 18,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.102",
+        "type": "MESH",
+        "location": [
+          -6.2585,
+          -0.4378,
+          5.7162
+        ],
+        "scale": [
+          -0.5808,
+          0.5808,
+          0.5808
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.3642,
+          2.9615,
+          1.771
+        ],
+        "vertices": 18,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.103",
+        "type": "MESH",
+        "location": [
+          -4.0409,
+          2.3936,
+          1.8847
+        ],
+        "scale": [
+          0.6274,
+          0.6274,
+          0.6274
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.8149,
+          3.6682,
+          1.4474
+        ],
+        "vertices": 24,
+        "polygons": 22,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.104",
+        "type": "MESH",
+        "location": [
+          -1.1444,
+          -1.0231,
+          2.4027
+        ],
+        "scale": [
+          0.3888,
+          1.0182,
+          0.6926
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.7775,
+          3.6265,
+          1.2907
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.105",
+        "type": "MESH",
+        "location": [
+          1.1657,
+          -1.0231,
+          2.4027
+        ],
+        "scale": [
+          0.3888,
+          1.0182,
+          0.6926
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.7775,
+          3.6265,
+          1.2907
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.112",
+        "type": "MESH",
+        "location": [
+          6.3879,
+          -1.8484,
+          5.8239
+        ],
+        "scale": [
+          0.1965,
+          0.1965,
+          0.1965
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.4433,
+          0.3635,
+          0.549
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.118",
+        "type": "MESH",
+        "location": [
+          0.0,
+          -14.4049,
+          3.8108
+        ],
+        "scale": [
+          1.1158,
+          0.143,
+          0.3043
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          2.2315,
+          0.2859,
+          0.6087
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.119",
+        "type": "MESH",
+        "location": [
+          -2.7545,
+          -8.5939,
+          2.2553
+        ],
+        "scale": [
+          -0.3757,
+          -1.1534,
+          -1.1534
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.7513,
+          2.3068,
+          1.0535
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.120",
+        "type": "MESH",
+        "location": [
+          0.0882,
+          4.3103,
+          2.8327
+        ],
+        "scale": [
+          0.1619,
+          0.271,
+          0.0894
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.3239,
+          0.542,
+          0.1788
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.121",
+        "type": "MESH",
+        "location": [
+          1.8751,
+          4.3103,
+          2.8327
+        ],
+        "scale": [
+          0.1619,
+          0.271,
+          0.0894
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.3239,
+          0.542,
+          0.1788
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.122",
+        "type": "MESH",
+        "location": [
+          -1.7207,
+          4.3103,
+          2.8327
+        ],
+        "scale": [
+          0.1619,
+          0.271,
+          0.0894
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.3239,
+          0.542,
+          0.1788
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.123",
+        "type": "MESH",
+        "location": [
+          0.0663,
+          4.3867,
+          2.8327
+        ],
+        "scale": [
+          1.9161,
+          0.1429,
+          0.0637
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.8321,
+          0.2858,
+          0.1274
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.124",
+        "type": "MESH",
+        "location": [
+          -2.8444,
+          6.4512,
+          6.8717
+        ],
+        "scale": [
+          -0.846,
+          0.846,
+          1.3751
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.6919,
+          2.8275,
+          2.6932
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.125",
+        "type": "MESH",
+        "location": [
+          3.1598,
+          6.4512,
+          6.8717
+        ],
+        "scale": [
+          -0.846,
+          0.846,
+          1.3751
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.6919,
+          2.8275,
+          2.6932
+        ],
+        "vertices": 8,
+        "polygons": 6,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Cube.129",
+        "type": "MESH",
+        "location": [
+          -5.3647,
+          -6.3707,
+          1.3227
+        ],
+        "scale": [
+          2.4858,
+          1.2132,
+          0.0844
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          4.9716,
+          2.4265,
+          0.2342
+        ],
+        "vertices": 109,
+        "polygons": 89,
+        "materials": [
+          "Mat_Lander_Deck"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.130",
+        "type": "MESH",
+        "location": [
+          3.7453,
+          -3.1361,
+          4.3478
+        ],
+        "scale": [
+          -0.077,
+          1.051,
+          1.3758
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          4.3384,
+          2.1019,
+          6.1269
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.134",
+        "type": "MESH",
+        "location": [
+          2.5067,
+          -5.419,
+          7.194
+        ],
+        "scale": [
+          -0.0793,
+          1.0654,
+          1.4749
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          4.7205,
+          4.27,
+          6.5685
+        ],
+        "vertices": 138,
+        "polygons": 136,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.135",
+        "type": "MESH",
+        "location": [
+          3.776,
+          -5.2208,
+          4.1972
+        ],
+        "scale": [
+          0.0259,
+          1.3682,
+          1.0526
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.4586,
+          2.7364,
+          4.6873
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cube.136",
+        "type": "MESH",
+        "location": [
+          2.6463,
+          -9.91,
+          3.5505
+        ],
+        "scale": [
+          0.0188,
+          1.0846,
+          0.776
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.3554,
+          2.1692,
+          3.4695
+        ],
+        "vertices": 50,
+        "polygons": 48,
+        "materials": [
+          "Mat_Lander_Equipment"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cylinder",
+        "type": "MESH",
+        "location": [
+          0.0979,
+          4.5605,
+          2.8169
+        ],
+        "scale": [
+          0.1875,
+          0.1875,
+          0.3227
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.3749,
+          0.3749,
+          0.6454
+        ],
+        "vertices": 64,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cylinder.001",
+        "type": "MESH",
+        "location": [
+          1.8603,
+          4.5605,
+          2.8169
+        ],
+        "scale": [
+          0.1875,
+          0.1875,
+          0.3227
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.3749,
+          0.3749,
+          0.6454
+        ],
+        "vertices": 64,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Cylinder.002",
+        "type": "MESH",
+        "location": [
+          -1.7817,
+          4.5605,
+          2.8169
+        ],
+        "scale": [
+          0.1875,
+          0.1875,
+          0.3227
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.3749,
+          0.3749,
+          0.6454
+        ],
+        "vertices": 64,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "gun",
+        "type": "MESH",
+        "location": [
+          6.36,
+          -1.8443,
+          5.3229
+        ],
+        "scale": [
+          0.2076,
+          0.2076,
+          0.2076
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          0.4151,
+          5.3293,
+          0.7696
+        ],
+        "vertices": 84,
+        "polygons": 76,
+        "materials": [
+          "Mat_Lander_Mech_Dark"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Icosphere",
+        "type": "MESH",
+        "location": [
+          -0.0703,
+          -9.0376,
+          6.6633
+        ],
+        "scale": [
+          2.3258,
+          4.0948,
+          0.5869
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          4.424,
+          8.6498,
+          2.4417
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Lander_Canopy"
+        ],
+        "modifiers": [
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Icosphere.001",
+        "type": "MESH",
+        "location": [
+          -0.0764,
+          -8.9372,
+          2.1409
+        ],
+        "scale": [
+          4.4641,
+          3.4532,
+          2.4326
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          6.9521,
+          6.9064,
+          2.7933
+        ],
+        "vertices": 42,
+        "polygons": 80,
+        "materials": [
+          "Mat_Lander_Hull_Primary"
+        ],
+        "modifiers": [
+          "Subdivision"
+        ]
+      },
+      {
+        "name": "Intake_Scoop_Port",
+        "type": "MESH",
+        "location": [
+          -3.4,
+          -1.5,
+          8.9
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Lander_Fittings"
+        ],
+        "dimensions": [
+          0.604,
+          0.76,
+          0.2789
+        ],
+        "vertices": 1188,
+        "polygons": 1136,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Neutral_Panel_Grey",
+          "Mat_Emissive_Amber"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Intake_Scoop_Stbd",
+        "type": "MESH",
+        "location": [
+          3.4,
+          -1.5,
+          8.9
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Lander_Fittings"
+        ],
+        "dimensions": [
+          0.604,
+          0.76,
+          0.2789
+        ],
+        "vertices": 1188,
+        "polygons": 1136,
+        "materials": [
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Neutral_Panel_Grey",
+          "Mat_Emissive_Amber"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "nuclear_motor",
+        "type": "MESH",
+        "location": [
+          -3.0823,
+          1.4935,
+          8.9158
+        ],
+        "scale": [
+          0.5456,
+          4.0094,
+          0.5468
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.6964,
+          11.142,
+          1.6386
+        ],
+        "vertices": 354,
+        "polygons": 352,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "nuclear_motor.001",
+        "type": "MESH",
+        "location": [
+          2.9384,
+          1.4935,
+          8.9158
+        ],
+        "scale": [
+          0.5456,
+          4.0094,
+          0.5468
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.6964,
+          11.142,
+          1.6386
+        ],
+        "vertices": 354,
+        "polygons": 352,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Plane.001",
+        "type": "MESH",
+        "location": [
+          -3.181,
+          0.7735,
+          2.3699
+        ],
+        "scale": [
+          0.5815,
+          0.5322,
+          0.5815
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.4618,
+          18.8185,
+          3.4422
+        ],
+        "vertices": 144,
+        "polygons": 142,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Plane.002",
+        "type": "MESH",
+        "location": [
+          3.1984,
+          0.7735,
+          2.3699
+        ],
+        "scale": [
+          -0.5815,
+          0.534,
+          0.5815
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          3.4618,
+          18.8829,
+          3.4422
+        ],
+        "vertices": 144,
+        "polygons": 142,
+        "materials": [
+          "Mat_Lander_Hull_Secondary"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "RCS_NosePort",
+        "type": "MESH",
+        "location": [
+          -2.8973,
+          -8.809,
+          3.3901
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Lander_Fittings"
+        ],
+        "dimensions": [
+          0.3,
+          0.2535,
+          0.415
+        ],
+        "vertices": 486,
+        "polygons": 442,
+        "materials": [
+          "Mat_Neutral_Slate_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Rust_Heavy",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Emissive_Amber",
+          "Mat_Metal_Copper_Oxide"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "reactor_core",
+        "type": "MESH",
+        "location": [
+          3.047,
+          5.342,
+          10.2101
+        ],
+        "scale": [
+          0.5273,
+          1.381,
+          0.5426
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.0546,
+          4.9185,
+          1.0112
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Door"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "reactor_core.001",
+        "type": "MESH",
+        "location": [
+          -3.0441,
+          5.342,
+          10.2101
+        ],
+        "scale": [
+          0.5273,
+          1.381,
+          0.5426
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.0546,
+          4.9185,
+          1.0112
+        ],
+        "vertices": 13,
+        "polygons": 9,
+        "materials": [
+          "Mat_Lander_Door"
+        ],
+        "modifiers": [
+          "Bevel"
+        ]
+      },
+      {
+        "name": "Ref_ExampleHull",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          22.3389,
+          11.3525,
+          29.9854
+        ],
+        "vertices": 5748,
+        "polygons": 6226,
+        "materials": [
+          "Mat_Glass_Canopy_Tinted"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "sliding_door_1",
+        "type": "MESH",
+        "location": [
+          -3.9187,
+          -4.3645,
+          4.3618
+        ],
+        "scale": [
+          0.0259,
+          0.6838,
+          1.0114
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.4604,
+          1.3676,
+          4.5039
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "sliding_door_2",
+        "type": "MESH",
+        "location": [
+          -3.7147,
+          -5.4095,
+          3.9086
+        ],
+        "scale": [
+          0.0259,
+          0.6838,
+          1.0114
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.4604,
+          1.3676,
+          4.5039
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "sliding_door_3",
+        "type": "MESH",
+        "location": [
+          -3.4531,
+          -6.7008,
+          3.4884
+        ],
+        "scale": [
+          0.0259,
+          0.6838,
+          1.0114
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.4604,
+          1.3676,
+          4.5039
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "sliding_door_4",
+        "type": "MESH",
+        "location": [
+          -3.3737,
+          -7.9511,
+          3.0355
+        ],
+        "scale": [
+          0.0259,
+          0.6838,
+          1.0114
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.4604,
+          1.3676,
+          4.5039
+        ],
+        "vertices": 36,
+        "polygons": 34,
+        "materials": [
+          "Mat_Lander_Wall_Interior"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "small_turbine",
+        "type": "MESH",
+        "location": [
+          3.7349,
+          -6.0,
+          1.9
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.46,
+          1.8,
+          1.8
+        ],
+        "vertices": 464,
+        "polygons": 354,
+        "materials": [
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Olive_Deep"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Turbine_Ducted_Stbd.001",
+        "type": "MESH",
+        "location": [
+          -6.7664,
+          5.6638,
+          4.1275
+        ],
+        "scale": [
+          -0.4793,
+          0.4793,
+          0.4793
+        ],
+        "collections": [
+          "Coll_Ref_ExampleHull"
+        ],
+        "dimensions": [
+          1.9269,
+          6.8023,
+          2.5692
+        ],
+        "vertices": 2016,
+        "polygons": 1784,
+        "materials": [
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Olive_Deep"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Turbine_Long_Stbd",
+        "type": "MESH",
+        "location": [
+          7.1044,
+          1.5,
+          4.1698
+        ],
+        "scale": [
+          0.7646,
+          0.7646,
+          0.7646
+        ],
+        "collections": [
+          "Coll_Lander_Turbines"
+        ],
+        "dimensions": [
+          1.9269,
+          6.8023,
+          2.5692
+        ],
+        "vertices": 2016,
+        "polygons": 1784,
+        "materials": [
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Olive_Deep"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Turbine_Stub_BellyPort",
+        "type": "MESH",
+        "location": [
+          -3.6,
+          -6.0,
+          1.9
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Lander_Turbines"
+        ],
+        "dimensions": [
+          1.46,
+          1.8,
+          1.8
+        ],
+        "vertices": 464,
+        "polygons": 354,
+        "materials": [
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Olive_Deep"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Emissive_Amber",
+      "Mat_Emissive_Green_CRT",
+      "Mat_Emissive_Red_Warn",
+      "Mat_Glass_Canopy_Tinted",
+      "Mat_Lander_Canopy",
+      "Mat_Lander_Deck",
+      "Mat_Lander_Deck.001",
+      "Mat_Lander_Door",
+      "Mat_Lander_Equipment",
+      "Mat_Lander_Hull_Primary",
+      "Mat_Lander_Hull_Secondary",
+      "Mat_Lander_Hull_Secondary.001",
+      "Mat_Lander_Mech_Dark",
+      "Mat_Lander_Nacelle",
+      "Mat_Lander_Wall_Interior",
+      "Mat_Metal_Chrome_Scuffed",
+      "Mat_Metal_Copper_Oxide",
+      "Mat_Metal_Rust_Heavy",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Neutral_Black_Matte",
+      "Mat_Neutral_Panel_Grey",
+      "Mat_Neutral_Slate_Dark",
+      "Mat_Paint_Hull_Bleached",
+      "Mat_Paint_Olive_Deep",
+      "Mat_Paint_Safety_Orange",
+      "Mat_Paint_White_Arctic",
+      "Mat_Plastic_Rubber_Black"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": [
+      "back_door_support.001",
+      "back_door_support.002",
+      "Cockpit_Seat_Command.001",
+      "Cockpit_Seat_Command.002",
+      "Cockpit_Seat_Command.003",
+      "Cube.001",
+      "Cube.002",
+      "Cube.003",
+      "Cube.004",
+      "Cube.005",
+      "Cube.006",
+      "Cube.007",
+      "Cube.008",
+      "Cube.009",
+      "Cube.010",
+      "Cube.011",
+      "Cube.012",
+      "Cube.013",
+      "Cube.014",
+      "Cube.015",
+      "Cube.016",
+      "Cube.017",
+      "Cube.018",
+      "Cube.019",
+      "Cube.020",
+      "Cube.021",
+      "Cube.022",
+      "Cube.023",
+      "Cube.024",
+      "Cube.025",
+      "Cube.026",
+      "Cube.027",
+      "Cube.028",
+      "Cube.029",
+      "Cube.030",
+      "Cube.031",
+      "Cube.032",
+      "Cube.033",
+      "Cube.034",
+      "Cube.035",
+      "Cube.036",
+      "Cube.037",
+      "Cube.038",
+      "Cube.039",
+      "Cube.041",
+      "Cube.042",
+      "Cube.043",
+      "Cube.044",
+      "Cube.045",
+      "Cube.046",
+      "Cube.047",
+      "Cube.048",
+      "Cube.049",
+      "Cube.051",
+      "Cube.052",
+      "Cube.053",
+      "Cube.054",
+      "Cube.055",
+      "Cube.056",
+      "Cube.057",
+      "Cube.058",
+      "Cube.059",
+      "Cube.060",
+      "Cube.061",
+      "Cube.062",
+      "Cube.063",
+      "Cube.064",
+      "Cube.066",
+      "Cube.067",
+      "Cube.068",
+      "Cube.069",
+      "Cube.070",
+      "Cube.071",
+      "Cube.072",
+      "Cube.073",
+      "Cube.074",
+      "Cube.075",
+      "Cube.076",
+      "Cube.077",
+      "Cube.078",
+      "Cube.079",
+      "Cube.080",
+      "Cube.081",
+      "Cube.082",
+      "Cube.083",
+      "Cube.084",
+      "Cube.085",
+      "Cube.086",
+      "Cube.087",
+      "Cube.089",
+      "Cube.090",
+      "Cube.091",
+      "Cube.092",
+      "Cube.093",
+      "Cube.094",
+      "Cube.095",
+      "Cube.096",
+      "Cube.097",
+      "Cube.098",
+      "Cube.099",
+      "Cube.100",
+      "Cube.101",
+      "Cube.102",
+      "Cube.103",
+      "Cube.104",
+      "Cube.105",
+      "Cube.112",
+      "Cube.118",
+      "Cube.119",
+      "Cube.120",
+      "Cube.121",
+      "Cube.122",
+      "Cube.123",
+      "Cube.124",
+      "Cube.125",
+      "Cube.129",
+      "Cube.130",
+      "Cube.134",
+      "Cube.135",
+      "Cube.136",
+      "Cylinder.001",
+      "Cylinder.002",
+      "Icosphere.001",
+      "nuclear_motor.001",
+      "Plane.001",
+      "Plane.002",
+      "reactor_core.001",
+      "Turbine_Ducted_Stbd.001"
+    ]
+  },
   "models/vehicles/ship_rv.blend": {
     "collections": [
       {
@@ -71582,6 +76370,13 @@
         "children": []
       },
       {
+        "name": "Coll_ConsolePanel_Bridge",
+        "objects": [
+          "Mesh_ConsolePanel_Bridge"
+        ],
+        "children": []
+      },
+      {
         "name": "Coll_ConsolePanel_Helm",
         "objects": [
           "Mesh_ConsolePanel_Helm"
@@ -71636,6 +76431,41 @@
           "Mat_Emissive_Amber",
           "Mat_Emissive_Red_Warn",
           "Mat_Metal_Rust_Heavy",
+          "Mat_Neutral_Black_Matte"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_ConsolePanel_Bridge",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_ConsolePanel_Bridge"
+        ],
+        "dimensions": [
+          0.822,
+          2.4905,
+          1.3315
+        ],
+        "vertices": 2010,
+        "polygons": 1887,
+        "materials": [
+          "Mat_Metal_Steel_Dark",
+          "Mat_Neutral_Panel_Grey",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Emissive_Amber",
+          "Mat_Emissive_Red_Warn",
           "Mat_Neutral_Black_Matte"
         ],
         "modifiers": []
@@ -71758,6 +76588,7 @@
       "Mat_Metal_Steel_Worn",
       "Mat_Neutral_Black_Matte",
       "Mat_Neutral_Panel_Grey",
+      "Mat_Paint_Safety_Orange",
       "Mat_Plastic_Cream_Aged"
     ],
     "linked_libraries": [
@@ -71771,6 +76602,13 @@
         "name": "Coll_CrewSeat_Bench",
         "objects": [
           "Mesh_CrewSeat_Bench"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_CrewSeat_Command",
+        "objects": [
+          "Mesh_CrewSeat_Command"
         ],
         "children": []
       },
@@ -71816,7 +76654,7 @@
         "dimensions": [
           0.54,
           1.44,
-          0.9428
+          0.71
         ],
         "vertices": 1480,
         "polygons": 1404,
@@ -71828,6 +76666,40 @@
           "Mat_Fabric_Canvas_Faded",
           "Mat_Plastic_Rubber_Black",
           "Mat_Emissive_Amber",
+          "Mat_Emissive_Green_CRT"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_CrewSeat_Command",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_CrewSeat_Command"
+        ],
+        "dimensions": [
+          1.3683,
+          0.81,
+          1.5643
+        ],
+        "vertices": 1552,
+        "polygons": 1482,
+        "materials": [
+          "Mat_Paint_White_Arctic",
+          "Mat_Paint_Safety_Orange",
+          "Mat_Neutral_Black_Matte",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Plastic_Rubber_Black",
           "Mat_Emissive_Green_CRT"
         ],
         "modifiers": []
@@ -71919,8 +76791,8 @@
           "Coll_CrewSeat_Stool"
         ],
         "dimensions": [
-          0.4286,
-          0.422,
+          0.4241,
+          0.4241,
           0.508
         ],
         "vertices": 1432,
@@ -71946,6 +76818,9 @@
       "Mat_Metal_Chrome_Scuffed",
       "Mat_Metal_Steel_Dark",
       "Mat_Metal_Steel_Worn",
+      "Mat_Neutral_Black_Matte",
+      "Mat_Paint_Safety_Orange",
+      "Mat_Paint_White_Arctic",
       "Mat_Plastic_Rubber_Black"
     ],
     "linked_libraries": [
@@ -82479,6 +87354,13 @@
           "Mesh_SteeringYoke_Twin"
         ],
         "children": []
+      },
+      {
+        "name": "Coll_SteeringYoke_Wheel",
+        "objects": [
+          "Mesh_SteeringYoke_Wheel"
+        ],
+        "children": []
       }
     ],
     "objects": [
@@ -82619,6 +87501,39 @@
           "Mat_Emissive_Amber",
           "Mat_Emissive_Red_Warn",
           "Mat_Metal_Rust_Heavy"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_SteeringYoke_Wheel",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_SteeringYoke_Wheel"
+        ],
+        "dimensions": [
+          0.9322,
+          1.0163,
+          0.3
+        ],
+        "vertices": 1052,
+        "polygons": 978,
+        "materials": [
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Chrome_Scuffed",
+          "Mat_Plastic_Rubber_Black",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Emissive_Green_CRT",
+          "Mat_Emissive_Amber"
         ],
         "modifiers": []
       }
@@ -90834,6 +95749,179 @@
       "Mat_Metal_Steel_Worn",
       "Mat_Neutral_Black_Matte",
       "Mat_Neutral_Slate_Dark"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
+  "components/mechanical/turbine.blend": {
+    "collections": [
+      {
+        "name": "Coll_Turbine_Ducted",
+        "objects": [
+          "Mesh_Turbine_Ducted"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Turbine_Long",
+        "objects": [
+          "Mesh_Turbine_Long"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Turbine_Short",
+        "objects": [
+          "Mesh_Turbine_Short"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_Turbine_Stub",
+        "objects": [
+          "Mesh_Turbine_Stub"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_Turbine_Ducted",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Turbine_Ducted"
+        ],
+        "dimensions": [
+          3.48,
+          2.58,
+          3.84
+        ],
+        "vertices": 920,
+        "polygons": 826,
+        "materials": [
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Olive_Deep"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Turbine_Long",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Turbine_Long"
+        ],
+        "dimensions": [
+          2.52,
+          8.0,
+          3.36
+        ],
+        "vertices": 1048,
+        "polygons": 910,
+        "materials": [
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Olive_Deep"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Turbine_Short",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Turbine_Short"
+        ],
+        "dimensions": [
+          2.1,
+          3.6,
+          2.74
+        ],
+        "vertices": 632,
+        "polygons": 502,
+        "materials": [
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Olive_Deep"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Turbine_Stub",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_Turbine_Stub"
+        ],
+        "dimensions": [
+          1.46,
+          1.8,
+          1.8
+        ],
+        "vertices": 464,
+        "polygons": 354,
+        "materials": [
+          "Mat_Paint_Hull_Bleached",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Emissive_Amber",
+          "Mat_Paint_Olive_Deep"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Emissive_Amber",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Paint_Hull_Bleached",
+      "Mat_Paint_Olive_Deep"
     ],
     "linked_libraries": [
       "//../../palette.blend"

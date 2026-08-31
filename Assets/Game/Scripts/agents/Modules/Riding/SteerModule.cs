@@ -173,7 +173,9 @@ namespace SpaceGame.Agents
         /// live the moment anyone climbed on: <see cref="HandleJumpAndLeap"/> calls the motor
         /// straight out, so every peer's spacebar made their own copy of the bird leap, and
         /// <see cref="EnsureMountedInputActionsEnabled"/> force-enabled Move and Jump on machines
-        /// whose player was standing somewhere else entirely. Escape threw the request in too.
+        /// whose player was standing somewhere else entirely. Standing up used to be read here too,
+        /// and has moved to <see cref="MountModule"/> — it belongs to the seat, which a passenger
+        /// chair has without having any of this.
         /// </para>
         /// <para>
         /// Actions taken on a machine that is no longer driving are handed straight back rather
@@ -198,22 +200,6 @@ namespace SpaceGame.Agents
 
             if (mountModule.MountedPlayerMovement != null)
                 mountModule.MountedPlayerMovement.ForceIdleAnimation();
-
-            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-                RequestDismount();
-        }
-
-        // Dismount has to go through the server when this mount is networked, or the rider stands up
-        // on their own screen and stays welded to the saddle on everyone else's.
-        private void RequestDismount()
-        {
-            if (mountModule.TryGetComponent(out MountNetworkSync sync))
-            {
-                sync.RequestDismount();
-                return;
-            }
-
-            mountModule.Dismount();
         }
 
         // ─────────── AgentController Tick ───────────

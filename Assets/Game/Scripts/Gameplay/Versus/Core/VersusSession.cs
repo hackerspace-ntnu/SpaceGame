@@ -49,6 +49,13 @@ namespace SpaceGame.Gameplay
             colors = teamColors == null ? System.Array.Empty<int>() : (int[])teamColors.Clone();
         }
 
+        /// <summary>
+        /// Forgets the match. Takes the runtime ship layout with it, because that static has the
+        /// same lifetime and the same hazard: one left standing is how the next match starts on the
+        /// last one's ring. Clearing it here rather than at each call site means every route out of
+        /// a match already covers it — there are several, and one of them being forgotten later is
+        /// the failure this arrangement is avoiding.
+        /// </summary>
         public static void Clear()
         {
             IsActive = false;
@@ -56,6 +63,7 @@ namespace SpaceGame.Gameplay
             TeamSize = 0;
             LocalTeam = -1;
             colors = System.Array.Empty<int>();
+            VersusShipSpawns.Clear();
         }
 
         /// <summary>

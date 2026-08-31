@@ -159,7 +159,7 @@ namespace SpaceGame.EditorTools
             for (int i = 0; i < Walls.Length; i++)
                 walls[i] = BuildWall(model.transform, parts, Walls[i]);
 
-            MakeDoubleSided(model.transform);
+            DoubleSidedMaterials.Apply(model.transform);
 
             BuildCollision(root.transform, parts);
             (Transform seat, Transform dismount, Transform cameraPivot) = BuildCockpit(root.transform, parts);
@@ -428,85 +428,6 @@ namespace SpaceGame.EditorTools
             BoxCollider box = pivot.gameObject.AddComponent<BoxCollider>();
             box.center = worldBounds.center - pivot.position;
             box.size = worldBounds.size;
-        }
-
-        // ─────────── Materials ───────────
-        // The hull is modelled as a surface, not a solid, so with back-face culling on you can stand in
-        // the cabin and see straight out through the walls, floor and ceiling. Rendering the ship
-        // double-sided fixes the interior without changing the exterior at all: front faces still draw
-        // exactly as they did, back faces simply stop being discarded.
-        //
-        // The source materials are sub-assets of the .blend, regenerated every time the artist saves
-        // it, so a cull flag written onto them would silently revert on the next import. These
-        // generated copies live beside the prefab instead and are refreshed from their source on every
-        // build, so re-running this after a re-texture still picks up the new look.
-        private const string GeneratedMaterialFolder = "Assets/Game/Art/Materials/Vehicles";
-        private const string DoubleSidedSuffix = " (DoubleSided)";
-
-        private static void MakeDoubleSided(Transform model)
-        {
-            var remap = new Dictionary<Material, Material>();
-
-            foreach (Renderer r in model.GetComponentsInChildren<Renderer>(true))
-            {
-                Material[] mats = r.sharedMaterials;
-                bool changed = false;
-
-                for (int i = 0; i < mats.Length; i++)
-                {
-                    if (mats[i] == null)
-                        continue;
-
-                    Material variant = DoubleSidedCopy(mats[i], remap);
-                    if (variant == mats[i])
-                        continue;
-
-                    mats[i] = variant;
-                    changed = true;
-                }
-
-                if (changed)
-                    r.sharedMaterials = mats;
-            }
-        }
-
-        private static Material DoubleSidedCopy(Material source, Dictionary<Material, Material> cache)
-        {
-            if (cache.TryGetValue(source, out Material cached))
-                return cached;
-
-            // Already one of ours — happens when the builder is re-run against a rebuilt prefab.
-            if (source.name.EndsWith(DoubleSidedSuffix))
-            {
-                cache[source] = source;
-                return source;
-            }
-
-            if (!AssetDatabase.IsValidFolder(GeneratedMaterialFolder))
-                AssetDatabase.CreateFolder(System.IO.Path.GetDirectoryName(GeneratedMaterialFolder),
-                                           System.IO.Path.GetFileName(GeneratedMaterialFolder));
-
-            string path = $"{GeneratedMaterialFolder}/{source.name}{DoubleSidedSuffix}.mat";
-            Material variant = AssetDatabase.LoadAssetAtPath<Material>(path);
-
-            if (variant == null)
-            {
-                variant = new Material(source) { name = source.name + DoubleSidedSuffix };
-                AssetDatabase.CreateAsset(variant, path);
-            }
-            else
-            {
-                variant.shader = source.shader;
-                variant.CopyPropertiesFromMaterial(source);
-            }
-
-            if (variant.HasProperty("_Cull"))
-                variant.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
-            variant.doubleSidedGI = true;
-            EditorUtility.SetDirty(variant);
-
-            cache[source] = variant;
-            return variant;
         }
 
         // ─────────── Cargo bay fittings ───────────

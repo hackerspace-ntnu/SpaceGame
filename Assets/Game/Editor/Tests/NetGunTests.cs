@@ -38,6 +38,13 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private const float LatticeShearLimit = 1.30f;
 
+        /// <summary>
+        /// The two solver stiffnesses, pinned here for the same reason the shear limit is: authoring
+        /// a softer net on the prefab must not quietly move the bar these tests measure against.
+        /// </summary>
+        private const float ShearStiffness = 0.30f;
+        private const float BendStiffness = 0.016f;
+
         /// <summary>Rest spacing of a fully open net, from the geometry these tests hand Deploy.</summary>
         private const float OpenSpacing = 2f * HalfWidth / (NodesPerSide - 1);
 
@@ -147,10 +154,23 @@ namespace SpaceGame.EditorTools
             return ticks;
         }
 
-        private static SnareLattice NewLattice()
+        private static SnareLattice NewLattice() =>
+            NewLattice(ShearStiffness, BendStiffness);
+
+        /// <summary>
+        /// A lattice with the two solver stiffnesses named outright.
+        ///
+        /// Used where a test has to isolate ONE constraint family — the diagonals cannot be shown
+        /// to be one-sided while bending is also pushing the same nodes around, and a test that
+        /// leaves both on is measuring their sum rather than either.
+        /// </summary>
+        private static SnareLattice NewLattice(float shearStiffness, float bendStiffness)
         {
             var lattice = new SnareLattice();
-            lattice.ConfigureForTest(NodesPerSide, rimMassMultiplier: 6f, shearLimit: LatticeShearLimit);
+            lattice.ConfigureForTest(NodesPerSide, rimMassMultiplier: 6f,
+                                     shearLimit: LatticeShearLimit,
+                                     shearStiffness: shearStiffness,
+                                     bendStiffness: bendStiffness);
             return lattice;
         }
 
@@ -292,7 +312,12 @@ namespace SpaceGame.EditorTools
             // A net conforms to any shape because its cells are free to CLOSE. A two-sided diagonal
             // constraint holds the cell square, which turns the net into a rigid sheet that tents
             // over a captive instead of wrapping it. So the diagonal is a maximum, not a length.
-            SnareLattice lattice = NewLattice();
+            //
+            // Bending off, because folding a corner right over is a sharp crease as well as a
+            // closed cell, and bending is entitled to push back on a crease. With both on, this
+            // measures their sum and cannot say which one moved the node — a two-sided diagonal
+            // would hide behind the bending, which is exactly the failure it exists to catch.
+            SnareLattice lattice = NewLattice(ShearStiffness, bendStiffness: 0f);
             lattice.Deploy(Vector3.zero, Vector3.up, HalfWidth);
             Unfurl(lattice);
 
@@ -308,6 +333,163 @@ namespace SpaceGame.EditorTools
 
             Assert.That(openedBy, Is.LessThanOrEqualTo(OpeningTolerance),
                 "A slack diagonal pushed the cell back open — the net is behaving as a sheet.");
+        }
+
+        // ── SnareLattice: bending ────────────────────────────────────────────
+
+        [Test]
+        public void BendingMovesTheNetsShapeWithoutMovingTheNet()
+        {
+            // Bending used to be a Laplacian smoothing pass: each interior node was dragged toward
+            // the average of its four neighbours and NOTHING was applied to those neighbours in
+            // return. A correction with nothing on the other end of it is a force from nowhere, so
+            // a creased net accelerated under its own bending — and because the pass ran after the
+            // constraint solve rather than inside it, every substep also ended off-constraint for
+            // the next one to yank back. Ninety times a second, that is the shivering.
+            //
+            // Isolated as bending ON against bending OFF from an IDENTICAL creased shape, over a
+            // SINGLE substep. Everything else in that substep — gravity, damping, face drag, the
+            // strands, the diagonals — then acts on identical input, and of those only face drag is
+            // capable of moving the net at all (it is a real external force, and a shape-dependent
+            // one). Give the two lattices time to drift apart and face drag starts telling them
+            // apart too, which is a comparison that proves nothing about bending.
+            SnareLattice loose = OpenLattice(bendStiffness: 0f);
+            SnareLattice stiff = OpenLattice(BendStiffness);
+
+            // ONE shape, imposed on both. Opening a net is itself eighty-odd substeps of solving,
+            // so two lattices that differ in bend stiffness have already drifted apart by the time
+            // they finish unfurling — reading the crease off each of them separately compares two
+            // different nets and reports the drift as the answer.
+            Vector3[] crease = CreasedShape(loose);
+            Impose(loose, crease);
+            Impose(stiff, crease);
+
+            Assert.That(Vector3.Distance(MassCentre(loose), MassCentre(stiff)), Is.LessThan(1e-5f),
+                "the two lattices did not start identical, so the comparison below would be " +
+                "measuring the setup rather than the solver.");
+
+            loose.Step(Substep);
+            stiff.Step(Substep);
+
+            // Bending has to have actually DONE something, or a stiffness of zero passes the real
+            // assertion below by doing nothing at all — which is the one way this test could go
+            // quietly green while proving nothing.
+            float shaped = Vector3.Distance(loose.NodeAt(1, 4), stiff.NodeAt(1, 4));
+            Assert.That(shaped, Is.GreaterThan(1e-4f),
+                "bending changed no node by more than " + shaped.ToString("F6") + " m, so this " +
+                "test is not exercising it.");
+
+            float drift = Vector3.Distance(MassCentre(loose), MassCentre(stiff));
+
+            Assert.That(drift, Is.LessThan(1e-3f),
+                "bending moved the net's centre of mass " + drift.ToString("F5") + " m while " +
+                "changing its shape by " + shaped.ToString("F4") + " m. A bending correction has " +
+                "to be shared with the nodes it bends against; one applied to the middle node " +
+                "alone is a force from nowhere and the net accelerates under its own creases.");
+        }
+
+        /// <summary>A net at its open size, with the given bend stiffness and nothing done to it yet.</summary>
+        private static SnareLattice OpenLattice(float bendStiffness)
+        {
+            SnareLattice lattice = NewLattice(ShearStiffness, bendStiffness);
+            lattice.Deploy(Vector3.up * 20f, Vector3.forward, HalfWidth);
+            Unfurl(lattice);
+            return lattice;
+        }
+
+        /// <summary>That net folded into the sharpest zigzag bending can see, as bare positions.</summary>
+        private static Vector3[] CreasedShape(SnareLattice lattice)
+        {
+            var shape = new Vector3[NodesPerSide * NodesPerSide];
+
+            for (int row = 0; row < NodesPerSide; row++)
+            for (int col = 0; col < NodesPerSide; col++)
+            {
+                float sign = (row & 1) == 0 ? 1f : -1f;
+                shape[row * NodesPerSide + col] = lattice.NodeAt(row, col) + Vector3.up * (sign * 0.25f);
+            }
+
+            return shape;
+        }
+
+        /// <summary>
+        /// Put a lattice into an exact shape, at rest.
+        ///
+        /// SetNodeForTest writes prev as well as pos, so this also clears whatever velocity the
+        /// unfurl left behind — which the comparison needs just as much as the positions, since a
+        /// Verlet node's velocity IS the gap between the two.
+        /// </summary>
+        private static void Impose(SnareLattice lattice, Vector3[] shape)
+        {
+            for (int row = 0; row < NodesPerSide; row++)
+            for (int col = 0; col < NodesPerSide; col++)
+                lattice.SetNodeForTest(row, col, shape[row * NodesPerSide + col]);
+        }
+
+        /// <summary>
+        /// The centre of MASS, not the average position.
+        ///
+        /// The hem is six times heavier than the mesh, so the plain average of the node positions
+        /// is not the quantity an internal force has to leave alone — a perfectly well-behaved
+        /// constraint moves it every time it corrects a rim node against a mesh one.
+        /// </summary>
+        private static Vector3 MassCentre(SnareLattice lattice)
+        {
+            Vector3 weighted = Vector3.zero;
+            float total = 0f;
+
+            for (int row = 0; row < NodesPerSide; row++)
+            for (int col = 0; col < NodesPerSide; col++)
+            {
+                float mass = 1f / lattice.InverseMassAt(row, col);
+                weighted += lattice.NodeAt(row, col) * mass;
+                total += mass;
+            }
+
+            return weighted / total;
+        }
+
+        [Test]
+        public void ASettledNetGoesQuiet()
+        {
+            // What "jumpy" is, measured. A solver whose substep ends off-constraint never reaches
+            // equilibrium: the next substep starts by repairing the damage, which is itself a
+            // displacement, so the net twitches for as long as it exists. Every rule the cord obeys
+            // is now a constraint the same solve relaxes, so a net with nothing acting on it but a
+            // floor it is already resting on has somewhere to come to rest.
+            SnareLattice lattice = NewLattice();
+            lattice.Deploy(Vector3.up * 4f, Vector3.up, HalfWidth);
+
+            // Through SnareDrape, and not through a clamp written locally for the convenience of
+            // the test. A clamp that only moves the position is precisely the defect PlaceOnSurface
+            // exists to fix, so a test that rolls its own measures the bug rather than the code.
+            var drape = new SnareDrape();
+            var nothing = System.Array.Empty<SnareDrape.Capsule>();
+
+            // Collision from the first substep. Unfurling first is a second of unopposed free fall,
+            // which at this gravity puts the whole net seven metres under the floor and makes the
+            // first contact a teleport rather than a landing.
+            for (int i = 0; i < DrapeSteps; i++)
+            {
+                lattice.Step(Substep);
+                drape.Resolve(lattice, nothing, GroundHeight);
+                lattice.GripGround(GroundHeight);
+            }
+
+            Vector3[] before = (Vector3[])lattice.Positions.Clone();
+
+            lattice.Step(Substep);
+            drape.Resolve(lattice, nothing, GroundHeight);
+            lattice.GripGround(GroundHeight);
+
+            float worst = 0f;
+            for (int i = 0; i < before.Length; i++)
+                worst = Mathf.Max(worst, Vector3.Distance(before[i], lattice.Positions[i]));
+
+            Assert.That(worst, Is.LessThan(0.01f),
+                "a node moved " + worst.ToString("F4") + " m in one substep of a net that has been " +
+                "lying still for " + (DrapeSteps * Substep).ToString("F1") + " seconds. It is not " +
+                "settling, it is vibrating.");
         }
 
         // ── SnareLattice: the weighted hem ───────────────────────────────────
@@ -342,7 +524,8 @@ namespace SpaceGame.EditorTools
         private static float MeshYieldAfterLiftingRim(float rimMassMultiplier)
         {
             var lattice = new SnareLattice();
-            lattice.ConfigureForTest(NodesPerSide, rimMassMultiplier, LatticeShearLimit);
+            lattice.ConfigureForTest(NodesPerSide, rimMassMultiplier, LatticeShearLimit,
+                                     ShearStiffness, BendStiffness);
             lattice.Deploy(Vector3.zero, Vector3.up, HalfWidth);
             Unfurl(lattice);
 
@@ -731,6 +914,202 @@ namespace SpaceGame.EditorTools
             Assert.That(rb.linearVelocity.magnitude, Is.EqualTo(9f).Within(1e-3f),
                 $"The net took {9f - rb.linearVelocity.magnitude:F2} m/s off a player who was " +
                 "already running back toward it.");
+        }
+
+        // ── SnareReceiver: how many nets one gun may have out ────────────────
+
+        [Test]
+        public void AFourthNetTearsTheOldestOne()
+        {
+            // The gun's three charges do NOT bound this on their own, which is the whole reason the
+            // cap exists separately. A charge comes back on a timer while a net lasts up to its
+            // full hold, so firing three, waiting for the recharge and firing again leaves four
+            // lattices in the world being solved at ninety substeps a second — and nothing stops
+            // that going to five.
+            GameObject shooter = NewObject("Shooter");
+            SnareReceiver receiver = SnareReceiver.Ensure(shooter);
+
+            var nets = new SnareCatch[4];
+            for (int i = 0; i < nets.Length; i++)
+            {
+                nets[i] = FireNet(new Vector3(i * 20f, 1.6f, 0f), Vector3.forward, shooter: null);
+                receiver.Track(netId: i, nets[i], catchableLayers: ~0, captureHeight: 2.5f);
+            }
+
+            Assert.AreEqual(3, receiver.LiveNetCount,
+                "the shooter is watching " + receiver.LiveNetCount + " nets. A fourth shot has to " +
+                "cost the oldest net, not add to the pile.");
+
+            Assert.IsTrue(nets[0].IsTearing,
+                "the fourth shot did not tear the FIRST net. Evicting any other one makes which " +
+                "net dies depend on dictionary order, which is not the same on two machines.");
+
+            for (int i = 1; i < nets.Length; i++)
+                Assert.IsFalse(nets[i].IsTearing,
+                    "net " + i + " was torn as well. Only the oldest should go.");
+        }
+
+        [Test]
+        public void RefiringTheSameNetIdDoesNotCostANet()
+        {
+            // Track is called from Present, which runs on every machine — and a machine that hears
+            // about the same shot twice must not answer by tearing a net. Same idempotence rule the
+            // capture and tear handlers hold to.
+            GameObject shooter = NewObject("Shooter");
+            SnareReceiver receiver = SnareReceiver.Ensure(shooter);
+
+            SnareCatch net = FireNet(new Vector3(0f, 1.6f, 0f), Vector3.forward, shooter: null);
+
+            for (int i = 0; i < 5; i++)
+                receiver.Track(netId: 7, net, catchableLayers: ~0, captureHeight: 2.5f);
+
+            Assert.AreEqual(1, receiver.LiveNetCount,
+                "the same net was counted " + receiver.LiveNetCount + " times.");
+            Assert.IsFalse(net.IsTearing, "the net tore itself out of its own re-registration.");
+        }
+
+        // ── SnareDrape: landing on a body ────────────────────────────────────
+
+        [Test]
+        public void ANetDoesNotBounceOffWhatItLandsOn()
+        {
+            // The defect this exists to stop, and it is not subtle once it is named. A contact used
+            // to move the node's POSITION out of the capsule and leave prev where it was — but
+            // velocity in a Verlet lattice IS the gap between those two, so every substep of
+            // contact handed the node its own penetration depth as outward speed. A net coming down
+            // on an animal took that off every node at once and jumped clear of it.
+            //
+            // Measured as the net's own upward speed, because that is the shape the failure has:
+            // not one node jittering, the whole sheet leaving.
+            SnareDrape.Capsule body = StandingBody();
+
+            SnareLattice lattice = NewLattice();
+            lattice.Deploy(new Vector3(0f, 2.4f, 0f), Vector3.up, HalfWidth);
+
+            // No Unfurl first, for the reason the drape test gives: a second of unopposed free fall
+            // carries the net through the captive AND the floor, and the first contact after that
+            // is a four-metre teleport back up, which measures as a colossal upward speed and has
+            // nothing to do with bouncing.
+            var drape = new SnareDrape();
+            var captives = new[] { body };
+
+            float worstRise = 0f;
+
+            for (int i = 0; i < DrapeSteps; i++)
+            {
+                Vector3 before = lattice.Centre();
+
+                lattice.Step(Substep);
+                drape.Resolve(lattice, captives, GroundHeight);
+                lattice.GripGround(GroundHeight);
+
+                worstRise = Mathf.Max(worstRise, (lattice.Centre().y - before.y) / Substep);
+            }
+
+            Assert.That(worstRise, Is.LessThan(0.5f),
+                "the net drove itself upward at " + worstRise.ToString("F2") + " m/s at some point " +
+                "while landing on a body. Nothing pushes a net up: it is being kicked off by its " +
+                "own contact response.");
+        }
+
+        [Test]
+        public void TheWeightedHemFallsBelowTheMesh()
+        {
+            // What "hold the sides down" is, measured. rimMassMultiplier alone cannot do it —
+            // gravity is an acceleration, so a heavier hem falls at exactly the rate the mesh does
+            // and its weight shows up only where the two fight over a strand. hemWeight is the lead
+            // line: a real pull, which is what drives the skirt down past a body instead of leaving
+            // the net tented on top of it.
+            SnareDrape.Capsule body = StandingBody();
+
+            SnareLattice lattice = NewLattice();
+            lattice.Deploy(new Vector3(0f, 2.4f, 0f), Vector3.up, HalfWidth);
+
+            var drape = new SnareDrape();
+            var captives = new[] { body };
+
+            for (int i = 0; i < DrapeSteps; i++)
+            {
+                lattice.Step(Substep);
+                drape.Resolve(lattice, captives, GroundHeight);
+                lattice.GripGround(GroundHeight);
+            }
+
+            float hem = 0f;
+            int hemNodes = 0;
+            float mesh = 0f;
+            int meshNodes = 0;
+
+            for (int row = 0; row < NodesPerSide; row++)
+            for (int col = 0; col < NodesPerSide; col++)
+            {
+                bool rim = row == 0 || col == 0 || row == NodesPerSide - 1 || col == NodesPerSide - 1;
+
+                if (rim) { hem += lattice.NodeAt(row, col).y; hemNodes++; }
+                else { mesh += lattice.NodeAt(row, col).y; meshNodes++; }
+            }
+
+            hem /= hemNodes;
+            mesh /= meshNodes;
+
+            Assert.That(hem, Is.LessThan(mesh),
+                "the hem settled at " + hem.ToString("F2") + " m against a mesh at " +
+                mesh.ToString("F2") + " m. The skirt is not being pulled down past the body, so " +
+                "the net is a sheet lying on top of one.");
+        }
+
+        [Test]
+        public void ANetStaysOnTheBodyItLandedOn()
+        {
+            // The other half of the weighted hem: a skirt that drives down hard and has nothing to
+            // grip with just drags the whole net off onto the floor, and the animal is left
+            // standing free in the middle of a ring of cord. Friction against the body is what
+            // turns a heavy hem from a reason to slide off into a reason to close underneath.
+            int held = NodesAgainstTheBody(gripping: true);
+            int slipped = NodesAgainstTheBody(gripping: false);
+
+            Assert.That(held, Is.GreaterThan(slipped),
+                "the net left " + held + " nodes on the body with friction and " + slipped +
+                " without it. The cord is sliding off rather than holding.");
+        }
+
+        /// <summary>A standing, player-sized captive.</summary>
+        private static SnareDrape.Capsule StandingBody() => new SnareDrape.Capsule
+        {
+            Bottom = new Vector3(0f, 0.4f, 0f),
+            Top = new Vector3(0f, 1.5f, 0f),
+            Radius = 0.4f,
+        };
+
+        /// <summary>How many nodes end up resting against a body, with the body's friction on or off.</summary>
+        private static int NodesAgainstTheBody(bool gripping)
+        {
+            SnareDrape.Capsule body = StandingBody();
+
+            SnareLattice lattice = NewLattice();
+            lattice.ConfigureGripForTest(bodyGrip: gripping ? 0.6f : 0f);
+            lattice.Deploy(new Vector3(0f, 2.4f, 0f), Vector3.up, HalfWidth);
+
+            var drape = new SnareDrape();
+            var captives = new[] { body };
+
+            for (int i = 0; i < DrapeSteps; i++)
+            {
+                lattice.Step(Substep);
+                drape.Resolve(lattice, captives, GroundHeight);
+                lattice.GripGround(GroundHeight);
+            }
+
+            int touching = 0;
+
+            foreach (Vector3 node in lattice.Positions)
+            {
+                float radial = new Vector2(node.x - body.Bottom.x, node.z - body.Bottom.z).magnitude;
+
+                if (node.y > body.Bottom.y && radial < body.Radius + 0.3f) touching++;
+            }
+
+            return touching;
         }
 
         // ── SnareMesh ────────────────────────────────────────────────────────

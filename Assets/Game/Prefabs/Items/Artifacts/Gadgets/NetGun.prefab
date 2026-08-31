@@ -249,11 +249,15 @@ MonoBehaviour:
     simulationStep: 0.011111111
     rimMassMultiplier: 6
     shearLimit: 1.3
-    bendResistance: 0.02
+    shearStiffness: 0.3
+    bendStiffness: 0.016
     faceDrag: 0.25
     bloomSpeed: 7
     bundleFraction: 0.08
     unfurlSeconds: 0.28
+    groundGrip: 0.45
+    bodyGrip: 0.6
+    hemWeight: 3
   struggle:
     holdSeconds: 30
     shuffleRadius: 1.4

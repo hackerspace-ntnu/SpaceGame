@@ -251,6 +251,18 @@ PrefabInstance:
       propertyPath: m_Positions.Array.data[9].z
       value: 740.8909
       objectReference: {fileID: 0}
+    - target: {fileID: 5954512983334281058, guid: ba3d88fc2801a4cd59d2f5150a88d73f, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 1813498239
+      objectReference: {fileID: 0}
+    - target: {fileID: 5954512983334281058, guid: ba3d88fc2801a4cd59d2f5150a88d73f, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5954512983334281058, guid: ba3d88fc2801a4cd59d2f5150a88d73f, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 653813366
+      objectReference: {fileID: 0}
     - target: {fileID: 6172268832632108974, guid: ba3d88fc2801a4cd59d2f5150a88d73f, type: 3}
       propertyPath: authored
       value: 1

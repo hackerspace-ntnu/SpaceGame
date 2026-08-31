@@ -69,6 +69,39 @@ namespace SpaceGame.Core
             return netObj != null ? netObj.gameObject : self.transform.root.gameObject;
         }
 
+        /// <summary>
+        /// Which of the <typeparamref name="T"/>s on this entity <paramref name="self"/> is — the
+        /// number a message puts in <see cref="NetArg.A"/> so the other ones can drop it.
+        ///
+        /// <para>
+        /// A channel belongs to the ENTITY, so an entity carrying several of the same component —
+        /// a ship with four chairs, a hull with two doors, a craft with a wheel and a winch — has
+        /// them all listening to the same ids. Without a number in the message, one press acts on
+        /// every one of them. ArticulatedPartInteraction, VehicleStation and NetLatch each learned
+        /// that separately; this is the shared answer.
+        /// </para>
+        /// <para>
+        /// Positional, and that is a deliberate trade: every machine in a session runs the same
+        /// prefab out of the same build, so the order they enumerate is identical and the numbers
+        /// agree without anything being authored or serialized. It does NOT survive reordering a
+        /// prefab's children between builds — fine, because these numbers never outlive a session,
+        /// but worth knowing before somebody rearranges a hierarchy and wonders why the wrong door
+        /// opens. Resolve it on first use rather than in Awake, so a component added at runtime —
+        /// and one built by an EditMode test, where Awake never runs — still numbers itself.
+        /// </para>
+        /// </summary>
+        internal static int IndexOf<T>(T self) where T : Component
+        {
+            GameObject root = RootOf(self);
+            if (root == null) return 0;
+
+            var siblings = root.GetComponentsInChildren<T>(true);
+            for (int i = 0; i < siblings.Length; i++)
+                if (ReferenceEquals(siblings[i], self)) return i;
+
+            return 0;
+        }
+
         public void Register(ushort id, NetHandler handler)
         {
             if (handler == null) return;

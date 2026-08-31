@@ -23,10 +23,10 @@ namespace SpaceGame.Core
         /// </para>
         /// <para>
         /// The creature is MOVED to where the shot comes down rather than aimed at, because the
-        /// aim is not this test's to choose: it comes out of the muzzle on the end of an
-        /// animated arm. Asking the gun where its next shot would land and putting the quarry
-        /// there tests the same thing a player walking into range tests, and it does not depend
-        /// on the hold pose happening to point the barrel anywhere in particular.
+        /// aim is not this test's to choose: it is wherever the host's camera happens to be
+        /// pointing when the run reaches this step. Asking the gun where its next shot would
+        /// land and putting the quarry there tests the same thing a player walking into range
+        /// tests, without the test having to drive a camera.
         /// </para>
         /// </summary>
         private IEnumerator FireNetGunAtQuarry()
@@ -80,8 +80,8 @@ namespace SpaceGame.Core
             equipment.UseHeldItem();
             Report("HOST_NETGUN_FIRED", true);
 
-            // The net flies for MaxFlightSeconds and the capture pass runs on the first frame
-            // after that, so this is the flight plus room for the drape to settle.
+            // The net flies until it meets the quarry, and the capture pass then runs every frame
+            // for its settle window, so this is the flight plus room for the drape to take hold.
             yield return WaitAtMost(() => AutotestProbes.CountNets(out int held) > 0 && held > 0, 10f);
 
             int nets = AutotestProbes.CountNets(out int captives);
@@ -110,11 +110,16 @@ namespace SpaceGame.Core
         /// <summary>
         /// Where this gun's next shot would come down.
         ///
-        /// Asked of the gun itself — <c>OnRequestUse</c> is what fills in the muzzle and the
-        /// aim, and it is the only thing that knows where the barrel is on the end of an
-        /// animated arm. The seed it rolls here is not the one the real shot rolls, and that
-        /// does not matter: the seed scatters the aim by a fraction of a degree, and the net is
-        /// six metres across.
+        /// Asked of the gun itself — <c>OnRequestUse</c> is what pairs the muzzle it leaves from
+        /// with the camera direction it flies along, and going around it would mean this test
+        /// keeping its own copy of that pairing to drift out of date. The seed it rolls here is
+        /// not the one the real shot rolls, and that does not matter: the seed scatters the aim
+        /// by a fraction of a degree, and the net is six metres across.
+        ///
+        /// The full flight time is the RANGE, so this is where the shot comes down having hit
+        /// nothing. A real shot stops on whatever it meets first, which in this build is the
+        /// quarry standing at this point — the chunk scenes with the terrain in them are left
+        /// out of it.
         /// </summary>
         private static Vector3 PredictedLanding(NetGunArtifact gun)
         {

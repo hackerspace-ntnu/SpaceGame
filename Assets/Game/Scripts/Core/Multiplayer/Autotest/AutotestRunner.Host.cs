@@ -73,6 +73,8 @@ namespace SpaceGame.Core
             Report("HOST_LEASHES", SpaceGame.Items.Leash.All.Count);
             Report("HOST_PORTALS", AutotestProbes.CountPortals());
 
+            yield return FitShipPartsAsHost();
+
             yield return FireNetGunAtQuarry();
 
             // The client reads its own net count after the host has fired, and cannot do that

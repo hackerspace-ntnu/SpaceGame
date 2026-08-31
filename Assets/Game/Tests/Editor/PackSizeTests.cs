@@ -25,6 +25,17 @@ namespace SpaceGame.Tests
     public class PackSizeTests
     {
         private const string Gadgets = "Assets/Game/Prefabs/Items/Artifacts/Gadgets/";
+        private const string ShipParts = "Assets/Game/Prefabs/Items/ShipParts/";
+
+        /// <summary>
+        /// Why every hull module diverges, in one place rather than seven near-identical
+        /// sentences. They are the only items in the game whose world size is not a size chosen
+        /// for a player at all: a nuclear motor is 11 m because that is how long the motor on the
+        /// roof is, and the whole point is that the thing in the sand IS the thing that bolts on.
+        /// </summary>
+        private const string ModuleWhy =
+            "a hull module is authored at true ship scale, so neither its world size nor its " +
+            "hand size is a number the pack could use; 0.80 m is the rack it goes on";
 
         /// <summary>Metres of slop when matching an authored value.</summary>
         private const float Slack = 1e-3f;
@@ -58,6 +69,16 @@ namespace SpaceGame.Tests
             new(Gadgets + "Leash.prefab", 0.55f, 0.27f,
                 "the smallest thing the player owns; its hand size exists only because this rig's " +
                 "hand is 1.7x a human's, and none of that reason survives it being put down"),
+
+            // The seven salvageable hull modules. All 0.80 m on the mat, which is the rack face
+            // they occupy; their hand sizes are ItemScaleLadder brackets.
+            new(ShipParts + "AntiGravity.prefab",  1.40f, 0.80f, ModuleWhy),
+            new(ShipParts + "NuclearMotor.prefab", 1.40f, 0.80f, ModuleWhy),
+            new(ShipParts + "LongTurbine.prefab",  1.40f, 0.80f, ModuleWhy),
+            new(ShipParts + "ReactorCore.prefab",  1.25f, 0.80f, ModuleWhy),
+            new(ShipParts + "Gun.prefab",          1.25f, 0.80f, ModuleWhy),
+            new(ShipParts + "SmallMotor.prefab",   1.00f, 0.80f, ModuleWhy),
+            new(ShipParts + "AirIntake.prefab",    1.00f, 0.80f, ModuleWhy),
         };
 
         [SetUp]

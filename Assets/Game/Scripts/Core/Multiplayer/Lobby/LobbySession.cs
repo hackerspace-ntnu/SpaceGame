@@ -52,6 +52,16 @@ namespace SpaceGame.Core.Lobbies
             }
         }
 
+        /// <summary>
+        /// The session if there already is one, and null rather than a new one if there is not.
+        ///
+        /// <see cref="Instance"/> creates on touch, which is right for the lobby screens that are
+        /// about to use it and wrong for anything merely ASKING whether a lobby is in play —
+        /// singleplayer would answer the question by conjuring a DontDestroyOnLoad session that
+        /// outlives every scene for the rest of the run.
+        /// </summary>
+        public static LobbySession Existing => instance;
+
         public LobbyState State { get; private set; } = LobbyState.Idle;
 
         /// <summary>The lobby this peer is in, or null. Refreshed by the poll.</summary>
@@ -69,6 +79,36 @@ namespace SpaceGame.Core.Lobbies
         /// </summary>
         public int LocalSlot =>
             Current != null && IsSignedIn ? LobbyRoster.SlotOf(Current, LocalPlayerId) : -1;
+
+        /// <summary>
+        /// Which team this peer chose on the roster, or -1 when this is not a versus lobby.
+        ///
+        /// <para>
+        /// The bridge between the lobby and the match. Teams are stored per lobby player and read
+        /// back in lobby order, so the only way to find our own is by our own slot — which is why
+        /// this lives here, beside <see cref="LocalSlot"/>, rather than in <see cref="LobbyTeams"/>
+        /// with the rest of the team readers: it needs the authentication service that those are
+        /// deliberately kept away from.
+        /// </para>
+        ///
+        /// <para>
+        /// Survives the load into the world, because this object does. That is what lets a peer
+        /// still answer for itself long after the lobby screen has gone.
+        /// </para>
+        /// </summary>
+        public int LocalTeam
+        {
+            get
+            {
+                if (Current == null || !LobbyTeams.IsVersus(Current)) return -1;
+
+                int slot = LocalSlot;
+                if (slot < 0) return -1;
+
+                int[] teams = LobbyTeams.Teams(Current);
+                return slot < teams.Length ? teams[slot] : -1;
+            }
+        }
 
         /// <summary>Raised whenever the roster, the code or the state moved. The view redraws from this.</summary>
         public event Action Changed;

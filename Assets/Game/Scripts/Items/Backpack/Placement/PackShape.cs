@@ -143,7 +143,9 @@ namespace SpaceGame.Items
         /// </para>
         /// <para>
         /// The tolerance is a cell rounding, not a fudge: an item measuring exactly two cells
-        /// across must come out two cells, and <c>0.18f / 0.09f</c> in float is 2.0000002.
+        /// across must come out two cells, and two cells divided by one cell in float is
+        /// 2.0000002. It is expressed in CELLS rather than metres, which is why the 2026-09-01
+        /// enlargement left it alone — the ratio it guards is the same at any cell size.
         /// </para>
         /// </summary>
         public static PackShape ForFootprint(Vector2 footprint)

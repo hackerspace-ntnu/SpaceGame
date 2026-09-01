@@ -73,10 +73,10 @@ namespace SpaceGame.Items
                  "scale untouched. A hand tool is roughly 0.2-0.4; a rifle 0.9-1.2.")]
         [SerializeField] private float holdSize;
 
-        [Tooltip("Longest-axis size of the item in metres, once stowed on the pack. 0 means " +
-                 "'the same size as in the hand'. Set it only where an item that is sized for the " +
-                 "feel of holding it reads as absurd lying on the mat — a coiled leash is not as " +
-                 "long as a rifle.")]
+        [Tooltip("Longest-axis size of the item in metres, once stowed on the pack, BEFORE the " +
+                 "pack's own PackScale.Factor is applied to it. 0 means 'the same size as in the " +
+                 "hand'. Set it only where an item that is sized for the feel of holding it reads " +
+                 "as absurd lying on the mat — a coiled leash is not as long as a rifle.")]
         [SerializeField] private float packSize;
 
         [Tooltip("Measure the sizes above against this subtree only, instead of the whole prefab. " +
@@ -110,6 +110,15 @@ namespace SpaceGame.Items
         /// <see cref="HoldSize"/> where nobody authored a separate one.
         ///
         /// <para>
+        /// <b>This is not the number of metres the item occupies on the mat.</b> The pack is drawn
+        /// at <c>PackScale.Factor</c> since 2026-09-01 — cell, faces, rig model and gear together —
+        /// and <c>ItemFootprint.Measure</c> is the one place that multiplies it in. Author this
+        /// field at the item's honest size next to the hand, exactly as before, and let the pack's
+        /// own scale do the rest; typing a pre-multiplied number here is how an item ends up 2.25x
+        /// on the mat with nothing to say why.
+        /// </para>
+        ///
+        /// <para>
         /// The two are allowed to disagree because they answer different questions.
         /// <see cref="HoldSize"/> is tuned for the sensation of holding the thing against a hand
         /// that is roughly 1.7x a human's, so a real leash's 0.2 m reads as nothing
@@ -119,11 +128,17 @@ namespace SpaceGame.Items
         /// wrong for the items where they diverge.
         /// </para>
         /// <para>
-        /// The cost is real and is why this is opt-in per item rather than a global pack scale:
-        /// the pack sells itself on items lying there at true size, and FEEL-0007's own caution is
-        /// to keep the simulated space internally consistent. An item that is visibly a different
-        /// length in the pack than in the hand spends some of that. Author it where the absurdity
-        /// is worse than the inconsistency, and leave it at 0 everywhere else.
+        /// The cost is real and is why this stays opt-in per item: the pack sells itself on items
+        /// lying there at true size, and FEEL-0007's own caution is to keep the simulated space
+        /// internally consistent. An item whose proportion to its neighbours is different in the
+        /// pack than in the hand spends some of that. Author it where the absurdity is worse than
+        /// the inconsistency, and leave it at 0 everywhere else.
+        /// </para>
+        /// <para>
+        /// <c>PackScale.Factor</c> is a different thing and costs nothing here: it multiplies every
+        /// item and the rig alike, so no item's proportion to any other changes. This field is
+        /// where one item is allowed to disagree with the rest; that one is where all of them agree
+        /// to be drawn bigger.
         /// </para>
         /// </summary>
         public float PackSize => packSize > 0f ? packSize : HoldSize;

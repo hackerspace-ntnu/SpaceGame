@@ -100,8 +100,11 @@ namespace SpaceGame.Items
 
             t.SetParent(anchor, false);
 
-            // The one line the convention buys: authored at 1 m cubed, so the fit IS the scale.
-            t.localScale = fit / surfaceScale;
+            // The one line the convention buys: authored at 1 m cubed, so the fit IS the scale —
+            // times the face's display scale, because a holder has to stay over the item it holds
+            // and the item was drawn at that same enlargement (see BackpackItemVisual). The
+            // position below needs nothing: ToWorld already speaks the drawn frame.
+            t.localScale = fit * surface.DisplayScale / surfaceScale;
 
             // Only about the surface normal, matching the item it covers — the item keeps its own
             // up and turns by the yaw the player chose, and a holder that did anything else would

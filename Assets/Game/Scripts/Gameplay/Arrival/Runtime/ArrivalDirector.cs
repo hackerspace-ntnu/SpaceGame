@@ -152,6 +152,20 @@ namespace SpaceGame.Gameplay.Arrival
         /// <summary>True once the launch gate is counting down, so it is only ever started once.</summary>
         private bool launching;
 
+        /// <summary>
+        /// How long a descent takes. The authority for it, which is why <c>ArrivalCutscene</c> is
+        /// told rather than authoring its own.
+        ///
+        /// <para>
+        /// Readable on every machine, not just the server: this component is a plain
+        /// <c>MonoBehaviour</c> that exists everywhere and only ACTS on the server, so the number is
+        /// present on a client that will never fly anything. <c>EntryBurn</c> reads it there — a
+        /// hull's own presentation has to know how long the arc it is riding takes, and a second
+        /// copy of the figure serialised on the ship would drift the moment this one was retuned.
+        /// </para>
+        /// </summary>
+        public float DescentDuration => descentDuration;
+
         /// <summary>True once the crash has finished, or once a save said it already had.</summary>
         public bool HasArrived { get; private set; }
 
@@ -195,11 +209,24 @@ namespace SpaceGame.Gameplay.Arrival
         // Subscribed on EVERY machine, which is the point. The descent is flown by the server, so a
         // presentation started from that coroutine plays for the host and for nobody else — the
         // clients ride the same hull down with their controls live and no letterbox. SeatedRider
-        // raises this wherever it seats the local player, which is the only moment that is true on
+        // raises these wherever it seats the local player, which is the only moment that is true on
         // exactly the machines that need it.
-        private void OnEnable() => SeatedRider.LocalPlayerSeated += PlayLocalCutscene;
+        //
+        // Two events rather than one, because they answer different questions. Sitting down is
+        // per-machine and happens whenever THAT machine finishes streaming: it puts the screen to
+        // black and nothing else. The launch is one server decision announced to everybody at once,
+        // and it is what actually starts the timed beats — which is what makes them start together.
+        private void OnEnable()
+        {
+            SeatedRider.LocalPlayerSeated += PlayLocalCutscene;
+            SeatedRider.LocalCrewLaunched += LaunchLocalCutscene;
+        }
 
-        private void OnDisable() => SeatedRider.LocalPlayerSeated -= PlayLocalCutscene;
+        private void OnDisable()
+        {
+            SeatedRider.LocalPlayerSeated -= PlayLocalCutscene;
+            SeatedRider.LocalCrewLaunched -= LaunchLocalCutscene;
+        }
 
         private void OnDestroy()
         {
@@ -462,6 +489,13 @@ namespace SpaceGame.Gameplay.Arrival
 
                 flight.Launched = true;
                 descending++;
+
+                // Announced BEFORE the descent starts moving the hull, on the same frame the gate
+                // opens. This is the instant every machine's presentation is timed from, and it is
+                // the only thing that makes the fade to black land on the impact for a client as
+                // well as for the host.
+                flight.Seating.AnnounceLaunch();
+
                 StartCoroutine(FlyDescent(flight));
             }
 
@@ -684,8 +718,24 @@ namespace SpaceGame.Gameplay.Arrival
             // is measured as itself.
             float bellyDrop = ShipHull.BellyDrop(ship);
 
-            if (!ShipGrounding.TryMeasureLanding(ship.transform.position, landingYaw, ship,
-                                                 probeHeight, bellyDrop, out float airGap))
+            // Collision first, heightmap only as the fallback — the opposite order to everything
+            // that PLANNED this landing, and the whole point of this method. See
+            // ShipGrounding.TryResolveCollisionGround: the plan is arithmetic over the heightmap,
+            // so a landing checked against the heightmap is a plan checking itself and agrees with
+            // itself even when the ship is left in the sky. The reach covers the descent's own
+            // start altitude, because a hull that finished its arc a kilometre up is precisely the
+            // one that has to be found and put down.
+            bool measured = ShipGrounding.TryMeasureLandingAgainstCollision(
+                ship.transform.position, landingYaw, ship, path.StartAltitude + probeHeight,
+                bellyDrop, out float airGap);
+
+            if (measured) WarnIfHeightmapDisagrees(ship, landingYaw, bellyDrop, airGap);
+
+            // The heightmap keeps the scenes physics cannot answer for: the arena and the test
+            // scenes have colliders but an interior may have none under the hull at all, and a
+            // measurement is still better than leaving the wreck on a guess.
+            if (!measured && !ShipGrounding.TryMeasureLanding(ship.transform.position, landingYaw,
+                                                              ship, probeHeight, bellyDrop, out airGap))
             {
                 Debug.LogWarning($"[Arrival] '{ship.name}' came down where no ground could be " +
                                  "measured, so it is left on the pose the descent ended at.", ship);
@@ -698,10 +748,44 @@ namespace SpaceGame.Gameplay.Arrival
             corrected.y -= airGap - wreckGroundClearance;
             ship.transform.position = corrected;
 
+            // Physics has moved, so anything measuring the hull on this same frame — the hover
+            // motor's ground sensor the moment RestoreHull wakes it — reads the pose it was set
+            // down in rather than the one it finished its descent in.
+            Physics.SyncTransforms();
+
             Debug.LogWarning($"[Arrival] '{ship.name}' finished its descent {airGap:F2} m off the " +
-                             $"ground — the terrain under the impact site is not what it was when " +
+                             $"ground — the ground under the impact site is not what it was when " +
                              "the arc was planned. Set down at y=" + corrected.y.ToString("F2") + ".",
                              ship);
+        }
+
+        /// <summary>
+        /// Says so when the terrain heightmap and the colliders disagree about where the ground is.
+        ///
+        /// <para>
+        /// Diagnostic, and deliberately permanent. The landing itself is now decided by collision,
+        /// so a disagreement no longer strands the ship — but it means the world has two answers for
+        /// where its own surface is, and every other consumer of
+        /// <c>ShipGrounding.TryResolveGround</c> is still believing the other one: the arc this ship
+        /// just flew, the versus spawner's landing pose, the spawn points. A silent correction here
+        /// would fix the ship and hide that.
+        /// </para>
+        /// </summary>
+        private void WarnIfHeightmapDisagrees(GameObject ship, float landingYaw, float bellyDrop,
+                                              float collisionGap)
+        {
+            if (!ShipGrounding.TryMeasureLanding(ship.transform.position, landingYaw, ship,
+                                                 probeHeight, bellyDrop, out float heightmapGap))
+                return;
+
+            float disagreement = Mathf.Abs(collisionGap - heightmapGap);
+            if (disagreement <= landingTolerance) return;
+
+            Debug.LogError($"[Arrival] The heightmap and the colliders disagree by " +
+                           $"{disagreement:F2} m about the ground under '{ship.name}'. Collision " +
+                           $"says the hull is {collisionGap:F2} m off it, the heightmap says " +
+                           $"{heightmapGap:F2} m. The descent was planned against the heightmap, so " +
+                           "every arrival height in this world is out by that much.", ship);
         }
 
         /// <summary>
@@ -730,6 +814,11 @@ namespace SpaceGame.Gameplay.Arrival
         /// camera, and the shared parts of the arrival — the hull's motion and who is in which seat
         /// — already travel on their own channels.
         /// </para>
+        /// <para>
+        /// Sitting down only takes the controls away and puts the screen to black. The cutscene
+        /// then holds there until <see cref="LaunchLocalCutscene"/>, because the crew are seated
+        /// seconds apart and the descent is not.
+        /// </para>
         /// </summary>
         private void PlayLocalCutscene()
         {
@@ -749,6 +838,23 @@ namespace SpaceGame.Gameplay.Arrival
 
             cutscene.Configure(descentDuration, settleHold + settleDuration);
             CutsceneDirector.Instance.Play(cutscene);
+        }
+
+        /// <summary>
+        /// Releases the held presentation, on the one announcement every machine gets.
+        ///
+        /// <para>
+        /// <paramref name="secondsAgo"/> is zero for everyone who was aboard when the formation
+        /// launched, and the age of the launch for somebody seated into a descent already under
+        /// way. Passed through rather than resolved here because the machine that knows is the one
+        /// holding the ship's replicated launch instant, and that is <see cref="SeatedRider"/>.
+        /// </para>
+        /// </summary>
+        private void LaunchLocalCutscene(float secondsAgo)
+        {
+            if (cutscene == null) return;
+
+            cutscene.Launch(secondsAgo);
         }
 
         /// <summary>What the hull was doing for itself before the arrival took the wheel.</summary>

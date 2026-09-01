@@ -50,7 +50,7 @@ namespace SpaceGame.Presentation.Lobbies
 
         public static LobbyUI Open(MainMenuUI owner, LobbyRoute route)
         {
-            var existing = FindFirstObjectByType<LobbyUI>();
+            var existing = Existing<LobbyUI>();
             if (existing != null) return existing;
 
             var ui = new GameObject(nameof(LobbyUI)).AddComponent<LobbyUI>();

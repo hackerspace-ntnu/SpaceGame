@@ -8,6 +8,7 @@ paths:
   - Assets/Game/Scripts/World/Streaming/NavMesh/Editor/
   - Assets/Game/Editor/Support/SerializedFields.cs
 symptoms:
+  - "a collider a builder added is on the prefab but nothing ever hits it"
   - "my hand edits to a prefab or the main menu disappeared after someone ran a builder"
   - "a builder logs success but nothing actually changed on disk"
   - "which menu item rebuilds this prefab, item, creature or vehicle"
@@ -15,7 +16,7 @@ symptoms:
   - "scenes are full of missing prefab instances a GUID grep cannot find"
   - "a freshly built prefab works in the editor but not on clients (GlobalObjectIdHash 0)"
 reads_with: [Multiplayer, Persistence, Artifacts, TerrainGeneration]
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 # Editor Tooling
 
@@ -153,6 +154,7 @@ Regenerate the streamed world: `Tools ▸ World Streaming ▸ Chunk World` → `
 - **Hand edits to generated prefabs and to builder-owned `MainMenu.unity` subtrees are wiped on the next run.** Change the builder — this has bitten `PlayerShip.prefab` specifically. A renamed `[SerializeField]` also breaks a builder silently unless it goes through [SerializedFields](Assets/Game/Editor/Support/SerializedFields.cs), which warns.
 - Materials that are sub-assets of an FBX are regenerated on reimport, so flags written onto them revert; that is why [DoubleSidedMaterials](Assets/Game/Editor/Support/DoubleSidedMaterials.cs) writes standalone copies beside the prefabs and refreshes them every build.
 - Hardcoded paths everywhere: `WorldChunkerEditor`'s chunk size (500×500), output folders and config path are deliberately not exposed — changing them orphans every existing chunk. `PlayerShipBuilder` and `ShipPartItemBuilder` write into `Scenes/Tests/Ferdinand_Test_world.unity` by name. `WorldNavMeshBaker` iterates `WorldStreamingConfig.chunks`, never the chunk folder, which holds far more scenes.
+- **Never parent a primitive collider to an imported mesh's own transform.** An FBX child arrives non-uniformly scaled *and* rotated — `Mesh_CanopyDome` on the lander is (233, 409, 59) with 66° about X — and a `BoxCollider` under both is **sheared**, which Unity's physics cannot represent. It fails in the worst possible way: the component is there, `Collider.bounds` reports exactly the box you asked for, and every raycast passes straight through it, so the symptom you were fixing is unchanged and the fix looks applied. Measure the bounds off the renderer and put the collider on the **root** (unrotated, unscaled), the way `PlayerShipBuilder.BlockReachThroughCanopy` and the chairs' seat volumes do.
 - `Prefabs/agents/…` (lowercase `a`) is the real PlayerShip path; casing drift in asset paths matters here.
 - Deleted prefabs leave `PrefabInstance` blocks in scene YAML that a component-GUID grep can never find — use `Tools ▸ SpaceGame ▸ Cleanup ▸ Report Missing Prefab Instances`.
 - A stuck "address already in use" UDP port survives [PlayModeTransportTeardown](Assets/Game/Editor/Multiplayer/PlayModeTransportTeardown.cs); restarting the Editor is the only known cure.

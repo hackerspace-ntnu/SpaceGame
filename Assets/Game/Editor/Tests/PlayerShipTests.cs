@@ -26,12 +26,62 @@ namespace SpaceGame.EditorTools
         private const float BodyHeight = 2f;
         private const float StandingSkin = 0.02f;
 
-        // The interior is full of trigger volumes that are not walls — the passenger seats' click
+        // The interior is full of trigger volumes that are not walls — the four chairs' click
         // surfaces reach out over the aisle on purpose. Unity's queries count triggers by default,
         // and a probe that does would read a seat as a pillar. SpawnClearance.HasRoomToStand, which
         // is what actually decides whether a body fits somewhere in play, ignores them for exactly
         // this reason; these probes ask the same question and must ask it the same way.
         private const QueryTriggerInteraction NotTriggers = QueryTriggerInteraction.Ignore;
+
+        // How far above the deck the gear wall's headroom probe looks, and the least air the
+        // fitting must leave under whatever it finds. The reach is longer than the tallest part of
+        // this interior so the probe cannot report "nothing overhead" by falling short; the gap is
+        // a design decision rather than a safety margin — the wall is meant to read as running
+        // most of the way up and stopping, so it must not arrive at the overhead by a hair either.
+        private const float OverheadProbeReach = 8f;
+        private const float MinOverheadGap = 0.25f;
+
+        // The look-ray a player boards with is cast from the eye, about a metre above the body's own
+        // origin — the same offset the seat markers are pushed down by. Its REACH is read off the
+        // player rather than written here: Interactor's own default is 5 m and the player prefab
+        // overrides it to 20, so a probe carrying the default would sweep a quarter of the distance
+        // a player actually reaches and call the ship safe.
+        private const string PlayerPrefabPath =
+            "Assets/Game/Prefabs/Characters/Player/PlayerCharacter.prefab";
+        private const float EyeAbovePivot = 1f;
+
+        private static float? reach;
+
+        private static float InteractReach
+        {
+            get
+            {
+                if (reach != null) return reach.Value;
+
+                GameObject player = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
+                Assert.IsNotNull(player, $"No player prefab at {PlayerPrefabPath}.");
+                reach = new SerializedObject(player.GetComponent<Interactor>())
+                    .FindProperty("_castDistance").floatValue;
+                return reach.Value;
+            }
+        }
+
+        // Approach directions per boarding volume for the sweep below, at each of three distances
+        // across the player's reach. Both matter: an exposure can open up close (through a gap that
+        // the hull hides from further out) or only at range (the eye four metres over the dome and
+        // the eye eighteen both look straight down through the glass).
+        private const int Approaches = 256;
+        private static readonly float[] Ranges = { 0.2f, 0.6f, 0.95f };
+
+        // Metres of hem that still count as none. A face is authored as a cell COUNT times
+        // PackGrid.Cell, but by the time it is read back off a prefab it is the DECIMAL that count
+        // was serialized as — and 30 x 0.135f and 4.05f are not obliged to be the same float. So
+        // "fills edge to edge" is zero to within a rounding step, not bitwise zero, and it must not
+        // be asserted with Assert.AreEqual on a Vector2: that comparison is bitwise, and its
+        // failure message prints both sides through Vector2.ToString, which is "F2" — a 1e-8 m hem
+        // fails it and reports "(0.00, 0.00)" against "(0.00, 0.00)". Nothing under a tenth of a
+        // millimetre is a hem; a hem that has cost the face a column is half a 135 mm cell.
+        private const float NoHem = 1e-4f;
 
         private GameObject ship;
 
@@ -60,8 +110,13 @@ namespace SpaceGame.EditorTools
         private IEnumerable<Collider> Ours(IEnumerable<Collider> hits) =>
             hits.Where(h => h.transform.IsChildOf(ship.transform));
 
+        // RaycastHit.transform is NOT the collider's transform: where the collider has a
+        // Rigidbody above it, Unity hands back the RIGIDBODY's. This ship carries exactly one, on
+        // its root, so every hit anywhere on the hull reports the root — which happens to be
+        // harmless for "is this ours?" and is silently wrong for any question about WHICH part was
+        // hit. Every probe here asks through hit.collider for that reason.
         private IEnumerable<RaycastHit> Ours(IEnumerable<RaycastHit> hits) =>
-            hits.Where(h => h.transform.IsChildOf(ship.transform));
+            hits.Where(h => h.collider.transform.IsChildOf(ship.transform));
 
         /// <summary>
         /// Highest ground anywhere under a standing body's footprint, or null if it is over
@@ -93,6 +148,93 @@ namespace SpaceGame.EditorTools
             collider is MeshCollider mesh && mesh.sharedMesh != null
                 ? collider.name + " (" + mesh.sharedMesh.name + ")"
                 : collider.name;
+
+        /// <summary>
+        /// The four chairs' click surfaces: the trigger volumes that carry a boarding control of
+        /// their own. Found the way <see cref="Interactor.ResolveAlongRay"/> finds them rather than
+        /// by name, so a fifth one added later is covered without touching these tests.
+        /// </summary>
+        private Collider[] BoardingVolumes() =>
+            ship.GetComponentsInChildren<Collider>(true)
+                .Where(c => c.isTrigger && c.GetComponent<IInteractable>() != null)
+                .ToArray();
+
+        /// <summary>
+        /// Whether an eye here, looking there, would be offered a seat: <see cref="Interactor"/>
+        /// resolves along its ray, and what comes back is a way aboard.
+        /// </summary>
+        /// <remarks>
+        /// Deliberately not <c>CanInteract()</c>, which is the test <see cref="Interactor"/> itself
+        /// applies. That one is gated on <c>MountModule.mountCooldown</c> measured against
+        /// <c>Time.time</c> — and edit-mode time never advances past zero, so every mount in the
+        /// project answers "not yet" here and a probe asking it can only ever say no. What is
+        /// actually being asked is whether the *ray* arrives at a way aboard, so the standing
+        /// configuration is the right gate: a station is one by construction, and a module is one
+        /// when it is directly interactable.
+        /// </remarks>
+        private bool Boards(Vector3 eye, Vector3 aim, out IInteractable control)
+        {
+            RaycastHit[] hits = Ours(Physics.RaycastAll(new Ray(eye, aim), InteractReach)).ToArray();
+            if (!Interactor.ResolveAlongRay(hits, hits.Length, out control, out _))
+                return false;
+
+            return control is MountStation
+                   || (control is MountModule module && module.MountableByDirectInteraction);
+        }
+
+        /// <summary>Where a boarding control puts a body down — and so where it is boarded from.</summary>
+        private static Transform DismountPointOf(Collider volume)
+        {
+            Object control = volume.GetComponent<MountStation>() is MountStation station
+                ? new SerializedObject(station).FindProperty("mount").objectReferenceValue
+                : volume.GetComponent<MountModule>();
+            return new SerializedObject(control).FindProperty("dismountPoint")
+                       .objectReferenceValue as Transform;
+        }
+
+        /// <summary>
+        /// Whether an eye is standing in open air outside the hull, rather than in a room inside it.
+        /// </summary>
+        /// <remarks>
+        /// Two ways to be inside, because this hull is enclosed two ways. A body in the cabin has
+        /// solid hull between it and the sky, which an outward ray finds. A body in the cockpit has
+        /// only glass, which carries no collider at all — so the ray finds nothing and would call
+        /// the pilot's seat open air. What encloses the cockpit is the `InteractionBlocker` over the
+        /// canopy, and standing inside that volume is standing inside the ship.
+        ///
+        /// Both replace asking whether the ray crossed the canopy's bounds, which is a box that
+        /// overhangs the cabin: it labelled a passenger standing behind their own chair, at deck
+        /// height inside the ship, as somebody reaching in through the glass.
+        /// </remarks>
+        private bool OutsideTheHull(Vector3 eye)
+        {
+            foreach (InteractionBlocker glazing in ship.GetComponentsInChildren<InteractionBlocker>(true))
+                if (glazing.GetComponent<Collider>().bounds.Contains(eye))
+                    return false;
+
+            Bounds hull = default;
+            bool first = true;
+            foreach (Renderer renderer in ship.GetComponentsInChildren<Renderer>(true))
+            {
+                if (first) { hull = renderer.bounds; first = false; }
+                else hull.Encapsulate(renderer.bounds);
+            }
+
+            Vector3 outward = eye - hull.center;
+            if (outward.sqrMagnitude < 0.001f) return false;
+
+            return !Ours(Physics.RaycastAll(eye, outward.normalized, hull.size.magnitude,
+                                            ~0, NotTriggers)).Any();
+        }
+
+        /// <summary>Evenly spread directions over the whole sphere, for looking at a seat from everywhere.</summary>
+        private static Vector3 Approach(int index, int total)
+        {
+            float y = 1f - index / (float)(total - 1) * 2f;
+            float radius = Mathf.Sqrt(Mathf.Max(0f, 1f - y * y));
+            float theta = Mathf.PI * (3f - Mathf.Sqrt(5f)) * index;
+            return new Vector3(Mathf.Cos(theta) * radius, y, Mathf.Sin(theta) * radius);
+        }
 
         private ArticulatedPart[] BayDoors() =>
             ship.GetComponentsInChildren<ArticulatedPart>(true)
@@ -144,13 +286,15 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual(11, prefab.GetComponentsInChildren<ArticulatedPartInteraction>(true).Length,
                 "Every sliding leaf is a switch for the side assembly; the back door and every "
                 + "bay-door panel are switches for the aft one.");
-            // Four chairs: the front-left one drives the ship's root MountModule (the one the
-            // SteerModule is bound to — the controls), the other three are passenger seats with
-            // their own modules that no SteerModule references (sit, no helm).
+            // Four chairs, four boarding points, and only one of them the controls. The
+            // front-left chair carries a MountStation into the ship's root MountModule (the one
+            // the SteerModule is bound to); the other three are passenger seats with their own
+            // modules that no SteerModule references (sit, no helm).
             Assert.AreEqual(4, prefab.GetComponentsInChildren<SpaceGame.Agents.MountModule>(true).Length,
                 "Root pilot module + three passenger seat modules.");
-            Assert.IsEmpty(prefab.GetComponentsInChildren<MountStation>(true),
-                "The ship is boarded with MountModule alone — no station redirects.");
+            Assert.AreEqual(1, prefab.GetComponentsInChildren<MountStation>(true).Length,
+                "One station, on the pilot's chair. The root module is not directly interactable, "
+                + "so this is the only way to the controls.");
             Assert.AreEqual(1, prefab.GetComponents<SpaceGame.Agents.SteerModule>().Length,
                 "Only the root module grants control.");
             Assert.AreEqual(3, prefab.GetComponentsInChildren<Transform>(true)
@@ -164,16 +308,15 @@ namespace SpaceGame.EditorTools
         /// Look at a chair, get that chair — and only the pilot's gets the controls.
         /// </summary>
         /// <remarks>
-        /// The ship is boarded the way every other mount is: the root MountModule is directly
-        /// interactable, and Interactor resolves an IInteractable by walking UP from the collider
-        /// it hit. That is what makes the pilot's chair the helm without anything sitting on it —
-        /// and it is also what would quietly make the OTHER three chairs the helm. A passenger
-        /// seat that loses its trigger volume keeps its module, its network sync and its save
-        /// wiring; the only symptom is that sitting down flies the ship, and nothing logs.
+        /// Every chair is boarded from a trigger volume of its own, because Interactor resolves a
+        /// solid collider by walking UP the hierarchy and a trigger is the one thing it will not
+        /// resolve upward. The pilot's carries a MountStation into the hull's own module; the
+        /// other three carry passenger modules. Lose one of those volumes and the chair keeps its
+        /// module, its network sync and its save wiring — the only symptom is that the chair stops
+        /// offering anything, and nothing logs.
         ///
         /// So this asserts through the real resolver rather than by counting components: exactly
-        /// one chair answers with the module SteerModule is bound to, and the rest each answer
-        /// with a seat of their own.
+        /// one chair answers with the controls, and the rest each answer with a seat of their own.
         /// </remarks>
         [Test]
         public void PlayerShip_EachChairOffersItsOwnSeat()
@@ -182,7 +325,7 @@ namespace SpaceGame.EditorTools
             MountModule helm = ship.GetComponent<MountModule>();
             Assert.IsNotNull(helm, "The root module is the helm — SteerModule is bound to it.");
 
-            var answered = new List<(string chair, MountModule seat)>();
+            var answered = new List<(string chair, IInteractable control)>();
             foreach (Transform chair in ship.GetComponentsInChildren<Transform>(true)
                          .Where(t => t.name.StartsWith("Cockpit_Seat_Command")))
             {
@@ -197,18 +340,147 @@ namespace SpaceGame.EditorTools
                 Assert.IsTrue(
                     Interactor.ResolveAlongRay(hits, hits.Length, out IInteractable found, out _),
                     $"Nothing interactable under a body looking at '{chair.name}'.");
-                Assert.IsInstanceOf<MountModule>(found,
-                    $"'{chair.name}' answers with {found.GetType().Name}, not a seat.");
-                answered.Add((chair.name, (MountModule)found));
+                answered.Add((chair.name, found));
             }
 
             Assert.AreEqual(4, answered.Count, "Four command chairs.");
 
-            string[] helmChairs = answered.Where(a => a.seat == helm).Select(a => a.chair).ToArray();
+            string[] helmChairs = answered.Where(a => a.control is MountStation)
+                                          .Select(a => a.chair).ToArray();
             Assert.AreEqual(1, helmChairs.Length,
                 "Exactly one chair may take the controls, but these do: " + string.Join(", ", helmChairs));
-            Assert.AreEqual(3, answered.Where(a => a.seat != helm).Select(a => a.seat).Distinct().Count(),
+
+            // The station has to name the module the SteerModule drives, not merely be a station:
+            // wired to a passenger seat it would still board somebody, into a chair with no
+            // controls, and the ship would simply never answer its stick.
+            SerializedProperty wired = new SerializedObject(
+                answered.First(a => a.control is MountStation).control as MountStation)
+                .FindProperty("mount");
+            Assert.AreSame(helm, wired.objectReferenceValue,
+                "The helm station does not board the module SteerModule is bound to.");
+
+            MountModule[] seats = answered.Select(a => a.control).OfType<MountModule>().ToArray();
+            Assert.AreEqual(3, seats.Distinct().Count(),
                 "The other three chairs each seat their occupant in a seat of their own.");
+            CollectionAssert.DoesNotContain(seats, helm,
+                "A passenger chair answers with the hull's own module, so sitting down flies the ship.");
+        }
+
+        /// <summary>
+        /// Nothing on the hull may board the helm — only the pilot's chair may.
+        /// </summary>
+        /// <remarks>
+        /// The reported symptom: pressing E anywhere on the hull put the presser in the pilot's
+        /// chair. The root MountModule was directly interactable, and Interactor resolves a solid
+        /// collider by walking UP the hierarchy until it finds an IInteractable — so all 140-odd
+        /// wall, floor and hull slabs, the boarding stair, the salvage sockets and the three
+        /// passenger chairs' own meshes answered with the controls.
+        ///
+        /// Asserted over every collider rather than by casting a handful of rays, because the
+        /// failure is a property of the hierarchy and not of any one viewpoint: this repeats
+        /// exactly what ResolveAlongRay does with a solid hit, for every solid collider the ship
+        /// has. It fails the moment mountableByDirectInteraction comes back on.
+        /// </remarks>
+        [Test]
+        public void PlayerShip_NoHullColliderBoardsTheHelm()
+        {
+            InstantiateShip();
+
+            foreach (Collider collider in ship.GetComponentsInChildren<Collider>(true))
+            {
+                // A trigger answers only when it holds the interactable itself, and the four
+                // chairs' volumes are exactly that — they are the boarding points this is the
+                // complement of.
+                if (collider.isTrigger) continue;
+
+                IInteractable resolved = collider.GetComponent<IInteractable>()
+                                         ?? collider.GetComponentInParent<IInteractable>();
+
+                Assert.IsNotInstanceOf<MountStation>(resolved,
+                    $"'{collider.name}' is solid and carries the helm station, so it boards the "
+                    + "helm from wherever it is hit.");
+
+                if (resolved is MountModule reached)
+                    Assert.IsFalse(reached.MountableByDirectInteraction,
+                        $"Looking at '{collider.name}' offers a seat in '{reached.name}' — "
+                        + "pressing E on the hull puts the presser in the pilot's chair.");
+            }
+        }
+
+        /// <summary>
+        /// Nobody standing outside the hull is offered a chair inside it.
+        /// </summary>
+        /// <remarks>
+        /// The complement of the test above, and the half it cannot see. That one asks what a SOLID
+        /// collider resolves to; this one asks what is in the way at all — and over the cockpit,
+        /// nothing was. The canopy dome deliberately carries no collider (a convex hull of it fills
+        /// the cockpit and would brain a three-metre pilot, see PlayerShipBuilder), and a trigger is
+        /// transparent to <see cref="Interactor.ResolveAlongRay"/> unless it holds the interactable
+        /// itself — which the four chairs' volumes do. So the chairs stood in open sight of anyone
+        /// outside the glass, out to the player's whole 20 m reach: this sweep found 282 exterior
+        /// approaches that boarded one, the plainest being an eye four metres straight above the
+        /// dome with nothing but air and glass in between. That is the "pressing E on the ship
+        /// mounts me" report; the fix is the canopy's `InteractionBlocker` (see PlayerShipBuilder).
+        ///
+        /// Swept rather than spot-checked because the hole is a shape, not a viewpoint: it is
+        /// wherever the hull's collision has a gap over something boardable. And phrased as "from
+        /// outside the hull" rather than "through the canopy", because the canopy is only where
+        /// this ship's gap happens to be — the next one will be somewhere else.
+        /// </remarks>
+        [Test]
+        public void PlayerShip_NoChairIsBoardedFromOutsideTheHull()
+        {
+            InstantiateShip();
+
+            var reached = new List<string>();
+            foreach (Collider volume in BoardingVolumes())
+            {
+                Vector3 centre = volume.bounds.center;
+                foreach (float range in Ranges)
+                for (int i = 0; i < Approaches; i++)
+                {
+                    Vector3 eye = centre + Approach(i, Approaches) * (InteractReach * range);
+                    if (!OutsideTheHull(eye)) continue;
+
+                    if (Boards(eye, (centre - eye).normalized, out IInteractable control))
+                        reached.Add($"'{((Component)control).name}' from {eye:F1}");
+                }
+            }
+
+            Assert.IsEmpty(reached,
+                $"{reached.Count} approaches from outside the hull are offered a seat inside it. "
+                + "You cannot reach through a wall, and you cannot reach through glass either: "
+                + string.Join(", ", reached.Take(4)));
+        }
+
+        /// <summary>
+        /// Every chair is still boarded from the deck it puts you down on.
+        /// </summary>
+        /// <remarks>
+        /// The other half of the test above, and the reason it cannot simply be answered by making
+        /// the cockpit opaque: whatever stops the ray from outside must not stop it from inside, or
+        /// a pilot who stands up can never sit back down. A control's own dismount point is the one
+        /// non-arbitrary place to ask from — it is where that control just put a body.
+        /// </remarks>
+        [Test]
+        public void PlayerShip_EveryChairIsBoardedFromWhereItPutsYouDown()
+        {
+            InstantiateShip();
+
+            var unreachable = new List<string>();
+            foreach (Collider volume in BoardingVolumes())
+            {
+                Transform dismount = DismountPointOf(volume);
+                Assert.IsNotNull(dismount, $"'{volume.name}' has no dismount point to stand on.");
+
+                Vector3 eye = dismount.position + Vector3.up * EyeAbovePivot;
+                if (!Boards(eye, (volume.bounds.center - eye).normalized, out _))
+                    unreachable.Add($"{volume.name} from {dismount.position:F1}");
+            }
+
+            Assert.IsEmpty(unreachable,
+                "A body standing where these controls put it down is offered nothing: "
+                + string.Join(", ", unreachable));
         }
 
         /// <summary>
@@ -424,8 +696,31 @@ namespace SpaceGame.EditorTools
             PackSurface face = walls[0].GetComponentInChildren<PackSurface>(true);
             Assert.IsNotNull(face, "The wall has no placement face, so nothing can be put on it.");
             Assert.AreEqual(PackSurfaceId.WallGrid, face.Id);
-            Assert.AreEqual(5.40f, face.Size.x, 0.001f);
-            Assert.AreEqual(2.70f, face.Size.y, 0.001f);
+
+            // In CELLS, which is the quantity InventoryWallBuilder authors — the metres are a
+            // consequence of PackGrid.Cell, so a face asserted in metres has to be re-typed here
+            // every time the pack is rescaled and says nothing about whether the grid still lines
+            // up with the model. 30 x 22 is the grid the lander's aft room takes; the zero hem is
+            // what keeps the model's five bay dividers on the lattice gear is dropped onto.
+            Assert.AreEqual(new Vector2Int(30, 22), PackGrid.CellsOn(face.Size),
+                            $"The gear wall's face is {face.Size.x:0.00} x {face.Size.y:0.00} m, " +
+                            "which is no longer 30 x 22 cells.");
+            Vector2 hem = PackGrid.Hem(face.Size);
+            Assert.AreEqual(0f, Mathf.Max(hem.x, hem.y), NoHem,
+                            $"The gear wall's face is inset by {hem.x * 1000f:0.###} x " +
+                            $"{hem.y * 1000f:0.###} mm of hem, so it is not a whole number of " +
+                            "cells and its grid no longer meets the model's bay dividers.");
+
+            // Drawn larger than it reasons. The face above is the LOGICAL frame and does not move
+            // with this; what this catches is the wall prefab having been built before the display
+            // scale existed, or built from a model that was not re-scaled with it — in which case
+            // the board and the lattice the player drops gear onto are 6% out of step, which looks
+            // like a modelling mistake and is not one. InventoryWallBuilder stamps it.
+            Assert.AreEqual(PackScale.WallDisplay, face.DisplayScale, 1e-4f,
+                            $"The gear wall is drawn at x{face.DisplayScale:0.000} and " +
+                            $"PackScale.WallDisplay is {PackScale.WallDisplay:0.000}. Re-run " +
+                            "Tools/SpaceGame/Items/Build Inventory Wall Prefab, then rebuild the " +
+                            "ship.");
         }
 
         /// <summary>
@@ -511,7 +806,8 @@ namespace SpaceGame.EditorTools
             PackSurface face = wall.GetComponentInChildren<PackSurface>(true);
 
             // The grid's bottom edge, then down to the deck. GRID_Z0 in inventory_wall.py is
-            // 0.36 m, so a wall sitting on the floor puts its bottom row that far up.
+            // 0.36 m in the modelling frame, so at inventory_wall_scale's TOTAL (1.5 x 1.06) a
+            // wall sitting on the floor puts its bottom row 0.572 m up.
             Vector3 bottom = face.ToWorld(new Vector2(face.Size.x * 0.5f, 0f), 0.2f);
 
             Assert.IsTrue(
@@ -519,10 +815,194 @@ namespace SpaceGame.EditorTools
                 "Nothing under the inventory wall at all — it is not standing on a deck.");
 
             float clearance = bottom.y - hit.point.y;
-            Assert.That(clearance, Is.InRange(0.2f, 0.65f),
+            Assert.That(clearance, Is.InRange(0.35f, 0.75f),
                         $"The wall's bottom row sits {clearance:0.00} m over the floor under it; " +
-                        "the model puts it 0.36 m up, so anything far from that means the fitting " +
-                        "is floating or buried.");
+                        "the model puts it 0.572 m up, so anything far from that means the " +
+                        "fitting is floating or buried.");
+        }
+
+        /// <summary>
+        /// The fitting stops short of the overhead — and the gap is deliberate, not a coincidence.
+        ///
+        /// <para>
+        /// This is the check the wall did not have. Every other probe here asks about the FACE,
+        /// and the face was still perfectly clear on 2026-09-01 when the 1.5x enlargement turned
+        /// the fitting into 8.46 x 4.95 m and stood it in a room that offers 4.37 m over the
+        /// fitting's footprint: the wall went through the roof and nothing said a word.
+        /// </para>
+        /// <para>
+        /// Measured the way the room was measured — headroom over the fitting's own footprint,
+        /// read from the DECK upward, against the ship's baked collision, and compared with the
+        /// fitting's height. Reading it from the top of the fitting instead would share its input
+        /// with the thing it checks: a wall already through the roof starts its rays above the
+        /// roof and finds nothing wrong.
+        /// </para>
+        /// <para>
+        /// As built the fitting is 4.102 m under 4.384 m of rib, so the gap is 0.282 m — thin, and
+        /// deliberately so: it is what caps <see cref="PackScale.WallDisplay"/> at 1.06 when 1.2
+        /// was what was wanted. A change that eats this gap has to re-cut the grid, not move the
+        /// fitting. <c>WallInventoryTests.TheWallIsDrawnNoLargerThanTheAftRoomAllows</c> fails on
+        /// the constant alone, before a rebuild makes this one able to speak.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void PlayerShip_InventoryWallStopsShortOfTheOverhead()
+        {
+            InstantiateShip();
+
+            WallInventory wall = Wall();
+            Bounds fitting = WallFitting(wall);
+
+            // Sampled across the whole footprint rather than up its middle: the overhead here is a
+            // run of ribs with real gaps between them, and one ray up the centre finds a gap.
+            const int Samples = 7;
+
+            float headroom = float.MaxValue;
+            string culprit = null;
+
+            for (int i = 0; i < Samples; i++)
+            for (int j = 0; j < Samples; j++)
+            {
+                var from = new Vector3(
+                    Mathf.Lerp(fitting.min.x, fitting.max.x, (i + 0.5f) / Samples),
+                    fitting.min.y + StandingSkin,
+                    Mathf.Lerp(fitting.min.z, fitting.max.z, (j + 0.5f) / Samples));
+
+                foreach (RaycastHit hit in Ours(Physics.RaycastAll(from, Vector3.up,
+                                                                   OverheadProbeReach, ~0,
+                                                                   NotTriggers)))
+                {
+                    // hit.COLLIDER, never hit.transform: the hull's one Rigidbody is on the ship's
+                    // root, so hit.transform is that root for every hit on the ship and this test
+                    // is the thing it breaks. Asked that way the wall never matched itself, the
+                    // probe measured the fitting against its own grid collider 0.54 m up, and the
+                    // check that exists to keep the wall out of the roof answered with the wall.
+                    if (hit.collider.transform.IsChildOf(wall.transform)) continue;
+                    if (hit.distance >= headroom) continue;
+
+                    headroom = hit.distance;
+                    culprit = Describe(hit.collider);
+                }
+            }
+
+            Assert.AreNotEqual(float.MaxValue, headroom,
+                               "Nothing overhead anywhere above the gear wall — the probe is not " +
+                               "inside the ship, so this test is proving nothing.");
+
+            float gap = headroom - fitting.size.y;
+            Assert.That(gap, Is.GreaterThan(MinOverheadGap),
+                        $"The gear wall stands {fitting.size.y:0.00} m under {headroom:0.00} m of " +
+                        $"headroom (capped by {culprit}), leaving {gap:0.00} m. Re-cut the grid " +
+                        "in whole cells — InventoryWallBuilder.SurfaceCellsUp and " +
+                        "inventory_wall.py's GRID_H — rather than moving the fitting.");
+        }
+
+        // ─────────── Atmospheric entry burn ───────────
+
+        /// <summary>
+        /// The sheath has to WRAP the ship. It is drawn on the back faces of its shell, so a shell
+        /// that ends short of the hull puts the fire inside the fuselage: the nose then pokes out
+        /// through its own plasma from outside, and from a seat the burn is clipped away by the
+        /// deck it is supposed to be in front of. Nothing logs — the effect simply looks broken in
+        /// a way that reads as the shader being wrong.
+        ///
+        /// <para>
+        /// The boarding stair is excluded from the hull being measured for the same reason the
+        /// builder excludes it from the ship's origin: it is authored DEPLOYED, reaching to the
+        /// ground, and it is not part of the shape the air sees.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void PlayerShip_ThePlasmaShellEnclosesTheHull()
+        {
+            InstantiateShip();
+
+            Transform shell = FindPlasmaShell();
+            Bounds sheath = new(shell.position, shell.lossyScale);
+
+            Bounds hull = default;
+            bool first = true;
+            foreach (Renderer r in ship.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r.transform.IsChildOf(shell)) continue;
+                if (r.name.StartsWith("Mesh_BoardingStair")) continue;
+
+                if (first) { hull = r.bounds; first = false; }
+                else hull.Encapsulate(r.bounds);
+            }
+
+            Assert.IsFalse(first, "No hull renderers to measure — this test is proving nothing.");
+
+            Assert.IsTrue(sheath.Contains(hull.min) && sheath.Contains(hull.max),
+                          "The plasma shell " + sheath.size.ToString("0.0") + " m at " +
+                          sheath.center.ToString("0.0") + " does not enclose the " +
+                          hull.size.ToString("0.0") + " m hull at " + hull.center.ToString("0.0") +
+                          ". Widen EntryShellGirth / EntryShellNoseReach / EntryShellWakeReach in " +
+                          "PlayerShipBuilder rather than moving the shell.");
+        }
+
+        /// <summary>
+        /// The shell must be invisible to physics. It arrives as a Unity primitive, which brings a
+        /// SphereCollider along, and a twenty-metre sphere around the ship answers every
+        /// interaction ray, every spawn-clearance probe and — worst — ShipHull's own measurement of
+        /// the hull, which is taken from COLLIDERS. The arrival plans its landing height off that,
+        /// so a collider here does not make the fire solid, it makes the ship land in the air.
+        /// </summary>
+        [Test]
+        public void PlayerShip_ThePlasmaShellIsInvisibleToPhysics()
+        {
+            InstantiateShip();
+
+            Transform burn = FindPlasmaShell().parent;
+
+            Assert.IsEmpty(burn.GetComponentsInChildren<Collider>(true).Select(Describe),
+                           "The entry burn carries colliders. ShipHull measures the hull from its " +
+                           "colliders, so these become part of the shape the landing is planned " +
+                           "against.");
+        }
+
+        /// <summary>
+        /// A parked ship is not on fire, and neither is a wreck restored from a save. The renderer
+        /// and the lamp are saved DISABLED and switched on by EntryBurn for the length of the
+        /// descent only — left enabled in the prefab, every PlayerShip in every world sits inside a
+        /// ball of orange for the rest of the session.
+        /// </summary>
+        [Test]
+        public void PlayerShip_TheEntryBurnIsDarkUntilTheDescent()
+        {
+            InstantiateShip();
+
+            Transform burn = FindPlasmaShell().parent;
+
+            Assert.IsFalse(FindPlasmaShell().GetComponent<Renderer>().enabled,
+                           "The plasma shell is enabled on a ship that has not launched.");
+
+            foreach (Light lamp in burn.GetComponentsInChildren<Light>(true))
+                Assert.IsFalse(lamp.enabled, "The entry glow lamp '" + lamp.name + "' is lit on a " +
+                                             "ship that has not launched.");
+        }
+
+        private Transform FindPlasmaShell()
+        {
+            Transform shell = ship.GetComponentsInChildren<Transform>(true)
+                .FirstOrDefault(t => t.name == "PlasmaShell");
+
+            Assert.IsNotNull(shell, "No PlasmaShell under the ship — run " +
+                                    "Tools ▸ Vehicles ▸ Build PlayerShip Prefab.");
+            return shell;
+        }
+
+        /// <summary>The whole fitting in world space, from its renderers rather than its one face
+        /// collider: the collider is sized to the grid on purpose, and the tray, plinth and header
+        /// cowl that stand outside it are exactly what has to clear the room.</summary>
+        private static Bounds WallFitting(WallInventory wall)
+        {
+            Renderer[] renderers = wall.GetComponentsInChildren<Renderer>(true);
+            Assert.IsNotEmpty(renderers, "The gear wall has no renderers to measure.");
+
+            Bounds fitting = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++) fitting.Encapsulate(renderers[i].bounds);
+            return fitting;
         }
     }
 }

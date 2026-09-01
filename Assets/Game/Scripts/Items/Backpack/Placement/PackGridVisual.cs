@@ -34,28 +34,34 @@ namespace SpaceGame.Items
     /// </summary>
     public sealed class PackGridVisual
     {
+        // The four lengths below are metres ON THE MAT, so they take PackScale.Factor with
+        // everything else drawn there. Left fixed under a 1.5x cell every one of them would read a
+        // third thinner than it was authored to, and the overlay is the only thing telling the
+        // player whether the click they are about to make will land.
+
         /// <summary>Metres the overlay floats above the surface, clear of z-fighting with canvas.</summary>
-        private const float Lift = 0.003f;
+        private static readonly float Lift = PackScale.Apply(0.003f);
 
         /// <summary>Metres of gutter between one cell's outline and the next. Draws the lattice.</summary>
-        private const float Border = 0.005f;
+        private static readonly float Border = PackScale.Apply(0.005f);
 
         /// <summary>Metres of line width in the outline itself.</summary>
-        private const float Line = 0.006f;
+        private static readonly float Line = PackScale.Apply(0.006f);
 
         /// <summary>
         /// Metres of gutter left on each side of a GHOST cell's filled quad, so the footprint still
         /// reads as a grid of cells rather than one solid slab.
         ///
         /// <para>
-        /// Deliberately not <see cref="Border"/>. Inset by that 5 mm, a 90 mm cell drew as an 80 mm
-        /// mark and the highlight read visibly smaller than the rig's own webbing cell it is
-        /// supposed to be naming. At 2 mm the quad is 98% of the real cell — the same size as the
-        /// backpack's grid for every practical purpose — while adjacent cells still stop short of
-        /// touching, which also means coplanar neighbours never share an edge to z-fight over.
+        /// Deliberately not <see cref="Border"/>. Inset by that gutter, a cell drew as 89% of
+        /// itself and the highlight read visibly smaller than the rig's own webbing cell it is
+        /// supposed to be naming. At this one the quad is 98% of the real cell — the same size as
+        /// the backpack's grid for every practical purpose — while adjacent cells still stop short
+        /// of touching, which also means coplanar neighbours never share an edge to z-fight over.
+        /// Both ratios hold at any <see cref="PackScale.Factor"/>, which is why this scales too.
         /// </para>
         /// </summary>
-        private const float GhostGutter = 0.002f;
+        private static readonly float GhostGutter = PackScale.Apply(0.002f);
 
         /// <summary>
         /// Render queue for the ghost's two verdict materials: one step past the placed ring's

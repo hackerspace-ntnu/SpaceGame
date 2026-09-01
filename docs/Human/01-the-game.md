@@ -79,7 +79,7 @@ you already have selected puts your hands away.
 
 Everything else goes in the **backpack**, which is not a grid UI — it is a physical deployable
 expedition rig you set down and rummage through from a dedicated camera. Seven flat faces on the rig
-are cell grids (255 cells in total, one global cell size of 9 cm read off the rig's own webbing), and
+are cell grids (255 cells in total, one global cell size of 13.5 cm read off the rig's own webbing), and
 you place real objects onto them at a real position and yaw. Items interlock by their footprint
 shape, so packing is a small spatial puzzle rather than an inventory count. The contents belong to the
 pack, not to you: set it down and walk away and the gear stays with it.

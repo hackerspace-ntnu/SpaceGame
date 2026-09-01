@@ -16,6 +16,9 @@ symptoms:
   - "a dead player gets his controls back after dismounting or leaving a cutscene"
   - "I added a binding to the .inputactions asset and nothing happens in game"
   - "the player's arms do not move when holding an item, or the rig looks armless"
+  - "another player's head never moves — they stare straight ahead while their view is clearly turning"
+  - "a seated player's head stays turned after they stand up"
+  - "my own backpack bounces into view in front of the first-person camera"
 reads_with: [Persistence, Inventory, Artifacts, Vehicles]
 updated: 2026-09-01
 ---
@@ -42,13 +45,15 @@ The astronaut the human drives: rigidbody movement, first-person look, stances, 
 | --- | --- | --- |
 | `PlayerController` | [Core/PlayerController.cs](Assets/Game/Scripts/Characters/Player/Core/PlayerController.cs) | Enable/disable the local player, cutscene handover, death freeze, spectator swap, `OnPlayerDeath`/`OnPlayerRevive` |
 | `PlayerMovement` | [Movement/Movement.cs](Assets/Game/Scripts/Characters/Player/Movement/Movement.cs) | Walk/sprint/crouch/aim speeds, jump, dash, ground probe, fall damage, animator blend + stride rate, `CarryMomentum`/`SetTethered`/`SetBouncing`/`EnsureMovableBody` |
-| `PlayerLook` | [Movement/PlayerLook.cs](Assets/Game/Scripts/Characters/Player/Movement/PlayerLook.cs) | Mouse look, cursor lock, FOV base+offset, `LookAlong`/`RestorePitch`/`Pitch`, per-camera hiding of own helmet/scarf |
+| `PlayerLook` | [Movement/PlayerLook.cs](Assets/Game/Scripts/Characters/Player/Movement/PlayerLook.cs) | Mouse look, cursor lock, FOV base+offset, `LookAlong`/`RestorePitch`/`Pitch`, per-camera hiding of own helmet/scarf (serialized) and worn gear (`SetWornHidden`, runtime) |
 | `PlayerStance` | [Movement/PlayerStance.cs](Assets/Game/Scripts/Characters/Player/Movement/PlayerStance.cs) | Crouch (capsule + eye) and double-tap sprint with a charge tank; runs on every machine |
 | `PlayerAimRig` | [Combat/PlayerAimRig.cs](Assets/Game/Scripts/Characters/Player/Combat/PlayerAimRig.cs) | Owns the masked `Upper Body` layer: hold pose weight, aim blend, right-hand IK; runs on every machine |
 | `AimPose` | [Combat/AimPose.cs](Assets/Game/Scripts/Characters/Player/Combat/AimPose.cs) | Pure maths for hand goal, elbow hint, ease, grip-frame undo |
+| `PlayerHeadLook` | [Combat/PlayerHeadLook.cs](Assets/Game/Scripts/Characters/Player/Combat/PlayerHeadLook.cs) | The one owner of head/neck aim: `Mode` (Free/Seated), `AddLook`, `Yaw`/`Pitch`/`LookRotation`; writes both bones in `LateUpdate` at order **950**. Runs on every machine; added at runtime by `PlayerViewNetwork` |
+| `HeadAim` | [Combat/HeadAim.cs](Assets/Game/Scripts/Characters/Player/Combat/HeadAim.cs) | Pure maths + `HeadAimMode`: neck clamps, the seated/on-foot yaw rule, body-frame delta, bone share |
 | `AimIkRelay` | [Combat/AimIkRelay.cs](Assets/Game/Scripts/Characters/Player/Combat/AimIkRelay.cs) | Runtime-added on the Animator GO; forwards `OnAnimatorIK` to the rig on the root |
 | `AimProvider` | [Combat/AimProvider.cs](Assets/Game/Scripts/Characters/Player/Combat/AimProvider.cs) | The one camera-derived aim ray every other system should ask for |
-| `PlayerViewNetwork` | [Core/PlayerViewNetwork.cs](Assets/Game/Scripts/Characters/Player/Core/PlayerViewNetwork.cs) | Replicates pitch / torch / aiming; builds the runtime `AimPivot` child every machine can hang things on |
+| `PlayerViewNetwork` | [Core/PlayerViewNetwork.cs](Assets/Game/Scripts/Characters/Player/Core/PlayerViewNetwork.cs) | Replicates pitch / **head yaw** / torch / aiming; builds the runtime `AimPivot` child every machine can hang things on |
 | `NetworkPlayerController` | [Core/NetworkPlayerController.cs](Assets/Game/Scripts/Characters/Player/Core/NetworkPlayerController.cs) | On spawn: adopt the spawn pose via `SaveTeleport`, then enable (owner) or disable (remote) |
 | `PlayerRespawn` | [Core/PlayerRespawn.cs](Assets/Game/Scripts/Characters/Player/Core/PlayerRespawn.cs) | `NetMsg.Respawn` on this player's channel; server places then heals — never despawns the body |
 | `FlungBody` | [Movement/FlungBody.cs](Assets/Game/Scripts/Characters/Player/Movement/FlungBody.cs) | `NetMsg.Flung` → owner-side impulse, `[DefaultExecutionOrder(200)]` so it drains *after* movement |
@@ -77,7 +82,8 @@ Root pivot is **1 m above the soles** — measure with [`BodyFeet`](Assets/Game/
 3. **Look.** `Update` accumulates `pendingYaw` (× `sensitivity` × `GameSettings.MouseSensitivity` × aim scale) and writes pitch to the camera; `FixedUpdate` spends the banked yaw as one `MoveRotation`; `LateUpdate` re-asserts the cursor lock.
 4. **Stance.** `PlayerStance.Update`: owner reads `CrouchHeld` + `IsOnGround`, refuses to stand under a ceiling (`HasHeadroom` sphere cast), sets the animator bool; remotes read the same bool back out of the replicated Animator. `ApplyStance` eases capsule height/centre and eye height.
 5. **Aim.** `PlayerAimRig.Update`: owner ANDs `AimHeld` with "is driving" and a non-`None` `HoldStyle`, publishes via `PlayerViewNetwork.PublishAiming`; blends `holdT`/`aimT` (`aimT ≤ holdT`), writes layer weight + `HoldStyle`/`IsAiming`; `AimIkRelay` → `ApplyIk` pulls the right hand to `AimPivot` and undoes the grip frame.
-6. **Death.** `HealthComponent.OnDeath` → `PlayerController.OnDeath` sets `isDead`, `ApplyDeathFreeze` (input off, movement off, look off, cursor released) and raises `OnPlayerDeath`; `PlayerRagdoll` goes limp off the *health* event on every machine. Respawn: click → `PlayerRespawn.Request` → server `TryGetRespawnPosition` → `NetworkedTeleport.Move` **then** `health.ResetToFull()` → `OnRevive` → controls back.
+6. **Head.** `PlayerHeadLook.Update` (owner, on foot) takes pitch from `PlayerLook` and zero yaw; seated, the angles arrive via `AddLook` from the seat's camera rig. `PlayerViewNetwork.LateUpdate` publishes both past `publishThreshold` and poses `AimPivot` as `Euler(pitch, headYaw, 0)`; `PlayerHeadLook.LateUpdate` (order 950) splits the body-frame delta `neckShare`/rest across Neck and Head, reading the replicated pair on remotes.
+7. **Death.** `HealthComponent.OnDeath` → `PlayerController.OnDeath` sets `isDead`, `ApplyDeathFreeze` (input off, movement off, look off, cursor released) and raises `OnPlayerDeath`; `PlayerRagdoll` goes limp off the *health* event on every machine. Respawn: click → `PlayerRespawn.Request` → server `TryGetRespawnPosition` → `NetworkedTeleport.Move` **then** `health.ResetToFull()` → `OnRevive` → controls back.
 
 ## Multiplayer
 
@@ -98,6 +104,7 @@ Player state is keyed by profile, not by scene: [`PlayerSaveSync`](Assets/Game/S
 - **Anything that pre-adds horizontal velocity is deleted.** `FixedUpdate` *assigns* x/z. Latch and drain at execution order ≥ 200 (`FlungBody`), and call `CarryMomentum()` or air control confiscates the fling in ~0.2 s.
 - **`IsGrounded` stays true for ~0.6 m of clearance** (sphere cast over half-height + `groundCheckDistance`), which is why `ShouldEndCarry` also requires "not rising".
 - **Jump/dash arrive as input *events*.** Disabling `PlayerMovement` does not stop them; the freeze must also disable `PlayerInputManager`.
+- **Worn gear is hidden from its wearer's own camera through `PlayerLook.SetWornHidden`, not by posing it clear of the eye.** The serialized `firstPersonHidden` array is `Renderer[]` and covers the helmet and scarf, which a prefab can name; anything instantiated at runtime registers through `SetWornHidden` instead, which *replaces* the register and hands the outgoing renderers back `ShadowCastingMode.On`. Forget that hand-back and a pack set down on the sand stays `ShadowsOnly` for the rest of the session — a shadow with nothing casting it, and a clean console. Both sets are gated by the same `SetFirstPersonHidden` flag, so a ragdolled player sees their own body *and* their pack. See [Backpack](Backpack.md).
 - **`PlayerLook` re-locks the cursor every `LateUpdate`.** UI that needs a cursor must go through `GameplayMenuScope`/`EnterCutsceneMode`, or disable the component.
 - **Anything parented under the camera is invisible to other players** — the whole camera GameObject is inactive on remotes. Hang it on `PlayerViewNetwork.AimPivot` instead.
 - **Never use `AimPivot` as the aim of a shot.** It is smoothed/replicated; a shot's direction must travel in its own use message.
@@ -105,6 +112,10 @@ Player state is keyed by profile, not by scene: [`PlayerSaveSync`](Assets/Game/S
 - **Input callbacks are bound once in `BindActions`, never in `OnEnable`** — they are lambdas nothing can unsubscribe, and death/respawn toggles this component.
 - **`PlayerStance`/`PlayerAimRig` reset themselves in `OnDisable`** — a component switched off mid-crouch/mid-aim would otherwise leave a short capsule or a weighted IK layer with nothing running to clear it.
 - **Missing `Upper Body` animator layer = a silently armless rig.** `PlayerAimRig.Awake` logs an error pointing at `Tools/SpaceGame/Player/Build Upper Body Layer`.
+- **The head is deliberately OUT of the `Upper Body` mask**, so there is no masked layer to hang a head goal on and `OnAnimatorIK` only arrives for layers whose *IK Pass* tick is on — a flag invisible from code. `PlayerHeadLook` therefore lays a world-space rotation on the bones in `LateUpdate` instead, at order **950**: after `MountedRiderPose` (900), which writes the rider's spine and chest, because the neck and head hang off those and a head posed first is dragged off its aim by its own parent. Nothing restores the bones — the Animator rewrites them from the clip every frame, which is also why a **disabled** Animator disables the head look: `RagdollRig` switches it off and hands every bone to physics, and a rotation written on top of that is a second driver fighting a joint, not a pose.
+- **Head yaw is the mode's business, pitch is not.** On foot `PlayerLook` spends yaw turning the *Rigidbody*, so `HeadAimMode.Free` answers zero head yaw; asking the neck for it as well applies the same look twice and the character reads as permanently glancing over their own shoulder. Only a body that cannot turn (`Seated`, set by `ArrivalCameraRig`) gets head yaw — and the mode must be put **back**, or the neck keeps the angle the seat ended on.
+- **Neck clamps are not camera clamps.** `ArrivalCameraRig` used to allow ±110° of yaw because nothing followed the camera; the head now does, and the limits (`yawClamp` 80, `lookDownClamp` 60, `lookUpClamp` 70) live on `PlayerHeadLook` as the single source for both.
+- **The seated camera is posed *from* the head's rotation, not parented to the head bone** — parenting would feed every wobble the seated clip puts through the neck straight into a first-person camera. One angle pair, used twice: `AddLook` then `LookRotation`.
 - **Suit materials are matched by NAME** (`Material.043`, `.049`…). A Blender re-export that renames them stops recolouring; `PaletteRecolor.Scan` logs an error and EditMode tests pin the names. `MaterialPropertyBlock` does *not* gamma-convert — `PaletteRecolor` does it on upload — and constructing one in a static field initializer throws at import time.
 - **`EnablePlayer` re-reads `playerHealth.Alive`** because a save-restored death is announced before anything subscribed.
 

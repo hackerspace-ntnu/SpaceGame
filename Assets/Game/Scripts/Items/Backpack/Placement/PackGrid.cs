@@ -7,21 +7,24 @@ namespace SpaceGame.Items
     /// into a cell index and back.
     ///
     /// <para>
-    /// <b>The cell is 90 mm, and it is a measurement of the rig rather than a number somebody
-    /// liked.</b> <c>expedition_rig.py</c> builds the back panel's webbing ladder with its rungs at
-    /// <c>s = 0.090, 0.180, 0.270, 0.360, 0.450, 0.540</c> — a 90 mm pitch — and lays the lash
-    /// line's two webbing runs at <c>RAIL_Y = (-0.805, -0.715)</c>, which is the same 90 mm again
-    /// from a completely different part of the model. Those are the only two places the rig states
-    /// a rung spacing, and they agree.
+    /// <b>The cell is 135 mm, and it is a measurement of the rig rather than a number somebody
+    /// liked.</b> It is <see cref="PackScale.Factor"/> times the 90 mm webbing pitch the rig was
+    /// originally modelled at, and the rig is BUILT at that factor — <c>expedition_rig.py</c>
+    /// multiplies every length it generates by the same number, so the back panel's webbing ladder
+    /// now has its rungs at <c>s = 0.135, 0.270, 0.405, 0.540, 0.675, 0.810</c> and the lash line's
+    /// two webbing runs sit 0.135 apart. Those are still the only two places the rig states a rung
+    /// spacing, and they still agree with the cell, because both sides of that agreement were
+    /// scaled together.
     /// </para>
     /// <para>
-    /// The rig's coarser anchor fields are all close to twice it, which is what makes 90 mm the
-    /// pitch rather than one of them: the rack ladder's rungs are 185 mm apart
-    /// (<c>RACK_RUNGS</c>), the leaf's grommet field is 200 x 190 mm, the wings' is 260 x 170 mm.
-    /// Halved, those are 92.5, 100, 95, 130 and 85 mm — 90 mm sits inside that cluster, so a cell
-    /// is either one rung or (for the grommet fields) half a hole, and no field is more than about
-    /// 6% out. Anything much larger cannot express the ladder; anything much smaller makes the
-    /// smallest item on the roster nine cells long.
+    /// The relationship the original 90 mm was chosen by is therefore untouched, and is worth
+    /// keeping written down because it is what makes the number defensible rather than arbitrary:
+    /// the rig's coarser anchor fields are all close to twice the cell. Pre-enlargement, the rack
+    /// ladder's rungs were 185 mm apart (<c>RACK_RUNGS</c>), the leaf's grommet field 200 x 190 mm,
+    /// the wings' 260 x 170 mm; halved, those are 92.5, 100, 95, 130 and 85 mm, and 90 mm sat
+    /// inside that cluster. So a cell is either one rung or (for the grommet fields) half a hole,
+    /// and no field is more than about 6% out. Every one of those numbers is now 1.5x larger and
+    /// the ratios are identical.
     /// </para>
     /// <para>
     /// <b>One global cell, not one per surface.</b> Seven cell sizes would mean an item's authored
@@ -32,18 +35,21 @@ namespace SpaceGame.Items
     /// boundaries. The rows below must equal <c>ExpeditionRigWiring.SurfaceTable</c>:
     /// </para>
     /// <list type="table">
-    /// <item><description>BackPanelLeft / Right, 0.27 x 0.54 m -> 3 x 6 cells</description></item>
-    /// <item><description>Leaf, 0.72 x 0.72 m -> 8 x 8</description></item>
-    /// <item><description>WingLeft / Right, 0.36 x 0.63 m -> 4 x 7</description></item>
-    /// <item><description>LongGoods, 1.62 x 0.09 m -> 18 x 1</description></item>
-    /// <item><description>Rack, 0.81 x 0.81 m -> 9 x 9</description></item>
+    /// <item><description>BackPanelLeft / Right, 0.405 x 0.810 m -> 3 x 6 cells</description></item>
+    /// <item><description>Leaf, 1.08 x 1.08 m -> 8 x 8</description></item>
+    /// <item><description>WingLeft / Right, 0.54 x 0.945 m -> 4 x 7</description></item>
+    /// <item><description>LongGoods, 2.43 x 0.135 m -> 18 x 1</description></item>
+    /// <item><description>Rack, 1.215 x 1.215 m -> 9 x 9</description></item>
     /// </list>
     /// <para>
     /// 255 cells over the rig, filling the seven rectangles edge to edge with zero
-    /// <see cref="Hem"/>. The hem arithmetic stays, and stays CENTRED, because it is how a face
-    /// that is NOT an exact multiple — a future pack's, a downsized variant's — degrades: the
-    /// leftover splits evenly on both sides and reads as the inset border the surface rectangles
-    /// already are, instead of piling into one lopsided margin.
+    /// <see cref="Hem"/>. That count did not change with the 2026-09-01 enlargement and could not
+    /// have: <see cref="PackScale"/> multiplies the cell and the faces by the same factor, so every
+    /// division below is unchanged and every authored <see cref="PackShape"/> mask stays valid.
+    /// The hem arithmetic stays, and stays CENTRED, because it is how a face that is NOT an exact
+    /// multiple — a future pack's, a downsized variant's — degrades: the leftover splits evenly on
+    /// both sides and reads as the inset border the surface rectangles already are, instead of
+    /// piling into one lopsided margin.
     /// </para>
     /// <para>
     /// Nothing here allocates or touches UnityEngine beyond <see cref="Vector2"/> and
@@ -52,8 +58,17 @@ namespace SpaceGame.Items
     /// </summary>
     public static class PackGrid
     {
-        /// <summary>Metres. One rung of the rig's webbing ladder. See the class note.</summary>
-        public const float Cell = 0.09f;
+        /// <summary>
+        /// Metres. One rung of the rig's webbing ladder, which is
+        /// <see cref="PackScale.LegacyCell"/> x <see cref="PackScale.Factor"/>. See the class note.
+        ///
+        /// <para>
+        /// Written as a literal rather than as that product because it is a <c>const</c> read by
+        /// eye off the model, and because <c>0.09f * 1.5f</c> evaluated in float need not land on
+        /// the same bit pattern as <c>0.135f</c>. <c>PackScaleTests</c> asserts the two agree.
+        /// </para>
+        /// </summary>
+        public const float Cell = 0.135f;
 
         /// <summary>
         /// Slack when counting whole cells, so a surface authored at an exact multiple of

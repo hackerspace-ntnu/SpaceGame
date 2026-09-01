@@ -15,8 +15,13 @@ symptoms:
   - "the playOnce cutscene replays after loading a save"
   - "the letterbox bars are stuck on screen after respawning"
   - "an impact effect spawns dozens of GameObjects and spikes the frame"
+  - "the screen only goes black after the ship has finished crashing, so I watch the impact"
+  - "the crash cutscene starts seconds earlier on the host than on the client"
+  - "a seated crewmate sits rigidly staring ahead while their view is clearly sweeping the cabin"
+  - "the arrival sits on a black screen and never plays"
+  - "a rival team's ship falls past me stone cold while mine is on fire"
 reads_with: [SceneTransitions, PlayerShip, CutsceneExamples, audio]
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # Cutscenes & Presentation
@@ -58,8 +63,9 @@ Coroutine-driven scripted camera moments (no Timeline, no Cinemachine) plus the 
 | `CameraShakeCutscene` | [Actions/CameraShakeCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/CameraShakeCutscene.cs) | Perlin pos+rot jitter, quadratic decay, exact local-pose restore. Own noise, **not** `ShakeMath` |
 | `WalkThroughDoorCutscene` | [Actions/WalkThroughDoorCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/WalkThroughDoorCutscene.cs) | Eased FP camera glide to `throughPoint`'s pose. Moves the camera, not the body |
 | `ThirdPersonWalkThroughCutscene` | [Actions/ThirdPersonWalkThroughCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/ThirdPersonWalkThroughCutscene.cs) | Disables player cam + `AudioListener`, spawns `CutsceneTempCamera`, dollies `startOffset`→`endOffset` while lerping the player Rigidbody to `throughPoint`; `finally` restores |
-| `ArrivalCutscene` | [Actions/ArrivalCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/ArrivalCutscene.cs) | Crash landing: black → wake fade → `shakeOverDescent` curve for `descentDuration` → full shake for `settleWindow + impactHold` (the hull is still crashing — it comes in nose-down and topples flat) → fade to black → blackout → fade in. Adds/destroys `ArrivalCameraRig`. Mutates nothing |
-| `ArrivalCameraRig` | [Actions/ArrivalCameraRig.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/ArrivalCameraRig.cs) | Not a `Cutscene` — a `[DefaultExecutionOrder(200)]` component doing seated free-look + `ShakeMath` shake in one `LateUpdate` |
+| `ArrivalCutscene` | [Actions/ArrivalCutscene.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/ArrivalCutscene.cs) | Crash landing: black on seating → **hold until `Launch()`** → wake fade → `shakeOverDescent` curve → fade to black **finishing at first contact** → black through `settleWindow + blackout` → fade in. Adds/destroys `ArrivalCameraRig`. Mutates nothing |
+| `ArrivalBeats` | [Core/ArrivalBeats.cs](Assets/Game/Scripts/Presentation/Cutscenes/Core/ArrivalBeats.cs) | Pure timing: `Contact`, `FadeStart`, `FadeDuration`, `BlackHold`, `DescentProgress(elapsed)`. `FadeStart + FadeDuration == Contact` is the whole contract |
+| `ArrivalCameraRig` | [Actions/ArrivalCameraRig.cs](Assets/Game/Scripts/Presentation/Cutscenes/Actions/ArrivalCameraRig.cs) | Not a `Cutscene` — a `[DefaultExecutionOrder(200)]` component reading the raw Look action, handing it to [`PlayerHeadLook`](Assets/Game/Scripts/Characters/Player/Combat/PlayerHeadLook.cs), and posing the camera from that same rotation plus `ShakeMath` shake, in one `LateUpdate` |
 
 ## Flows
 
@@ -73,7 +79,8 @@ Coroutine-driven scripted camera moments (no Timeline, no Cinemachine) plus the 
 
 - **Not replicated.** A cutscene plays only on the machine that triggered it, for that machine's own player. Do not mutate networked state inside `Play()` — the mutation lands on one machine.
 - The arrival is the worked pattern for a cutscene that must be right everywhere: split it. [`ArrivalDirector`](Assets/Game/Scripts/Gameplay/Arrival/Runtime/ArrivalDirector.cs) flies the hull **server-side**; [`SeatedRider`](Assets/Game/Scripts/Gameplay/Arrival/Runtime/SeatedRider.cs) holds bodies at seats on every machine, each writing only its *own* players (the player `NetworkTransform` is owner-authoritative in world space, so no reparenting is needed and a server-side placement of a client body would be overwritten); [`CabinAlert`](Assets/Game/Scripts/Vehicles/Systems/CabinAlert.cs) runs off replicated occupancy, not the cutscene, so it lights on machines merely watching a crewmate.
-- The one per-machine hook is the static `SeatedRider.LocalPlayerSeated`, which fires exactly where *this* machine's player sat down. `ArrivalDirector.PlayLocalCutscene` subscribes, then calls `cutscene.Configure(descentDuration, settleHold + settleDuration)` before `Play` so the beats and the hull agree — both halves, because the hull keeps moving after it first touches the ground.
+- **Two per-machine hooks, and they answer different questions.** `SeatedRider.LocalPlayerSeated` fires where *this* machine's player sat down; `ArrivalDirector.PlayLocalCutscene` subscribes, calls `cutscene.Configure(descentDuration, settleHold + settleDuration)` (both halves — the hull keeps moving after first contact) and starts the cutscene, which goes straight to black and **waits**. `SeatedRider.LocalCrewLaunched(secondsAgo)` fires from the server's `NetMsg.ArrivalLaunched` and releases it. Seating is per-machine and up to `crewGatherTimeout` apart; the launch is one server frame, so the timed beats hang off the launch and only the black hangs off seating.
+- A late joiner never receives that message, so `SeatedRider` also replicates the instant (`launchedAt`, a `NetworkVariable<double>` on the server clock, `-1` = not launched) and `Attach` raises `LocalCrewLaunched` with its **age** when it seats a local player into a descent already under way. Nothing subscribes to that variable changing — event for the present, state for the late — which is what stops a machine starting the presentation twice.
 
 ## Persistence
 
@@ -87,7 +94,17 @@ Coroutine-driven scripted camera moments (no Timeline, no Cinemachine) plus the 
 - **Vendor shake ignores accessibility.** `GameSettings.CameraShakeIntensity` is honoured only by `ShakeMath`; nothing calls `CameraShakerHandler.SetScale`. `ShakeMath` early-**returns** `Vector3.zero` at zero scale rather than scaling, because Perlin is 0.5 at its origin and would otherwise leave a constant off-centre offset.
 - **Camera writes are offsets, never assignments.** The player camera's authored local pose is the head (~`(0, 1.45, 0.16)`), not identity. `localPosition = shake` drops the view to chest height, and "restoring" by zeroing leaves it there for the session. Capture in `OnEnable`, restore in `OnDisable`.
 - **Input bypass.** A cutscene runs with `PlayerInputManager` disabled, and that component zeroes its look axis in `OnDisable` — anything reading `LookInput` gets a frozen camera. `ArrivalCameraRig` reads `InputSystem.actions.FindAction("Look")` directly, and re-disables it only if it enabled it. Do **not** leave `PlayerInputManager` on instead: jump/dash arrive as *events* whose handlers fire regardless of `PlayerMovement.enabled`. `MountModule.Camera.cs` does the same for the same reason. Also bypass `PlayerLook` — it spends yaw rotating the player Rigidbody.
-- **One rig, one `LateUpdate`.** Look and shake must write the transform from a single component; two components racing on it lose one contribution on Unity-undefined frames.
+- **One rig, one `LateUpdate`.** Look and shake must write the transform from a single component; two components racing on it lose one contribution on Unity-undefined frames. The head is a *different* transform with its own single writer (`PlayerHeadLook`, order 950) — what the two share is the **angle pair**, not the write. `ArrivalCameraRig` feeds `AddLook` and then poses the camera from `headLook.LookRotation`; a rig that integrated its own copy would need a second clamp, and the view would leave the head at exactly the extremes a player notices.
+- **The fade to black is started early, not at the impact.** `LetterboxOverlay.FadeToBlackAsync` takes a *duration*, so a fade begun at first contact finishes a second into the topple — the beat the black exists to hide. `ArrivalBeats.FadeStart` is `Descent − impactFade`, and the fade is opened with the time actually **remaining** (`Contact − elapsed`) rather than its authored length, so a frame spike in the last second cannot leave the player watching the impact through a half-faded screen.
+- **The black has to outlast the settle.** The wreck keeps moving for `settleHold + settleDuration` after contact and the settle is the only thing that levels it (see [PlayerShip](PlayerShip.md)) — so `BlackHold` is `settle + blackout`. Shortening it shows the last of the topple; shortening the *settle* to compensate leaves the wreck on its nose forever.
+- **The arrival's fire is not a cutscene, and must not become one.** The atmospheric entry burn
+  lives on the SHIP (`EntryBurn`, see [PlayerShip](PlayerShip.md)) rather than in
+  `ArrivalCutscene`, because this cutscene runs per machine for the LOCAL player and a versus
+  match launches one hull per team — driven from here, a rival team's ship would fall past you
+  stone cold. Both are timed off the same replicated launch instant, so they agree without
+  either knowing about the other, and `EntryBurnCurve` is authored to have the burn OUT before
+  `impactFade` starts.
+- **A cutscene that waits on the wire needs a bounded wait.** `ArrivalCutscene.launchWait` (30 s) exists because the failure mode of the launch gate is a player staring at black for the rest of the session. It warns and plays anyway.
 - **`ThirdPersonWalkThroughCutscene` writes the player Rigidbody directly** — correct offline, fights `NetworkTransform` in a session. It needs to move to the teleport seam.
 - **Manual-emit particles: one system for N impacts.** See [`GravelBlastFx`](Assets/Game/Scripts/Items/Artifacts/Gadgets/GravelBlastFx.cs) and `Manual()` in [`GravelBlasterBuilder`](Assets/Game/Editor/AssetPipeline/GravelBlasterBuilder.cs). Four things must hold at once: `main.loop = true` + `playOnAwake = true` (a stopped system never simulates handed-in particles); `emission.enabled = false` with bursts cleared (an authored burst goes off at the gun on equip); `cullingMode = AlwaysSimulate` (the emitter is in your hands, the impacts are 70 m away); `scalingMode = Local` (`ItemGrip` rescales the prefab to fit the hand). Emit by **moving the system to the hit point** then `system.Emit(emitParams, count)` — world simulation space means particles already in the air do not follow it. The alternative, thirty GameObjects per shot, spikes frames.
 - **`ClothWindDriver` resolves `WindField` reflectively** (`SpaceGame.Vehicles.DuneFoil` cannot be referenced from here) and collects renderers by **shader name** using `sharedMaterials` — touching `.materials` in edit mode leaks a cloned material into the scene every run.

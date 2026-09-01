@@ -1,11 +1,31 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using SpaceGame.Core;
+using SpaceGame.Characters;
 
 namespace SpaceGame.Presentation
 {
     /// <summary>
     /// The view from a seat during the arrival: look where you like, while the hull shakes.
+    ///
+    /// <para>
+    /// <b>The look turns the PLAYER'S HEAD, and the camera rides it.</b> This component reads the
+    /// mouse and hands the movement to <see cref="PlayerHeadLook"/>, which is the one thing that
+    /// clamps it and the one thing that turns the bones; the camera is then posed from the very
+    /// same rotation. It is not two aims kept in step — there is one angle pair, used twice, so
+    /// the view cannot drift off the head it is riding. The previous version rotated the camera
+    /// alone, which is invisible to you and left everyone else in the cabin looking at a crewmate
+    /// staring rigidly ahead through the entire descent.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Why the camera is posed rather than parented to the head bone.</b> Riding the bone
+    /// literally would also inherit every wobble the seated clip puts through the neck, and a
+    /// first-person camera that inherits animation noise is the classic way to make people ill —
+    /// the same dosing argument as GDC-L1-FEEL-0006, applied to a source the player cannot turn
+    /// off. Sharing the rotation and keeping the authored eye position gives the identical read
+    /// (the head goes exactly where the view goes) with none of that.
+    /// </para>
     ///
     /// <para>
     /// <b>Why it reads the raw action.</b> The cutscene runs with the player's input switched off —
@@ -21,8 +41,8 @@ namespace SpaceGame.Presentation
     /// <b>Why it does not use <c>PlayerLook</c>.</b> That component spends its yaw by turning the
     /// player's RIGIDBODY in FixedUpdate. The body here is held at a seat pose that
     /// <c>SeatedRider</c> rewrites every frame, and has been made kinematic; having it also fight
-    /// for its own rotation is a conflict with no upside. Pitch and yaw are applied to the camera
-    /// alone.
+    /// for its own rotation is a conflict with no upside — and it is exactly why the neck has to
+    /// carry the horizontal look while seated.
     /// </para>
     ///
     /// <para>
@@ -39,21 +59,15 @@ namespace SpaceGame.Presentation
     /// </para>
     /// </summary>
     // After SeatedRider (100), so the camera's offsets are applied to a body that has already been
-    // put in its seat this frame rather than to one still holding last frame's pose.
+    // put in its seat this frame rather than to one still holding last frame's pose. Before
+    // PlayerHeadLook (950), so the look handed over below is on the bones the same frame it is on
+    // the camera.
     [DefaultExecutionOrder(200)]
     [DisallowMultipleComponent]
     public class ArrivalCameraRig : MonoBehaviour
     {
         [Tooltip("Degrees per second of view movement per unit of look input.")]
         [SerializeField] private float lookSensitivity = 180f;
-
-        [Tooltip("How far up and down the view may travel from the seat's forward. Stops a seated " +
-                 "player rolling their view past vertical, which reads as a bug rather than a look.")]
-        [SerializeField] private float pitchClamp = 75f;
-
-        [Tooltip("How far left and right. Generous — the point is to see the cabin and your crew — " +
-                 "but not unlimited, because a strapped-in body cannot turn to look behind itself.")]
-        [SerializeField] private float yawClamp = 110f;
 
         [Tooltip("Peak camera displacement at full shake, in metres.")]
         [SerializeField] private float maxShakeTranslation = 0.14f;
@@ -67,8 +81,12 @@ namespace SpaceGame.Presentation
         private InputAction lookAction;
         private bool forcedLookAction;
 
-        private float yaw;
-        private float pitch;
+        /// <summary>
+        /// Who actually holds the look. Resolved from the parents because this component is added
+        /// to the CAMERA, and the head look lives on the player root with everything else that has
+        /// to keep running on a remote copy.
+        /// </summary>
+        private PlayerHeadLook headLook;
 
         /// <summary>
         /// The camera's authored pose on the player, captured on the way in and put back on the way
@@ -100,6 +118,19 @@ namespace SpaceGame.Presentation
             baseRotation = transform.localRotation;
             baseCaptured = true;
 
+            headLook = GetComponentInParent<PlayerHeadLook>();
+
+            // Declared, not assumed. Nothing else can work out that this player has been strapped
+            // into a chair, and a head left in Free mode would answer zero yaw for the whole
+            // descent — the view would turn and the character would not.
+            if (headLook != null) headLook.Mode = HeadAimMode.Seated;
+            else
+                // Loud, because the visible symptom is a view that will not turn at all: the look
+                // is the head's now, and without a head there is nothing to look with.
+                Debug.LogError("[ArrivalCameraRig] No PlayerHeadLook above this camera, so the " +
+                               "seated look has nothing to turn. PlayerViewNetwork adds one to " +
+                               "every player — this camera is not on one.", this);
+
             if (InputSystem.actions != null)
                 lookAction = InputSystem.actions.FindAction("Look");
 
@@ -120,6 +151,11 @@ namespace SpaceGame.Presentation
                 forcedLookAction = false;
             }
 
+            // Handed back, so the head unwinds to centre as the player stands up and their body
+            // starts carrying the yaw again. Left in Seated mode the neck would keep whatever angle
+            // the descent ended on for the rest of the session.
+            if (headLook != null) headLook.Mode = HeadAimMode.Free;
+
             // Handed back exactly as it was found. Zeroing instead would move the camera off the
             // head and leave it there for the rest of the session — the shake is an offset FROM the
             // authored pose, never a replacement for it.
@@ -135,11 +171,19 @@ namespace SpaceGame.Presentation
             Vector2 look = lookAction != null ? lookAction.ReadValue<Vector2>() : Vector2.zero;
 
             float scaled = lookSensitivity * GameSettings.MouseSensitivity * Time.deltaTime;
-
-            yaw = Mathf.Clamp(yaw + look.x * scaled, -yawClamp, yawClamp);
-
             float pitchInput = GameSettings.InvertLookY ? -look.y : look.y;
-            pitch = Mathf.Clamp(pitch - pitchInput * scaled, -pitchClamp, pitchClamp);
+
+            // Handed over rather than integrated here. The head look owns the angles, the clamps
+            // and the mode; this component owns the input and the camera. Two integrators would be
+            // two clamps, and the head and the view would disagree at exactly the extremes where a
+            // player is most likely to notice.
+            Quaternion aim = Quaternion.identity;
+
+            if (headLook != null)
+            {
+                headLook.AddLook(look.x * scaled, -pitchInput * scaled);
+                aim = headLook.LookRotation;
+            }
 
             Vector3 offset = ShakeMath.Displacement(ShakeIntensity, GameSettings.CameraShakeIntensity,
                                                     maxShakeTranslation, Time.time, shakeFrequency);
@@ -151,11 +195,15 @@ namespace SpaceGame.Presentation
                 ? maxShakeRotation / maxShakeTranslation
                 : 0f;
 
-            // Both are offsets FROM the authored head pose, not replacements for it.
+            Quaternion rattle = Quaternion.Euler(offset.y * rotationScale,
+                                                 offset.x * rotationScale,
+                                                 offset.z * rotationScale);
+
+            // Both are offsets FROM the authored head pose, not replacements for it. The shake is
+            // applied INSIDE the aim rather than added to its Euler angles, so it stays a rattle of
+            // the view along whatever direction the head is pointing.
             transform.localPosition = basePosition + offset;
-            transform.localRotation = baseRotation * Quaternion.Euler(pitch + offset.y * rotationScale,
-                                                                      yaw + offset.x * rotationScale,
-                                                                      offset.z * rotationScale);
+            transform.localRotation = baseRotation * aim * rattle;
         }
     }
 }

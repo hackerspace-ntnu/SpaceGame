@@ -142,14 +142,28 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
-        /// The rod has to fit on the back of the pack. It is the longest thing the player carries
+        /// The rod has to fit somewhere on the pack. It is the longest thing the player carries
         /// after the laser staff, and unlike the staff it is not slender — the handlebar is a third
-        /// of a metre across — so it cannot ride the 1.62 x 0.09 m LongGoods strip and has to fit a
-        /// real face.
+        /// of a metre across — so it cannot ride the 2.43 x 0.135 m LongGoods strip, which is one
+        /// cell deep.
         ///
+        /// <para>
+        /// It also LIES DOWN on the mat: the carried prefab's model is turned onto its side, so its
+        /// footprint is its length rather than its cross-section. That means no face takes it
+        /// strictly, and whichever face does take it takes it by <see cref="PackOverhang"/> — the
+        /// rack carries long gear the way a real pack carries skis, lashed across its width and
+        /// hanging past both ends, and the two back panels take it the way a bedroll rides under a
+        /// lid. Which is the right answer for a pole, and the reason the assertion below asks
+        /// <see cref="PackLayout.TryFindSpot"/> rather than comparing cell counts by hand:
+        /// TryFindSpot is the code a world pickup actually runs, overhang rule and all, so a bare
+        /// count comparison would report a pole as homeless while the game stowed it happily. Which
+        /// of those faces first-fit reaches is the hierarchy's business, so it is not asserted.
+        /// </para>
+        /// <para>
         /// Checked against the surfaces actually wired on the rig rather than against numbers typed
         /// here, so re-proportioning the pack re-runs the question instead of leaving this passing
         /// against a face that no longer exists.
+        /// </para>
         /// </summary>
         [Test]
         public void Item_FitsOnAPackSurface()
@@ -159,26 +173,38 @@ namespace SpaceGame.Tests
 
             ItemFootprint.ClearCache();
             Vector2 footprint = ItemFootprint.FootprintOf(asset);
-            Vector2Int cells = new(Mathf.CeilToInt(footprint.x / PackGrid.Cell),
-                                   Mathf.CeilToInt(footprint.y / PackGrid.Cell));
+            PackShape shape = PackShapes.For(asset, null);
 
             GameObject rig = Load(RigPath);
             PackSurface[] surfaces = rig.GetComponentsInChildren<PackSurface>(true);
             Assert.IsNotEmpty(surfaces, $"{RigPath} has no PackSurface to stow anything on");
 
-            // Either way round: the pack turns a placement in quarter turns.
-            bool fits = surfaces.Any(s =>
-            {
-                Vector2Int face = s.Cells;
-                return (cells.x <= face.x && cells.y <= face.y) ||
-                       (cells.y <= face.x && cells.x <= face.y);
-            });
+            // An empty pack, asked the same question a world pickup asks: is there a spot, at any
+            // quarter turn, on this face. Overhang is applied inside.
+            var layout = new PackLayout();
+
+            PackSurface home = surfaces.FirstOrDefault(
+                s => layout.TryFindSpot(s.Id, s.Size, shape, out _, out _));
 
             string faces = string.Join(", ", surfaces.Select(s => $"{s.Id} {s.Cells.x}x{s.Cells.y}"));
-            Assert.IsTrue(fits,
-                $"the jumping rod measures {footprint.x:F2} x {footprint.y:F2} m ({cells.x}x{cells.y} " +
-                $"cells) and fits none of the pack's faces: {faces}. Lower ItemGrip.holdSize on " +
-                $"{ItemPrefabPath} — JumpingRodBuilder.HoldSize owns that number.");
+
+            Assert.IsNotNull(home,
+                $"the jumping rod measures {footprint.x:F2} x {footprint.y:F2} m " +
+                $"({shape.Width}x{shape.Height} cells at a {PackGrid.Cell:F3} m cell) and fits none " +
+                $"of the pack's faces, even where they allow overhang: {faces}. Lower " +
+                $"ItemGrip.holdSize on {ItemPrefabPath} — JumpingRodBuilder.HoldSize owns that " +
+                "number — or widen a face in ExpeditionRigWiring.SurfaceTable.");
+
+            // And the one face it can NOT go on, which is the claim in the note above: the lash
+            // line is one cell deep and strict, so a pole with a handlebar on it is exactly the
+            // shape that face cannot take, however long it is.
+            PackSurface lashLine = surfaces.FirstOrDefault(s => s.Id == PackSurfaceId.LongGoods);
+            Assert.IsNotNull(lashLine, $"{RigPath} has lost its LongGoods face");
+
+            Assert.IsFalse(layout.TryFindSpot(lashLine.Id, lashLine.Size, shape, out _, out _),
+                $"the rod fits the {lashLine.Cells.x}x{lashLine.Cells.y} lash line, so it is no " +
+                "longer the wide item this test was written about — re-read the note above before " +
+                "changing anything else here");
         }
 
         // ── helpers ────────────────────────────────────────────────────────────

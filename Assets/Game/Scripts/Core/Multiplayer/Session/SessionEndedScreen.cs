@@ -42,7 +42,7 @@ namespace SpaceGame.Core
         {
             // One at a time. A disconnect and a lobby poll can both report the session gone, and
             // two of these stacked would each hide the other's canvas on the way out.
-            var existing = FindFirstObjectByType<SessionEndedScreen>();
+            var existing = Existing<SessionEndedScreen>();
             if (existing != null) return existing;
 
             var ui = new GameObject(nameof(SessionEndedScreen)).AddComponent<SessionEndedScreen>();

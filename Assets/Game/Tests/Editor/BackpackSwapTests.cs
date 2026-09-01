@@ -27,6 +27,43 @@ namespace SpaceGame.Tests
     {
         private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
 
+        /// <summary>
+        /// A length that was authored against the pack's ORIGINAL 0.09 m cell, restated at
+        /// whatever the cell is today.
+        ///
+        /// <para>
+        /// The 2026-09-01 enlargement multiplied the cell, every face and every item's on-mat size
+        /// by <see cref="PackScale.Factor"/> together and multiplied no cell COUNT by anything, so
+        /// every face and every spot below still means the cells it always meant. Same helper, same
+        /// reasoning, as in <c>PackLayoutTests</c>.
+        /// </para>
+        /// </summary>
+        private static float M(float metresAtTheOriginalCell) =>
+            metresAtTheOriginalCell * (PackGrid.Cell / PackScale.LegacyCell);
+
+        /// <summary>The default face: 9 x 8 cells with a hem across.</summary>
+        private static readonly Vector2 LeafSize = new(M(0.86f), M(0.72f));
+
+        /// <summary>
+        /// The block an item with no prefab occupies — <see cref="ItemFootprint"/>'s square for
+        /// anything it cannot measure, which is two cells either way at any scale.
+        /// </summary>
+        private static readonly Vector2Int UnmeasurableBlock = new(2, 2);
+
+        /// <summary>
+        /// The middle of a block of cells on <see cref="LeafSize"/>, which is a uv the layout
+        /// stores UNCHANGED.
+        ///
+        /// <para>
+        /// Load-bearing for the swap: the displaced item is offered the vacated placement's own
+        /// SNAPPED uv, so a test that asks for a round number and then asserts the two are equal
+        /// is comparing an asked uv with a snapped one and fails by half a cell. Asking for a cell
+        /// centre asks the question the assertion's message actually asks.
+        /// </para>
+        /// </summary>
+        private static Vector2 Spot(int x, int y) =>
+            PackGrid.BlockCentreUv(LeafSize, new Vector2Int(x, y), UnmeasurableBlock);
+
         private readonly List<InventoryItem> created = new();
         private readonly List<GameObject> spawned = new();
 
@@ -70,6 +107,14 @@ namespace SpaceGame.Tests
         /// A prefab that measures <paramref name="size"/> metres. The mesh has to hang off a CHILD:
         /// ItemBounds measures in the root's own local space, so a mesh on the root itself comes
         /// back at its raw mesh bounds however the root is scaled.
+        ///
+        /// <para>
+        /// It carries an <see cref="ItemGrip"/> sized to its own longest axis, and that is what
+        /// makes <paramref name="size"/> mean anything. A prefab with NO grip is one nobody ever
+        /// sized for a hand, so <see cref="ItemFootprint"/> throws its mesh bounds away and gives
+        /// it the default 0.30 m instead — which would make every fixture here the same size as
+        /// every other and quietly turn "a pebble and a crate" into two identical blocks.
+        /// </para>
         /// </summary>
         private GameObject Prefab(Vector3 size)
         {
@@ -79,6 +124,10 @@ namespace SpaceGame.Tests
             GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
             cube.transform.SetParent(root.transform, false);
             cube.transform.localScale = size;
+
+            var grip = root.AddComponent<ItemGrip>();
+            typeof(ItemGrip).GetField("holdSize", Hidden)
+                            .SetValue(grip, Mathf.Max(size.x, Mathf.Max(size.y, size.z)));
 
             return root;
         }
@@ -113,7 +162,7 @@ namespace SpaceGame.Tests
             return pack;
         }
 
-        private BackpackObject Pack() => Pack(new Vector2(0.86f, 0.72f));
+        private BackpackObject Pack() => Pack(LeafSize);
 
         /// The real PlayerInventory, exposed through the interface the pack talks to.
         private sealed class Hotbar : IPlayerInventory
@@ -195,7 +244,7 @@ namespace SpaceGame.Tests
             hotbar.SelectSlot(2);
 
             InventoryItem stowed = Item("stowed");
-            var spot = new Vector2(0.4f, 0.3f);
+            Vector2 spot = Spot(3, 2);
             Assert.IsTrue(pack.TryPlace(stowed, PackSurfaceId.Leaf, spot, 0f));
 
             Assert.IsTrue(pack.TryTakeToHotbar(PackSurfaceId.Leaf, spot, hotbar));
@@ -217,7 +266,7 @@ namespace SpaceGame.Tests
             Hotbar hotbar = FullHotbar(4, out _);
             hotbar.SelectSlot(1);
 
-            var spot = new Vector2(0.2f, 0.2f);
+            Vector2 spot = Spot(1, 1);
             pack.TryPlace(Item("stowed"), PackSurfaceId.Leaf, spot, 0f);
             pack.TryTakeToHotbar(PackSurfaceId.Leaf, spot, hotbar);
 
@@ -235,7 +284,7 @@ namespace SpaceGame.Tests
             hotbar.SelectSlot(3);
 
             InventoryItem stowed = Item("stowed");
-            var spot = new Vector2(0.6f, 0.5f);
+            Vector2 spot = Spot(5, 5);
             pack.TryPlace(stowed, PackSurfaceId.Leaf, spot, 0f);
 
             pack.TryTakeToHotbar(PackSurfaceId.Leaf, spot, hotbar);
@@ -261,7 +310,7 @@ namespace SpaceGame.Tests
             Assert.AreEqual(-1, hotbar.SelectedSlotIndex, "precondition: nothing selected");
 
             InventoryItem stowed = Item("stowed");
-            var spot = new Vector2(0.3f, 0.3f);
+            Vector2 spot = Spot(2, 2);
             pack.TryPlace(stowed, PackSurfaceId.Leaf, spot, 0f);
 
             Assert.IsTrue(pack.TryTakeToHotbar(PackSurfaceId.Leaf, spot, hotbar));
@@ -277,7 +326,7 @@ namespace SpaceGame.Tests
             hotbar.TryAddItem(Item("only"));
 
             InventoryItem stowed = Item("stowed");
-            var spot = new Vector2(0.5f, 0.4f);
+            Vector2 spot = Spot(4, 3);
             pack.TryPlace(stowed, PackSurfaceId.Leaf, spot, 0f);
 
             Assert.IsTrue(pack.TryTakeToHotbar(PackSurfaceId.Leaf, spot, hotbar));
@@ -297,9 +346,12 @@ namespace SpaceGame.Tests
             Hotbar hotbar = FullHotbar(4, out InventoryItem[] held);
             hotbar.SelectSlot(0);
 
-            pack.TryPlace(Item("stowed"), PackSurfaceId.Leaf, new Vector2(0.1f, 0.1f), 0f);
+            pack.TryPlace(Item("stowed"), PackSurfaceId.Leaf, Spot(0, 0), 0f);
 
-            Assert.IsFalse(pack.TryTakeToHotbar(PackSurfaceId.Leaf, new Vector2(0.8f, 0.6f), hotbar));
+            // Cell (8, 7): the far corner of the 9 x 8 face, four cells clear of the item.
+            Assert.IsFalse(pack.TryTakeToHotbar(PackSurfaceId.Leaf,
+                                                PackGrid.CentreUv(LeafSize, new Vector2Int(8, 7)),
+                                                hotbar));
             Assert.AreSame(held[0], hotbar.GetSlot(0).Item, "a miss must not disturb the hotbar");
             Assert.AreEqual(1, pack.Layout.Placements.Count, "…or the pack");
         }
@@ -314,10 +366,13 @@ namespace SpaceGame.Tests
         [Test]
         public void Swap_PutsTheHeldItemElsewhereWhenItCannotFitTheSpotVacated()
         {
-            BackpackObject pack = Pack(new Vector2(1.2f, 1.2f));
+            // 13 x 13 cells, with a hem: big enough for the crate and then some.
+            var face = new Vector2(M(1.2f), M(1.2f));
+            BackpackObject pack = Pack(face);
 
-            // A small thing in the corner, and a big thing in the hand. The corner cannot take the
-            // big thing — half of it would hang off the edge — but the middle of the face can.
+            // A small thing in the corner, and a big thing in the hand: 2 x 2 cells against
+            // 9 x 9. The corner cannot take the big thing — half of it would hang off the edge —
+            // but the middle of the face can.
             InventoryItem stowed = Item("pebble", Prefab(new Vector3(0.1f, 0.1f, 0.1f)));
             InventoryItem bulky = Item("crate", Prefab(new Vector3(0.8f, 0.3f, 0.8f)));
 
@@ -325,7 +380,10 @@ namespace SpaceGame.Tests
             hotbar.TryAddItem(bulky);
             hotbar.SelectSlot(0);
 
-            var corner = new Vector2(0.06f, 0.06f);
+            // Cell (0, 0) named exactly, not a round number near it: on a hemmed face a round
+            // number can land precisely half a cell from the nearest block centre, where the
+            // rounding is a tie and the two answers straddle the edge of the grid.
+            Vector2 corner = PackGrid.BlockCentreUv(face, Vector2Int.zero, UnmeasurableBlock);
             Assert.IsTrue(pack.TryPlace(stowed, PackSurfaceId.Leaf, corner, 0f));
 
             Assert.IsTrue(pack.TryTakeToHotbar(PackSurfaceId.Leaf, corner, hotbar));
@@ -346,7 +404,10 @@ namespace SpaceGame.Tests
         [Test]
         public void Swap_RefusedOutrightWhenTheHeldItemFitsNowhere()
         {
-            BackpackObject pack = Pack(new Vector2(0.5f, 0.5f));
+            // 5 x 5 cells, against a girder that is 23 cells long: nowhere on this face, at any
+            // quarter turn, and the leaf is a strict face so the length cannot overhang either.
+            var face = new Vector2(M(0.5f), M(0.5f));
+            BackpackObject pack = Pack(face);
 
             InventoryItem stowed = Item("pebble", Prefab(new Vector3(0.1f, 0.1f, 0.1f)));
             InventoryItem enormous = Item("girder", Prefab(new Vector3(2f, 0.1f, 0.1f)));
@@ -355,7 +416,9 @@ namespace SpaceGame.Tests
             hotbar.TryAddItem(enormous);
             hotbar.SelectSlot(0);
 
-            var spot = new Vector2(0.25f, 0.25f);
+            // The middle of the face, named as a cell rather than as a round number. See the
+            // corner in the test above for why.
+            Vector2 spot = PackGrid.BlockCentreUv(face, new Vector2Int(1, 1), UnmeasurableBlock);
             pack.TryPlace(stowed, PackSurfaceId.Leaf, spot, 0f);
 
             Assert.IsFalse(pack.TryTakeToHotbar(PackSurfaceId.Leaf, spot, hotbar));

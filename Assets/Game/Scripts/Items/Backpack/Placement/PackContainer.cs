@@ -43,6 +43,12 @@ namespace SpaceGame.Items
                  "how you say 'this one is not a rectangle'.")]
         [SerializeField] private PackShapeLibrary shapes;
 
+        [Tooltip("How much bigger than its own grid this container is DRAWN. 1 for the backpack, " +
+                 "PackScale.WallDisplay for the ship's gear wall. It multiplies the mapping from " +
+                 "a uv to the world point it is drawn at and NOTHING else — not the cell, not the " +
+                 "face rectangle, not a single stored or replicated number.")]
+        [SerializeField] private float displayScale = 1f;
+
         [Header("Starting contents")]
         [Tooltip("Laid out first-fit when the container is built. Two lists purely because that " +
                  "is how they were authored before the strap/pocket split went away — they are " +
@@ -71,6 +77,37 @@ namespace SpaceGame.Items
 
         /// <summary>The cells an item occupies here, authored or derived.</summary>
         public PackShape ShapeFor(InventoryItem item) => PackShapes.For(item, shapes);
+
+        /// <summary>
+        /// How much bigger than its own grid this container is DRAWN. 1 on the rig,
+        /// <see cref="PackScale.WallDisplay"/> on the ship's gear wall.
+        ///
+        /// <para>
+        /// <b>The drawn frame and the logical frame are two different things, and this is the only
+        /// number between them.</b> Everything a container REASONS about — the cell, the face
+        /// rectangle, which cells a shape covers, the uv in a placement, the uv in a save, the uv
+        /// on the wire — is the logical frame and never sees this. Everything a player LOOKS at —
+        /// the board, the ghost cells, the hover lattice, the display copies, the holders, the
+        /// straps, the face collider the aim ray hits — is the drawn frame and is this many times
+        /// bigger. So a container can be made to read larger across a room without a single cell,
+        /// a single byte of save, or a single item's capacity moving.
+        /// </para>
+        /// <para>
+        /// It lives here rather than on <see cref="PackSurface"/> because it is a property of the
+        /// CONTAINER — every face of one thing is drawn at one size — and because one authored
+        /// number that the faces read is a number that cannot drift between them.
+        /// <c>PackSurface.DisplayScale</c> is what reads it, and it walks up to find this rather
+        /// than being pushed a copy: a container is routinely built by <c>Instantiate</c> outside
+        /// play mode, where nothing pushes anything, which is the same reason
+        /// <see cref="ResolvedSurfaces"/> refuses to cache.
+        /// </para>
+        /// <para>
+        /// Guarded against zero and negative rather than clamped in the inspector: a serialized
+        /// field left at its C# default by an <c>AddComponent</c> in an EditMode fixture reads 0,
+        /// and a 0 here would collapse every face to a point instead of failing.
+        /// </para>
+        /// </summary>
+        public float DisplayScale => displayScale > 1e-6f ? displayScale : 1f;
 
         private PackLayout layout;
 

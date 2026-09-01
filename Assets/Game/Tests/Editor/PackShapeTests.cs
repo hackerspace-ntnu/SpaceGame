@@ -7,14 +7,35 @@ namespace SpaceGame.Tests
     /// <summary>
     /// The grid itself: cell masks, the snap, and the one behaviour the whole change exists for —
     /// two shapes interlocking in a space neither of their bounding boxes would fit in.
+    ///
+    /// <para>
+    /// Every metre figure below is written in the cell the suite was authored against (0.09 m) and
+    /// put through <see cref="M"/>, so it follows the cell rather than pinning it. See that method.
+    /// </para>
     /// </summary>
     public class PackShapeTests
     {
+        /// <summary>
+        /// A length that was authored against the pack's ORIGINAL 0.09 m cell, restated at
+        /// whatever the cell is today.
+        ///
+        /// <para>
+        /// Every figure in this file is a length on a lattice, and the arithmetic in the comments
+        /// beside them is written in units of that lattice. The 2026-09-01 enlargement multiplied
+        /// the cell by <see cref="PackScale.Factor"/> and multiplied no COUNT by anything, so
+        /// wrapping the numbers rather than re-typing them at 1.5x is what keeps this suite testing
+        /// the division instead of a particular scale. The same helper, with the same reasoning,
+        /// is in <c>PackLayoutTests</c>.
+        /// </para>
+        /// </summary>
+        private static float M(float metresAtTheOriginalCell) =>
+            metresAtTheOriginalCell * (PackGrid.Cell / PackScale.LegacyCell);
+
         /// <summary>2 x 3 cells exactly, so every cell index in this file is unambiguous.</summary>
-        private static readonly Vector2 Narrow = new(0.18f, 0.27f);
+        private static readonly Vector2 Narrow = new(M(0.18f), M(0.27f));
 
         /// <summary>10 x 8 cells exactly.</summary>
-        private static readonly Vector2 Panel = new(0.90f, 0.72f);
+        private static readonly Vector2 Panel = new(M(0.90f), M(0.72f));
 
         private const PackSurfaceId Face = PackSurfaceId.Leaf;
 
@@ -131,14 +152,14 @@ namespace SpaceGame.Tests
         public void SnappingIsIdempotent()
         {
             // A face with a hem, so the offset is exercised rather than a clean multiple of a cell.
-            var hemmed = new Vector2(0.86f, 0.72f);
+            var hemmed = new Vector2(M(0.86f), M(0.72f));
 
             PackShape shape = PackShape.Rect(3, 2);
 
             var probes = new[]
             {
-                new Vector2(0.213f, 0.377f), new Vector2(0f, 0f), new Vector2(0.5f, 0.5f),
-                new Vector2(0.8599f, 0.7199f), new Vector2(0.1351f, 0.0449f),
+                new Vector2(M(0.213f), M(0.377f)), new Vector2(0f, 0f), new Vector2(M(0.5f), M(0.5f)),
+                new Vector2(M(0.8599f), M(0.7199f)), new Vector2(M(0.1351f), M(0.0449f)),
             };
 
             foreach (Vector2 probe in probes)
@@ -155,14 +176,14 @@ namespace SpaceGame.Tests
         [Test]
         public void SnappingLandsOnACellCentreOffsetByTheHem()
         {
-            var hemmed = new Vector2(0.86f, 0.72f);   // 9 x 8 cells, 0.025 m of hem across
+            var hemmed = new Vector2(M(0.86f), M(0.72f));   // 9 x 8 cells, 0.28 of a cell of hem across
 
             Vector2 snapped = PackLayout.Snap(PackSurfaceId.Leaf, hemmed,
-                                              PackShape.Rect(2, 2), new Vector2(0.2f, 0.3f), 0f);
+                                              PackShape.Rect(2, 2), new Vector2(M(0.2f), M(0.3f)), 0f);
 
             // Nearest block origin is (1, 2): 0.025 + 1 * 0.09 + 0.09 across, 0 + 2 * 0.09 + 0.09 up.
-            Assert.AreEqual(0.205f, snapped.x, 1e-4f);
-            Assert.AreEqual(0.27f, snapped.y, 1e-4f);
+            Assert.AreEqual(M(0.205f), snapped.x, 1e-4f);
+            Assert.AreEqual(M(0.27f), snapped.y, 1e-4f);
         }
 
         // ── Rotation ─────────────────────────────────────────────────────────
@@ -219,20 +240,20 @@ namespace SpaceGame.Tests
         public void ADerivedShapeIsTheSmallestBlockTheFootprintFitsIn()
         {
             Assert.AreEqual(new Vector2Int(3, 2),
-                            PackShape.ForFootprint(new Vector2(0.26f, 0.12f)).Size,
+                            PackShape.ForFootprint(new Vector2(M(0.26f), M(0.12f))).Size,
                             "0.26 m is 2.89 cells, so three");
 
             Assert.AreEqual(new Vector2Int(2, 1),
-                            PackShape.ForFootprint(new Vector2(0.18f, 0.09f)).Size,
+                            PackShape.ForFootprint(new Vector2(M(0.18f), M(0.09f))).Size,
                             "an exact multiple must not gain a cell to float error");
 
             Assert.AreEqual(new Vector2Int(1, 1),
-                            PackShape.ForFootprint(new Vector2(0.001f, 0.001f)).Size,
+                            PackShape.ForFootprint(new Vector2(M(0.001f), M(0.001f))).Size,
                             "nothing occupies less than one cell");
 
             Assert.AreEqual(new Vector2Int(15, 1),
-                            PackShape.ForFootprint(new Vector2(1.35f, 0.04f)).Size,
-                            "the LaserStaff, which is why LongGoods is 17 cells long");
+                            PackShape.ForFootprint(new Vector2(M(1.35f), M(0.04f))).Size,
+                            "the LaserStaff at fifteen cells, which is why LongGoods is 18 long");
         }
 
         /// <summary>
@@ -252,23 +273,27 @@ namespace SpaceGame.Tests
         // ── Cell arithmetic ──────────────────────────────────────────────────
 
         [Test]
-        public void TheRigsSevenFacesDivideIntoTheCellCountsTheGridClaims()
+        public void ARectangleDividesIntoTheCellCountTheGridClaims()
         {
-            Assert.AreEqual(new Vector2Int(2, 5), PackGrid.CellsOn(new Vector2(0.26f, 0.50f)), "back panel");
-            Assert.AreEqual(new Vector2Int(8, 5), PackGrid.CellsOn(new Vector2(0.78f, 0.50f)), "leaf");
-            Assert.AreEqual(new Vector2Int(4, 4), PackGrid.CellsOn(new Vector2(0.38f, 0.40f)), "wing");
-            Assert.AreEqual(new Vector2Int(17, 1), PackGrid.CellsOn(new Vector2(1.60f, 0.14f)), "long goods");
-            Assert.AreEqual(new Vector2Int(8, 6), PackGrid.CellsOn(new Vector2(0.80f, 0.60f)), "rack");
+            // Rectangles in the PROPORTIONS of the rig's faces rather than the shipped table, so
+            // that every row here is a face that does NOT divide exactly and the rounding-down is
+            // what is under test. The shipped rows, which do divide exactly, are pinned by
+            // PackScaleTests.EveryShippedFaceKeepsItsCellCount.
+            Assert.AreEqual(new Vector2Int(2, 5), PackGrid.CellsOn(new Vector2(M(0.26f), M(0.50f))), "back panel");
+            Assert.AreEqual(new Vector2Int(8, 5), PackGrid.CellsOn(new Vector2(M(0.78f), M(0.50f))), "leaf");
+            Assert.AreEqual(new Vector2Int(4, 4), PackGrid.CellsOn(new Vector2(M(0.38f), M(0.40f))), "wing");
+            Assert.AreEqual(new Vector2Int(17, 1), PackGrid.CellsOn(new Vector2(M(1.60f), M(0.14f))), "long goods");
+            Assert.AreEqual(new Vector2Int(8, 6), PackGrid.CellsOn(new Vector2(M(0.80f), M(0.60f))), "rack");
         }
 
         [Test]
         public void APointOnTheHemBelongsToNoCell()
         {
-            var hemmed = new Vector2(0.86f, 0.72f);   // 0.025 m of hem at each end across
+            var hemmed = new Vector2(M(0.86f), M(0.72f));   // 0.28 of a cell of hem at each end across
 
-            Assert.IsFalse(PackGrid.OnGrid(hemmed, PackGrid.CellAt(hemmed, new Vector2(0.01f, 0.3f))));
-            Assert.IsTrue(PackGrid.OnGrid(hemmed, PackGrid.CellAt(hemmed, new Vector2(0.03f, 0.3f))));
-            Assert.IsFalse(PackGrid.OnGrid(hemmed, PackGrid.CellAt(hemmed, new Vector2(0.85f, 0.3f))));
+            Assert.IsFalse(PackGrid.OnGrid(hemmed, PackGrid.CellAt(hemmed, new Vector2(M(0.01f), M(0.3f)))));
+            Assert.IsTrue(PackGrid.OnGrid(hemmed, PackGrid.CellAt(hemmed, new Vector2(M(0.03f), M(0.3f)))));
+            Assert.IsFalse(PackGrid.OnGrid(hemmed, PackGrid.CellAt(hemmed, new Vector2(M(0.85f), M(0.3f)))));
         }
 
         /// <summary>A full face fills exactly, with nothing left over and no room for one more.</summary>

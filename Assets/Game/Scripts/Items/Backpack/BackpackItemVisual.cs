@@ -122,8 +122,17 @@ namespace SpaceGame.Items
             float surfaceScale = Mathf.Abs(anchor.lossyScale.x);
             if (surfaceScale < 1e-6f) surfaceScale = 1f;
 
+            // How big the copy is actually DRAWN, which on the ship's gear wall is not the same as
+            // how big the item is: the wall's whole frame is enlarged by PackSurface.DisplayScale,
+            // and gear drawn at its logical size on an enlarged board would sit inside cells too
+            // big for it. This is the ONLY place the enlargement reaches an item — `worldScale`
+            // stays the logical size below, because the height handed to ToWorld is a uv-frame
+            // length and ToWorld applies the display scale to it itself. Multiplying both would
+            // float every item off the board by 6% of its own height.
+            float drawnScale = worldScale * surface.DisplayScale;
+
             t.SetParent(anchor, false);
-            t.localScale = Vector3.one * (worldScale / surfaceScale);
+            t.localScale = Vector3.one * (drawnScale / surfaceScale);
 
             // Only about the surface normal. The item keeps its own up — see the note above the
             // class on why turning it over would contradict its footprint.
@@ -135,7 +144,7 @@ namespace SpaceGame.Items
             // copy either sinks through the mat or floats above it — and, worse under free
             // placement, sits somewhere other than the rectangle the layout reserved.
             Vector3 centre = surface.ToWorld(uv, local.size.y * worldScale * 0.5f);
-            t.position = centre - orient * (local.center * worldScale);
+            t.position = centre - orient * (local.center * drawnScale);
 
             // BoxCollider.size is in local space, so the transform scale above already resizes it
             // to true size. Passing the scaled numbers here would square the scaling.

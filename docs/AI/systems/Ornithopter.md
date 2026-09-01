@@ -16,7 +16,9 @@ symptoms:
   - "a mid-air save reloads with the ornithopter falling out of the sky"
   - "a hard dive into a cliff does almost no damage while a gentle landing hurts"
   - "the craft grinds along a rock face forever instead of crashing"
-reads_with: [Vehicles, Multiplayer, Persistence, audio]
+  - "the wing pack looks like a toy lying on the backpack, far smaller than the rack it is strapped to"
+  - "rebuilding the wing pack item makes it invisible to clients and stops it surviving a reload"
+reads_with: [Vehicles, Multiplayer, Persistence, audio, Backpack]
 updated: 2026-09-01
 ---
 
@@ -36,6 +38,7 @@ A 10 m flapping-wing aircraft carried folded in the inventory, deployed in mid-a
 - Control authority scales with `Airspeed / FullAuthoritySpeed` and is multiplied by `StalledAuthority` in a stall. Roll self-centres. Tucking (`Flap < 0`) sheds `TuckSpreadLoss` of wing area — less lift *and* less drag, which is how the dive gets fast.
 - State (`OrnithopterFlightState`): Airspeed, Gamma, Pitch, Roll, Heading, TurnRate, FlapPhase, FlapEffort, WingSpread, Deployment, Stamina, Stalled. `Deployment` is the caller's ramp, not the model's.
 - `StallSpeed(cfg)` and `VelocityOf(state)` are derived, never tuned. Heading is measured **+Z toward +X**. At shipped defaults: stall ≈ 11.3 m/s, glide ≈ 9:1.
+- **Stowed, it is sized by the surface, not by the hand.** `WingPack.prefab` is the only item whose `ItemGrip.packSize` is *derived* rather than typed: `WingPackBuilder.PackSizeForRack` solves it from the rack's own width (9 cells) times a 0.96 fill, the folded mesh's short:long proportions and `PackScale.Factor`. It comes to **1.824**, drawing the craft 1.17 x 2.74 m on the mat — a 9 x 21 shape that fills the rack edge to edge and hangs 0.76 m off each end, so it only goes on roughly centred. `holdSize` stays 1.26; the hand is unaffected. See [Backpack.md](Backpack.md) for what a derived shape and an overhang clamp mean.
 - Control mapping lives in `OrnithopterFlightMotor.ApplyRiderInput`, **not** in `SteerModule`: `Move.y → Pitch`, `Move.x → Roll` (and `Turn` when the turn axis is idle), `Vertical → Flap` (Space beats, LeftCtrl tucks), Escape dismounts via [MountModule](Assets/Game/Scripts/agents/Modules/Riding/MountModule.cs). Jump and leap are disabled on the prefab.
 
 ## Key types
@@ -118,7 +121,9 @@ A 10 m flapping-wing aircraft carried folded in the inventory, deployed in mid-a
 - **Assembly split is structural:** `IRiderControllable` / `MountModule` live in Assembly-CSharp, which an asmdef cannot reference — hence the motor's location and `IOrnithopterFlightState` as the seam.
 - Only four hull boxes collide (`COL_Fuselage/Nose/Boom/Cradle`); a 10 m span of collider would snag on terrain. The prefab origin sits on the **cradle** so pitching feels like dropping a shoulder.
 - Prefab lives under `Prefabs/agents/…` (lowercase) while the builder writes `Prefabs/Agents/…` — same file only because macOS is case-insensitive.
-- Tests: `OrnithopterFlightModelTests` (22), `OrnithopterCrashTests` (4) in [Tests/EditMode](Assets/Game/Tests/EditMode); `OrnithopterWingAnimatorTests` (10), `OrnithopterRigWiringTests` (10), `WingPackLaunchTests` (5) in [Editor/Tests](Assets/Game/Editor/Tests). Run via `HeadlessTestRunner.RunEditMode("<fixture>")` → `Temp/headless_tests.txt`.
+- **`WingPackBuilder` is lossy: do not re-run it to change a value.** It builds a fresh `GameObject` and `SaveAsPrefabAsset`s over the path, and it adds five components. `WingPack.prefab` carries ten — `NetworkObject`, `PickupableItem`, `SaveableEntity` and `TransformSaveable` were added after it was last run and the builder knows nothing about them. A rebuild silently strips all four: the pack stops replicating, stops being pickable and stops surviving a reload, with no error anywhere. Author the value in the builder so the derivation is recorded, then apply it to the existing prefab through `PrefabUtility.LoadPrefabContents` + a `SerializedObject` write.
+- **The wing pack's stowed size is a ceiling, not a taste.** Past the rack's 9 columns the derived shape rounds to 10, which the rack refuses outright *and* the ship's gear wall — strict on both axes at 30 x 22 — cannot take either, so the craft becomes unstorable everywhere with nothing but red cells to say why. `WingPackStowTests` pins both ends because the inputs (the rack's cut, `PackScale.Factor`, a re-export of `wing_pack_folded.fbx`) all move without anyone re-running the builder.
+- Tests: `OrnithopterFlightModelTests` (22), `OrnithopterCrashTests` (4) in [Tests/EditMode](Assets/Game/Tests/EditMode); `OrnithopterWingAnimatorTests` (10), `OrnithopterRigWiringTests` (10), `WingPackLaunchTests` (5) in [Editor/Tests](Assets/Game/Editor/Tests); `WingPackStowTests` (2) in [Tests/Editor](Assets/Game/Tests/Editor). Run via `HeadlessTestRunner.RunEditMode("<fixture>")` → `Temp/headless_tests.txt`.
 
 ## Extending
 

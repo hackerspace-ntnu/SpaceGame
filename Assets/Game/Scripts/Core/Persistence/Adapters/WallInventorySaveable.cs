@@ -35,12 +35,27 @@ namespace SpaceGame.Core.Persistence
         public string SaveKey => Key;
 
         /// <summary>
-        /// Only the placements. <see cref="PackSaveCodec.State"/> also carries where a backpack was
-        /// set down, which for something bolted to a bulkhead would be three fields of zeroes in
-        /// every ship's record forever.
+        /// The version and the placements. <see cref="PackSaveCodec.State"/> also carries where a
+        /// backpack was set down, which for something bolted to a bulkhead would be three fields of
+        /// zeroes in every ship's record forever.
+        ///
+        /// <para>
+        /// <b><see cref="version"/> is not optional, and dropping it is silent.</b> This struct
+        /// exists to write a NARROWER record than the codec's, and the first version of it narrowed
+        /// away the version field along with the pack pose. <see cref="PackSaveCodec.Restore"/>
+        /// reads a missing version as "older than versioning", which means the pre-enlargement
+        /// frame, and multiplies every uv by <see cref="PackScale.Factor"/> to bring it forward —
+        /// so every wall record was rescaled by 1.5 on EVERY load, compounding each time, until the
+        /// gear walked off the face and first-fit scattered it. Nothing threw. Any field the codec
+        /// uses to interpret the numbers has to be carried here; only fields that are purely a
+        /// backpack's may be left out.
+        /// </para>
         /// </summary>
         public struct State
         {
+            /// <summary>Which frame the uvs below are in. See <see cref="PackSaveCodec.Version"/>.</summary>
+            public int version;
+
             public List<PackSaveCodec.PackPlacementRecord> placements;
         }
 
@@ -50,12 +65,13 @@ namespace SpaceGame.Core.Persistence
         {
             if (Wall == null) return null;
 
-            List<PackSaveCodec.PackPlacementRecord> placements =
-                PackSaveCodec.Capture(Wall.Layout).placements;
+            PackSaveCodec.State captured = PackSaveCodec.Capture(Wall.Layout);
 
-            return placements == null || placements.Count == 0
+            return captured.placements == null || captured.placements.Count == 0
                 ? null
-                : new State { placements = placements };
+                // Taken from the codec rather than restated, so the two cannot drift apart the next
+                // time the format moves.
+                : new State { version = captured.version, placements = captured.placements };
         }
 
         public void RestoreState(JObject state)

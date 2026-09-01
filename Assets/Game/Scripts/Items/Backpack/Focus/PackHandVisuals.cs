@@ -38,7 +38,10 @@ namespace SpaceGame.Items
         /// at 0.03 m the cut-out still sits on the copy's own footprint rather than a visible
         /// cell toward the camera, while the copy still reads as picked up.
         /// </summary>
-        private const float CarryLift = 0.03f;
+        /// <remarks>Metres above the mat, so it scales with the mat — the argument above is
+        /// about how far the occluded patch slides per centimetre of lift under a fixed camera
+        /// pitch, and the camera moved back by the same factor.</remarks>
+        private static readonly float CarryLift = PackScale.Apply(0.03f);
 
         /// <summary>The refusal flash: a red outline shell traced round the carried copy. The
         /// copy keeps the item's own materials at all times, so the flash is a rim, never a
@@ -60,8 +63,8 @@ namespace SpaceGame.Items
         /// </para>
         /// </summary>
         private const float OutlineFraction = 0.020f;
-        private const float MinOutlineWidth = 0.0015f;
-        private const float MaxOutlineWidth = 0.010f;
+        private static readonly float MinOutlineWidth = PackScale.Apply(0.0015f);
+        private static readonly float MaxOutlineWidth = PackScale.Apply(0.010f);
 
         /// Relative weights, keeping the denied flash the wider of the two and the hover rim the
         /// finer — the proportions both roles were originally authored with.
@@ -305,7 +308,11 @@ namespace SpaceGame.Items
             foreach (Collider collider in proxy.GetComponentsInChildren<Collider>(true))
                 Object.Destroy(collider);
 
-            proxy.transform.position += surface.transform.up * CarryLift;
+            // A world-space nudge, so unlike every uv above it this one does not pass through
+            // ToWorld and has to be told about the display scale itself. On the gear wall a lift
+            // left at its logical size would let the carried copy graze the board it is enlarged
+            // over.
+            proxy.transform.position += surface.transform.up * (CarryLift * surface.DisplayScale);
 
             // And that is ALL: the copy keeps the item's original materials — Build never touches
             // a renderer — so the thing in the player's hand has its normal colours, looking

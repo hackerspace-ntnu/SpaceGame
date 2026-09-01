@@ -88,26 +88,34 @@ namespace SpaceGame.EditorTools
         // ends ski-fashion, and the two back panels — the smallest wired faces — allow it on BOTH
         // axes, bedroll-fashion. See PackOverhang for the rule and its limits.
         //
-        // DEEPENED 2026-08-25 by the .blend's `LEAF_EXTRA` (0.20 m at the board's leading edge),
-        // after ItemScaleLadder roughly doubled the gear. These numbers are measurements of the
-        // model, not preferences: they must equal the `SURFACES` table in
-        // `_Source~/components/props/expedition_rig.py`, and `Verify` below re-reads the built
-        // prefab to say so out loud. Changing one without the other lays gear out over sand.
+        // DEEPENED 2026-08-25 by the .blend's `LEAF_EXTRA` (0.30 m at the board's leading edge,
+        // 0.20 m before the enlargement), after ItemScaleLadder roughly doubled the gear. These
+        // numbers are measurements of the model, not preferences: they must equal the `SURFACES`
+        // table in `_Source~/components/props/expedition_rig.py`, and `Verify` below re-reads the
+        // built prefab to say so out loud. Changing one without the other lays gear out over sand.
         //
-        // RE-CELLED 2026-08-25 (second pass): every rectangle is now an EXACT multiple of
-        // PackGrid.Cell (0.09 m) — Leaf 8x8, LongGoods 18x1, Rack 9x9, Back 3x6, Wings 4x7 —
-        // so the grid fills each face edge to edge with zero hem. The model's stitching and
-        // webbing pitch was re-drawn onto the same cell boundaries in the same pass, so resizing
-        // a row here without moving the .blend's decoration un-aligns the two.
+        // RE-CELLED 2026-08-25 (second pass): every rectangle is an EXACT multiple of
+        // PackGrid.Cell — Leaf 8x8, LongGoods 18x1, Rack 9x9, Back 3x6, Wings 4x7 — so the grid
+        // fills each face edge to edge with zero hem. The model's stitching and webbing pitch was
+        // re-drawn onto the same cell boundaries in the same pass, so resizing a row here without
+        // moving the .blend's decoration un-aligns the two.
+        //
+        // ENLARGED 2026-09-01 by PackScale.Factor, with the cell, the .blend and the gear wall.
+        // The CELL COUNTS above are unchanged and that is the point: the enlargement is a
+        // similarity transform, so no mask, no shape and no capacity moved — only how much of the
+        // screen the pack fills. Written out at their new values rather than as
+        // `PackScale.Apply(...)` because these are measurements read by eye off the model, and a
+        // reader comparing this table against the .blend must be able to see the same numbers in
+        // both. Verify below re-reads the built prefab and checks the cell counts.
         private static readonly (string node, PackSurfaceId id, Vector2 size)[] SurfaceTable =
         {
-            ("SURF_Leaf",      PackSurfaceId.Leaf,           new Vector2(0.72f, 0.72f)),
-            ("SURF_LongGoods", PackSurfaceId.LongGoods,      new Vector2(1.62f, 0.09f)),
-            ("SURF_Rack",      PackSurfaceId.Rack,           new Vector2(0.81f, 0.81f)),
-            ("SURF_Back_L",    PackSurfaceId.BackPanelLeft,  new Vector2(0.27f, 0.54f)),
-            ("SURF_Back_R",    PackSurfaceId.BackPanelRight, new Vector2(0.27f, 0.54f)),
-            ("SURF_Wing_L",    PackSurfaceId.WingLeft,       new Vector2(0.36f, 0.63f)),
-            ("SURF_Wing_R",    PackSurfaceId.WingRight,      new Vector2(0.36f, 0.63f)),
+            ("SURF_Leaf",      PackSurfaceId.Leaf,           new Vector2(1.08f,  1.08f)),
+            ("SURF_LongGoods", PackSurfaceId.LongGoods,      new Vector2(2.43f,  0.135f)),
+            ("SURF_Rack",      PackSurfaceId.Rack,           new Vector2(1.215f, 1.215f)),
+            ("SURF_Back_L",    PackSurfaceId.BackPanelLeft,  new Vector2(0.405f, 0.81f)),
+            ("SURF_Back_R",    PackSurfaceId.BackPanelRight, new Vector2(0.405f, 0.81f)),
+            ("SURF_Wing_L",    PackSurfaceId.WingLeft,       new Vector2(0.54f,  0.945f)),
+            ("SURF_Wing_R",    PackSurfaceId.WingRight,      new Vector2(0.54f,  0.945f)),
         };
 
         /// <summary>
@@ -896,6 +904,23 @@ namespace SpaceGame.EditorTools
         private static bool Verify(StringBuilder log)
         {
             var problems = new List<string>();
+
+            // The table itself, before anything that was built from it. Every rectangle must be a
+            // WHOLE number of cells with zero hem: that is what makes an authored PackShape mask
+            // mean the same thing on every face, and it is the first thing a change to
+            // PackGrid.Cell or PackScale.Factor breaks. A hem does not throw — the face quietly
+            // loses a row and the model's webbing stops lining up with the lattice.
+            foreach ((string node, PackSurfaceId id, Vector2 size) in SurfaceTable)
+            {
+                Vector2 hem = PackGrid.Hem(size);
+                if (hem.sqrMagnitude <= 1e-8f) continue;
+
+                Vector2Int cells = PackGrid.CellsOn(size);
+                problems.Add($"{node} ({id}) is {size.x:F3} x {size.y:F3} m, which is " +
+                             $"{cells.x} x {cells.y} cells of {PackGrid.Cell:F3} m plus a " +
+                             $"{hem.x * 2f:F3} x {hem.y * 2f:F3} m hem. Author it as a whole " +
+                             "number of cells.");
+            }
 
             var rig = AssetDatabase.LoadAssetAtPath<GameObject>(RigPrefab);
             if (rig == null) problems.Add(RigPrefab + " did not reload.");

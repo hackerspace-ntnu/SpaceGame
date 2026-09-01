@@ -32,6 +32,21 @@ namespace SpaceGame.Tests
     {
         private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
 
+        /// <summary>
+        /// A length that was authored against the pack's ORIGINAL 0.09 m cell, restated at
+        /// whatever the cell is today.
+        ///
+        /// <para>
+        /// Only the two SURFACES and the spot on one of them ride this. The hinge angles and axes
+        /// below are angles, not lengths, and the 2026-09-01 enlargement was a similarity
+        /// transform: it multiplied every length in the pack by <see cref="PackScale.Factor"/> and
+        /// left every angle and every cell COUNT exactly where it was, which is precisely why the
+        /// fold is unaffected. Same helper, same reasoning, as in <c>PackLayoutTests</c>.
+        /// </para>
+        /// </summary>
+        private static float M(float metresAtTheOriginalCell) =>
+            metresAtTheOriginalCell * (PackGrid.Cell / PackScale.LegacyCell);
+
         private readonly List<InventoryItem> created = new();
         private readonly List<GameObject> spawned = new();
 
@@ -53,7 +68,8 @@ namespace SpaceGame.Tests
 
         /// <summary>
         /// An item with an id, because the layout is keyed by id. With no prefab it measures the
-        /// 0.1 m square <see cref="ItemFootprint"/> gives anything it cannot measure.
+        /// small square <see cref="ItemFootprint"/> gives anything it cannot measure — two cells
+        /// either way, whatever the cell is.
         /// </summary>
         private InventoryItem Item(string name)
         {
@@ -101,8 +117,8 @@ namespace SpaceGame.Tests
             Transform wingL = Pivot(leaf.gameObject, "PIVOT_Wing_L", new Vector3(0f, 17f, 0f));
             Transform wingR = Pivot(leaf.gameObject, "PIVOT_Wing_R", new Vector3(0f, -17f, 0f));
 
-            Surface(root, PackSurfaceId.Leaf, new Vector2(0.78f, 0.50f));
-            Surface(root, PackSurfaceId.Rack, new Vector2(0.80f, 0.60f));
+            Surface(root, PackSurfaceId.Leaf, new Vector2(M(0.78f), M(0.50f)));   // 8 x 5 cells
+            Surface(root, PackSurfaceId.Rack, new Vector2(M(0.80f), M(0.60f)));   // 8 x 6 cells
 
             // Inactive before the component goes on, so nothing anywhere near this can try to start
             // a coroutine. AddComponent outside play mode raises no Awake either way.
@@ -364,7 +380,10 @@ namespace SpaceGame.Tests
             rig.Pack.SetRacked(true);
 
             InventoryItem lamp = Item("lamp");
-            var spot = new Vector2(0.40f, 0.30f);
+
+            // The exact middle of cell block (3, 2) on the 8 x 6 rack, so the uv the layout stores
+            // is the uv asked for and the assertions below can compare the two.
+            var spot = new Vector2(M(0.40f), M(0.30f));
 
             // TryPlace is deliberately NOT gated on Reaches (BackpackObject.cs:1330), so it would
             // place onto the Rack face here whether or not the leaf being racked actually made it
@@ -382,7 +401,12 @@ namespace SpaceGame.Tests
             Assert.IsTrue(rig.Pack.TryFindAt(PackSurfaceId.Rack, spot, out PackPlacement worn),
                           "it must still be on the pack once the pack is on a back");
             Assert.AreEqual(lamp.ID, worn.ItemId);
-            Assert.AreEqual(spot, worn.Uv, "and at the same spot, not first-fitted somewhere else");
+
+            // Component-wise with a tolerance, not Vector2 equality: the uv is recomputed from the
+            // hem and the cell every time it is seated, and demanding the last bit of a float that
+            // has been through that arithmetic twice tests the FPU rather than the fold.
+            Assert.AreEqual(spot.x, worn.Uv.x, 1e-4f, "and at the same spot, not first-fitted elsewhere");
+            Assert.AreEqual(spot.y, worn.Uv.y, 1e-4f);
 
             rig.Pack.SetWorn(false);
             rig.Pack.SetOpen(true);
@@ -390,7 +414,8 @@ namespace SpaceGame.Tests
             Assert.IsTrue(rig.Pack.TryFindAt(PackSurfaceId.Rack, spot, out PackPlacement back),
                           "and it must come back out of the fold where it went in");
             Assert.AreEqual(lamp.ID, back.ItemId);
-            Assert.AreEqual(spot, back.Uv);
+            Assert.AreEqual(spot.x, back.Uv.x, 1e-4f);
+            Assert.AreEqual(spot.y, back.Uv.y, 1e-4f);
         }
     }
 }

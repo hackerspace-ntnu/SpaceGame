@@ -106,6 +106,41 @@ namespace SpaceGame.Gameplay.Arrival
         /// <summary>Raised on this machine when its own player may (or may not) leave their seat.</summary>
         public static event Action<bool> LocalPlayerMayLeaveChanged;
 
+        /// <summary>
+        /// Raised on this machine when the hull ITS OWN player is sitting in is launched, with how
+        /// long ago that happened — zero for everyone who was aboard at the time.
+        ///
+        /// <para>
+        /// The counterpart to <see cref="LocalPlayerSeated"/>, and the reason it is not enough on
+        /// its own: seating happens whenever each machine finishes streaming, so a presentation
+        /// timed from it runs on a different clock everywhere. The launch is one server decision,
+        /// announced once, and this is where it arrives on each machine. Static for exactly the
+        /// reason <see cref="LocalPlayerSeated"/> is — a client's <c>ArrivalDirector</c> never
+        /// holds a reference to the hull its player is riding down.
+        /// </para>
+        /// </summary>
+        public static event Action<float> LocalCrewLaunched;
+
+        /// <summary>
+        /// When the formation this hull belongs to was launched, on the server's clock, or
+        /// <see cref="NotLaunched"/>.
+        ///
+        /// <para>
+        /// A replicated instant rather than a flag, and it exists for late joiners alone: somebody
+        /// seated into a hull that is already falling was not here for
+        /// <see cref="NetMsg.ArrivalLaunched"/>, and a cutscene that started its beats from their
+        /// seating would run the entry sequence while the hull was seconds from the ground. Nothing
+        /// subscribes to it changing — the event is what starts a presentation, this is only ever
+        /// read, which is what stops a machine starting one twice.
+        /// </para>
+        /// </summary>
+        private readonly NetworkVariable<double> launchedAt = new(NotLaunched);
+
+        /// <summary>The value <see cref="launchedAt"/> carries before a launch. Not zero: a session's clock legitimately reads zero.</summary>
+        private const double NotLaunched = -1d;
+
+        /// <summary>True once this machine has acted on the launch, so a repeated message is inert.</summary>
+        private bool launchAnnounced;
 
         /// <summary>Seats in the order <see cref="SeatOrdering"/> put them, resolved once.</summary>
         private readonly List<ShipSeat> seats = new();
@@ -189,6 +224,7 @@ namespace SpaceGame.Gameplay.Arrival
             this.NetOn(NetMsg.TakeSeat, OnTakeSeat);
             this.NetOn(NetMsg.LeaveSeat, OnLeaveSeat);
             this.NetOn(NetMsg.LeaveSeatRequest, OnLeaveSeatRequested);
+            this.NetOn(NetMsg.ArrivalLaunched, OnArrivalLaunched);
 
             releasable.OnValueChanged += OnReleasableChanged;
 
@@ -209,6 +245,7 @@ namespace SpaceGame.Gameplay.Arrival
             this.NetOff(NetMsg.TakeSeat, OnTakeSeat);
             this.NetOff(NetMsg.LeaveSeat, OnLeaveSeat);
             this.NetOff(NetMsg.LeaveSeatRequest, OnLeaveSeatRequested);
+            this.NetOff(NetMsg.ArrivalLaunched, OnArrivalLaunched);
 
             releasable.OnValueChanged -= OnReleasableChanged;
 
@@ -295,6 +332,76 @@ namespace SpaceGame.Gameplay.Arrival
             if (!IsServer) return;
             releasable.Value = true;
         }
+
+        /// <summary>
+        /// Server-only. Says that this hull is on its way down, so every machine can start the same
+        /// presentation on the same frame.
+        ///
+        /// <para>
+        /// Announced on the SHIP rather than raised locally on the server: the descent coroutine
+        /// runs on one machine and the presentation has to run on all of them. Announced per hull
+        /// rather than per formation because a versus match launches one ship per team and each
+        /// crew is watching its own.
+        /// </para>
+        /// <para>
+        /// Idempotent, like every other handler here: a second call is dropped rather than
+        /// restarting anybody's cutscene halfway down the arc.
+        /// </para>
+        /// </summary>
+        public void AnnounceLaunch()
+        {
+            if (!IsServer) return;
+            if (launchedAt.Value > NotLaunched) return;
+
+            launchedAt.Value = SessionClock;
+
+            // To All rather than Others, so the server takes the same path every peer does instead
+            // of a private one that can drift from it — the rule Seat() records.
+            this.NetToAll(NetMsg.ArrivalLaunched, new NetArg().With(gameObject));
+        }
+
+        /// <summary>
+        /// The launch has been announced. Only the machines with a player in THIS hull care.
+        ///
+        /// <para>
+        /// Zero seconds ago, deliberately, rather than differencing the clocks: everybody receiving
+        /// this message is receiving it now, and the transport's own latency is a fraction of a
+        /// second against a twenty-six second descent. The replicated instant exists for the one
+        /// case where "now" is wrong — a late joiner, who never receives this at all.
+        /// </para>
+        /// </summary>
+        private void OnArrivalLaunched(in NetArg arg, ulong sender)
+        {
+            if (launchAnnounced) return;
+            launchAnnounced = true;
+
+            if (HoldsLocalPlayer) LocalCrewLaunched?.Invoke(0f);
+        }
+
+        /// <summary>
+        /// How long ago this hull launched, or -1 if it has not.
+        ///
+        /// <para>
+        /// Read when a player is seated, which is the only moment a machine can discover it missed
+        /// the announcement — and read every frame by the hull's own presentation
+        /// (<c>EntryBurn</c>), which needs where the descent IS rather than when it began. Public
+        /// because it is the one thing on this component that every machine agrees about: the
+        /// instant is replicated and the clock is the server's, so a presenter timing itself off
+        /// this is timing itself off the same number as everybody else, late joiners included.
+        /// </para>
+        /// </summary>
+        public float SecondsSinceLaunch =>
+            launchedAt.Value <= NotLaunched ? -1f : (float)(SessionClock - launchedAt.Value);
+
+        /// <summary>
+        /// The clock the launch instant is stamped on: the server's, which every machine agrees
+        /// about. Falls back to local time where there is no session at all — an editor scene, a
+        /// test — where "the server's clock" and "this machine's clock" are the same thing anyway.
+        /// </summary>
+        private static double SessionClock =>
+            NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening
+                ? NetworkManager.Singleton.ServerTime.Time
+                : Time.timeAsDouble;
 
         private void OnReleasableChanged(bool _, bool now)
         {
@@ -618,6 +725,18 @@ namespace SpaceGame.Gameplay.Arrival
                 if (Network.Owns(player.transform))
                 {
                     LocalPlayerSeated?.Invoke();
+
+                    // Seated into a descent that is already under way: the launch was announced
+                    // before this machine had a body in the hull, so the announcement is caught up
+                    // with here, aged. Raised AFTER LocalPlayerSeated, because that is what starts
+                    // the presentation this is telling how far along it should be.
+                    float sinceLaunch = SecondsSinceLaunch;
+                    if (sinceLaunch >= 0f)
+                    {
+                        launchAnnounced = true;
+                        LocalCrewLaunched?.Invoke(sinceLaunch);
+                    }
+
                     // A late joiner can be seated into an already-landed hull, so the prompt has to
                     // be told the current answer rather than waiting for the flag to change.
                     LocalPlayerMayLeaveChanged?.Invoke(releasable.Value);

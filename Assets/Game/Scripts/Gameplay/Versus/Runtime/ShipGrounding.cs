@@ -24,10 +24,26 @@ namespace SpaceGame.Gameplay
     public static class ShipGrounding
     {
         /// <summary>
-        /// How far down to look from the probe height. Generous, because the probe starts above the
-        /// tallest thing in the arena and the ground may be a long way under that.
+        /// How far below the probe height the fallback ray still looks, beyond the probe height
+        /// itself.
+        ///
+        /// <para>
+        /// Expressed as a margin UNDER the origin rather than as a total length, which is the whole
+        /// point. A fixed length silently means "only ground above <c>probeHeight - length</c>": the
+        /// arrival probes from 600 m and a 500 m ray reached y=100, in a world whose surface sits at
+        /// roughly 100-120 m — so every dip below 100 m was answered with "no ground here" and the
+        /// hull was left on whatever the trajectory had guessed. Anchoring the reach to the origin
+        /// means raising the probe can never shorten what it can see.
+        /// </para>
         /// </summary>
-        private const float ProbeDistance = 500f;
+        private const float ProbeReachBelowZero = 1000f;
+
+        /// <summary>
+        /// How far above a hull's own roof a collision probe starts. A margin, not a height: the
+        /// probe is anchored to the hull it is measuring, so a ray can never begin inside the ship
+        /// and find the ship's own shell as the first surface under it.
+        /// </summary>
+        private const float ProbeStartClearance = 2f;
 
         /// <summary>
         /// The height of the ground at <paramref name="groundXZ"/>, or false when nothing here can
@@ -53,8 +69,8 @@ namespace SpaceGame.Gameplay
             // Triggers ignored for the same reason the spawn point ignores them: an interaction
             // volume, a pickup radius or a damage zone is not a surface, and landing a ship on one
             // puts it on ground that does not exist.
-            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, ProbeDistance,
-                                ~0, QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit,
+                                probeHeight + ProbeReachBelowZero, ~0, QueryTriggerInteraction.Ignore))
             {
                 groundY = hit.point.y;
                 return true;
@@ -123,6 +139,135 @@ namespace SpaceGame.Gameplay
             position = new Vector3(groundXZ.x,
                                    groundY + ShipHull.BellyDrop(hullPrefab) + tolerance.BellyClearance,
                                    groundXZ.y);
+            return true;
+        }
+
+        /// <summary>
+        /// The surface a hull's own collision would come to rest on at <paramref name="at"/>, read
+        /// from PHYSICS rather than from the heightmap, and ignoring the hull itself.
+        ///
+        /// <para>
+        /// The counterpart to <see cref="TryResolveGround"/>, and deliberately not a variant of it.
+        /// Everything above answers "how high is the terrain here" from the heightmap, which is the
+        /// right question while an arc is being PLANNED: no hull exists yet to shadow a ray, and a
+        /// chunk that has not streamed has to be able to say so. It is the wrong question once a
+        /// hull has arrived, because the heightmap is a parallel model of the world and the player
+        /// stands on the colliders. When the two disagree the arrival believed the model — the
+        /// descent ended on a height the heightmap vouched for, the landing check re-read the same
+        /// heightmap, agreed with itself, and reported a clean landing for a ship left in the sky.
+        /// A check cannot share its input with the thing it is checking.
+        /// </para>
+        ///
+        /// <para>
+        /// <paramref name="ignoring"/> is the hull, and excluding it is why this cannot be a plain
+        /// raycast: a ray dropped onto a landed ship hits the ship. Its children go with it — the
+        /// salvage parts, the hatches and the boarding stair are all colliders of its own that a
+        /// naive probe would call the ground.
+        /// </para>
+        ///
+        /// <para>
+        /// Everything carrying a Rigidbody goes too — see <see cref="IsWorldSurface"/>. The world's
+        /// surface is its STATIC collision, and a hull that came down beside a nomad, a mount or its
+        /// own crew must not be told the ground is wherever their heads are.
+        /// </para>
+        ///
+        /// <para>
+        /// False means physics has nothing to offer here — an interior with no floor beneath, a
+        /// chunk that has not loaded, open air — and never "the ground is at zero".
+        /// </para>
+        /// </summary>
+        public static bool TryResolveCollisionGround(Vector2 at, float fromHeight, float reach,
+                                                     GameObject ignoring, out float groundY)
+        {
+            groundY = 0f;
+
+            Vector3 origin = new(at.x, fromHeight, at.y);
+
+            // RaycastAll rather than the nearest hit: the nearest thing under a probe started above
+            // a hull IS the hull, so a single-hit query would answer with the ship's own roof and
+            // ground the ship on itself.
+            RaycastHit[] hits = Physics.RaycastAll(origin, Vector3.down, Mathf.Max(0f, reach),
+                                                   ~0, QueryTriggerInteraction.Ignore);
+
+            bool found = false;
+            float highest = float.NegativeInfinity;
+
+            foreach (RaycastHit hit in hits)
+            {
+                if (hit.collider == null) continue;
+                if (ignoring != null && hit.collider.transform.IsChildOf(ignoring.transform)) continue;
+                if (!IsWorldSurface(hit.collider)) continue;
+
+                if (hit.point.y > highest)
+                {
+                    highest = hit.point.y;
+                    found = true;
+                }
+            }
+
+            if (!found) return false;
+
+            groundY = highest;
+            return true;
+        }
+
+        /// <summary>
+        /// Whether a hit is the world itself rather than something standing on it. The world is its
+        /// STATIC collision: terrain, buildings, the rock a hull can legitimately come down on top
+        /// of. A Rigidbody of any kind means the collider belongs to a body the world is holding up.
+        ///
+        /// <para>
+        /// Deliberately NOT the rule <c>WalkerGround.IsLooseBody</c> uses, which excludes only
+        /// non-kinematic bodies, and the difference is the point: a walker is MEANT to stand on a
+        /// kinematic body — the deck of a mount, a moving platform — whereas a hull deciding where
+        /// the world's surface is must not. Almost nothing in this project that stands on the ground
+        /// is dynamic. Agents, mounts and a seated rider held by <c>CarriedBody</c> are all
+        /// KINEMATIC, so the narrower rule excluded nearly nothing it was written to exclude.
+        /// </para>
+        /// <para>
+        /// Measured: an arrival came down beside a nomad, the probe took the NPC's collider 2.81 m
+        /// above the terrain it was standing on as the ground, and <c>ArrivalDirector.SetDown</c>
+        /// lifted a 60-tonne hull onto its head. The hull is then PERSISTED there, so the world
+        /// opens with its ship hanging in the air for good.
+        /// </para>
+        /// </summary>
+        private static bool IsWorldSurface(Collider collider) => collider.attachedRigidbody == null;
+
+        /// <summary>
+        /// The same measurement as <see cref="TryMeasureLanding"/>, but against the world physics
+        /// actually simulates. This is the one that decides whether a hull is standing on anything.
+        ///
+        /// <para>
+        /// <paramref name="reach"/> has to exceed the descent's own start altitude, not merely the
+        /// height of the terrain: the failure this exists to catch is a hull that finished its arc a
+        /// kilometre up, and a probe that could only see a few hundred metres would report "no
+        /// ground" for exactly the hull that most needs putting down.
+        /// </para>
+        /// </summary>
+        public static bool TryMeasureLandingAgainstCollision(Vector3 position, float yaw,
+                                                             GameObject hull, float reach,
+                                                             float bellyDrop, out float airGap)
+        {
+            airGap = 0f;
+
+            if (hull == null) return false;
+
+            Vector2 extents = ShipHull.Footprint(hull);
+
+            // Started above the hull's own roof rather than at an authored height, so the probe
+            // clears the ship whatever altitude the descent left it at — an authored ceiling is
+            // exactly what a hull two kilometres up is above.
+            float from = ShipHull.TopOf(hull) + ProbeStartClearance;
+
+            bool Sample(Vector2 at, out float y) =>
+                TryResolveCollisionGround(at, from, reach + (from - position.y), hull, out y);
+
+            HullFootprint.Ground ground = HullFootprint.Measure(
+                new Vector2(position.x, position.z), yaw, extents, Sample);
+
+            if (!ground.Any) return false;
+
+            airGap = position.y - bellyDrop - ground.Highest;
             return true;
         }
 

@@ -68,14 +68,14 @@ namespace SpaceGame.EditorTools
             SetInt(so, "maxUses", -1);
             so.ApplyModifiedPropertiesWithoutUndo();
 
-            // True size, on the pack and in the hand alike. 1.26 m is the biggest the rack can
-            // carry: at the folded craft's 0.405 : 0.95 proportions its width comes to 0.537 m —
-            // exactly the rack's six columns, the hard limit — while the length rides the rack's
-            // overhang rule (PackOverhang), spanning the full 0.72 m panel and hanging 0.27 m
-            // past each end. Without a grip it would measure at the 0.30 m no-grip default.
+            // 1.26 m in the hand — tuned by eye against a hand roughly 1.7x a human's, and pinned
+            // by ItemScaleLadder as Fitted because a pack worn across the back is sized by the
+            // wearer, not by the item ladder. Without a grip it would measure at the 0.30 m
+            // no-grip default. The size on the mat is a separate number; see PackSizeForRack.
             ItemGrip grip = root.AddComponent<ItemGrip>();
             var gripSo = new SerializedObject(grip);
             SetFloat(gripSo, "holdSize", 1.26f);
+            SetFloat(gripSo, "packSize", PackSizeForRack(root));
             gripSo.ApplyModifiedPropertiesWithoutUndo();
 
             AddIfPresent(root, "DropItemPhysics");
@@ -89,6 +89,64 @@ namespace SpaceGame.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log($"[WingPack] Built {PrefabPath} and {ItemPath}.");
+        }
+
+        /// <summary>
+        /// The size the folded craft is drawn at once stowed, in the metres
+        /// <see cref="ItemGrip.PackSize"/> is authored in — that is, BEFORE
+        /// <see cref="PackScale.Factor"/> is multiplied in by <c>ItemFootprint</c>.
+        ///
+        /// <para>
+        /// The wing pack is the one item whose stowed size is decided by the surface rather than by
+        /// the hand. It is the whole aircraft, folded, and it is meant to read that way: strapped
+        /// across the pack's back it fills the rack edge to edge and hangs off the top and bottom,
+        /// so the only place it goes is roughly centred. The rack allows exactly that — overhang
+        /// along its own long axis, never across the width the lashing has to reach around
+        /// (<c>PackOverhang</c>) — so the width is the constraint and the length is free.
+        /// </para>
+        /// <para>
+        /// Hence: solve for the width, do not type a length. The craft is a sliver of fixed
+        /// proportions, so naming its footprint's short side sizes the whole thing, and the number
+        /// tracks the rack through a <c>PackScale</c> change or a re-export of the folded mesh
+        /// instead of going quietly stale — which is what happened to the hand-computed 1.26 this
+        /// replaced, left behind by the 1.5x enlargement.
+        /// </para>
+        /// <para>
+        /// This is also the ceiling, not a preference. Past the rack's width the shape rounds to a
+        /// tenth column, which the rack refuses outright and the ship's gear wall — strict on both
+        /// axes — has no room to take either. An item that fills the back of the pack is as large
+        /// as the wing pack can be and still be storable anywhere.
+        /// </para>
+        /// </summary>
+        private static float PackSizeForRack(GameObject root)
+        {
+            // SURF_Rack is 9 x 9 cells; the metres are ExpeditionRigWiring.SurfaceTable's, and
+            // PackGrid's own doc table mirrors them. Written as a cell count so it follows the cell.
+            const int RackColumns = 9;
+
+            // How much of that width to occupy. Short of 1 on purpose: the derived shape ceils the
+            // footprint to whole cells, so landing exactly on the ninth column's edge is a coin
+            // flip between 9 cells and 10, and 10 is refused by every face on the rig. 0.96 reads
+            // as full width and leaves the folded mesh's proportions room to drift on a re-export.
+            const float RackWidthFill = 0.96f;
+
+            Vector3 size = ItemBounds.Measure(root, null).size;
+
+            // The footprint is the two widest axes (ItemFootprint.FootprintOf), and its short side
+            // is what lies across the rack. PackSize names the LONGEST axis of all three, so the
+            // ratio between them is what converts one into the other.
+            float acrossTheRack = Mathf.Min(size.x, size.z);
+            float longest = Mathf.Max(size.x, Mathf.Max(size.y, size.z));
+
+            if (acrossTheRack < 1e-4f)
+            {
+                Debug.LogWarning("[WingPack] The folded craft measures nothing across; leaving its " +
+                                 "pack size at the hand size. Check the FBX imported.");
+                return 0f;
+            }
+
+            return PackGrid.Cell * RackColumns * RackWidthFill * longest
+                   / (acrossTheRack * PackScale.Factor);
         }
 
         /// <summary>

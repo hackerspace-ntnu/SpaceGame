@@ -465,5 +465,23 @@ namespace SpaceGame.Core
         //             does not have a spare int.
         public const ushort WallTake = 95; // player → server, on the WALL's entity relay
         public const ushort WallStow = 96; // player → server, on the WALL's entity relay
+
+        // "The formation is away." Server → everyone, on the SHIP's relay.
+        //
+        // The arrival cutscene is per-machine presentation, but the moment it starts is not: the
+        // hulls launch together, on one server frame, once every connected client is strapped in.
+        // Started off each machine's own seating instead — which is what it used to do — the host
+        // began its descent up to twelve seconds before a client still streaming chunks, and every
+        // beat after that, the fade to black included, landed at a different time on every screen.
+        //
+        // Two channels, the same split TakeSeat documents. This is the EVENT: it means "start now",
+        // it carries no instant of its own, and it is acted on by whichever machines are present.
+        // SeatedRider's launchedAt NetworkVariable is the STATE, read once by a machine that seats
+        // a player into a descent already under way — the message announcing the launch went out
+        // before it connected, and its cutscene has to pick the beats up where the hull is rather
+        // than replay an entry that already happened.
+        //
+        //   Target  the ship that launched, so a versus formation's other hulls are ignored.
+        public const ushort ArrivalLaunched = 97; // server → everyone, on the SHIP's relay
     }
 }

@@ -55,7 +55,7 @@ namespace SpaceGame.Presentation
         /// </summary>
         public static MenuChoiceUI Open(MainMenuUI owner, string title, params Choice[] choices)
         {
-            var existing = FindFirstObjectByType<MenuChoiceUI>();
+            var existing = Existing<MenuChoiceUI>();
             if (existing != null) return existing;
 
             var ui = new GameObject(nameof(MenuChoiceUI)).AddComponent<MenuChoiceUI>();

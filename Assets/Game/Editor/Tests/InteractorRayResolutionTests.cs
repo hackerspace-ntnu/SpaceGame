@@ -184,6 +184,39 @@ namespace SpaceGame.EditorTools
             Assert.AreEqual("Control", ((MonoBehaviour)resolved).name);
         }
 
+        /// Glass. A trigger is see-through so that a carry volume cannot swallow the controls inside
+        /// it — which also means a hull is only as opaque as its collision, and a hull is allowed to
+        /// have holes: the PlayerShip's canopy has one, and the cockpit chairs behind it were
+        /// boardable from the air above the ship. An InteractionBlocker is the exception: it offers
+        /// nothing and stops the ray anyway.
+        [Test]
+        public void AnInteractionBlockerIsSeenThroughAndNotReachedThrough()
+        {
+            GameObject glass = new GameObject("Glass");
+            spawned.Add(glass);
+            BoxCollider pane = glass.AddComponent<BoxCollider>();
+            pane.isTrigger = true;
+            glass.transform.position = new Vector3(0f, 0f, 4f);
+
+            GameObject control = new GameObject("Chair");
+            spawned.Add(control);
+            control.AddComponent<BoxCollider>();
+            control.AddComponent<StubInteractable>();
+            control.transform.position = new Vector3(0f, 0f, 8f);
+            Physics.SyncTransforms();
+
+            RaycastHit[] hits = new RaycastHit[16];
+            int count = Physics.RaycastNonAlloc(new Ray(Vector3.zero, Vector3.forward), hits, 20f);
+
+            Assert.IsTrue(Interactor.ResolveAlongRay(hits, count, out _, out _),
+                "precondition: a bare trigger is transparent, so the chair behind it answers");
+
+            glass.AddComponent<InteractionBlocker>();
+
+            Assert.IsFalse(Interactor.ResolveAlongRay(hits, count, out _, out _),
+                "the chair was reached through the glass");
+        }
+
         private class StubInteractable : MonoBehaviour, IInteractable
         {
             public bool CanInteract() => true;

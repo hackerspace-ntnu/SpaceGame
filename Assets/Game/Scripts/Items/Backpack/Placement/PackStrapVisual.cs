@@ -4,9 +4,9 @@ using UnityEngine;
 namespace SpaceGame.Items
 {
     /// <summary>
-    /// Lashes a placed item to its surface with procedural strap bands: one thin ribbon per grid
-    /// line crossing the item's footprint, wrapped over the item's actual silhouette the way a
-    /// rubber band wraps whatever it is stretched around.
+    /// Lashes a placed item to its surface with procedural strap bands: one to three thin ribbons
+    /// across the item's footprint, wrapped over the item's actual silhouette the way a rubber
+    /// band wraps whatever it is stretched around.
     ///
     /// <para>
     /// <b>Works for any mesh, because the mesh itself is the input.</b> The display copy's
@@ -32,24 +32,28 @@ namespace SpaceGame.Items
     /// </summary>
     public static class PackStrapVisual
     {
+        // Every length below is metres ON THE MAT and takes PackScale.Factor with the rig: a band
+        // is webbing off the rig's own lash line, and webbing that stayed 30 mm across a 1.5x pack
+        // would read as string.
+
         /// <summary>Metres of webbing across one band.</summary>
-        private const float StrapWidth = 0.03f;
+        private static readonly float StrapWidth = PackScale.Apply(0.03f);
 
         /// <summary>Metres between a band's underside and its top face.</summary>
-        private const float StrapThickness = 0.004f;
+        private static readonly float StrapThickness = PackScale.Apply(0.004f);
 
         /// <summary>
         /// Metres of clearance a band keeps above the sampled silhouette, so it reads as lying ON
         /// the item rather than shrink-wrapped into its surface detail. Only added where the item
         /// is actually under the band — the flat run on the mat stays on the mat.
         /// </summary>
-        private const float StrapPad = 0.006f;
+        private static readonly float StrapPad = PackScale.Apply(0.006f);
 
         /// <summary>
         /// Metres the band's two ends sink below the surface. An end under the mat needs no cap
         /// face and reads as webbing disappearing into the rig, which is what real lash points do.
         /// </summary>
-        private const float EndSink = 0.002f;
+        private static readonly float EndSink = PackScale.Apply(0.002f);
 
         /// <summary>
         /// Height samples along one band's span. Enough that the hull's tangent points land within
@@ -76,6 +80,20 @@ namespace SpaceGame.Items
         /// <summary>Slack on the barycentric inside-test, so a sample exactly on a shared triangle
         /// edge is claimed by at least one of the triangles instead of falling between them.</summary>
         private const float EdgeSlack = 1e-4f;
+
+        /// <summary>
+        /// Cells of length at or below which one band is the whole lashing — 2 cells is 0.27 m of
+        /// mat, a leash or a scanner, and a second strap on something that size touches the first.
+        /// A count, so it does NOT take <see cref="PackScale"/>: the cell scales with the rig and
+        /// the item measures in cells, so the metres this stands for move with everything else.
+        /// </summary>
+        private const int SingleBandCells = 2;
+
+        /// <summary>
+        /// Cells of length from which an item earns its third band — 6 cells is 0.81 m, past which
+        /// two straps leave an unheld span in the middle.
+        /// </summary>
+        private const int ThirdBandCells = 6;
 
         /// <summary>
         /// The palette's strapping fabric, <c>Mat_Fabric_Canvas_Faded</c> <c>#6E6A5A</c> — the
@@ -147,29 +165,37 @@ namespace SpaceGame.Items
             var hull = new List<Vector2>();
             var heights = new float[ProfileSamples];
 
-            // One band per INTERIOR cell boundary along the long axis; a shape one cell long has
-            // no interior boundary and gets a single band at its mid-line instead, so every item
-            // is strapped. Station s = the boundary between long-axis columns s-1 and s.
-            int firstStation = longCells > 1 ? 1 : 0;
-            int lastStation = longCells > 1 ? longCells - 1 : 0;
+            // A handful of bands, spread over the item's length — never one per cell boundary,
+            // which buried a ten-cell staff under nine straps and read as a net rather than a
+            // lashing. The count comes from the length alone, and the stations are the even
+            // fractions of it the rig's own holder art already uses: one at the middle, two at
+            // 25% / 75%, three at 1/6, 1/2, 5/6. A band is never at an end, so nothing has to
+            // special-case a one-cell item.
+            int bandCount = BandCount(longCells);
 
-            for (int s = firstStation; s <= lastStation; s++)
+            for (int b = 0; b < bandCount; b++)
             {
+                // Cells from the footprint's near edge to this band's centre line.
+                float alongCells = (b + 0.5f) / bandCount * longCells;
+
                 // All uv arithmetic goes through PackGrid.CornerUv so the hem's centring is in it —
                 // correct today, and still correct if the faces become exact cell multiples.
-                float bandCoord = longCells > 1
-                    ? LongAxisUv(surface.Size, longIsU, longOrigin + s)
-                    : LongAxisUv(surface.Size, longIsU, longOrigin) + PackGrid.Cell * 0.5f;
+                float bandCoord =
+                    LongAxisUv(surface.Size, longIsU, longOrigin) + alongCells * PackGrid.Cell;
+
+                // The column the band crosses. Stations no longer land on cell boundaries, so
+                // coverage is that one column's fill rather than either side of a boundary.
+                int column = Mathf.Clamp(Mathf.FloorToInt(alongCells), 0, longCells - 1);
 
                 // A band only exists where the item does: at this station, the contiguous runs of
-                // cross-axis cells the shape fills on either side of the boundary. A masked shape
-                // with a gap gets one band per run, each spanning only its own run.
+                // cross-axis cells the shape fills. A masked shape with a gap gets one band per
+                // run, each spanning only its own run.
                 for (int c = 0; c < crossCells; c++)
                 {
-                    if (!Covered(oriented, longIsU, longCells, s, c)) continue;
+                    if (!Filled(oriented, longIsU, column, c)) continue;
 
                     int runStart = c;
-                    while (c + 1 < crossCells && Covered(oriented, longIsU, longCells, s, c + 1)) c++;
+                    while (c + 1 < crossCells && Filled(oriented, longIsU, column, c + 1)) c++;
 
                     // Anchors at the footprint cell-rect edges. PackShape rounds footprints UP, so
                     // the rect edge sits at or outside the silhouette and the band's flat ends
@@ -235,18 +261,18 @@ namespace SpaceGame.Items
 
         // ── Footprint arithmetic ─────────────────────────────────────────────
 
-        /// <summary>Does the oriented shape put a filled cell against station <paramref name="s"/>
-        /// at cross-axis row <paramref name="c"/>? For an interior boundary that is either
-        /// neighbouring column; for the single-column mid-line band it is the column itself.</summary>
-        private static bool Covered(PackShape oriented, bool longIsU, int longCells, int s, int c)
-        {
-            bool Filled(int longIdx, int crossIdx) =>
-                longIsU ? oriented[longIdx, crossIdx] : oriented[crossIdx, longIdx];
+        /// <summary>
+        /// How many bands lash an item that is <paramref name="longCells"/> cells long. Short gear
+        /// is held by one, most of the rack by two, and only the longest — a staff, a rifle — earns
+        /// a third; more than that stops reading as lashing.
+        /// </summary>
+        public static int BandCount(int longCells) =>
+            longCells <= SingleBandCells ? 1 : longCells < ThirdBandCells ? 2 : 3;
 
-            if (longCells <= 1) return Filled(0, c);
-
-            return Filled(s - 1, c) || Filled(s, c);
-        }
+        /// <summary>Is the oriented shape filled at long-axis column <paramref name="longIdx"/>,
+        /// cross-axis row <paramref name="crossIdx"/>?</summary>
+        private static bool Filled(PackShape oriented, bool longIsU, int longIdx, int crossIdx) =>
+            longIsU ? oriented[longIdx, crossIdx] : oriented[crossIdx, longIdx];
 
         /// <summary>The long-axis uv coordinate of an absolute cell boundary, hem included.</summary>
         private static float LongAxisUv(Vector2 surfaceSize, bool longIsU, int cell)
@@ -282,7 +308,12 @@ namespace SpaceGame.Items
                                            List<Vector3> silhouette)
         {
             Matrix4x4 toSurface = surface.transform.worldToLocalMatrix;
-            Vector3 scale = SafeScale(surface.transform);
+
+            // The display scale divides back out, exactly as it does in PackSurface.ToUv, because
+            // this samples the DRAWN copy and hands the result back to ToLocal, which will put the
+            // enlargement in again. Left in, a band over an item on the gear wall would be built
+            // from coordinates 1.06x too large and would wrap thin air beside it.
+            Vector3 scale = SafeScale(surface.transform) / surface.DisplayScale;
 
             // The same renderer filters ItemBounds.Measure applies, so the straps wrap exactly
             // the geometry the copy renders. activeInHierarchy is safe here where ItemBounds

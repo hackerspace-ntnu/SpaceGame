@@ -6,7 +6,7 @@ using SpaceGame.Items;
 namespace SpaceGame.EditorTools
 {
     /// <summary>
-    /// Puts four artifact prefabs the right way up.
+    /// Puts five artifact prefabs the right way up.
     ///
     /// <para><b>Why the pack cannot fix this itself.</b> A stowed item keeps its own up: the
     /// backpack turns it about the surface normal by the player's yaw and nothing else. That is
@@ -46,6 +46,25 @@ namespace SpaceGame.EditorTools
     /// exactly</b> (<c>t.rotation = handRotation * Euler(offset)</c>, so rotating the contents by
     /// R and the offset by R⁻¹ multiplies out) while the pack and the ground get a unit lying
     /// screen-up.</para>
+    ///
+    /// <para><b>The fifth was measured out of the mesh, not judged by eye.</b>
+    /// <c>RuinScanner</c> is a pistol-grip survey unit: a body slab 0.75 x 0.32 x 0.22 m with the
+    /// readout on its broad face, a grip hanging off one side of it, an emitter at one end and an
+    /// antenna at the other. Blender's own axes say which way is up — the screen plate and the
+    /// top button both sit on the +Z face, the grip and its four ribs run down -Z, the emitter
+    /// housing and lens are the +Y end — and the prefab's model instance turns that frame by
+    /// (90, -90, 0), which lands the emitter axis on the item's +Y. So the prefab was standing on
+    /// the REAR face of its body slab with the emitter pointing at the sky, and
+    /// <c>FootprintOf</c> reserved the 8 x 3 cells of a slab on its edge. -90 about X lays it on a
+    /// flank, which is what a pistol-grip tool does on a bench: 8 x 6 cells, the device's own
+    /// silhouette. Screen-UP is not available and is not the answer — the grip and its pommel hang
+    /// 0.91 m below the screen plane in the model's own metres (z 0.6795 down to z -0.2285, on a
+    /// 1.13 m long axis), so an item resting screen-up balances on the pommel.</para>
+    /// <para>The SIGN is the one thing the outline cannot settle: the two flanks are mirror
+    /// images to within 0.07% of face area, so neither lays it upside down. It is decided by what
+    /// the player ends up looking at — the +X flank carries the three control buttons (one red,
+    /// two amber, out to x +0.1775), the -X flank only the brass dial — and -90 about X takes the
+    /// item's +Z, which is that +X flank, to +Y.</para>
     ///
     /// <para><b>Idempotent.</b> Every entry states the rotation it expects to find before it will
     /// touch anything, so a second run reports "already correct" rather than turning the roster
@@ -114,10 +133,40 @@ namespace SpaceGame.EditorTools
             new("ItemScanner.prefab", Mode.Reframe, new Vector3(-90f, 0f, 0f),
                 new Vector3(-90f, 0f, 0f),
                 "forearm terminal stood on the open end of its cuff; lies screen-up instead"),
+
+            new("RuinScanner.prefab", Mode.Reframe, new Vector3(-90f, 0f, 0f),
+                new Vector3(0f, 90f, 0f),
+                "body slab stood on its rear face, emitter at the sky; lies on the dial flank "
+                + "with the three control buttons up"),
         };
 
         /// <summary>Degrees of slop when matching an expected rotation.</summary>
         private const float Slack = 1f;
+
+        /// <summary>
+        /// Where an <see cref="Mode.AlignModel"/> entry leaves the model child, and where a
+        /// <see cref="Mode.Reframe"/> entry leaves <c>rotationOffset</c> — derived from the entry
+        /// rather than typed beside it, so a table row can never disagree with its own check.
+        ///
+        /// <para>
+        /// The first four entries all land on identity, and hard-coding that is how the check
+        /// quietly stopped being a check: an entry whose <c>Expected</c> is not the exact inverse
+        /// of its <c>Rotation</c> — <c>RuinScanner</c>, whose hand-authored offset was already
+        /// (0, 90, 0) — reports a clean save and then FAILS verification for landing where it was
+        /// supposed to land.
+        /// </para>
+        /// </summary>
+        private static Quaternion Landing(Fix fix)
+        {
+            var rotation = Quaternion.Euler(fix.Rotation);
+            var expected = Quaternion.Euler(fix.Expected);
+
+            // AlignModel turns the child by the rotation; Reframe divides the rotation back out of
+            // the hand offset, which is the whole reason the hand does not notice.
+            return fix.Mode == Mode.AlignModel
+                ? rotation * expected
+                : expected * Quaternion.Inverse(rotation);
+        }
 
         // ── Menu ─────────────────────────────────────────────────────────────
 
@@ -413,6 +462,7 @@ namespace SpaceGame.EditorTools
 
                 string name = System.IO.Path.GetFileNameWithoutExtension(fix.Path);
                 Bounds bounds = ItemBounds.Measure(prefab, null);
+                Quaternion landing = Landing(fix);
 
                 if (fix.Mode == Mode.AlignModel)
                 {
@@ -420,11 +470,12 @@ namespace SpaceGame.EditorTools
                     {
                         if (child.GetComponentInChildren<Renderer>(true) == null) continue;
 
-                        if (Quaternion.Angle(child.localRotation, Quaternion.identity) > Slack)
+                        if (Quaternion.Angle(child.localRotation, landing) > Slack)
                         {
                             ok = false;
                             log.Append("  FAILED   ").Append(name).Append(": '").Append(child.name)
-                               .Append("' is still at ").Append(child.localEulerAngles.ToString("F1"))
+                               .Append("' is at ").Append(child.localEulerAngles.ToString("F1"))
+                               .Append(", wanted ").Append(landing.eulerAngles.ToString("F1"))
                                .Append(" — the save did not land\n");
                         }
                     }
@@ -433,11 +484,12 @@ namespace SpaceGame.EditorTools
                 {
                     var grip = prefab.GetComponent<ItemGrip>();
                     if (grip != null &&
-                        Quaternion.Angle(Quaternion.Euler(grip.RotationOffset), Quaternion.identity) > Slack)
+                        Quaternion.Angle(Quaternion.Euler(grip.RotationOffset), landing) > Slack)
                     {
                         ok = false;
-                        log.Append("  FAILED   ").Append(name).Append(": rotationOffset is still ")
-                           .Append(grip.RotationOffset.ToString("F1"))
+                        log.Append("  FAILED   ").Append(name).Append(": rotationOffset is ")
+                           .Append(grip.RotationOffset.ToString("F1")).Append(", wanted ")
+                           .Append(landing.eulerAngles.ToString("F1"))
                            .Append(" — the save did not land\n");
                     }
                 }

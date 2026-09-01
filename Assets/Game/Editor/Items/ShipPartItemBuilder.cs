@@ -58,12 +58,16 @@ namespace SpaceGame.EditorTools
         private const int MaxUses = 1;
 
         /// <summary>
-        /// Metres along the module's longest axis once it is lying on the pack mat.
+        /// Metres along the module's longest axis once it is lying on the pack mat — in the HAND's
+        /// frame, like every other <c>ItemGrip</c> size. <c>ItemFootprint</c> multiplies
+        /// <c>PackScale.Factor</c> in, so on the mat a module is 1.20 m.
         ///
         /// <para>
-        /// Sized to the rack's 0.81 m face, because that is the face it is going on and no other.
-        /// The 9x9 shape below reserves the whole face regardless; this is only what the player
-        /// sees strapped there.
+        /// Sized just inside the rack's face, because that is the face it is going on and no other:
+        /// nine cells is 0.810 m in this frame, and 0.80 leaves the strapped module a hair inside
+        /// the rectangle it fills. The 9x9 shape below reserves the whole face regardless; this is
+        /// only what the player sees strapped there. Both halves of that comparison scale together,
+        /// so the fit is the same at any <c>PackScale.Factor</c>.
         /// </para>
         /// </summary>
         private const float PackSize = 0.80f;

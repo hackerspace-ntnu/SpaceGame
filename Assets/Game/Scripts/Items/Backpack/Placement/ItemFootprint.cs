@@ -15,6 +15,20 @@ namespace SpaceGame.Items
     /// <see cref="ItemGrip.PackSize"/> for what that asymmetry buys and what it costs.
     /// </para>
     /// <para>
+    /// <b>Then multiplied by <see cref="PackScale.Factor"/>, and this is the ONE place that
+    /// happens.</b> The pack was enlarged uniformly on 2026-09-01 — the cell, every face, the rig
+    /// model itself — and gear that did not grow with it would occupy fewer cells than it used to
+    /// and read as scattered toys on an oversized mat. Doing it here rather than by re-typing
+    /// every prefab's <c>packSize</c> is deliberate on three counts: half the item prefabs are
+    /// rebuilt wholesale by builder scripts that would quietly put the old number back; an item
+    /// with no authored <c>packSize</c> at all (the majority — they fall back to
+    /// <c>holdSize</c>, and to <see cref="DefaultHoldSize"/> with no grip) would be missed
+    /// entirely; and this function is already the single choke point every consumer goes through,
+    /// so the display copy, the derived shape, the holder fit and the layout footprint cannot
+    /// disagree about how big an item is. Nothing about the item IN THE HAND moves —
+    /// <c>EquipItemSocket</c> reads <see cref="ItemGrip.HoldSize"/> and never comes through here.
+    /// </para>
+    /// <para>
     /// Measured once per prefab and cached. Measuring walks every renderer's bounds, and the drag
     /// controller asks for this on every frame of a drag.
     /// </para>
@@ -29,7 +43,10 @@ namespace SpaceGame.Items
     public static class ItemFootprint
     {
         /// Under this, an item is small enough to hang off a clip rather than be strapped down.
-        private const float ClipSize = 0.12f;
+        /// A length on the mat, so it rides <see cref="PackScale.Factor"/> with everything else
+        /// there — left unscaled it would demote a whole bracket of gear from clips to bungees the
+        /// moment the pack grew, which is a change nobody asked for dressed as a scale-up.
+        private static readonly float ClipSize = PackScale.Apply(0.12f);
 
         /// A bottle stands taller than it is wide. Below this it is just a lump on its end.
         private const float CordSlenderness = 1.5f;
@@ -46,14 +63,18 @@ namespace SpaceGame.Items
         /// <para>
         /// Must stay equal to <c>EquipItemSocket.DefaultHoldSize</c>. The two are the same question
         /// asked in two places — how big is an item nobody sized? — and an item that answers 0.30 m
-        /// in the hand and 11 m on the mat is a bug in whichever one disagrees.
+        /// in the hand and 11 m on the mat is a bug in whichever one disagrees. The pack's answer
+        /// is then multiplied by <see cref="PackScale.Factor"/> like every other length on the mat,
+        /// which is not a disagreement: it is the same item, drawn in a world that is 1.5x.
         /// </para>
         /// </summary>
         private const float DefaultHoldSize = 0.30f;
 
         /// Footprint given to an item with nothing to measure. A clip-sized square — small enough
-        /// that it never crowds a surface, big enough to be picked up with a cursor.
-        private const float Unmeasurable = 0.1f;
+        /// that it never crowds a surface, big enough to be picked up with a cursor. Scaled with
+        /// the mat, or the one class of item that has no geometry at all would be the only gear
+        /// that shrank when the pack grew.
+        private static readonly float Unmeasurable = PackScale.Apply(0.1f);
 
         /// <summary>
         /// A measured prefab: how big it is, and where its bulk sits relative to its own pivot.
@@ -258,11 +279,20 @@ namespace SpaceGame.Items
             // (`grip != null ? grip.HoldSize : DefaultHoldSize`). Diverging from it was the bug.
             // PackSize, not HoldSize: an item is allowed to be a different size on the mat than
             // in the hand, and falls back to the hand size when it has not asked to be.
-            float authored = grip != null ? grip.PackSize : DefaultHoldSize;
+            // PackScale.Factor is applied HERE, to the authored metres, rather than to the
+            // measured proportions afterwards: `authored` names the item's longest axis, so
+            // scaling it scales the whole measurement below by exactly the same factor, and the
+            // "keep the artist's scale" branch is the only one that needs the multiply spelled out
+            // a second time.
+            float authored = PackScale.Apply(grip != null ? grip.PackSize : DefaultHoldSize);
 
             // An ItemGrip that IS present and sizes to 0 means something different and deliberate:
-            // "keep the size the artist built". That is honoured, because somebody made that call.
-            if (authored <= Unset) return new Measurement(measured, local.center);
+            // "keep the size the artist built". That is honoured, because somebody made that call
+            // — but "the size the artist built" is still a size ON THE MAT, so it takes the pack's
+            // scale like every other length there. Otherwise these few prefabs would be the only
+            // gear that did not grow with the rig.
+            if (authored <= Unset)
+                return new Measurement(measured * PackScale.Factor, local.center * PackScale.Factor);
 
             // The authored size names the LONGEST axis, so scale the measured proportions to match
             // it rather than making a cube of it.
@@ -277,8 +307,10 @@ namespace SpaceGame.Items
         }
 
         /// Larger than the rig's widest surface plus a generous margin. Nothing legitimate reaches
-        /// this; a measurement that does is an authoring mistake, not a big item.
-        private const float Implausible = 2f;
+        /// this; a measurement that does is an authoring mistake, not a big item. On the mat, so it
+        /// scales with the mat: the lash line alone is 2.43 m since the enlargement, and a fixed
+        /// 2 m would have made the warning fire on the one surface built to take long goods.
+        private static readonly float Implausible = PackScale.Apply(2f);
 
         /// <summary>
         /// Complain once about a measurement that cannot be right.

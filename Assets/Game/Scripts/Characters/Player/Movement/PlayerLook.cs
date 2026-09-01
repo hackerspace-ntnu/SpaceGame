@@ -1,3 +1,4 @@
+using System;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -16,8 +17,9 @@ namespace SpaceGame.Characters
 
         [Tooltip("Everything between this player's eye and the world now that the camera sits " +
                  "inside the helmet: the helmet itself, the scarf. Hidden from their own view " +
-                 "only — shadows and every other camera keep them.")]
-        [SerializeField] private SkinnedMeshRenderer[] firstPersonHidden;
+                 "only — shadows and every other camera keep them. Gear worn at runtime joins " +
+                 "this through SetWornHidden rather than being listed here.")]
+        [SerializeField] private Renderer[] firstPersonHidden;
 
         public Transform playerBody;
         public Transform cameraRoot => playerCamera != null ? playerCamera.transform : null;
@@ -72,19 +74,20 @@ namespace SpaceGame.Characters
         }
 
         /// <summary>
-        /// Hide this player's own head gear from their own eyes, and only their own.
+        /// Hide this player's own worn gear from their own eyes, and only their own.
         ///
         /// <para>
         /// Per camera render, not a global toggle: <c>ShadowsOnly</c> written once hides these
         /// from every camera at once, which is right for this player's own view and wrong for
-        /// everything else — the mount's orbit camera, the death spectator, and any future third
-        /// person view must all keep them. Deciding at the start of each camera's render means
-        /// no view has to remember to switch it back, and they still cast their shadows in first
-        /// person because <c>ShadowsOnly</c> keeps the shadow pass.
+        /// everything else — the mount's orbit camera, the death spectator, the pack's own focus
+        /// camera, and any future third person view must all keep them. Deciding at the start of
+        /// each camera's render means no view has to remember to switch it back, and they still
+        /// cast their shadows in first person because <c>ShadowsOnly</c> keeps the shadow pass —
+        /// so a player still reads as wearing their pack from its shadow on the sand.
         /// </para>
         /// </summary>
         /// <summary>
-        /// Whether this player's own camera still hides their helmet and scarf.
+        /// Whether this player's own camera still hides their helmet, scarf and pack.
         ///
         /// <para>
         /// True is the resting state and the whole reason <see cref="firstPersonHidden"/> exists.
@@ -103,13 +106,61 @@ namespace SpaceGame.Characters
 
         private bool firstPersonHiddenActive = true;
 
+        /// <summary>
+        /// The renderers of gear this body is WEARING, hidden from its own eye alongside
+        /// <see cref="firstPersonHidden"/>. Replaces whatever was registered before; null or empty
+        /// clears it.
+        ///
+        /// <para>
+        /// Separate from the serialized array because worn gear is instantiated at runtime and does
+        /// not hold still: the backpack is built in <c>BackpackController.Awake</c>, and the items
+        /// strapped to it are display copies rebuilt every time its contents change, so there is no
+        /// set of renderers a prefab field could have named. <c>BackpackController</c> re-registers
+        /// on both.
+        /// </para>
+        /// <para>
+        /// <b>Why the pack is hidden rather than posed clear of the eye.</b> It rides the Spine
+        /// bone while this camera is bolted to the player root, so a walk cycle's lean rotates it
+        /// about a pivot below the eye and throws its top forward through the near plane — and no
+        /// worn pose can fix that for gear the player chose the size of, because
+        /// <c>PackSurfaceId.LongGoods</c> takes an item 2.43 m long. The pack is inspected in focus
+        /// mode, seen by everyone else, and still casts this player's shadow, so hiding it from the
+        /// one camera it can only ever obstruct costs nothing.
+        /// </para>
+        /// <para>
+        /// Same contract as the serialized array: these renderers are assumed to want
+        /// <see cref="ShadowCastingMode.On"/> everywhere else, because that is what they are given
+        /// back — for every other camera, and once for the outgoing set here. A renderer authored
+        /// <c>Off</c> would come back on, so do not register one.
+        /// </para>
+        /// </summary>
+        public void SetWornHidden(Renderer[] renderers)
+        {
+            // The outgoing set gets its shadows back first. A pack that has just left the player's
+            // back is theirs to look at from this frame on, and once it is off the register nothing
+            // else would ever write ShadowsOnly off it again.
+            Apply(wornHidden, ShadowCastingMode.On);
+
+            wornHidden = renderers ?? Array.Empty<Renderer>();
+        }
+
+        private Renderer[] wornHidden = Array.Empty<Renderer>();
+
         private void ApplyFirstPersonVisibility(ScriptableRenderContext context, Camera renderingCamera)
         {
             ShadowCastingMode mode = renderingCamera == lookCamera && firstPersonHiddenActive
                 ? ShadowCastingMode.ShadowsOnly
                 : ShadowCastingMode.On;
 
-            foreach (SkinnedMeshRenderer renderer in firstPersonHidden)
+            Apply(firstPersonHidden, mode);
+            Apply(wornHidden, mode);
+        }
+
+        private static void Apply(Renderer[] renderers, ShadowCastingMode mode)
+        {
+            if (renderers == null) return;
+
+            foreach (Renderer renderer in renderers)
             {
                 if (renderer != null) renderer.shadowCastingMode = mode;
             }

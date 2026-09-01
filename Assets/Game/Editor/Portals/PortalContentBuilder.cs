@@ -61,6 +61,39 @@ namespace SpaceGame.EditorTools.Portals
         /// </summary>
         private const float SplatLife = 0.5f;
 
+        /// <summary>
+        /// How long the gun is drawn LYING ON THE BACKPACK, metres along its longest axis. This is
+        /// <c>ItemGrip.packSize</c>, and it is a different question from <c>holdSize</c>, which
+        /// stays on the ladder's Gun bracket at 1.25 and is not touched by this number.
+        ///
+        /// <para>
+        /// <b>The mat is in true-world metres; the hand is not.</b> The astronaut's hand is about
+        /// 1.7x a human's, so <c>ItemScaleLadder</c> inflates gripped items for the feel of holding
+        /// them — this gun is a 0.4445 m fire extinguisher carried at 1.25 m, 2.8x life size. The
+        /// pack is read from above at a fixed standoff, where that inflation buys nothing and is
+        /// paid for in cells out of a finite 255. Every item on the roster that has ever been
+        /// re-sized FOR the mat says the same thing, and says it in whole cells of the rig's
+        /// webbing pitch: Leash 0.27 (true 0.160), Lasso 0.36 (true 0.267), GrapplingHook 0.54
+        /// (true 0.382) — each one its true modelled size rounded up to the next cell, plus one.
+        /// Not one of them is anywhere near its hand size.
+        /// </para>
+        /// <para>
+        /// So: 0.4445 m true is 4.94 of the 0.09 m pitch those three were authored against, and one
+        /// cell of margin above that is <b>6 cells = 0.54 m</b> — the same value the GrapplingHook
+        /// carries, which is the nearest thing to it in true size (0.382 m). On the mat that draws
+        /// an 0.81 m bottle standing in a 2 x 4 cell footprint. It was 1.875 m in 4 x 9.
+        /// </para>
+        /// <para>
+        /// <b>Written on every run, unlike the grip pose.</b> A pose is judged by eye and must
+        /// survive a rebuild; this is a capacity decision derived from a measurement, and leaving
+        /// it to the field default means <c>packSize 0</c>, which does not mean "unset" — it means
+        /// "follow <c>holdSize</c>". That silently re-wires the gun's share of the pack to the
+        /// HAND's bracket ladder, so the next person who moves it a bracket for feel pays for it
+        /// on the mat with nothing to say why. Same reasoning as the jet constants below.
+        /// </para>
+        /// </summary>
+        private const float PackSize = 0.54f;
+
         /// <summary>The hose's numbers, mirroring PortalGunItem's serialized defaults.
         ///
         /// These MUST match, and not approximately. The droplets are an ordinary ParticleSystem
@@ -556,6 +589,34 @@ namespace SpaceGame.EditorTools.Portals
                 model = instance.transform;
             }
 
+            // And it is NOT laid on its side for the backpack, which is the change this comment
+            // exists to refuse a second time. The pack draws an item with its own up still up
+            // (ItemFootprint.FootprintOf is defined as (size.x, size.z)), so the gun stands on the
+            // mat, and the whole-roster orientation audit reports it as "STANDS ON END — its
+            // LONGEST axis is up" and offers a turn about Z. Three measurements say leave it:
+            //
+            //   the base ring is real. 0.0130 m2 of down-facing geometry in the bottom 5 mm of
+            //   the mesh, an annulus from r 0.018 to r 0.0505 against a bottle radius of 0.0589.
+            //   portal_gun.py puts the origin at the centre of it precisely so the bottle "stands
+            //   on a surface without a Z nudge". This is a foot, not a tip — the case Backpack.md
+            //   carves out of "put the smallest axis up".
+            //
+            //   the turn costs the whole rack. Standing it is 4 x 9 cells and sits on the 9 x 9
+            //   rack strictly; laid down it is 14 x 9, which no face takes, and PackOverhang then
+            //   clamps it ski-fashion to every cell of the rack — 81 of the rig's 255, up from 36,
+            //   with a third of a metre hanging off each end.
+            //
+            //   and the sign is not decidable anyway. The mesh is mirror-symmetric about X to
+            //   within 0.07% of face area (+X 0.042826 m2, -X 0.042858 m2), so neither -90 nor +90
+            //   is "upside down"; the only thing the choice picks is which of the two sight tubes,
+            //   the orange charge or the blue, is the one buried against the mat.
+            //
+            // What DID read oddly on the mat was the size, not the pose — holdSize 1.25 is the
+            // Gun bracket for the HAND, and 1.25 x PackScale.Factor drew a 0.44 m extinguisher
+            // 1.875 m tall on a 1.08 m leaf. That is fixed by ItemGrip.packSize, which exists for
+            // exactly this: see PackSize above. PortalGunWiringTests pins both the standing
+            // footprint and the mat size.
+
             // The markers exported alongside the mesh exist only to carry two
             // coordinates across the FBX. Turned into plain transforms on the
             // prefab root, they become the muzzle and the grip; left as meshes,
@@ -613,6 +674,13 @@ namespace SpaceGame.EditorTools.Portals
                 serializedGrip.FindProperty("holdSize").floatValue = 1.25f;
                 serializedGrip.ApplyModifiedPropertiesWithoutUndo();
             }
+
+            // And the mat size every time, for the reason PackSize gives: holdSize is the hand's
+            // and is left exactly where the ladder put it, but a packSize of 0 is not "unset", it
+            // is "follow the hand" — so this one has to be stated or it is silently retracted.
+            var serializedSize = new SerializedObject(itemGrip);
+            serializedSize.FindProperty("packSize").floatValue = PackSize;
+            serializedSize.ApplyModifiedPropertiesWithoutUndo();
 
             // Keep the two fluid slots pointed at the animated materials even if
             // the FBX was imported before the remap existed.

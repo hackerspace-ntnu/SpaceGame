@@ -28,6 +28,46 @@ namespace SpaceGame.Tests
     {
         private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
 
+        /// <summary>
+        /// A length that was authored against the pack's ORIGINAL 0.09 m cell, restated at
+        /// whatever the cell is today.
+        ///
+        /// <para>
+        /// The 2026-09-01 enlargement multiplied the cell, every face and every item's on-mat size
+        /// by <see cref="PackScale.Factor"/> together and multiplied no cell COUNT by anything, so
+        /// every figure below still means the cells it always meant. Wrapping them rather than
+        /// re-typing them at 1.5x keeps the arithmetic in the comments checkable and makes the next
+        /// scale change a one-line edit to <see cref="PackScale"/>. Same helper, same reasoning, as
+        /// in <c>PackLayoutTests</c>.
+        /// </para>
+        /// </summary>
+        private static float M(float metresAtTheOriginalCell) =>
+            metresAtTheOriginalCell * (PackGrid.Cell / PackScale.LegacyCell);
+
+        /// <summary>The one face these tests lay things on: 9 x 8 cells with a hem across.</summary>
+        private static readonly Vector2 LeafSize = new(M(0.86f), M(0.72f));
+
+        /// <summary>
+        /// The block an item with no prefab occupies. <see cref="ItemFootprint"/> gives anything it
+        /// cannot measure a small square, which is two cells either way at any scale.
+        /// </summary>
+        private static readonly Vector2Int UnmeasurableBlock = new(2, 2);
+
+        /// <summary>
+        /// The middle of a block of cells on <see cref="LeafSize"/> — a uv the layout will store
+        /// UNCHANGED.
+        ///
+        /// <para>
+        /// Load-bearing wherever a test asserts that an item landed at the exact spot it was
+        /// pointed at. A uv between cells is snapped on the way in (<c>PackLayoutTests</c> pins
+        /// that), so asking for a round number and then demanding the stored uv equal it would be
+        /// testing the snap and failing. Asking for a cell centre asks the question the test's own
+        /// message asks: did the transfer put the item where the cursor was.
+        /// </para>
+        /// </summary>
+        private static Vector2 Spot(int x, int y) =>
+            PackGrid.BlockCentreUv(LeafSize, new Vector2Int(x, y), UnmeasurableBlock);
+
         private readonly List<InventoryItem> created = new();
         private readonly List<GameObject> spawned = new();
         private readonly List<PackShapeLibrary> libraries = new();
@@ -54,8 +94,8 @@ namespace SpaceGame.Tests
 
         /// <summary>
         /// An item with an id, because the layout is keyed by id. With no prefab it measures the
-        /// 0.1 m square <see cref="ItemFootprint"/> gives anything it cannot measure, which is all
-        /// these tests need.
+        /// small square <see cref="ItemFootprint"/> gives anything it cannot measure — two cells
+        /// either way, whatever the cell is — which is all these tests need.
         /// </summary>
         private InventoryItem Item(string name)
         {
@@ -89,12 +129,12 @@ namespace SpaceGame.Tests
             return pack;
         }
 
-        private BackpackObject Pack() => Pack(new Vector2(0.86f, 0.72f));
+        private BackpackObject Pack() => Pack(LeafSize);
 
         /// <summary>
         /// Give one item a non-square authored footprint, so a test can tell "the yaw field was
         /// threaded through" from "the shape actually turned" — <see cref="Item"/>'s default
-        /// footprint is a 0.1 m square, on which a 90 degree turn is geometrically a no-op. Mirrors
+        /// footprint is a two-cell square, on which a 90 degree turn is geometrically a no-op. Mirrors
         /// the "rod" fixture <c>PackLayoutTests</c> uses for the same reason at the raw-layout
         /// level; this one goes through <see cref="BackpackObject.Shapes"/> because that is the
         /// field a real item's row would arrive on.
@@ -194,7 +234,7 @@ namespace SpaceGame.Tests
             InventoryItem carried = Item("carried");
             Assert.IsTrue(hotbar.TryAddItem(carried));
 
-            var spot = new Vector2(0.4f, 0.3f);
+            Vector2 spot = Spot(3, 2);
 
             Assert.IsTrue(pack.TryStowFromHotbar(hotbar, 0, PackSurfaceId.Leaf, spot, 0f));
 
@@ -214,16 +254,16 @@ namespace SpaceGame.Tests
         [Test]
         public void Stow_ThatFitsNowhere_LeavesBothTheHotbarAndThePackAlone()
         {
-            // Smaller than the 0.1 m square an unmeasurable item gets, so nothing fits on it at
+            // Barely half a cell across, so it holds no whole cell at all: nothing fits on it at
             // any angle and the first-fit fallback has nowhere to go either.
-            BackpackObject pack = Pack(new Vector2(0.05f, 0.05f));
+            BackpackObject pack = Pack(new Vector2(M(0.05f), M(0.05f)));
             var hotbar = new Hotbar(4);
 
             InventoryItem carried = Item("carried");
             Assert.IsTrue(hotbar.TryAddItem(carried));
 
             Assert.IsFalse(pack.TryStowFromHotbar(hotbar, 0, PackSurfaceId.Leaf,
-                                                  new Vector2(0.02f, 0.02f), 0f));
+                                                  new Vector2(M(0.02f), M(0.02f)), 0f));
 
             Assert.IsTrue(IsInSlot(hotbar, 0, carried), "the item must still be in the hotbar");
             Assert.AreEqual(0, pack.Layout.Placements.Count, "and nothing may have landed on the pack");
@@ -238,7 +278,7 @@ namespace SpaceGame.Tests
             InventoryItem carried = Item("carried");
             Assert.IsTrue(hotbar.TryAddItem(carried));
 
-            var spot = new Vector2(0.4f, 0.3f);
+            Vector2 spot = Spot(3, 2);
             Assert.IsTrue(pack.TryStowFromHotbar(hotbar, 0, PackSurfaceId.Leaf, spot, 0f));
 
             Assert.IsTrue(pack.TryTakeToHotbar(PackSurfaceId.Leaf, spot, hotbar));
@@ -251,8 +291,8 @@ namespace SpaceGame.Tests
         /// The whole point of removing the magnet: a stow goes where it was pointed, at the turn
         /// it was shown at, and nowhere else — and the turn has to be a real turn of the
         /// footprint, not just a number recorded beside it. A rod-shaped item proves that: 9 cells
-        /// (0.81 m) is taller than this pack's 0.72 m face, so lying flat it cannot land ANYWHERE
-        /// on it, and the only way it fits at all is turned on its side.
+        /// is taller than this pack's 8-cell face, so lying flat it cannot land ANYWHERE on it,
+        /// and the only way it fits at all is turned on its side, where the face is 9 across.
         /// </summary>
         [Test]
         public void Stow_PlacesAtTheYawItWasGiven()
@@ -264,10 +304,10 @@ namespace SpaceGame.Tests
             GiveRodShape(pack, carried, width: 2, height: 9);
             Assert.IsTrue(hotbar.TryAddItem(carried));
 
-            // Centred so the rod's 0.81 m length clears the 0.86 m face turned sideways, with only
-            // 0.05 m to spare either way — not a position a 2 x 9 rod could occupy lying flat at
-            // any yaw the pack understands as "flat".
-            var spot = new Vector2(0.43f, 0.3f);
+            // Centred, so turned sideways the rod's 9 cells sit exactly on the face's 9 columns
+            // with only the hem to spare either end — and not a position a 2 x 9 rod could occupy
+            // lying flat at any yaw the pack understands as "flat".
+            var spot = new Vector2(M(0.43f), M(0.3f));
 
             Assert.IsFalse(pack.TryStowFromHotbar(hotbar, 0, PackSurfaceId.Leaf, spot, 0f),
                            "flat, the rod is taller than the face and cannot land anywhere on it");
@@ -292,7 +332,7 @@ namespace SpaceGame.Tests
             var hotbar = new Hotbar(4);
 
             InventoryItem sitting = Item("sitting");
-            var spot = new Vector2(0.4f, 0.3f);
+            Vector2 spot = Spot(3, 2);
             Assert.IsTrue(pack.TryPlace(sitting, PackSurfaceId.Leaf, spot, 0f));
 
             InventoryItem carried = Item("carried");

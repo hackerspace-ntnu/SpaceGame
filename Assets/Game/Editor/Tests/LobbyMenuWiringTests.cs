@@ -1,5 +1,9 @@
+using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
+using UnityEditor;
 using SpaceGame.Presentation;
 
 namespace SpaceGame.Tests
@@ -89,6 +93,59 @@ namespace SpaceGame.Tests
         {
             Assert.IsNotNull(typeof(MainMenuUI).GetMethod("EnterLobby", Public),
                 "WorldSelectUI finishes the host route by calling MainMenuUI.EnterLobby.");
+        }
+
+        /// <summary>
+        /// The regression test for Story ▸ Multiplayer, which used to drop the player back on the
+        /// main menu instead of opening the host/join page.
+        ///
+        /// Every page's <c>Open</c> refuses to build a second copy of itself while one is up. The
+        /// check for "one is up" cannot be a bare <c>FindFirstObjectByType</c>: <c>Close</c> hands
+        /// the GameObject to <c>Destroy</c>, which Unity does not act on until the end of the
+        /// frame, so the page that was just closed is still found — and still non-null — for the
+        /// rest of that frame. <c>MenuChoiceUI.Pick</c> closes and routes onward in the same
+        /// breath, so STORY ▸ Multiplayer opened a <c>MenuChoiceUI</c> from a <c>MenuChoiceUI</c>,
+        /// found the corpse of the one it had just closed, returned it as "already open" and built
+        /// nothing at all.
+        ///
+        /// <see cref="MenuScreen"/>'s <c>Existing&lt;T&gt;</c> is the answer, because it also asks
+        /// whether the page it found has been closed. This reads the source rather than calling
+        /// anything because the bug is a lifecycle timing one — it only reproduces in play mode,
+        /// where this suite cannot go — but the mistake that causes it is visible in the text.
+        /// </summary>
+        [Test]
+        public void MenuPages_FindEachOtherThroughExistingRatherThanARawFind()
+        {
+            var offenders = new List<string>();
+
+            foreach (System.Type page in TypeCache.GetTypesDerivedFrom<MenuScreen>())
+            {
+                string source = SourceOf(page);
+                if (source == null) continue;
+
+                if (Regex.IsMatch(source, @"FindFirstObjectByType\s*<\s*" + page.Name + @"\s*>"))
+                    offenders.Add(page.Name);
+            }
+
+            CollectionAssert.IsEmpty(offenders,
+                "These pages look for themselves with FindFirstObjectByType, which also finds a " +
+                "page closed earlier in the same frame — opening one of them from another of the " +
+                "same type builds nothing. Use MenuScreen.Existing<T>() instead.");
+        }
+
+        /// <summary>The file a type is declared in, or null when it has no MonoScript of its own.</summary>
+        private static string SourceOf(System.Type type)
+        {
+            foreach (string guid in AssetDatabase.FindAssets($"{type.Name} t:MonoScript"))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (Path.GetFileNameWithoutExtension(path) != type.Name) continue;
+                if (AssetDatabase.LoadAssetAtPath<MonoScript>(path)?.GetClass() != type) continue;
+
+                return File.ReadAllText(path);
+            }
+
+            return null;
         }
     }
 }

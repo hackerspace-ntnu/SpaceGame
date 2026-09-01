@@ -103,9 +103,40 @@ namespace SpaceGame.Gameplay
         }
 
         /// <summary>
+        /// The height of the highest solid part of the hull, so a probe can be started above the
+        /// ship rather than at an authored ceiling the ship may be well above.
+        /// </summary>
+        public static float TopOf(GameObject ship)
+        {
+            if (ship == null) return 0f;
+
+            return TryMeasureCollision(ship, out Bounds bounds)
+                ? bounds.max.y
+                : ship.transform.position.y;
+        }
+
+        /// <summary>
         /// Everything the hull's solid parts occupy. Triggers are excluded for the reason the ground
         /// probe excludes them: an interaction volume, a boarding trigger or a shelter bounds is not
         /// part of the hull and would report a belly metres below the real one.
+        ///
+        /// <para>
+        /// Colliders that are not in the physics scene are excluded too, and that one is not a
+        /// nicety. Collider.bounds is a world-space box the physics scene maintains, and a collider
+        /// it has never seen has no box to report: Unity hands back a zero-SIZE bounds sitting at
+        /// the WORLD ORIGIN, and Encapsulate then stretches the hull all the way down to y=0.
+        /// PlayerShip carries eleven of them — the salvage parts are authored disabled — so a hull
+        /// standing at 106 m would report a belly hanging 106 m below its own origin, and every
+        /// height derived from it is wrong by the hull's own altitude.
+        /// </para>
+        /// <para>
+        /// Tested on the box rather than on the enabled flag, because both cases have to go and only
+        /// one of them is a flag: a prefab ASSET is in no physics scene at all, and its colliders
+        /// report the same empty box whatever their flags say. Skipping them there costs nothing —
+        /// the measurement was already meaningless — and asking activeInHierarchy instead would
+        /// discard every collider on a prefab, which is exactly the measurement the arc is planned
+        /// from.
+        /// </para>
         /// </summary>
         private static bool TryMeasureCollision(GameObject ship, out Bounds bounds)
         {
@@ -115,6 +146,7 @@ namespace SpaceGame.Gameplay
             foreach (Collider collider in ship.GetComponentsInChildren<Collider>(includeInactive: true))
             {
                 if (collider.isTrigger) continue;
+                if (collider.bounds.size == Vector3.zero) continue;
 
                 if (!any)
                 {

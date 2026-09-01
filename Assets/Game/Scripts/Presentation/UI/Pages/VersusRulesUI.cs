@@ -42,7 +42,7 @@ namespace SpaceGame.Presentation
         /// </summary>
         public static VersusRulesUI Open(MainMenuUI owner)
         {
-            var existing = FindFirstObjectByType<VersusRulesUI>();
+            var existing = Existing<VersusRulesUI>();
             if (existing != null) return existing;
 
             ResetToDefaults();

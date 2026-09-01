@@ -208,6 +208,137 @@ namespace SpaceGame.EditorTools
         }
     }
 
+    /// <summary>
+    /// The landing check, measured against the world physics simulates.
+    ///
+    /// <para>
+    /// These two are why an arrival could report a clean landing for a hull hanging in the sky.
+    /// The check read the same heightmap the arc had been planned from, so it agreed with itself;
+    /// and the belly it subtracted was measured with colliders physics had never seen, which report
+    /// an empty box at the world ORIGIN and drag the hull's bounds down to y=0.
+    /// </para>
+    /// </summary>
+    public class CollisionGroundingTests
+    {
+        private GameObject ground;
+        private GameObject hull;
+
+        [SetUp]
+        public void SetUp()
+        {
+            ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            ground.transform.position = new Vector3(0f, 90f, 0f);
+            ground.transform.localScale = new Vector3(200f, 2f, 200f);
+
+            hull = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            hull.transform.position = new Vector3(0f, 120f, 0f);
+            hull.transform.localScale = new Vector3(20f, 4f, 28f);
+
+            Physics.SyncTransforms();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            Object.DestroyImmediate(hull);
+            Object.DestroyImmediate(ground);
+        }
+
+        [Test]
+        public void FindsTheGroundUnderAHullAndNotTheHullItself()
+        {
+            // The probe starts above the ship, so the first thing under it is always the ship.
+            Assert.IsTrue(ShipGrounding.TryResolveCollisionGround(
+                              Vector2.zero, 200f, 500f, hull, out float groundY),
+                          "There is a 200 m slab directly under the hull.");
+
+            Assert.AreEqual(91f, groundY, 0.01f,
+                            "Grounded on the slab's top face. Anything near 122 means the probe " +
+                            "took the hull's own roof and the ship would be landed on itself.");
+        }
+
+        [Test]
+        public void IgnoresTheCrewStandingInTheHull()
+        {
+            // The arrival never parents its riders — the player transform is owner-authoritative —
+            // so a crew capsule sits loose inside the cockpit, right under the centre sample.
+            // Kinematic, because that is what CarriedBody.Hold leaves a seated rider as: this test
+            // asserted a dynamic body for a body the game never makes dynamic, which is how the
+            // narrower rule survived.
+            var crew = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            crew.transform.position = new Vector3(0f, 118f, 0f);
+            crew.AddComponent<Rigidbody>().isKinematic = true;
+            Physics.SyncTransforms();
+
+            try
+            {
+                Assert.IsTrue(ShipGrounding.TryResolveCollisionGround(
+                                  Vector2.zero, 200f, 500f, hull, out float groundY));
+
+                Assert.AreEqual(91f, groundY, 0.01f,
+                                "Ground is terrain and buildings, which are static. Anything under " +
+                                "its own physics is cargo, and a hull does not rest on its crew.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(crew);
+            }
+        }
+
+        [Test]
+        public void IgnoresAKinematicBodyStandingUnderTheHull()
+        {
+            // The case the dynamic-crew test above never reached, and the one that actually shipped:
+            // agents, mounts and a rider held by CarriedBody are all KINEMATIC. A nomad walking
+            // under the impact site put its head 2.81 m above the terrain, the probe called that
+            // the ground, and the arrival set the ship down on it.
+            var nomad = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            nomad.transform.position = new Vector3(0f, 93f, 0f);
+            nomad.AddComponent<Rigidbody>().isKinematic = true;
+            Physics.SyncTransforms();
+
+            try
+            {
+                Assert.IsTrue(ShipGrounding.TryResolveCollisionGround(
+                                  Vector2.zero, 200f, 500f, hull, out float groundY));
+
+                Assert.AreEqual(91f, groundY, 0.01f,
+                                "The world's surface is its static collision. Anything near 94 " +
+                                "means the hull was grounded on the nomad's head and would be " +
+                                "persisted hanging that far above the desert.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(nomad);
+            }
+        }
+
+        [Test]
+        public void BellyDropIgnoresCollidersPhysicsHasNeverSeen()
+        {
+            float clean = ShipHull.BellyDrop(hull);
+
+            // PlayerShip carries eleven of these: the salvage parts are authored disabled.
+            var part = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            part.transform.SetParent(hull.transform, worldPositionStays: true);
+            part.GetComponent<BoxCollider>().enabled = false;
+            Physics.SyncTransforms();
+
+            try
+            {
+                Assert.AreEqual(clean, ShipHull.BellyDrop(hull), 0.01f,
+                                "A collider outside the physics scene reports an empty box at the " +
+                                "world origin. Folded in, the belly of a hull at 120 m measures " +
+                                "120 m, and every height derived from it is out by the hull's own " +
+                                "altitude.");
+            }
+            finally
+            {
+                Object.DestroyImmediate(part);
+            }
+        }
+    }
+
     public class CarriedBodyTests
     {
         private GameObject body;

@@ -532,3 +532,78 @@ Re-run `Tools/SpaceGame/Items/Build Expedition Rig Prefab` after re-export, then
 7 surfaces, 5 hinges, 5 holders and the player reference off disk. Old saves: every face grew
 in cells except LongGoods, hem recentring shifts stored uvs at most half a cell, and
 `AdoptPlacements` first-fits any refusal — same behaviour as the deepening.
+
+## Enlarged 1.5x — 2026-09-01
+
+The whole physical inventory was scaled up uniformly by **1.5**: the cell (`PackGrid.Cell`
+0.090 -> 0.135 m), every `SURF_*` rectangle, the ship's gear wall, the size every item is drawn
+at on the mat, the focus camera's standoff — and this model with them. Unity's half of the number
+is `PackScale.Factor` in `Assets/Game/Scripts/Items/Backpack/Placement/PackScale.cs`.
+
+**Cell counts did not move.** Back 3x6, Leaf 8x8, Wings 4x7, LongGoods 18x1, Rack 9x9 — 255 cells,
+exactly as before. It is a similarity transform, so capacity, every authored `PackShape` mask and
+every item's cell footprint are all untouched. What changed is how much of the screen the pack
+fills in focus mode.
+
+**The model had to come along.** The webbing ladder's rungs ARE the grid — `PackGrid`'s cell is one
+rung. Left at 1x under a 1.5x grid, the stitching, the grommet field and the lash rail stop lining
+up with the cells the player drops gear onto, and the mat rectangle grows past the physical board
+so gear lands over sand.
+
+### The pipeline is now three steps, not two
+
+```bash
+blender -b --python expedition_rig.py -- --out <new>.blend   # 1. generate, modelling frame
+blender -b <new>.blend --python expedition_rig_dress.py      # 2. soft goods (2026-08-24)
+blender -b <new>.blend --python expedition_rig_scale.py      # 3. x1.5, in place
+```
+
+Run the generator into `components/props/` itself and rename afterwards, not into a scratch
+directory: the palette is a LINKED library at `//../../palette.blend`, and a file generated
+somewhere else carries a relative path that no longer resolves once it is copied back. That is the
+relink trap this record already names.
+
+`expedition_rig_scale.py` stamps `scene["rig_scale"]` and **refuses a file that already carries
+one**. A second pass leaves a 2.25x rig that no number on Unity's side agrees with, and nothing
+downstream would say so — the pack would simply be enormous.
+
+### Why the scale is a third script and not a SCALE threaded through the generator
+
+`expedition_rig.py` is 1400 lines of measurements, and every one of them is justified against a
+neighbouring one in a comment. Multiplying them individually means editing several hundred numbers
+and invalidating every comment that relates two of them, to express something that is a single
+factor — and the next person to add a part has to remember to multiply theirs. So the generator
+keeps authoring in the frame its own prose describes, and the enlargement is applied afterwards as
+what it actually is: one similarity transform of the finished model. `SURFACES` in the generator is
+therefore still in the **modelling** frame; `expedition_rig_scale.report()` prints the same table
+already multiplied, and that printed form is what `ExpeditionRigWiring.SurfaceTable` must equal.
+
+### Control diff, run before the enlargement
+
+`expedition_rig.blend` was proved script-reproducible first — steps 1 and 2 regenerated into a
+scratch directory and compared against the shipped file object by object: 47 objects, zero
+differences in name, type, parent, location, rotation, **scale**, vertex/edge/polygon counts, local
+bounding box or material assignment, and an identical SHA-256 per-vertex fingerprint on all 35
+meshes. The only difference was the palette library's *relative* path, an artefact of generating
+into the scratchpad. Re-run that control before any future regeneration: the answer stops being
+zero the moment someone opens the file and models on it by hand.
+
+After the enlargement the same dump was compared against the pre-enlargement one: **every object
+location and every mesh bounding box exactly 1.5x, with rotations, object scales, mesh counts and
+material assignment identical.**
+
+### Numbers
+
+| | before | after |
+|---|---|---|
+| deployed bounds (W x D x H) | 1.728 x 2.083 x 0.832 m | 2.592 x 3.124 x 1.249 m |
+| `SURF_Leaf` | 0.720 x 0.720 m | 1.080 x 1.080 m |
+| `SURF_LongGoods` | 1.620 x 0.090 m | 2.430 x 0.135 m |
+| `SURF_Rack` | 0.810 x 0.810 m | 1.215 x 1.215 m |
+| `SURF_Back_L/R` | 0.270 x 0.540 m | 0.405 x 0.810 m |
+| `SURF_Wing_L/R` | 0.360 x 0.630 m | 0.540 x 0.945 m |
+| tris / objects | 27284 / 47 | 27284 / 47 |
+
+`pack_holders.blend` was **not** scaled and must not be. `HolderBuilder` stretches every holder to
+fit the item it holds, measured through `ItemFootprint.SizeOf`, which is already in the enlarged
+frame — so the holders grew with the gear on their own.

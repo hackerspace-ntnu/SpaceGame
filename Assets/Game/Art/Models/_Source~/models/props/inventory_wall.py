@@ -1,41 +1,82 @@
 """The inventory wall — a ship's gear wall in the expedition rig's language.
 
 The rig is 0.72 m of canvas you unfold on the sand. This is the same idea given
-a bulkhead: 5.40 x 2.70 m of grid, ten bays across, standing on the main deck
+a bulkhead: 30 x 22 cells of grid, five bays across, standing on the main deck
 of the PlayerShip between the sliding side door and the rear ramp. Gear placed
-on it is placed the way gear is placed on the rig — free position on a 0.090 m
+on it is placed the way gear is placed on the rig — free position on the cell
 grid, true size, no slot count — and the C# side reuses the rig's whole
 placement layer to do it.
 
-Why 5.40 x 2.70
----------------
-Both numbers are whole multiples of PackGrid's 0.090 m cell: 60 x 30 = 1800
-cells, against the rig's biggest single face at 9 x 9. The height is the
-constraint that set it. The astronaut is 3 m tall and the deck-to-grid-top
-distance has to stay inside its reach, so the grid runs 0.36 m to 3.06 m above
-the deck and the tray, plinth and header live outside that band. Widening is
-free (the wall it mounts on is 7.9 m long); heightening is not.
+This file authors in the PRE-ENLARGEMENT frame
+----------------------------------------------
+Every metre below is in the 0.090 m cell the wall was first modelled at, and the
+shipped `inventory_wall.blend` is 1.5x all of it — 4.05 x 2.97 m of grid on a
+0.135 m cell, which is what `PackGrid.Cell` and `InventoryWallBuilder.SurfaceSize`
+now hold. The enlargement is a second script, `inventory_wall_scale.py`, and not
+a raised CELL here, because thirty-seven of the lengths in this file and in
+`grid_panel.py` are *stock* rather than *pitch* — frame section, tape width, bolt
+heads, plate thicknesses, bevel widths — and none of them is derived from CELL.
+Raising CELL would reproportion the wall rather than enlarge it. That file's
+header carries the full audit. So the pipeline is two steps:
 
-Layout
-------
-                       +--------- header + lamp ---------+   z 3.06..3.30
-                       | W | P | W | N | W | P | W | N | ..|  z 0.36..3.06
-                       +---------- tool tray ------------+   z 0.00..0.36
-    x -2.82                                            x +2.82
+    blender --background --python inventory_wall.py -- --out inventory_wall.blend
+    blender --background inventory_wall.blend --python inventory_wall_scale.py
 
-Ten 0.54 m bays, drawn by `components/props/grid_panel.py` — the same three
-variations it saves as a module, distributed W P W N W P W N W P so no two
-neighbours match. The bay frames stand 0.045 m proud of their canvas and their
-front faces are the plane at y = 0 that gear rests on: the panels are recessed
-BEHIND the placement surface, which is why a bay frame never pokes through an
-item lying across it.
+Read every number below as a MODELLING metre. Multiply by
+`inventory_wall_scale.SCALE` for what Unity sees.
+
+Why 30 x 22 cells
+-----------------
+Whole cells in both directions — 660 of them, against the rig's biggest single
+face at 9 x 9. **The room is the constraint, and it is measured, not chosen.**
+The wall was first drawn 60 x 30 on the 0.090 m cell, which was comfortable; the
+2026-09-01 enlargement multiplied every length by 1.5 and the fitting stopped
+fitting — 8.46 m wide and 4.95 m tall against a room that has neither.
+
+The room was measured against the ship's BAKED COLLISION
+(`player_ship_collision.fbx`), not against its visible meshes, because the two
+are not the same shape: the hull skin `Plane.001` curves up off the deck and its
+convex decomposition fills that curve, so the outboard half-metre of deck that
+looks free is solid to a player. Standing off `PlayerShipBuilder`'s
+`WallRibClearance` — raised to 1.00 m in the same change for exactly that reason
+— the fitting's own footprint is clear from the deck up, and the headroom over
+it is **4.37 m**, capped by one arch-rib buttress (`Cube.007`); the deckhead
+proper is 4.79-4.87 m. Fore and aft the run ends at the cockpit dais riser and
+the ramp sill, and the builder centres the fitting on the main deck's centre,
+which leaves 2.91 m of run forward of that centre and 3.75 m aft.
+
+So the counts were re-picked against those numbers rather than the height being
+trimmed alone. At 1.5x, 22 cells of grid plus the 0.54 m tray band and the 0.36 m
+header cowl stand 3.87 m off the deck — 89% of the 4.37 m available, i.e. a wall
+that runs from the deck most of the way up and stops half a metre short of the
+ribs on purpose. 30 cells of grid plus the two stiles are 4.41 m wide, which
+centres in the run with 0.75 m clear forward of it and 1.54 m clear aft.
+
+Layout (modelling frame; the shipped file is 1.5x every number here)
+-------------------------------------------------------------------
+                       +----- header + lamp -----+   z 2.34..2.58
+                       | W | P | W | N | W |         z 0.36..2.34
+                       +------- tool tray -------+   z 0.00..0.36
+    x -1.47                                  x +1.47
+
+Five six-cell bays, drawn by `components/props/grid_panel.py` — the same three
+variations it saves as a module, distributed W P W N W so no two neighbours
+match. The bay stayed six cells wide when the wall shrank and the bay COUNT
+halved instead, because six cells is `grid_panel.MODULE_W` — the module the
+component file saves and a locker door reuses — and a wall of five of those is
+still the same fitting, where a wall of ten narrower ones would be a different
+one. The bay frames stand 0.045 m proud of their canvas and their front faces
+are the plane at y = 0 that gear rests on: the panels are recessed BEHIND the
+placement surface, which is why a bay frame never pokes through an item lying
+across it.
 
 SURF_WallGrid
 -------------
 The placement face, carrying no size of its own — Unity's `PackSurface` holds
 that, exactly as it does for the rig, because a scaled empty would rescale
-every item parented under it. 5.40 x 2.70 is printed at build time for whoever
-fills in the inspector.
+every item parented under it. The rectangle is printed at build time for whoever
+fills in the inspector: 2.70 x 1.98 here, and `inventory_wall_scale.py` prints
+the 4.05 x 2.97 that Unity must actually carry.
 
 Its rotation is Z 180 and that is not arbitrary. `PackSurface`'s frame is local
 X = u, local Z = v, local Y = the outward normal, and there is NO rotation that
@@ -44,8 +85,6 @@ one of the three has to flip. v-up is the one worth keeping on a wall, so u
 runs right-to-left as seen by a player facing it. Verify the sense in Unity
 after import, never from this file: FBX axis conversion mirrors handedness on
 root empties, which is what made the rig's wing folds come out inverted.
-
-    blender --background --python inventory_wall.py -- --out inventory_wall.blend
 
 Generation script — historical record. The .blend is the source of truth; never
 re-run this over the file it produced.
@@ -70,21 +109,22 @@ MATS = list(grid_panel.MATS) + [
 ]
 SAND, OCHRE, STEEL, DARK, BRASS, CORD, AMBER, RUBBER = range(8)
 
+# The MODELLING cell, not `PackGrid.Cell` — see the header. Everything below is
+# in this frame and the shipped .blend is `inventory_wall_scale.SCALE` times it.
 CELL = grid_panel.CELL
 
 # --- the placement face ----------------------------------------------------
-GRID_W = 60 * CELL            # 5.40
-GRID_H = 30 * CELL            # 2.70
+GRID_W = 30 * CELL            # 2.70 -> 4.05 shipped
+GRID_H = 22 * CELL            # 1.98 -> 2.97 shipped
 GRID_Z0 = 4 * CELL            # 0.36 above the deck — clears the tray
-GRID_Z1 = GRID_Z0 + GRID_H    # 3.06 — the top row, inside a 3 m reach
+GRID_Z1 = GRID_Z0 + GRID_H    # 2.34 -> 3.51 shipped, half a metre under the ribs
 
-BAYS = 10
+BAYS = 5
 BAY_W = GRID_W / BAYS         # 0.54 — six cells, grid_panel's module width
 
-# W P W N W P W N W P: five webbed so the rig's language leads, no two
-# neighbours alike so the wall does not read as one panel copied ten times.
-BAY_PATTERN = ("Webbed", "Pegboard", "Webbed", "Netted", "Webbed",
-               "Pegboard", "Webbed", "Netted", "Webbed", "Pegboard")
+# W P W N W: three webbed so the rig's language leads, no two neighbours alike
+# so the wall does not read as one panel copied five times.
+BAY_PATTERN = ("Webbed", "Pegboard", "Webbed", "Netted", "Webbed")
 
 # --- the surround ----------------------------------------------------------
 STILE_W = 0.120               # the vertical posts either side
@@ -200,7 +240,8 @@ def _header(p):
                (sx * (STILE_X - 0.024), 0.0, LAMP_Z + 0.078), DARK)
 
     # Stencilled bay numbers would be texture work; the physical equivalent is
-    # a tab over each bay division, which also breaks up a 5.4 m straight edge.
+    # a tab over each bay division, which also breaks up the header's long
+    # straight edge (GRID_W, 2.70 here and 4.05 shipped).
     for i in range(1, BAYS):
         x = -GRID_W / 2.0 + i * BAY_W
         p.slab((x - 0.024, -0.012, GRID_Z1 + 0.024),
@@ -251,7 +292,10 @@ def main():
           rot=(0.0, 0.0, math.pi))
 
     report()
-    print("  SURF_WallGrid  size = %.3f x %.3f m  (%d x %d cells of %.3f)"
+    # The modelling frame. `inventory_wall_scale.py` prints the same table
+    # already multiplied, and THAT is the one Unity's inspector has to match.
+    print("  SURF_WallGrid  size = %.3f x %.3f m  (%d x %d cells of %.3f)  "
+          "[modelling frame]"
           % (GRID_W, GRID_H, round(GRID_W / CELL), round(GRID_H / CELL), CELL))
     print("  grid band z %.3f .. %.3f, fitting %.2f W x %.2f H x %.2f D"
           % (GRID_Z0, GRID_Z1, 2 * (STILE_X + STILE_W), HEADER_Z1, DEPTH))

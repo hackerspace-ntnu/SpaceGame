@@ -124,7 +124,7 @@ The backpack is not a grid of icons. It is a **physical expedition rig** you wea
 
 Press **B** and it comes off your back with a toss and unfolds, and a dedicated camera flies in — about 2.5 m past the rig, 1.5 m up, angled 38° down. Time keeps running. You are not in a menu; you are kneeling over your kit while the world carries on around you, which is exactly the tension the design wants.
 
-**Seven flat faces** are usable surface: a fold-out leaf, a rack, a long-goods rail, two back panels, two wings. Every face is measured in one global cell of **9 cm**, read off the rig's own webbing pitch, and every face is an exact multiple of it — 255 cells in total, with no wasted hem anywhere. Capacity is *cells occupied*. Not a count of items, not a weight, not an area: the actual squares your gear covers.
+**Seven flat faces** are usable surface: a fold-out leaf, a rack, a long-goods rail, two back panels, two wings. Every face is measured in one global cell of **13.5 cm**, read off the rig's own webbing pitch, and every face is an exact multiple of it — 255 cells in total, with no wasted hem anywhere. (The whole rig, its gear and the focus camera were scaled up by half again in September: the cell went from 9 to 13.5 cm and everything on the mat grew with it, so nothing about capacity changed and the pack simply reads bigger and is easier to aim at.) Capacity is *cells occupied*. Not a count of items, not a weight, not an area: the actual squares your gear covers.
 
 Each item fills a **mask** of cells. Most are simple rectangles derived from the item's own measured footprint, but a mask can be drawn by hand, which is what lets two awkward L-shaped things interlock instead of each reserving a bounding box.
 

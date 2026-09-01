@@ -389,10 +389,19 @@ def tcen(ds=0.0):
 # time; nothing in the .blend encodes them, because a scaled empty would rescale
 # every item Unity parents under it.
 #
-# 2026-08-25: every rectangle is an EXACT multiple of PackGrid's 0.090 m cell —
-# Back panels 3x6, Leaf 8x8, Wings 4x7, LongGoods 18x1, Rack 9x9 — so the grid
-# fills each face with zero hem. The centres moved with the resize; each entry
-# says where its rect now runs.
+# 2026-08-25: every rectangle is an EXACT multiple of PackGrid's cell — Back
+# panels 3x6, Leaf 8x8, Wings 4x7, LongGoods 18x1, Rack 9x9 — so the grid fills
+# each face with zero hem. The centres moved with the resize; each entry says
+# where its rect now runs.
+#
+# 2026-09-01: these are still authored in the MODELLING frame, one cell = 0.090 m,
+# because so is every other number in this file. The shipped .blend is
+# `expedition_rig_scale.SCALE` times larger — see that script — so the rows
+# `ExpeditionRigWiring.SurfaceTable` carries are these multiplied by it, and the
+# cell they are multiples of is `PackGrid.Cell` = 0.135 m. The cell COUNTS are
+# the part that has to agree across all three, and they are unchanged.
+# `expedition_rig_scale.report()` prints this table already multiplied, which is
+# the form to compare against the C# table.
 SURFACES = [
     # x 0.150..0.420, s 0.030..0.570 up the slope: clear of the hinge knuckles
     # at the foot, on the loft to within a 3 mm corner sliver at the head.
@@ -1372,4 +1381,8 @@ def main():
     save(out)
 
 
-main()
+# Guarded, so `expedition_rig_scale.py` can import SURFACES and print the
+# rectangles in the enlarged frame without regenerating a model to do it.
+# Blender runs a --python script as "__main__", so this still builds.
+if __name__ == "__main__":
+    main()

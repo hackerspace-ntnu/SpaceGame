@@ -18,17 +18,27 @@ namespace SpaceGame.Items
     /// ground, and would have to put every one of them back.
     /// </para>
     /// <para>
-    /// The pose is authored, not orbited: on the rig's centre axis, 2.46 m out on the side of it
-    /// AWAY from the player, 1.5 m up, pitched 38&#176; down, at FOV 40, looking back down the
+    /// The pose is authored, not orbited: on the rig's centre axis, 3.69 m out on the side of it
+    /// AWAY from the player, 2.25 m up, pitched 38&#176; down, at FOV 40, looking back down the
     /// player&#8594;pack line. The distance was 1.9 m until the 2026-08-25 board deepening pushed
     /// the leading edge from 0.94 m to 1.50 m out from the rig root and left the near cells
     /// 0.40 m from the lens, cropped out of the bottom of the frame; the lens moved back by
     /// exactly the growth — 0.56 m — so the near edge sits the 0.96 m from the lens it always
     /// did. The 38&#176; pitch aimed the camera at the rig's base by construction while
-    /// atan(1.5 / 1.9) was 38.3&#176;; from 2.46 m it centres a half-step short of the base, on
+    /// atan(1.5 / 1.9) was 38.3&#176;; from 2.46 m it centred a half-step short of the base, on
     /// the mat itself, which is where the items are. FOV 40 is narrower than
     /// gameplay FOV on purpose: a narrow lens flattens perspective, which is what makes comparing
     /// two items' true sizes honest and makes a placement easy to judge.
+    /// </para>
+    /// <para>
+    /// <b>2.46 and 1.5 became 3.69 and 2.25 with the 2026-09-01 enlargement, and the framing did
+    /// not move.</b> Both are offsets from the rig's own origin, so multiplying them by
+    /// <see cref="PackScale.Factor"/> — exactly what the rig, the faces and the gear were
+    /// multiplied by — makes the shot a similarity transform of the one before it: the same solid
+    /// angle, the same pitch, the same field of view, every item filling the same fraction of the
+    /// frame. Leaving the lens where it was would have put it a third of the way inside a mat that
+    /// is now 3.12 m deep. What DOES change, and is the point, is that the pack now fills that
+    /// frame with 1.5x the linear detail relative to the screen it is drawn on.
     /// </para>
     /// </summary>
     public sealed class PackFocusCamera : MonoBehaviour
@@ -42,12 +52,16 @@ namespace SpaceGame.Items
         // camera.
         //
         // The player's body is consequently IN the shot, standing beyond the rig at
-        // BackpackController.deployDistance + DistanceOut (5.4 m) from the lens, small in a 40°
+        // BackpackController.deployDistance + DistanceOut (6.6 m) from the lens, small in a 40°
         // lens and mostly behind the raised board. It reads as the owner kneeling over their pack
         // rather than as an obstruction, and nothing about the framing depends on the two
         // distances any more — the lens can no longer end up between the player and the pack.
-        private const float DistanceOut = 2.46f;
-        private const float HeightUp = 1.5f;
+        //
+        // Both distances are offsets from the RIG's origin, so they take PackScale.Factor with the
+        // rig. The angles do not, and must not: a similarity transform leaves every angle alone,
+        // which is exactly why the enlarged pack frames identically from here.
+        private static readonly float DistanceOut = PackScale.Apply(2.46f);
+        private static readonly float HeightUp = PackScale.Apply(1.5f);
         private const float PitchDown = 38f;
         private const float Fov = 40f;
 

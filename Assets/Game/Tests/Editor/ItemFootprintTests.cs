@@ -6,9 +6,43 @@ using SpaceGame.Items;
 
 namespace SpaceGame.Tests
 {
+    /// <summary>
+    /// How big an item is once it is lying on the mat, and which holder that shape asks for.
+    ///
+    /// <para>
+    /// Two frames meet in this file and must not be confused. What goes IN — a mesh's local scale,
+    /// an authored <c>holdSize</c> or <c>packSize</c> — is on disk and did not move on 2026-09-01.
+    /// What comes OUT is a length on the mat, which did: <see cref="ItemFootprint"/> multiplies the
+    /// authored metres by <see cref="PackScale.Factor"/> at its one choke point. So the inputs
+    /// below are bare literals and every expectation goes through <see cref="M(float)"/>.
+    /// </para>
+    /// </summary>
     public class ItemFootprintTests
     {
         private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
+
+        /// <summary>
+        /// A length that was authored against the pack's ORIGINAL 0.09 m cell, restated at
+        /// whatever the cell is today.
+        ///
+        /// <para>
+        /// It appears here in both of its roles, which are the same number by construction: the
+        /// factor <see cref="ItemFootprint"/> applies to an authored size, and the factor its own
+        /// absolute thresholds (<c>ClipSize</c>, <c>Unmeasurable</c>, <c>Implausible</c>) moved by.
+        /// That is why <see cref="ItemFootprint.Classify"/>'s arguments ride it too — a Clip-sized item
+        /// has to stay a Clip-sized item when the whole mat is scaled up, and asking Classify about
+        /// an unscaled size would be asking about an item nobody carries.
+        /// </para>
+        /// <para>
+        /// The same helper, with the same reasoning, is in <c>PackLayoutTests</c>;
+        /// <c>PackScaleTests</c> pins the ratio to <see cref="PackScale.Factor"/>.
+        /// </para>
+        /// </summary>
+        private static float M(float metresAtTheOriginalCell) =>
+            metresAtTheOriginalCell * (PackGrid.Cell / PackScale.LegacyCell);
+
+        /// <summary>A whole measurement restated at today's cell. See <see cref="M(float)"/>.</summary>
+        private static Vector3 M(float x, float y, float z) => new(M(x), M(y), M(z));
 
         private readonly List<GameObject> spawned = new();
 
@@ -78,24 +112,21 @@ namespace SpaceGame.Tests
         [Test]
         public void ALongThinItemGetsWebbingStraps()
         {
-            // LaserStaff: 1.35 m long, slim.
-            Assert.AreEqual(HolderKind.Webbing,
-                ItemFootprint.Classify(new Vector3(0.06f, 0.06f, 1.35f)));
+            // LaserStaff: authored 1.35 m long, slim.
+            Assert.AreEqual(HolderKind.Webbing, ItemFootprint.Classify(M(0.06f, 0.06f, 1.35f)));
         }
 
         [Test]
         public void ATallRoundItemGetsShockCord()
         {
-            // AntiGravityPotion: a 0.30 m bottle.
-            Assert.AreEqual(HolderKind.Cord,
-                ItemFootprint.Classify(new Vector3(0.11f, 0.30f, 0.11f)));
+            // AntiGravityPotion: a bottle authored at 0.30 m.
+            Assert.AreEqual(HolderKind.Cord, ItemFootprint.Classify(M(0.11f, 0.30f, 0.11f)));
         }
 
         [Test]
         public void ALumpGetsBungee()
         {
-            Assert.AreEqual(HolderKind.Bungee,
-                ItemFootprint.Classify(new Vector3(0.22f, 0.18f, 0.20f)));
+            Assert.AreEqual(HolderKind.Bungee, ItemFootprint.Classify(M(0.22f, 0.18f, 0.20f)));
         }
 
         /// <summary>
@@ -109,8 +140,7 @@ namespace SpaceGame.Tests
         [Test]
         public void ACubeIsNotABottle()
         {
-            Assert.AreEqual(HolderKind.Bungee,
-                ItemFootprint.Classify(new Vector3(0.30f, 0.30f, 0.30f)));
+            Assert.AreEqual(HolderKind.Bungee, ItemFootprint.Classify(M(0.30f, 0.30f, 0.30f)));
         }
 
         /// <summary>
@@ -122,13 +152,13 @@ namespace SpaceGame.Tests
         public void ALumpGetsBungeeWhicheverWayUpItIsModelled()
         {
             Assert.AreEqual(HolderKind.Bungee,
-                ItemFootprint.Classify(new Vector3(0.18f, 0.22f, 0.20f)), "tallest axis y");
+                ItemFootprint.Classify(M(0.18f, 0.22f, 0.20f)), "tallest axis y");
 
             Assert.AreEqual(HolderKind.Bungee,
-                ItemFootprint.Classify(new Vector3(0.22f, 0.18f, 0.20f)), "tallest axis x");
+                ItemFootprint.Classify(M(0.22f, 0.18f, 0.20f)), "tallest axis x");
 
             Assert.AreEqual(HolderKind.Bungee,
-                ItemFootprint.Classify(new Vector3(0.20f, 0.18f, 0.22f)), "tallest axis z");
+                ItemFootprint.Classify(M(0.20f, 0.18f, 0.22f)), "tallest axis z");
         }
 
         /// <summary>
@@ -145,7 +175,7 @@ namespace SpaceGame.Tests
         public void ALongItemWithItsMassAtOneEndGetsASleeve()
         {
             Assert.AreEqual(HolderKind.Sleeve,
-                ItemFootprint.Classify(new Vector3(0.06f, 0.06f, 0.90f), new Vector3(0f, 0f, 0.20f)));
+                ItemFootprint.Classify(M(0.06f, 0.06f, 0.90f), M(0f, 0f, 0.20f)));
         }
 
         /// <summary>
@@ -158,14 +188,19 @@ namespace SpaceGame.Tests
         public void ACentredLongItemIsStillWebbing()
         {
             Assert.AreEqual(HolderKind.Webbing,
-                ItemFootprint.Classify(new Vector3(0.06f, 0.06f, 0.90f), new Vector3(0f, 0f, 0.05f)));
+                ItemFootprint.Classify(M(0.06f, 0.06f, 0.90f), M(0f, 0f, 0.05f)));
         }
 
+        /// <summary>
+        /// And the Clip threshold moved with the mat, so the same authored item is still a Clip.
+        /// A 0.08 m longest axis is 0.12 m on today's mat against a 0.18 m ClipSize — exactly the
+        /// two-thirds it was before the enlargement. Had the threshold been left at 0.12 m, a whole
+        /// bracket of small gear would have been demoted from clips to bungees by a scale-up.
+        /// </summary>
         [Test]
         public void SomethingTinyGetsAClip()
         {
-            Assert.AreEqual(HolderKind.Clip,
-                ItemFootprint.Classify(new Vector3(0.05f, 0.08f, 0.04f)));
+            Assert.AreEqual(HolderKind.Clip, ItemFootprint.Classify(M(0.05f, 0.08f, 0.04f)));
         }
 
         /// Footprint is the shadow on the surface, so the vertical axis must not appear in it —
@@ -173,10 +208,10 @@ namespace SpaceGame.Tests
         [Test]
         public void FootprintDropsTheVerticalAxis()
         {
-            Vector2 f = ItemFootprint.FootprintOf(new Vector3(0.11f, 0.30f, 0.13f));
+            Vector2 f = ItemFootprint.FootprintOf(M(0.11f, 0.30f, 0.13f));
 
-            Assert.AreEqual(0.11f, f.x, 1e-4f);
-            Assert.AreEqual(0.13f, f.y, 1e-4f);
+            Assert.AreEqual(M(0.11f), f.x, 1e-4f);
+            Assert.AreEqual(M(0.13f), f.y, 1e-4f);
         }
 
         /// <summary>
@@ -190,33 +225,44 @@ namespace SpaceGame.Tests
         /// direction is invisible in a unit test of <c>Classify</c> and glaring in the game — a
         /// cube of the item at 1.35 m each way, or a staff still at its authored 0.50 m.
         /// </para>
+        /// <para>
+        /// The whole answer is then <see cref="M(float)"/> — the mat's own scale, applied to the authored
+        /// metres rather than to the measured proportions, which is why the ratios above are the
+        /// ones that survive.
+        /// </para>
         /// </summary>
         [Test]
         public void HoldSizeScalesTheMeshToTrueMetresKeepingProportions()
         {
             Vector3 size = ItemFootprint.SizeOf(Prefab(new Vector3(0.20f, 0.10f, 0.50f), 1.35f));
 
-            Assert.AreEqual(1.35f, Mathf.Max(size.x, Mathf.Max(size.y, size.z)), 1e-3f,
+            Assert.AreEqual(M(1.35f), Mathf.Max(size.x, Mathf.Max(size.y, size.z)), 1e-3f,
                             "holdSize names the longest axis in metres");
 
-            Assert.AreEqual(0.54f, size.x, 1e-3f);
-            Assert.AreEqual(0.27f, size.y, 1e-3f);
-            Assert.AreEqual(1.35f, size.z, 1e-3f);
+            Assert.AreEqual(M(0.54f), size.x, 1e-3f);
+            Assert.AreEqual(M(0.27f), size.y, 1e-3f);
+            Assert.AreEqual(M(1.35f), size.z, 1e-3f);
         }
 
         /// <summary>
         /// And with no <c>holdSize</c> authored, the mesh's own measurement stands. Without this
         /// the test above passes just as well against code that returns a cube of <c>holdSize</c>
         /// and ignores the mesh entirely.
+        ///
+        /// <para>
+        /// This is the "keep the size the artist built" branch, and it takes the mat's scale like
+        /// every other length there — otherwise the handful of prefabs that deliberately size to
+        /// zero would be the only gear that did not grow with the rig.
+        /// </para>
         /// </summary>
         [Test]
         public void WithNoHoldSizeTheMeasuredMeshStands()
         {
             Vector3 size = ItemFootprint.SizeOf(Prefab(new Vector3(0.20f, 0.10f, 0.50f)));
 
-            Assert.AreEqual(0.20f, size.x, 1e-3f);
-            Assert.AreEqual(0.10f, size.y, 1e-3f);
-            Assert.AreEqual(0.50f, size.z, 1e-3f);
+            Assert.AreEqual(M(0.20f), size.x, 1e-3f);
+            Assert.AreEqual(M(0.10f), size.y, 1e-3f);
+            Assert.AreEqual(M(0.50f), size.z, 1e-3f);
         }
 
         /// <summary>
@@ -235,6 +281,13 @@ namespace SpaceGame.Tests
         /// same way since long before the pack existed, falling back to 0.30 m when there is no
         /// grip. This test pins the two together.
         /// </para>
+        /// <para>
+        /// The 11.13 m is the RAW mesh and stays a bare literal: it is what the modeller built,
+        /// not a length on the mat. The 0.30 m answer is a length on the mat and rides
+        /// <see cref="M(float)"/>, which is also why the implausibility warning never fires here — the
+        /// fallback has already brought the item down to well under a metre before anything looks
+        /// at it.
+        /// </para>
         /// </summary>
         [Test]
         public void AnUnsizedPrefabFallsBackToTheDefaultRatherThanItsRawMesh()
@@ -244,7 +297,7 @@ namespace SpaceGame.Tests
             Vector3 size = ItemFootprint.SizeOf(Prefab(huge, withGrip: false));
             float longest = Mathf.Max(size.x, Mathf.Max(size.y, size.z));
 
-            Assert.AreEqual(0.30f, longest, 1e-3f,
+            Assert.AreEqual(M(0.30f), longest, 1e-3f,
                             "a prefab nobody sized must fall back to EquipItemSocket's 0.30 m");
 
             // Proportions still honoured — it is scaled down, not turned into a cube.
@@ -269,7 +322,7 @@ namespace SpaceGame.Tests
             Vector3 size = ItemFootprint.SizeOf(
                 Prefab(new Vector3(0.20f, 0.10f, 0.50f), holdSize: 1.00f, packSize: 0.54f));
 
-            Assert.AreEqual(0.54f, Mathf.Max(size.x, Mathf.Max(size.y, size.z)), 1e-3f,
+            Assert.AreEqual(M(0.54f), Mathf.Max(size.x, Mathf.Max(size.y, size.z)), 1e-3f,
                             "packSize names the longest axis on the pack, in metres");
 
             // Proportions still come from the mesh, exactly as they do for holdSize.
@@ -286,7 +339,7 @@ namespace SpaceGame.Tests
         {
             Vector3 size = ItemFootprint.SizeOf(Prefab(new Vector3(0.20f, 0.10f, 0.50f), 1.35f));
 
-            Assert.AreEqual(1.35f, Mathf.Max(size.x, Mathf.Max(size.y, size.z)), 1e-3f);
+            Assert.AreEqual(M(1.35f), Mathf.Max(size.x, Mathf.Max(size.y, size.z)), 1e-3f);
         }
 
         /// <summary>
@@ -300,7 +353,7 @@ namespace SpaceGame.Tests
             Vector3 size = ItemFootprint.SizeOf(
                 Prefab(new Vector3(0.20f, 0.10f, 0.50f), holdSize: 0f, packSize: 0.25f));
 
-            Assert.AreEqual(0.25f, Mathf.Max(size.x, Mathf.Max(size.y, size.z)), 1e-3f);
+            Assert.AreEqual(M(0.25f), Mathf.Max(size.x, Mathf.Max(size.y, size.z)), 1e-3f);
         }
 
         /// <summary>
@@ -314,7 +367,7 @@ namespace SpaceGame.Tests
             Vector3 size = ItemFootprint.SizeOf(
                 Prefab(new Vector3(0.20f, 0.10f, 0.50f), holdSize: 0.80f, packSize: -1f));
 
-            Assert.AreEqual(0.80f, Mathf.Max(size.x, Mathf.Max(size.y, size.z)), 1e-3f);
+            Assert.AreEqual(M(0.80f), Mathf.Max(size.x, Mathf.Max(size.y, size.z)), 1e-3f);
         }
     }
 }

@@ -54,6 +54,7 @@ namespace SpaceGame.Gameplay.Arrival
                 // ordinary placement the caller falls back to.
                 if (fatal)
                 {
+                    GroundWhatWasBuilt();
                     HasArrived = true;
                     yield break;
                 }
@@ -63,6 +64,7 @@ namespace SpaceGame.Gameplay.Arrival
                     Debug.LogError($"[Arrival] No ground under one of the team landing sites after " +
                                    $"{seatResolveTimeout}s, so the formation cannot be flown. Client " +
                                    clientId + " will be placed in a ship on the ground instead.", this);
+                    GroundWhatWasBuilt();
                     HasArrived = true;
                     yield break;
                 }
@@ -156,13 +158,13 @@ namespace SpaceGame.Gameplay.Arrival
                 if (ship == null)
                 {
                     fatal = true;
-                    GroundWhatWasBuilt(landings);
+                    GroundWhatWasBuilt();
                     return null;
                 }
 
                 if (Register(t, ship, teamPath, out fatal) == null)
                 {
-                    GroundWhatWasBuilt(landings);
+                    GroundWhatWasBuilt();
                     return null;
                 }
             }
@@ -171,27 +173,48 @@ namespace SpaceGame.Gameplay.Arrival
         }
 
         /// <summary>
-        /// Puts every hull the formation managed to make down on its own landing point, after a
-        /// failure part-way through building the rest.
+        /// Puts every hull that is not going to fly down on its own landing point.
         ///
         /// <para>
         /// Without this those hulls are left hanging at the top of arcs that will never be flown —
         /// and because the spawner has already recorded them as their teams' ships, the ordinary
         /// placement the caller falls back to would then seat players in them, two kilometres up.
         /// A ship on the ground where it was supposed to land is a fair outcome for a match that
-        /// lost its opening; a ship in the sky is not.
+        /// lost its opening; a ship in the sky is not. Left there, a hull does not even stay put:
+        /// its Rigidbody carries a linear damping of one, so it sinks at about ten metres a second
+        /// and takes minutes to arrive, which is what the fault reads as from the ground.
+        /// </para>
+        ///
+        /// <para>
+        /// Every landing is read off the flight's OWN path rather than passed in, so that this can
+        /// be called from any exit that gives up. It has to be callable from all of them: an
+        /// invariant enforced at one of several exits is not an invariant, and every other exit is
+        /// a hull left in the sky.
         /// </para>
         /// </summary>
-        private void GroundWhatWasBuilt((Vector3 Position, float Yaw)[] landings)
+        private void GroundWhatWasBuilt()
         {
             foreach (ArrivalFlight flight in flights.Values)
             {
-                if (!flight.IsAlive) continue;
-                if (flight.Team < 0 || flight.Team >= landings.Length) continue;
+                if (!flight.IsAlive || flight.Launched) continue;
 
-                flight.Ship.transform.SetPositionAndRotation(
-                    landings[flight.Team].Position,
-                    Quaternion.Euler(0f, landings[flight.Team].Yaw, 0f));
+                Quaternion rest = ArrivalTrajectory.RestRotation(flight.Path);
+
+                // ImpactPosition is where the descent would have ended, and RestRotation the
+                // attitude it would have ended in — the same pose the settle is measured against,
+                // so a grounded hull is indistinguishable from a landed one.
+                flight.Ship.transform.SetPositionAndRotation(flight.Path.ImpactPosition, rest);
+
+                // Before SetDown, not after: it measures the hull's colliders, and collider bounds
+                // live in the physics scene rather than on the transform just written.
+                Physics.SyncTransforms();
+
+                SetDown(flight.Ship, rest.eulerAngles.y);
+
+                // A hull that has been hanging has also been sinking — it parks itself under
+                // gravity, and drag holds it at about ten metres a second. Put down still carrying
+                // that, it would drive itself straight back into the ground it was just set on.
+                ParkHull(flight.Ship);
             }
         }
     }

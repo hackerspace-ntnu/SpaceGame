@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
 
@@ -121,6 +122,12 @@ namespace SpaceGame.Items
         private Transform backSocket;
         private Coroutine arcRoutine;
 
+        // The wearer's own view, so the pack can be kept out of it while it is on their back. Null
+        // on a body with no first-person camera of its own, which is every replica of another
+        // player and any NPC that grows a pack later — RefreshFirstPersonHidden is a no-op there,
+        // and that is the right answer: nobody is looking out of those eyes.
+        private PlayerLook look;
+
         // Where the deploy currently in flight is headed. Held so an interrupted arc can land the
         // pack at its destination instead of wherever it had reached — see OnDisable.
         private Pose pendingDeployPose;
@@ -133,6 +140,7 @@ namespace SpaceGame.Items
         private void Awake()
         {
             input = GetComponent<PlayerInputManager>();
+            look = GetComponent<PlayerLook>();
 
             backSocket = ResolveBackSocket();
             if (backSocket == null)
@@ -572,6 +580,8 @@ namespace SpaceGame.Items
             CurrentState = State.Deploying;
             Pack.SetWorn(false);
             Pack.transform.SetParent(null, true);
+
+            RefreshFirstPersonHidden();
 
             // No outward bow: the toss never crosses the player's own body, so there is nothing
             // for it to clear.
@@ -1065,7 +1075,40 @@ namespace SpaceGame.Items
             Pack.transform.SetParent(backSocket, false);
             Pack.transform.SetLocalPositionAndRotation(wornLocalPosition, Quaternion.Euler(wornLocalEuler));
             CurrentState = State.Shouldered;
+
+            RefreshFirstPersonHidden();
         }
+
+        /// <summary>
+        /// Tell the wearer's own camera which renderers are on their back right now.
+        ///
+        /// <para>
+        /// Reads <see cref="BackpackObject.IsWorn"/> rather than <see cref="CurrentState"/> so the
+        /// three callers can be the three moments the pack changes hands and nothing has to agree
+        /// about which of the four states counts as "on the back": <see cref="SnapToWorn"/> puts it
+        /// on, <see cref="StartDeploy"/> takes it off at the FIRST frame of the toss — the toss is
+        /// staged in front of the player precisely so they watch it, so it must be visible for the
+        /// whole flight, not from the landing — and <see cref="OnPackVisualsRebuilt"/> catches the
+        /// gear, which is instantiated and destroyed under the pack long after either.
+        /// </para>
+        /// <para>
+        /// Collected fresh every time rather than cached: the display copies are rebuilt wholesale
+        /// on every contents change, so a held list would be a list of destroyed objects. It runs
+        /// on a state change or a rebuild, never per frame.
+        /// </para>
+        /// </summary>
+        private void RefreshFirstPersonHidden()
+        {
+            if (look == null || Pack == null) return;
+
+            look.SetWornHidden(Pack.IsWorn ? Pack.GetComponentsInChildren<Renderer>(true) : null);
+        }
+
+        /// <summary>
+        /// The pack rebuilt its display copies. Called by <see cref="BackpackObject"/>, because
+        /// gear strapped on while the pack is worn arrives as renderers this controller never saw.
+        /// </summary>
+        public void OnPackVisualsRebuilt() => RefreshFirstPersonHidden();
 
         private Pose WornWorldPose()
         {

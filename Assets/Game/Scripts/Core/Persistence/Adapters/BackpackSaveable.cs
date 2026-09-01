@@ -154,8 +154,37 @@ namespace SpaceGame.Core.Persistence
             public float yaw;
         }
 
+        /// <summary>
+        /// The version <see cref="Capture"/> writes. Absent from a payload means "older than
+        /// versioning", which for this format is v1 or v2.
+        ///
+        /// <para>
+        /// v3 exists for exactly one reason: <see cref="PackPlacementRecord.u"/> and <c>v</c> are
+        /// METRES, and the pack was enlarged by <see cref="PackScale.Factor"/> on 2026-09-01. Every
+        /// uv in a v2 payload therefore names a point two-thirds of the way to where that item
+        /// belongs. <see cref="Restore"/> already falls back to first-fit when a stored spot is
+        /// illegal, so nothing would be LOST — but the gear would quietly rearrange itself on the
+        /// first load after the update, which is worse than losing it in one respect: the player
+        /// cannot tell it happened until they go looking for something.
+        /// </para>
+        /// </summary>
+        public const int Version = 3;
+
+        /// <summary>
+        /// The last version whose uvs are in the pre-enlargement frame. Anything at or below this
+        /// gets its uvs multiplied by <see cref="PackScale.Factor"/> on the way in.
+        /// </summary>
+        private const int LastUnscaledVersion = 2;
+
         public struct State
         {
+            /// <summary>
+            /// Which frame the numbers below are in. See <see cref="Version"/>. Serialised as a
+            /// plain int and absent from every file written before 2026-09-01, where the default
+            /// <c>0</c> correctly reads as "older than the enlargement".
+            /// </summary>
+            public int version;
+
             /// <summary>v2: every item, with the face and spot it was left on.</summary>
             public List<PackPlacementRecord> placements;
 
@@ -205,7 +234,7 @@ namespace SpaceGame.Core.Persistence
                 }
             }
 
-            return new State { placements = records };
+            return new State { version = Version, placements = records };
         }
 
         /// <param name="shapes">
@@ -232,7 +261,18 @@ namespace SpaceGame.Core.Persistence
 
             if (v2 != null)
             {
-                foreach (JToken token in v2) RestoreOne(layout, surfaces, shapes, token, context);
+                // A payload with no version at all is pre-2026-09-01 and its uvs are in the small
+                // frame. Multiplying them here — rather than letting the illegal placements drop
+                // through to first-fit — is what makes an old save reopen with every item exactly
+                // where the player left it. The v1 branch below needs none of this: it never
+                // stored a position to be wrong about.
+                float uvScale = state.Value<int?>("version").GetValueOrDefault() <= LastUnscaledVersion
+                    ? PackScale.Factor
+                    : 1f;
+
+                foreach (JToken token in v2)
+                    RestoreOne(layout, surfaces, shapes, token, uvScale, context);
+
                 return;
             }
 
@@ -240,8 +280,14 @@ namespace SpaceGame.Core.Persistence
             RestoreLegacy(layout, surfaces, shapes, main, context);
         }
 
+        /// <param name="uvScale">
+        /// What to multiply the record's stored uv by to bring it into today's frame. 1 for a
+        /// payload already written at <see cref="Version"/>; <see cref="PackScale.Factor"/> for
+        /// anything older. See <see cref="Version"/>.
+        /// </param>
         private static void RestoreOne(PackLayout layout, IReadOnlyList<PackSurface> surfaces,
-                                       PackShapeLibrary shapes, JToken token, Object context)
+                                       PackShapeLibrary shapes, JToken token, float uvScale,
+                                       Object context)
         {
             if (token == null || token.Type != JTokenType.Object) return;
 
@@ -266,7 +312,7 @@ namespace SpaceGame.Core.Persistence
             // way; the item moves by a few centimetres and stays on the face it was left on.
             if (surface != null
                 && layout.TryPlace(item.ID, surfaceId, surface.Size, PackShapes.For(item, shapes),
-                                   new Vector2(record.u, record.v),
+                                   new Vector2(record.u, record.v) * uvScale,
                                    PackShapes.SnapYaw(item, shapes, record.yaw)))
                 return;
 

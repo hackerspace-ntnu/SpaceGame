@@ -11,13 +11,16 @@ symptoms:
   - "I press E on the vehicle and nothing happens, or every hull collider mounts me"
   - "the rider floats above the saddle on every machine but the host's"
   - "one press seated the player in all four ship chairs at once"
+  - "pressing E anywhere on the hull puts me in the pilot's chair"
+  - "I board the ship from outside by looking at its cockpit through the glass"
   - "the vehicle drives fine for the host but a client steers a body that snaps back"
   - "the third-person camera on the mount jitters or doubles the vehicle's motion"
   - "the player standing on the deck is read as ground and the walker climbs into the sky"
   - "after loading a save the rider is standing next to the mount instead of in the seat"
   - "the respawn button is unclickable after dismounting a dead rider"
+  - "a player who has been carried walks and steers but never falls again"
 reads_with: [Ornithopter, PlayerShip, AgentSystem, Persistence]
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # Vehicles & Mounts
@@ -68,7 +71,7 @@ Two ways to operate a machine: **mounting** (you take the vehicle over — seat,
 | DuneFoil (sand sailer) | [DuneFoil.prefab](Assets/Game/Prefabs/agents/Vehicles/Ground/DuneFoil.prefab), [DuneFoil/](Assets/Game/Scripts/Vehicles/DuneFoil/), [Stations/DuneFoil*.cs](Assets/Game/Scripts/Vehicles/Stations/) | **No mount at all.** `DeckBoarding` + `DuneFoilHelm` + 4 × `DuneFoilRiggingStation` + `DuneFoilMooring` (holds station while the deck is empty) + `BoardingRamp` + HUD. Transform-driven, so `IPersistentEntity` + `ITeleportAware` + carrier. |
 | DuneOrnithopter | [DuneOrnithopter.prefab](Assets/Game/Prefabs/agents/Vehicles/Aircraft/DuneOrnithopter.prefab), [Ornithopter/](Assets/Game/Scripts/Vehicles/Ornithopter/) | See [Ornithopter.md](Ornithopter.md). Mounted; spawned by [`WingPackItem`](Assets/Game/Scripts/Items/Equipped/WingPackItem.cs); wants `followMountPitch = true`. |
 | ShipRV | [ShipRV.prefab](Assets/Game/Prefabs/agents/Vehicles/Spacecraft/ShipRV.prefab), [ShipRVBuilder.cs](Assets/Game/Editor/Vehicles/ShipRVBuilder.cs) | `HoverRigidbodyMotor`, `MountStation`, 8 `ArticulatedPart`s, `ShellVariantSwitcher`, `VehicleDeploymentController`. Rebuilt wholesale by the builder. |
-| PlayerShip (lander) | [PlayerShip.prefab](Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab), [PlayerShipBuilder.cs](Assets/Game/Editor/Vehicles/PlayerShipBuilder.cs) | See [PlayerShip.md](PlayerShip.md). **4 `MountModule`s** (helm + 3 `ChairPose` chairs), one `SteerModule`, `ShipPartRack`/`ShipPartSocket`, `ShipTeamAccent`, `CabinAlert`. |
+| PlayerShip (lander) | [PlayerShip.prefab](Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab), [PlayerShipBuilder.cs](Assets/Game/Editor/Vehicles/PlayerShipBuilder.cs) | See [PlayerShip.md](PlayerShip.md). **4 `MountModule`s** (helm on the root + 3 `ChairPose` chairs), one `SteerModule`, `ShipPartRack`/`ShipPartSocket`, `ShipTeamAccent`, `CabinAlert`. Root `mountableByDirectInteraction = false`; the helm is boarded from a `MountStation` on a trigger volume at the pilot's chair, the passengers from trigger volumes of their own. |
 | Rover | [Rover.prefab](Assets/Game/Prefabs/Vehicles/Rover.prefab), [Rover/](Assets/Game/Scripts/Vehicles/Rover/) | Not rideable — autonomous explorer with bogie IK. Test scene only; decisions gated on `Network.Simulates`. |
 | DuneRider | [DuneRiderController.cs](Assets/Game/Scripts/agents/Controller/DuneRiderController.cs) | Self-contained rigidbody mount driver (its own input, no `SteerModule`). **On no prefab today.** |
 
@@ -111,6 +114,7 @@ Two ways to operate a machine: **mounting** (you take the vehicle over — seat,
 
 ## Gotchas
 
+- **Nothing may remember a carried body's physics flags privately.** [`CarriedBody`](Assets/Game/Scripts/agents/Modules/Riding/CarriedBody.cs) is the one record of `isKinematic` / `useGravity` / `interpolation`: captured on the FIRST claim, handed back on the LAST release. Every system that touches those three on a body somebody else might take goes through it — `MountModule`, `SeatedRider`, and `UnderTerrainGuard`'s park (`SuspendGravity`, a weight-only claim that leaves the body dynamic). A private capture banks whatever transient state the body happened to be in and makes it permanent; both times this has shipped, the symptom was a player who could walk but had no gravity. `Hold` and `SuspendGravity` are two ways to claim, `Release` is the only way to give back, and a holder asking whether a body is carried must use `IsHeldByOther` so it does not find itself.
 - **Never `SetParent` a spawned `NetworkObject` to a bare marker.** `ParentRiderToMount` parents to the mount's `NetworkObject` and folds the seat marker's offset into local space by hand; `NpcPassenger.SeatPoseIn` does the same fold separately. Getting the fold wrong floats the rider above the saddle on every machine but one.
 - **`OnDisable` must not dismount when the hierarchy is going down.** `gameObject.activeInHierarchy == false` is the exact condition Unity guards on (covers both `SetActive(false)` and scene unload; `NetworkManager.Shutdown` skips deparenting, so the rider is still parented and no longer spawned).
 - **A destroyed rider cannot be detected by a null check.** Inside `OnDestroy`, `rider == null` is still false. Use `RiderTeardownBeacon.CanReparent`.
@@ -122,6 +126,8 @@ Two ways to operate a machine: **mounting** (you take the vehicle over — seat,
 - **The TP camera is spawned unparented** — parenting applies the vehicle's motion twice (measured 48% vs 2.6% frame-to-frame variance). Its lifetime is explicit; `AbandonRider` destroys it or you leak a camera + a second `AudioListener` for the session.
 - `ReleaseRuntimeThirdPersonCamera` uses `DestroyImmediate` outside play mode — plain `Destroy` is an editor error and fails EditMode tests that mount anything.
 - **Transform-driven hulls need `WalkerPlatformCarrier`**, and it must poll the carry volume rather than use `OnTrigger*` (messages only reach the collider's own GameObject and its `attachedRigidbody`).
+- **On a big hull, `mountableByDirectInteraction` must be off.** `Interactor` resolves a solid collider by walking UP the hierarchy, so a root `MountModule` left directly interactable turns every wall, floor and hull slab into a mount point — pressing E anywhere on a PlayerShip put the presser in the pilot's chair. Boarding then comes from a `MountStation` on a **trigger** collider (the one thing `Interactor` will not resolve upward), which calls `TryMount`/`RequestMount` directly and so keeps working with the flag off. Do **not** answer this by moving the `MountModule` onto the seat: on a vehicle the module is the vehicle, and `GetComponent<IMovementMotor>`, `GetComponent<Rigidbody>`, `RiderCollisionIgnore` over its own colliders, the chase camera's yaw, `VehicleDeploymentController`, `ArticulatedPartInteraction`'s `GetComponentInParent` mount lock and `SaveablePolicy`'s `MountSaveable` all silently stop finding it.
+- **A boarding volume behind a hole in the collision is boarded from outside.** The complement of the rule above, and the half it does not cover: `Interactor` stops at *solid* colliders and passes through everything else, so a boarding trigger is exposed wherever the hull is drawn without collision. The PlayerShip's canopy dome deliberately carries none (a convex hull of the glass fills the cockpit and brains a three-metre pilot), and its four chairs' volumes were therefore the first thing an outside ray met — 282 approaches in `PlayerShip_NoChairIsBoardedFromOutsideTheHull` boarded a chair through the glass, out to the player's whole 20 m reach. The fix is an [`InteractionBlocker`](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionBlocker.cs) over the canopy: a **trigger box** that stops the ray and nothing else. It must **enclose** what it protects rather than merely stand in front of it — a ray starting inside a collider is not reported as hitting it, which is what still lets the pilot standing under the canopy reach their chair (`PlayerShip_EveryChairIsBoardedFromWhereItPutsYouDown`), and a shape that hugged the glass instead left the cockpit open over the dome's aft rim. See [InteractionSystem](InteractionSystem.md).
 - **Station/mount/part indices are positional** and do not survive reordering a prefab's children between builds.
 - Mounted look reads `GameSettings.MouseSensitivity` and `InvertLookY`; `lookSensitivity` defaults to 20 to match `PlayerLook`.
 

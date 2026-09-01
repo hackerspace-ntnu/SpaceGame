@@ -152,24 +152,59 @@ namespace SpaceGame.EditorTools
 
         // Where the inventory wall stands, and how much room it needs.
         //
-        // The aft room's starboard side is not a flat wall — it is a run of arch ribs springing
-        // off the deck, and their feet reach up to 0.62 m inboard of the deck's own edge (the
-        // widest, Cube.007's buttress, measured off ship_lander_blockout.blend). So the wall does
-        // not sit AGAINST the hull; it stands just clear of the rib feet with the ribs visible
-        // behind and above it, which is how a rack in a ribbed hull would really be fitted.
+        // The side the wall mounts to is not a flat wall — it is a run of arch ribs springing off
+        // the deck, and their feet reach up to 0.62 m inboard of the deck's own edge (the widest,
+        // Cube.007's buttress, measured off ship_lander_blockout.blend). So the wall does not sit
+        // AGAINST the hull; it stands clear of the rib feet with the ribs visible behind and above
+        // it, which is how a rack in a ribbed hull would really be fitted.
         //
         // Measured from the deck's edge rather than from the hull, because the deck slab is one
         // mesh with a name the export guarantees and the hull is a hundred shells with none.
-        private const float WallRibClearance = 0.70f;
+        //
+        // 1.00 m, and that is measured against the BAKED COLLISION rather than against the visible
+        // ribs — the two are not the same shape. `Plane.001`, the hull skin, curves up off the
+        // deck, and the convex decomposition that gives it a collider fills the curve: for the
+        // first ~0.36 m above the deck the outboard half-metre of floor is solid to a player even
+        // though nothing is drawn there. At the old 0.70 m the fitting's feet, plinth and tray
+        // were inside that solid the whole length of the room, which no probe here caught, because
+        // every other one asks about the FACE and the face starts 0.54 m up. The footprint comes
+        // clear at 0.95 m; 1.00 m is that with a round margin.
+        //
+        // This standoff is also what sets the wall's height budget, and the two are not
+        // independent. At 1.00 m the headroom over the fitting's own footprint is 4.37 m, capped
+        // by one arch-rib buttress (Cube.007 to port, Cube.020 to starboard); the deckhead proper
+        // is 4.79-4.87 m, and further inboard still buys about 0.08 m per 0.10 m of clearance at
+        // the cost of a rack standing in the middle of the floor. So the wall is cut to fit the
+        // clearance, not the reverse — see InventoryWallBuilder.SurfaceCellsUp.
+        //
+        // That budget is what caps PackScale.WallDisplay at 1.065 and is why the wall is drawn
+        // 1.06x rather than the 1.2x that was asked for: 1.2 puts a 4.644 m fitting under 4.372 m
+        // of rib. The derivation lives on that constant.
+        private const float WallRibClearance = 1f;
 
-        // How deep the wall fitting is, from its placement face back to the tray's outer edge —
-        // inventory_wall.py's TRAY_D. The face is what gets positioned; this is what stands behind
-        // it, and the clearance above has to hold for the BACK of the fitting, not its front.
-        private const float WallDepth = 0.24f;
+        // How deep the wall fitting is: from its placement face back to whatever stands furthest
+        // behind it. The face is what gets positioned; this is what stands behind it, and the
+        // clearance above has to hold for the BACK of the fitting, not its front.
+        //
+        // MEASURED off the model, not derived from one part of it. It used to be inventory_wall.py's
+        // TRAY_D times the model scale, on the assumption that the tray reaches furthest back —
+        // and on 2026-09-01 a hand edit to the .blend deepened Mesh_Wall_Surround (object scale
+        // 1.7966 on Y) past it. TRAY_D said 0.36 while the fitting really reached 0.6468, so the
+        // wall stood 0.29 m nearer the hull than this file believed and the bottom of its plinth
+        // was inside the hull skin's baked collision, with nothing anywhere to say so. It is now
+        // the whole fitting's own back reach, which inventory_wall_scale.py measures and prints on
+        // every run — 0.6856 = 0.6468 x PackScale.WallDisplay. Take it from that printout; do not
+        // re-derive it from a single part.
+        private const float WallDepth = 0.7884f;
 
         // Height of the grid's centre above the wall's base, so the fitting stands on the deck
-        // rather than being centred on it — inventory_wall.py's (GRID_Z0 + GRID_Z1) / 2.
-        private const float WallGridCentreHeight = 1.71f;
+        // rather than being centred on it — inventory_wall.py's (GRID_Z0 + GRID_Z1) / 2 times the
+        // model's total scale, which inventory_wall_scale.py prints on every run and
+        // inventory_wall_export.py re-states as the empty's Unity-local height. With the
+        // 2026-09-01 30 x 22 grid that is (0.36 + 2.34) / 2 * 1.5 * PackScale.WallDisplay. It is
+        // NOT half the fitting: the tray band below the grid and the header cowl above it are
+        // different depths, so a centred wall would float.
+        private const float WallGridCentreHeight = 2.4685f;
 
         // Named meshes the build measures from. The export script guarantees these names; anything
         // else in the model is treated generically (structural collision by measurement).
@@ -283,14 +318,26 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
-            (Transform seat, Transform dismount, Transform cameraPivot) = BuildCockpit(root.transform, parts);
+            (Transform seat, Transform dismount, Transform cameraPivot, MountStation helmStation) =
+                BuildCockpit(root.transform, parts);
             BuildArrivalSeats(root.transform, parts);
             BuildCabinAlert(root.transform, parts);
             BuildInventoryWall(root.transform, mainDeck, sideDoor);
 
-            MountModule mount = BuildRootComponents(root, seat, dismount, cameraPivot);
+            MountModule mount = BuildRootComponents(root, seat, dismount, cameraPivot,
+                                                    directlyMountable: helmStation == null);
+
+            // After BuildRootComponents, not before: the burn is driven by the SeatedRider that
+            // method adds, and a reference wired to a component that does not exist yet is a null
+            // the Inspector shows as "Missing" and nothing logs. The hull it wraps is handed in
+            // rather than re-measured, for the reason mainDeck above is: by this point the sill
+            // platform and both bay doors have been reparented off the model onto the root, and a
+            // fresh MeasureAll would quietly return a shorter ship than the one flying the arc.
+            BuildEntryBurn(root, new Bounds(new Vector3(0f, whole.extents.y, 0f), whole.size), parts);
+
             WireInteractions(leaves, stair, platform, backDoor, bayDoors);
             WireDeployment(root, mount, backDoor, leaves, stair, platform, bayDoors);
+            WireHelmStation(helmStation, mount);
 
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PrefabPath));
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
@@ -1211,8 +1258,11 @@ namespace SpaceGame.EditorTools
         //     Each gets one convex MeshCollider on its own mesh object: still the mesh's
         //     true hull rather than the fat local-bounds box these used to get.
         //
-        // The canopy dome gets nothing at all, on purpose: a 3 m character's head occupies the
-        // glass ball's lower half, and any honest collider there would brain the pilot.
+        // The canopy dome gets no STRUCTURAL collider, on purpose: a 3 m character's head occupies
+        // the glass ball's lower half, and any honest collider there would brain the pilot. It gets
+        // one the look-ray alone can see instead — see BlockReachThroughCanopy — because "no collider" also
+        // meant "nothing in the way", and the cockpit chairs behind it were boardable from outside
+        // the ship.
 
         private const string CollisionModelPath =
             "Assets/Game/Art/Models/Vehicles/PlayerShip/player_ship_collision.fbx";
@@ -1262,6 +1312,7 @@ namespace SpaceGame.EditorTools
             }
 
             int fittings = FitFittingColliders(model);
+            BlockReachThroughCanopy(root, model);
             if (!VerifyCollisionCoverage(model, sources))
             {
                 Object.DestroyImmediate(instance);
@@ -1321,6 +1372,61 @@ namespace SpaceGame.EditorTools
                     Object.DestroyImmediate(child.gameObject);
             }
             return true;
+        }
+
+        /// <summary>
+        /// The canopy is glass: something to see through, not to reach through.
+        /// </summary>
+        /// <remarks>
+        /// The dome carries no structural collider by design (above), which left the four cockpit
+        /// chairs' boarding volumes with nothing in front of them at all. Those volumes are
+        /// triggers, and <c>Interactor.ResolveAlongRay</c> passes through anything that is not a
+        /// solid collider — so an eye anywhere outside the glass and within the player's 20 m
+        /// interact reach was offered a seat. Measured before this existed: 282 of the sweep's
+        /// approaches in <c>PlayerShip_NoChairIsBoardedFromOutsideTheHull</c> boarded a chair through
+        /// the dome, the plainest of them four metres straight above it with nothing but air and
+        /// glass in between. That is the "pressing E on the ship mounts me" report.
+        ///
+        /// A TRIGGER, so nothing physical changes: no body collides with it, and every movement,
+        /// ground and clearance query in this project asks with <c>QueryTriggerInteraction.Ignore</c>.
+        /// It blocks from OUTSIDE only — a ray that starts inside a collider is not reported as
+        /// hitting it — which is what keeps a pilot standing under the canopy able to reach their
+        /// own chair (<c>PlayerShip_EveryChairIsBoardedFromWhereItPutsYouDown</c>).
+        ///
+        /// The dome's BOUNDS and not its own mesh, which is the shape this went through first: a
+        /// convex hull of the glass is thinnest exactly at its aft rim, and the cockpit chairs sit
+        /// low and aft inside it, so a line from above and behind the dome reached them without
+        /// ever crossing the hull. It closed two thirds of the approaches and left 129. The thing
+        /// that has to be sealed is the cockpit's GLAZING — the opening the chairs sit in — and
+        /// that is the box the dome occupies, which also comfortably encloses the deck in front of
+        /// both cockpit chairs, so boarding from inside is unaffected.
+        /// </remarks>
+        private static void BlockReachThroughCanopy(Transform root, Transform model)
+        {
+            Transform dome = model.Find("Mesh_CanopyDome");
+            if (dome == null || dome.GetComponent<Renderer>() == null)
+            {
+                Debug.LogError("[PlayerShipBuilder] No Mesh_CanopyDome to glaze — every cockpit "
+                               + "chair would be boardable from outside the hull.");
+                return;
+            }
+
+            // On the ROOT and not on the dome — which is where this went first, and why it did
+            // nothing whatsoever. The dome arrives from the FBX scaled (233, 409, 59) AND rotated
+            // 66 degrees about X, and a box under a transform that is both non-uniformly scaled and
+            // rotated is SHEARED. Unity's physics cannot represent that: `Collider.bounds` still
+            // reports the box you asked for, the raycast reports no hit at all, and every symptom
+            // is exactly unchanged. The root is unrotated and unscaled, so a box measured against
+            // it is the box that is actually there.
+            GameObject blocker = new GameObject("CanopyBlocker");
+            blocker.transform.SetParent(root, false);
+
+            Bounds canopy = RendererBounds(dome);
+            BoxCollider pane = blocker.AddComponent<BoxCollider>();
+            pane.isTrigger = true;
+            pane.center = canopy.center;
+            pane.size = canopy.size;
+            blocker.AddComponent<SpaceGame.Gameplay.InteractionBlocker>();
         }
 
         /// <summary>
@@ -1616,8 +1722,8 @@ namespace SpaceGame.EditorTools
         }
 
         // ─────────── Cockpit ───────────
-        private static (Transform seat, Transform dismount, Transform cameraPivot) BuildCockpit(
-            Transform root, PartLookup parts)
+        private static (Transform seat, Transform dismount, Transform cameraPivot, MountStation helm)
+            BuildCockpit(Transform root, PartLookup parts)
         {
             Bounds canopy = parts.B("Mesh_CanopyDome");
             Bounds deckFore = parts.B("Mesh_Deck_Fore");
@@ -1632,10 +1738,12 @@ namespace SpaceGame.EditorTools
             Transform cameraPivot = Empty(root, "CameraPivot",
                                           new Vector3(0f, canopy.max.y, hull.center.z));
 
-            // The command chairs. The FRONT-LEFT one is the helm, and it needs nothing on it to be
-            // one: the root MountModule is directly interactable, so a click on the chair walks up
-            // to the module SteerModule listens to and takes the controls. Every other chair
-            // becomes a passenger seat (see BuildPassengerSeat): a place to sit and ride, no helm.
+            // The command chairs. The FRONT-LEFT one is the helm: it gets a MountStation on a
+            // trigger volume of its own (BuildHelmStation) that boards the hull's root MountModule
+            // — the module SteerModule drives. Every other chair becomes a passenger seat with a
+            // module of its own (BuildPassengerSeat): a place to sit and ride, no helm. All four
+            // are therefore reached the same way, through a trigger on the chair, and nothing else
+            // on the hull offers a seat at all.
             // The measured fallbacks keep an older, chair-less export building.
             List<Transform> chairs = parts.StartingWith("Cockpit_Seat_Command");
             Transform pilotChair = null;
@@ -1665,8 +1773,9 @@ namespace SpaceGame.EditorTools
             Vector3 seatPos = helm.Pivot;
 
             // The wheel is scenery — the chair is where you sit down. It keeps its collider so the
-            // helm is solid to stand against, and like every other surface on the hull a click on
-            // it resolves up to the root module.
+            // helm is solid to stand against, and like every other surface on the hull it offers
+            // nothing when looked at: the root module stopped answering for the fuselage when the
+            // pilot's chair got a station of its own.
             Transform modelledWheel = parts.Find("Cockpit_Steering_Wheel");
             if (modelledWheel != null)
                 AdoptSteeringWheel(group.transform, modelledWheel);
@@ -1681,6 +1790,10 @@ namespace SpaceGame.EditorTools
             // forward to stand, and dismounting mid-flight must not drop the pilot through the sky.
             Transform dismount = Empty(group.transform, "DismountPoint", helm.Dismount);
 
+            MountStation helmStation = pilotChair != null
+                ? BuildHelmStation(group.transform, pilotChair)
+                : null;
+
             int seatIndex = 0;
             foreach (Transform chair in chairs)
             {
@@ -1689,7 +1802,50 @@ namespace SpaceGame.EditorTools
                 BuildPassengerSeat(group.transform, chair, cameraPivot, ++seatIndex);
             }
 
-            return (seat, dismount, cameraPivot);
+            return (seat, dismount, cameraPivot, helmStation);
+        }
+
+        /// <summary>
+        /// The helm's boarding point: a trigger volume on the pilot's chair carrying a
+        /// <see cref="MountStation"/> that seats its presser in the hull's own MountModule.
+        ///
+        /// <para>
+        /// <b>Why a station here and a module on the other three chairs.</b> The helm is not a
+        /// seat, it is the vehicle: SteerModule drives the root module, VehicleDeploymentController
+        /// closes all thirteen articulated parts off its events, SeatedRider asks it whether the
+        /// mount system already holds a body before the arrival moves one, and
+        /// ArticulatedPartInteraction finds it with GetComponentInParent to lock the doors while
+        /// somebody is flying. The module also reaches for GetComponent&lt;IMovementMotor&gt; to
+        /// stop the hull on mount, GetComponent&lt;Rigidbody&gt; to freeze its rotation, and every
+        /// collider under its own transform to suspend rider/hull collision — and it takes the
+        /// mounted chase camera's yaw from its own transform, which has to be the hull's heading.
+        /// Moved onto a chair, every one of those finds an empty GameObject instead, silently, and
+        /// the ship still appears to mount. So the module stays on the root and the SEAT moves:
+        /// mountableByDirectInteraction goes off (see BuildRootComponents), which stops every
+        /// collider on the fuselage answering with the helm, and this is the one way in.
+        /// </para>
+        /// <para>
+        /// On a trigger for the same reason the passenger seats are: a trigger answers only when
+        /// it holds the interactable itself and is see-through otherwise (see
+        /// Interactor.ResolveAlongRay), so it is reached before the chair's own mesh collider
+        /// along any ray that ends on the chair, and is invisible from everywhere else.
+        /// </para>
+        /// </summary>
+        private static MountStation BuildHelmStation(Transform cockpit, Transform chair)
+        {
+            GameObject stationGo = new GameObject("HelmSeat");
+            stationGo.transform.SetParent(cockpit, false);
+
+            // Unrotated, unlike a passenger seat, so the chair's axis-aligned bounds need no
+            // unturning: this object is a click surface and nothing else. The pilot's own pose
+            // comes from Cockpit/SeatPoint and the mounted camera reads the ROOT module's
+            // transform, so there is no facing here for anything to inherit.
+            //
+            // Before the MountStation, not after: the collider satisfies its RequireComponent, and
+            // Unity cannot add the abstract Collider that requirement names on its own.
+            AddSeatVolume(stationGo, RendererBounds(chair), Quaternion.identity);
+
+            return stationGo.AddComponent<MountStation>();
         }
 
         /// <summary>
@@ -1701,13 +1857,13 @@ namespace SpaceGame.EditorTools
         /// does.
         ///
         /// <para>
-        /// <b>Why the seat carries a trigger volume rather than living on the chair mesh.</b> The
-        /// root module is directly interactable, so every solid collider on the hull — the chair
-        /// meshes included — resolves up to the helm. A trigger is the one thing Interactor does
-        /// not resolve upward: it answers only when it holds the interactable itself, and is
-        /// see-through otherwise (see Interactor.ResolveAlongRay). Wrapping the chair in one puts
-        /// this seat in front of the hull along the ray, so looking at a passenger chair offers
-        /// the chair and looking anywhere else offers the controls.
+        /// <b>Why the seat carries a trigger volume rather than living on the chair mesh.</b>
+        /// Interactor resolves a solid collider by walking UP the hierarchy, so every solid
+        /// collider on the hull — the chair meshes included — resolves to the root module. A
+        /// trigger is the one thing it does not resolve upward: it answers only when it holds the
+        /// interactable itself, and is see-through otherwise (see Interactor.ResolveAlongRay).
+        /// Wrapping the chair in one puts this seat in front of the hull along the ray, so looking
+        /// at this chair offers this chair and looking anywhere else on the hull offers nothing.
         /// </para>
         /// <para>
         /// The module cannot simply go on the chair mesh instead: the chairs arrive from the FBX
@@ -1759,16 +1915,29 @@ namespace SpaceGame.EditorTools
             // and each passenger chair is a separate module with a separate occupant.
             seatGo.AddComponent<ChairPose>();
 
-            // The click surface. Padded past the chair so the volume is reached before the chair's
-            // own mesh collider along any ray that ends on the chair, and kept snug enough that
-            // standing beside it and looking at the hull still offers the helm.
-            BoxCollider volume = seatGo.AddComponent<BoxCollider>();
+            // The click surface, taken out of the seat's rotation like the markers above.
+            AddSeatVolume(seatGo, cb, unturn);
+        }
+
+        /// <summary>
+        /// The trigger box a chair is boarded from. Padded past the chair so the volume is reached
+        /// before the chair's own mesh collider along any ray that ends on the chair, and kept
+        /// snug enough that it does not reach out over the aisle and answer for the hull behind
+        /// it. Shared by the helm's station and the three passenger seats so the four chairs
+        /// cannot drift into offering different-sized targets.
+        /// </summary>
+        /// <param name="unturn">
+        /// Inverse of whatever rotation <paramref name="seat"/> has already been given, since
+        /// <paramref name="chair"/> is measured in the cockpit's frame. The SIZE goes through it
+        /// too: a box on a chair turned 90 degrees has its depth and width exchanged, so keeping
+        /// the axis-aligned extents would wrap the chair in a box of the wrong shape.
+        /// </param>
+        private static void AddSeatVolume(GameObject seat, Bounds chair, Quaternion unturn)
+        {
+            BoxCollider volume = seat.AddComponent<BoxCollider>();
             volume.isTrigger = true;
-            // Taken out of the seat's rotation like the markers above, and the SIZE swapped with
-            // it: a box on a chair turned 90 degrees has its depth and width exchanged, so keeping
-            // the axis-aligned extents would wrap the chair in a box of the wrong shape.
-            volume.center = unturn * cb.center;
-            Vector3 extents = unturn * cb.size;
+            volume.center = unturn * chair.center;
+            Vector3 extents = unturn * chair.size;
             volume.size = new Vector3(Mathf.Abs(extents.x), Mathf.Abs(extents.y), Mathf.Abs(extents.z))
                           + Vector3.one * SeatVolumePadding;
         }
@@ -1940,6 +2109,215 @@ namespace SpaceGame.EditorTools
                 for (int i = 0; i < lamps.Count; i++)
                     arr.GetArrayElementAtIndex(i).objectReferenceValue = lamps[i];
             });
+        }
+
+        // ─────────── Atmospheric entry burn ───────────
+
+        // Where the plasma material lives, and the shader it wraps. A MATERIAL asset rather than a
+        // Shader.Find at runtime: an unreferenced shader is stripped from a player build and the
+        // effect then works in the editor and nowhere else — the rule Environment.md records for
+        // the render features, and it applies to anything drawn by a shader nothing else names.
+        private const string EntryPlasmaShaderPath =
+            "Assets/Game/Art/Shaders/Effects/EntryPlasma.shader";
+        private const string EntryPlasmaMaterialPath =
+            "Assets/Game/Art/Shaders/Effects/Materials/Mat_EntryPlasma.mat";
+
+        // How far the shell stands off the hull, sideways and vertically, as a multiple of the
+        // hull's own size. Only a proxy for where on screen the burn might be — the shader decides
+        // the silhouette from a direction, not from this geometry — so it wants to be comfortably
+        // clear of the skin without being so large the sheath detaches from the ship it belongs to.
+        private const float EntryShellGirth = 1.5f;
+
+        // How far the shell reaches ahead of the nose and behind the tail, as a fraction of the
+        // hull's length. Asymmetric: the sheath stands off the leading face and streams a long way
+        // aft, which is the shape of the thing and also what an onlooker sees from another ship.
+        private const float EntryShellNoseReach = 0.35f;
+        private const float EntryShellWakeReach = 1.0f;
+
+        /// <summary>
+        /// The atmospheric entry burn: the plasma shell that encloses the hull during the descent,
+        /// and the light it throws through the canopy into the cabin.
+        ///
+        /// <para>
+        /// <b>Nothing here masks the effect to the window, and nothing needs to.</b> The shell draws
+        /// with an ordinary depth test against what the opaque pass already wrote, so the cabin's
+        /// own walls reject it and the canopy — transparent, ZWrite off, see
+        /// <see cref="MakeCanopyGlass"/> — does not. Seen from a seat that is exactly "only outside
+        /// the window"; seen from another ship it is the same shell wrapped behind this one's
+        /// silhouette. One object, both readings, no second code path.
+        /// </para>
+        ///
+        /// <para>
+        /// Built here rather than added to the prefab by hand for the reason everything else in this
+        /// file is: this builder rewrites <c>PlayerShip.prefab</c> wholesale, so a shell dropped on
+        /// by hand survives exactly until the next rebuild, and it fails by simply not being on fire.
+        /// </para>
+        /// </summary>
+        /// <param name="hull">
+        /// The hull in the root's own space: the same envelope the ship's origin was seated
+        /// against, so it already excludes the boarding stair. That exclusion matters — the stair
+        /// is authored DEPLOYED, hanging below and behind the ship, and a sheath sized around it
+        /// would sit a metre under the belly.
+        /// </param>
+        private static void BuildEntryBurn(GameObject root, Bounds hull, PartLookup parts)
+        {
+            Material plasma = EntryPlasmaMaterial();
+            if (plasma == null)
+                return;
+
+            float length = Mathf.Max(1f, hull.size.z);
+
+            var group = new GameObject("EntryBurn");
+            group.transform.SetParent(root.transform, false);
+
+            float noseZ = hull.max.z + length * EntryShellNoseReach;
+            float tailZ = hull.min.z - length * EntryShellWakeReach;
+
+            // The primitive is a unit sphere, which is what the shader assumes: it reads its own
+            // object-space position as a direction on that sphere, so the non-uniform scale below
+            // stretches the shell without distorting where the shader thinks the nose is.
+            GameObject shell = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            shell.name = "PlasmaShell";
+            shell.transform.SetParent(group.transform, false);
+            shell.transform.localPosition = new Vector3(hull.center.x, hull.center.y, (noseZ + tailZ) * 0.5f);
+            shell.transform.localScale = new Vector3(hull.size.x * EntryShellGirth,
+                                                     hull.size.y * EntryShellGirth,
+                                                     noseZ - tailZ);
+
+            // A primitive brings a collider. Left on, a twenty-metre sphere around the ship would
+            // answer every interaction ray, every ground probe and every ShipGrounding query before
+            // the hull did — and ShipHull.BellyDrop measures the hull from its colliders, so the
+            // arrival would plan its landing against the fire instead of against the ship.
+            Object.DestroyImmediate(shell.GetComponent<Collider>());
+
+            var shellRenderer = shell.GetComponent<MeshRenderer>();
+            shellRenderer.sharedMaterial = plasma;
+            shellRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            shellRenderer.receiveShadows = false;
+            shellRenderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            shellRenderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            // Saved off. A parked ship, and a wreck loaded from a save, are not on fire.
+            shellRenderer.enabled = false;
+
+            var burn = group.AddComponent<SpaceGame.Gameplay.Arrival.EntryBurn>();
+            Apply(burn, so =>
+            {
+                SerializedFields.Set(so, "shell", shellRenderer);
+                SerializedFields.Set(so, "glow", BuildEntryGlow(group.transform, parts));
+                SerializedFields.Set(so, "rider", root.GetComponent<SpaceGame.Gameplay.Arrival.SeatedRider>());
+            });
+
+            Debug.Log($"[PlayerShipBuilder] Entry burn shell {shell.transform.localScale.ToString("0.0")} m " +
+                      $"around a {hull.size.ToString("0.0")} m hull.");
+        }
+
+        /// <summary>
+        /// The lamp that puts the fire into the cabin.
+        ///
+        /// <para>
+        /// One light, in front of the crew and under the canopy, rather than the four-lamp ring
+        /// <see cref="BuildCabinAlert"/> spreads over the seats — because the direction is the
+        /// point. This light is meant to read as what got through the glass, so it has to come from
+        /// where the glass is; a ring would wash the cabin evenly and read as the cabin's own
+        /// lighting changing colour.
+        /// </para>
+        /// </summary>
+        private static Light BuildEntryGlow(Transform group, PartLookup parts)
+        {
+            Bounds canopy = parts.B("Mesh_CanopyDome");
+            Bounds deckFore = parts.B("Mesh_Deck_Fore");
+
+            List<Transform> chairs = parts.StartingWith("Cockpit_Seat_Command");
+            if (chairs.Count == 0)
+                return null;
+
+            Bounds seated = RendererBounds(chairs[0]);
+            foreach (Transform chair in chairs)
+                seated.Encapsulate(RendererBounds(chair));
+
+            // Roughly at a seated head's height rather than above it, so the crew are lit in the
+            // face by the window and cast their shadows back down the cabin. Clamped under the
+            // canopy so an export whose dome sits low cannot put the lamp outside the hull.
+            float y = Mathf.Min(deckFore.max.y + 1.6f, canopy.max.y - 0.4f);
+
+            // Forward of the forwardmost chair, between the crew and the glass.
+            float z = Mathf.Min(seated.max.z + 1.2f, canopy.max.z - 0.5f);
+
+            Transform marker = Empty(group, "EntryGlow", new Vector3(seated.center.x, y, z));
+
+            var glow = marker.gameObject.AddComponent<Light>();
+            glow.type = LightType.Point;
+            glow.color = new Color(1f, 0.52f, 0.22f);
+            glow.range = 12f;
+            glow.intensity = 0f;
+            // A flickering shadow caster inside a hull full of 140-odd slabs costs a great deal and
+            // buys a wobble nobody looks at during a crash landing.
+            glow.shadows = LightShadows.None;
+            glow.enabled = false;
+
+            return glow;
+        }
+
+        /// <summary>
+        /// Load or create the plasma material, and rewrite every tunable on it.
+        ///
+        /// <para>
+        /// Rewritten every build on purpose. A <c>.mat</c> freezes the shader defaults it was born
+        /// with, so a property added to or retuned in the shader afterwards never reaches an
+        /// existing material — the drift that has bitten this project's generated materials before,
+        /// and the reason <see cref="MakeCanopyGlass"/> also runs unconditionally.
+        /// </para>
+        /// </summary>
+        private static Material EntryPlasmaMaterial()
+        {
+            Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(EntryPlasmaShaderPath);
+            if (shader == null)
+            {
+                Debug.LogError($"[PlayerShipBuilder] No shader at {EntryPlasmaShaderPath} — the " +
+                               "ship is built without an entry burn.");
+                return null;
+            }
+
+            var material = AssetDatabase.LoadAssetAtPath<Material>(EntryPlasmaMaterialPath);
+            if (material == null)
+            {
+                material = new Material(shader);
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(EntryPlasmaMaterialPath));
+                AssetDatabase.CreateAsset(material, EntryPlasmaMaterialPath);
+            }
+            else
+            {
+                material.shader = shader;
+            }
+
+            // Stylised hot-orange: a deep red body, orange through the middle and a near-white core
+            // only at the very top of the heat. Bolder and chunkier than a photographic sheath, to
+            // sit with the register the rest of this project's effects are drawn in.
+            material.SetColor("_CoreColor", new Color(1f, 0.93f, 0.72f));
+            material.SetColor("_EdgeColor", new Color(1f, 0.36f, 0.06f));
+            material.SetColor("_DeepColor", new Color(0.40f, 0.05f, 0.01f));
+
+            // Driven per frame by EntryBurn. Saved dark so the material previews as unlit rather
+            // than as a solid orange ball in the project window.
+            material.SetFloat("_Intensity", 0f);
+            material.SetFloat("_Flicker", 1f);
+            material.SetFloat("_Brightness", 3.4f);
+
+            material.SetFloat("_NoseBias", -0.15f);
+            material.SetFloat("_TailStrength", 0.18f);
+            material.SetFloat("_EdgeFade", 0.3f);
+
+            material.SetFloat("_StreakScale", 9f);
+            material.SetFloat("_StreakStretch", 0.16f);
+            material.SetFloat("_FlowSpeed", 3.2f);
+            material.SetFloat("_Contrast", 3.6f);
+
+            material.SetFloat("_EmberThreshold", 0.78f);
+            material.SetFloat("_EmberBrightness", 1.6f);
+            material.SetFloat("_EmberScale", 42f);
+
+            EditorUtility.SetDirty(material);
+            return material;
         }
 
         // ─────────── Arrival seats ───────────
@@ -2294,7 +2672,8 @@ namespace SpaceGame.EditorTools
 
         // ─────────── Root components ───────────
         private static MountModule BuildRootComponents(GameObject root, Transform seat,
-                                                       Transform dismount, Transform cameraPivot)
+                                                       Transform dismount, Transform cameraPivot,
+                                                       bool directlyMountable)
         {
             // NetworkObject first: several of the components below are NetworkBehaviours and must
             // find it on Add.
@@ -2345,13 +2724,18 @@ namespace SpaceGame.EditorTools
                 SerializedFields.Set(so, "seatPoint", seat);
                 SerializedFields.Set(so, "dismountPoint", dismount);
                 SerializedFields.Set(so, "thirdPersonPivot", cameraPivot);
-                // Boarded like every other mount in the project: look at the hull and press the
-                // interact key. Interactor resolves an IInteractable by walking UP from the
-                // collider it hit, so this module answers for the whole fuselage — the pilot's
-                // chair included, which is what makes the chair the helm without anything sitting
-                // on it. The passenger seats carry their own trigger volumes (BuildPassengerSeat)
-                // precisely so they win that walk-up and seat their occupant instead.
-                SerializedFields.SetBool(so, "mountableByDirectInteraction", true);
+                // Boarding, and it is OFF for this hull. Interactor resolves an IInteractable by
+                // walking UP from the collider it hit, so leaving this on makes every collider on
+                // a 30 m fuselage a mount point: pressing the interact key anywhere on the ship,
+                // inside or out, put the presser in the pilot's chair. The helm is reached from a
+                // MountStation on the pilot's chair instead (BuildHelmStation), which is the same
+                // trigger-on-the-chair shape the three passenger seats already use — and that
+                // station calls TryMount directly, so switching this off does not close it.
+                //
+                // On only for an export with no command chairs at all: there is then no chair to
+                // put a station on, and a hull nobody can board is worse than one boarded from
+                // anywhere.
+                SerializedFields.SetBool(so, "mountableByDirectInteraction", directlyMountable);
                 SerializedFields.SetBool(so, "allowAISelfMovementWhenMounted", false);
                 SerializedFields.SetInt(so, "defaultPerspective", (int)MountModule.CameraPerspective.ThirdPerson);
                 // Framed for a 30 m hull.
@@ -2485,6 +2869,26 @@ namespace SpaceGame.EditorTools
             });
         }
 
+        /// <summary>
+        /// Point the pilot's chair at the hull's own mount.
+        ///
+        /// <para>
+        /// Wired here rather than in <see cref="BuildHelmStation"/> because the cockpit is built
+        /// before the root has a MountModule to name, and wired explicitly rather than left to
+        /// MountStation's own GetComponentInParent fallback because the fallback resolves at Awake
+        /// and leaves nothing in the asset: a station wired to the wrong module and a station
+        /// wired to none look identical in the prefab, and <see cref="Verify"/> can only check the
+        /// one that is written down.
+        /// </para>
+        /// </summary>
+        private static void WireHelmStation(MountStation helm, MountModule mount)
+        {
+            if (helm == null)
+                return;
+
+            Apply(helm, so => SerializedFields.Set(so, "mount", mount));
+        }
+
         // ─────────── Scene placement ───────────
 
         /// <summary>
@@ -2576,28 +2980,69 @@ namespace SpaceGame.EditorTools
             if (prefab.GetComponentsInChildren<ArticulatedPartInteraction>(true).Length != expectedSwitches)
                 problems.Add($"expected {expectedSwitches} door switches (every sliding leaf, the "
                              + "back door and every bay-door panel)");
-            // One mount per chair: the front-left chair takes the root module (nothing sits on the
-            // chair — the module answers for the whole hull), the rest have their own passenger
-            // modules behind their own trigger volumes.
+            // One boarding point per chair, and every one of them a trigger ON the chair: the
+            // front-left chair carries a MountStation into the hull's own module, the other three
+            // carry passenger modules of their own.
             int chairCount = prefab.GetComponentsInChildren<Transform>(true)
                 .Count(t => t.name.StartsWith("Cockpit_Seat_Command"));
 
-            // A passenger seat whose module went un-interactable is the silent failure here: the
-            // seat is still in the prefab, still networked, still saved — and clicking the chair
-            // quietly hands the occupant the CONTROLS instead, because the ray falls through to
-            // the root module. Nothing logs.
+            // Both halves of this fail silently. A root module left directly interactable answers
+            // for every collider on the fuselage, so pressing the interact key anywhere on the
+            // hull seats the presser at the helm — the ship works, it is just boardable from the
+            // outside of the tail. A passenger seat that loses its trigger volume keeps its
+            // module, its network sync and its save wiring, and its chair simply stops offering
+            // anything, because the ray then falls through to a hull that no longer answers.
             foreach (MountModule seat in prefab.GetComponentsInChildren<MountModule>(true))
             {
+                if (seat.gameObject == prefab)
+                {
+                    if (chairCount > 0 && seat.MountableByDirectInteraction)
+                        problems.Add("the hull's own MountModule is directly interactable, so "
+                                     + "every collider on the fuselage boards the helm");
+                    continue;
+                }
+
                 if (!seat.MountableByDirectInteraction)
                     problems.Add($"'{seat.name}' cannot be boarded by interaction, so its chair "
-                                 + "resolves up to the helm");
-                if (seat.gameObject == prefab)
-                    continue;
+                                 + "offers nothing at all");
                 BoxCollider volume = seat.GetComponent<BoxCollider>();
                 if (volume == null || !volume.isTrigger)
-                    problems.Add($"passenger seat '{seat.name}' has no trigger volume, so the hull "
-                                 + "answers for its chair");
+                    problems.Add($"passenger seat '{seat.name}' has no trigger volume, so the "
+                                 + "chair's own mesh resolves to the hull instead");
             }
+
+            // The helm's own way in. With the hull no longer answering for itself, a ship that
+            // lost this station is a ship whose pilot's chair cannot be sat in at all — and
+            // nothing logs, because the other three chairs still work and the ship still flies its
+            // arrival with a full crew.
+            MountStation[] helmStations = prefab.GetComponentsInChildren<MountStation>(true);
+            if (chairCount > 0 && helmStations.Length != 1)
+                problems.Add($"expected 1 MountStation on the pilot's chair, found {helmStations.Length}");
+
+            foreach (MountStation station in helmStations)
+            {
+                BoxCollider volume = station.GetComponent<BoxCollider>();
+                if (volume == null || !volume.isTrigger)
+                    problems.Add($"helm station '{station.name}' has no trigger volume, so the "
+                                 + "chair's own mesh answers before it");
+
+                SerializedProperty wired = new SerializedObject(station).FindProperty("mount");
+                if (wired == null || wired.objectReferenceValue != prefab.GetComponent<MountModule>())
+                    problems.Add($"helm station '{station.name}' does not name the hull's "
+                                 + "MountModule, so taking the helm does not take the controls");
+            }
+
+            // And the glass in front of all four of them. Losing it is invisible from the inside —
+            // the cockpit works exactly as before — and hands the whole ship back to anyone who
+            // walks up to the nose and looks at it.
+            SpaceGame.Gameplay.InteractionBlocker glass =
+                prefab.GetComponentInChildren<SpaceGame.Gameplay.InteractionBlocker>(true);
+            if (chairCount > 0 && glass == null)
+                problems.Add("the canopy carries no InteractionBlocker, so every cockpit chair can "
+                             + "be boarded through the glass from outside the hull");
+            else if (glass != null && (!glass.TryGetComponent(out BoxCollider pane) || !pane.isTrigger))
+                problems.Add("the canopy's InteractionBlocker is not on a trigger box, so it either "
+                             + "brains the pilot or leaves the cockpit open from outside");
 
             int mounts = prefab.GetComponentsInChildren<MountModule>(true).Length;
             if (chairCount > 0 && mounts != chairCount)
@@ -2629,6 +3074,38 @@ namespace SpaceGame.EditorTools
                 problems.Add("no ShipAccentRecolor — team colours have nothing to paint");
             if (prefab.GetComponent<ShipTeamAccent>() == null)
                 problems.Add("no ShipTeamAccent — no team colour ever reaches the clients");
+
+            // The entry burn, checked in three parts because each of them fails in a way that
+            // looks like the effect was simply never written. No EntryBurn: the descent is silent
+            // and cold. A shell with no material, or one whose renderer was left ENABLED in the
+            // prefab: a parked wreck sits in the world inside a solid orange ball. A rider
+            // reference that did not resolve: the burn waits for a launch it can never hear about
+            // and stays dark for the whole arc.
+            var entryBurn = prefab.GetComponentInChildren<SpaceGame.Gameplay.Arrival.EntryBurn>(true);
+            if (entryBurn == null)
+                problems.Add("no EntryBurn — the hull does not burn on the way down");
+            else
+            {
+                SerializedObject burnObject = new(entryBurn);
+
+                var wiredShell = burnObject.FindProperty("shell").objectReferenceValue as Renderer;
+                if (wiredShell == null)
+                    problems.Add("EntryBurn names no plasma shell, so the entry burn is invisible");
+                else
+                {
+                    if (wiredShell.enabled)
+                        problems.Add("the plasma shell is enabled in the prefab, so a parked ship "
+                                     + "and every loaded wreck sit inside a ball of fire");
+                    if (wiredShell.sharedMaterial == null)
+                        problems.Add("the plasma shell has no material");
+                    if (wiredShell.GetComponent<Collider>() != null)
+                        problems.Add("the plasma shell kept its primitive collider, which answers "
+                                     + "every ground probe and interaction ray before the hull does");
+                }
+
+                if (burnObject.FindProperty("rider").objectReferenceValue == null)
+                    problems.Add("EntryBurn names no SeatedRider, so it never learns the hull launched");
+            }
 
             if (problems.Count == 0)
                 return true;

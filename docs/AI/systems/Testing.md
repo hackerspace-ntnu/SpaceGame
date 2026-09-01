@@ -15,6 +15,8 @@ symptoms:
   - "typecheck.py prints 'No errors.' but the Editor still shows compile errors"
   - "Temp/headless_tests.txt never appears and I cannot tell if the run started"
   - "how do I actually prove this works on a client and not just the host"
+  - "a test fails with Expected: (0.00, 0.00) But was: (0.00, 0.00) and nothing says what differed"
+  - "a probe that excludes one part of a prefab measures that part anyway"
 reads_with: [Multiplayer, Persistence, EditorTooling]
 updated: 2026-09-01
 ---
@@ -115,6 +117,8 @@ Limits you must know before trusting a green result:
 - **`SpaceGame.Tests.EditMode` cannot reach `Assembly-CSharp`.** If the type under test is not inside a `SpaceGame.*` asmdef, the test belongs in `Assets/Game/Editor/Tests/`, not `Assets/Game/Tests/EditMode/`.
 - **Host-only verification proves nothing.** The server instantiates prefabs directly and never consults the network prefab list — an unregistered prefab yields a perfect host and blank clients. `NetworkPrefabRegistrationTests` is the static guard; the two-process run is the real one.
 - **A persistence round-trip must use real JSON text and a *different* instance.** Restoring onto the object you captured from passes even when the saver restores nothing; object-level round-trips hide the `Vector3`/`Quaternion` converter stack overflow.
+- **`Assert.AreEqual` on a `Vector2`/`Vector3` is BITWISE, and its failure message rounds both sides to two decimals.** The same rectangle written `30 * PackGrid.Cell` and `4.05` need not be the same float, so a 1e-8 m difference fails and prints `(0.00, 0.00)` against `(0.00, 0.00)` — naming neither the axis nor the amount. Assert the components as floats with a delta and put the value in the message. Same trap the other way round: a boundary built by hand, `(1f + band) - 1f`, is one ulp *outside* a band the code tests with `<=`, so the test fails on IEEE rounding and says nothing about the system.
+- **`RaycastHit.transform` is the RIGIDBODY's transform, not the collider's.** Over a prefab with one body on its root — `PlayerShip`, every vehicle — every hit anywhere reports that root, so `hit.transform.IsChildOf(part)` never matches and a filter written to *exclude* a part silently keeps it. That is how the gear wall's headroom probe came to measure the wall against its own collider. Ask `hit.collider.transform`; `Collider.transform` (from `OverlapBox`) is already right.
 - The commit-block hook fires on `$(…)`, backticks and `$((`, including inside heredocs — write throwaway analysis in a Python file rather than retrying an inline shell one-liner.
 
 ## Extending

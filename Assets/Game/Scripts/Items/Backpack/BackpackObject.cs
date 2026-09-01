@@ -1070,6 +1070,13 @@ namespace SpaceGame.Items
         {
             CollectHolderPop();
             ApplyHolderPop(sheetClock);
+
+            // The gear is instantiated under the rig, so a pack on somebody's back has just grown
+            // renderers their own camera has never been told to hide. Told here rather than by
+            // whatever moved the item, because a rebuild is the one event every path that changes
+            // the contents ends in — a stow, a take, a save restore, a NetworkList rewrite from
+            // another machine. Owner is null until Bind, which is one frame of an empty pack.
+            if (owner != null) owner.OnPackVisualsRebuilt();
         }
 
         /// <summary>

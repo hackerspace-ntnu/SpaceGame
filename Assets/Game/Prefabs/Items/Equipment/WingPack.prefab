@@ -220,7 +220,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 849607e40917c46c396381660647fa88, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
   gripPoint: {fileID: 0}
   hand: 0
@@ -228,6 +228,7 @@ MonoBehaviour:
   rotationOffset: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
   holdSize: 1.26
+  packSize: 1.8241875
   sizeReference: {fileID: 0}
   keepColliders: 0
 --- !u!1001 &8911875902201748093

@@ -60,7 +60,7 @@ grep -i 'client' docs/AI/ROUTING.md
 | Doc | Covers | Read with |
 | --- | --- | --- |
 | [Artifacts](systems/Artifacts.md) | Player-held usable items - gadgets, spells, scanners, tools - firing on Use, split Use() vs Present() | [Inventory](systems/Inventory.md), [LeashSystem](systems/LeashSystem.md), [Portals](systems/Portals.md), [Persistence](systems/Persistence.md) |
-| [Backpack](systems/Backpack.md) | Physical inventory: a deployable rig whose seven gridded faces hold real items, rummaged in focus mode | [Inventory](systems/Inventory.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md) |
+| [Backpack](systems/Backpack.md) | Physical inventory: a deployable rig whose seven gridded faces hold real items, rummaged in focus mode | [Inventory](systems/Inventory.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Ornithopter](systems/Ornithopter.md) |
 | [InteractionSystem](systems/InteractionSystem.md) | Look at a collider, press E: one raycast picks the target, one resolver labels it, the target replicates | [Vehicles](systems/Vehicles.md), [Inventory](systems/Inventory.md), [Persistence](systems/Persistence.md) |
 | [Inventory](systems/Inventory.md) | Hotbar slots, InventoryItem assets, the hand socket that seats each equip, and the pickup/drop round trip | [Artifacts](systems/Artifacts.md), [Backpack](systems/Backpack.md), [Persistence](systems/Persistence.md), [Combat](systems/Combat.md) |
 | [LeashSystem](systems/LeashSystem.md) | A rope tied between any two things; every machine draws its own copy and resolves only the ends it owns | [Artifacts](systems/Artifacts.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [PlayerCharacter](systems/PlayerCharacter.md) |
@@ -69,8 +69,8 @@ grep -i 'client' docs/AI/ROUTING.md
 
 | Doc | Covers | Read with |
 | --- | --- | --- |
-| [Ornithopter](systems/Ornithopter.md) | Folded wing pack deployed mid-air; point-mass energy flight model, stalls, crash damage. | [Vehicles](systems/Vehicles.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [audio](systems/audio.md) |
-| [PlayerShip](systems/PlayerShip.md) | The script-generated lander: walkable hover hull, 4 seats, and the one-time crash-landing arrival. | [Vehicles](systems/Vehicles.md), [Cutscenes](systems/Cutscenes.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md) |
+| [Ornithopter](systems/Ornithopter.md) | Folded wing pack deployed mid-air; point-mass energy flight model, stalls, crash damage. | [Vehicles](systems/Vehicles.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [audio](systems/audio.md), [Backpack](systems/Backpack.md) |
+| [PlayerShip](systems/PlayerShip.md) | The script-generated lander: walkable hover hull, 4 seats, the entry burn, and the crash-landing arrival. | [Vehicles](systems/Vehicles.md), [Cutscenes](systems/Cutscenes.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md) |
 | [Vehicles](systems/Vehicles.md) | Mounting (seat + camera takeover) and stations (walkable deck, claimed controls) for every machine. | [Ornithopter](systems/Ornithopter.md), [PlayerShip](systems/PlayerShip.md), [AgentSystem](systems/AgentSystem.md), [Persistence](systems/Persistence.md) |
 
 ### Presentation — UI, cutscenes, audio, modes

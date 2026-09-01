@@ -11,12 +11,14 @@ symptoms:
   - "no E prompt appears on the control I am looking at"
   - "the prompt lights up but pressing E refuses to do anything"
   - "a trigger volume in front of a control swallows every interactable behind it"
+  - "I can use a control through a window, a windscreen or a canopy from outside"
+  - "pressing E at a vehicle from outside seats me in its cockpit"
   - "the door opens for the host and stays shut for clients"
   - "pressing E opens the wrong door on the other machine"
   - "interaction dies silently on the client while the host works fine"
   - "a door, lever or workstation is back in its authored state after loading a save"
 reads_with: [Vehicles, Inventory, Persistence]
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # Interaction
@@ -30,7 +32,7 @@ itself owns whatever replication its effect needs.
 ## Model
 
 - **Detection is a raycast, not a registry.** [`Interactor`](Assets/Game/Scripts/Gameplay/Interaction/Core/Interactor.cs) sits on the `PlayerCharacter` root ([`PlayerCharacter.prefab`](Assets/Game/Prefabs/Characters/Player/PlayerCharacter.prefab), `_castDistance` overridden to 20), casts from `lookTransform` (camera) every `Update` and again on each press. `RaycastNonAlloc` into a 16-hit buffer, mask `~Player`, sorted by distance.
-- **Arbitration** (`Interactor.ResolveAlongRay`, static and testable): skip anything under the interactor's own `transform.root`; a **trigger** collider only answers if the `IInteractable` is on that same GameObject, otherwise the ray passes through it; a solid collider answers with its own or its parents' `IInteractable`, and if it has none it **blocks** the line of sight.
+- **Arbitration** (`Interactor.ResolveAlongRay`, static and testable): skip anything under the interactor's own `transform.root`; a **trigger** collider only answers if the `IInteractable` is on that same GameObject, otherwise the ray passes through it; a solid collider answers with its own or its parents' `IInteractable`, and if it has none it **blocks** the line of sight. The one trigger that is not see-through is an [`InteractionBlocker`](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionBlocker.cs) — glass: it offers nothing and stops the ray.
 - **One availability gate for hover and press** (`Interactor.IsAvailable`): `IInteractable.CanInteract()` **and** `IContextualInteractable.CanInteract(interactor)`, plus a `Behaviour.isActiveAndEnabled` check. The crosshair can therefore never light up on something that will refuse.
 - **Prompts are default-on.** [`InteractionPromptResolver`](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionPromptResolver.cs) composes, most specific first: an authored [`InteractionPrompt`](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionPrompt.cs) component → [`IInteractionReadout`](Assets/Game/Scripts/Gameplay/Interaction/Core/IInteractionReadout.cs) (live label/prompt/0-1 bar/value text) → the humanised type name with noise suffixes stripped (`DoorInteraction` → "Door"). Default prompt `"E: interact"`, plus `"   LMB: use"` for an `ISecondaryInteractable`.
 - **Execution is local to the presser.** `Interact()` only ever runs on the machine of the player who pressed (input is disabled on non-owned bodies). Getting the consequence onto other machines is the interactable's own job — via [`NetLatch`](Assets/Game/Scripts/Gameplay/Interaction/Core/NetLatch.cs), an `[Rpc]` + [`InteractorRelay`](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractorRelay.cs), or a `NetMsg` of its own.
@@ -45,6 +47,7 @@ itself owns whatever replication its effect needs.
 | `ISecondaryInteractable` | [Core/ISecondaryInteractable.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/ISecondaryInteractable.cs) | Opposite action on Use/LMB (ease vs haul). |
 | `IInteractionReadout` | [Core/IInteractionReadout.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/IInteractionReadout.cs) | Label, prompt, `float? Value01`, `ValueText` for the HUD panel. |
 | `Interactor` | [Core/Interactor.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/Interactor.cs) | Raycast, arbitration, `HoveredInteractable`, `ClearHoverState()`. |
+| `InteractionBlocker` | [Core/InteractionBlocker.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionBlocker.cs) | Marker on a trigger collider: see through it, do not reach through it. Blocks from **outside** only. |
 | `InteractionPromptResolver` / `InteractionDisplay` | [Core/InteractionPromptResolver.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionPromptResolver.cs) | Interactable → drawable text. `SafeCanInteract` swallows author exceptions. |
 | `NetLatch` + `ILatchHost` | [Core/NetLatch.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/NetLatch.cs) | One networked bit: request → server decides → `NetMsg.LatchState` to all; late-joiner ask; `oneWay`; `Restore()`. Plain class, driven from the fixture's `OnEnable`/`OnDisable`. |
 | `InteractorRelay` | [Core/InteractorRelay.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractorRelay.cs) | `GetComponentInParent<NetworkObject>()` out, `GetComponentInChildren<Interactor>(true)` back. |
@@ -120,6 +123,7 @@ All four are auto-attached by [`SaveablePolicy`](Assets/Game/Scripts/Core/Persis
 ## Gotchas
 
 - **A trigger collider is see-through** unless the `IInteractable` is on that exact GameObject — carry volumes used to swallow every control on a deck. Put the component on the trigger, or use `InteractableProxy`.
+- **See-through means reach-through, and a hull is only as opaque as its collision.** The ray stops at *solid* colliders, so anything drawn without one — glass, a hologram, a grille — is not in the way at all, and whatever is behind it is usable from outside. This is how the PlayerShip became boardable from the air above its canopy: the dome carries no collider on purpose and the cockpit chairs' own trigger volumes were the first thing an outside ray met. Glass gets an [`InteractionBlocker`](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionBlocker.cs): a **trigger**, so no body collides with it and every movement, ground and clearance query (all of which ask with `QueryTriggerInteraction.Ignore`) still ignores it. It must **enclose what it protects**, not merely stand in front of it — a ray that *starts* inside a collider is not reported as hitting it, which is exactly what keeps the pilot standing under the canopy able to reach their own chair, and is why the blocker is a box over the cockpit rather than a skin on the glass.
 - **A solid collider with no interactable blocks the ray.** A stray hull box in front of a control silently kills its prompt.
 - **`CanInteract()` must equal what the press will do**, or the prompt lights up and refuses. Per-player refusals belong in `IContextualInteractable`, not in `CanInteract()`.
 - **Disabling the Interactor freezes nothing** — `OnDisable` calls `ClearHoverState()`; mounting takes that route. A future path that stops `Update` without disabling would strand the panel.

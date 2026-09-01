@@ -21,12 +21,29 @@ on the same pitch is exactly the drift this avoids.
 
 Pitch is not a style choice
 ---------------------------
-Every tape, seam, hole and eyelet sits on a multiple of CELL = 0.090 m, which
-is `PackGrid.Cell` on the C# side. Gear placed on one of these panels snaps to
-that grid, so decoration off the pitch reads as a rendering fault — the item
-sits visibly between the lines it is supposed to sit on. The rig learned this
-the hard way (its own stitching is at 200/260 mm against a 90 mm cell and the
-two have drifted ever since). Keep every number here a multiple of CELL.
+Every tape, seam, hole and eyelet POSITION sits on a multiple of CELL. Gear
+placed on one of these panels snaps to that grid, so decoration off the pitch
+reads as a rendering fault — the item sits visibly between the lines it is
+supposed to sit on. The rig learned this the hard way (its own stitching is at
+200/260 mm against a 90 mm cell and the two have drifted ever since). Keep every
+POSITION here a multiple of CELL.
+
+Stock is not, and that is the distinction that matters
+------------------------------------------------------
+Frame section, tape width, plate thickness, bolt and eyelet radii, net cord — the
+fifteen lengths below that are not multiples of CELL — are stock sizes, chosen
+against each other rather than against the grid, and they are deliberately left
+that way. A 0.024 m webbing tape is a webbing tape at any cell size.
+
+The consequence is that **CELL is not a scale knob.** Raising it enlarges every
+position and no stock size, which reproportions a panel rather than resizing it.
+When the whole physical inventory was enlarged 1.5x on 2026-09-01, the wall was
+therefore scaled by a separate similarity pass
+(`models/props/inventory_wall_scale.py`) and this file was left authoring at
+0.090 — so **CELL below is the MODELLING cell and is no longer `PackGrid.Cell`,
+which is 0.135.** `grid_panel.blend` itself was not rescaled: nothing ships it,
+it is a reference module, and its own 0.54 x 0.90 saved size is what the wall's
+builders are documented against.
 
 Orientation
 -----------
@@ -62,7 +79,9 @@ MATS = [
 ]
 SAND, OCHRE, STEEL, DARK, BRASS, CORD = range(6)
 
-# PackGrid.Cell. Everything drawn here is a whole multiple of it.
+# The MODELLING cell — see the header. Every POSITION drawn here is a whole
+# multiple of it; the stock sizes below are not, and must not be made to be.
+# `PackGrid.Cell` is 0.135: this frame times `inventory_wall_scale.SCALE`.
 CELL = 0.090
 PITCH = 2 * CELL              # 0.180 — tape and eyelet spacing on every variant
 

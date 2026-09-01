@@ -42,12 +42,43 @@ namespace SpaceGame.EditorTools
         /// <summary>
         /// The placement face, and the numbers the model prints at build time.
         ///
-        /// 60 x 30 cells of <c>PackGrid.Cell</c> exactly, so the grid fills the face edge to edge
+        /// 30 x 22 cells of <c>PackGrid.Cell</c> exactly, so the grid fills the face edge to edge
         /// with zero hem and the model's webbing lines up with it. Change this only in whole
         /// cells, and change <c>inventory_wall.py</c>'s <c>GRID_W</c>/<c>GRID_H</c> with it.
+        ///
+        /// <para>
+        /// The wall is one continuous grid whose bays are exactly six cells wide, so a face that
+        /// is not a whole number of cells across puts the model's bay dividers out of step with
+        /// the lattice the player is dropping gear onto — so the ACROSS count is a multiple of
+        /// six, or a part-bay is left at one end. Expressed as the count times the cell rather
+        /// than as 4.05 x 2.97, because the count is the authored decision and the metres are a
+        /// consequence of it — unlike the rig's faces, which are measurements of a model.
+        /// </para>
+        /// <para>
+        /// RE-CUT 2026-09-01 to fit the ship. The face was 60 x 30, which the same day's 1.5x
+        /// enlargement (<see cref="PackScale.Factor"/>) turned into an 8.46 x 4.95 m fitting the
+        /// lander's aft room does not have room for. Measured against the ship's baked collision
+        /// at <c>PlayerShipBuilder.WallRibClearance</c>, the room offers 4.37 m of headroom over
+        /// the fitting's footprint; 30 x 22 stands 3.87 m off the deck and 4.41 m along it, which
+        /// leaves 0.50 m of air above the header, 0.75 m clear forward and 1.54 m aft. Capacity
+        /// went 1800 -> 660 cells; that is the cost, and it is paid in one place.
+        /// </para>
+        /// <para>
+        /// <b>This is the LOGICAL face and it did not move again.</b> The wall is DRAWN 1.06x
+        /// larger than this since 2026-09-01 (<see cref="PackScale.WallDisplay"/>, stamped onto
+        /// the prefab by <see cref="SetDisplayScale"/> and matched in the model by
+        /// <c>inventory_wall_scale.py</c>) — a 4.293 x 3.148 m board over a 4.05 x 2.97 m
+        /// rectangle. That enlargement moves no count, no cell and no stored uv: it is only the
+        /// mapping from a uv to a point on screen. Do not "reconcile" the two numbers by editing
+        /// this one, and do not raise the display scale to reach a bigger board — the room caps it
+        /// at 1.065 and the constant carries the arithmetic.
+        /// </para>
         /// </summary>
         private const string SurfaceNode = "SURF_WallGrid";
-        private static readonly Vector2 SurfaceSize = new(5.40f, 2.70f);
+        private const int SurfaceCellsAcross = 30;
+        private const int SurfaceCellsUp = 22;
+        private static readonly Vector2 SurfaceSize =
+            new(SurfaceCellsAcross * PackGrid.Cell, SurfaceCellsUp * PackGrid.Cell);
 
         [MenuItem("Tools/SpaceGame/Items/Build Inventory Wall Prefab")]
         public static void Build()
@@ -72,12 +103,18 @@ namespace SpaceGame.EditorTools
 
             try
             {
-                PackSurface surface = AttachSurface(staged.transform, log);
-                if (surface == null) { Debug.LogError(log.ToString()); return; }
-
+                // The container FIRST, and its display scale with it. PackSurface reads that scale
+                // by walking up to its container, and everything below — the rect's own corner
+                // offset, the face collider — is already in the drawn frame. A face attached
+                // before the wall exists measures itself at 1 and comes out 6% adrift of the model.
                 var wall = staged.AddComponent<WallInventory>();
                 staged.AddComponent<WallInventoryNetwork>();
                 staged.AddComponent<WallInventorySaveable>();
+
+                SetDisplayScale(wall, log);
+
+                PackSurface surface = AttachSurface(staged.transform, log);
+                if (surface == null) { Debug.LogError(log.ToString()); return; }
 
                 WireWall(wall, surface, contents, log);
                 EnsureFaceCollider(staged, surface, log);
@@ -122,7 +159,10 @@ namespace SpaceGame.EditorTools
                .Append(' ').Append(face.Size.x.ToString("0.00")).Append(" x ")
                .Append(face.Size.y.ToString("0.00")).Append(" m, ")
                .Append(PackGrid.CellsOn(face.Size).x).Append(" x ")
-               .Append(PackGrid.CellsOn(face.Size).y).Append(" cells\n");
+               .Append(PackGrid.CellsOn(face.Size).y).Append(" cells, drawn x")
+               .Append(face.DisplayScale.ToString("0.00")).Append(" (")
+               .Append((face.Size.x * face.DisplayScale).ToString("0.00")).Append(" x ")
+               .Append((face.Size.y * face.DisplayScale).ToString("0.00")).Append(" m)\n");
 
             Debug.Log(log.ToString());
         }
@@ -277,9 +317,15 @@ namespace SpaceGame.EditorTools
             float sx = Mathf.Abs(s.x) < 1e-6f ? 1f : Mathf.Abs(s.x);
             float sz = Mathf.Abs(s.z) < 1e-6f ? 1f : Mathf.Abs(s.z);
 
-            corner.localPosition = new Vector3(-SurfaceSize.x * 0.5f / sx,
+            // In the DRAWN frame: the model's face empty is authored at the centre of a board the
+            // model draws at PackScale.WallDisplay, so the offset to its (0,0) corner is half the
+            // face times that scale. SurfaceSize itself stays the logical rectangle below — this
+            // is the one place in the builder where the two frames are visibly different.
+            float drawn = PackScale.WallDisplay;
+
+            corner.localPosition = new Vector3(-SurfaceSize.x * drawn * 0.5f / sx,
                                                0f,
-                                               -SurfaceSize.y * 0.5f / sz);
+                                               -SurfaceSize.y * drawn * 0.5f / sz);
 
             var surface = go.AddComponent<PackSurface>();
 
@@ -289,6 +335,32 @@ namespace SpaceGame.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
 
             return surface;
+        }
+
+        /// <summary>
+        /// How much bigger than its own grid the wall is drawn.
+        ///
+        /// <para>
+        /// Stamped from <see cref="PackScale.WallDisplay"/> rather than typed into the prefab, for
+        /// the reason everything else here is: the prefab is rebuilt wholesale, so a number tuned
+        /// in the inspector survives exactly until the next run. The MODEL carries the same 1.06
+        /// (<c>inventory_wall_scale.py</c>) and the two have to stay equal — the board and the
+        /// lattice gear is dropped onto are the same lines.
+        /// </para>
+        /// </summary>
+        private static void SetDisplayScale(WallInventory wall, StringBuilder log)
+        {
+            var so = new SerializedObject(wall);
+            SerializedProperty property = so.FindProperty("displayScale");
+
+            if (property == null)
+            {
+                log.Append("  FIELD    PackContainer has no 'displayScale' any more.\n");
+                return;
+            }
+
+            property.floatValue = PackScale.WallDisplay;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void WireWall(WallInventory wall, PackSurface surface, Object[] contents,

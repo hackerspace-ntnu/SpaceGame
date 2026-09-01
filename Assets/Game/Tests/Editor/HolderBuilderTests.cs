@@ -9,19 +9,36 @@ namespace SpaceGame.Tests
     ///
     /// <para>
     /// A holder is authored 1 m cubed and stretched non-uniformly to the item it covers, so a strap
-    /// over the 1.35 m LaserStaff is scaled 22x along its length relative to across it. Everything
+    /// over the LaserStaff is scaled 22x along its length relative to across it. Everything
     /// rigid under a <c>HARD_</c> empty has to be pulled back out of that stretch, and when it is
     /// not the failure reads as a modelling mistake — buckles the size of dinner plates — rather
     /// than a code one, so nobody looks here. Hence a test.
     /// </para>
+    /// <para>
+    /// The fit is a size ON THE MAT, so it is written in the frame the staff was authored in and
+    /// put through <see cref="M"/>. The counter-scale is a ratio and cares about neither — which is
+    /// the point: it has to hold at any scale of pack.
+    /// </para>
     /// </summary>
     public class HolderBuilderTests
     {
+        /// <summary>
+        /// A length that was authored against the pack's ORIGINAL 0.09 m cell, restated at
+        /// whatever the cell is today. See <c>PackLayoutTests</c> for the reasoning.
+        /// </summary>
+        private static float M(float metresAtTheOriginalCell) =>
+            metresAtTheOriginalCell * (PackGrid.Cell / PackScale.LegacyCell);
+
         /// <summary>Stands in for the pack's SURF_ empty, FBX centimetre convention and all.</summary>
         private GameObject surface;
 
-        /// <summary>What the LaserStaff measures: long along X, slim across the other two.</summary>
-        private static readonly Vector3 StaffFit = new(1.35f, 0.06f, 0.06f);
+        /// <summary>
+        /// What the LaserStaff measures on the mat: long along X, slim across the other two. Its
+        /// authored 1.35 m is 22.5x its 0.06 m girth, and the 2026-09-01 enlargement multiplied
+        /// both by <see cref="PackScale.Factor"/>, so the stretch the holder has to undo is the
+        /// same stretch it always was.
+        /// </summary>
+        private static readonly Vector3 StaffFit = new(M(1.35f), M(0.06f), M(0.06f));
 
         /// <summary>The pack's FBX arrives 100x, so anything parented into it inherits that.</summary>
         private const float SurfaceLossyScale = 100f;
@@ -65,8 +82,11 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
-        /// The test this whole file exists for. A 4 cm buckle on a strap stretched to 1.35 m is
-        /// still 4 cm across every axis; the webbing it is riding on is not.
+        /// The test this whole file exists for. A 4 cm buckle on a strap stretched the whole length
+        /// of a staff is still 4 cm across every axis; the webbing it is riding on is not. The
+        /// buckle's 0.04 is a local SCALE under the holder root, not a length on the mat, so it
+        /// does not ride <see cref="M"/> — it is 1 authored metre counter-scaled back to 1, times
+        /// the 0.04 the modeller drew.
         /// </summary>
         [Test]
         public void HardwareKeepsItsAuthoredWorldSizeThroughANonUniformFit()
@@ -78,8 +98,8 @@ namespace SpaceGame.Tests
 
             HolderBuilder.CounterScaleHardware(holder, StaffFit);
 
-            // 1 authored metre across the buckle's subtree is 1 world metre again, so the 4 cm
-            // part the modeller drew is 4 cm on screen — the same on the LaserStaff as on a Leash.
+            // 1 authored unit across the buckle's subtree is 1 world unit again, so the part the
+            // modeller drew at 0.04 is 0.04 on screen — the same on the LaserStaff as on a Leash.
             AssertScale(Vector3.one * 0.04f, buckle.lossyScale, "buckle");
 
             // And the soft part is untouched: it still spans the whole item, which is the point of

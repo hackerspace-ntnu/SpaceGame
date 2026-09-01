@@ -102,7 +102,6 @@ namespace SpaceGame.World.Safety
         /// driven entirely through its transform.
         /// </summary>
         private Rigidbody[] bodies;
-        private bool[] bodyGravityWasOn;
 
         private float nextCheckTime;
 
@@ -160,7 +159,6 @@ namespace SpaceGame.World.Safety
             if (bodies != null) return;
 
             bodies = Body.GetComponentsInChildren<Rigidbody>(true);
-            bodyGravityWasOn = new bool[bodies.Length];
         }
 
         /// <summary>
@@ -201,6 +199,23 @@ namespace SpaceGame.World.Safety
             // While parked the body is held every physics step, not on the check interval — a body
             // held only four times a second visibly sinks between holds.
             if (isParked) HoldAtParkedPosition();
+        }
+
+        /// <summary>
+        /// A park is a claim on the body, and a claim outlives the component that made it unless the
+        /// component gives it back. This guard is switched off deliberately and routinely —
+        /// <c>ArrivalDirector.QuietHull</c> does it to every ship's guard for the length of a
+        /// descent — and a park left standing across that is a hull, or a player, whose gravity
+        /// nothing is ever going to turn back on.
+        ///
+        /// <para>
+        /// OnDisable rather than OnDestroy so the destroy case is covered too: Unity raises this
+        /// first when a component or its GameObject goes away.
+        /// </para>
+        /// </summary>
+        private void OnDisable()
+        {
+            if (isParked) ExitPark();
         }
 
         private void Update()
@@ -256,7 +271,11 @@ namespace SpaceGame.World.Safety
             // so the arrival carries its crew by writing their pose, and such a rider has no parent
             // to find. Riding 2 km down inside a hull, that rider is over ground the guard has every
             // reason to think it has fallen through.
-            if (b.parent != null || SpaceGame.Agents.CarriedBody.IsHeld(b.gameObject))
+            //
+            // OTHER, not "held at all": a park is itself a claim on the shared record (see
+            // EnterPark), so asking the unqualified question here would find our own hold and leave
+            // this guard standing aside from a body only it is holding — forever.
+            if (b.parent != null || SpaceGame.Agents.CarriedBody.IsHeldByOther(b.gameObject, this))
             {
                 if (isParked) ExitPark();
                 return;
@@ -488,13 +507,21 @@ namespace SpaceGame.World.Safety
 
             // Gravity off on every body, not just the root: on an articulated machine the parts
             // fall independently, so a held chassis with falling legs tears itself apart while it
-            // waits. Each body's own setting is remembered — some are authored without gravity.
+            // waits.
+            //
+            // Through CarriedBody rather than into an array of our own, and that is not tidiness.
+            // A seat or a saddle can take this body while the park is running — the arrival spawns
+            // the crew at the top of the descent, over chunks the streamer has not reached, and
+            // seats them one frame later — and a carrier captures what the body IS at the moment it
+            // arrives. A privately-remembered park is therefore banked as the body's normal state
+            // and handed back on release: a player who walks and steers and never falls. One record,
+            // captured by whoever got there first, is the only arrangement in which that cannot
+            // happen. See CarriedBody.
             for (int i = 0; i < bodies.Length; i++)
             {
                 if (bodies[i] == null) continue;
 
-                bodyGravityWasOn[i] = bodies[i].useGravity;
-                bodies[i].useGravity = false;
+                SpaceGame.Agents.CarriedBody.SuspendGravity(bodies[i].gameObject, this);
             }
 
             ResyncBodies();
@@ -520,6 +547,11 @@ namespace SpaceGame.World.Safety
                 "putting it back on the last ground it stood on.", this);
         }
 
+        /// <summary>
+        /// Let go of the park. A body nothing else has taken gets its weight back here; one that a
+        /// seat or a saddle has since claimed keeps its own carrier's state and is handed back by
+        /// that carrier's release, which is exactly what the shared record is for.
+        /// </summary>
         private void ExitPark()
         {
             isParked = false;
@@ -527,7 +559,7 @@ namespace SpaceGame.World.Safety
             for (int i = 0; i < bodies.Length; i++)
             {
                 if (bodies[i] != null)
-                    bodies[i].useGravity = bodyGravityWasOn[i];
+                    SpaceGame.Agents.CarriedBody.Release(bodies[i].gameObject, this);
             }
         }
 

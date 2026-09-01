@@ -209,6 +209,11 @@ namespace SpaceGame.Gameplay
         /// from a parent, and the ray passes straight through it to whatever is really there. A
         /// trigger that IS a control still works: the crawler's DOOR_MountStation holds its
         /// MountStation on the very GameObject the trigger is on.
+        ///
+        /// The one exception is <see cref="InteractionBlocker"/>: a trigger that stands for
+        /// something you can see through and cannot reach through. It offers nothing and stops the
+        /// ray, which is how a hull with a deliberate hole in its collision — the PlayerShip's
+        /// canopy — keeps what is behind it out of reach.
         /// </summary>
         /// <param name="ignoreRoot">
         /// Hierarchy to treat as invisible — the interacting player's own body. Optional so tests
@@ -234,7 +239,19 @@ namespace SpaceGame.Gameplay
                 {
                     // Only a trigger that is itself a control answers; everything else is see-through.
                     IInteractable own = collider.GetComponent<IInteractable>();
-                    if (own == null) continue;
+                    if (own == null)
+                    {
+                        // Unless it is glass. See-through also meant reach-through, and a hull is
+                        // only as opaque as its collision: the PlayerShip's canopy dome carries
+                        // none on purpose, so the four cockpit chairs' own trigger volumes were the
+                        // first thing an outside ray met and the ship was boardable from the air
+                        // above it. An InteractionBlocker is a trigger that stops the ray without
+                        // offering anything — solid to the hand, invisible to physics.
+                        if (collider.GetComponent<InteractionBlocker>() == null) continue;
+                        chosen = hits[index];
+                        return false;
+                    }
+
                     interactable = own;
                     chosen = hits[index];
                     return true;

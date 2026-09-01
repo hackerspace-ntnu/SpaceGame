@@ -26,12 +26,14 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a client fails to join with 'Scene Hash N does not exist in the HashToBuildIndex table | [Scenes](systems/Scenes.md) |
 | a client sees no damage numbers at all, or its own shots do nothing | [Combat](systems/Combat.md) |
 | a client walks through a door and nothing happens | [SceneTransitions](systems/SceneTransitions.md) |
+| a collider a builder added is on the prefab but nothing ever hits it | [EditorTooling](systems/EditorTooling.md) |
 | a component I added to PlayerShip.prefab by hand disappeared after a rebuild | [PlayerShip](systems/PlayerShip.md) |
 | a creature disappears for clients when it walks into another chunk | [EntitySystem](systems/EntitySystem.md) |
 | a creature is teleported but its NavMeshAgent stays behind | [SceneTransitions](systems/SceneTransitions.md) |
 | a creature or vehicle reappears at its authored position instead of where I left it | [Persistence](systems/Persistence.md) |
 | a cutscene played for one player only, or moved a body the server overwrote | [Cutscenes](systems/Cutscenes.md) |
 | a dead player gets his controls back after dismounting or leaving a cutscene | [PlayerCharacter](systems/PlayerCharacter.md) |
+| a deployed pack casts a shadow on the sand but I cannot see the pack itself | [Backpack](systems/Backpack.md) |
 | a disabled menu row stays stuck in its hover colour and never resets | [UI](systems/UI.md) |
 | a door, lever or workstation is back in its authored state after loading a save | [InteractionSystem](systems/InteractionSystem.md) |
 | a failed join throws a bare NullReferenceException instead of a readable service error | [Lobby](systems/Lobby.md) |
@@ -48,6 +50,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a leashed creature teleports or jitters instead of straining at the rope | [LeashSystem](systems/LeashSystem.md) |
 | a lit shaft hangs in the air with the lamp switched off | [Flashlight](systems/Flashlight.md) |
 | a lobby control looks enabled but does nothing while a request is in flight | [Lobby](systems/Lobby.md) |
+| a menu choice drops me back on the main menu instead of opening the page it names | [UI](systems/UI.md) |
 | a menu swallows my movement keys, or a hotkey does nothing while a panel is open | [UI](systems/UI.md) |
 | a mesa or cliff bakes at the wrong ground height, or off-screen entirely | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a mesh built under a pack surface lands tens of metres away | [Backpack](systems/Backpack.md) |
@@ -56,29 +59,42 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a mounted ostrich vanishes out from under its rider on the other machine | [Locomotion](systems/Locomotion.md) |
 | a moving NPC keeps nine chunks loaded around itself | [EntitySystem](systems/EntitySystem.md) |
 | a NavMesh or map bake silently skips chunks | [WorldStreaming](systems/WorldStreaming.md) |
+| a pack test says an item came back at (0.58, 0.41) when it was put down at (0.60, 0.45) | [Backpack](systems/Backpack.md) |
+| a parked ship, or a wreck loaded from a save, is sitting inside a ball of orange fire | [PlayerShip](systems/PlayerShip.md) |
+| a player who has been carried walks and steers but never falls again | [Vehicles](systems/Vehicles.md) |
 | a portal stays open forever with no partner after someone traverses | [Portals](systems/Portals.md) |
 | a position 16 km out reads as terrain in the corner of the world | [WorldStreaming](systems/WorldStreaming.md) |
+| a probe that excludes one part of a prefab measures that part anyway | [Testing](systems/Testing.md) |
 | a provoked NPC walks toward me instead of running | [AgentSystem](systems/AgentSystem.md) |
 | a raycast right after moving something reads the collider's old position | [ProjectConfig](systems/ProjectConfig.md) |
 | a re-exported character stops animating and the console is clean | [ArtPipeline](systems/ArtPipeline.md) |
 | a renamed [SerializeField] and the builder quietly stopped setting it | [EditorTooling](systems/EditorTooling.md) |
 | a render feature is in the renderer asset but never runs | [Environment](systems/Environment.md) |
+| a renderer feature is null even though its sub-asset and script both exist | [Environment](systems/Environment.md) |
 | a rider arrives twice the aperture separation past the exit | [Portals](systems/Portals.md) |
 | a rider is left behind, or arrives twice as far, when its mount teleports | [SceneTransitions](systems/SceneTransitions.md) |
+| a rival team's ship falls past me stone cold while mine is on fire | [Cutscenes](systems/Cutscenes.md) |
 | a row silently inflates and blows out the layout | [UI](systems/UI.md) |
 | a runtime-spawned entity is captured in the save but never comes back | [EntitySystem](systems/EntitySystem.md) |
 | a save-restored creature is on the NavMesh but never moves | [NavMeshSystem](systems/NavMeshSystem.md) |
+| a seated crewmate sits rigidly staring ahead while their view is clearly sweeping the cabin | [Cutscenes](systems/Cutscenes.md) |
+| a seated player's head stays turned after they stand up | [PlayerCharacter](systems/PlayerCharacter.md) |
 | a sound went silent and only a single warning appeared in the console | [audio](systems/audio.md) |
 | a terrain feature spawner produces no mesh and only logs a warning | [TerrainGeneration](systems/TerrainGeneration.md) |
+| a test fails with Expected: (0.00, 0.00) But was: (0.00, 0.00) and nothing says what differed | [Testing](systems/Testing.md) |
 | a trigger volume in front of a control swallows every interactable behind it | [InteractionSystem](systems/InteractionSystem.md) |
 | after a cutscene the camera stays at chest height instead of the head | [Cutscenes](systems/Cutscenes.md) |
 | after loading a save the rider is standing next to the mount instead of in the seat | [Vehicles](systems/Vehicles.md) |
+| after the crash-landing intro the player walks and steers but never falls | [WorldStreaming](systems/WorldStreaming.md) |
 | agents refuse to cross a gap or take a jump link | [NavMeshSystem](systems/NavMeshSystem.md) |
 | an ambience or engine loop keeps playing after the object was destroyed | [audio](systems/audio.md) |
 | an entity duplicates every time I reload the world | [Persistence](systems/Persistence.md) |
 | an impact effect spawns dozens of GameObjects and spikes the frame | [Cutscenes](systems/Cutscenes.md) |
 | an item I dropped is gone after save and reload, or shoves me around while held | [Inventory](systems/Inventory.md) |
+| an item is the right size in my hand and the wrong size lying on the backpack | [Inventory](systems/Inventory.md) |
+| an item looks like a toy on the mat next to the face it is strapped to | [Backpack](systems/Backpack.md) |
 | an item measures metres across and fills the whole pack | [Backpack](systems/Backpack.md) |
+| an item stands on its end on the pack instead of lying down, like the jumping rod | [Backpack](systems/Backpack.md) |
 | an item, faction or targeting asset never turns up in Registry<T>.Get | [CoreServices](systems/CoreServices.md) |
 | an NPC is completely invisible to AI targeting | [EntitySystem](systems/EntitySystem.md) |
 | an NPC or legged machine touches a portal but never goes through | [Portals](systems/Portals.md) |
@@ -87,6 +103,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an NPC's chatter mutes every other NPC of the same kind | [audio](systems/audio.md) |
 | an object I spawn at runtime is invisible to clients, or logs 'has no NetworkObject | [Multiplayer](systems/Multiplayer.md) |
 | another player disconnecting blacks out my long-throw lighting | [Flashlight](systems/Flashlight.md) |
+| another player's head never moves — they stare straight ahead while their view is clearly turning | [PlayerCharacter](systems/PlayerCharacter.md) |
 | arena spawns are not filtered for reachability | [NavMeshSystem](systems/NavMeshSystem.md) |
 | bots on opposite teams refuse to fight each other | [GameModes](systems/GameModes.md) |
 | camera shake does nothing anywhere in the game | [Cutscenes](systems/Cutscenes.md) |
@@ -97,20 +114,27 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | creatures path through geometry that is no longer there | [NavMeshSystem](systems/NavMeshSystem.md) |
 | damage lands once per player in the session, so a target dies four times too fast | [Combat](systems/Combat.md) |
 | dead NPCs re-instantiate themselves on every reload | [EntitySystem](systems/EntitySystem.md) |
+| distant terrain/objects are missing ahead of me but appear when I turn around | [Environment](systems/Environment.md) |
 | EntityProfile_RobotPhil / _DesertRat is referenced but does not exist | [EntitySystem](systems/EntitySystem.md) |
 | every client's shot follows the host's crosshair instead of their own aim | [Artifacts](systems/Artifacts.md) |
 | every NPC swings its barrel to follow the host's head | [AgentSystem](systems/AgentSystem.md) |
 | everything not on the rack disappears when the pack is reshouldered or restored | [Backpack](systems/Backpack.md) |
 | exit momentum is confiscated a fraction of a second after coming through | [Portals](systems/Portals.md) |
 | Failed to bind UDP socket' or a 409 'already a member of the lobby' when launching two instances | [Multiplayer](systems/Multiplayer.md) |
+| fog and clouds do not render at all and the renderer logs that it is missing RendererFeatures | [Environment](systems/Environment.md) |
 | fog draws over every particle and pane of glass | [Environment](systems/Environment.md) |
 | GameServices.World is null and every spawn or despawn NREs | [CoreServices](systems/CoreServices.md) |
+| gear on the mat jumped to different cells after loading an old save | [Backpack](systems/Backpack.md) |
 | gear placed on the pack is missing after a save and reload | [Backpack](systems/Backpack.md) |
 | half the player is uncoloured while standing in the aperture | [Portals](systems/Portals.md) |
 | how do I actually prove this works on a client and not just the host | [Testing](systems/Testing.md) |
 | how do I run the tests or type-check the code without clicking around the Unity GUI | [Testing](systems/Testing.md) |
 | I added a binding to the .inputactions asset and nothing happens in game | [PlayerCharacter](systems/PlayerCharacter.md) |
 | I added a chunk or interior scene and nothing ever loads it | [Scenes](systems/Scenes.md) |
+| I board the ship from outside by looking at its cockpit through the glass | [Vehicles](systems/Vehicles.md) |
+| I board the ship from outside by looking at the cockpit through the canopy | [PlayerShip](systems/PlayerShip.md) |
+| I can see the ship hit the ground before the screen goes black | [PlayerShip](systems/PlayerShip.md) |
+| I can use a control through a window, a windscreen or a canopy from outside | [InteractionSystem](systems/InteractionSystem.md) |
 | I edited the .inputactions asset and the new key binding does nothing | [CoreServices](systems/CoreServices.md) |
 | I fall through the ship's floor or cannot climb the boarding stair | [PlayerShip](systems/PlayerShip.md) |
 | I fixed the mapping mid-session and it is still silent | [audio](systems/audio.md) |
@@ -135,6 +159,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | my hand edits to a prefab or the main menu disappeared after someone ran a builder | [EditorTooling](systems/EditorTooling.md) |
 | my hand-added component disappeared after someone rebuilt the prefab | [AgentSystem](systems/AgentSystem.md) |
 | my new item never appears in the dev item browser (I key) | [Inventory](systems/Inventory.md) |
+| my own backpack bounces into view in front of the first-person camera | [PlayerCharacter](systems/PlayerCharacter.md) |
 | my player cannot move at all after loading a saved world | [PlayerCharacter](systems/PlayerCharacter.md) |
 | my saver's key is nowhere in the save JSON | [Persistence](systems/Persistence.md) |
 | Newtonsoft stack-overflows saving a storm | [Environment](systems/Environment.md) |
@@ -148,11 +173,15 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | picking an item up works for the host and does nothing for a client | [Inventory](systems/Inventory.md) |
 | players land inside the wrong team's ship or on top of each other | [GameModes](systems/GameModes.md) |
 | playing straight from a world scene has no items, no audio, no registries | [CoreServices](systems/CoreServices.md) |
+| pressing E anywhere on the hull puts me in the pilot's chair | [PlayerShip](systems/PlayerShip.md) |
+| pressing E anywhere on the hull puts me in the pilot's chair | [Vehicles](systems/Vehicles.md) |
+| pressing E at a vehicle from outside seats me in its cockpit | [InteractionSystem](systems/InteractionSystem.md) |
 | pressing E opens the wrong door on the other machine | [InteractionSystem](systems/InteractionSystem.md) |
 | pressing L toggles every player's torch on this machine | [Flashlight](systems/Flashlight.md) |
 | pressing Play in my own scene bounces through Bootstrap and lands somewhere else | [Scenes](systems/Scenes.md) |
 | pulling back on the stick does not climb, or the craft drops like a brick | [Ornithopter](systems/Ornithopter.md) |
 | re-running a generator script destroyed hand edits that existed only in the .blend | [ArtPipeline](systems/ArtPipeline.md) |
+| rebuilding the wing pack item makes it invisible to clients and stops it surviving a reload | [Ornithopter](systems/Ornithopter.md) |
 | remote copies of the creature slide along with their feet still | [AgentSystem](systems/AgentSystem.md) |
 | ropes from the previous world are still hanging in the newly loaded one | [LeashSystem](systems/LeashSystem.md) |
 | scenes are full of missing prefab instances a GUID grep cannot find | [EditorTooling](systems/EditorTooling.md) |
@@ -164,6 +193,10 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | Temp/headless_tests.txt never appears and I cannot tell if the run started | [Testing](systems/Testing.md) |
 | the agent just stands there doing nothing and the console is clean | [AgentSystem](systems/AgentSystem.md) |
 | the arrival cutscene plays for the host only | [PlayerShip](systems/PlayerShip.md) |
+| the arrival cutscene runs on a different clock on the host and the client | [PlayerShip](systems/PlayerShip.md) |
+| the arrival log says the ship landed cleanly but it is visibly hanging in the sky | [PlayerShip](systems/PlayerShip.md) |
+| the arrival logs that the heightmap and the colliders disagree about the ground under the ship | [PlayerShip](systems/PlayerShip.md) |
+| the arrival sits on a black screen and never plays | [Cutscenes](systems/Cutscenes.md) |
 | the beam cone collapses to zero length or stops at nothing | [Flashlight](systems/Flashlight.md) |
 | the beam never stops burning after the button is released | [Artifacts](systems/Artifacts.md) |
 | the cabin shakes or the screen comes apart during the descent | [PlayerShip](systems/PlayerShip.md) |
@@ -174,15 +207,19 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the corpse stays suspended in the air with its brain switched off | [Combat](systems/Combat.md) |
 | the craft grinds along a rock face forever instead of crashing | [Ornithopter](systems/Ornithopter.md) |
 | the craft is invisible to everyone but the host after launching | [Ornithopter](systems/Ornithopter.md) |
+| the crash cutscene starts seconds earlier on the host than on the client | [Cutscenes](systems/Cutscenes.md) |
 | the crash-landing intro never plays and nobody spawns, with one error in the console | [PlayerShip](systems/PlayerShip.md) |
 | the creature ignores me completely and never attacks anything | [AgentSystem](systems/AgentSystem.md) |
 | the creature stopped walking after I added a LateUpdate to its subclass | [Locomotion](systems/Locomotion.md) |
 | the creature's legs skate instead of walking | [AgentSystem](systems/AgentSystem.md) |
+| the crew stand up out of the wreck able to walk on air, never falling again | [PlayerShip](systems/PlayerShip.md) |
 | the cursor keeps re-locking itself while my panel is open | [PlayerCharacter](systems/PlayerCharacter.md) |
 | the death screen does not appear for a player who died before loading | [UI](systems/UI.md) |
 | the deathmatch route loads an empty arena over persistentScene | [Scenes](systems/Scenes.md) |
 | the door opens for the host and stays shut for clients | [InteractionSystem](systems/InteractionSystem.md) |
 | the effect applies on the server and is silently overwritten a tick later | [Artifacts](systems/Artifacts.md) |
+| the entry burn is still blazing when the screen fades to black at the impact | [PlayerShip](systems/PlayerShip.md) |
+| the entry fire is drawn over the inside of the cabin as well as out of the window | [PlayerShip](systems/PlayerShip.md) |
 | the exported FBX is nowhere in the project and nothing imports it | [ArtPipeline](systems/ArtPipeline.md) |
 | the fade to black hangs and the door stays busy | [SceneTransitions](systems/SceneTransitions.md) |
 | the feet trail behind the body, or a planted foot slips along the ground | [Locomotion](systems/Locomotion.md) |
@@ -190,8 +227,10 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the fog or cloud pass looks stippled or dithered | [Environment](systems/Environment.md) |
 | the gadget works for the host but does nothing for a client | [Artifacts](systems/Artifacts.md) |
 | the game stays frozen after I close the menu and nothing can unfreeze it | [UI](systems/UI.md) |
+| the gear wall's headroom check names the gear wall itself as the thing overhead | [PlayerShip](systems/PlayerShip.md) |
 | the ghost cells stay red and the item refuses to drop anywhere on the pack | [Backpack](systems/Backpack.md) |
 | the gun fires but no bullet appears and the ammo never goes down | [Combat](systems/Combat.md) |
+| the highlighted cell on the gear wall is not the one under the crosshair, or its board is bigger than the grid drawn on it | [Backpack](systems/Backpack.md) |
 | the host can pick 8 teams of 12 in a 24-seat lobby | [GameModes](systems/GameModes.md) |
 | the imported mesh arrives untextured, or a handful of faces wear a neighbouring part's colour | [ArtPipeline](systems/ArtPipeline.md) |
 | the item floats beside the hand instead of in it, or comes out comically large | [Inventory](systems/Inventory.md) |
@@ -208,6 +247,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the model comes out 100x too big when parented to a socket | [ArtPipeline](systems/ArtPipeline.md) |
 | the NavMesh baker silently skips every chunk / LoadAssetAtPath returns null for a chunk | [Scenes](systems/Scenes.md) |
 | the new asset is rotated relative to every existing one | [ArtPipeline](systems/ArtPipeline.md) |
+| the orientation fix logs 'saved' for a prefab and then FAILED verification on the same run | [Backpack](systems/Backpack.md) |
+| the pack and everything on it is suddenly enormous, or the webbing no longer lines up with the grid | [Backpack](systems/Backpack.md) |
+| the pack I am wearing swings into view in front of my own first-person camera | [Backpack](systems/Backpack.md) |
 | the panel draws fine but no button responds to clicks | [UI](systems/UI.md) |
 | the player build fails with BuildFailedException about the world NavMesh | [NavMeshSystem](systems/NavMeshSystem.md) |
 | the player comes out of a ceiling portal lying down in mid-air | [Portals](systems/Portals.md) |
@@ -231,11 +273,16 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the same item cannot be put in the pack twice | [Backpack](systems/Backpack.md) |
 | the sandstorm is in a different place on the host than on the client | [Environment](systems/Environment.md) |
 | the screen goes black wherever the ray misses the volume | [Environment](systems/Environment.md) |
+| the screen only goes black after the ship has finished crashing, so I watch the impact | [Cutscenes](systems/Cutscenes.md) |
 | the second match starts on the previous match's spawn ring | [GameModes](systems/GameModes.md) |
 | the server teleports a player and it snaps back within a frame | [Multiplayer](systems/Multiplayer.md) |
 | the settlement or cave comes out different every time I regenerate | [TerrainGeneration](systems/TerrainGeneration.md) |
+| the ship falls the whole way down with no sign of atmospheric heating | [PlayerShip](systems/PlayerShip.md) |
+| the ship finishes its dive in mid-air and then sinks slowly for minutes | [PlayerShip](systems/PlayerShip.md) |
+| the ship lands a couple of metres in the air when an NPC or a mount is standing near the impact site | [PlayerShip](systems/PlayerShip.md) |
 | the ship lands buried in terrain or strands the crew in the air | [PlayerShip](systems/PlayerShip.md) |
 | the ship levels out just before it lands instead of crashing into the ground | [PlayerShip](systems/PlayerShip.md) |
+| the ship's gear wall punches through the roof of the aft room, or hangs out through the hull | [Backpack](systems/Backpack.md) |
 | the stall never ends and the nose stays up | [Ornithopter](systems/Ornithopter.md) |
 | the storm interior renders almost black | [Environment](systems/Environment.md) |
 | the sun jumps to a different time of day after loading a save | [Environment](systems/Environment.md) |
@@ -250,8 +297,10 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the volume sliders in the settings menu do nothing | [audio](systems/audio.md) |
 | the walker stands frozen and never takes a step, with no error in the console | [Locomotion](systems/Locomotion.md) |
 | the walker stops dead at the rim of a portal it should be able to cross | [Locomotion](systems/Locomotion.md) |
+| the wing pack looks like a toy lying on the backpack, far smaller than the rack it is strapped to | [Ornithopter](systems/Ornithopter.md) |
 | the wing pack refuses to launch and logs that there is no room | [Ornithopter](systems/Ornithopter.md) |
 | the wreck is left standing on its nose, or the camera is inside the terrain at the impact | [PlayerShip](systems/PlayerShip.md) |
+| there is a hard oval seam in the air around the burning ship where the effect stops | [PlayerShip](systems/PlayerShip.md) |
 | two doors log a duplicate TransitionId and one loses its effects | [SceneTransitions](systems/SceneTransitions.md) |
 | typecheck.py prints 'No errors.' but the Editor still shows compile errors | [Testing](systems/Testing.md) |
 | walking into a portal does nothing and no trigger ever fires | [Portals](systems/Portals.md) |
@@ -294,6 +343,7 @@ Longest match wins.
 | `Assets/Game/ScriptableObjects/Items/PackShapes.asset` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs` | [Locomotion](systems/Locomotion.md) |
 | `Assets/Game/Scripts/World/Streaming/NavMesh/Editor/` | [EditorTooling](systems/EditorTooling.md) |
+| `Assets/Game/Art/Shaders/Effects/EntryPlasma.shader` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Scripts/Items/Equipped/WingPackItem.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Prefabs/Systems/NetworkManager.prefab` | [Multiplayer](systems/Multiplayer.md) |
 | `Assets/Game/Scripts/Core/Settings/GameSettings.cs` | [UI](systems/UI.md) |
@@ -413,4 +463,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 241 symptoms, 146 paths, 33 docs -->
+<!-- 290 symptoms, 147 paths, 33 docs -->

@@ -25,6 +25,32 @@ namespace SpaceGame.EditorTools
         private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
         private const BindingFlags HiddenStatic = BindingFlags.Static | BindingFlags.NonPublic;
 
+        /// <summary>
+        /// A length that was authored against the pack's ORIGINAL 0.09 m cell, restated at
+        /// whatever the cell is today.
+        ///
+        /// <para>
+        /// The 2026-09-01 enlargement multiplied the cell and every face by
+        /// <see cref="PackScale.Factor"/> together and multiplied no cell COUNT by anything, so the
+        /// face and the spots below still name the cells they always named. Nothing about the WIRE
+        /// changed with them — a uv is still metres — which is what the round-trip test at the
+        /// bottom of this file has to keep saying. Same helper, same reasoning, as in
+        /// <c>PackLayoutTests</c>.
+        /// </para>
+        /// </summary>
+        private static float M(float metresAtTheOriginalCell) =>
+            metresAtTheOriginalCell * (PackGrid.Cell / PackScale.LegacyCell);
+
+        /// <summary>The one face these tests lay things on: 9 x 8 cells with a hem across.</summary>
+        private static readonly Vector2 LeafSize = new(M(0.86f), M(0.72f));
+
+        /// <summary>
+        /// The block an item with no prefab occupies — <see cref="ItemFootprint"/>'s square for
+        /// anything it cannot measure, which is two cells either way at any scale. Every item in
+        /// this file is a bare <see cref="InventoryItem"/> with nothing to measure.
+        /// </summary>
+        private static readonly Vector2Int UnmeasurableBlock = new(2, 2);
+
         private readonly List<GameObject> spawned = new();
         private readonly List<ScriptableObject> assets = new();
 
@@ -92,7 +118,7 @@ namespace SpaceGame.EditorTools
 
             var surface = surfaceGo.AddComponent<PackSurface>();
             surface.GetType().GetField("id", Hidden).SetValue(surface, PackSurfaceId.Leaf);
-            surface.GetType().GetField("size", Hidden).SetValue(surface, new Vector2(0.86f, 0.72f));
+            surface.GetType().GetField("size", Hidden).SetValue(surface, LeafSize);
 
             var pack = packGo.AddComponent<BackpackObject>();
             Invoke(pack, "Awake");
@@ -126,8 +152,21 @@ namespace SpaceGame.EditorTools
 
         // ─────────── The server settles the race ───────────
 
-        /// <summary>Where a test item is laid down, and the point a take names it by.</summary>
-        private static readonly Vector2 Spot = new(0.4f, 0.3f);
+        /// <summary>
+        /// Where a test item is laid down, and the point a take names it by.
+        ///
+        /// <para>
+        /// A cell-block centre rather than a round number of metres, because the layout stores the
+        /// SNAPPED uv and a swap hands the displaced item the vacated placement's stored uv — so a
+        /// test that lays an item down at a round number and then asserts the displaced one came
+        /// back "in the spot the player was aiming at" is comparing an asked uv with a snapped one
+        /// and fails by up to half a cell. The face has a hem across it, so the round number was
+        /// never on the lattice to begin with. Same reasoning, same spelling, as <c>Spot</c> in
+        /// <c>BackpackSwapTests</c>.
+        /// </para>
+        /// </summary>
+        private static readonly Vector2 Spot =
+            PackGrid.BlockCentreUv(LeafSize, new Vector2Int(3, 2), UnmeasurableBlock);
 
         [Test]
         public void OneItemGoesToOneTakerNoMatterHowManyAskForIt()
@@ -163,8 +202,10 @@ namespace SpaceGame.EditorTools
             InventoryItem cell = Item("Water Cell");
             pack.TryPlace(cell, PackSurfaceId.Leaf, Spot, 0f);
 
-            // Bare canvas, well clear of the only thing on the mat.
-            controller.RequestTake(PackSurfaceId.Leaf, new Vector2(0.8f, 0.65f), interactor);
+            // Bare canvas: the far corner of the 9 x 8 face, four cells clear of the only thing on
+            // the mat. Named as a cell for the same reason Spot is.
+            controller.RequestTake(PackSurfaceId.Leaf,
+                                   PackGrid.CentreUv(LeafSize, new Vector2Int(8, 7)), interactor);
 
             Assert.AreEqual(0, hotbar.Count(cell), "a click on nothing must take nothing");
             Assert.AreEqual(1, pack.Layout.Placements.Count, "…and disturb nothing");
@@ -354,20 +395,22 @@ namespace SpaceGame.EditorTools
             MethodInfo toWire = typeof(BackpackNetwork).GetMethod("ToWire", HiddenStatic);
             Assert.IsNotNull(toWire, "BackpackNetwork.ToWire was renamed; rename it here too.");
 
-            var placement = new PackPlacement("abc123", PackSurfaceId.WingRight, new Vector2(0.43f, 0.36f), 39f);
+            var placement = new PackPlacement("abc123", PackSurfaceId.WingRight,
+                                              new Vector2(M(0.43f), M(0.36f)), 39f);
             var wire = (PackPlacementWire)toWire.Invoke(null, new object[] { placement });
 
             Assert.AreEqual("abc123", wire.ItemId.Value);
             Assert.AreEqual((byte)PackSurfaceId.WingRight, wire.Surface);
-            Assert.AreEqual(0.43f, wire.U, 1e-5f);
-            Assert.AreEqual(0.36f, wire.V, 1e-5f);
+            Assert.AreEqual(M(0.43f), wire.U, 1e-5f);
+            Assert.AreEqual(M(0.36f), wire.V, 1e-5f);
             Assert.AreEqual(39f, wire.Yaw, 1e-5f);
 
             Assert.IsTrue(wire.Equals(wire));
 
             var moved = (PackPlacementWire)toWire.Invoke(null, new object[]
             {
-                new PackPlacement("abc123", PackSurfaceId.WingRight, new Vector2(0.43f, 0.36f), 40f)
+                new PackPlacement("abc123", PackSurfaceId.WingRight,
+                                  new Vector2(M(0.43f), M(0.36f)), 40f)
             });
 
             Assert.IsFalse(wire.Equals(moved), "a yaw change is a change and has to replicate");

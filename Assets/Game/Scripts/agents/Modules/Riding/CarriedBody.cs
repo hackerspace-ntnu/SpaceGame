@@ -29,6 +29,16 @@ namespace SpaceGame.Agents
     /// </para>
     ///
     /// <para>
+    /// <b>Not every claim is a full freeze, and the record is what makes that safe.</b>
+    /// <c>UnderTerrainGuard</c> parks a body by taking its gravity away and pinning its position,
+    /// leaving it otherwise under physics — see <see cref="SuspendGravity"/>. That is a claim on the
+    /// same three flags, so it goes through the same record: a guard that remembered
+    /// <c>useGravity</c> privately handed a park to whoever picked the body up next, who banked
+    /// "weightless" as this body's normal state and gave it back on release. That is a player who
+    /// walks on air, and it is the crash landing's version of the bug the paragraph above describes.
+    /// </para>
+    ///
+    /// <para>
     /// Static, because the two carriers live on different components and neither owns the body. Keyed
     /// on the <see cref="Rigidbody"/> rather than the GameObject so a holder cannot register one and
     /// release the other.
@@ -66,21 +76,8 @@ namespace SpaceGame.Agents
         /// </summary>
         public static void Hold(GameObject body, object holder)
         {
-            Rigidbody rb = Resolve(body);
-            if (rb == null || holder == null) return;
-
-            if (!s_held.TryGetValue(rb, out Record hold))
-            {
-                hold = new Record
-                {
-                    WasKinematic = rb.isKinematic,
-                    HadGravity = rb.useGravity,
-                    Interpolation = rb.interpolation,
-                };
-                s_held[rb] = hold;
-            }
-
-            hold.Holders.Add(holder);
+            Rigidbody rb = Claim(body, holder);
+            if (rb == null) return;
 
             // Velocity first: writing it to a body that is already kinematic is a Unity warning and
             // a no-op, so the speed it was carrying would be reapplied under the next teleport and
@@ -98,6 +95,57 @@ namespace SpaceGame.Agents
             // a long way back when the carrier is a ship flying a descent. The rider visibly shakes
             // loose of the chair without this.
             rb.interpolation = RigidbodyInterpolation.None;
+        }
+
+        /// <summary>
+        /// Take a body's weight away and nothing else: it stays dynamic, keeps its velocity and goes
+        /// on colliding, it simply stops falling.
+        ///
+        /// <para>
+        /// For <c>UnderTerrainGuard</c>'s park, which holds a body still at its own X/Z while the
+        /// chunk under it loads. It pins the position itself, every physics step, so a full
+        /// <see cref="Hold"/> would be wrong twice over — a kinematic chassis with jointed legs and
+        /// wheels behaves nothing like a dynamic one, and the guard is on every vehicle in the game.
+        /// Gravity is the only flag it has ever needed, because an articulated machine held by its
+        /// chassis alone tears itself apart as its parts fall independently.
+        /// </para>
+        /// <para>
+        /// It is still a CLAIM, registered in the same record and ended by the same
+        /// <see cref="Release"/>, and that is the whole point: whoever picks the body up next finds
+        /// the state it had before the park rather than the park itself.
+        /// </para>
+        /// </summary>
+        public static void SuspendGravity(GameObject body, object holder)
+        {
+            Rigidbody rb = Claim(body, holder);
+            if (rb == null) return;
+
+            rb.useGravity = false;
+        }
+
+        /// <summary>
+        /// Register <paramref name="holder"/> against <paramref name="body"/>, capturing what the
+        /// body was if nobody else already has. Returns the body to write, or null when there is
+        /// nothing to claim.
+        /// </summary>
+        private static Rigidbody Claim(GameObject body, object holder)
+        {
+            Rigidbody rb = Resolve(body);
+            if (rb == null || holder == null) return null;
+
+            if (!s_held.TryGetValue(rb, out Record hold))
+            {
+                hold = new Record
+                {
+                    WasKinematic = rb.isKinematic,
+                    HadGravity = rb.useGravity,
+                    Interpolation = rb.interpolation,
+                };
+                s_held[rb] = hold;
+            }
+
+            hold.Holders.Add(holder);
+            return rb;
         }
 
         /// <summary>
@@ -163,6 +211,27 @@ namespace SpaceGame.Agents
         {
             Rigidbody rb = Resolve(body);
             return rb != null && s_held.ContainsKey(rb);
+        }
+
+        /// <summary>
+        /// Is anybody OTHER than <paramref name="holder"/> carrying this body?
+        ///
+        /// <para>
+        /// The question a holder has to ask about a body it is itself holding.
+        /// <c>UnderTerrainGuard</c> stands aside for anything else that has taken a body — a seat, a
+        /// saddle — but it is a holder too now, and asking <see cref="IsHeld"/> from inside its own
+        /// park would answer "yes, me" and leave it holding a body forever.
+        /// </para>
+        /// </summary>
+        public static bool IsHeldByOther(GameObject body, object holder)
+        {
+            Rigidbody rb = Resolve(body);
+            if (rb == null || !s_held.TryGetValue(rb, out Record hold)) return false;
+
+            foreach (object other in hold.Holders)
+                if (!ReferenceEquals(other, holder)) return true;
+
+            return false;
         }
 
         private static Rigidbody Resolve(GameObject body) =>

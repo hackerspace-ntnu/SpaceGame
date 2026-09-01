@@ -8,9 +8,31 @@ namespace SpaceGame.Tests
     /// <see cref="PackSurface"/> is the only conversion between a uv in metres and a world point,
     /// so every drag, every placement preview and every seated item goes through these three
     /// behaviours.
+    ///
+    /// <para>
+    /// Every metre figure below — the face, the uvs, the lift, the hem — is written in the cell the
+    /// suite was authored against (0.09 m) and put through <see cref="M"/>, so the arithmetic in
+    /// the comments stays checkable while the numbers follow the cell. See that method.
+    /// </para>
     /// </summary>
     public class PackSurfaceTests
     {
+        /// <summary>
+        /// A length that was authored against the pack's ORIGINAL 0.09 m cell, restated at
+        /// whatever the cell is today.
+        ///
+        /// <para>
+        /// The 2026-09-01 enlargement multiplied the cell, every surface rectangle and the rig's
+        /// own geometry by <see cref="PackScale.Factor"/> together, and multiplied none of the
+        /// rules. Wrapping the figures rather than re-typing them at 1.5x is what keeps this suite
+        /// testing the CONVERSION instead of a particular scale — and what makes the next scale
+        /// change a one-line edit to <see cref="PackScale"/> rather than a sweep through six test
+        /// files. The same helper, with the same reasoning, is in <c>PackLayoutTests</c>.
+        /// </para>
+        /// </summary>
+        private static float M(float metresAtTheOriginalCell) =>
+            metresAtTheOriginalCell * (PackGrid.Cell / PackScale.LegacyCell);
+
         private GameObject host;
 
         [TearDown]
@@ -41,27 +63,28 @@ namespace SpaceGame.Tests
         [Test]
         public void CentreUvLandsAtTheMiddleOfTheRect()
         {
-            var size = new Vector2(0.86f, 0.72f);
+            var size = new Vector2(M(0.86f), M(0.72f));
             PackSurface surface = Surface(size);
 
             Vector3 world = surface.ToWorld(size * 0.5f, 0f);
 
-            Assert.AreEqual(0.43f, world.x, 1e-4f);
+            Assert.AreEqual(M(0.43f), world.x, 1e-4f);
             Assert.AreEqual(0f, world.y, 1e-4f);
-            Assert.AreEqual(0.36f, world.z, 1e-4f);
+            Assert.AreEqual(M(0.36f), world.z, 1e-4f);
         }
 
         [Test]
         public void AUvRoundTripsThroughWorld()
         {
-            PackSurface surface = Surface(new Vector2(0.86f, 0.72f));
+            PackSurface surface = Surface(new Vector2(M(0.86f), M(0.72f)));
 
             // Move and turn the surface: the round trip must not depend on it sitting at identity.
+            // The pose is the WORLD's, not the pack's, so it does not ride M().
             host.transform.SetPositionAndRotation(new Vector3(3f, 1.2f, -4f), Quaternion.Euler(15f, 40f, 0f));
 
-            var uv = new Vector2(0.2f, 0.55f);
+            var uv = new Vector2(M(0.2f), M(0.55f));
 
-            Vector2 back = surface.ToUv(surface.ToWorld(uv, 0.03f));
+            Vector2 back = surface.ToUv(surface.ToWorld(uv, M(0.03f)));
 
             Assert.AreEqual(uv.x, back.x, 1e-3f);
             Assert.AreEqual(uv.y, back.y, 1e-3f);
@@ -84,52 +107,58 @@ namespace SpaceGame.Tests
         [Test]
         public void AUvIsMetresInTheWorldEvenOnACentimetreScaledRig()
         {
-            PackSurface surface = Surface(new Vector2(0.86f, 0.72f));
+            PackSurface surface = Surface(new Vector2(M(0.86f), M(0.72f)));
 
             host.transform.localScale = Vector3.one * 100f;
 
             Vector3 corner = surface.ToWorld(Vector2.zero, 0f);
-            Vector3 across = surface.ToWorld(new Vector2(0.50f, 0f), 0f);
-            Vector3 along  = surface.ToWorld(new Vector2(0f, 0.25f), 0f);
-            Vector3 lifted = surface.ToWorld(Vector2.zero, 0.03f);
+            Vector3 across = surface.ToWorld(new Vector2(M(0.50f), 0f), 0f);
+            Vector3 along  = surface.ToWorld(new Vector2(0f, M(0.25f)), 0f);
+            Vector3 lifted = surface.ToWorld(Vector2.zero, M(0.03f));
 
-            Assert.AreEqual(0.50f, Vector3.Distance(corner, across), 1e-3f,
-                            "0.50 m across the surface is 0.50 m in the world, not 50 m");
-            Assert.AreEqual(0.25f, Vector3.Distance(corner, along), 1e-3f);
-            Assert.AreEqual(0.03f, Vector3.Distance(corner, lifted), 1e-4f,
+            Assert.AreEqual(M(0.50f), Vector3.Distance(corner, across), 1e-3f,
+                            "half a metre across the surface is half a metre in the world, not 50 m");
+            Assert.AreEqual(M(0.25f), Vector3.Distance(corner, along), 1e-3f);
+            Assert.AreEqual(M(0.03f), Vector3.Distance(corner, lifted), 1e-4f,
                             "the lift off the surface is metres too");
 
-            // The far corner of the whole face: 0.86 x 0.72 m, diagonal 1.1216 m.
-            Assert.AreEqual(1.1216f, Vector3.Distance(corner, surface.ToWorld(new Vector2(0.86f, 0.72f), 0f)), 1e-3f);
+            // The far corner of the whole face: 0.86 x 0.72 m has a diagonal of 1.1216 m, and both
+            // sides of that ride M(), so the ratio is what is being asserted.
+            Assert.AreEqual(M(1.1216f),
+                            Vector3.Distance(corner, surface.ToWorld(new Vector2(M(0.86f), M(0.72f)), 0f)),
+                            1e-3f);
         }
 
         [Test]
         public void AShapeHangingOverTheEdgeIsRefused()
         {
-            PackSurface surface = Surface(new Vector2(0.86f, 0.72f));
+            PackSurface surface = Surface(new Vector2(M(0.86f), M(0.72f)));
 
             PackShape shape = PackShape.Rect(2, 2);
 
-            Assert.IsTrue(surface.Accepts(shape, new Vector2(0.43f, 0.36f), 0f));
-            Assert.IsFalse(surface.Accepts(shape, new Vector2(0.82f, 0.36f), 0f),
+            Assert.IsTrue(surface.Accepts(shape, new Vector2(M(0.43f), M(0.36f)), 0f));
+            Assert.IsFalse(surface.Accepts(shape, new Vector2(M(0.82f), M(0.36f)), 0f),
                            "snapped against the far edge, one of its cells is off the grid");
         }
 
         /// <summary>
-        /// The grid is a function of the rectangle alone, and it rounds DOWN — a face 0.86 m across
-        /// holds nine 90 mm cells and keeps 25 mm of hem at each end. Getting this wrong is how a
-        /// face resized by half a centimetre silently loses a whole column of storage.
+        /// The grid is a function of the rectangle alone, and it rounds DOWN — a face 9.56 cells
+        /// across holds NINE and keeps the remaining 0.56 of a cell as hem, split between the two
+        /// ends. Getting this wrong is how a face resized by half a centimetre silently loses a
+        /// whole column of storage. Stated in cells because the cell is the thing it divides by:
+        /// at the frame the numbers below are written in, that is a 0.86 m face, nine 90 mm cells
+        /// and 25 mm of hem at each end.
         /// </summary>
         [Test]
         public void TheFaceIsDividedIntoWholeCellsWithTheRemainderAsHem()
         {
-            PackSurface surface = Surface(new Vector2(0.86f, 0.72f));
+            PackSurface surface = Surface(new Vector2(M(0.86f), M(0.72f)));
 
             Assert.AreEqual(new Vector2Int(9, 8), surface.Cells);
 
             Vector2 hem = PackGrid.Hem(surface.Size);
 
-            Assert.AreEqual(0.025f, hem.x, 1e-4f, "0.86 - 9 x 0.09 = 0.05, split between both ends");
+            Assert.AreEqual(M(0.025f), hem.x, 1e-4f, "0.86 - 9 x 0.09 = 0.05, split between both ends");
             Assert.AreEqual(0f, hem.y, 1e-4f, "0.72 is exactly eight cells");
         }
     }

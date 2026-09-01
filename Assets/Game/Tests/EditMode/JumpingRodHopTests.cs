@@ -145,16 +145,34 @@ public class JumpingRodHopTests
     {
         JumpingRodConfig cfg = Config();
 
+        // The same player as the clearance tests above: pivot a metre over their soles.
+        const float PivotAboveSoles = 1f;
+
         // This model's own pivot is at its tip, so its lowest point is 0 below it.
-        float y = JumpingRodHopModel.TipOffset(1f, cfg.ContactHeight, 0f);
+        const float PrefabBottom = 0f;
+        float y = JumpingRodHopModel.TipOffset(PivotAboveSoles, cfg.ContactHeight, PrefabBottom);
 
-        Assert.AreEqual(-(1f + cfg.ContactHeight), y, 1e-4f);
+        Assert.AreEqual(-(PivotAboveSoles + cfg.ContactHeight), y, 1e-4f);
 
-        // The point of it: the tip touches down exactly when the bounce does. Soles one contact
-        // band up puts the tip on the floor, and that clearance is the band.
-        Assert.IsTrue(JumpingRodHopModel.HasTouchedDown(
-                          JumpingRodHopModel.Clearance(1f + cfg.ContactHeight, 1f, 0f),
-                          -1f, cfg.ContactHeight));
+        // The point of it: the tip touches down exactly when the bounce does. Stand the rod's tip
+        // on the ground — the holder's pivot is then TipOffset above it — and the clearance under
+        // their soles is the contact band, so the descending player is landing on the same frame.
+        //
+        // Asserted as a DISTANCE, to the millimetre this file measures everything else in, rather
+        // than by handing HasTouchedDown a clearance built as (soles + band) - soles: 1f + 0.12f
+        // comes back as 0.12000001 once the 1 is taken off again, one ulp outside a band the model
+        // tests with <=, so that spelling failed on IEEE rounding and said nothing about the rod.
+        float pivot = -(y + PrefabBottom);
+
+        Assert.AreEqual(cfg.ContactHeight,
+                        JumpingRodHopModel.Clearance(pivot, PivotAboveSoles, 0f), 1e-4f,
+                        "the tip reaches the ground at a different clearance from the one the " +
+                        "bounce fires at, so the rod either sinks into the sand before it fires " +
+                        "or fires with the tip still in the air");
+
+        // And the band is inclusive, which is the half of it that is a decision rather than
+        // geometry: a descending player exactly one band up is landing, not about to.
+        Assert.IsTrue(JumpingRodHopModel.HasTouchedDown(cfg.ContactHeight, -1f, cfg.ContactHeight));
     }
 
     [Test]

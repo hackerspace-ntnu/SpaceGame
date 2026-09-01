@@ -13,10 +13,18 @@ namespace SpaceGame.Items
     /// </para>
     /// <para>
     /// <b>The rectangle carries a grid.</b> <see cref="PackGrid"/> divides it into whole cells of
-    /// the rig's own 90 mm webbing pitch, rounding down and centring the leftover as a hem, and
-    /// every item on the face snaps to those cells. The surface itself stores nothing about it —
-    /// the grid is a function of <see cref="Size"/> alone, so a face resized in the inspector
-    /// re-cells itself with no second field to keep in step.
+    /// the rig's own webbing pitch, rounding down and centring the leftover as a hem, and every
+    /// item on the face snaps to those cells. The surface itself stores nothing about it — the
+    /// grid is a function of <see cref="Size"/> alone, so a face resized in the inspector re-cells
+    /// itself with no second field to keep in step.
+    /// </para>
+    /// <para>
+    /// <b>Two frames, and only one of them is written down anywhere.</b> The LOGICAL frame is
+    /// <see cref="Size"/> and its cells: it is what a placement, a save file and the wire are all
+    /// written in, and it never moves. The DRAWN frame is that times <see cref="DisplayScale"/>,
+    /// and it is what <see cref="ToLocal"/>, <see cref="ToWorld"/> and <see cref="ToUv"/> speak.
+    /// The two are the same thing on the rig, where the scale is 1; the ship's gear wall is drawn
+    /// 6% larger than it reasons.
     /// </para>
     /// </summary>
     public sealed class PackSurface : MonoBehaviour
@@ -24,14 +32,61 @@ namespace SpaceGame.Items
         [Tooltip("Which face of the deployed rig this is. Persisted and sent on the wire.")]
         [SerializeField] private PackSurfaceId id;
 
-        [Tooltip("Metres. X spans local +X, Y spans local +Z.")]
-        [SerializeField] private Vector2 size = new(0.86f, 0.72f);
+        // The default is a whole 8 x 8 cells rather than a round number of metres, so a face added
+        // by hand starts with zero hem and re-sizes itself if PackGrid.Cell ever moves again. The
+        // wiring scripts overwrite it for every shipped face; this is only what a fresh component
+        // reads in the inspector.
+        [Tooltip("Metres. X spans local +X, Y spans local +Z. Author it as a whole number of " +
+                 "PackGrid cells, or the grid is inset by a hem and the face loses a row.")]
+        [SerializeField] private Vector2 size = new(8f * PackGrid.Cell, 8f * PackGrid.Cell);
 
         public PackSurfaceId Id => id;
         public Vector2 Size => size;
 
         /// <summary>Whole cells this face holds, across and along. See <see cref="PackGrid"/>.</summary>
         public Vector2Int Cells => PackGrid.CellsOn(size);
+
+        /// <summary>
+        /// How much bigger than its own grid this face is DRAWN, from the container it belongs to.
+        /// 1 on the rig, <see cref="PackScale.WallDisplay"/> on the ship's gear wall.
+        ///
+        /// <para>
+        /// <b>Nothing above this line knows about it.</b> <see cref="Size"/>, <see cref="Cells"/>
+        /// and <see cref="Accepts"/> are the LOGICAL frame — the one a placement, a save file and
+        /// the wire are all written in — and they must stay exactly as they were whatever this
+        /// says. Only <see cref="ToLocal"/>, <see cref="ToWorld"/> and <see cref="ToUv"/>, the
+        /// three functions that convert a uv into somewhere on screen, apply it. That is what lets
+        /// the wall be enlarged with no save version and no migration: the drawing changed and the
+        /// arithmetic did not.
+        /// </para>
+        /// <para>
+        /// Walked up to on first use rather than pushed in from the container, and cached, because
+        /// there is no moment at which a push would be reliable — a container is routinely built
+        /// by <c>Instantiate</c> or <c>AddComponent</c> outside play mode, where no <c>Awake</c>
+        /// runs, and <c>PackContainer.ResolvedSurfaces</c> refuses to cache for exactly that
+        /// reason. Faces are not re-parented here; a face that ever is must call
+        /// <see cref="ForgetContainer"/>.
+        /// </para>
+        /// </summary>
+        public float DisplayScale
+        {
+            get
+            {
+                if (!containerResolved)
+                {
+                    container = GetComponentInParent<PackContainer>(true);
+                    containerResolved = true;
+                }
+
+                return container != null ? container.DisplayScale : 1f;
+            }
+        }
+
+        /// <summary>Drop the cached container, for a face moved under a different one.</summary>
+        public void ForgetContainer() => containerResolved = false;
+
+        private PackContainer container;
+        private bool containerResolved;
 
         /// <summary>
         /// The surface-local offset a uv sits at, lifted <paramref name="heightAboveSurface"/>
@@ -54,7 +109,14 @@ namespace SpaceGame.Items
         {
             Vector3 s = SafeScale();
 
-            return new Vector3(uv.x / s.x, heightAboveSurface / s.y, uv.y / s.z);
+            // The display scale goes in BEFORE the lossy scale comes out, and it goes onto the
+            // height as well as the uv, or the frame is not a similarity and an item lying on the
+            // face is drawn bigger than the gap it is drawn in. It is not the same quantity as the
+            // divide beside it: the divide undoes the model's own units, this is the deliberate
+            // enlargement of a whole container. See DisplayScale.
+            float d = DisplayScale;
+
+            return new Vector3(uv.x * d / s.x, heightAboveSurface * d / s.y, uv.y * d / s.z);
         }
 
         /// <summary>
@@ -72,9 +134,14 @@ namespace SpaceGame.Items
         {
             Vector3 s = SafeScale();
             Vector3 local = transform.InverseTransformPoint(worldPoint);
+            float d = DisplayScale;
 
-            // The mirror of ToLocal: multiply the scale back in to get metres again.
-            return new Vector2(local.x * s.x, local.z * s.z);
+            // The exact mirror of ToLocal: multiply the scale back in and divide the display scale
+            // back out, so a point picked off the DRAWN board comes back as the uv of the cell the
+            // player is looking at. Drop the divide and the wall's aim lands short of the
+            // crosshair by 6% of the way across the board — a wall that looks right and cannot be
+            // pointed at.
+            return new Vector2(local.x * s.x / d, local.z * s.z / d);
         }
 
         /// <summary>

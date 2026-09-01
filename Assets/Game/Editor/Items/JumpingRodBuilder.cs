@@ -44,15 +44,45 @@ namespace SpaceGame.EditorTools
         /// Hand size for the carried rod, metres along its longest axis.
         ///
         /// On the item scale ladder's <c>Anchor</c> bracket with the LaserStaff (1.35) and the
-        /// DragonBazooka (1.25) — it is a two-handed pole and reads wrong at hand-tool size. At
-        /// 1.25 m the rod measures 0.393 x 0.129 m on the mat, which is 5 x 2 cells on the pack's
-        /// 0.09 m grid. JumpingRodWiringTests.Item_FitsOnAPackSurface holds that against the rig's
-        /// real faces. See ItemScaleLadder.cs, which owns the bracket table.
+        /// DragonBazooka (1.25) — it is a two-handed pole and reads wrong at hand-tool size.
+        ///
+        /// <para>
+        /// What that costs on the pack changed with <see cref="LieDown"/> and is worth stating,
+        /// because it is the price of the rod not standing on its tip: laid down its footprint is
+        /// its LENGTH, so it reserves a long strip instead of a stub, and the only faces that take
+        /// it are the ones built for long goods. That is what a real pole does on a real pack.
+        /// <c>JumpingRodWiringTests.Item_FitsOnAPackSurface</c> holds it against the rig's real
+        /// faces, including the rack's ski-fashion overhang. See ItemScaleLadder.cs, which owns
+        /// the bracket table.
+        /// </para>
         /// </summary>
         private const float HoldSize = 1.25f;
 
         /// <summary>Piston stroke, matching TRAVEL in _Source~/models/gear/jumping_rod.py.</summary>
         private const float Travel = 0.11f;
+
+        /// <summary>
+        /// The carried rod is turned onto its side, so it LIES DOWN like a pole put on a shelf.
+        ///
+        /// <para>
+        /// The model arrives standing (<c>Verify</c> insists on it, because the DEPLOYED rod is a
+        /// planted pogo stick and must). That is wrong for the carried one:
+        /// <c>ItemFootprint.FootprintOf</c> is <em>defined</em> as <c>(size.x, size.z)</c> — the
+        /// shadow an item casts with its own up still up — so a rod standing on its end reserved a
+        /// tiny 3 x 1 cell rectangle on the pack and was drawn balanced on its tip in the middle of
+        /// it. It read as a bug, and it was authored data.
+        /// </para>
+        /// <para>
+        /// +90 about X takes the shaft from +Y to +Z, which is also the axis <see cref="ItemGrip"/>
+        /// calls "the way the item points". <b>The pose in the hand does not move</b>: the grip's
+        /// <c>rotationOffset</c> is set to the inverse, and
+        /// <c>rotation = handRotation * Euler(offset)</c> multiplies the two back out. This is the
+        /// same correction <c>ItemPackOrientation.Reframe</c> applies to hand-authored prefabs; it
+        /// lives here instead because this prefab is rebuilt wholesale on the next run of this
+        /// script and would swallow one made there without a word.
+        /// </para>
+        /// </summary>
+        private static readonly Vector3 LieDown = new(90f, 0f, 0f);
 
         [MenuItem("Tools/Items/Build Jumping Rod")]
         public static void BuildAll()
@@ -106,6 +136,10 @@ namespace SpaceGame.EditorTools
             var root = new GameObject("JumpingRod");
             GameObject instance = NestModel(model, root.transform);
 
+            // Before anything is measured off it — the collider, the grip point and the footprint
+            // all read the bounds below, and they must all read the LAID-DOWN ones.
+            instance.transform.localRotation = Quaternion.Euler(LieDown);
+
             Bounds whole = MeasuredBounds(root.transform, root);
             WirePickup(root, whole);
             WireGrip(root, instance, whole);
@@ -153,10 +187,10 @@ namespace SpaceGame.EditorTools
             body.useGravity = true;
 
             CapsuleCollider capsule = root.AddComponent<CapsuleCollider>();
-            capsule.direction = 1;                        // Y — the rod stands up
+            capsule.direction = 2;                        // Z — the carried rod lies down
             capsule.radius = 0.08f;
-            capsule.height = whole.size.y;
-            capsule.center = new Vector3(0f, whole.center.y, 0f);
+            capsule.height = whole.size.z;
+            capsule.center = new Vector3(0f, 0f, whole.center.z);
 
             AddByName(root, "SpaceGame.Items.PickupableItem");
 
@@ -171,15 +205,25 @@ namespace SpaceGame.EditorTools
             root.AddComponent<TransformSaveable>();
         }
 
-        /// <summary>Held around the middle of the shaft, the way a pole is carried.</summary>
+        /// <summary>
+        /// Held around the middle of the shaft, the way a pole is carried.
+        ///
+        /// <para>
+        /// The grip point is the same physical spot on the rod it always was — the shaft's middle
+        /// — expressed on the axis <see cref="LieDown"/> moved it to. Together with the inverse
+        /// <c>rotationOffset</c> that means the hand sees no change at all: same point in the palm,
+        /// same world rotation, and only the pack and the sand see a rod lying down.
+        /// </para>
+        /// </summary>
         private static void WireGrip(GameObject root, GameObject instance, Bounds whole)
         {
-            Transform grip = MakeChild(root, "GripPoint", new Vector3(0f, whole.center.y, 0f));
+            Transform grip = MakeChild(root, "GripPoint", new Vector3(0f, 0f, whole.center.z));
 
             ItemGrip itemGrip = root.AddComponent<ItemGrip>();
             var so = new SerializedObject(itemGrip);
             SerializedFields.Set(so, "gripPoint", grip);
             SerializedFields.SetFloat(so, "holdSize", HoldSize);
+            SerializedFields.SetVector3(so, "rotationOffset", -LieDown);
             SerializedFields.Set(so, "sizeReference", instance.transform);
             so.ApplyModifiedPropertiesWithoutUndo();
         }

@@ -76,8 +76,10 @@ namespace SpaceGame.Items
         /// horizontal plane entirely — cursor on the sky, or a ray running parallel to the
         /// ground. Roughly the rig's own distance from the focus camera, so the copy neither
         /// balloons in the player's face nor shrinks toward the horizon when it leaves the faces.
+        /// Scaled with the pack, because "roughly the rig's own distance" is the whole
+        /// specification and that distance moved with <c>PackFocusCamera.DistanceOut</c>.
         /// </summary>
-        private const float FreeCarryRayMetres = 2f;
+        private static readonly float FreeCarryRayMetres = PackScale.Apply(2f);
 
         private float deniedUntil;
 

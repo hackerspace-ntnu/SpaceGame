@@ -36,9 +36,19 @@ namespace SpaceGame.EditorTools
     /// independent number — <c>ItemGrip.packSize</c>, which falls back to <c>holdSize</c> wherever
     /// nobody authored it. The two questions genuinely differ: this ladder answers "what feels
     /// right to hold in a hand 1.7x a human's", the pack answers "what does this read as among a
-    /// dozen others on a finite mat, and how much of that mat is it worth". Three items diverge
-    /// today — the Grappling Hook, the Lasso and the Leash — and <see cref="Audit"/> names any
-    /// prefab that does. Grep <c>packSize:</c> for the current set.</para>
+    /// dozen others on a finite mat, and how much of that mat is it worth". Four gripped items diverge
+    /// today — the Grappling Hook, the Lasso, the Leash and the Portal Gun — plus the whole ship-part
+    /// family on one shared 0.8, and <see cref="Audit"/> names any prefab that does. Grep
+    /// <c>packSize:</c> for the current set.</para>
+    ///
+    /// <para>Where those four landed is worth writing down, because it is the only statement
+    /// anywhere of what frame the mat is in: 0.27, 0.36, 0.54 and 0.54, against true modelled sizes
+    /// of 0.160, 0.267, 0.382 and 0.4445 m. Each is its real size rounded up to the next 0.09 m
+    /// webbing pitch plus one cell of margin — so <b>the mat is in true-world metres and this
+    /// ladder is not</b>, and an item whose hold size happens to sit near life size (the Dragon
+    /// Bazooka, hold 1.25 against a true 1.37) needs no second number at all. The gun needed the
+    /// biggest correction on the roster because it carries the biggest inflation: a 0.4445 m fire
+    /// extinguisher on the Gun bracket is 2.8x life size.</para>
     ///
     /// <para><b>Idempotent.</b> Every entry names the value it expects to find before it will write,
     /// so a second run reports "already at 1.25" rather than climbing the ladder twice.</para>
@@ -248,11 +258,15 @@ namespace SpaceGame.EditorTools
                     continue;
                 }
 
+                // ItemFootprint measures in the PACK's frame, which is PackScale.Factor larger
+                // than the hand's — so this row is deliberately not holdSize x the prefab's
+                // proportions, and reading it as one is how somebody "corrects" a bracket that was
+                // already right.
                 Vector3 size = ItemFootprint.SizeOf(prefab);
 
                 log.Append("  ").Append(name).Append("  [").Append(step.Bracket).Append("]\n")
                    .Append("    now      holdSize ").Append(grip.HoldSize.ToString("F3"))
-                   .Append(", true size ").Append(size.ToString("F3")).Append('\n');
+                   .Append(", size on the mat ").Append(size.ToString("F3")).Append('\n');
 
                 // Only when it actually diverges. Printing "packSize == holdSize" on sixteen of
                 // nineteen rows would bury the three that carry a real second number.

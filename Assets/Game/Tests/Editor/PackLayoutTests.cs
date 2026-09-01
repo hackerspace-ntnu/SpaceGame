@@ -9,22 +9,42 @@ namespace SpaceGame.Tests
     /// about what may sit where.
     ///
     /// <para>
-    /// The surface here is 0.90 x 0.72 m, which is exactly 10 x 8 cells with no hem, so every
-    /// expected uv in this file is arithmetic anyone can check: cell <c>(i, j)</c> of a
-    /// <c>w x h</c> item is centred at <c>((i + w/2) * 0.09, (j + h/2) * 0.09)</c>. The hem case is
-    /// <c>PackSurfaceTests</c>'s.
+    /// The surface here is exactly 10 x 8 cells with no hem, so every expected uv in this file is
+    /// arithmetic anyone can check: cell <c>(i, j)</c> of a <c>w x h</c> item is centred at
+    /// <c>((i + w/2) * cell, (j + h/2) * cell)</c>. The hem case is <c>PackSurfaceTests</c>'s.
+    /// </para>
+    /// <para>
+    /// The figures are written in the cell the suite was authored against (0.09 m) and put through
+    /// <see cref="M"/>, so they follow the cell rather than pinning it. See that method.
     /// </para>
     /// </summary>
     public class PackLayoutTests
     {
-        private static readonly Vector2 Surface = new(0.90f, 0.72f);
+        /// <summary>
+        /// A length that was authored against the pack's ORIGINAL 0.09 m cell, restated at
+        /// whatever the cell is today.
+        ///
+        /// <para>
+        /// Every metre figure in this file — the surface, the asked uv, the expected snap — is a
+        /// position on a lattice, and the arithmetic in the comments beside them is written in
+        /// units of that lattice. The 2026-09-01 enlargement multiplied the cell by
+        /// <see cref="PackScale.Factor"/> and multiplied nothing else about the rules, so wrapping
+        /// the numbers rather than re-typing them is what keeps the suite testing the ARITHMETIC
+        /// instead of a particular scale — and what makes the next scale change a one-line edit to
+        /// <see cref="PackScale"/> rather than a sweep through six test files.
+        /// </para>
+        /// </summary>
+        private static float M(float metresAtTheOriginalCell) =>
+            metresAtTheOriginalCell * (PackGrid.Cell / PackScale.LegacyCell);
+
+        private static readonly Vector2 Surface = new(M(0.90f), M(0.72f));
 
         private const PackSurfaceId Left = PackSurfaceId.BackPanelLeft;
         private const PackSurfaceId Right = PackSurfaceId.BackPanelRight;
 
         /// <summary>
         /// A face the overhang rule leaves strict. The rule keys on the face's IDENTITY, not its
-        /// size — see <c>PackOverhang.Axes</c> — so the leaf at this suite's own 0.90 x 0.72 m
+        /// size — see <c>PackOverhang.Axes</c> — so the leaf at this suite's own 10 x 8 cells
         /// keeps every uv here checkable by the same arithmetic while refusing the oversized
         /// shapes the back panels would clamp.
         /// </summary>
@@ -39,7 +59,7 @@ namespace SpaceGame.Tests
             var layout = new PackLayout();
 
             bool placed = layout.TryPlace("item-a", Left, Surface, TwoByTwo,
-                                          new Vector2(0.2f, 0.3f), 0f);
+                                          new Vector2(M(0.2f), M(0.3f)), 0f);
 
             Assert.IsTrue(placed);
             Assert.AreEqual(1, layout.Placements.Count);
@@ -50,8 +70,8 @@ namespace SpaceGame.Tests
             Assert.AreEqual(Left, p.Surface);
 
             // (0.2, 0.3) is nearest the block whose lowest cell is (1, 2), centred at (0.18, 0.27).
-            Assert.AreEqual(0.18f, p.Uv.x, 1e-4f, "the uv stored is the snapped one, not the asked one");
-            Assert.AreEqual(0.27f, p.Uv.y, 1e-4f);
+            Assert.AreEqual(M(0.18f), p.Uv.x, 1e-4f, "the uv stored is the snapped one, not the asked one");
+            Assert.AreEqual(M(0.27f), p.Uv.y, 1e-4f);
         }
 
         [Test]
@@ -59,10 +79,10 @@ namespace SpaceGame.Tests
         {
             var layout = new PackLayout();
 
-            layout.TryPlace("item-a", Left, Surface, FourByFour, new Vector2(0.2f, 0.3f), 0f);
+            layout.TryPlace("item-a", Left, Surface, FourByFour, new Vector2(M(0.2f), M(0.3f)), 0f);
 
             bool second = layout.TryPlace("item-b", Left, Surface, FourByFour,
-                                          new Vector2(0.2f, 0.3f), 0f);
+                                          new Vector2(M(0.2f), M(0.3f)), 0f);
 
             Assert.IsFalse(second);
             Assert.AreEqual(1, layout.Placements.Count);
@@ -70,7 +90,7 @@ namespace SpaceGame.Tests
 
             // The same clash on a different surface is not a clash at all.
             Assert.IsTrue(layout.TryPlace("item-b", Right, Surface, FourByFour,
-                                          new Vector2(0.2f, 0.3f), 0f));
+                                          new Vector2(M(0.2f), M(0.3f)), 0f));
         }
 
         /// <summary>
@@ -99,16 +119,16 @@ namespace SpaceGame.Tests
         {
             var layout = new PackLayout();
 
-            layout.TryPlace("item-a", Left, Surface, FourByFour, new Vector2(0.2f, 0.3f), 0f);
+            layout.TryPlace("item-a", Left, Surface, FourByFour, new Vector2(M(0.2f), M(0.3f)), 0f);
 
             Assert.IsFalse(layout.TryPlace("item-b", Left, Surface, FourByFour,
-                                           new Vector2(0.2f, 0.3f), 0f));
+                                           new Vector2(M(0.2f), M(0.3f)), 0f));
 
             Assert.IsTrue(layout.Remove("item-a"));
             Assert.IsFalse(layout.Remove("item-a"));
 
             Assert.IsTrue(layout.TryPlace("item-b", Left, Surface, FourByFour,
-                                          new Vector2(0.2f, 0.3f), 0f));
+                                          new Vector2(M(0.2f), M(0.3f)), 0f));
         }
 
         [Test]
@@ -139,7 +159,7 @@ namespace SpaceGame.Tests
             // 9 cells long on a face that is 10 across and 8 up: fits flat, not upright.
             var rod = PackShape.Rect(2, 9);
 
-            Assert.IsFalse(layout.CanPlace(Strict, Surface, rod, new Vector2(0.45f, 0.36f), 0f),
+            Assert.IsFalse(layout.CanPlace(Strict, Surface, rod, new Vector2(M(0.45f), M(0.36f)), 0f),
                            "upright it runs off the top");
 
             Assert.IsTrue(layout.TryFindSpot(Strict, Surface, rod, out Vector2 uv, out float yaw));
@@ -173,15 +193,15 @@ namespace SpaceGame.Tests
         {
             var layout = new PackLayout();
 
-            layout.TryPlace("item-a", Left, Surface, TwoByTwo, new Vector2(0.27f, 0.27f), 0f);
+            layout.TryPlace("item-a", Left, Surface, TwoByTwo, new Vector2(M(0.27f), M(0.27f)), 0f);
 
             // One cell to the right, which overlaps its own current cells on the whole left column.
             bool moved = layout.TryMove("item-a", Left, Surface, TwoByTwo,
-                                        new Vector2(0.36f, 0.27f), 0f);
+                                        new Vector2(M(0.36f), M(0.27f)), 0f);
 
             Assert.IsTrue(moved);
             Assert.AreEqual(1, layout.Placements.Count);
-            Assert.AreEqual(0.36f, layout.Placements[0].Uv.x, 1e-4f);
+            Assert.AreEqual(M(0.36f), layout.Placements[0].Uv.x, 1e-4f);
         }
 
         [Test]
@@ -190,7 +210,7 @@ namespace SpaceGame.Tests
             var layout = new PackLayout();
 
             Assert.IsFalse(layout.TryPlace("item-a", Left, Surface, TwoByTwo,
-                                           new Vector2(0.89f, 0.36f), 0f),
+                                           new Vector2(M(0.89f), M(0.36f)), 0f),
                            "snapped hard against the right edge, its outer column is off the grid");
 
             Assert.AreEqual(0, layout.Placements.Count);
@@ -207,12 +227,12 @@ namespace SpaceGame.Tests
             var layout = new PackLayout();
 
             Assert.IsTrue(layout.TryPlace("a", Left, Surface, PackShape.Rect(3, 1),
-                                          new Vector2(0.3f, 0.3f), 39f));
+                                          new Vector2(M(0.3f), M(0.3f)), 39f));
 
             Assert.AreEqual(0f, layout.Placements[0].Yaw, 1e-4f);
 
             Assert.IsTrue(layout.TryPlace("b", Left, Surface, PackShape.Rect(3, 1),
-                                          new Vector2(0.7f, 0.3f), 71f));
+                                          new Vector2(M(0.7f), M(0.3f)), 71f));
 
             Assert.AreEqual(90f, layout.Placements[1].Yaw, 1e-4f);
         }
@@ -238,10 +258,10 @@ namespace SpaceGame.Tests
         // ── Overhang: the rack and the back panels take items bigger than themselves ──
 
         /// <summary>The rack as wired: 0.80 x 0.60 m -> 8 x 6 cells with a (0.04, 0.03) hem.</summary>
-        private static readonly Vector2 RackSize = new(0.80f, 0.60f);
+        private static readonly Vector2 RackSize = new(M(0.80f), M(0.60f));
 
         /// <summary>The back panel as wired: 0.27 x 0.54 m -> exactly 3 x 6 cells, zero hem.</summary>
-        private static readonly Vector2 BackSize = new(0.27f, 0.54f);
+        private static readonly Vector2 BackSize = new(M(0.27f), M(0.54f));
 
         /// <summary>The wing pack's derived block: 6 cells wide, 14 long — longer than any face.</summary>
         private static readonly PackShape Oversized = PackShape.Rect(6, 14);
@@ -254,7 +274,7 @@ namespace SpaceGame.Tests
             // A quarter turn lays the long side along the rack's u axis, the one axis that
             // allows overhang; the block centre of the clamped 8 x 6 span is (0.40, 0.30).
             Assert.IsTrue(layout.TryPlace("craft", PackSurfaceId.Rack, RackSize, Oversized,
-                                          new Vector2(0.40f, 0.30f), 90f));
+                                          new Vector2(M(0.40f), M(0.30f)), 90f));
 
             Assert.IsTrue(layout.TryOccupancy("craft", out _, out Vector2Int origin,
                                               out PackShape oriented));
@@ -262,8 +282,8 @@ namespace SpaceGame.Tests
             Assert.AreEqual(8, oriented.Width, "occupies the whole span it hangs past");
             Assert.AreEqual(6, oriented.Height);
 
-            Assert.AreEqual(0.40f, layout.Placements[0].Uv.x, 1e-4f);
-            Assert.AreEqual(0.30f, layout.Placements[0].Uv.y, 1e-4f);
+            Assert.AreEqual(M(0.40f), layout.Placements[0].Uv.x, 1e-4f);
+            Assert.AreEqual(M(0.30f), layout.Placements[0].Uv.y, 1e-4f);
 
             // First-fit — the world-pickup path — reaches the same answer on its own.
             var fresh = new PackLayout();
@@ -276,17 +296,17 @@ namespace SpaceGame.Tests
         public void StrictFacesRefuseOversizedShapes()
         {
             var layout = new PackLayout();
-            var leaf = new Vector2(0.78f, 0.50f);   // 8 x 5 cells
+            var leaf = new Vector2(M(0.78f), M(0.50f));   // 8 x 5 cells
 
             Assert.IsFalse(layout.TryPlace("craft", PackSurfaceId.Leaf, leaf, Oversized,
-                                           new Vector2(0.39f, 0.25f), 90f));
+                                           new Vector2(M(0.39f), M(0.25f)), 90f));
             Assert.IsFalse(layout.TryFindSpot(PackSurfaceId.Leaf, leaf, Oversized, out _, out _));
 
             // Overhang belongs to the rack (u only) and the back panels (both axes); every other
             // face refuses the same way the leaf does.
-            Assert.IsFalse(layout.TryFindSpot(PackSurfaceId.WingLeft, new Vector2(0.36f, 0.54f),
+            Assert.IsFalse(layout.TryFindSpot(PackSurfaceId.WingLeft, new Vector2(M(0.36f), M(0.54f)),
                                               Oversized, out _, out _));
-            Assert.IsFalse(layout.TryFindSpot(PackSurfaceId.LongGoods, new Vector2(1.62f, 0.09f),
+            Assert.IsFalse(layout.TryFindSpot(PackSurfaceId.LongGoods, new Vector2(M(1.62f), M(0.09f)),
                                               Oversized, out _, out _));
         }
 
@@ -295,16 +315,16 @@ namespace SpaceGame.Tests
         {
             var layout = new PackLayout();
             layout.TryPlace("craft", PackSurfaceId.Rack, RackSize, Oversized,
-                            new Vector2(0.40f, 0.30f), 90f);
+                            new Vector2(M(0.40f), M(0.30f)), 90f);
 
             // Past the panel's edge along u — where the craft's nose hangs.
-            Assert.IsTrue(layout.TryFindAt(PackSurfaceId.Rack, RackSize, new Vector2(0.95f, 0.30f),
+            Assert.IsTrue(layout.TryFindAt(PackSurfaceId.Rack, RackSize, new Vector2(M(0.95f), M(0.30f)),
                                            out PackPlacement found));
             Assert.AreEqual("craft", found.ItemId);
 
             // The rack's v axis stays strict: off the side is off the pack.
             Assert.IsFalse(layout.TryFindAt(PackSurfaceId.Rack, RackSize,
-                                            new Vector2(0.40f, 0.70f), out _));
+                                            new Vector2(M(0.40f), M(0.70f)), out _));
         }
 
         [Test]
@@ -315,7 +335,7 @@ namespace SpaceGame.Tests
             // 5 x 8 on the 3 x 6 panel: both axes clamp, so the item occupies the WHOLE face and
             // hangs evenly past every edge. Block centre of the clamped span is (0.135, 0.27).
             Assert.IsTrue(layout.TryPlace("gear", Left, BackSize, PackShape.Rect(5, 8),
-                                          new Vector2(0.135f, 0.27f), 0f));
+                                          new Vector2(M(0.135f), M(0.27f)), 0f));
 
             Assert.IsTrue(layout.TryOccupancy("gear", out _, out Vector2Int origin,
                                               out PackShape oriented));
@@ -323,8 +343,8 @@ namespace SpaceGame.Tests
             Assert.AreEqual(3, oriented.Width, "occupies the whole span it hangs past");
             Assert.AreEqual(6, oriented.Height, "on BOTH axes, unlike the rack");
 
-            Assert.AreEqual(0.135f, layout.Placements[0].Uv.x, 1e-4f);
-            Assert.AreEqual(0.27f, layout.Placements[0].Uv.y, 1e-4f);
+            Assert.AreEqual(M(0.135f), layout.Placements[0].Uv.x, 1e-4f);
+            Assert.AreEqual(M(0.27f), layout.Placements[0].Uv.y, 1e-4f);
 
             // First-fit — the world-pickup path — reaches the same answer on its own.
             var fresh = new PackLayout();
@@ -339,19 +359,19 @@ namespace SpaceGame.Tests
             // 2 x 8 on the 3 x 6 panel: only v clamps. The block centre of a 2-wide block at
             // origin x = 1 is 0.09 + 0.18 / 2 = 0.18.
             Assert.IsTrue(layout.TryPlace("rod", Left, BackSize, PackShape.Rect(2, 8),
-                                          new Vector2(0.18f, 0.27f), 0f));
+                                          new Vector2(M(0.18f), M(0.27f)), 0f));
 
             Assert.IsTrue(layout.TryOccupancy("rod", out _, out Vector2Int origin,
                                               out PackShape oriented));
             Assert.AreEqual(new Vector2Int(1, 0), origin);
             Assert.AreEqual(2, oriented.Width, "short enough along u to stay unclamped");
             Assert.AreEqual(6, oriented.Height);
-            Assert.AreEqual(0.27f, layout.Placements[0].Uv.y, 1e-4f);
+            Assert.AreEqual(M(0.27f), layout.Placements[0].Uv.y, 1e-4f);
 
             // The clamp fills the overhung item's own columns and nothing else: the column it
             // does not cross is still usable.
             Assert.IsTrue(layout.TryPlace("mug", Left, BackSize, PackShape.Rect(1, 1),
-                                          new Vector2(0.045f, 0.045f), 0f));
+                                          new Vector2(M(0.045f), M(0.045f)), 0f));
         }
 
         [Test]
@@ -361,19 +381,19 @@ namespace SpaceGame.Tests
 
             // Columns 0-1, all six rows: 2 x 8 clamps to 2 x 6, block centre (0.09, 0.27).
             Assert.IsTrue(layout.TryPlace("rod", Left, BackSize, PackShape.Rect(2, 8),
-                                          new Vector2(0.09f, 0.27f), 0f));
+                                          new Vector2(M(0.09f), M(0.27f)), 0f));
 
             // Past the top edge, over the item: cell (0, 6) clamps to (0, 5), which is filled.
-            Assert.IsTrue(layout.TryFindAt(Left, BackSize, new Vector2(0.05f, 0.60f),
+            Assert.IsTrue(layout.TryFindAt(Left, BackSize, new Vector2(M(0.05f), M(0.60f)),
                                            out PackPlacement found));
             Assert.AreEqual("rod", found.ItemId);
 
             // Past the top edge but BESIDE the item: (2, 6) clamps to (2, 5), which nothing
             // fills — the clamp resolves the click, the occupancy still decides.
-            Assert.IsFalse(layout.TryFindAt(Left, BackSize, new Vector2(0.25f, 0.60f), out _));
+            Assert.IsFalse(layout.TryFindAt(Left, BackSize, new Vector2(M(0.25f), M(0.60f)), out _));
 
             // Past the left edge: u clamps too, and the left column is filled.
-            Assert.IsTrue(layout.TryFindAt(Left, BackSize, new Vector2(-0.03f, 0.27f), out _));
+            Assert.IsTrue(layout.TryFindAt(Left, BackSize, new Vector2(-M(0.03f), M(0.27f)), out _));
         }
     }
 }

@@ -16,9 +16,12 @@ symptoms:
   - "the storm interior renders almost black"
   - "the sun jumps to a different time of day after loading a save"
   - "fog draws over every particle and pane of glass"
+  - "distant terrain/objects are missing ahead of me but appear when I turn around"
   - "Newtonsoft stack-overflows saving a storm"
+  - "fog and clouds do not render at all and the renderer logs that it is missing RendererFeatures"
+  - "a renderer feature is null even though its sub-asset and script both exist"
 reads_with: [Persistence, AgentSystem, ArtPipeline]
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # Environment
@@ -117,10 +120,13 @@ Sandstorms, volumetric fog/clouds, sky time-of-day and the URP render features t
 - **`FindAssets` also returns URP's in-package renderer.** Writing there appears to work and is reverted the next time the package resolves; the installer filters to `Assets/`.
 - **The march target must have alpha.** Never inherit the camera colour format — URP's 32-bit HDR mode is `B10G11R11_UFloatPack32`; coverage writes vanish silently and the composite reads `a = 1`, painting the screen black wherever the ray missed.
 - **Jitter scales by the march target, not the screen.** Fog/clouds use `_FogTexelSize.zw` / `_CloudTexelSize.zw`; a half-res pass jittered against `_ScreenParams` advances the dither two steps per texel and stipples. **[Sandstorm.shader](Assets/Game/Art/Shaders/Environment/Sandstorm.shader) still jitters against `_ScreenParams`** — it predates the fix and is the one place that pattern survives.
+- **Never clamp a march to scene depth on a sky pixel.** A sky pixel's depth is the camera's far *plane*, and a plane is nearest along the forward axis — 1000 m at the centre of the screen and past 1600 m in the corner of a 60° view. Clamp to it and the effect is cut hardest exactly where the player is looking, so a distant bank of cloud or wall of sand is visible out of the corner of your eye and **vanishes the moment you turn to face it**, with the cut sweeping across it as the head turns. All four march shaders now branch on `rawDepth` (`<= 0` under `UNITY_REVERSED_Z`) and clamp only where there is geometry. [SandstormWall.shader](Assets/Game/Art/Shaders/Environment/SandstormWall.shader)'s vertex-side far-plane clamp fixes only the *rasterisation* half of this; the depth clamp in the fragment is a separate one.
+- **A short far clip is unmasked here.** The player camera is 1000 m in a 4000 × 3000 m world, `RenderSettings.m_Fog` is off, and no `FogVolume` or `CloudLayer` is authored in [persistentScene](Assets/Game/Scenes/world/persistentScene.unity) — so nothing fades the far plane out. The same "plane, not sphere" geometry applies to ordinary frustum culling, so anything past 1000 m of *forward depth* pops as the view turns. Streaming keeps terrain to 500–1000 m of the player (`loadRadius` 1, 500 m chunks), which is what usually hides it; the diagonal corners of the loaded box reach 1414 m and do not.
 - **The upsample must be 3×3.** A 2×2 kernel spans exactly one march texel and passes the jitter straight through.
 - **Depth Texture must be on in the URP asset** or both features log a warning and bail.
 - **Volume ordering is by render pass event, not list order:** clouds `AfterRenderingSkybox`, fog and sandstorm `BeforeRenderingTransparents`. Fog after transparents draws over every particle and pane of glass.
-- **`PC_Renderer.asset` carries two dangling feature rows** — `LensDistortionRenderFeature` and `NewURPRenderFeature` reference script GUIDs present nowhere in `Assets/` or `Packages/`. **[Mobile_Renderer.asset](Assets/Game/Settings/Mobile_Renderer.asset) has only fog and clouds** — no sandstorm, no glass distortion.
+- **A sub-asset with a missing script takes working features down with it.** `PC_Renderer.asset` carried two dangling rows — `LensDistortionRenderFeature` and `NewURPRenderFeature`, whose script GUIDs are present nowhere in `Assets/` or `Packages/`. They were *not* in `m_RendererFeatures` and looked harmless, but with them in the file `VolumetricCloudsRenderFeature` and `FogRenderFeature` deserialised as **null** — each is the sub-asset that directly follows a broken one — so fog and clouds silently did not render at all, and `ScriptableRendererData.OnValidate` logged `PC_Renderer is missing RendererFeatures / This could be due to missing scripts or compile error`. **That error means a feature is null, not merely that a script is missing**, and URP's own repair could not fix it because `m_RendererFeatureMap` had drifted (a duplicate id and two — `-2066`, `-2068` — matching no sub-asset). The fix is both halves: delete the dead sub-asset blocks *and* rewrite the map so it matches `m_RendererFeatures` element for element. A `ForceUpdate` reimport alone does nothing.
+- **[Mobile_Renderer.asset](Assets/Game/Settings/Mobile_Renderer.asset) has only fog and clouds** — no sandstorm, no glass distortion.
 - **Assign materials in the feature; never `Shader.Find`** — the shaders get stripped from a build otherwise.
 - **`MaxVolumes`/`MaxLights` (8) must match `FOG_MAX_VOLUMES`/`FOG_MAX_LIGHTS`** in the hlsl. Unity fixes a global array's size at first upload and silently truncates a later longer one.
 - **Statics survive domain reload.** `FogVolumes`, `SandstormVisuals.CameraDensity` and `StormClock` all reset via `[RuntimeInitializeOnLoadMethod(SubsystemRegistration)]`; a new static here needs the same.

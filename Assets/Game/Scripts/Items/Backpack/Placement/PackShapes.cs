@@ -105,7 +105,7 @@ namespace SpaceGame.Items
             Debug.LogWarning(
                 $"PackShapes: '{item.itemName}' measures {footprint.x:F3} x {footprint.y:F3} m but " +
                 $"its authored grid shape is only {shape.Width} x {shape.Height} cells " +
-                $"({block.x:F3} x {block.y:F3} m at a {PackGrid.Cell:F2} m cell). The item is drawn " +
+                $"({block.x:F3} x {block.y:F3} m at a {PackGrid.Cell:F3} m cell). The item is drawn " +
                 "at true size, so it will overhang the cells the layout reserved for it. Widen the " +
                 "shape in PackShapes.asset, or lower the item's ItemGrip packSize.", item);
         }

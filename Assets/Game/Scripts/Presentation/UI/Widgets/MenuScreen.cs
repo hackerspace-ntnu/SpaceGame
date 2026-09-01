@@ -56,9 +56,35 @@ namespace SpaceGame.Presentation
 
         private readonly List<Canvas> hidden = new();
         private GameObject canvasObject;
+        private bool closing;
 
         /// <summary>Builds the page. Called once, after the subclass's own fields are assigned.</summary>
         protected abstract void Build();
+
+        /// <summary>
+        /// The live page of type <typeparamref name="T"/>, or null when there is none. Every
+        /// subclass's static <c>Open</c> starts here, so a second click on the button that opened a
+        /// page reuses it instead of stacking a second copy on top.
+        ///
+        /// <para>
+        /// A page that has already been closed does not count as one. <see cref="Close"/> destroys
+        /// the GameObject, but Unity does not act on that until the end of the frame — so a plain
+        /// <c>FindFirstObjectByType</c> still returns the outgoing page, and still sees it as
+        /// non-null, for the rest of the frame it was closed in. That matters because
+        /// <c>MenuChoiceUI.Pick</c> closes and routes in the same breath: a choice leading to
+        /// another page of the same type (Story ▸ Multiplayer, the only such pair today) would find
+        /// the page it had just closed, hand it back as "already open", build nothing, and drop the
+        /// player back on the main menu. The flag is what separates a page that is up from one that
+        /// is merely not yet collected; searching with <see cref="FindObjectsInactive.Include"/>
+        /// keeps that the only thing this depends on, rather than the active state
+        /// <see cref="Close"/> and <see cref="HandOff"/> happen to leave behind.
+        /// </para>
+        /// </summary>
+        protected static T Existing<T>() where T : MenuScreen
+        {
+            T found = FindFirstObjectByType<T>(FindObjectsInactive.Include);
+            return found != null && !found.closing ? found : null;
+        }
 
         /// <summary>
         /// Puts the screen up, recording <paramref name="menu"/> as <see cref="Menu"/> first.
@@ -94,10 +120,19 @@ namespace SpaceGame.Presentation
             Build();
         }
 
-        /// <summary>Restores the menu and goes away — the Back/Cancel route.</summary>
+        /// <summary>
+        /// Restores the menu and goes away — the Back/Cancel route.
+        ///
+        /// Switched off before it is destroyed, for the reason <see cref="HandOff"/> gives: Destroy
+        /// does not take effect until the end of the frame, and a page opened in the meantime —
+        /// which is exactly what a choice that routes onward does — would otherwise draw over this
+        /// one's text for the rest of the frame, both of them at the same sorting order.
+        /// </summary>
         public void Close()
         {
+            closing = true;
             RestoreOtherCanvases();
+            gameObject.SetActive(false);
             Destroy(gameObject);
         }
 
@@ -111,6 +146,7 @@ namespace SpaceGame.Presentation
         /// </summary>
         protected void HandOff()
         {
+            closing = true;
             if (canvasObject != null) canvasObject.SetActive(false);
             Destroy(gameObject);
         }

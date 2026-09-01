@@ -522,7 +522,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 0
+  SceneMigrationSynchronization: 1
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
@@ -575,9 +575,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.08
-  m_Height: 1.6501546
-  m_Direction: 1
-  m_Center: {x: 0, y: 0.8240773, z: 0}
+  m_Height: 1.6501548
+  m_Direction: 2
+  m_Center: {x: 0, y: 0, z: 0.8240774}
 --- !u!114 &402054692215513597
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -672,7 +672,7 @@ MonoBehaviour:
   gripPoint: {fileID: 3377204546719546794}
   hand: 0
   holdStyle: 2
-  rotationOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: -90, y: -0, z: -0}
   positionOffset: {x: 0, y: 0, z: 0}
   holdSize: 1.25
   packSize: 0
@@ -832,7 +832,7 @@ Transform:
   m_GameObject: {fileID: 3534478597183643092}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.8240773, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0.8240774}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -955,7 +955,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5734621383395731350}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0

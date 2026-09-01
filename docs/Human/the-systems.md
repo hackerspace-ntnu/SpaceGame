@@ -136,7 +136,7 @@ Every gadget, spell, scanner, throwable and hand tool that occupies a hotbar slo
 
 ### The backpack you lay gear on *(Backpack)*
 
-A physical inventory rather than a list: a deployable expedition rig whose seven flat faces are grids you literally lay items onto, rummaged in from a dedicated focus camera. Everything uses one 9 cm cell, 255 cells across the whole pack, and each item occupies a shape mask, so oddly shaped gear can interlock. Contents belong to the pack rather than to you, so a pack you set down keeps its gear.
+A physical inventory rather than a list: a deployable expedition rig whose seven flat faces are grids you literally lay items onto, rummaged in from a dedicated focus camera. Everything uses one 13.5 cm cell, 255 cells across the whole pack, and each item occupies a shape mask, so oddly shaped gear can interlock. Contents belong to the pack rather than to you, so a pack you set down keeps its gear.
 
 **Worth knowing:** there is no snapping and no refusal message — the red ghost cells *are* the refusal, and clicking on red turns the item a quarter turn, which is usually the fix.
 

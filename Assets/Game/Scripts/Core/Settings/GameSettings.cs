@@ -29,6 +29,15 @@ namespace SpaceGame.Core
         // stored. Everything is re-seeded from defaults when the stored version is older.
         private const int SchemaVersion = 1;
 
+        /// <summary>
+        /// Screen shake is the most over-applied juice technique there is, and the crash landing
+        /// arrival shakes for the better part of half a minute with no way to skip it — which makes
+        /// this a motion-sickness and vestibular-accessibility control, not a polish dial. Zero is a
+        /// supported value and must stay one: "nearly off" still makes a susceptible player ill.
+        /// </summary>
+        public const float MinCameraShake = 0f;
+        public const float MaxCameraShake = 1f;
+
         public const float MinSensitivity = 0.1f;
         public const float MaxSensitivity = 5f;
         public const float MinFieldOfView = 50f;
@@ -51,6 +60,7 @@ namespace SpaceGame.Core
         private static float uiVolume;
         private static float ambienceVolume;
         private static float mouseSensitivity;
+        private static float cameraShakeIntensity;
         private static bool invertLookY;
         private static bool invertHotbarScroll;
         private static bool devMode;
@@ -152,6 +162,18 @@ namespace SpaceGame.Core
         {
             get { EnsureLoaded(); return invertLookY; }
             set => SetBool(ref invertLookY, value, "InvertLookY");
+        }
+
+        /// <summary>
+        /// How hard camera shake hits, from 0 (off) to 1 (full). A multiplier on every shake in the
+        /// game rather than an arrival-specific dial — see <see cref="MinCameraShake"/> for why it
+        /// has to reach a true zero.
+        /// </summary>
+        public static float CameraShakeIntensity
+        {
+            get { EnsureLoaded(); return cameraShakeIntensity; }
+            set => SetFloat(ref cameraShakeIntensity, value, MinCameraShake, MaxCameraShake,
+                            "CameraShakeIntensity");
         }
 
         public static bool InvertHotbarScroll
@@ -407,6 +429,10 @@ namespace SpaceGame.Core
 
             mouseSensitivity = PlayerPrefs.GetFloat(Prefix + "MouseSensitivity", 1f);
             invertLookY = PlayerPrefs.GetInt(Prefix + "InvertLookY", 0) == 1;
+
+            // Defaults to full, so nobody loses an effect they already had; only a
+            // player who deliberately turns it down gets less.
+            cameraShakeIntensity = PlayerPrefs.GetFloat(Prefix + "CameraShakeIntensity", 1f);
             invertHotbarScroll = PlayerPrefs.GetInt(Prefix + "InvertHotbarScroll", 0) == 1;
             devMode = PlayerPrefs.GetInt(Prefix + "DevMode", 0) == 1;
             fieldOfView = PlayerPrefs.GetFloat(Prefix + "FieldOfView", 60f);
@@ -423,6 +449,7 @@ namespace SpaceGame.Core
             uiVolume = Mathf.Clamp01(uiVolume);
             ambienceVolume = Mathf.Clamp01(ambienceVolume);
             mouseSensitivity = Mathf.Clamp(mouseSensitivity, MinSensitivity, MaxSensitivity);
+            cameraShakeIntensity = Mathf.Clamp(cameraShakeIntensity, MinCameraShake, MaxCameraShake);
             fieldOfView = Mathf.Clamp(fieldOfView, MinFieldOfView, MaxFieldOfView);
             resolutionIndex = Mathf.Clamp(resolutionIndex, 0, Mathf.Max(0, ResolutionChoices.Length - 1));
         }

@@ -9,6 +9,11 @@
 //     player aiming straight up at something appeared, to everyone else, to be staring at the
 //     horizon — and the gun in their hand stayed flat, because Weapon.UpdateWeaponRotation had
 //     nothing to aim a remote copy with and deliberately left it on the hand bone.
+//
+//     Yaw-replicates-with-the-body holds only while the body can turn. A SEATED player's is held
+//     at a seat pose by somebody else, so the horizontal half of their look is spent on their neck
+//     instead (PlayerHeadLook) and travels here beside the pitch. On foot it is zero and nothing
+//     downstream changes.
 //   • WHETHER THEIR TORCH IS ON. The flashlight is a child of that same camera, so a remote
 //     player's lamp was not merely un-replicated, it was switched off with its parent — there was
 //     no light in the scene to replicate.
@@ -51,16 +56,40 @@ namespace SpaceGame.Characters
         private readonly NetworkVariable<float> netPitch = new(
             0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
+        /// <summary>
+        /// How far the head is turned off the body's forward, in degrees. Zero for anyone on foot.
+        ///
+        /// <para>
+        /// Beside the pitch rather than folded into it because it answers the same question for the
+        /// same reason and has the same late-joiner problem: somebody who connects while four
+        /// people are sitting in a cockpit looking at each other must see them looking at each
+        /// other, and a message announcing each head turn went out long before they arrived.
+        /// </para>
+        /// </summary>
+        private readonly NetworkVariable<float> netHeadYaw = new(
+            0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
         private readonly NetworkVariable<bool> netTorch = new(
+            false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
+        /// <summary>
+        /// Is this player aiming? Same argument as the other two: a late joiner has to see a
+        /// player who is already holding their weapon up, and the message announcing the press
+        /// went out long before they connected.
+        /// </summary>
+        private readonly NetworkVariable<bool> netAiming = new(
             false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
         private PlayerController controller;
         private PlayerLook look;
+        private PlayerHeadLook headLook;
         private Flashlight torch;
 
         private Transform aimPivot;
         private float shownPitch;
+        private float shownHeadYaw;
         private float publishedPitch;
+        private float publishedHeadYaw;
         private bool publishedTorch;
 
         /// <summary>
@@ -76,13 +105,49 @@ namespace SpaceGame.Characters
         /// </summary>
         public Transform AimPivot => aimPivot;
 
+        /// <summary>
+        /// This player's head pitch on THIS machine — their own live value, or the eased copy of
+        /// their last replicated one. Read by <see cref="PlayerHeadLook"/> to pose a remote head.
+        /// </summary>
+        public float HeadPitch => shownPitch;
+
+        /// <summary>Head yaw off the body's forward, same rules as <see cref="HeadPitch"/>.</summary>
+        public float HeadYaw => shownHeadYaw;
+
         /// <summary>Is this player's torch lit? True on every machine, not just theirs.</summary>
         public bool TorchOn => netTorch.Value;
+
+        /// <summary>Is this player aiming? True on every machine, not just theirs.</summary>
+        public bool Aiming => netAiming.Value;
+
+        /// <summary>
+        /// Owner-only. Called by <see cref="PlayerAimRig"/> once its own decision has been made.
+        ///
+        /// <para>
+        /// Pushed rather than pulled because the rig is the thing that knows, and a pull would
+        /// mean this component reaching for a component that may not be on every character.
+        /// Guarded on IsSpawned for the same reason <see cref="Publish"/> is: writing a
+        /// NetworkVariable before Netcode has spawned this object throws.
+        /// </para>
+        /// </summary>
+        public void PublishAiming(bool aiming)
+        {
+            if (!IsSpawned || !IsOwner) return;
+            if (netAiming.Value == aiming) return;
+            netAiming.Value = aiming;
+        }
 
         private void Awake()
         {
             controller = GetComponent<PlayerController>();
             look = GetComponent<PlayerLook>();
+
+            // Added here rather than authored on the prefab, for the reason PlayerAimRig adds
+            // AimIkRelay: this is the component that publishes what the head is doing, so it is the
+            // one that must be sure there is something deciding it — on remote copies too, where
+            // nothing else on the character is still running.
+            headLook = GetComponent<PlayerHeadLook>();
+            if (headLook == null) headLook = gameObject.AddComponent<PlayerHeadLook>();
 
             // Included-inactive, because on a remote copy the camera this hangs under has already
             // been switched off by PlayerController.Awake.
@@ -98,6 +163,7 @@ namespace SpaceGame.Characters
             // the variables and no change event coming, so both are read once here rather than
             // waited for. Same rule as PlayerInventoryNetwork.AdoptCurrentState.
             shownPitch = netPitch.Value;
+            shownHeadYaw = netHeadYaw.Value;
 
             // Before the torch is applied, not after. Reparenting a lamp out of the switched-off
             // camera ACTIVATES it, which runs Flashlight.Awake — and Awake switches the light off.
@@ -138,13 +204,28 @@ namespace SpaceGame.Characters
         {
             if (OwnsThisPlayer())
             {
-                shownPitch = look != null ? look.Pitch : shownPitch;
+                // PlayerHeadLook, not PlayerLook, and that is the point of it: a seated player's
+                // PlayerLook is switched off for the whole arrival, so its pitch is frozen at
+                // whatever they were looking at when they sat down. The head look answers in both
+                // modes and is the only thing that knows the seated yaw at all.
+                if (headLook != null)
+                {
+                    shownPitch = headLook.Pitch;
+                    shownHeadYaw = headLook.Yaw;
+                }
+                else if (look != null)
+                {
+                    shownPitch = look.Pitch;
+                }
+
                 Publish();
             }
             else
             {
-                shownPitch = Mathf.LerpAngle(shownPitch, netPitch.Value,
-                                             1f - Mathf.Exp(-aimSmoothing * Time.deltaTime));
+                float catchUp = 1f - Mathf.Exp(-aimSmoothing * Time.deltaTime);
+
+                shownPitch = Mathf.LerpAngle(shownPitch, netPitch.Value, catchUp);
+                shownHeadYaw = Mathf.LerpAngle(shownHeadYaw, netHeadYaw.Value, catchUp);
                 ApplyTorch(netTorch.Value);
             }
 
@@ -166,6 +247,12 @@ namespace SpaceGame.Characters
             {
                 publishedPitch = shownPitch;
                 netPitch.Value = shownPitch;
+            }
+
+            if (Mathf.Abs(Mathf.DeltaAngle(publishedHeadYaw, shownHeadYaw)) >= publishThreshold)
+            {
+                publishedHeadYaw = shownHeadYaw;
+                netHeadYaw.Value = shownHeadYaw;
             }
 
             bool lit = torch != null && torch.IsOn;
@@ -193,7 +280,12 @@ namespace SpaceGame.Characters
             Transform camera = controller != null ? controller.PlayerCameraTransform : null;
             if (camera != null) aimPivot.localPosition = camera.localPosition;
 
-            aimPivot.localRotation = Quaternion.Euler(shownPitch, 0f, 0f);
+            // Yaw as well as pitch now. It is zero for anyone on foot — their body is already
+            // pointing where they look — so this only changes the answer for a player whose body
+            // cannot turn, and for them it is the difference between a weapon that follows their
+            // head and one that stares out of the windscreen while they look at the seat beside
+            // them.
+            aimPivot.localRotation = Quaternion.Euler(shownPitch, shownHeadYaw, 0f);
         }
 
         /// <summary>

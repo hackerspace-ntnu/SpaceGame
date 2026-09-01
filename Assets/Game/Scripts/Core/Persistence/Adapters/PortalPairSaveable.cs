@@ -57,6 +57,16 @@ namespace SpaceGame.Core.Persistence
             public Vector3 position;
             public Quaternion rotation;
             public Vector2 size;
+
+            /// <summary>
+            /// The blobs of paint this aperture is made of — x and y in the portal's own plane,
+            /// z the radius, all in metres.
+            ///
+            /// Absent from every record written before the gun became a spray can, and from every
+            /// aperture placed in a scene by hand, where it deserialises to null. It means the
+            /// same thing both times: this one is the ellipse inscribed in <see cref="size"/>.
+            /// </summary>
+            public Vector3[] dabs;
             public Color colour;
 
             /// <summary>
@@ -106,6 +116,23 @@ namespace SpaceGame.Core.Persistence
                 secondary = Describe(secondary),
                 linked = primary != null && secondary != null && primary.Linked == secondary,
             };
+        }
+
+        /// <summary>
+        /// Restore and re-open in one go, for a caller with no deferred pass to wait for.
+        ///
+        /// <para>
+        /// <see cref="RestoreState"/> only STAGES — the aperture is actually cut in
+        /// <see cref="OnLoadComplete"/>, which <c>SaveManager</c> invokes from its deferred load
+        /// passes. A client joining a running session never runs one, so a staged record would sit
+        /// there for ever. <c>SessionSnapshot</c> calls this instead, and only once the shooter
+        /// exists on this machine, which is the one thing the deferred pass was buying.
+        /// </para>
+        /// </summary>
+        public void ApplyNow(JObject state)
+        {
+            RestoreState(state);
+            OnLoadComplete();
         }
 
         public void RestoreState(JObject state)
@@ -163,6 +190,40 @@ namespace SpaceGame.Core.Persistence
                 Portal.Link(pair.Get(PortalPair.Primary), null);
         }
 
+        /// <summary>The paint an aperture is made of, or null if it is a plain ellipse.</summary>
+        public static Vector3[] DescribeDabs(Portal portal)
+        {
+            if (portal == null || portal.Stencil.IsEllipse) return null;
+
+            var dabs = new Vector3[portal.Stencil.Count];
+
+            for (int i = 0; i < dabs.Length; i++)
+            {
+                PortalDab dab = portal.Stencil.Dabs[i];
+                dabs[i] = new Vector3(dab.Centre.x, dab.Centre.y, dab.Radius);
+            }
+
+            return dabs;
+        }
+
+        /// <summary>
+        /// Put <paramref name="dabs"/> back on <paramref name="portal"/>, or leave its ellipse
+        /// alone.
+        ///
+        /// Doing nothing for a null array is the whole backwards-compatibility story: a record
+        /// written before spraying existed has no dabs, and the aperture it restores is the
+        /// ellipse <see cref="PortalPair.Open"/> already gave it.
+        /// </summary>
+        public static void ApplyDabs(Portal portal, Vector3[] dabs)
+        {
+            if (portal == null || dabs == null || dabs.Length == 0) return;
+
+            portal.BeginStroke();
+
+            for (int i = 0; i < dabs.Length; i++)
+                portal.AddDab(new Vector2(dabs[i].x, dabs[i].y), dabs[i].z);
+        }
+
         private static PortalState Describe(Portal portal)
         {
             if (portal == null) return default;
@@ -173,6 +234,7 @@ namespace SpaceGame.Core.Persistence
                 position = portal.transform.position,
                 rotation = portal.transform.rotation,
                 size = portal.Size,
+                dabs = DescribeDabs(portal),
                 colour = portal.Colour,
 
                 // Floored just above zero rather than clamped to it: zero is the "never expires"
@@ -189,9 +251,11 @@ namespace SpaceGame.Core.Persistence
         {
             if (!state.open) return;
 
-            pair.Open(index, prefab, state.position, state.rotation,
-                      FindHost(state.position, state.rotation), state.size, state.colour,
-                      state.remaining);
+            Portal portal = pair.Open(index, prefab, state.position, state.rotation,
+                                      FindHost(state.position, state.rotation), state.size,
+                                      state.colour, state.remaining);
+
+            ApplyDabs(portal, state.dabs);
         }
 
         /// <summary>

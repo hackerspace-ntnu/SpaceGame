@@ -1,4 +1,3 @@
-using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.VFX;
 using SpaceGame.Characters;
@@ -858,17 +857,6 @@ namespace SpaceGame.Items
         /// </summary>
         private bool IsAuthority() =>
             !Network.IsNetworked || Network.Server;
-
-        /// <summary>True when the local player is the one holding this staff.</summary>
-        private bool OwnerIsLocal()
-        {
-            if (!Network.IsNetworked) return true;
-
-            if (owner != null && owner.TryGetComponent(out NetworkObject netObj) && netObj.IsSpawned)
-                return netObj.IsOwner;
-
-            return true;
-        }
 
         public override void OnUnequipped(GameObject holder)
         {

@@ -61,6 +61,13 @@ namespace SpaceGame.Agents
 
         [SerializeField] private HoverGroundSensor groundSensor = new HoverGroundSensor();
 
+        [Header("Parked")]
+        [Tooltip("When nobody is riding and the AI has no standing order, hand the hull to " +
+                 "physics: gravity on, servo off, so the craft settles onto its own colliders " +
+                 "and sits there as dead weight. Off = classic behaviour: an empty craft keeps " +
+                 "hovering at ride height.")]
+        [SerializeField] private bool restWhenParked;
+
         // What the AI channel last asked for. Applied on the physics clock, not when it arrives.
         private MoveIntent pendingIntent = MoveIntent.Idle();
         private Vector3? currentDestination;
@@ -90,6 +97,10 @@ namespace SpaceGame.Agents
         private float riderForwardSpeed;
         private bool riderSpeedValid;
 
+        // Whether the parked handover to physics is currently in effect. Tracked so the gravity
+        // flag is only written on the transition, not fought over every step.
+        private bool isParked;
+
         public Vector3 Velocity => body ? body.linearVelocity : Vector3.zero;
 
         /// <summary>Ground clearance the craft is holding, in metres.</summary>
@@ -101,6 +112,18 @@ namespace SpaceGame.Agents
 
         /// <summary>True while the craft is over ground it can actually measure.</summary>
         public bool HasGround => groundSensor.HasGround;
+
+        /// <summary>
+        /// Half-extents of the ground this craft rides over, in its own axes.
+        ///
+        /// <para>
+        /// Exposed so whoever puts the craft DOWN measures the same patch of ground the servo will
+        /// hold it over once it wakes up. A landing grounded against a different footprint is a
+        /// landing the craft corrects on its first physics step, which reads as a ship that touches
+        /// down and then floats back up.
+        /// </para>
+        /// </summary>
+        public Vector2 FootprintExtents => groundSensor.FootprintExtents;
 
         public bool IsImmobile
         {
@@ -174,13 +197,27 @@ namespace SpaceGame.Agents
                 body = GetComponent<Rigidbody>();
 
             // The servo owns the vertical axis outright, so gravity would only be a force to cancel
-            // every step. Unlike a flying craft there is no parked state where letting go is right:
-            // a hovercraft with nobody aboard still hovers.
+            // every step. By default there is no parked state where letting go is right — a
+            // hovercraft with nobody aboard still hovers. restWhenParked is the opt-out for hulls
+            // that are meant to stand on the ground as dead weight between flights.
             if (body)
-                body.useGravity = false;
+            {
+                body.useGravity = restWhenParked;
+                isParked = restWhenParked;
+            }
 
             groundSensor.Initialize(transform);
         }
+
+        /// <summary>
+        /// Tell the hull it is carrying <paramref name="body"/>, so its own height probe stops
+        /// reading them as the ground and climbing on them. See
+        /// <see cref="HoverGroundSensor.Carry"/> for the failure this prevents.
+        /// </summary>
+        public void Carry(GameObject body) => groundSensor.Carry(body);
+
+        /// <summary>Counterpart to <see cref="Carry"/>.</summary>
+        public void StopCarrying(GameObject body) => groundSensor.StopCarrying(body);
 
         // ─────────── AI channel ───────────
         public void Tick(in MoveIntent intent, float deltaTime)
@@ -238,6 +275,24 @@ namespace SpaceGame.Agents
         private void FixedUpdate()
         {
             if (!body)
+                return;
+
+            // Parked = nobody riding and no standing AI order. With restWhenParked on, this is the
+            // one state where the motor deliberately lets go: gravity is on, nothing writes the
+            // velocity or the attitude, so the hull rests on its own colliders and a collision
+            // moves it exactly as far as its mass allows — no servo correction erases the shove.
+            // The moment anything drives again, the servo takes the body back and re-seeds its
+            // heading from wherever physics left the hull pointing.
+            bool parked = restWhenParked && !hasPendingRiderInput
+                          && pendingIntent.Type == AgentIntentType.Idle;
+            if (parked != isParked)
+            {
+                isParked = parked;
+                body.useGravity = parked;
+                if (!parked)
+                    headingValid = false;
+            }
+            if (parked)
                 return;
 
             float deltaTime = Time.fixedDeltaTime;

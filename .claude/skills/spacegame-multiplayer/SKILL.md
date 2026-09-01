@@ -5,16 +5,21 @@ description: Use when adding netcode to an existing single-player system in Spac
 
 # SpaceGame multiplayer wiring
 
+> **Design check:** when the question is what players should experience together, not just how
+> bytes move, read the `MP`, `ARCH` and `PROG` principles in
+> `docs/game-development-constitution/INDEX.md` and cite their IDs.
+
 ## Overview
 
 **The bar: every gameplay system works fully online.** Anything a player can change has to reach
 every other machine, including players who join later. A system that is still local is unfinished
 work, not a system that was scoped that way.
 
-One generic message channel carries every gameplay message in the project:
-`Assets/Game/Scripts/Core/Multiplayer/NetMessaging.cs` (the `NetArg` payload, the `NetMsg` id
-catalog, the extension-method API), `NetChannel.cs` (per-entity handler table, a plain
-MonoBehaviour added on demand) and `NetRelay.cs` (the three RPCs, needs a `NetworkObject`).
+One generic message channel carries every gameplay message in the project, in
+`Assets/Game/Scripts/Core/Multiplayer/Messaging/`: `NetMessaging.cs` (the extension-method
+API), `NetArg.cs` (the payload), `NetMsg.cs` (the id catalog), `NetChannel.cs` (per-entity
+handler table, a plain MonoBehaviour added on demand) and `NetRelay.cs` (the three RPCs, needs
+a `NetworkObject`).
 Per-feature `XNetworkSync` classes are gone. Every send degrades to a **local dispatch** when there
 is no relay, no spawn, or no session — so a system that is not networked yet, and single-player,
 keep working exactly as before instead of throwing.
@@ -190,7 +195,7 @@ nothing**. Work down this list.
 | Health/state correct for everyone except a late joiner | `NetworkVariable.OnValueChanged` never replays | Read the current value in `OnNetworkSpawn` (see `PlayerInventoryNetwork.AdoptCurrentState`) |
 | NRE inside `Unity.Collections` when writing a `NetworkList<FixedString…>` | `cond ? item.ID : default` — both arms are `string`, so the ternary converts `null` | `cond ? new FixedString64Bytes(item.ID) : default(FixedString64Bytes)` |
 | Client join fails: `Scene Hash N does not exist in the HashToBuildIndex table` | NGO identifies scenes as `XXHash32(full scene path)`, case-sensitively, resolved from each machine's **on-disk** casing; git/disk folder-casing drift is invisible under `core.ignorecase` | Compare `git ls-files 'Assets/Game/Scenes/*'` against `ls` on both machines — world scenes are lowercase `Assets/Game/Scenes/world/` here (see the comment in `MultiplayerTestPlayerBuilder.cs`). Identify the culprit by brute-forcing XXH32 (seed 0, UTF-8) over every `.unity` path in `git rev-list --all --objects`, then fix index-only with `git rm -r --cached` + `git add` |
-| 409 `player is already a member of the lobby` | Ghost membership from a session never handed back; anonymous auth reuses the PlayerId | `LobbySession.JoinWithConflictRecoveryAsync` |
+| 409 `player is already a member of the lobby` | Ghost membership from a session never handed back; anonymous auth reuses the PlayerId | `LobbyJoinRecovery.JoinAsync` (`Core/Multiplayer/Lobby/`) |
 | `Failed to bind UDP socket … address already in use` in the editor | Native socket leaks on every play-mode `StartHost` | Bump `ConnectionData.Port` in `Assets/Game/Prefabs/Systems/NetworkManager.prefab`. Never route singleplayer through `HostDirect` (it calls `SetConnectionData` and overrides the port) |
 | `SceneEventInProgress` | `NetworkSceneManager` has one **global** busy flag | Wait on `OnLoadEventCompleted`, or treat the status as "retry me" |
 | `InvalidParentException` when parenting a networked rider | NGO forbids parenting a `NetworkObject` under a plain transform | `NetworkObject.TrySetParent` / `TryRemoveParent`, folding the seat offset into the root's local space |
@@ -205,7 +210,7 @@ only, and on a client is refused outright by `WorldService`.
 ```csharp
 // NetMsg.cs — append two ids after the current highest, and never reuse a retired one.
 // The catalog grows most weeks, so read the tail before allocating:
-//   grep -n "public const ushort" Assets/Game/Scripts/Core/Multiplayer/NetMessaging.cs | tail -3
+//   grep -n "public const ushort" Assets/Game/Scripts/Core/Multiplayer/Messaging/NetMsg.cs | tail -3
 public const ushort DrillRun = /* next free */; // owner → server, DRILL's channel. P = muzzle point
 public const ushort DrillRan = /* next free */; // server → peers, on the DRILL's channel
 

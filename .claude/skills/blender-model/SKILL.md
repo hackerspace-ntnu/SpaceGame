@@ -5,6 +5,10 @@ description: Create production-ready Blender models as .blend files in a shared 
 
 # Blender Model
 
+> **Design check:** when an asset must read at a glance, sell an animation or fit a level's
+> language, consult `CONTENT`, `LEVEL`, `ANIM` and `PERF` in
+> `docs/game-development-constitution/INDEX.md` and cite the IDs.
+
 Build 3D assets as `.blend` files inside a repository-wide model library. The point of the library is that a model is never a one-off: it is assembled from small, named, reusable components that share a single material palette, so the hundredth model costs less work than the tenth and the whole set stays visually coherent.
 
 Two things distinguish this workflow from just opening Blender and extruding a cube:

@@ -21,6 +21,7 @@ namespace SpaceGame.Agents
             if (!playerMovement)
                 return false;
 
+            VacateSeatForPlayer();
             CacheMountedPlayerReferences(playerMovement, mountPointOverride);
             // Arm before anything parents the rider: the beacon is the only thing that can tell a
             // later Dismount that the rider is being destroyed rather than merely leaving.
@@ -76,47 +77,37 @@ namespace SpaceGame.Agents
             ownRigidbodyConstraintsCaptured = false;
         }
 
-        // Disable collision between every rider collider and every mount collider so the rider's
-        // kinematic body can't shove the mount via contacts at the seat point.
-        private void IgnoreRiderMountCollisions()
+        // Stop the rider's kinematic body shoving the mount via contacts at the seat point. The
+        // pairs themselves are RiderCollisionIgnore's business — NpcPassenger seats a rider in this
+        // same saddle and needs the identical suspension.
+        private void IgnoreRiderMountCollisions() => riderCollisions.Apply(mountedPlayer, transform);
+
+        private void RestoreRiderMountCollisions() => riderCollisions.Restore();
+
+        /// <summary>
+        /// Turf out whoever is already in the saddle, before a player is seated on top of them.
+        ///
+        /// <para>
+        /// A caravan animal carries an NPC seated by <see cref="NpcPassenger"/>, which this class
+        /// deliberately knows nothing about — so the seat reads as free and the mount happily put
+        /// the player inside the nomad. Asked through <see cref="ISeatOccupant"/> so the eviction
+        /// stays a question the seat can pose without knowing who is in it.
+        /// </para>
+        /// <para>
+        /// Before the player is cached and parented, so the seat changes hands in one direction
+        /// only and the riding pose is never asked to hold two riders at once.
+        /// </para>
+        /// </summary>
+        private void VacateSeatForPlayer()
         {
-            if (mountedPlayer == null)
-                return;
+            var occupants = new System.Collections.Generic.List<ISeatOccupant>();
+            GetComponents(occupants);
 
-            Collider[] riderColliders = mountedPlayer.GetComponentsInChildren<Collider>(true);
-            Collider[] mountColliders = GetComponentsInChildren<Collider>(true);
-            if (riderColliders.Length == 0 || mountColliders.Length == 0)
-                return;
-
-            var pairs = new System.Collections.Generic.List<(Collider, Collider)>(
-                riderColliders.Length * mountColliders.Length);
-
-            foreach (Collider r in riderColliders)
+            foreach (ISeatOccupant occupant in occupants)
             {
-                if (!r) continue;
-                foreach (Collider m in mountColliders)
-                {
-                    if (!m || r == m) continue;
-                    Physics.IgnoreCollision(r, m, true);
-                    pairs.Add((r, m));
-                }
+                if (occupant.HasRider)
+                    occupant.VacateSeat();
             }
-
-            ignoredCollisionPairs = pairs.ToArray();
-        }
-
-        private void RestoreRiderMountCollisions()
-        {
-            if (ignoredCollisionPairs == null)
-                return;
-
-            foreach (var (a, b) in ignoredCollisionPairs)
-            {
-                if (a && b)
-                    Physics.IgnoreCollision(a, b, false);
-            }
-
-            ignoredCollisionPairs = null;
         }
 
         // Animator root motion can translate/rotate the mount transform even when every module
@@ -273,7 +264,11 @@ namespace SpaceGame.Agents
             // hierarchy this method exists to give up on. Dropping the reference alone leaves a live
             // camera and a second AudioListener in the scene for the rest of the session.
             ReleaseRuntimeThirdPersonCamera();
-            ignoredCollisionPairs = null;
+            riderCollisions.Forget();
+            // Dropped rather than restored, for the same reason as everything else here: the body is
+            // being destroyed. Left standing, the claim would outlive both of us and any carrier
+            // that picked the body up again would never be able to hand it back.
+            CarriedBody.Abandon(this);
             suppressibleAnimators = null;
             suppressibleAnimatorRootMotion = null;
             ownRigidbodyConstraintsCaptured = false;
@@ -346,7 +341,7 @@ namespace SpaceGame.Agents
             // PlayerLook.OnEnable re-locks the cursor and its LateUpdate keeps re-locking it every
             // frame, which is what makes the respawn button unclickable after dying while flying.
             //
-            // The head stays hidden and the freeze stands until OnRevive hands control back.
+            // The freeze stands until OnRevive hands control back.
             if (RiderIsDead())
                 return;
 
@@ -358,13 +353,7 @@ namespace SpaceGame.Agents
                 mountedPlayerMovement.enabled = true;
 
             if (disablePlayerLook && mountedPlayerLook && riderLookWasEnabled)
-            {
-                // Hiding the head belongs to the first-person view this rider is returning to, so it
-                // travels with the look restore rather than running for a body we only ever see from
-                // the outside.
-                mountedPlayerLook.SetHeadVisible(false);
                 mountedPlayerLook.enabled = true;
-            }
 
             if (disablePlayerInteractor && mountedInteractor && riderInteractorWasEnabled)
                 mountedInteractor.enabled = true;
@@ -416,22 +405,18 @@ namespace SpaceGame.Agents
                 Dismount();
         }
 
+        // Freezing the rider is the same act whichever carrier does it, and — critically — it is NOT
+        // this module's private business. A player can already be held by SeatedRider when they take
+        // the helm of the ship they rode down in, and a second private capture there banks the
+        // SEATED state as the truth and hands it back on dismount: a body returned kinematic and
+        // weightless, which reads as a player who cannot move and has no gravity. CarriedBody
+        // captures once, on the first hold, and restores once, on the last release.
         private void EnterMountedRigidbodyState()
         {
             if (!mountedPlayerRigidbody)
                 return;
 
-            playerRigidbodyWasKinematic = mountedPlayerRigidbody.isKinematic;
-            playerRigidbodyHadGravity = mountedPlayerRigidbody.useGravity;
-            playerRigidbodyInterpolation = mountedPlayerRigidbody.interpolation;
-            mountedPlayerRigidbody.linearVelocity = Vector3.zero;
-            mountedPlayerRigidbody.angularVelocity = Vector3.zero;
-            mountedPlayerRigidbody.isKinematic = true;
-            mountedPlayerRigidbody.useGravity = false;
-            // Rider is parented to the mount and follows it via the transform hierarchy. Letting
-            // the rider's Rigidbody also interpolate makes it sample stale world positions one
-            // physics step behind the parent, which renders the rider drifting off the seat.
-            mountedPlayerRigidbody.interpolation = RigidbodyInterpolation.None;
+            CarriedBody.Hold(mountedPlayer.gameObject, this);
         }
 
         private void ExitMountedRigidbodyState()
@@ -439,11 +424,7 @@ namespace SpaceGame.Agents
             if (!mountedPlayerRigidbody)
                 return;
 
-            mountedPlayerRigidbody.isKinematic = playerRigidbodyWasKinematic;
-            mountedPlayerRigidbody.useGravity = playerRigidbodyHadGravity;
-            mountedPlayerRigidbody.interpolation = playerRigidbodyInterpolation;
-            mountedPlayerRigidbody.linearVelocity = Vector3.zero;
-            mountedPlayerRigidbody.angularVelocity = Vector3.zero;
+            CarriedBody.Release(mountedPlayer.gameObject, this);
         }
 
         // Netcode refuses to let a NetworkObject sit under a plain transform, and seatPoint is a bare

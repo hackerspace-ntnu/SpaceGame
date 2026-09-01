@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6265e3249b4e4f97a4f43f0f8fdeedd, type: 3}
+  m_Name: VersusShipSpawnConfig
+  m_EditorClassIdentifier:
+  layout: 0
+  ringCenterXZ: {x: 2500, y: 500}
+  ringRadius: 120
+  explicitPoints: []
+  probeHeight: 200
+  shipGroundClearance: 0.05
+  maxGroundSpread: 1
+  landingSearchRadius: 60
+  landingSearchStep: 12
+  seatRingRadius: 1.6
+  seatInteriorOffset: {x: 0, y: 1.2, z: 0}

@@ -211,6 +211,24 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(OrnithopterSaveable));
             }
 
+            // Which hull modules a ship has been repaired with. On the root rather than the
+            // subtree, unlike ArticulatedPart above: the rack IS the entity's own component, and
+            // a hull towing another hull must not adopt its parts.
+            if (go.GetComponent<ShipPartRack>() != null && go.GetComponent<ShipPartsSaveable>() == null)
+            {
+                go.AddComponent<ShipPartsSaveable>();
+                parts.Add(nameof(ShipPartsSaveable));
+            }
+
+            // Which team a hull is painted for. Runtime-spawned rather than authored — every versus
+            // ship is made mid-match — so the runtime pass is the one that matters here, and it is
+            // the reason this clause exists rather than the colour being wired onto a prefab.
+            if (go.GetComponent<ShipTeamAccent>() != null && go.GetComponent<ShipAccentSaveable>() == null)
+            {
+                go.AddComponent<ShipAccentSaveable>();
+                parts.Add(nameof(ShipAccentSaveable));
+            }
+
             EnsureAgentMind(go, parts);
             EnsureAgentRoutine(go, parts);
             EnsureAgentCombat(go, parts);

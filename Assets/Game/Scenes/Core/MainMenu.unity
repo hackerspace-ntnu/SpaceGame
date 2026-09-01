@@ -756,7 +756,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1438718363335198532, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_text
-      value: Exit game
+      value: Quit
       objectReference: {fileID: 0}
     - target: {fileID: 1615022664079634020, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.size
@@ -784,11 +784,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1615022664079634020, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
-      value: UnityEngine.Object, UnityEngine
+      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 5964008515116380046, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_Name
-      value: Exit
+      value: Quit
       objectReference: {fileID: 0}
     - target: {fileID: 7649740744280146637, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_Pivot.x
@@ -1108,13 +1108,13 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 7186089524042346818, guid: 5c9c4eb0ed40ad64e9208a510dc8957a, type: 3}
-      propertyPath: freezeCycle
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 5334017982181810390, guid: 5c9c4eb0ed40ad64e9208a510dc8957a, type: 3}
       propertyPath: m_Name
       value: Sun
+      objectReference: {fileID: 0}
+    - target: {fileID: 7186089524042346818, guid: 5c9c4eb0ed40ad64e9208a510dc8957a, type: 3}
+      propertyPath: freezeCycle
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1131,7 +1131,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1438718363335198532, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_text
-      value: Multiplayer
+      value: VS
       objectReference: {fileID: 0}
     - target: {fileID: 1615022664079634020, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.size
@@ -1151,7 +1151,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1615022664079634020, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
-      value: StartMultiPlayer
+      value: StartVersus
       objectReference: {fileID: 0}
     - target: {fileID: 1615022664079634020, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
@@ -1159,11 +1159,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1615022664079634020, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
-      value: UnityEngine.Object, UnityEngine
+      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 5964008515116380046, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_Name
-      value: Multiplayer
+      value: VS
       objectReference: {fileID: 0}
     - target: {fileID: 7649740744280146637, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_Pivot.x
@@ -1791,7 +1791,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1438718363335198532, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_text
-      value: Singleplayer
+      value: Story
       objectReference: {fileID: 0}
     - target: {fileID: 1438718363335198532, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_fontSizeBase
@@ -1819,7 +1819,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1615022664079634020, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
-      value: StartSinglePlayer
+      value: StartStory
       objectReference: {fileID: 0}
     - target: {fileID: 1615022664079634020, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
@@ -1827,11 +1827,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1615022664079634020, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
-      value: UnityEngine.Object, UnityEngine
+      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 5964008515116380046, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_Name
-      value: SingleplayerButton
+      value: Story
       objectReference: {fileID: 0}
     - target: {fileID: 7649740744280146637, guid: 6a1040a2f1c64274b95b2d4dc55953a7, type: 3}
       propertyPath: m_Pivot.x

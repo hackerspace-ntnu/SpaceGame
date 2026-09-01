@@ -641,13 +641,16 @@ namespace SpaceGame.Presentation
 
             // Every row below mirrors a binding that actually exists — the Player/Hotbar/UI maps in
             // InputControls, or a key a component reads straight off the keyboard. Anything the
-            // asset declares but no script consumes (Crouch, Previous/Next) is deliberately absent.
+            // asset declares but no script consumes (Sprint, Previous/Next) is deliberately absent.
+            // Dash is absent for the opposite reason: crouch took Left Shift, which was the only
+            // key it had.
             SettingsWidgets.Heading(page, "On foot");
 
             Binding(page, "Move", "W A S D  ·  Arrows");
             Binding(page, "Look", "Mouse");
             Binding(page, "Jump", "Space");
-            Binding(page, "Dash", "Left Shift");
+            Binding(page, "Crouch  ·  hold", "Left Shift  ·  C");
+            Binding(page, "Sprint", "Double-tap forward, hold");
 
             SettingsWidgets.Heading(page, "Actions");
 

@@ -24,7 +24,7 @@ using Unity.Netcode;
 using SpaceGame.Core.Persistence;
 using SpaceGame.World;
 using UnityEngine;
-using SkyAnchor = SpaceGame.Core.SkyNetwork.SkyAnchor;
+using SpaceGame.Core;
 
 namespace SpaceGame.Tests
 {

@@ -3,6 +3,7 @@
 // Includes optional mounted-jump simulation via baseOffset animation.
 using UnityEngine;
 using UnityEngine.AI;
+using SpaceGame.Core;
 using SpaceGame.World;
 using SpaceGame.Teleporting;
 
@@ -143,6 +144,8 @@ namespace SpaceGame.Agents
 
         private void OnEnable()
         {
+            this.NetOn(NetMsg.Leap, OnLeapRequested);
+
             // A restore has already described a jump or a leap in flight. Consumed, so a later
             // genuine enable clears them as it always did.
             if (motorRestored)
@@ -756,11 +759,42 @@ namespace SpaceGame.Agents
 
         private void OnDisable()
         {
+            this.NetOff(NetMsg.Leap, OnLeapRequested);
+
             if (agent)
             {
                 agent.baseOffset = defaultBaseOffset;
                 agent.updateRotation = defaultUpdateRotation;
             }
+        }
+
+        /// <summary>
+        /// A blast has thrown this animal. Run the leap here only if this machine owns it.
+        ///
+        /// <para>
+        /// Broadcast on the mount's relay, so every machine receives this and exactly one acts —
+        /// the server for a loose creature, the RIDER's machine for a mount somebody is on. That
+        /// distinction is the whole reason the message exists: a ridden mount's transform is
+        /// owner-authoritative, so the leap the server used to run on its own copy was overwritten
+        /// within a tick and the rider saw nothing at all.
+        /// </para>
+        /// <para>
+        /// The same shape as <c>FlungBody</c>, which is this for a player. See
+        /// <see cref="NetMsg.Leap"/> for the payload.
+        /// </para>
+        /// </summary>
+        private void OnLeapRequested(in NetArg arg, ulong sender)
+        {
+            if (!Network.Owns(this)) return;
+
+            float distance = arg.P.magnitude;
+            if (distance < 1e-3f) return;
+
+            // Checked here rather than by the sender: availability is a property of THIS motor, and
+            // the machine that composed the message was looking at a different copy of it.
+            if (!IsLeapAvailable) return;
+
+            RequestLeap(arg.P / distance, distance, arg.A * 0.01f, arg.B * 0.001f);
         }
 
         private void OnValidate()

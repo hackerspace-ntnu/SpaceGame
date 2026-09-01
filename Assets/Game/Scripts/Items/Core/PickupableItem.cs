@@ -102,11 +102,15 @@ namespace SpaceGame.Items
 
           // Hotbar first, then the pack. Without the overflow a four-slot hotbar means the backpack
           // never fills from the world, and the only way to put anything in it is the inspector.
+          //
+          // TryStow is first-fit across the pack's surfaces, so a pickup goes wherever it fits
+          // rather than into a numbered slot. It can refuse: the limit is surface area now, and a
+          // 1.35 m staff needs a diagonal that a loaded pack may not have left.
           if (!added)
           {
              BackpackController backpack = interactor.GetComponentInParent<BackpackController>();
              if (backpack != null && backpack.Pack != null)
-                added = backpack.Pack.Container.TryAddToMain(item, out _);
+                added = backpack.Pack.TryStow(item);
           }
 
           if (added)

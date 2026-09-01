@@ -31,7 +31,7 @@ Shader "SpaceGame/Portal/PortalSurface"
         _HotColour   ("Hot colour", Color) = (1.00, 0.96, 0.72, 1)
 
         [Header(Aperture)]
-        _Aperture    ("Aperture", Range(0.5, 1.0)) = 0.97
+        _Crawl       ("Edge crawl (m)", Range(0.0, 0.4)) = 0.06
         _EdgeWidth   ("Edge width", Range(0.01, 0.6)) = 0.22
         _EdgeGlow    ("Edge glow", Range(0.0, 12.0)) = 3.2
         _Throat      ("Throat darkening", Range(0.0, 1.0)) = 0.45
@@ -61,6 +61,12 @@ Shader "SpaceGame/Portal/PortalSurface"
             Name "PortalSurface"
             Cull Off
             ZWrite On
+
+            // Biased towards the camera. The aperture is a flat plane lying on ground that is not
+            // flat, and Portal.ConformToSurface already lifts it clear of the highest bump under
+            // the paint — this covers the residual, so a portal sprayed on terrain can never lose
+            // the depth test to the hillside it is painted on and vanish in patches.
+            Offset -1, -1
             ZTest LEqual
 
             HLSLPROGRAM
@@ -78,12 +84,13 @@ Shader "SpaceGame/Portal/PortalSurface"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "PortalNoise.hlsl"
+            #include "PortalStencil.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _Colour;
                 float4 _DeepColour;
                 float4 _HotColour;
-                float  _Aperture;
+                float  _Crawl;
                 float  _EdgeWidth;
                 float  _EdgeGlow;
                 float  _Throat;
@@ -117,39 +124,47 @@ Shader "SpaceGame/Portal/PortalSurface"
 
             half4 frag(Varyings IN) : SV_Target
             {
-                // Aperture space: the quad's UV recentred so the portal is the
-                // ellipse inscribed in it, whatever the quad's aspect.
-                float2 p = IN.uv * 2.0 - 1.0;
-                float  r = length(p);
+                // Aperture space, in METRES: negative inside the opening, zero on its edge.
+                // Metric on purpose — see the header of PortalStencil.hlsl for the bug that
+                // normalising against the shape's own size caused while it was being sprayed.
+                float  angle;
+                float  d = PortalStencilDistance(IN.uv, angle);
 
-                // Conservative reject BEFORE any noise is evaluated. The
-                // crawling rim below can only move the edge by ±0.025, so
-                // anything past that is outside the aperture whatever the noise
-                // turns out to say. The quad's corners are a fifth of its area
-                // and none of them are ever inside the disc; making them pay for
-                // an fbm to find that out was the cheapest waste in the shader.
+                // The iris closes by ERODING the shape inward, which works the same on a blob as on
+                // an ellipse. Scaling a coordinate, which is what this used to do, only works on a
+                // shape that is centred on its own origin — and a sprayed one never is. Eroded by
+                // _CloseDepth, not _Depth: a merged blob is deeper than the stroke radius, and the
+                // shallower erosion left a rump of aperture on screen at the end of the close.
                 float openness = saturate(_Open);
-                clip((_Aperture + 0.03) * openness - r);
+                d += (1.0 - openness) * max(_CloseDepth, _Depth);
 
-                float angle = atan2(p.y, p.x);
+                // Conservative reject BEFORE any noise is evaluated. The crawling edge below can
+                // only move it by _Crawl, so anything past that is outside whatever the noise turns
+                // out to say — and the quad's corners are a fifth of its area and never inside.
+                clip(_Crawl - d);
+
                 float t = _Time.y * _Speed;
 
-                // Swirl: rotate the sampling frame by an amount that grows
-                // towards the centre. Rotating by a CONSTANT would just spin the
-                // whole disc like a wheel; making the rotation depend on radius
-                // is what shears it into a vortex.
-                float twist = angle + _Swirl * (1.0 - saturate(r)) + t * 0.6;
+                // The edge is not a clean curve — it crawls. Sampled in polar coordinates so the
+                // wobble travels AROUND the aperture rather than sliding across it.
+                float crawl = (PortalFbm(float2(angle * 2.2, t * 0.6), 3) - 0.5) * 2.0 * _Crawl;
+                d += crawl;
+
+                clip(-d);
+
+                // 0 at the edge, 1 a reference-radius inside it. This is the old normalised
+                // coordinate, rebuilt from the metric distance, so everything below reads the same
+                // as it always did — but it no longer restyles itself when the shape grows.
+                float depth01 = saturate(-d / max(_Depth, 1e-4));
+                float r = 1.0 - depth01;
+
+                // Swirl: rotate the sampling frame by an amount that grows towards the middle.
+                // Rotating by a CONSTANT would just spin the whole disc like a wheel; making the
+                // rotation depend on depth is what shears it into a vortex.
+                float twist = angle + _Swirl * depth01 + t * 0.6;
                 float2 swirled = float2(cos(twist), sin(twist)) * r;
 
-                // The rim is not a clean circle — it crawls. Sampled in polar
-                // coordinates so the wobble travels AROUND the rim rather than
-                // sliding across it.
-                float crawl = PortalFbm(float2(angle * 2.2, t * 0.6), 3) - 0.5;
-                float edgeR = (_Aperture + crawl * 0.05) * openness;
-
-                clip(edgeR - r);
-
-                float rim = saturate((r - (edgeR - _EdgeWidth)) / max(_EdgeWidth, 1e-4));
+                float rim = 1.0 - saturate(-d / max(_EdgeWidth * _Depth, 1e-4));
 
                 // Domain-warped noise in the SWIRLED frame, so it turns with the
                 // vortex instead of scrolling past it.

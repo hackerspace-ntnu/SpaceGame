@@ -67,6 +67,18 @@ namespace SpaceGame.Items
         private float nextHoldSend;
 
 
+        /// <summary>
+        /// The main hand's grip rotation, in that hand bone's own space.
+        ///
+        /// <para>
+        /// Identity when there is no main hand, which is the right answer for a character with no
+        /// rig to speak of: aim the hand at the target and accept that the item sits however the
+        /// prefab sits.
+        /// </para>
+        /// </summary>
+        public Quaternion MainHandGripLocalRotation =>
+            equipmentSocket != null ? equipmentSocket.FrameLocalRotation : Quaternion.identity;
+
         private void Awake()
         {
             var anim = GetComponentInChildren<Animator>(true);
@@ -294,6 +306,18 @@ namespace SpaceGame.Items
         /// <summary>The item currently in the hand, or null. For savers and tests.</summary>
         public UsableItem HeldUsable => HeldItem();
 
+        /// <summary>
+        /// Trigger the held item as though the use button had been pressed.
+        ///
+        /// The seam <c>MultiplayerAutotest</c> fires through, because the button itself cannot be
+        /// pressed from there: <c>PlayerInputManager.OnUsePressed</c> is a C# event, and only the
+        /// class that declares one may raise it. Everything from <see cref="UsableItem.OnRequestUse"/>
+        /// onwards is the real path — the request, the local present, the hop to the server and the
+        /// broadcast to the peers — so what this leaves untested is exactly one thing: that the Use
+        /// action is still bound to <see cref="OnUse"/>.
+        /// </summary>
+        public void UseHeldItem() => OnUse();
+
         private void Unequip()
         {
             // Before anything is destroyed: the slot has to keep what this instance became, or
@@ -373,6 +397,16 @@ namespace SpaceGame.Items
         /// <summary>Owner pressed use.</summary>
         private void OnUse()
         {
+            // The crosshair is on a gear wall with a placement ghost drawn on it. There, Use means
+            // "put this down", not "fire it" — WallAimController is already sending the stow off
+            // the same press, and both happening would fire a staff point-blank into a wall the
+            // player is stowing it on.
+            //
+            // Asked here rather than solved by subscription order, which Unity does not promise:
+            // two handlers on one event either both run or run in whichever order they were added,
+            // and neither is something to hang a weapon discharge on.
+            if (WallAimController.Placing != null) return;
+
             UsableItem usable = HeldItem();
             if (usable == null) return;
 

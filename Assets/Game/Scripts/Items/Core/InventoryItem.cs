@@ -48,6 +48,11 @@ namespace SpaceGame.Items
         [Tooltip("Optional icon for UI display.")]
         public Sprite icon;
 
+        [Tooltip("Optional prefab to render the icon from instead of itemPrefab, for items whose "
+            + "held form is not what the player thinks of as the item — e.g. the Wing Pack's icon "
+            + "shows the unfurled ornithopter, not the furled pack in the hand.")]
+        public GameObject iconPrefab;
+
 #if UNITY_EDITOR
         private void OnValidate()
         {

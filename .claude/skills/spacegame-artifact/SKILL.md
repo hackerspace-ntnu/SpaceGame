@@ -5,6 +5,10 @@ description: Use when adding or fixing a usable item in this Unity project — a
 
 # SpaceGame Artifacts
 
+> **Design check:** before deciding how an artifact *feels* or what it costs the player, read the
+> relevant `FEEL`, `SYS` and `BAL` principles in `docs/game-development-constitution/INDEX.md` and
+> cite their IDs.
+
 ## Overview
 
 An artifact is **four assets that point at each other** — a `UsableItem` subclass, one prefab, an

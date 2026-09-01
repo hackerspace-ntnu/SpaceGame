@@ -21,7 +21,9 @@ namespace SpaceGame.EditorTools
     /// wore the grappling hook's icon, the ball lightning weapon wore a grey sphere.
     ///
     /// So the rule here is that the prefab is never chosen by name, by folder, or by hand: it is
-    /// read from the asset being written to. An item whose <c>itemPrefab</c> is null is skipped
+    /// read from the asset being written to — <see cref="InventoryItem.iconPrefab"/> when the item
+    /// sets one (for items whose held form is not what the icon should show), otherwise
+    /// <see cref="InventoryItem.itemPrefab"/>. An item whose <c>itemPrefab</c> is null is skipped
     /// and reported rather than guessed at.
     /// </summary>
     public static class BatchIconGenerator
@@ -54,6 +56,57 @@ namespace SpaceGame.EditorTools
                 { "basicgun", new Vector2(18f, 125f) },
                 { "BallLightningWeapon", new Vector2(30f, 305f) },
             };
+
+        [MenuItem("Tools/Generate Icon For Selected Item")]
+        private static void GenerateForSelection()
+        {
+            var item = Selection.activeObject as InventoryItem;
+            if (item == null)
+            {
+                Debug.LogWarning("Select an InventoryItem asset first.");
+                return;
+            }
+
+            Debug.Log(GenerateFor(item, out string note)
+                ? "Icon regenerated for " + item.name
+                  + (note.Length > 0 ? "   (" + note + ")" : "")
+                : "Could not regenerate " + item.name + " — " + note);
+        }
+
+        /// <summary>
+        /// Re-render one item's icon in place, with the same framing <see cref="GenerateAll"/>
+        /// uses.
+        ///
+        /// <para>
+        /// For the common case of a single model changing. <see cref="GenerateAll"/> rewrites
+        /// every PNG in the set, so a one-model change arrives as forty modified files and the
+        /// reviewer cannot see which one mattered. This writes over the sprite the item already
+        /// owns and touches nothing else — which is also why it only works for an item that has
+        /// one. An item with no icon yet has no path to write to and no claim on one; deciding
+        /// that is the batch pass's job, so this reports and declines.
+        /// </para>
+        /// </summary>
+        public static bool GenerateFor(InventoryItem item, out string note)
+        {
+            note = "";
+            if (item == null) { note = "no item"; return false; }
+            if (item.itemPrefab == null) { note = "itemPrefab is null"; return false; }
+            if (item.icon == null) { note = "no icon yet — run Generate All Item Icons"; return false; }
+
+            string target = AssetDatabase.GetAssetPath(item.icon);
+            Vector2 angle = AngleOverrides.TryGetValue(item.name, out Vector2 a) ? a : DefaultAngle;
+            GameObject renderPrefab = item.iconPrefab != null ? item.iconPrefab : item.itemPrefab;
+
+            Texture2D tex = Render(renderPrefab, angle, out note);
+            if (tex == null) return false;
+
+            File.WriteAllBytes(target, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.Refresh();
+            ImportAsSprite(target);
+            AssetDatabase.SaveAssets();
+            return true;
+        }
 
         [MenuItem("Tools/Generate All Item Icons")]
         public static void GenerateAll()
@@ -108,7 +161,10 @@ namespace SpaceGame.EditorTools
                     Vector2 angle = AngleOverrides.TryGetValue(item.name, out Vector2 a)
                         ? a : DefaultAngle;
 
-                    Texture2D tex = Render(item.itemPrefab, angle, out string note);
+                    GameObject renderPrefab = item.iconPrefab != null
+                        ? item.iconPrefab : item.itemPrefab;
+
+                    Texture2D tex = Render(renderPrefab, angle, out string note);
                     if (tex == null)
                     {
                         log.Append("\nSKIP  " + item.name + " — " + note);
@@ -120,7 +176,7 @@ namespace SpaceGame.EditorTools
                     written.Add(target);
 
                     log.Append("\nOK    " + item.name.PadRight(22)
-                        + item.itemPrefab.name.PadRight(22)
+                        + renderPrefab.name.PadRight(22)
                         + "-> " + target.Substring(SpriteDir.Length + 1)
                         + (note.Length > 0 ? "   (" + note + ")" : ""));
                 }

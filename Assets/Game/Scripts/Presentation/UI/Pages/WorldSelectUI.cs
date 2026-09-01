@@ -81,7 +81,7 @@ namespace SpaceGame.Presentation
         /// </summary>
         public static WorldSelectUI Open(MainMenuUI owner, Destination target)
         {
-            var existing = FindFirstObjectByType<WorldSelectUI>();
+            var existing = Existing<WorldSelectUI>();
             if (existing != null) return existing;
 
             var ui = new GameObject(nameof(WorldSelectUI)).AddComponent<WorldSelectUI>();

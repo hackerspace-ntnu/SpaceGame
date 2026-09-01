@@ -144,6 +144,12 @@ MonoBehaviour:
   lightningVFXPrefab: {fileID: 5066555527250073763, guid: 28cb2c4920cfc224ea0501fbcc151e1f, type: 3}
   spawnHeightOffset: 10
   raycastDistance: 500
+  damage: 120
+  damageRadius: 3.5
+  damageMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  damagesCaster: 0
 --- !u!54 &7457431611418640877
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -264,9 +270,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ItemGrip
   gripPoint: {fileID: 3022126979791969016}
   hand: 0
+  holdStyle: 1
   rotationOffset: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0, z: 0}
-  holdSize: 0.3
+  holdSize: 0.5
   sizeReference: {fileID: 0}
   keepColliders: 0
 --- !u!1001 &5541954888358836498
@@ -291,11 +298,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e767044a218054dd2abf9d6d0438da1e, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.7071067
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e767044a218054dd2abf9d6d0438da1e, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.7071068
+      value: -0.0000000842937
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e767044a218054dd2abf9d6d0438da1e, type: 3}
       propertyPath: m_LocalRotation.y
@@ -303,7 +310,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e767044a218054dd2abf9d6d0438da1e, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e767044a218054dd2abf9d6d0438da1e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x

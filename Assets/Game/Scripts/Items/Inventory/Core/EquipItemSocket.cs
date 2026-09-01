@@ -65,6 +65,17 @@ namespace SpaceGame.Items
         public Quaternion GripRotation =>
             socket != null ? socket.rotation * frame.LocalRotation : Quaternion.identity;
 
+        /// <summary>
+        /// The grip frame's rotation in the hand bone's own space.
+        ///
+        /// <para>
+        /// Needed by anything that aims the HAND and wants the ITEM to end up pointing somewhere.
+        /// The two differ by exactly this, and on this rig that difference is most of a right
+        /// angle — see <see cref="HandGripFrame"/>.
+        /// </para>
+        /// </summary>
+        public Quaternion FrameLocalRotation => frame.LocalRotation;
+
         public GameObject Current => currentObject;
 
         public GameObject Equip(GameObject prefab)
@@ -122,7 +133,7 @@ namespace SpaceGame.Items
             // rather than the rope coiled in the same prefab. Narrowing only ever happens when
             // there IS an ItemGrip, and an ItemGrip also names the grip point, so the bounds are
             // never both narrowed and used for seating.
-            Bounds bounds = MeasureLocalBounds(item, grip != null ? grip.SizeReference : null);
+            Bounds bounds = ItemBounds.Measure(item, grip != null ? grip.SizeReference : null);
 
             ApplyScale(t, holdSize, bounds);
 
@@ -210,83 +221,6 @@ namespace SpaceGame.Items
             }
 
             t.localScale = neutral * (holdSize / longest) * scaleMultiplier;
-        }
-
-        /// <summary>
-        /// The item's own extents, in the item root's local space, before any scaling this class
-        /// applies. <paramref name="subtree"/> narrows the measurement to part of the prefab.
-        ///
-        /// <para>
-        /// Deliberately reads meshes rather than <c>Renderer.bounds</c>. Renderer bounds are a
-        /// world-axis-aligned box, so they grow and shrink as the item turns; worse, line, trail
-        /// and particle renderers report the extent of effects that are not the object at all —
-        /// the Lasso's rope renderer would have it measured as metres of nothing.
-        /// </para>
-        /// <para>
-        /// Renderers that are switched off are skipped too. A hidden mesh is not part of the shape
-        /// the player sees, and counting one shrinks everything visible to make room for it — the
-        /// GrapplingHook's disabled muzzle marker sits a third of a metre down the barrel and was
-        /// doing exactly that.
-        /// </para>
-        /// </summary>
-        private static Bounds MeasureLocalBounds(GameObject item, Transform subtree)
-        {
-            Transform root = item.transform;
-            Transform from = subtree != null && subtree.IsChildOf(root) ? subtree : root;
-            Matrix4x4 toRoot = root.worldToLocalMatrix;
-            bool any = false;
-            Bounds result = new Bounds(Vector3.zero, Vector3.zero);
-
-            var filters = from.GetComponentsInChildren<MeshFilter>(true);
-            for (int i = 0; i < filters.Length; i++)
-            {
-                Mesh mesh = filters[i].sharedMesh;
-                if (mesh == null) continue;
-
-                var renderer = filters[i].GetComponent<MeshRenderer>();
-                if (renderer == null || !renderer.enabled) continue;
-                if (!filters[i].gameObject.activeInHierarchy) continue;
-
-                Accumulate(ref result, ref any, mesh.bounds, toRoot * filters[i].transform.localToWorldMatrix);
-            }
-
-            var skinned = from.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-            for (int i = 0; i < skinned.Length; i++)
-            {
-                Mesh mesh = skinned[i].sharedMesh;
-                if (mesh == null || !skinned[i].enabled) continue;
-                if (!skinned[i].gameObject.activeInHierarchy) continue;
-
-                Accumulate(ref result, ref any, mesh.bounds, toRoot * skinned[i].transform.localToWorldMatrix);
-            }
-
-            return any ? result : new Bounds(Vector3.zero, Vector3.zero);
-        }
-
-        private static void Accumulate(ref Bounds result, ref bool any, Bounds meshBounds, Matrix4x4 matrix)
-        {
-            Vector3 c = meshBounds.center;
-            Vector3 e = meshBounds.extents;
-
-            for (int i = 0; i < 8; i++)
-            {
-                var corner = new Vector3(
-                    c.x + ((i & 1) == 0 ? -e.x : e.x),
-                    c.y + ((i & 2) == 0 ? -e.y : e.y),
-                    c.z + ((i & 4) == 0 ? -e.z : e.z));
-
-                Vector3 p = matrix.MultiplyPoint3x4(corner);
-
-                if (!any)
-                {
-                    result = new Bounds(p, Vector3.zero);
-                    any = true;
-                }
-                else
-                {
-                    result.Encapsulate(p);
-                }
-            }
         }
 
         // ── Physics ──────────────────────────────────────────────────────────────

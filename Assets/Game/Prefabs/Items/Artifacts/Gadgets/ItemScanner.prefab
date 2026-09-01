@@ -65,7 +65,7 @@ SphereCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 0.13
-  m_Center: {x: 0, y: 0.18, z: 0}
+  m_Center: {x: 0, y: 0.0000000107288365, z: -0.17999999}
 --- !u!54 &7460113200000000004
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -213,7 +213,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gripPoint: {fileID: 7460113200000000016}
   hand: 0
-  rotationOffset: {x: -90, y: 0, z: 0}
+  holdStyle: 2
+  rotationOffset: {x: 0, y: 0, z: 0}
   positionOffset: {x: 0, y: 0.02, z: 0}
   holdSize: 0
   sizeReference: {fileID: 0}
@@ -254,11 +255,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 0}
   boolParameter: Hold
-  requireStationary: 0
-  inputDeadzone: 0.01
-  velocityThreshold: 0.15
-  holdReArmDelay: 0.2
-  debugLog: 0
 --- !u!114 &7460113200000000010
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -323,8 +319,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7460113200000000015}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.05, z: -0.01}
+  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: -0.009999996, z: -0.049999997}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -352,11 +348,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 7600d89e987f84a12a43b6212e78d224, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 7600d89e987f84a12a43b6212e78d224, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 7600d89e987f84a12a43b6212e78d224, type: 3}
       propertyPath: m_LocalRotation.y

@@ -4555,38 +4555,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BackpackObject
   hinges:
   - pivot: {fileID: 2173332984764185290}
+    part: 0
     localAxis: {x: 1, y: 0, z: 0}
-    openAngle: 95
+    foldAngle: 95
+    restIsOpen: 0
   - pivot: {fileID: 2991362373388458197}
+    part: 0
     localAxis: {x: 1, y: 0, z: 0}
-    openAngle: -105
-  strapSockets:
-  - {fileID: 5321522723636883010}
-  - {fileID: 4943428624230959435}
-  - {fileID: 8011227471956139571}
-  - {fileID: 3076433069387142832}
-  - {fileID: 6984223695637448841}
-  - {fileID: 2019506871863274373}
-  - {fileID: 681521887193731299}
-  - {fileID: 5622354202581785968}
-  - {fileID: 11184209364759120}
-  - {fileID: 8726527357161579044}
-  pocketSockets:
-  - {fileID: 4389317048407491113}
-  - {fileID: 185566796824967733}
-  - {fileID: 5955696352683733108}
-  - {fileID: 1293102375130782104}
-  - {fileID: 466906549110537926}
-  - {fileID: 8185307126985892557}
-  - {fileID: 2608036160702522512}
-  - {fileID: 6949448221605295724}
-  - {fileID: 37795697148011286}
-  - {fileID: 3493663865769257676}
-  - {fileID: 9196951735450970834}
-  - {fileID: 173469872343466571}
+    foldAngle: -105
+    restIsOpen: 0
+  surfaces: []
+  holders: {fileID: 0}
+  shapes: {fileID: 11400000, guid: b3edc3a708c9944d3a4df57c20109e1f, type: 2}
+  stakes: []
+  stakeLift: 0.14
+  holderOrigin: {fileID: 0}
   openSeconds: 0.55
-  pocketFitSize: 0.28
-  strapFitSize: 0.42
+  rackSeconds: 0.45
   startingStrapItems:
   - {fileID: 11400000, guid: ff50fe643e8c148cbb4a91c3a3f189bf, type: 2}
   - {fileID: 11400000, guid: 314d21b5690f74cbaa829991e7678802, type: 2}

@@ -1,5 +1,6 @@
 using System;
 using FMODUnity;
+using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Audio;
 using SpaceGame.Core;
@@ -184,6 +185,39 @@ namespace SpaceGame.Items
             currentUses = state == null ? 0 : state.GetInt(UsesKey, 0);
         }
 
+        /// <summary>How many uses are left, or -1 when this item is unlimited.</summary>
+        protected int ChargesLeft => maxUses < 0 ? -1 : Mathf.Max(0, maxUses - currentUses);
+
+        /// <summary>
+        /// The authored charge limit, or -1 when unlimited.
+        ///
+        /// Exposed so a refilling item can tell when it is full without carrying a second copy of
+        /// the number. A subclass that hardcoded its own maximum would be a magic number that
+        /// silently disagrees with the prefab the moment a designer changes one of them.
+        /// </summary>
+        protected int MaxCharges => maxUses;
+
+        /// <summary>
+        /// Give one charge back.
+        ///
+        /// <para>
+        /// The count is otherwise monotonic, which was right while every limited item in the game
+        /// was strictly consumable. An item that REFILLS — the net gun is the first — has no way to
+        /// express that without this, and the alternative is a second ammo counter running beside
+        /// this one, which would then be the one that persists incorrectly.
+        /// </para>
+        /// <para>
+        /// Note that an item which refills must also override <see cref="OnMaxUsesReached"/> to
+        /// stay silent: the default raises <c>OnItemDepleted</c>, and
+        /// <c>EquipmentController.ItemDepleted</c> answers that by removing the item from the
+        /// inventory altogether.
+        /// </para>
+        /// </summary>
+        protected void RefundUse()
+        {
+            if (currentUses > 0) currentUses--;
+        }
+
         protected virtual bool CanUse()
         {
             // Prevent use if max uses reached
@@ -285,6 +319,25 @@ namespace SpaceGame.Items
         {
             var hold = GetComponent<HoldAnimator>();
             if (hold != null) hold.SetHeld(holder, false);
+        }
+
+        /// <summary>
+        /// True when the local player is the one holding this item.
+        ///
+        /// Asked of the OWNER rather than of this item. An equipped artifact is instantiated into
+        /// a hand and never spawned, so its own NetworkObject is dormant and
+        /// <see cref="Network.Simulates"/> would answer "yes, you simulate it" on every machine
+        /// in the session — every peer would then run owner-only effects for a remote player's
+        /// item. The owner's spawned NetworkObject is the one that can actually tell.
+        /// </summary>
+        protected bool OwnerIsLocal()
+        {
+            if (!Network.IsNetworked) return true;
+
+            if (owner != null && owner.TryGetComponent(out NetworkObject netObj) && netObj.IsSpawned)
+                return netObj.IsOwner;
+
+            return true;
         }
 
         /// <summary>Authority-only effect. See the class summary.</summary>

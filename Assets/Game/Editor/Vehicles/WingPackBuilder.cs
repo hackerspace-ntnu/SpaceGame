@@ -4,13 +4,13 @@
 //   Assets/Game/Prefabs/items/WingPack.prefab            the thing held in hand
 //   Assets/Game/Resources/Items/Artifacts/WingPack.asset the InventoryItem that references it
 //
-// The held pack is assembled from primitives rather than from the model. The ornithopter's own
-// meshes are no use here: the wings are SKINNED, so at rest they are spread across a six-metre
-// span, and there is no folded pose to take without instantiating the rig and running the animator
-// at build time. A strapped bundle of spars is what a folded flyer looks like anyway, and it costs
-// eight boxes.
+// The held pack is the actual craft in its stowed configuration: wings swept back along the boom,
+// digit spars collapsed onto each other, tail telescoped. That pose is baked to a single static
+// mesh in Blender (`_Source~/models/vehicles/wing_pack_folded.py` — the skinned wings make it
+// impossible to pose at build time here) and exported hand-sized, so nesting the FBX is all this
+// builder has to do.
 //
-// Re-run from: Tools ▸ Vehicles ▸ Build Wing Pack Item
+// Re-run from: Tools ▸ Vehicles ▸ Build Wing Pack Item.
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -26,7 +26,8 @@ namespace SpaceGame.EditorTools
             "Assets/Game/Prefabs/Agents/Vehicles/Aircraft/DuneOrnithopter.prefab";
         private const string PrefabPath = "Assets/Game/Prefabs/Items/Equipment/WingPack.prefab";
         private const string ItemPath = "Assets/Game/Resources/Items/Artifacts/WingPack.asset";
-        private const string ModelPath = "Assets/Game/Art/Models/Vehicles/Ornithopter/dune_ornithopter.fbx";
+        private const string FoldedModelPath =
+            "Assets/Game/Art/Models/Vehicles/Ornithopter/wing_pack_folded.fbx";
 
         [MenuItem("Tools/Vehicles/Build Wing Pack Item")]
         public static void Build()
@@ -49,9 +50,10 @@ namespace SpaceGame.EditorTools
             rb.isKinematic = true;
             rb.useGravity = false;
 
+            // The folded craft's baked bounds; the mesh origin is its bounds centre.
             BoxCollider box = root.AddComponent<BoxCollider>();
-            box.center = new Vector3(0f, 0f, 0.05f);
-            box.size = new Vector3(0.22f, 0.22f, 0.95f);
+            box.center = Vector3.zero;
+            box.size = new Vector3(0.41f, 0.16f, 0.95f);
 
             WingPackItem item = root.AddComponent<WingPackItem>();
             var so = new SerializedObject(item);
@@ -65,6 +67,16 @@ namespace SpaceGame.EditorTools
             // Unlimited: the pack is equipment, not a consumable. -1 is UsableItem's sentinel.
             SetInt(so, "maxUses", -1);
             so.ApplyModifiedPropertiesWithoutUndo();
+
+            // 1.26 m in the hand — tuned by eye against a hand roughly 1.7x a human's, and pinned
+            // by ItemScaleLadder as Fitted because a pack worn across the back is sized by the
+            // wearer, not by the item ladder. Without a grip it would measure at the 0.30 m
+            // no-grip default. The size on the mat is a separate number; see PackSizeForRack.
+            ItemGrip grip = root.AddComponent<ItemGrip>();
+            var gripSo = new SerializedObject(grip);
+            SetFloat(gripSo, "holdSize", 1.26f);
+            SetFloat(gripSo, "packSize", PackSizeForRack(root));
+            gripSo.ApplyModifiedPropertiesWithoutUndo();
 
             AddIfPresent(root, "DropItemPhysics");
 
@@ -80,68 +92,83 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// A bundle of folded spars with a strap round it. Sized to sit in a hand: about 0.9 m long,
-        /// which is a folded wing, not a rucksack.
+        /// The size the folded craft is drawn at once stowed, in the metres
+        /// <see cref="ItemGrip.PackSize"/> is authored in — that is, BEFORE
+        /// <see cref="PackScale.Factor"/> is multiplied in by <c>ItemFootprint</c>.
+        ///
+        /// <para>
+        /// The wing pack is the one item whose stowed size is decided by the surface rather than by
+        /// the hand. It is the whole aircraft, folded, and it is meant to read that way: strapped
+        /// across the pack's back it fills the rack edge to edge and hangs off the top and bottom,
+        /// so the only place it goes is roughly centred. The rack allows exactly that — overhang
+        /// along its own long axis, never across the width the lashing has to reach around
+        /// (<c>PackOverhang</c>) — so the width is the constraint and the length is free.
+        /// </para>
+        /// <para>
+        /// Hence: solve for the width, do not type a length. The craft is a sliver of fixed
+        /// proportions, so naming its footprint's short side sizes the whole thing, and the number
+        /// tracks the rack through a <c>PackScale</c> change or a re-export of the folded mesh
+        /// instead of going quietly stale — which is what happened to the hand-computed 1.26 this
+        /// replaced, left behind by the 1.5x enlargement.
+        /// </para>
+        /// <para>
+        /// This is also the ceiling, not a preference. Past the rack's width the shape rounds to a
+        /// tenth column, which the rack refuses outright and the ship's gear wall — strict on both
+        /// axes — has no room to take either. An item that fills the back of the pack is as large
+        /// as the wing pack can be and still be storable anywhere.
+        /// </para>
         /// </summary>
-        private static void BuildFoldedBundle(GameObject root)
+        private static float PackSizeForRack(GameObject root)
         {
-            Material spar = MaterialFrom("Mat_Metal_Steel_Worn");
-            Material cloth = MaterialFrom("Mat_Fabric_Wing_Beige");
-            Material strap = MaterialFrom("Mat_Fabric_Canvas_Faded");
+            // SURF_Rack is 9 x 9 cells; the metres are ExpeditionRigWiring.SurfaceTable's, and
+            // PackGrid's own doc table mirrors them. Written as a cell count so it follows the cell.
+            const int RackColumns = 9;
 
-            // Five spars, fanned very slightly so the bundle reads as folded rather than as one stick.
-            for (int i = 0; i < 5; i++)
+            // How much of that width to occupy. Short of 1 on purpose: the derived shape ceils the
+            // footprint to whole cells, so landing exactly on the ninth column's edge is a coin
+            // flip between 9 cells and 10, and 10 is refused by every face on the rig. 0.96 reads
+            // as full width and leaves the folded mesh's proportions room to drift on a re-export.
+            const float RackWidthFill = 0.96f;
+
+            Vector3 size = ItemBounds.Measure(root, null).size;
+
+            // The footprint is the two widest axes (ItemFootprint.FootprintOf), and its short side
+            // is what lies across the rack. PackSize names the LONGEST axis of all three, so the
+            // ratio between them is what converts one into the other.
+            float acrossTheRack = Mathf.Min(size.x, size.z);
+            float longest = Mathf.Max(size.x, Mathf.Max(size.y, size.z));
+
+            if (acrossTheRack < 1e-4f)
             {
-                float t = i / 4f;
-                float angle = Mathf.Lerp(-6f, 6f, t);
-                var s = MakeBox(root, $"Spar_{i + 1}",
-                    new Vector3(Mathf.Lerp(-0.05f, 0.05f, t), Mathf.Lerp(-0.03f, 0.03f, t), 0f),
-                    new Vector3(0.022f, 0.022f, Mathf.Lerp(0.82f, 0.62f, Mathf.Abs(t - 0.5f) * 2f)),
-                    spar);
-                s.transform.localRotation = Quaternion.Euler(0f, angle, 0f);
+                Debug.LogWarning("[WingPack] The folded craft measures nothing across; leaving its " +
+                                 "pack size at the hand size. Check the FBX imported.");
+                return 0f;
             }
 
-            // The membrane, furled around them.
-            MakeBox(root, "FurledWeb", new Vector3(0f, 0f, -0.05f),
-                    new Vector3(0.13f, 0.13f, 0.52f), cloth);
-
-            // Two straps holding the bundle together.
-            MakeBox(root, "Strap_Fore", new Vector3(0f, 0f, 0.26f),
-                    new Vector3(0.17f, 0.17f, 0.05f), strap);
-            MakeBox(root, "Strap_Aft", new Vector3(0f, 0f, -0.24f),
-                    new Vector3(0.17f, 0.17f, 0.05f), strap);
-        }
-
-        private static GameObject MakeBox(GameObject parent, string name, Vector3 pos, Vector3 size,
-                                          Material mat)
-        {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            go.name = name;
-            go.transform.SetParent(parent.transform, false);
-            go.transform.localPosition = pos;
-            go.transform.localScale = size;
-
-            // The primitive's own collider would fight the single box on the root and make the item
-            // catch on geometry while held.
-            Object.DestroyImmediate(go.GetComponent<Collider>());
-
-            if (mat != null)
-                go.GetComponent<MeshRenderer>().sharedMaterial = mat;
-            return go;
+            return PackGrid.Cell * RackColumns * RackWidthFill * longest
+                   / (acrossTheRack * PackScale.Factor);
         }
 
         /// <summary>
-        /// Pull a material off the imported model, so the pack is bleached desert kit like the craft
-        /// it folds into rather than Unity default grey.
+        /// Nest the baked folded-craft model. It is exported already hand-sized (~0.95 m long), so
+        /// no scale correction belongs here — a wrong size means the export is what to fix. Axes
+        /// are this wiring's job though: a bare static mesh arrives in Blender's frame (length on
+        /// Y, up on Z), so it gets the standard -90° X that puts the nose on +Z and up on +Y.
         /// </summary>
-        private static Material MaterialFrom(string name)
+        private static void BuildFoldedBundle(GameObject root)
         {
-            foreach (Object o in AssetDatabase.LoadAllAssetsAtPath(ModelPath))
-                if (o is Material m && m.name == name)
-                    return m;
+            GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>(FoldedModelPath);
+            if (model == null)
+            {
+                Debug.LogError($"[WingPack] No folded model at {FoldedModelPath}. Run " +
+                               "_Source~/models/vehicles/wing_pack_folded_export.py first.");
+                return;
+            }
 
-            Debug.LogWarning($"[WingPack] No material '{name}' on the model; using default.");
-            return null;
+            var visual = (GameObject)PrefabUtility.InstantiatePrefab(model);
+            visual.name = "FoldedCraft";
+            visual.transform.SetParent(root.transform, false);
+            visual.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
         }
 
         private static void BuildInventoryItem(GameObject prefab)

@@ -71,7 +71,7 @@ namespace SpaceGame.EditorTools
             main.simulationSpace = ParticleSystemSimulationSpace.Local;
 
             ParticleSystem.EmissionModule emission = system.emission;
-            emission.rateOverTime = 32000f;
+            emission.rateOverTime = 40000f;
 
             // A shell around the camera rather than a point: grit has to appear beside and behind
             // you as well as in front, or it reads as being sprayed from your own face. Sized to
@@ -141,7 +141,7 @@ namespace SpaceGame.EditorTools
             main.simulationSpace = ParticleSystemSimulationSpace.Local;
 
             ParticleSystem.EmissionModule emission = system.emission;
-            emission.rateOverTime = 3400f;
+            emission.rateOverTime = 4200f;
 
             // A flat, wide box hugging the ground rather than a sphere: sheets, not a cloud.
             ParticleSystem.ShapeModule shape = system.shape;

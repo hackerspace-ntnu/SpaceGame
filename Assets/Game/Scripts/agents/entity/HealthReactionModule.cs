@@ -1,5 +1,7 @@
 // Reacts to HealthComponent events by enabling/disabling modules at configurable thresholds.
-// Handles death cleanup: ragdoll trigger, despawn timer, and noise emission.
+// Handles death cleanup: despawn timer and noise emission. The body going limp is AgentRagdoll's,
+// which subscribes to the same HealthComponent directly — a corpse has to be limp on every machine
+// looking at it, and this module's consequences are deliberately run only where the death happened.
 // Drag onto any entity with a HealthComponent.
 using System;
 using System.Collections.Generic;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using SpaceGame.Characters;
 using SpaceGame.Core;
@@ -41,21 +42,66 @@ namespace SpaceGame.Items
         [SerializeField] private Vector3 wornLocalEuler = new(0f, 0f, 0f);
 
         [Header("Deploy")]
-        [Tooltip("What the drop point is measured from. Left empty it resolves through the project's " +
-                 "own aim source — PlayerController's camera, then AimProvider's — because the pack " +
-                 "must land where the player is LOOKING, and it must agree with what every other " +
-                 "system in the game calls 'forward'.")]
-        [SerializeField] private Transform aimTransform;
-
         [SerializeField, Min(0.05f)] private float deploySeconds = 0.9f;
 
         [Tooltip("Metres in front of the player the pack is set down. Measured to the pack's ORIGIN, " +
                  "which is the bottom centre of its footprint — so half its depth is nearer than " +
                  "this number, and a value near the pack's own depth puts it against your chest.")]
-        [SerializeField, Min(0.2f)] private float deployDistance = 1.6f;
-        [SerializeField] private float arcHeight = 0.6f;
-        [Tooltip("Metres the pack bows sideways mid-flight so it clears the player's own body.")]
-        [SerializeField] private float arcOutward = 0.35f;
+        // Also how far behind the pack the player stands in the focus shot: the lens sits
+        // PackFocusCamera.DistanceOut (2.46 m) beyond the rig looking back down the player→pack
+        // line, so the body lands this much further away again — near enough to read as the
+        // pack's owner, far enough not to crowd the mat.
+        [SerializeField, Min(0.2f)] private float deployDistance = 2.96f;
+
+        // ── The toss ─────────────────────────────────────────────────────────
+        //
+        // The deploy flight starts HERE, in front of the player, not at the back socket where the
+        // pack is actually worn. The worn pose is behind them, where a first-person camera never
+        // looks: a deploy launched from the back spent its first frames out of frame and read as
+        // the pack appearing behind the player's back. The animation's one job is to say where the
+        // pack went (GDC-L1-ANIM-0003), so the whole flight has to happen on screen — it appears
+        // at chest height in front, as if tossed down, and drops a pace ahead.
+
+        [Tooltip("Where the toss appears: metres in front of the player, on the ground plane.")]
+        [SerializeField, Min(0f)] private float tossStartForward = 0.45f;
+
+        [Tooltip("Where the toss appears: metres above the player's feet. Chest height keeps the " +
+                 "whole flight inside a first-person frame.")]
+        [SerializeField, Min(0f)] private float tossStartHeight = 1.25f;
+
+        [Tooltip("Control-point lift for the toss, in metres. Same convention as arcHeight below: " +
+                 "the pack rises HALF this above the straight chest-to-ground line, so a small " +
+                 "value is a lob and zero is a straight drop.")]
+        [SerializeField, Min(0f)] private float tossArcHeight = 0.5f;
+
+        // ── Over the shoulder (stow only) ────────────────────────────────────
+        //
+        // These two are the whole of the STOW flight's shape — the deploy is the toss above. Both
+        // of them are CONTROL POINT offsets, not distances the pack travels. A quadratic Bezier
+        // reaches exactly half its control point's offset from the chord, so the numbers here read
+        // about twice as large as the arc they describe. That is worth writing down because the
+        // pair they replaced looked sensible and did nothing:
+        //
+        //   arcHeight 0.6, from a back socket at ~1.2 m to the ground 1.6 m ahead. Height along the
+        //   curve works out as y(t) = h0(1-t) + 2A t(1-t), whose peak is at t = (2A - h0) / 4A —
+        //   NEGATIVE for any A below h0/2. At A = 0.6 the apex was therefore t = 0, i.e. the back
+        //   socket itself: the pack never rose at all, it only fell more slowly. It crossed the
+        //   player's own plane at 1.19 m, 6 cm to the side, which is straight out through the chest.
+        //
+        // The apex of that curve is (h0 + A) / 2 + h0² / 8A, so a 1.2 m socket needs A = 2.67 for a
+        // 2.0 m apex. 2.6 gives 1.97 m at t = 0.385 — the pack clears a 1.8 m head with a fifth of a
+        // metre to spare, peaks a little over a third of the way through, and comes down in front.
+        [Tooltip("Control-point lift, in metres. The pack reaches HALF this above the straight " +
+                 "line, so the apex is roughly (socketHeight + this) / 2 — 2.6 puts it near 2.0 m, " +
+                 "which is over the head of a standing player. Below half the socket height the " +
+                 "arc has no apex at all and the pack simply sinks from the back to the ground.")]
+        [SerializeField] private float arcHeight = 2.6f;
+
+        [Tooltip("Control-point bow, in metres, square to the run. The pack reaches HALF this, so " +
+                 "0.55 swings it 0.275 m out — a shoulder's width off the spine rather than a " +
+                 "nudge. NEGATIVE bows it over the other shoulder; the sign is the only thing that " +
+                 "chooses a side, and nothing on the pack reads handedness or aim.")]
+        [SerializeField] private float arcOutward = 0.55f;
 
         [Tooltip("Metres the pack is lifted off the ground hit point along the surface normal. The " +
                  "field backpack's origin is already at the bottom centre of its footprint and it " +
@@ -76,6 +122,12 @@ namespace SpaceGame.Items
         private Transform backSocket;
         private Coroutine arcRoutine;
 
+        // The wearer's own view, so the pack can be kept out of it while it is on their back. Null
+        // on a body with no first-person camera of its own, which is every replica of another
+        // player and any NPC that grows a pack later — RefreshFirstPersonHidden is a no-op there,
+        // and that is the right answer: nobody is looking out of those eyes.
+        private PlayerLook look;
+
         // Where the deploy currently in flight is headed. Held so an interrupted arc can land the
         // pack at its destination instead of wherever it had reached — see OnDisable.
         private Pose pendingDeployPose;
@@ -88,8 +140,7 @@ namespace SpaceGame.Items
         private void Awake()
         {
             input = GetComponent<PlayerInputManager>();
-
-            if (aimTransform == null) aimTransform = ResolveAimTransform();
+            look = GetComponent<PlayerLook>();
 
             backSocket = ResolveBackSocket();
             if (backSocket == null)
@@ -133,34 +184,14 @@ namespace SpaceGame.Items
 
             Pack.Bind(this);
             SnapToWorn();
-        }
 
-        /// <summary>
-        /// The transform the drop direction is measured from, resolved through the project's OWN
-        /// aim source rather than by hunting for a camera.
-        ///
-        /// This is the fix for a bug that kept coming back: the pack landed behind the player.
-        /// The old resolve was `GetComponentInChildren&lt;Camera&gt;(true)`, which takes the first
-        /// camera in hierarchy order INCLUDING INACTIVE ONES and never checks that it is the camera
-        /// the player is looking through. PlayerCharacter.prefab carries its Main Camera as a
-        /// deactivated nested prefab that PlayerController switches on at spawn, so what that
-        /// search returned had no relationship to where anyone was aiming.
-        ///
-        /// Order: PlayerController's camera (what the player sees through) → AimProvider's (what
-        /// every weapon aims along) → the body. The body is last and can never be null, so this
-        /// always returns something usable.
-        /// </summary>
-        private Transform ResolveAimTransform()
-        {
-            var player = GetComponent<PlayerController>();
-            if (player != null && player.PlayerCameraTransform != null)
-                return player.PlayerCameraTransform;
-
-            var aim = GetComponent<AimProvider>();
-            if (aim != null && aim.AimTransform != null)
-                return aim.AimTransform;
-
-            return transform;
+            // Focus mode is added here rather than wired on the player prefab, the same way
+            // UsableItem adds a HoldPose to whatever it is equipping: the two are a pair — a pack
+            // you cannot rummage in is half a feature — and a prefab field is one more thing that
+            // can be left unset on a body that was built before the feature existed. It costs a
+            // component on every replica, which does nothing: the session refuses to open unless
+            // this machine owns the pack.
+            if (GetComponent<PackFocusSession>() == null) gameObject.AddComponent<PackFocusSession>();
         }
 
         /// <summary>
@@ -199,6 +230,8 @@ namespace SpaceGame.Items
 
             this.NetOn(NetMsg.PackState, OnPackStateMessage);
             this.NetOn(NetMsg.PackTake, OnTakeRequested);
+            this.NetOn(NetMsg.PackMove, OnMoveRequested);
+            this.NetOn(NetMsg.PackStow, OnStowRequested);
 
             // Decided here rather than in the coroutine's first line, so an EditMode test and a
             // scene opened straight from the editor never enter the coroutine machinery at all.
@@ -214,6 +247,8 @@ namespace SpaceGame.Items
 
             this.NetOff(NetMsg.PackState, OnPackStateMessage);
             this.NetOff(NetMsg.PackTake, OnTakeRequested);
+            this.NetOff(NetMsg.PackMove, OnMoveRequested);
+            this.NetOff(NetMsg.PackStow, OnStowRequested);
 
             // A coroutine dies with the component. Without this the pack is left hanging in mid-air,
             // unparented, halfway through an arc — which survives a scene reload as a floating pack.
@@ -224,11 +259,12 @@ namespace SpaceGame.Items
 
                 // The pack lands where it was GOING, never where it had got to.
                 //
-                // This is the "it deploys behind me" bug, and it is why fixing the drop direction
-                // never made it go away. The arc starts on the player's back, so a deploy
-                // interrupted in its first frames leaves the pack a few centimetres behind them —
-                // unparented, IsWorn false, state Open. Everything reports a completed deploy and
-                // the pack is behind the player, every time.
+                // This was the "it deploys behind me" bug, and it is why fixing the drop direction
+                // never made it go away: the arc then started on the player's back, so a deploy
+                // interrupted in its first frames left the pack a few centimetres behind them —
+                // unparented, IsWorn false, state Open. The toss now starts in front, but an
+                // interrupted flight would still strand the pack short of its announced pose, so
+                // landing it at the destination stays load-bearing.
                 //
                 // It fires constantly rather than rarely because this is a streaming world: the
                 // player is disabled and re-enabled as scenes load, migrate and respawn around
@@ -529,7 +565,14 @@ namespace SpaceGame.Items
         {
             StopArc();
 
-            Pose start = CurrentWorldPose(Pack);
+            // Not CurrentWorldPose(Pack): the flight starts from the toss point in front of the
+            // player, not from the worn pose behind their back — see the toss fields. The start
+            // shares the landing's rotation, so the pack falls already turned the way it will
+            // stand, the way a pack somebody set down would.
+            Pose start = new(transform.position
+                             + DeployForward() * tossStartForward
+                             + Vector3.up * tossStartHeight,
+                             grounded.rotation);
 
             pendingDeployPose = grounded;
             hasPendingDeploy = true;
@@ -538,24 +581,66 @@ namespace SpaceGame.Items
             Pack.SetWorn(false);
             Pack.transform.SetParent(null, true);
 
-            arcRoutine = StartCoroutine(RunArc(start, () => grounded, () => FinishDeploy(grounded)));
+            RefreshFirstPersonHidden();
+
+            // No outward bow: the toss never crosses the player's own body, so there is nothing
+            // for it to clear.
+            arcRoutine = StartCoroutine(RunArc(start, () => grounded, tossArcHeight, 0f,
+                                               () => FinishDeploy(grounded)));
         }
 
         private void StartReshoulder()
         {
             StopArc();
 
-            Pose start = CurrentWorldPose(Pack);
-
             CurrentState = State.Stowing;
 
-            // Closes over the first third of the flight rather than before it. Waiting for the lid
-            // would put a visible pause between the interaction and the pack moving.
+            arcRoutine = StartCoroutine(RunStow());
+        }
+
+        /// <summary>
+        /// The stow, as the deploy run backwards: <b>the rig collects itself where the player can
+        /// see it, and only then does it fly.</b>
+        ///
+        /// <para>
+        /// The deploy is arc-then-unfold — <see cref="FinishDeploy"/> lands the pack and opens it
+        /// where it stands. The stow used to be neither: it started the fold and the flight on the
+        /// same frame, "closes over the first third of the flight rather than before it", to avoid
+        /// a pause between the keypress and the pack moving. The trouble is that the fold is the
+        /// LONGER of the two — the beat sheet is 1.10 s of sheet time against a 0.90 s arc — and
+        /// running it backwards puts the panel last, so the biggest member on the rig was still
+        /// standing at 65&#176; when the pack reached the player's back and finished folding 0.2 s
+        /// later, behind them, out of frame. What a player saw was a pack that flew home splayed
+        /// open and never collected at all.
+        /// </para>
+        /// <para>
+        /// So the fold goes first, on the sand, in front of them. That is the deploy's own order
+        /// reversed rather than a second timeline, and the pause it was supposed to avoid does not
+        /// exist: the pack is not sitting still during it, it is visibly folding — stakes up, the
+        /// whole front flap (leaf, wings and rail as one piece) closing against the panel, panel
+        /// down.
+        /// </para>
+        /// </summary>
+        private IEnumerator RunStow()
+        {
             Pack.SetOpen(false);
 
+            while (Pack.IsSwinging) yield return null;
+
+            // Exact, rather than trusting the last frame of the sheet to have landed on the nose,
+            // and it is also what gives up the rack — see BackpackObject.SnapStowed. A pack stowed
+            // from the rack and a pack stowed flat are the same pack from here on.
+            Pack.SnapStowed();
+
+            // Captured after the fold rather than before it: nothing has moved the pack, but the
+            // pose the flight starts from should be the pose the flight actually starts from.
+            //
             // The target is recomputed every frame instead of captured: re-shouldering is allowed
             // from across the map, and the player is usually walking while it flies back.
-            arcRoutine = StartCoroutine(RunArc(start, WornWorldPose, SnapToWorn));
+            yield return Fly(CurrentWorldPose(Pack), WornWorldPose, arcHeight, arcOutward);
+
+            arcRoutine = null;
+            SnapToWorn();
         }
 
         /// <summary>Drop whatever flight is in progress, without landing it. Safe to call twice.</summary>
@@ -575,8 +660,7 @@ namespace SpaceGame.Items
             // own facing the pack ended up. Positive is in front. Reported as metres rather
             // than a normalised dot so the distance is legible in the same line.
             float ahead = Vector3.Dot(grounded.position - transform.position, transform.forward);
-            Debug.Log($"Backpack deploy: {ahead:F2} m along the player's facing " +
-                      $"(aim '{(aimTransform != null ? aimTransform.name : "none")}'), " +
+            Debug.Log($"Backpack deploy: {ahead:F2} m along the player's facing, " +
                       $"drop {grounded.position}.", this);
         }
 
@@ -596,8 +680,17 @@ namespace SpaceGame.Items
         /// It rides THIS player's channel — the pack owner's — rather than the taker's, because the
         /// contested state is the pack's contents, not the taker's hotbar.
         /// </para>
+        /// <para>
+        /// <paramref name="hotbarSlot"/> names the slot a DRAG was let go over, and -1 — the
+        /// default every existing caller gets — means "wherever it fits", which is the right-click
+        /// behaviour <see cref="BackpackObject.TryTakeToHotbar"/> has always had. It travels in
+        /// <see cref="NetArg.B"/>, which this message did not use, rather than as a fifth pack
+        /// message: the transport, the channel, the contest and the idempotence are all identical,
+        /// and the only new thing a drag says is <em>which box</em>.
+        /// </para>
         /// </summary>
-        public void RequestTake(BackpackCompartment compartment, int index, Interactor interactor)
+        public void RequestTake(PackSurfaceId surface, Vector2 uv, Interactor interactor,
+                                int hotbarSlot = -1)
         {
             if (interactor == null) return;
 
@@ -607,17 +700,32 @@ namespace SpaceGame.Items
             GameObject taker = NetChannel.RootOf(interactor);
             if (taker == null) return;
 
-            var arg = new NetArg { A = (int)compartment, B = index };
+            // Positional, not an index into the pack's list. Two reasons, and the first is the one
+            // that would bite: the list is rebuilt wholesale on every change, so a client's index N
+            // and the server's index N are the same item only until somebody else touches the pack
+            // — mid-reconcile they are not, and a take by index would hand over the wrong thing.
+            // The second is that a point is what the player actually clicked, so the server is
+            // answering the question that was asked.
+            //
+            // The uv rides P's X and Z. Y is the surface normal in every other pack calculation and
+            // a uv has no height, so leaving it zero keeps the convention rather than inventing one.
+            var arg = new NetArg
+            {
+                A = (int)surface,
+                B = hotbarSlot,
+                P = new Vector3(uv.x, 0f, uv.y),
+            };
+
             this.NetToServer(NetMsg.PackTake, arg.With(taker));
         }
 
-        /// <summary>Server side: hand over what is in the slot, if it is still there.</summary>
+        /// <summary>Server side: hand over whatever is under that point, if it is still there.</summary>
         private void OnTakeRequested(in NetArg arg, ulong sender)
         {
             if (!Network.Simulates(this)) return;
             if (Pack == null || CurrentState != State.Open) return;
 
-            if (arg.A != (int)BackpackCompartment.Strap && arg.A != (int)BackpackCompartment.Main) return;
+            if (!TryDecodeSurface(arg.A, out PackSurfaceId surface)) return;
 
             GameObject taker = arg.Resolve();
             if (taker == null) return;
@@ -630,21 +738,313 @@ namespace SpaceGame.Items
             var hotbar = taker.GetComponentInChildren<IPlayerInventory>(true);
             if (hotbar == null) return;
 
-            // Idempotent by construction: the slot is empty the second time, and TryTakeToHotbar
-            // answers false rather than conjuring a duplicate. That is exactly the race two players
-            // grabbing the same item produce, and this is the machine that settles it.
-            Pack.TryTakeToHotbar((BackpackCompartment)arg.A, arg.B, hotbar);
+            var uv = new Vector2(arg.P.x, arg.P.z);
+
+            // Idempotent by construction: the space is empty the second time, so nothing is found
+            // under the point and TryTakeToHotbar answers false rather than conjuring a duplicate.
+            // That is exactly the race two players grabbing the same item produce, and this is the
+            // machine that settles it.
+            if (arg.B < 0) Pack.TryTakeToHotbar(surface, uv, hotbar);
+            else TakeIntoSlot(surface, uv, hotbar, arg.B);
         }
 
-        private IEnumerator RunArc(Pose start, Func<Pose> end, Action onArrive)
+        /// <summary>
+        /// The drag's version of a take: not "put it wherever it fits" but "put it in <em>this
+        /// box</em>, and give me back whatever was in it". <b>Server side only.</b>
+        ///
+        /// <para>
+        /// It lives here rather than on <see cref="BackpackObject"/> because everything it needs is
+        /// already public on the pack — find, resolve, take out, put down — and because the
+        /// question it answers is the wire message's, not the pack's.
+        /// </para>
+        /// <para>
+        /// <b>The item comes off the pack before the displaced one goes down</b>, which is the
+        /// opposite of <see cref="BackpackObject.TryStowFromHotbar"/>'s order and deliberate: the
+        /// space the two items are contending for is the SAME space, and the displaced one is
+        /// being offered exactly the rectangle the dragged one is vacating. Testing it first would
+        /// mean re-deriving that "ignore this id" exception a second time; doing it in this order
+        /// makes the question ordinary, and the rollback below is what pays for it.
+        /// </para>
+        /// <para>
+        /// Idempotent like its neighbours: a second copy of the request finds nothing under the
+        /// point and does nothing at all.
+        /// </para>
+        /// </summary>
+        private bool TakeIntoSlot(PackSurfaceId surface, Vector2 uv, IPlayerInventory hotbar, int slotIndex)
+        {
+            if (slotIndex < 0 || slotIndex >= hotbar.GetInventorySize()) return false;
+
+            if (!Pack.TryFindAt(surface, uv, out PackPlacement grabbed)) return false;
+
+            InventoryItem packItem = Pack.ItemFor(grabbed.ItemId);
+            if (packItem == null || string.IsNullOrEmpty(packItem.ID)) return false;
+
+            InventorySlot slot = hotbar.GetSlot(slotIndex);
+            InventoryItem held = slot != null && !slot.IsEmpty ? slot.Item : null;
+
+            // The same asset in both places. A hotbar holds items by reference and the pack's
+            // layout is keyed by id, so the swap would be asked to put an id down that is on its
+            // way up — refused by PackLayout.TryPlace, and rolled back below anyway, but refusing
+            // here says what happened instead of taking the long way round to the same answer.
+            if (held != null && held.ID == packItem.ID) return false;
+
+            if (Pack.TakeOut(grabbed.ItemId) == null) return false;
+
+            if (held != null && !TryPlaceDisplaced(held, grabbed))
+            {
+                // Nowhere for the displaced item to go. Put the dragged one back exactly where it
+                // was and change nothing: every machine's pack, this one included, then agrees
+                // with the display that never moved.
+                Pack.TryPlace(packItem, grabbed.Surface, grabbed.Uv, grabbed.Yaw);
+                return false;
+            }
+
+            WriteHotbarSlot(hotbar, slotIndex, packItem);
+            return true;
+        }
+
+        /// <summary>
+        /// Put the item a named-slot drag is displacing back onto the pack, aimed at the space the
+        /// dragged item is vacating, first-fit elsewhere if that space will not take it.
+        ///
+        /// <para>
+        /// First-fit is the right fallback here in a way it is NOT in
+        /// <see cref="BackpackObject.TryStowFromHotbar"/>: the displaced item has no player-chosen
+        /// destination at all. The player pointed at a hotbar slot, not at a pack cell — there was
+        /// never a cell they watched turn green — so there is no aim for a wider search to betray.
+        /// A stow's fallback would answer a question nobody asked; this one is the only answer
+        /// there ever was a question for.
+        /// </para>
+        /// </summary>
+        private bool TryPlaceDisplaced(InventoryItem held, PackPlacement vacated) =>
+            (Pack.Reaches(vacated.Surface) && Pack.TryPlace(held, vacated.Surface, vacated.Uv, vacated.Yaw))
+            || Pack.TryStow(held);
+
+        /// <summary>
+        /// Put <paramref name="item"/> in one named hotbar slot, leaving the others alone.
+        ///
+        /// <para>
+        /// <see cref="IPlayerInventory.RestoreSlots"/> is the only positional write on that
+        /// interface — <c>TryAddItem</c> fills the first hole, which is precisely what a drag onto
+        /// a chosen slot must not do — so the slot is written by reading the hotbar out, changing
+        /// one entry and handing the whole thing back. That is a heavier call than the job needs
+        /// and it is the honest one: it is server-side, it happens once per gesture, and on
+        /// <see cref="PlayerInventoryNetwork"/> it writes through the same NetworkList every other
+        /// hotbar change travels on, so the owning client is corrected by the usual path.
+        /// </para>
+        /// <para>
+        /// The selection is passed back through unchanged. RestoreSlots also sets it, and a drag
+        /// that silently re-picked which item the player is holding would be a second, unasked-for
+        /// consequence of dropping something into slot 3.
+        /// </para>
+        /// </summary>
+        private static void WriteHotbarSlot(IPlayerInventory hotbar, int index, InventoryItem item)
+        {
+            int size = hotbar.GetInventorySize();
+            var slots = new List<InventoryItem>(size);
+
+            for (int i = 0; i < size; i++)
+            {
+                InventorySlot slot = hotbar.GetSlot(i);
+                slots.Add(slot != null && !slot.IsEmpty ? slot.Item : null);
+            }
+
+            if (index < 0 || index >= slots.Count) return;
+
+            slots[index] = item;
+
+            hotbar.RestoreSlots(slots, hotbar.SelectedSlotIndex);
+        }
+
+        /// <summary>
+        /// A surface id off the wire, refused unless the rig could actually have such a face.
+        ///
+        /// A surface id is a byte in the save and on the wire, so anything outside the enum is a
+        /// malformed or stale request rather than a face this rig happens not to have.
+        /// </summary>
+        private static bool TryDecodeSurface(int raw, out PackSurfaceId surface)
+        {
+            surface = default;
+
+            if (raw < 0 || raw > byte.MaxValue) return false;
+            if (!System.Enum.IsDefined(typeof(PackSurfaceId), (byte)raw)) return false;
+
+            surface = (PackSurfaceId)raw;
+            return true;
+        }
+
+        /// <summary>
+        /// Pack a hotbar slot and a pack surface into <see cref="NetArg.A"/> for
+        /// <see cref="NetMsg.PackStow"/> — slot in the low byte, surface in the next one up.
+        /// <see cref="RequestMove"/>'s own <c>A</c> already does exactly this for its two surfaces,
+        /// and yaw already has a home on <c>B</c> in whole degrees, so a stow needing to carry one
+        /// more small value than a move does is packed the same way rather than inventing a second
+        /// encoding six lines from the first.
+        ///
+        /// <para>
+        /// A static pair with <see cref="TryDecodeStowTarget"/> — rather than each half doing its
+        /// own bit-twiddling — so the two ends of the wire cannot drift apart, and so the one
+        /// genuinely tricky piece of arithmetic here is callable, and testable, without a live
+        /// <c>NetworkManager</c>.
+        /// </para>
+        /// </summary>
+        public static int EncodeStowTarget(int slotIndex, PackSurfaceId surface) =>
+            slotIndex | ((int)surface << 8);
+
+        /// <summary>
+        /// The inverse of <see cref="EncodeStowTarget"/>. False on anything a malformed or hostile
+        /// <paramref name="raw"/> could produce: a negative value, or a surface byte that is not a
+        /// real <see cref="PackSurfaceId"/>. The slot half is masked to a byte either way, so it can
+        /// never come back negative or larger than a byte — whether it names a real slot on the
+        /// hotbar it arrived with is <see cref="BackpackObject.TryStowFromHotbar"/>'s own bounds
+        /// check to make, not this one's, because this function has no hotbar to ask.
+        /// </summary>
+        public static bool TryDecodeStowTarget(int raw, out int slotIndex, out PackSurfaceId surface)
+        {
+            slotIndex = 0;
+            surface = default;
+
+            if (raw < 0) return false;
+            if (!TryDecodeSurface((raw >> 8) & 0xFF, out PackSurfaceId decoded)) return false;
+
+            slotIndex = raw & 0xFF;
+            surface = decoded;
+            return true;
+        }
+
+        /// <summary>
+        /// Somebody has dragged an item to a new spot on the pack and let go. Ask the server.
+        ///
+        /// <para>
+        /// Nothing happens locally, for the reason written out over <see cref="RequestTake"/>: a
+        /// pack is a container two people can reach into at once. Free placement makes that sharper
+        /// rather than softer — the space one player is dropping a canister into is space the other
+        /// may have just filled — so the second request to arrive has to find it taken, and only
+        /// one machine can be the one that notices.
+        /// </para>
+        /// <para>
+        /// The item is named by where it was GRABBED rather than by its id, because a string will
+        /// not fit in a <see cref="NetArg"/> and because the grab point is what the player actually
+        /// clicked. See <see cref="NetMsg.PackMove"/> for the field layout.
+        /// </para>
+        /// </summary>
+        public void RequestMove(PackSurfaceId from, Vector2 fromUv,
+                                PackSurfaceId to, Vector2 toUv, float yaw)
+        {
+            var arg = new NetArg
+            {
+                A = (int)from | ((int)to << 8),
+                B = Mathf.RoundToInt(Mathf.Repeat(yaw, 360f)),
+                P = new Vector3(fromUv.x, 0f, fromUv.y),
+                R = new Quaternion(toUv.x, 0f, toUv.y, 0f),
+            };
+
+            this.NetToServer(NetMsg.PackMove, arg);
+        }
+
+        /// <summary>Server side: slide it, if it is still there and the space is still free.</summary>
+        private void OnMoveRequested(in NetArg arg, ulong sender)
+        {
+            if (!Network.Simulates(this)) return;
+            if (Pack == null || CurrentState != State.Open) return;
+
+            if (!TryDecodeSurface(arg.A & 0xFF, out PackSurfaceId from)) return;
+            if (!TryDecodeSurface((arg.A >> 8) & 0xFF, out PackSurfaceId to)) return;
+
+            // Resolved here rather than trusted from the sender. Between the grab and this message
+            // another player may have taken the item, or filled the space it is headed for; both
+            // come out as a quiet false and a pack that stays exactly as it was.
+            if (!Pack.TryFindAt(from, new Vector2(arg.P.x, arg.P.z), out PackPlacement grabbed)) return;
+
+            Pack.TryMove(grabbed.ItemId, to, new Vector2(arg.R.x, arg.R.z), arg.B);
+        }
+
+        /// <summary>
+        /// The way IN, and the mirror of <see cref="RequestTake"/>: an item held in the player's
+        /// hand goes onto this pack, at the spot and turn they lined it up at.
+        ///
+        /// <para>
+        /// Same channel, same direction, same rule that nothing happens locally — two people can be
+        /// reaching into one pack, so which of them gets the space under the cursor is the server's
+        /// to decide, exactly as which of them gets the last water cell is.
+        /// </para>
+        /// <para>
+        /// The hotbar slot travels as an INDEX where the other messages are positional, and that
+        /// difference is deliberate: a hotbar slot is a numbered box, and it is not a thing anybody
+        /// else is rearranging underneath them. See <see cref="NetMsg.PackStow"/> for the field
+        /// layout.
+        /// </para>
+        /// </summary>
+        public void RequestStow(int slotIndex, PackSurfaceId surface, Vector2 uv, float yaw,
+                                Interactor interactor)
+        {
+            if (interactor == null) return;
+
+            // The low byte of A is the slot and the next one up is the surface — see
+            // EncodeStowTarget. Guarded here rather than left to silently corrupt the surface byte:
+            // a slot index that does not fit in a byte would bleed into it.
+            if (slotIndex < 0 || slotIndex > byte.MaxValue) return;
+
+            // The stower's BODY, resolved the way the messaging layer resolves it — see the note
+            // in RequestTake, which this is the other half of.
+            GameObject stower = NetChannel.RootOf(interactor);
+            if (stower == null) return;
+
+            var arg = new NetArg
+            {
+                A = EncodeStowTarget(slotIndex, surface),
+                B = Mathf.RoundToInt(Mathf.Repeat(yaw, 360f)),
+                P = new Vector3(uv.x, 0f, uv.y),
+            };
+
+            this.NetToServer(NetMsg.PackStow, arg.With(stower));
+        }
+
+        /// <summary>Server side: put it on the pack, if it is still in that slot and the spot is
+        /// still free.</summary>
+        private void OnStowRequested(in NetArg arg, ulong sender)
+        {
+            if (!Network.Simulates(this)) return;
+            if (Pack == null || CurrentState != State.Open) return;
+
+            GameObject stower = arg.Resolve();
+            if (stower == null) return;
+
+            // GetComponentInChildren rather than GetComponent, for the reason written out in
+            // OnTakeRequested: a body may keep its hotbar on a child.
+            var hotbar = stower.GetComponentInChildren<IPlayerInventory>(true);
+            if (hotbar == null) return;
+
+            // Every stow is aimed now — there is no first-fit sentinel to fall back to — so a slot
+            // or surface that does not decode is a malformed request and is refused outright.
+            if (!TryDecodeStowTarget(arg.A, out int slot, out PackSurfaceId surface)) return;
+
+            // Idempotent the way the take is: the second request finds the slot already empty and
+            // answers false rather than placing a second copy.
+            Pack.TryStowFromHotbar(hotbar, slot, surface, new Vector2(arg.P.x, arg.P.z), arg.B);
+        }
+
+        /// <summary>
+        /// The flight itself and nothing else, so <see cref="RunStow"/> can put something in front
+        /// of it. Split out rather than nested: <see cref="RunArc"/> clears
+        /// <see cref="arcRoutine"/> on its way out, and a caller yielding on it would have its own
+        /// handle torn up underneath it half way through.
+        /// </summary>
+        private IEnumerator Fly(Pose start, Func<Pose> end, float height, float outward)
         {
             for (float elapsed = 0f; elapsed < deploySeconds; elapsed += Time.deltaTime)
             {
                 float t = Mathf.Clamp01(elapsed / deploySeconds);
-                Pose pose = BackpackDeployArc.Evaluate(start, end(), t, arcHeight, arcOutward);
+                Pose pose = BackpackDeployArc.Evaluate(start, end(), t, height, outward);
                 Pack.transform.SetPositionAndRotation(pose.position, pose.rotation);
                 yield return null;
             }
+        }
+
+        private IEnumerator RunArc(Pose start, Func<Pose> end, float height, float outward,
+                                   Action onArrive)
+        {
+            yield return Fly(start, end, height, outward);
 
             arcRoutine = null;
             onArrive();
@@ -665,12 +1065,50 @@ namespace SpaceGame.Items
         {
             hasPendingDeploy = false;
 
-            Pack.SetOpen(false);
+            // SnapStowed, not SetOpen(false), and that is the whole of the "it goes back on my
+            // back still folded open" bug. SetOpen answers a pack whose IsOpen is already false by
+            // returning, so every path that arrives here with a fold already part-run — an
+            // interrupted stow, a joiner told "shouldered", a save restore — used to park the rig
+            // on somebody's back at whatever angle it had reached. This one is unconditional.
+            Pack.SnapStowed();
             Pack.SetWorn(true);
             Pack.transform.SetParent(backSocket, false);
             Pack.transform.SetLocalPositionAndRotation(wornLocalPosition, Quaternion.Euler(wornLocalEuler));
             CurrentState = State.Shouldered;
+
+            RefreshFirstPersonHidden();
         }
+
+        /// <summary>
+        /// Tell the wearer's own camera which renderers are on their back right now.
+        ///
+        /// <para>
+        /// Reads <see cref="BackpackObject.IsWorn"/> rather than <see cref="CurrentState"/> so the
+        /// three callers can be the three moments the pack changes hands and nothing has to agree
+        /// about which of the four states counts as "on the back": <see cref="SnapToWorn"/> puts it
+        /// on, <see cref="StartDeploy"/> takes it off at the FIRST frame of the toss — the toss is
+        /// staged in front of the player precisely so they watch it, so it must be visible for the
+        /// whole flight, not from the landing — and <see cref="OnPackVisualsRebuilt"/> catches the
+        /// gear, which is instantiated and destroyed under the pack long after either.
+        /// </para>
+        /// <para>
+        /// Collected fresh every time rather than cached: the display copies are rebuilt wholesale
+        /// on every contents change, so a held list would be a list of destroyed objects. It runs
+        /// on a state change or a rebuild, never per frame.
+        /// </para>
+        /// </summary>
+        private void RefreshFirstPersonHidden()
+        {
+            if (look == null || Pack == null) return;
+
+            look.SetWornHidden(Pack.IsWorn ? Pack.GetComponentsInChildren<Renderer>(true) : null);
+        }
+
+        /// <summary>
+        /// The pack rebuilt its display copies. Called by <see cref="BackpackObject"/>, because
+        /// gear strapped on while the pack is worn arrives as renderers this controller never saw.
+        /// </summary>
+        public void OnPackVisualsRebuilt() => RefreshFirstPersonHidden();
 
         private Pose WornWorldPose()
         {
@@ -682,47 +1120,16 @@ namespace SpaceGame.Items
             new(pack.transform.position, pack.transform.rotation);
 
         /// <summary>
-        /// Where the player is looking, flattened to the ground plane. Falls back to the body's
-        /// facing when the view is straight up or down, where the horizontal component vanishes.
-        /// </summary>
-        private Vector3 AimForward()
-        {
-            Vector3 aim = aimTransform != null ? aimTransform.forward : transform.forward;
-            Vector3 forward = DeployDirection(aim, transform.forward, out bool inverted);
-
-            if (inverted)
-                Debug.LogError(
-                    $"BackpackController: aim source '{(aimTransform != null ? aimTransform.name : "none")}' " +
-                    "points opposite the body, so the pack would have been set down BEHIND the " +
-                    "player. Deploying along the body instead — assign aimTransform to the camera " +
-                    "the player actually looks through.", this);
-
-            return forward;
-        }
-
-        /// <summary>
-        /// The ground-plane direction the pack is set down along, given where the player is looking
-        /// and which way their body faces. Pure, so the guard below can be tested without a scene.
+        /// The ground-plane direction the pack is set down along: the wearer's own facing.
         ///
-        /// `inverted` reports that the aim disagreed with the body and was overridden. In a
-        /// first-person rig those two cannot legitimately disagree — PlayerLook yaws the body's
-        /// Rigidbody and writes Euler(pitch, 0, 0) into the camera's LOCAL rotation, so the camera
-        /// contributes pitch and nothing else. A negative dot therefore never means "the player is
-        /// looking backwards"; it means the aim source is not the camera they are looking through,
-        /// which is exactly how the pack kept ending up behind them.
-        ///
-        /// The test is `&lt; 0` rather than a tight tolerance on purpose: any disagreement short of
-        /// an actual inversion still puts the pack in front, and a future third-person camera that
-        /// legitimately trails the body should not trip this.
+        /// The BODY, deliberately not a camera. A camera is free to pitch, and on this branch to
+        /// sit away from the body entirely, so "where the camera points" and "in front of the
+        /// player" are no longer the same direction — and the pack must land in front of the
+        /// PLAYER, where their feet point. The body's forward is also the one vector every
+        /// machine's replica of this player actually has, which matters because the server is the
+        /// one that runs the ground probe.
         /// </summary>
-        public static Vector3 DeployDirection(Vector3 aimForward, Vector3 bodyForward, out bool inverted)
-        {
-            Vector3 body = Flatten(bodyForward, Vector3.forward);
-            Vector3 forward = Flatten(aimForward, body);
-
-            inverted = Vector3.Dot(forward, body) < 0f;
-            return inverted ? body : forward;
-        }
+        private Vector3 DeployForward() => Flatten(transform.forward, Vector3.forward);
 
         /// <summary>Flatten to the ground plane, falling back when the horizontal part vanishes.</summary>
         private static Vector3 Flatten(Vector3 primary, Vector3 fallback)
@@ -744,7 +1151,7 @@ namespace SpaceGame.Items
         {
             pose = default;
 
-            Vector3 ahead = transform.position + AimForward() * deployDistance;
+            Vector3 ahead = transform.position + DeployForward() * deployDistance;
 
             // Started above the player's eyeline, not 1 m up. On a rise or a step the ground in front
             // can sit higher than the player's own feet, and a short probe silently finds nothing —
@@ -775,46 +1182,39 @@ namespace SpaceGame.Items
 
             if (!found) return false;
 
-            // The pack STANDS UP where it lands, doors toward the player. Its local +Y is the height
-            // axis and its local +Z is the door side — the frame that rides against the wearer's
-            // back is on -Z — so pointing local +Z at the player is what puts the opening interior
-            // in front of them rather than showing them the back of a cabinet.
-            Vector3 toPlayer = Vector3.ProjectOnPlane(transform.position - ahead, best.normal);
-            if (toPlayer.sqrMagnitude < 1e-6f)
-                toPlayer = Vector3.ProjectOnPlane(-AimForward(), best.normal);
+            // The pack STANDS UP where it lands, its opening toward the player. Local +Y is the
+            // height axis; WHICH horizontal side the player should be shown is settled by what the
+            // focus camera actually framed, not by what the axes are named — and the 2026-08-25
+            // re-author (even-cell regrid + lid) flipped that answer. Measured on the rebuilt rig:
+            // the boards now unfold along local +Z, so +Z away from the player framed the closed
+            // harness back and not one pixel of mat (verified by capture, s5_faithful_focus vs
+            // s5_mirrored_focus). +Z therefore points AT the player now. The previous model was the
+            // mirror of this, with the same sign flipped the other way — if the model is ever
+            // re-authored and the pack lands backwards again, this sign is still the whole of the
+            // fix.
+            Vector3 towardPlayer = Vector3.ProjectOnPlane(transform.position - ahead, best.normal);
+            if (towardPlayer.sqrMagnitude < 1e-6f)
+                towardPlayer = Vector3.ProjectOnPlane(-DeployForward(), best.normal);
 
             pose = new Pose(best.point + best.normal * groundLift,
-                            Quaternion.LookRotation(toPlayer.normalized, best.normal));
+                            Quaternion.LookRotation(towardPlayer.normalized, best.normal));
             return true;
         }
 
 #if UNITY_EDITOR
         /// <summary>
-        /// The drop direction, visible without pressing Play. Green is the body's facing, cyan the
-        /// resolved aim, and the sphere is where the pack would be set down — so an aim source that
-        /// disagrees with the body shows up as two lines pointing opposite ways in the Scene view
-        /// rather than as a pack found behind you ten minutes into a playtest.
+        /// The drop direction, visible without pressing Play: the body's facing, and the sphere
+        /// where the pack would be set down.
         /// </summary>
         private void OnDrawGizmosSelected()
         {
-            Transform aim = aimTransform != null ? aimTransform : ResolveAimTransform();
             Vector3 eye = transform.position + Vector3.up * 1.2f;
 
             Gizmos.color = Color.green;
-            Gizmos.DrawRay(eye, transform.forward * deployDistance);
-
-            if (aim != null && aim != transform)
-            {
-                Gizmos.color = Color.cyan;
-                Gizmos.DrawRay(eye, DeployDirection(aim.forward, transform.forward, out _) * deployDistance);
-            }
-
-            Vector3 drop = transform.position +
-                           DeployDirection(aim != null ? aim.forward : transform.forward,
-                                           transform.forward, out _) * deployDistance;
+            Gizmos.DrawRay(eye, DeployForward() * deployDistance);
 
             Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(drop, 0.25f);
+            Gizmos.DrawWireSphere(transform.position + DeployForward() * deployDistance, 0.25f);
         }
 #endif
     }

@@ -99,6 +99,9 @@ Shader "Custom/DesertSkybox"
                 UNITY_VERTEX_OUTPUT_STEREO
             };
             
+            // Set globally by CloudLayer, so it must NOT live in the per-material buffer.
+            half _VolumetricCloudFade;
+
             CBUFFER_START(UnityPerMaterial)
                 half4 _SkyColorTop;
                 half4 _SkyColorHorizon;
@@ -609,6 +612,15 @@ Shader "Custom/DesertSkybox"
                 half3 dustColorNight = _DustNightColor.rgb * nightFactor;
                 half3 dustColor = dustColorDay + dustColorSunset + dustColorNight;
                 
+                // Stand down where real clouds are being marched.
+                //
+                // This layer and SpaceGame/VolumetricClouds are two answers to the same question,
+                // and running both gives a sky with painted bands sitting in front of volumes that
+                // have actual depth — which reads worse than either alone. CloudLayer pushes this
+                // global while it is enabled; nothing sets it otherwise, and an unset global is
+                // zero, so a scene with no cloud layer keeps exactly the sky it has always had.
+                dustMask *= saturate(1.0 - _VolumetricCloudFade);
+
                 // Blend dust with sky (smooth for cloud edges, but still cartoon banded)
                 half3 color = lerp(skyColor, dustColor, dustMask);
                 

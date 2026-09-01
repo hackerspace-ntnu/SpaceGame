@@ -5,6 +5,10 @@ description: Use when adding or changing a creature, NPC, enemy, animal, turret,
 
 # SpaceGame agents
 
+> **Design check:** before tuning how a creature behaves, threatens or reads to the player, consult
+> the `SYS`, `DESIGN`, `FEEL` and `BAL` principles in `docs/game-development-constitution/INDEX.md`
+> and cite their IDs.
+
 ## Overview
 
 An agent is a **prefab plus a set of components**. Behaviour is composed by dropping

@@ -99,6 +99,13 @@ namespace SpaceGame.Agents
         [SerializeField] private float lookSensitivity = 20f;
         [Tooltip("Pitch limit for the FIRST-PERSON head. The third-person boom has its own, below.")]
         [SerializeField] private float lookPitchClamp = 75f;
+        [Tooltip("How far the FIRST-PERSON view may turn from the seat's own forward, in degrees " +
+                 "each way. 180 is the whole circle and the default: somebody sitting in a seat " +
+                 "with no controls to work has nothing to do but look, and a passenger who cannot " +
+                 "turn their head is a passenger staring at a bulkhead for the whole journey. " +
+                 "Lower it for a seat whose fantasy is a fixed station facing one way. The " +
+                 "third-person orbit ignores this — it is unbounded by design.")]
+        [SerializeField] private float firstPersonYawClamp = 180f;
         [SerializeField] private float defaultMountedPitch = -15f;
         [Tooltip("Lowest the third-person boom swings, in degrees. Negative drops the camera and " +
                  "looks up at the mount; going much past this digs it into the ground.")]
@@ -167,9 +174,10 @@ namespace SpaceGame.Agents
         /// </summary>
         private Vector3 lastDismountPosition;
         private bool hasLastDismountPosition;
-        private bool playerRigidbodyWasKinematic;
-        private bool playerRigidbodyHadGravity;
-        private RigidbodyInterpolation playerRigidbodyInterpolation;
+
+        // The rider's Rigidbody state is deliberately NOT cached here. It belongs to CarriedBody,
+        // because a body can be held by this module and by SeatedRider at once and a private cache
+        // per carrier hands back a state the body was never in — see CarriedBody for the failure.
 
         // The rider's own control components as they were the moment they sat down, so the dismount
         // hands back what it took rather than switching everything on.
@@ -204,9 +212,12 @@ namespace SpaceGame.Agents
         private RigidbodyConstraints ownRigidbodyConstraints;
         private bool ownRigidbodyConstraintsCaptured;
 
-        // Rider<->mount collider pairs ignored while mounted so the rider's kinematic collider
-        // doesn't push the mount around. Restored on dismount.
-        private (Collider a, Collider b)[] ignoredCollisionPairs;
+        // Rider/mount collider pairs ignored while mounted so the rider's kinematic collider
+        // doesn't push the mount around. Restored on dismount. The pairs live in a shared helper
+        // because NpcPassenger seats a different kind of rider in this same saddle and needs the
+        // identical suspension — and, just as importantly, must not reach for the other tool that
+        // stops a rider shoving its mount, which is switching the rider's colliders off.
+        private readonly RiderCollisionIgnore riderCollisions = new RiderCollisionIgnore();
 
         public event Action<PlayerMovement> Mounted;
         public event Action<PlayerMovement> Dismounted;
@@ -236,6 +247,7 @@ namespace SpaceGame.Agents
         public bool RiderIsLocal => mountedPlayer != null && Network.Owns(mountedPlayer);
         public bool IsAvailableForMount => !IsMounted && Time.time >= lastMountChangeTime + mountCooldown;
         public bool AllowAISelfMovementWhenMounted => allowAISelfMovementWhenMounted;
+        public bool MountableByDirectInteraction => mountableByDirectInteraction;
         public Transform ActiveSeatPoint => activeSeatPoint != null ? activeSeatPoint : seatPoint;
         public Transform MountedPlayerTransform => mountedPlayer;
         public PlayerMovement MountedPlayerMovement => mountedPlayerMovement;
@@ -251,6 +263,19 @@ namespace SpaceGame.Agents
         public float MountedPitch => mountedPitch;
         public float OrbitPitch => orbitPitch;
         public Vector3 SeatOffset => seatOffset;
+
+        /// <summary>
+        /// Where this mount stands its rider up, or null when it has none authored.
+        ///
+        /// <para>
+        /// Exposed so the other way a body ends up in one of this vehicle's chairs — the arrival's
+        /// <c>SeatedRider</c>, which deliberately does not go through a mount — can put people down
+        /// in the same place rather than inventing a second one. Two components disagreeing about
+        /// where the door is on the same ship is exactly the kind of drift this project pays for
+        /// later.
+        /// </para>
+        /// </summary>
+        public Transform DismountPoint => dismountPoint;
 
         /// <summary>Where the last dismount left the rider. Only meaningful with <see cref="HasLastDismountPosition"/>.</summary>
         public Vector3 LastDismountPosition => lastDismountPosition;
@@ -320,6 +345,37 @@ namespace SpaceGame.Agents
 
             EnsureLookActionEnabled();
             HandleLookInput(Time.deltaTime);
+
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+                RequestDismount();
+        }
+
+        /// <summary>
+        /// Get up out of the seat.
+        ///
+        /// <para>
+        /// Here rather than in SteerModule, where it used to live, because standing up belongs to
+        /// the SEAT and not to the controls: only the helm has a SteerModule, so a passenger chair
+        /// — every non-helm chair on the PlayerShip is its own MountModule with no steering — had
+        /// nothing reading the key at all. It went unnoticed while a mount request reached every
+        /// module on the hull, because sitting anywhere also mounted the helm, which then answered
+        /// for everybody. See MountNetworkSync.MountIndex for the half of that this is the other
+        /// side of.
+        /// </para>
+        /// <para>
+        /// Through the sync when this mount is networked, or the rider stands up on their own
+        /// screen and stays welded to the saddle on everyone else's.
+        /// </para>
+        /// </summary>
+        private void RequestDismount()
+        {
+            if (TryGetComponent(out MountNetworkSync sync))
+            {
+                sync.RequestDismount();
+                return;
+            }
+
+            Dismount();
         }
 
         protected override void OnValidate()
@@ -329,6 +385,10 @@ namespace SpaceGame.Agents
             fallbackDismountDistance = Mathf.Max(0.1f, fallbackDismountDistance);
             lookSensitivity = Mathf.Max(0f, lookSensitivity);
             lookPitchClamp = Mathf.Clamp(lookPitchClamp, 0f, 89f);
+            // Past 180 is not a wider view, it is the same circle counted twice: the offset is
+            // wrapped into (-180, 180] before it is ever clamped, so a larger number here would
+            // read as a limit and do nothing.
+            firstPersonYawClamp = Mathf.Clamp(firstPersonYawClamp, 0f, 180f);
             orbitPitchMin = Mathf.Clamp(orbitPitchMin, -89f, 0f);
             orbitPitchMax = Mathf.Clamp(orbitPitchMax, 0f, 89f);
             thirdPersonDistance = Mathf.Max(0.1f, thirdPersonDistance);

@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using SpaceGame.Presentation;
+using SpaceGame.Presentation.Lobbies;
 
 namespace SpaceGame.Tests
 {
@@ -112,7 +113,7 @@ namespace SpaceGame.Tests
         [Test]
         public void IdleLocksNothing()
         {
-            LobbyUI.BusyState state = LobbyUI.BusyState.For(LobbyUI.BusyScope.None);
+            LobbyBusyState state = LobbyBusyState.For(LobbyBusyScope.None);
 
             Assert.IsFalse(state.LockCodeColumn);
             Assert.IsFalse(state.LockBrowser);
@@ -127,7 +128,7 @@ namespace SpaceGame.Tests
         [Test]
         public void QueryingLeavesTheCodeFieldAlone()
         {
-            LobbyUI.BusyState state = LobbyUI.BusyState.For(LobbyUI.BusyScope.Querying);
+            LobbyBusyState state = LobbyBusyState.For(LobbyBusyScope.Querying);
 
             Assert.IsFalse(state.LockCodeColumn);
             Assert.IsTrue(state.LockBrowser, "stale rows must not be clickable mid-query");
@@ -142,10 +143,10 @@ namespace SpaceGame.Tests
         [Test]
         public void EveryJoinLocksTheWholePage()
         {
-            foreach (LobbyUI.BusyScope scope in new[]
-                     { LobbyUI.BusyScope.JoiningByCode, LobbyUI.BusyScope.JoiningRow })
+            foreach (LobbyBusyScope scope in new[]
+                     { LobbyBusyScope.JoiningByCode, LobbyBusyScope.JoiningRow })
             {
-                LobbyUI.BusyState state = LobbyUI.BusyState.For(scope);
+                LobbyBusyState state = LobbyBusyState.For(scope);
 
                 Assert.IsTrue(state.LockCodeColumn, $"{scope} left the code column live");
                 Assert.IsTrue(state.LockBrowser, $"{scope} left the browser live");
@@ -161,19 +162,19 @@ namespace SpaceGame.Tests
         [Test]
         public void OnlyAJoinCanBeCancelled()
         {
-            Assert.IsTrue(LobbyUI.BusyState.For(LobbyUI.BusyScope.JoiningByCode).OfferCancel);
-            Assert.IsTrue(LobbyUI.BusyState.For(LobbyUI.BusyScope.JoiningRow).OfferCancel);
+            Assert.IsTrue(LobbyBusyState.For(LobbyBusyScope.JoiningByCode).OfferCancel);
+            Assert.IsTrue(LobbyBusyState.For(LobbyBusyScope.JoiningRow).OfferCancel);
 
-            Assert.IsFalse(LobbyUI.BusyState.For(LobbyUI.BusyScope.SigningIn).OfferCancel);
-            Assert.IsFalse(LobbyUI.BusyState.For(LobbyUI.BusyScope.Querying).OfferCancel);
-            Assert.IsFalse(LobbyUI.BusyState.For(LobbyUI.BusyScope.None).OfferCancel);
+            Assert.IsFalse(LobbyBusyState.For(LobbyBusyScope.SigningIn).OfferCancel);
+            Assert.IsFalse(LobbyBusyState.For(LobbyBusyScope.Querying).OfferCancel);
+            Assert.IsFalse(LobbyBusyState.For(LobbyBusyScope.None).OfferCancel);
         }
 
         /// <summary>Signing in precedes everything, so nothing on the page is usable yet.</summary>
         [Test]
         public void SigningInLocksEverything()
         {
-            LobbyUI.BusyState state = LobbyUI.BusyState.For(LobbyUI.BusyScope.SigningIn);
+            LobbyBusyState state = LobbyBusyState.For(LobbyBusyScope.SigningIn);
 
             Assert.IsTrue(state.LockCodeColumn);
             Assert.IsTrue(state.LockBrowser);

@@ -25,6 +25,27 @@ namespace SpaceGame.Gameplay
         public bool IsHoveringInteractable { get; private set; }
 
         /// <summary>
+        /// The eye the E key looks down, and how far it reaches.
+        ///
+        /// <para>
+        /// Exposed for things the crosshair points at that are not <see cref="IInteractable"/> —
+        /// the ship's inventory wall, whose verb changes per cell and so cannot be one. They have
+        /// to cast the SAME ray this does, or the player aims at a cell with one control and
+        /// presses E into another.
+        /// </para>
+        /// <para>
+        /// Degenerate — origin, zero direction — with no look transform wired, which every caller
+        /// must test rather than assume: this component is on a camera rig that a mount disables.
+        /// </para>
+        /// </summary>
+        public Ray LookRay => lookTransform != null
+            ? new Ray(lookTransform.position, lookTransform.forward)
+            : new Ray(Vector3.zero, Vector3.zero);
+
+        /// <summary>How far <see cref="LookRay"/> reaches — the E key's own range.</summary>
+        public float CastDistance => _castDistance;
+
+        /// <summary>
         /// What the crosshair is on right now, or null. Same resolution the E key uses, so the HUD
         /// can never describe one control while the key works another.
         /// </summary>
@@ -188,6 +209,11 @@ namespace SpaceGame.Gameplay
         /// from a parent, and the ray passes straight through it to whatever is really there. A
         /// trigger that IS a control still works: the crawler's DOOR_MountStation holds its
         /// MountStation on the very GameObject the trigger is on.
+        ///
+        /// The one exception is <see cref="InteractionBlocker"/>: a trigger that stands for
+        /// something you can see through and cannot reach through. It offers nothing and stops the
+        /// ray, which is how a hull with a deliberate hole in its collision — the PlayerShip's
+        /// canopy — keeps what is behind it out of reach.
         /// </summary>
         /// <param name="ignoreRoot">
         /// Hierarchy to treat as invisible — the interacting player's own body. Optional so tests
@@ -213,7 +239,19 @@ namespace SpaceGame.Gameplay
                 {
                     // Only a trigger that is itself a control answers; everything else is see-through.
                     IInteractable own = collider.GetComponent<IInteractable>();
-                    if (own == null) continue;
+                    if (own == null)
+                    {
+                        // Unless it is glass. See-through also meant reach-through, and a hull is
+                        // only as opaque as its collision: the PlayerShip's canopy dome carries
+                        // none on purpose, so the four cockpit chairs' own trigger volumes were the
+                        // first thing an outside ray met and the ship was boardable from the air
+                        // above it. An InteractionBlocker is a trigger that stops the ray without
+                        // offering anything — solid to the hand, invisible to physics.
+                        if (collider.GetComponent<InteractionBlocker>() == null) continue;
+                        chosen = hits[index];
+                        return false;
+                    }
+
                     interactable = own;
                     chosen = hits[index];
                     return true;

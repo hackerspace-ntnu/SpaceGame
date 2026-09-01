@@ -43,6 +43,9 @@ namespace SpaceGame.Presentation
         public const int RowSize = 52;
         public const int CaptionSize = 30;
 
+        /// <summary>The height every action row — a footer button, a Join, a Start — is built at.</summary>
+        public const float ActionHeight = 78f;
+
         // ───────────────────────────────────────────────────────────────────── layout
         //
         // Shared so the screens the menu opens agree with each other and with the menu. Every one

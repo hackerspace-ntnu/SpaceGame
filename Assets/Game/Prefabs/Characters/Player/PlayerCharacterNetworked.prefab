@@ -103,6 +103,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6558388417224476658, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      propertyPath: flungShake
+      value: 
+      objectReference: {fileID: 11400000, guid: e3f3f8de9dc7648c9a33232644e78bd4, type: 2}
     m_RemovedComponents:
     - {fileID: 2750247493964292827, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
     - {fileID: 5205092769686626828, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
@@ -374,6 +378,18 @@ MonoBehaviour:
       NameHash: -1074224583
       Synchronize: 1
       ParameterType: 4
+    - name: MoveAnimSpeed
+      NameHash: 541295930
+      Synchronize: 1
+      ParameterType: 1
+    - name: HoldStyle
+      NameHash: 1638206472
+      Synchronize: 1
+      ParameterType: 3
+    - name: Seated
+      NameHash: -398636658
+      Synchronize: 1
+      ParameterType: 4
   AnimatorParametersExpanded: 0
 --- !u!114 &-3757295630438121014
 MonoBehaviour:
@@ -405,6 +421,7 @@ MonoBehaviour:
   startingItems:
   - {fileID: 11400000, guid: 0207e5d6f86434fdb90e2a0dcb5038ae, type: 2}
   - {fileID: 11400000, guid: c48f2b7d16ae4c93a5e07f81d3b62c40, type: 2}
+  - {fileID: 11400000, guid: 80fc5802176e94e75bcc95e24616cdf1, type: 2}
 --- !u!114 &2648420191720355216
 MonoBehaviour:
   m_ObjectHideFlags: 0

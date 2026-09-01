@@ -19,6 +19,10 @@
 //     before they connected. Without it a late joiner saw the rider standing bolt upright on an
 //     ostrich that still advertised itself as free to mount.
 // The state channel also re-asserts itself every frame, so it repairs the seat whatever went wrong.
+//
+// Both channels are addressed: a vehicle can carry several mounts on one NetworkObject, and a
+// NetChannel belongs to the entity rather than to the component, so every message says which mount
+// it means in NetArg.A. See MountIndex for what happened when they did not.
 using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Characters;
@@ -57,6 +61,39 @@ namespace SpaceGame.Agents
         /// point", which is what an older build's message looks like.
         /// </summary>
         private const int DismountCarriesPosition = 1;
+
+        private int mountIndex = -1;
+
+        /// <summary>
+        /// Which mount on this entity we are — the <see cref="NetArg.A"/> of every message this
+        /// sends, and the first thing every handler here checks.
+        ///
+        /// <para>
+        /// A channel belongs to the entity, not to the component, and a vehicle may carry several
+        /// mounts on one NetworkObject: PlayerShipBuilder gives every non-helm chair its own
+        /// MountModule, which is why NetMsg 92/93 were retired rather than a second way to sit
+        /// down being written. Unaddressed, one press therefore mounted the same player in all four
+        /// chairs — and the surplus chairs each snapshotted the rider's Rigidbody AFTER the first
+        /// had frozen it, so the dismount handed the player back a body with gravity switched off.
+        /// See MountSeatAddressingTests.
+        /// </para>
+        /// <para>
+        /// Positional, over every <see cref="MountNetworkSync"/> under the entity — the same trade
+        /// <see cref="NetChannel.IndexOf{T}"/> documents, and the same one ArticulatedPartInteraction
+        /// and VehicleStation.StationIndex already make.
+        /// </para>
+        /// </summary>
+        public int MountIndex
+        {
+            get
+            {
+                if (mountIndex < 0) mountIndex = NetChannel.IndexOf(this);
+                return mountIndex;
+            }
+        }
+
+        /// <summary>Is this message meant for our mount, or for one of the others on this hull?</summary>
+        private bool AddressesUs(in NetArg arg) => arg.A == MountIndex;
 
         private void Awake() => mount = GetComponent<MountModule>();
 
@@ -144,7 +181,7 @@ namespace SpaceGame.Agents
         {
             if (!IsServer || !IsSpawned || rider == null) return;
 
-            var arg = new NetArg().With(rider);
+            var arg = new NetArg { A = MountIndex }.With(rider);
 
             if (mount.HasLastDismountPosition)
             {
@@ -233,15 +270,16 @@ namespace SpaceGame.Agents
             // The rider is whatever body the interactor belongs to — its NetworkObject when there
             // is one, the interactor itself offline. NetArg.With covers both.
             Component rider = (Component)interactor.GetComponentInParent<NetworkObject>() ?? interactor;
-            this.NetToServer(NetMsg.Mount, new NetArg().With(rider));
+            this.NetToServer(NetMsg.Mount, new NetArg { A = MountIndex }.With(rider));
         }
 
-        public void RequestDismount() => this.NetToServer(NetMsg.Dismount);
+        public void RequestDismount() => this.NetToServer(NetMsg.Dismount, new NetArg { A = MountIndex });
 
         // ─────────── Server-side truth ───────────
 
         private void OnMountRequested(in NetArg arg, ulong sender)
         {
+            if (!AddressesUs(arg)) return;
             if (!Network.Simulates(this) || mount.IsMounted) return;
 
             // Offline the rider never travelled as an id, because there is no spawn manager to
@@ -281,7 +319,8 @@ namespace SpaceGame.Agents
             // The same NetArg shape RequestMount builds, so peers resolve the rider identically.
             Component rider = riderNet != null ? riderNet : (Component)interactor;
 
-            return SeatOnServer(interactor, riderObject, new NetArg().With(rider), except: NetTarget.Self);
+            return SeatOnServer(interactor, riderObject, new NetArg { A = MountIndex }.With(rider),
+                                except: NetTarget.Self);
         }
 
         /// <summary>
@@ -329,6 +368,7 @@ namespace SpaceGame.Agents
         /// </summary>
         private void OnDismountRequested(in NetArg arg, ulong sender)
         {
+            if (!AddressesUs(arg)) return;
             if (!Network.Simulates(this) || !mount.IsMounted) return;
             if (!MayDismount(sender)) return;
 
@@ -399,6 +439,8 @@ namespace SpaceGame.Agents
 
         private void OnMountedElsewhere(in NetArg arg, ulong sender)
         {
+            if (!AddressesUs(arg)) return;
+
             GameObject riderObject = arg.Resolve();
             Interactor interactor = riderObject != null
                 ? riderObject.GetComponentInChildren<Interactor>(true)
@@ -409,6 +451,8 @@ namespace SpaceGame.Agents
 
         private void OnDismountedElsewhere(in NetArg arg, ulong sender)
         {
+            if (!AddressesUs(arg)) return;
+
             // Where the server put them, when it said. Falling back to this mount's own dismount
             // point is right for a mount that has not moved since — an ostrich somebody stepped
             // off — and is all there was before the position travelled.

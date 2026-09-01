@@ -1,21 +1,22 @@
 using System.Collections.Generic;
 using UnityEngine;
-using SpaceGame.Presentation;
 
 namespace SpaceGame.Items
 {
     /// <summary>
-    /// Marker added at runtime to any GameObject that has at least one leash attached to it.
-    /// Lets <see cref="LeashArtifact"/> answer "is this thing already leashed?" with a single
-    /// GetComponent call, and ensures all leashes referencing this object are cleaned up if
-    /// the object is destroyed.
+    /// Marks a GameObject that has ropes tied to it, and answers "what is tied to me".
     ///
-    /// Multiple leashes per object are allowed; the same pair of objects can have multiple
-    /// leashes between them.
+    /// <para>
+    /// Added at runtime, never authored — anything with a collider can be leashed, and a component
+    /// on every prop in the game for a case most of them never hit is not worth the prefab churn.
+    /// Multiple ropes per object are allowed, including several between the same pair.
+    /// </para>
     /// </summary>
     public class LeashAttachable : MonoBehaviour
     {
-        public List<Leash> leashes = new List<Leash>();
+        private readonly List<Leash> leashes = new();
+
+        public IReadOnlyList<Leash> Leashes => leashes;
 
         public bool HasLeashes => leashes.Count > 0;
 
@@ -33,20 +34,20 @@ namespace SpaceGame.Items
         public void RemoveLeash(Leash l)
         {
             leashes.Remove(l);
-            // Intentionally do NOT auto-destroy when empty. Destroy() is deferred to end of
-            // frame but the C# reference becomes Unity-null immediately; if a new leash
-            // were attached to the same object on the same frame, GetOrAdd would AddComponent
-            // a second marker. Keeping the empty marker around costs nothing and avoids that
-            // race entirely.
+
+            // Deliberately not destroying this component when the list empties. Destroy is deferred
+            // to the end of the frame while the C# reference goes Unity-null immediately, so a rope
+            // tied to the same object later in the same frame would make GetOrAdd add a SECOND
+            // marker. An empty marker costs nothing and avoids the race entirely.
         }
 
         private void OnDestroy()
         {
-            // We deliberately do NOT auto-dispose leashes here. If the object holding the
-            // leashes is destroyed, each leash will see a null endpoint in FixedUpdate and
-            // stop applying physics — but the leash GameObjects survive, so the user can
-            // see them in the Hierarchy and we can diagnose what destroyed the endpoint.
-            Debug.Log($"[LeashAttachable] OnDestroy on '{name}' with {leashes.Count} leash(es). NOT auto-disposing.");
+            // The thing the ropes were tied to is going. Take them with it — a rope tied to nothing
+            // is not a rope, and one left hanging in the air is the bug this used to have: it logged
+            // its own destruction and then deliberately left every rope behind so they could be
+            // inspected in the Hierarchy. That was scaffolding, and it shipped.
+            for (int i = leashes.Count - 1; i >= 0; i--) leashes[i]?.Dispose();
             leashes.Clear();
         }
     }

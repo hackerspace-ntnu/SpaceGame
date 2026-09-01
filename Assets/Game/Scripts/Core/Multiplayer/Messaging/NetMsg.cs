@@ -443,5 +443,27 @@ namespace SpaceGame.Core
         //
         //   Target  the player asking to get up.
         public const ushort LeaveSeatRequest = 94; // client → server, on the SHIP's relay
+
+        // The ship's inventory wall — the same two verbs the backpack has, on the WALL's own
+        // entity rather than on a player's. The pack borrows its wearer's channel because it has no
+        // NetworkObject of its own; the wall is part of a ship that does, so its requests ride that
+        // ship's relay and no borrowing is needed.
+        //
+        // Contested exactly as the pack's are — two players can be standing at one wall — so both
+        // go to the server and nothing happens locally. Both are idempotent by construction: a
+        // repeated take finds nothing under the point, a repeated stow finds the slot empty.
+        //
+        //   Target   the player doing it. Named on the wire rather than taken from the sender id,
+        //            so the server resolves the same body the sender minted.
+        //   WallTake  A = which wall on the entity (NetChannel.IndexOf), B = surface id.
+        //             P = the uv, in metres from the face's (0,0) corner, on X and Z — Y is the
+        //                 surface normal everywhere else in the placement layer and a uv has no
+        //                 height, so it stays zero.
+        //   WallStow  A = wall index, B = hotbar slot in the low byte and surface in the next byte
+        //             up (WallInventory.EncodeStowTarget), P = the uv, R = the yaw, as a rotation
+        //             about Y. A rotation rather than a fourth int because NetArg has one spare and
+        //             does not have a spare int.
+        public const ushort WallTake = 95; // player → server, on the WALL's entity relay
+        public const ushort WallStow = 96; // player → server, on the WALL's entity relay
     }
 }

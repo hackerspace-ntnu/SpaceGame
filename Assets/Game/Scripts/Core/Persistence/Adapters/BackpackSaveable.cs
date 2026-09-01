@@ -16,13 +16,13 @@ namespace SpaceGame.Core.Persistence
     /// competing copy of the same gear.
     ///
     /// As with the hotbar, the component is only wiring: the format lives in
-    /// <see cref="BackpackSaveCodec"/>, which takes a <see cref="PackLayout"/> and a set of
+    /// <see cref="PackSaveCodec"/>, which takes a <see cref="PackLayout"/> and a set of
     /// surfaces directly so it can be tested without a controller, a socket and a pack prefab.
     /// </summary>
     [RequireComponent(typeof(BackpackController))]
     public class BackpackSaveable : MonoBehaviour, ISaveable, IDeferredSaveable
     {
-        public const string Key = BackpackSaveCodec.Key;
+        public const string Key = "backpack";
 
         private BackpackController controller;
 
@@ -45,7 +45,7 @@ namespace SpaceGame.Core.Persistence
             BackpackObject pack = Pack;
             if (pack == null) return null;
 
-            BackpackSaveCodec.State state = BackpackSaveCodec.Capture(pack.Layout);
+            PackSaveCodec.State state = PackSaveCodec.Capture(pack.Layout);
 
             // Where the pack IS, on top of what is on it. A pack left open on the sand came back on
             // its owner's shoulders with the right items on it — which reads as the save having
@@ -75,11 +75,11 @@ namespace SpaceGame.Core.Persistence
             BackpackObject pack = Pack;
             if (pack == null) return;
 
-            BackpackSaveCodec.Restore(pack.Layout, pack.Surfaces, pack.Shapes, state, this);
+            PackSaveCodec.Restore(pack.Layout, pack.Surfaces, pack.Shapes, state, this);
 
             if (state == null) return;
 
-            var restored = state.ToObject<BackpackSaveCodec.State>(SaveSerializer.Serializer);
+            var restored = state.ToObject<PackSaveCodec.State>(SaveSerializer.Serializer);
             if (!restored.deployed) return;
 
             pendingDeployed = true;
@@ -115,11 +115,17 @@ namespace SpaceGame.Core.Persistence
         }
     }
 
-    /// <summary>The backpack's save format and the rules for reading it back.</summary>
-    public static class BackpackSaveCodec
+    /// <summary>
+    /// The save format for a <see cref="PackContainer"/>'s contents, and the rules for reading it
+    /// back.
+    ///
+    /// Shared by the backpack and the ship's inventory wall: the two write the same placement
+    /// records under different keys, and the arithmetic that turns a record back into a layout has
+    /// to be one piece of code, or two containers can disagree about what fits. The key each of
+    /// them saves under is its own — see BackpackSaveable.Key and WallInventorySaveable.Key.
+    /// </summary>
+    public static class PackSaveCodec
     {
-        public const string Key = "backpack";
-
         /// <summary>
         /// One item on the pack, as it goes to disk.
         ///
@@ -264,9 +270,9 @@ namespace SpaceGame.Core.Persistence
                                    PackShapes.SnapYaw(item, shapes, record.yaw)))
                 return;
 
-            if (!BackpackObject.TryArrange(layout, surfaces, item, shapes))
+            if (!PackContainer.TryArrange(layout, surfaces, item, shapes))
             {
-                Debug.LogWarning($"[Save] Backpack item '{item.itemName}' no longer fits anywhere on " +
+                Debug.LogWarning($"[Save] Stored item '{item.itemName}' no longer fits anywhere on " +
                                  "the pack and was dropped from the restore. Did a surface shrink, " +
                                  "or the item grow?", context);
             }
@@ -294,7 +300,7 @@ namespace SpaceGame.Core.Persistence
                 InventoryItem item = Resolve(token.Value<string>(), context);
                 if (item == null) continue;
 
-                if (!BackpackObject.TryArrange(layout, surfaces, item, shapes))
+                if (!PackContainer.TryArrange(layout, surfaces, item, shapes))
                 {
                     Debug.LogWarning($"[Save] Backpack item '{item.itemName}' from an older save had " +
                                      "nowhere to go on the new surfaces and was dropped. The old pack " +
@@ -311,8 +317,9 @@ namespace SpaceGame.Core.Persistence
 
             if (item == null)
             {
-                Debug.LogWarning($"[Save] Backpack item '{id}' is not in the registry — it was left " +
-                                 "off the pack. Was the item asset deleted?", context);
+                Debug.LogWarning($"[Save] Stored item '{id}' is not in the registry — it was left " +
+                                 "out of whatever was holding it. Was the item asset deleted?",
+                                 context);
             }
 
             return item;

@@ -265,6 +265,10 @@ namespace SpaceGame.Agents
             // camera and a second AudioListener in the scene for the rest of the session.
             ReleaseRuntimeThirdPersonCamera();
             riderCollisions.Forget();
+            // Dropped rather than restored, for the same reason as everything else here: the body is
+            // being destroyed. Left standing, the claim would outlive both of us and any carrier
+            // that picked the body up again would never be able to hand it back.
+            CarriedBody.Abandon(this);
             suppressibleAnimators = null;
             suppressibleAnimatorRootMotion = null;
             ownRigidbodyConstraintsCaptured = false;
@@ -401,22 +405,18 @@ namespace SpaceGame.Agents
                 Dismount();
         }
 
+        // Freezing the rider is the same act whichever carrier does it, and — critically — it is NOT
+        // this module's private business. A player can already be held by SeatedRider when they take
+        // the helm of the ship they rode down in, and a second private capture there banks the
+        // SEATED state as the truth and hands it back on dismount: a body returned kinematic and
+        // weightless, which reads as a player who cannot move and has no gravity. CarriedBody
+        // captures once, on the first hold, and restores once, on the last release.
         private void EnterMountedRigidbodyState()
         {
             if (!mountedPlayerRigidbody)
                 return;
 
-            playerRigidbodyWasKinematic = mountedPlayerRigidbody.isKinematic;
-            playerRigidbodyHadGravity = mountedPlayerRigidbody.useGravity;
-            playerRigidbodyInterpolation = mountedPlayerRigidbody.interpolation;
-            mountedPlayerRigidbody.linearVelocity = Vector3.zero;
-            mountedPlayerRigidbody.angularVelocity = Vector3.zero;
-            mountedPlayerRigidbody.isKinematic = true;
-            mountedPlayerRigidbody.useGravity = false;
-            // Rider is parented to the mount and follows it via the transform hierarchy. Letting
-            // the rider's Rigidbody also interpolate makes it sample stale world positions one
-            // physics step behind the parent, which renders the rider drifting off the seat.
-            mountedPlayerRigidbody.interpolation = RigidbodyInterpolation.None;
+            CarriedBody.Hold(mountedPlayer.gameObject, this);
         }
 
         private void ExitMountedRigidbodyState()
@@ -424,11 +424,7 @@ namespace SpaceGame.Agents
             if (!mountedPlayerRigidbody)
                 return;
 
-            mountedPlayerRigidbody.isKinematic = playerRigidbodyWasKinematic;
-            mountedPlayerRigidbody.useGravity = playerRigidbodyHadGravity;
-            mountedPlayerRigidbody.interpolation = playerRigidbodyInterpolation;
-            mountedPlayerRigidbody.linearVelocity = Vector3.zero;
-            mountedPlayerRigidbody.angularVelocity = Vector3.zero;
+            CarriedBody.Release(mountedPlayer.gameObject, this);
         }
 
         // Netcode refuses to let a NetworkObject sit under a plain transform, and seatPoint is a bare

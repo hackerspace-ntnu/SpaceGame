@@ -17,6 +17,9 @@ MonoBehaviour:
   ringRadius: 120
   explicitPoints: []
   probeHeight: 200
-  shipGroundClearance: 0.5
+  shipGroundClearance: 0.05
+  maxGroundSpread: 1
+  landingSearchRadius: 60
+  landingSearchStep: 12
   seatRingRadius: 1.6
   seatInteriorOffset: {x: 0, y: 1.2, z: 0}

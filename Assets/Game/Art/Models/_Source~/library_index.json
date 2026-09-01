@@ -25594,6 +25594,230 @@
     ],
     "auto_suffixed_names": []
   },
+  "models/props/inventory_wall.blend": {
+    "collections": [
+      {
+        "name": "Coll_InventoryWall",
+        "objects": [
+          "Mesh_Wall_Surround",
+          "Mesh_Wall_Bays",
+          "Mesh_Wall_Tray",
+          "Mesh_Wall_Header",
+          "Mesh_Wall_Lamp",
+          "SURF_WallGrid"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_Wall_Bays",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_InventoryWall"
+        ],
+        "dimensions": [
+          5.4,
+          0.047,
+          2.7
+        ],
+        "vertices": 19892,
+        "polygons": 23233,
+        "materials": [
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Emissive_Amber",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Wall_Header",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_InventoryWall"
+        ],
+        "dimensions": [
+          5.4,
+          0.27,
+          0.216
+        ],
+        "vertices": 300,
+        "polygons": 332,
+        "materials": [
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Emissive_Amber",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Wall_Lamp",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_InventoryWall"
+        ],
+        "dimensions": [
+          5.112,
+          0.048,
+          0.036
+        ],
+        "vertices": 72,
+        "polygons": 78,
+        "materials": [
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Emissive_Amber",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Wall_Surround",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_InventoryWall"
+        ],
+        "dimensions": [
+          5.64,
+          0.241,
+          3.3
+        ],
+        "vertices": 738,
+        "polygons": 788,
+        "materials": [
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Emissive_Amber",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_Wall_Tray",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_InventoryWall"
+        ],
+        "dimensions": [
+          5.4,
+          0.24,
+          0.372
+        ],
+        "vertices": 328,
+        "polygons": 356,
+        "materials": [
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Rope_Hemp",
+          "Mat_Emissive_Amber",
+          "Mat_Plastic_Rubber_Black"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "SURF_WallGrid",
+        "type": "EMPTY",
+        "location": [
+          0.0,
+          0.0,
+          1.71
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_InventoryWall"
+        ]
+      }
+    ],
+    "materials": [
+      "Mat_Emissive_Amber",
+      "Mat_Fabric_Canvas_Sand",
+      "Mat_Fabric_Rope_Hemp",
+      "Mat_Fabric_Wing_Ochre",
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn",
+      "Mat_Plastic_Rubber_Black"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
   "models/gear/dragon_bazooka.blend": {
     "collections": [
       {
@@ -82944,6 +83168,144 @@
       "Mat_Neutral_Black_Matte",
       "Mat_Plastic_Rubber_Black",
       "Mat_Wood_Ply_Worn"
+    ],
+    "linked_libraries": [
+      "//../../palette.blend"
+    ],
+    "auto_suffixed_names": []
+  },
+  "components/props/grid_panel.blend": {
+    "collections": [
+      {
+        "name": "Coll_GridPanel_Netted",
+        "objects": [
+          "Mesh_GridPanel_Netted"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_GridPanel_Pegboard",
+        "objects": [
+          "Mesh_GridPanel_Pegboard"
+        ],
+        "children": []
+      },
+      {
+        "name": "Coll_GridPanel_Webbed",
+        "objects": [
+          "Mesh_GridPanel_Webbed"
+        ],
+        "children": []
+      }
+    ],
+    "objects": [
+      {
+        "name": "Mesh_GridPanel_Netted",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GridPanel_Netted"
+        ],
+        "dimensions": [
+          0.54,
+          0.047,
+          0.9
+        ],
+        "vertices": 424,
+        "polygons": 492,
+        "materials": [
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Rope_Hemp"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_GridPanel_Pegboard",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GridPanel_Pegboard"
+        ],
+        "dimensions": [
+          0.54,
+          0.045,
+          0.9
+        ],
+        "vertices": 996,
+        "polygons": 1172,
+        "materials": [
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Rope_Hemp"
+        ],
+        "modifiers": []
+      },
+      {
+        "name": "Mesh_GridPanel_Webbed",
+        "type": "MESH",
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "collections": [
+          "Coll_GridPanel_Webbed"
+        ],
+        "dimensions": [
+          0.54,
+          0.045,
+          0.9
+        ],
+        "vertices": 1140,
+        "polygons": 1328,
+        "materials": [
+          "Mat_Fabric_Canvas_Sand",
+          "Mat_Fabric_Wing_Ochre",
+          "Mat_Metal_Steel_Worn",
+          "Mat_Metal_Steel_Dark",
+          "Mat_Metal_Brass_Tarnished",
+          "Mat_Fabric_Rope_Hemp"
+        ],
+        "modifiers": []
+      }
+    ],
+    "materials": [
+      "Mat_Fabric_Canvas_Sand",
+      "Mat_Fabric_Rope_Hemp",
+      "Mat_Fabric_Wing_Ochre",
+      "Mat_Metal_Brass_Tarnished",
+      "Mat_Metal_Steel_Dark",
+      "Mat_Metal_Steel_Worn"
     ],
     "linked_libraries": [
       "//../../palette.blend"

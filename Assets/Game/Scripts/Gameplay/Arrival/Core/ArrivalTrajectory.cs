@@ -3,12 +3,13 @@ using UnityEngine;
 namespace SpaceGame.Gameplay.Arrival
 {
     /// <summary>
-    /// Where the ship is, and which way it is pointing, at a given point through its descent.
+    /// Where the ship is, and which way it is pointing, at a given point through its descent — and
+    /// then how it comes to rest once it has hit.
     ///
     /// <para>
     /// Pure and closed-form — no Unity state, no integration, no time step. That is what lets the
     /// shape be unit-tested at all, and it is also what makes the terminal pose EXACT: the wreck is
-    /// persisted wherever the descent leaves it, so an integrator that landed near the impact point
+    /// persisted wherever the arrival leaves it, so an integrator that landed near the impact point
     /// would bury the hull or hover it, permanently, in the save file.
     /// </para>
     ///
@@ -26,13 +27,29 @@ namespace SpaceGame.Gameplay.Arrival
     /// end, which is the ground rush the sequence is built around, while the other dumps all its
     /// speed at the top and drifts in.
     /// </para>
+    ///
+    /// <para>
+    /// The descent is COMMITTED: the nose stays pointed at the ground right into it, because this
+    /// is a crash and a ship that levels off in the last second has landed. What used to be a flare
+    /// is now <see cref="EvaluateSettle"/>, a separate beat that runs AFTER contact — the hull
+    /// pivots off its nose and slams down onto its belly. The two halves exist so that the thing
+    /// the player watches (a dive into the sand) and the thing the world keeps (a level wreck they
+    /// can walk around in) can both be exactly right, instead of one being traded for the other.
+    /// </para>
     /// </summary>
     public static class ArrivalTrajectory
     {
         /// <summary>
         /// The pose at <paramref name="t"/>, which is clamped to the zero-to-one range so a caller
-        /// that overshoots its own timer gets the terminal pose rather than an extrapolated one
+        /// that overshoots its own timer gets the touchdown pose rather than an extrapolated one
         /// somewhere under the terrain.
+        ///
+        /// <para>
+        /// At t=1 this is the moment of CONTACT, not the resting pose: the hull is over the impact
+        /// point, still nose-down, held <see cref="ArrivalPath.TouchdownLift"/> above it so the
+        /// part of it that reaches the ground is the nose rather than the cockpit the crew are
+        /// sitting in. <see cref="EvaluateSettle"/> takes it from there.
+        /// </para>
         /// </summary>
         public static void Evaluate(float t, in ArrivalPath path,
                                     out Vector3 position, out Quaternion rotation)
@@ -45,9 +62,13 @@ namespace SpaceGame.Gameplay.Arrival
             float sin = Mathf.Sin(bearing);
             float cos = Mathf.Cos(bearing);
 
+            // The lift is a constant offset on the whole arc rather than something blended in at
+            // the end, because a blend is a second curve that has to be kept continuous and this is
+            // a few metres on top of a couple of thousand — invisible at the top, exact at the
+            // bottom, which is the only place it means anything.
             position = new Vector3(
                 path.ImpactPosition.x + radius * sin,
-                path.ImpactPosition.y + path.StartAltitude * (1f - t * t),
+                path.ImpactPosition.y + path.TouchdownLift + path.StartAltitude * (1f - t * t),
                 path.ImpactPosition.z + radius * cos);
 
             rotation = Quaternion.Euler(
@@ -57,8 +78,48 @@ namespace SpaceGame.Gameplay.Arrival
         }
 
         /// <summary>
-        /// How far the nose is down: the angle of the path the hull is actually flying, capped, and
-        /// flared back to level for the landing.
+        /// The crash itself: the hull dropping off the nose it speared in on, down onto the belly it
+        /// will rest on. <paramref name="k"/> is normalised over the settle and clamped, and at one
+        /// this returns EXACTLY the impact position at a yaw-only rotation.
+        ///
+        /// <para>
+        /// That exactness is the whole contract. This pose is what the wreck is saved as and what
+        /// <c>ShipGrounding</c> measures the landing against — and that measurement assumes the
+        /// hull differs from its prefab by yaw alone — so a settle that merely ended near level
+        /// would leave the ship resting on one wing for the life of the world, with the deck of a
+        /// walkable base sloping.
+        /// </para>
+        ///
+        /// <para>
+        /// Eased as k-squared rather than smoothed at both ends: a hull toppling off its nose is
+        /// falling, so it starts slowly, accelerates, and STOPS DEAD when it meets the ground. That
+        /// hard stop is the impact. Smoothing it out reads as the ship being lowered onto the sand
+        /// by something rather than hitting it.
+        /// </para>
+        /// </summary>
+        public static void EvaluateSettle(float k, in ArrivalPath path,
+                                          out Vector3 position, out Quaternion rotation)
+        {
+            k = Mathf.Clamp01(k);
+
+            float eased = k * k;
+
+            Evaluate(1f, path, out Vector3 touchdown, out Quaternion touchdownRotation);
+
+            position = Vector3.Lerp(touchdown, path.ImpactPosition, eased);
+            rotation = Quaternion.Slerp(touchdownRotation, RestRotation(path), eased);
+        }
+
+        /// <summary>
+        /// The attitude the wreck rests in: the heading the descent arrived on, and nothing else.
+        /// Shared by the settle and by anything that has to know where the hull will be pointing
+        /// before it gets there, so the two cannot disagree about it.
+        /// </summary>
+        public static Quaternion RestRotation(in ArrivalPath path) =>
+            Quaternion.Euler(0f, HeadingDegrees(1f, path), 0f);
+
+        /// <summary>
+        /// How far the nose is down: the angle of the path the hull is actually flying, capped.
         ///
         /// <para>
         /// MEASURED rather than authored. A fixed nose-down angle that merely unwinds — which is
@@ -68,9 +129,10 @@ namespace SpaceGame.Gameplay.Arrival
         /// its own as the descent does.
         /// </para>
         /// <para>
-        /// The flare is not decoration. Uncapped, the last moments of this arc are a near-vertical
-        /// dive, and the terminal attitude is the attitude the WRECK is saved in — so without it
-        /// the world's first landmark is a ship stood on its nose forever.
+        /// The cap is no longer only a sanity limit. The raw dive angle of this arc runs past
+        /// seventy-five degrees at the end, so the last part of every descent sits exactly on
+        /// <see cref="ArrivalPath.MaxPitchDegrees"/> — which makes that number the attitude the
+        /// ship HITS THE GROUND in, and the size of the topple the settle then has to play out.
         /// </para>
         /// </summary>
         private static float PitchDegrees(float t, in ArrivalPath path)
@@ -82,28 +144,8 @@ namespace SpaceGame.Gameplay.Arrival
             float horizontalRate = Mathf.Sqrt(dx * dx + dz * dz);
 
             float dive = Mathf.Atan2(-verticalRate, horizontalRate) * Mathf.Rad2Deg;
-            dive = Mathf.Min(dive, path.MaxPitchDegrees);
 
-            return dive * FlareFactor(t, path.FlareFraction);
-        }
-
-        /// <summary>
-        /// One through most of the descent, easing to exactly zero at touchdown.
-        ///
-        /// <para>
-        /// Clamped to a minimum rather than allowing zero, because a zero-length flare is a step
-        /// discontinuity: the nose would be 55 degrees down on the last frame and level on the one
-        /// after, which reads as the hull snapping rather than landing.
-        /// </para>
-        /// </summary>
-        private static float FlareFactor(float t, float flareFraction)
-        {
-            float fraction = Mathf.Clamp(flareFraction, 0.01f, 1f);
-            float start = 1f - fraction;
-
-            if (t <= start) return 1f;
-
-            return Mathf.SmoothStep(1f, 0f, (t - start) / fraction);
+            return Mathf.Min(dive, path.MaxPitchDegrees);
         }
 
         /// <summary>

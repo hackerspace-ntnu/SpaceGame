@@ -124,6 +124,7 @@ namespace SpaceGame.Gameplay
         {
             claimedByTeam.Clear();
             seatBuffer.Clear();
+            ForgetLandings();
         }
     }
 }

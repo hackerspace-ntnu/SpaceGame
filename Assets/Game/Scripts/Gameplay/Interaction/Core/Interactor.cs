@@ -25,6 +25,27 @@ namespace SpaceGame.Gameplay
         public bool IsHoveringInteractable { get; private set; }
 
         /// <summary>
+        /// The eye the E key looks down, and how far it reaches.
+        ///
+        /// <para>
+        /// Exposed for things the crosshair points at that are not <see cref="IInteractable"/> —
+        /// the ship's inventory wall, whose verb changes per cell and so cannot be one. They have
+        /// to cast the SAME ray this does, or the player aims at a cell with one control and
+        /// presses E into another.
+        /// </para>
+        /// <para>
+        /// Degenerate — origin, zero direction — with no look transform wired, which every caller
+        /// must test rather than assume: this component is on a camera rig that a mount disables.
+        /// </para>
+        /// </summary>
+        public Ray LookRay => lookTransform != null
+            ? new Ray(lookTransform.position, lookTransform.forward)
+            : new Ray(Vector3.zero, Vector3.zero);
+
+        /// <summary>How far <see cref="LookRay"/> reaches — the E key's own range.</summary>
+        public float CastDistance => _castDistance;
+
+        /// <summary>
         /// What the crosshair is on right now, or null. Same resolution the E key uses, so the HUD
         /// can never describe one control while the key works another.
         /// </summary>

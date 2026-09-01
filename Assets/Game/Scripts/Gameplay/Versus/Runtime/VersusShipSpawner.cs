@@ -52,6 +52,21 @@ namespace SpaceGame.Gameplay
 
         private readonly Dictionary<int, GameObject> shipByTeam = new();
 
+        /// <summary>
+        /// Each team's resolved touchdown, kept once it has been measured.
+        ///
+        /// <para>
+        /// Two reasons, and the second is the important one. Resolving costs a footprint of ground
+        /// probes per candidate spot and the callers ask again every frame while the world streams
+        /// in, so re-measuring is a few thousand terrain samples a frame for nothing. And the answer
+        /// is supposed to be a FACT about the arena: the arrival plans an arc onto it, flies for
+        /// twenty-six seconds and then lands there, so a second resolve that returned a slightly
+        /// different spot — because a chunk arrived, or a rock loaded — would land the hull off the
+        /// end of its own trajectory.
+        /// </para>
+        /// </summary>
+        private readonly Dictionary<int, (Vector3 Position, float Yaw)> landingByTeam = new();
+
         private IReadOnlyList<ShipSpawnPoint> points;
 
         /// <summary>Set once the layout has been resolved, successfully or not — see <see cref="TryResolvePoints"/>.</summary>
@@ -132,13 +147,20 @@ namespace SpaceGame.Gameplay
         }
 
         /// <summary>
-        /// Where this team's ship comes to rest: its authored point, dropped onto the ground under
-        /// it and lifted by the hull's clearance, with the heading the layout asked for.
+        /// Where this team's ship comes to rest: the nearest spot to its authored point that the
+        /// hull actually fits on, with its belly on the ground and the heading the layout asked for.
         ///
         /// <para>
-        /// False means "not yet" — in a streamed world the chunk under this point has not loaded, so
-        /// there is nothing to measure — and the caller is expected to wait a frame and ask again.
-        /// The contract <see cref="ShipGrounding"/> documents.
+        /// Measured across the whole hull rather than under its origin, because a ship cannot tilt —
+        /// see <see cref="HullFootprint"/> for the failure that fixes. The spot may be nudged off
+        /// the authored point onto ground level enough to rest on; the ring layout is a staging
+        /// arrangement, not a surveyed pad.
+        /// </para>
+        ///
+        /// <para>
+        /// False means "not yet" — in a streamed world the chunks under this point have not loaded,
+        /// so there is nothing to measure — and the caller is expected to wait a frame and ask
+        /// again. The contract <see cref="ShipGrounding"/> documents.
         /// </para>
         /// </summary>
         public bool TryLandingPose(int team, out Vector3 position, out float yaw)
@@ -155,15 +177,43 @@ namespace SpaceGame.Gameplay
                 return false;
             }
 
+            if (landingByTeam.TryGetValue(team, out (Vector3 Position, float Yaw) settled))
+            {
+                position = settled.Position;
+                yaw = settled.Yaw;
+                return true;
+            }
+
             yaw = point.Yaw;
 
-            if (!ShipGrounding.TryResolveGround(point.GroundXZ, config.ProbeHeight, out float groundY))
+            if (!ShipGrounding.TryResolveHullLanding(point.GroundXZ, yaw, shipPrefab,
+                                                     ProbeHeight, Landing, out position))
                 return false;
 
-            position = new Vector3(point.GroundXZ.x, groundY + config.ShipGroundClearance,
-                                   point.GroundXZ.y);
+            landingByTeam[team] = (position, yaw);
             return true;
         }
+
+        /// <summary>
+        /// Drops the resolved touchdowns when this spawner goes away with its scene, so a second
+        /// match does not land its ships where the last arena's terrain happened to be.
+        /// </summary>
+        private void ForgetLandings() => landingByTeam.Clear();
+
+        // A runtime layout may be set with no config asset at all — see TryResolvePoints — so the
+        // placement numbers cannot be read straight off one. The fallbacks are the asset's own
+        // defaults, which is what an arena that never authored an asset was always going to get.
+        private float ProbeHeight => config != null ? config.ProbeHeight : 200f;
+
+        private LandingTolerance Landing =>
+            config != null ? config.Landing : new LandingTolerance(1f, 60f, 12f, 0.05f);
+
+        /// <summary>
+        /// How far the hull's belly hangs below its own origin, so a caller checking a landing knows
+        /// what "on the ground" means for this ship. Measured off the prefab, which is the only copy
+        /// guaranteed to be standing level.
+        /// </summary>
+        public float ShipBellyDrop => ShipHull.BellyDrop(shipPrefab);
 
         /// <summary>
         /// This team's ship, spawning it if it is not standing yet, or false when the ground under

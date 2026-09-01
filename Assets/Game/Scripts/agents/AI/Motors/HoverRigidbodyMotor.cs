@@ -113,6 +113,18 @@ namespace SpaceGame.Agents
         /// <summary>True while the craft is over ground it can actually measure.</summary>
         public bool HasGround => groundSensor.HasGround;
 
+        /// <summary>
+        /// Half-extents of the ground this craft rides over, in its own axes.
+        ///
+        /// <para>
+        /// Exposed so whoever puts the craft DOWN measures the same patch of ground the servo will
+        /// hold it over once it wakes up. A landing grounded against a different footprint is a
+        /// landing the craft corrects on its first physics step, which reads as a ship that touches
+        /// down and then floats back up.
+        /// </para>
+        /// </summary>
+        public Vector2 FootprintExtents => groundSensor.FootprintExtents;
+
         public bool IsImmobile
         {
             get

@@ -397,6 +397,16 @@ namespace SpaceGame.Items
         /// <summary>Owner pressed use.</summary>
         private void OnUse()
         {
+            // The crosshair is on a gear wall with a placement ghost drawn on it. There, Use means
+            // "put this down", not "fire it" — WallAimController is already sending the stow off
+            // the same press, and both happening would fire a staff point-blank into a wall the
+            // player is stowing it on.
+            //
+            // Asked here rather than solved by subscription order, which Unity does not promise:
+            // two handlers on one event either both run or run in whichever order they were added,
+            // and neither is something to hang a weapon discharge on.
+            if (WallAimController.Placing != null) return;
+
             UsableItem usable = HeldItem();
             if (usable == null) return;
 

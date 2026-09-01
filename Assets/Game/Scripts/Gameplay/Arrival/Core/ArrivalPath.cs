@@ -19,6 +19,12 @@ namespace SpaceGame.Gameplay.Arrival
         [Tooltip("Where the hull ends up. Resolved at runtime from the world's spawn anchor, not authored.")]
         public Vector3 ImpactPosition;
 
+        [Tooltip("How far above the impact point the descent stops, so the nose reaches the ground " +
+                 "and the rest of the hull does not. Measured at runtime off the hull itself, not " +
+                 "authored: it is the difference between how far the pitched hull hangs below its " +
+                 "own origin and how far the resting one does. The settle takes it back out.")]
+        public float TouchdownLift;
+
         [Tooltip("Metres above the impact point that the descent begins. Kept inside the band where " +
                  "the desert skybox and volumetric clouds still read correctly — this is a " +
                  "high-atmosphere entry, not true orbit.")]
@@ -45,15 +51,11 @@ namespace SpaceGame.Gameplay.Arrival
 
         [Tooltip("Ceiling on how far the nose may drop. The dive angle itself is MEASURED from the " +
                  "trajectory — the hull points along the way it is actually travelling, which is " +
-                 "what makes it aim at its landing point — and this only stops a very steep late " +
-                 "descent from looking absurd.")]
+                 "what makes it aim at its landing point. The descent is committed, so the last " +
+                 "third of it sits ON this cap and this is therefore the attitude the ship HITS " +
+                 "the ground in: lower it for a hull that ploughs in, raise it for one that spears " +
+                 "in nose-first.")]
         public float MaxPitchDegrees;
-
-        [Tooltip("The last fraction of the descent spent pulling the nose back up to level. " +
-                 "Without it the hull arrives pointing 55 degrees into the ground and the wreck is " +
-                 "left standing on its nose, permanently, because the wreck is saved wherever the " +
-                 "trajectory ends.")]
-        public float FlareFraction;
 
         /// <summary>
         /// The values the arrival ships with. Used by <see cref="ArrivalDirector"/>'s serialized
@@ -63,13 +65,13 @@ namespace SpaceGame.Gameplay.Arrival
         public static ArrivalPath Default => new()
         {
             ImpactPosition = Vector3.zero,
+            TouchdownLift = 0f,
             StartAltitude = 2200f,
             LateralBudget = 900f,
             StartBearing = 35f,
             SweepDegrees = 110f,
             MaxBankDegrees = 22f,
             MaxPitchDegrees = 70f,
-            FlareFraction = 0.18f,
         };
     }
 }

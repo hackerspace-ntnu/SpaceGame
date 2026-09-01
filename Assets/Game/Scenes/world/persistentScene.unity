@@ -2537,13 +2537,18 @@ MonoBehaviour:
     SweepDegrees: 110
     MaxBankDegrees: 22
     MaxPitchDegrees: 70
-    FlareFraction: 0.18
   descentDuration: 26
+  settleHold: 0.2
+  settleDuration: 1.4
   seatResolveTimeout: 20
   crewGatherTimeout: 12
   formationSpread: 0.3
   probeHeight: 600
-  wreckGroundClearance: 1.2
+  wreckGroundClearance: 0.05
+  maxGroundSpread: 1
+  landingSearchRadius: 60
+  landingSearchStep: 12
+  landingTolerance: 0.25
   releaseDelay: 1.6
 --- !u!4 &1845903061
 Transform:

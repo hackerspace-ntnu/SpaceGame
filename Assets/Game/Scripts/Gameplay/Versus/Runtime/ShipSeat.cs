@@ -27,6 +27,28 @@ namespace SpaceGame.Gameplay
                  "these all at zero fills them top to bottom.")]
         [SerializeField] private int order;
 
+        [Tooltip("Where the occupant of this seat stands up: on the deck, clear of the chair, " +
+                 "facing the way they should walk off. Leave it empty and the ship's mount " +
+                 "dismount point is used instead.")]
+        [SerializeField] private Transform dismountPoint;
+
         public int Order => order;
+
+        /// <summary>
+        /// Where this seat's occupant stands up, or null when the ship has not authored one.
+        ///
+        /// <para>
+        /// A marker rather than an offset, and per seat rather than per ship, because neither of the
+        /// obvious shortcuts survives contact with a real hull. An offset from the seat is measured
+        /// in the chair's local space and this ship's four chairs face two different ways; one point
+        /// for the whole ship stands the whole crew up inside each other. The marker is the answer,
+        /// the same way the seat marker itself is.
+        /// </para>
+        /// <para>
+        /// Note it is a place to put the player's ORIGIN, which sits exactly 1 m above the soles —
+        /// a marker on the deck buries the feet a metre through it.
+        /// </para>
+        /// </summary>
+        public Transform DismountPoint => dismountPoint;
     }
 }

@@ -239,6 +239,45 @@ namespace SpaceGame.Core
         }
 
         /// <summary>
+        /// Hands the wheel to the pack-yaw action and takes it back off the hotbar, or the other
+        /// way round.
+        ///
+        /// <para>
+        /// The backpack never needed this: focus mode runs with this whole component — and
+        /// therefore the Hotbar map — disabled, so switching the yaw action on there could not
+        /// collide with anything. The inventory wall has no mode at all; the player is walking
+        /// around with every action live, and one notch would otherwise both turn the item and
+        /// change which item they are holding.
+        /// </para>
+        /// <para>
+        /// So the two are switched as a PAIR, here, rather than by two calls that could drift out
+        /// of step and leave a player whose wheel does nothing at all. Re-enabling the hotbar wheel
+        /// unconditionally is safe: it is on whenever this component is, and this method is only
+        /// reachable from a body whose input is live.
+        /// </para>
+        /// </summary>
+        public void SetWheelTurnsItems(bool on)
+        {
+            EnsureInputs();
+
+            if (on)
+            {
+                inputs.Hotbar.HotbarScroll.Disable();
+                packYaw.Enable();
+                return;
+            }
+
+            packYaw.Disable();
+            packYawAccumulator = 0f;
+
+            // The leftovers as well as the action. A notch banked against the yaw threshold would
+            // otherwise be waiting the next time the player looks at a wall, and turn the first
+            // item they hold up to it without them touching the wheel.
+            scrollAccumulator = 0f;
+            inputs.Hotbar.HotbarScroll.Enable();
+        }
+
+        /// <summary>
         /// Switches the rack key on for the length of a focus session. Third copy of the two
         /// above, and off by default for the same reason: the component this lives on is disabled
         /// while a session owns the screen, so anything that must survive that has to be switched

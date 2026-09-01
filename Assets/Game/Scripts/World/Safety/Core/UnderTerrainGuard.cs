@@ -245,11 +245,18 @@ namespace SpaceGame.World.Safety
         {
             Transform b = Body;
 
-            // A parented body is carried, not independently positioned: a rider on a mount, a
-            // passenger on a walker deck. Its carrier has its own guard, and lifting the two
-            // separately would tear the rider off the seat. Deliberately phrased as "has a parent"
-            // rather than a MountModule lookup so any future carrier is covered for free.
-            if (b.parent != null)
+            // A carried body is not independently positioned: a rider on a mount, a passenger on a
+            // walker deck, a crew member strapped into a ship riding a crash landing down. Its
+            // carrier has its own guard, and lifting the two separately would tear the rider off the
+            // seat.
+            //
+            // Two tests, because there are two ways to carry. Parenting covers the mount system and
+            // anything else that carries by hierarchy. CarriedBody covers the carriers that cannot
+            // parent at all — the player's NetworkTransform is owner-authoritative and world-space,
+            // so the arrival carries its crew by writing their pose, and such a rider has no parent
+            // to find. Riding 2 km down inside a hull, that rider is over ground the guard has every
+            // reason to think it has fallen through.
+            if (b.parent != null || SpaceGame.Agents.CarriedBody.IsHeld(b.gameObject))
             {
                 if (isParked) ExitPark();
                 return;

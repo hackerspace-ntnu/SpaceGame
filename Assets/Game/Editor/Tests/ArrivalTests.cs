@@ -6,7 +6,9 @@
 // pose a degree off level still looks like a landing in the editor and then leaves the wreck resting
 // on one wing forever, because the hull is persisted exactly where the trajectory left it. An
 // unstable seat sort satisfies "sorted by order" while filling seats in a sequence that changes
-// between runs. And a shake that is merely near zero when a player has turned shake off still makes
+// between runs. The descent and the settle are tested as the two separate beats they are: the
+// descent has to arrive still pointing at the ground, and the settle has to end EXACTLY level on
+// the impact point, because that pose is the one the world keeps. And a shake that is merely near zero when a player has turned shake off still makes
 // that player ill.
 //
 // In Editor/ rather than beside the other EditMode tests because these touch Assembly-CSharp types,
@@ -48,31 +50,125 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void EndsExactlyOnTheImpactPosition()
+        public void TouchesDownOverTheImpactPoint()
         {
             ArrivalPath path = Path();
+            path.TouchdownLift = 9f;
 
             ArrivalTrajectory.Evaluate(1f, path, out Vector3 position, out Quaternion _);
 
-            Assert.Less(Vector3.Distance(path.ImpactPosition, position), PositionTolerance,
-                        "The wreck is persisted where the trajectory leaves it, so a terminal " +
-                        "position that is merely close is a hull permanently buried in, or hovering " +
-                        "above, the ground.");
+            Assert.AreEqual(path.ImpactPosition.x, position.x, PositionTolerance);
+            Assert.AreEqual(path.ImpactPosition.z, position.z, PositionTolerance);
+
+            // Held up by exactly the lift and no more. The lift is what puts the NOSE on the ground
+            // rather than the cockpit, so a descent that ignored it would end with the crew's camera
+            // metres inside the terrain, and one that doubled it would end with the ship stopping in
+            // mid-air.
+            Assert.AreEqual(path.ImpactPosition.y + path.TouchdownLift, position.y, PositionTolerance);
         }
 
         [Test]
-        public void LandsLevel()
+        public void TouchesDownStillPointingAtTheGround()
         {
+            // The whole point of splitting the settle out of the descent: the ship must arrive
+            // nose-first. A hull that had levelled off by t=1 has landed, not crashed.
             ArrivalPath path = Path();
 
             ArrivalTrajectory.Evaluate(1f, path, out Vector3 _, out Quaternion rotation);
+
+            Assert.AreEqual(path.MaxPitchDegrees, Mathf.DeltaAngle(0f, rotation.eulerAngles.x),
+                            AngleTolerance,
+                            "The late descent is steeper than the cap, so the hull must reach the " +
+                            "ground at exactly the cap.");
+        }
+
+        [Test]
+        public void SettleStartsWhereTheDescentEnds()
+        {
+            // Two beats, written in two places, played back to back on one hull. A settle that did
+            // not start on the descent's last pose reads as the ship jumping on contact.
+            ArrivalPath path = Path();
+            path.TouchdownLift = 9f;
+
+            ArrivalTrajectory.Evaluate(1f, path, out Vector3 touchdown, out Quaternion touchdownRotation);
+            ArrivalTrajectory.EvaluateSettle(0f, path, out Vector3 position, out Quaternion rotation);
+
+            Assert.Less(Vector3.Distance(touchdown, position), PositionTolerance);
+            Assert.Less(Quaternion.Angle(touchdownRotation, rotation), AngleTolerance);
+        }
+
+        [Test]
+        public void SettleEndsExactlyOnTheImpactPosition()
+        {
+            ArrivalPath path = Path();
+            path.TouchdownLift = 9f;
+
+            ArrivalTrajectory.EvaluateSettle(1f, path, out Vector3 position, out Quaternion _);
+
+            Assert.Less(Vector3.Distance(path.ImpactPosition, position), PositionTolerance,
+                        "The wreck is persisted where the settle leaves it, so a terminal position " +
+                        "that is merely close is a hull permanently buried in, or hovering above, " +
+                        "the ground — and the whole touchdown lift has to come back out.");
+        }
+
+        [Test]
+        public void SettleEndsLevel()
+        {
+            ArrivalPath path = Path();
+
+            ArrivalTrajectory.EvaluateSettle(1f, path, out Vector3 _, out Quaternion rotation);
 
             Vector3 euler = rotation.eulerAngles;
             float roll = Mathf.DeltaAngle(0f, euler.z);
             float pitch = Mathf.DeltaAngle(0f, euler.x);
 
             Assert.AreEqual(0f, roll, AngleTolerance, "Bank must unwind to zero or the wreck rests on a wing.");
-            Assert.AreEqual(0f, pitch, AngleTolerance, "Pitch must flare to zero or the wreck stands on its nose.");
+            Assert.AreEqual(0f, pitch, AngleTolerance,
+                            "The settle must end level or the wreck stands on its nose forever — " +
+                            "and the landing is measured assuming the hull differs from its prefab " +
+                            "by yaw alone.");
+        }
+
+        [Test]
+        public void SettleKeepsTheLandingHeading()
+        {
+            // The heading is chosen by the bearing the descent starts from, and a versus arena picks
+            // that bearing so each team lands facing the way its spawn point asks. A settle that
+            // touched the yaw would quietly throw that away.
+            ArrivalPath path = Path();
+
+            ArrivalTrajectory.EvaluateSettle(1f, path, out Vector3 _, out Quaternion rotation);
+
+            float expected = ArrivalFormation.LandingYawForBearing(path.StartBearing, path.SweepDegrees);
+
+            Assert.AreEqual(0f, Mathf.DeltaAngle(expected, rotation.eulerAngles.y), AngleTolerance);
+        }
+
+        [Test]
+        public void SettleFallsAndIsClamped()
+        {
+            ArrivalPath path = Path();
+            path.TouchdownLift = 9f;
+
+            float previous = float.MaxValue;
+
+            for (int i = 0; i <= 200; i++)
+            {
+                ArrivalTrajectory.EvaluateSettle(i / 200f, path, out Vector3 position, out Quaternion _);
+
+                Assert.Less(position.y, previous + PositionTolerance,
+                            "The hull rose during the settle at k=" + (i / 200f) + ". It is falling " +
+                            "off its nose, not taking off again.");
+                previous = position.y;
+            }
+
+            // A caller whose own timer overshoots gets the resting pose, not an extrapolated one
+            // under the terrain — the same courtesy the descent gives.
+            ArrivalTrajectory.EvaluateSettle(4f, path, out Vector3 over, out Quaternion _);
+            ArrivalTrajectory.EvaluateSettle(-2f, path, out Vector3 under, out Quaternion _);
+
+            Assert.Less(Vector3.Distance(path.ImpactPosition, over), PositionTolerance);
+            Assert.AreEqual(path.ImpactPosition.y + path.TouchdownLift, under.y, PositionTolerance);
         }
 
         [Test]
@@ -172,10 +268,10 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void PitchIsContinuousThroughTheFlare()
+        public void PitchIsContinuousAllTheWayIn()
         {
-            // A step from a steep dive to level on the last frame reads as the hull snapping rather
-            // than landing, so the flare has to be smooth right up to touchdown.
+            // The dive steepens on its own and then sits on its cap. Both the steepening and the
+            // moment it meets the cap have to be smooth, or the hull visibly snaps mid-descent.
             ArrivalPath path = Path();
             float previous = 0f;
 
@@ -195,25 +291,12 @@ namespace SpaceGame.EditorTools
         }
 
         [Test]
-        public void ZeroFlareStillLandsLevel()
-        {
-            // A flare of zero is a step discontinuity, so it is clamped rather than honoured. The
-            // wreck is saved in its terminal attitude, and one stood on its nose is permanent.
-            ArrivalPath path = Path();
-            path.FlareFraction = 0f;
-
-            ArrivalTrajectory.Evaluate(1f, path, out Vector3 _, out Quaternion rotation);
-
-            Assert.AreEqual(0f, Mathf.DeltaAngle(0f, rotation.eulerAngles.x), AngleTolerance);
-        }
-
-        [Test]
         public void ZeroSweepIsStillValid()
         {
             ArrivalPath path = Path();
             path.SweepDegrees = 0f;
 
-            ArrivalTrajectory.Evaluate(1f, path, out Vector3 position, out Quaternion rotation);
+            ArrivalTrajectory.EvaluateSettle(1f, path, out Vector3 position, out Quaternion rotation);
 
             Assert.Less(Vector3.Distance(path.ImpactPosition, position), PositionTolerance);
             Assert.IsFalse(float.IsNaN(rotation.x), "A straight-in approach must not produce a NaN heading.");
@@ -227,7 +310,7 @@ namespace SpaceGame.EditorTools
             ArrivalTrajectory.Evaluate(2f, path, out Vector3 over, out Quaternion _);
             ArrivalTrajectory.Evaluate(-1f, path, out Vector3 under, out Quaternion _);
 
-            // A caller whose own timer overshoots gets the terminal pose, not an extrapolated one
+            // A caller whose own timer overshoots gets the touchdown pose, not an extrapolated one
             // somewhere under the terrain.
             Assert.Less(Vector3.Distance(path.ImpactPosition, over), PositionTolerance);
             Assert.AreEqual(path.ImpactPosition.y + path.StartAltitude, under.y, PositionTolerance);

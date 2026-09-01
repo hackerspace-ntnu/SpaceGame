@@ -41,6 +41,7 @@ using UnityEngine;
 using SpaceGame.Agents;
 using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
+using SpaceGame.Items;
 using SpaceGame.Vehicles;
 using SpaceGame.World.Safety;
 using SpaceGame.World.Weather;
@@ -52,6 +53,12 @@ namespace SpaceGame.EditorTools
         private const string ModelPath = "Assets/Game/Art/Models/Vehicles/PlayerShip/player_ship.fbx";
         private const string PrefabPath = "Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab";
         private const string TestScenePath = "Assets/Game/Scenes/Tests/Ferdinand_Test_world.unity";
+
+        // Built by InventoryWallBuilder from inventory_wall.fbx. Placed here rather than by hand
+        // on the prefab, because this builder rewrites PlayerShip.prefab wholesale on every run —
+        // a hand-added child would survive exactly until the next rebuild.
+        private const string InventoryWallPrefabPath =
+            "Assets/Game/Prefabs/Items/Equipment/InventoryWall.prefab";
 
         // Ground clearance the hover servo holds. Larger than ShipRV's 0.15: the boarding stair's
         // open pose reaches ~0.4 m below the hull skirts, and it must land beside the sand rather
@@ -79,6 +86,40 @@ namespace SpaceGame.EditorTools
         // tip at/under the ground so the lowered door is a walkable ramp from the dune up into
         // the bay (the walk collider is clipped at the ground line — see BuildBackDoor).
         private const float BackDoorDroopDegrees = 40f;
+
+        // The two leaves that seal the aft doorway behind the ramp, elevator-fashion. Thickness of
+        // a leaf, and how far it overhangs the aperture on every side so a closed pair shows no
+        // daylight at the edges. The overhang stays small on purpose: the bay floor is only ~0.2 m
+        // below the sill, and a leaf reaching past that stands IN the floor.
+        private const float BayDoorThickness = 0.2f;
+        private const float BayDoorOverlap = 0.12f;
+
+        // Panels each aft leaf telescopes into, and why it is not simply one slab a side.
+        //
+        // There is no pocket to hide a full-width door in. The aperture is ~3.75 m across and the
+        // wall beside it is clear for 1.4–1.8 m at chest height but only 0.87 m at its worst — the
+        // hull skin curving up at the sill, and the frames overhead — and a full-height leaf is
+        // bound by its worst band. Two 2 m leaves would part to about a third of the doorway and
+        // read as doors jammed halfway.
+        //
+        // Three panels a side puts the RETRACTED STACK at ~0.67 m, which fits that 0.87 m with room
+        // to spare, so the doorway opens essentially fully. Same trick as the four-leaf side door,
+        // and the two stacks still meet on the centreline, which is the part that reads as a door.
+        private const int BayDoorPanelsPerSide = 3;
+
+        // How the aft doorway is measured. The sweep starts this far AFT of the hinge line, so it
+        // begins in clear air whichever slab of the bulkhead the ramp's bottom edge happens to sit
+        // against, and looks this far forward — the aft bay is closed by TWO pierced bulkheads
+        // 1.3 m apart, and a probe that stops at the first reads the gap between them as sky.
+        private const float BayDoorProbeStandoff = 0.3f;
+        private const float BayDoorProbeDepth = 2f;
+
+        // Step the doorway is swept with, the radius the solid/clear samples use (which is also the
+        // clearance a closed leaf keeps off the bulkhead it hides behind), and the narrowest clear
+        // run still counted as doorway rather than a modelling gap between two slabs.
+        private const float BayDoorProbeStep = 0.05f;
+        private const float BayDoorProbeRadius = 0.05f;
+        private const float BayDoorMinSpan = 1f;
 
         // Slope the invisible boarding-ramp collider is laid at. The player is a Rigidbody capsule
         // with no step offset — it cannot climb the stair's 0.7 m treads (the DuneFoil lesson), so
@@ -108,6 +149,27 @@ namespace SpaceGame.EditorTools
         // there is no seam where it meets the plank or the floor.
         private const float ThresholdThickness = 0.1f;
         private const float ThresholdOverlap = 0.15f;
+
+        // Where the inventory wall stands, and how much room it needs.
+        //
+        // The aft room's starboard side is not a flat wall — it is a run of arch ribs springing
+        // off the deck, and their feet reach up to 0.62 m inboard of the deck's own edge (the
+        // widest, Cube.007's buttress, measured off ship_lander_blockout.blend). So the wall does
+        // not sit AGAINST the hull; it stands just clear of the rib feet with the ribs visible
+        // behind and above it, which is how a rack in a ribbed hull would really be fitted.
+        //
+        // Measured from the deck's edge rather than from the hull, because the deck slab is one
+        // mesh with a name the export guarantees and the hull is a hundred shells with none.
+        private const float WallRibClearance = 0.70f;
+
+        // How deep the wall fitting is, from its placement face back to the tray's outer edge —
+        // inventory_wall.py's TRAY_D. The face is what gets positioned; this is what stands behind
+        // it, and the clearance above has to hold for the BACK of the fitting, not its front.
+        private const float WallDepth = 0.24f;
+
+        // Height of the grid's centre above the wall's base, so the fitting stands on the deck
+        // rather than being centred on it — inventory_wall.py's (GRID_Z0 + GRID_Z1) / 2.
+        private const float WallGridCentreHeight = 1.71f;
 
         // Named meshes the build measures from. The export script guarantees these names; anything
         // else in the model is treated generically (structural collision by measurement).
@@ -175,6 +237,13 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
+            // Measured HERE, before a single mesh is reparented. PartLookup.Find is a DIRECT
+            // child lookup, and BuildSlidingLeaves moves sliding_door_1 under a pivot — so asking
+            // for it after that point gets a null and an empty Bounds, which is exactly how the
+            // inventory wall silently failed to be placed the first time this ran.
+            Bounds mainDeck = parts.B("Mesh_Deck_Main");
+            Bounds sideDoor = parts.B("sliding_door_1");
+
             ArticulatedPart backDoor = BuildBackDoor(model.transform, parts);
             ArticulatedPart[] leaves = BuildSlidingLeaves(model.transform, parts);
             ArticulatedPart stair = BuildBoardingStair(model.transform, parts);
@@ -197,6 +266,15 @@ namespace SpaceGame.EditorTools
             // the floor off the ship's own collision, which does not exist until the line above.
             ArticulatedPart platform = BuildSillPlatform(root.transform, model.transform, parts);
 
+            // Same reason again: nothing in the model names the aft doorway, so the leaves that
+            // seal it are measured off the collision the pass above just mounted.
+            ArticulatedPart[] bayDoors = BuildBayDoors(root.transform, model.transform, backDoor);
+            if (bayDoors == null)
+            {
+                Object.DestroyImmediate(root);
+                return;
+            }
+
             // After the collision pass, because a socket adopts the fitting hull that pass gave the
             // module — it is the collider a socket switches off to make the hole a hole.
             if (!BuildPartSockets(root, model.transform))
@@ -208,10 +286,11 @@ namespace SpaceGame.EditorTools
             (Transform seat, Transform dismount, Transform cameraPivot) = BuildCockpit(root.transform, parts);
             BuildArrivalSeats(root.transform, parts);
             BuildCabinAlert(root.transform, parts);
+            BuildInventoryWall(root.transform, mainDeck, sideDoor);
 
             MountModule mount = BuildRootComponents(root, seat, dismount, cameraPivot);
-            WireInteractions(leaves, stair, platform, backDoor);
-            WireDeployment(root, mount, backDoor, leaves, stair, platform);
+            WireInteractions(leaves, stair, platform, backDoor, bayDoors);
+            WireDeployment(root, mount, backDoor, leaves, stair, platform, bayDoors);
 
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PrefabPath));
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
@@ -459,6 +538,285 @@ namespace SpaceGame.EditorTools
 
             pivot.gameObject.AddComponent<ArticulatedPartInteraction>();
             return part;
+        }
+
+        /// <summary>
+        /// The two leaves that actually close the aft doorway: they meet on the aperture's
+        /// centreline and part sideways into the bulkhead, elevator-fashion, standing just inboard
+        /// of the wall the ramp swings against. Each leaf telescopes into BayDoorPanelsPerSide
+        /// panels, because the wall has nowhere near enough pocket to swallow a solid one.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The ramp is a tail-gate, not a door — lowered it is the way in, but raised it only leans
+        /// across the hole from outside; the aperture itself was never sealed. These are the door.
+        /// They ride the ramp's own switch (see WireInteractions) so one press opens the whole aft
+        /// entrance: two presses to get aboard would be incidental friction, not the deliberate
+        /// kind worth keeping (GDC-L1-UX-0007), and doors that part in the middle are the
+        /// convention a player already reads as "this opens" (GDC-L1-UX-0004).
+        /// </para>
+        /// <para>
+        /// The leaves are BUILT here rather than modelled, so the .blend the user hand-edits is
+        /// untouched — and everything about them is measured off the ship's own collision instead
+        /// of authored, because nothing in the model names the hole. That is also why this runs
+        /// after BuildStructuralCollision, next to the sill platform's threshold, which measures
+        /// the same way for the same reason.
+        /// </para>
+        /// <para>
+        /// Rectangular panels behind an arched hole are deliberate: sized to the aperture plus an
+        /// overhang, the arch frames them and the closed pair reads as a sealed doorway from
+        /// outside, with no attempt to follow the curve.
+        /// </para>
+        /// </remarks>
+        private static ArticulatedPart[] BuildBayDoors(Transform root, Transform model,
+                                                       ArticulatedPart backDoor)
+        {
+            // The ramp's own panel: its material is what the leaves are painted with (one aft
+            // entrance, one colour), and its hinge is where the doorway is. Looked up by name
+            // because MakePivot has already reparented it — and because "back_door" is in
+            // RequiredParts, so a rename fails loudly at VerifyParts long before it reaches here.
+            Transform panel = backDoor.transform.Find("back_door");
+            Renderer panelRenderer = panel != null ? panel.GetComponent<Renderer>() : null;
+            if (panelRenderer == null)
+            {
+                Debug.LogError("[PlayerShipBuilder] The back door's panel is missing from its " +
+                               "pivot — the bay doors take their aim and their material from it.");
+                return null;
+            }
+
+            Bounds ramp = panelRenderer.bounds;
+            foreach (Renderer rib in backDoor.GetComponentsInChildren<Renderer>(true))
+                ramp.Encapsulate(rib.bounds);
+
+            if (!MeasureBayDoorway(root, ramp, backDoor.transform.position,
+                                   out Bounds doorway, out float innerFaceZ))
+                return null;
+
+            // Each side covers half the hole plus the overhang, so the two leaves meet on the
+            // centreline and overlap the jamb all the way round; that half is then split into the
+            // panels it telescopes into.
+            float sideWidth = doorway.size.x * 0.5f + BayDoorOverlap;
+            float panelWidth = sideWidth / BayDoorPanelsPerSide;
+            float plane = innerFaceZ + BayDoorThickness * 0.5f;
+
+            // Overhung at the sides and the head, but NOT at the foot: the floor seals the bottom
+            // of a door. Overhanging it puts the panel's bottom edge inside the deck slab, which
+            // stands barely 0.02 m below the sill — and a sweep that STARTS inside a collider
+            // reports zero distance, so the pocket would measure as no pocket at all and the whole
+            // aft entrance would fail the build for a reason nothing about it would suggest.
+            float height = doorway.size.y + BayDoorOverlap;
+            float midY = doorway.min.y + height * 0.5f;
+
+            // How much wall each side has to retract into, measured with a THIN slab rather than a
+            // panel-wide one: the sweep is sideways, so only the leading face's cross-section
+            // decides where it stops, and a probe whose width depended on the panel count would
+            // make the panel count depend on itself.
+            var pockets = new float[2];
+            for (int side = 0; side < 2; side++)
+            {
+                float outward = side == 0 ? -1f : 1f;
+                Vector3 lead = new Vector3(
+                    doorway.center.x + outward * (sideWidth - BayDoorProbeRadius), midY, plane);
+                pockets[side] = PocketDepth(root, lead,
+                                            new Vector3(BayDoorProbeRadius * 2f, height, BayDoorThickness),
+                                            new Vector3(outward, 0f, 0f), sideWidth);
+            }
+
+            // Both sides get the same panel count, so the door is symmetric; the shallower pocket
+            // is the one that has to fit. A stack has to travel its own width (less the overhang,
+            // which is allowed to stay over the jamb) to clear the doorway.
+            float pocket = Mathf.Min(pockets[0], pockets[1]);
+            if (pocket < panelWidth - BayDoorOverlap)
+            {
+                Debug.LogError($"[PlayerShipBuilder] The aft bulkhead is clear for only {pocket:F2} m " +
+                               $"beside its {doorway.size.x:F2} m doorway, which cannot take a " +
+                               $"{panelWidth:F2} m retracted stack. Raise BayDoorPanelsPerSide " +
+                               $"(currently {BayDoorPanelsPerSide}) until the stack fits, or the " +
+                               "doors would part to a doorway too narrow to walk through.");
+                return null;
+            }
+
+            // How far the outermost panel tucks past its own closed slot. One panel width is all
+            // that is ever needed — that is what carries the whole stack clear of the opening — and
+            // never more than the wall actually has.
+            float tuck = Mathf.Min(pocket, panelWidth);
+
+            var built = new List<ArticulatedPart>(BayDoorPanelsPerSide * 2);
+            for (int side = 0; side < 2; side++)
+            {
+                float outward = side == 0 ? -1f : 1f;
+                string sideName = outward < 0f ? "Port" : "Stbd";
+
+                for (int i = 0; i < BayDoorPanelsPerSide; i++)
+                {
+                    // Panel 0 is the one at the centreline; the rest run outboard from it. Opening
+                    // slides every panel onto the OUTERMOST panel's slot, which itself tucks one
+                    // width further — the four-leaf side door's cascade, at the aft end. Equal
+                    // speed over unequal distance is what staggers their arrival.
+                    Vector3 centre = new Vector3(
+                        doorway.center.x + outward * (i + 0.5f) * panelWidth, midY, plane);
+                    Transform pivot = MakePivot(model, $"BayDoorLeaf_{sideName}{i + 1}", centre);
+
+                    // A primitive cube, scaled: the panel is a slab, the built-in cube is a slab,
+                    // and its BoxCollider comes along scaled with it — which is exactly the collider
+                    // a closed door wants. Nothing here needs a mesh asset saved beside the prefab.
+                    GameObject slab = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    slab.name = "Panel";
+                    slab.transform.SetParent(pivot, false);
+                    slab.transform.localScale = new Vector3(panelWidth, height, BayDoorThickness);
+                    slab.GetComponent<Renderer>().sharedMaterial = panelRenderer.sharedMaterial;
+
+                    float travel = (BayDoorPanelsPerSide - 1 - i) * panelWidth + tuck;
+                    float duration = Mathf.Max(0.8f, travel / DoorSlideSpeed);
+                    built.Add(AddSlide(pivot, new Vector3(outward, 0f, 0f), travel,
+                                       duration, duration));
+                    pivot.gameObject.AddComponent<ArticulatedPartInteraction>();
+                }
+            }
+
+            // What the doorway is actually worth once both stacks have gone as far as they can:
+            // each side clears back to its innermost open edge, capped at the jamb (a stack that
+            // overshoots the opening does not make it wider).
+            float clearedPerSide = Mathf.Min(doorway.size.x * 0.5f,
+                                             (BayDoorPanelsPerSide - 1) * panelWidth + tuck);
+            Debug.Log($"[PlayerShipBuilder] Aft bay doors: a {doorway.size.x:F2} x " +
+                      $"{doorway.size.y:F2} m doorway, {BayDoorPanelsPerSide} panels a side of " +
+                      $"{panelWidth:F2} m retracting into {pocket:F2} m of wall, leaving " +
+                      $"{clearedPerSide * 2f:F2} m clear.");
+            return built.ToArray();
+        }
+
+        /// <summary>
+        /// The hole in the aft bulkhead, and the z of the bulkhead's INBOARD face, both read off
+        /// the ship's own collision.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Nothing in the model names the aperture — it is the absence between wall slabs — so it
+        /// is swept for rather than looked up: a grid of rays fired forward through the doorway
+        /// plane, and the longest unbroken clear run in each row is that row's opening.
+        /// </para>
+        /// <para>
+        /// The WIDEST row is the doorway, and the other rows only decide how tall it is — they do
+        /// not get to widen it. Taking the union of every row instead is what the first version did,
+        /// and one row is all it takes to ruin: the gap between the floor slabs under the sill reads
+        /// as 1.2 m of clear air, which is wider than the min-span filter and half a metre below the
+        /// doorway, so the measured opening grew downward into the deck. Rows now have to straddle
+        /// the widest row's centre and be at least half as wide to count as the same hole.
+        /// </para>
+        /// <para>
+        /// The ramp is excluded. In its closed pose it leans across the entire doorway, so a probe
+        /// that counted it would find no hole at all — the same exclusion FloorAt makes, for the
+        /// same reason.
+        /// </para>
+        /// <para>
+        /// The inboard face is WALKED, not raycast: a ray reports the face it enters and never the
+        /// one it leaves, and the wall here is several baked hulls deep. The walk has to come out
+        /// into air that STAYS air for a leaf's thickness, because the hulls do not abut perfectly
+        /// — stopping at the first clear sample puts the leaf in the seam between two slabs, inside
+        /// the wall, where it cannot travel at all.
+        /// </para>
+        /// </remarks>
+        private static bool MeasureBayDoorway(Transform root, Bounds ramp, Vector3 hinge,
+                                              out Bounds doorway, out float innerFaceZ)
+        {
+            doorway = default;
+            innerFaceZ = 0f;
+
+            // The colliders were added this frame; queries read the physics scene, which does not
+            // know about them until their transforms are pushed across.
+            Physics.SyncTransforms();
+
+            float from = hinge.z - BayDoorProbeStandoff;
+            var rows = new List<(float y, float lo, float hi)>();
+
+            for (float y = ramp.min.y; y <= ramp.max.y; y += BayDoorProbeStep)
+            {
+                var clear = new List<float>();
+                for (float x = ramp.min.x; x <= ramp.max.x; x += BayDoorProbeStep)
+                    if (!BlockedAlong(root, new Vector3(x, y, from), Vector3.forward,
+                                      BayDoorProbeStandoff + BayDoorProbeDepth))
+                        clear.Add(x);
+
+                if (LongestRun(clear, out float lo, out float hi) && hi - lo >= BayDoorMinSpan)
+                    rows.Add((y, lo, hi));
+            }
+
+            if (rows.Count == 0)
+            {
+                Debug.LogError("[PlayerShipBuilder] No aft doorway found behind the back door — " +
+                               $"nowhere more than {BayDoorMinSpan:F1} m wide is clear through the " +
+                               "bulkhead. The aft bay has been remodelled.");
+                return false;
+            }
+
+            (float y, float lo, float hi) widest = rows[0];
+            foreach (var row in rows)
+                if (row.hi - row.lo > widest.hi - widest.lo)
+                    widest = row;
+
+            float centre = (widest.lo + widest.hi) * 0.5f;
+            float minWidth = (widest.hi - widest.lo) * 0.5f;
+
+            float minY = float.PositiveInfinity, maxY = float.NegativeInfinity;
+            foreach (var row in rows)
+            {
+                if (row.lo > centre || row.hi < centre || row.hi - row.lo < minWidth)
+                    continue;
+                minY = Mathf.Min(minY, row.y);
+                maxY = Mathf.Max(maxY, row.y);
+            }
+
+            doorway = new Bounds(new Vector3(centre, (minY + maxY) * 0.5f, hinge.z),
+                                 new Vector3(widest.hi - widest.lo, maxY - minY, 0f));
+
+            // Just outside the doorway on either side, where the wall is: the step-through that
+            // finds its far side. Both jambs are tried because one of them can be a gap.
+            foreach (float jamb in new[] { doorway.max.x + BayDoorProbeRadius * 2f,
+                                           doorway.min.x - BayDoorProbeRadius * 2f })
+            {
+                if (WalkThroughWall(root, jamb, doorway.center.y, from,
+                                    hinge.z + BayDoorProbeDepth, out innerFaceZ))
+                    return true;
+            }
+
+            Debug.LogError("[PlayerShipBuilder] Neither jamb of the aft doorway is a wall that ends " +
+                           $"within {BayDoorProbeDepth:F1} m — the bay doors have no inboard face to " +
+                           "stand against. The sweep has found something other than a doorway.");
+            return false;
+        }
+
+        /// <summary>
+        /// Steps forward at one x/y until it has passed through solid structure and out into air
+        /// that stays clear for a leaf's thickness; reports where that air starts.
+        /// </summary>
+        private static bool WalkThroughWall(Transform root, float x, float y, float from, float to,
+                                            out float face)
+        {
+            face = 0f;
+            bool insideWall = false;
+
+            for (float z = from; z <= to; z += BayDoorProbeStep)
+            {
+                if (IsSolidAt(root, new Vector3(x, y, z), BayDoorProbeRadius))
+                {
+                    insideWall = true;
+                    continue;
+                }
+                if (!insideWall)
+                    continue;
+
+                bool staysClear = true;
+                for (float d = 0f; d <= BayDoorThickness && staysClear; d += BayDoorProbeStep)
+                    staysClear = !IsSolidAt(root, new Vector3(x, y, z + d), BayDoorProbeRadius);
+
+                if (!staysClear)
+                    continue; // a seam between two slabs, not the far side of the wall
+
+                face = z;
+                return true;
+            }
+            return false;
         }
 
         // The four-leaf telescoping side door. Authored pose is closed: the leaves fan down the
@@ -740,6 +1098,93 @@ namespace SpaceGame.EditorTools
             float measured = FloorAt(root, from, distance);
             return !float.IsNegativeInfinity(measured)
                    && Mathf.Abs(measured - height) <= ThresholdTolerance;
+        }
+
+        /// <summary>
+        /// Whether the ship's own structure stands anywhere along a ray. Moving parts do not count:
+        /// every one of them is somewhere it will not be a moment later, and the back door in
+        /// particular leans across the whole aft doorway in its closed pose.
+        /// </summary>
+        private static bool BlockedAlong(Transform root, Vector3 from, Vector3 direction,
+                                         float distance)
+        {
+            foreach (RaycastHit hit in Physics.RaycastAll(from, direction, distance, ~0,
+                                                          QueryTriggerInteraction.Ignore))
+            {
+                if (!hit.collider.transform.IsChildOf(root)) continue;
+                if (hit.collider.GetComponentInParent<ArticulatedPart>() != null) continue;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>Whether a point is inside the ship's structure, moving parts excluded.</summary>
+        private static bool IsSolidAt(Transform root, Vector3 point, float radius)
+        {
+            foreach (Collider hit in Physics.OverlapSphere(point, radius, ~0,
+                                                           QueryTriggerInteraction.Ignore))
+            {
+                if (!hit.transform.IsChildOf(root)) continue;
+                if (hit.GetComponentInParent<ArticulatedPart>() != null) continue;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// How far a slab can travel before the ship's own structure stops it, capped at
+        /// <paramref name="wanted"/>. The swept box is shrunk by a probe radius so a leaf sitting a
+        /// hair off the floor or overlapping its jamb does not report zero.
+        /// </summary>
+        private static float PocketDepth(Transform root, Vector3 centre, Vector3 size,
+                                         Vector3 direction, float wanted)
+        {
+            Vector3 half = Vector3.Max(size * 0.5f - Vector3.one * BayDoorProbeRadius,
+                                       Vector3.one * BayDoorProbeRadius);
+
+            float reached = wanted;
+            foreach (RaycastHit hit in Physics.BoxCastAll(centre, half, direction,
+                                                          Quaternion.identity, wanted, ~0,
+                                                          QueryTriggerInteraction.Ignore))
+            {
+                if (!hit.collider.transform.IsChildOf(root)) continue;
+                if (hit.collider.GetComponentInParent<ArticulatedPart>() != null) continue;
+                reached = Mathf.Min(reached, hit.distance);
+            }
+            return reached;
+        }
+
+        /// <summary>
+        /// The longest unbroken run of <see cref="BayDoorProbeStep"/>-spaced samples in a sorted
+        /// list — the opening in a row of the sweep, as opposed to the seams either side of it.
+        /// </summary>
+        private static bool LongestRun(List<float> samples, out float low, out float high)
+        {
+            low = high = 0f;
+            if (samples.Count == 0)
+                return false;
+
+            float bestLow = samples[0], bestHigh = samples[0];
+            float runLow = samples[0], runHigh = samples[0];
+            for (int i = 1; i < samples.Count; i++)
+            {
+                if (samples[i] - runHigh <= BayDoorProbeStep * 1.5f)
+                    runHigh = samples[i];
+                else
+                {
+                    runLow = runHigh = samples[i];
+                }
+
+                if (runHigh - runLow > bestHigh - bestLow)
+                {
+                    bestLow = runLow;
+                    bestHigh = runHigh;
+                }
+            }
+
+            low = bestLow;
+            high = bestHigh;
+            return true;
         }
 
         // ─────────── Collision ───────────
@@ -1094,7 +1539,7 @@ namespace SpaceGame.EditorTools
         /// refreshes its copies from the source material each run, so a one-off edit would drift
         /// back to opaque on the next rebuild (see the Material Default Drift note in memory).
         /// </summary>
-        private const float CanopyAlpha = 0.3f;
+        private const float CanopyAlpha = 0.15f;
 
         private static void MakeCanopyGlass(PartLookup parts)
         {
@@ -1214,7 +1659,9 @@ namespace SpaceGame.EditorTools
                                            canopy.center.z - 1.0f),
                                Quaternion.identity,
                                new Vector3(canopy.center.x + 1.0f, floorTop + PlayerPivotHeight,
-                                           canopy.center.z - 1.4f));
+                                           canopy.center.z - 1.4f),
+                               // Stepping sideways off a notional helm, facing the way they stepped.
+                               Quaternion.LookRotation(Vector3.right, Vector3.up));
             Vector3 seatPos = helm.Pivot;
 
             // The wheel is scenery — the chair is where you sit down. It keeps its collider so the
@@ -1324,6 +1771,102 @@ namespace SpaceGame.EditorTools
             Vector3 extents = unturn * cb.size;
             volume.size = new Vector3(Mathf.Abs(extents.x), Mathf.Abs(extents.y), Mathf.Abs(extents.z))
                           + Vector3.one * SeatVolumePadding;
+        }
+
+        // ─────────── Inventory wall ───────────
+
+        /// <summary>
+        /// Stand the gear wall on the starboard side of the aft room, between the sliding side
+        /// door and the rear ramp.
+        ///
+        /// <para>
+        /// Every number here is MEASURED off the model rather than authored, for the reason every
+        /// other placement in this file is: the Blender axis conversion has bitten every vehicle in
+        /// this project at least once, and a hard-coded local offset survives exactly until the
+        /// next re-export moves something.
+        /// </para>
+        /// <para>
+        /// Which side is starboard is read off the sliding door, not assumed from the yaw. The door
+        /// is on the starboard hull by construction — it is the only side door the ship has — so
+        /// the vector from the deck's centre to it IS the direction, whatever the axes did.
+        /// </para>
+        /// <para>
+        /// The wall's own facing is then measured too: the fitting is rotated by whatever it takes
+        /// to put its <c>PackSurface</c>'s normal into the room and that surface's v axis pointing
+        /// up. Asking the surface rather than trusting the prefab's forward is what makes this
+        /// survive a re-export of the wall as well as of the ship.
+        /// </para>
+        /// </summary>
+        private static void BuildInventoryWall(Transform root, Bounds deck, Bounds door)
+        {
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(InventoryWallPrefabPath);
+            if (source == null)
+            {
+                Debug.LogWarning("[PlayerShipBuilder] No inventory wall at " +
+                                 InventoryWallPrefabPath + " — run Tools/SpaceGame/Items/Build " +
+                                 "Inventory Wall Prefab. The ship is built without it.");
+                return;
+            }
+
+            if (deck.size == Vector3.zero || door.size == Vector3.zero)
+            {
+                Debug.LogWarning("[PlayerShipBuilder] Could not measure the main deck or the side " +
+                                 "door, so the inventory wall was not placed.");
+                return;
+            }
+
+            // The LATERAL half of the offset only, and X is lateral by construction: ResolveModelYaw
+            // has already turned the nose onto +Z and VerifyOrientation refused to build a ship
+            // where it is not. So the door only has to say which SIDE, not which axis.
+            //
+            // Taking the larger component instead was tried and picked +Z: the side door sits well
+            // forward of the aft room as well as outboard of it, so its fore-aft offset is the
+            // bigger of the two and the wall was stood across the room facing the cockpit.
+            Vector3 toDoor = door.center - deck.center;
+            var side = new Vector3(Mathf.Sign(toDoor.x), 0f, 0f);
+
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(source);
+            instance.name = "InventoryWall";
+            instance.transform.SetParent(root, false);
+            instance.transform.localRotation = Quaternion.identity;
+            instance.transform.localPosition = Vector3.zero;
+
+            var surface = instance.GetComponentInChildren<PackSurface>(true);
+            if (surface == null)
+            {
+                Debug.LogWarning("[PlayerShipBuilder] The inventory wall prefab has no PackSurface, " +
+                                 "so there is nothing to aim it by. Removing it again.");
+                Object.DestroyImmediate(instance);
+                return;
+            }
+
+            // The face into the room, its v axis up. LookRotation's arguments are (forward, up) and
+            // a PackSurface's frame is local X = u, local Z = v, local Y = the outward normal — so
+            // the surface's FORWARD is v and its UP is the normal.
+            Quaternion wanted = Quaternion.LookRotation(Vector3.up, -side);
+
+            Quaternion relative = Quaternion.Inverse(instance.transform.rotation) * surface.transform.rotation;
+            instance.transform.rotation = wanted * Quaternion.Inverse(relative);
+
+            // Where the FACE has to end up: clear of the rib feet along the side, centred on the
+            // deck fore-and-aft, and with the grid's centre one grid-half above the deck.
+            float halfWidth = Vector3.Dot(deck.extents, new Vector3(
+                Mathf.Abs(side.x), Mathf.Abs(side.y), Mathf.Abs(side.z)));
+
+            Vector3 target =
+                deck.center
+                + side * (halfWidth - WallRibClearance - WallDepth)
+                + Vector3.up * (deck.max.y - deck.center.y + WallGridCentreHeight);
+
+            // The along-ship component comes from the deck's own centre, which the line above
+            // already carries — the wall is centred in the room it stands in.
+            Vector3 faceCentre = surface.ToWorld(surface.Size * 0.5f, 0f);
+            instance.transform.position += target - faceCentre;
+
+            Debug.Log("[PlayerShipBuilder] Inventory wall on the " +
+                      (side.x > 0f ? "+X" : "-X") + " side, face centre " +
+                      surface.ToWorld(surface.Size * 0.5f, 0f).ToString("0.00") +
+                      ", normal " + surface.transform.up.ToString("0.00") + ".");
         }
 
         // ─────────── Cabin alert ───────────
@@ -1444,9 +1987,30 @@ namespace SpaceGame.EditorTools
                 // sideways chairs seat their crew sideways instead of everyone facing the nose.
                 marker.localRotation = pose.Rotation;
 
+                // Where that crew member stands up: the same measured spot the passenger seats use
+                // — out of the chair and onto the DECK, forwards for a chair that faces across the
+                // hull and backwards for one that faces along it. Authored per seat because the
+                // alternative is four people standing up into one another, and because without it
+                // getting up left the body on the seat pose — a metre up the chair, seated pivot and
+                // all — for physics to shove out in whatever direction it felt like that run.
+                //
+                // Parented to the marker, so the position is taken back out of the marker's own
+                // rotation the way the passenger seats take it out of theirs.
+                Quaternion unturn = Quaternion.Inverse(pose.Rotation);
+                Transform dismount = Empty(marker, "DismountPoint",
+                                           unturn * (pose.Dismount - pose.Pivot));
+                // Facing the way they stepped. SeatedRider reads the yaw off this marker, so a
+                // marker left with the chair's own rotation stands people up nose-first into the
+                // console they were just sitting at.
+                dismount.localRotation = unturn * pose.DismountRotation;
+
                 var seat = marker.gameObject.AddComponent<SpaceGame.Gameplay.ShipSeat>();
                 int index = order++;
-                Apply(seat, so => SerializedFields.SetInt(so, "order", index));
+                Apply(seat, so =>
+                {
+                    SerializedFields.SetInt(so, "order", index);
+                    SerializedFields.Set(so, "dismountPoint", dismount);
+                });
             }
         }
 
@@ -1482,11 +2046,19 @@ namespace SpaceGame.EditorTools
             /// <summary>Where they stand up — on the DECK, not at cushion height.</summary>
             public readonly Vector3 Dismount;
 
-            public SeatPose(Vector3 pivot, Quaternion rotation, Vector3 dismount)
+            /// <summary>
+            /// Which way they face once up: along the step they just took, so nobody stands up with
+            /// their nose against the console they were sitting at.
+            /// </summary>
+            public readonly Quaternion DismountRotation;
+
+            public SeatPose(Vector3 pivot, Quaternion rotation, Vector3 dismount,
+                            Quaternion dismountRotation)
             {
                 Pivot = pivot;
                 Rotation = rotation;
                 Dismount = dismount;
+                DismountRotation = dismountRotation;
             }
         }
 
@@ -1538,7 +2110,8 @@ namespace SpaceGame.EditorTools
             return new SeatPose(
                 new Vector3(bounds.center.x, cushion + SeatedPivotAboveCushion, bounds.center.z),
                 Quaternion.LookRotation(forward, Vector3.up),
-                dismount);
+                dismount,
+                Quaternion.LookRotation(stepDirection, Vector3.up));
         }
 
         /// <summary>
@@ -1869,11 +2442,15 @@ namespace SpaceGame.EditorTools
         // EVERY leaf is a switch for the whole side assembly — leaves, stair and platform — so
         // whichever panel the player is looking at, pressing it opens the door, runs the stair
         // out and extends the platform (and mixed states resolve toward "close everything", so
-        // four switches can never wedge the group). The back door is its own switch.
+        // four switches can never wedge the group).
+        //
+        // The aft entrance works the same way: ramp and both bay-door leaves on one switch,
+        // carried by all three, so one press anywhere on it drops the ramp and parts the doors.
         // ArticulatedPartInteraction already carries the request/announce netcode and the
         // late-joiner ask, so nothing here needs a new NetMsg id.
         private static void WireInteractions(ArticulatedPart[] leaves, ArticulatedPart stair,
-                                             ArticulatedPart platform, ArticulatedPart backDoor)
+                                             ArticulatedPart platform, ArticulatedPart backDoor,
+                                             ArticulatedPart[] bayDoors)
         {
             Object[] sideParts = new List<Object>(leaves) { stair, platform }.ToArray();
             foreach (ArticulatedPart leaf in leaves)
@@ -1883,17 +2460,22 @@ namespace SpaceGame.EditorTools
                 Apply(side, so => SetArray(so, "parts", sideParts));
             }
 
-            ArticulatedPartInteraction back = backDoor.GetComponent<ArticulatedPartInteraction>();
-            Apply(back, so => SetArray(so, "parts", new Object[] { backDoor }));
+            Object[] aftParts = new List<Object>(bayDoors) { backDoor }.ToArray();
+            foreach (ArticulatedPart aft in new List<ArticulatedPart>(bayDoors) { backDoor })
+            {
+                ArticulatedPartInteraction back = aft.GetComponent<ArticulatedPartInteraction>();
+                Apply(back, so => SetArray(so, "parts", aftParts));
+            }
         }
 
         private static void WireDeployment(GameObject root, MountModule mount, ArticulatedPart backDoor,
                                            ArticulatedPart[] leaves, ArticulatedPart stair,
-                                           ArticulatedPart platform)
+                                           ArticulatedPart platform, ArticulatedPart[] bayDoors)
         {
             VehicleDeploymentController deployment = root.AddComponent<VehicleDeploymentController>();
             var close = new List<Object> { backDoor, stair, platform };
             close.AddRange(leaves);
+            close.AddRange(bayDoors);
             Apply(deployment, so =>
             {
                 SerializedFields.Set(so, "mountModule", mount);
@@ -1984,10 +2566,16 @@ namespace SpaceGame.EditorTools
                     problems.Add("a null socket in the rack — its index is a bit of the saved mask");
             }
 
-            if (prefab.GetComponentsInChildren<ArticulatedPart>(true).Length != 7)
-                problems.Add("expected 7 ArticulatedParts (back door, 4 leaves, stair, platform)");
-            if (prefab.GetComponentsInChildren<ArticulatedPartInteraction>(true).Length != 5)
-                problems.Add("expected 5 door switches (every sliding leaf + the back door)");
+            int bayPanels = BayDoorPanelsPerSide * 2;
+            int expectedParts = 1 + bayPanels + 4 + 1 + 1; // ramp, bay panels, side leaves, stair, plank
+            if (prefab.GetComponentsInChildren<ArticulatedPart>(true).Length != expectedParts)
+                problems.Add($"expected {expectedParts} ArticulatedParts (back door, {bayPanels} "
+                             + "bay-door panels, 4 sliding leaves, stair, platform)");
+
+            int expectedSwitches = 4 + 1 + bayPanels; // every side leaf, the ramp, every bay panel
+            if (prefab.GetComponentsInChildren<ArticulatedPartInteraction>(true).Length != expectedSwitches)
+                problems.Add($"expected {expectedSwitches} door switches (every sliding leaf, the "
+                             + "back door and every bay-door panel)");
             // One mount per chair: the front-left chair takes the root module (nothing sits on the
             // chair — the module answers for the whole hull), the rest have their own passenger
             // modules behind their own trigger volumes.
@@ -2025,9 +2613,17 @@ namespace SpaceGame.EditorTools
             if (prefab.GetComponent<SpaceGame.Gameplay.Arrival.SeatedRider>() == null)
                 problems.Add("no SeatedRider — nobody can ride this hull down");
 
-            int arrivalSeats = prefab.GetComponentsInChildren<SpaceGame.Gameplay.ShipSeat>(true).Length;
-            if (chairCount > 0 && arrivalSeats != chairCount)
-                problems.Add($"expected {chairCount} ShipSeat markers (one per chair), found {arrivalSeats}");
+            var arrivalSeatMarkers = prefab.GetComponentsInChildren<SpaceGame.Gameplay.ShipSeat>(true);
+            if (chairCount > 0 && arrivalSeatMarkers.Length != chairCount)
+                problems.Add($"expected {chairCount} ShipSeat markers (one per chair), found {arrivalSeatMarkers.Length}");
+
+            // A seat with no way out is the quietest failure of the lot: the crew still ride down,
+            // still land, still get up — onto the seat pose, a metre up inside the chair, for
+            // physics to shove somewhere different every run.
+            foreach (SpaceGame.Gameplay.ShipSeat seat in arrivalSeatMarkers)
+                if (seat.DismountPoint == null)
+                    problems.Add($"arrival seat '{seat.name}' has no DismountPoint, so its crew "
+                                 + "stand up inside the chair");
 
             if (prefab.GetComponent<ShipAccentRecolor>() == null)
                 problems.Add("no ShipAccentRecolor — team colours have nothing to paint");

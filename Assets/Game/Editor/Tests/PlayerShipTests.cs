@@ -1,8 +1,8 @@
 // PlayerShip: the second drivable ship (PlayerShipBuilder). The project-wide sweeps already
 // prove it is wired and registered; these tests cover what a sweep cannot know — that the door
 // state a player leaves behind actually comes back, and that the builder's output keeps the
-// shape the design promised (7 moving parts, 2 switches, one boarding point) — and that
-// the interior it promised is still a place you can stand.
+// shape the design promised (13 moving parts, two switchable assemblies, one boarding point) —
+// and that the interior it promised is still a place you can stand.
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -11,6 +11,7 @@ using UnityEngine;
 using SpaceGame.Agents;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
+using SpaceGame.Items;
 using SpaceGame.Vehicles;
 
 namespace SpaceGame.EditorTools
@@ -93,6 +94,22 @@ namespace SpaceGame.EditorTools
                 ? collider.name + " (" + mesh.sharedMesh.name + ")"
                 : collider.name;
 
+        private ArticulatedPart[] BayDoors() =>
+            ship.GetComponentsInChildren<ArticulatedPart>(true)
+                .Where(p => p.name.StartsWith("BayDoorLeaf"))
+                .ToArray();
+
+        /// <summary>
+        /// Parts the aft doors and pushes the move into the physics scene. Instant, because nothing
+        /// steps Update here — an animated open would never arrive.
+        /// </summary>
+        private void OpenBayDoors()
+        {
+            foreach (ArticulatedPart leaf in BayDoors())
+                leaf.SetOpen(true, instant: true);
+            Physics.SyncTransforms();
+        }
+
         [Test]
         public void PlayerShip_KeepsItsOpenDoors() =>
             PersistenceProbe.For(PrefabPath)
@@ -113,16 +130,20 @@ namespace SpaceGame.EditorTools
             Assert.IsNotNull(prefab, $"No prefab at {PrefabPath} — run Tools ▸ Vehicles ▸ Build PlayerShip Prefab.");
 
             ArticulatedPart[] parts = prefab.GetComponentsInChildren<ArticulatedPart>(true);
-            Assert.AreEqual(7, parts.Length,
-                "Back door, four sliding leaves, boarding stair and sill platform.");
+            Assert.AreEqual(13, parts.Length,
+                "Back door, six bay-door panels, four sliding leaves, boarding stair and sill platform.");
 
             string[] names = parts.Select(p => p.name).ToArray();
             Assert.Contains("BackDoor", names);
             Assert.Contains("BoardingStair", names);
             Assert.Contains("SillPlatform", names);
+            // Three panels a side, because the bulkhead has no pocket for a solid leaf.
+            Assert.AreEqual(3, names.Count(n => n.StartsWith("BayDoorLeaf_Port")));
+            Assert.AreEqual(3, names.Count(n => n.StartsWith("BayDoorLeaf_Stbd")));
 
-            Assert.AreEqual(5, prefab.GetComponentsInChildren<ArticulatedPartInteraction>(true).Length,
-                "Every sliding leaf is a switch for the side assembly, plus the back door's own.");
+            Assert.AreEqual(11, prefab.GetComponentsInChildren<ArticulatedPartInteraction>(true).Length,
+                "Every sliding leaf is a switch for the side assembly; the back door and every "
+                + "bay-door panel are switches for the aft one.");
             // Four chairs: the front-left one drives the ship's root MountModule (the one the
             // SteerModule is bound to — the controls), the other three are passenger seats with
             // their own modules that no SteerModule references (sit, no helm).
@@ -217,6 +238,12 @@ namespace SpaceGame.EditorTools
         public void PlayerShip_MainDeckAisleIsWalkable()
         {
             Bounds deck = InstantiateShip().transform.Find("Model/Mesh_Deck_Main").GetComponent<Renderer>().bounds;
+
+            // The aisle runs from the back ramp forward, and the aft end of it is a DOORWAY. A
+            // closed door standing in the way is the doors working, not the interior filling in —
+            // which is the only thing this test is about — so they are opened first.
+            OpenBayDoors();
+
             var blocked = new List<string>();
 
             const int steps = 16;
@@ -298,6 +325,204 @@ namespace SpaceGame.EditorTools
                 Assert.Contains("BoardingStair", driven);
                 Assert.Contains("SillPlatform", driven);
             }
+        }
+
+        /// <summary>
+        /// The aft entrance is one switch: ramp and both leaves, carried by all three, so pressing
+        /// any of them opens the lot. Wired in serialized arrays a refactor could quietly drop —
+        /// and the way it fails is a ramp that lowers onto a shut door.
+        /// </summary>
+        [Test]
+        public void PlayerShip_TheAftEntranceOpensAsOnePiece()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            Assert.IsNotNull(prefab);
+
+            ArticulatedPartInteraction[] aft = prefab.GetComponentsInChildren<ArticulatedPartInteraction>(true)
+                .Where(i => i.name == "BackDoor" || i.name.StartsWith("BayDoorLeaf"))
+                .ToArray();
+            Assert.AreEqual(7, aft.Length, "The ramp and all six bay-door panels each carry a switch.");
+
+            foreach (ArticulatedPartInteraction switchOn in aft)
+            {
+                var so = new SerializedObject(switchOn);
+                SerializedProperty parts = so.FindProperty("parts");
+                var driven = Enumerable.Range(0, parts.arraySize)
+                    .Select(i => parts.GetArrayElementAtIndex(i).objectReferenceValue)
+                    .OfType<ArticulatedPart>()
+                    .Select(p => p.name)
+                    .ToArray();
+
+                Assert.AreEqual(7, driven.Length, switchOn.name + ": ramp + all six panels.");
+                Assert.Contains("BackDoor", driven);
+                Assert.AreEqual(6, driven.Count(n => n.StartsWith("BayDoorLeaf")),
+                    switchOn.name + ": every panel of both leaves.");
+            }
+        }
+
+        /// <summary>
+        /// The point of the doors: shut, the aft doorway is solid; open, a body fits through it.
+        ///
+        /// Both halves matter and each fails on its own. Leaves sized to the wrong aperture seal
+        /// nothing — the ramp lowers onto a gap you can walk straight through, and the whole
+        /// feature is invisible. Leaves with nowhere to retract to still LOOK like doors and still
+        /// animate, but leave a doorway too narrow to enter, which reads in play as the ship
+        /// refusing to let you aboard. Everything about them is measured at build time off geometry
+        /// nothing names, so this asserts the measurement landed, not that the wiring exists.
+        /// </summary>
+        [Test]
+        public void PlayerShip_AftDoorwaySealsShutAndClearsOpen()
+        {
+            InstantiateShip();
+
+            ArticulatedPart[] leaves = BayDoors();
+            Assert.AreEqual(6, leaves.Length, "Two leaves of three telescoping panels each.");
+
+            // Where the two leaves meet, which is the middle of the doorway: the innermost panel of
+            // each side, measured off the panels rather than re-derived, so this reads the same
+            // aperture the builder actually used.
+            Bounds port = LeafBounds(leaves.Single(l => l.name == "BayDoorLeaf_Port1"));
+            Bounds stbd = LeafBounds(leaves.Single(l => l.name == "BayDoorLeaf_Stbd1"));
+            Vector3 middle = (port.center + stbd.center) * 0.5f;
+
+            Vector3 gap = new Vector3(BodyRadius * 2f, BodyHeight, 0.4f) * 0.5f;
+            Assert.IsNotEmpty(
+                Ours(Physics.OverlapBox(middle, gap, Quaternion.identity, ~0, NotTriggers)).ToArray(),
+                "Shut, the aft doorway is open air — the leaves are not sealing it.");
+
+            OpenBayDoors();
+
+            Collider[] blocking = Ours(
+                Physics.OverlapBox(middle, gap, Quaternion.identity, ~0, NotTriggers)).ToArray();
+            Assert.IsEmpty(blocking.Select(Describe),
+                "Open, the aft doorway is still blocked — the leaves have nowhere to retract to.");
+        }
+
+        private static Bounds LeafBounds(ArticulatedPart panel) =>
+            panel.GetComponentInChildren<Renderer>().bounds;
+
+        // ─────────── The inventory wall ───────────
+        //
+        // Placed by BuildInventoryWall, which measures its spot off the main deck and the side
+        // door rather than carrying authored coordinates. That is the right way to place it and it
+        // is also why these tests exist: a re-export that moves either landmark moves the wall, and
+        // the way that fails is a rack standing in the middle of the room, or half inside the hull,
+        // with nothing at all in the console.
+
+        private WallInventory Wall() => ship.GetComponentInChildren<WallInventory>(true);
+
+        [Test]
+        public void PlayerShip_HasOneInventoryWall()
+        {
+            InstantiateShip();
+
+            WallInventory[] walls = ship.GetComponentsInChildren<WallInventory>(true);
+            Assert.AreEqual(1, walls.Length,
+                            "The ship carries exactly one gear wall — every wall message names " +
+                            "its own index, but nothing else here expects a second one.");
+
+            PackSurface face = walls[0].GetComponentInChildren<PackSurface>(true);
+            Assert.IsNotNull(face, "The wall has no placement face, so nothing can be put on it.");
+            Assert.AreEqual(PackSurfaceId.WallGrid, face.Id);
+            Assert.AreEqual(5.40f, face.Size.x, 0.001f);
+            Assert.AreEqual(2.70f, face.Size.y, 0.001f);
+        }
+
+        /// <summary>
+        /// The face looks into the room and its v axis points up.
+        ///
+        /// Both are worth pinning because neither survives a guess. A PackSurface's frame is local
+        /// X = u, Z = v, Y = the normal, and there is no rotation that gives u-right, v-up and an
+        /// outward normal at once — so the builder measures the surface and rotates the fitting to
+        /// match rather than trusting the prefab's forward. A wall that came out facing the hull
+        /// would look perfectly normal and accept nothing.
+        /// </summary>
+        [Test]
+        public void PlayerShip_InventoryWallFacesIntoTheRoom()
+        {
+            InstantiateShip();
+
+            PackSurface face = Wall().GetComponentInChildren<PackSurface>(true);
+            Vector3 normal = ship.transform.InverseTransformDirection(face.transform.up);
+            Vector3 up = ship.transform.InverseTransformDirection(face.transform.forward);
+
+            Assert.Less(Mathf.Abs(normal.y), 0.01f, "The face should be vertical.");
+            Assert.Greater(up.y, 0.99f, "The face's v axis should point up, not down or sideways.");
+
+            // Inboard: the normal has to point back toward the ship's centreline, whichever side
+            // the door put the wall on.
+            //
+            // Compared on the LATERAL axis alone, and against the face's CENTRE. A PackSurface's
+            // transform sits at its rectangle's (0,0) corner, not in the middle of it, so a vector
+            // from there to the ship's origin is mostly height and length — dotting a horizontal
+            // normal against it answers 0.6 on a wall that is aimed perfectly.
+            Vector3 centre = ship.transform.InverseTransformPoint(face.ToWorld(face.Size * 0.5f, 0f));
+
+            Assert.Greater(Mathf.Abs(normal.x), 0.99f,
+                           "The face should look straight across the ship, not along it.");
+            Assert.Less(normal.x * centre.x, 0f,
+                        "The face is pointing at the hull rather than into the room.");
+        }
+
+        /// <summary>
+        /// The space gear occupies is empty.
+        ///
+        /// The wall is not flush against the hull and cannot be: the aft room's starboard side is a
+        /// run of arch ribs whose feet reach 0.62 m inboard of the deck edge. So the fitting stands
+        /// clear of them, and this is the test that says the clearance is still enough — a box the
+        /// size of the grid, one item deep, in front of the face.
+        /// </summary>
+        [Test]
+        public void PlayerShip_NothingBlocksTheInventoryWallsFace()
+        {
+            InstantiateShip();
+
+            WallInventory wall = Wall();
+            PackSurface face = wall.GetComponentInChildren<PackSurface>(true);
+
+            // A third of a metre: deeper than the biggest thing the ladder puts on a wall lies, and
+            // shallow enough that a probe standing in the aisle is not what fails this test.
+            const float ItemDepth = 0.33f;
+
+            Vector3 centre = face.ToWorld(face.Size * 0.5f, ItemDepth * 0.5f);
+            var half = new Vector3(face.Size.x * 0.5f, ItemDepth * 0.5f, face.Size.y * 0.5f);
+
+            Collider[] blocking = Ours(
+                    Physics.OverlapBox(centre, half, face.transform.rotation, ~0, NotTriggers))
+                .Where(c => !c.transform.IsChildOf(wall.transform))
+                .ToArray();
+
+            Assert.IsEmpty(blocking.Select(Describe),
+                           "Something of the ship's own is standing in the wall's grid — gear " +
+                           "placed there would be inside it.");
+        }
+
+        /// <summary>
+        /// It stands on the deck rather than floating over it or sinking into it. Measured by
+        /// dropping a ray from just under the fitting's own base, because the base is what the
+        /// builder positions FROM — the grid band's height above the deck is a model constant.
+        /// </summary>
+        [Test]
+        public void PlayerShip_InventoryWallStandsOnTheDeck()
+        {
+            InstantiateShip();
+
+            WallInventory wall = Wall();
+            PackSurface face = wall.GetComponentInChildren<PackSurface>(true);
+
+            // The grid's bottom edge, then down to the deck. GRID_Z0 in inventory_wall.py is
+            // 0.36 m, so a wall sitting on the floor puts its bottom row that far up.
+            Vector3 bottom = face.ToWorld(new Vector2(face.Size.x * 0.5f, 0f), 0.2f);
+
+            Assert.IsTrue(
+                Physics.Raycast(bottom, Vector3.down, out RaycastHit hit, 3f, ~0, NotTriggers),
+                "Nothing under the inventory wall at all — it is not standing on a deck.");
+
+            float clearance = bottom.y - hit.point.y;
+            Assert.That(clearance, Is.InRange(0.2f, 0.65f),
+                        $"The wall's bottom row sits {clearance:0.00} m over the floor under it; " +
+                        "the model puts it 0.36 m up, so anything far from that means the fitting " +
+                        "is floating or buried.");
         }
     }
 }

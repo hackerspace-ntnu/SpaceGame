@@ -105,6 +105,20 @@ namespace SpaceGame.Gameplay.Arrival
             Mathf.Repeat(landingYaw - sweepDegrees - 180f, 360f);
 
         /// <summary>
+        /// The inverse: which way a descent from <paramref name="startBearing"/> leaves the hull
+        /// pointing.
+        ///
+        /// <para>
+        /// Needed because the wreck's footprint has to be measured at the attitude it will actually
+        /// come to rest in. A hull 23 m across and 29 m long spans very different ground at 0° than
+        /// at 90°, so grounding it against a guessed heading is grounding it against the wrong
+        /// terrain — which is the whole failure <see cref="HullFootprint"/> exists to stop.
+        /// </para>
+        /// </summary>
+        public static float LandingYawForBearing(float startBearing, float sweepDegrees) =>
+            Mathf.Repeat(startBearing + sweepDegrees + 180f, 360f);
+
+        /// <summary>
         /// Where a team sits across the field, from zero at the first to one at the last.
         ///
         /// <para>

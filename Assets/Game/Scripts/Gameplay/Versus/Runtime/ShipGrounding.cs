@@ -82,5 +82,80 @@ namespace SpaceGame.Gameplay
             position = new Vector3(point.GroundXZ.x, groundY + groundClearance, point.GroundXZ.y);
             return true;
         }
+
+        /// <summary>
+        /// Where a hull can actually sit down near <paramref name="preferredXZ"/>: a spot level
+        /// enough for it, with the height its ORIGIN needs so the hull's belly rests on the ground
+        /// rather than in it.
+        ///
+        /// <para>
+        /// The three things that were wrong before this existed, in the order they bite:
+        /// the ground was sampled under the hull's origin alone, so a 23-metre hull on a slope was
+        /// grounded against the one patch it was least likely to touch; the height added was an
+        /// authored constant rather than the hull's own belly depth, so it meant something different
+        /// on every prefab; and nothing checked the result, so a ship left hanging looked exactly
+        /// like a ship landed.
+        /// </para>
+        ///
+        /// <para>
+        /// False means "not yet", as everywhere else here: in a streamed world the chunks under the
+        /// footprint have not loaded, and the caller is expected to wait a frame and ask again.
+        /// </para>
+        /// </summary>
+        public static bool TryResolveHullLanding(Vector2 preferredXZ, float yaw, GameObject hullPrefab,
+                                                 float probeHeight, in LandingTolerance tolerance,
+                                                 out Vector3 position)
+        {
+            position = Vector3.zero;
+
+            Vector2 extents = ShipHull.Footprint(hullPrefab);
+
+            bool Sample(Vector2 at, out float y) => TryResolveGround(at, probeHeight, out y);
+
+            if (!LevelGroundSearch.TryFind(preferredXZ, yaw, extents, tolerance.MaxGroundSpread,
+                                           tolerance.SearchRadius, tolerance.RingStep,
+                                           Sample, out Vector2 groundXZ, out float groundY))
+                return false;
+
+            // The hull rests on the HIGHEST ground it spans, because it cannot tilt: its Rigidbody
+            // freezes rotation and the arrival's settle leaves it level. Sitting it on the average,
+            // or on the ground under its middle, buries the high side.
+            position = new Vector3(groundXZ.x,
+                                   groundY + ShipHull.BellyDrop(hullPrefab) + tolerance.BellyClearance,
+                                   groundXZ.y);
+            return true;
+        }
+
+        /// <summary>
+        /// Whether a hull standing at <paramref name="position"/> is genuinely on the ground, and by
+        /// how much it misses.
+        ///
+        /// <para>
+        /// The check the arrival owes itself. Every step above is arithmetic done before the descent
+        /// flies, against ground that streams in and out while it does; the wreck is then persisted
+        /// wherever the trajectory ended, so an unnoticed miss is permanent. Answering here rather
+        /// than asserting means the caller can correct it and say so.
+        /// </para>
+        /// </summary>
+        public static bool TryMeasureLanding(Vector3 position, float yaw, GameObject hull,
+                                             float probeHeight, float bellyDrop, out float airGap)
+        {
+            airGap = 0f;
+
+            Vector2 extents = ShipHull.Footprint(hull);
+
+            bool Sample(Vector2 at, out float y) =>
+                TryResolveGround(at, probeHeight, out y);
+
+            HullFootprint.Ground ground = HullFootprint.Measure(
+                new Vector2(position.x, position.z), yaw, extents, Sample);
+
+            if (!ground.Any) return false;
+
+            // Positive: the belly is above the highest ground under the hull and it is hanging.
+            // Negative: the hull is into the ground and physics will shove it out.
+            airGap = position.y - bellyDrop - ground.Highest;
+            return true;
+        }
     }
 }

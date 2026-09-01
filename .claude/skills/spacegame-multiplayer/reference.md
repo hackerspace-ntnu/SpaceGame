@@ -22,7 +22,7 @@ All paths are relative to the repository root. Every symbol below exists in the 
 | `Assets/Game/Scripts/Core/Multiplayer/Joining/SessionSnapshot.cs` (+ `SnapshotPayload`, `SnapshotCapture`, `SnapshotRestore`) | What a late joiner is handed: ropes and portals, addressed by NetworkObjectId |
 | `Assets/Game/Scripts/Core/Multiplayer/Joining/SkyNetwork.cs`, `SkyAnchor.cs` | Replicates the day/night anchor once for late joiners |
 | `Assets/Game/Scripts/Core/Multiplayer/Players/PlayerIdentity.cs`, `PlayerRoster.cs` | Name and suit colour per player; the roster rows a player list draws |
-| `Assets/Game/Scripts/Core/Multiplayer/Lobby/` (`LobbySession*.cs`, `LobbyJoinRecovery.cs`, `Data/`) | Lobby lifecycle, the 409 sweep, keys/options/readers — see `docs/architecture/Lobby.md` |
+| `Assets/Game/Scripts/Core/Multiplayer/Lobby/` (`LobbySession*.cs`, `LobbyJoinRecovery.cs`, `Data/`) | Lobby lifecycle, the 409 sweep, keys/options/readers — see `docs/AI/systems/Lobby.md` |
 | `Assets/Game/Scripts/Core/Multiplayer/Chat/ChatNetwork.cs` | The one system that cannot ride NetMessaging |
 | `Assets/Game/Scripts/Core/Multiplayer/Autotest/` (`MultiplayerAutotest.cs`, `AutotestRunner*.cs`, `AutotestProbes.cs`) | Two-process client-side test harness |
 | `Assets/Game/Editor/Multiplayer/NetworkPrefabRegistrar.cs` | `Tools/SpaceGame/Multiplayer/Sync Network Prefabs`, plus `Audit()` |

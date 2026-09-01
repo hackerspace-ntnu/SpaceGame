@@ -306,10 +306,19 @@ namespace SpaceGame.Items
             return GetSlot(networkSelectedSlot.Value);
         }
     
+        /// <summary>
+        /// What the player is holding, or null when they are holding nothing.
+        ///
+        /// The null check is load-bearing, not defensive noise: <see cref="networkSelectedSlot"/>
+        /// starts at -1 — nothing selected is the state every player spawns in — and
+        /// <c>Inventory.GetSlot</c> answers a negative index with null rather than an empty slot.
+        /// Without it this throws on a hotbar nobody has touched yet, which is every hotbar for
+        /// the first few seconds of a session.
+        /// </summary>
         public InventoryItem GetSelectedItem()
         {
-            var slot = GetSelectedSlot();
-            return slot.IsEmpty ? null : slot.Item;
+            InventorySlot slot = GetSelectedSlot();
+            return slot == null || slot.IsEmpty ? null : slot.Item;
         }
 
         public int GetInventorySize() => inventorySize;

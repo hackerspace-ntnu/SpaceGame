@@ -7,7 +7,7 @@
 // writes.
 //
 // So this file exists to make the per-prefab test three lines. See PrefabPersistenceTests.cs for
-// worked examples, and docs/architecture/Persistence.md §9 for when to reach for which method.
+// worked examples, and docs/AI/systems/Persistence.md (Flows, Gotchas) for when to reach for which method.
 //
 // ── The two things worth asserting ────────────────────────────────────────────────────────────
 //
@@ -117,7 +117,7 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(SaveablePolicy.NeedsSaving(prefab, out string why),
                 $"'{path}' is not opted in to saving at all, so nothing about it survives a " +
                 "reload. Give one of its root components SpaceGame.Persistence.IPersistentEntity — " +
-                "see docs/architecture/Persistence.md §2.");
+                "see docs/AI/systems/Persistence.md (Model).");
 
             Assert.IsNotNull(prefab.GetComponent<SaveableEntity>(),
                 $"'{path}' qualifies for saving ({why}) but has no SaveableEntity, so it can " +
@@ -208,7 +208,7 @@ namespace SpaceGame.EditorTools
                 "through the runtime fallback's hierarchy-path identity — which is orphaned by any " +
                 "rename or re-parent:\n  " + string.Join("\n  ", unwired) +
                 "\n\nFix: Tools ▸ Save System ▸ Wire Saveable Prefabs, then re-save any scene that " +
-                "instances them so the identity overrides are written (see Persistence.md §11).");
+                "instances them so the identity overrides are written (see Persistence.md, Gotchas).");
         }
 
         /// <summary>
@@ -411,7 +411,7 @@ namespace SpaceGame.EditorTools
                     $"  captured:   {before}\n" +
                     $"  after load: {after}\n" +
                     "Either RestoreState is dropping a field CaptureState wrote, or it is reading the " +
-                    "payload without SaveSerializer.Serializer. See Persistence.md §4, rule 6.");
+                    "payload without SaveSerializer.Serializer. See Persistence.md, Persistence section.");
             }
         }
     }

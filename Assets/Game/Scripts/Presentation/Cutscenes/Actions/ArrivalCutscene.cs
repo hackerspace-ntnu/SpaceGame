@@ -38,17 +38,33 @@ namespace SpaceGame.Presentation
             new Keyframe(0.75f, 0.55f),
             new Keyframe(1f, 1f));
 
-        [Tooltip("How long the impact holds at full shake before the screen goes black.")]
+        [Tooltip("How long the wreck spends hitting the ground and toppling flat. Overwritten by " +
+                 "ArrivalDirector via Configure, like the descent, because the crash is a beat of " +
+                 "the hull's own and the screen must not go black in the middle of it.")]
+        [SerializeField] private float settleWindow = 1.6f;
+
+        [Tooltip("How long the screen holds at full shake AFTER the wreck has stopped moving, " +
+                 "before it goes black.")]
         [SerializeField] private float impactHold = 0.35f;
 
         [Tooltip("How long the black holds after impact, before the player comes to in the wreck.")]
         [SerializeField] private float blackout = 1.4f;
 
         /// <summary>
-        /// Told by the director how long its descent actually is, so the beats and the hull agree
-        /// even though they are timed on different objects.
+        /// Told by the director how long its descent and its crash actually are, so the beats and
+        /// the hull agree even though they are timed on different objects.
+        ///
+        /// <para>
+        /// Both, not just the descent: the hull now keeps moving after it first touches the ground
+        /// — it comes in nose-down and topples onto its belly — and a screen that faded on the old
+        /// cue would black out halfway through the crash it exists to show.
+        /// </para>
         /// </summary>
-        public void Configure(float duration) => descentDuration = Mathf.Max(0.1f, duration);
+        public void Configure(float duration, float settle)
+        {
+            descentDuration = Mathf.Max(0.1f, duration);
+            settleWindow = Mathf.Max(0f, settle);
+        }
 
         public override IEnumerator Play(CutsceneContext ctx)
         {
@@ -75,9 +91,11 @@ namespace SpaceGame.Presentation
                 yield return null;
             }
 
-            // Impact.
+            // Impact, and then the crash: the hull is still moving through the settle window, so
+            // the shake stays at its peak for the whole of it rather than only for the frame of
+            // first contact.
             rig.ShakeIntensity = 1f;
-            yield return new WaitForSeconds(impactHold);
+            yield return new WaitForSeconds(settleWindow + impactHold);
 
             yield return LetterboxOverlay.Instance.FadeToBlackAsync(0.12f);
 

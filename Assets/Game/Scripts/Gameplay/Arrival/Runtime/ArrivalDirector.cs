@@ -79,6 +79,16 @@ namespace SpaceGame.Gameplay.Arrival
                  "ship in a formation, which is what makes them land together.")]
         [SerializeField] private float descentDuration = 26f;
 
+        [Tooltip("How long the hull is held at the attitude it hit the ground in, before it topples " +
+                 "onto its belly. A beat, not a pause: it is what makes the contact read as a blow " +
+                 "landing rather than as one continuous movement.")]
+        [SerializeField] private float settleHold = 0.2f;
+
+        [Tooltip("How long the wreck takes to drop off its nose and slam level. This is the crash " +
+                 "itself, and its end pose is what the world keeps — the descent is deliberately " +
+                 "committed nose-down, so this is the only thing that levels the ship at all.")]
+        [SerializeField] private float settleDuration = 1.4f;
+
         [Tooltip("How long to wait for the ship to report its seats before giving up and spawning " +
                  "everyone the ordinary way.")]
         [SerializeField] private float seatResolveTimeout = 20f;
@@ -97,8 +107,27 @@ namespace SpaceGame.Gameplay.Arrival
         [Tooltip("Height the ground probe drops from when measuring the impact site.")]
         [SerializeField] private float probeHeight = 600f;
 
-        [Tooltip("How far the hull sits above the measured ground once it has stopped.")]
-        [SerializeField] private float wreckGroundClearance = 1.2f;
+        [Tooltip("Gap left between the hull's LOWEST point and the ground it comes to rest on. The " +
+                 "belly depth itself is measured off the prefab, so this is the visible gap under " +
+                 "the wreck and nothing else.")]
+        [SerializeField] private float wreckGroundClearance = 0.05f;
+
+        [Tooltip("How far the low corner of the hull may hang before the impact site is rejected as " +
+                 "too steep. A ship freezes its rotation and the settle leaves it level, so it " +
+                 "always rests level on the highest ground it spans — the rest of it is in the air.")]
+        [SerializeField] private float maxGroundSpread = 1f;
+
+        [Tooltip("How far from the impact point a flatter place to come down may be looked for. " +
+                 "Zero crashes on the authored point whatever the ground does there.")]
+        [SerializeField] private float landingSearchRadius = 60f;
+
+        [Tooltip("Spacing of the search rings. Smaller finds tighter shelves and costs more probes.")]
+        [SerializeField] private float landingSearchStep = 12f;
+
+        [Tooltip("How far off the ground a landed hull may be before it is put down by hand and the " +
+                 "miss is logged. The wreck is persisted where the descent leaves it, so a hull " +
+                 "that stopped in mid-air stays there for the life of the world.")]
+        [SerializeField] private float landingTolerance = 0.25f;
 
         [Tooltip("How long the wreck sits still after landing before the crew are told they may " +
                  "get up. Long enough for the cutscene's blackout to lift, so the prompt is not " +
@@ -140,6 +169,17 @@ namespace SpaceGame.Gameplay.Arrival
         /// </para>
         /// </summary>
         public bool IsPending => !HasArrived && shipPrefab != null;
+
+        /// <summary>How level the ground has to be under a wreck, and how far to look for it.</summary>
+        private LandingTolerance Landing =>
+            new(maxGroundSpread, landingSearchRadius, landingSearchStep, wreckGroundClearance);
+
+        /// <summary>
+        /// Which way a descent leaves the hull pointing. Read off the path rather than tracked,
+        /// because the footprint the landing is measured against turns with the wreck.
+        /// </summary>
+        private static float LandingYawOf(in ArrivalPath forPath) =>
+            ArrivalFormation.LandingYawForBearing(forPath.StartBearing, forPath.SweepDegrees);
 
         private void Awake()
         {
@@ -311,18 +351,22 @@ namespace SpaceGame.Gameplay.Arrival
 
             if (!CanFly(out fatal)) return null;
 
-            if (!ShipGrounding.TryResolveGround(new Vector2(impactPoint.x, impactPoint.z), probeHeight,
-                                                out float groundY))
+            // The heading is not known until the path is known, and the path's bearing is authored,
+            // so the hull's footprint is measured at the yaw the descent will actually leave it on.
+            float landingYaw = LandingYawOf(path);
+
+            if (!ShipGrounding.TryResolveHullLanding(new Vector2(impactPoint.x, impactPoint.z),
+                                                     landingYaw, shipPrefab, probeHeight,
+                                                     Landing, out Vector3 impact))
             {
-                // NOT fatal. In a streamed world this means the chunk under the impact point has not
-                // loaded yet, and the only correct response is to wait and ask again — the contract
-                // ShipGrounding documents.
+                // NOT fatal. In a streamed world this means the chunks under the impact site have
+                // not loaded yet, and the only correct response is to wait and ask again — the
+                // contract ShipGrounding documents.
                 return null;
             }
 
             ArrivalPath storyPath = path;
-            storyPath.ImpactPosition = new Vector3(impactPoint.x, groundY + wreckGroundClearance,
-                                                   impactPoint.z);
+            storyPath.ImpactPosition = impact;
 
             ArrivalTrajectory.Evaluate(0f, storyPath, out Vector3 start, out Quaternion startRotation);
 
@@ -504,6 +548,15 @@ namespace SpaceGame.Gameplay.Arrival
             // raising LocalPlayerSeated, which fires wherever a local player sits down.
 
             ArrivalPath flightPath = flight.Path;
+
+            // Measured here rather than authored on the path, and measured on the hull that is
+            // actually flying: a versus formation takes its ships from the arena's spawner, not
+            // from this component's prefab, and a lift taken off the wrong hull points the nose
+            // either through the ground or at nothing. It shifts the whole arc, so the hull steps
+            // up by it on the launch frame — a few metres, two kilometres up, before it has moved
+            // at all, while every crew camera is still fading up from black.
+            flightPath.TouchdownLift = MeasureTouchdownLift(flight.Ship, flightPath);
+
             float elapsed = 0f;
 
             while (elapsed < descentDuration)
@@ -517,15 +570,154 @@ namespace SpaceGame.Gameplay.Arrival
                 yield return null;
             }
 
-            // Landed on the authored pose exactly, rather than wherever the last frame's delta time
-            // happened to leave it. The wreck is persisted from here, so "close" would be a hull
-            // permanently buried or hovering.
-            ArrivalTrajectory.Evaluate(1f, flightPath, out Vector3 impact, out Quaternion impactRotation);
-            flight.Ship.transform.SetPositionAndRotation(impact, impactRotation);
+            // Contact, on the authored pose exactly rather than wherever the last frame's delta
+            // time happened to leave it — the settle is measured from here, and the settle is what
+            // the wreck is persisted as.
+            ArrivalTrajectory.Evaluate(1f, flightPath, out Vector3 touchdown, out Quaternion touchdownRotation);
+            flight.Ship.transform.SetPositionAndRotation(touchdown, touchdownRotation);
+
+            // Held at the attitude it came in at before anything moves. A collision resolved inside
+            // one frame is perceptually thin; holding the moment of contact is what sells the force
+            // of it, and it costs the player nothing here because they have no controls yet
+            // (GDC-L1-FEEL-0005).
+            yield return new WaitForSeconds(Mathf.Max(0f, settleHold));
+
+            yield return Settle(flight.Ship, flightPath);
+
+            SetDown(flight.Ship, ArrivalTrajectory.RestRotation(flightPath).eulerAngles.y);
 
             RestoreHull(hull);
 
+            // The hull's own motor is awake again the moment RestoreHull runs, and a hover servo
+            // holds altitude rather than resting: left with a standing order it lifts the wreck
+            // back off the ground it was just set on and keeps it there. Parking it hands the hull
+            // to physics, which is what restWhenParked exists for — see HoverRigidbodyMotor.
+            ParkHull(flight.Ship);
+
             descending--;
+        }
+
+        /// <summary>
+        /// Drops the hull off the nose it speared in on, onto the belly it rests on.
+        ///
+        /// <para>
+        /// Its own beat rather than the end of the descent, because the two want opposite things
+        /// and used to be one curve that could only satisfy one of them: what the player watches
+        /// has to stay pointed at the ground all the way into it, and what the world KEEPS has to
+        /// be a level hull they can walk around in. The old flare bought the second by giving up
+        /// the first, and levelled the ship out over the last five seconds of the dive.
+        /// </para>
+        /// <para>
+        /// Ends on the settled pose exactly, for the same reason the descent ends on the touchdown
+        /// pose exactly: the wreck is persisted from here and is measured against the assumption
+        /// that it differs from its prefab by yaw alone.
+        /// </para>
+        /// </summary>
+        private IEnumerator Settle(GameObject ship, ArrivalPath flightPath)
+        {
+            float duration = Mathf.Max(0.01f, settleDuration);
+            float settling = 0f;
+
+            while (settling < duration)
+            {
+                settling += Time.deltaTime;
+
+                ArrivalTrajectory.EvaluateSettle(settling / duration, flightPath,
+                                                 out Vector3 position, out Quaternion rotation);
+
+                ship.transform.SetPositionAndRotation(position, rotation);
+                yield return null;
+            }
+
+            ArrivalTrajectory.EvaluateSettle(1f, flightPath, out Vector3 rest, out Quaternion restRotation);
+            ship.transform.SetPositionAndRotation(rest, restRotation);
+        }
+
+        /// <summary>
+        /// How far above its resting height the hull has to arrive for the part of it that reaches
+        /// the ground to be its nose.
+        ///
+        /// <para>
+        /// Not cosmetic. The cockpit is the highest, most forward thing on this hull and the crew
+        /// are sitting in it, so a nose-down hull whose ORIGIN lands on the ground puts the camera
+        /// several metres inside the terrain on the one frame the whole sequence is built around.
+        /// Measured off the hull rather than derived from a length, because the belly is the only
+        /// thing that knows where the pivot is.
+        /// </para>
+        /// <para>
+        /// Never negative: a hull that somehow hangs less deep when pitched is a hull that needs no
+        /// lifting, and lowering it into the ground to honour the arithmetic would be worse than
+        /// the shape being slightly wrong.
+        /// </para>
+        /// </summary>
+        private static float MeasureTouchdownLift(GameObject ship, in ArrivalPath flightPath)
+        {
+            ArrivalTrajectory.Evaluate(1f, flightPath, out Vector3 _, out Quaternion touchdownRotation);
+
+            float pitched = ShipHull.BellyDropAt(ship, touchdownRotation);
+            float resting = ShipHull.BellyDropAt(ship, ArrivalTrajectory.RestRotation(flightPath));
+
+            return Mathf.Max(0f, pitched - resting);
+        }
+
+        /// <summary>
+        /// Puts a landed hull on the ground, having measured whether it actually is.
+        ///
+        /// <para>
+        /// Every height above this is arithmetic done BEFORE the descent flies, against terrain that
+        /// streams in and out over the twenty-six seconds it takes — so the ground under the impact
+        /// site can genuinely be a different answer by the time the hull arrives, and in the streamed
+        /// world it frequently was. The wreck is persisted exactly here, so a miss is not a glitch
+        /// that settles on the next frame; it is the shape of the world from now on.
+        /// </para>
+        /// <para>
+        /// Corrected in place and reported, rather than asserted: a world that opens with its ship
+        /// a metre out is worth a warning, and a world that refuses to open is not.
+        /// </para>
+        /// </summary>
+        private void SetDown(GameObject ship, float landingYaw)
+        {
+            // Measured on the landed hull rather than on the prefab, and it is exact: the settle
+            // ends level and the bank has unwound to zero, so the wreck differs from the prefab by
+            // yaw alone — which an axis-aligned bounds measurement is blind to. It also means a versus
+            // hull, which comes from the arena's spawner and not from this component's own prefab,
+            // is measured as itself.
+            float bellyDrop = ShipHull.BellyDrop(ship);
+
+            if (!ShipGrounding.TryMeasureLanding(ship.transform.position, landingYaw, ship,
+                                                 probeHeight, bellyDrop, out float airGap))
+            {
+                Debug.LogWarning($"[Arrival] '{ship.name}' came down where no ground could be " +
+                                 "measured, so it is left on the pose the descent ended at.", ship);
+                return;
+            }
+
+            if (Mathf.Abs(airGap) <= landingTolerance) return;
+
+            Vector3 corrected = ship.transform.position;
+            corrected.y -= airGap - wreckGroundClearance;
+            ship.transform.position = corrected;
+
+            Debug.LogWarning($"[Arrival] '{ship.name}' finished its descent {airGap:F2} m off the " +
+                             $"ground — the terrain under the impact site is not what it was when " +
+                             "the arc was planned. Set down at y=" + corrected.y.ToString("F2") + ".",
+                             ship);
+        }
+
+        /// <summary>
+        /// Stops the hull flying itself, so gravity holds it on the ground the descent put it on.
+        ///
+        /// <para>
+        /// Not the same as <see cref="RestoreHull"/>, which only hands the components back. A hover
+        /// motor with any standing order at all runs its height servo, and that servo holds the
+        /// craft a ride height above the HIGHEST ground under its whole footprint — which on a slope
+        /// is metres above the ground under the wreck itself. Measured in the shipped world, an
+        /// arrival hull left that way sat 2.4 m up, at zero velocity, indefinitely.
+        /// </para>
+        /// </summary>
+        private static void ParkHull(GameObject ship)
+        {
+            ship.GetComponent<SpaceGame.Agents.IMovementMotor>()?.ForceStop();
         }
 
         /// <summary>
@@ -555,7 +747,7 @@ namespace SpaceGame.Gameplay.Arrival
                 return;
             }
 
-            cutscene.Configure(descentDuration);
+            cutscene.Configure(descentDuration, settleHold + settleDuration);
             CutsceneDirector.Instance.Play(cutscene);
         }
 

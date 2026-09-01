@@ -21,7 +21,7 @@ namespace SpaceGame.EditorTests
     /// world written before this change opens with an empty pack, silently.
     /// </para>
     /// </summary>
-    public class BackpackSaveCodecTests
+    public class PackSaveCodecTests
     {
         private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
 
@@ -125,10 +125,10 @@ namespace SpaceGame.EditorTests
 
             PackPlacement wrote = Find(source, staff.ID);
 
-            JObject payload = Payload(BackpackSaveCodec.Capture(source));
+            JObject payload = Payload(PackSaveCodec.Capture(source));
 
             var target = new PackLayout();
-            BackpackSaveCodec.Restore(target, rig, null, payload);
+            PackSaveCodec.Restore(target, rig, null, payload);
 
             Assert.AreEqual(2, target.Placements.Count);
 
@@ -162,9 +162,9 @@ namespace SpaceGame.EditorTests
             InventoryItem staff = Item("staff"), canister = Item("canister");
 
             // Written by the free-placement codec: a uv on no lattice at all, and a diagonal yaw.
-            var payload = Payload(new BackpackSaveCodec.State
+            var payload = Payload(new PackSaveCodec.State
             {
-                placements = new List<BackpackSaveCodec.PackPlacementRecord>
+                placements = new List<PackSaveCodec.PackPlacementRecord>
                 {
                     new() { itemId = staff.ID, surface = (byte)PackSurfaceId.WingRight,
                             // 47, not 45: exactly half way between two quarter turns is a tie, and
@@ -176,7 +176,7 @@ namespace SpaceGame.EditorTests
             });
 
             var target = new PackLayout();
-            BackpackSaveCodec.Restore(target, rig, null, payload);
+            PackSaveCodec.Restore(target, rig, null, payload);
 
             Assert.AreEqual(2, target.Placements.Count, "nothing may be dropped by the snap");
 
@@ -190,7 +190,7 @@ namespace SpaceGame.EditorTests
             // Snapped is a fixed point: capturing what was restored and restoring that again is
             // the same placement, so a world does not drift a little every time it is reloaded.
             var again = new PackLayout();
-            BackpackSaveCodec.Restore(again, rig, null, Payload(BackpackSaveCodec.Capture(target)));
+            PackSaveCodec.Restore(again, rig, null, Payload(PackSaveCodec.Capture(target)));
 
             PackPlacement twice = Find(again, staff.ID);
 
@@ -209,7 +209,7 @@ namespace SpaceGame.EditorTests
             target.TryPlace(stale.ID, PackSurfaceId.Leaf, rig[0].Size,
                             PackShape.Rect(1, 1), new Vector2(0.3f, 0.3f), 0f);
 
-            BackpackSaveCodec.Restore(target, rig, null, Payload(BackpackSaveCodec.Capture(new PackLayout())));
+            PackSaveCodec.Restore(target, rig, null, Payload(PackSaveCodec.Capture(new PackLayout())));
 
             Assert.AreEqual(0, target.Placements.Count,
                             "starting contents survived a load of an empty pack");
@@ -221,9 +221,9 @@ namespace SpaceGame.EditorTests
             PackSurface[] rig = Rig();
             InventoryItem known = Item("known");
 
-            var payload = Payload(new BackpackSaveCodec.State
+            var payload = Payload(new PackSaveCodec.State
             {
-                placements = new List<BackpackSaveCodec.PackPlacementRecord>
+                placements = new List<PackSaveCodec.PackPlacementRecord>
                 {
                     new() { itemId = "deleted-from-the-project", surface = (byte)PackSurfaceId.Leaf, u = 0.2f, v = 0.2f },
                     new() { itemId = "known", surface = (byte)PackSurfaceId.Leaf, u = 0.6f, v = 0.4f },
@@ -233,7 +233,7 @@ namespace SpaceGame.EditorTests
             var target = new PackLayout();
 
             UnityEngine.TestTools.LogAssert.ignoreFailingMessages = true;
-            BackpackSaveCodec.Restore(target, rig, null, payload);
+            PackSaveCodec.Restore(target, rig, null, payload);
             UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
 
             Assert.AreEqual(1, target.Placements.Count);
@@ -255,7 +255,7 @@ namespace SpaceGame.EditorTests
             target.TryPlace(existing.ID, PackSurfaceId.Leaf, rig[0].Size,
                             PackShape.Rect(1, 1), new Vector2(0.3f, 0.3f), 0f);
 
-            BackpackSaveCodec.Restore(target, rig, null, JObject.Parse(@"{""deployed"":true}"));
+            PackSaveCodec.Restore(target, rig, null, JObject.Parse(@"{""deployed"":true}"));
 
             Assert.AreEqual(1, target.Placements.Count);
             Assert.AreEqual(existing.ID, target.Placements[0].ItemId);
@@ -264,7 +264,7 @@ namespace SpaceGame.EditorTests
         [Test]
         public void Capture_OfAnEmptyPackIsAnEmptyList()
         {
-            BackpackSaveCodec.State state = BackpackSaveCodec.Capture(new PackLayout());
+            PackSaveCodec.State state = PackSaveCodec.Capture(new PackLayout());
 
             Assert.IsNotNull(state.placements);
             Assert.AreEqual(0, state.placements.Count);
@@ -294,7 +294,7 @@ namespace SpaceGame.EditorTests
             }");
 
             var target = new PackLayout();
-            BackpackSaveCodec.Restore(target, rig, null, payload);
+            PackSaveCodec.Restore(target, rig, null, payload);
 
             Assert.AreEqual(3, target.Placements.Count, "every item in an old save has to survive it");
 
@@ -319,10 +319,10 @@ namespace SpaceGame.EditorTests
             var ids = new List<string>();
             for (int i = 0; i < 6; i++) ids.Add("legacy-" + i);
 
-            var payload = Payload(new BackpackSaveCodec.State { mainItemIds = ids });
+            var payload = Payload(new PackSaveCodec.State { mainItemIds = ids });
 
             var target = new PackLayout();
-            BackpackSaveCodec.Restore(target, rig, null, payload);
+            PackSaveCodec.Restore(target, rig, null, payload);
 
             Assert.AreEqual(6, target.Placements.Count);
 
@@ -356,11 +356,11 @@ namespace SpaceGame.EditorTests
                 ids.Add("crowd-" + i);
             }
 
-            var payload = Payload(new BackpackSaveCodec.State { strapItemIds = ids });
+            var payload = Payload(new PackSaveCodec.State { strapItemIds = ids });
             var target = new PackLayout();
 
             UnityEngine.TestTools.LogAssert.ignoreFailingMessages = true;
-            Assert.DoesNotThrow(() => BackpackSaveCodec.Restore(target, rig, null, payload));
+            Assert.DoesNotThrow(() => PackSaveCodec.Restore(target, rig, null, payload));
             UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
 
             Assert.Greater(target.Placements.Count, 0, "as much as fits still has to be kept");
@@ -378,9 +378,9 @@ namespace SpaceGame.EditorTests
             PackSurface[] rig = Rig();
             InventoryItem placed = Item("placed"), legacy = Item("legacy");
 
-            var payload = Payload(new BackpackSaveCodec.State
+            var payload = Payload(new PackSaveCodec.State
             {
-                placements = new List<BackpackSaveCodec.PackPlacementRecord>
+                placements = new List<PackSaveCodec.PackPlacementRecord>
                 {
                     new() { itemId = placed.ID, surface = (byte)PackSurfaceId.Leaf, u = 0.4f, v = 0.4f },
                 },
@@ -388,7 +388,7 @@ namespace SpaceGame.EditorTests
             });
 
             var target = new PackLayout();
-            BackpackSaveCodec.Restore(target, rig, null, payload);
+            PackSaveCodec.Restore(target, rig, null, payload);
 
             Assert.AreEqual(1, target.Placements.Count);
             Assert.AreEqual(placed.ID, target.Placements[0].ItemId);

@@ -54,9 +54,23 @@ namespace SpaceGame.Gameplay
                  "probe starting under a roof lands the ship on whatever is beneath it.")]
         [SerializeField] private float probeHeight = 200f;
 
-        [Tooltip("How high the ship sits above the ground it lands on. Matches the hover clearance " +
-                 "the ship's own motor holds, so it does not drop or lurch on its first frame.")]
-        [SerializeField] private float shipGroundClearance = 0.5f;
+        [Tooltip("Gap left between the ship's LOWEST point and the ground under it. Small on " +
+                 "purpose: this is the hull sitting down, not the hover height it flies at. The " +
+                 "belly depth is measured off the prefab, so this number means the same thing on " +
+                 "every ship.")]
+        [SerializeField] private float shipGroundClearance = 0.05f;
+
+        [Tooltip("How far the low corner of a hull may hang before the spot is rejected as too " +
+                 "steep to land on. A ship's Rigidbody freezes rotation, so it always rests level " +
+                 "on the highest ground it spans — on a slope the rest of it is simply in the air.")]
+        [SerializeField] private float maxGroundSpread = 1f;
+
+        [Tooltip("How far from the authored point a flatter landing spot may be looked for. Zero " +
+                 "lands on the authored point whatever the ground does there.")]
+        [SerializeField] private float landingSearchRadius = 60f;
+
+        [Tooltip("Spacing of the search rings. Smaller finds tighter shelves and costs more probes.")]
+        [SerializeField] private float landingSearchStep = 12f;
 
         [Header("Seats")]
         [Tooltip("Radius of the stand-in seat ring inside the hull, used until the ship prefab " +
@@ -70,6 +84,10 @@ namespace SpaceGame.Gameplay
         public float ProbeHeight => probeHeight;
 
         public float ShipGroundClearance => shipGroundClearance;
+
+        /// <summary>How level the ground has to be, and how far to look for it. See <see cref="LandingTolerance"/>.</summary>
+        public LandingTolerance Landing =>
+            new(maxGroundSpread, landingSearchRadius, landingSearchStep, shipGroundClearance);
 
         public float SeatRingRadius => seatRingRadius;
 
@@ -98,6 +116,9 @@ namespace SpaceGame.Gameplay
             ringRadius = Mathf.Max(0f, ringRadius);
             probeHeight = Mathf.Max(1f, probeHeight);
             shipGroundClearance = Mathf.Max(0f, shipGroundClearance);
+            maxGroundSpread = Mathf.Max(0f, maxGroundSpread);
+            landingSearchRadius = Mathf.Max(0f, landingSearchRadius);
+            landingSearchStep = Mathf.Max(0.01f, landingSearchStep);
             seatRingRadius = Mathf.Max(0f, seatRingRadius);
         }
     }

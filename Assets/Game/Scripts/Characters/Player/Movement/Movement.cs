@@ -126,9 +126,16 @@ namespace SpaceGame.Characters
         ///
         ///   * A rider being carried. <c>MountModule</c> makes the body kinematic on purpose and
         ///     parents the player into the mount, and freeing it would drop them through their own
-        ///     seat. Phrased as "has a parent" rather than a MountModule lookup, the same way
-        ///     <c>UnderTerrainGuard.Evaluate</c> decides the same question, so any future carrier is
-        ///     covered without being named.
+        ///     seat. Asked of <c>CarriedBody</c>, which every carrier registers with, plus the older
+        ///     "has a parent" test for anything that carries by parenting without saying so.
+        ///     <para>
+        ///     The parent test alone was not enough, and the arrival is why. A player strapped into
+        ///     a ship's seat for the crash landing is NOT parented — the player's NetworkTransform is
+        ///     owner-authoritative and world-space, so a rider is carried by having their pose
+        ///     written every frame — and is therefore kinematic with no parent, which is precisely
+        ///     the shape this method exists to break. It duly broke it, every physics step, for the
+        ///     whole descent.
+        ///     </para>
         ///   * Somebody else's player. Netcode keeps a remote body kinematic deliberately, and this
         ///     component is disabled on those anyway — the ownership test is what makes that a rule
         ///     rather than a coincidence.
@@ -141,6 +148,7 @@ namespace SpaceGame.Characters
         {
             if (Body == null || !Body.isKinematic) return;
             if (transform.parent != null) return;
+            if (SpaceGame.Agents.CarriedBody.IsHeld(gameObject)) return;
             if (!Network.Owns(this)) return;
 
             Body.isKinematic = false;

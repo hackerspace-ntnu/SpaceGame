@@ -68,10 +68,17 @@ namespace SpaceGame.Items
         public InventorySlot GetSlot(int index) => playerInventory.GetSlot(index);
         public InventorySlot GetSelectedSlot() => playerInventory.GetSelectedSlot();
     
+        /// <summary>
+        /// What the player is holding, or null when they are holding nothing.
+        ///
+        /// Null-checked for the reason <c>PlayerInventoryNetwork</c>'s copy of this is: nothing
+        /// selected is the state a hotbar starts in, and <c>PlayerInventory.GetSelectedSlot</c>
+        /// answers that with null rather than with an empty slot.
+        /// </summary>
         public InventoryItem GetSelectedItem()
         {
-            var slot = GetSelectedSlot();
-            return slot.IsEmpty ? null : slot.Item;
+            InventorySlot slot = GetSelectedSlot();
+            return slot == null || slot.IsEmpty ? null : slot.Item;
         }
         public int GetInventorySize() => playerInventory.GetInventorySize();
     }

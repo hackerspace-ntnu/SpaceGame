@@ -1,7 +1,54 @@
 # SpaceGame
 
-Unity project. Architecture notes live in [docs/architecture/](docs/architecture/); the
-repo-specific skills in [.claude/skills/](.claude/skills/) cover how *this* codebase does things.
+Unity project. Documentation lives in [docs/](docs/), split by audience: [docs/Human/](docs/Human/)
+explains the game to people, [docs/AI/](docs/AI/) is a retrieval-optimised reference for agents.
+The repo-specific skills in [.claude/skills/](.claude/skills/) cover how *this* codebase does things.
+
+## Documentation — read before you change code
+
+**Start every task at [docs/AI/INDEX.md](docs/AI/INDEX.md).** It routes you to the one or two
+system docs that cover your task. Do not read the whole corpus.
+
+```bash
+grep 'Scripts/Items/Artifacts' docs/AI/ROUTING.md   # which doc governs this code?
+grep -i 'client'               docs/AI/ROUTING.md   # which doc explains what I'm seeing?
+```
+
+| Read | When |
+| --- | --- |
+| [docs/AI/INDEX.md](docs/AI/INDEX.md) | Always, first. The map. |
+| [docs/AI/ROUTING.md](docs/AI/ROUTING.md) | To find the right doc. **Grep it, never read it whole.** |
+| [docs/AI/INVARIANTS.md](docs/AI/INVARIANTS.md) | Once, before your first change. The rules that hold everywhere. |
+| [docs/AI/GLOSSARY.md](docs/AI/GLOSSARY.md) | When a noun in the task is ambiguous. |
+| [docs/AI/DEFECTS.md](docs/AI/DEFECTS.md) | Before debugging anything. It may already be a known, unfixed defect. |
+| [docs/AI/systems/](docs/AI/systems/) | The subsystem reference itself — read your one or two docs **in full**. |
+
+Every system doc has the same shape: **Model → Key types → Flows → Multiplayer → Persistence →
+Gotchas → Extending**. `Gotchas` records the silent failures — read it before editing, not after.
+
+### Documenting your change is part of the change
+
+**Every change to behaviour updates its doc in the same commit.** A doc describing code that no
+longer exists is worse than no doc, because agents trust it and act on it.
+
+1. Find the governing doc (`grep <path> docs/AI/ROUTING.md`); if there is none, write one.
+2. Update the affected rows and **delete what your change made untrue**.
+3. Add anything non-obvious that bit you to that doc's `## Gotchas` — or to
+   [INVARIANTS.md](docs/AI/INVARIANTS.md) if it applies to three or more subsystems.
+4. Add a `symptoms:` frontmatter entry for anything that cost real time to diagnose, phrased as
+   what you *saw*. That is how the next agent finds it.
+5. Bump `updated:`, then regenerate and validate:
+   ```bash
+   python3 tools/docs_check.py --index    # regenerates INDEX.md + ROUTING.md, then validates
+   ```
+   `INDEX.md` and `ROUTING.md` are **generated from frontmatter — never hand-edit them.**
+6. A **new** system also needs a short plain-language entry in
+   [docs/Human/the-systems.md](docs/Human/the-systems.md) — the validator fails without it.
+   Update the ten narrative chapters in [docs/Human/](docs/Human/) only when the *shape* of a
+   system changes — a new way to play, a reversed decision, a subsystem that is gone. Not for
+   renames.
+
+Full rules: [docs/AI/CONTRIBUTING.md](docs/AI/CONTRIBUTING.md).
 
 ## Skills
 

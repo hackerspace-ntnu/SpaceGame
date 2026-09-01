@@ -110,7 +110,7 @@ namespace SpaceGame.Gameplay.Arrival
         /// <summary>Seats in the order <see cref="SeatOrdering"/> put them, resolved once.</summary>
         private readonly List<ShipSeat> seats = new();
 
-        /// <summary>What each seated body was before we froze it, so release can undo exactly that.</summary>
+        /// <summary>Which seat this machine is holding each rider in.</summary>
         private readonly Dictionary<ulong, SeatedBody> seated = new();
 
         /// <summary>
@@ -158,22 +158,25 @@ namespace SpaceGame.Gameplay.Arrival
         private SpaceGame.Agents.ChairPose ChairPose =>
             chairPose != null ? chairPose : chairPose = GetComponentInChildren<SpaceGame.Agents.ChairPose>(true);
 
+        /// <summary>
+        /// What this machine is holding for one rider. Only the seat, now: the body's own physics is
+        /// <see cref="SpaceGame.Agents.CarriedBody"/>'s record, precisely so that a rider held by
+        /// this class AND by <c>MountModule</c> is captured once and handed back once.
+        /// </summary>
         private readonly struct SeatedBody
         {
             public readonly int SeatIndex;
-            public readonly bool WasKinematic;
-            public readonly bool HadGravity;
-            public readonly RigidbodyInterpolation Interpolation;
 
-            public SeatedBody(int seatIndex, bool wasKinematic, bool hadGravity,
-                              RigidbodyInterpolation interpolation)
-            {
-                SeatIndex = seatIndex;
-                WasKinematic = wasKinematic;
-                HadGravity = hadGravity;
-                Interpolation = interpolation;
-            }
+            public SeatedBody(int seatIndex) => SeatIndex = seatIndex;
         }
+
+        /// <summary>
+        /// Riders whose <c>PlayerMovement</c> this machine switched off, so the release switches
+        /// back on exactly what it took. A rider who arrived with it already off is a remote player,
+        /// or one the mount system has suspended, and waking them is somebody else's bug — the same
+        /// rule <c>MountModule.RestoreRiderComponentsAfterDismount</c> records at length.
+        /// </summary>
+        private readonly HashSet<ulong> movementSuspended = new();
 
         /// <summary>How many seats this ship actually has. Zero means it has no markers at all.</summary>
         public int SeatCount
@@ -217,6 +220,18 @@ namespace SpaceGame.Gameplay.Arrival
             // descent. Releasing here rather than leaving them frozen means the bodies get their
             // physics back instead of hanging kinematic in the sky.
             ReleaseEveryoneLocally();
+        }
+
+        /// <summary>
+        /// Last resort. A hold this component never let go of is worse than the bug it prevents:
+        /// PlayerMovement stops freeing a kinematic body it can see precisely because CarriedBody
+        /// says somebody is carrying it, so a leaked claim is a player who can never move again,
+        /// silently. A hull destroyed without ever despawning is the one path that gets here.
+        /// </summary>
+        public override void OnDestroy()
+        {
+            SpaceGame.Agents.CarriedBody.Abandon(this);
+            base.OnDestroy();
         }
 
         /// <summary>
@@ -572,47 +587,33 @@ namespace SpaceGame.Gameplay.Arrival
             ulong id = IdOf(player);
             if (id == 0UL) return;
 
-            bool alreadyHeld = seated.TryGetValue(id, out SeatedBody existing);
+            // A rider moved between seats keeps everything the hold already did to them — it is the
+            // same body held by the same component — so only the seat index is rewritten and the
+            // block below is skipped. Re-running it would be a second Carry, a second suspend, and
+            // a second LocalPlayerSeated for somebody who never got up.
+            bool newlySeated = !seated.ContainsKey(id);
 
-            if (alreadyHeld)
+            seated[id] = new SeatedBody(seatIndex);
+
+            if (newlySeated)
             {
-                // Moved between seats rather than newly seated: keep the physics we already captured,
-                // or the restore would hand back whatever we ourselves imposed.
-                seated[id] = new SeatedBody(seatIndex, existing.WasKinematic, existing.HadGravity,
-                                            existing.Interpolation);
-            }
-            else
-            {
-                var body = player.GetComponent<Rigidbody>();
-
-                seated[id] = new SeatedBody(seatIndex,
-                                            body != null && body.isKinematic,
-                                            body != null && body.useGravity,
-                                            body != null ? body.interpolation : RigidbodyInterpolation.None);
-
                 // Before anything else touches the body: the probe runs on the physics clock and a
                 // single step reading a rider as ground is a visible jump.
                 if (HoverMotor != null) HoverMotor.Carry(player);
 
-                if (body != null)
-                {
-                    // Kinematic, or the body keeps falling under gravity while the seat flies out
-                    // from under it, and HoldSeats spends every frame fighting the fall.
-                    body.isKinematic = true;
-                    body.useGravity = false;
+                // Kinematic, weightless and un-interpolated for the length of the ride — through
+                // CarriedBody rather than by hand, because the same body can be held by MountModule
+                // as well the moment somebody rides this ship down and then takes its helm, and two
+                // private captures hand back a state the body was never in. See CarriedBody.
+                SpaceGame.Agents.CarriedBody.Hold(player, this);
 
-                    // Velocity cleared, or the speed the body had when it was grabbed keeps being
-                    // reapplied under the teleport and shows up as a shudder.
-                    body.linearVelocity = Vector3.zero;
-                    body.angularVelocity = Vector3.zero;
-
-                    // Interpolation OFF, and this is the one that actually shows. The player prefab
-                    // ships as Interpolate, which renders the body from where physics had it one
-                    // step ago — against a seat that has moved a long way since, because the ship is
-                    // falling. The result is a rider visibly shaking loose of the chair.
-                    // MountModule.EnterMountedRigidbodyState does exactly this, for exactly this.
-                    body.interpolation = RigidbodyInterpolation.None;
-                }
+                // Stops the player walking out of their own chair. PlayerMovement is deliberately
+                // suspicious of a kinematic body it can still see — it frees one every physics step
+                // — and it decides "somebody is carrying this" by asking CarriedBody, which is
+                // exactly the answer the line above just registered. Disabling it as well is what
+                // MountModule does for its rider, and it is what keeps a crew who have been told
+                // they may get up from jogging on the spot in the cabin until they do.
+                SuspendMovement(player);
 
                 if (Network.Owns(player.transform))
                 {
@@ -667,6 +668,10 @@ namespace SpaceGame.Gameplay.Arrival
             }
 
             seated.Clear();
+
+            // Anyone whose body had already gone never reached RestoreMovement above, so the record
+            // is dropped here rather than left naming a player this hull will never see again.
+            movementSuspended.Clear();
         }
 
         /// <summary>Undo everything seating did to the body, physics, pose and cargo status alike.</summary>
@@ -675,22 +680,116 @@ namespace SpaceGame.Gameplay.Arrival
             if (HoverMotor != null) HoverMotor.StopCarrying(player);
             if (ChairPose != null) ChairPose.ReleaseRider(player.transform);
 
-            RestorePhysics(player, before);
+            // Stood up BEFORE the body gets its weight back, and before movement is handed back, so
+            // the first physics step after the release already has them on the deck rather than
+            // inside the chair they were sitting in.
+            StandUp(player, before.SeatIndex);
+
+            SpaceGame.Agents.CarriedBody.Release(player, this);
+            RestoreMovement(player);
         }
 
-        private static void RestorePhysics(GameObject player, SeatedBody before)
+        /// <summary>
+        /// Puts a rider on their feet where the seat says people get out, rather than leaving them
+        /// standing in the chair.
+        ///
+        /// <para>
+        /// <b>Getting up used to have no placement at all.</b> The body simply stayed on the seat
+        /// pose — which is the pivot of a SEATED body, 1.1 m up the chair on this ship — and was
+        /// then shoved out by whatever collider it happened to be overlapping. That is why the same
+        /// chair put the same player somewhere different every time: the answer was coming from
+        /// physics resolving an overlap, not from anything that had decided where the door was.
+        /// </para>
+        /// <para>
+        /// Owner-only, like every other write to a player's pose here: the player's NetworkTransform
+        /// is owner-authoritative and world-space, so a write on any other machine is a local guess
+        /// that the wire immediately overrules.
+        /// </para>
+        /// </summary>
+        private void StandUp(GameObject player, int seatIndex)
         {
+            if (!Network.Owns(player.transform)) return;
+            if (!TryResolveDismount(seatIndex, out Vector3 position, out float yaw)) return;
+
+            // Yaw only. A rider inherits the hull's attitude while seated, and a wreck resting on a
+            // slope would otherwise stand its crew up leaning.
+            player.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
+
+            // Physics.autoSyncTransforms is off project-wide, so a transform write does not reach the
+            // Rigidbody until the next physics step — and PlayerLook rebuilds the player's rotation
+            // every frame from the body's, so the seated pose would be put straight back on them.
+            // MountModule.ApplyDismountPose writes both for exactly this reason.
             var body = player.GetComponent<Rigidbody>();
             if (body == null) return;
 
-            body.isKinematic = before.WasKinematic;
-            body.useGravity = before.HadGravity;
-            body.interpolation = before.Interpolation;
+            body.position = position;
+            body.rotation = Quaternion.Euler(0f, yaw, 0f);
+        }
 
-            // Handed back at rest rather than carrying whatever the descent implied, so nobody is
-            // flung across the wreck the instant they get their weight back.
-            body.linearVelocity = Vector3.zero;
-            body.angularVelocity = Vector3.zero;
+        /// <summary>
+        /// Where the occupant of <paramref name="seatIndex"/> stands up, in world space.
+        ///
+        /// <para>
+        /// The seat's own marker first, because four crew standing up onto one spot is four bodies
+        /// resolving one overlap — the very thing this is here to stop. The hull's mount dismount
+        /// point second, so a ship whose seats predate those markers still puts people somewhere
+        /// deliberate rather than in the chair. Nothing at all last, which leaves the old behaviour
+        /// intact for a seat that is genuinely unauthored.
+        /// </para>
+        /// </summary>
+        private bool TryResolveDismount(int seatIndex, out Vector3 position, out float yaw)
+        {
+            position = Vector3.zero;
+            yaw = 0f;
+
+            if (seatIndex >= 0 && seatIndex < seats.Count)
+            {
+                Transform marker = seats[seatIndex].DismountPoint;
+                if (marker != null)
+                {
+                    position = marker.position;
+                    yaw = marker.eulerAngles.y;
+                    return true;
+                }
+            }
+
+            var mount = GetComponent<SpaceGame.Agents.MountModule>();
+            Transform shared = mount != null ? mount.DismountPoint : null;
+
+            if (shared == null) return false;
+
+            position = shared.position;
+            yaw = shared.eulerAngles.y;
+            return true;
+        }
+
+        /// <summary>
+        /// Takes a rider's own movement away for the length of the ride, remembering whether it was
+        /// this machine's to take.
+        /// </summary>
+        private void SuspendMovement(GameObject player)
+        {
+            var movement = player.GetComponent<SpaceGame.Characters.PlayerMovement>();
+            if (movement == null || !movement.enabled) return;
+
+            movement.enabled = false;
+            movementSuspended.Add(IdOf(player));
+        }
+
+        /// <summary>Hands back exactly what <see cref="SuspendMovement"/> took, and only that.</summary>
+        private void RestoreMovement(GameObject player)
+        {
+            if (!movementSuspended.Remove(IdOf(player))) return;
+
+            var movement = player.GetComponent<SpaceGame.Characters.PlayerMovement>();
+
+            // A rider who died in the chair keeps the freeze death applied — re-enabling movement
+            // here would hand the controls back to a corpse. The same guard MountModule states at
+            // length in RestoreRiderComponentsAfterDismount.
+            var controller = player.GetComponent<SpaceGame.Characters.PlayerController>();
+            if (controller != null && controller.IsDead) return;
+
+            if (movement != null) movement.enabled = true;
         }
 
         /// <summary>

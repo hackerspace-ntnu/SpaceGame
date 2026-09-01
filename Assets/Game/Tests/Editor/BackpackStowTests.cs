@@ -111,7 +111,11 @@ namespace SpaceGame.Tests
                 height = height,
             });
 
-            typeof(BackpackObject).GetField("shapes", Hidden).SetValue(pack, library);
+            // PackContainer, not BackpackObject: `shapes` lives on the shared base now, and
+            // Type.GetField with NonPublic does NOT search base types — asking the subclass for a
+            // private field it inherited returns null, and the NRE lands here rather than anywhere
+            // near the code that moved.
+            typeof(PackContainer).GetField("shapes", Hidden).SetValue(pack, library);
         }
 
         /// The real PlayerInventory, exposed through the interface the pack talks to.

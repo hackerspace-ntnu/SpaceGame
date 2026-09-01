@@ -1,451 +1,152 @@
-# AGENT.CLAUDE — Claude Reference for the Agent System
-
-Purpose: a single file Claude can read to answer any question about the agent/AI system in `Assets/Game/Scripts/agents/` — how components fit together, what every module does, and how to assemble new agents from parts.
-
-The system is a modular **drag-and-drop behaviour architecture**. One `AgentController` ticks a set of `IBehaviourModule` components each frame. Each module can return a `MoveIntent` or pass. Priority-based arbitration picks the winner; side-effect modules run unconditionally.
-
+---
+system: AgentSystem
+layer: characters
+summary: "Creatures, NPCs, enemies and turrets: one AgentController ticking priority-arbitrated behaviour modules"
+paths:
+  - Assets/Game/Scripts/agents/
+  - Assets/Game/Prefabs/agents/
+  - Assets/Game/ScriptableObjects/Factions/Core/
+  - Assets/Game/Editor/Creatures/
+  - .claude/skills/spacegame-agent/SKILL.md
+symptoms:
+  - "the creature ignores me completely and never attacks anything"
+  - "the creature's legs skate instead of walking"
+  - "a provoked NPC walks toward me instead of running"
+  - "every NPC swings its barrel to follow the host's head"
+  - "the agent just stands there doing nothing and the console is clean"
+  - "loot drops all over again every time I load the world"
+  - "remote copies of the creature slide along with their feet still"
+  - "my hand-added component disappeared after someone rebuilt the prefab"
+reads_with: [EntitySystem, Vehicles, Combat, NavMeshSystem]
+updated: 2026-09-01
 ---
 
-## 1. Big-picture architecture
+# Agent / AI System
 
-```
-                  ┌──────────────────────────────────────┐
-                  │            AgentController           │
-                  │  (ticks modules, picks winner)       │
-                  └──────────────┬───────────────────────┘
-                                 │ MoveIntent
-                                 ▼
- ┌─────────────────┐   ┌──────────────────────┐   ┌──────────────────┐
- │  Movement       │   │  IMovementMotor      │   │ AgentAnimator    │
- │  modules        │──►│  (NavMeshAgentMotor) │──►│ Driver           │
- │  (Chase, Patrol)│   │                      │   │ (anim params)    │
- └─────────────────┘   └──────────┬───────────┘   └──────────────────┘
-                                  ▼
-                          ┌──────────────┐
-                          │ NavMeshAgent │  (Unity's pathfinder)
-                          └──────────────┘
+Creatures, NPCs, enemies and turrets are a prefab plus a stack of `IBehaviourModule` components; one [AgentController.cs](Assets/Game/Scripts/agents/Controller/AgentController.cs) ticks them and arbitrates by priority — never a behaviour tree, never an `AgentController` subclass.
 
- Side-effect modules (RangedAttackModule, EntityAudioModule, etc.)
- are ticked every frame regardless of who owns movement.
-```
+**Scope:** `Assets/Game/Scripts/agents/` (namespace `SpaceGame.Agents`, Assembly-CSharp, no asmdef).
+**Related:** [EntitySystem.md](EntitySystem.md) (older overview — profile/module tables there are stale, prefer this file), [MountSystem.md](MountSystem.md), [Persistence.md](Persistence.md), [WeaponSystem.md](WeaponSystem.md), [NavMeshSystem.md](NavMeshSystem.md), skill [.claude/skills/spacegame-agent/SKILL.md](.claude/skills/spacegame-agent/SKILL.md) + its `reference.md`.
 
-**Per-frame flow** (inside `AgentController.Update`, see [AgentController.cs](Assets/Game/Scripts/agents/controller/AgentController.cs)):
+## Model
 
-1. Build an `AgentContext` snapshot (position, velocity, reached destination, nearby agents if enabled).
-2. Tick every `ClaimsMovement == false` module (side effects — never returns a MoveIntent).
-3. Iterate `ClaimsMovement == true` modules highest-priority first; the first one to return a `MoveIntent` wins.
-4. If no module wins, fall back to the legacy `IAgentBrain` if present, else `MoveIntent.Idle()`.
-5. Apply speed-variation drift, pass the intent to the motor.
-6. Drive the animator from motor velocity + running flag.
+- Three decisions, one owner each: **who to fight** = [AgentTargeting.cs](Assets/Game/Scripts/agents/AI/Targeting/AgentTargeting.cs); **where to go** = [AgentGoal.cs](Assets/Game/Scripts/agents/AI/Goals/AgentGoal.cs); **how to move** = [IMovementMotor.cs](Assets/Game/Scripts/agents/AI/Motors/IMovementMotor.cs). A module duplicating any of the three is the bug this design prevents.
+- Modules return `MoveIntent?`. `null` = pass to the next module. `MoveIntent.Idle()` **claims the frame** and starves everything below.
+- `ClaimsMovement == false` modules are side effects: ticked unconditionally, must return `null`.
+- Facing is a **second channel**: `IFacingModule` overwrites the winning intent's face target after arbitration.
+- `AgentTargeting` + `AgentGoal` are auto-added in `AgentController.Awake`. Modules are discovered via `GetComponentsInChildren<MonoBehaviour>(true)`; runtime additions need `RefreshModules()`.
+- Legacy `IAgentBrain` ([EnemyBrain.cs](Assets/Game/Scripts/agents/AI/Brains/EnemyBrain.cs), [NpcBrain.cs](Assets/Game/Scripts/agents/AI/Brains/NpcBrain.cs)) is a fallback for old prefabs only — obsolete, do not extend.
+- Riding (`MountModule` / `SteerModule` in [Modules/Riding/](Assets/Game/Scripts/agents/Modules/Riding/)) rides on this stack but is documented in [MountSystem.md](MountSystem.md).
 
-Key contracts:
+## Key types
 
-| Interface / struct | File | Purpose |
+| Type | File | Role |
 |---|---|---|
-| `IBehaviourModule` | [IBehaviourModule.cs](Assets/Game/Scripts/agents/modules/IBehaviourModule.cs) | Module contract: `Priority`, `IsActive`, `ClaimsMovement`, `Tick()` |
-| `BehaviourModuleBase` | [BehaviourModuleBase.cs](Assets/Game/Scripts/agents/modules/BehaviourModuleBase.cs) | Abstract base; exposes priority + active toggle in Inspector |
-| `ModulePriority` | same file | Named priority constants (`Scripted=100`, `Override=30`, `MeleeAttack=23`, `RangedAttack=22`, `Reactive=20`, `Social=15`, `Ambient=10`, `Personality=5`, `Fallback=0`) |
-| `AgentContext` | [AgentContext.cs](Assets/Game/Scripts/agents/AI/AgentContext.cs) | Frame snapshot passed to every module |
-| `MoveIntent` | [MoveIntent.cs](Assets/Game/Scripts/agents/AI/MoveIntent.cs) | `Idle` / `MoveTo` / `StopAndFace`; carries speed, facing override, stop distance |
-| `IMovementMotor` | [IMovementMotor.cs](Assets/Game/Scripts/agents/AI/motor/IMovementMotor.cs) | Applies a `MoveIntent` (NavMesh, rigidbody, or any motor) |
-| `IAgentBrain` (legacy) | [IAgentBrain.cs](Assets/Game/Scripts/agents/AI/brains/IAgentBrain.cs) | Old single-brain fallback — still supported; don't extend |
-
----
-
-## 2. Required Unity components on every agent
-
-Every agent **must** have this baseline. The editor's `Generate` button on any `EntityProfile_*` wires all of them via `EntityProfileEditorUtils.SetupBaseComponents` ([EntityProfileEditors.cs:86](Assets/Game/Editor/EntityProfileEditors.cs#L86)).
-
-| Component | Role | Notes |
-|---|---|---|
-| `Rigidbody` | Collision layer queries | **Kinematic + no gravity**. NavMeshAgent owns movement; the rigidbody is only for `OverlapSphere`/layer lookups. |
-| `CapsuleCollider` | Physics/collision shape | Required for hits (projectile impacts, interaction raycasts). |
-| `NavMeshAgent` | Unity pathfinding | Requires a baked NavMesh in the scene. Set speed, radius, height here. |
-| `NavMeshAgentMotor` | `IMovementMotor` impl | Translates `MoveIntent` → `NavMeshAgent.SetDestination` / `isStopped` / facing. Also implements `IMountJumpMotor` and `IMountLeapMotor`. See [NavMeshAgentMotor.cs](Assets/Game/Scripts/agents/AI/motor/NavMeshAgentMotor.cs). |
-| `AgentController` | Module coordinator | Main tick loop. Auto-resolves motor + animator if the Inspector slots are empty. |
-| `Animator` | Unity's animator | Usually on a child mesh; needs params `SpeedX`, `SpeedY`, `FallSpeed`, `IsGrounded`, `IsImmobalized`, and optional triggers (`Hurt`, `Death`, `Meele`, `AssualtShoot`, `IsAiming`). |
-| `AgentAnimatorDriver` | Animator bridge | Converts motor `Velocity` → local-space `SpeedX/Y`. Walk speed is boosted with `walkAnimBoost` so walk anims don't look sluggish. [File](Assets/Game/Scripts/agents/animation/AgentAnimatorDriver.cs). |
-| `HealthComponent` | HP tracking | Standard damage/death events. |
-| `HealthReactionModule` | Reacts to damage | Plays `Hurt`/`Death` triggers, emits `NoiseType.Hurt`/`Death`, runs threshold reactions (e.g. enable `FleeModule` at 30% HP), despawn timer. [File](Assets/Game/Scripts/agents/entity/HealthReactionModule.cs). |
-| `EntityFaction` | Faction tag | Without it, the agent **cannot target or be targeted correctly**. Assign a `FactionDefinition` + `FactionRelationshipTable`. [File](Assets/Game/Scripts/agents/faction/EntityFaction.cs). |
-| `EntityAudioModule` | Footstep/aggro/ambient | Plays FMOD + emits `NoiseType.Footstep` on each step, `NoiseType.Alert` on aggro transition. [File](Assets/Game/Scripts/agents/audio/EntityAudioModule.cs). |
-| `NoiseEmitter` | Sound propagation | `Emit(type, radius)` calls `OverlapSphere` and pokes `NoiseReceiverModule`s. Footsteps, hurt, gunshots all route through this. |
-| `EntityInventoryComponent` | Inventory slots | Same underlying `Inventory` the player uses. Required for loot drops and equipment. |
-| `EntityLootTable` | Death drops | Drops starting inventory + weighted `lootEntries` when `HealthComponent.OnDeath` fires. |
-
-Optional baseline extras:
-
-- `EntityEquipmentController` + `handSocket` Transform — for NPCs that carry items.
-- `RegisterAsTarget` — on anything that other agents should find via `EntityTargetRegistry` (the player usually).
-- `AlertBroadcaster` — lets this agent broadcast target sightings to nearby allies.
-
----
-
-## 3. Targeting: how agents find things
-
-Three overlapping systems are in play — modules use all three:
-
-1. **`EntityTargetRegistry`** (static) — tag-keyed registry. `RegisterAsTarget` on the player adds it under `"Player"`. Modules call `EntityTargetRegistry.Resolve("Player", position)` to get the nearest live transform. Faster than `GameObject.FindWithTag` and survives respawn without stale references. [File](Assets/Game/Scripts/agents/EntityTargetRegistry.cs).
-2. **`EntityFaction` + `FactionRelationshipTable`** — every targeting module has a `requiredRelationship` field (`Hostile` / `Neutral` / `Allied`). `EntityFaction.IsValidTarget(owner, candidate, required)` is the shared gate. Unfactioned entities can never be Allied and cannot target at all.
-3. **`CoverPointRegistry`** (static, in [CoverPoint.cs](Assets/Game/Scripts/agents/modules/CoverPoint.cs)) — self-registering cover markers. `CoverModule` asks `CoverPointRegistry.FindBest(self, threat, radius)`.
-
-**All module target fields resolve in this order**: serialized `target` Transform → `EntityTargetRegistry.Resolve(targetTag)` → faction check → accept.
-
----
-
-## 4. Movement modules (claim movement)
-
-All inherit from `BehaviourModuleBase`. Only the one that wins the priority race drives the motor this frame.
-
-| Module | Default priority | Effect | Key fields | Dependencies |
-|---|---|---|---|---|
-| `InteractionFocusModule` | `Scripted` (100) | Stops and faces a target for N seconds. Call `FocusOn(t, duration)` externally. | (none — driven externally) | — |
-| `SteerModule` | `Scripted` (100) | Rider-steered movement when mounted. Tank steer, jump/leap, 1st/3rd person camera. Only claims frame while rider inputs. | `moveSpeed`, `turnSpeed`, `leapHoldTime`, camera fields | `MountController`, Unity Input System actions |
-| `MountModule` | `Fallback` (0) | Mount lifecycle wrapper; returns null from Tick(). When `allowAISelfMovementWhenMounted=false`, suppresses all other modules while mounted. | `allowAISelfMovementWhenMounted` | `MountController`, `SteerModule` |
-| `FleeModule` | `Override` (30) | Runs away when threat is within `triggerRadius`; stops past `safeRadius`. | `triggerRadius`, `safeRadius`, `fleeSpeedMultiplier`, `ignoreFaction` | NavMesh, optionally `EntityFaction` |
-| `CloseCombatModule` | `MeleeAttack` (23) | `StopAndFace` when in `attackRange`, deals `attackDamage` on cooldown. Null when out of range (Chase takes over). | `attackRange`, `attackCooldown`, `attackDamage`, `attackAnimTrigger` | target w/ `HealthComponent` |
-| `RangedAttackModule` | `RangedAttack` (22) | `StopAndFace` inside `[minRange, maxRange]` band, fires `projectilePrefab` from `muzzleTransform`. Retreats to `minRange` when too close (unless `CloseCombatModule` is also present). | `projectilePrefab`, `muzzleTransform`, `minRange`, `maxRange`, `fireCooldown`, `burstCount`, `spreadAngle`, `leadTarget` | `Animator` (optional for triggers) |
-| `AgentRangedCombatModule` | `RangedAttack` (22) | Same as above but driven by three ScriptableObject assets (`AgentWeaponDefinition`, `AgentFireProfile`, `AgentAimProfile`) + optional `WeaponMount`. Supports `requireLineOfSight`. | `weapon`, `fireProfile`, `aimProfile`, `muzzleSocket`, `muzzleForwardOffset`, `spawnWeaponModel` | `PerceptionModule` if LoS required |
-| `CoverModule` | `Reactive+1` (21) | Finds nearest `CoverPoint`, moves to it, then `StopAndFace` the threat. Vacates when threat > `threatRange`. | `threatRange`, `coverSearchRadius`, `speedMultiplier` | `CoverPoint`s in scene |
-| `ChaseModule` | `Reactive` (20) | Detects target inside `detectRange` (requires FoV+LoS if `PerceptionModule` is present; inner `proximityDetectRange` bypasses LoS). Always `MoveTo` while holding target. Loses at `loseTargetRange`. | `detectRange`, `proximityDetectRange`, `loseTargetRange`, `chaseStopDistance`, `chaseSpeedMultiplier` | Optional: `PerceptionModule`, `AlertBroadcaster`, `HerdModule` |
-| `ApproachModule` | `Ambient` (10) | Walks toward target, stops at `conversationDistance`. Faces when arrived. | `detectRadius`, `conversationDistance`, `speedMultiplier` | — |
-| `KeepDistanceModule` | `Ambient` (10) | Backs away if threat closer than `preferredDistance`, otherwise `StopAndFace`. Great with `RangedAttackModule` for kiting. | `detectRadius`, `preferredDistance`, `speedMultiplier` | — |
-| `WatchModule` | `Ambient` (10) | Stops and faces a target in range. No movement. | `detectRadius`, `requiredRelationship` | — |
-| `FacePlayerModule` | `Ambient` (10) | Stops & faces the Player tag when inside `triggerRadius`. Ignores faction. | `triggerRadius`, `targetTag` | — |
-| `FlockingModule` | `Social` (15) | Separation + cohesion + alignment using nearby agent buffers. | `separationRadius`, `perceptionRadius`, weights, `minNeighbours` | `AgentController.nearbyAgentScanRadius > 0` + `nearbyAgentLayer` |
-| `HerdModule` | `Social` (15) | Static-registry per `herdId`. Distributes the frame's best broadcast intent so members fan out on a circle, settle evenly, and pass reactive intents through unchanged. | `herdId`, `settleRadius`, `settleStopDistance`, `combatSpreadRadius`, `settleTimeoutSeconds` | All herd members must share `herdId` |
-| `SearchModule` | `Reactive-1` (19) | When `ChaseModule` just lost its target, go to the last-known position for `searchDuration` seconds. Prefers `PerceptionModule.LastKnownPosition` if present, else `ChaseModule.LastKnownPosition`. | `searchDuration`, `stopDistance`, `speedMultiplier` | `ChaseModule` (required) |
-| `AlertReceiverModule` | `Reactive-1` (19) | On `ReceiveAlert(target, pos)`, forces Chase to target. If Chase can't confirm, drives the agent to the alert position for `alertDuration`. | `alertDuration`, `stopDistance` | `ChaseModule` |
-| `NoiseReceiverModule` | `Reactive-2` (18) | Hears `NoiseEmitter` events. `aggroOn` mask forces Chase; `investigateOn` mask drives to the sound origin. | `investigateOn`, `aggroOn`, `investigateDuration` | `ChaseModule` for aggro; scene `NoiseEmitter`s |
-| `IdleLookAroundModule` | `Personality` (5) | While idle, periodically turns a few degrees to add life. | `minInterval`, `maxInterval`, `turnAngle`, `lookDuration` | — |
-| `PatrolModule` | `Fallback` (0) | Two modes: `RadiusBased` picks random NavMesh points around `radiusCenter` (or spawn); `PatrolPoints` cycles Transforms (SequentialLoop / PingPong / Random). Waits at each point. | mode, `patrolRadius`, `patrolPoints`, `selectionMode`, wait times | — |
-| `BasePatrolModule` | `Fallback` (0) | Simpler anchored radius patrol around `baseTransform` (or spawn). Pair with `HerdModule` for group roaming. | `baseTransform`, `patrolRadius`, `minDestinationDistance`, wait times, `speedMultiplier` | — |
-| `WanderModule` | `Fallback` (0) | Truly random roam. Can be limited (`wanderRadius`) or free-roam across the NavMesh. | `limitWanderRadius`, `wanderRadius`, `freeRoamRadius` | — |
-
-**Priority arbitration example** (a melee-and-ranged robot with perception + cover):
-
-```
-frame → InteractionFocus(100)? no
-      → SteerModule(100)?        no (not mounted)
-      → FleeModule(30)?          no (HP ok, no threat close)
-      → CloseCombatModule(23)?   YES if target ≤ attackRange  → StopAndFace + hit
-      → RangedAttackModule(22)?  YES if target in [min,max]   → StopAndFace + fire
-      → CoverModule(21)?         YES if threat in range + cover found
-      → ChaseModule(20)?         YES if target visible/known   → MoveTo
-      → HerdModule(15)?          YES broadcast spread if herd active
-      → AlertReceiver(19)        ...
-      → NoiseReceiver(18)        ...
-      → IdleLookAround(5)        personality filler while idle
-      → BasePatrol / Wander(0)   fallback loop
-```
-
----
-
-## 5. Side-effect modules (do not claim movement)
-
-These inherit `BehaviourModuleBase` and override `ClaimsMovement => false`, or are plain `MonoBehaviour`s that other modules consult.
-
-| Component | Type | What it does |
-|---|---|---|
-| `PerceptionModule` | plain MB | Authoritative FoV + LoS. `CanSee(t)` (FoV + LoS from eye, updates last-known), `HasLineOfSight(t)` (LoS only), `HasLineOfSightFrom(origin, t)` (from a muzzle). Tracks `LastKnownPosition`, `TimeSinceLastSeen`, `memoryDuration`. Emits `NoiseType.Alert` when spotting. Needs `eyeTransform` (bone), `occlusionLayers`, `fieldOfViewAngle`. [File](Assets/Game/Scripts/agents/perception/PerceptionModule.cs). |
-| `AlertBroadcaster` | plain MB | `Broadcast(target, lastKnown)` calls `OverlapSphere` within `alertRadius` on `receiverLayers` and pokes every `AlertReceiverModule` belonging to an allied `EntityFaction` (when `alliedOnly`). Call from `ChaseModule` on first spot. |
-| `NoiseEmitter` | plain MB | `Emit(NoiseType, radius)` → `OverlapSphereNonAlloc` on `receiverLayers` → `NoiseReceiverModule.OnNoiseHeard`. |
-| `EntityAudioModule` | plain MB | Auto-emits `NoiseType.Footstep` while moving; `NoiseType.Alert` on the Chase aggro edge; plays FMOD ambient SFX on a random interval. |
-| `WeaponSelector` | plain MB | Place on a hand bone. At Awake picks melee vs ranged child model based on which combat module is active on the agent. |
-| `WeaponMount` | plain MB | List of `WeaponSlot { model, muzzle, definition }`. `AgentRangedCombatModule` reads `ActiveDefinition` / `ActiveMuzzle` when present (overrides its own serialized weapon + muzzle). |
-| `HealthReactionModule` | plain MB | HP-driven reactions: anim triggers, noise emit, threshold-based module enable/disable (e.g. enable `FleeModule` at 30% HP), death despawn. |
-| `EntityLootTable` | plain MB | Drops `EntityInventoryComponent` contents + rolls `LootEntry`s on death. |
-| `RangedAttackModule` / `AgentRangedCombatModule` | movement module | Listed under movement — they claim the frame with `StopAndFace` while in band. They do *not* block Chase when out of band (return null so Chase can approach). |
-
----
-
-## 6. Data assets (ScriptableObjects)
-
-| Asset | Create | Contents |
-|---|---|---|
-| `FactionDefinition` | Assets ▸ Create ▸ Factions ▸ Faction Definition | `factionName`, `debugColor` |
-| `FactionRelationshipTable` | Assets ▸ Create ▸ Factions ▸ Relationship Table | List of `(factionA, factionB, relationship)` tuples; same faction is always Allied, missing pairs default Neutral |
-| `AgentWeaponDefinition` | Assets ▸ Create ▸ Agents ▸ Weapon Definition | `weaponModelPrefab`, `projectilePrefab`, `projectileSpeed`, `damagePerHit`, `fireSound` |
-| `AgentFireProfile` | Assets ▸ Create ▸ Agents ▸ Fire Profile | `minRange`, `maxRange`, `fireCooldown`, `burstCount`, `burstInterval` |
-| `AgentAimProfile` | Assets ▸ Create ▸ Agents ▸ Aim Profile | `baseSpreadAngle`, `spreadGrowthPerBurstShot`, `aimLeadFactor`, `requireLineOfSight` |
-
----
-
-## 7. MoveIntent semantics (the module→motor contract)
-
-`MoveIntent` ([MoveIntent.cs](Assets/Game/Scripts/agents/AI/MoveIntent.cs)):
-
-- `Idle()` — claim the frame but request no movement. Use when waiting, paused, or intentionally holding.
-- `MoveTo(pos, stopDistance, speedMultiplier, overrideFacingDirection, facingDirection, isRunning)` — path to `pos`. `isRunning=true` tells the motor to use full NavMesh speed (walking uses `walkSpeedMultiplier`, default 0.65). `overrideFacingDirection` disables NavMesh auto-rotation so another system (e.g. `MountController`) can own facing.
-- `StopAndFace(worldPos)` — halt the path, rotate toward `worldPos`. Used by every "in range, stand & act" module.
-
-Returning `null` from `Tick()` means "pass" — arbitration proceeds to the next module. Side-effect modules (`ClaimsMovement=false`) must always return null.
-
----
-
-## 8. Profile → Generate workflow
-
-`EntityProfile_*` MonoBehaviours are data-only. The custom editor at [EntityProfileEditors.cs](Assets/Game/Editor/EntityProfileEditors.cs) draws a big green "Generate" button that:
-
-1. Calls `EntityProfileEditorUtils.SetupBaseComponents` — adds Rigidbody, CapsuleCollider, NavMeshAgent, NavMeshAgentMotor, AgentController, AgentAnimatorDriver, HealthComponent, HealthReactionModule.
-2. Calls `GetOrAdd<>` for every behaviour module this archetype needs.
-3. Writes profile fields into those modules via `SerializedObject` (`SetFloat`, `SetInt`, `SetObject`, `SetLayerMask`, `SetString`, `SetBool`).
-4. `SetModuleActive` toggles which modules start enabled (e.g. disables `WatchModule` on NPCs that shouldn't auto-track the player).
-
-Existing profiles (all in [Assets/Game/Scripts/agents/profiles/](Assets/Game/Scripts/agents/profiles/)):
-
-- `EntityProfile_BaseAgent` — minimal (HP, despawn). Does not add any behaviour modules; use as a starting baseline.
-- `EntityProfile_NPC` — friendly wanderer. Adds `FleeModule`+`WanderModule`+`WatchModule`+`ApproachModule`+`KeepDistanceModule`+`InteractionFocusModule` (latter three inactive by default).
-- `EntityProfile_GenericEnemy` — full robot: BasePatrol + Herd + Chase + Perception + Search + AlertBroadcaster + AlertReceiver + NoiseReceiver + NoiseEmitter + Melee + Ranged + KeepDistance. `attackStyle` enum (`Melee`/`Ranged`/`KitingRanged`/`Mixed`) flips which modules start active.
-
-After Generate the profile component can be deleted — all modules are fully wired on the prefab.
-
----
-
-## 9. How to create a new agent (from scratch)
-
-**Option A — fastest, use a profile**
-
-1. Duplicate a mesh/prefab in `Assets/Game/Prefabs/entities/` and rename.
-2. Add the matching `EntityProfile_*` component.
-3. Fill in the Inspector fields (HP, ranges, patrol base, `targetTag`, layer masks, projectile prefab…).
-4. Click **⚙ Generate**. All modules appear.
-5. Assign the scene-specific things that can't live on a prefab (faction asset + relationship table on `EntityFaction`; `baseTransform` for `BasePatrolModule`; `muzzleTransform` on ranged modules; `AgentController.nearbyAgentLayer`).
-6. Bake the NavMesh in the scene if it isn't already.
-7. Optionally remove the profile component — modules are persistent.
-
-**Option B — manual composition**
-
-1. Add the baseline 12 components (see §2). The simplest way is to add `EntityProfile_BaseAgent` and click Generate, then delete the profile.
-2. Pick behaviour modules. A useful mental checklist:
-   - *What does it do when nobody's around?* → `WanderModule` / `PatrolModule` / `BasePatrolModule` (pick one).
-   - *Does it need to group with others?* → add `HerdModule` (share `herdId`) and/or `FlockingModule` (enable scan radius on `AgentController`).
-   - *Does it react to enemies?* → `ChaseModule` + `PerceptionModule` + `SearchModule` for pursuit; `FleeModule` for cowards; `KeepDistanceModule` for kiters.
-   - *Does it attack?* → `CloseCombatModule` (melee) and/or `RangedAttackModule`/`AgentRangedCombatModule` (ranged). Always add `CloseCombatModule` if ranged should push close rather than retreat.
-   - *Does it hear / receive alerts?* → `NoiseReceiverModule` + `AlertReceiverModule`.
-   - *Does it warn allies?* → `AlertBroadcaster` (and optionally `PerceptionModule` calls `NotifySpotted` which also emits noise).
-   - *Personality filler?* → `IdleLookAroundModule`.
-   - *Mountable?* → `MountController` + `MountModule` + `SteerModule` + seat/dismount transforms. Optionally `IMountJumpMotor`/`IMountLeapMotor` (NavMeshAgentMotor already implements both).
-3. For each module, check the default priority via its `Reset()` method — adjust only if the archetype calls for it (e.g. make `WatchModule` win over `ChaseModule` for a security camera by raising it above 20).
-4. Assign every `target` / `targetTag`. Default is `"Player"` — a `RegisterAsTarget` on the player keeps the registry populated.
-5. Scene wiring: bake NavMesh, place `CoverPoint`s if using `CoverModule`, set layers on `AlertBroadcaster.receiverLayers`, `NoiseEmitter.receiverLayers`, `AgentController.nearbyAgentLayer`.
-
----
-
-## 10. Behaviour recipes (combinations → observable behaviour)
-
-Each recipe lists the minimum active module set that produces the behaviour. The base 12 components (§2) are implied.
-
-### Passive wanderer
-- `WanderModule`
-- → Roams aimlessly within `wanderRadius`. Stops briefly between destinations.
-
-### Friendly NPC that flees danger and runs over to chat
-- `FleeModule` (Override) + `WanderModule` (Fallback) + `ApproachModule` (Ambient, target = Player) + `InteractionFocusModule` (Scripted)
-- → Wanders until the player steps inside `ApproachModule.detectRadius`, walks over and stops at `conversationDistance`. If hit or threatened, flees. Dialog system can call `InteractionFocusModule.FocusOn` to lock the NPC for a cutscene.
-
-### Ranged kiter
-- `RangedAttackModule` (RangedAttack) + `KeepDistanceModule` (Reactive) + `ChaseModule` (Reactive) + `WanderModule` (Fallback)
-- → Chases when out of range; once inside the firing band, `RangedAttackModule` stands & fires. If the target gets too close, `KeepDistanceModule` pushes backward. No `CloseCombatModule` ⇒ `RangedAttackModule` actively retreats when inside `minRange`.
-
-### Melee brute (Phil-style charger)
-- `CloseCombatModule` (MeleeAttack) + `ChaseModule` (Reactive) + `PerceptionModule` + `SearchModule` + `BasePatrolModule` (Fallback) + `HerdModule` (Social, optional)
-- → Patrols base. Spots player via FoV + LoS, chases, hits. Loses sight ⇒ goes to last known for a few seconds.
-
-### Mixed herd (robot band)
-- Each member: `BasePatrolModule` + `HerdModule` (same `herdId`) + `ChaseModule` + `PerceptionModule` + `SearchModule` + `CloseCombatModule` + `RangedAttackModule` + `KeepDistanceModule` + `AlertBroadcaster` + `AlertReceiverModule` + `NoiseReceiverModule`
-- → Patrol as a group (HerdModule distributes + settles). One sees the player → `AlertBroadcaster` wakes the others. Individual members pick melee or ranged based on distance; kiters back away when crowded.
-
-### Cover shooter (Cath-style)
-- `CoverModule` (Reactive+1 = 21) + `RangedAttackModule` (RangedAttack = 22) + `ChaseModule` (Reactive = 20) + `PerceptionModule`
-- → Cover wins over chase. `RangedAttackModule` (priority 22) beats cover ⇒ fires whenever in band, otherwise CoverModule moves to cover and stands firing from behind it.
-
-### Skittish wildlife (DesertRat)
-- `FleeModule` (Override) + `WanderModule` (Fallback) + `IdleLookAroundModule` (Personality) + no faction, `FleeModule.ignoreFaction = true`
-- → Wanders, peeks around, bolts when anything tagged `Player` gets within `triggerRadius`.
-
-### Mountable creature (MountableAnt)
-- `MountController` + `MountModule` + `SteerModule` (Scripted = 100) + optional AI modules (Wander etc.)
-- → While unmounted, AI modules drive the mount normally. When a player mounts, `SteerModule` claims the frame whenever there is rider input. `MountModule.allowAISelfMovementWhenMounted` controls whether the AI runs between rider inputs (true) or the mount idles (false, modules are disabled).
-
-### Guard that investigates sounds
-- `ChaseModule` + `PerceptionModule` + `SearchModule` + `NoiseReceiverModule` (investigateOn = Footstep|Gunshot, aggroOn = Alert|Hurt) + patrol of choice
-- → Normal patrol. Hears the player's footsteps → walks over. Hears a hurt/alert noise → immediately force-aggros via `ChaseModule.ForceTarget`.
-
-### Turret (no movement)
-- `WatchModule` at high priority (e.g. ModulePriority.Reactive+2) + `RangedAttackModule` + `PerceptionModule` + static prefab (no NavMeshAgent movement)
-- → The agent never wanders; `WatchModule` keeps it facing the nearest target. `RangedAttackModule` fires when in band.
-
----
-
-## 11. Priority recipes (tuning arbitration)
-
-Default priorities work for 90% of agents. Override only when an archetype's decision tree differs.
-
-- Boost `WatchModule` to `Reactive+5` for a security camera that should stare instead of chase when it has a target.
-- Drop `RangedAttackModule` to `Reactive-1` to create a reluctant shooter that prefers running.
-- Raise `CoverModule` above `RangedAttack` for a sniper that always hides first, peeks second.
-- Set `FleeModule` below `Chase` for a hostile that never disengages.
-
-Priorities must be integers and are only read once per frame via the `Priority` property. To change at runtime, disable the module and re-enable after editing.
-
----
-
-## 12. Scene setup checklist
-
-For the agent system to work in a scene:
-
-1. **Bake NavMesh** (Window ▸ AI ▸ Navigation) covering every area agents move in.
-2. **Register the player** — `RegisterAsTarget` with `targetTag = "Player"` (plus `EntityFaction` + `NoiseEmitter` so it can be heard and targeted).
-3. **Faction ScriptableObjects** — `RobotsFaction`, `PlayerFaction`, `NPCFaction`, `WildlifeFaction` + a `GlobalRelationships` table.
-4. **Layers** — one layer for entities (e.g. `Entity`, layer 8), one for the player (`Player`, layer 9). Set:
-   - `AgentController.nearbyAgentLayer`
-   - `AlertBroadcaster.receiverLayers`
-   - `NoiseEmitter.receiverLayers`
-5. **Cover points** — drop `CoverPoint` components on any cover prop if you use `CoverModule`. No wiring needed; they self-register.
-6. **Patrol bases** — each anchored patroller needs a `baseTransform` set in its `BasePatrolModule` (or it uses its spawn).
-
----
-
-## 13. Common extension points
-
-### Writing a new movement module
-
-```csharp
-public class MyModule : BehaviourModuleBase
-{
-    [SerializeField] private float someRange = 5f;
-
-    private void Reset() => SetPriorityDefault(ModulePriority.Reactive);
-
-    public override string ModuleDescription =>
-        "One-line summary\n\n• field — what it does";
-
-    public override MoveIntent? Tick(in AgentContext context, float deltaTime)
-    {
-        // Return null to pass, or a MoveIntent to claim the frame.
-        return MoveIntent.MoveTo(context.Position + context.Self.forward * someRange);
-    }
-}
-```
-
-### Writing a side-effect module
-
-Override `ClaimsMovement => false` and always return null from `Tick()`. Use this for attacks, audio triggers, status effects, buffs, cooldowns.
-
-### Talking across modules
-
-- `GetComponent<OtherModule>()` in `Awake()` and cache it. `ChaseModule` grabs `PerceptionModule`, `AlertBroadcaster`, `HerdModule` this way.
-- Public state on modules: `ChaseModule.HasTarget`, `ChaseModule.LastKnownPosition`, `PerceptionModule.LastKnownPosition`, `MountModule.IsMounted`. Prefer public properties over serialized cross-references.
-- For a one-shot event (attack landed, shot fired) expose a `UnityEvent<T>` + a C# `event Action` like `CloseCombatModule.OnAttack` / `RangedAttackModule.OnFire`.
-
-### Writing a new motor
-
-Implement `IMovementMotor` and drop on the agent. `AgentController.ResolveMotor()` auto-picks the first `IMovementMotor` it finds if `MotorComponent` is empty. Optionally implement `IMountJumpMotor`/`IMountLeapMotor` for mount support.
-
----
-
-## 14. FAQ
-
-**Why did my agent stop moving?** `AgentController` logs `"found no movement IBehaviourModule or IAgentBrain"` if there's no module. If modules exist but all return null, check `IsActive` (module enabled + GameObject active + `active` bool). `NavMeshAgentMotor.Awake()` disables the NavMeshAgent if there's no NavMesh within `navMeshSnapDistance` — bake a NavMesh.
-
-**Why doesn't my agent see the player?** `ChaseModule` with a `PerceptionModule` requires FoV *and* LoS. Check `eyeTransform` (not a Blender-imported bone whose `.forward` points the wrong way — `PerceptionModule` uses the root transform's forward for FoV direction on purpose). Widen `fieldOfViewAngle` or drop `PerceptionModule` for pure radius detection. `proximityDetectRange` bypasses FoV for close range.
-
-**Why are herd members stacking on the player?** `ChaseModule` asks `HerdModule.GetSlotPositionAround(target.position)` — make sure `HerdModule` is on the same GameObject and `herdId` matches across members.
-
-**Why doesn't the ranged enemy back away when I'm point-blank?** `RangedAttackModule` only retreats if there's no `CloseCombatModule` on the same agent. If both are present, `CloseCombatModule` is expected to engage instead.
-
-**Why are my alerts not reaching anyone?** `AlertBroadcaster.receiverLayers` or `NoiseEmitter.receiverLayers` is empty (defaults to Nothing). A warning is logged at Awake.
-
-**Why doesn't `AgentController.RefreshModules()` pick up my runtime-added module?** It should — it calls `GetComponentsInChildren<MonoBehaviour>(true)` and resorts. But `MountModule.CacheSuppressibleModules` doesn't — call `MountModule.RefreshModuleCache()` manually if you add suppressible modules at runtime.
-
----
-
-## 15. File map
-
-```
-Assets/Game/Scripts/agents/
-├── AI/
-│   ├── AgentContext.cs           frame snapshot struct
-│   ├── MoveIntent.cs             Idle/MoveTo/StopAndFace
-│   ├── WanderBehaviour.cs        reusable wander/patrol helper (legacy but active)
-│   ├── brains/
-│   │   ├── IAgentBrain.cs        legacy single-brain interface
-│   │   ├── MountedAgentBrain.cs  legacy mount brain
-│   │   └── Enemy|NPC/...         legacy brains (still compiled, fallback only)
-│   └── motor/
-│       ├── IMovementMotor.cs     motor contract
-│       ├── IMountJumpMotor.cs    jump + leap optional extensions
-│       └── NavMeshAgentMotor.cs  the canonical motor
-├── animation/AgentAnimatorDriver.cs
-├── audio/
-│   ├── EntityAudioModule.cs      footsteps + aggro SFX
-│   ├── NoiseEmitter.cs           emit sounds
-│   ├── NoiseReceiverModule.cs    hear sounds, investigate/aggro
-│   └── NoiseType.cs              enum
-├── controller/
-│   ├── AgentController.cs        tick coordinator
-│   └── mount/MountController.*   mount lifecycle (partial class)
-├── entity/
-│   ├── EntityEquipmentController.cs
-│   ├── EntityInventoryComponent.cs
-│   ├── EntityLootTable.cs
-│   └── HealthReactionModule.cs
-├── faction/
-│   ├── EntityFaction.cs
-│   ├── FactionDefinition.cs             (ScriptableObject)
-│   └── FactionRelationshipTable.cs      (ScriptableObject)
-├── modules/                               ← all IBehaviourModule implementations
-│   ├── IBehaviourModule.cs
-│   ├── BehaviourModuleBase.cs             ← base + ModulePriority constants
-│   ├── ChaseModule.cs  FleeModule.cs  WanderModule.cs  PatrolModule.cs  BasePatrolModule.cs
-│   ├── HerdModule.cs  FlockingModule.cs
-│   ├── CloseCombatModule.cs  RangedAttackModule.cs  AgentRangedCombatModule.cs
-│   ├── CoverModule.cs  CoverPoint.cs (+ static CoverPointRegistry)
-│   ├── ApproachModule.cs  KeepDistanceModule.cs  WatchModule.cs  FacePlayerModule.cs
-│   ├── IdleLookAroundModule.cs  InteractionFocusModule.cs  SearchModule.cs
-│   ├── MountModule.cs  SteerModule.cs (+ partial .Camera/.Input/.SelfDrive)
-│   └── WeaponMount.cs  WeaponSelector.cs
-├── perception/
-│   ├── PerceptionModule.cs       FoV + LoS + memory
-│   ├── AlertBroadcaster.cs       broadcast to allies
-│   └── AlertReceiverModule.cs    receive alerts
-├── profiles/
-│   ├── EntityProfile_BaseAgent.cs
-│   ├── EntityProfile_NPC.cs
-│   ├── EntityProfile_GenericEnemy.cs
-│   └── EntitySystemSetup.cs      doc-only setup guide
-├── weapon/
-│   ├── AgentAimProfile.cs            (ScriptableObject)
-│   ├── AgentFireProfile.cs           (ScriptableObject)
-│   ├── AgentWeaponDefinition.cs      (ScriptableObject)
-│   └── AgentProjectile.cs
-├── EntityTargetRegistry.cs       static tag registry
-└── RegisterAsTarget.cs           add on Player et al.
-
-Assets/Game/Editor/EntityProfileEditors.cs   generator buttons for every profile
-```
-
----
-
-## 16. Quick answers to common asks
-
-**"Give this robot ranged attacks"** → add `RangedAttackModule` (or `AgentRangedCombatModule` + weapon/fire/aim assets). Assign `projectilePrefab`, `muzzleTransform` (gun barrel bone), layer the projectile to hit entities. If the agent also has melee, ranged won't retreat.
-
-**"Make them patrol together"** → all members: same `BasePatrolModule.baseTransform`, same `HerdModule.herdId`. Optionally `FlockingModule` and set `AgentController.nearbyAgentScanRadius` > 0 with the entity layer.
-
-**"Make them see from a head bone"** → assign `PerceptionModule.eyeTransform` = head bone. FoV still uses the root forward; only the raycast origin moves.
-
-**"Make them run when low HP"** → add a `HealthThresholdReaction` on `HealthReactionModule` with `healthPercentage = 0.3`, `enableModules = [FleeModule]`, `disableModules = [ChaseModule, CloseCombatModule]`.
-
-**"Let them drop loot"** → add items to `EntityInventoryComponent.startingItems` (guaranteed drop) and/or `EntityLootTable.lootEntries` (weighted rolls). Both trigger on `HealthComponent.OnDeath`.
-
-**"Give them a sword that auto-swings"** → `EntityEquipmentController` with a `handSocket`, put the weapon item in inventory slot 0, enable `autoUse` + set `autoUseInterval`. (This is the inventory-driven path — for combat AI, use `CloseCombatModule` instead.)
-
-**"Rider-controlled mount"** → `MountController` + `MountModule` + `SteerModule`. Seat / dismount Transforms on `MountController`. `SteerModule` reads the Input System actions `Move`, `Look`, `Jump`, `Next`. `MountModule.allowAISelfMovementWhenMounted` toggles whether the mount's AI runs between rider inputs.
-
-**"Let a whole band react when one spots the player"** → every member has `AlertReceiverModule`, the spotters have `AlertBroadcaster`. `ChaseModule` calls `AlertBroadcaster.Broadcast` on first detection. Set `AlertBroadcaster.receiverLayers` to the entity layer.
-
----
-
-*When in doubt, read [BehaviourModuleBase.cs](Assets/Game/Scripts/agents/modules/BehaviourModuleBase.cs) and any module — each one has a `ModuleDescription` string explaining its fields and behaviour inline.*
+| `AgentController` | [Controller/AgentController.cs](Assets/Game/Scripts/agents/Controller/AgentController.cs) | Ticks modules, arbitrates, drives motor + animator. `IPersistentEntity` |
+| `IBehaviourModule` / `BehaviourModuleBase` / `ModulePriority` | [Modules/Core/](Assets/Game/Scripts/agents/Modules/Core/IBehaviourModule.cs) | `Priority`, `IsActive`, `ClaimsMovement`, `Tick`. Priorities: Scripted 100 · Override 30 · MeleeAttack 23 · RangedAttack 22 · Reactive 20 · Social 15 · Ambient 10 · Personality 5 · Fallback 0 |
+| `IFacingModule` | [Modules/Core/IFacingModule.cs](Assets/Game/Scripts/agents/Modules/Core/IFacingModule.cs) | Second channel. Only impls: `AgentRangedCombatModule`, `NpcItemUseModule` |
+| `IPresentationModule` | [Modules/Core/IPresentationModule.cs](Assets/Game/Scripts/agents/Modules/Core/IPresentationModule.cs) | Marker: keeps ticking on non-authoritative machines. Only impl: `ChatterModule` |
+| `MoveIntent` / `AgentContext` | [AI/Core/](Assets/Game/Scripts/agents/AI/Core/MoveIntent.cs) | `Idle()` / `MoveTo()` / `StopAndFace()`; per-frame snapshot |
+| `AgentAuthority` | [Core/AgentAuthority.cs](Assets/Game/Scripts/agents/Core/AgentAuthority.cs) | Cached "does this machine drive me". Caches the `NetworkObject`, never the bool |
+| `AgentActionRelay` | [Core/AgentActionRelay.cs](Assets/Game/Scripts/agents/Core/AgentActionRelay.cs) | Encodes/decodes `NetMsg.AgentActed`. Presentation only, both directions |
+| `NpcSpawn` | [Core/NpcSpawn.cs](Assets/Game/Scripts/agents/Core/NpcSpawn.cs) | Spawns NPCs network-visible but **save-invisible** (never `GameServices.World.Spawn`) |
+| `EntityTargetRegistry` | [Core/EntityTargetRegistry.cs](Assets/Game/Scripts/agents/Core/EntityTargetRegistry.cs) | Static registry; `Query`/`ResolveNearest` by relationship. Fed by `EntityFaction.OnEnable` |
+| **Motors** ([AI/Motors/](Assets/Game/Scripts/agents/AI/Motors/)) | | |
+| `NavMeshAgentMotor` | [NavMeshAgentMotor.cs](Assets/Game/Scripts/agents/AI/Motors/NavMeshAgentMotor.cs) | Everything that walks the baked NavMesh. Also `IMountJumpMotor`, `IRiderControllable`, `ISelfDrivingMotor` |
+| `RigidbodyMotor` · `HoverRigidbodyMotor`+`HoverGroundSensor` · `FlyingRigidbodyMotor` · `OrnithopterFlightMotor` | [Motors/](Assets/Game/Scripts/agents/AI/Motors/RigidbodyMotor.cs) | Physics ground vehicles · hovercraft · free 3D flight (pair `AirWanderModule`) · energy flight ([Ornithopter.md](Ornithopter.md)) |
+| `LeggedDriver` (abstract) | [LeggedDriver.cs](Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs) | Procedural legged rigs; subclasses in `Assets/Game/Scripts/Creatures/Drivers/`. No NavMeshAgent, no `AgentAnimatorDriver` |
+| `AgentTargeting` | [AI/Targeting/AgentTargeting.cs](Assets/Game/Scripts/agents/AI/Targeting/AgentTargeting.cs) | Order −50. Acquisition range auto-widened to longest weapon range + 5 m. Scores by "effective distance" (`currentTargetBias`, `lastAttackerBias`, `occludedPenalty`); sight × `Sandstorms.SightFactorAt` |
+| `TargetingProfile` | [TargetingProfile.cs](Assets/Game/Scripts/agents/AI/Targeting/TargetingProfile.cs) | SO overriding every inline `AgentTargeting` field. `MatchManager` swaps it for arena bots |
+| `TargetResolution` | [TargetResolution.cs](Assets/Game/Scripts/agents/AI/Targeting/TargetResolution.cs) | `IsViable` / `Refresh` for NON-hostile candidates. Never hand-roll `if (target) return;` |
+| `ProvocationModule` | [ProvocationModule.cs](Assets/Game/Scripts/agents/AI/Targeting/ProvocationModule.cs) | Order −40. Peaceful-until-hurt: `leashRange`, `calmDownDelay`, `damageThreshold` |
+| `EntityFaction` / `FactionDefinition` / `FactionRelationshipTable` | [Faction/](Assets/Game/Scripts/agents/Faction/EntityFaction.cs) | `Get(a,b)` = `Allied` for a==b, **`Neutral` for any pair with no row**. Assets in `Assets/Game/ScriptableObjects/Factions/Core/`, one table: `GlobalRelationships.asset` |
+| **Movement modules** ([Modules/Movement/](Assets/Game/Scripts/agents/Modules/Movement/)) | | |
+| `WanderModule` 0 · `AirWanderModule` 0 · `GoalTravelModule` 1 · `HuntModule` 9 · `ApproachModule` 10 · `KeepDistanceModule` 10 · `SearchModule` 19 · `ChaseModule` 20 · `FleeModule` 30 | | Roam · roam in air · walk to `AgentGoal` · walk at nearest hostile anywhere (arena) · close to talk distance · kite · investigate last-known · pursue target · run from a relationship |
+| `PatrolModule` / `BasePatrolModule` 0 | [Modules/Patrol/](Assets/Game/Scripts/agents/Modules/Patrol/PatrolModule.cs) | Waypoints or radius-around-base |
+| `CoverModule` 21 / `CoverPoint` | [Modules/Cover/](Assets/Game/Scripts/agents/Modules/Cover/CoverModule.cs) | Best self-registering `CoverPoint` relative to the threat |
+| `GroundAnchorOnLand` | [Movement/GroundAnchorOnLand.cs](Assets/Game/Scripts/agents/Modules/Movement/GroundAnchorOnLand.cs) | Freezes a Rigidbody on first ground contact (deployed turrets) |
+| `FlockingModule` 15 / `HerdModule` 15 | [Modules/Flocking/](Assets/Game/Scripts/agents/Modules/Flocking/FlockingModule.cs) | Separation+alignment+cohesion (needs `nearbyAgentScanRadius`/`Layer`) / rebroadcasts the herd's top intent, self-registers by `herdId` · `FormationModule` 15 + `FormationMath` ([Modules/Formation/](Assets/Game/Scripts/agents/Modules/Formation/FormationModule.cs)) walks a column behind a leader |
+| **Combat** ([Modules/Combat/](Assets/Game/Scripts/agents/Modules/Combat/)) | | |
+| `CloseCombatModule` 23 | [CloseCombatModule.cs](Assets/Game/Scripts/agents/Modules/Combat/CloseCombatModule.cs) | Melee; `rangeExitFactor` hysteresis + `attackCommitDuration` |
+| `AgentRangedCombatModule` 22 | [AgentRangedCombatModule.cs](Assets/Game/Scripts/agents/Modules/Combat/AgentRangedCombatModule.cs) | Owns the whole engagement (backs to `preferredRange`, strafes). Also `IFacingModule` |
+| `NpcItemUseModule` 22 | [NpcItemUseModule.cs](Assets/Game/Scripts/agents/Modules/Combat/NpcItemUseModule.cs) | Side-effect: fires a real `InventoryItem` via `EntityEquipmentController` |
+| `TurretModule` · `RocketLauncherTurret` · `TurretProjectile` · `WeaponMount` · `WeaponSelector` | [Modules/Combat/](Assets/Game/Scripts/agents/Modules/Combat/TurretModule.cs) | Stationary guns (resolve their own target) · multi-slot weapon rigs |
+| `AgentWeaponDefinition` / `AgentFireProfile` / `AgentAimProfile` / `AgentProjectile` | [Weapons/](Assets/Game/Scripts/agents/Weapons/AgentWeaponDefinition.cs) | `Assets > Create > Agents > …` SOs tuning built-in agent weapons |
+| `WatchModule` · `FacePlayerModule` · `IdleLookAroundModule` · `InteractionFocusModule` | [Modules/Facing/](Assets/Game/Scripts/agents/Modules/Facing/WatchModule.cs) | Despite the folder these are **movement** modules returning `StopAndFace`, not `IFacingModule`. `ChatterModule` 5 ([Personality/](Assets/Game/Scripts/agents/Modules/Personality/ChatterModule.cs)) speaks the current task line inside `hearingRadius` on a shared static cooldown |
+| `PerceptionModule` | [Perception/PerceptionModule.cs](Assets/Game/Scripts/agents/Perception/PerceptionModule.cs) | FOV + LoS. `CanSee` writes memory, `IsVisible` does not |
+| `AlertBroadcaster` / `AlertReceiverModule` 19 | [Perception/](Assets/Game/Scripts/agents/Perception/AlertBroadcaster.cs) | Pack aggro via `AgentTargeting.ForceTarget` |
+| `NoiseEmitter` / `NoiseReceiverModule` 18 / `NoiseType` | [Audio/](Assets/Game/Scripts/agents/Audio/NoiseEmitter.cs) | Sphere-broadcast hearing; investigate or aggro per type (`Footstep` `Alert` `Hurt` `Death` `Gunshot` `Explosion` `Custom`). [EntityAudioModule.cs](Assets/Game/Scripts/agents/Audio/EntityAudioModule.cs) plays the FMOD side via an `SfxId` catalog slot + optional `EventReference` override |
+| `HealthReactionModule` · `EntityLootTable` · `EntityInventoryComponent` · `EntityEquipmentController` | [Entity/](Assets/Game/Scripts/agents/Entity/HealthReactionModule.cs) | Hurt/death triggers + despawn · weighted drops (a MonoBehaviour, no assets) · same `Inventory` as the player · lets NPCs hold and fire the player's `UsableItem` prefabs |
+| `NpcTask` · `NpcTaskPlanner` (static, pure) · `NpcTaskModule` 0 · `NpcSpeechTokens` | [Tasks/](Assets/Game/Scripts/agents/Tasks/NpcTask.cs) | A task names a *kind of place* + a dwell time, never a position. Planner is shared by live NPCs and virtual groups so both decide identically |
+| `NpcWorldSim` / `NpcGroup` | [World/](Assets/Game/Scripts/agents/World/NpcWorldSim.cs) | Server-only. Groups are VIRTUAL records that lerp along a straight line, becoming SPAWNED prefabs inside `spawnRadius` and unwinding at `despawnRadius` (hysteresis) |
+| `AgentAnimatorDriver` | [Animation/AgentAnimatorDriver.cs](Assets/Game/Scripts/agents/Animation/AgentAnimatorDriver.cs) | Writes `SpeedX` `SpeedY` `FallSpeed` `IsGrounded` `IsImmobalized` *(sic)* `IsAiming`; triggers `Hurt` `Die` `ShootRifle` `SpearAttack` |
+| `EntityProfile_{BaseAgent,GenericEnemy,NPC,Vehicle}` | [Profiles/](Assets/Game/Scripts/agents/Profiles/EntityProfile_BaseAgent.cs) | Authoring components with a **Generate** button ([EntityProfileEditors.cs](Assets/Game/Editor/Agents/EntityProfileEditors.cs)). Only these four exist. [DuneRiderController.cs](Assets/Game/Scripts/agents/Controller/DuneRiderController.cs) is a direct-drive rider vehicle that bypasses the module stack |
+
+## Flows
+
+**Per frame — `AgentController.Update`:**
+1. `RefreshAuthority()` — if this machine does not own the agent: `TickPresentation(dt)` (`IPresentationModule` only) and **return**.
+2. Bail if `Motor == null`. Build `AgentContext`.
+3. Tick every side-effect module (`ClaimsMovement == false`) in discovery order, unconditionally.
+4. Tick movement modules, priority DESC (ties by component order); **first non-null wins**. None → legacy `IAgentBrain` → `MoveIntent.Idle()`.
+5. `ApplyFacingOverride()` — `IFacingModule[]` by `FacingPriority` DESC, first `true` wins, overwrites `FacePosition`.
+6. Speed-variation drift applied to `SpeedMultiplier` (`MoveToPosition` intents only; phase is saved).
+7. `Motor.Tick(intent, dt)` → `animatorDriver.Tick(Motor.Velocity, Motor.IsImmobile, intent.IsRunning)`.
+
+**Execution order:** −100 `NavMeshAgentMotor` · −50 `AgentTargeting` · −40 `ProvocationModule` · 0 `AgentController` · 50 `LeggedDriver` · 100 `LeggedLocomotion` (asmdef `SpaceGame.Locomotion`) · LateUpdate `AgentAnimatorDriver`, `EntityEquipmentController` aim.
+
+**Attack:** authority module fires → damages/spawns locally → `AgentActionRelay.Broadcast(this, AgentAction.Melee|Ranged, origin, dir)` → peers `TryReadRay` and draw **presentation only** (no damage; `NetDamage` would bill the target once per machine).
+
+**Caravan:** `NpcWorldSim` ticks `NpcGroup` records (lerp + `NpcTaskPlanner`) → player within `spawnRadius` → `NpcSpawn.Create` per `NpcGroupMemberSpec` in formation → members run their own AI → `despawnRadius` folds them back into the record.
+
+## Multiplayer
+
+- The **owner** machine runs the whole stack; every other machine runs only `IPresentationModule`s. Ownership, not server-ness — [AgentAuthority.cs](Assets/Game/Scripts/agents/Core/AgentAuthority.cs). Modules must contain **no** authority check; the controller already gated the tick.
+- Body transform + animator replicate through `NetworkObject` / [NetAuthority.cs](Assets/Game/Scripts/Core/Multiplayer/Authority/NetAuthority.cs), which disables listed simulation drivers on remotes.
+- Attacks replicate as `NetMsg.AgentActed` (69) via `AgentActionRelay`; damage stays on the deciding machine.
+- `NpcWorldSim` is server-only. `NpcSpawn.Create` must be called behind `Network.Simulates`.
+- An `InventoryItem` an NPC carries needs its `itemPrefab` registered as a network prefab; projectiles and equipped visuals must **not** be. See [spacegame-multiplayer](.claude/skills/spacegame-multiplayer/SKILL.md).
+
+## Persistence
+
+`AgentController` implements `IPersistentEntity`, so **every agent is save-eligible with no opt-in**. Savers live outside this tree in [Core/Persistence/Adapters/](Assets/Game/Scripts/Core/Persistence/Adapters/AgentStateSaveable.cs): `AgentStateSaveable` (key `"agent"` — target/lastAttacker as `SaveRef`, last-known position, `timeSinceSeen`, `profileId`, patrol index/direction), plus `PatrolSaveable`, `SearchSaveable`, `AlertResponseSaveable`, `NoiseInvestigationSaveable`; and the generic `TransformSaveable` + `HealthSaveable`. Add them inside the prefab's builder, then run `Tools/Save System/Wire Saveable Prefabs`. Details: [Persistence.md](Persistence.md).
+
+## Gotchas
+
+- **No `EntityFaction` → invisible to every targeting module, silently.** Needs both a `FactionDefinition` and `GlobalRelationships.asset`. `EntityFaction.Ensure(go, faction, table)` on spawn paths.
+- **Peaceful = zero relationship rows** + `ProvocationModule` (`leashRange` ≤ `AgentTargeting.loseRange`). Adding a row "for completeness" makes the whole faction attack on sight. `FaunaFaction.asset` appears in zero rows; `WildlifeFaction` is already Hostile to the player.
+- **A module returning `MoveIntent.Idle()` while merely waiting starves everything below it.** Return `null`.
+- **A script-added module keeps priority 0** — Unity does not call `Reset()` for `AddComponent`, so it ties with wander. Set `priority` explicitly.
+- **`*Builder` scripts in `Assets/Game/Editor/` overwrite prefabs wholesale** with no warning; hand-added components vanish on rebuild. `GolemBuilder` lost the Golem's `SaveableEntity` this way.
+- **Feet skate** when only `animationSpeedMultiplier` / `walkAnimBoost` were tuned — those pick the *clip*. `animatorSpeedScale = groundSpeed / strideSpeed` sets the *rate*, applied once in `Awake`, and is global (attacks slow with it).
+- **Trigger names disagree by default:** driver fires `"Die"`, `HealthReactionModule.dieAnimTrigger` = `"Death"`, `CloseCombatModule` = `"Meele"`, `AgentRangedCombatModule` = `"AssualtShoot"` — the misspellings are real. `Golem.controller` carries both `Die` and `Death`.
+- **`PerceptionModule.occlusionLayers` left at `Nothing`** falls back with a warning and the agent shoots through walls intermittently.
+- **A `LeggedLocomotion` left in `NetAuthority.simulationDrivers`** makes remote copies slide with still feet.
+- **Provoked NPC walks instead of running:** `NavMeshAgent.speed` must be the **run**; scale `walkSpeedMultiplier` down from it, because `ChaseModule` asks for `isRunning`.
+- **Loot duplicates on load** — a death reaction ran during a restore. Check `HealthComponent.IsRestoring`.
+- **A spawner-owned group duplicates on load** unless members call `SaveableEntity.DisownToExternal()`; this is why `NpcSpawn` deliberately avoids `GameServices.World.Spawn`.
+- **Every NPC aims at the host's head** unless `EntityEquipmentController` sets `Weapon.ExternallyAimed` (keep `aimHeldItem` on) — the server owns every NPC and `Weapon` aims at `Camera.main` for its owner.
+- **Two `AgentTargeting` components** — `[RequireComponent]` may already have added one; guard builders with a `GetComponent` null check.
+- Bone-parented rigs freeze mid-stride off screen: `animator.cullingMode = AlwaysAnimate`. A humanoid FBX re-export can silently downgrade to `isHuman = false` — the character then stands still with a clean console.
+
+## Extending
+
+**New creature** (copy [GolemBuilder.cs](Assets/Game/Editor/Creatures/GolemBuilder.cs), menu `Tools/Creatures/Build Golem Prefab`):
+1. Mesh + rig via the `blender-model` skill; verify `avatar.isHuman` for humanoids.
+2. Prefab under `Assets/Game/Prefabs/agents/…`. Reuse the FBX's own `Animator`, `applyRootMotion = false`, `cullingMode = AlwaysAnimate`.
+3. Collider + kinematic `Rigidbody` (`useGravity = false` for NavMesh creatures).
+4. Motor: `NavMeshAgent` + `NavMeshAgentMotor` (speed = run, `walkSpeedMultiplier` = walk/run), or `LeggedDriver`, or `FlyingRigidbodyMotor`, or `RigidbodyMotor`.
+5. `AgentController` on the root; assign `MotorComponent` + `animatorDriver`.
+6. `EntityFaction` (faction + `GlobalRelationships.asset`), then `HealthComponent` + `HealthReactionModule` (+ `EntityLootTable`).
+7. Modules: one Fallback (`WanderModule`/`PatrolModule`) plus reactive/combat ones, each with an explicit `priority`. Perception: `PerceptionModule` (set `occlusionLayers`), `AlertBroadcaster`/`AlertReceiverModule`, `NoiseEmitter`/`NoiseReceiverModule`.
+8. Animator controller in `Assets/Game/Art/Animations/Creatures/` with the exact parameter names above; set `animatorSpeedScale`.
+9. `SceneTracked` (`policy = Migrate`) for roamers; saveables + `Tools/Save System/Wire Saveable Prefabs`; `NetworkObject` + `NetworkedHealthComponent` + `NetAuthority` + `Tools/SpaceGame/Multiplayer/Sync Network Prefabs`.
+10. Into the world via `NpcWorldSim.templates` (inlined in `Assets/Game/Scenes/world/persistentScene.unity`), `SettlementConfig.asset → robotPrefabs`, `MatchManager.deathmatchBotPrefab`, or a hand-placed chunk instance.
+
+**New behaviour module** — last resort; first check whether existing data (`TargetingProfile`, `NpcTask[]`, a relationship row, a different priority) answers it:
+1. Decides *where*, not *how*? Set `ClaimsMovement => false` and write `AgentGoal`; `GoalTravelModule` walks there (`NpcTaskModule` is the worked example).
+2. Decides only where the body *points*? Implement `IFacingModule` — not a movement module returning `StopAndFace`.
+3. Otherwise subclass `BehaviourModuleBase` in the matching `Modules/` folder; `Reset() => SetPriorityDefault(...)`; override `ModuleDescription`.
+4. In `Tick`: read the target from `context.Targeting` (never query the registry for a hostile; use `TargetResolution.Refresh` for non-hostiles); return `null` to pass; run expensive queries on an interval; keep collections instance-level, not static.
+5. Reset per-module state in `OnEnable` (respawn, streaming and loads re-enable agents). No authority checks inside the module.
+6. Attack-style modules need enter/exit hysteresis (`rangeExitFactor`) or the winner flips every frame at the range boundary and the agent stutters.

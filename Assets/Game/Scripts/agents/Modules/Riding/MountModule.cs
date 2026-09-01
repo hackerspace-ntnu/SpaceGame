@@ -174,9 +174,10 @@ namespace SpaceGame.Agents
         /// </summary>
         private Vector3 lastDismountPosition;
         private bool hasLastDismountPosition;
-        private bool playerRigidbodyWasKinematic;
-        private bool playerRigidbodyHadGravity;
-        private RigidbodyInterpolation playerRigidbodyInterpolation;
+
+        // The rider's Rigidbody state is deliberately NOT cached here. It belongs to CarriedBody,
+        // because a body can be held by this module and by SeatedRider at once and a private cache
+        // per carrier hands back a state the body was never in — see CarriedBody for the failure.
 
         // The rider's own control components as they were the moment they sat down, so the dismount
         // hands back what it took rather than switching everything on.
@@ -262,6 +263,19 @@ namespace SpaceGame.Agents
         public float MountedPitch => mountedPitch;
         public float OrbitPitch => orbitPitch;
         public Vector3 SeatOffset => seatOffset;
+
+        /// <summary>
+        /// Where this mount stands its rider up, or null when it has none authored.
+        ///
+        /// <para>
+        /// Exposed so the other way a body ends up in one of this vehicle's chairs — the arrival's
+        /// <c>SeatedRider</c>, which deliberately does not go through a mount — can put people down
+        /// in the same place rather than inventing a second one. Two components disagreeing about
+        /// where the door is on the same ship is exactly the kind of drift this project pays for
+        /// later.
+        /// </para>
+        /// </summary>
+        public Transform DismountPoint => dismountPoint;
 
         /// <summary>Where the last dismount left the rider. Only meaningful with <see cref="HasLastDismountPosition"/>.</summary>
         public Vector3 LastDismountPosition => lastDismountPosition;

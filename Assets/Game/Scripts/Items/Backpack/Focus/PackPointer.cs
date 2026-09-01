@@ -74,13 +74,31 @@ namespace SpaceGame.Items
             surface = null;
             uv = Vector2.zero;
 
-            int layer = BackpackItemVisual.ItemLayer;
-            if (cam == null || layer < 0) return false;
+            if (cam == null) return false;
 
-            Ray ray = CursorRay(cam);
+            return TryHitItem(CursorRay(cam), Reach, out visual, out surface, out uv);
+        }
+
+        /// <summary>
+        /// <see cref="TryHitItem(Camera, out GameObject, out PackSurface, out Vector2)"/> down an
+        /// arbitrary ray, for a container aimed at with the crosshair rather than a cursor.
+        ///
+        /// The reach is the caller's, not this file's constant: a cursor two metres from a
+        /// deployed rig and a player walking up to a wall are different distances, and the wall's
+        /// has to be the same one the E key uses or the two disagree about what is in range.
+        /// </summary>
+        public static bool TryHitItem(Ray ray, float reach, out GameObject visual,
+                                      out PackSurface surface, out Vector2 uv)
+        {
+            visual = null;
+            surface = null;
+            uv = Vector2.zero;
+
+            int layer = BackpackItemVisual.ItemLayer;
+            if (layer < 0) return false;
             if (ray.direction.sqrMagnitude < 1e-6f) return false;
 
-            int count = Physics.RaycastNonAlloc(ray, hits, Reach, 1 << layer, QueryTriggerInteraction.Ignore);
+            int count = Physics.RaycastNonAlloc(ray, hits, reach, 1 << layer, QueryTriggerInteraction.Ignore);
             if (count <= 0) return false;
 
             float nearest = float.MaxValue;
@@ -125,9 +143,22 @@ namespace SpaceGame.Items
             surface = null;
             uv = Vector2.zero;
 
-            if (cam == null || surfaces == null) return false;
+            if (cam == null) return false;
 
-            Ray ray = CursorRay(cam);
+            return TryHitSurface(CursorRay(cam), Reach, surfaces, out surface, out uv);
+        }
+
+        /// <summary>
+        /// <see cref="TryHitSurface(Camera, IReadOnlyList{PackSurface}, out PackSurface, out Vector2)"/>
+        /// down an arbitrary ray. See the reach note on the other overload.
+        /// </summary>
+        public static bool TryHitSurface(Ray ray, float reach, IReadOnlyList<PackSurface> surfaces,
+                                         out PackSurface surface, out Vector2 uv)
+        {
+            surface = null;
+            uv = Vector2.zero;
+
+            if (surfaces == null) return false;
             if (ray.direction.sqrMagnitude < 1e-6f) return false;
 
             float nearest = float.MaxValue;
@@ -137,7 +168,8 @@ namespace SpaceGame.Items
                 PackSurface candidate = surfaces[i];
                 if (candidate == null) continue;
 
-                if (!TryIntersect(ray, candidate, out float distance, out Vector2 candidateUv)) continue;
+                if (!TryIntersect(ray, reach, candidate, out float distance, out Vector2 candidateUv))
+                    continue;
                 if (distance >= nearest) continue;
 
                 Vector2 size = candidate.Size;
@@ -152,7 +184,8 @@ namespace SpaceGame.Items
             return surface != null;
         }
 
-        private static bool TryIntersect(Ray ray, PackSurface surface, out float distance, out Vector2 uv)
+        private static bool TryIntersect(Ray ray, float reach, PackSurface surface,
+                                         out float distance, out Vector2 uv)
         {
             distance = 0f;
             uv = Vector2.zero;
@@ -167,7 +200,7 @@ namespace SpaceGame.Items
             if (Mathf.Abs(facing) < 1e-4f) return false;
 
             distance = Vector3.Dot(t.position - ray.origin, normal) / facing;
-            if (distance <= 0f || distance > Reach) return false;
+            if (distance <= 0f || distance > reach) return false;
 
             uv = surface.ToUv(ray.origin + ray.direction * distance);
             return true;

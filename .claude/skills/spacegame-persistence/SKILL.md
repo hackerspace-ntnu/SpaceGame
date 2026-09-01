@@ -17,7 +17,7 @@ is right now, not what it is), and each `ISaveable` owns exactly one key inside 
 
 Code lives in `Assets/Game/Scripts/Core/Persistence/` (`Format/` = asmdef `SpaceGame.Persistence`,
 zero references; `Runtime/`, `Adapters/`, `Editor/` = Assembly-CSharp).
-Full architecture narrative: `docs/architecture/Persistence.md`.
+Full system reference: `docs/AI/systems/Persistence.md`.
 Record shapes, adapter catalog, JSON rules, migrations: `reference.md` beside this file.
 
 ## When to Use
@@ -262,5 +262,5 @@ A persistence change that has not been round-tripped does not work. Do all of th
   touches netcode only at the seam: saving is server-only (`Network.Server`), restored objects go
   through `SaveNetworking.SpawnIfNetworked`, and player placement goes through `PlayerSaveService`
   because the player transform is owner-authoritative.
-- `docs/architecture/Persistence.md` — the long-form narrative and design rationale.
+- `docs/AI/systems/Persistence.md` — the source-verified system reference. Narrative version for humans: `docs/Human/08-saving-and-continuity.md`.
 - `reference.md` — record format, JSON rules, migrations, file map, save-file inspection script.

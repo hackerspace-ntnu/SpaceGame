@@ -55,6 +55,25 @@ namespace SpaceGame.Items
         /// the player flips the leaf back up.
         /// </para>
         /// </summary>
-        Rack = 6
+        Rack = 6,
+
+        /// <summary>
+        /// <c>SURF_WallGrid</c>: the 5.40 x 2.70 m face of the ship's inventory wall — 60 x 30
+        /// cells, against the rig's biggest face at 9 x 9.
+        ///
+        /// <para>
+        /// Not a face of the rig at all, which is why this enum's name has outgrown it slightly:
+        /// it identifies a face of any <see cref="PackContainer"/>, and the wall is the second
+        /// one. Appended rather than renumbered, because these values are persisted and sent as a
+        /// byte.
+        /// </para>
+        /// <para>
+        /// The wall is one surface and not ten panel-shaped ones, even though the model reads as
+        /// ten bays. Bay boundaries would be real walls that an item could not straddle, invisible
+        /// from three metres away, and every one of them would waste up to five cells of the row it
+        /// cut. The bays are decoration on a continuous grid.
+        /// </para>
+        /// </summary>
+        WallGrid = 7
     }
 }

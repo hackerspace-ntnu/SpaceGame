@@ -5,7 +5,7 @@ from mathutils import Matrix, Vector
 
 arm = bpy.data.objects["ConjurerRig"]
 # rebuild cleanly on re-run: drop any Idle/Walk (and .001 duplicates) we authored
-for _a in [a for a in bpy.data.actions if re.match(r"^(Idle|Walk)(\.\d+)?$", a.name)]:
+for _a in [a for a in bpy.data.actions if re.match(r"^(Idle|Walk|Attack)(\.\d+)?$", a.name)]:
     bpy.data.actions.remove(_a)
 bpy.context.view_layer.objects.active = arm
 sc = bpy.context.scene
@@ -20,13 +20,31 @@ def world_rot(pb, axis, deg):
     Rw = Matrix.Rotation(math.radians(deg), 3, axis)
     return (M.inverted() @ Rw @ M).to_quaternion()
 
+def world_rot_multi(pb, pairs):
+    """Several world-axis rotations composed, expressed in the bone's local space.
+
+    Applied left to right, so ('Y', -60), ('X', 90) reads as "swing it forward, then
+    roll it" -- which is the order a hand is actually posed in. One call rather than
+    two because rotation_quaternion is a single channel: keying an axis at a time
+    would overwrite, not accumulate.
+    """
+    M = pb.bone.matrix_local.to_3x3()
+    Rw = Matrix.Identity(3)
+    for axis, deg in pairs:
+        Rw = Matrix.Rotation(math.radians(deg), 3, axis) @ Rw
+    return (M.inverted() @ Rw @ M).to_quaternion()
+
 def key(frame, pose):
-    """pose: {bone: (axis, degrees)} or {bone: ('LOC', Vector)}"""
+    """pose: {bone: (axis, degrees)}, {bone: ('LOC', Vector)}, or
+    {bone: ('ROT', [(axis, degrees), ...])} for a composed rotation."""
     for name, val in pose.items():
         pb = arm.pose.bones[name]
         if val[0] == 'LOC':
             pb.location = val[1]
             pb.keyframe_insert('location', frame=frame)
+        elif val[0] == 'ROT':
+            pb.rotation_quaternion = world_rot_multi(pb, val[1])
+            pb.keyframe_insert('rotation_quaternion', frame=frame)
         else:
             pb.rotation_quaternion = world_rot(pb, val[0], val[1])
             pb.keyframe_insert('rotation_quaternion', frame=frame)
@@ -150,6 +168,129 @@ for i in range(0, WALK_FRAMES + 1, 3):
 for f, ang in ((1, 0), (WALK_FRAMES + 1, 90)):
     key(f, {"Halo": ('Z', ang)})
 
+# ------------------------------------------------------------------ ATTACK
+# 90 frames @30fps = 3.0s, and the 3 seconds are the spec rather than a choice:
+# ConjurerCastModule times the strike off CastSeconds and the two have to agree.
+# NOT a cycle -- it plays once, from neutral to neutral, so the walk or idle it
+# returns to has nothing to blend away.
+#
+# The read, in three beats:
+#   wind-up  f1-f24    right arm comes up and rolls palm-to-sky; left arm extends
+#                      at the target; body settles back onto its heels.
+#   charge   f24-f72   fingers close into the cup and hold it. Everything else
+#                      breathes a slow tremor -- a machine holding something that
+#                      does not want to be held -- and the halo spins up.
+#   release  f72-f90   fingers snap open, body drives forward, arms fall back.
+#
+# WHICH HAND: the right cups, because hands.py could only give the right one
+# working fingers (see its header). The left points and stays rigid.
+#
+# WHERE IT POINTS: nowhere in particular. The clip aims the left arm straight
+# down the model's +X, and ConjurerCastModule claims IFacingModule for the whole
+# cast so the BODY is what tracks the target. A baked clip cannot do it any other
+# way -- the direction is authored, not computed.
+ATTACK_FRAMES = 90
+K = new_action("Attack", ATTACK_FRAMES)
+
+# Left arm: shoulder at z 32.95 (~8.6 m up once scaled), target on the ground
+# maybe 15 m out, so the point is ~30 deg BELOW horizontal, not level. Rotating a
+# down-pointing bone by t about world Y sends its tail to (-sin t, 0, -cos t):
+# -90 is dead level, so -62 gives that 28 deg of droop.
+POINT = -62.0
+
+# Right arm folded up in front of the chest, then rolled palm-up. The roll is the
+# second element of the pair and it is 100 deg rather than 90 because the hand
+# stalk is not quite square to the forearm at rest.
+CUP_ARM, CUP_FORE, CUP_HAND, CUP_ROLL = -38.0, -74.0, -52.0, 100.0
+
+# Curl direction per finger, about world X in each bone's REST frame -- which is
+# what makes this work at all: world_rot reads bone.matrix_local, the rest matrix,
+# so the curl axis rides with the posed hand instead of being fixed in the world.
+#
+# Fingers 1 and 2 hang down either side of the palm and have to converge in Y;
+# 3 and 4 spread outward and inward and have to swing DOWN onto the other two.
+# Signs are read off the rest directions, not guessed:
+#   1  points -Z at y -6.25 (inboard)   -> -1, tip toward -Y
+#   2  points -Z at y -6.69 (outboard)  -> +1, tip toward +Y
+#   3  points -Y                        -> +1, tip toward -Z
+#   4  points +Y                        -> -1, tip toward -Z
+CURL_SIGN = {1: -1.0, 2: 1.0, 3: 1.0, 4: -1.0}
+# Progressive down the chain, the way a finger actually closes: the knuckle barely
+# moves and the tip does most of it.
+CURL = (("Meta", 10.0), ("A", 34.0), ("B", 46.0), ("C", 40.0))
+
+def cup_pose(amount):
+    """Finger curl at `amount` in 0..1. 0 is the open claw, 1 is the closed cup."""
+    pose = {}
+    for i in (1, 2, 3, 4):
+        sign = CURL_SIGN[i]
+        for seg, deg in CURL:
+            bone = f"Meta{i}.R" if seg == "Meta" else f"Finger{i}{seg}.R"
+            pose[bone] = ('X', sign * deg * amount)
+    return pose
+
+def arms(reach, tremor=0.0):
+    """Both arms at `reach` in 0..1, from hanging to fully presented."""
+    return {
+        "UpperArm.R": ('Y', CUP_ARM * reach),
+        "Forearm.R":  ('Y', CUP_FORE * reach),
+        "Hand.R":     ('ROT', [('Y', CUP_HAND * reach),
+                               ('X', CUP_ROLL * reach + tremor)]),
+        "UpperArm.L": ('Y', POINT * reach),
+        "Forearm.L":  ('Y', -8.0 * reach),
+        "Hand.L":     ('Y', -4.0 * reach),
+        # The floating arms drift in toward the body as they come up, so the cup
+        # ends up in front of the chest rather than out at arm's length.
+        "ArmRoot.L": ('LOC', Vector((0.0, -1.30 * reach, 0.0))),
+        "ArmRoot.R": ('LOC', Vector((0.0,  1.30 * reach, 0.0))),
+    }
+
+def body(lean, drop=0.0):
+    return {
+        "Root":  ('LOC', Vector((0.0, drop, 0.0))),
+        "Hips":  ('Y', -2.0 * lean),
+        "Spine": ('Y', -6.0 * lean),
+        "Head":  ('Y',  4.0 * lean),
+    }
+
+# wind-up: arms rise, fingers still open, body eases back
+for f, reach, lean in ((1, 0.0, 0.0), (10, 0.45, -0.4), (18, 0.85, -0.9), (24, 1.0, -1.0)):
+    p = {}
+    p.update(arms(reach))
+    p.update(cup_pose(0.0))
+    p.update(body(lean))
+    key(f, p)
+
+# close the cup
+for f, amt in ((24, 0.0), (30, 0.55), (36, 1.0)):
+    key(f, cup_pose(amt))
+
+# charge: hold the cup and tremble. Every third frame, same cadence the walk is
+# keyed on, so the two actions cost the same to sample.
+for f in range(36, 73, 3):
+    t = (f - 36) / 36.0
+    tremor = 2.2 * math.sin(t * 2 * math.pi * 4.0)
+    p = {}
+    p.update(arms(1.0, tremor))
+    p.update(body(-1.0, drop=0.10 * math.sin(t * 2 * math.pi * 2.0)))
+    key(f, p)
+    key(f, cup_pose(1.0 - 0.06 * math.sin(t * 2 * math.pi * 4.0)))
+
+# release: the cup opens, the body drives forward onto it, then everything falls
+# back to neutral so the clip can hand over to Idle or Walk without a jump.
+key(78, dict(list(arms(0.95).items()) + list(body(0.6).items())))
+key(78, cup_pose(0.25))
+key(84, dict(list(arms(0.55).items()) + list(body(0.9).items())))
+key(84, cup_pose(0.0))
+key(90, dict(list(arms(0.0).items()) + list(body(0.0).items())))
+key(90, cup_pose(0.0))
+
+# Halo spins up through the charge and settles: 180 deg over the clip against the
+# idle's 90 over 120 frames, so it is turning about two and a half times faster.
+# Still a multiple of 90, which is what keeps a 4-fold-symmetric cube seamless.
+for f, ang in ((1, 0), (36, 40), (72, 150), (90, 180)):
+    key(f, {"Halo": ('Z', ang)})
+
 def iter_fcurves(act):
     """Blender 4.4+ keeps fcurves in slotted layers/strips/channelbags."""
     if hasattr(act, 'fcurves'):
@@ -161,7 +302,7 @@ def iter_fcurves(act):
                 yield from cb.fcurves
 
 # linear interpolation on the cycle so the loop does not stall at the seam
-for act in (A, W):
+for act in (A, W, K):
     n = 0
     for fc in iter_fcurves(act):
         for kp in fc.keyframe_points:

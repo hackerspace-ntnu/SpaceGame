@@ -316,6 +316,25 @@ namespace SpaceGame.Core
         // hands over. Speeds travel as centimetres per second because NetArg has no float field.
         public const ushort CraftLaunch = 74; // server → everyone, on the CRAFT's relay
         public const ushort CraftDown   = 75; // owner → server, on the CRAFT's relay
+
+        // ---- the lightning conjurer's cast ------------------------------------------
+        //
+        // Both server → everyone, on the CONJURER's relay, and both exist for the same reason:
+        // NetAuthority switches AgentController off on every machine that is only watching, so a
+        // remote conjurer never runs ConjurerCastModule and never reaches the two lines that
+        // would have shown the attack. Motion and the walk cycle arrive on their own -- the
+        // NetworkTransform carries the body and AgentAnimatorDriver measures it -- but a
+        // discrete effect nobody ran has to be told.
+        //
+        // Two messages rather than one because the cast is three seconds long and its two halves
+        // land three seconds apart: the wind-up has to start when the server starts winding up,
+        // and the bolt has to land when the server says it landed. One message plus a local timer
+        // on each peer would drift, and a peer that joined mid-cast would never start it at all.
+        //
+        //   ConjurerCast     A = 1 when a charge effect should be spawned too.
+        //   ConjurerStruck   P = where the bolt earths, in world space.
+        public const ushort ConjurerCast   = 76; // server → everyone: begin the wind-up
+        public const ushort ConjurerStruck = 77; // server → everyone: draw the bolt at P
     }
 
     /// <summary>What a <see cref="NetMsg.LassoRope"/> message is saying. Append only.</summary>

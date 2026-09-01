@@ -17,7 +17,9 @@ The model had never been assembled into a rig. Specifically:
 
 ## The rig
 
-One armature, `ConjurerRig`, **at the world origin with an identity transform** — 19 bones:
+One armature, `ConjurerRig`, **at the world origin with an identity transform** — 19 bones
+as built by `rig.py`, later 40 (walkerize.py's leg pins and hinges, then hands.py's
+right-hand fingers):
 
 ```
 Root
@@ -54,15 +56,44 @@ keyframe left behind — `Walk`'s final frame parks `Shin.R` at −35.7° — an
 bind pose is captured from the *current evaluated state*. Zero `pb.matrix_basis`
 explicitly before exporting or that bent knee becomes the rest pose.
 
+## The fingers
+
+`rig.py` bone-parents all 52 parts rigidly, which is the right answer for a mech and
+the wrong one for a hand that has to close. The model shipped with two legacy hand
+rigs — `Armature` (right, 18 bones) and `Armature.001` (left, 14) — which `rig.py`
+parked in `WIP_Spares` rather than deleting, precisely so this stayed recoverable.
+
+`hands.py` lifts the **right** one's bones into `ConjurerRig`: four fingers of
+metacarpal + 3 phalanges, renamed `Meta{1..4}.R` / `Finger{1..4}{A,B,C}.R`, plus
+`CastSocket.R` in the middle of the palm for the spell to charge in. The mesh
+`Hand.001` moves off its bone parent onto a plain object parent with its armature
+modifier re-pointed at `ConjurerRig` — bone-parenting *and* skinning to bones under
+the same wrist would apply that wrist's motion twice.
+
+Only the right hand. The left is thirteen separate meshes and `Armature.001` is
+missing every metacarpal plus two orphan bones, so it keeps rigid parenting and just
+aims. Giving it fingers means reconstructing those metacarpals first.
+
 ## Animation
 
-30 fps. Both clips are cycles whose last frame duplicates the first, so they loop
-seamlessly.
+30 fps. Idle and Walk are cycles whose last frame duplicates the first, so they loop
+seamlessly. Attack is a one-shot, neutral to neutral.
 
-- **Idle** — frames 1–90 (3.0 s). Hover: body breathes, arms drift out of phase,
+- **Idle** — frames 1–120 (4.0 s). Hover: body breathes, arms drift out of phase,
   halo turns 90°.
-- **Walk** — frames 1–41 (1.33 s). Thighs ±24°, knees bend on the back-swing,
+- **Walk** — frames 1–73 (2.4 s). Thighs ±24°, knees bend on the back-swing,
   feet pitch, pelvis rolls, body drops onto each contact.
+- **Attack** — frames 1–90 (3.0 s). Right arm comes up and rolls palm-to-sky, fingers
+  close into a cup, holds and trembles while the halo spins up, then opens as the body
+  drives forward. Left arm points 28° below horizontal down the model's +X.
+
+  The 3.0 s is load-bearing: `ConjurerCastModule` times its strike off
+  `LightningConjurerBuilder.CastSeconds`, which is derived from this frame count.
+  Re-time the clip and the bolt lands against the wrong frame.
+
+  The left arm points at **nothing in particular** — a baked clip cannot aim. The
+  module claims `IFacingModule` for the whole cast so the *body* tracks the target and
+  the authored forward-point lands on it.
 
 The halo turns 90° per loop, not 120°, because the cube has 4-fold symmetry — 120°
 would visibly pop at the seam.
@@ -116,9 +147,14 @@ meshes came from.
 ```bash
 BLENDER="/c/Program Files/Blender Foundation/Blender 5.1/blender.exe"
 BLEND="../ConjuringRobot1 (2) (1) (1).blend"
-"$BLENDER" -b "$BLEND" -P rig.py      # armature + binding   (refuses to run twice)
-"$BLENDER" -b "$BLEND" -P anim.py     # Idle + Walk          (safe to re-run)
+"$BLENDER" -b "$BLEND" -P rig.py       # armature + binding        (refuses to run twice)
+"$BLENDER" -b "$BLEND" -P walkerize.py # leg naming, pins, hinges  (safe to re-run)
+"$BLENDER" -b "$BLEND" -P hands.py     # right-hand fingers + socket (safe to re-run)
+"$BLENDER" -b "$BLEND" -P anim.py      # Idle + Walk + Attack      (safe to re-run)
 "$BLENDER" -b "$BLEND" -P export.py -- ../LightningConjurer.fbx
 ```
+
+`_Backup~/ConjuringRobot1.pre-hands.blend` is the file as it stood before the fingers
+were merged.
 
 Then in Unity: **Tools > Creatures > Build Lightning Conjurer**.

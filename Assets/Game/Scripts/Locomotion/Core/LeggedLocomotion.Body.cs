@@ -46,6 +46,22 @@ namespace SpaceGame.Locomotion
         private const float ReachCorrectionFraction = 0.95f;
 
         /// Ceiling on one frame's reach correction, as a fraction of leg reach.
+        ///
+        /// It looks far too generous on a big machine -- half a leg is 5.93 m on the conjurer -- and
+        /// capping it at the machine's own STEP HEIGHT was tried, on the reasoning that a body which
+        /// would have to drop further than it can lift a foot should be stepping rather than
+        /// crouching. It does bound the deceleration dive, from 2.84 m to 1.00 m. It is still wrong:
+        /// this correction is also what lets a body follow a cross-slope far enough to keep its
+        /// DOWNHILL legs in reach, and that drop is set by stance width against the slope, not by
+        /// step height. Capping it stranded them -- SyntheticMachineTests.ALevelBodyStrandsItsDown
+        /// hillLegsOnACrossSlope caught it at a reach fraction of 1.21, with CrabLocomotionTests and
+        /// LateralTravelTests just over the line as well.
+        ///
+        /// So the ceiling stays where it was, and the deceleration dive is fixed where it is
+        /// actually caused: in how long the driver takes to shed speed -- LeggedDriver sheds it
+        /// as exp(-acceleration * dt), so a low `acceleration` is a long coast onto a leg that is
+        /// already near full stretch. The measurements behind that came from the conjurer, whose
+        /// legs are no longer procedural; the ostrich's value of 4 is the one to copy.
         private const float MaxReachCorrection = 0.5f;
 
         /// Feet in the machine's own yaw frame, for the support-plane fit. Allocated once at

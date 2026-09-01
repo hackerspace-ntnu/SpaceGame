@@ -57,35 +57,12 @@ namespace SpaceGame.Items
         protected override void Use()
         {
             Vector3 strike = UseArg.P;
-            if (strike == Vector3.zero || damage <= 0 || damageRadius <= 0f) return;
+            if (strike == Vector3.zero) return;
 
-            Vector3 ground = strike - Vector3.up * spawnHeightOffset;
-
-            Collider[] caught = Physics.OverlapSphere(ground, damageRadius, damageMask,
-                                                      QueryTriggerInteraction.Ignore);
-
-            // Colliders, not creatures: a body is several of them, and billing each would multiply
-            // the damage by however many limbs happened to be inside the radius.
-            var billed = new System.Collections.Generic.HashSet<GameObject>();
-
-            foreach (Collider collider in caught)
-            {
-                if (collider == null) continue;
-
-                if (!damagesCaster && owner != null && collider.transform.IsChildOf(owner.transform))
-                    continue;
-
-                HealthComponent health = collider.GetComponentInParent<HealthComponent>();
-
-                // Not everything hurtable owns a HealthComponent — destructible props implement
-                // IDamageable directly — so fall back to the collider itself and let NetDamage
-                // work out which of the two it is looking at.
-                GameObject target = health != null ? health.gameObject : collider.gameObject;
-
-                if (!billed.Add(target)) continue;
-
-                NetDamage.Apply(target, damage, owner != null ? owner.transform : transform);
-            }
+            LightningStrike.Damage(strike - Vector3.up * spawnHeightOffset,
+                                   damage, damageRadius, damageMask,
+                                   owner != null ? owner.gameObject : gameObject,
+                                   damagesCaster);
         }
 
         protected override void Present()
@@ -99,7 +76,8 @@ namespace SpaceGame.Items
                 return;
             }
 
-            Instantiate(lightningVFXPrefab, strike, Quaternion.Euler(90f, 0f, 0f));
+            LightningStrike.Present(lightningVFXPrefab, strike,
+                                    strike - Vector3.up * spawnHeightOffset);
         }
 
         private void OnValidate()

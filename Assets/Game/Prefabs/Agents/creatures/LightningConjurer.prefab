@@ -11,24 +11,28 @@ GameObject:
   - component: {fileID: 6191886827059924758}
   - component: {fileID: 3071649828410369263}
   - component: {fileID: 8117246200489079808}
-  - component: {fileID: 5104432690392135313}
-  - component: {fileID: 599333507585936856}
+  - component: {fileID: 1462009887744320512}
+  - component: {fileID: 1462009887744320513}
+  - component: {fileID: 1462009887744320514}
   - component: {fileID: 2824060873319808111}
   - component: {fileID: 6343410178157006822}
   - component: {fileID: 1304053845602358584}
+  - component: {fileID: 7932695942825182572}
+  - component: {fileID: 1453456614818677739}
   - component: {fileID: 2378204516048479697}
-  - component: {fileID: 7639154370863827505}
-  - component: {fileID: 7165690342750914981}
-  - component: {fileID: 5364166893087297406}
+  - component: {fileID: 721406942356391028}
+  - component: {fileID: 5786818673765399766}
+  - component: {fileID: 1793298049416847519}
+  - component: {fileID: 4380562659852610884}
   - component: {fileID: 1375402022796731716}
   - component: {fileID: 3356275409918690917}
   - component: {fileID: 4020092320805784377}
+  - component: {fileID: 5593102345198798214}
   - component: {fileID: 4359041970870145170}
   - component: {fileID: 774860145324736491}
   - component: {fileID: 3417621457571069604}
   - component: {fileID: 3986806851420145107}
   - component: {fileID: 6369762321036866136}
-  - component: {fileID: 1199658115735257324}
   m_Layer: 0
   m_Name: LightningConjurer
   m_TagString: Untagged
@@ -102,7 +106,29 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 3
---- !u!114 &5104432690392135313
+--- !u!195 &1462009887744320512
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9126126734686017781}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 2.4250743
+  m_Speed: 8.99
+  m_Acceleration: 4
+  avoidancePriority: 50
+  m_AngularSpeed: 45
+  m_StoppingDistance: 12
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 18.114
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 1
+--- !u!114 &1462009887744320513
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -111,50 +137,27 @@ MonoBehaviour:
   m_GameObject: {fileID: 9126126734686017781}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cbc872ae9fc2cfc40a8304478ab48c43, type: 3}
+  m_Script: {fileID: 11500000, guid: 3d2e4eaafab874210a82642d039de6af, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: SpaceGame.Creatures.Conjurer::SpaceGame.Creatures.Conjurer.ConjurerLocomotion
-  armatureRoot: {fileID: 6191886827059924758}
-  body: {fileID: 6191886827059924758}
-  yawRange: 30
-  hipRange: 45
-  kneeRange: 60
-  ankleRange: 45
-  rollRange: 25
-  stepDuration: 1.1
-  stepClearance: 0.08
-  obstacleClearance: 1.5
-  autoCalibrateRideHeight: 1
-  rideHeight: 0
-  heightSmooth: 5
-  fallGravity: 20
-  maxFallSpeed: 40
-  footGroundTolerance: 0.6
-  fallThresholdFraction: 0.5
-  groundMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  rayStartAbove: 6
-  rayLength: 120
-  snapToGroundOnStart: 1
-  maxClimbAngle: 35
-  climbTaperAngle: 5
-  climbProbeRun: 2
-  drawGizmos: 1
-  hipHeightFraction: 0.88
-  walkSwingDuty: 0.4
-  runSwingDuty: 0.54
-  toeOffAngle: 12
-  swingToeAngle: 9
-  bobAmount: 0.009
-  swayAmount: 0.14
-  runPitch: 3
-  turnRoll: 2.5
-  attitudeSmooth: 5
-  slopeFollow: 0.45
-  maxSlopeTilt: 14
-  maxYawRate: 45
---- !u!114 &599333507585936856
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NavMeshAgentMotor
+  agent: {fileID: 1462009887744320512}
+  navMeshSnapDistance: 25
+  walkSpeedMultiplier: 0.5
+  stuckVelocityThreshold: 0.05
+  stuckTime: 1.5
+  faceRotateSpeed: 1.5
+  enableMountedJump: 1
+  mountedJumpHeight: 1.25
+  mountedJumpDuration: 0.55
+  mountedJumpCooldown: 0.45
+  enableMountedLeap: 1
+  mountedLeapCooldown: 0.6
+  mountedLeapSampleRadius: 6
+  riderTurnSpeed: 120
+  riderForwardTargetDistance: 2
+  riderStopDistance: 0.15
+  riderNavMeshSampleDistance: 4
+--- !u!114 &1462009887744320514
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -163,22 +166,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 9126126734686017781}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c3a5020c963604048a8cfe56712ce4fb, type: 3}
+  m_Script: {fileID: 11500000, guid: 24920a13d998c44f1a8cbece6dab2abe, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Creatures.ConjurerDriver
-  moveSpeed: 9
-  turnSpeed: 20
-  acceleration: 1.2
-  defaultStopDistance: 12
-  turnInPlaceAngle: 45
-  repathInterval: 0.5
-  repathTolerance: 2
-  cornerArriveRadius: 10
-  navMeshSampleDistance: 25
-  detourHoldTime: 2
-  lateralSteering: 0
-  walkThrottle: 0.5
-  autoWalk: 0
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentAnimatorDriver
+  animator: {fileID: 6649228884045001422}
+  animationSpeedMultiplier: 1
+  walkAnimBoost: 1
+  animatorSpeedScale: 1
+  measuredRunSpeed: 6.7425
 --- !u!114 &2824060873319808111
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -207,10 +202,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentTargeting
   profile: {fileID: 0}
   relationship: 2
-  acquisitionRange: 10
-  loseRange: 14
+  acquisitionRange: 28
+  loseRange: 39.2
   requireLineOfSightToAcquire: 0
-  proximityAcquireRange: 10
+  proximityAcquireRange: 28
   drawGizmos: 1
 --- !u!114 &1304053845602358584
 MonoBehaviour:
@@ -226,8 +221,63 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ChaseModule
   priority: 20
   active: 1
-  chaseStopDistance: 8
+  chaseStopDistance: 18
   chaseSpeedMultiplier: 1
+--- !u!114 &7932695942825182572
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9126126734686017781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 421edd01c56ce43e49db60c5c7a6caed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.WanderModule
+  priority: 0
+  active: 1
+  limitWanderRadius: 1
+  wanderRadius: 150
+  freeRoamRadius: 150
+  sampleDistance: 25
+  minDestinationDistance: 25
+  maxSampleAttempts: 10
+  minWaitTime: 3
+  maxWaitTime: 9
+  stopDistance: 6
+  speedMultiplier: 1
+--- !u!114 &1453456614818677739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9126126734686017781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a42115e4550cb04d8a43d9fb6f2be74, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ConjurerCastModule
+  priority: 22
+  active: 1
+  castRange: 25
+  requireLineOfSight: 1
+  aim: 0
+  castSeconds: 3
+  cooldownSeconds: 5
+  castAnimTrigger: Cast
+  animator: {fileID: 6649228884045001422}
+  lightningVFXPrefab: {fileID: 4155238812004112330, guid: b7e3c1a49d2f4e8ab05c6f1d3a7e9c24, type: 3}
+  drawHeight: 100
+  vfxLifetime: 5
+  damage: 10
+  damageRadius: 3.5
+  damageMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  chargeVFXPrefab: {fileID: 0}
+  chargeSocketBone: CastSocket.R
 --- !u!114 &2378204516048479697
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -240,15 +290,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9f3daeabc7b5491097940d9275e8162, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentController
-  MotorComponent: {fileID: 599333507585936856}
-  animatorDriver: {fileID: 0}
+  MotorComponent: {fileID: 1462009887744320513}
+  animatorDriver: {fileID: 1462009887744320514}
   nearbyAgentScanRadius: 0
   nearbyAgentLayer:
     serializedVersion: 2
     m_Bits: 0
   speedVariationAmount: 0.1
   speedVariationPeriod: 6
---- !u!114 &7639154370863827505
+--- !u!114 &721406942356391028
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -257,14 +307,23 @@ MonoBehaviour:
   m_GameObject: {fileID: 9126126734686017781}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a9f1152da60a5864f8785414ac3583c1, type: 3}
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.FootstepCameraShake
-  shakeData: {fileID: 11400000, guid: cd8daa0bf167e3e45982a100a7307b96, type: 2}
-  fullStrengthRange: 15
-  maxRange: 70
-  minInterval: 0.2
---- !u!114 &7165690342750914981
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 4143882496
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 0
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 1
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &5786818673765399766
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -273,14 +332,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 9126126734686017781}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8058cf886f195e645bec403e65eb80b7, type: 3}
+  m_Script: {fileID: 11500000, guid: 332edf3b9518a4468b9fa7ba123354b0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.LeggedFootstepShake
-  locomotion: {fileID: 0}
-  shake: {fileID: 0}
-  restingStrength: 0.55
-  runningStrength: 1
---- !u!114 &5364166893087297406
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetRelay
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &1793298049416847519
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -289,11 +345,58 @@ MonoBehaviour:
   m_GameObject: {fileID: 9126126734686017781}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f127766620498ff4794d8c9f2d04567e, type: 3}
+  m_Script: {fileID: 11500000, guid: 73c6ec310cb4245338056b26c04d3d64, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Creatures.ConjurerDebugReadout
-  interval: 1
-  logToConsole: 1
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.ClientNetworkTransform
+  ShowTopMostFoldoutHeaderGroup: 1
+  NetworkTransformExpanded: 0
+  AutoOwnerAuthorityTickOffset: 1
+  PositionInterpolationType: 0
+  RotationInterpolationType: 0
+  ScaleInterpolationType: 0
+  PositionLerpSmoothing: 1
+  PositionMaxInterpolationTime: 0.1
+  RotationLerpSmoothing: 1
+  RotationMaxInterpolationTime: 0.1
+  ScaleLerpSmoothing: 1
+  ScaleMaxInterpolationTime: 0.1
+  AuthorityMode: 0
+  TickSyncChildren: 0
+  UseUnreliableDeltas: 0
+  SyncPositionX: 1
+  SyncPositionY: 1
+  SyncPositionZ: 1
+  SyncRotAngleX: 1
+  SyncRotAngleY: 1
+  SyncRotAngleZ: 1
+  SyncScaleX: 1
+  SyncScaleY: 1
+  SyncScaleZ: 1
+  PositionThreshold: 0.001
+  RotAngleThreshold: 0.01
+  ScaleThreshold: 0.01
+  UseQuaternionSynchronization: 0
+  UseQuaternionCompression: 0
+  UseHalfFloatPrecision: 0
+  InLocalSpace: 0
+  SwitchTransformSpaceWhenParented: 0
+  Interpolate: 1
+  SlerpPosition: 0
+--- !u!114 &4380562659852610884
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9126126734686017781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3b25237342c04c47915e023e8de3489, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.NetAuthority
+  ShowTopMostFoldoutHeaderGroup: 1
+  simulationDrivers: []
+  freezePhysicsOnRemote: 1
 --- !u!114 &1375402022796731716
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -306,7 +409,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f161350a479a84c90bfab88cf2f77a76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaveableEntity
-  prefabId: 
+  prefabId: 1e29c17687ad1a24e8fd678ee1ffab1a
   instanceId: 
   authored: 0
   scope: 0
@@ -334,6 +437,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21911023c0932417c9a2a12b2e7b8fd6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentStateSaveable
+--- !u!114 &5593102345198798214
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9126126734686017781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e43b0c557f13f4220884e513b4eff4fc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.WanderSaveable
 --- !u!114 &4359041970870145170
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -395,18 +510,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b7179e995e114656a7c05b0bf39e686, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MotorStateSaveable
---- !u!114 &1199658115735257324
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9126126734686017781}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f09b9193e5d8345e59d1322b9913d022, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.LeggedGaitSaveable
 --- !u!1001 &949234609638625119
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -463,13 +566,46 @@ PrefabInstance:
       propertyPath: m_Controller
       value: 
       objectReference: {fileID: 9100000, guid: 6389581f4bddd2b4cba26a7f4edcc209, type: 2}
+    - target: {fileID: 5866666021909216657, guid: d9a5b53ec7025ec5aeba5f6590d7366f, type: 3}
+      propertyPath: m_CullingMode
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d9a5b53ec7025ec5aeba5f6590d7366f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7639154370863827505}
   m_SourcePrefab: {fileID: 100100000, guid: d9a5b53ec7025ec5aeba5f6590d7366f, type: 3}
+--- !u!1 &138822176681325070 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: d9a5b53ec7025ec5aeba5f6590d7366f, type: 3}
+  m_PrefabInstance: {fileID: 949234609638625119}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7639154370863827505
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 138822176681325070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9f1152da60a5864f8785414ac3583c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Presentation.FootstepCameraShake
+  shakeData: {fileID: 11400000, guid: cd8daa0bf167e3e45982a100a7307b96, type: 2}
+  fullStrengthRange: 15
+  maxRange: 70
+  minInterval: 0.2
 --- !u!4 &767549982037846196 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d9a5b53ec7025ec5aeba5f6590d7366f, type: 3}
+  m_PrefabInstance: {fileID: 949234609638625119}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &6649228884045001422 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: d9a5b53ec7025ec5aeba5f6590d7366f, type: 3}
   m_PrefabInstance: {fileID: 949234609638625119}
   m_PrefabAsset: {fileID: 0}

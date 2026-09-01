@@ -107,6 +107,35 @@ namespace SpaceGame.Locomotion
             return restFoothold + atTouchdown + drift * swingDuration;
         }
 
+        /// The same aim, for a body that TURNS as well as travels during the swing.
+        ///
+        /// The overload above carries the rest foothold forward by `drift * swingDuration`, a
+        /// straight line. For travel that is exact. For rotation it is a tangent, and a pivoting
+        /// biped leaves its valid range immediately: the foot has to cover a whole stride on an arc
+        /// whose radius is a fraction of the machine's width, so a single step can span hundreds of
+        /// degrees. A tangent that long does not aim at the arc, it aims off into open ground, and
+        /// the leg spends its stance being dragged back from wherever it was thrown.
+        ///
+        /// So the rest foothold and the in-stance lead are both carried by the ROTATION the swing
+        /// will actually cover, about the body's own origin. Exact at any angle, and algebraically
+        /// identical to the overload above when `turn` is the identity -- straight-line walking is
+        /// bit-for-bit unchanged.
+        ///
+        /// `pivot` is the body's origin now, `travel` the whole displacement over the swing (not a
+        /// velocity), and `turn` the yaw the swing will cover.
+        public static Vector3 Foothold(Vector3 restFoothold, Vector3 pivot, Vector3 travel,
+                                       Quaternion turn, Vector3 drift, float stanceDuration,
+                                       float strideLength)
+        {
+            Vector3 atTouchdown = drift * (stanceDuration * 0.5f);
+            float limit = strideLength * 0.5f;
+            if (atTouchdown.sqrMagnitude > limit * limit) atTouchdown = atTouchdown.normalized * limit;
+
+            // Both terms are displacements in the BODY's frame, and that frame has turned by the
+            // time the foot lands, so both go through the same rotation.
+            return pivot + travel + turn * (restFoothold - pivot + atTouchdown);
+        }
+
         /// How long a foot spends in the air, at the pace the hull is currently setting.
         public static float SwingDuration(float pace, float strideLength, float duty)
         {

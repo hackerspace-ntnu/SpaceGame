@@ -3,12 +3,16 @@
 # bone-parents every existing part to it. No mesh data, object transform, or
 # existing armature is modified.
 #
-# STEP 1 OF 4. The leg bones this creates are named Thigh/Shin/Foot, which is not
+# STEP 1 OF 5. The leg bones this creates are named Thigh/Shin/Foot, which is not
 # the naming SpaceGame's procedural IK locomotion discovers limbs by, and it has
 # no azimuth or sole-roll joint and no hinge pins. walkerize.py fixes all three on
 # the rig this produces. From a cold start the order is:
 #
-#     rig.py -> walkerize.py -> anim.py -> export.py
+#     rig.py -> walkerize.py -> hands.py -> anim.py -> export.py
+#
+# This script binds the fingers RIGIDLY, which is right for every part of a mech
+# except a hand that has to close. hands.py undoes that for the right hand only,
+# lifting the model's own legacy finger bones into the rig so Attack can cup it.
 #
 # anim.py already keys the WALKERIZED names (Hip_/Knee_/Ankle_), so running it
 # before walkerize.py will fail on a missing bone.

@@ -12,11 +12,28 @@ namespace SpaceGame.Presentation.Lobbies
     /// <summary>
     /// One clickable nameplate per team, floating above its cluster in a VS lobby.
     ///
+    /// <para>
     /// Drawn the same white-over-navy way the nameplates are, because a plate hangs over the same
     /// sky and heads, in the team's own colour. A <see cref="Button"/> over the whole row rather
     /// than just the text, so the click target is as wide as the plate reads. Rebuilt only when the
     /// team shape changes — that pair is the only thing that ever moves a plate, so anything else in
     /// a poll must not pay for a rebuild.
+    /// </para>
+    ///
+    /// <para>
+    /// The local team's plate is also the team-colour control: a chevron on either side of the
+    /// name steps the colour, and the colour itself is shown as nothing more than the colour the
+    /// name is drawn in. The chevrons live only on YOUR team's plate, because that is the only
+    /// colour that is yours to change.
+    /// </para>
+    ///
+    /// <para>
+    /// Each plate also lists its team's members vertically, in small lowercase — hanging BELOW a
+    /// front-row plate and stacked ABOVE a back-row one, because a back-row plate already hangs
+    /// high (<see cref="RankLayout.PlateLift"/>) and a list below it would descend into the front
+    /// row's band of screen. The list is a child of the plate row, so it follows the plate's
+    /// world-tracking and visibility for free.
+    /// </para>
     /// </summary>
     internal sealed class LobbyTeamPlates
     {
@@ -24,10 +41,30 @@ namespace SpaceGame.Presentation.Lobbies
         private const float PlateHeight = 72f;
         private const int PlateSize = 40;
 
+        private const float ArrowWidth = 56f;
+
+        /// <summary>
+        /// Between the name's edge and its chevron. The chevrons hug the TEXT, not the plate's
+        /// 520px rect — a plate row is far wider than the word on it, and a chevron parked at the
+        /// row's edge lands over the neighbouring team's plate the moment plates crowd.
+        /// </summary>
+        private const float ArrowGap = 8f;
+
+        /// <summary>Deliberately well under <see cref="PlateSize"/>: the members are a caption to the plate.</summary>
+        private const int MemberSize = 26;
+
+        private const float MemberRowHeight = 32f;
+
+        /// <summary>Between the plate's edge and the first member name.</summary>
+        private const float MemberGap = 6f;
+
         /// <summary>What a plate fades to when it cannot be joined right now. Present, not gone.</summary>
         private const float DimmedAlpha = 0.45f;
 
         private static readonly Vector2 ShadowOffset = new(3f, -3f);
+
+        /// <summary>A shallower shadow than the plate's own — at 26pt the plate's 3px reads as smear.</summary>
+        private static readonly Vector2 MemberShadowOffset = new(2f, -2f);
 
         private sealed class Plate
         {
@@ -38,6 +75,19 @@ namespace SpaceGame.Presentation.Lobbies
             public TextMeshProUGUI Shadow;
 
             public Button Button;
+
+            /// <summary>The colour chevrons at the plate's edges. Shown only on the local team's plate.</summary>
+            public GameObject LeftArrow;
+
+            public GameObject RightArrow;
+
+            /// <summary>The member list's rows, grown as the team grows and switched off, never destroyed.</summary>
+            public readonly List<RectTransform> MemberRows = new();
+
+            public readonly List<TextMeshProUGUI> MemberLabels = new();
+
+            /// <summary>The navy copies behind the member names. Written with them or the shadows go stale.</summary>
+            public readonly List<TextMeshProUGUI> MemberShadows = new();
 
             /// <summary>Where this plate landed on the canvas last frame, for the collision measure.</summary>
             public Vector2 Screen;
@@ -51,7 +101,9 @@ namespace SpaceGame.Presentation.Lobbies
         }
 
         private readonly LobbyOverlayLayer layer;
+        private readonly GameObject entryPrefab;
         private readonly Action<int> onJoinTeam;
+        private readonly Action<int> onStepColor;
 
         private readonly List<Plate> plates = new();
 
@@ -59,16 +111,26 @@ namespace SpaceGame.Presentation.Lobbies
         private int teamCount = -1;
         private int teamSize = -1;
 
+        /// <summary>Which team the local player stands on, from the last <see cref="Update"/>.</summary>
+        private int localTeam = -1;
+
         /// <summary>
         /// How many heads are on each team, kept from the last <see cref="Update"/> so
         /// <see cref="Position"/> can build the shortened label's "2/3" without a snapshot.
         /// </summary>
         private readonly List<int> headsOn = new();
 
-        public LobbyTeamPlates(LobbyOverlayLayer layer, Action<int> onJoinTeam)
+        /// <summary>One team's member names, gathered per team per repaint. Reused, never grown per poll.</summary>
+        private readonly List<string> memberBuffer = new();
+
+        /// <param name="onStepColor">Called with -1 or +1 when a colour chevron is pressed.</param>
+        public LobbyTeamPlates(LobbyOverlayLayer layer, GameObject entryPrefab,
+            Action<int> onJoinTeam, Action<int> onStepColor)
         {
             this.layer = layer;
+            this.entryPrefab = entryPrefab;
             this.onJoinTeam = onJoinTeam;
+            this.onStepColor = onStepColor;
         }
 
         /// <summary>Builds one plate per team, only when the team shape is not what is standing.</summary>
@@ -92,6 +154,8 @@ namespace SpaceGame.Presentation.Lobbies
         /// </summary>
         public void Update(RosterSnapshot snapshot)
         {
+            localTeam = snapshot.LocalTeam;
+
             headsOn.Clear();
             for (int team = 0; team < plates.Count; team++) headsOn.Add(snapshot.HeadsOn(team));
 
@@ -100,13 +164,94 @@ namespace SpaceGame.Presentation.Lobbies
                 Plate plate = plates[team];
                 if (plate.Row == null) continue;
 
+                bool isLocal = team == localTeam;
+
                 Color color = SuitPalette.ColorOf(snapshot.ColorOfTeam(team));
                 bool canJoin = LobbyPreviewRank.CanJoin(team, snapshot.LocalTeam, snapshot.HeadsOn(team), teamSize);
                 float alpha = canJoin ? 1f : DimmedAlpha;
 
                 if (plate.Label != null) plate.Label.color = new Color(color.r, color.g, color.b, alpha);
                 if (plate.Button != null) plate.Button.interactable = canJoin;
+
+                if (plate.LeftArrow != null) plate.LeftArrow.SetActive(isLocal);
+                if (plate.RightArrow != null) plate.RightArrow.SetActive(isLocal);
+
+                RenderMembers(plate, team, snapshot);
             }
+        }
+
+        /// <summary>
+        /// Fills one plate's vertical member list from the snapshot, in lobby order and lowercase.
+        /// Rows hang downward from a front-row plate; a back-row plate stacks them upward instead,
+        /// with the ORDER kept top-to-bottom either way — a list that grows upward still has to read
+        /// downward, so the first member's row is simply placed highest.
+        /// </summary>
+        private void RenderMembers(Plate plate, int team, RosterSnapshot snapshot)
+        {
+            memberBuffer.Clear();
+            for (int slot = 0; slot < snapshot.Names.Length; slot++)
+                if (slot < snapshot.Teams.Length && snapshot.Teams[slot] == team
+                    && !string.IsNullOrEmpty(snapshot.Names[slot]))
+                    memberBuffer.Add(snapshot.Names[slot].ToLowerInvariant());
+
+            bool above = team / RankLayout.TeamsPerRow(Mathf.Max(1, teamCount)) > 0;
+
+            for (int i = 0; i < memberBuffer.Count; i++)
+            {
+                EnsureMemberRow(plate, i);
+
+                float fromEdge = MemberGap + MemberRowHeight *
+                                 ((above ? memberBuffer.Count - 1 - i : i) + 0.5f);
+                float y = above ? PlateHeight * 0.5f + fromEdge : -PlateHeight * 0.5f - fromEdge;
+
+                plate.MemberRows[i].anchoredPosition = new Vector2(0f, y);
+                plate.MemberRows[i].gameObject.SetActive(true);
+
+                // Assigning TMP text rebuilds its mesh, and this runs on every poll for every seat.
+                if (plate.MemberLabels[i].text != memberBuffer[i])
+                {
+                    plate.MemberLabels[i].text = memberBuffer[i];
+                    plate.MemberShadows[i].text = memberBuffer[i];
+                }
+            }
+
+            for (int i = memberBuffer.Count; i < plate.MemberRows.Count; i++)
+                plate.MemberRows[i].gameObject.SetActive(false);
+        }
+
+        private static void EnsureMemberRow(Plate plate, int index)
+        {
+            while (plate.MemberRows.Count <= index)
+            {
+                RectTransform row = UIBuilder.Rect($"Member{plate.MemberRows.Count}", plate.Row);
+                row.anchorMin = row.anchorMax = new Vector2(0.5f, 0.5f);
+                row.pivot = new Vector2(0.5f, 0.5f);
+                row.sizeDelta = new Vector2(PlateWidth, MemberRowHeight);
+
+                plate.MemberLabels.Add(UIBuilder.ShadowedLabel(row, string.Empty, MemberSize,
+                                                               MenuEntry.Title, MenuEntry.Idle,
+                                                               MemberShadowOffset,
+                                                               TextAlignmentOptions.Center,
+                                                               out TextMeshProUGUI shadow));
+                plate.MemberShadows.Add(shadow);
+                plate.MemberRows.Add(row);
+            }
+        }
+
+        /// <summary>
+        /// Repaints the local team's plate for the frame a chevron is pressed, without waiting for
+        /// the publish-then-poll round trip. Only the hue moves — the alpha keeps whatever the
+        /// dimming rule last decided.
+        /// </summary>
+        public void ShowLocalColor(int colorIndex)
+        {
+            if (localTeam < 0 || localTeam >= plates.Count) return;
+
+            Plate plate = plates[localTeam];
+            if (plate.Label == null) return;
+
+            Color color = SuitPalette.ColorOf(colorIndex);
+            plate.Label.color = new Color(color.r, color.g, color.b, plate.Label.color.a);
         }
 
         /// <summary>A story lobby shows no plates at all — there is nothing to click with only one line.</summary>
@@ -119,6 +264,7 @@ namespace SpaceGame.Presentation.Lobbies
             headsOn.Clear();
             teamCount = -1;
             teamSize = -1;
+            localTeam = -1;
         }
 
         /// <summary>
@@ -253,6 +399,9 @@ namespace SpaceGame.Presentation.Lobbies
                 plate.Shadow.fontSize = size;
                 plate.Shadow.text = text;
             }
+
+            // The name just changed width, and the chevrons hug the name.
+            PlaceArrows(plate);
         }
 
         private Plate Build(int team)
@@ -276,7 +425,55 @@ namespace SpaceGame.Presentation.Lobbies
             int capturedTeam = team;
             button.onClick.AddListener(() => onJoinTeam?.Invoke(capturedTeam));
 
-            return new Plate { Row = row, Label = label, Shadow = shadow, Button = button };
+            var plate = new Plate
+            {
+                Row = row, Label = label, Shadow = shadow, Button = button,
+                LeftArrow = Arrow(row, "PrevTeamColor", "<", -1),
+                RightArrow = Arrow(row, "NextTeamColor", ">", 1),
+            };
+
+            PlaceArrows(plate);
+            return plate;
+        }
+
+        /// <summary>
+        /// One colour chevron beside the plate's name. Its own <see cref="Button"/> on top of the
+        /// plate's, so a press steps the colour rather than falling through to the join click
+        /// underneath — and white via <see cref="MenuEntry.MakeLight"/>, like everything else drawn
+        /// over sky, because the TEXT between the chevrons is what carries the team's colour.
+        /// Centre-anchored so <see cref="PlaceArrows"/> can slide it against the text's current
+        /// width; hidden until <see cref="Update"/> puts it on the local team's plate.
+        /// </summary>
+        private GameObject Arrow(RectTransform row, string name, string glyph, int direction)
+        {
+            RectTransform slot = UIBuilder.Rect(name, row);
+            slot.anchorMin = slot.anchorMax = new Vector2(0.5f, 0.5f);
+            slot.pivot = new Vector2(0.5f, 0.5f);
+            slot.sizeDelta = new Vector2(ArrowWidth, PlateHeight);
+
+            Button button = MenuEntry.Create(entryPrefab, slot, name, glyph, PlateSize, PlateHeight,
+                                             () => onStepColor?.Invoke(direction),
+                                             out TextMeshProUGUI label);
+            label.alignment = TextAlignmentOptions.Center;
+            MenuEntry.MakeLight(button, label);
+
+            slot.gameObject.SetActive(false);
+            return slot.gameObject;
+        }
+
+        /// <summary>
+        /// Slides both chevrons up against the name's rendered width — measured at whatever text
+        /// and size the ladder last applied, so they follow the plate as it shrinks and shortens.
+        /// </summary>
+        private static void PlaceArrows(Plate plate)
+        {
+            if (plate.LeftArrow == null || plate.RightArrow == null || plate.Label == null) return;
+
+            float half = plate.Label.GetPreferredValues(plate.Label.text, 0f, 0f).x * 0.5f
+                         + ArrowGap + ArrowWidth * 0.5f;
+
+            ((RectTransform)plate.LeftArrow.transform).anchoredPosition = new Vector2(-half, 0f);
+            ((RectTransform)plate.RightArrow.transform).anchoredPosition = new Vector2(half, 0f);
         }
     }
 }

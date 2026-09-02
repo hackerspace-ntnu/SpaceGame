@@ -51,6 +51,7 @@ symptoms:
   - "the ship landed but never straightened out — it is stuck at the angle it flew in at"
   - "after reloading, the ship hangs in the sky nose-down and never comes down level"
   - "I cannot look around the cabin after the ship has landed"
+  - "a crewmate rides the descent metres behind their chair, trailing through the cabin wall"
 reads_with: [Vehicles, Cutscenes, Multiplayer, Persistence]
 updated: 2026-09-02
 ---
@@ -126,7 +127,7 @@ The crashed lander: a script-generated, walkable, drivable 60-tonne hover vehicl
 - `ArrivalDirector` is a plain `MonoBehaviour`, exists on every machine, but only **acts** on the server (`Network.Server` guards). It owns no replicated state.
 - Hull motion is server-written and reaches peers through the prefab's own `ClientNetworkTransform`.
 - `SeatedRider` is the `NetworkBehaviour`. Two channels: `NetMsg.TakeSeat`/`LeaveSeat` (event) and a `NetworkList<ulong> occupants` + `NetworkVariable<bool> releasable` (state, for late joiners and self-repair each frame).
-- **Riders are never reparented.** The player `NetworkTransform` is owner-authoritative and world-space, so `HoldSeats()` in `LateUpdate` writes only bodies this machine owns. LateUpdate is required: the descent coroutine resumes before LateUpdate, so `Update` placement lags a frame and reads as the cabin shaking.
+- **Riders are never reparented, and while the flight is live their positions are never on the wire either.** The wire carries *which seat* (`occupants`) and *where the head is turned* (`PlayerViewNetwork`); `HoldSeats()` in `LateUpdate` stamps **every** occupant — owned or remote — onto its local copy of the seat, because a remote body placed from its owner-authoritative interpolated `NetworkTransform` trails a 120 m/s hull by metres (owner's own hull-view delay + transport + this machine's interpolation buffer). The stamp runs after netcode's PreLateUpdate applies the wire pose, so the seat wins the rendered frame, and `PlayerHeadLook` (order 950) turns the head on top of it. Once `releasable`, remote bodies are handed back to the wire (the hull is static and a kept pin would fight the owner standing up); owned bodies are held by position only. LateUpdate is required: the descent coroutine resumes before LateUpdate, so `Update` placement lags a frame and reads as the cabin shaking.
 - The cutscene is started by the static `SeatedRider.LocalPlayerSeated` event, **not** from the descent coroutine — that runs on the server only and would play for the host alone. It only goes to black there; its *timed* beats are released by `SeatedRider.LocalCrewLaunched`, raised from `NetMsg.ArrivalLaunched` (server → everyone, on the ship's relay) and, for a late joiner who missed it, from the replicated `launchedAt` read when they are seated.
 - Seated players' heads are on the wire too: `PlayerHeadLook` turns the head/neck bones and `PlayerViewNetwork` carries the yaw beside the pitch, so a crewmate looking round the cabin looks round it on every machine. See [PlayerCharacter](PlayerCharacter.md).
 - Versus: one team-coloured ship per team via `VersusShipSpawner.EnsureShipAt`; `ShipTeamAccent` + `ShipAccentRecolor` put the swatch on the wire. All landing sites are measured before any hull spawns — all-or-nothing.

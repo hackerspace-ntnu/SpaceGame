@@ -21,13 +21,24 @@ namespace SpaceGame.Gameplay.Arrival
     /// </para>
     ///
     /// <para>
-    /// That workaround is unnecessary here, because of two facts about the player prefab: its
-    /// <c>NetworkTransform</c> is <b>owner-authoritative</b> and replicates in <b>world space</b>.
-    /// Together those mean parenting is not what would make a rider ride — the owner's world
-    /// position is what travels, so the server cannot place a client's body at all, and a parent
-    /// the server sets would not move a remote body one metre. What actually carries a player is
-    /// the owner writing its own world pose each frame, which is <see cref="HoldSeats"/>. Adding a
-    /// reparent on top would buy nothing and cost every netcode parenting rule there is.
+    /// That workaround is unnecessary here, because while the flight is live <b>the wire does not
+    /// carry positions at all — it carries seats</b>. The replicated <see cref="occupants"/> list
+    /// says who is in which chair, and every machine draws every occupant at its own copy of that
+    /// chair, each frame, in <see cref="HoldSeats"/>. Nothing else could work: the player's
+    /// <c>NetworkTransform</c> is owner-authoritative, world-space and interpolated, and a hull
+    /// falling at descent speed outruns that pipeline by metres — a crewmate placed from the wire
+    /// renders trailing through the cabin wall, not sitting beside you. What a seated body still
+    /// sends over the wire is the part the seat cannot know: where their head is turned
+    /// (<c>PlayerViewNetwork</c>'s yaw and pitch, applied to the neck bones by
+    /// <c>PlayerHeadLook</c> after this component has stamped the body).
+    /// </para>
+    ///
+    /// <para>
+    /// The owner keeps writing its own body too — that write is what the wire publishes, so remote
+    /// machines' interpolation buffers have already converged on the seat pose by the time the
+    /// hull parks and <see cref="releasable"/> hands remote bodies back to the wire. From then on
+    /// the owner's pose is the truth again: the hull is static, the wire is accurate, and a local
+    /// pin would fight the moment they stand up.
     /// </para>
     ///
     /// <para>
@@ -677,14 +688,26 @@ namespace SpaceGame.Gameplay.Arrival
         }
 
         /// <summary>
-        /// Writes this machine's own players into their seats, every frame.
+        /// Writes seated players into their seats, every frame.
         ///
         /// <para>
-        /// <b>This is what actually carries a rider.</b> The player's <c>NetworkTransform</c> is
-        /// owner-authoritative and world-space, so the only machine allowed to move a given body is
-        /// the one that owns it, and the world position it writes is what every other machine
-        /// receives. Bodies this machine does not own are deliberately left alone — their owner is
-        /// doing this same job, and writing them here would be a local guess fighting the wire.
+        /// <b>This is what actually carries a rider, and while the flight is live it carries every
+        /// rider, owned or not.</b> The replicated seat index is the truth; the seat is rigid to
+        /// the hull; so every machine can compute where a crewmate is without asking the wire —
+        /// and must, because the wire cannot answer in time. A remote body placed from its
+        /// owner-authoritative <c>NetworkTransform</c> lags by the owner's own interpolated view
+        /// of the hull plus transport plus this machine's interpolation buffer, which at descent
+        /// speed is metres: a crewmate rendered trailing through the cabin wall. This pin runs in
+        /// LateUpdate, after netcode's PreLateUpdate has applied the wire pose, so the seat wins
+        /// the rendered frame; PlayerHeadLook (order 950) then turns the head from the replicated
+        /// look on top of it.
+        /// </para>
+        /// <para>
+        /// Once <see cref="releasable"/> the hull is parked and the split reverts: owned bodies
+        /// are held by position only, remote bodies are the wire's again. The wire is accurate
+        /// against a static seat — the owner has been publishing exactly this pose for the whole
+        /// settle — and a remote pin kept past this point would fight the owner the moment they
+        /// stand up, in the window before the LeaveSeat event lands here.
         /// </para>
         /// <para>
         /// Every frame rather than once on seating, because the seat is moving: the ship is flying a
@@ -704,7 +727,10 @@ namespace SpaceGame.Gameplay.Arrival
                 GameObject player = ResolveById(entry.Key);
                 if (player == null) continue;
 
-                if (!Network.Owns(player.transform)) continue;
+                bool owned = Network.Owns(player.transform);
+
+                // Landed: remote bodies belong to the wire again — see the note above.
+                if (!owned && releasable.Value) continue;
 
                 // A rider the mount system has taken over belongs to it, not to us. MountModule
                 // parents them to the hull and drives them from SteerModule; writing their world
@@ -890,8 +916,11 @@ namespace SpaceGame.Gameplay.Arrival
             if (ChairPose != null) ChairPose.PoseRider(player.transform);
 
             // Placed immediately rather than waiting for the next HoldSeats, so the body never
-            // renders for a frame at wherever it was spawned.
-            if (Network.Owns(player.transform))
+            // renders for a frame at wherever it was spawned — or, for a remote crewmate seated
+            // into a live flight, at wherever the wire last put them. The gate mirrors HoldSeats:
+            // while the flight is live the seat is the truth for every body; once the hull is
+            // parked only the owner is placed, because a remote body then belongs to the wire.
+            if (!releasable.Value || Network.Owns(player.transform))
             {
                 Transform seat = seats[seatIndex].transform;
                 player.transform.SetPositionAndRotation(seat.TransformPoint(seatOffset), seat.rotation);

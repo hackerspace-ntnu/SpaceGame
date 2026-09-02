@@ -82,7 +82,7 @@ namespace SpaceGame.EditorTools.Environment
         /// the project depend on an edit to a dependency.
         /// </para>
         /// </summary>
-        private static List<ScriptableRendererData> FindRenderers()
+        internal static List<ScriptableRendererData> FindRenderers()
         {
             var found = new List<ScriptableRendererData>();
 
@@ -110,7 +110,7 @@ namespace SpaceGame.EditorTools.Environment
         /// a null row in the inspector.
         /// </para>
         /// </summary>
-        private static bool AddFeature<T>(ScriptableRendererData renderer, out T feature)
+        internal static bool AddFeature<T>(ScriptableRendererData renderer, out T feature)
             where T : ScriptableRendererFeature
         {
             foreach (ScriptableRendererFeature existing in renderer.rendererFeatures)
@@ -126,14 +126,19 @@ namespace SpaceGame.EditorTools.Environment
             feature.name = typeof(T).Name;
             AssetDatabase.AddObjectToAsset(feature, renderer);
 
+            // Persist the sub-asset before touching the map: the map wants the feature's
+            // *local file id*, which only exists once saved. Writing GetInstanceID() here
+            // put a transient id in the map, and URP's validation culled the row on the
+            // next reload — leaving the feature as a dangling sub-asset that never runs.
+            AssetDatabase.SaveAssets();
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(feature, out _, out long localId);
+
             var serialized = new SerializedObject(renderer);
             SerializedProperty features = serialized.FindProperty("m_RendererFeatures");
             SerializedProperty map = serialized.FindProperty("m_RendererFeatureMap");
 
             int index = features.arraySize;
             features.arraySize++;
-            serialized.ApplyModifiedProperties();
-
             features.GetArrayElementAtIndex(index).objectReferenceValue = feature;
 
             // The map is what URP reads to rebuild the renderer. A renderer whose list has grown and
@@ -141,7 +146,7 @@ namespace SpaceGame.EditorTools.Environment
             if (map != null && map.isArray)
             {
                 map.arraySize = features.arraySize;
-                map.GetArrayElementAtIndex(index).longValue = feature.GetInstanceID();
+                map.GetArrayElementAtIndex(index).longValue = localId;
             }
 
             serialized.ApplyModifiedProperties();

@@ -1,20 +1,19 @@
 using System;
 using UnityEngine;
-using UnityEngine.UI;
 using SpaceGame.Core.Lobbies;
 using SpaceGame.Gameplay;
 
 namespace SpaceGame.Presentation.Lobbies
 {
     /// <summary>
-    /// The host's Teams / Team size steppers on the roster page, hidden entirely outside a VS
-    /// lobby.
+    /// The host's Teams / Team size steppers, hidden entirely outside a VS lobby.
     ///
     /// <para>
-    /// Under the session strip rather than squeezed inside it: a <see cref="MenuStepper"/> is
-    /// authored at <see cref="MenuStepper.Height"/> — nearly double the strip — because it is a
-    /// control built for a full page column elsewhere, and squashing it would read as cramped on
-    /// the one page where the host is actually deciding something.
+    /// They sit at the right-hand end of the same top band as <see cref="LobbySessionStrip"/> —
+    /// code and Copy on the left, privacy in the middle, team rules on the right — set at the
+    /// strip's own caption scale and in its white-over-sky palette, because they are the same kind
+    /// of thing: session facts you glance at once, while the astronauts underneath are what the
+    /// page is for.
     /// </para>
     ///
     /// <para>
@@ -27,8 +26,17 @@ namespace SpaceGame.Presentation.Lobbies
     /// </summary>
     internal sealed class LobbyTeamRulesStrip
     {
-        private const float Top = LobbySessionStrip.Top - LobbySessionStrip.Height - 16f;
-        private const float Spacing = 64f;
+        // Caption slots sized to their own text at CaptionSize, the way LobbySessionStrip sizes
+        // every slot to its longest content — UIBuilder labels truncate rather than overflow, so a
+        // slot narrower than its word silently eats it.
+        private const float TeamsCaptionWidth = 96f;
+        private const float SizeCaptionWidth = 150f;
+
+        private const float ChevronWidth = 44f;
+        private const float ValueWidth = 48f;
+
+        /// <summary>Between the two steppers, so they read as two controls rather than one run of glyphs.</summary>
+        private const float Gap = 48f;
 
         private readonly RectTransform row;
 
@@ -47,19 +55,23 @@ namespace SpaceGame.Presentation.Lobbies
         /// <param name="onSetTeamRules">Called with (teamCount, teamSize) when a chevron is pressed.</param>
         public LobbyTeamRulesStrip(RectTransform page, GameObject entryPrefab, Action<int, int> onSetTeamRules)
         {
-            row = UIBuilder.PinnedTop(page, "TeamRules", MenuEntry.ColumnX, Top, MenuEntry.ColumnWidth,
-                                      MenuStepper.Height);
-            UIBuilder.Row(row, Spacing);
+            MenuStepper.Skin teamsSkin = StripSkin(TeamsCaptionWidth);
+            MenuStepper.Skin sizeSkin = StripSkin(SizeCaptionWidth);
+            float width = teamsSkin.Width + Gap + sizeSkin.Width;
 
-            Teams = MenuStepper.Create(entryPrefab, row, "Teams",
+            row = UIBuilder.PinnedTop(page, "TeamRules",
+                                      MenuEntry.ColumnX + MenuEntry.ColumnWidth - width,
+                                      LobbySessionStrip.Top, width, LobbySessionStrip.Height);
+
+            Teams = MenuStepper.Create(entryPrefab,
+                UIBuilder.Slice(row, "TeamsSlot", 0f, teamsSkin.Width), "TEAMS",
                 VersusRules.DefaultTeams, VersusRules.MinTeams, VersusRules.MaxTeams,
-                value => onSetTeamRules(value, shownTeamSize));
-            FixedWidth(Teams);
+                value => onSetTeamRules(value, shownTeamSize), teamsSkin);
 
-            TeamSize = MenuStepper.Create(entryPrefab, row, "Team size",
+            TeamSize = MenuStepper.Create(entryPrefab,
+                UIBuilder.Slice(row, "TeamSizeSlot", teamsSkin.Width + Gap, sizeSkin.Width), "TEAM SIZE",
                 VersusRules.DefaultTeamSize, VersusRules.MinTeamSize, VersusRules.MaxTeamSize,
-                value => onSetTeamRules(shownTeamCount, value));
-            FixedWidth(TeamSize);
+                value => onSetTeamRules(shownTeamCount, value), sizeSkin);
 
             row.gameObject.SetActive(false);
         }
@@ -85,25 +97,10 @@ namespace SpaceGame.Presentation.Lobbies
             TeamSize.SetInteractable(isHost);
         }
 
-        /// <summary>
-        /// Gives a stepper's row an explicit width inside the strip's horizontal layout.
-        ///
-        /// <see cref="MenuStepper"/> only ever sizes its own HEIGHT — it was built to sit in a
-        /// vertical column that expands its children to the full column width, which this strip
-        /// does not do (two steppers share one row). The existing <see cref="LayoutElement"/> is
-        /// reused rather than a second one added: Unity would happily attach two, and which one the
-        /// layout system then honours is not a bet worth making.
-        /// </summary>
-        private static void FixedWidth(MenuStepper stepper)
-        {
-            float width = MenuStepper.LabelWidth + MenuStepper.ChevronWidth * 2f + MenuStepper.ValueWidth;
-
-            var element = stepper.Root.GetComponent<LayoutElement>();
-            if (element == null) element = stepper.Root.gameObject.AddComponent<LayoutElement>();
-
-            element.minWidth = width;
-            element.preferredWidth = width;
-            element.flexibleWidth = 0f;
-        }
+        /// <summary>The session strip's own caption scale and palette, at the given caption width.</summary>
+        private static MenuStepper.Skin StripSkin(float captionWidth) =>
+            new(LobbySessionStrip.CaptionSize, LobbySessionStrip.ValueSize, captionWidth,
+                ChevronWidth, ValueWidth, LobbySessionStrip.Height, light: true,
+                LobbySessionStrip.ShadowOffset);
     }
 }

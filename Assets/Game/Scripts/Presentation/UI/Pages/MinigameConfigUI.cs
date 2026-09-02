@@ -138,6 +138,12 @@ namespace SpaceGame.Presentation
                 if (canvas.transform.IsChildOf(transform)) continue;
                 if (!canvas.enabled) continue;
 
+                // Only canvases from this screen's own scene — same rule as MenuScreen. The
+                // DontDestroyOnLoad surfaces (WorldOverlay, ChatUI) survive the arena load that
+                // Launch() triggers without restoring, so hiding one here would strand it
+                // disabled for the whole match.
+                if (canvas.gameObject.scene != gameObject.scene) continue;
+
                 canvas.enabled = false;
                 hiddenCanvases.Add(canvas);
             }

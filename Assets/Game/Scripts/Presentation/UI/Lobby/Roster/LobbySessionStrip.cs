@@ -28,10 +28,11 @@ namespace SpaceGame.Presentation.Lobbies
         internal const float Top = -36f;
         internal const float Height = 48f;
 
-        /// <summary>Small. This strip is a caption, not a heading.</summary>
-        private const int CaptionSize = 24;
+        /// <summary>Small. This strip is a caption, not a heading. Shared with
+        /// <see cref="LobbyTeamRulesStrip"/> so the whole bar is set in one voice.</summary>
+        internal const int CaptionSize = 24;
 
-        private const int ValueSize = 34;
+        internal const int ValueSize = 34;
 
         // Left-to-right slots inside the strip, measured from the shared column inset.
         //
@@ -59,7 +60,7 @@ namespace SpaceGame.Presentation.Lobbies
 
         private const string NoCode = "—";
 
-        private static readonly Vector2 ShadowOffset = new(2f, -2f);
+        internal static readonly Vector2 ShadowOffset = new(2f, -2f);
 
         // The strip sits over sky, so the on/off state reads in white too — a translucent white for
         // "off" carries the same "not in force" meaning the navy version did over sand.

@@ -12,13 +12,14 @@ symptoms:
   - "damage lands once per player in the session, so a target dies four times too fast"
   - "the gun fires but no bullet appears and the ammo never goes down"
   - "a client sees no damage numbers at all, or its own shots do nothing"
+  - "damage numbers and nameplates exist in code but nothing ever shows in game, for host and clients alike"
   - "the ragdoll jitters and vibrates instead of falling limp"
   - "loot drops or the enrage fires again every time I load the world"
   - "the corpse stays suspended in the air with its brain switched off"
   - "the turret or NPC aims its weapon at the host's camera"
   - "the projectile works on the host but never appears for clients"
 reads_with: [Artifacts, AgentSystem, Inventory, Persistence]
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # Combat
@@ -117,6 +118,7 @@ Ordering on load: the record lands → `RestoreHealth` clamps to the prefab's `m
 
 ## Gotchas
 
+- **Both overlays invisible for everyone, no errors → the `WorldOverlay` Canvas itself is disabled.** The components run, labels are created and positioned, nothing renders. Historic cause: menu screens hid every canvas in the game and the launch path never restored the `DontDestroyOnLoad` ones — see the [UI](UI.md) gotcha on canvas scoping. Diagnose by reading `Canvas.enabled` on the WorldOverlay object at runtime before suspecting the damage signals.
 - **Damage multiplied by player count.** The classic symptom of a missing `Cosmetic`/`ShotDealsDamage` gate, or a scene prop that damages from every machine's copy. Gate on the **victim's** authority (`Network.Simulates(health)`), not the prop's — scenery has no `NetworkObject`.
 - **Projectiles must NOT be in the network prefab list.** Verified: `CixinGunEquipped.prefab` and `BallLightningWeapon_Pickup.prefab` are registered in [DefaultNetworkPrefabs.asset](Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset); `BallLightningProjectile.prefab` and `CixinGunFinal.prefab` are not, and must not be. Only what `GameServices.World.Spawn` is handed belongs there. The root-level `Assets/DefaultNetworkPrefabs.asset` regenerates itself and is **not** the list used.
 - **Missing registration fails on clients only** — the host instantiates its own copy and never consults the list, so solo playtesting cannot find it.

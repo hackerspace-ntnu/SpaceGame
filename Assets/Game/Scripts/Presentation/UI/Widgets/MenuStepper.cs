@@ -48,6 +48,49 @@ namespace SpaceGame.Presentation
         /// </summary>
         public const float Height = 74f;
 
+        /// <summary>
+        /// The measurements and palette one row is drawn with. The parameterless
+        /// <see cref="Create(GameObject, RectTransform, string, int, int, int, Action{int})"/>
+        /// builds the full-page-column row every existing screen uses; a caller squeezing a stepper
+        /// into a caption-scale strip passes its own numbers instead.
+        ///
+        /// <para>
+        /// <see cref="Light"/> flips the palette for a row that sits over SKY rather than sand: the
+        /// two labels become white with the navy drop shadow the top-strip captions carry, and the
+        /// chevrons go through <see cref="MenuEntry.MakeLight"/> like every other button up there,
+        /// instead of the navy-ground <see cref="ChevronIdle"/> treatment.
+        /// </para>
+        /// </summary>
+        public readonly struct Skin
+        {
+            public readonly int LabelSize;
+            public readonly int ValueSize;
+            public readonly float LabelWidth;
+            public readonly float ChevronWidth;
+            public readonly float ValueWidth;
+            public readonly float Height;
+            public readonly bool Light;
+
+            /// <summary>Drop-shadow offset for the light palette's shadowed labels.</summary>
+            public readonly Vector2 ShadowOffset;
+
+            public Skin(int labelSize, int valueSize, float labelWidth, float chevronWidth,
+                float valueWidth, float height, bool light, Vector2 shadowOffset = default)
+            {
+                LabelSize = labelSize;
+                ValueSize = valueSize;
+                LabelWidth = labelWidth;
+                ChevronWidth = chevronWidth;
+                ValueWidth = valueWidth;
+                Height = height;
+                Light = light;
+                ShadowOffset = shadowOffset;
+            }
+
+            /// <summary>The whole row's width — label, both chevrons, value.</summary>
+            public float Width => LabelWidth + ChevronWidth * 2f + ValueWidth;
+        }
+
         // ASCII, not ◀ / ▶. The project's TMP default is LiberationSans SDF, which has neither
         // U+25C0 nor U+25B6 and no fallback that does — TMP silently substitutes U+25A1, and both
         // arrows render as empty boxes. LobbyPreviewRank hit exactly this ("caught from a warning in
@@ -82,18 +125,30 @@ namespace SpaceGame.Presentation
         public Button Decrease { get; private set; }
         public Button Increase { get; private set; }
 
+        /// <summary>The value's navy shadow copy, when the skin is light. Written with it or the shadow goes stale.</summary>
+        private TextMeshProUGUI valueShadow;
+
         private int value;
         private int min;
         private int max;
 
         /// <summary>
-        /// Builds one row. <paramref name="prefab"/> is forwarded to <see cref="MenuEntry.Create"/>
-        /// for both chevrons exactly the way <c>LobbyPreviewRank</c> forwards its own
-        /// <c>entryPrefab</c> into its cycler's chevrons — pass null for a plain, unanimated pair
-        /// built from scratch.
+        /// Builds one row at the full-page-column measurements above. <paramref name="prefab"/> is
+        /// forwarded to <see cref="MenuEntry.Create"/> for both chevrons exactly the way
+        /// <c>LobbyPreviewRank</c> forwards its own <c>entryPrefab</c> into its cycler's chevrons —
+        /// pass null for a plain, unanimated pair built from scratch.
         /// </summary>
         public static MenuStepper Create(GameObject prefab, RectTransform parent, string label,
             int value, int min, int max, Action<int> onChanged)
+        {
+            return Create(prefab, parent, label, value, min, max, onChanged,
+                          new Skin(MenuEntry.RowSize, MenuEntry.ActionSize, LabelWidth, ChevronWidth,
+                                   ValueWidth, Height, light: false));
+        }
+
+        /// <summary>Builds one row to the given <see cref="Skin"/> instead of the full-size default.</summary>
+        public static MenuStepper Create(GameObject prefab, RectTransform parent, string label,
+            int value, int min, int max, Action<int> onChanged, Skin skin)
         {
             var stepper = new MenuStepper { value = value, min = min, max = max };
 
@@ -108,23 +163,37 @@ namespace SpaceGame.Presentation
             // second layout group on this object to begin with.
             stepper.Root = UIBuilder.Rect(label, parent);
             UIBuilder.Fill(stepper.Root);
-            UIBuilder.FixedHeight(stepper.Root, Height);
+            UIBuilder.FixedHeight(stepper.Root, skin.Height);
 
-            RectTransform labelSlot = UIBuilder.Slice(stepper.Root, "Label", 0f, LabelWidth);
-            UIBuilder.Label(labelSlot, label, MenuEntry.RowSize, MenuEntry.Caption);
+            RectTransform labelSlot = UIBuilder.Slice(stepper.Root, "Label", 0f, skin.LabelWidth);
+            if (skin.Light)
+                UIBuilder.ShadowedLabel(labelSlot, label, skin.LabelSize, MenuEntry.Title,
+                                        MenuEntry.Idle, skin.ShadowOffset, TextAlignmentOptions.Left,
+                                        out _);
+            else
+                UIBuilder.Label(labelSlot, label, skin.LabelSize, MenuEntry.Caption);
 
-            RectTransform lessSlot = UIBuilder.Slice(stepper.Root, "Less", LabelWidth, ChevronWidth);
-            stepper.Decrease = Chevron(prefab, lessSlot, "Less", DecreaseGlyph,
+            RectTransform lessSlot = UIBuilder.Slice(stepper.Root, "Less", skin.LabelWidth, skin.ChevronWidth);
+            stepper.Decrease = Chevron(prefab, lessSlot, "Less", DecreaseGlyph, skin,
                                        () => stepper.Report(-1, onChanged));
 
-            RectTransform valueSlot = UIBuilder.Slice(stepper.Root, "Value", LabelWidth + ChevronWidth, ValueWidth);
-            stepper.ValueLabel = UIBuilder.Label(valueSlot, value.ToString(), MenuEntry.ActionSize,
-                                                 MenuEntry.Idle, TextAlignmentOptions.Center,
-                                                 FontStyles.Bold);
+            RectTransform valueSlot = UIBuilder.Slice(stepper.Root, "Value",
+                                                      skin.LabelWidth + skin.ChevronWidth, skin.ValueWidth);
+            if (skin.Light)
+                stepper.ValueLabel = UIBuilder.ShadowedLabel(valueSlot, value.ToString(), skin.ValueSize,
+                                                             MenuEntry.Title, MenuEntry.Idle,
+                                                             skin.ShadowOffset,
+                                                             TextAlignmentOptions.Center,
+                                                             out stepper.valueShadow);
+            else
+                stepper.ValueLabel = UIBuilder.Label(valueSlot, value.ToString(), skin.ValueSize,
+                                                     MenuEntry.Idle, TextAlignmentOptions.Center,
+                                                     FontStyles.Bold);
 
             RectTransform moreSlot = UIBuilder.Slice(stepper.Root, "More",
-                                           LabelWidth + ChevronWidth + ValueWidth, ChevronWidth);
-            stepper.Increase = Chevron(prefab, moreSlot, "More", IncreaseGlyph,
+                                           skin.LabelWidth + skin.ChevronWidth + skin.ValueWidth,
+                                           skin.ChevronWidth);
+            stepper.Increase = Chevron(prefab, moreSlot, "More", IncreaseGlyph, skin,
                                        () => stepper.Report(1, onChanged));
 
             return stepper;
@@ -138,6 +207,7 @@ namespace SpaceGame.Presentation
         {
             value = newValue;
             if (ValueLabel != null) ValueLabel.text = newValue.ToString();
+            if (valueShadow != null) valueShadow.text = newValue.ToString();
         }
 
         /// <summary>
@@ -174,12 +244,15 @@ namespace SpaceGame.Presentation
         }
 
         private static Button Chevron(GameObject prefab, RectTransform slot, string name, string glyph,
-            Action onClick)
+            Skin skin, Action onClick)
         {
-            Button button = MenuEntry.Create(prefab, slot, name, glyph, MenuEntry.ActionSize, Height,
+            Button button = MenuEntry.Create(prefab, slot, name, glyph, skin.ValueSize, skin.Height,
                                              () => onClick(), out TextMeshProUGUI label);
             label.alignment = TextAlignmentOptions.Center;
-            TintChevron(button, label);
+
+            if (skin.Light) MenuEntry.MakeLight(button, label);
+            else TintChevron(button, label);
+
             return button;
         }
 

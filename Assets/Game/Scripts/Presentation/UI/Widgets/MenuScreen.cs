@@ -133,14 +133,20 @@ namespace SpaceGame.Presentation
             closing = true;
             RestoreOtherCanvases();
             gameObject.SetActive(false);
-            Destroy(gameObject);
+
+            // DestroyImmediate outside play mode, same as WorldOverlay.Build: plain Destroy is a
+            // no-op there and logs an error instead — which fails any edit-mode test through it.
+            if (Application.isPlaying) Destroy(gameObject);
+            else DestroyImmediate(gameObject);
         }
 
         /// <summary>
         /// Goes away ahead of a scene load, without restoring what it hid.
         ///
         /// The menu scene is about to be unloaded, so putting its canvases back would only make them
-        /// flash. The canvas is switched off rather than merely destroyed because Destroy does not
+        /// flash. Safe only because <see cref="HideOtherCanvases"/> hides nothing outside this
+        /// screen's own scene — everything in <see cref="hidden"/> dies with the load anyway.
+        /// The canvas is switched off rather than merely destroyed because Destroy does not
         /// take effect until the end of the frame, and a loading screen raised in the meantime would
         /// come up underneath this screen's text.
         /// </summary>
@@ -148,7 +154,9 @@ namespace SpaceGame.Presentation
         {
             closing = true;
             if (canvasObject != null) canvasObject.SetActive(false);
-            Destroy(gameObject);
+
+            if (Application.isPlaying) Destroy(gameObject);
+            else DestroyImmediate(gameObject);
         }
 
         // ----------------------------------------------------------------- page skeleton
@@ -235,6 +243,12 @@ namespace SpaceGame.Presentation
             {
                 if (canvas.transform.IsChildOf(transform)) continue;
                 if (!canvas.enabled) continue;
+
+                // Only canvases from this screen's own scene. WorldOverlay, ChatUI and the other
+                // DontDestroyOnLoad surfaces live elsewhere and survive the scene load HandOff
+                // precedes — and HandOff never restores, so hiding one here would strand it
+                // disabled for the whole play session it launches.
+                if (canvas.gameObject.scene != gameObject.scene) continue;
 
                 canvas.enabled = false;
                 hidden.Add(canvas);

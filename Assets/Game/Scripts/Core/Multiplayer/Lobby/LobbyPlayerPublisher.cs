@@ -21,7 +21,7 @@ namespace SpaceGame.Core.Lobbies
 
         private readonly DebouncedPublish<int> suitColor = new(Debounce);
         private readonly DebouncedPublish<int> team = new(Debounce);
-        private readonly DebouncedPublish<int> teamColor = new(Debounce);
+        private readonly DebouncedPublish<(int Swatch, int Team)> teamColor = new(Debounce);
 
         /// <summary>This player's suit colour, in a story lobby.</summary>
         public void RequestSuitColor(int swatch) => suitColor.Request(SuitPalette.Clamp(swatch));
@@ -29,8 +29,13 @@ namespace SpaceGame.Core.Lobbies
         /// <summary>Which team this player has moved to, in a VS lobby.</summary>
         public void RequestTeam(int newTeam) => team.Request(newTeam);
 
-        /// <summary>This player's opinion of their VS team's colour.</summary>
-        public void RequestTeamColor(int swatch) => teamColor.Request(SuitPalette.Clamp(swatch));
+        /// <summary>
+        /// This player's opinion of a VS team's colour. <paramref name="forTeam"/> is captured at
+        /// the press, not read back at send time: the vote belongs to the team the player was
+        /// recolouring, even if they switch teams inside the debounce window.
+        /// </summary>
+        public void RequestTeamColor(int swatch, int forTeam) =>
+            teamColor.Request((SuitPalette.Clamp(swatch), forTeam));
 
         /// <summary>
         /// Forgets everything waiting. For when there is no lobby to publish to — left, or not
@@ -49,7 +54,7 @@ namespace SpaceGame.Core.Lobbies
         {
             suitColor.Tick(deltaTime, swatch => send(LobbyOptions.SuitColor(swatch)));
             team.Tick(deltaTime, newTeam => send(LobbyOptions.Team(newTeam)));
-            teamColor.Tick(deltaTime, swatch => send(LobbyOptions.TeamColor(swatch, NowMs())));
+            teamColor.Tick(deltaTime, vote => send(LobbyOptions.TeamColor(vote.Swatch, NowMs(), vote.Team)));
         }
 
         /// <summary>The stamp on a team-colour opinion — see <see cref="TeamColorOpinion"/>.</summary>

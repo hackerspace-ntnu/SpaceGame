@@ -18,8 +18,10 @@ symptoms:
   - "a row silently inflates and blows out the layout"
   - "the death screen does not appear for a player who died before loading"
   - "a menu choice drops me back on the main menu instead of opening the page it names"
+  - "the world list only shows two saves before it has to be scrolled"
+  - "a menu list is far shorter on an ultrawide monitor than on a 16:9 one"
 reads_with: [Lobby, Inventory, Persistence, audio]
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # UI
@@ -67,7 +69,7 @@ Every screen in the game — the main-menu page stack, the in-game HUD, the full
 | --- | --- | --- |
 | `MainMenuUI` | [Pages/MainMenuUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/MainMenuUI.cs) | Front menu in `MainMenu.unity`; owns `gameScene`, `worldConfig` and the menu button prefab lent to every page it opens. Methods bound **by name** from the scene. |
 | `MenuChoiceUI` | [Pages/MenuChoiceUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/MenuChoiceUI.cs) | One question, 2–3 answers + Back (story/VS, host/join). |
-| `WorldSelectUI` | [Pages/WorldSelectUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/WorldSelectUI.cs) | The only place a world is chosen: list / name-new / confirm-delete, for both SP and lobby destinations. |
+| `WorldSelectUI` | [Pages/WorldSelectUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/WorldSelectUI.cs) | The only place a world is chosen: list / name-new / confirm-delete, for both SP and lobby destinations. The list is stretched across the whole content band (`MenuEntry.ContentTop` → the status line); **New world**, **Delete** and **Start** are all footer actions. |
 | `VersusRulesUI` | [Pages/VersusRulesUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/VersusRulesUI.cs) | Teams and team size before a VS lobby; stages into statics the lobby reads. |
 | `MinigameConfigUI` | [Pages/MinigameConfigUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/MinigameConfigUI.cs) | Pre-match gamemode/bots/win condition → `MatchSettings`. Predates `MenuScreen`, keeps its own canvas swap. |
 | `LobbyUI` | [Lobby/LobbyUI.cs](Assets/Game/Scripts/Presentation/UI/Lobby/LobbyUI.cs) | Lobby screen: swaps Join ↔ Roster pages, owns host/join/start/leave. Netcode in [Lobby.md](Lobby.md). |
@@ -85,7 +87,8 @@ Every screen in the game — the main-menu page stack, the in-game HUD, the full
 | `HealthUI` | [HUD/HealthUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/HealthUI.cs) | Bar + numbers from a serialized `HealthComponent`'s damage/heal/death/revive events. |
 | `CrosshairUI` | [HUD/CrosshairUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/CrosshairUI.cs) | Crosshair + aim hint. **Its hover half has never run** — `playerInteractor` is unassigned on the prefab and `Update` returns on line 1. |
 | `InteractionPromptUI` | [HUD/InteractionPromptUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/InteractionPromptUI.cs) | "What am I looking at, what will the buttons do", from `InteractionPromptResolver`; finds the `Interactor` when unwired. |
-| `SeatPromptUI` | [HUD/SeatPromptUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/SeatPromptUI.cs) | Timed "ESCAPE to leave the seat" after the crash landing. Draws only; `SeatedRider` decides. |
+| `PlayerHints` | [HUD/PlayerHints.cs](Assets/Game/Scripts/Presentation/UI/HUD/PlayerHints.cs) | THE hint surface: one self-building textbox at the top of the screen, `Show(id, text[, seconds])` / `Hide(id)`. One slot, latest wins; ids stop a late `Hide` erasing someone else's newer hint. Sorts under `LetterboxOverlay` so a blackout always covers it. |
+| `SeatPromptUI` | [HUD/SeatPromptUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/SeatPromptUI.cs) | WHEN the arrival's "Q — exit the ship" hint shows: 3 s after the cutscene ends, 10 s backstop from the seat becoming leavable. **Polled** (`SeatedRider.LocalPlayerMayLeave` + `CutsceneDirector.IsPlaying`), never event-driven — it lives on a HUD that is disabled at exactly the moments the arrival announces things, so an event subscriber missed them and the hint never showed. Draws via `PlayerHints`; `SeatedRider` decides whether the key does anything. |
 | `DeathScreenUI` | [HUD/DeathScreenUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/DeathScreenUI.cs) | Death overlay; binds in `OnEnable` and reads current `IsDead`, not just the event. |
 | `InventoryUI` / `InventorySlotUI` | [HUD/InventoryUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/InventoryUI.cs), [HUD/InventorySlotUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/InventorySlotUI.cs) | Four-slot hotbar, built in code (`Slot.prefab` is dead). Clicks are handed to `PackHandController`; the bar never draws a held-item stand-in. |
 | `HelmetHUDController` | [HelmetHUD/HelmetHUDController.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/HelmetHUDController.cs) | Spawns and feeds the visor overlay; resolves health off the player it hangs under. |
@@ -132,6 +135,7 @@ Every screen in the game — the main-menu page stack, the in-game HUD, the full
 - **`UIBuilder.EnsureEventSystem()` before any clickable overlay in a gameplay scene**, or the panel renders and nothing responds.
 - **Never put a `LayoutElement` and a `LayoutGroup` on the same rect** — equal layout priority, the row silently inflates. Only the outer column is a layout group; row contents are anchored.
 - **A 9-sliced sprite whose border exceeds the rect draws its corners over each other** — `UITheme.Rounded(radius)` is cached per radius for this reason; a pill wants half its own height.
+- **A menu page's vertical budget is about 330 reference pixels, and shrinks on a wide screen.** Everything clickable has to sit between `MenuEntry.MessageBottom + 44` (the top of the status line, 212) and `MenuEntry.Horizon` (540) — roughly 330 px of the 1080-high reference canvas, the rest being title, sky and footer. `MenuScreen`'s scaler is `ScaleWithScreenSize` at `matchWidthOrHeight 0.5`, so on 21:9 the canvas is only ~935 reference px tall while every offset above stays put: the band drops to ~190 px. A scrolling list in that band must therefore be **stretched between anchors, never given a height**, and must not share the band with a pinned row — `WorldSelectUI` moved its **New world** action into the footer for exactly that reason, and doubled the worlds it could show.
 - **Menu colour rules:** entries are dark navy and only read against ground, so everything clickable belongs below `MenuEntry.Horizon` (540). `Horizon` is conservative and is *not* "above this is sky" — anything drawn higher must carry its own contrast (white, or the nameplates' white-over-navy shadow trick).
 - **No glyph spinners**: `◀`/`▶`/braille/box-drawing are absent from LiberationSans and render as nothing. Use `MenuBusy`.
 - **`MenuStepper` and `MenuStatusLine` invert the obvious:** a stepper does not move until a caller calls `SetValue`, and a `Polled` status write is refused while a `Warn` stands (a 2 Hz redraw would otherwise erase the failure before it could be read).

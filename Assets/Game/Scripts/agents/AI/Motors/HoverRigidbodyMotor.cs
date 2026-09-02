@@ -101,6 +101,10 @@ namespace SpaceGame.Agents
         // flag is only written on the transition, not fought over every step.
         private bool isParked;
 
+        // The constraints the body was authored with, captured once so parking can add its own and
+        // un-parking can hand back exactly what it found.
+        private RigidbodyConstraints authoredConstraints;
+
         public Vector3 Velocity => body ? body.linearVelocity : Vector3.zero;
 
         /// <summary>Ground clearance the craft is holding, in metres.</summary>
@@ -202,8 +206,10 @@ namespace SpaceGame.Agents
             // that are meant to stand on the ground as dead weight between flights.
             if (body)
             {
+                authoredConstraints = body.constraints;
                 body.useGravity = restWhenParked;
                 isParked = restWhenParked;
+                if (isParked) body.constraints = ParkedConstraints(authoredConstraints);
             }
 
             groundSensor.Initialize(transform);
@@ -244,11 +250,27 @@ namespace SpaceGame.Agents
             riderSpeedValid = false;
             hasPendingRiderInput = false;
 
-            if (!body)
+            // A kinematic body has no velocity to zero, and Unity warns on the write. The arrival
+            // parks the hull while it is still kinematic from the descent, which is how this used
+            // to log twice per landing.
+            if (!body || body.isKinematic)
                 return;
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
         }
+
+        /// <summary>
+        /// What a parked hull may do: everything it was authored to, minus horizontal travel.
+        ///
+        /// <para>
+        /// Pure so the one fact worth asserting — parking pins X and Z and ONLY X and Z — can be
+        /// asserted without a physics scene. Y stays free deliberately: gravity is what seats the
+        /// parked hull on the ground, and freezing it would leave a craft parked mid-hover hanging
+        /// where it stopped.
+        /// </para>
+        /// </summary>
+        public static RigidbodyConstraints ParkedConstraints(RigidbodyConstraints authored) =>
+            authored | RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ;
 
         public void NudgeDestination(Vector3 offset)
         {
@@ -278,17 +300,22 @@ namespace SpaceGame.Agents
                 return;
 
             // Parked = nobody riding and no standing AI order. With restWhenParked on, this is the
-            // one state where the motor deliberately lets go: gravity is on, nothing writes the
-            // velocity or the attitude, so the hull rests on its own colliders and a collision
-            // moves it exactly as far as its mass allows — no servo correction erases the shove.
-            // The moment anything drives again, the servo takes the body back and re-seeds its
-            // heading from wherever physics left the hull pointing.
+            // one state where the motor deliberately lets go: gravity is on and nothing writes the
+            // velocity or the attitude, so the hull rests on its own colliders. Its horizontal
+            // position is FROZEN while it does — "moves as far as its mass allows" was the first
+            // version, and mass is no defence here: agents and mounts walk on KINEMATIC bodies,
+            // and a kinematic collider depenetrates a dynamic one with infinite authority, so a
+            // strolling NPC could shove a 60-tonne wreck around by leaning on it. The vertical
+            // axis stays free so gravity can still settle the hull onto the ground it was parked
+            // over. The moment anything drives again, the constraints are handed back and the
+            // servo re-seeds its heading from wherever physics left the hull pointing.
             bool parked = restWhenParked && !hasPendingRiderInput
                           && pendingIntent.Type == AgentIntentType.Idle;
             if (parked != isParked)
             {
                 isParked = parked;
                 body.useGravity = parked;
+                body.constraints = parked ? ParkedConstraints(authoredConstraints) : authoredConstraints;
                 if (!parked)
                     headingValid = false;
             }

@@ -144,7 +144,7 @@ namespace SpaceGame.Tests
         /// <summary>
         /// The rod has to fit somewhere on the pack. It is the longest thing the player carries
         /// after the laser staff, and unlike the staff it is not slender — the handlebar is a third
-        /// of a metre across — so it cannot ride the 2.43 x 0.135 m LongGoods strip, which is one
+        /// of a metre across — so it cannot ride the 18 x 1 cell LongGoods strip, which is one
         /// cell deep.
         ///
         /// <para>

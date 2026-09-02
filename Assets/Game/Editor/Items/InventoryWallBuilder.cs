@@ -51,7 +51,7 @@ namespace SpaceGame.EditorTools
         /// is not a whole number of cells across puts the model's bay dividers out of step with
         /// the lattice the player is dropping gear onto — so the ACROSS count is a multiple of
         /// six, or a part-bay is left at one end. Expressed as the count times the cell rather
-        /// than as 4.05 x 2.97, because the count is the authored decision and the metres are a
+        /// than in metres, because the count is the authored decision and the metres are a
         /// consequence of it — unlike the rig's faces, which are measurements of a model.
         /// </para>
         /// <para>
@@ -59,19 +59,25 @@ namespace SpaceGame.EditorTools
         /// enlargement (<see cref="PackScale.Factor"/>) turned into an 8.46 x 4.95 m fitting the
         /// lander's aft room does not have room for. Measured against the ship's baked collision
         /// at <c>PlayerShipBuilder.WallRibClearance</c>, the room offers 4.37 m of headroom over
-        /// the fitting's footprint; 30 x 22 stands 3.87 m off the deck and 4.41 m along it, which
-        /// leaves 0.50 m of air above the header, 0.75 m clear forward and 1.54 m aft. Capacity
-        /// went 1800 -> 660 cells; that is the cost, and it is paid in one place.
+        /// the fitting's footprint; 30 x 22 stands 4.10 m off the deck and 4.68 m along it, which
+        /// leaves ~0.32 m of air above the header. Capacity went 1800 -> 660 cells; that is the
+        /// cost, and it is paid in one place. Buying height back means fewer ROWS — and that is a
+        /// change to <c>inventory_wall.py</c>'s <c>GRID_H</c> as well, which means REGENERATING a
+        /// <c>.blend</c> that carries hand edits the generator does not have. Shrinking
+        /// <see cref="PackScale.WallDrawn"/> is the lever that does not.
         /// </para>
         /// <para>
-        /// <b>This is the LOGICAL face and it did not move again.</b> The wall is DRAWN 1.06x
-        /// larger than this since 2026-09-01 (<see cref="PackScale.WallDisplay"/>, stamped onto
-        /// the prefab by <see cref="SetDisplayScale"/> and matched in the model by
-        /// <c>inventory_wall_scale.py</c>) — a 4.293 x 3.148 m board over a 4.05 x 2.97 m
-        /// rectangle. That enlargement moves no count, no cell and no stored uv: it is only the
-        /// mapping from a uv to a point on screen. Do not "reconcile" the two numbers by editing
-        /// this one, and do not raise the display scale to reach a bigger board — the room caps it
-        /// at 1.065 and the constant carries the arithmetic.
+        /// <b>This is the LOGICAL face, and its metres ride <see cref="PackGrid.Cell"/> like every
+        /// other face's.</b> The board the player actually sees does NOT: it is
+        /// <see cref="PackScale.WallDrawn"/> times the ORIGINAL frame, applied as
+        /// <see cref="PackScale.WallDisplay"/>, stamped onto the prefab by
+        /// <see cref="SetDisplayScale"/> and matched in geometry by the model's baked
+        /// <see cref="PackScale.WallModel"/> times the root scale <see cref="Build"/> applies.
+        /// So the 2026-09-02 shrink of <see cref="PackScale.Factor"/> moved this face's metres and
+        /// left the fitting in the ship exactly where and how big it was. That enlargement moves
+        /// no count, no cell and no stored uv: it is only the mapping from a uv to a point on
+        /// screen. Do not "reconcile" the two numbers by editing this one — <c>WallDrawn</c> is
+        /// the one knob a resize turns, and its constant carries the room arithmetic.
         /// </para>
         /// </summary>
         private const string SurfaceNode = "SURF_WallGrid";
@@ -100,6 +106,15 @@ namespace SpaceGame.EditorTools
 
             GameObject staged = Object.Instantiate(model);
             staged.name = "InventoryWall";
+
+            // The FBX's geometry is baked at PackScale.WallModel (inventory_wall_scale.py's
+            // TOTAL); the wall is drawn at PackScale.WallDrawn. The residual is applied here as a
+            // uniform root scale so a resize never regenerates a .blend that carries hand edits.
+            // Everything that maps uvs — PackSurface.ToLocal/ToUv, BackpackItemVisual,
+            // HolderBuilder, and AttachSurface below — divides lossy scale back out and follows
+            // DisplayScale instead, so the lattice and every display copy stay on the model's
+            // webbing lines.
+            staged.transform.localScale = Vector3.one * (PackScale.WallDrawn / PackScale.WallModel);
 
             try
             {
@@ -343,8 +358,9 @@ namespace SpaceGame.EditorTools
         /// <para>
         /// Stamped from <see cref="PackScale.WallDisplay"/> rather than typed into the prefab, for
         /// the reason everything else here is: the prefab is rebuilt wholesale, so a number tuned
-        /// in the inspector survives exactly until the next run. The MODEL carries the same 1.06
-        /// (<c>inventory_wall_scale.py</c>) and the two have to stay equal — the board and the
+        /// in the inspector survives exactly until the next run. The geometry carries the same
+        /// total — the model's baked <see cref="PackScale.WallModel"/> times the root scale
+        /// <see cref="Build"/> applies — and the two have to stay equal: the board and the
         /// lattice gear is dropped onto are the same lines.
         /// </para>
         /// </summary>

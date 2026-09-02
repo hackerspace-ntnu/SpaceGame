@@ -58,6 +58,15 @@ namespace SpaceGame.Characters
 
             lookCamera = playerCamera != null ? playerCamera.GetComponent<Camera>() : null;
 
+            // Where the prefab put the eye along the body's forward axis, and the frame that rest
+            // position is expressed in. Captured here rather than read every frame: this component
+            // writes that same component back, so reading it would compound.
+            if (playerCamera != null)
+            {
+                eyeParent = playerCamera.transform.parent;
+                baseEyeZ = playerCamera.transform.localPosition.z;
+            }
+
             // The field of view authored on the prefab is the slider's starting point, adopted only
             // while the player has never moved it — otherwise every launch would overwrite what
             // they chose with whatever the prefab happens to say.
@@ -123,7 +132,9 @@ namespace SpaceGame.Characters
         /// bone while this camera is bolted to the player root, so a walk cycle's lean rotates it
         /// about a pivot below the eye and throws its top forward through the near plane — and no
         /// worn pose can fix that for gear the player chose the size of, because
-        /// <c>PackSurfaceId.LongGoods</c> takes an item 2.43 m long. The pack is inspected in focus
+        /// <c>PackSurfaceId.LongGoods</c> takes an item 18 cells long — 1.70 m at the current
+        /// <c>PackScale.Factor</c>, and 2.43 m at the 1.5 rig this was first written for. The
+        /// 2026-09-02 shrink narrows the intrusion; it does not remove it. The pack is inspected in focus
         /// mode, seen by everyone else, and still casts this player's shadow, so hiding it from the
         /// one camera it can only ever obstruct costs nothing.
         /// </para>
@@ -220,6 +231,165 @@ namespace SpaceGame.Characters
             ApplyFieldOfView();
         }
 
+        // ── Look-down offset ───────────────────────────────────────────────────
+        //
+        // The eye is authored inside the helmet of a 3 m astronaut, which is fine while the view
+        // points at the horizon and useless once it points at the floor: looking straight down the
+        // camera sits behind the chest and frames the body it is inside instead of the ground the
+        // player wanted to see. So as the pitch goes down the eye slides FORWARD, out past the
+        // chest, and the player looks down in front of themselves.
+        //
+        // Along the body's forward axis, not the view's: forward is the direction "in front of the
+        // character" means, and the eye's height belongs to PlayerStance — a second driver on that
+        // axis would fight the crouch. It is also the only translation that leaves the local frame
+        // this component may write, because pitch is a rotation on this same transform.
+        //
+        // Local presentation, owner only. Nothing here is published: PlayerLook is disabled from
+        // Awake on every remote copy, so Start never runs there and no other machine sees the eye
+        // move. It does move the aim ray with it — AimProvider and Interactor both read this
+        // transform — which is deliberate. The reticle is drawn at the centre of this camera, so a
+        // ray that started anywhere else would stop matching the crosshair; keeping one truth means
+        // a shot taken while looking at your boots leaves from in front of the chest rather than
+        // from inside it, and still lands exactly where the crosshair sat.
+
+        [Header("Look-down offset")]
+        [Tooltip("How far the eye slides forward, in metres, at full downward pitch. 0 turns the " +
+                 "effect off. Capped by whatever geometry is in front of the player.")]
+        [SerializeField] private float lookDownOffset = 0.4f;
+
+        [Tooltip("Downward pitch, in degrees, where the eye starts to move. At and above this — " +
+                 "the horizon and all of the sky — it sits exactly where the prefab put it.")]
+        [SerializeField] private float lookDownStartPitch = 25f;
+
+        [Tooltip("Downward pitch, in degrees, at which the eye has moved the whole way. Above " +
+                 "verticalClamp this simply never arrives, which is a way of softening the effect.")]
+        [SerializeField] private float lookDownFullPitch = 80f;
+
+        [Tooltip("Shape of the slide between those two angles. Eased at both ends so the move has " +
+                 "no corner to catch the eye at either.")]
+        [SerializeField] private AnimationCurve lookDownEase = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+        [Tooltip("How fast the eye catches up to where the pitch says it should be, per second. " +
+                 "Higher is tighter; this is what keeps the recovery from a wall smooth.")]
+        [SerializeField] private float lookDownResponse = 12f;
+
+        [Tooltip("What the eye refuses to slide through. The ship interior is tight enough that " +
+                 "this matters.")]
+        [SerializeField] private LayerMask lookDownBlockers = ~0;
+
+        [Tooltip("Radius of the sweep that keeps the eye out of geometry, in metres. Wants to be " +
+                 "comfortably larger than the camera's near plane, or a wall arrives through it.")]
+        [SerializeField] private float lookDownClearance = 0.2f;
+
+        /// <summary>Colliders in the way of the slide. Reused; see <see cref="ClearedOffset"/>.</summary>
+        private static readonly RaycastHit[] ClearanceHits = new RaycastHit[8];
+
+        /// <summary>
+        /// Local z the eye rests at, from the prefab. NaN until <see cref="Start"/> has read it,
+        /// which is also how a copy that was never started knows not to write one back.
+        /// </summary>
+        private float baseEyeZ = float.NaN;
+
+        /// <summary>
+        /// The transform <see cref="baseEyeZ"/> is measured in. Held so the slide can tell whether
+        /// the camera is still on the rig: <c>PlayerRagdoll</c> lifts it off the head on death, and
+        /// a local z written under some other parent is not a rest position, it is a shove.
+        /// </summary>
+        private Transform eyeParent;
+
+        /// <summary>Metres of slide currently applied, smoothed toward the target every frame.</summary>
+        private float eyeOffset;
+
+        /// <summary>
+        /// Whether there is still an eye, in the frame this component measured, to slide. False on
+        /// a copy that never started — every remote — and once something has taken the camera away.
+        /// </summary>
+        private bool EyeIsOnTheRig =>
+            playerCamera != null && !float.IsNaN(baseEyeZ) && playerCamera.transform.parent == eyeParent;
+
+        private void TickLookDownOffset()
+        {
+            if (!EyeIsOnTheRig) return;
+
+            Transform eye = playerCamera.transform;
+
+            // Swept from where the eye RESTS, not from where it currently is: both the slide and
+            // the distance the sweep reports have to be measured from the same origin, or a clamp
+            // computed from an already-slid eye feeds back into itself and the view crawls.
+            Vector3 local = eye.localPosition;
+            Vector3 rest = eyeParent.TransformPoint(new Vector3(local.x, local.y, baseEyeZ));
+
+            float wanted = ClearedOffset(rest, eyeParent.forward, TargetLookDownOffset());
+
+            // Exponential decay rather than Lerp(a, b, k * deltaTime): the naive form makes the
+            // catch-up fraction depend on the frame time, so the same slide reads differently at
+            // 60 and at 240 fps. This is the form the rest of the project smooths with.
+            eyeOffset = Mathf.Lerp(eyeOffset, wanted, 1f - Mathf.Exp(-lookDownResponse * Time.deltaTime));
+
+            ApplyLookDownOffset(eye);
+        }
+
+        /// <summary>How far the eye would like to be, before anything solid gets a say.</summary>
+        private float TargetLookDownOffset()
+        {
+            if (lookDownOffset <= 0f) return 0f;
+
+            // Unity's positive pitch looks down, so this is a plain "how far past the start angle".
+            float span = lookDownFullPitch - lookDownStartPitch;
+            if (span <= 0f) return pitch >= lookDownFullPitch ? lookDownOffset : 0f;
+
+            float t = Mathf.Clamp01((pitch - lookDownStartPitch) / span);
+            return lookDownEase.Evaluate(t) * lookDownOffset;
+        }
+
+        /// <summary>
+        /// The same slide, cut short by whatever it would otherwise have gone through.
+        ///
+        /// <para>
+        /// The player's own colliders are skipped rather than masked out — they sit on the same
+        /// layer as plenty of what this must not pass through, so a mask that excluded them would
+        /// also excuse a real wall. Same trade <c>PlayerStance.HasHeadroom</c> makes.
+        /// </para>
+        /// </summary>
+        private float ClearedOffset(Vector3 rest, Vector3 direction, float wanted)
+        {
+            if (wanted <= 0f) return 0f;
+
+            int count = Physics.SphereCastNonAlloc(rest, lookDownClearance, direction,
+                                                   ClearanceHits, wanted, lookDownBlockers,
+                                                   QueryTriggerInteraction.Ignore);
+
+            float allowed = wanted;
+
+            for (int i = 0; i < count; i++)
+            {
+                Collider hit = ClearanceHits[i].collider;
+                if (hit == null || hit.transform.IsChildOf(transform)) continue;
+
+                // A sweep that starts already overlapping reports distance 0, which is the right
+                // answer anyway: an eye with a wall on it does not get to move at all.
+                allowed = Mathf.Min(allowed, ClearanceHits[i].distance);
+            }
+
+            return allowed;
+        }
+
+        /// <summary>
+        /// Writes the slide, and only the axis it owns.
+        ///
+        /// <para>
+        /// Read-modify-write rather than a vector built here: <c>PlayerStance</c> drives the same
+        /// transform's local <i>height</i> for the crouch, and either component assembling a whole
+        /// localPosition would delete the other's axis on its next write.
+        /// </para>
+        /// </summary>
+        private void ApplyLookDownOffset(Transform eye)
+        {
+            Vector3 local = eye.localPosition;
+            local.z = baseEyeZ + eyeOffset;
+            eye.localPosition = local;
+        }
+
         /// <summary>
         /// Point the view along a world direction, without fighting the rig.
         ///
@@ -288,6 +458,12 @@ namespace SpaceGame.Characters
         private void OnDisable()
         {
             ReleaseCursorLock();
+
+            // Put the eye back. Mounting, cutscenes and death all switch this component off while
+            // that camera keeps rendering, and a slide left behind is an eye parked in front of a
+            // chest with nothing still running to bring it home.
+            eyeOffset = 0f;
+            if (EyeIsOnTheRig) ApplyLookDownOffset(playerCamera.transform);
         }
 
         private void OnApplicationFocus(bool hasFocus)
@@ -345,6 +521,10 @@ namespace SpaceGame.Characters
             pitch -= pitchInput * scaled * Time.deltaTime;
             pitch = Mathf.Clamp(pitch, -verticalClamp, verticalClamp);
             playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+
+            // After the pitch is final, so the eye slides to the angle the player is looking at
+            // this frame rather than the one they were looking at last.
+            TickLookDownOffset();
         }
 
         private void FixedUpdate()

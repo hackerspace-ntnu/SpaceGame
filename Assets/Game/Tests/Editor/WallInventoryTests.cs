@@ -182,6 +182,90 @@ namespace SpaceGame.Tests
             Assert.IsFalse(wall.TryPlace(crate, PackSurfaceId.WallGrid, new Vector2(M(0.72f), M(0.72f)), 0f));
         }
 
+        // ── Who owns the Use button ──────────────────────────────────────────
+
+        /// <summary>
+        /// <b>While the crosshair is on gear the player can act on, the wall owns Use — for BOTH
+        /// its verbs.</b>
+        ///
+        /// <para>
+        /// The button is shared with the item in the hand, and only one of them may answer a
+        /// press. It used to be claimed only while a placement ghost was up, so the take verb was
+        /// left sharing it: a click on an item lying on the wall lifted it off AND fired whatever
+        /// the player was holding, point blank, at the wall they were standing in front of.
+        /// Nothing about that was visible in either class on its own, which is why the rule is one
+        /// argument-only function and why it is pinned here rather than left to a playtest.
+        /// </para>
+        /// <para>
+        /// The last row is the one that must stay false: a press on bare canvas with an empty hand
+        /// is not a verb the wall has, so taking the button there would swallow presses the wall
+        /// never uses.
+        /// </para>
+        /// </summary>
+        [TestCase(true,  true,  ExpectedResult = true,
+                  TestName = "something in hand, aimed at placed gear — a stow, refused on red")]
+        [TestCase(true,  false, ExpectedResult = true,
+                  TestName = "something in hand, aimed at canvas — a stow")]
+        [TestCase(false, true,  ExpectedResult = true,
+                  TestName = "empty hand, aimed at placed gear — a take, NOT a trigger pull")]
+        [TestCase(false, false, ExpectedResult = false,
+                  TestName = "empty hand, aimed at canvas — the wall has no verb here")]
+        public bool TheWallOwnsUseForBothOfItsVerbs(bool holdingSomething, bool overPlacedItem) =>
+            WallAimController.WallOwnsUse(holdingSomething, overPlacedItem);
+
+        /// <summary>
+        /// And the deeper half of the same rule: an item lying on an inventory surface is not an
+        /// item at all, so there is nothing on it for a press to reach even if one got through.
+        ///
+        /// <para>
+        /// <see cref="BackpackItemVisual.Strip"/> is what guarantees it, and it guarantees it for
+        /// the backpack mat and the gear wall at once — they build their display copies through
+        /// the same function. A copy that kept its <c>UsableItem</c> would be a live artifact
+        /// bolted to a shelf: it would run <c>Awake</c>, hold state, and answer an aim ray as
+        /// something usable. Asserted on a MonoBehaviour count rather than on one named type,
+        /// because the next component to sneak through will not be the one this bug was about.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void GearLyingOnASurfaceCarriesNoUsableItem()
+        {
+            var stage = new GameObject("Stage");
+            stage.SetActive(false);
+            spawned.Add(stage);
+
+            GameObject copy = UnityEngine.Object.Instantiate(Usable(), stage.transform);
+            BackpackItemVisual.Strip(copy);
+
+            Assert.IsNull(copy.GetComponentInChildren<UsableItem>(true),
+                          "a display copy on an inventory surface still carries a UsableItem — " +
+                          "clicking stowed gear can fire it.");
+
+            Assert.IsEmpty(copy.GetComponentsInChildren<MonoBehaviour>(true),
+                           "a display copy is scenery and must run no gameplay code at all.");
+        }
+
+        /// <summary>A prefab-shaped object carrying a usable item, for <see cref="Strip"/> to take off.</summary>
+        private GameObject Usable()
+        {
+            var go = new GameObject("UsableFixture");
+            go.SetActive(false);
+            spawned.Add(go);
+
+            go.AddComponent<StrippableUsable>();
+            return go;
+        }
+
+        /// <summary>
+        /// The smallest concrete <see cref="UsableItem"/> there is. <c>UsableItem</c> is abstract
+        /// and every shipped subclass drags a prefab, an aim provider or a network channel in with
+        /// it; the test is about the component being REMOVED, so the cheapest thing that is one
+        /// is the honest fixture.
+        /// </summary>
+        private sealed class StrippableUsable : UsableItem
+        {
+            protected override void Use() { }
+        }
+
         // ── The wire's encoding ──────────────────────────────────────────────
 
         /// <summary>
@@ -613,44 +697,45 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
-        /// 1.06 is the ceiling the lander's aft room allows, and this is where trying 1.2 fails.
+        /// The wall is drawn at exactly the size the user decided on 2026-09-02 — 20% over the
+        /// model's baked <see cref="PackScale.WallModel"/> — and this is where a drift fails.
         ///
         /// <para>
-        /// The arithmetic is restated here rather than referenced, because that is the whole value
-        /// of it: raising <see cref="PackScale.WallDisplay"/> to 1.2 stands a 4.644 m fitting under
-        /// 4.372 m of arch-rib buttress, and the only other test that notices is
-        /// <c>PlayerShipTests.PlayerShip_InventoryWallStopsShortOfTheOverhead</c> — which cannot
-        /// say so until the model has been re-exported and the ship prefab rebuilt from it. This
-        /// one fails on the constant alone, in the same edit that changed it.
+        /// <b>The decision deliberately exceeds the aft room's measured budget.</b> The fitting is
+        /// 2.580 m tall in the original 0.09 m frame (all-mesh bounds of
+        /// <c>inventory_wall.blend</c>; 3.870 m at the 1.5 rig it was first cut against), and the
+        /// 2026-09-02 ship's baked collision offers 4.383 m of headroom over its footprint at
+        /// <c>PlayerShipBuilder.WallRibClearance</c> — a budget that allows 1.602 with the 0.25 m
+        /// gap the old guard required. The user chose the bigger board over the clearance, so
+        /// this test pins the DECISION rather than the room: it fails in the same edit that moves
+        /// the constant, in either direction, before any prefab is rebuilt.
+        /// <c>PlayerShipTests.PlayerShip_InventoryWallFaceIsAimableFromTheRoom</c>
+        /// is the one that measures the built ship.
         /// </para>
         /// <para>
-        /// Wanting a bigger board is a request to re-cut the grid — <c>SurfaceCellsUp</c> and
-        /// <c>inventory_wall.py</c>'s <c>GRID_H</c> together — or to change the room. It is not a
-        /// request to raise this number.
+        /// <b>Stated against <c>WallDrawn</c>, not <c>WallDisplay</c>.</b> <c>WallDisplay</c> is a
+        /// ratio to a LOGICAL frame that moves with <see cref="PackScale.Factor"/>, so pinning it
+        /// instead would make the wall's size depend on the size of the backpack. The wall's real
+        /// height in the ship is <c>WallDrawn</c> times its height in the original frame, and
+        /// neither of those two numbers moves when the rig is resized — which is why the
+        /// 2026-09-02 shrink of the rig left the wall exactly where it was.
         /// </para>
         /// </summary>
         [Test]
-        public void TheWallIsDrawnNoLargerThanTheAftRoomAllows()
+        public void TheWallIsDrawnAtItsDecidedSize()
         {
-            // Measured against the ship's BAKED COLLISION at PlayerShipBuilder.WallRibClearance,
-            // over the fitting's own footprint, from the deck up.
-            const float Headroom = 4.372f;
-            const float RequiredGap = 0.25f;     // PlayerShipTests.MinOverheadGap
-            const float FittingHeight = 3.870f;  // inventory_wall.blend, all-mesh bounds
+            const float DecidedOverModel = 1.2f;
 
-            float ceiling = (Headroom - RequiredGap) / FittingHeight;
+            Assert.That(PackScale.WallDrawn, Is.GreaterThan(1f),
+                        "the gear wall is meant to be drawn larger than the frame it is pinned in.");
 
-            Assert.That(PackScale.WallDisplay, Is.GreaterThan(1f),
-                        "the gear wall is meant to be drawn larger than its own grid.");
-
-            Assert.That(PackScale.WallDisplay, Is.LessThanOrEqualTo(ceiling),
-                        "PackScale.WallDisplay is " + PackScale.WallDisplay.ToString("0.000") +
-                        ", which stands a " +
-                        (FittingHeight * PackScale.WallDisplay).ToString("0.00") +
-                        " m fitting under " + Headroom.ToString("0.00") + " m of arch rib. The " +
-                        "room allows at most " + ceiling.ToString("0.000") + ". Re-cut the grid " +
-                        "in whole cells instead — InventoryWallBuilder.SurfaceCellsUp and " +
-                        "inventory_wall.py's GRID_H.");
+            Assert.AreEqual(PackScale.WallModel * DecidedOverModel, PackScale.WallDrawn, 1e-5f,
+                            "PackScale.WallDrawn is " + PackScale.WallDrawn.ToString("0.000") +
+                            ", not the " + DecidedOverModel.ToString("0.0") + " x " +
+                            PackScale.WallModel.ToString("0.00") + " decided on 2026-09-02. If " +
+                            "this is a new decision, restate it here, rebuild both prefabs and " +
+                            "re-run PlayerShipTests' wall probes; if it is not, put the " +
+                            "constant back.");
         }
 
         /// <summary>

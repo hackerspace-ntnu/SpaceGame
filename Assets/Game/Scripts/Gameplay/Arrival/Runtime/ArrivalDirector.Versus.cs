@@ -198,23 +198,10 @@ namespace SpaceGame.Gameplay.Arrival
             {
                 if (!flight.IsAlive || flight.Launched) continue;
 
-                Quaternion rest = ArrivalTrajectory.RestRotation(flight.Path);
-
-                // ImpactPosition is where the descent would have ended, and RestRotation the
-                // attitude it would have ended in — the same pose the settle is measured against,
-                // so a grounded hull is indistinguishable from a landed one.
-                flight.Ship.transform.SetPositionAndRotation(flight.Path.ImpactPosition, rest);
-
-                // Before SetDown, not after: it measures the hull's colliders, and collider bounds
-                // live in the physics scene rather than on the transform just written.
-                Physics.SyncTransforms();
-
-                SetDown(flight.Ship, rest.eulerAngles.y);
-
-                // A hull that has been hanging has also been sinking — it parks itself under
-                // gravity, and drag holds it at about ten metres a second. Put down still carrying
-                // that, it would drive itself straight back into the ground it was just set on.
-                ParkHull(flight.Ship);
+                // ImpactPosition at RestRotation is the same pose the settle is measured against,
+                // so a grounded hull is indistinguishable from a landed one. GroundFlightAtRest is
+                // the shared tail of every path that finishes a landing without flying it.
+                GroundFlightAtRest(flight);
             }
         }
     }

@@ -126,6 +126,39 @@ namespace SpaceGame.EditorTools
         // a smooth ramp does the actual carrying and the treads stay visual.
         private const float BoardingRampAngle = 32f;
 
+        // How thick a ramp collider is UNDER its walking surface. The surface itself is placed on
+        // the geometry it stands for; this is only the slab that stops a body falling through it.
+        //
+        // Kept thin on purpose, and it is not a free number: a ramp whose surface runs down to the
+        // sand carries this much collider BELOW the sand, and since the parked hull rests on its
+        // lowest collider (restWhenParked hands it to gravity) that is exactly how far the whole
+        // ship stands off its skirts. At 0.1 m that is 8 cm. The boarding ramp used to be a 0.1 m
+        // slab whose surface ran 0.44 m past the ground to the bottom of the stair MESH, plus a
+        // 0.3 m overshoot, which parked the ship 0.6 m in the air.
+        private const float RampSurfaceThickness = 0.1f;
+
+        // How far the head of the boarding ramp tucks back under the walk-out plank. The two
+        // surfaces are at the same height there, so the ramp's last stretch is inside the plank's
+        // own slab and there is no seam between them to catch a capsule.
+        private const float RampPlankOverlap = 0.15f;
+
+        // The sheltered interior, as one box in the hull's own local space (SandstormShelter).
+        //
+        // XZ is the two deck slabs' own footprint, inset by this much: the decks are named meshes
+        // the export guarantees, they are by definition inside, and the hull skin stands well
+        // outboard of them. Y runs from a little under the deck — so a body on the step down to the
+        // aft sill still counts — up to the deckhead.
+        //
+        // The headroom is not probed. Every ray up from the deck lands on something that is itself
+        // inside the ship (an arch rib, the gear wall, a chair), and over the fore deck it lands on
+        // nothing at all, because the canopy deliberately has no structural collider. It is the
+        // measurement the gear wall is already cut against: 4.79-4.87 m of deckhead over the main
+        // deck (see WallRibClearance and PlayerShip_InventoryWallFaceIsAimableFromTheRoom), taken at
+        // the low end so the box cannot reach through the roof.
+        private const float InteriorInset = 0.25f;
+        private const float InteriorFloorDrop = 0.6f;
+        private const float InteriorHeadroom = 4.75f;
+
         // Radius of the player's capsule. The doorway threshold sweeps the floor a body-width in
         // from the plank, which is as far as a body standing in the doorway can reach.
         private const float PlayerBodyRadius = 0.5f;
@@ -177,9 +210,12 @@ namespace SpaceGame.EditorTools
         // the cost of a rack standing in the middle of the floor. So the wall is cut to fit the
         // clearance, not the reverse — see InventoryWallBuilder.SurfaceCellsUp.
         //
-        // That budget is what caps PackScale.WallDisplay at 1.065 and is why the wall is drawn
-        // 1.06x rather than the 1.2x that was asked for: 1.2 puts a 4.644 m fitting under 4.372 m
-        // of rib. The derivation lives on that constant.
+        // That budget allowed PackScale.WallDrawn up to 1.602 (4.383 m of headroom on the
+        // 2026-09-02 ship), and the wall stood at 1.59 under it until the user chose the 20%
+        // larger board over the clearance, then hand-placed the fitting with its back tucked
+        // into the hull's baked fill (WallPlacementNudge below). The guards now pin the decided
+        // size and the face's aimability instead of a clearance. Stated against WallDrawn and
+        // not WallDisplay, so that resizing the BACKPACK cannot move the room's answer.
         private const float WallRibClearance = 1f;
 
         // How deep the wall fitting is: from its placement face back to whatever stands furthest
@@ -193,18 +229,39 @@ namespace SpaceGame.EditorTools
         // wall stood 0.29 m nearer the hull than this file believed and the bottom of its plinth
         // was inside the hull skin's baked collision, with nothing anywhere to say so. It is now
         // the whole fitting's own back reach, which inventory_wall_scale.py measures and prints on
-        // every run — 0.6856 = 0.6468 x PackScale.WallDisplay. Take it from that printout; do not
-        // re-derive it from a single part.
-        private const float WallDepth = 0.7884f;
+        // every run — 0.6856 at the model's baked PackScale.WallModel. The residual up to
+        // WallDrawn is a transform scale the wall builder applies, so the drawn-frame depth is
+        // derived here rather than retyped on every move of WallDrawn.
+        private const float WallDepth = 0.6856f * (PackScale.WallDrawn / PackScale.WallModel);
 
         // Height of the grid's centre above the wall's base, so the fitting stands on the deck
         // rather than being centred on it — inventory_wall.py's (GRID_Z0 + GRID_Z1) / 2 times the
         // model's total scale, which inventory_wall_scale.py prints on every run and
         // inventory_wall_export.py re-states as the empty's Unity-local height. With the
-        // 2026-09-01 30 x 22 grid that is (0.36 + 2.34) / 2 * 1.5 * PackScale.WallDisplay. It is
-        // NOT half the fitting: the tray band below the grid and the header cowl above it are
-        // different depths, so a centred wall would float.
-        private const float WallGridCentreHeight = 2.4685f;
+        // 2026-09-01 30 x 22 grid, GRID_Z0 is 0.36 and GRID_Z1 is 2.34 in the original frame. It
+        // is NOT half the fitting: the tray band below the grid and the header cowl above it are
+        // different depths, so a centred wall would float. Like WallDepth it is a DRAWN length,
+        // so it rides WallDrawn rather than being retyped on every move of it.
+        private const float WallGridCentreHeight = (0.36f + 2.34f) * 0.5f * PackScale.WallDrawn;
+
+        // Where the user placed the wall, as an offset from the MEASURED target the constants
+        // above compute. x is along `side` (positive = outboard, toward the ribs), y is up
+        // (negative sinks the plinth into the deck), z is along +Z (positive = toward the bow) —
+        // stated in those axes rather than raw ship-local ones so the offset survives the wall
+        // ever mounting on the other side.
+        //
+        // Read back from the 2026-09-02 hand placement (face centre (2.49, 5.446, -0.58) on that
+        // day's ship), which is authored the way the starting-contents list is: the builder
+        // reproduces it rather than overwriting it. To re-place the wall by hand, move it in the
+        // prefab, take (chosen face centre - computed target) in these axes, and restate it here
+        // — a hand edit left only in the prefab is discarded by the next rebuild.
+        //
+        // This placement DELIBERATELY stands the fitting's back and header inside the hull
+        // skin's baked convex fill (the outboard move eats the WallRibClearance margin, and the
+        // plinth sinks 0.116 into the deck). That is the user's call, not an error to re-measure
+        // away: the face and every cell stay clear and aimable, which is what
+        // PlayerShip_InventoryWallFaceIsAimableFromTheRoom now guards.
+        private static readonly Vector3 WallPlacementNudge = new Vector3(0.5530f, -0.1160f, 0.3861f);
 
         // Named meshes the build measures from. The export script guarantees these names; anything
         // else in the model is treated generically (structural collision by measurement).
@@ -212,7 +269,7 @@ namespace SpaceGame.EditorTools
         {
             "back_door", "back_door_support", "back_door_support.001", "back_door_support.002",
             "sliding_door_1", "sliding_door_2", "sliding_door_3", "sliding_door_4",
-            "Mesh_BoardingStair", "Mesh_BoardingStair_Foot", "Mesh_SillPlatform",
+            "Mesh_BoardingStair", "Mesh_SillPlatform",
             "Mesh_CanopyDome", "Mesh_Deck_Fore", "Mesh_Deck_Main",
         };
 
@@ -223,7 +280,7 @@ namespace SpaceGame.EditorTools
         {
             "back_door", "back_door_support", "back_door_support.001", "back_door_support.002",
             "sliding_door_1", "sliding_door_2", "sliding_door_3", "sliding_door_4",
-            "Mesh_BoardingStair", "Mesh_BoardingStair_Foot", "Mesh_SillPlatform",
+            "Mesh_BoardingStair", "Mesh_SillPlatform",
             "Mesh_CanopyDome",
             // Adopted by BuildCockpit, which gives it its own interaction collider.
             "Cockpit_Steering_Wheel",
@@ -232,6 +289,18 @@ namespace SpaceGame.EditorTools
         [MenuItem("Tools/Vehicles/Build PlayerShip Prefab")]
         public static void Build()
         {
+            // Before anything is measured. Asset edits made in Play mode are discarded when it
+            // ends, and SaveableWiring refuses to run at all — which is how this ship once shipped
+            // with an empty prefabId and none of its savers, so the crash-landed wreck could not be
+            // restored from any save and the world reloaded with neither the ship nor a re-crash.
+            if (EditorApplication.isPlaying)
+            {
+                Debug.LogError("[PlayerShipBuilder] Exit Play mode first — asset edits made in Play " +
+                               "mode are discarded, and the save-wiring pass refuses to run at all, " +
+                               "so the prefab would be saved unwired.");
+                return;
+            }
+
             GameObject source = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
             if (source == null)
             {
@@ -258,10 +327,10 @@ namespace SpaceGame.EditorTools
 
             model.transform.localRotation = ResolveModelYaw(model.transform);
 
-            // Seat the origin under the middle of the hull at ground level. The stair and its foot
-            // are excluded from the measurement: they are authored deployed, reaching below the
-            // hull, and an origin at the stair tip would hover the whole ship 0.4 m too high.
-            Bounds whole = MeasureAll(model.transform, except: new[] { "Mesh_BoardingStair", "Mesh_BoardingStair_Foot" });
+            // Seat the origin under the middle of the hull at ground level. The stair is excluded
+            // from the measurement: it is authored deployed, reaching below the hull, and an
+            // origin at the stair tip would hover the whole ship 0.4 m too high.
+            Bounds whole = MeasureAll(model.transform, except: new[] { "Mesh_BoardingStair" });
             model.transform.localPosition = new Vector3(-whole.center.x, -whole.min.y, -whole.center.z);
 
             var parts = new PartLookup(model.transform);
@@ -277,11 +346,19 @@ namespace SpaceGame.EditorTools
             // for it after that point gets a null and an empty Bounds, which is exactly how the
             // inventory wall silently failed to be placed the first time this ran.
             Bounds mainDeck = parts.B("Mesh_Deck_Main");
+            Bounds foreDeck = parts.B("Mesh_Deck_Fore");
             Bounds sideDoor = parts.B("sliding_door_1");
 
-            ArticulatedPart backDoor = BuildBackDoor(model.transform, parts);
+            // The plane the hull is seated against, in the space everything below is measured in.
+            // The origin was just put at the bottom of the hull (excluding the stair, which is
+            // authored reaching below it), so this is where the sand is under a parked ship — and
+            // it is what both boarding ramps run their foot down to. Read off the root rather than
+            // written as 0 so nothing here silently depends on the build scene's origin.
+            float groundY = root.transform.position.y;
+
+            ArticulatedPart backDoor = BuildBackDoor(model.transform, parts, mainDeck.max.y, groundY);
             ArticulatedPart[] leaves = BuildSlidingLeaves(model.transform, parts);
-            ArticulatedPart stair = BuildBoardingStair(model.transform, parts);
+            ArticulatedPart stair = BuildBoardingStair(model.transform, parts, groundY);
 
             // Double-sided materials: the hull is a surface, not a solid, so this is what makes
             // the interior visible from inside — and it is also what fixes the two belly tracks,
@@ -323,6 +400,7 @@ namespace SpaceGame.EditorTools
             BuildArrivalSeats(root.transform, parts);
             BuildCabinAlert(root.transform, parts);
             BuildInventoryWall(root.transform, mainDeck, sideDoor);
+            BuildInteriorVolume(root, mainDeck, foreDeck);
 
             MountModule mount = BuildRootComponents(root, seat, dismount, cameraPivot,
                                                     directlyMountable: helmStation == null);
@@ -356,7 +434,15 @@ namespace SpaceGame.EditorTools
             AssetDatabase.ImportAsset(PrefabPath, ImportAssetOptions.ForceUpdate);
 
             NetworkPrefabRegistrar.Sync(out int added, out int total);
-            Core.Persistence.EditorTools.SaveableWiring.WirePrefabs();
+            // Checked, not called and forgotten. This pass stamps the prefabId the save system
+            // resolves the wreck by and adds the savers its components imply; a refusal it is
+            // allowed to swallow saves a prefab that looks finished and can never be restored.
+            if (!Core.Persistence.EditorTools.SaveableWiring.TryWirePrefabs())
+            {
+                Debug.LogError("[PlayerShipBuilder] Aborting — the save-wiring pass refused to run, " +
+                               "so the prefab would ship with no prefabId and no savers.");
+                return;
+            }
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -537,7 +623,8 @@ namespace SpaceGame.EditorTools
         // ~35° in over the bay, so the swing is measured off the mesh rather than hardcoded: the
         // open angle is whatever rotation about the hinge carries the panel's own up-direction
         // onto a pose 10° below horizontal pointing aft.
-        private static ArticulatedPart BuildBackDoor(Transform model, PartLookup parts)
+        private static ArticulatedPart BuildBackDoor(Transform model, PartLookup parts,
+                                                    float deckY, float groundY)
         {
             Bounds leaf = parts.B("back_door");
             Bounds group = leaf;
@@ -566,22 +653,52 @@ namespace SpaceGame.EditorTools
 
             ArticulatedPart part = AddRotate(pivot, Vector3.right, angle, 2.6f, 2.6f);
 
-            // A thin box aligned to the panel's plane, NOT the world AABB of the leaning group —
-            // that AABB is ~3.5 m deep, and once the door lies down the player stands on the
-            // ghost volume well above the visible ramp. Length is clipped where the lowered
-            // panel meets the ground (the hinge height over sin(droop)), so the buried tip has
-            // no collider to lever the parked ship off the sand — and the collider's edge is
-            // exactly the sand line the player steps up from. Placed while the pivot is still
-            // at its authored pose, so it rides the rotation correctly.
+            // The walking surface, laid out in the pose it is WALKED IN and then rotated back into
+            // the authored (closed) pose, so the door's own swing carries it to exactly there.
+            //
+            // A thin slab aligned to the lowered panel, NOT the world AABB of the leaning group —
+            // that AABB is ~3.5 m deep, and once the door lies down the player stands on a ghost
+            // volume well above the visible ramp. The previous version was aligned but still
+            // straddled the hinge LINE, 0.2 m either side of it: its surface floated ~0.11 m over
+            // the panel for the ramp's whole length, and only the last few centimetres of it fell
+            // to sand level, so a body walking at the ramp met a lip almost everywhere along the
+            // foot. Both ends are pinned instead — the head to the deck it leads onto, the foot to
+            // the ground plane the hull is seated against — and the slab hangs BELOW that line.
+            //
+            // The head is the one place the collider deliberately leaves the panel: the hinge sits
+            // ~0.2 m under the deck it opens onto, so a surface laid exactly on the panel arrives
+            // at a step. Pinning the head to the deck tilts the slab about 2° off the panel and
+            // closes that step; the two are flush again by the time the ramp reaches the sand.
             float panelLength = new Vector2(leaf.size.y, leaf.size.z).magnitude;
-            float walkLength = Mathf.Min(panelLength, pivot.position.y / Mathf.Sin(droop) + 0.3f);
+            Vector3 openUp = new Vector3(0f, Mathf.Cos(droop), outward * Mathf.Sin(droop));
+            Vector3 head = new Vector3(group.center.x, deckY, bottomZ);
+            float reach = (head.y - groundY) / Mathf.Sin(droop);
+            if (reach > panelLength)
+            {
+                // Built anyway, but this is a ramp that stops in mid-air: the panel is too short
+                // for its droop and the last stretch down to the sand is a drop.
+                Debug.LogError($"[PlayerShipBuilder] The aft ramp needs {reach:F2} m to reach the " +
+                               $"ground at {BackDoorDroopDegrees:F0}°, but the back door panel is " +
+                               $"only {panelLength:F2} m long. Lower BackDoorDroopDegrees or " +
+                               "lengthen the panel; as built the ramp ends above the sand.");
+                reach = panelLength;
+            }
+
+            Vector3 openCentre = head + openDir * (reach * 0.5f)
+                                 - openUp * (RampSurfaceThickness * 0.5f);
+            Quaternion openRotation = Quaternion.LookRotation(openDir, Vector3.up);
+
+            // Back into the closed pose. AddRotate turns the pivot by `angle` about its local right
+            // when the door opens, so the inverse of that is what takes an open-pose placement to
+            // the pose it has to be authored in.
+            Quaternion toClosed = Quaternion.Inverse(Quaternion.AngleAxis(angle, Vector3.right));
 
             GameObject surface = new GameObject("RampSurface");
             surface.transform.SetParent(pivot, false);
-            surface.transform.position = pivot.position + closedUp * (walkLength * 0.5f);
-            surface.transform.rotation = Quaternion.FromToRotation(Vector3.up, closedUp);
+            surface.transform.position = pivot.position + toClosed * (openCentre - pivot.position);
+            surface.transform.rotation = toClosed * openRotation;
             BoxCollider walk = surface.AddComponent<BoxCollider>();
-            walk.size = new Vector3(group.size.x, walkLength, 0.4f);
+            walk.size = new Vector3(group.size.x, RampSurfaceThickness, reach);
 
             pivot.gameObject.AddComponent<ArticulatedPartInteraction>();
             return part;
@@ -910,20 +1027,20 @@ namespace SpaceGame.EditorTools
         // created at the authored pose, then shifted inboard so that shifted pose becomes the
         // closed baseline — stowed in the void under the bay floor, hidden behind the belly
         // skirts. Opening slides it back out to exactly where the artist put it.
-        private static ArticulatedPart BuildBoardingStair(Transform model, PartLookup parts)
+        private static ArticulatedPart BuildBoardingStair(Transform model, PartLookup parts,
+                                                         float groundY)
         {
             Bounds stair = parts.B("Mesh_BoardingStair");
-            stair.Encapsulate(parts.B("Mesh_BoardingStair_Foot"));
             Bounds sill = parts.B("Mesh_SillPlatform");
 
             Transform pivot = MakePivot(model, "BoardingStair", stair.center,
-                parts.T("Mesh_BoardingStair"), parts.T("Mesh_BoardingStair_Foot"));
+                parts.T("Mesh_BoardingStair"));
 
             // The ramp collider is attached BEFORE the pivot is shifted to its stowed pose, so
             // it keeps the authored (deployed) pose relative to the stair. Attaching after the
             // shift left the collider a stow-offset outboard of the treads whenever the stair was
             // out — an invisible ramp floating 4 m beside the real one.
-            BuildBoardingRamp(pivot, stair, sill);
+            BuildBoardingRamp(pivot, stair, sill, groundY);
 
             float inwardX = -Mathf.Sign(stair.center.x);
             Vector3 stow = new Vector3(inwardX * (stair.size.x + 0.4f), 0f, 0f);
@@ -934,32 +1051,68 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// The invisible walking surface over the stair treads: a thin box from the ground past
-        /// the sill, laid at <see cref="BoardingRampAngle"/>. It lives under the stair pivot so it
-        /// deploys and stows with the stair. Longer than the stair itself when the treads are
-        /// steeper than the target angle — a slightly early ramp start beats an unclimbable door.
+        /// The invisible walking surface over the stair treads: a thin slab laid at
+        /// <see cref="BoardingRampAngle"/> from under the walk-out plank down to the sand. It lives
+        /// under the stair pivot so it deploys and stows with the stair. Longer than the stair
+        /// itself when the treads are steeper than the target angle — a slightly early ramp start
+        /// beats an unclimbable door.
         /// </summary>
-        private static void BuildBoardingRamp(Transform stairPivot, Bounds stair, Bounds sill)
+        /// <remarks>
+        /// <para>
+        /// Both ends have to LAND on something, and the version this replaces missed at both. The
+        /// head was pushed outboard of the plank by <c>sill.size.magnitude * 0.25</c> — a fudge
+        /// dominated by the plank's LENGTH along the hull (4.34 m) rather than by its 0.97 m reach
+        /// outboard — so it started 0.63 m past the plank's outer edge and 0.2 m above it: stepping
+        /// out of the side door you met a gap with a raised lip on the far side of it, and coming
+        /// up the ramp you arrived at a ledge with nothing beyond it. The foot ran to the bottom of
+        /// the stair MESH, 0.44 m under the ship's ground plane, plus a 0.3 m overshoot — and since
+        /// a parked hull rests on its lowest collider, that buried tip is what held the whole ship
+        /// 0.6 m off its skirts.
+        /// </para>
+        /// <para>
+        /// So: the head starts <see cref="RampPlankOverlap"/> INSIDE the plank, at the plank's own
+        /// top surface, which puts the ramp's last stretch inside the plank's slab with no seam
+        /// between them; the foot lands exactly on the ground plane the hull is seated against; and
+        /// the slab hangs <see cref="RampSurfaceThickness"/> BELOW the walking line rather than
+        /// straddling it, so the surface a body stands on is the line that was measured.
+        /// </para>
+        /// </remarks>
+        private static void BuildBoardingRamp(Transform stairPivot, Bounds stair, Bounds sill,
+                                              float groundY)
         {
             Vector3 outward = stair.center - sill.center;
             outward.y = 0f;
             outward = outward.sqrMagnitude > 1e-4f ? outward.normalized : Vector3.right;
 
-            float height = sill.max.y - stair.min.y;
-            float run = height / Mathf.Tan(BoardingRampAngle * Mathf.Deg2Rad);
+            // The plank's own reach outboard, not its diagonal: |outward| picks the extent on the
+            // axis the ramp actually descends along, whichever side of the hull the door is on.
+            float plankReach = Vector3.Dot(sill.extents, new Vector3(Mathf.Abs(outward.x), 0f,
+                                                                     Mathf.Abs(outward.z)));
+            Vector3 head = new Vector3(sill.center.x, sill.max.y, sill.center.z)
+                           + outward * Mathf.Max(0f, plankReach - RampPlankOverlap);
 
-            Vector3 top = new Vector3(sill.center.x, sill.max.y, sill.center.z)
-                          + outward * (sill.size.magnitude * 0.25f);
-            Vector3 bottom = top + outward * run + Vector3.down * height;
+            float rise = head.y - groundY;
+            float run = rise / Mathf.Tan(BoardingRampAngle * Mathf.Deg2Rad);
+            Vector3 foot = head + outward * run + Vector3.down * rise;
 
             GameObject ramp = new GameObject("BoardingRamp");
             ramp.transform.SetParent(stairPivot, false);
-            ramp.transform.position = (top + bottom) * 0.5f;
-            ramp.transform.rotation = Quaternion.LookRotation(bottom - top, Vector3.up);
+            ramp.transform.rotation = Quaternion.LookRotation(foot - head, Vector3.up);
+
+            // Sunk half its thickness, exactly as BuildDoorThreshold does: the WALKING surface is
+            // then the measured line — flush with the plank at the head, flush with the sand at the
+            // foot — and everything below it is just the slab holding a body up.
+            Vector3 surfaceUp = ramp.transform.rotation * Vector3.up;
+            ramp.transform.position = (head + foot) * 0.5f - surfaceUp * (RampSurfaceThickness * 0.5f);
+
+            // As wide as the stair it stands for, measured ACROSS the descent rather than by
+            // picking the smaller of two world axes — which is only the width by luck of the door
+            // being on the ship's port beam.
+            Vector3 across = ramp.transform.rotation * Vector3.right;
+            float width = Mathf.Abs(Vector3.Dot(new Vector3(stair.size.x, 0f, stair.size.z), across));
 
             BoxCollider box = ramp.AddComponent<BoxCollider>();
-            float width = Mathf.Min(stair.size.x, stair.size.z);
-            box.size = new Vector3(width, 0.1f, Vector3.Distance(top, bottom) + 0.6f);
+            box.size = new Vector3(width, RampSurfaceThickness, Vector3.Distance(head, foot));
         }
 
         // The walk-out plate under the side-door sill, stowed inboard under the doorway floor.
@@ -2017,18 +2170,20 @@ namespace SpaceGame.EditorTools
             Quaternion relative = Quaternion.Inverse(instance.transform.rotation) * surface.transform.rotation;
             instance.transform.rotation = wanted * Quaternion.Inverse(relative);
 
-            // Where the FACE has to end up: clear of the rib feet along the side, centred on the
-            // deck fore-and-aft, and with the grid's centre one grid-half above the deck.
+            // Where the FACE has to end up: the measured baseline — clear of the rib feet along
+            // the side, centred on the deck fore-and-aft, grid centre one grid-half above the
+            // deck — plus the user's authored WallPlacementNudge on top of it.
             float halfWidth = Vector3.Dot(deck.extents, new Vector3(
                 Mathf.Abs(side.x), Mathf.Abs(side.y), Mathf.Abs(side.z)));
 
             Vector3 target =
                 deck.center
-                + side * (halfWidth - WallRibClearance - WallDepth)
-                + Vector3.up * (deck.max.y - deck.center.y + WallGridCentreHeight);
+                + side * (halfWidth - WallRibClearance - WallDepth + WallPlacementNudge.x)
+                + Vector3.up * (deck.max.y - deck.center.y + WallGridCentreHeight + WallPlacementNudge.y)
+                + Vector3.forward * WallPlacementNudge.z;
 
-            // The along-ship component comes from the deck's own centre, which the line above
-            // already carries — the wall is centred in the room it stands in.
+            // The along-ship component comes from the deck's own centre plus the authored
+            // fore-aft nudge, which the target above already carries.
             Vector3 faceCentre = surface.ToWorld(surface.Size * 0.5f, 0f);
             instance.transform.position += target - faceCentre;
 
@@ -2036,6 +2191,60 @@ namespace SpaceGame.EditorTools
                       (side.x > 0f ? "+X" : "-X") + " side, face centre " +
                       surface.ToWorld(surface.Size * 0.5f, 0f).ToString("0.00") +
                       ", normal " + surface.transform.up.ToString("0.00") + ".");
+        }
+
+        // ─────────── Interior safe zone ───────────
+
+        /// <summary>
+        /// One box over the walkable interior. It is the ship's <see cref="SandstormShelter"/>, and
+        /// it is the only thing that says "inside this hull": the weather stops hurting the crew
+        /// there (server-side, in <c>SandstormVictim</c>) and the storm's fullscreen fog and the
+        /// volumetric fog stop being drawn there for whoever is looking out of it (per-machine, in
+        /// <c>SandstormVisuals</c> and <c>FogVolumes</c>). Two consumers, one volume — the picture
+        /// and the damage cannot disagree about where the inside is.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// It is a BOX and deliberately not a trigger collider. `SandstormShelter` is a point query
+        /// by design (see its own file): a live trigger on a drivable 30 m hull would enter every
+        /// SceneTransition and VolumeTrigger the ship drove through, and a new collider on this
+        /// prefab is also a new part of the shape `ShipHull` measures the hull from — which is what
+        /// made the entry burn's SphereCollider park the wreck tens of metres up.
+        /// </para>
+        /// <para>
+        /// Fitted to the two deck slabs rather than to the collision bounds. The version this
+        /// replaces took `MeasureCollision` — every collider on the ship, so the boarding ramp out
+        /// to port and the hull's whole 23 m span — kept 80% of it, and stood it 1.5 m over that
+        /// box's CENTRE, which is 5 m up. The result sheltered a strip of open desert alongside the
+        /// hull and started 1.5 m above the deckhead, so nobody standing on the deck was ever in
+        /// it: the storm hurt the crew inside their own ship and nothing logged.
+        /// </para>
+        /// <para>
+        /// The doors list is left empty on purpose. It takes `DoorInteraction`, and every opening
+        /// on this hull is an `ArticulatedPart` instead, so the hull shelters at full value whether
+        /// the ramp is up or down. Wiring the aft ramp and the side door in — so an open hatch is
+        /// worth less than a sealed hull — needs `SandstormShelter` to learn about articulated
+        /// parts first; that is a change to the shelter, not to this builder.
+        /// </para>
+        /// </remarks>
+        private static void BuildInteriorVolume(GameObject root, Bounds mainDeck, Bounds foreDeck)
+        {
+            Bounds decks = mainDeck;
+            decks.Encapsulate(foreDeck);
+
+            float deckTop = Mathf.Max(mainDeck.max.y, foreDeck.max.y);
+            float low = deckTop - InteriorFloorDrop;
+            float high = deckTop + InteriorHeadroom;
+
+            Vector3 centre = new Vector3(decks.center.x, (low + high) * 0.5f, decks.center.z);
+            var volume = new Bounds(
+                root.transform.InverseTransformPoint(centre),
+                new Vector3(Mathf.Max(0f, decks.size.x - InteriorInset * 2f),
+                            high - low,
+                            Mathf.Max(0f, decks.size.z - InteriorInset * 2f)));
+
+            SandstormShelter shelter = root.AddComponent<SandstormShelter>();
+            Apply(shelter, so => SetBounds(so, "localVolume", volume));
         }
 
         // ─────────── Cabin alert ───────────
@@ -2247,7 +2456,7 @@ namespace SpaceGame.EditorTools
 
             var glow = marker.gameObject.AddComponent<Light>();
             glow.type = LightType.Point;
-            glow.color = new Color(1f, 0.52f, 0.22f);
+            glow.color = new Color(1f, 0.40f, 0.12f);
             glow.range = 12f;
             glow.intensity = 0f;
             // A flickering shadow caster inside a hull full of 140-odd slabs costs a great deal and
@@ -2290,27 +2499,38 @@ namespace SpaceGame.EditorTools
                 material.shader = shader;
             }
 
-            // Stylised hot-orange: a deep red body, orange through the middle and a near-white core
-            // only at the very top of the heat. Bolder and chunkier than a photographic sheath, to
-            // sit with the register the rest of this project's effects are drawn in.
-            material.SetColor("_CoreColor", new Color(1f, 0.93f, 0.72f));
-            material.SetColor("_EdgeColor", new Color(1f, 0.36f, 0.06f));
-            material.SetColor("_DeepColor", new Color(0.40f, 0.05f, 0.01f));
+            // Stylised red fire, drawn as flat cels: a deep red body, red-orange through the
+            // middle and a yellow core only at the very top of the heat, snapped to discrete bands
+            // by the shader. Every colour keeps its blue channel low on purpose — a warm colour
+            // pushed through an additive blend and bloom whitens exactly as fast as its blue
+            // channel lets it, which is how the old cream core read as white fire.
+            material.SetColor("_CoreColor", new Color(1f, 0.85f, 0.15f));
+            material.SetColor("_EdgeColor", new Color(0.95f, 0.15f, 0.02f));
+            material.SetColor("_DeepColor", new Color(0.30f, 0.02f, 0.01f));
 
             // Driven per frame by EntryBurn. Saved dark so the material previews as unlit rather
             // than as a solid orange ball in the project window.
             material.SetFloat("_Intensity", 0f);
             material.SetFloat("_Flicker", 1f);
-            material.SetFloat("_Brightness", 3.4f);
+            material.SetFloat("_Brightness", 2.2f);
+            // Under 1 on purpose: the blend is additive, so opacity is a ceiling on how much light
+            // the fire may add, and the world stays readable through the hottest part of the burn.
+            material.SetFloat("_Opacity", 0.7f);
 
             material.SetFloat("_NoseBias", -0.15f);
-            material.SetFloat("_TailStrength", 0.18f);
+            material.SetFloat("_TailStrength", 0.12f);
             material.SetFloat("_EdgeFade", 0.3f);
 
             material.SetFloat("_StreakScale", 9f);
             material.SetFloat("_StreakStretch", 0.16f);
             material.SetFloat("_FlowSpeed", 3.2f);
-            material.SetFloat("_Contrast", 3.6f);
+
+            // The cel treatment: tongues cut hard out of the noise at _StreakCut, the colour ramp
+            // snapped to _Bands flat levels. Alpha stays smooth in the shader, so these can be
+            // pushed without re-opening the silhouette-seam gotcha.
+            material.SetFloat("_StreakCut", 0.55f);
+            material.SetFloat("_StreakEdge", 0.12f);
+            material.SetFloat("_Bands", 4f);
 
             material.SetFloat("_EmberThreshold", 0.78f);
             material.SetFloat("_EmberBrightness", 1.6f);
@@ -2803,11 +3023,8 @@ namespace SpaceGame.EditorTools
 
             root.AddComponent<UnderTerrainGuard>();
 
-            SandstormShelter shelter = root.AddComponent<SandstormShelter>();
-            Bounds interior = MeasureCollision(root.transform);
-            Apply(shelter, so => SetBounds(so, "localVolume",
-                new Bounds(new Vector3(interior.center.x, interior.center.y + 1.5f, interior.center.z),
-                           new Vector3(interior.size.x * 0.8f, 4f, interior.size.z * 0.8f))));
+            // The sheltered interior is BuildInteriorVolume's, measured off the decks rather than
+            // off this method's collision bounds — see the note there.
 
             return mount;
         }
@@ -3107,11 +3324,119 @@ namespace SpaceGame.EditorTools
                     problems.Add("EntryBurn names no SeatedRider, so it never learns the hull launched");
             }
 
+            // The interior safe zone. Every way this fails is silent: the crew simply keep being
+            // sanded and keep seeing the storm while they are standing in their own ship, and the
+            // only tell is a health bar going down indoors.
+            var shelters = prefab.GetComponentsInChildren<SandstormShelter>(true);
+            if (shelters.Length != 1)
+                problems.Add($"expected 1 SandstormShelter (the interior safe zone), found "
+                             + $"{shelters.Length} — the weather does not stop at the hull");
+            foreach (SandstormShelter shelter in shelters)
+            {
+                Bounds volume = new SerializedObject(shelter).FindProperty("localVolume").boundsValue;
+                if (volume.size.x <= 0f || volume.size.y <= 0f || volume.size.z <= 0f)
+                {
+                    problems.Add("the interior safe zone has no volume, so nowhere is sheltered");
+                    continue;
+                }
+
+                // A body standing on the deck, at the deck's own centre. If the pivot of that body
+                // is not in the box, the box is in the wrong place however big it is — which is
+                // exactly how the previous one, centred 5 m up on the collision bounds, failed.
+                Transform deck = prefab.transform.Find("Model/Mesh_Deck_Main");
+                if (deck == null || !TryMeasureMesh(deck, out Bounds deckBox))
+                {
+                    problems.Add("no Mesh_Deck_Main to check the interior safe zone against");
+                    continue;
+                }
+
+                Vector3 standing = new Vector3(deckBox.center.x, deckBox.max.y + PlayerPivotHeight,
+                                               deckBox.center.z);
+                if (!volume.Contains(shelter.transform.InverseTransformPoint(standing)))
+                    problems.Add("the interior safe zone does not contain a body standing on the "
+                                 + "main deck, so the crew take storm damage inside their own ship");
+            }
+
+            // Both boarding ramps, and the one thing about them that cannot be seen: the foot has
+            // to land ON the ground plane. Above it and the ramp ends in a lip a capsule with no
+            // step offset cannot climb; far below it and the buried slab is what the parked hull
+            // rests on, which stands the whole ship off its skirts.
+            foreach (string rampName in new[] { "BoardingRamp", "RampSurface" })
+            {
+                Transform ramp = prefab.GetComponentsInChildren<Transform>(true)
+                    .FirstOrDefault(t => t.name == rampName);
+                if (ramp == null || !ramp.TryGetComponent(out BoxCollider surface))
+                {
+                    problems.Add($"no '{rampName}' box collider — that entrance has no walkable "
+                                 + "surface over its treads");
+                    continue;
+                }
+
+                if (surface.isTrigger)
+                    problems.Add($"'{rampName}' is a trigger, so nobody can stand on it");
+            }
+
+            // The side ramp is the one whose deployed pose is readable off the prefab: the stair
+            // only SLIDES, so stowing it does not change a single height on it.
+            Transform boarding = prefab.GetComponentsInChildren<Transform>(true)
+                .FirstOrDefault(t => t.name == "BoardingRamp");
+            if (boarding != null && boarding.TryGetComponent(out BoxCollider boardingBox))
+            {
+                float foot = LowestCorner(boarding, boardingBox) - prefab.transform.position.y;
+                if (foot < -RampSurfaceThickness * 2f || foot > RampSurfaceThickness)
+                    problems.Add($"the boarding ramp's foot sits {foot:F2} m off the ground plane, "
+                                 + "so the side door either steps up out of the sand or holds the "
+                                 + "parked hull off its skirts");
+            }
+
             if (problems.Count == 0)
                 return true;
 
             Debug.LogError("[PlayerShipBuilder] Verify FAILED: " + string.Join("; ", problems));
             return false;
+        }
+
+        /// <summary>
+        /// A mesh's own bounds, placed by its transform. <c>Renderer.bounds</c> and
+        /// <c>Collider.bounds</c> are both maintained by the scene the component is in, and a
+        /// prefab ASSET is in none — that is the trap `ShipHull` hits, where an unseen collider
+        /// reports a zero-size box at the world origin. Verify reads the saved prefab, so it has to
+        /// measure from the mesh.
+        /// </summary>
+        private static bool TryMeasureMesh(Transform t, out Bounds bounds)
+        {
+            bounds = default;
+            MeshFilter filter = t != null ? t.GetComponent<MeshFilter>() : null;
+            if (filter == null || filter.sharedMesh == null)
+                return false;
+
+            Bounds local = filter.sharedMesh.bounds;
+            bounds = new Bounds(t.TransformPoint(local.center), Vector3.zero);
+            for (int corner = 0; corner < 8; corner++)
+            {
+                bounds.Encapsulate(t.TransformPoint(local.center + Vector3.Scale(
+                    local.extents,
+                    new Vector3((corner & 1) == 0 ? -1f : 1f,
+                                (corner & 2) == 0 ? -1f : 1f,
+                                (corner & 4) == 0 ? -1f : 1f))));
+            }
+            return true;
+        }
+
+        /// <summary>The lowest point of a box collider, placed by its transform. Same reason as
+        /// <see cref="TryMeasureMesh"/>: <c>Collider.bounds</c> cannot be read off a prefab.</summary>
+        private static float LowestCorner(Transform t, BoxCollider box)
+        {
+            float lowest = float.PositiveInfinity;
+            for (int corner = 0; corner < 8; corner++)
+            {
+                Vector3 offset = Vector3.Scale(box.size * 0.5f,
+                    new Vector3((corner & 1) == 0 ? -1f : 1f,
+                                (corner & 2) == 0 ? -1f : 1f,
+                                (corner & 4) == 0 ? -1f : 1f));
+                lowest = Mathf.Min(lowest, t.TransformPoint(box.center + offset).y);
+            }
+            return lowest;
         }
 
         // ─────────── SerializedObject helpers ───────────

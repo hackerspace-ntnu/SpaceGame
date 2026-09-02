@@ -45,33 +45,34 @@ namespace SpaceGame.Gameplay
 
         public const int DefaultTeamSize = 2;
 
-        /// <summary>
-        /// The team names, in order. Spelled out rather than "TEAM 1" because these are read at a
-        /// glance across a rank of astronauts, and a word is quicker to tell apart than a digit.
-        /// </summary>
-        private static readonly string[] Names =
-        {
-            "TEAM ONE", "TEAM TWO", "TEAM THREE", "TEAM FOUR",
-            "TEAM FIVE", "TEAM SIX", "TEAM SEVEN", "TEAM EIGHT"
-        };
+        public const int MaxTeams = 8;
 
         /// <summary>
-        /// As many teams as there are names for them.
+        /// "TEAM 3", numbered from one.
         ///
-        /// Derived rather than hand-copied: a constant beside the array is a number somebody has to
-        /// remember to change, and the tests cannot catch the drift — one missing name falls back to
-        /// the generic <c>"TEAM"</c> in <see cref="TeamName"/>, which is still non-empty and still
-        /// unique, so both name tests keep passing while the extra team has no name of its own.
-        ///
-        /// Declaration order below is load-bearing: this reads <see cref="Names"/>.Length at
-        /// static-init time, so it must stay AFTER the <see cref="Names"/> field. Moving it above
-        /// Names would read a null array and throw a <see cref="System.TypeInitializationException"/>
-        /// — do not "tidy" the constants back to the top.
+        /// A digit rather than a spelled-out word, so every rung of the plate ladder agrees: the
+        /// shortened and floor forms were always numeric, and a rank showing "TEAM SEVEN" beside
+        /// "3 0/2" read as two different naming schemes rather than one list of teams. Generated
+        /// rather than listed, so there is no name array to fall out of step with
+        /// <see cref="MaxTeams"/>.
         /// </summary>
-        public static readonly int MaxTeams = Names.Length;
-
         public static string TeamName(int team) =>
-            team >= 0 && team < Names.Length ? Names[team] : "TEAM";
+            team >= 0 ? "TEAM " + (team + 1) : "TEAM";
+
+        /// <summary>
+        /// A team's name without its "TEAM " prefix — just the number — for a plate too small to
+        /// hold the whole thing.
+        /// </summary>
+        public static string ShortTeamName(int team)
+        {
+            const string prefix = "TEAM ";
+
+            string name = TeamName(team);
+
+            return name.StartsWith(prefix) && name.Length > prefix.Length
+                ? name.Substring(prefix.Length)
+                : name;
+        }
 
         public static int Seats(int teams, int teamSize) => teams * teamSize;
 

@@ -17,8 +17,10 @@ symptoms:
   - "the leaderboard counts a kill twice on the host"
   - "the second match starts on the previous match's spawn ring"
   - "bots on opposite teams refuse to fight each other"
+  - "I died in versus and respawned in the enemy team's ship"
+  - "respawning put me on open sand at the world's starting coordinates instead of back in my ship"
 reads_with: [Multiplayer, Lobby, PlayerShip, Persistence]
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # Game Modes
@@ -34,6 +36,7 @@ Two unrelated match families — **Versus** (team PvP in the streamed world, eve
 - `Core/` files are Unity-free and live in their own asmdefs so EditMode tests reach them; `Runtime/` siblings hold the MonoBehaviours/NetworkBehaviours.
 - Everything decisive is **server-side**. The only replicated per-player mode state is `PlayerIdentity.Team` (server-write); the leaderboard is pushed wholesale by RPC.
 - Two spawn paths: VS resolves a seat inside its team's ship via [`VersusShipSpawner`](Assets/Game/Scripts/Gameplay/Versus/Runtime/VersusShipSpawner.cs); everything else goes through [`SpawnManager`](Assets/Game/Scripts/Gameplay/Game/Spawning/SpawnManager.cs) + [`SpawnPoint`](Assets/Game/Scripts/Gameplay/Game/Spawning/SpawnPoint.cs). `MatchManager` collects its own spawn points, scene-scoped, and does not use `SpawnManager`.
+- **The rule of respawn: you come back inside your ship** — in VS, your TEAM's ship, never any other hull. [`ShipRespawn`](Assets/Game/Scripts/Gameplay/Game/Spawning/ShipRespawn.cs) resolves the pose (VS: `VersusShipSpawner.TryClaimRespawnPose`; story: the crew hull's `ShipSeat` dismount points); `SpawnManager`'s spawn-point/open-ground path is the fallback for a world with no ship in it.
 - [`Game.Mode`](Assets/Game/Scripts/Gameplay/Game/State/Game.cs) (`Singleplayer`/`Multiplayer`) and [`GameManager`](Assets/Game/Scripts/Gameplay/Game/State/GameManager.cs) belong to the **story run** (timer + `WinGame` → win scene), not to VS or the arena.
 - Team identity is one integer everywhere: index into `VersusRules.Names`, into the team colour array, and into the ship layout.
 
@@ -55,9 +58,12 @@ Two unrelated match families — **Versus** (team PvP in the streamed world, eve
 | `VersusShipSpawnConfig` | [Versus/Core/VersusShipSpawnConfig.cs](Assets/Game/Scripts/Gameplay/Versus/Core/VersusShipSpawnConfig.cs) | Per-arena asset: Ring (centre+radius) or Explicit points, probe height, seat ring |
 | `VersusShipSpawns` | [Versus/Core/VersusShipSpawns.cs](Assets/Game/Scripts/Gameplay/Versus/Core/VersusShipSpawns.cs) | Runtime override static that wins over the asset |
 | `ShipSpawnLayout` | [Versus/Core/ShipSpawnLayout.cs](Assets/Game/Scripts/Gameplay/Versus/Core/ShipSpawnLayout.cs) | `Ring`, `SeatRing`, `TryPointForTeam`, `TryValidateExplicit` |
-| `VersusShipSpawner` | [Versus/Runtime/VersusShipSpawner.cs](Assets/Game/Scripts/Gameplay/Versus/Runtime/VersusShipSpawner.cs) + [.Seats.cs](Assets/Game/Scripts/Gameplay/Versus/Runtime/VersusShipSpawner.Seats.cs) | One ship per team via `GameServices.World.Spawn`, team livery, `TryClaimSeat` |
+| `VersusShipSpawner` | [Versus/Runtime/VersusShipSpawner.cs](Assets/Game/Scripts/Gameplay/Versus/Runtime/VersusShipSpawner.cs) + [.Seats.cs](Assets/Game/Scripts/Gameplay/Versus/Runtime/VersusShipSpawner.Seats.cs) | One ship per team via `GameServices.World.Spawn`, team livery, `TryClaimSeat` (match start, seat marker pose) / `TryClaimRespawnPose` (respawn, the seat's standing `DismountPoint`) |
+| `ShipRespawn` | [Game/Spawning/ShipRespawn.cs](Assets/Game/Scripts/Gameplay/Game/Spawning/ShipRespawn.cs) | Static resolver: a dead player comes back inside their own ship — team ship in VS, the crew hull otherwise; refuses rather than pick a wrong hull |
 | `ShipGrounding` / `ShipSeat` | [Versus/Runtime/](Assets/Game/Scripts/Gameplay/Versus/Runtime) | Heightmap-first ground probe; seat markers (ordered, component not name) |
-| `RankLayout` | [Versus/Core/RankLayout.cs](Assets/Game/Scripts/Gameplay/Versus/Core/RankLayout.cs) | Lobby rank geometry: seat spacing, 4-wide wrap, team gap, camera pull-back |
+| `RankLayout` | [Versus/Core/RankLayout.cs](Assets/Game/Scripts/Gameplay/Versus/Core/RankLayout.cs) | Lobby rank geometry: seat spacing, 4-wide seat wrap, **4-wide team wrap on a shared half-pitch lattice**, team gap, two-axis camera fit, eye lift |
+| `RankGrounding` | [Versus/Core/RankGrounding.cs](Assets/Game/Scripts/Gameplay/Versus/Core/RankGrounding.cs) | Drops the flat seats onto the ground through an injected probe; reports the height spread the camera frames |
+| `RankOverlayScale` | [Versus/Core/RankOverlayScale.cs](Assets/Game/Scripts/Gameplay/Versus/Core/RankOverlayScale.cs) | Projected spacing to font size + label rung; the floor rung is still a word, never a bare colour |
 | `PlayerIdentity` | [Core/Multiplayer/Players/PlayerIdentity.cs](Assets/Game/Scripts/Core/Multiplayer/Players/PlayerIdentity.cs) | `Team` NetworkVariable (server-write, `-1` = no team); name/suit are owner-write |
 | `NetworkGameManager.Versus` | [Joining/NetworkGameManager.Versus.cs](Assets/Game/Scripts/Core/Multiplayer/Joining/NetworkGameManager.Versus.cs) | Adopts the session from the lobby, `SpawnIntoTeamShip`, `PublishTeam` |
 

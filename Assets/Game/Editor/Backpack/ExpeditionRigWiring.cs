@@ -100,22 +100,24 @@ namespace SpaceGame.EditorTools
         // re-drawn onto the same cell boundaries in the same pass, so resizing a row here without
         // moving the .blend's decoration un-aligns the two.
         //
-        // ENLARGED 2026-09-01 by PackScale.Factor, with the cell, the .blend and the gear wall.
-        // The CELL COUNTS above are unchanged and that is the point: the enlargement is a
-        // similarity transform, so no mask, no shape and no capacity moved — only how much of the
-        // screen the pack fills. Written out at their new values rather than as
-        // `PackScale.Apply(...)` because these are measurements read by eye off the model, and a
-        // reader comparing this table against the .blend must be able to see the same numbers in
-        // both. Verify below re-reads the built prefab and checks the cell counts.
+        // SCALED by PackScale.Factor, with the cell and the .blend — 1.5 on 2026-09-01, then 1.05
+        // on 2026-09-02 when the 1.5 rig came out too big to wear. The CELL COUNTS above are
+        // unchanged through both and that is the point: a move of the factor is a similarity
+        // transform, so no mask, no shape and no capacity moved — only how big the rig is.
+        // Written out at their current values rather than as `PackScale.Apply(...)` because these
+        // are measurements read by eye off the model, and a reader comparing this table against
+        // the .blend must be able to see the same numbers in both — `expedition_rig_scale.py`
+        // prints exactly this list. Verify below re-reads the built prefab and checks the cell
+        // counts.
         private static readonly (string node, PackSurfaceId id, Vector2 size)[] SurfaceTable =
         {
-            ("SURF_Leaf",      PackSurfaceId.Leaf,           new Vector2(1.08f,  1.08f)),
-            ("SURF_LongGoods", PackSurfaceId.LongGoods,      new Vector2(2.43f,  0.135f)),
-            ("SURF_Rack",      PackSurfaceId.Rack,           new Vector2(1.215f, 1.215f)),
-            ("SURF_Back_L",    PackSurfaceId.BackPanelLeft,  new Vector2(0.405f, 0.81f)),
-            ("SURF_Back_R",    PackSurfaceId.BackPanelRight, new Vector2(0.405f, 0.81f)),
-            ("SURF_Wing_L",    PackSurfaceId.WingLeft,       new Vector2(0.54f,  0.945f)),
-            ("SURF_Wing_R",    PackSurfaceId.WingRight,      new Vector2(0.54f,  0.945f)),
+            ("SURF_Leaf",      PackSurfaceId.Leaf,           new Vector2(0.756f,  0.756f)),
+            ("SURF_LongGoods", PackSurfaceId.LongGoods,      new Vector2(1.701f,  0.0945f)),
+            ("SURF_Rack",      PackSurfaceId.Rack,           new Vector2(0.8505f, 0.8505f)),
+            ("SURF_Back_L",    PackSurfaceId.BackPanelLeft,  new Vector2(0.2835f, 0.567f)),
+            ("SURF_Back_R",    PackSurfaceId.BackPanelRight, new Vector2(0.2835f, 0.567f)),
+            ("SURF_Wing_L",    PackSurfaceId.WingLeft,       new Vector2(0.378f,  0.6615f)),
+            ("SURF_Wing_R",    PackSurfaceId.WingRight,      new Vector2(0.378f,  0.6615f)),
         };
 
         /// <summary>

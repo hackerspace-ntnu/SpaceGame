@@ -56,6 +56,12 @@ namespace SpaceGame.World.Environment
                  "can see the shapes inside it; above 1 it closes up into a solid mass.")]
         [Range(0.05f, 4f)] public float density = 1f;
 
+        [Tooltip("Thin this volume out for a viewer standing under cover — inside a ship, a cave " +
+                 "or anything else with a SandstormShelter. Right for weather: outdoor air does " +
+                 "not follow you indoors. Turn it OFF for an authored interior atmosphere, which " +
+                 "is exactly the fog that should still be there when you step inside.")]
+        public bool thinsUnderShelter = true;
+
         [Tooltip("How fast light is absorbed, per metre at full density. This is the dial that " +
                  "decides how far you can see: at 0.1 you lose the view at roughly 30 metres.")]
         [Range(0.005f, 1f)] public float extinction = 0.08f;
@@ -134,6 +140,14 @@ namespace SpaceGame.World.Environment
         /// </summary>
         public Matrix4x4 WorldToVolume =>
             Matrix4x4.TRS(transform.position, transform.rotation, WorldSize).inverse;
+
+        /// <summary>
+        /// The density to upload for a viewer with this much cover over them, 0 (open) to 1
+        /// (sealed). Weather volumes fade out indoors; an authored interior atmosphere
+        /// (<see cref="thinsUnderShelter"/> off) is unaffected.
+        /// </summary>
+        public float DensityFor(float shelter) =>
+            thinsUnderShelter ? density * Mathf.Clamp01(1f - shelter) : density;
 
         private void OnEnable() => FogVolumes.Register(this);
 

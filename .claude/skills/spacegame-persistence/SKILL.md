@@ -222,9 +222,13 @@ A persistence change that has not been round-tripped does not work. Do all of th
    A saver holding a `SaveRef` round-trips as `none` unless the test installs an `ISaveRefBinder`
    into `SaveRefBinding.Active` (pattern: `Assets/Game/Tests/EditMode/SaveRefTests.cs`).
    Run headlessly: `HeadlessTestRunner.RunEditModeDeferred("PrefabPersistenceTests")`, then read
-   `Temp/headless_tests.txt`. The two project-wide sweeps
-   (`EveryWorldEntityPrefabIsWiredForSaving`, `EveryWiredPrefabHasTheSaversItsComponentsImply`)
-   cover every new prefab automatically and go red until the wiring tool has been run.
+   `Temp/headless_tests.txt`. The three project-wide sweeps
+   (`EveryWorldEntityPrefabIsWiredForSaving`, `EveryWiredPrefabHasTheSaversItsComponentsImply`,
+   `EveryWorldEntityPrefabCarriesItsPrefabIdOnDisk`) cover every new prefab automatically and go red
+   until the wiring tool has been run. The third reads the prefab **file**, because `OnValidate`
+   fills `prefabId` in memory the moment an asset loads — so a prefab that ships the field blank
+   looks correct to every other check, and everything spawned from it is captured into the save and
+   then deleted.
 3. **Play-mode round trip.** Main menu → New/Load World (a world scene opened *directly* in the
    editor has no `WorldSession`, so every save is refused with `Save ignored: no world is active`).
    Change the thing → `F5` quicksave → `F9` quickload → the change must be there. Then quit the app

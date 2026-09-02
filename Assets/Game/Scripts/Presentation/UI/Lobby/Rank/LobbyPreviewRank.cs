@@ -49,23 +49,51 @@ namespace SpaceGame.Presentation.Lobbies
         /// </summary>
         private const float CyclerDrop = 0.4f;
 
-        /// <summary>
-        /// How far above a team's centre its plate floats, in metres. High enough to clear a
-        /// nameplate over a head roughly 1.8m tall without drifting so far up that it reads as
-        /// unrelated. Not measured against a capture — flag this if it reads too high or too low.
-        /// </summary>
-        private const float PlateLift = 2.35f;
-
         // Where an invented anchor goes when the scene has none: this far in front of the camera,
         // dropped onto whatever is under it.
         private const float FallbackDistance = 6f;
         private const float FallbackProbeHeight = 20f;
         private const float FallbackProbeDepth = 60f;
 
+        /// <summary>
+        /// How far above and below a seat the ground is looked for, in metres. The same probe
+        /// <c>LobbyPreviewSetup.EnsureAnchor</c> uses to place the anchor, so a seat lands on exactly
+        /// the surface the anchor itself was dropped onto.
+        /// </summary>
+        private const float SeatProbeHeight = 30f;
+
+        private const float SeatProbeDepth = 100f;
+
+        /// <summary>
+        /// What the seat probe is allowed to hit.
+        ///
+        /// Not everything: the menu is full of set dressing — the ruin, its rubble, the decorative
+        /// astronauts' own props — and a seat that lands on top of a rock reads as a bug rather than
+        /// as terrain. The preview astronauts themselves cannot be hit at all, because
+        /// <c>LobbyPreviewSetup</c> strips every collider off the prefab, so this mask is about the
+        /// scenery rather than about them.
+        /// </summary>
+        private static readonly int GroundMask = LayerMask.GetMask("Default", "Ground", "Terrain");
+
         private Transform anchor;
         private bool anchorIsOurs;
 
+        /// <summary>
+        /// Where every seat actually stands, and how much the ground rises across the rank.
+        ///
+        /// Solved when the shape of the rank changes rather than on every poll: neither the anchor
+        /// nor the sand moves, so re-probing twice a second would be 24 raycasts a second spent
+        /// arriving at the same answer.
+        /// </summary>
+        private GroundedRank grounded;
+
+        /// <summary>The rank shape <see cref="grounded"/> was solved for.</summary>
+        private int groundedTeams = -1;
+
+        private int groundedTeamSize = -1;
+
         private readonly LobbyPreviewCamera view = new();
+        private readonly LobbySetDressing dressing = new();
         private readonly LobbyRankFigures figures = new();
         private LobbyOverlayLayer overlays;
         private LobbyNameplates nameplates;
@@ -87,11 +115,12 @@ namespace SpaceGame.Presentation.Lobbies
 
             rank.overlays = new LobbyOverlayLayer(page);
             rank.nameplates = new LobbyNameplates(rank.overlays, LabelLift);
-            rank.plates = new LobbyTeamPlates(rank.overlays, PlateLift, onJoinTeam);
+            rank.plates = new LobbyTeamPlates(rank.overlays, onJoinTeam);
 
             // Before the anchor is resolved, because the anchor's own fallback is computed from where
             // the camera is looking — and by then it should be looking at the lobby's shot.
             rank.view.Adopt(CameraViewName);
+            rank.dressing.Hide();
             rank.ResolveAnchor();
             rank.cycler = new LobbySuitCycler(rank.overlays, entryPrefab, onStep);
 
@@ -112,6 +141,7 @@ namespace SpaceGame.Presentation.Lobbies
 
             plates.Clear();
             overlays.Destroy();
+            dressing.Restore();
             view.Restore();
 
             Destroy(gameObject);
@@ -131,17 +161,21 @@ namespace SpaceGame.Presentation.Lobbies
             int teamSize = versus ? Mathf.Max(1, snapshot.TeamSize) : Mathf.Max(1, snapshot.Names.Length);
             int[] teamsBySlot = versus ? snapshot.Teams : null;
 
+            GroundSeats(teams, teamSize);
+
+            nameplates.SetContext(snapshot.LocalSlot, versus ? snapshot.LocalTeam : -1);
+
             for (int slot = 0; slot < snapshot.Names.Length; slot++)
             {
                 int team = versus && slot < snapshot.Teams.Length ? snapshot.Teams[slot] : 0;
-                Vector3 seat = RankLayout.SeatPosition(team, SeatOf(slot, teamsBySlot), teams, teamSize);
+                int seat = SeatOf(slot, teamsBySlot);
 
                 int color = versus
                     ? snapshot.ColorOfTeam(team)
                     : slot < snapshot.SuitColors.Length ? snapshot.SuitColors[slot] : 0;
 
-                if (figures.Seat(slot, anchor, seat, color))
-                    nameplates.Set(slot, snapshot.Names[slot], isHost: slot == snapshot.HostSlot);
+                if (figures.Seat(slot, anchor, GroundedSeat(team, seat, teams, teamSize), color))
+                    nameplates.Set(slot, snapshot.Names[slot], slot == snapshot.HostSlot, team);
             }
 
             figures.HideFrom(snapshot.Names.Length);
@@ -159,7 +193,7 @@ namespace SpaceGame.Presentation.Lobbies
             if (figures.IsStanding(localSlot))
                 cycler.SetColor(versus ? snapshot.ColorOfTeam(snapshot.LocalTeam) : snapshot.SuitColors[localSlot]);
 
-            view.Fit(anchor, teams, teamSize);
+            view.Fit(anchor, teams, teamSize, grounded.HeightSpread);
 
             // Re-faced after the fit, not before: facing reads the camera's CURRENT position, and
             // fitting is what just moved it.
@@ -217,11 +251,96 @@ namespace SpaceGame.Presentation.Lobbies
             if (camera == null) return;
 
             nameplates.Position(camera, figures.Heads, figures.Occupied);
-            plates.Position(camera, anchor);
+            plates.Position(camera, anchor, GroundOfTeam);
 
             bool cyclerVisible = figures.IsStanding(localSlot);
             cycler.Position(camera, cyclerVisible,
                             cyclerVisible ? figures.PositionOf(localSlot) - Vector3.up * CyclerDrop : default);
+        }
+
+        /// <summary>
+        /// Puts every seat of the current rank shape on the ground under it, if that shape has
+        /// changed since the last time.
+        ///
+        /// Seats are addressed by index whether or not anybody is standing in them — the same rule
+        /// <see cref="RankLayout"/> follows — so an empty seat already has a height, and somebody
+        /// joining lands on the sand without a re-solve.
+        /// </summary>
+        private void GroundSeats(int teams, int teamSize)
+        {
+            if (teams == groundedTeams && teamSize == groundedTeamSize) return;
+
+            groundedTeams = teams;
+            groundedTeamSize = teamSize;
+
+            if (anchor == null)
+            {
+                grounded = default;
+                return;
+            }
+
+            var seats = new Vector3[teams * teamSize];
+
+            for (int team = 0; team < teams; team++)
+                for (int seat = 0; seat < teamSize; seat++)
+                    seats[team * teamSize + seat] =
+                        anchor.TransformPoint(RankLayout.SeatPosition(team, seat, teams, teamSize));
+
+            grounded = RankGrounding.Solve(seats, anchor.position.y, Probe);
+        }
+
+        /// <summary>
+        /// The real cast behind <see cref="RankGrounding.GroundProbe"/>.
+        ///
+        /// Triggers are ignored so a music zone or a spawn volume lying over the dunes cannot become
+        /// the floor.
+        /// </summary>
+        private static bool Probe(Vector3 seat, out float groundY)
+        {
+            if (Physics.Raycast(seat + Vector3.up * SeatProbeHeight, Vector3.down,
+                                out RaycastHit hit, SeatProbeDepth, GroundMask,
+                                QueryTriggerInteraction.Ignore))
+            {
+                groundY = hit.point.y;
+                return true;
+            }
+
+            groundY = 0f;
+            return false;
+        }
+
+        /// <summary>
+        /// Where a given seat ended up standing, in world space. Falls back to the flat anchor plane
+        /// for a seat outside the shape that was solved, which is exactly what the rank did before
+        /// it was ever grounded.
+        /// </summary>
+        private Vector3 GroundedSeat(int team, int seat, int teams, int teamSize)
+        {
+            int index = team * teamSize + seat;
+
+            if (grounded.Positions != null && index >= 0 && index < grounded.Positions.Length)
+                return grounded.Positions[index];
+
+            return anchor != null
+                ? anchor.TransformPoint(RankLayout.SeatPosition(team, seat, teams, teamSize))
+                : Vector3.zero;
+        }
+
+        /// <summary>
+        /// The ground height under a team's centre — its first seat, which is where its plate hangs.
+        /// Falls back to the anchor's own height, which is where plates hung before the rank was
+        /// grounded.
+        /// </summary>
+        private float GroundOfTeam(int team, int teams, int teamSize)
+        {
+            if (grounded.Positions == null || grounded.Positions.Length == 0)
+                return anchor != null ? anchor.position.y : 0f;
+
+            int index = team * teamSize;
+
+            return index >= 0 && index < grounded.Positions.Length
+                ? grounded.Positions[index].y
+                : grounded.MinY;
         }
 
         /// <summary>

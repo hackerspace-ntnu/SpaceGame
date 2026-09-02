@@ -167,5 +167,18 @@ namespace SpaceGame.Tests
             for (int i = 0; i < VersusRules.MaxTeams; i++)
                 Assert.IsTrue(seen.Add(VersusRules.TeamName(i)), $"team {i} reuses a name");
         }
+
+        /// <summary>
+        /// One naming scheme everywhere: the full name, the short name and the plate ladder's
+        /// floor form must all agree on the same digit — "TEAM SEVEN" beside "3 0/2" read as two
+        /// different schemes on the same screen.
+        /// </summary>
+        [Test]
+        public void TeamNamesAreNumberedFromOne()
+        {
+            Assert.AreEqual("TEAM 1", VersusRules.TeamName(0));
+            Assert.AreEqual("TEAM 8", VersusRules.TeamName(VersusRules.MaxTeams - 1));
+            Assert.AreEqual("8", VersusRules.ShortTeamName(VersusRules.MaxTeams - 1));
+        }
     }
 }

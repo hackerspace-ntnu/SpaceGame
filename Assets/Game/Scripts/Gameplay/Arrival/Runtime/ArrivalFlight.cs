@@ -49,6 +49,13 @@ namespace SpaceGame.Gameplay.Arrival
         public bool Launched { get; set; }
 
         /// <summary>
+        /// True once the descent has settled, grounded and parked this hull. The gap between
+        /// <see cref="Launched"/> and this is a ship in the air — which is exactly the state the
+        /// director's watchdog and the pre-save grounding exist to never leave a hull in.
+        /// </summary>
+        public bool Landed { get; set; }
+
+        /// <summary>
         /// Whether the hull still exists. A destroyed GameObject compares equal to null, so a flight
         /// whose ship went away with its scene answers false here rather than throwing a frame later
         /// inside the descent.

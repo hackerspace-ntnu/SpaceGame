@@ -76,8 +76,12 @@ namespace SpaceGame.Gameplay.Arrival
 
         [Tooltip("How long the descent takes, in seconds. The cutscene is told this value rather " +
                  "than carrying its own, so the beats cannot drift from the hull. Shared by every " +
-                 "ship in a formation, which is what makes them land together.")]
-        [SerializeField] private float descentDuration = 26f;
+                 "ship in a formation, which is what makes them land together. Everything hung off " +
+                 "it is a FRACTION of it — the shake curve, the burn envelope, the tumble — so " +
+                 "retuning this number retimes the whole sequence and needs nothing else changed. " +
+                 "It is the opening of the game and the player has no controls during it, so it is " +
+                 "kept as short as the arc still reads at (GDC-L1-UX-0007).")]
+        [SerializeField] private float descentDuration = 18.2f;
 
         [Tooltip("How long the hull is held at the attitude it hit the ground in, before it topples " +
                  "onto its belly. A beat, not a pause: it is what makes the contact read as a blow " +
@@ -128,6 +132,14 @@ namespace SpaceGame.Gameplay.Arrival
                  "miss is logged. The wreck is persisted where the descent leaves it, so a hull " +
                  "that stopped in mid-air stays there for the life of the world.")]
         [SerializeField] private float landingTolerance = 0.25f;
+
+        [Tooltip("The largest correction SetDown will believe. The arc was PLANNED to end with the " +
+                 "hull on measured ground, so a probe that answers hundreds of metres is not " +
+                 "measuring the landing site — it is measuring through a hole where unloaded chunk " +
+                 "colliders should be, down to whatever static geometry lies buried below. In a " +
+                 "versus match that put both ships 500+ m under the desert and left the terrain " +
+                 "guard to fish them back out.")]
+        [SerializeField] private float maxTrustedCorrection = 30f;
 
         [Tooltip("How long the wreck sits still after landing before the crew are told they may " +
                  "get up. Long enough for the cutscene's blackout to lift, so the prompt is not " +
@@ -220,12 +232,19 @@ namespace SpaceGame.Gameplay.Arrival
         {
             SeatedRider.LocalPlayerSeated += PlayLocalCutscene;
             SeatedRider.LocalCrewLaunched += LaunchLocalCutscene;
+
+            // A save taken during the descent records "arrived" (see ArrivalSaveable), so the pose
+            // it captures is the pose the reloaded world keeps — and a reload never re-flies the
+            // crash. Grounding first is what stops a quit halfway down the arc reloading as a hull
+            // frozen nose-down in the sky at the angle it flew in at.
+            SpaceGame.Core.Persistence.SaveManager.Capturing += GroundUnfinishedFlights;
         }
 
         private void OnDisable()
         {
             SeatedRider.LocalPlayerSeated -= PlayLocalCutscene;
             SeatedRider.LocalCrewLaunched -= LaunchLocalCutscene;
+            SpaceGame.Core.Persistence.SaveManager.Capturing -= GroundUnfinishedFlights;
         }
 
         private void OnDestroy()
@@ -499,8 +518,22 @@ namespace SpaceGame.Gameplay.Arrival
                 StartCoroutine(FlyDescent(flight));
             }
 
-            while (descending > 0)
+            // Bounded, because the settle is the ONLY thing that levels the ship: a descent
+            // coroutine that dies for any reason leaves its wreck standing on its nose at the
+            // dive angle forever, releasable never set and the crew sealed in their chairs. The
+            // deadline is the whole sequence plus a generous grace, so it is only ever reached by
+            // a flight that has genuinely stalled.
+            float landingDeadline = Time.time + descentDuration + Mathf.Max(0f, settleHold)
+                                    + Mathf.Max(0.01f, settleDuration) + LandingWatchdogGrace;
+
+            while (descending > 0 && Time.time < landingDeadline)
                 yield return null;
+
+            if (descending > 0)
+            {
+                RecoverStalledDescents();
+                descending = 0;
+            }
 
             // Held open until the cutscene's own blackout has lifted, so the prompt is not offered
             // to somebody still looking at a black screen.
@@ -595,6 +628,17 @@ namespace SpaceGame.Gameplay.Arrival
 
             while (elapsed < descentDuration)
             {
+                // Checked every frame, not hoped: a hull that goes away mid-arc (a torn-down
+                // session, an errant despawn) used to kill this coroutine with a
+                // MissingReferenceException, which left `descending` stuck above zero, releasable
+                // never set, and — on any machine still watching — a ship frozen at the dive
+                // angle. The watchdog in FlyFormation is the second half of the same guarantee.
+                if (!flight.IsAlive)
+                {
+                    AbandonDescent(flight);
+                    yield break;
+                }
+
                 elapsed += Time.deltaTime;
 
                 ArrivalTrajectory.Evaluate(elapsed / descentDuration, flightPath,
@@ -602,6 +646,12 @@ namespace SpaceGame.Gameplay.Arrival
 
                 flight.Ship.transform.SetPositionAndRotation(position, rotation);
                 yield return null;
+            }
+
+            if (!flight.IsAlive)
+            {
+                AbandonDescent(flight);
+                yield break;
             }
 
             // Contact, on the authored pose exactly rather than wherever the last frame's delta
@@ -618,6 +668,12 @@ namespace SpaceGame.Gameplay.Arrival
 
             yield return Settle(flight.Ship, flightPath);
 
+            if (!flight.IsAlive)
+            {
+                AbandonDescent(flight);
+                yield break;
+            }
+
             SetDown(flight.Ship, ArrivalTrajectory.RestRotation(flightPath).eulerAngles.y);
 
             RestoreHull(hull);
@@ -628,7 +684,120 @@ namespace SpaceGame.Gameplay.Arrival
             // to physics, which is what restWhenParked exists for — see HoverRigidbodyMotor.
             ParkHull(flight.Ship);
 
+            flight.Landed = true;
             descending--;
+        }
+
+        /// <summary>A descent whose hull went away. The books still have to balance.</summary>
+        private void AbandonDescent(ArrivalFlight flight)
+        {
+            Debug.LogError($"[Arrival] The {(flight.Team == ArrivalFlight.NoTeam ? "arrival" : VersusRules.TeamName(flight.Team))} " +
+                           "hull was destroyed mid-descent. Its crew will be released by the " +
+                           "formation's own flow.", this);
+            descending--;
+        }
+
+        /// <summary>How long past the authored sequence a descent may run before it is declared stalled.</summary>
+        private const float LandingWatchdogGrace = 10f;
+
+        /// <summary>
+        /// The backstop for a descent that never finished: any launched hull still unlanded when
+        /// the watchdog fires is put on its landing point by hand, woken and parked.
+        ///
+        /// <para>
+        /// This trades the rest of the crash presentation for the invariant that actually matters:
+        /// the settle is the only thing that levels the ship, the levelled pose is what the save
+        /// keeps, and a wreck left at the dive angle is the shape of the world forever. Loud,
+        /// because reaching this means a descent coroutine died and that cause is worth finding.
+        /// </para>
+        /// </summary>
+        private void RecoverStalledDescents()
+        {
+            foreach (ArrivalFlight flight in flights.Values)
+            {
+                if (!flight.IsAlive || !flight.Launched || flight.Landed) continue;
+
+                Debug.LogError($"[Arrival] '{flight.Ship.name}' never finished its descent — " +
+                               "grounding it by hand at its landing point.", flight.Ship);
+
+                WakeHull(flight.Ship);
+                GroundFlightAtRest(flight);
+                flight.Landed = true;
+            }
+        }
+
+        /// <summary>
+        /// Grounds every unlanded flight NOW, called by the save system immediately before it
+        /// captures the world.
+        ///
+        /// <para>
+        /// <c>ArrivalSaveable</c> records a mid-descent world as "arrived", so whatever pose this
+        /// capture takes is the pose the reloaded world opens with — and a reload never re-flies
+        /// the crash to fix it. Snapping the hull to the exact pose the settle would have ended on
+        /// makes the file indistinguishable from a landing that finished. A descent that is still
+        /// running afterwards simply rewrites the transform on its next frame and lands normally,
+        /// which is why nothing here is marked <see cref="ArrivalFlight.Landed"/>.
+        /// </para>
+        /// </summary>
+        private void GroundUnfinishedFlights()
+        {
+            foreach (ArrivalFlight flight in flights.Values)
+            {
+                if (!flight.IsAlive || flight.Landed) continue;
+
+                GroundFlightAtRest(flight);
+
+                Debug.LogWarning($"[Arrival] '{flight.Ship.name}' was saved mid-arrival, so it was " +
+                                 "captured at its landing point rather than in the air.", flight.Ship);
+            }
+        }
+
+        /// <summary>
+        /// Puts one hull on the pose its settle would have ended on: the impact point, yaw only,
+        /// set down against the measured ground and parked. The shared tail of every path that has
+        /// to finish a landing without flying it.
+        /// </summary>
+        private void GroundFlightAtRest(ArrivalFlight flight)
+        {
+            Quaternion rest = ArrivalTrajectory.RestRotation(flight.Path);
+
+            flight.Ship.transform.SetPositionAndRotation(flight.Path.ImpactPosition, rest);
+
+            // Before SetDown, not after: it measures the hull's colliders, and collider bounds
+            // live in the physics scene rather than on the transform just written.
+            Physics.SyncTransforms();
+
+            SetDown(flight.Ship, rest.eulerAngles.y);
+            ParkHull(flight.Ship);
+        }
+
+        /// <summary>
+        /// Re-enables what <see cref="QuietHull"/> silenced, for a recovery that no longer has the
+        /// coroutine's captured state. Restores the prefab's intent rather than a snapshot: this
+        /// hull is a working vehicle, and every one of these is enabled on the asset.
+        /// </summary>
+        private static void WakeHull(GameObject ship)
+        {
+            var body = ship.GetComponent<Rigidbody>();
+            if (body != null) body.isKinematic = false;
+
+            foreach (Behaviour b in new Behaviour[]
+                     {
+                         ship.GetComponent<SpaceGame.Agents.AgentController>(),
+                         ship.GetComponent<SpaceGame.Agents.HoverRigidbodyMotor>(),
+                         ship.GetComponent<SpaceGame.World.Safety.UnderTerrainGuard>(),
+                     })
+                if (b != null) b.enabled = true;
+        }
+
+        /// <summary>Is this hull one the director is currently flying, or holding ready to fly?</summary>
+        public bool IsFlightHull(GameObject ship)
+        {
+            foreach (ArrivalFlight flight in flights.Values)
+                if (flight.IsAlive && flight.Ship == ship)
+                    return true;
+
+            return false;
         }
 
         /// <summary>
@@ -654,6 +823,8 @@ namespace SpaceGame.Gameplay.Arrival
 
             while (settling < duration)
             {
+                if (ship == null) yield break; // the caller's IsAlive check reports it
+
                 settling += Time.deltaTime;
 
                 ArrivalTrajectory.EvaluateSettle(settling / duration, flightPath,
@@ -662,6 +833,8 @@ namespace SpaceGame.Gameplay.Arrival
                 ship.transform.SetPositionAndRotation(position, rotation);
                 yield return null;
             }
+
+            if (ship == null) yield break;
 
             ArrivalTrajectory.EvaluateSettle(1f, flightPath, out Vector3 rest, out Quaternion restRotation);
             ship.transform.SetPositionAndRotation(rest, restRotation);
@@ -729,6 +902,22 @@ namespace SpaceGame.Gameplay.Arrival
                 ship.transform.position, landingYaw, ship, path.StartAltitude + probeHeight,
                 bellyDrop, out float airGap);
 
+            // An answer no real landing can produce is a probe with no data, not a correction. The
+            // deep probe exists to find a hull stranded a kilometre up, so its reach also lets it
+            // fall through a hole where unloaded chunk colliders should be and report whatever
+            // static geometry lies buried far below — measured in versus as both team ships set
+            // down 500+ m under the desert. The plan put the hull on ground it measured; a wildly
+            // different answer here means the VERIFIER is blind, and blind means "fall through to
+            // the heightmap", never "obey".
+            if (measured && Mathf.Abs(airGap) > maxTrustedCorrection)
+            {
+                Debug.LogError($"[Arrival] Collision claims '{ship.name}' is {airGap:F1} m off the " +
+                               "ground — farther than any real landing can miss by, so the " +
+                               "colliders under the site are missing or belong to something " +
+                               "buried. Ignoring physics here and asking the heightmap.", ship);
+                measured = false;
+            }
+
             if (measured) WarnIfHeightmapDisagrees(ship, landingYaw, bellyDrop, airGap);
 
             // The heightmap keeps the scenes physics cannot answer for: the arena and the test
@@ -739,6 +928,17 @@ namespace SpaceGame.Gameplay.Arrival
             {
                 Debug.LogWarning($"[Arrival] '{ship.name}' came down where no ground could be " +
                                  "measured, so it is left on the pose the descent ended at.", ship);
+                return;
+            }
+
+            // Same rule for the fallback: TryResolveGround raycasts where the heightmap has no
+            // answer, and that ray can find the same buried geometry. The planned pose beats an
+            // implausible measurement from either source.
+            if (Mathf.Abs(airGap) > maxTrustedCorrection)
+            {
+                Debug.LogError($"[Arrival] Every ground source under '{ship.name}' answers " +
+                               $"{airGap:F1} m — implausible for a planned landing, so the hull is " +
+                               "left on the pose the descent ended at.", ship);
                 return;
             }
 
@@ -837,7 +1037,13 @@ namespace SpaceGame.Gameplay.Arrival
             }
 
             cutscene.Configure(descentDuration, settleHold + settleDuration);
-            CutsceneDirector.Instance.Play(cutscene);
+
+            // TEMPORARY DIAGNOSTIC (2026-09-02) — remove once the missing arrival blackout is
+            // diagnosed. Play() returning false is currently the only non-silent failure here, and
+            // it is indistinguishable from this method never having been called at all.
+            bool started = CutsceneDirector.Instance.Play(cutscene);
+            Debug.Log($"[Arrival:DIAG] PlayLocalCutscene started={started} " +
+                      $"descent={descentDuration} settle={settleHold + settleDuration}", this);
         }
 
         /// <summary>
@@ -898,10 +1104,16 @@ namespace SpaceGame.Gameplay.Arrival
                 state.WasKinematic = state.Body.isKinematic;
                 state.Interpolation = state.Body.interpolation;
 
+                // Velocity first, kinematic second — a kinematic body has no velocity to write and
+                // Unity warns on the attempt, once per hull per arrival.
+                if (!state.Body.isKinematic)
+                {
+                    state.Body.linearVelocity = Vector3.zero;
+                    state.Body.angularVelocity = Vector3.zero;
+                }
+
                 state.Body.isKinematic = true;
                 state.Body.interpolation = RigidbodyInterpolation.None;
-                state.Body.linearVelocity = Vector3.zero;
-                state.Body.angularVelocity = Vector3.zero;
             }
 
             var silenced = new List<Behaviour>();
@@ -935,8 +1147,12 @@ namespace SpaceGame.Gameplay.Arrival
 
             state.Body.isKinematic = state.WasKinematic;
             state.Body.interpolation = state.Interpolation;
-            state.Body.linearVelocity = Vector3.zero;
-            state.Body.angularVelocity = Vector3.zero;
+
+            if (!state.Body.isKinematic)
+            {
+                state.Body.linearVelocity = Vector3.zero;
+                state.Body.angularVelocity = Vector3.zero;
+            }
         }
 
         private static GameObject ResolvePlayer(ulong clientId)

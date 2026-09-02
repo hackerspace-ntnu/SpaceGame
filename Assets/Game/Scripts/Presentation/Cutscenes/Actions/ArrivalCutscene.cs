@@ -34,7 +34,7 @@ namespace SpaceGame.Presentation
     {
         [Tooltip("How long the descent takes. Overwritten by ArrivalDirector via Configure — the " +
                  "director is the authority. The value here is only what a lone play-test sees.")]
-        [SerializeField] private float descentDuration = 26f;
+        [SerializeField] private float descentDuration = 18.2f;
 
         [Tooltip("Fade up from black over this long at the start, as the player comes round.")]
         [SerializeField] private float wakeFade = 1.6f;
@@ -70,6 +70,13 @@ namespace SpaceGame.Presentation
                  "announcement is sent the moment the crew is aboard — but a player left staring " +
                  "at black forever is a worse failure than beats that are a little out.")]
         [SerializeField] private float launchWait = 30f;
+
+        /// <summary>
+        /// Raised on this machine when its own player has come round in the landed wreck — the
+        /// recovery fade has finished and the controls are coming back. The reference instant for
+        /// anything that times itself from "the cutscene is over", such as the seat-exit hint.
+        /// </summary>
+        public static event System.Action LocalPlayerRecovered;
 
         /// <summary>Set by <see cref="Launch"/>; cleared at the top of every <see cref="Play"/>.</summary>
         private bool launched;
@@ -119,6 +126,12 @@ namespace SpaceGame.Presentation
                 yield break;
             }
 
+            // A rig left over from an earlier arrival would be a second writer on the camera's
+            // one LateUpdate — the rig now outlives its cutscene (it is the seated look), so a
+            // replay has to clear the old one first.
+            var stale = cam.gameObject.GetComponent<ArrivalCameraRig>();
+            if (stale != null) Destroy(stale);
+
             var rig = cam.gameObject.AddComponent<ArrivalCameraRig>();
 
             // Black FIRST, and black for as long as it takes the rest of the crew to be strapped
@@ -134,15 +147,27 @@ namespace SpaceGame.Presentation
             ArrivalBeats beats = Beats;
             float startTime = Time.time - launchedSecondsAgo;
 
+            // TEMPORARY DIAGNOSTIC (2026-09-02) — remove with the others once a clean playtest
+            // confirms the blackout. One line per beat, so a missing black can be read straight
+            // off the timestamps instead of reasoned about.
+            Debug.Log($"[Arrival:DIAG] beats begin t={Time.time:F2} late={launchedSecondsAgo:F2} " +
+                      $"contact=+{beats.Contact:F2} fadeStart=+{beats.FadeStart:F2}", this);
+
             // A late joiner is already past the waking-up beat, so it is collapsed rather than
             // played out of order — they come round at once, in a ship that is already falling.
             // Somebody seated after the impact never comes round at all until the black lifts at
             // the end: showing them the cabin for a frame and blacking it out again would be worse
             // than never showing it.
+            //
+            // Every fade in this cutscene is FIRE AND FORGET, waited out on time rather than on
+            // the overlay's coroutine. Awaiting the fade itself froze this whole sequence when
+            // anything else touched the overlay mid-fade (see LetterboxOverlay's generation note);
+            // the beats are timings, and time is the only thing they may depend on.
             if (launchedSecondsAgo < beats.Contact)
             {
                 float wake = Mathf.Max(0f, wakeFade - launchedSecondsAgo);
-                yield return LetterboxOverlay.Instance.FadeFromBlackAsync(wake);
+                LetterboxOverlay.Instance.FadeFromBlackAsync(wake);
+                yield return new WaitForSeconds(wake);
             }
 
             yield return Descend(rig, beats, startTime);
@@ -151,17 +176,32 @@ namespace SpaceGame.Presentation
             // and a half toppling off its nose onto its belly behind it. The shake stops with the
             // picture: there is nothing left to shake, and leaving it running would keep moving a
             // camera the player cannot see for the sake of nothing.
-            rig.ShakeIntensity = 0f;
+            if (rig != null) rig.ShakeIntensity = 0f;
             yield return new WaitForSeconds(beats.BlackHold);
 
-            // Removed while the screen is still black, so the camera is back under the player's own
-            // control by the first frame they can see. Destroyed rather than disabled: its OnDisable
-            // is what returns the camera to a neutral local pose and hands the head back to the
-            // body, and a disabled component left attached would be found and re-enabled by a
-            // second arrival.
-            Destroy(rig);
+            // The rig is NOT destroyed here any more: it is the seated look. PlayerLook spends its
+            // yaw rotating the player's body — the wrong thing entirely for someone strapped into
+            // a chair — where the rig feeds the look into PlayerHeadLook's clamped neck, which is
+            // the whole in-chair look model (HeadAimTests). It hands itself back when the rider
+            // stands, which is the moment the body is the player's own again.
+            if (rig != null) rig.ReleaseWithSeat();
 
-            yield return LetterboxOverlay.Instance.FadeFromBlackAsync(recoveryFade);
+            // Started while the screen is still black, so the first frame the player can see is
+            // already blurred: they are coming to in a wreck, not watching a filter switch on.
+            // The component outlives this coroutine on purpose — the cutscene ends with the fade
+            // so the player gets their look back, and the blur clears over their first free
+            // seconds in the seat.
+            ArrivalConcussion.Begin(cam);
+
+            LetterboxOverlay.Instance.FadeFromBlackAsync(recoveryFade);
+            yield return new WaitForSeconds(recoveryFade);
+
+            Debug.Log($"[Arrival:DIAG] recovered t={Time.time:F2}", this);
+
+            // The black has lifted and the controls are about to come back: this is the instant
+            // "after the cutscene" means to anything timing itself from it — the seat-exit hint
+            // waits its own delay from here.
+            LocalPlayerRecovered?.Invoke();
         }
 
         /// <summary>
@@ -208,20 +248,34 @@ namespace SpaceGame.Presentation
                 float elapsed = Time.time - startTime;
                 if (elapsed >= beats.Contact) break;
 
-                rig.ShakeIntensity = shakeOverDescent.Evaluate(beats.DescentProgress(elapsed));
+                // The rig can be destroyed under this coroutine — anything that rebuilds or
+                // replaces the player camera mid-descent takes it along. Losing the shake is
+                // cosmetic; throwing here used to abort the whole cutscene through the director's
+                // catch, which handed the controls back mid-dive and skipped the fade entirely.
+                if (rig != null)
+                    rig.ShakeIntensity = shakeOverDescent.Evaluate(beats.DescentProgress(elapsed));
 
                 if (!fading && elapsed >= beats.FadeStart)
                 {
                     fading = true;
                     LetterboxOverlay.Instance.FadeToBlackAsync(beats.Contact - elapsed);
+                    Debug.Log($"[Arrival:DIAG] impact fade opened t={Time.time:F2} " +
+                              $"remaining={beats.Contact - elapsed:F2}", this);
                 }
 
                 yield return null;
             }
 
-            // A machine that joined inside the fade window never opened one; the screen still has
-            // to be black at contact.
-            if (!fading) LetterboxOverlay.Instance.FadeToBlackAsync(0f);
+            // TEMPORARY DIAGNOSTIC (2026-09-02) — the alpha BEFORE the snap says whether the
+            // scheduled fade actually got there on its own.
+            Debug.Log($"[Arrival:DIAG] contact t={Time.time:F2} " +
+                      $"alphaBeforeSnap={LetterboxOverlay.Instance.FadeAlpha:F2}", this);
+
+            // Black at contact is the CONTRACT, so it is enforced rather than assumed: the overlay
+            // runs one fade at a time and any other system that faded during the descent silently
+            // cancelled ours. Snapping a screen that is already black is invisible; snapping one
+            // that is not is the whole point.
+            LetterboxOverlay.Instance.FadeToBlackAsync(0f);
         }
     }
 }

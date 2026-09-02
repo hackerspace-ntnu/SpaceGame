@@ -14,10 +14,11 @@ namespace SpaceGame.EditorTests
     /// The backpack's save round trip, against a real <see cref="PackLayout"/> and real surfaces.
     ///
     /// <para>
-    /// Three formats live here at once. v3 stores where every item was left — surface, uv and yaw
-    /// — in today's metres, and has to give it back unchanged. v2 is the same record in the
-    /// PRE-ENLARGEMENT frame, where every uv is two-thirds of where it belongs; it has to be
-    /// brought forward, onto the same cell, rather than left to first-fit. v1 stored two positional
+    /// Four formats live here at once. v4 stores where every item was left — surface, uv and yaw
+    /// — in today's metres, and has to give it back unchanged. v3 and v2 are the same record at
+    /// the 0.135 m and 0.09 m cells respectively; each has to be brought forward, onto the same
+    /// cell, rather than left to first-fit — and note that one of those is a multiply and the
+    /// other a divide. v1 stored two positional
     /// lists of slot ids and nothing about position, because there was no position to store; those
     /// saves have to load and be arranged onto the surfaces. The v1 case is the one that matters
     /// most: get it wrong and every world written before free placement opens with an empty pack,
@@ -33,9 +34,9 @@ namespace SpaceGame.EditorTests
         /// whatever the cell is today.
         ///
         /// <para>
-        /// The 2026-09-01 enlargement multiplied the cell and every face by
-        /// <see cref="PackScale.Factor"/> together and multiplied no cell COUNT by anything, so
-        /// every face and every uv below still names the cell it always named. It is also, exactly,
+        /// Every move of <see cref="PackScale.Factor"/> multiplies the cell and every face together
+        /// and multiplies no cell COUNT by anything, so every face and every uv below still names
+        /// the cell it always named. It is also, exactly,
         /// the factor <c>PackSaveCodec.Restore</c> applies to a pre-v3 payload's uvs — which is why
         /// the migration tests at the bottom of this file can write their records as bare literals
         /// and assert on <c>M</c> of them. Same helper, same reasoning, as in
@@ -310,22 +311,22 @@ namespace SpaceGame.EditorTests
             Assert.IsNull(state.mainItemIds);
 
             Assert.AreEqual(PackSaveCodec.Version, state.version,
-                            "an unstamped capture reads back as pre-enlargement and would have " +
-                            "every uv in it multiplied by PackScale.Factor on the next load");
+                            "an unstamped capture reads back as the original 0.09 m frame and " +
+                            "would have every uv in it rescaled on the next load");
         }
 
-        // ------------------------------------------------- the enlargement (v2 -> v3)
+        // -------------------------------------------- the cell frames (v2, v3 -> today)
 
         /// <summary>
-        /// <b>A pack saved before the enlargement reopens on exactly the cells it was saved on.</b>
+        /// <b>A pack saved in the original frame reopens on exactly the cells it was saved on.</b>
         ///
         /// <para>
-        /// A placement's uv is METRES, so every uv in a v2 payload names a point two-thirds of the
-        /// way to where that item belongs on the 1.5x pack. Nothing would be lost without the
+        /// A placement's uv is METRES, so every uv in a v2 payload names a point at the 0.09 m
+        /// cell rather than at today's. Nothing would be lost without the
         /// migration — <c>RestoreOne</c> falls through to first-fit when a stored spot is illegal,
         /// and most of these spots are still legal, just wrong — so the failure is silent and it is
-        /// the player who finds it: their kit has rearranged itself, and the two-thirds error is
-        /// small enough to read as "I must have left it there".
+        /// the player who finds it: their kit has rearranged itself, and the error is small enough
+        /// to read as "I must have left it there".
         /// </para>
         /// <para>
         /// So the assertion is on the CELL, not on the uv and not on "it landed somewhere". Every
@@ -353,7 +354,7 @@ namespace SpaceGame.EditorTests
                 // frame the file was written in — and the middle of a 2 x 2 block on it, which is
                 // the shape an unmeasurable item derives at any scale.
                 Vector2 oldUv = OldFrameBlockCentre(new Vector2(0.86f, 0.72f), cells[i],
-                                                    new Vector2Int(2, 2));
+                                                    new Vector2Int(2, 2), PackScale.LegacyCell);
 
                 records.Add(new PackSaveCodec.PackPlacementRecord
                 {
@@ -386,8 +387,78 @@ namespace SpaceGame.EditorTests
 
                 Assert.AreEqual(cells[i], origin,
                     $"'legacy-{i}' was saved on cell {cells[i]} and came back on {origin}. Its uv " +
-                    "was not brought forward by PackScale.Factor, so the pack rearranged itself on " +
-                    "the first load after the enlargement.");
+                    "was not brought forward from the 0.09 m cell, so the pack rearranged itself " +
+                    "on the first load after the cell moved.");
+            }
+        }
+
+        /// <summary>
+        /// <b>The same, for the shrink.</b> A pack saved on the 1.5 rig — which is every world in
+        /// existence on 2026-09-02 — reopens on exactly the cells it was saved on.
+        ///
+        /// <para>
+        /// Written as its own test rather than folded into the one above, because the two
+        /// migrations are not the same arithmetic and the newer one is the one that has never
+        /// shipped: a v2 uv is multiplied UP into today's frame and a v3 uv is divided DOWN into
+        /// it. A migration table that handled only "older means smaller" would pass the test above
+        /// and silently throw every player's current kit half a face outward.
+        /// </para>
+        /// <para>
+        /// The version is written explicitly, because a v3 file's defining property is that it
+        /// carries <c>3</c> — a fixture that let <c>State.version</c> default would be stamped with
+        /// today's version and migrate by nothing at all, which is the assertion passing for the
+        /// wrong reason.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void AV3PayloadComesBackOnTheCellsItWasSavedOn()
+        {
+            PackSurface[] rig = Rig();
+
+            var cells = new[] { new Vector2Int(0, 0), new Vector2Int(3, 2), new Vector2Int(6, 5) };
+
+            var records = new List<PackSaveCodec.PackPlacementRecord>();
+
+            for (int i = 0; i < cells.Length; i++)
+            {
+                Item("enlarged-" + i);
+
+                // The same 9 x 8 face Rig() builds, measured in the v3 frame: the original
+                // 0.86 x 0.72 m at the 0.135 m cell rather than at the 0.09 m one.
+                float v3 = PackScale.EnlargedCell / PackScale.LegacyCell;
+
+                Vector2 savedUv = OldFrameBlockCentre(new Vector2(0.86f * v3, 0.72f * v3), cells[i],
+                                                      new Vector2Int(2, 2), PackScale.EnlargedCell);
+
+                records.Add(new PackSaveCodec.PackPlacementRecord
+                {
+                    itemId = "enlarged-" + i,
+                    surface = (byte)PackSurfaceId.Leaf,
+                    u = savedUv.x,
+                    v = savedUv.y,
+                });
+            }
+
+            var payload = new JObject
+            {
+                ["version"] = 3,
+                ["placements"] = JArray.FromObject(records, SaveSerializer.Serializer),
+            };
+
+            var target = new PackLayout();
+            PackSaveCodec.Restore(target, rig, null, payload);
+
+            Assert.AreEqual(cells.Length, target.Placements.Count, "nothing may be dropped");
+
+            for (int i = 0; i < cells.Length; i++)
+            {
+                Assert.IsTrue(target.TryOccupancy("enlarged-" + i, out _, out Vector2Int origin, out _),
+                              $"'enlarged-{i}' is not on the pack at all");
+
+                Assert.AreEqual(cells[i], origin,
+                    $"'enlarged-{i}' was saved on cell {cells[i]} and came back on {origin}. Its " +
+                    "uv was not brought forward from the 0.135 m cell, so every world saved on " +
+                    "the 1.5 rig rearranges itself on its first load after the shrink.");
             }
         }
 
@@ -447,7 +518,7 @@ namespace SpaceGame.EditorTests
         }
 
         /// <summary>
-        /// The middle of a block of cells, at the cell a pre-enlargement build had.
+        /// The middle of a block of cells, at the cell some older build had.
         ///
         /// <para>
         /// Deliberately NOT <see cref="PackGrid.BlockCentreUv"/>: that one uses today's cell, and
@@ -455,11 +526,15 @@ namespace SpaceGame.EditorTests
         /// different one. It is the hem rule and the block rule of that build, restated, and it is
         /// the only place in this file that may not go through <see cref="M"/>.
         /// </para>
+        /// <para>
+        /// The cell is a parameter because there are two such frames now — <c>LegacyCell</c> for a
+        /// v1/v2 file and <c>EnlargedCell</c> for a v3 one — and a helper that knew only the older
+        /// of them would quietly test the newer migration against the wrong numbers.
+        /// </para>
         /// </summary>
-        private static Vector2 OldFrameBlockCentre(Vector2 surface, Vector2Int origin, Vector2Int block)
+        private static Vector2 OldFrameBlockCentre(Vector2 surface, Vector2Int origin,
+                                                   Vector2Int block, float cell)
         {
-            const float cell = PackScale.LegacyCell;
-
             var hem = new Vector2(
                 Mathf.Max(0f, (surface.x - Mathf.Floor(surface.x / cell + 1e-4f) * cell) * 0.5f),
                 Mathf.Max(0f, (surface.y - Mathf.Floor(surface.y / cell + 1e-4f) * cell) * 0.5f));

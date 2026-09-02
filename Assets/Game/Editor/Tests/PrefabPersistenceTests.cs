@@ -58,6 +58,17 @@ namespace SpaceGame.EditorTools
             PersistenceProbe.AssertEveryWiredPrefabHasItsSavers();
 
         /// <summary>
+        /// The half neither sweep above can see, because both of them ask Unity rather than the file.
+        /// A prefab whose <c>prefabId</c> is only ever filled in by <c>OnValidate</c> looks correct in
+        /// the editor and ships blank — and anything spawned from it is captured into the save and
+        /// then dropped, so it is missing from the world with nothing said. The PlayerShip reached
+        /// exactly that state when its builder was run in Play mode, where the wiring pass refuses.
+        /// </summary>
+        [Test]
+        public void EveryWorldEntityPrefabCarriesItsPrefabIdOnDisk() =>
+            PersistenceProbe.AssertEveryWorldEntityPrefabIsStampedOnDisk();
+
+        /// <summary>
         /// A floor under the sweeps. If the discovery query breaks — a moved folder, a renamed root —
         /// both sweeps above start passing while checking nothing at all, which is the one way a
         /// project-wide test can fail silently.

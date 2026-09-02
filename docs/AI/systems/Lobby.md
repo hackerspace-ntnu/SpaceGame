@@ -13,10 +13,15 @@ symptoms:
   - "a hosted lobby stays listed after the host has left"
   - "the lobby is joined but the Relay connection fails and the player is stranded"
   - "the roster shows the wrong team, team colour or suit for a player"
+  - "astronauts in the lobby float above the sand or stand sunk into it"
+  - "team names or player names overlap each other with more than four teams"
+  - "the menu's decorative astronauts stand in front of the roster once the lobby has several teams"
+  - "the two rows of team plates land in the same band of screen and smear together"
+  - "the lobby rank is tiny, clipped or badly framed on a small or narrow window"
   - "the compiler cannot resolve Unity's Lobby type inside this folder"
   - "a lobby control looks enabled but does nothing while a request is in flight"
 reads_with: [UI, GameModes, Multiplayer]
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # Lobby
@@ -59,7 +64,7 @@ Unity Gaming Services Lobby wrapped in one app-lifetime `LobbySession` plus a di
 | `LobbyAutoRefresh` / `LobbyBusyScope` / `LobbyBusyState` | [LobbyAutoRefresh.cs](Assets/Game/Scripts/Presentation/UI/Lobby/Join/LobbyAutoRefresh.cs) | 1 s cadence measured from completion, doubling back-off to 15 s; a table of what each wait locks |
 | `LobbyRosterFlow` / `LobbyRosterView` | [LobbyRosterFlow.cs](Assets/Game/Scripts/Presentation/UI/Lobby/Roster/LobbyRosterFlow.cs) | In-lobby actions (copy, privacy, colour, team, rules) and the only live page |
 | `LobbySessionStrip` / `LobbyTeamRulesStrip` | [LobbySessionStrip.cs](Assets/Game/Scripts/Presentation/UI/Lobby/Roster/LobbySessionStrip.cs) | Code / Copy / Private along the top; the host's Teams and Team size steppers (VS only) |
-| `LobbyPreviewRank` (+ `LobbyRankFigures`, `LobbyPreviewCamera`, `LobbyOverlayLayer`, `LobbyNameplates`, `LobbyTeamPlates`, `LobbySuitCycler`) | [LobbyPreviewRank.cs](Assets/Game/Scripts/Presentation/UI/Lobby/Rank/LobbyPreviewRank.cs) | The roster *is* a rank of astronauts standing in `MainMenu.unity` on the authored `LobbyPreviewAnchor`, with UI overlays tracking world points in `LateUpdate` |
+| `LobbyPreviewRank` (+ `LobbyRankFigures`, `LobbyPreviewCamera`, `LobbySetDressing`, `LobbyOverlayLayer`, `LobbyNameplates`, `LobbyTeamPlates`, `LobbySuitCycler`) | [LobbyPreviewRank.cs](Assets/Game/Scripts/Presentation/UI/Lobby/Rank/LobbyPreviewRank.cs) | The roster *is* a rank of astronauts standing in `MainMenu.unity` on the authored `LobbyPreviewAnchor`, with UI overlays tracking world points in `LateUpdate`. Teams wrap four abreast, every seat is probed onto the ground, each overlay sizes itself from its own projected spacing, team plates zoom under the pointer (`HoverScale`) and hang higher per row of teams, and the menu's decorative astronauts are hidden while the rank is up |
 
 Shared widgets: [MenuStatusLine.cs](Assets/Game/Scripts/Presentation/UI/Widgets/MenuStatusLine.cs) (transient / sticky / animated waits), [MenuLock.cs](Assets/Game/Scripts/Presentation/UI/Widgets/MenuLock.cs) (locks via `CanvasGroup`, never the Button's Disabled state).
 
@@ -103,6 +108,30 @@ Nothing here is saved. Lobby state lives on the service and dies with the sessio
 - **An absent `Mode` key reads as story** (`LobbyTeams.IsVersus`), which is why mode and team rules are stamped in `CreateLobbyOptions` rather than in a follow-up update — a poll landing in the gap would flash a VS lobby into the story browser. The relay code is in there for the same reason.
 - **Out-of-range team indices are folded by modulus, not clamped to 0** (`LobbyTeams.FoldTeam`), so a peer on a build with more teams does not pile everyone onto team one.
 - **Unsubscribe.** The session outlives the screen and will raise `Changed`/`Failed` at a destroyed page; `LobbyUI.OnDestroy` and `LobbyJoinFlow.Dispose` are what stop a poll driving thrown-away rects.
+- **`RankLayout` returns a flat local `y = 0` on purpose, and it is not where anybody stands.** The
+  seats are pure geometry; `RankGrounding` probes each one onto the sand and `LobbyRankFigures.Seat`
+  takes a **world** position. Assigning a seat as a `localPosition` silently re-flattens the whole
+  rank back onto the anchor's plane — which is what it used to do, and why a wide rank floated over
+  dips and sank into rises.
+- **The lobby camera's authored eye is 1.389 m above the anchor — below a 1.8 m head.** Any second
+  row of anything is invisible from it. `RankLayout.EyeHeight` is what lifts it — it holds a 16°
+  down-angle (`MultiRowDownAngle`) rather than a clearance, so the rows separate on screen — and
+  only when `TeamRowsFor > 1`, so a one-row rank still reproduces the authored shot exactly.
+- **Team plates hang higher per row of teams** (`RankLayout.PlateLift`), because from a near-level
+  eye with one shared lift the front and back rows' plates projected fractions of a degree apart
+  and smeared. Vertical position is what says which row a plate belongs to.
+- **The menu's decorative astronauts are hidden by name prefix at scene ROOT only.**
+  `LobbySetDressing` matches `AstronautArmature*` root objects; the rank's own figures contain an
+  `AstronautArmature` node *inside* their hierarchy, so a deep search would hide the roster itself.
+  Renaming or re-parenting the set dressing in `MainMenu.unity` silently puts it back in the shot.
+- **Team names are numeric** — `VersusRules.TeamName` generates `"TEAM 3"`, so the plate ladder's
+  full, shortened and floor rungs all agree on the same digit. There is no name array to extend.
+- **Teams sit on one shared half-pitch lattice, re-centred once.** Centring each row on itself and
+  then staggering it is *not* equivalent: at five teams the two corrections cancel and the lone back
+  team lands exactly behind a front one. Change the lattice, not the per-row centring.
+- **The menu's CanvasScaler matches WIDTH at 1920x1080**, so the canvas is always 1920 wide and its
+  *height* moves with the aspect ratio. Anything reasoning about how much vertical room the page has
+  must compute `1920 * Screen.height / Screen.width` — never assume 1080.
 - The rank's chevrons are ASCII: LiberationSans SDF has no ◀/▶ and TMP silently substitutes empty boxes.
 
 ## Extending

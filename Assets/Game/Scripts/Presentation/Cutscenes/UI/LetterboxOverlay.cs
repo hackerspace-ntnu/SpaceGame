@@ -45,6 +45,9 @@ namespace SpaceGame.Presentation
         public bool BarsVisible { get; private set; }
         public bool FadeOpaque { get; private set; }
 
+        /// <summary>The fade's current opacity, 0 clear to 1 black. For diagnostics and tests.</summary>
+        public float FadeAlpha => fadeGroup != null ? fadeGroup.alpha : 0f;
+
         private RectTransform topBar;
         private RectTransform bottomBar;
         private CanvasGroup barsGroup;
@@ -53,6 +56,15 @@ namespace SpaceGame.Presentation
 
         private Coroutine barsRoutine;
         private Coroutine fadeRoutine;
+
+        // Supersession is by GENERATION, not StopCoroutine. Stopping a coroutine another coroutine
+        // is `yield return`ing on freezes that waiter FOREVER — Unity never resumes it, throws
+        // nothing and logs nothing. The arrival cutscene waits on these fades, and any unrelated
+        // system fading at the wrong moment used to freeze the whole arrival mid-beat with a clean
+        // console: no black at the impact, controls never handed back. A superseded animation now
+        // notices its generation is stale and completes on its own, which resumes anyone waiting.
+        private int barsGeneration;
+        private int fadeGeneration;
 
         [Tooltip("Fraction of screen height each bar covers when fully shown.")]
         [SerializeField] private float barHeightFraction = 0.12f;
@@ -72,38 +84,34 @@ namespace SpaceGame.Presentation
 
         // ──────────── Public API ────────────
 
-        /// <summary>Slide letterbox bars in. Returns when fully shown.</summary>
+        /// <summary>Slide letterbox bars in. Returns when fully shown, or when a newer bars call supersedes this one.</summary>
         public Coroutine ShowBarsAsync(float duration = 0.4f)
         {
-            if (barsRoutine != null) StopCoroutine(barsRoutine);
-            barsRoutine = StartCoroutine(AnimateBars(true, duration));
+            barsRoutine = StartCoroutine(AnimateBars(true, duration, ++barsGeneration));
             BarsVisible = true;
             return barsRoutine;
         }
 
-        /// <summary>Slide letterbox bars out. Returns when fully hidden.</summary>
+        /// <summary>Slide letterbox bars out. Returns when fully hidden, or when a newer bars call supersedes this one.</summary>
         public Coroutine HideBarsAsync(float duration = 0.4f)
         {
-            if (barsRoutine != null) StopCoroutine(barsRoutine);
-            barsRoutine = StartCoroutine(AnimateBars(false, duration));
+            barsRoutine = StartCoroutine(AnimateBars(false, duration, ++barsGeneration));
             BarsVisible = false;
             return barsRoutine;
         }
 
-        /// <summary>Fade screen to opaque black. Returns when fully black.</summary>
+        /// <summary>Fade screen to opaque black. Returns when fully black, or when a newer fade call supersedes this one.</summary>
         public Coroutine FadeToBlackAsync(float duration = 0.3f)
         {
-            if (fadeRoutine != null) StopCoroutine(fadeRoutine);
-            fadeRoutine = StartCoroutine(AnimateFade(1f, duration));
+            fadeRoutine = StartCoroutine(AnimateFade(1f, duration, ++fadeGeneration));
             FadeOpaque = true;
             return fadeRoutine;
         }
 
-        /// <summary>Fade screen back from black. Returns when fully transparent.</summary>
+        /// <summary>Fade screen back from black. Returns when fully transparent, or when a newer fade call supersedes this one.</summary>
         public Coroutine FadeFromBlackAsync(float duration = 0.3f)
         {
-            if (fadeRoutine != null) StopCoroutine(fadeRoutine);
-            fadeRoutine = StartCoroutine(AnimateFade(0f, duration));
+            fadeRoutine = StartCoroutine(AnimateFade(0f, duration, ++fadeGeneration));
             FadeOpaque = false;
             return fadeRoutine;
         }
@@ -124,20 +132,22 @@ namespace SpaceGame.Presentation
 
         private IEnumerator FadeOutInRoutine(System.Action duringBlack, float outDur, float hold, float inDur)
         {
-            yield return AnimateFade(1f, outDur);
+            yield return AnimateFade(1f, outDur, ++fadeGeneration);
             FadeOpaque = true;
             try { duringBlack?.Invoke(); }
             catch (System.Exception e) { Debug.LogException(e); }
             yield return new WaitForSecondsRealtime(hold);
-            yield return AnimateFade(0f, inDur);
+            yield return AnimateFade(0f, inDur, ++fadeGeneration);
             FadeOpaque = false;
         }
 
         /// <summary>Snap bars + fade to a known clean state. Use on hard reset (e.g. respawn).</summary>
         public void SnapClear()
         {
-            if (barsRoutine != null) StopCoroutine(barsRoutine);
-            if (fadeRoutine != null) StopCoroutine(fadeRoutine);
+            // Bumping the generations retires any running animation without StopCoroutine, so a
+            // caller mid-await on one of them resumes instead of freezing — see the note above.
+            barsGeneration++;
+            fadeGeneration++;
             SetBarsHeightFraction(0f);
             SetFadeAlpha(0f);
             BarsVisible = false;
@@ -146,7 +156,7 @@ namespace SpaceGame.Presentation
 
         // ──────────── Animation ────────────
 
-        private IEnumerator AnimateBars(bool show, float duration)
+        private IEnumerator AnimateBars(bool show, float duration, int generation)
         {
             // Read live anchor state so we keep going from wherever a prior animation
             // happened to be when we started — supports being called mid-animation.
@@ -156,27 +166,37 @@ namespace SpaceGame.Presentation
             float dur = Mathf.Max(0.0001f, duration);
             while (t < dur)
             {
+                if (generation != barsGeneration) yield break; // superseded; the newer call owns the bars
+
                 t += Time.unscaledDeltaTime;
                 float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / dur));
                 SetBarsHeightFraction(Mathf.Lerp(startFrac, endFrac, k));
                 yield return null;
             }
+
+            if (generation != barsGeneration) yield break;
+
             SetBarsHeightFraction(endFrac);
             barsRoutine = null;
         }
 
-        private IEnumerator AnimateFade(float targetAlpha, float duration)
+        private IEnumerator AnimateFade(float targetAlpha, float duration, int generation)
         {
             float startAlpha = fadeGroup.alpha;
             float t = 0f;
             float dur = Mathf.Max(0.0001f, duration);
             while (t < dur)
             {
+                if (generation != fadeGeneration) yield break; // superseded; the newer call owns the fade
+
                 t += Time.unscaledDeltaTime;
                 float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / dur));
                 SetFadeAlpha(Mathf.Lerp(startAlpha, targetAlpha, k));
                 yield return null;
             }
+
+            if (generation != fadeGeneration) yield break;
+
             SetFadeAlpha(targetAlpha);
             fadeRoutine = null;
         }

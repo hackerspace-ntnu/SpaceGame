@@ -17,8 +17,10 @@ namespace SpaceGame.World.Weather
     public class SandstormVisuals : MonoBehaviour
     {
         /// <summary>
-        /// Storm density at the camera this frame. The render feature reads it to decide whether
-        /// the fullscreen pass is worth enqueueing at all — in clear air the storm costs nothing.
+        /// Storm density at the camera this frame, AFTER shelter — the same exposure figure the
+        /// damage tick uses. The render feature reads it to decide whether the fullscreen pass is
+        /// worth enqueueing at all, so in clear air, and inside a sealed hull, the storm costs
+        /// nothing.
         /// </summary>
         public static float CameraDensity { get; private set; }
 
@@ -127,16 +129,33 @@ namespace SpaceGame.World.Weather
 
             Vector3 eye = view.transform.position;
             bool inStorm = Sandstorms.TrySample(eye, out StormSample sample);
-            CameraDensity = inStorm ? sample.Density : 0f;
 
-            UpdateSilhouettes(manager.Resolved, eye);
-            UpdateFog(inStorm, sample);
-            UpdateNearDetail(view, inStorm, sample);
+            // Everything the camera is INSIDE is scaled by the cover it is standing in, and
+            // nothing that is outside is. The storm still exists, still hurts anyone out in it and
+            // still stands on the horizon — but its interior does not get drawn in a room the sand
+            // cannot reach, which is what "inside" is supposed to mean when you are looking out of
+            // a ship at a storm you are sheltered from.
+            //
+            // sample.Exposure is density with shelter already taken out — the exact number
+            // SandstormVictim charges damage on, so what is drawn and what hurts agree by
+            // construction rather than by two rules that have to be kept in step.
+            float exposed = inStorm ? 1f - sample.Shelter : 1f;
+            CameraDensity = inStorm ? sample.Exposure : 0f;
+
+            UpdateSilhouettes(manager.Resolved, eye, exposed);
+            UpdateFog(inStorm, sample, exposed);
+            UpdateNearDetail(view, inStorm, sample, exposed);
         }
 
         // ── Layer 1 ───────────────────────────────────────────────────────────────
 
-        private void UpdateSilhouettes(IReadOnlyList<ResolvedStorm> storms, Vector3 eye)
+        // `exposed` is 1 in the open and 0 under full cover. The shell dissolves as the camera
+        // enters a storm, so a sheltered viewer has to be told they have NOT entered it: without
+        // that, standing in a ship in the middle of a storm shows neither the interior fog (killed
+        // by the shelter) nor the wall outside the window (dissolved by a density the shelter is
+        // keeping off you), and the storm disappears entirely from a window it should be raging
+        // outside of.
+        private void UpdateSilhouettes(IReadOnlyList<ResolvedStorm> storms, Vector3 eye, float exposed)
         {
             if (!drawSilhouettes || wallMaterial == null)
             {
@@ -158,7 +177,8 @@ namespace SpaceGame.World.Weather
                     walls[storm.Id] = wall;
                 }
 
-                wall.Apply(storm.Profile, storm.Footprint, storm.Intensity, storm.DensityAt(eye));
+                wall.Apply(storm.Profile, storm.Footprint, storm.Intensity,
+                           storm.DensityAt(eye) * exposed);
             }
 
             // A storm that has blown itself out leaves its silhouette behind unless someone
@@ -206,9 +226,9 @@ namespace SpaceGame.World.Weather
         // Only the strongest storm at the camera drives the fullscreen fog. Two storms deep enough
         // to overlap around one head is not a case worth doubling the shader's cost for, and the
         // silhouettes still show both.
-        private void UpdateFog(bool inStorm, in StormSample sample)
+        private void UpdateFog(bool inStorm, in StormSample sample, float exposed)
         {
-            if (!inStorm)
+            if (!inStorm || exposed <= 0f)
             {
                 Shader.SetGlobalVector(CenterId, Vector4.zero);
                 return;
@@ -224,11 +244,15 @@ namespace SpaceGame.World.Weather
                                                          shape.LateralExtent, shape.Heading.x, shape.Heading.y));
 
             // Alpha carries the lifecycle intensity, so the shader multiplies shape by it exactly
-            // the way ResolvedStorm.DensityAt does on the CPU.
+            // the way ResolvedStorm.DensityAt does on the CPU — times the cover the camera is
+            // standing in, which is the one place the whole march is thinned out. Scaled here
+            // rather than switched off at the render feature so a half-shelter (an open hatch)
+            // reads as thinner air rather than as a hard cut when you cross the threshold.
             Color fog = QualitySettings.activeColorSpace == ColorSpace.Linear
                 ? profile.fogColor.linear
                 : profile.fogColor;
-            Shader.SetGlobalVector(ColorId, new Vector4(fog.r, fog.g, fog.b, sample.Intensity));
+            Shader.SetGlobalVector(ColorId, new Vector4(fog.r, fog.g, fog.b,
+                                                        sample.Intensity * exposed));
 
             Shader.SetGlobalVector(ParamsId, new Vector4(
                 profile.visibilityAtFullIntensity / Mathf.Max(0.01f, profile.fogDensityScale),
@@ -245,11 +269,13 @@ namespace SpaceGame.World.Weather
 
         // ── Layer 3 ───────────────────────────────────────────────────────────────
 
-        private void UpdateNearDetail(Camera view, bool inStorm, in StormSample sample)
+        private void UpdateNearDetail(Camera view, bool inStorm, in StormSample sample, float exposed)
         {
+            // Exposure, not density: grit blowing past the face is the most obviously wrong of the
+            // three layers to leave running in a sealed cabin.
             bool wanted = drawNearDetail && inStorm &&
                           sample.Profile.nearDetailPrefab != null &&
-                          sample.Density >= sample.Profile.nearDetailThreshold;
+                          sample.Exposure >= sample.Profile.nearDetailThreshold;
 
             if (!wanted)
             {
@@ -281,7 +307,7 @@ namespace SpaceGame.World.Weather
 
             if (nearDetail != null)
             {
-                nearDetail.Drive(sample.Density,
+                nearDetail.Drive(sample.Density * exposed,
                                  new Vector3(sample.WindDirection.x, 0f, sample.WindDirection.y));
             }
         }

@@ -308,8 +308,8 @@ namespace SpaceGame.Items
 
         /// Larger than the rig's widest surface plus a generous margin. Nothing legitimate reaches
         /// this; a measurement that does is an authoring mistake, not a big item. On the mat, so it
-        /// scales with the mat: the lash line alone is 2.43 m since the enlargement, and a fixed
-        /// 2 m would have made the warning fire on the one surface built to take long goods.
+        /// scales with the mat: the lash line alone is 18 cells, and a fixed 2 m would have made
+        /// the warning fire on the one surface built to take long goods at any factor above 1.11.
         private static readonly float Implausible = PackScale.Apply(2f);
 
         /// <summary>

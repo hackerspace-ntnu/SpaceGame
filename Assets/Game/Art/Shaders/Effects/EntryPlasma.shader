@@ -25,13 +25,14 @@ Shader "SpaceGame/Effects/EntryPlasma"
 {
     Properties
     {
-        _CoreColor  ("Core Colour",  Color) = (1.0, 0.93, 0.72, 1)
-        _EdgeColor  ("Edge Colour",  Color) = (1.0, 0.36, 0.06, 1)
-        _DeepColor  ("Deep Colour",  Color) = (0.40, 0.05, 0.01, 1)
+        _CoreColor  ("Core Colour",  Color) = (1.0, 0.85, 0.15, 1)
+        _EdgeColor  ("Edge Colour",  Color) = (0.95, 0.15, 0.02, 1)
+        _DeepColor  ("Deep Colour",  Color) = (0.30, 0.02, 0.01, 1)
 
         _Intensity  ("Intensity",    Range(0, 1)) = 0
         _Flicker    ("Flicker Level",Range(0, 2)) = 1
-        _Brightness ("Brightness",   Range(0, 16)) = 3.4
+        _Brightness ("Brightness",   Range(0, 16)) = 2.2
+        _Opacity    ("Opacity",      Range(0, 1)) = 0.7
 
         _NoseBias   ("Nose Bias",       Range(-1, 1))  = -0.15
         _TailStrength ("Tail Strength", Range(0, 1))   = 0.18
@@ -40,7 +41,9 @@ Shader "SpaceGame/Effects/EntryPlasma"
         _StreakScale   ("Streak Scale",   Range(1, 40)) = 9
         _StreakStretch ("Streak Stretch", Range(0.02, 1)) = 0.16
         _FlowSpeed     ("Flow Speed",     Range(0, 12)) = 3.2
-        _Contrast      ("Streak Contrast",Range(0.5, 6)) = 3.6
+        _StreakCut     ("Streak Cut",     Range(0, 0.95)) = 0.55
+        _StreakEdge    ("Streak Edge",    Range(0.01, 0.5)) = 0.12
+        _Bands         ("Colour Bands",   Range(2, 8)) = 4
 
         _EmberThreshold  ("Ember Threshold",  Range(0, 0.99)) = 0.78
         _EmberBrightness ("Ember Brightness", Range(0, 4))    = 1.6
@@ -80,13 +83,16 @@ Shader "SpaceGame/Effects/EntryPlasma"
                 float _Intensity;
                 float _Flicker;
                 float _Brightness;
+                float _Opacity;
                 float _NoseBias;
                 float _TailStrength;
                 float _EdgeFade;
                 float _StreakScale;
                 float _StreakStretch;
                 float _FlowSpeed;
-                float _Contrast;
+                float _StreakCut;
+                float _StreakEdge;
+                float _Bands;
                 float _EmberThreshold;
                 float _EmberBrightness;
                 float _EmberScale;
@@ -193,11 +199,12 @@ Shader "SpaceGame/Effects/EntryPlasma"
                 float3 q = n * _StreakScale;
                 q.z = q.z * _StreakStretch - _Time.y * _FlowSpeed;
 
-                // No gain on the way out. Multiplied back up, the noise saturates almost everywhere
-                // and the sheath becomes one continuous sheet — which through a window reads as a
-                // screen effect painted over the glass rather than as fire the ship is flying
-                // through. The gaps between the streaks are the effect.
-                float streak = pow(saturate(Fbm(q)), _Contrast);
+                // A threshold cut rather than a contrast gain: everything under _StreakCut is not
+                // fire at all, and a tongue goes from nothing to full across only _StreakEdge of
+                // noise. That narrow rim is where the whole colour ramp compresses into a drawn
+                // outline, which is what makes a streak read as a SHAPE — a tongue of flame with an
+                // edge — instead of a gradient. The gaps between the streaks are still the effect.
+                float streak = smoothstep(_StreakCut, _StreakCut + _StreakEdge, Fbm(q));
 
                 float heat = saturate(cap * streak + wrap);
 
@@ -216,19 +223,32 @@ Shader "SpaceGame/Effects/EntryPlasma"
 
                 float sparkNoise = VNoise(e);
                 float spark = saturate(sparkNoise - _EmberThreshold) / max(1e-4, 1.0 - _EmberThreshold);
+                // A hard-ish step, not a pow: an ember is a drawn fleck with an edge, in the same
+                // register as the tongues, rather than a photographic pinprick with a falloff.
                 // Sparks only exist where there is fire to shed them from.
-                float ember = pow(spark, 6.0) * _EmberBrightness * cap;
+                float ember = smoothstep(0.3, 0.7, spark) * _EmberBrightness * cap;
 
-                // Two-tone ramp, deliberately bold: deep red body, orange through the middle, and
-                // a near-white core only at the very top of the heat.
-                float3 col = lerp(_DeepColor.rgb, _EdgeColor.rgb, saturate(heat * 1.8));
-                // A high exponent and no gain: the near-white core is meant to be the top of the
-                // fire and nothing else. Lifted, it takes over the whole sheath and every streak
-                // blows out to the same white, which loses the colour the ramp exists for.
-                col = lerp(col, _CoreColor.rgb, saturate(pow(heat, 3.5)));
+                // The colour is POSTERISED: the heat is snapped to _Bands flat levels before the
+                // ramp, so the fire is built from discrete cels — deep red body, flat red-orange
+                // through the middle, a yellow core — with the whole ramp compressing into an
+                // outline at every tongue's rim. Only the COLOUR is banded; the alpha below stays
+                // on the smooth heat, because a stepped fade would re-draw exactly the hard seams
+                // (silhouette rim, wake tail-off) the smooth envelopes exist to prevent.
+                float banded = floor(heat * _Bands + 0.5) / _Bands;
+
+                float3 col = lerp(_DeepColor.rgb, _EdgeColor.rgb, saturate(banded * 1.8));
+                // A high exponent and no gain: the yellow core is meant to be the top of the fire
+                // and nothing else. Lifted, it takes over the whole sheath and every streak reads
+                // the same yellow, which loses the red the ramp exists for. The core colour also
+                // keeps its BLUE channel low on purpose — a warm colour pushed through an additive
+                // blend and bloom whitens exactly as fast as its blue channel lets it.
+                col = lerp(col, _CoreColor.rgb, saturate(pow(banded, 3.5)));
                 col += _CoreColor.rgb * ember;
 
-                float a = saturate((heat + ember) * _Flicker * _Intensity) * silhouette;
+                // _Opacity is the sheath's ceiling: with an additive blend, "transparent" means
+                // adding less light, and capping alpha under 1 is what keeps the world outside
+                // readable through even the hottest part of the fire.
+                float a = saturate((heat + ember) * _Flicker * _Intensity) * silhouette * _Opacity;
 
                 return half4(col * _Brightness, a);
             }

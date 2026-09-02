@@ -46,6 +46,21 @@ namespace SpaceGame.Presentation
         /// <summary>Width of the underline a world name is typed on.</summary>
         private const float FieldWidth = 900f;
 
+        /// <summary>Height of the status line under the list.</summary>
+        private const float MessageHeight = 44f;
+
+        /// <summary>Breathing room between the list and the status line under it.</summary>
+        private const float ListGutter = 24f;
+
+        // The footer's actions, and the gap between them. Stated here rather than at each call so
+        // they can be read as one budget: they have to sit inside MenuEntry.ColumnWidth with the
+        // list, which now owns every pixel between the title and the status line, above them.
+        private const float FooterSpacing = 48f;
+        private const float BackWidth = 180f;
+        private const float NewWorldWidth = 340f;
+        private const float DeleteWidth = 230f;
+        private const float StartWidth = 580f;
+
         private MainMenuUI menu;
         private Destination destination;
 
@@ -108,9 +123,6 @@ namespace SpaceGame.Presentation
         {
             RectTransform root = NewPage("List", "WORLDS");
 
-            MenuEntry.Create(EntryPrefab, PinnedRow(root, MenuEntry.ContentTop, 720f), "NewWorldButton",
-                             "New world", MenuEntry.ActionSize, ActionHeight, ShowNewWorld, out _);
-
             BuildList(root);
             BuildFooter(root);
 
@@ -127,10 +139,17 @@ namespace SpaceGame.Presentation
             frame.anchorMin = new Vector2(0f, 0f);
             frame.anchorMax = new Vector2(0f, 1f);
             frame.pivot = new Vector2(0f, 0.5f);
-            // Starts below the New world entry, which itself starts below the horizon, so the rows
-            // are over ground rather than over sky — see MenuEntry.ContentTop.
-            frame.offsetMin = new Vector2(ColumnX, MenuEntry.MessageBottom + 78f);
-            frame.offsetMax = new Vector2(ColumnX + ColumnWidth, MenuEntry.ContentTop - 96f);
+
+            // Stretched between the two things it has to stay clear of rather than given a height:
+            // the first line of content (MenuEntry.ContentTop, the first row on any page that is
+            // below the horizon and so reads against ground) and the status line above the footer.
+            // Everything in between is the list, which is what makes it as tall as the page allows
+            // — and what makes it grow on a screen with more vertical room to give than the 1920×1080
+            // the layout is authored against. There is nothing else in the band: the New world
+            // action moved into the footer, because a row pinned here cost the list a third of its
+            // height and the list could show two worlds.
+            frame.offsetMin = new Vector2(ColumnX, MenuEntry.MessageBottom + MessageHeight + ListGutter);
+            frame.offsetMax = new Vector2(ColumnX + ColumnWidth, MenuEntry.ContentTop);
 
             RectTransform viewport = UIBuilder.Fill(UIBuilder.Rect("Viewport", frame));
             viewport.gameObject.AddComponent<RectMask2D>();
@@ -207,14 +226,14 @@ namespace SpaceGame.Presentation
         private void BuildFooter(RectTransform root)
         {
             RectTransform messageRect = PinnedRow(root, 0f, ColumnWidth,
-                                                  fromBottom: MenuEntry.MessageBottom, height: 44f);
+                                                  fromBottom: MenuEntry.MessageBottom, height: MessageHeight);
             message = UIBuilder.Label(messageRect, string.Empty, MenuEntry.CaptionSize, MenuEntry.Warning);
 
             RectTransform footer = PinnedRow(root, 0f, ColumnWidth,
                                              fromBottom: MenuEntry.FooterBottom, height: ActionHeight);
 
             var layout = footer.gameObject.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 64f;
+            layout.spacing = FooterSpacing;
             layout.childControlWidth = true;
             layout.childControlHeight = true;
             layout.childForceExpandWidth = false;
@@ -222,17 +241,23 @@ namespace SpaceGame.Presentation
             layout.childAlignment = TextAnchor.MiddleLeft;
 
             MenuEntry.Width(MenuEntry.Create(EntryPrefab, footer, "BackButton", "Back",
-                                             MenuEntry.ActionSize, ActionHeight, Close, out _), 200f);
+                                             MenuEntry.ActionSize, ActionHeight, Close, out _), BackWidth);
+
+            // Second, not last: with nothing selected the footer reads "Back  New world", which is
+            // the only thing to do on an empty list and now the first action under it.
+            MenuEntry.Width(MenuEntry.Create(EntryPrefab, footer, "NewWorldButton", "New world",
+                                             MenuEntry.ActionSize, ActionHeight, ShowNewWorld, out _),
+                            NewWorldWidth);
 
             deleteAction = MenuEntry.Create(EntryPrefab, footer, "DeleteButton", "Delete",
                                             MenuEntry.ActionSize, ActionHeight, ShowConfirmDelete,
                                             out _).gameObject;
-            MenuEntry.Width(deleteAction.GetComponent<Button>(), 260f);
+            MenuEntry.Width(deleteAction.GetComponent<Button>(), DeleteWidth);
 
             startAction = MenuEntry.Create(EntryPrefab, footer, "StartButton", StartLabel,
                                            MenuEntry.ActionSize, ActionHeight, StartSelected,
                                            out _).gameObject;
-            MenuEntry.Width(startAction.GetComponent<Button>(), 620f);
+            MenuEntry.Width(startAction.GetComponent<Button>(), StartWidth);
         }
 
         /// <summary>Remembers which row is chosen. Playing and deleting are separate, deliberate presses.</summary>

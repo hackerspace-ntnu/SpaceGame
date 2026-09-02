@@ -68,6 +68,14 @@ Shader "Custom/DesertSkybox"
         _MountainLightPatchScale ("Light Patch Scale", Range(0.5, 10)) = 2.5
         _MountainLightPatchThreshold ("Light Patch Threshold", Range(0, 1)) = 0.4
         _MountainLightPatchSmoothness ("Light Patch Smoothness", Range(0, 0.5)) = 0.2
+
+        [Header(Airborne Sky)]
+        _AltitudeFadeStart ("Airborne Fade Start Altitude (m)", Float) = 150
+        _AltitudeFadeEnd ("Airborne Fade End Altitude (m)", Float) = 600
+        _AirborneHorizonDrop ("Airborne Horizon Drop", Range(0, 1)) = 0.45
+        _GroundColor ("Ground Haze (Day)", Color) = (0.72, 0.58, 0.42, 1)
+        _GroundSunsetColor ("Ground Haze (Sunset)", Color) = (0.45, 0.22, 0.15, 1)
+        _GroundNightColor ("Ground Haze (Night)", Color) = (0.05, 0.04, 0.08, 1)
     }
     
     SubShader
@@ -152,6 +160,12 @@ Shader "Custom/DesertSkybox"
                 half _MountainLightPatchScale;
                 half _MountainLightPatchThreshold;
                 half _MountainLightPatchSmoothness;
+                float _AltitudeFadeStart;
+                float _AltitudeFadeEnd;
+                half _AirborneHorizonDrop;
+                half4 _GroundColor;
+                half4 _GroundSunsetColor;
+                half4 _GroundNightColor;
             CBUFFER_END
             
             // Hash function for noise (2D)
@@ -386,6 +400,11 @@ Shader "Custom/DesertSkybox"
                 
                 // Calculate height (y component of view direction)
                 float height = viewDir.y;
+
+                // How far the camera is into the airborne band: 0 on the ground, 1 fully
+                // airborne. Every painted feature below is anchored to VIEW angles, not world
+                // height, so without this the sky reads ground-level at any altitude.
+                float airborne = smoothstep(_AltitudeFadeStart, _AltitudeFadeEnd, _WorldSpaceCameraPos.y);
                 
                 // Calculate sun elevation for day/sunset/night transitions
                 float sunHeight = lightDir.y; // -1 (below horizon) to 1 (zenith)
@@ -405,9 +424,11 @@ Shader "Custom/DesertSkybox"
                 
                 float nightFactor = smoothstep(0.0, -0.3, sunHeight); // 0 at horizon, 1 when sun deep below
                 
-                // Sky gradient with sharp cartoon banding
-                float skyGradient = saturate((height - _HorizonHeight) * _HorizonBlend + 0.5);
-                skyGradient = cartoonBand(skyGradient, _Bands, _BandSmoothness);
+                // Sky gradient with sharp cartoon banding. The horizon sinks as the camera
+                // climbs, opening the lower hemisphere for the ground haze.
+                float horizonHeight = _HorizonHeight - airborne * _AirborneHorizonDrop;
+                float rawSkyGradient = saturate((height - horizonHeight) * _HorizonBlend + 0.5);
+                float skyGradient = cartoonBand(rawSkyGradient, _Bands, _BandSmoothness);
                 
                 // Blend colors based on time of day: Day → Sunset → Night
                 // Blend all three phases simultaneously to avoid reverting
@@ -621,6 +642,11 @@ Shader "Custom/DesertSkybox"
                 // zero, so a scene with no cloud layer keeps exactly the sky it has always had.
                 dustMask *= saturate(1.0 - _VolumetricCloudFade);
 
+                // Dust bands and mountains are a GROUND-LEVEL vista; being view-anchored they
+                // would hang at eye level from any altitude, so both fade out across the
+                // airborne band.
+                dustMask *= 1.0 - airborne;
+
                 // Blend dust with sky (smooth for cloud edges, but still cartoon banded)
                 half3 color = lerp(skyColor, dustColor, dustMask);
                 
@@ -628,6 +654,7 @@ Shader "Custom/DesertSkybox"
                 float mountainMask;
                 float mountainLighting;
                 mountainSilhouette(viewDir, lightDir, mountainMask, mountainLighting);
+                mountainMask *= 1.0 - airborne;
                 
                 // Base mountain color based on time of day
                 half3 mountainBaseColor = _MountainColor.rgb * dayFactor + 
@@ -642,6 +669,16 @@ Shader "Custom/DesertSkybox"
                 
                 // Blend mountains with the scene (over clouds)
                 color = lerp(color, mountainColor, mountainMask);
+
+                // === GROUND FAR BELOW (airborne only) ===
+                // Real terrain only extends to the streamed chunk ring; past it, everything
+                // under the sunken horizon must read as hazy desert floor rather than as sky
+                // continuing beneath the camera.
+                half3 groundColor = _GroundColor.rgb * dayFactor +
+                                    _GroundSunsetColor.rgb * sunsetFactor +
+                                    _GroundNightColor.rgb * nightFactor;
+                float groundMask = airborne * cartoonBand(saturate(1.0 - rawSkyGradient * 2.0), _Bands, _BandSmoothness);
+                color = lerp(color, groundColor, groundMask);
                 
                 // === SUN WITH RAYS, OUTLINE, AND HEAT FLICKER ===
                 // --- Stable 2D projection for sun ---

@@ -176,7 +176,16 @@ namespace SpaceGame.EditorTools
             // After the reserialize, so the rows point at the assets as they finally exist on disk.
             WirePackShapes(built.Select(b => b.item).ToList());
 
-            Core.Persistence.EditorTools.SaveableWiring.WirePrefabs();
+            // Checked: this pass refuses in Play mode, and a builder that ignores the refusal saves
+            // prefabs with no prefabId and none of their savers — silently. That is what cost
+            // PlayerShip its ability to be restored from a save.
+            if (!Core.Persistence.EditorTools.SaveableWiring.TryWirePrefabs())
+            {
+                Debug.LogError("[ShipParts] Aborting — the save-wiring pass refused to run, so the " +
+                               "modules would ship with no prefabId and no savers.");
+                return;
+            }
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 

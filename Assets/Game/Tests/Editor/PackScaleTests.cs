@@ -5,17 +5,18 @@ using SpaceGame.Items;
 namespace SpaceGame.Tests
 {
     /// <summary>
-    /// The one property the 2026-09-01 enlargement had to have, and the one number it could have
-    /// got wrong.
+    /// The one property every move of <see cref="PackScale.Factor"/> has to have, and the numbers
+    /// such a move could get wrong.
     ///
     /// <para>
-    /// The enlargement is a <b>similarity transform</b>: every length in the physical inventory
-    /// multiplied by <see cref="PackScale.Factor"/>, no count multiplied by anything. That is what
-    /// let 255 cells stay 255 cells, every authored <see cref="PackShape"/> mask stay valid, and
-    /// every save from before the change be migrated by multiplying two floats. If it ever stops
-    /// being a similarity transform — a cell scaled without its faces, a face scaled without the
-    /// cell — nothing throws: the pack simply holds a different amount of gear than it did, and
-    /// the first person to notice is a player whose kit has rearranged itself.
+    /// A move of the factor is a <b>similarity transform</b>: every length on the rig multiplied by
+    /// it, no count multiplied by anything. That is what let 255 cells stay 255 cells through the
+    /// 1 -&gt; 1.5 enlargement of 2026-09-01 and the 1.5 -&gt; 1.05 shrink of 2026-09-02, let every
+    /// authored <see cref="PackShape"/> mask stay valid through both, and lets every save from
+    /// either frame be migrated by multiplying two floats. If it ever stops being a similarity
+    /// transform — a cell scaled without its faces, a face scaled without the cell — nothing
+    /// throws: the pack simply holds a different amount of gear than it did, and the first person
+    /// to notice is a player whose kit has rearranged itself.
     /// </para>
     /// </summary>
     public class PackScaleTests
@@ -26,9 +27,9 @@ namespace SpaceGame.Tests
         /// <para>
         /// A face fills its rectangle when nothing is left over that a cell could have used, and
         /// that is a claim about millimetres, not about bit patterns: the same rectangle written
-        /// as <c>30 * PackGrid.Cell</c> and as <c>4.05</c> is the same face and need not be the
-        /// same float. A hem worth the name is a fraction of a 135 mm cell; a tenth of a
-        /// millimetre is arithmetic.
+        /// as <c>30 * PackGrid.Cell</c> and as the decimal that comes to is the same face and need not be the
+        /// same float. A hem worth the name is a fraction of a cell; a tenth of a millimetre is
+        /// arithmetic.
         /// </para>
         /// </summary>
         private const float NoHem = 1e-4f;
@@ -36,8 +37,8 @@ namespace SpaceGame.Tests
         /// <summary>
         /// <see cref="PackGrid.Cell"/> is written as a literal rather than as
         /// <c>LegacyCell * Factor</c>, because it is a <c>const</c> read by eye off the model and
-        /// because <c>0.09f * 1.5f</c> in float need not land on the same bit pattern as
-        /// <c>0.135f</c>. This is the assertion that pays for that choice: change one of the three
+        /// because <c>0.09f * 1.05f</c> in float need not land on the same bit pattern as
+        /// <c>0.0945f</c>. This is the assertion that pays for that choice: change one of the three
         /// numbers and this is what says so.
         /// </summary>
         [Test]
@@ -45,8 +46,8 @@ namespace SpaceGame.Tests
         {
             Assert.AreEqual(PackScale.LegacyCell * PackScale.Factor, PackGrid.Cell, 1e-6f,
                 "PackGrid.Cell, PackScale.LegacyCell and PackScale.Factor have drifted apart. " +
-                "Every save written before the enlargement is migrated by multiplying its uvs by " +
-                "Factor, so a mismatch here silently misplaces every item in every old save.");
+                "Every save is migrated by multiplying its uvs by today's cell over the cell it " +
+                "was written at, so a mismatch here silently misplaces every item in every save.");
         }
 
         /// <summary>
@@ -54,14 +55,24 @@ namespace SpaceGame.Tests
         /// leaves the item on the cell it was already on. Asserted on the cell index rather than on
         /// the uv, because "the same cell" is the thing the player sees and the uv is only how it
         /// is written down.
+        ///
+        /// <para>
+        /// Run over EVERY frame the codec still migrates from, not just the oldest. The 2026-09-02
+        /// shrink added a second one and the migration is a DIVISION for it rather than a multiply
+        /// — 0.0945 / 0.135 — which is exactly the case a test written against one frame would
+        /// have missed.
+        /// </para>
         /// </summary>
-        [Test]
-        public void ScalingASurfaceAndItsUvTogetherKeepsTheCell()
+        [TestCase(PackScale.LegacyCell,   TestName = "from the original 0.09 m frame (v1, v2)")]
+        [TestCase(PackScale.EnlargedCell, TestName = "from the 0.135 m frame (v3)")]
+        public void ScalingASurfaceAndItsUvTogetherKeepsTheCell(float savedCell)
         {
-            // 8 x 8 cells at the ORIGINAL cell, which is what a pre-enlargement save was written
-            // against. The leaf's own shape, so the arithmetic is the shipped one.
-            var oldSurface = new Vector2(8f * PackScale.LegacyCell, 8f * PackScale.LegacyCell);
-            var newSurface = oldSurface * PackScale.Factor;
+            // 8 x 8 cells at the cell that save was written against. The leaf's own shape, so the
+            // arithmetic is the shipped one.
+            var oldSurface = new Vector2(8f * savedCell, 8f * savedCell);
+
+            float uvScale = PackGrid.Cell / savedCell;
+            Vector2 newSurface = oldSurface * uvScale;
 
             var block = new Vector2Int(2, 3);
 
@@ -71,17 +82,43 @@ namespace SpaceGame.Tests
                 {
                     var origin = new Vector2Int(x, y);
 
-                    // What the old build would have stored, in the old frame.
-                    Vector2 oldUv = BlockCentre(oldSurface, origin, block, PackScale.LegacyCell);
+                    // What that build would have stored, in its own frame.
+                    Vector2 oldUv = BlockCentre(oldSurface, origin, block, savedCell);
 
-                    // What PackSaveCodec.Restore hands to PackLayout for a pre-v3 payload.
-                    Vector2 migrated = oldUv * PackScale.Factor;
+                    // What PackSaveCodec.Restore hands to PackLayout for that payload.
+                    Vector2 migrated = oldUv * uvScale;
 
                     Assert.AreEqual(origin, PackGrid.BlockOrigin(newSurface, migrated, block),
-                                    $"a {block.x}x{block.y} item saved on cell {origin} came back " +
-                                    "on a different cell after the enlargement");
+                                    $"a {block.x}x{block.y} item saved on cell {origin} at a " +
+                                    $"{savedCell} m cell came back on a different cell");
                 }
             }
+        }
+
+        /// <summary>
+        /// The ship's gear wall is sized by the ROOM, so its drawn board must not move when the
+        /// backpack's <see cref="PackScale.Factor"/> does.
+        ///
+        /// <para>
+        /// This is what makes the 2026-09-02 shrink safe to make without touching the ship: the
+        /// wall's LOGICAL face rides <see cref="PackGrid.Cell"/> like every other face, and
+        /// <see cref="PackScale.WallDisplay"/> re-derives itself against the factor so the product
+        /// — the metres the fitting actually occupies in the aft room, and the <c>TOTAL</c> baked
+        /// into <c>inventory_wall.blend</c> — comes out unchanged. Type a literal into
+        /// <c>WallDisplay</c> instead and the next move of the factor resizes the ship's fitting
+        /// with nothing anywhere to say so: <c>PlayerShipBuilder</c>'s <c>WallDepth</c> and
+        /// <c>WallGridCentreHeight</c> are measurements of the drawn fitting and would both go
+        /// quietly wrong.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void TheGearWallIsDrawnTheSameSizeAtAnyPackFactor()
+        {
+            Assert.AreEqual(PackScale.WallDrawn, PackScale.Factor * PackScale.WallDisplay, 1e-5f,
+                "the gear wall's drawn size has come loose from PackScale.WallDrawn. That number " +
+                "is the room's, not the pack's: inventory_wall_scale.py bakes it into the model " +
+                "as TOTAL and PlayerShipBuilder measures the fitting at it, so the two frames " +
+                "must multiply back to it at every value of Factor.");
         }
 
         /// <summary>
@@ -111,7 +148,7 @@ namespace SpaceGame.Tests
                 // Both ways a face's metres are actually written down: derived from the cell, which
                 // is how the wiring scripts author one, and typed as the decimal it comes to, which
                 // is how a face resized by hand in the inspector arrives. They are not obliged to
-                // be the same float — 3 x 0.135f is 0.40500003 and 0.405f is 0.40500000 — and a
+                // be the same float — 3 x 0.0945f is 0.28350002 and 0.2835f is 0.28350000 — and a
                 // face that fills its rectangle one way round has to fill it the other way too.
                 Fills(across, up, new Vector2(across * PackGrid.Cell, up * PackGrid.Cell));
                 Fills(across, up, new Vector2(Typed(across), Typed(up)));

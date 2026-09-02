@@ -35,10 +35,21 @@ namespace SpaceGame.Presentation.Lobbies
         /// The session name, at a fraction of a page title's size. Down from
         /// <see cref="MenuEntry.TitleSize"/> because this page is mostly a picture: the astronauts
         /// are what the player is looking at, and a 110pt word beside them competes with them.
+        /// It sits in the page's lower-right corner, level with the footer's actions — a signature
+        /// on the shot rather than a heading over it — drawn navy because down there it is over
+        /// sand, not sky.
         /// </summary>
         private const int TitleSize = 44;
 
         private const float TitleHeight = 62f;
+
+        /// <summary>The right half of the column. Right-aligned, so a short name hugs the corner;
+        /// a longer one grows leftwards without ever reaching the footer's own buttons.</summary>
+        private const float TitleWidth = MenuEntry.ColumnWidth / 2f;
+
+        /// <summary>Centred on the footer's action row, so name and actions share one baseline band.</summary>
+        private const float TitleBottom =
+            MenuEntry.FooterBottom + (MenuEntry.ActionHeight - TitleHeight) / 2f;
         private const float StatusHeight = 44f;
         private const float FooterSpacing = 64f;
         private const float StartWidth = 420f;
@@ -112,9 +123,9 @@ namespace SpaceGame.Presentation.Lobbies
             this.actions = actions;
 
             title = UIBuilder.Label(
-                UIBuilder.PinnedTop(page, "Title", MenuEntry.ColumnX, MenuEntry.TitleTop,
-                                    MenuEntry.ColumnWidth, TitleHeight),
-                string.Empty, TitleSize, MenuEntry.Title, TextAlignmentOptions.Left, FontStyles.Bold);
+                UIBuilder.PinnedBottom(page, "Title", MenuEntry.ColumnX + MenuEntry.ColumnWidth - TitleWidth,
+                                       TitleBottom, TitleWidth, TitleHeight),
+                string.Empty, TitleSize, MenuEntry.Idle, TextAlignmentOptions.Right, FontStyles.Bold);
 
             strip = new LobbySessionStrip(page, entryPrefab, () => actions.CopyCode?.Invoke(), TogglePrivacy);
             teamRules = new LobbyTeamRulesStrip(page, entryPrefab,

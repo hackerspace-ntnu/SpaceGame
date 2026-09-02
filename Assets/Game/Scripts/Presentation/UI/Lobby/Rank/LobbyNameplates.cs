@@ -89,6 +89,17 @@ namespace SpaceGame.Presentation.Lobbies
         }
 
         /// <summary>
+        /// Takes every name down. A VS lobby shows no over-head names at all — the member lists on
+        /// the team plates are the roster there, and a name in both places reads as two rosters
+        /// disagreeing about how to say the same thing.
+        /// </summary>
+        public void Hide()
+        {
+            foreach (RectTransform row in rows)
+                if (row != null) row.gameObject.SetActive(false);
+        }
+
+        /// <summary>
         /// Keeps every plate over its head, at the size the space between heads allows.
         ///
         /// A plate whose slot is empty, or whose head is behind the camera, is hidden. So is one the

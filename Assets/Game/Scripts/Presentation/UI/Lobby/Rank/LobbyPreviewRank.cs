@@ -7,9 +7,11 @@ namespace SpaceGame.Presentation.Lobbies
 {
     /// <summary>
     /// The rank of astronauts standing in the lobby: one cluster per team, each in its team's
-    /// colour (or one line in a story lobby, each in their own suit colour), with names above their
-    /// heads, a team nameplate above each cluster you click to join it, and a colour cycler under
-    /// your own figure.
+    /// colour (or one line in a story lobby, each in their own suit colour), and a team nameplate
+    /// above each cluster you click to join it. A story lobby floats each name over its head and
+    /// steps your suit colour from a cycler under your figure; a VS lobby shows names only in the
+    /// plates' member lists and steps the team colour from the chevrons beside the local team
+    /// plate's own name.
     ///
     /// <para>
     /// They stand in the <b>real menu scene</b> rather than in a RenderTexture, lit by the menu's own
@@ -103,6 +105,9 @@ namespace SpaceGame.Presentation.Lobbies
         /// <summary>Which figure the cycler belongs under, or -1 while that is unknown.</summary>
         private int localSlot = -1;
 
+        /// <summary>Whether the last snapshot was a VS lobby — decides which colour control is live.</summary>
+        private bool isVersus;
+
         /// <summary>
         /// Puts the rank up. <paramref name="page"/> is the screen's own rect, which the overlays are
         /// built into so they are destroyed with the page.
@@ -115,7 +120,7 @@ namespace SpaceGame.Presentation.Lobbies
 
             rank.overlays = new LobbyOverlayLayer(page);
             rank.nameplates = new LobbyNameplates(rank.overlays, LabelLift);
-            rank.plates = new LobbyTeamPlates(rank.overlays, onJoinTeam);
+            rank.plates = new LobbyTeamPlates(rank.overlays, entryPrefab, onJoinTeam, onStep);
 
             // Before the anchor is resolved, because the anchor's own fallback is computed from where
             // the camera is looking — and by then it should be looking at the lobby's shot.
@@ -157,6 +162,7 @@ namespace SpaceGame.Presentation.Lobbies
             localSlot = snapshot.LocalSlot;
 
             bool versus = snapshot.IsVersus;
+            isVersus = versus;
             int teams = versus ? Mathf.Max(1, snapshot.TeamCount) : 1;
             int teamSize = versus ? Mathf.Max(1, snapshot.TeamSize) : Mathf.Max(1, snapshot.Names.Length);
             int[] teamsBySlot = versus ? snapshot.Teams : null;
@@ -190,8 +196,10 @@ namespace SpaceGame.Presentation.Lobbies
                 plates.Clear();
             }
 
-            if (figures.IsStanding(localSlot))
-                cycler.SetColor(versus ? snapshot.ColorOfTeam(snapshot.LocalTeam) : snapshot.SuitColors[localSlot]);
+            // The cycler is the STORY lobby's colour control; a VS lobby steps its team colour from
+            // the chevrons on the local team's plate, and the cycler stays down entirely.
+            if (!versus && figures.IsStanding(localSlot))
+                cycler.SetColor(snapshot.SuitColors[localSlot]);
 
             view.Fit(anchor, teams, teamSize, grounded.HeightSpread);
 
@@ -202,11 +210,13 @@ namespace SpaceGame.Presentation.Lobbies
             PositionOverlays();
         }
 
-        /// <summary>Repaints only our own figure, for the frame an arrow is pressed.</summary>
+        /// <summary>Repaints only our own figure and colour control, for the frame an arrow is pressed.</summary>
         public void SetLocalColor(int color)
         {
             figures.Recolor(localSlot, color);
-            cycler.SetColor(color);
+
+            if (isVersus) plates.ShowLocalColor(color);
+            else cycler.SetColor(color);
         }
 
         /// <summary>
@@ -250,10 +260,14 @@ namespace SpaceGame.Presentation.Lobbies
             Camera camera = Camera.main;
             if (camera == null) return;
 
-            nameplates.Position(camera, figures.Heads, figures.Occupied);
+            // A VS lobby's names live in the plates' member lists; over-head copies would say
+            // everything twice.
+            if (isVersus) nameplates.Hide();
+            else nameplates.Position(camera, figures.Heads, figures.Occupied);
+
             plates.Position(camera, anchor, GroundOfTeam);
 
-            bool cyclerVisible = figures.IsStanding(localSlot);
+            bool cyclerVisible = !isVersus && figures.IsStanding(localSlot);
             cycler.Position(camera, cyclerVisible,
                             cyclerVisible ? figures.PositionOf(localSlot) - Vector3.up * CyclerDrop : default);
         }

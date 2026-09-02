@@ -253,7 +253,7 @@ namespace SpaceGame.Core.Lobbies
         public void PublishTeam(int team) => publisher.RequestTeam(team);
 
         /// <summary>Publishes the local player's opinion of their VS team's colour. See <see cref="PublishSuitColor"/>.</summary>
-        public void PublishTeamColor(int swatch) => publisher.RequestTeamColor(swatch);
+        public void PublishTeamColor(int swatch) => publisher.RequestTeamColor(swatch, LocalTeam);
 
         /// <summary>This peer's own view of the roster, ready for a screen to read.</summary>
         public RosterSnapshot CurrentSnapshot() => LobbyRoster.Snapshot(Current, LocalSlot, SuitPalette.Count);

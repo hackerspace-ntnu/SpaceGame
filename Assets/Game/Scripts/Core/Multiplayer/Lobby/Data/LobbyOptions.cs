@@ -130,14 +130,15 @@ namespace SpaceGame.Core.Lobbies
         };
 
         /// <summary>
-        /// The options that publish this player's opinion of their team's colour. See
-        /// <see cref="TeamColorOpinion"/> for why this is player data with a stamp on it.
+        /// The options that publish this player's opinion of a team's colour. See
+        /// <see cref="TeamColorOpinion"/> for why this is player data with a stamp on it, and why
+        /// the team the vote is FOR travels inside the vote.
         /// </summary>
-        public static UpdatePlayerOptions TeamColor(int swatch, long stampMs) => new()
+        public static UpdatePlayerOptions TeamColor(int swatch, long stampMs, int team) => new()
         {
             Data = new Dictionary<string, PlayerDataObject>
             {
-                { LobbyKeys.TeamColor, PlayerMember(TeamColorOpinion.Encode(swatch, stampMs)) }
+                { LobbyKeys.TeamColor, PlayerMember(TeamColorOpinion.Encode(swatch, stampMs, team)) }
             }
         };
 

@@ -343,8 +343,9 @@ namespace SpaceGame.Gameplay.Arrival
 
             // Spawned on the hull rather than at the world origin, so the body exists somewhere
             // sensible for the one frame before SeatedRider takes over placing it. The exact seat is
-            // not used here: the seat pose is owner-authoritative and gets written by HoldSeats on
-            // the owning machine, which is not necessarily this one.
+            // not used here: while the flight is live every machine stamps every occupant onto its
+            // own copy of the seat from the replicated seat index (SeatedRider.HoldSeats), so
+            // nothing about this spawn pose survives past the frame.
             Transform hull = flight.Seating.transform;
             SpawnManager.Instance.SpawnPlayerForClient(clientId, hull.position, hull.rotation);
             attempt.Handled = true;

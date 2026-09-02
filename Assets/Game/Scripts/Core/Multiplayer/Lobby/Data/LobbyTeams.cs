@@ -58,11 +58,19 @@ namespace SpaceGame.Core.Lobbies
         public static int[] Occupancy(Lobby lobby) => Occupancy(Teams(lobby), TeamCountOf(lobby));
 
         /// <summary>
-        /// One swatch per team: the highest-stamped opinion among that team's members, else
+        /// One swatch per team: the highest-stamped opinion CAST FOR that team, else
         /// <see cref="TeamColorRules.DefaultColors"/>. Always exactly <see cref="TeamCountOf"/>
         /// entries long, even for a lobby with nobody in it at all.
         ///
-        /// Ties — two players on the same team publishing the same stamp — go to whichever comes
+        /// <para>
+        /// A vote counts for the team recorded in it, not for the team its caster stands on now —
+        /// that is what makes switching teams keep the destination's colour instead of importing
+        /// yours, and what keeps a team's colour standing after its recolourer moves away. Only a
+        /// legacy vote with no team tag (<see cref="TeamColorOpinion.NoTeam"/>) falls back to the
+        /// voter's current team.
+        /// </para>
+        ///
+        /// Ties — two players publishing the same stamp for the same team — go to whichever comes
         /// first in lobby order. That has to be resolved the same way on every peer or two machines
         /// paint the same team's rank in different colours; it is why the comparison is strict
         /// (<c>&gt;</c>, never <c>&gt;=</c>) — a later, equally-stamped opinion never displaces
@@ -121,9 +129,11 @@ namespace SpaceGame.Core.Lobbies
             for (int i = 0; i < lobby.Players.Count; i++)
             {
                 string opinion = LobbyData.Text(lobby.Players[i], LobbyKeys.TeamColor);
-                if (!TeamColorOpinion.TryDecode(opinion, out int swatch, out long stampMs)) continue;
+                if (!TeamColorOpinion.TryDecode(opinion, out int swatch, out long stampMs,
+                                                out int votedTeam)) continue;
 
-                int team = teams[i];
+                int team = votedTeam == TeamColorOpinion.NoTeam ? teams[i]
+                                                                : FoldTeam(votedTeam, teamCount);
 
                 // Strict: a later opinion only wins on a HIGHER stamp. An equal stamp leaves the
                 // earlier player's colour standing, which is the tie-break the doc above promises.

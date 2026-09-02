@@ -207,11 +207,23 @@ namespace SpaceGame.Tests
         [Test]
         public void TeamColor_RoundTripsThroughEncodeAndDecode()
         {
-            string encoded = TeamColorOpinion.Encode(5, 123456789L);
+            string encoded = TeamColorOpinion.Encode(5, 123456789L, team: 3);
 
-            Assert.IsTrue(TeamColorOpinion.TryDecode(encoded, out int swatch, out long stampMs));
+            Assert.IsTrue(TeamColorOpinion.TryDecode(encoded, out int swatch, out long stampMs, out int team));
             Assert.AreEqual(5, swatch);
             Assert.AreEqual(123456789L, stampMs);
+            Assert.AreEqual(3, team);
+        }
+
+        [Test]
+        public void TeamColor_ALegacyTwoPartValueDecodesWithNoTeam()
+        {
+            // What a build from before the team tag published. It must still count — see
+            // TeamColorsOf below for where NoTeam falls back to the voter's current team.
+            Assert.IsTrue(TeamColorOpinion.TryDecode("5:123", out int swatch, out long stampMs, out int team));
+            Assert.AreEqual(5, swatch);
+            Assert.AreEqual(123L, stampMs);
+            Assert.AreEqual(TeamColorOpinion.NoTeam, team);
         }
 
         [TestCase(null)]
@@ -222,10 +234,12 @@ namespace SpaceGame.Tests
         [TestCase("5:not-a-number")]
         [TestCase(":123")]
         [TestCase("5:")]
+        [TestCase("5:123:x")]
+        [TestCase("5:123:0:9")]
         public void TeamColor_UnrecognisedValuesDecodeAsFalseRatherThanThrowing(string value)
         {
-            Assert.DoesNotThrow(() => TeamColorOpinion.TryDecode(value, out _, out _));
-            Assert.IsFalse(TeamColorOpinion.TryDecode(value, out _, out _));
+            Assert.DoesNotThrow(() => TeamColorOpinion.TryDecode(value, out _, out _, out _));
+            Assert.IsFalse(TeamColorOpinion.TryDecode(value, out _, out _, out _));
         }
 
         // ─────────────────────────────────────────────
@@ -281,6 +295,38 @@ namespace SpaceGame.Tests
             });
 
             Assert.AreEqual(5, LobbyTeams.TeamColorsOf(lobby, swatchCount: 12).Length);
+        }
+
+        [Test]
+        public void TeamColorsOf_SwitchingTeamsDoesNotCarryYourColourAlong()
+        {
+            // THE regression test for the team tag: "a" recoloured team 0 and then moved to team 1.
+            // Team 0 keeps the colour it was given; team 1 continues with the colour it already
+            // had — the vote belongs to the team it was cast for, not to wherever its caster went.
+            Lobby lobby = LobbyWithPlayers(
+                PlayerWithVote("a", team: 1, votedTeam: 0, swatch: 5, stampMs: 200),
+                PlayerWithVote("b", team: 1, votedTeam: 1, swatch: 2, stampMs: 100));
+
+            int[] colors = LobbyTeams.TeamColorsOf(lobby, swatchCount: 12);
+
+            Assert.AreEqual(5, colors[0], "the vote must keep colouring the team it was cast for");
+            Assert.AreEqual(2, colors[1], "a joiner's higher stamp must not repaint the team they joined");
+        }
+
+        [Test]
+        public void TeamColorsOf_ALegacyUntaggedVoteCountsForTheVotersCurrentTeam()
+        {
+            // An older build's two-part vote carries no team, so the only sensible reading is the
+            // one that build meant: the team its caster stands on right now.
+            Lobby lobby = LobbyWithPlayers(new Player(id: "a",
+                data: new Dictionary<string, PlayerDataObject>
+                {
+                    { LobbyKeys.Team, TextData(1) },
+                    { LobbyKeys.TeamColor, new PlayerDataObject(
+                        PlayerDataObject.VisibilityOptions.Member, "5:100") }
+                }));
+
+            Assert.AreEqual(5, LobbyTeams.TeamColorsOf(lobby, swatchCount: 12)[1]);
         }
 
         [Test]
@@ -401,12 +447,17 @@ namespace SpaceGame.Tests
                 { LobbyKeys.SuitColor, TextData(suit) }
             });
 
-        private static Player PlayerWithTeamColor(string id, int team, int swatch, long stampMs) => new(id: id,
-            data: new Dictionary<string, PlayerDataObject>
+        /// <summary>A player whose colour vote was cast for the team they stand on.</summary>
+        private static Player PlayerWithTeamColor(string id, int team, int swatch, long stampMs) =>
+            PlayerWithVote(id, team, votedTeam: team, swatch, stampMs);
+
+        /// <summary>A player standing on <paramref name="team"/> whose vote was cast for <paramref name="votedTeam"/>.</summary>
+        private static Player PlayerWithVote(string id, int team, int votedTeam, int swatch, long stampMs) =>
+            new(id: id, data: new Dictionary<string, PlayerDataObject>
             {
                 { LobbyKeys.Team, TextData(team) },
                 { LobbyKeys.TeamColor, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member,
-                    TeamColorOpinion.Encode(swatch, stampMs)) }
+                    TeamColorOpinion.Encode(swatch, stampMs, votedTeam)) }
             });
 
         private static Player PlayerWithTeamAndColor(string id, int team, int suit, int swatch, long stampMs) =>
@@ -415,7 +466,7 @@ namespace SpaceGame.Tests
                 { LobbyKeys.Team, TextData(team) },
                 { LobbyKeys.SuitColor, TextData(suit) },
                 { LobbyKeys.TeamColor, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member,
-                    TeamColorOpinion.Encode(swatch, stampMs)) }
+                    TeamColorOpinion.Encode(swatch, stampMs, team)) }
             });
 
         private static PlayerDataObject TextData(int value) =>

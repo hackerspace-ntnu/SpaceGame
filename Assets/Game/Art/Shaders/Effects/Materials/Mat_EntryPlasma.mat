@@ -25,7 +25,8 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _Brightness: 3.4
+    - _Bands: 4
+    - _Brightness: 2.2
     - _Contrast: 3.6
     - _EdgeFade: 0.3
     - _EmberBrightness: 1.6
@@ -35,12 +36,15 @@ Material:
     - _FlowSpeed: 3.2
     - _Intensity: 0
     - _NoseBias: -0.15
+    - _Opacity: 0.7
+    - _StreakCut: 0.55
+    - _StreakEdge: 0.12
     - _StreakScale: 9
     - _StreakStretch: 0.16
-    - _TailStrength: 0.18
+    - _TailStrength: 0.12
     m_Colors:
-    - _CoreColor: {r: 1, g: 0.93, b: 0.72, a: 1}
-    - _DeepColor: {r: 0.4, g: 0.05, b: 0.01, a: 1}
-    - _EdgeColor: {r: 1, g: 0.36, b: 0.06, a: 1}
+    - _CoreColor: {r: 1, g: 0.85, b: 0.15, a: 1}
+    - _DeepColor: {r: 0.3, g: 0.02, b: 0.01, a: 1}
+    - _EdgeColor: {r: 0.95, g: 0.15, b: 0.02, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

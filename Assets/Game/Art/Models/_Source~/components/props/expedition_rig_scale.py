@@ -40,11 +40,21 @@ the model at 1x under a 1.5x grid and the stitching, the grommet field and the
 lash rail all stop lining up with the cells the player is dropping gear onto, and
 the mat rectangle grows past the physical board so gear lands over sand.
 
-Refuses to run twice
+Composes; refuses only to repeat itself
 -------------------------------------------------------------------------------
-It stamps `scene["rig_scale"]` and refuses a file that already carries one. A
-second pass would leave a 2.25x rig that no number on Unity's side agrees with,
-and nothing downstream would report it — the pack would simply be enormous.
+`SCALE` is the scale the shipped model is meant to be at, cumulatively, and
+`scene["rig_scale"]` records the scale it is at now. The pass applies the
+RESIDUAL between them and re-stamps, so changing `SCALE` later resizes the rig by
+the difference and running the same script twice does nothing at all. It refuses
+only when the file already carries `SCALE`.
+
+The first version refused any stamped file outright. That was the right guard and
+the wrong shape: a second unconditional pass would leave a 2.25x rig that no
+number on Unity's side agrees with, and nothing downstream would report it — the
+pack would simply be enormous. But so would re-typing `SCALE` under a refusal
+that has to be commented out to get past, which is what a shrink needs. Composing
+keeps the protection and removes the temptation, and is what
+`inventory_wall_scale.py` already did.
 """
 
 import os
@@ -67,7 +77,12 @@ from expedition_rig import SURFACES  # noqa: E402
 # `PackSurfaceTests.SurfaceTable_MatchesTheRigsCellCounts` is what notices when
 # they drift: a mismatch shows up as surface rectangles that are no longer whole
 # multiples of the cell.
-SCALE = 1.5
+SCALE = 1.05
+
+# Two scales are "the same" if they agree to this. The residual below is a
+# quotient of decimal literals neither language can represent exactly, so an
+# equality test on it would make the refusal depend on the last bit.
+EPSILON = 1e-6
 
 STAMP = "rig_scale"
 
@@ -108,7 +123,7 @@ def scale_world(factor):
 
 
 def report():
-    print("expedition_rig_scale  x%.3f" % SCALE)
+    print("expedition_rig_scale  cumulative x%.3f" % SCALE)
     print("  --- surface rectangles, in the frame Unity carries ---")
     print("      these must equal ExpeditionRigWiring.SurfaceTable exactly")
 
@@ -129,13 +144,19 @@ def report():
 def main():
     scene = bpy.context.scene
 
-    if STAMP in scene:
-        raise SystemExit(
-            "Already scaled by %.3f. Refusing to scale again — a second pass "
-            "leaves a rig no number on Unity's side agrees with, and nothing "
-            "downstream would say so." % scene[STAMP])
+    applied = float(scene.get(STAMP, 1.0))
 
-    meshes = scale_world(SCALE)
+    if abs(applied - SCALE) <= EPSILON:
+        raise SystemExit(
+            "Already at x%.4f, which is SCALE. Nothing to do — a second pass at "
+            "the same number leaves a rig no number on Unity's side agrees with, "
+            "and nothing downstream would say so." % applied)
+
+    residual = SCALE / applied
+    print("expedition_rig_scale  x%.4f -> x%.4f  (residual x%.6f)"
+          % (applied, SCALE, residual))
+
+    meshes = scale_world(residual)
     scene[STAMP] = SCALE
 
     # `matrix_world` is cached and only recomputed when the dependency graph is

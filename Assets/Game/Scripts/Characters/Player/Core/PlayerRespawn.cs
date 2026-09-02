@@ -66,25 +66,33 @@ namespace SpaceGame.Characters
             // MatchManager respawn. Healing again would be harmless; moving them would not.
             if (health == null || health.Alive) return;
 
-            // Their own position is passed as the last-resort anchor. A spawn point can refuse —
-            // the bay is full of geometry, the ship has been driven somewhere awkward, the chunk
-            // under it has not loaded — and a refusal used to end the respawn, leaving the player
-            // face down with nothing left to press. It does not any more: SpawnManager falls back
-            // to open ground outside, near the spawn point if it can and near the corpse if it
-            // cannot, since a dead player is by definition standing on ground that exists.
-            if (SpawnManager.Instance == null ||
-                !SpawnManager.Instance.TryGetRespawnPosition(transform.position, out Vector3 position))
+            // The rule of respawn: you come back inside your ship — in versus, your TEAM's ship.
+            // The seat resolver answers wherever the ship has been driven or landed, which the
+            // world's free-standing spawn point cannot. Only when no ship can take this player —
+            // a scene with no hull, a versus team that never resolved — does the old spawn-point
+            // and open-ground resolution below run, so a shipless world still stands people up.
+            if (ShipRespawn.TryGetPose(gameObject, out Vector3 position, out Quaternion rotation))
             {
-                Debug.LogError("[Respawn] No valid spawn position — not at a SpawnPoint and not on " +
-                               "open ground anywhere near one or near the body, so the player stays " +
-                               "down. Is any of the world around them loaded?", this);
+                // Placement first, healing second, and the order is load-bearing. Healing raises
+                // OnRevive, which is what hands the player their controls back; doing that before
+                // the move would give them a frame or two of live control standing on their own
+                // corpse.
+                NetworkedTeleport.Move(gameObject, position, rotation);
+            }
+            else if (SpawnManager.Instance != null &&
+                     SpawnManager.Instance.TryGetRespawnPosition(transform.position, out position))
+            {
+                Debug.LogWarning("[Respawn] No ship could take this player — falling back to the " +
+                                 "spawn point / open ground resolution.", this);
+                NetworkedTeleport.Move(gameObject, position, transform.rotation);
+            }
+            else
+            {
+                Debug.LogError("[Respawn] No ship, no valid spawn position — not at a SpawnPoint " +
+                               "and not on open ground anywhere near one or near the body, so the " +
+                               "player stays down. Is any of the world around them loaded?", this);
                 return;
             }
-
-            // Placement first, healing second, and the order is load-bearing. Healing raises
-            // OnRevive, which is what hands the player their controls back; doing that before the
-            // move would give them a frame or two of live control standing on their own corpse.
-            NetworkedTeleport.Move(gameObject, position, transform.rotation);
 
             // ResetToFull rather than Heal(maxHealth): overkill drives currentHealth below zero and
             // Heal caps the restore at the amount passed, so a heavily overkilled player would come

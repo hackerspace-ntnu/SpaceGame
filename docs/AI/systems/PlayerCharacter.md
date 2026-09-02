@@ -19,8 +19,11 @@ symptoms:
   - "another player's head never moves — they stare straight ahead while their view is clearly turning"
   - "a seated player's head stays turned after they stand up"
   - "my own backpack bounces into view in front of the first-person camera"
+  - "looking straight down I see my own chest instead of the floor I am standing on"
+  - "the first-person camera creeps forward out of the helmet as I look at my feet"
+  - "the crouch eye height keeps snapping back, something else is writing the camera's local position"
 reads_with: [Persistence, Inventory, Artifacts, Vehicles]
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # Player Character
@@ -45,7 +48,7 @@ The astronaut the human drives: rigidbody movement, first-person look, stances, 
 | --- | --- | --- |
 | `PlayerController` | [Core/PlayerController.cs](Assets/Game/Scripts/Characters/Player/Core/PlayerController.cs) | Enable/disable the local player, cutscene handover, death freeze, spectator swap, `OnPlayerDeath`/`OnPlayerRevive` |
 | `PlayerMovement` | [Movement/Movement.cs](Assets/Game/Scripts/Characters/Player/Movement/Movement.cs) | Walk/sprint/crouch/aim speeds, jump, dash, ground probe, fall damage, animator blend + stride rate, `CarryMomentum`/`SetTethered`/`SetBouncing`/`EnsureMovableBody` |
-| `PlayerLook` | [Movement/PlayerLook.cs](Assets/Game/Scripts/Characters/Player/Movement/PlayerLook.cs) | Mouse look, cursor lock, FOV base+offset, `LookAlong`/`RestorePitch`/`Pitch`, per-camera hiding of own helmet/scarf (serialized) and worn gear (`SetWornHidden`, runtime) |
+| `PlayerLook` | [Movement/PlayerLook.cs](Assets/Game/Scripts/Characters/Player/Movement/PlayerLook.cs) | Mouse look, cursor lock, FOV base+offset, the look-down eye slide, `LookAlong`/`RestorePitch`/`Pitch`, per-camera hiding of own helmet/scarf (serialized) and worn gear (`SetWornHidden`, runtime) |
 | `PlayerStance` | [Movement/PlayerStance.cs](Assets/Game/Scripts/Characters/Player/Movement/PlayerStance.cs) | Crouch (capsule + eye) and double-tap sprint with a charge tank; runs on every machine |
 | `PlayerAimRig` | [Combat/PlayerAimRig.cs](Assets/Game/Scripts/Characters/Player/Combat/PlayerAimRig.cs) | Owns the masked `Upper Body` layer: hold pose weight, aim blend, right-hand IK; runs on every machine |
 | `AimPose` | [Combat/AimPose.cs](Assets/Game/Scripts/Characters/Player/Combat/AimPose.cs) | Pure maths for hand goal, elbow hint, ease, grip-frame undo |
@@ -55,7 +58,7 @@ The astronaut the human drives: rigidbody movement, first-person look, stances, 
 | `AimProvider` | [Combat/AimProvider.cs](Assets/Game/Scripts/Characters/Player/Combat/AimProvider.cs) | The one camera-derived aim ray every other system should ask for |
 | `PlayerViewNetwork` | [Core/PlayerViewNetwork.cs](Assets/Game/Scripts/Characters/Player/Core/PlayerViewNetwork.cs) | Replicates pitch / **head yaw** / torch / aiming; builds the runtime `AimPivot` child every machine can hang things on |
 | `NetworkPlayerController` | [Core/NetworkPlayerController.cs](Assets/Game/Scripts/Characters/Player/Core/NetworkPlayerController.cs) | On spawn: adopt the spawn pose via `SaveTeleport`, then enable (owner) or disable (remote) |
-| `PlayerRespawn` | [Core/PlayerRespawn.cs](Assets/Game/Scripts/Characters/Player/Core/PlayerRespawn.cs) | `NetMsg.Respawn` on this player's channel; server places then heals — never despawns the body |
+| `PlayerRespawn` | [Core/PlayerRespawn.cs](Assets/Game/Scripts/Characters/Player/Core/PlayerRespawn.cs) | `NetMsg.Respawn` on this player's channel; server places **inside the player's ship** (`ShipRespawn`) then heals — never despawns the body |
 | `FlungBody` | [Movement/FlungBody.cs](Assets/Game/Scripts/Characters/Player/Movement/FlungBody.cs) | `NetMsg.Flung` → owner-side impulse, `[DefaultExecutionOrder(200)]` so it drains *after* movement |
 | `SuitPalette` / `SuitRecolor` | [Appearance/](Assets/Game/Scripts/Characters/Player/Appearance/) | Static swatch table + material relationships; `SuitRecolor` is a [`PaletteRecolor`](Assets/Game/Scripts/Presentation/Appearance/PaletteRecolor.cs) subclass shared with ship livery |
 | `PlayerInputManager` | [Core/Input/PlayerInputManager.cs](Assets/Game/Scripts/Core/Input/PlayerInputManager.cs) | The only input source: wraps generated `InputControls`, exposes `MoveInput`/`LookInput`/`CrouchHeld`/`AimHeld` + press events |
@@ -71,7 +74,7 @@ Root pivot is **1 m above the soles** — measure with [`BodyFeet`](Assets/Game/
 | Thing | Value |
 | --- | --- |
 | Capsule (child `Collider`) | local pos `y 0.5`, height 2, radius 0.5, **localScale y 1.5** → 3 m tall world, feet at root `y −1.0`, head `+2.0` |
-| Eye / Main Camera | local `(0, 1.45, 0.16)` → 2.45 m above soles; drops `crouchEyeDrop` (0.6 m) when crouched |
+| Eye / Main Camera | local `(0, 1.45, 0.16)` → 2.45 m above soles; drops `crouchEyeDrop` (0.6 m) when crouched, and slides forward up to `lookDownOffset` (0.4 m) as the pitch goes down |
 | Model | [astronaut.fbx](Assets/Game/Art/Models/Characters/Astronaut/astronaut.fbx) nested instance; `Animator` + `Rigidbody` are on the **root**, not the model |
 | Other children | `hand`, `PortalTrackPoint`, `Muzzle` (variant only), [PlayerHUD](Assets/Game/Prefabs/UI/HUD/PlayerHUD.prefab) |
 
@@ -79,11 +82,11 @@ Root pivot is **1 m above the soles** — measure with [`BodyFeet`](Assets/Game/
 
 1. **Spawn.** `SpawnManager` instantiates the networked variant at a clamped spawn point → `SpawnAsPlayerObject` → `NetworkPlayerController.OnNetworkSpawn` calls `SaveTeleport.Move` (a raw transform write is undone by the rigidbody within the frame) → `EnablePlayer` on the owner, `DisablePlayer` elsewhere → `PlayerSaveSync` claims the profile and the server restores it.
 2. **Move.** `PlayerInputManager.Update` reads `Move` → `PlayerMovement.FixedUpdate`: `EnsureMovableBody` → ground `SphereCast` → fall damage → `CurrentMoveSpeed` (crouch > aim > sprint > walk) → lerp toward target (`airControl` 0.3 in air) or `SteerTether` → `SteerWithoutBraking` → write x/z → animator `SpeedX/SpeedY/FallSpeed/MoveAnimSpeed/IsGrounded`.
-3. **Look.** `Update` accumulates `pendingYaw` (× `sensitivity` × `GameSettings.MouseSensitivity` × aim scale) and writes pitch to the camera; `FixedUpdate` spends the banked yaw as one `MoveRotation`; `LateUpdate` re-asserts the cursor lock.
+3. **Look.** `Update` accumulates `pendingYaw` (× `sensitivity` × `GameSettings.MouseSensitivity` × aim scale) and writes pitch to the camera, then `TickLookDownOffset` slides the eye along the body's **forward** axis by `lookDownEase(pitch)` × `lookDownOffset`, sphere-cast-clamped against anything in front of it and smoothed with `1 − exp(−lookDownResponse·dt)`; `FixedUpdate` spends the banked yaw as one `MoveRotation`; `LateUpdate` re-asserts the cursor lock. `OnDisable` puts the eye back.
 4. **Stance.** `PlayerStance.Update`: owner reads `CrouchHeld` + `IsOnGround`, refuses to stand under a ceiling (`HasHeadroom` sphere cast), sets the animator bool; remotes read the same bool back out of the replicated Animator. `ApplyStance` eases capsule height/centre and eye height.
 5. **Aim.** `PlayerAimRig.Update`: owner ANDs `AimHeld` with "is driving" and a non-`None` `HoldStyle`, publishes via `PlayerViewNetwork.PublishAiming`; blends `holdT`/`aimT` (`aimT ≤ holdT`), writes layer weight + `HoldStyle`/`IsAiming`; `AimIkRelay` → `ApplyIk` pulls the right hand to `AimPivot` and undoes the grip frame.
 6. **Head.** `PlayerHeadLook.Update` (owner, on foot) takes pitch from `PlayerLook` and zero yaw; seated, the angles arrive via `AddLook` from the seat's camera rig. `PlayerViewNetwork.LateUpdate` publishes both past `publishThreshold` and poses `AimPivot` as `Euler(pitch, headYaw, 0)`; `PlayerHeadLook.LateUpdate` (order 950) splits the body-frame delta `neckShare`/rest across Neck and Head, reading the replicated pair on remotes.
-7. **Death.** `HealthComponent.OnDeath` → `PlayerController.OnDeath` sets `isDead`, `ApplyDeathFreeze` (input off, movement off, look off, cursor released) and raises `OnPlayerDeath`; `PlayerRagdoll` goes limp off the *health* event on every machine. Respawn: click → `PlayerRespawn.Request` → server `TryGetRespawnPosition` → `NetworkedTeleport.Move` **then** `health.ResetToFull()` → `OnRevive` → controls back.
+7. **Death.** `HealthComponent.OnDeath` → `PlayerController.OnDeath` sets `isDead`, `ApplyDeathFreeze` (input off, movement off, look off, cursor released) and raises `OnPlayerDeath`; `PlayerRagdoll` goes limp off the *health* event on every machine. Respawn: click → `PlayerRespawn.Request` → server resolves **inside the player's ship** via [`ShipRespawn.TryGetPose`](Assets/Game/Scripts/Gameplay/Game/Spawning/ShipRespawn.cs) (versus: the TEAM's ship through `VersusShipSpawner.TryClaimRespawnPose`, never any other hull; story: the crew hull's `ShipSeat` dismount points) — only when no ship can take the player does `SpawnManager.TryGetRespawnPosition` (spawn point → open ground) run as fallback → `NetworkedTeleport.Move` **then** `health.ResetToFull()` → `OnRevive` → controls back.
 
 ## Multiplayer
 
@@ -105,6 +108,9 @@ Player state is keyed by profile, not by scene: [`PlayerSaveSync`](Assets/Game/S
 - **`IsGrounded` stays true for ~0.6 m of clearance** (sphere cast over half-height + `groundCheckDistance`), which is why `ShouldEndCarry` also requires "not rising".
 - **Jump/dash arrive as input *events*.** Disabling `PlayerMovement` does not stop them; the freeze must also disable `PlayerInputManager`.
 - **Worn gear is hidden from its wearer's own camera through `PlayerLook.SetWornHidden`, not by posing it clear of the eye.** The serialized `firstPersonHidden` array is `Renderer[]` and covers the helmet and scarf, which a prefab can name; anything instantiated at runtime registers through `SetWornHidden` instead, which *replaces* the register and hands the outgoing renderers back `ShadowCastingMode.On`. Forget that hand-back and a pack set down on the sand stays `ShadowsOnly` for the rest of the session — a shadow with nothing casting it, and a clean console. Both sets are gated by the same `SetFirstPersonHidden` flag, so a ragdolled player sees their own body *and* their pack. See [Backpack](Backpack.md).
+- **Two components drive the eye's local position, on one axis each.** `PlayerStance` owns its **height** (the crouch), `PlayerLook` owns its **z** (the look-down slide). Both read-modify-write a single component of `localPosition`; a third writer that assembles a whole vector deletes whatever the other two put there, and the crouch or the slide silently stops working. This is also why the slide is along the *body's* forward and not the *view's*: the view direction has a vertical component, and the eye's height is not `PlayerLook`'s to write.
+- **The look-down slide moves the aim ray's origin with it, deliberately.** [`AimProvider`](Assets/Game/Scripts/Characters/Player/Combat/AimProvider.cs) and [`Interactor`](Assets/Game/Scripts/Gameplay/Interaction/Core/Interactor.cs) both cast from this same camera transform, so the reticle keeps telling the truth — but a shot or an `E` press taken while looking down leaves from up to `lookDownOffset` in front of the chest rather than from inside it. Direction is untouched. Anything that wants the *anatomical* eye instead of the camera must not read `AimProvider`.
+- **Nothing about the slide is on the wire and nothing saves it.** `PlayerLook` is disabled from `Awake` on every remote copy, so `Start` never runs there and `baseEyeZ` stays `NaN` — the guard that also stops `OnDisable` writing a z it never captured.
 - **`PlayerLook` re-locks the cursor every `LateUpdate`.** UI that needs a cursor must go through `GameplayMenuScope`/`EnterCutsceneMode`, or disable the component.
 - **Anything parented under the camera is invisible to other players** — the whole camera GameObject is inactive on remotes. Hang it on `PlayerViewNetwork.AimPivot` instead.
 - **Never use `AimPivot` as the aim of a shot.** It is smoothed/replicated; a shot's direction must travel in its own use message.

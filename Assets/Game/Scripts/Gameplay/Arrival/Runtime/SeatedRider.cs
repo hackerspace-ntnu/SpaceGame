@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
@@ -206,12 +207,40 @@ namespace SpaceGame.Gameplay.Arrival
         }
 
         /// <summary>
-        /// Riders whose <c>PlayerMovement</c> this machine switched off, so the release switches
-        /// back on exactly what it took. A rider who arrived with it already off is a remote player,
-        /// or one the mount system has suspended, and waking them is somebody else's bug — the same
-        /// rule <c>MountModule.RestoreRiderComponentsAfterDismount</c> records at length.
+        /// Riders whose <c>PlayerMovement</c> / <c>PlayerLook</c> this machine switched off, so the
+        /// release switches back on exactly what it took. A rider who arrived with either already
+        /// off is a remote player, or one the mount system has suspended, and waking them is
+        /// somebody else's bug — the same rule
+        /// <c>MountModule.RestoreRiderComponentsAfterDismount</c> records at length.
         /// </summary>
         private readonly HashSet<ulong> movementSuspended = new();
+
+        private readonly HashSet<ulong> lookSuspended = new();
+
+        /// <summary>Every spawned instance, so a machine-wide question can be asked without a scene search.</summary>
+        private static readonly List<SeatedRider> Spawned = new();
+
+        /// <summary>
+        /// Whether this machine's own player is sitting in a landed hull and may stand up.
+        ///
+        /// <para>
+        /// A POLLABLE fact rather than only an event, because its one consumer — the seat-exit
+        /// hint — lives on a HUD that can be disabled at the moment the event fires (the cutscene
+        /// hides the HUD), and a subscriber that was asleep for the announcement never hears it
+        /// again. Anything gating on this reads the current truth every frame instead.
+        /// </para>
+        /// </summary>
+        public static bool LocalPlayerMayLeave
+        {
+            get
+            {
+                foreach (SeatedRider rider in Spawned)
+                    if (rider != null && rider.releasable.Value && rider.HoldsLocalPlayer)
+                        return true;
+
+                return false;
+            }
+        }
 
         /// <summary>How many seats this ship actually has. Zero means it has no markers at all.</summary>
         public int SeatCount
@@ -221,6 +250,8 @@ namespace SpaceGame.Gameplay.Arrival
 
         public override void OnNetworkSpawn()
         {
+            Spawned.Add(this);
+
             this.NetOn(NetMsg.TakeSeat, OnTakeSeat);
             this.NetOn(NetMsg.LeaveSeat, OnLeaveSeat);
             this.NetOn(NetMsg.LeaveSeatRequest, OnLeaveSeatRequested);
@@ -238,10 +269,57 @@ namespace SpaceGame.Gameplay.Arrival
             // Late joiner: the events fired before this machine existed, so the state channel is the
             // only account of who is already sitting down.
             ApplyStateChannel();
+
+            if (IsServer) StartCoroutine(StraightenIfRestoredAskew());
         }
+
+        /// <summary>
+        /// A parked hull may differ from its prefab by yaw alone — that is the invariant every
+        /// consumer of the wreck (grounding, belly measurement, the save file) is built on. This
+        /// enforces it on the one hull nothing else answers for: a wreck restored from a save
+        /// written before mid-descent captures were grounded, which reloads pitched nose-down at
+        /// the angle it flew in at and is never straightened by anything, because a loaded world
+        /// never re-flies its crash.
+        /// </summary>
+        private IEnumerator StraightenIfRestoredAskew()
+        {
+            // Past the restore pass that applies a saved pose, and comfortably past the frame an
+            // arrival registers this hull as a flight — a hull the director is flying is pitched
+            // on purpose and none of this component's business.
+            yield return new WaitForSeconds(1f);
+
+            if (this == null || !IsSpawned) yield break;
+
+            ArrivalDirector director = ArrivalDirector.Instance;
+            if (director != null && director.IsFlightHull(gameObject)) yield break;
+
+            Vector3 euler = transform.rotation.eulerAngles;
+            float pitch = Mathf.DeltaAngle(0f, euler.x);
+            float roll = Mathf.DeltaAngle(0f, euler.z);
+
+            if (Mathf.Abs(pitch) <= AskewToleranceDegrees && Mathf.Abs(roll) <= AskewToleranceDegrees)
+                yield break;
+
+            Quaternion level = Quaternion.Euler(0f, euler.y, 0f);
+            transform.rotation = level;
+
+            // Physics.autoSyncTransforms is off project-wide, so the body is written directly or
+            // the next physics step puts the old attitude straight back.
+            var body = GetComponent<Rigidbody>();
+            if (body != null) body.rotation = level;
+
+            Debug.LogWarning($"[SeatedRider] '{name}' was restored {pitch:F0}° pitched / {roll:F0}° " +
+                             "rolled — a parked hull differs from its prefab by yaw alone, so it " +
+                             "was levelled. The save that produced this was written mid-descent.", this);
+        }
+
+        /// <summary>Attitude a parked hull may legitimately hold — anything past this is a mid-descent pose.</summary>
+        private const float AskewToleranceDegrees = 2f;
 
         public override void OnNetworkDespawn()
         {
+            Spawned.Remove(this);
+
             this.NetOff(NetMsg.TakeSeat, OnTakeSeat);
             this.NetOff(NetMsg.LeaveSeat, OnLeaveSeat);
             this.NetOff(NetMsg.LeaveSeatRequest, OnLeaveSeatRequested);
@@ -373,9 +451,34 @@ namespace SpaceGame.Gameplay.Arrival
         private void OnArrivalLaunched(in NetArg arg, ulong sender)
         {
             if (launchAnnounced) return;
-            launchAnnounced = true;
 
-            if (HoldsLocalPlayer) LocalCrewLaunched?.Invoke(0f);
+            // NOT latched when nobody local is aboard yet. On a client the seat can resolve a
+            // frame or two after this message lands — the TakeSeat event references a player
+            // object the local spawn manager has not filed yet, and the state channel repairs it
+            // shortly after. Latching here threw the one announcement away for good: the cutscene
+            // then sat on black for its whole launchWait and played the entry beats over a ship
+            // that had already crashed, which from the chair reads as "the screen never went black
+            // at the impact". The catch-up in Update answers for whoever seats late.
+            if (!HoldsLocalPlayer) return;
+
+            launchAnnounced = true;
+            LocalCrewLaunched?.Invoke(0f);
+        }
+
+        /// <summary>
+        /// The state-channel repair for the launch, mirroring the seat repair: whatever order the
+        /// seat event, the launch event and the replicated instant arrived in, a machine holding a
+        /// local player in a launched hull ends up having announced exactly once.
+        /// </summary>
+        private void CatchUpOnLaunch()
+        {
+            if (launchAnnounced) return;
+
+            float sinceLaunch = SecondsSinceLaunch;
+            if (sinceLaunch < 0f || !HoldsLocalPlayer) return;
+
+            launchAnnounced = true;
+            LocalCrewLaunched?.Invoke(sinceLaunch);
         }
 
         /// <summary>
@@ -517,9 +620,12 @@ namespace SpaceGame.Gameplay.Arrival
             // Bookkeeping only. The actual placement is in LateUpdate; see the note on the class.
             ApplyStateChannel();
 
-            // Escape gets you out of the chair, the same key that gets you off every mount in the
-            // game. Read here rather than from the UI because the seat owns standing up; the
-            // prompt only draws what this will answer.
+            CatchUpOnLaunch();
+
+            // Q gets you out of the chair — it is what the recovery hint teaches — and Escape
+            // still works because it is the key that gets you off every mount in the game. Read
+            // here rather than from the UI because the seat owns standing up; the prompt only
+            // draws what this will answer.
             //
             // Gated on the shared menu scope, or Escape would mean two things at once: the chat
             // box and the settings fields both use it for "never mind", and closing one of those
@@ -528,7 +634,9 @@ namespace SpaceGame.Gameplay.Arrival
             // cannot be bailed out of.
             if (releasable.Value && HoldsLocalPlayer &&
                 SpaceGame.Presentation.GameplayMenuScope.AcceptsGameplayInput &&
-                Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+                Keyboard.current != null &&
+                (Keyboard.current.qKey.wasPressedThisFrame ||
+                 Keyboard.current.escapeKey.wasPressedThisFrame))
                 RequestLocalRelease();
         }
 
@@ -608,7 +716,18 @@ namespace SpaceGame.Gameplay.Arrival
                 if (index < 0 || index >= seats.Count) continue;
 
                 Transform seat = seats[index].transform;
-                player.transform.SetPositionAndRotation(seat.TransformPoint(seatOffset), seat.rotation);
+
+                // The rotation is only stamped while the flight is live. During the descent the
+                // rider must inherit the hull's attitude — the ship is diving and tumbling under
+                // them, and a body that kept its own yaw would sit facing out through the wall.
+                // Once the hull is down and the crew may leave, the seat is static, and stamping
+                // the rotation would pin the camera dead ahead: PlayerLook rebuilds its view from
+                // the body every frame, so a landed rider whose body is rewritten each LateUpdate
+                // cannot look around the cabin the way they can in any other chair.
+                if (releasable.Value)
+                    player.transform.position = seat.TransformPoint(seatOffset);
+                else
+                    player.transform.SetPositionAndRotation(seat.TransformPoint(seatOffset), seat.rotation);
             }
         }
 
@@ -689,10 +808,28 @@ namespace SpaceGame.Gameplay.Arrival
         {
             ResolveSeats();
 
-            if (seatIndex < 0 || seatIndex >= seats.Count) return;
+            // Both of these used to return in silence, and silence is the wrong answer here: a body
+            // that is not attached is still carried down the arc by the hull it is standing in, so
+            // the crash looks completely normal while the rider never gets LocalPlayerSeated — and
+            // that event is the ONLY thing that starts the arrival cutscene. The failure therefore
+            // presents as "the ship lands and the screen never goes black", with nothing in the
+            // console to say why. Seat() already shouts about a bad index; so must this.
+            if (seatIndex < 0 || seatIndex >= seats.Count)
+            {
+                Debug.LogError($"[SeatedRider] Cannot attach to seat {seatIndex} on '{name}' — it " +
+                               $"resolved {seats.Count} seat(s). Nobody will be seated here, and " +
+                               "the arrival cutscene will not play for this rider.", this);
+                return;
+            }
 
             ulong id = IdOf(player);
-            if (id == 0UL) return;
+            if (id == 0UL)
+            {
+                Debug.LogError($"[SeatedRider] '{player.name}' has no spawned NetworkObject on its " +
+                               "own root, so it cannot be seated in " + name + ". The arrival " +
+                               "cutscene will not play for it.", this);
+                return;
+            }
 
             // A rider moved between seats keeps everything the hold already did to them — it is the
             // same body held by the same component — so only the seat index is rewritten and the
@@ -722,6 +859,15 @@ namespace SpaceGame.Gameplay.Arrival
                 // they may get up from jogging on the spot in the cabin until they do.
                 SuspendMovement(player);
 
+                // TEMPORARY DIAGNOSTIC (2026-09-02) — remove once the missing arrival blackout is
+                // diagnosed. This gate is the last silent one on the path: a rider that fails it is
+                // still carried down the arc correctly, so the only visible symptom is that the
+                // cutscene never starts and the screen never goes black.
+                Debug.Log($"[SeatedRider:DIAG] Attach '{player.name}' seat={seatIndex} " +
+                          $"netObjId={id} ownsHere={Network.Owns(player.transform)} " +
+                          $"isNetworked={Network.IsNetworked} server={Network.Server} " +
+                          $"localClient={Network.LocalClientId}", this);
+
                 if (Network.Owns(player.transform))
                 {
                     LocalPlayerSeated?.Invoke();
@@ -730,12 +876,7 @@ namespace SpaceGame.Gameplay.Arrival
                     // before this machine had a body in the hull, so the announcement is caught up
                     // with here, aged. Raised AFTER LocalPlayerSeated, because that is what starts
                     // the presentation this is telling how far along it should be.
-                    float sinceLaunch = SecondsSinceLaunch;
-                    if (sinceLaunch >= 0f)
-                    {
-                        launchAnnounced = true;
-                        LocalCrewLaunched?.Invoke(sinceLaunch);
-                    }
+                    CatchUpOnLaunch();
 
                     // A late joiner can be seated into an already-landed hull, so the prompt has to
                     // be told the current answer rather than waiting for the flag to change.
@@ -791,6 +932,7 @@ namespace SpaceGame.Gameplay.Arrival
             // Anyone whose body had already gone never reached RestoreMovement above, so the record
             // is dropped here rather than left naming a player this hull will never see again.
             movementSuspended.Clear();
+            lookSuspended.Clear();
         }
 
         /// <summary>Undo everything seating did to the body, physics, pose and cargo status alike.</summary>
@@ -883,32 +1025,51 @@ namespace SpaceGame.Gameplay.Arrival
         }
 
         /// <summary>
-        /// Takes a rider's own movement away for the length of the ride, remembering whether it was
-        /// this machine's to take.
+        /// Takes a rider's own movement AND look away for the length of the ride, remembering
+        /// whether each was this machine's to take.
+        ///
+        /// <para>
+        /// The look goes with the movement because <c>PlayerLook</c> spends its yaw rotating the
+        /// player's BODY, and a seated body belongs to the chair. In-chair look is
+        /// <c>ArrivalCameraRig</c> feeding <c>PlayerHeadLook</c>'s clamped neck — leaving
+        /// <c>PlayerLook</c> live beside it is two systems spending the same mouse movement, one
+        /// of them by spinning a body that is bolted into a seat.
+        /// </para>
         /// </summary>
         private void SuspendMovement(GameObject player)
         {
-            var movement = player.GetComponent<SpaceGame.Characters.PlayerMovement>();
-            if (movement == null || !movement.enabled) return;
-
-            movement.enabled = false;
-            movementSuspended.Add(IdOf(player));
+            Suspend<SpaceGame.Characters.PlayerMovement>(player, movementSuspended);
+            Suspend<SpaceGame.Characters.PlayerLook>(player, lookSuspended);
         }
 
         /// <summary>Hands back exactly what <see cref="SuspendMovement"/> took, and only that.</summary>
         private void RestoreMovement(GameObject player)
         {
-            if (!movementSuspended.Remove(IdOf(player))) return;
+            Restore<SpaceGame.Characters.PlayerMovement>(player, movementSuspended);
+            Restore<SpaceGame.Characters.PlayerLook>(player, lookSuspended);
+        }
 
-            var movement = player.GetComponent<SpaceGame.Characters.PlayerMovement>();
+        private void Suspend<T>(GameObject player, HashSet<ulong> taken) where T : Behaviour
+        {
+            var component = player.GetComponent<T>();
+            if (component == null || !component.enabled) return;
 
-            // A rider who died in the chair keeps the freeze death applied — re-enabling movement
-            // here would hand the controls back to a corpse. The same guard MountModule states at
-            // length in RestoreRiderComponentsAfterDismount.
+            component.enabled = false;
+            taken.Add(IdOf(player));
+        }
+
+        private void Restore<T>(GameObject player, HashSet<ulong> taken) where T : Behaviour
+        {
+            if (!taken.Remove(IdOf(player))) return;
+
+            // A rider who died in the chair keeps the freeze death applied — re-enabling controls
+            // here would hand them back to a corpse. The same guard MountModule states at length
+            // in RestoreRiderComponentsAfterDismount.
             var controller = player.GetComponent<SpaceGame.Characters.PlayerController>();
             if (controller != null && controller.IsDead) return;
 
-            if (movement != null) movement.enabled = true;
+            var component = player.GetComponent<T>();
+            if (component != null) component.enabled = true;
         }
 
         /// <summary>

@@ -43,10 +43,11 @@ namespace SpaceGame.Core.Persistence
         /// <b><see cref="version"/> is not optional, and dropping it is silent.</b> This struct
         /// exists to write a NARROWER record than the codec's, and the first version of it narrowed
         /// away the version field along with the pack pose. <see cref="PackSaveCodec.Restore"/>
-        /// reads a missing version as "older than versioning", which means the pre-enlargement
-        /// frame, and multiplies every uv by <see cref="PackScale.Factor"/> to bring it forward —
-        /// so every wall record was rescaled by 1.5 on EVERY load, compounding each time, until the
-        /// gear walked off the face and first-fit scattered it. Nothing threw. Any field the codec
+        /// reads a missing version as "older than versioning", which means the original
+        /// <see cref="PackScale.LegacyCell"/> frame, and multiplies every uv by today's cell over
+        /// that one to bring it forward — so every wall record was rescaled on EVERY load,
+        /// compounding each time, until the gear walked off the face and first-fit scattered it.
+        /// Nothing threw. Any field the codec
         /// uses to interpret the numbers has to be carried here; only fields that are purely a
         /// backpack's may be left out.
         /// </para>

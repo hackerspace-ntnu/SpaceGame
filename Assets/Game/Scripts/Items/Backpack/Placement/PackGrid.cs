@@ -7,24 +7,25 @@ namespace SpaceGame.Items
     /// into a cell index and back.
     ///
     /// <para>
-    /// <b>The cell is 135 mm, and it is a measurement of the rig rather than a number somebody
+    /// <b>The cell is 94.5 mm, and it is a measurement of the rig rather than a number somebody
     /// liked.</b> It is <see cref="PackScale.Factor"/> times the 90 mm webbing pitch the rig was
-    /// originally modelled at, and the rig is BUILT at that factor — <c>expedition_rig.py</c>
-    /// multiplies every length it generates by the same number, so the back panel's webbing ladder
-    /// now has its rungs at <c>s = 0.135, 0.270, 0.405, 0.540, 0.675, 0.810</c> and the lash line's
-    /// two webbing runs sit 0.135 apart. Those are still the only two places the rig states a rung
-    /// spacing, and they still agree with the cell, because both sides of that agreement were
-    /// scaled together.
+    /// originally modelled at, and the rig is BUILT at that factor — <c>expedition_rig_scale.py</c>
+    /// multiplies every length in the finished model by the same number, so the back panel's
+    /// webbing ladder has its rungs at <c>s = 0.0945, 0.189, 0.2835, 0.378, 0.4725, 0.567</c> and
+    /// the lash line's two webbing runs sit 0.0945 apart. Those are still the only two places the
+    /// rig states a rung spacing, and they still agree with the cell, because both sides of that
+    /// agreement are scaled together.
     /// </para>
     /// <para>
     /// The relationship the original 90 mm was chosen by is therefore untouched, and is worth
     /// keeping written down because it is what makes the number defensible rather than arbitrary:
-    /// the rig's coarser anchor fields are all close to twice the cell. Pre-enlargement, the rack
-    /// ladder's rungs were 185 mm apart (<c>RACK_RUNGS</c>), the leaf's grommet field 200 x 190 mm,
-    /// the wings' 260 x 170 mm; halved, those are 92.5, 100, 95, 130 and 85 mm, and 90 mm sat
-    /// inside that cluster. So a cell is either one rung or (for the grommet fields) half a hole,
-    /// and no field is more than about 6% out. Every one of those numbers is now 1.5x larger and
-    /// the ratios are identical.
+    /// the rig's coarser anchor fields are all close to twice the cell. In the model's own
+    /// authoring frame the rack ladder's rungs are 185 mm apart (<c>RACK_RUNGS</c>), the leaf's
+    /// grommet field 200 x 190 mm, the wings' 260 x 170 mm; halved, those are 92.5, 100, 95, 130
+    /// and 85 mm, and 90 mm sits inside that cluster. So a cell is either one rung or (for the
+    /// grommet fields) half a hole, and no field is more than about 6% out. Every one of those
+    /// numbers is scaled by <see cref="PackScale.Factor"/> with the cell and the ratios are
+    /// identical, which is why the factor has moved twice without any of this changing.
     /// </para>
     /// <para>
     /// <b>One global cell, not one per surface.</b> Seven cell sizes would mean an item's authored
@@ -35,17 +36,18 @@ namespace SpaceGame.Items
     /// boundaries. The rows below must equal <c>ExpeditionRigWiring.SurfaceTable</c>:
     /// </para>
     /// <list type="table">
-    /// <item><description>BackPanelLeft / Right, 0.405 x 0.810 m -> 3 x 6 cells</description></item>
-    /// <item><description>Leaf, 1.08 x 1.08 m -> 8 x 8</description></item>
-    /// <item><description>WingLeft / Right, 0.54 x 0.945 m -> 4 x 7</description></item>
-    /// <item><description>LongGoods, 2.43 x 0.135 m -> 18 x 1</description></item>
-    /// <item><description>Rack, 1.215 x 1.215 m -> 9 x 9</description></item>
+    /// <item><description>BackPanelLeft / Right, 0.2835 x 0.567 m -> 3 x 6 cells</description></item>
+    /// <item><description>Leaf, 0.756 x 0.756 m -> 8 x 8</description></item>
+    /// <item><description>WingLeft / Right, 0.378 x 0.6615 m -> 4 x 7</description></item>
+    /// <item><description>LongGoods, 1.701 x 0.0945 m -> 18 x 1</description></item>
+    /// <item><description>Rack, 0.8505 x 0.8505 m -> 9 x 9</description></item>
     /// </list>
     /// <para>
     /// 255 cells over the rig, filling the seven rectangles edge to edge with zero
-    /// <see cref="Hem"/>. That count did not change with the 2026-09-01 enlargement and could not
-    /// have: <see cref="PackScale"/> multiplies the cell and the faces by the same factor, so every
-    /// division below is unchanged and every authored <see cref="PackShape"/> mask stays valid.
+    /// <see cref="Hem"/>. That count has never changed with a move of
+    /// <see cref="PackScale.Factor"/> and could not have: <see cref="PackScale"/> multiplies the
+    /// cell and the faces by the same factor, so every division below is unchanged and every
+    /// authored <see cref="PackShape"/> mask stays valid.
     /// The hem arithmetic stays, and stays CENTRED, because it is how a face that is NOT an exact
     /// multiple — a future pack's, a downsized variant's — degrades: the leftover splits evenly on
     /// both sides and reads as the inset border the surface rectangles already are, instead of
@@ -64,11 +66,11 @@ namespace SpaceGame.Items
         ///
         /// <para>
         /// Written as a literal rather than as that product because it is a <c>const</c> read by
-        /// eye off the model, and because <c>0.09f * 1.5f</c> evaluated in float need not land on
-        /// the same bit pattern as <c>0.135f</c>. <c>PackScaleTests</c> asserts the two agree.
+        /// eye off the model, and because <c>0.09f * 1.05f</c> evaluated in float need not land on
+        /// the same bit pattern as <c>0.0945f</c>. <c>PackScaleTests</c> asserts the two agree.
         /// </para>
         /// </summary>
-        public const float Cell = 0.135f;
+        public const float Cell = 0.0945f;
 
         /// <summary>
         /// Slack when counting whole cells, so a surface authored at an exact multiple of

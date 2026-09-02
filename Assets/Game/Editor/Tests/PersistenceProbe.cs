@@ -39,6 +39,11 @@ using UnityEngine;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Persistence;
 
+// Aliased rather than imported wholesale: this file's own namespace is SpaceGame.EditorTools, and
+// pulling a second …EditorTools namespace into scope beside it invites name collisions that only
+// show up as a build error somebody else has to unpick.
+using SaveablePrefabFile = SpaceGame.Core.Persistence.EditorTools.SaveablePrefabFile;
+
 namespace SpaceGame.EditorTools
 {
     public sealed class PersistenceProbe
@@ -209,6 +214,51 @@ namespace SpaceGame.EditorTools
                 "rename or re-parent:\n  " + string.Join("\n  ", unwired) +
                 "\n\nFix: Tools ▸ Save System ▸ Wire Saveable Prefabs, then re-save any scene that " +
                 "instances them so the identity overrides are written (see Persistence.md, Gotchas).");
+        }
+
+        /// <summary>
+        /// Asserts that every world-entity prefab carries its <c>prefabId</c> IN ITS FILE.
+        ///
+        /// <para>
+        /// The one property about wiring that cannot be asked of Unity.
+        /// <c>SaveableEntity.OnValidate</c> is inside <c>#if UNITY_EDITOR</c> and fills the field in
+        /// memory the moment an asset is loaded, so <c>entity.PrefabId</c> looks right in the editor
+        /// on a prefab whose serialized bytes are blank — and the bytes are what a player build
+        /// ships. Both other sweeps read the loaded object and so are blind to it; only
+        /// <see cref="SaveablePrefabFile"/> reads the file.
+        /// </para>
+        /// <para>
+        /// A runtime spawn from an unstamped prefab is captured into the save with an empty
+        /// <c>prefabId</c> and then DELETED by <c>WorldSaveStore.Compact</c>, which cannot tell it
+        /// from residue — so the object is simply not in the world on the next load, with one
+        /// warning at save time and nothing at all at load time. That is how the crash-landed
+        /// PlayerShip disappeared from every world it had arrived in.
+        /// </para>
+        /// </summary>
+        public static void AssertEveryWorldEntityPrefabIsStampedOnDisk()
+        {
+            var unstamped = new List<string>();
+
+            foreach ((GameObject asset, string assetPath) in WorldEntityPrefabs())
+            {
+                if (asset.GetComponent<SaveableEntity>() == null) continue;   // reported by the sweep above
+
+                string guid = AssetDatabase.AssetPathToGUID(assetPath);
+                if (SaveablePrefabFile.IsStampedCorrectly(assetPath, guid)) continue;
+
+                unstamped.Add($"{assetPath} — file says '{SaveablePrefabFile.ReadPrefabId(assetPath)}', " +
+                              $"asset GUID is '{guid}'");
+            }
+
+            if (unstamped.Count == 0) return;
+
+            Assert.Fail(
+                $"{unstamped.Count} world-entity prefab(s) do not carry their own prefabId in their " +
+                "FILE, so anything spawned from them at runtime is captured into the save and then " +
+                "dropped as unrestorable:\n  " + string.Join("\n  ", unstamped) +
+                "\n\nFix: Tools ▸ Save System ▸ Wire Saveable Prefabs, out of Play mode — the pass " +
+                "refuses in Play mode and a build script that ignores that refusal is how a prefab " +
+                "gets here (see Persistence.md, Gotchas).");
         }
 
         /// <summary>

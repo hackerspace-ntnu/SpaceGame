@@ -47,10 +47,11 @@ namespace SpaceGame.Gameplay.Arrival
         /// Down, never up, and that is the whole reason the stagger is one-sided. Both authored
         /// numbers are CEILINGS rather than middles: the lateral budget is a world-streaming limit
         /// — chunks pin under tracked entities, so a wider arc drags the streamer through more of
-        /// them at speed — and the start altitude is the top of the band where the desert skybox
-        /// and the volumetric clouds still read correctly. A stagger that spread symmetrically
-        /// would put half the formation past both, which is a frame-rate problem on somebody else's
-        /// machine and a sky that goes wrong at the top of the arc.
+        /// them at speed — and the start altitude is the top of the band where the volumetric
+        /// clouds still read correctly (the skybox itself fades to an airborne look with camera
+        /// altitude). A stagger that spread symmetrically would put half the formation past both,
+        /// which is a frame-rate problem on somebody else's machine and a sky that goes wrong at
+        /// the top of the arc.
         /// </para>
         ///
         /// <para>

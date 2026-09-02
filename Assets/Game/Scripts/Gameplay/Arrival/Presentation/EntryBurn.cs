@@ -52,19 +52,13 @@ namespace SpaceGame.Gameplay.Arrival
         [Tooltip("How long the descent takes. Read from the local ArrivalDirector when there is " +
                  "one, because that component is the authority and exists on every machine; this " +
                  "value is the fallback for a hull dropped into a test scene on its own.")]
-        [SerializeField, Min(0.1f)] private float descentDuration = 26f;
+        [SerializeField, Min(0.1f)] private float descentDuration = 18.2f;
 
-        [SerializeField] private EntryBurnCurve curve = new()
-        {
-            Ignite = 0.03f,
-            Full = 0.16f,
-            Fade = 0.42f,
-            Extinguish = 0.70f,
-        };
+        [SerializeField] private EntryBurnCurve curve = EntryBurnCurve.Default;
 
         [Tooltip("Colour the cabin is washed in. Warmer and paler than the plasma's own deep red: " +
                  "this is the light that got through the glass, not the fire itself.")]
-        [SerializeField] private Color glowColor = new(1f, 0.52f, 0.22f);
+        [SerializeField] private Color glowColor = new(1f, 0.40f, 0.12f);
 
         [Tooltip("Brightest the cabin wash gets, at the peak of the burn.")]
         [SerializeField, Min(0f)] private float peakGlowIntensity = 9f;
@@ -99,6 +93,24 @@ namespace SpaceGame.Gameplay.Arrival
         /// </summary>
         private bool burnedOut;
 
+        /// <summary>
+        /// Whether the sheath is switched on right now.
+        ///
+        /// <para>
+        /// Tracked as its own flag rather than inferred from <see cref="Burn"/>, and that is the
+        /// whole reason the entry burn never appeared at all. <see cref="Extinguish"/> answers "was
+        /// it alight?" so <see cref="Advance"/> can tell the end of the burn from the start of it —
+        /// but it used to answer partly from <c>Burn &gt; 0</c>, which is read AFTER the frame's new
+        /// intensity has been assigned. The ignition ramp is a smoothstep, so it spends about a
+        /// fifth of a second climbing through the sliver between zero and <see cref="cutoff"/>: on
+        /// the first frame of that the new <c>Burn</c> is a tiny positive number, the value below
+        /// <c>cutoff</c> branch fires, and the answer came back "it was alight" — latching
+        /// <see cref="burnedOut"/> permanently before a single frame had ever been drawn. No flames,
+        /// no light, no error.
+        /// </para>
+        /// </summary>
+        private bool alight;
+
         /// <summary>How hard the sheath is burning right now, 0..1. For tests and for the Inspector.</summary>
         public float Burn { get; private set; }
 
@@ -113,36 +125,52 @@ namespace SpaceGame.Gameplay.Arrival
             Extinguish();
         }
 
-        private void LateUpdate()
+        private void LateUpdate() =>
+            Advance(rider != null ? rider.SecondsSinceLaunch : -1f, ResolveDescentDuration(), Time.time);
+
+        /// <summary>
+        /// One frame of the burn: how far into the descent the hull is, in; the sheath and the cabin
+        /// lamp set to match, out.
+        ///
+        /// <para>
+        /// Public and taking its three inputs rather than reading them, so the SEQUENCE can be
+        /// asserted without a play mode, a shader or a ship — the same reason
+        /// <see cref="EntryBurnCurve"/> is a separate type. The envelope was already covered that
+        /// way; the state machine around it was not, and that is where the burn was being lost.
+        /// </para>
+        /// </summary>
+        /// <param name="secondsSinceLaunch">
+        /// How long ago this hull launched, or negative for a hull that has not — a parked ship, a
+        /// wreck restored from a save, or the seconds between spawning at the top of the arc and the
+        /// crew being strapped in. None of them are on fire.
+        /// </param>
+        /// <param name="descentSeconds">How long the whole descent takes; the burn is a fraction of it.</param>
+        /// <param name="time">Seconds on any steady clock, for the flicker.</param>
+        public void Advance(float secondsSinceLaunch, float descentSeconds, float time)
         {
             if (burnedOut) return;
 
-            float since = rider != null ? rider.SecondsSinceLaunch : -1f;
-
-            // -1 is "this hull has not launched", which covers a parked ship, a wreck restored from
-            // a save, and the seconds between spawning at the top of the arc and the crew being
-            // strapped in. None of them are on fire.
-            if (since < 0f)
+            if (secondsSinceLaunch < 0f)
             {
                 Extinguish();
                 return;
             }
 
-            float duration = ArrivalDirector.Instance != null
-                ? ArrivalDirector.Instance.DescentDuration
-                : descentDuration;
-
-            Burn = curve.Intensity(since / Mathf.Max(0.1f, duration));
+            Burn = curve.Intensity(secondsSinceLaunch / Mathf.Max(0.1f, descentSeconds));
 
             if (Burn <= cutoff)
             {
-                // Lit once and now out: the descent is past the burn and there is nothing else
-                // coming. Everything after this frame would be a curve evaluation returning zero.
+                // Out, and only latched off if it had actually been drawing. Before ignition this
+                // is every frame of the climb through the sliver under `cutoff`, which must not end
+                // the burn before it starts; after extinction it is the end of the effect and there
+                // is nothing else coming.
                 if (Extinguish()) burnedOut = true;
                 return;
             }
 
-            float flicker = EntryBurnCurve.Flicker(Time.time, flickerHz, flickerDepth);
+            alight = true;
+
+            float flicker = EntryBurnCurve.Flicker(time, flickerHz, flickerDepth);
 
             if (shell != null)
             {
@@ -163,13 +191,22 @@ namespace SpaceGame.Gameplay.Arrival
         }
 
         /// <summary>
-        /// Put the fire out. Returns whether it had been alight, which is how
-        /// <see cref="LateUpdate"/> tells "the burn just finished" from "it has not started".
+        /// The descent the burn is a fraction of: the local <see cref="ArrivalDirector"/>'s, because
+        /// that component is the authority and exists on every machine. The serialized value is the
+        /// fallback for a hull dropped into a test scene on its own.
+        /// </summary>
+        private float ResolveDescentDuration() =>
+            ArrivalDirector.Instance != null ? ArrivalDirector.Instance.DescentDuration : descentDuration;
+
+        /// <summary>
+        /// Put the fire out. Returns whether it had been alight, which is how <see cref="Advance"/>
+        /// tells "the burn just finished" from "it has not started".
         /// </summary>
         private bool Extinguish()
         {
-            bool wasAlight = Burn > 0f || (shell != null && shell.enabled) || (glow != null && glow.enabled);
+            bool wasAlight = alight;
 
+            alight = false;
             Burn = 0f;
             if (shell != null) shell.enabled = false;
             if (glow != null) glow.enabled = false;

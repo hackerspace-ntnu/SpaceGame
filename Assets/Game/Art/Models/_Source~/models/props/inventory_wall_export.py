@@ -15,8 +15,9 @@ forward — and `SURF_WallGrid` lands at Unity local (0, 2.1465, 0). That height
 is the grid's centre and it is what `PlayerShipBuilder.WallGridCentreHeight` has
 to equal. It moved three times on 2026-09-01: 1.71 to 2.565 with the 1.5x
 enlargement, then to 2.025 when the grid was re-cut to 30 x 22 cells to fit the
-lander's aft room, then to 2.1465 when the wall alone was drawn 1.06x larger
-(`PackScale.WallDisplay`). That last move enlarged the model and NOT the grid —
+lander's aft room, then to 2.1465 when the wall alone was drawn 1.59x the
+original frame (`PackScale.WallDrawn`). That last move enlarged the model and
+NOT the grid —
 still 30 x 22 cells, still 4.05 x 2.97 m of stored uv — so it is the one of the
 three that changed no number Unity reasons with. `inventory_wall_scale.py`
 prints the current value.

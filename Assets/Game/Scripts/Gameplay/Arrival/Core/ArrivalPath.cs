@@ -26,8 +26,9 @@ namespace SpaceGame.Gameplay.Arrival
         public float TouchdownLift;
 
         [Tooltip("Metres above the impact point that the descent begins. Kept inside the band where " +
-                 "the desert skybox and volumetric clouds still read correctly — this is a " +
-                 "high-atmosphere entry, not true orbit.")]
+                 "the volumetric clouds still read correctly (the skybox itself fades to an " +
+                 "airborne look with camera altitude) — this is a high-atmosphere entry, not " +
+                 "true orbit.")]
         public float StartAltitude;
 
         [Tooltip("How far from the impact point, horizontally, the descent begins. This is a " +
@@ -57,6 +58,31 @@ namespace SpaceGame.Gameplay.Arrival
                  "in nose-first.")]
         public float MaxPitchDegrees;
 
+        [Tooltip("Peak amplitude of the crash tumble, in degrees of ROLL. This is the hull yawing " +
+                 "and rolling like something that has lost control, on top of the arc it is still " +
+                 "on. Dosed, not free: the crew are sitting inside it and the camera is their " +
+                 "head, so violent roll reads as a broken camera rather than as drama " +
+                 "(GDC-L1-FEEL-0006). Hard-capped at ArrivalTrajectory.MaxTumbleDegrees whatever " +
+                 "is authored here. Zero flies the old dead-steady arc.")]
+        public float TumbleDegrees;
+
+        [Tooltip("How fractionally the tumble carries into YAW as well as roll. Kept below one: " +
+                 "the hull is aiming at its landing point, and a nose swinging as far sideways as " +
+                 "it rolls reads as bad steering rather than as a ship in trouble.")]
+        [Range(0f, 1f)] public float TumbleYawShare;
+
+        [Tooltip("How many roll oscillations the tumble makes over the WHOLE descent. Counted in " +
+                 "cycles rather than in hertz so retiming the descent stretches the tumble with " +
+                 "it instead of cramming the same wobble into less time.")]
+        public float TumbleCycles;
+
+        [Tooltip("How late the tumble builds. The envelope is t-to-this-power times one-minus-t " +
+                 "squared, so it peaks at buildUp/(buildUp+2) of the way down: 0 starts at full " +
+                 "and only decays, 3 peaks at six tenths, higher keeps the hull steady longer and " +
+                 "then loses it. It reaches exactly zero — with zero rate of change — at contact " +
+                 "whatever this is, which is what the settle depends on.")]
+        public float TumbleBuildUp;
+
         /// <summary>
         /// The values the arrival ships with. Used by <see cref="ArrivalDirector"/>'s serialized
         /// default so a freshly added component is already flyable, and by the tests as a realistic
@@ -72,6 +98,10 @@ namespace SpaceGame.Gameplay.Arrival
             SweepDegrees = 110f,
             MaxBankDegrees = 22f,
             MaxPitchDegrees = 70f,
+            TumbleDegrees = 18f,
+            TumbleYawShare = 0.4f,
+            TumbleCycles = 2.5f,
+            TumbleBuildUp = 3f,
         };
     }
 }

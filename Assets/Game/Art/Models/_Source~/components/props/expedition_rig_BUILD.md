@@ -563,9 +563,12 @@ directory: the palette is a LINKED library at `//../../palette.blend`, and a fil
 somewhere else carries a relative path that no longer resolves once it is copied back. That is the
 relink trap this record already names.
 
-`expedition_rig_scale.py` stamps `scene["rig_scale"]` and **refuses a file that already carries
-one**. A second pass leaves a 2.25x rig that no number on Unity's side agrees with, and nothing
-downstream would say so — the pack would simply be enormous.
+`expedition_rig_scale.py` stamps `scene["rig_scale"]` with the scale the file is at and
+**composes**: it applies `SCALE / stamped` and refuses only a file already at `SCALE`. An
+unconditional second pass would leave a 2.25x rig that no number on Unity's side agrees with, and
+nothing downstream would say so — the pack would simply be enormous. It refused any stamped file
+outright until 2026-09-02, which was the right guard in the wrong shape: a *shrink* then needed the
+refusal commented out to get past, which is exactly how that 2.25x rig gets shipped.
 
 ### Why the scale is a third script and not a SCALE threaded through the generator
 
@@ -607,3 +610,34 @@ material assignment identical.**
 `pack_holders.blend` was **not** scaled and must not be. `HolderBuilder` stretches every holder to
 fit the item it holds, measured through `ItemFootprint.SizeOf`, which is already in the enlarged
 frame — so the holders grew with the gear on their own.
+
+## Shrunk 30% to 1.05x — 2026-09-02
+
+The 1.5 rig was too big for a thing worn on a back: the stowed board was 1.215 m and swung into the
+wearer's own first-person camera, and the lash line took a 2.43 m item. `PackScale.Factor` went
+**1.5 -> 1.05** — 70% of the previous size — and this model came along with it, applied as the
+residual x0.700 through the now-composing `expedition_rig_scale.py`:
+
+```bash
+blender -b expedition_rig.blend --python expedition_rig_scale.py   # SCALE 1.05, residual x0.7
+blender -b --python expedition_rig_export.py                       # re-export the FBX
+```
+
+Same similarity transform, same 255 cells, every `PackShape` mask still valid. Unity's side needs
+`PackGrid.Cell` 0.135 -> 0.0945, `ExpeditionRigWiring.SurfaceTable` re-typed, and a save-file
+version bump (`PackSaveCodec` v3 -> v4) because a placement's uv is metres.
+
+| | at 1.5 | at 1.05 |
+|---|---|---|
+| deployed bounds (W x D x H) | 2.592 x 3.124 x 1.249 m | 1.814 x 2.187 x 0.874 m |
+| `SURF_Leaf` | 1.080 x 1.080 m | 0.756 x 0.756 m |
+| `SURF_LongGoods` | 2.430 x 0.135 m | 1.701 x 0.0945 m |
+| `SURF_Rack` | 1.215 x 1.215 m | 0.8505 x 0.8505 m |
+| `SURF_Back_L/R` | 0.405 x 0.810 m | 0.2835 x 0.567 m |
+| `SURF_Wing_L/R` | 0.540 x 0.945 m | 0.378 x 0.6615 m |
+| tris / objects | 27284 / 47 | 27284 / 47 |
+
+The ship's gear wall did **not** shrink with it. Its drawn size is pinned by `PackScale.WallDrawn`
+(1.8285, = `inventory_wall_scale.py`'s `TOTAL`) and `WallDisplay` is derived as `WallDrawn /
+Factor`, so `inventory_wall.blend` needed no pass at all — the wall is sized by the lander's aft
+room, not by the backpack.

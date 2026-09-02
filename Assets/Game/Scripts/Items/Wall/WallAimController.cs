@@ -33,20 +33,30 @@ namespace SpaceGame.Items
     public sealed class WallAimController : MonoBehaviour
     {
         /// <summary>
-        /// The controller currently showing a placement ghost, if any. At most one, on one machine.
+        /// The controller whose wall currently owns the Use button, if any. At most one, on one
+        /// machine.
         ///
         /// <para>
-        /// Public because the Use button is shared: it fires the item in the player's hand AND, while
-        /// this readout is up, puts that item on the wall instead. Those cannot both happen, so
+        /// Public because the Use button is shared: it fires the item in the player's hand AND,
+        /// while this readout is up, acts on the wall instead. Those cannot both happen, so
         /// <c>EquipmentController.OnUse</c> asks this before firing — the same shape as
         /// <c>PackFocusSession.Active</c>, which exists so one screen has one owner.
         /// </para>
         /// <para>
-        /// Set only while there is genuinely something to place: a wall under the crosshair and an
-        /// item in hand. Empty-handed, or looking anywhere else, the button is the item's again.
+        /// <b>Set for BOTH of the wall's verbs, not just the placing one.</b> It used to be set
+        /// only while a placement ghost was up, which left the take verb sharing the button with
+        /// the hand: a press that lifted gear off the wall also fired whatever the player was
+        /// holding. An item lying on an inventory surface is stowed, not equipped — while the
+        /// crosshair is on one, the press belongs to the wall and to nothing else. See
+        /// <see cref="ClaimUse"/>.
+        /// </para>
+        /// <para>
+        /// Claimed on the frame the readout appears rather than on the press, so the readout and
+        /// the button can never disagree about which verb is live, and released the moment the
+        /// crosshair leaves a wall this controller would act on.
         /// </para>
         /// </summary>
-        public static WallAimController Placing { get; private set; }
+        public static WallAimController Aiming { get; private set; }
 
         [Tooltip("How far the player can reach into a wall. Zero — the default — takes the " +
                  "Interactor's own cast distance, so the preview and the E key always agree " +
@@ -188,9 +198,39 @@ namespace SpaceGame.Items
 
             InventoryItem held = HeldItem();
 
+            // Decided in ONE place, before either readout draws, because the two readouts used to
+            // answer it differently and that was the bug: the placing one claimed the button and
+            // the taking one handed it back, so lifting gear off a wall also fired whatever was in
+            // the player's hand.
+            if (WallOwnsUse(held != null, hasHovered)) ClaimUse();
+            else ReleaseUse();
+
             if (held != null) ShowPlacement(held);
             else ShowTake();
         }
+
+        /// <summary>
+        /// Whether a Use press belongs to the wall rather than to the item in the hand, given that
+        /// the crosshair is already on a wall.
+        ///
+        /// <para>
+        /// Both of the wall's verbs count. With something in hand the press is a stow — including
+        /// onto cells that are red, where the press is a refusal the wall owns and answers, not a
+        /// fall-through to the trigger. With an empty hand it is a take, but only when there is
+        /// actually gear under the crosshair; a press on bare canvas does nothing here and the
+        /// button stays the hand's. <b>An item lying on an inventory surface is stowed, not
+        /// equipped</b> — it is a stripped display copy with no <c>UsableItem</c> on it at all —
+        /// so a click on one is a click on furniture and must never reach a trigger.
+        /// </para>
+        /// <para>
+        /// Static, public and argument-only so the rule can be read and tested without a player, a
+        /// wall or a physics scene — the EditMode tests compile into a different assembly, so
+        /// <c>internal</c> would hide it from the only thing that checks it.
+        /// <c>EquipmentController.OnUse</c> reads the result through <see cref="Aiming"/>.
+        /// </para>
+        /// </summary>
+        public static bool WallOwnsUse(bool holdingSomething, bool overPlacedItem) =>
+            holdingSomething || overPlacedItem;
 
         // ── Where the crosshair is ───────────────────────────────────────────
 
@@ -228,14 +268,24 @@ namespace SpaceGame.Items
                                        out PackSurface itemSurface, out Vector2 itemUv))
             {
                 WallInventory owner = WallOf(itemSurface);
-                if (owner == null) return false;               // a deployed pack, not a wall
 
-                wall = owner;
-                surface = itemSurface;
-                uv = itemUv;
-                hovered = visual;
-                hasHovered = wall.TryFindAt(surface.Id, uv, out hoveredPlacement);
-                return true;
+                if (owner != null)
+                {
+                    wall = owner;
+                    surface = itemSurface;
+                    uv = itemUv;
+                    hovered = visual;
+                    hasHovered = wall.TryFindAt(surface.Id, uv, out hoveredPlacement);
+                    return true;
+                }
+
+                // Somebody else's gear on the pack-item layer — the rig deployed in front of the
+                // wall, or a long item on the player's OWN worn pack, which rides the spine and is
+                // documented to swing into this very camera. Falling through rather than giving up
+                // is the whole point: TryHitItem is an unoccluded cast over one layer, so a hit on
+                // it says nothing about whether the wall is under the crosshair. Returning false
+                // here dropped the readout AND handed the Use button back to the weapon, so the
+                // press the player meant for the wall fired the item in their hand instead.
             }
 
             int count = Physics.RaycastNonAlloc(ray, hits, range, ~LayerMask.GetMask("Player"),
@@ -317,11 +367,6 @@ namespace SpaceGame.Items
 
             if (proxyItem != null) visuals.MoveCarry(held.itemPrefab, surface, uv, turn);
 
-            // From here until the crosshair leaves the wall or the hand empties, Use means "put it
-            // down", not "fire it". Claimed on the frame the ghost appears rather than on the
-            // press, so the readout and the button can never disagree about which verb is live.
-            Placing = this;
-
             visuals.SetHovered(null);
             visuals.SetCarryDenied(!placementLegal);
 
@@ -342,14 +387,19 @@ namespace SpaceGame.Items
         /// <summary>
         /// Empty hand: rim whatever is under the crosshair, so E has something visible to act on.
         ///
+        /// <para>
         /// No lattice and no ghost cells here. With nothing to place there is no shape to draw, and
         /// a grid over an idle wall is decoration the player cannot act on.
+        /// </para>
+        /// <para>
+        /// The Use button is not touched here: <see cref="Update"/> has already settled who owns
+        /// the press, for both verbs at once — see <see cref="WallOwnsUse"/>.
+        /// </para>
         /// </summary>
         private void ShowTake()
         {
             GiveWheelBack();
             EndPreview();
-            ReleaseUse();
 
             placementLegal = false;
 
@@ -377,11 +427,14 @@ namespace SpaceGame.Items
             visuals?.SetHovered(null);
         }
 
+        /// <summary>Take the Use button for the wall. Idempotent.</summary>
+        private void ClaimUse() => Aiming = this;
+
         /// <summary>Hand the Use button back to the item. Idempotent, and never takes it from
         /// somebody else's controller.</summary>
         private void ReleaseUse()
         {
-            if (Placing == this) Placing = null;
+            if (Aiming == this) Aiming = null;
         }
 
         private void EndPreview()

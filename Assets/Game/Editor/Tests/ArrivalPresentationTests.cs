@@ -23,8 +23,8 @@ namespace SpaceGame.EditorTools
         /// <summary>Seconds of float drift treated as the same instant.</summary>
         private const float Tolerance = 0.0001f;
 
-        /// <summary>The shipped numbers: a 26 s dive, a 1.6 s crash, and the authored fades.</summary>
-        private static ArrivalBeats Shipped() => new(descent: 26f, impactFade: 0.6f,
+        /// <summary>The shipped numbers: an 18.2 s dive, a 1.6 s crash, and the authored fades.</summary>
+        private static ArrivalBeats Shipped() => new(descent: 18.2f, impactFade: 0.6f,
                                                      settle: 1.6f, blackout: 1.4f);
 
         [Test]
@@ -43,7 +43,7 @@ namespace SpaceGame.EditorTools
         {
             ArrivalBeats beats = Shipped();
 
-            Assert.AreEqual(26f - 0.6f, beats.FadeStart, Tolerance);
+            Assert.AreEqual(18.2f - 0.6f, beats.FadeStart, Tolerance);
             Assert.AreEqual(0.6f, beats.FadeDuration, Tolerance);
         }
 
@@ -78,7 +78,7 @@ namespace SpaceGame.EditorTools
             ArrivalBeats beats = Shipped();
 
             Assert.AreEqual(0f, beats.DescentProgress(0f), Tolerance);
-            Assert.AreEqual(0.5f, beats.DescentProgress(13f), Tolerance);
+            Assert.AreEqual(0.5f, beats.DescentProgress(18.2f * 0.5f), Tolerance);
 
             // Seated after the landing: the end of the curve, never an extrapolation off it.
             Assert.AreEqual(1f, beats.DescentProgress(400f), Tolerance);

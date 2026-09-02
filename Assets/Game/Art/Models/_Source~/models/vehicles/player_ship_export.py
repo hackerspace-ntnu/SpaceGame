@@ -56,7 +56,6 @@ DROP = {"Ref_ExampleHull"}
 # builder treats them generically (collision from the bake below).
 RENAME = {
     "Cube.129": "Mesh_BoardingStair",
-    "Cube.119": "Mesh_BoardingStair_Foot",
     "Cube.043": "Mesh_SillPlatform",
     # Landmarks the builder measures the cockpit and interior from.
     "Icosphere": "Mesh_CanopyDome",
@@ -75,7 +74,7 @@ COLLISION_PREFIX = "COL_"
 COLLISION_SKIP = {
     "back_door", "back_door_support", "back_door_support.001", "back_door_support.002",
     "sliding_door_1", "sliding_door_2", "sliding_door_3", "sliding_door_4",
-    "Mesh_BoardingStair", "Mesh_BoardingStair_Foot", "Mesh_SillPlatform",
+    "Mesh_BoardingStair", "Mesh_SillPlatform",
     "Mesh_CanopyDome",
 }
 

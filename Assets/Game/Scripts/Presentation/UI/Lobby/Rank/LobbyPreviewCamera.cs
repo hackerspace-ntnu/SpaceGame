@@ -27,6 +27,31 @@ namespace SpaceGame.Presentation.Lobbies
         /// </summary>
         private const float FitMargin = 1.2f;
 
+        /// <summary>
+        /// How much of the canvas the page's own chrome takes along the bottom, in reference pixels:
+        /// the status line's baseline plus its height. Below this the rank must not reach.
+        ///
+        /// <para>
+        /// The TOP of the frame is not reserved. A team plate at <c>RankLayout.PlateLift</c>
+        /// projects above the page title in the authored shot and always has — the title is a
+        /// left-aligned column and the plates are centred over their own teams, so they coexist.
+        /// </para>
+        /// </summary>
+        private const float ChromeBottom = MenuEntry.MessageBottom + 44f;
+
+        /// <summary>The canvas the menu's chrome is laid out on. Matches MainMenu.unity's CanvasScaler.</summary>
+        private const float ReferenceWidth = 1920f;
+
+        private const float ReferenceHeight = 1080f;
+
+        /// <summary>
+        /// How far above the HIGHEST team plate the shot has to reach, in metres — the plate's own
+        /// height plus air. The plate lift itself is per-row (<c>RankLayout.MaxPlateLift</c>), so
+        /// the fixed part here is only what sits above it; for a one-row rank the sum reproduces
+        /// the authored fit exactly.
+        /// </summary>
+        private const float PlateHeadroom = 2.3f;
+
         private Transform borrowed;
         private Vector3 returnPosition;
         private Quaternion returnRotation;
@@ -90,7 +115,7 @@ namespace SpaceGame.Presentation.Lobbies
         /// already fits at the authored distance, the extra distance is zero and the camera sits
         /// exactly where the view put it.
         /// </summary>
-        public void Fit(Transform anchor, int teams, int teamSize)
+        public void Fit(Transform anchor, int teams, int teamSize, float groundSpread)
         {
             // No adopted view means no authored backward direction to push along, so there is
             // nothing safe to fit against — the rank keeps whatever framing the scene already has.
@@ -99,11 +124,14 @@ namespace SpaceGame.Presentation.Lobbies
             Camera camera = Camera.main;
             if (camera == null) return;
 
-            float verticalFov = camera.fieldOfView * Mathf.Deg2Rad;
-            float horizontalFov = 2f * Mathf.Atan(Mathf.Tan(verticalFov * 0.5f) * camera.aspect) * Mathf.Rad2Deg;
+            float halfVertical = camera.fieldOfView * Mathf.Deg2Rad * 0.5f;
+            float horizontalFov = 2f * Mathf.Atan(Mathf.Tan(halfVertical) * camera.aspect) * Mathf.Rad2Deg;
+            float bandFov = 2f * Mathf.Atan(Mathf.Tan(halfVertical) * BandFraction()) * Mathf.Rad2Deg;
 
             float width = RankLayout.TotalWidth(teams, teamSize);
-            float wanted = RankLayout.CameraDistance(width, horizontalFov, FitMargin);
+            float height = Mathf.Max(0f, groundSpread) + RankLayout.MaxPlateLift(teams) + PlateHeadroom;
+
+            float wanted = RankLayout.CameraDistance(width, height, horizontalFov, bandFov, FitMargin);
             float authoredDistance = Vector3.Distance(viewPosition, anchor.position);
 
             // Never negative: a rank that already fits inside the authored shot must not pull the
@@ -111,7 +139,49 @@ namespace SpaceGame.Presentation.Lobbies
             float extra = Mathf.Max(0f, wanted - authoredDistance);
 
             Vector3 backward = viewRotation * Vector3.back;
-            borrowed.SetPositionAndRotation(viewPosition + backward * extra, viewRotation);
+            Vector3 position = viewPosition + backward * extra;
+
+            float wantedEye = anchor.position.y
+                              + RankLayout.EyeHeight(teams, teamSize, authoredDistance + extra);
+
+            float lift = Mathf.Max(0f, wantedEye - position.y);
+
+            if (lift <= 0.001f)
+            {
+                borrowed.SetPositionAndRotation(position, viewRotation);
+                return;
+            }
+
+            position += Vector3.up * lift;
+
+            // Re-aimed at the rank's own head height, so the lift frames the astronauts rather than
+            // sliding them out of the bottom of the shot. This is the ONE case where the authored
+            // rotation is not reproduced — and it cannot happen with a single row, where the lift is
+            // zero by construction.
+            Vector3 toTarget = anchor.position + Vector3.up * RankLayout.HeadHeight - position;
+
+            borrowed.SetPositionAndRotation(
+                position,
+                toTarget.sqrMagnitude < 0.0001f ? viewRotation : Quaternion.LookRotation(toTarget, Vector3.up));
+        }
+
+        /// <summary>
+        /// How much of the frame's height the rank may use, as a fraction, once the status line and
+        /// footer have taken theirs.
+        ///
+        /// Computed from the LIVE canvas height rather than assumed to be 1080: the menu's
+        /// CanvasScaler matches WIDTH at 1920x1080, so the canvas is always 1920 wide and its height
+        /// is what moves with the aspect ratio. A short, wide window therefore has a SHORT canvas,
+        /// and the fixed chrome along its bottom eats a bigger fraction of it — which is precisely
+        /// the small-window case a width-only fit never noticed.
+        /// </summary>
+        private static float BandFraction()
+        {
+            if (Screen.width <= 0 || Screen.height <= 0) return 1f - ChromeBottom / ReferenceHeight;
+
+            float canvasHeight = ReferenceWidth * Screen.height / Screen.width;
+
+            return Mathf.Clamp(1f - ChromeBottom / Mathf.Max(1f, canvasHeight), 0.2f, 1f);
         }
     }
 }

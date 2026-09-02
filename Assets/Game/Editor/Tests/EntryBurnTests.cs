@@ -11,6 +11,7 @@
 // In Editor/ rather than beside the other EditMode tests because these touch Assembly-CSharp
 // types, and an asmdef cannot reference Assembly-CSharp.
 using NUnit.Framework;
+using UnityEngine;
 using SpaceGame.Gameplay.Arrival;
 
 namespace SpaceGame.EditorTools
@@ -18,6 +19,12 @@ namespace SpaceGame.EditorTools
     public class EntryBurnTests
     {
         private const float Tolerance = 0.0001f;
+
+        /// <summary>A descent stepped at sixty frames a second, which is what the component sees.</summary>
+        private const float FrameSeconds = 1f / 60f;
+
+        /// <summary>The descent the arrival currently flies, in seconds.</summary>
+        private const float DescentSeconds = 18.2f;
 
         /// <summary>The tuning the arrival actually flies.</summary>
         private static EntryBurnCurve Curve => EntryBurnCurve.Default;
@@ -164,6 +171,121 @@ namespace SpaceGame.EditorTools
         public void ZeroDepthIsSteady()
         {
             Assert.AreEqual(1f, EntryBurnCurve.Flicker(4.2f, 2.7f, 0f), Tolerance);
+        }
+
+        // ─────────────────────────────────────────────
+        //  The component, frame by frame
+        // ─────────────────────────────────────────────
+        //
+        // The envelope above is a shape and was always covered. The STATE MACHINE that reads it was
+        // not, and that is where the whole effect was being lost: EntryBurn latches itself off for
+        // good once the burn is over, and the "is it over?" question used to be answered from the
+        // intensity it had just computed. The ignition ramp is a smoothstep, so it climbs through
+        // the sliver between zero and `cutoff` over about a fifth of a second — the first frame of
+        // which looked exactly like the end of a burn. The sheath latched off before it had ever
+        // drawn a frame, and the whole descent came down cold with a clean console.
+
+        /// <summary>
+        /// The regression test for that. Stepped at a real frame rate through a real descent, the
+        /// sheath must actually reach full strength.
+        /// </summary>
+        [Test]
+        public void LightsUpAcrossTheDescentInsteadOfLatchingOffDuringIgnition()
+        {
+            EntryBurn burn = NewBurn();
+
+            try
+            {
+                float peak = 0f;
+
+                for (float t = 0f; t <= DescentSeconds; t += FrameSeconds)
+                {
+                    burn.Advance(t, DescentSeconds, t);
+                    peak = Mathf.Max(peak, burn.Burn);
+                }
+
+                Assert.AreEqual(1f, peak, Tolerance,
+                    "The sheath never reached full strength over a whole descent. It latched itself " +
+                    "off inside the ignition ramp, which is what 'no flames appear, nothing' looks " +
+                    "like from the cabin — see EntryBurn.alight.");
+            }
+            finally
+            {
+                Cleanup(burn);
+            }
+        }
+
+        /// <summary>
+        /// The other half of the latch, and the reason it exists: once the fire is out the component
+        /// stops working for the rest of the session rather than evaluating a curve that can only
+        /// return zero. A wreck stands in the world for a long time.
+        /// </summary>
+        [Test]
+        public void StaysOutOnceTheBurnHasFinished()
+        {
+            EntryBurn burn = NewBurn();
+
+            try
+            {
+                for (float t = 0f; t <= DescentSeconds; t += FrameSeconds)
+                    burn.Advance(t, DescentSeconds, t);
+
+                Assert.AreEqual(0f, burn.Burn, Tolerance, "The burn is still alight at the ground.");
+
+                // Asked again about the middle of the arc, where the curve says "full". A hull that
+                // has already burned is past it and must not relight.
+                burn.Advance(DescentSeconds * 0.3f, DescentSeconds, 0f);
+
+                Assert.AreEqual(0f, burn.Burn, Tolerance,
+                    "The sheath relit after the descent was over.");
+            }
+            finally
+            {
+                Cleanup(burn);
+            }
+        }
+
+        /// <summary>
+        /// A parked ship and a wreck loaded from a save both report a negative
+        /// <c>SecondsSinceLaunch</c>, and neither is on fire. Nothing about that may latch the
+        /// component off either — the same hull can be handed a real descent moments later.
+        /// </summary>
+        [Test]
+        public void IsDarkBeforeLaunchAndStillAbleToBurnAfterwards()
+        {
+            EntryBurn burn = NewBurn();
+
+            try
+            {
+                for (int frame = 0; frame < 120; frame++)
+                    burn.Advance(-1f, DescentSeconds, frame * FrameSeconds);
+
+                Assert.AreEqual(0f, burn.Burn, Tolerance, "An unlaunched hull is on fire.");
+
+                burn.Advance(DescentSeconds * 0.3f, DescentSeconds, 0f);
+
+                Assert.AreEqual(1f, burn.Burn, Tolerance,
+                    "The hull could not light after sitting unlaunched, so a ship that waited for " +
+                    "its crew arrives cold.");
+            }
+            finally
+            {
+                Cleanup(burn);
+            }
+        }
+
+        /// <summary>
+        /// A bare component with no shell and no lamp: EditMode never runs Awake, so the
+        /// MaterialPropertyBlock is not built and the two renderer references are null — which
+        /// <see cref="EntryBurn.Advance"/> guards, because a hull can legitimately be built without
+        /// either. What is being asserted here is the sequencing, and that needs neither.
+        /// </summary>
+        private static EntryBurn NewBurn() =>
+            new GameObject("EntryBurnProbe").AddComponent<EntryBurn>();
+
+        private static void Cleanup(EntryBurn burn)
+        {
+            if (burn != null) Object.DestroyImmediate(burn.gameObject);
         }
     }
 }

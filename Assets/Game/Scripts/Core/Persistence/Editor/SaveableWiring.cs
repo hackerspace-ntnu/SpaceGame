@@ -88,13 +88,28 @@ namespace SpaceGame.Core.Persistence.EditorTools
         }
 
         [MenuItem("Tools/Save System/Wire Saveable Prefabs")]
-        public static void WirePrefabs()
+        public static void WirePrefabs() => TryWirePrefabs();
+
+        /// <summary>
+        /// The prefab pass, reporting whether it actually ran. <c>false</c> means it refused and
+        /// nothing was wired.
+        /// </summary>
+        /// <remarks>
+        /// The outcome is a return value and not just a console error because this pass is called by
+        /// BUILD SCRIPTS as well as by a human, and a script cannot read the console. It cost the
+        /// PlayerShip exactly that: <c>PlayerShipBuilder.Build()</c> was run from the menu while the
+        /// editor happened to be in Play mode, this pass refused on the line below, and the builder
+        /// carried on and saved a hull with no <c>prefabId</c> and five missing savers. Nothing about
+        /// the ship looked wrong afterwards; the wreck simply stopped surviving a reload. Any
+        /// automated caller must check this.
+        /// </remarks>
+        public static bool TryWirePrefabs()
         {
             if (EditorApplication.isPlaying)
             {
                 Debug.LogError("[SaveableWiring] Exit Play mode first — prefab edits made in play " +
                                "mode are discarded when it ends.");
-                return;
+                return false;
             }
 
             var report = new StringBuilder("[SaveableWiring] Prefabs\n");
@@ -145,6 +160,7 @@ namespace SpaceGame.Core.Persistence.EditorTools
 
             report.Append($"  {changed} prefab(s) wired, {skipped} skipped (no state worth saving).");
             Debug.Log(report.ToString());
+            return true;
         }
 
         /// <summary>

@@ -51,6 +51,19 @@ namespace SpaceGame.Core.Persistence
         [Header("Debug")]
         [SerializeField] private bool verbose;
 
+        /// <summary>
+        /// Fired immediately before a save captures the world, on the frame of the capture.
+        ///
+        /// <para>
+        /// The hook for anything that wants the world to be WORTH capturing first: a system
+        /// mid-sequence can finish or normalise what it is doing so the file records an end state
+        /// rather than a moment nothing will ever resume — <c>ArrivalDirector</c> grounds a
+        /// mid-descent hull here, because the arrival flag is saved as "arrived" either way.
+        /// Handlers run synchronously and must not save.
+        /// </para>
+        /// </summary>
+        public static event Action Capturing;
+
         /// <summary>Fired after a save has been written. The argument is the slot id.</summary>
         public static event Action<string> OnSaved;
 
@@ -529,6 +542,7 @@ namespace SpaceGame.Core.Persistence
 
             try
             {
+                Capturing?.Invoke();
                 document = BuildDocument(slotId, label);
                 json = SaveSerializer.ToJson(document, prettyPrint);
             }

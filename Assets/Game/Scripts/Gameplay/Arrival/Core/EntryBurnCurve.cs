@@ -43,15 +43,19 @@ namespace SpaceGame.Gameplay.Arrival
 
         /// <summary>
         /// The tuning the arrival actually flies: alight almost at once, full by a sixth of the way
-        /// down, holding through the middle of the arc and out by seven tenths — which over a 26 s
-        /// descent leaves the last eight seconds clear for the ground rush.
+        /// down, and then spending most of its life dying back — the fade runs from about a third
+        /// of the descent all the way out to three quarters, so the burn is a long slow gutter
+        /// rather than a plateau with an ending. Over an 18.2 s descent that puts the fire out at
+        /// 13.7 s, still roughly four seconds clear of the fade to black; 0.75 is also the exact
+        /// point <c>EntryBurnTests.IsOutBeforeTheGroundRush</c> asserts darkness at, so the burn
+        /// cannot be pushed later without renegotiating that contract.
         /// </summary>
         public static EntryBurnCurve Default => new()
         {
             Ignite = 0.03f,
             Full = 0.16f,
-            Fade = 0.42f,
-            Extinguish = 0.70f,
+            Fade = 0.32f,
+            Extinguish = 0.75f,
         };
 
         /// <summary>

@@ -56,11 +56,10 @@ only multiplies.)
 The model has to come along rather than being left at its old size, because the
 decoration IS the grid. The bay dividers are exactly six cells apart; the webbing
 tapes, the pegboard bosses and the net cords are all on `PITCH` = two cells.
-Leave the model at 1x under a 1.5x grid and every one of those lines stops
+Leave the model at 1x under a `TOTAL`x grid and every one of those lines stops
 falling where the player is dropping gear — an item lands visibly between the
-lines it is supposed to sit on — and `SurfaceSize` grows 4.05 x 2.97 m over a
-2.70 x 1.98 m board, so a third of the placement rectangle hangs off the fitting
-into thin air.
+lines it is supposed to sit on — and the placement rectangle grows over a board
+that did not, so a third of it hangs off the fitting into thin air.
 
 Composes; refuses only to repeat itself
 -------------------------------------------------------------------------------
@@ -75,6 +74,15 @@ and the wrong shape: a second unconditional pass would leave a 2.25x wall that
 no number on Unity's side agrees with, and nothing downstream would report it —
 but so would re-typing `SCALE` under a refusal that has to be commented out to
 get past. Composing keeps the protection and removes the temptation.
+
+It composes DOWNWARD too, and has to. A second refusal used to reject any
+`TOTAL` below the stamp — "shrinking is not what this pass is for" — which is
+the same guard in the same wrong shape one step later: the only way past it was
+to comment it out, and the file it was protecting is the one an over-scale has
+to be taken back out of. That is exactly what 2026-09-02 needed, taking the wall
+from a 1.8285 that stood through the arch rib back to 1.59. A residual under 1
+divides the same hand-edited meshes the residual over 1 multiplied, so there is
+nothing to protect that composing does not already protect.
 
 Hand edits, and what the identity check is actually for
 -------------------------------------------------------------------------------
@@ -118,19 +126,22 @@ from inventory_wall import (  # noqa: E402
 #          inventory, cell and all. The pack's surface tests notice a drift: a
 #          mismatch shows up as a surface rectangle that is no longer a whole
 #          multiple of the cell.
-#   WALL   `PackScale.WallDisplay` — the wall alone, drawn larger than it
-#          reasons. It moves NO count and no cell: Unity's side applies the same
-#          number to the uv -> world mapping only, so the board and the lattice
-#          gear is dropped onto grow together while the 30 x 22 cells, the
-#          4.05 x 2.97 m of stored uv and every save byte stay exactly as they
-#          were. The lander's aft room only clears 1.065 — see the derivation on
-#          `PackScale.WallDisplay`. 1.219 is a DELIBERATE OVERRIDE of that cap,
-#          asked for on 2026-09-01 with the intersection understood: the fitting
-#          stands into the arch-rib buttress and the overhead-gap test fails by
-#          design. Read `PackScale.WallDisplay` before changing it back.
-PACK_SCALE = 1.5
-WALL_DISPLAY = 1.219
-TOTAL = PACK_SCALE * WALL_DISPLAY
+#   WALL   the wall alone, drawn larger than it reasons. It moves NO count and
+#          no cell: Unity's side applies the same number to the uv -> world
+#          mapping only, so the board and the lattice gear is dropped onto grow
+#          together while the 30 x 22 cells, the 4.05 x 2.97 m of stored uv and
+#          every save byte stay exactly as they were.
+#
+# TOTAL is what this FILE is baked at, and since 2026-09-02 that is
+# `PackScale.WallModel`, not `PackScale.WallDrawn`: the wall's on-screen size
+# moved to 1.2x this (`WallDrawn = WallModel * 1.2`, the user's 20% enlargement)
+# and the residual is a transform scale `InventoryWallBuilder` puts on the
+# prefab root, precisely so this hand-edited file never has to be re-run for a
+# resize. Keep TOTAL equal to `PackScale.WallModel`; re-run this pass only when
+# the BAKED scale itself is meant to change, and change `WallModel` with it.
+TOTAL = 1.59
+PACK_SCALE = 1.05
+WALL_DISPLAY = TOTAL / PACK_SCALE
 
 # Two scales are "the same" if they agree to this. `TOTAL` is a product of
 # decimal literals neither language can represent exactly, so an equality test
@@ -228,14 +239,6 @@ def main():
             "Already at x%.4f, which is TOTAL. Nothing to do — a second pass at "
             "the same scale is the one that leaves a wall no number on Unity's "
             "side agrees with, and nothing downstream would say so." % applied)
-
-    if applied > TOTAL + EPSILON:
-        raise SystemExit(
-            "This file is at x%.4f and TOTAL is x%.4f. Shrinking is not what "
-            "this pass is for: it would divide a hand-edited model by a number "
-            "chosen elsewhere. Rebuild from inventory_wall.py instead — and note "
-            "that doing so DESTROYS the hand edits this file carries."
-            % (applied, TOTAL))
 
     residual = TOTAL / applied
     print("  at x%.4f, going to x%.4f — applying the residual x%.4f"

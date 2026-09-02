@@ -302,6 +302,208 @@ namespace SpaceGame.EditorTools
             Assert.IsFalse(float.IsNaN(rotation.x), "A straight-in approach must not produce a NaN heading.");
         }
 
+        /// <summary>
+        /// The whole reason the tumble is allowed to exist. Everything downstream — the settle,
+        /// <c>ShipGrounding</c>, <c>ShipHull.BellyDrop</c>, the wreck the save file keeps — assumes
+        /// a hull that differs from its prefab by yaw alone once it is down, and the settle is what
+        /// guarantees that by slerping out of the descent's LAST pose. A tumble still holding any
+        /// roll at contact is therefore roll the settle inherits and never removes, which is the
+        /// wreck-resting-on-one-wing failure by a new route.
+        /// </summary>
+        [Test]
+        public void TumbleIsFullyDampedAtContact()
+        {
+            ArrivalPath path = Path();
+
+            ArrivalTrajectory.Tumble(1f, path, out float roll, out float yaw);
+
+            Assert.AreEqual(0f, roll, AngleTolerance);
+            Assert.AreEqual(0f, yaw, AngleTolerance);
+
+            // And the same thing stated where it actually matters: the pose handed to the settle
+            // must be the pose a tumble-free path would have handed it.
+            ArrivalPath steady = path;
+            steady.TumbleDegrees = 0f;
+
+            ArrivalTrajectory.Evaluate(1f, path, out Vector3 _, out Quaternion tumbled);
+            ArrivalTrajectory.Evaluate(1f, steady, out Vector3 _, out Quaternion dead);
+
+            Assert.Less(Quaternion.Angle(tumbled, dead), AngleTolerance,
+                        "The descent must hand the settle a hull with no residual roll.");
+        }
+
+        /// <summary>
+        /// Closed form, so the same normalised time is the same pose — bit for bit, with no
+        /// tolerance. That is what lets this ride the existing arc with nothing on the wire: a
+        /// tumble that had any state in it would drift between the server that flies the hull and
+        /// anything else that asks the trajectory the same question.
+        /// </summary>
+        [Test]
+        public void TumbleIsIdenticalForTwoEvaluationsOfTheSameTime()
+        {
+            ArrivalPath path = Path();
+
+            for (int i = 0; i <= 40; i++)
+            {
+                float t = i / 40f;
+
+                ArrivalTrajectory.Tumble(t, path, out float rollA, out float yawA);
+                ArrivalTrajectory.Tumble(t, path, out float rollB, out float yawB);
+
+                Assert.AreEqual(rollA, rollB, $"Tumble roll is not deterministic at t={t}.");
+                Assert.AreEqual(yawA, yawB, $"Tumble yaw is not deterministic at t={t}.");
+            }
+        }
+
+        [Test]
+        public void TumbleIsZeroAtTheTopOfTheArc()
+        {
+            // The hull is spawned at Evaluate(0) and sits there until the whole crew is aboard, up
+            // to crewGatherTimeout. A tumble already running there is a ship wobbling in place two
+            // kilometres up while everyone waits.
+            ArrivalPath path = Path();
+
+            ArrivalTrajectory.Tumble(0f, path, out float roll, out float yaw);
+
+            Assert.AreEqual(0f, roll, AngleTolerance);
+            Assert.AreEqual(0f, yaw, AngleTolerance);
+        }
+
+        [Test]
+        public void TumbleActuallyMovesTheHull()
+        {
+            // Without this every other tumble test passes on a tumble that does nothing.
+            ArrivalPath path = Path();
+            float peak = 0f;
+
+            for (int i = 0; i <= 400; i++)
+            {
+                ArrivalTrajectory.Tumble(i / 400f, path, out float roll, out float _);
+                peak = Mathf.Max(peak, Mathf.Abs(roll));
+            }
+
+            Assert.Greater(peak, 1f, "The default path is authored to tumble; it is not tumbling.");
+        }
+
+        /// <summary>
+        /// The crew's camera is inside this hull for the whole descent with no way to look away, so
+        /// the amplitude is capped and no authored value may get past the cap (GDC-L1-FEEL-0006).
+        /// </summary>
+        [Test]
+        public void TumbleStaysInsideItsAmplitudeAndItsHardCap()
+        {
+            ArrivalPath path = Path();
+
+            for (int i = 0; i <= 400; i++)
+            {
+                ArrivalTrajectory.Tumble(i / 400f, path, out float roll, out float yaw);
+
+                Assert.LessOrEqual(Mathf.Abs(roll), path.TumbleDegrees + AngleTolerance);
+                Assert.LessOrEqual(Mathf.Abs(yaw),
+                                   path.TumbleDegrees * path.TumbleYawShare + AngleTolerance,
+                                   "Yaw must stay the junior channel; a nose swinging as far as " +
+                                   "the hull rolls reads as bad steering, not as a crash.");
+            }
+
+            ArrivalPath absurd = Path();
+            absurd.TumbleDegrees = 4000f;
+
+            for (int i = 0; i <= 400; i++)
+            {
+                ArrivalTrajectory.Tumble(i / 400f, absurd, out float roll, out float _);
+
+                Assert.LessOrEqual(Mathf.Abs(roll),
+                                   ArrivalTrajectory.MaxTumbleDegrees + AngleTolerance,
+                                   "An Inspector value must not be able to make the frame " +
+                                   "unreadable for somebody strapped into it.");
+            }
+        }
+
+        /// <summary>
+        /// The tumble is folded into the yaw and roll terms of the same Euler triple, which is
+        /// exactly what makes it safe: the dive angle, its cap, and therefore the attitude the ship
+        /// hits the ground in are the numbers the whole landing is planned against, and none of
+        /// them may move because a wobble was added on top.
+        /// </summary>
+        [Test]
+        public void TumbleLeavesTheDiveAngleAlone()
+        {
+            ArrivalPath path = Path();
+
+            ArrivalPath steady = path;
+            steady.TumbleDegrees = 0f;
+
+            for (int i = 0; i <= 200; i++)
+            {
+                float t = i / 200f;
+
+                ArrivalTrajectory.Evaluate(t, path, out Vector3 _, out Quaternion tumbled);
+                ArrivalTrajectory.Evaluate(t, steady, out Vector3 _, out Quaternion dead);
+
+                Assert.AreEqual(Mathf.DeltaAngle(0f, dead.eulerAngles.x),
+                                Mathf.DeltaAngle(0f, tumbled.eulerAngles.x),
+                                AngleTolerance,
+                                $"The tumble moved the dive angle at t={t}.");
+            }
+        }
+
+        [Test]
+        public void TumbleIsSmoothAllTheWayIntoTheGround()
+        {
+            // It has to arrive at zero without a step. A tumble that were merely small at contact
+            // and then cut would snap the hull straight on the frame the settle takes over — one
+            // frame, on the pose the whole sequence is building toward.
+            ArrivalPath path = Path();
+            float previous = 0f;
+
+            for (int i = 0; i <= 800; i++)
+            {
+                ArrivalTrajectory.Tumble(i / 800f, path, out float roll, out float _);
+
+                // Proportional to the authored amplitude rather than an absolute number of
+                // degrees: what is being asserted is CONTINUITY, and a step is only a step
+                // relative to the size of the motion it interrupts. A fixed bound silently
+                // becomes a cap on the amplitude — retuning TumbleDegrees upward would fail this
+                // test for being dramatic rather than for being discontinuous.
+                if (i > 0)
+                    Assert.Less(Mathf.Abs(roll - previous), path.TumbleDegrees * 0.04f,
+                                $"Tumble roll jumped between adjacent samples at t={i / 800f}.");
+
+                previous = roll;
+            }
+        }
+
+        [Test]
+        public void TumbleIsSeededOffTheBearingSoATeamsShipsDoNotMirrorEachOther()
+        {
+            // A versus formation gives each team its own bearing, so this is where the variation
+            // comes from — no random, nothing extra to replicate, and two hulls falling side by
+            // side that visibly do not tumble in lockstep.
+            ArrivalPath a = Path();
+            ArrivalPath b = Path();
+            b.StartBearing = a.StartBearing + 90f;
+
+            ArrivalTrajectory.Tumble(0.55f, a, out float rollA, out float _);
+            ArrivalTrajectory.Tumble(0.55f, b, out float rollB, out float _);
+
+            Assert.Greater(Mathf.Abs(rollA - rollB), 0.25f);
+        }
+
+        [Test]
+        public void ATumbleOfZeroIsExactlyTheOldSteadyArc()
+        {
+            ArrivalPath path = Path();
+            path.TumbleDegrees = 0f;
+
+            for (int i = 0; i <= 100; i++)
+            {
+                ArrivalTrajectory.Tumble(i / 100f, path, out float roll, out float yaw);
+
+                Assert.AreEqual(0f, roll);
+                Assert.AreEqual(0f, yaw);
+            }
+        }
+
         [Test]
         public void ClampsOutOfRangeTime()
         {

@@ -45,11 +45,19 @@ namespace SpaceGame.Presentation.Lobbies
         public Vector3 PositionOf(int slot) => figures[slot].transform.position;
 
         /// <summary>
-        /// Stands a slot's figure at <paramref name="localPosition"/> under <paramref name="anchor"/>,
+        /// Stands a slot's figure at <paramref name="worldPosition"/> under <paramref name="anchor"/>,
         /// in <paramref name="color"/>. False when no figure could be made — no prefab, or no anchor —
         /// in which case the slot reads as empty rather than throwing.
+        ///
+        /// <para>
+        /// A WORLD position, not a local one. Seats are laid out flat by <c>RankLayout</c> and then
+        /// dropped onto the sand by <c>RankGrounding</c>, and the height that comes back is a world
+        /// height. Assigned as a <c>localPosition</c> it would be measured from the
+        /// anchor's own plane instead and undo the grounding entirely — which is exactly what this
+        /// line used to do, and why a wide rank floated over dips and sank into rises.
+        /// </para>
         /// </summary>
-        public bool Seat(int slot, Transform anchor, Vector3 localPosition, int color)
+        public bool Seat(int slot, Transform anchor, Vector3 worldPosition, int color)
         {
             Ensure(slot, anchor);
 
@@ -61,7 +69,7 @@ namespace SpaceGame.Presentation.Lobbies
 
             occupied[slot] = true;
             figures[slot].SetActive(true);
-            figures[slot].transform.localPosition = localPosition;
+            figures[slot].transform.position = worldPosition;
 
             Recolor(slot, color);
             return true;

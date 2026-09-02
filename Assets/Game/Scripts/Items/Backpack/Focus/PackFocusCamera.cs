@@ -18,8 +18,9 @@ namespace SpaceGame.Items
     /// ground, and would have to put every one of them back.
     /// </para>
     /// <para>
-    /// The pose is authored, not orbited: on the rig's centre axis, 3.69 m out on the side of it
-    /// AWAY from the player, 2.25 m up, pitched 38&#176; down, at FOV 40, looking back down the
+    /// The pose is authored, not orbited: on the rig's centre axis, 2.46 m out on the side of it
+    /// AWAY from the player, 1.5 m up — both in the ORIGINAL frame, so 2.58 and 1.575 m at the
+    /// current <see cref="PackScale.Factor"/> — pitched 38&#176; down, at FOV 40, looking back down the
     /// player&#8594;pack line. The distance was 1.9 m until the 2026-08-25 board deepening pushed
     /// the leading edge from 0.94 m to 1.50 m out from the rig root and left the near cells
     /// 0.40 m from the lens, cropped out of the bottom of the frame; the lens moved back by
@@ -31,14 +32,17 @@ namespace SpaceGame.Items
     /// two items' true sizes honest and makes a placement easy to judge.
     /// </para>
     /// <para>
-    /// <b>2.46 and 1.5 became 3.69 and 2.25 with the 2026-09-01 enlargement, and the framing did
-    /// not move.</b> Both are offsets from the rig's own origin, so multiplying them by
-    /// <see cref="PackScale.Factor"/> — exactly what the rig, the faces and the gear were
-    /// multiplied by — makes the shot a similarity transform of the one before it: the same solid
-    /// angle, the same pitch, the same field of view, every item filling the same fraction of the
-    /// frame. Leaving the lens where it was would have put it a third of the way inside a mat that
-    /// is now 3.12 m deep. What DOES change, and is the point, is that the pack now fills that
-    /// frame with 1.5x the linear detail relative to the screen it is drawn on.
+    /// <b>Both distances ride <see cref="PackScale.Factor"/>, and the framing never moves with
+    /// it.</b> They are offsets from the rig's own origin, so multiplying them by exactly what the
+    /// rig, the faces and the gear are multiplied by makes every shot a similarity transform of
+    /// the one before it: the same solid angle, the same pitch, the same field of view, every item
+    /// filling the same fraction of the frame. That held when the factor went 1 -> 1.5 on
+    /// 2026-09-01 (leaving the lens put would have had it a third of the way inside a 3.12 m mat)
+    /// and it holds the same way at 1.5 -> 1.05. <b>So shrinking the rig does not make the pack
+    /// smaller on screen in focus mode</b> — the camera comes in with it and the mat fills the
+    /// frame exactly as it did. What changes is the rig in the WORLD: how big it is on the
+    /// player's back and standing on the sand. Wanting the mat to read smaller in focus mode is a
+    /// change to <see cref="PackFocusCamera"/>'s own numbers, not to the factor.
     /// </para>
     /// </summary>
     public sealed class PackFocusCamera : MonoBehaviour

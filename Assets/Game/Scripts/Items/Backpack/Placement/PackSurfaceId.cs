@@ -18,15 +18,16 @@ namespace SpaceGame.Items
 
         /// <summary>
         /// <c>SURF_LongGoods</c>: the 18 x 1 cell lash line running across the full open width of
-        /// the rig, over the leaf and both wings — 2.43 x 0.135 m since the 2026-09-01 enlargement.
+        /// the rig, over the leaf and both wings — 1.701 x 0.0945 m at the current
+        /// <see cref="PackScale.Factor"/>.
         ///
         /// <para>
-        /// It exists because nothing else on the pack can take a long tool. Measured before the
-        /// enlargement, when the cell was 0.090 m: the open faces were 0.86 x 0.92 m, whose
+        /// It exists because nothing else on the pack can take a long tool. Measured in the
+        /// original frame, where the cell is 0.090 m: the open faces were 0.86 x 0.92 m, whose
         /// <em>diagonal</em> — the longest segment that fits inside a rectangle at all — is
         /// 1.2609 m, so the 1.35 m LaserStaff fit none of them at any yaw, while the lash line's
         /// 1.6061 m diagonal took it square on. Every length in that argument, the staff's
-        /// included, has since been multiplied by the same factor, so the conclusion is unchanged.
+        /// included, rides the same factor, so the conclusion holds at any value of it.
         /// An early draft of the spec claimed the staff went on the leaf "on the diagonal"; that
         /// was arithmetically impossible, and this surface is the fix.
         /// </para>
@@ -36,7 +37,8 @@ namespace SpaceGame.Items
         /// <summary>
         /// <c>SURF_Rack</c>: the 9 x 9 cell face of the front leaf once it has been flipped up
         /// into a vertical rack — the leaf's UNDERSIDE, which is the side that ends up pointing at
-        /// the player when the leaf stands. 1.215 x 1.215 m since the 2026-09-01 enlargement.
+        /// the player when the leaf stands. 0.8505 x 0.8505 m at the current
+        /// <see cref="PackScale.Factor"/>.
         ///
         /// <para>
         /// It is the biggest rectangle on the rig, and the only one with both axes over nine cells.
@@ -61,8 +63,9 @@ namespace SpaceGame.Items
 
         /// <summary>
         /// <c>SURF_WallGrid</c>: the face of the ship's inventory wall — 30 x 22 cells, against
-        /// the rig's biggest face at 9 x 9. 4.05 x 2.97 m; both numbers were re-cut on 2026-09-01
-        /// so the fitting clears the lander's aft room.
+        /// the rig's biggest face at 9 x 9. Re-cut to that count on 2026-09-01 so the fitting
+        /// clears the lander's aft room. Its metres follow <see cref="PackGrid.Cell"/> like every
+        /// other face; its DRAWN size does not, and is pinned by <see cref="PackScale.WallDrawn"/>.
         ///
         /// <para>
         /// Not a face of the rig at all, which is why this enum's name has outgrown it slightly:

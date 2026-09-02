@@ -52,6 +52,9 @@ namespace SpaceGame.EditorTools
             var serialized = new UnityEditor.SerializedObject(mount);
             serialized.FindProperty("seatPoint").objectReferenceValue = seat;
             serialized.FindProperty("dismountPoint").objectReferenceValue = dismount;
+            // Edit mode never advances Time.time, so the authored 0.25 s cooldown reads as
+            // "0 >= 0.25" and refuses every mount. Same workaround as MountSeatAddressingTests.Fit.
+            serialized.FindProperty("mountCooldown").floatValue = 0f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             riderObject = new GameObject("Rider");

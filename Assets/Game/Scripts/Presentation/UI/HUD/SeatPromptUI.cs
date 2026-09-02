@@ -1,4 +1,4 @@
-// "ESCAPE to dismount" — shown while this machine's own player is sitting in a landed ship and
+// "Q to exit the ship" — shown while this machine's own player is sitting in a landed ship and
 // may get up.
 //
 // It exists because the crash landing is the one seat in the game you are put into rather than
@@ -6,17 +6,17 @@
 // walking up to a chair and pressing a key, which is its own lesson; this one arrives with the
 // player already in it, at the opening of the game, with no prior instruction to fall back on.
 //
-// Timed rather than permanent, and that is the point (GDC-L1-UX-0001): it appears at the moment
-// the player needs it — the hull is down and getting out is the next thing to do — instead of
-// being front-loaded into a controls screen nobody remembers by the time it matters. The key it
-// names is the one that already gets you off every mount in the game (MountModule reads the same
-// one), so it teaches a convention rather than an exception (GDC-L1-UX-0004).
+// POLLED, never event-driven, and that is a lesson paid for: this component lives on the player
+// HUD, which is deactivated around exactly the moments the arrival announces things — so an
+// event-based version subscribed after the announcements it needed had already fired, and the
+// hint simply never appeared. Every frame this asks for the current truth instead: is the seat
+// leavable (SeatedRider.LocalPlayerMayLeave), and is the cutscene over (CutsceneDirector). Timing
+// it a beat after the blackout lifts (GDC-L1-UX-0001: the lesson at the moment it matters) lets
+// the player take in the wreck first and read the way out second.
 //
-// Draws only. SeatedRider owns whether the key does anything; this asks it nothing and decides
-// nothing, so the prompt cannot end up offering an action the seat would refuse.
-using TMPro;
+// Decides nothing and draws nothing itself — SeatedRider owns whether the key does anything, and
+// PlayerHints owns the pixels. This component only owns WHEN the arrival's one hint shows.
 using UnityEngine;
-using UnityEngine.UI;
 using SpaceGame.Gameplay.Arrival;
 
 namespace SpaceGame.Presentation
@@ -24,125 +24,62 @@ namespace SpaceGame.Presentation
     [DisallowMultipleComponent]
     public class SeatPromptUI : MonoBehaviour
     {
-        [Header("Text")]
-        [Tooltip("The key cap. Named to match what SeatedRider actually reads — if the dismount " +
-                 "key ever moves, this moves with it or the prompt starts lying.")]
-        [SerializeField] private string keyLabel = "ESCAPE";
+        private const string HintId = "arrival-seat-exit";
 
-        [SerializeField] private string message = "to leave the seat";
+        [Tooltip("Seconds after the player has come round — the cutscene finishing — before the " +
+                 "hint appears.")]
+        [SerializeField, Min(0f)] private float delayAfterRecovery = 3f;
 
-        [Header("Layout")]
-        [Tooltip("Where the panel sits as a fraction of the screen. Low and centred, out of the " +
-                 "way of the cockpit view the player has just landed in.")]
-        [SerializeField] private Vector2 screenAnchor = new Vector2(0.5f, 0.16f);
+        [Tooltip("Backstop delay from the seat becoming leavable, for a session whose cutscene " +
+                 "never ends or never played — the way out must not depend on a presentation. " +
+                 "Longer than the healthy blackout-plus-delay path so it never wins when the " +
+                 "cutscene is fine.")]
+        [SerializeField, Min(0f)] private float delayWithoutRecovery = 10f;
 
-        [SerializeField] private Vector2 panelSize = new Vector2(360f, 64f);
+        [SerializeField] private string hintText = "<color=#FFD980><b>Q</b></color>  exit the ship";
 
-        [Header("Appearance")]
-        [SerializeField] private Color panelColor = new Color(0.04f, 0.05f, 0.07f, 0.72f);
-        [SerializeField] private Color keyColor = new Color(1f, 0.85f, 0.5f);
-        [SerializeField] private Color messageColor = new Color(0.85f, 0.9f, 0.95f);
+        private float mayLeaveSince = -1f;
+        private float cutsceneOverSince = -1f;
+        private bool shown;
 
-        [Tooltip("Seconds to fade. Not a hard cut: this appears as a blackout lifts, and popping " +
-                 "on the same frame reads as a glitch rather than as a prompt.")]
-        [SerializeField, Min(0.01f)] private float fadeDuration = 0.25f;
-
-        private CanvasGroup group;
-        private float alpha;
-        private bool wanted;
-
-        private void Awake() => BuildWidget();
-
-        private void OnEnable()
-        {
-            SeatedRider.LocalPlayerMayLeaveChanged += OnMayLeaveChanged;
-            SeatedRider.LocalPlayerReleased += OnReleased;
-        }
-
-        private void OnDisable()
-        {
-            SeatedRider.LocalPlayerMayLeaveChanged -= OnMayLeaveChanged;
-            SeatedRider.LocalPlayerReleased -= OnReleased;
-
-            // Straight to hidden: there is no Update coming to finish a fade with, and a panel
-            // left at half alpha would sit on the screen for the rest of the session.
-            wanted = false;
-            alpha = 0f;
-            if (group != null) group.alpha = 0f;
-        }
-
-        private void OnMayLeaveChanged(bool mayLeave) => wanted = mayLeave;
-
-        // Belt and braces alongside the flag: standing up is the one thing that certainly ends the
-        // prompt, and it arrives on its own event whatever route the release took — the player's
-        // own key, or the director's backstop turfing them out.
-        private void OnReleased() => wanted = false;
+        private void OnDisable() => TakeDown();
 
         private void Update()
         {
-            float target = wanted ? 1f : 0f;
-            if (Mathf.Approximately(alpha, target)) return;
+            if (!SeatedRider.LocalPlayerMayLeave)
+            {
+                TakeDown();
+                return;
+            }
 
-            alpha = Mathf.MoveTowards(alpha, target, Time.unscaledDeltaTime / fadeDuration);
-            group.alpha = alpha;
+            float now = Time.unscaledTime;
+            if (mayLeaveSince < 0f) mayLeaveSince = now;
+
+            // "The cutscene is over" is observed, not subscribed to, and only counts once the seat
+            // is leavable — a cutscene that was never going to play reads as over from the start,
+            // which is exactly right: the hint then simply waits its delay.
+            bool cutsceneRunning = CutsceneDirector.Instance != null && CutsceneDirector.Instance.IsPlaying;
+            if (!cutsceneRunning && cutsceneOverSince < 0f) cutsceneOverSince = now;
+
+            if (shown) return;
+
+            bool due = cutsceneOverSince >= 0f
+                ? now >= cutsceneOverSince + delayAfterRecovery
+                : now >= mayLeaveSince + delayWithoutRecovery;
+
+            if (!due) return;
+
+            shown = true;
+            PlayerHints.Show(HintId, hintText);
         }
 
-        private void BuildWidget()
+        private void TakeDown()
         {
-            GameObject canvasObject = new GameObject("SeatPromptCanvas",
-                typeof(Canvas), typeof(CanvasScaler), typeof(CanvasGroup));
-            canvasObject.transform.SetParent(transform, false);
+            if (shown) PlayerHints.Hide(HintId);
 
-            Canvas canvas = canvasObject.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 50;
-
-            CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
-
-            group = canvasObject.GetComponent<CanvasGroup>();
-            group.alpha = 0f;
-            group.interactable = false;
-            group.blocksRaycasts = false;
-
-            var panel = new GameObject("Panel", typeof(RectTransform), typeof(Image));
-            panel.transform.SetParent(canvasObject.transform, false);
-
-            var rect = (RectTransform)panel.transform;
-            rect.anchorMin = rect.anchorMax = screenAnchor;
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = Vector2.zero;
-            rect.sizeDelta = panelSize;
-
-            Image background = panel.GetComponent<Image>();
-            background.color = panelColor;
-            background.raycastTarget = false;
-
-            TextMeshProUGUI label = NewText("Prompt", rect);
-            // One string, two colours: the key has to be findable at a glance, and a separate key
-            // cap widget would be three more rects to keep aligned for no more information.
-            label.text = $"<color=#{ColorUtility.ToHtmlStringRGB(keyColor)}><b>{keyLabel}</b></color>  {message}";
-        }
-
-        private TextMeshProUGUI NewText(string name, RectTransform parent)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
-            go.transform.SetParent(parent, false);
-
-            var rect = (RectTransform)go.transform;
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-
-            var text = go.GetComponent<TextMeshProUGUI>();
-            text.fontSize = 24f;
-            text.color = messageColor;
-            text.alignment = TextAlignmentOptions.Center;
-            text.raycastTarget = false;
-            return text;
+            shown = false;
+            mayLeaveSince = -1f;
+            cutsceneOverSince = -1f;
         }
     }
 }

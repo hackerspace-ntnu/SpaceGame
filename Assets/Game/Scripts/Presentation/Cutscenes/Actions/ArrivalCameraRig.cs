@@ -110,6 +110,39 @@ namespace SpaceGame.Presentation
         /// </summary>
         public float ShakeIntensity { get; set; }
 
+        /// <summary>True once the rig has bound its lifetime to the seat instead of the cutscene.</summary>
+        private bool releaseWithSeat;
+
+        /// <summary>
+        /// Keeps the rig alive past its cutscene, as the landed rider's look, until this machine's
+        /// player stands up.
+        ///
+        /// <para>
+        /// The rig IS the in-chair look — it feeds <see cref="PlayerHeadLook"/>'s clamped neck and
+        /// poses the camera from the same rotation — and the chair outlives the cutscene: the crew
+        /// sit blurred in the wreck and look around before choosing to get up. <c>PlayerLook</c>
+        /// cannot take over here because it spends yaw rotating the player's BODY, which is the
+        /// wrong thing for someone strapped into a seat (and <c>SeatedRider</c> suspends it for
+        /// exactly that reason). Standing up is the moment the body becomes the player's own
+        /// again, so that is the moment this destroys itself and hands everything back.
+        /// </para>
+        /// </summary>
+        public void ReleaseWithSeat()
+        {
+            if (releaseWithSeat) return;
+
+            releaseWithSeat = true;
+            SpaceGame.Gameplay.Arrival.SeatedRider.LocalPlayerReleased += OnSeatReleased;
+        }
+
+        private void OnSeatReleased() => Destroy(this);
+
+        private void OnDestroy()
+        {
+            if (releaseWithSeat)
+                SpaceGame.Gameplay.Arrival.SeatedRider.LocalPlayerReleased -= OnSeatReleased;
+        }
+
         private void OnEnable()
         {
             // Captured before anything is written, so the pose put back on exit is the one the

@@ -36,9 +36,45 @@ namespace SpaceGame.Gameplay.Arrival
     /// the player watches (a dive into the sand) and the thing the world keeps (a level wreck they
     /// can walk around in) can both be exactly right, instead of one being traded for the other.
     /// </para>
+    ///
+    /// <para>
+    /// On top of the arc there is a TUMBLE — see <see cref="Tumble"/> — a roll and yaw wobble that
+    /// builds through the descent so the hull reads as a stricken ship rather than as something on
+    /// rails. It is closed-form in the same normalised time, seeded off the path's own bearing, and
+    /// damped to exactly zero at contact, so it costs nothing on the wire and leaves the terminal
+    /// pose the settle and the save file depend on untouched.
+    /// </para>
     /// </summary>
     public static class ArrivalTrajectory
     {
+        /// <summary>
+        /// The most tumble any authored path may produce, in degrees of roll. A ceiling rather
+        /// than a clamp on the field, for the reason <c>ShakeMath</c> caps its displacement: the
+        /// crew's camera is bolted inside this hull for the whole descent with no way to look
+        /// away, so no combination of Inspector values may be able to make the frame unreadable
+        /// (GDC-L1-FEEL-0006).
+        /// </summary>
+        public const float MaxTumbleDegrees = 25f;
+
+        /// <summary>
+        /// Second beat frequency of the tumble, as a multiple of the first. Irrational-ish on
+        /// purpose so the two never come back into phase over one descent — the same trick, and
+        /// the same number, <c>EntryBurnCurve.Flicker</c> uses: a single sine is a metronome, and
+        /// a metronome reads as machinery rather than as a hull losing it.
+        /// </summary>
+        private const float TumbleBeat = 2.7f;
+
+        /// <summary>How much of the tumble the first beat carries; the second carries the rest.</summary>
+        private const float TumbleLeadWeight = 0.65f;
+
+        /// <summary>
+        /// Fixed decay exponent of the tumble envelope. Two rather than one because
+        /// one-minus-t-squared reaches zero with zero SLOPE, so the tumble does not merely end at
+        /// contact — it stops changing there too, and the settle inherits neither an angle nor a
+        /// rate.
+        /// </summary>
+        private const float TumbleDecay = 2f;
+
         /// <summary>
         /// The pose at <paramref name="t"/>, which is clamped to the zero-to-one range so a caller
         /// that overshoots its own timer gets the touchdown pose rather than an extrapolated one
@@ -71,11 +107,107 @@ namespace SpaceGame.Gameplay.Arrival
                 path.ImpactPosition.y + path.TouchdownLift + path.StartAltitude * (1f - t * t),
                 path.ImpactPosition.z + radius * cos);
 
+            Tumble(t, path, out float tumbleRoll, out float tumbleYaw);
+
+            // The tumble is folded into the SAME Euler triple rather than composed as a second
+            // quaternion, and that is what keeps it harmless. Unity builds an Euler as
+            // yaw * pitch * roll, so an added yaw term is a pre-multiplied world rotation about
+            // vertical and an added roll term is a post-multiplied local rotation about the nose
+            // axis: neither of them touches how this rotation decomposes back to a PITCH. The dive
+            // angle, its cap, and therefore the impact attitude are exactly what they were with no
+            // tumble at all. A tumble applied to the pitch instead would move the attitude the ship
+            // hits the ground in, which is the one number the whole landing is planned against.
             rotation = Quaternion.Euler(
                 PitchDegrees(t, path),
-                HeadingDegrees(t, path),
-                -path.MaxBankDegrees * (1f - t));
+                HeadingDegrees(t, path) + tumbleYaw,
+                -path.MaxBankDegrees * (1f - t) + tumbleRoll);
         }
+
+        /// <summary>
+        /// The stricken-hull wobble at <paramref name="t"/>: a roll and a yaw, in degrees, to be
+        /// added on top of the arc.
+        ///
+        /// <para>
+        /// <b>Closed form in normalised time, and nothing else.</b> No integrator, no random, no
+        /// state — the same t gives the same pair on every machine and on every replay, which is
+        /// why this can ride the existing arc with nothing extra on the wire. The only variation
+        /// between hulls comes from <see cref="ArrivalPath.StartBearing"/>, which a versus
+        /// formation already gives each team a different value of, so two ships falling side by
+        /// side tumble differently for free. This is the seeded closed-form pattern the dragon
+        /// bazooka's wander uses, for the same reason.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>It converges, and it has to.</b> The envelope is t-to-the-buildUp times
+        /// one-minus-t-squared, which is zero AND flat at t=1, so the descent hands a hull with no
+        /// residual roll and no residual rate to <see cref="EvaluateSettle"/>. Everything
+        /// downstream — the settle, <c>ShipGrounding</c>, <c>ShipHull.BellyDrop</c>, the saved
+        /// wreck — assumes a hull that differs from its prefab by yaw alone once it is down, and
+        /// the settle is what guarantees that. A tumble that were merely small at the end would
+        /// leave the settle slerping out of a rolled pose, which is the same wreck-on-one-wing
+        /// failure by a different route.
+        /// </para>
+        ///
+        /// <para>
+        /// Normalised by the envelope's own peak so <see cref="ArrivalPath.TumbleDegrees"/> means
+        /// the degrees it says rather than the degrees it says times whatever the build-up
+        /// exponent happens to make of them — otherwise retuning the build-up would silently
+        /// retune the amplitude as well.
+        /// </para>
+        /// </summary>
+        public static void Tumble(float t, in ArrivalPath path, out float roll, out float yaw)
+        {
+            float amplitude = Mathf.Clamp(Mathf.Abs(path.TumbleDegrees), 0f, MaxTumbleDegrees);
+
+            if (amplitude <= 0f)
+            {
+                roll = 0f;
+                yaw = 0f;
+                return;
+            }
+
+            t = Mathf.Clamp01(t);
+
+            float buildUp = Mathf.Max(0f, path.TumbleBuildUp);
+            float envelope = Envelope(t, buildUp);
+
+            // The bearing is the seed. Scaled to radians and offset so two paths a few degrees
+            // apart start visibly out of phase rather than nearly together.
+            float phase = path.StartBearing * Mathf.Deg2Rad;
+            float cycles = Mathf.Max(0f, path.TumbleCycles) * t * Mathf.PI * 2f;
+
+            roll = amplitude * envelope * Beat(cycles, phase);
+
+            // Quarter-cycle behind the roll rather than on its own frequency: a hull rolls and
+            // then swings, it does not do two unrelated things at once.
+            yaw = amplitude * Mathf.Clamp01(path.TumbleYawShare) * envelope
+                  * Beat(cycles, phase + Mathf.PI * 0.5f);
+        }
+
+        /// <summary>
+        /// How much tumble there is at <paramref name="t"/>, peaking at one and reaching exactly
+        /// zero at contact. Divided by its own analytic maximum, which for t^b (1-t)^2 sits at
+        /// b/(b+2) — a closed form rather than a sampled search, so it costs two Pow calls and
+        /// cannot drift from the shape it normalises.
+        /// </summary>
+        private static float Envelope(float t, float buildUp)
+        {
+            float shape = Mathf.Pow(t, buildUp) * Mathf.Pow(1f - t, TumbleDecay);
+
+            float peakAt = buildUp / (buildUp + TumbleDecay);
+            float peak = Mathf.Pow(peakAt, buildUp) * Mathf.Pow(1f - peakAt, TumbleDecay);
+
+            // A build-up of zero puts the peak at t=0, where the shape is exactly one already.
+            return peak > 0f ? shape / peak : shape;
+        }
+
+        /// <summary>
+        /// Two sines beating against each other, bounded to plus or minus one so the amplitude
+        /// authored on the path is the amplitude that is flown.
+        /// </summary>
+        private static float Beat(float cycles, float phase) =>
+            Mathf.Sin(cycles + phase) * TumbleLeadWeight +
+            Mathf.Sin(cycles * TumbleBeat + phase * TumbleBeat) * (1f - TumbleLeadWeight);
 
         /// <summary>
         /// The crash itself: the hull dropping off the nose it speared in on, down onto the belly it

@@ -128,6 +128,13 @@ namespace SpaceGame.World.Environment
         {
             sortOrigin = cameraPosition;
 
+            // How much cover the viewer is standing in, from the one shelter volume the weather
+            // already uses (SandstormShelter — the ship's interior, a cave mouth). Weather fog does
+            // not follow you indoors, so a volume that fades to nothing under cover is dropped here
+            // rather than uploaded at zero: with every volume gone the whole pass is skipped, which
+            // is the difference between a cheap interior and a full march that draws nothing.
+            float shelter = Sandstorms.ShelterAt(cameraPosition);
+
             Selected.Clear();
             for (int i = 0; i < Registered.Count; i++)
             {
@@ -141,7 +148,7 @@ namespace SpaceGame.World.Environment
                     continue;
                 }
 
-                if (!volume.isActiveAndEnabled || volume.density <= 0f)
+                if (!volume.isActiveAndEnabled || volume.DensityFor(shelter) <= 0f)
                     continue;
 
                 if (SortKey(volume) > maxDistance)
@@ -167,7 +174,7 @@ namespace SpaceGame.World.Environment
             double clock = Sandstorms.Now;
 
             for (int i = 0; i < ActiveCount; i++)
-                Pack(i, Selected[i], clock);
+                Pack(i, Selected[i], clock, shelter);
 
             // The unused tail is left as whatever it was last frame; the shader never reads past
             // _FogVolumeCount, and clearing it would be eight matrix writes a frame for nothing.
@@ -187,12 +194,12 @@ namespace SpaceGame.World.Environment
             return ActiveCount;
         }
 
-        private static void Pack(int slot, FogVolume volume, double clock)
+        private static void Pack(int slot, FogVolume volume, double clock, float shelter)
         {
             WorldToLocal[slot] = volume.WorldToVolume;
 
             Color color = volume.color.linear;
-            ColorDensity[slot] = new Vector4(color.r, color.g, color.b, volume.density);
+            ColorDensity[slot] = new Vector4(color.r, color.g, color.b, volume.DensityFor(shelter));
 
             Color emissive = volume.emission.linear;
             Emission[slot] = new Vector4(emissive.r, emissive.g, emissive.b, volume.ambient);

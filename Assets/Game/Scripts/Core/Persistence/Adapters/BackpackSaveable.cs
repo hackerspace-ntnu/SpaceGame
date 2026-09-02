@@ -159,22 +159,52 @@ namespace SpaceGame.Core.Persistence
         /// versioning", which for this format is v1 or v2.
         ///
         /// <para>
-        /// v3 exists for exactly one reason: <see cref="PackPlacementRecord.u"/> and <c>v</c> are
-        /// METRES, and the pack was enlarged by <see cref="PackScale.Factor"/> on 2026-09-01. Every
-        /// uv in a v2 payload therefore names a point two-thirds of the way to where that item
-        /// belongs. <see cref="Restore"/> already falls back to first-fit when a stored spot is
-        /// illegal, so nothing would be LOST — but the gear would quietly rearrange itself on the
-        /// first load after the update, which is worse than losing it in one respect: the player
-        /// cannot tell it happened until they go looking for something.
+        /// Every version past v2 exists for exactly one reason: <see cref="PackPlacementRecord.u"/>
+        /// and <c>v</c> are METRES, not normalised coordinates and not cell indices, so a move of
+        /// <see cref="PackScale.Factor"/> restates every uv already on disk. v3 is the 1.5 rig of
+        /// 2026-09-01; <b>v4 is the 1.05 rig of 2026-09-02</b>. <see cref="Restore"/> already falls
+        /// back to first-fit when a stored spot is illegal, so nothing would be LOST without the
+        /// migration — but the gear would quietly rearrange itself on the first load after the
+        /// change, which is worse than losing it in one respect: the player cannot tell it
+        /// happened until they go looking for something.
+        /// </para>
+        /// <para>
+        /// The migration is one multiply and it is exactly cell-preserving: a face and the uvs on
+        /// it scaled by the same factor put every item back on the cell it was saved on, which
+        /// <c>PackScaleTests</c> asserts over every origin on an 8x8 face. So a save from any
+        /// frame reopens with the gear exactly where the player left it.
         /// </para>
         /// </summary>
-        public const int Version = 3;
+        public const int Version = 4;
 
         /// <summary>
-        /// The last version whose uvs are in the pre-enlargement frame. Anything at or below this
-        /// gets its uvs multiplied by <see cref="PackScale.Factor"/> on the way in.
+        /// The last version whose uvs are in the original <see cref="PackScale.LegacyCell"/> frame.
         /// </summary>
         private const int LastUnscaledVersion = 2;
+
+        /// <summary>
+        /// The last version whose uvs are in the 2026-09-01 <see cref="PackScale.EnlargedCell"/>
+        /// frame.
+        /// </summary>
+        private const int LastEnlargedVersion = 3;
+
+        /// <summary>
+        /// What to multiply a payload's stored uvs by to bring them into today's frame: today's
+        /// cell over the cell that payload was written at.
+        ///
+        /// <para>
+        /// Written as a ratio of cells rather than as a factor, because that is what it means and
+        /// because it stays right when <see cref="PackScale.Factor"/> moves again: add the frame's
+        /// cell to <see cref="PackScale"/>, add its version here, and every older save keeps
+        /// working. A version this does not recognise — a file from a NEWER build — is left alone,
+        /// which is the only safe answer: guessing a scale for a frame that does not exist yet
+        /// would move gear that is already in the right place.
+        /// </para>
+        /// </summary>
+        internal static float UvScaleFor(int version) =>
+            version <= LastUnscaledVersion ? PackGrid.Cell / PackScale.LegacyCell
+            : version <= LastEnlargedVersion ? PackGrid.Cell / PackScale.EnlargedCell
+            : 1f;
 
         public struct State
         {
@@ -261,14 +291,13 @@ namespace SpaceGame.Core.Persistence
 
             if (v2 != null)
             {
-                // A payload with no version at all is pre-2026-09-01 and its uvs are in the small
-                // frame. Multiplying them here — rather than letting the illegal placements drop
-                // through to first-fit — is what makes an old save reopen with every item exactly
-                // where the player left it. The v1 branch below needs none of this: it never
-                // stored a position to be wrong about.
-                float uvScale = state.Value<int?>("version").GetValueOrDefault() <= LastUnscaledVersion
-                    ? PackScale.Factor
-                    : 1f;
+                // Every version stamped its uvs in the cell frame of the rig it was written on, so
+                // the scale is today's cell over that one. Multiplying here — rather than letting
+                // the illegal placements drop through to first-fit — is what makes an old save
+                // reopen with every item exactly where the player left it. A payload with no
+                // version at all is pre-2026-09-01, which the default 0 reads correctly. The v1
+                // branch below needs none of this: it never stored a position to be wrong about.
+                float uvScale = UvScaleFor(state.Value<int?>("version").GetValueOrDefault());
 
                 foreach (JToken token in v2)
                     RestoreOne(layout, surfaces, shapes, token, uvScale, context);
@@ -282,8 +311,8 @@ namespace SpaceGame.Core.Persistence
 
         /// <param name="uvScale">
         /// What to multiply the record's stored uv by to bring it into today's frame. 1 for a
-        /// payload already written at <see cref="Version"/>; <see cref="PackScale.Factor"/> for
-        /// anything older. See <see cref="Version"/>.
+        /// payload already written at <see cref="Version"/>; see <see cref="UvScaleFor"/> for
+        /// anything older.
         /// </param>
         private static void RestoreOne(PackLayout layout, IReadOnlyList<PackSurface> surfaces,
                                        PackShapeLibrary shapes, JToken token, float uvScale,

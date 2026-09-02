@@ -25,7 +25,21 @@ namespace SpaceGame.Gameplay
         /// outcome worth engineering against.
         /// </para>
         /// </summary>
-        public bool TryClaimSeat(int team, out Vector3 position, out Quaternion rotation)
+        public bool TryClaimSeat(int team, out Vector3 position, out Quaternion rotation) =>
+            TryClaim(team, standing: false, out position, out rotation);
+
+        /// <summary>
+        /// As above, for a player coming back from the dead rather than starting the match: the
+        /// pose is the seat's <see cref="ShipSeat.DismountPoint"/> when it has one. A respawned
+        /// player is on their feet, and on this hull the seat marker itself is a seated pivot on
+        /// the chair's cushion — standing a body there puts it a metre up the chair for physics to
+        /// shove out in whatever direction it likes. The dismount point is the authored answer to
+        /// exactly this question: where the occupant of that seat stands.
+        /// </summary>
+        public bool TryClaimRespawnPose(int team, out Vector3 position, out Quaternion rotation) =>
+            TryClaim(team, standing: true, out position, out rotation);
+
+        private bool TryClaim(int team, bool standing, out Vector3 position, out Quaternion rotation)
         {
             position = Vector3.zero;
             rotation = Quaternion.identity;
@@ -44,8 +58,11 @@ namespace SpaceGame.Gameplay
                 // pose push apart on the next physics step, where a player with no body does not
                 // recover on its own.
                 ShipSeat seat = seatBuffer[claimed % seatBuffer.Count];
-                position = seat.transform.position;
-                rotation = seat.transform.rotation;
+                Transform anchor = standing && seat.DismountPoint != null
+                    ? seat.DismountPoint
+                    : seat.transform;
+                position = anchor.position;
+                rotation = anchor.rotation;
                 return true;
             }
 

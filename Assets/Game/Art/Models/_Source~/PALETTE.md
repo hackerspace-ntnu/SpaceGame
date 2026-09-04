@@ -6,7 +6,7 @@ edit the palette and regenerate, or the two will disagree.
 Every model and component in this repository links its materials from here.
 Before adding anything, search this table for something that would serve.
 
-**54 material(s)** across 10 categor(ies).
+**55 material(s)** across 10 categor(ies).
 
 ## Emissive
 
@@ -85,6 +85,7 @@ Before adding anything, search this table for something that would serve.
 |---|---|---|---|---|
 | `Mat_Paint_Blue_Station` | `#9FB8CE` | 0.6 | 0.35 | Pale powder-blue enamel over steel: the desert outpost's prefab hull skin, tower shaft and sensor cupola. The cool blue member of the painted-hull family alongside Mat_Paint_White_Arctic (arctic off-white) and Mat_Paint_Hull_Bleached (warm desert sun-bleach). Distinct from Mat_Glass_Canopy_Tinted despite a close hue - that is glazing at roughness 0.05, this is chalky paint. |
 | `Mat_Paint_Butter_Pastel` | `#E8CE8C` | 0.6 | 0.25 | Soft warm butter-yellow pastel enamel: workshop settlement cottage walls and shutter panels. Much lighter and creamier than Mat_Paint_Hazard_Yellow, which is a sun-dulled warning colour, and unlike Mat_Plastic_Safety_Yellow it is paint on a surface rather than moulded plastic. |
+| `Mat_Paint_Cell_Green` | `#5C9440` | 0.52 | 0.25 | Saturated equipment green: the power cell's accent plate, the generator's battery bay surround, and any machine part that has to read as 'power' beside orange oxygen and yellow service caps. The painted-hull family's three greens are all desaturated and none can hold its own as a peer of Mat_Paint_Safety_Orange and Mat_Plastic_Safety_Yellow - Mat_Paint_Roof_Green is a faded military topcoat that went grey next to them, Mat_Paint_Mint_Pastel is a pale cottage wall and Mat_Paint_Olive_Deep is a shadow tone. |
 | `Mat_Paint_Coral_Faded` | `#D9705E` | 0.62 | 0.25 | Sun-faded coral enamel over steel: the outpost tower's habitat blocks, control cab roof band and machine module skins. The warm mass colour that reads against the grey-blue steelwork of the lattice, matching the reference print's duotone. Distinct from Mat_Paint_Safety_Orange, which is fresh high-vis construction paint, and from Mat_Metal_HullRust_Orange, which is oxidised bare steel rather than a painted surface. |
 | `Mat_Paint_Hazard_Yellow` | `#C9A94E` | 0.55 | 0.3 | Sun-dulled hazard-yellow enamel over steel: the Sucker Puncher's striped shield plate, warning chevrons on machine guards and lifting gear. The painted-hull family (Safety_Orange, White_Arctic, Coral_Faded, Blue_Station) had no yellow member at all. Distinct from Mat_Plastic_Safety_Yellow, which is bright moulded plastic at metallic 0 for trigger guards and pull rings, and from Mat_Hide_Eye_Amber, which is a wet eyeball. |
 | `Mat_Paint_Hull_Bleached` | `#AAA499` | 0.68 | 0.6 | Sun-bleached olive-white paint over steel. The desert crawler's body panels, leg shrouds and container modules. |

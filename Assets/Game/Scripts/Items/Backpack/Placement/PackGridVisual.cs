@@ -9,11 +9,13 @@ namespace SpaceGame.Items
     /// <para>
     /// Three callers, one geometry. <see cref="BuildPlaced"/> makes a permanent child of the
     /// surface for an item already on the mat — the ring of cells the player asked to see around
-    /// attached gear. The instance form has two passes while an item is in hand:
+    /// attached gear. The instance form has three passes while an item is in hand:
     /// <see cref="Show"/> draws the held item's own cells, green where the placement is legal and
     /// red where it is not; <see cref="ShowLattice"/> draws the WHOLE hovered face underneath it,
     /// free cells barely-there and occupied ones filled in the rig's webbing ochre, so free space
-    /// reads at a glance through the gear sitting on it.
+    /// reads at a glance through the gear sitting on it; and <see cref="ShowSocket"/> lights the
+    /// free cells of a face RESERVED for what is being carried, on whatever face that is and
+    /// wherever the cursor happens to be.
     /// </para>
     /// <para>
     /// <b>Outlines for the lattice and the placed ring; filled quads for the ghost.</b> The lattice
@@ -117,6 +119,25 @@ namespace SpaceGame.Items
         /// </para>
         /// </summary>
         private static readonly Color RefusedTint = Presentation.PlacementTint.Refused;
+
+        /// <summary>
+        /// A free cell of the SOCKET reserved for the item in hand: the same green
+        /// <see cref="LegalTint"/> says yes in, at a third of its strength.
+        ///
+        /// <para>
+        /// The hue is shared on purpose — a player who has learnt that green means "this will
+        /// land" should read this without being taught a second colour — and the alpha is what
+        /// separates the two: the ghost is a VERDICT about the click being aimed right now, this
+        /// is an INVITATION to a face nobody is pointing at. Loud enough to be found across the
+        /// mat, quiet enough that it never competes with the cells under the cursor.
+        /// </para>
+        /// <para>
+        /// It is not carried by colour alone either. This draws the outlined-and-filled cell
+        /// <see cref="AddCell"/> makes, the shape the lattice speaks in; the ghost's verdict is a
+        /// full-bleed quad from <see cref="AddGhostCell"/>. Two readouts, two shapes.
+        /// </para>
+        /// </summary>
+        private static readonly Color SocketTint = WithAlpha(LegalTint, LegalTint.a / 3f);
 
         /// <summary>A free cell of the hovered face while something is in hand: barely there.</summary>
         private static readonly Color LatticeFreeTint = new(1f, 1f, 1f, 0.10f);
@@ -234,12 +255,33 @@ namespace SpaceGame.Items
         private Mesh latticeTakenMesh;
 
         /// <summary>What the lattice currently shows, so a frame where nothing changed costs
-        /// nothing. <see cref="MarkLatticeDirty"/> stales it on any layout change; a showing
+        /// nothing. <see cref="MarkDirty"/> stales it on any layout change; a showing
         /// flag rather than an activeSelf test, because a fully-taken face leaves the free
         /// half's object deactivated even while the lattice is legitimately up.</summary>
         private PackSurface latticeSurface;
         private bool latticeShowing;
+
+        // -- The socket invitation --------------------------------------------
+
+        private readonly Material socketMaterial;
+
+        private GameObject socketObject;
+        private Mesh socketMesh;
+
+        /// <summary>Which face the invitation is currently drawn on, so a frame where neither the
+        /// face nor the layout moved costs nothing.</summary>
+        private PackSurface socketSurface;
+        private bool socketShowing;
+
+        /// <summary>
+        /// One stale flag per pass, both raised by <see cref="MarkDirty"/>. <b>Not one flag
+        /// shared.</b> The lattice and the invitation are drawn on DIFFERENT faces in the same
+        /// frame, and each clears its own flag when it rebuilds — so a single flag would be
+        /// cleared by whichever pass ran first and leave the other early-outing on geometry a
+        /// layout change had already invalidated.
+        /// </summary>
         private bool latticeDirty = true;
+        private bool socketDirty = true;
 
         public PackGridVisual()
         {
@@ -274,6 +316,16 @@ namespace SpaceGame.Items
             // held item's own cells land on either, the verdict wins the pixel.
             latticeFreeMaterial.renderQueue = 2999;
             latticeTakenMaterial.renderQueue = 2999;
+
+            socketMaterial = BuildMaterial("PackGridSocket");
+            socketMaterial.SetColor(ColorId, SocketTint);
+
+            // Beside the lattice rather than behind or in front of it. The invitation is never
+            // drawn on the face the cursor is on — the caller suppresses it there, because the
+            // ghost is the better answer on that face and two fills at one Lift would fight for
+            // the pixel — so the two passes never share a surface and the queue between them
+            // decides nothing.
+            socketMaterial.renderQueue = 2999;
         }
 
         /// <summary>
@@ -334,8 +386,16 @@ namespace SpaceGame.Items
                      legal ? legalMaterial : refusedMaterial, surface);
         }
 
-        /// <summary>Something changed under the lattice — rebuild it next ShowLattice.</summary>
-        public void MarkLatticeDirty() => latticeDirty = true;
+        /// <summary>
+        /// Something changed under the drawn cells — rebuild the lattice and the socket
+        /// invitation on their next call. Both are a reading of which cells are FREE, and a layout
+        /// change is the one thing that can move that.
+        /// </summary>
+        public void MarkDirty()
+        {
+            latticeDirty = true;
+            socketDirty = true;
+        }
 
         /// <summary>
         /// The hovered face's whole grid, drawn only while an item is in hand: free cells as a
@@ -394,6 +454,68 @@ namespace SpaceGame.Items
             if (latticeTakenObject != null) latticeTakenObject.SetActive(false);
         }
 
+        /// <summary>
+        /// The free cells of a face RESERVED for what is in the player's hand, lit in the same
+        /// green a legal placement is drawn in. <b>Which face qualifies is the caller's
+        /// judgement</b> - <see cref="PackContainer.SocketFor"/> is what answers it - and this
+        /// draws whatever it is handed.
+        ///
+        /// <para>
+        /// This is the one pass here that is not about where the cursor is pointing. Every other
+        /// readout in focus mode answers "can this land HERE", which only helps a player who is
+        /// already aiming at the right face; the rig's one socket is a face nobody would think to
+        /// aim at, so carrying a bottle lights it up wherever the cursor happens to be.
+        /// </para>
+        /// <para>
+        /// <paramref name="ignoreItemId"/> is the item in the air - its own cells draw as free,
+        /// because for this carry they are. It matters more here than for the lattice: a bottle
+        /// lifted OFF the socket is still on the layout, so without it the socket it just came
+        /// from would read as full and go dark exactly when it was picked up.
+        /// </para>
+        /// </summary>
+        public void ShowSocket(PackSurface surface, PackLayout layout, string ignoreItemId)
+        {
+            if (surface == null || layout == null)
+            {
+                HideSocket();
+                return;
+            }
+
+            if (surface == socketSurface && !socketDirty && socketShowing) return;
+
+            socketSurface = surface;
+            socketShowing = true;
+            socketDirty = false;
+
+            Vector2Int grid = PackGrid.CellsOn(surface.Size);
+
+            verts.Clear();
+            tris.Clear();
+
+            for (int y = 0; y < grid.y; y++)
+            {
+                for (int x = 0; x < grid.x; x++)
+                {
+                    var cell = new Vector2Int(x, y);
+
+                    if (!layout.CellIsFree(surface.Id, cell, ignoreItemId)) continue;
+
+                    AddCell(verts, tris, surface, cell, fill: true);
+                }
+            }
+
+            CommitTo(ref socketObject, ref socketMesh, "PackSocketInvite", socketMaterial, surface);
+        }
+
+        /// <summary>The invitation, off - the hand emptied, or the socket filled up.</summary>
+        public void HideSocket()
+        {
+            socketSurface = null;
+            socketShowing = false;
+
+            if (socketObject != null) socketObject.SetActive(false);
+        }
+
         private void BuildLatticeHalf(ref GameObject go, ref Mesh mesh, string name,
                                       Material material, PackSurface surface, PackLayout layout,
                                       string ignoreItemId, Vector2Int grid, bool wantTaken)
@@ -438,35 +560,42 @@ namespace SpaceGame.Items
         {
             HideGhost();
             HideLattice();
+            HideSocket();
         }
 
         /// <summary>Materials and meshes are instances; Unity collects neither on its own.</summary>
         public void Dispose()
         {
-            // Resets the ghost and lattice caches, not just their objects: without this a
+            // Resets the ghost, lattice and socket caches, not just their objects: without this a
             // PackGridVisual that outlived its GameObjects — unlikely, but Dispose is the one
             // place that has to be paranoid about it — would answer a post-Dispose ShowLattice with
             // a silent early-out instead of rebuilding against the (destroyed) state it remembers.
             HideGhost();
             HideLattice();
+            HideSocket();
 
             Destroy(ghostObject);
             Destroy(latticeFreeObject);
             Destroy(latticeTakenObject);
+            Destroy(socketObject);
             Destroy(ghostMesh);
             Destroy(latticeFreeMesh);
             Destroy(latticeTakenMesh);
+            Destroy(socketMesh);
             Destroy(legalMaterial);
             Destroy(refusedMaterial);
             Destroy(latticeFreeMaterial);
             Destroy(latticeTakenMaterial);
+            Destroy(socketMaterial);
 
             ghostObject = null;
             latticeFreeObject = null;
             latticeTakenObject = null;
+            socketObject = null;
             ghostMesh = null;
             latticeFreeMesh = null;
             latticeTakenMesh = null;
+            socketMesh = null;
         }
 
         /// <summary>Commits the scratch verts/tris into one overlay object on the surface.</summary>

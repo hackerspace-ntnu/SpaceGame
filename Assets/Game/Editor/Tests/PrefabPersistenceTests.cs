@@ -69,6 +69,24 @@ namespace SpaceGame.EditorTools
             PersistenceProbe.AssertEveryWorldEntityPrefabIsStampedOnDisk();
 
         /// <summary>
+        /// A saveable prefab nested inside another keeps its own entity, and OnValidate stamps that
+        /// entity with the OUTER prefab's id. The map projector inside the PlayerShip did exactly
+        /// this, and every load of a world put a second hull on top of the first.
+        /// </summary>
+        [Test]
+        public void NoWorldEntityPrefabNestsASecondSaveableEntity() =>
+            PersistenceProbe.AssertNoWorldEntityPrefabNestsASecondSaveableEntity();
+
+        /// <summary>
+        /// The second half of the same nesting bug: with the nested entity gone, the nested
+        /// object's own TransformSaveable is collected after the root's under the same key, and a
+        /// capture keeps the child's pose as the whole object's.
+        /// </summary>
+        [Test]
+        public void NoWorldEntityPrefabHasTwoSaversOnOneKey() =>
+            PersistenceProbe.AssertOneSaverPerKeyOnEveryWorldEntityPrefab();
+
+        /// <summary>
         /// A floor under the sweeps. If the discovery query breaks — a moved folder, a renamed root —
         /// both sweeps above start passing while checking nothing at all, which is the one way a
         /// project-wide test can fail silently.

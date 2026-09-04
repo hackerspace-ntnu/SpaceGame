@@ -134,7 +134,7 @@ Identical wiring: `PerceptionModule` + `HealthReactionModule` + `CloseCombatModu
 
 ### `Items/Artifacts/Guns/CixinGunEquipped.prefab`
 
-Pickup-only shell (`PickupableItem` + `DropItemPhysics`).
+Pickup-only shell (`PickupableItem` + `WorldItem`).
 
 | Trigger | Id | Sound wanted | State |
 |---|---|---|---|

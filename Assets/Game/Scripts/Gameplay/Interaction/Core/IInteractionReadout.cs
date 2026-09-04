@@ -19,7 +19,7 @@ namespace SpaceGame.Gameplay
         /// <summary>What this control is, in two or three words. "Main sheet", "Helm".</summary>
         string Label { get; }
 
-        /// <summary>What the buttons do. "E: ease   LMB: haul in".</summary>
+        /// <summary>What the buttons do. "RMB: ease   LMB: haul in".</summary>
         string Prompt { get; }
 
         /// <summary>

@@ -474,7 +474,9 @@ MonoBehaviour:
   shapes: {fileID: 11400000, guid: b3edc3a708c9944d3a4df57c20109e1f, type: 2}
   displayScale: 1.8171431
   startingStrapItems: []
-  startingMainItems: []
+  startingMainItems:
+  - {fileID: 11400000, guid: a5e8fb73dbb66415f9232a516b5c5853, type: 2}
+  - {fileID: 11400000, guid: fb57e6c272d0a473cb80019a5671f8e7, type: 2}
 --- !u!114 &466146746142617743
 MonoBehaviour:
   m_ObjectHideFlags: 0

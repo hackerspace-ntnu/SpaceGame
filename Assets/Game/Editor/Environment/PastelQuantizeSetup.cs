@@ -1,4 +1,4 @@
-// Puts the pastel quantize filter on the pipeline, once.
+// Puts the pastel quantize filter on the pipeline, and switches it on and off.
 //
 // Same story as VolumetricSetup: the renderer asset keeps a feature list and a parallel
 // index map, and growing one without the other yields a feature that exists and never
@@ -13,61 +13,6 @@ namespace SpaceGame.EditorTools.Environment
     {
         private const string MaterialPath = "Assets/Game/Art/Materials/Environment/PastelQuantize.mat";
         private const string ToggleMenuPath = "SpaceGame/Environment/Pastel Quantize Filter";
-
-        // One-click on/off, checkmark shows the current state. Works during play mode too —
-        // URP reads the feature's active flag every frame it rebuilds the renderer.
-        [MenuItem(ToggleMenuPath)]
-        public static void Toggle()
-        {
-            bool enable = !AnyActive();
-            int touched = 0;
-
-            foreach (var renderer in VolumetricSetup.FindRenderers())
-            {
-                foreach (var feature in renderer.rendererFeatures)
-                {
-                    if (feature is PastelQuantizeRenderFeature)
-                    {
-                        feature.SetActive(enable);
-                        EditorUtility.SetDirty(feature);
-                        EditorUtility.SetDirty(renderer);
-                        touched++;
-                    }
-                }
-            }
-
-            if (touched == 0)
-            {
-                Debug.LogWarning("[PastelQuantize] Not installed; run " +
-                                 "SpaceGame ▸ Environment ▸ Install Pastel Quantize Filter first.");
-                return;
-            }
-
-            AssetDatabase.SaveAssets();
-            Menu.SetChecked(ToggleMenuPath, enable);
-            Debug.Log($"[PastelQuantize] {(enable ? "Enabled" : "Disabled")} on {touched} renderer feature(s).");
-        }
-
-        [MenuItem(ToggleMenuPath, true)]
-        public static bool ToggleValidate()
-        {
-            Menu.SetChecked(ToggleMenuPath, AnyActive());
-            return true;
-        }
-
-        private static bool AnyActive()
-        {
-            foreach (var renderer in VolumetricSetup.FindRenderers())
-            {
-                foreach (var feature in renderer.rendererFeatures)
-                {
-                    if (feature is PastelQuantizeRenderFeature && feature.isActive)
-                        return true;
-                }
-            }
-
-            return false;
-        }
 
         [MenuItem("SpaceGame/Environment/Install Pastel Quantize Filter")]
         public static void Install()
@@ -106,6 +51,79 @@ namespace SpaceGame.EditorTools.Environment
 
             Debug.Log($"[PastelQuantize] Installed {added} render feature(s) across {renderers.Count} " +
                       "renderer(s). Toggle or tune it on the renderer asset.");
+        }
+
+        // One-click on/off, checkmark shows the current state. Works during play mode too —
+        // URP reads the feature's active flag every frame it rebuilds the renderer.
+        [MenuItem(ToggleMenuPath)]
+        public static void Toggle()
+        {
+            bool enable = !AnyActive();
+            int touched = ForEachFeature(pastel => pastel.SetActive(enable));
+
+            if (touched == 0)
+            {
+                Debug.LogWarning("[PastelQuantize] Not installed; run " +
+                                 "SpaceGame ▸ Environment ▸ Install Pastel Quantize Filter first.");
+                return;
+            }
+
+            Menu.SetChecked(ToggleMenuPath, enable);
+            Debug.Log($"[PastelQuantize] {(enable ? "Enabled" : "Disabled")} on {touched} renderer feature(s).");
+        }
+
+        [MenuItem(ToggleMenuPath, true)]
+        public static bool ToggleValidate()
+        {
+            Menu.SetChecked(ToggleMenuPath, AnyActive());
+            return true;
+        }
+
+        /// <summary>
+        /// Applies an edit to every installed feature and saves, so the PC and mobile
+        /// renderers cannot drift apart into disagreeing about the filter. Returns how
+        /// many were touched.
+        /// </summary>
+        private static int ForEachFeature(System.Action<PastelQuantizeRenderFeature> edit)
+        {
+            int touched = 0;
+
+            foreach (var renderer in VolumetricSetup.FindRenderers())
+            {
+                foreach (var feature in renderer.rendererFeatures)
+                {
+                    if (feature is PastelQuantizeRenderFeature pastel)
+                    {
+                        edit(pastel);
+                        EditorUtility.SetDirty(pastel);
+                        EditorUtility.SetDirty(renderer);
+                        touched++;
+                    }
+                }
+            }
+
+            if (touched > 0)
+            {
+                AssetDatabase.SaveAssets();
+            }
+
+            return touched;
+        }
+
+        private static bool AnyActive()
+        {
+            foreach (var renderer in VolumetricSetup.FindRenderers())
+            {
+                foreach (var feature in renderer.rendererFeatures)
+                {
+                    if (feature is PastelQuantizeRenderFeature pastel && pastel.isActive)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
     }
 }

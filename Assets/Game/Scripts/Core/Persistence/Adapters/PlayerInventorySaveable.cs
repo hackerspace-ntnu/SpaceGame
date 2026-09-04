@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -34,9 +35,11 @@ namespace SpaceGame.Core.Persistence
         public const string Key = InventorySaveCodec.Key;
 
         private IPlayerInventory inventory;
+        private IBodyEquipment body;
         private EquipmentController equipment;
 
         private IPlayerInventory Inventory => inventory ??= GetComponent<IPlayerInventory>();
+        private IBodyEquipment Body => body ??= GetComponent<IBodyEquipment>();
 
         private EquipmentController Equipment =>
             equipment != null ? equipment : equipment = GetComponent<EquipmentController>();
@@ -60,13 +63,32 @@ namespace SpaceGame.Core.Persistence
         {
             if (Inventory == null) return;
 
-            InventorySaveCodec.Restore(Inventory, state, this);
+            InventorySaveCodec.Restore(Inventory, state, Overflow, this);
 
             // Restoring the hotbar EQUIPS the selected item, as a side effect of assigning the
             // selection — and that happens inside the call above, before the per-slot bags have been
             // put back. So the one item that ends up in the player's hand is the one item restored
             // without its state, and this is the second pass that fixes it.
             if (Equipment != null) Equipment.ReapplyHeldItemState();
+        }
+
+        /// <summary>
+        /// A save written when the hotbar was wider than it is now. The bar went from four slots to
+        /// three when the body slots arrived, so the fourth item of every older save has nowhere to
+        /// go — a gauntlet or a pack goes to its body slot, anything else is named in the console
+        /// rather than dropped without a word.
+        /// </summary>
+        private void Overflow(InventoryItem item)
+        {
+            // Queued rather than placed: the body's own saver may restore after this one and would
+            // overwrite a slot filled here. The body seats the queue once every saver has run.
+            if (Body != null)
+            {
+                Body.QueueOverflow(item);
+                return;
+            }
+
+            Debug.LogWarning($"[Save] '{item.itemName}' was in a hotbar slot this build no longer has and there is no body to wear it — it was not restored.", this);
         }
 
         /// <summary>
@@ -113,72 +135,38 @@ namespace SpaceGame.Core.Persistence
             public List<Dictionary<string, string>> itemStates;
         }
 
-        public static State Capture(IPlayerInventory inventory)
+        private static List<InventorySlot> Slots(IPlayerInventory inventory)
         {
             int size = inventory.GetInventorySize();
-            var ids = new List<string>(size);
-            var states = new List<Dictionary<string, string>>(size);
-            bool anyState = false;
+            var slots = new List<InventorySlot>(size);
+            for (int i = 0; i < size; i++) slots.Add(inventory.GetSlot(i));
+            return slots;
+        }
 
-            for (int i = 0; i < size; i++)
-            {
-                InventorySlot slot = inventory.GetSlot(i);
-                ids.Add(slot == null || slot.IsEmpty ? null : slot.Item.ID);
-
-                ItemState state = slot?.State;
-
-                if (state == null || state.IsEmpty)
-                {
-                    states.Add(null);
-                    continue;
-                }
-
-                states.Add(state.Copy());
-                anyState = true;
-            }
+        public static State Capture(IPlayerInventory inventory)
+        {
+            List<InventorySlot> slots = Slots(inventory);
 
             return new State
             {
-                itemIds = ids,
+                itemIds = GearSaveCodec.CaptureIds(slots),
                 selectedSlot = inventory.SelectedSlotIndex,
 
                 // Omitted entirely when nothing has state, which is the ordinary case — a list of
-                // four nulls in every player's record says nothing and costs a line each.
-                itemStates = anyState ? states : null,
+                // nulls in every player's record says nothing and costs a line each.
+                itemStates = GearSaveCodec.CaptureStates(slots),
             };
         }
 
+        /// <param name="overflow">Receives each saved item past the bar's current width, in order. Null drops them silently.</param>
         /// <param name="context">Optional, only for routing warnings to the right object in the console.</param>
-        public static void Restore(IPlayerInventory inventory, JObject state, Object context = null)
+        public static void Restore(IPlayerInventory inventory, JObject state, Action<InventoryItem> overflow = null,
+                                   UnityEngine.Object context = null)
         {
             if (inventory == null || state == null) return;
             if (state["itemIds"] is not JArray ids) return;
 
-            var items = new List<InventoryItem>(ids.Count);
-
-            foreach (JToken token in ids)
-            {
-                string id = token?.Type == JTokenType.String ? token.Value<string>() : null;
-
-                if (string.IsNullOrEmpty(id))
-                {
-                    items.Add(null);
-                    continue;
-                }
-
-                InventoryItem item = Registry<InventoryItem>.Get(id);
-
-                if (item == null)
-                {
-                    // An item that no longer exists in this build. The slot is left empty rather
-                    // than the whole hotbar refused, and the position is kept so everything to the
-                    // right of it stays where the player left it.
-                    Debug.LogWarning($"[Save] Item '{id}' is not in the registry — its hotbar slot " +
-                                     "was left empty. Was the item asset deleted?", context);
-                }
-
-                items.Add(item);
-            }
+            List<InventoryItem> items = GearSaveCodec.ReadItems(ids, context);
 
             int selected = state["selectedSlot"] is { Type: JTokenType.Integer } sel ? sel.Value<int>() : -1;
 
@@ -187,40 +175,15 @@ namespace SpaceGame.Core.Persistence
             // After RestoreSlots, never before. Assigning a slot's Item clears its state — which is
             // exactly right, since a slot that changed hands must not keep the last item's ammo —
             // so bags written first would be wiped by the assignment that follows.
-            RestoreSlotStates(inventory, state["itemStates"] as JArray);
-        }
+            GearSaveCodec.RestoreStates(Slots(inventory), state["itemStates"] as JArray);
 
-        /// <summary>
-        /// Hands each slot back what its item had become. A payload with no <c>itemStates</c> — every
-        /// save written before per-slot state existed — leaves every slot at its defaults, which is
-        /// what those saves meant.
-        /// </summary>
-        private static void RestoreSlotStates(IPlayerInventory inventory, JArray states)
-        {
+            // Entries past the bar's width would otherwise vanish inside RestoreSlots, which
+            // documents that it drops them: the one silent loss this codec used to allow.
             int size = inventory.GetInventorySize();
-
-            for (int i = 0; i < size; i++)
+            for (int i = size; i < items.Count; i++)
             {
-                InventorySlot slot = inventory.GetSlot(i);
-                if (slot == null) continue;
-
-                if (states == null || i >= states.Count || states[i] is not JObject bag)
-                {
-                    slot.State = null;
-                    continue;
-                }
-
-                var raw = new Dictionary<string, string>();
-
-                foreach (KeyValuePair<string, JToken> entry in bag)
-                {
-                    // Read defensively: a bag written by a newer build may hold a value shape this
-                    // one has never seen, and one bad key must not cost the slot its other five.
-                    if (entry.Value == null || entry.Value.Type == JTokenType.Null) continue;
-                    raw[entry.Key] = entry.Value.ToString();
-                }
-
-                slot.State = raw.Count == 0 ? null : new ItemState(raw);
+                if (items[i] == null) continue;
+                overflow?.Invoke(items[i]);
             }
         }
     }

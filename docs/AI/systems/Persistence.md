@@ -16,8 +16,12 @@ symptoms:
   - "a creature or vehicle reappears at its authored position instead of where I left it"
   - "a runtime-spawned object was in the world all session and is simply absent after a reload, with nothing on the console at load time"
   - "'[Save] Dropped N runtime record(s) that named no prefab at all'"
+  - "the player ship, or a dropped item, is in a timer autosave but gone from the file after I stop play mode in the editor"
+  - "a second copy of the ship stands inside the first after every load, and the count doubles each time"
+  - "the same creature stands in one chunk ten times over after an hour of play, and the copies survive a reload"
+  - "a pickup placed in a chunk is stacked ten deep at its authored spot"
 reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer]
-updated: 2026-09-02
+updated: 2026-09-03
 ---
 
 # Persistence / Save-Load
@@ -61,7 +65,7 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 | `SaveFileStore` / `SaveSlots` / `WorldIdentity` | [Format/](Assets/Game/Scripts/Core/Persistence/Format/) | Atomic `.tmp`→`File.Replace`→`.bak` write, `.bak` fallback read; slot listing; world naming + config guard |
 | `SaveMigrator` + `Migrations/V1GlobalEntities` | [Format/SaveMigrator.cs](Assets/Game/Scripts/Core/Persistence/Format/SaveMigrator.cs) | Version ladder; v1 (per-scene records) → v2 (flat) |
 
-### Adapters (61) — [Adapters/](Assets/Game/Scripts/Core/Persistence/Adapters/), namespace `SpaceGame.Core.Persistence`. ᴰ = also `IDeferredSaveable`. Keys are permanent — renaming one orphans every record under the old spelling.
+### Adapters (62) — [Adapters/](Assets/Game/Scripts/Core/Persistence/Adapters/), namespace `SpaceGame.Core.Persistence`. ᴰ = also `IDeferredSaveable`. Keys are permanent — renaming one orphans every record under the old spelling.
 
 | Category | Savers (key) |
 |---|---|
@@ -70,7 +74,7 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 | Agent mind | `AgentState`ᴰ(agent) `Provocation`ᴰ `Search` `Alert` `NoiseInvestigation` `Flee`ᴰ `Cover`ᴰ `Pursuit`ᴰ `CombatCadence`ᴰ |
 | Agent routine | `Patrol` `BasePatrol` `Wander` `AirWander` `WanderBehaviour` `NpcTask` `AgentGoal` `AgentPacing` `HerdMember` `Formation` `NpcWorld`(one record per caravan group) |
 | Vehicles & turrets | `Mount`ᴰ `DuneFoil` `Ornithopter`ᴰ `Ship` `ShipParts` `ShipAccent` `Spaceship` `Turret`ᴰ `WeaponMount` |
-| World interactables | `Door` `Lever` `RepairWorkstation` `Trader` `VolumeTrigger` `RuinSecret` `ScanBeacon` `CutsceneAction`(stops `playOnce` replaying) |
+| World interactables | `Door` `Lever` `RepairWorkstation` `OxygenGenerator`(oxygen, both docks; the fill deadline is deliberately not saved — see [Oxygen.md](Oxygen.md)) `Trader` `VolumeTrigger` `RuinSecret` `ScanBeacon` `CutsceneAction`(stops `playOnce` replaying) |
 | Player-scoped (on `PlayerCharacter.prefab`) | `PlayerInventory`ᴰ(inventory) `Backpack`ᴰ `SuitColor` `PlayerLook` `Flashlight` `Effects` `InteriorVisit`ᴰ `PortalPair`ᴰ `Health` |
 | Global (`RegisterGlobalSaver`) | `GameState`(gameState) `DayNight`(sky) `Sandstorm`(weather) `Map`(map) `HerdState`(herds) `Leash`(leashes)ᴰ |
 
@@ -85,6 +89,8 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 6. Player: `PlayerSaveSync` (owner) → `ClaimProfileServerRpc` → `PlayerSaveService.Bind` → place, restore, `NotifyLoadComplete`, then raise `PlayerBound` → `SaveManager.RunWorldDeferredPass()`.
 
 **Save** (`SaveManager.Save`): static `SaveManager.Capturing` fires first — the pre-capture hook for a system mid-sequence to normalise what it is doing so the file records an end state (`ArrivalDirector` grounds a mid-descent hull here; handlers are synchronous and must not save) — then `BuildDocument` → `playerService.CaptureAll()` + `worldStore.DehydrateLoaded()` + persistent scene + `Compact()` + `CaptureGlobals`. Serialize on the main thread, `Task.Run` the write (synchronous for quit/exit, which *waits out* an in-flight write rather than standing down). Guards: `WouldDowngradeFormat`, `WouldDiscardAllPlayers`. Triggers: 300 s timer (retries in ≤15 s after a refusal), `OnApplicationQuit`, `SaveManager.SaveOnExit()` (menu return), F5, `SaveNewWorld`.
+
+**Teardown** (`SaveManager.HandleNetworkShuttingDown`, on `NetworkManager.OnPreShutdown`): the same `Capturing` + `CaptureLoadedScenes()` a save takes, then `worldStore.Seal()` — after which every `Dehydrate`/`DehydrateLoaded` is a no-op and the quit-save that follows writes this capture instead of redoing it. Needed because Netcode's shutdown destroys every dynamically spawned NetworkObject, and in the editor that whole shutdown runs from Netcode's own `playModeStateChanged` hook at ExitingPlayMode — *before* Unity delivers any `OnApplicationQuit`, whatever its execution order. Players are not part of it: `PlayerSaveSync` captures each one as it despawns.
 
 **World switch:** menu calls `WorldSession.StageNew(name, config)` or `StageExisting(worldId, config, out error)` (reads the file, checks `WorldIdentity.AcceptsConfig`), then loads the world scene. `WorldSession.Clear()` on return to menu. Quickload restages the *same* world and reloads via `NetworkManager.SceneManager.LoadScene(Single)`.
 
@@ -124,10 +130,14 @@ SceneKey      "persistent" | "chunk:<x>,<y>" | "scene:<Name>"
 | Treating `OnLoadComplete` as once-only | State re-applied over a world that moved on | Idempotent — it fires per player bind and per late chunk |
 | Restoring pose with `transform.position` | Object snaps back within a frame | The record's pose is applied for you via `SaveTeleport.Move` |
 | Persisting `isKinematic` | Loaded player cannot walk (quit-time autosave captures the body after netcode teardown) | Never save engine-owned flags; `RigidbodySaveable` returns null for a kinematic body |
+| Capturing the world after Netcode has shut down | `DespawnAndDestroyNetworkObjects` has destroyed every runtime-spawned NetworkObject, so `DropVanishedRuntime` erases their records as if the player had destroyed them — **no log line**. The PlayerShip vanished from the file on every editor Stop while timer, F5 and pause-menu saves kept it, which read as "sometimes". The tell is `[NpcWorldSim] … folded back to a record` printed just before `[Save] Wrote` | The store is captured and `Seal()`ed at `OnPreShutdown`. Do not "fix" quit ordering with execution order — the editor's ExitingPlayMode hook runs before any `OnApplicationQuit` |
 | Opting in via non-kinematic `Rigidbody` | Every mount/walker/vehicle absent from the file (legged rigs are kinematic; DuneFoil has no root body) | Implement `IPersistentEntity` |
 | `Instantiate`/`Destroy` for world objects | Duplicate per reload; looted authored crate refills | `GameServices.World.Spawn`/`.Despawn` ([WorldService.cs](Assets/Game/Scripts/Core/GameServices/Implementations/WorldService.cs)) |
 | `EnsureRuntime` on an authored scene object | Would duplicate on every load — now refused with a warning | Spawn a fresh instance |
+| A scene-placed instance of a saveable **prefab** | It brings a `SaveableEntity` in from the prefab, `authored` false and `instanceId` empty, and `EnsureScene` used to step over anything that already had the component — so only *plain* GameObjects got the runtime fallback. Nothing in the editor writes `authored`/`instanceId` into a scene any more either (the wiring menu items call `SaveablePolicy.Ensure`, which only adds components), so a placed creature kept the GUID `Awake` invents, was captured as a **runtime** record, and on the next hydrate the scene file re-created it while `SpawnEntities` instantiated the record beside it. **One more copy per chunk load**, for the life of the world, nothing logged. Ten Golems and ten Vrescals stood in `Chunk_7_5` after an hour; the two Scraps and the potion placed in that chunk were stacked ten deep at their authored spots | `EnsureScene` now adopts a derived authored identity for a placed instance whose `SaveableEntity.IdentityIsProvisional` is still true; `EnsureSpawned` calls `MarkIdentityFinal` so a genuine runtime spawn keeps its GUID. Guarded by `WorldSaveStoreTests.APlacedPrefabInstance_DoesNotMultiplyAcrossChunkCycles`. Records written before the repair stay in the file and keep spawning their copies — delete them |
+| Rebuilding a prefab that scene instances override | A scene stores an override as `{fileID, guid}` pointing at the component **inside the prefab**. Re-creating that component — which any builder script that removes and re-adds it does — gives it a new fileID, and every override in every scene silently stops applying while still sitting in the scene file looking correct. `Golem`/`Vrescal` lost their baked `authored`+`instanceId` this way (the scene still names fileIDs `3464075568543551090` / `1510356602591966980`, which neither prefab has any more) and fell into the row above. Nomad and DuneRat sit in the same chunk and were fine | Compare each `propertyPath: instanceId` override's target fileID against the anchors in the prefab file. The runtime fallback now covers the fallout, but a dead override means every *other* per-instance tweak is gone too — re-place the instance or re-bake |
 | Giving a system-owned object its own `SaveableEntity` | Two competing copies **and** a lifeless duplicate object | `SaveScope.External` on the prefab, or `DisownToExternal()` |
+| A saveable prefab **nested** inside another saveable prefab | The nested instance keeps its own `SaveableEntity`, and `OnValidate` stamps it with the OUTER asset's GUID — every save writes a second record naming the outer prefab and every load instantiates a whole second copy of it (the map projector inside PlayerShip doubled the hull per reload; ShipRV's workstation and the gun model inside every gun pickup had the same shape). With the entity gone, the nested object's own `TransformSaveable`/`RigidbodySaveable` are collected AFTER the root's under the same key, and the later saver wins — the ship's pose record became the projector's | One entity per prefab, one saver per key: `Wire Saveable Prefabs` (`SaveableWiring.StripNestedSavers`) removes nested entities and any saver whose key the root already owns, as removed-component overrides. Guarded by `NoWorldEntityPrefabNestsASecondSaveableEntity`, `NoWorldEntityPrefabHasTwoSaversOnOneKey` and an `OnValidate` warning. Saves written before the repair keep the extra records — delete them |
 | `AddComponent`-ing a saver at runtime | Never captured — the saver list is cached on first `Savers()` | `entity.InvalidateSavers()` |
 | Renaming/re-parenting an *unwired* scene object | Derived id (`DeriveAuthoredId`: scene + hierarchy path + sibling index, FNV-1a) changes → record orphaned | Bake real GUIDs with the wiring tool |
 | Prefab-instance `instanceId` assigned + `SetDirty` | Value equals the prefab's, Unity records no override, nothing hits the scene file | `RecordAsPrefabOverrides` via `SerializedObject`; grep with `grep -A1 "propertyPath: instanceId"` |

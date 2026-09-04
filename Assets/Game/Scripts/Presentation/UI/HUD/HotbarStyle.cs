@@ -6,15 +6,21 @@ namespace SpaceGame.Presentation
     /// The hotbar's palette and the one texture <see cref="UITheme"/> does not have.
     ///
     /// <para>
-    /// Separate from <see cref="UITheme"/> on purpose. That is the look of the game's full-screen
-    /// MENUS — near-black panels and a cold blue accent, a screen you are reading — and the hotbar
-    /// sits over the world, so it keeps the expedition's warm palette instead of the menu's blue.
+    /// <b>Its palette is now the visor's.</b> This file used to hold the expedition's warm colours,
+    /// on the reasoning that the hotbar sits over the world and so should not look like the menu.
+    /// That reasoning is gone: an item tile is drawn on the helmet glass along with everything
+    /// else, and on the visor <b>blue is the language and warm is the alarm</b> — a hotbar in amber
+    /// would read as a permanent warning. See <see cref="VisorStyle"/>.
     /// </para>
     /// <para>
-    /// The colours are lifted straight from the model library's material table
-    /// (<c>Assets/Game/Art/Models/_Source~/PALETTE.md</c>) rather than invented, so the amber on
-    /// the HUD is the same amber that glows on the rig. The hex is written beside each one because
-    /// that table is the source and this is a copy of it.
+    /// The colours therefore delegate to <see cref="VisorStyle"/> rather than being written out
+    /// again here. What stays local is the GEOMETRY and the refusal shake, which are about the size
+    /// and behaviour of a tile rather than its colour, and which the visor has no opinion on.
+    /// </para>
+    /// <para>
+    /// One palette for every tile, deliberately: the hotbar, the worn-gear strip and the body
+    /// screen all draw the same <see cref="GearTile"/>, so a slot looks the same everywhere it
+    /// appears. Changing it here changes it in all three at once, which is the point.
     /// </para>
     /// <para>
     /// Nothing here is an imported asset, for the reason <see cref="UITheme"/> gives at length: the
@@ -26,20 +32,26 @@ namespace SpaceGame.Presentation
     {
         // ── The palette ──────────────────────────────────────────────────────
 
-        /// <summary>Mat_Fabric_Canvas_Faded in shadow, near #32312A. The tile itself.</summary>
-        public static readonly Color Tile = new(0.196f, 0.192f, 0.165f, 1f);
+        /// <summary>The tile itself: near-black glass carrying a trace of the visor's ink.</summary>
+        public static readonly Color Tile = new(0.043f, 0.075f, 0.094f, 0.88f);
 
-        /// <summary>Mat_Fabric_Rope_Hemp, #B89968. The quiet states: hover, and the reserved hatch.</summary>
-        public static readonly Color Thread = new(0.722f, 0.600f, 0.408f, 1f);
+        /// <summary>The quiet states: hover, and the reserved hatch.</summary>
+        public static readonly Color Thread = VisorStyle.InkDim;
 
-        /// <summary>Mat_Emissive_Amber, #FFB347. The one lit thing on the bar: the selected slot.</summary>
-        public static readonly Color Amber = new(1f, 0.702f, 0.278f, 1f);
+        /// <summary>
+        /// The one lit thing on the bar: the selected slot. Named Amber for its history — it is
+        /// the visor's ink now, and there is nothing warm on a healthy hotbar.
+        /// </summary>
+        public static readonly Color Amber = VisorStyle.Ink;
 
-        /// <summary>Mat_Paint_Safety_Orange, #D9541F. High-vis, and used only for a live drop target.</summary>
-        public static readonly Color SafetyOrange = new(0.851f, 0.329f, 0.122f, 1f);
+        /// <summary>
+        /// A live drop target. Brighter than the selection rather than a different hue, because a
+        /// place you can drop something is not a danger and must not read as one.
+        /// </summary>
+        public static readonly Color SafetyOrange = Color.Lerp(VisorStyle.Ink, Color.white, 0.55f);
 
-        /// <summary>Mat_Fabric_Flag_Bleached, #D8D2C2. The slot numbers.</summary>
-        public static readonly Color Stencil = new(0.847f, 0.824f, 0.761f, 1f);
+        /// <summary>The slot numbers.</summary>
+        public static readonly Color Stencil = VisorStyle.InkDim;
 
         // ── Geometry ─────────────────────────────────────────────────────────
 

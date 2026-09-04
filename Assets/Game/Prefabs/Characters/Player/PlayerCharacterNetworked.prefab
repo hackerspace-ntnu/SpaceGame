@@ -135,7 +135,10 @@ PrefabInstance:
       insertIndex: 10
       addedObject: {fileID: 5592241152626822122}
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
-      insertIndex: 15
+      insertIndex: 11
+      addedObject: {fileID: 519412105137966564}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: 16
       addedObject: {fileID: 2648420191720355216}
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
@@ -167,6 +170,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7731988448858959287}
+    - targetCorrespondingSourceObject: {fileID: 4516265153368369930, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6845326683234165101}
   m_SourcePrefab: {fileID: 100100000, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}
 --- !u!1 &582217690245548981 stripped
 GameObject:
@@ -224,7 +230,7 @@ MonoBehaviour:
   ScaleMaxInterpolationTime: 0.1
   AuthorityMode: 1
   TickSyncChildren: 0
-  UseUnreliableDeltas: 0
+  UseUnreliableDeltas: 1
   SyncPositionX: 1
   SyncPositionY: 1
   SyncPositionZ: 1
@@ -234,12 +240,12 @@ MonoBehaviour:
   SyncScaleX: 0
   SyncScaleY: 0
   SyncScaleZ: 0
-  PositionThreshold: 0.001
-  RotAngleThreshold: 0.01
+  PositionThreshold: 0.02
+  RotAngleThreshold: 0.5
   ScaleThreshold: 0.01
-  UseQuaternionSynchronization: 0
-  UseQuaternionCompression: 0
-  UseHalfFloatPrecision: 0
+  UseQuaternionSynchronization: 1
+  UseQuaternionCompression: 1
+  UseHalfFloatPrecision: 1
   InLocalSpace: 0
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
@@ -390,6 +396,18 @@ MonoBehaviour:
       NameHash: -398636658
       Synchronize: 1
       ParameterType: 4
+    - name: ArmRaise
+      NameHash: -267549924
+      Synchronize: 1
+      ParameterType: 3
+    - name: AimPitch
+      NameHash: 170749544
+      Synchronize: 1
+      ParameterType: 1
+    - name: IsGliding
+      NameHash: 129336386
+      Synchronize: 1
+      ParameterType: 4
   AnimatorParametersExpanded: 0
 --- !u!114 &-3757295630438121014
 MonoBehaviour:
@@ -417,11 +435,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInventoryNetwork
   ShowTopMostFoldoutHeaderGroup: 1
-  inventorySize: 4
+  inventorySize: 3
   startingItems:
+  - {fileID: 11400000, guid: 80fc5802176e94e75bcc95e24616cdf1, type: 2}
+--- !u!114 &519412105137966564
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 193d5a1890499444f96633adef0c73d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BodyEquipmentNetwork
+  ShowTopMostFoldoutHeaderGroup: 1
+  startingBody:
   - {fileID: 11400000, guid: 0207e5d6f86434fdb90e2a0dcb5038ae, type: 2}
   - {fileID: 11400000, guid: c48f2b7d16ae4c93a5e07f81d3b62c40, type: 2}
-  - {fileID: 11400000, guid: 80fc5802176e94e75bcc95e24616cdf1, type: 2}
+  - {fileID: 11400000, guid: 6633f38a345214c3d9edb14bb20a36a9, type: 2}
 --- !u!114 &2648420191720355216
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -582,6 +615,26 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   aimSmoothing: 18
   publishThreshold: 0.25
+--- !u!114 &6845326683234165101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 582217690245548981}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9dbe4e81f9ce45c49e98316907196fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.SuitOxygen
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxOxygen: 100
+  drainPerSecond: 0.167
+  bottleRestores: 100
+  suffocationDamage: 4
+  suffocationInterval: 2
+  warnFraction: 0.3
+  alarmFraction: 0.1
 --- !u!4 &1885774286167179584 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3211930088316101119, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}

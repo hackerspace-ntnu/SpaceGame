@@ -57,46 +57,13 @@ namespace SpaceGame.Core
         public event Action OnUseReleased;
 
         /// <summary>
-        /// Aim: right mouse, left gamepad trigger. Held rather than toggled.
-        ///
-        /// Built in code rather than added to InputSystem_Actions, because
-        /// InputControls.cs embeds its own copy of that asset's JSON and is what
-        /// actually binds at runtime: editing the .inputactions does nothing
-        /// until the generated file is regenerated, and hand-patching 3000 lines
-        /// of generated code to add one button is a much larger risk to every
-        /// other control in the game than owning this one action here.
-        ///
-        /// It still lives on this component so it obeys the same enable and
-        /// disable as everything else — an aim that survived death and menus
-        /// would leave the weapon up with nothing left to lower it.
-        ///
-        /// This was called AltUse and had no consumers anywhere in the project.
-        /// It is the same button on the same two devices; only the name changed,
-        /// so nothing was rebound and nothing broke.
-        /// </summary>
-        public event Action OnAimPressed;
-
-        /// <summary>Aim let go of. Also raised by the Input System when the action is disabled,
-        /// which is what lowers the weapon on death and on opening a menu.</summary>
-        public event Action OnAimReleased;
-
-        /// <summary>
-        /// Is aim down right now? Latched from the same two callbacks, so it can never disagree
-        /// with them, and cleared in <see cref="OnDisable"/> for the same reason
-        /// <see cref="CrouchHeld"/> is.
-        /// </summary>
-        public bool AimHeld { get; private set; }
-
-        private InputAction aim;
-
-        /// <summary>
         /// Crouch, held rather than toggled: pressed and released are both published, and
         /// <see cref="CrouchHeld"/> is the same answer for anything that would rather ask than
         /// listen.
         ///
         /// The action was already declared in InputSystem_Actions and generated into
         /// InputControls — it simply had no consumer — so this is a subscription, not a new
-        /// binding, and it costs none of the risk described on <see cref="OnAimPressed"/>.
+        /// binding, and it costs none of the risk described on <see cref="OnPackYawScrolled"/>.
         /// </summary>
         public event Action OnCrouchPressed;
 
@@ -113,7 +80,40 @@ namespace SpaceGame.Core
         public bool CrouchHeld { get; private set; }
 
         public event Action OnJumpPressed;
-    
+
+        /// <summary>
+        /// A gauntlet's own trigger went down: Q for the left forearm, E for the right. Pressed
+        /// and released are both published because the grapple's winch latches on the button, so
+        /// a gauntlet has the same hold stream a held item does.
+        ///
+        /// <para>
+        /// Q and E are also the <c>Turn</c> axis every mount steers with. That is deliberate — a
+        /// rider has no free hands — and it is the consumer's job to drop these while mounted;
+        /// the actions themselves stay bound so nothing has to be rebound on dismount.
+        /// </para>
+        /// </summary>
+        public event Action<Items.ItemGrip.Hand> OnGauntletPressed;
+
+        /// <summary>The gauntlet trigger let go of. Also raised by the Input System when the map is
+        /// disabled, which is what ends a held grapple on death and on opening a menu.</summary>
+        public event Action<Items.ItemGrip.Hand> OnGauntletReleased;
+
+        /// <summary>
+        /// Jump pressed twice inside <see cref="bodyActivateDoubleTap"/>: deploy whatever is worn
+        /// on the back. The first press still jumps — <see cref="OnJumpPressed"/> is raised for
+        /// both — and the second is a jump too if the body is grounded, which it is not once the
+        /// first one has taken it off the ground. The wing pack, the only back item, refuses on
+        /// the ground anyway.
+        /// </summary>
+        public event Action OnBodyActivatePressed;
+
+        [Header("Body gear")]
+        [Tooltip("Seconds between two Jump presses that count as a double tap. Fixed and short, so " +
+                 "it reads as a gesture rather than an assist.")]
+        [SerializeField, Min(0.05f)] private float bodyActivateDoubleTap = 0.3f;
+
+        private Items.DoubleTap bodyActivate;
+
         public event Action OnDashPressed;
 
         public event Action OnBackpackPressed;
@@ -128,10 +128,12 @@ namespace SpaceGame.Core
         /// slots — rotating a staff on the mat would also swap what the player is holding.
         /// </para>
         /// <para>
-        /// Built in code for the reason written out on <see cref="OnAimPressed"/>:
-        /// <c>InputControls.cs</c> embeds its own copy of the .inputactions JSON and is what binds
-        /// at runtime, so adding a binding to the asset does nothing until the generated file is
-        /// regenerated.
+        /// Built in code rather than added to InputSystem_Actions: <c>InputControls.cs</c> embeds
+        /// its own copy of that asset's JSON and is what actually binds at runtime, so editing the
+        /// .inputactions does nothing until the generated file is regenerated, and hand-patching
+        /// 3000 lines of generated code to add one control is a much larger risk to every other
+        /// binding in the game than owning this one action here. It still lives on this component
+        /// so it obeys the same enable and disable as everything else.
         /// </para>
         /// </summary>
         public event Action<int> OnPackYawScrolled;
@@ -314,10 +316,6 @@ namespace SpaceGame.Core
 
             inputs = new InputControls();
 
-            aim = new InputAction("Aim", InputActionType.Button);
-            aim.AddBinding("<Mouse>/rightButton").WithGroup("Keyboard&Mouse");
-            aim.AddBinding("<Gamepad>/leftTrigger").WithGroup("Gamepad");
-
             // Value, not Button: a wheel reports a delta and this needs every one of them, the
             // same way Hotbar.HotbarScroll does.
             packYaw = new InputAction("PackYaw", InputActionType.Value);
@@ -368,7 +366,11 @@ namespace SpaceGame.Core
 
             // World interaction
             inputs.Player.Interact.performed += _ => OnInteractPressed?.Invoke();
-            inputs.Player.Jump.performed     += _ => OnJumpPressed?.Invoke();
+            inputs.Player.Jump.performed     += _ => HandleJump();
+            inputs.Player.GauntletLeft.performed  += _ => OnGauntletPressed?.Invoke(Items.ItemGrip.Hand.Left);
+            inputs.Player.GauntletLeft.canceled   += _ => OnGauntletReleased?.Invoke(Items.ItemGrip.Hand.Left);
+            inputs.Player.GauntletRight.performed += _ => OnGauntletPressed?.Invoke(Items.ItemGrip.Hand.Right);
+            inputs.Player.GauntletRight.canceled  += _ => OnGauntletReleased?.Invoke(Items.ItemGrip.Hand.Right);
             inputs.Player.Dash.performed   += _ => OnDashPressed?.Invoke();
             inputs.Player.Use.performed   += _ => OnUsePressed?.Invoke();
             inputs.Player.Use.canceled    += _ => OnUseReleased?.Invoke();
@@ -380,9 +382,6 @@ namespace SpaceGame.Core
             // they are: the callback is a lambda that nothing can unsubscribe,
             // so binding it in OnEnable would leave another copy attached after
             // every death and respawn.
-            aim.performed += _ => { AimHeld = true;  OnAimPressed?.Invoke(); };
-            aim.canceled  += _ => { AimHeld = false; OnAimReleased?.Invoke(); };
-
             packYaw.performed += HandlePackYawScroll;
 
             // The index is captured into a local, not read off the loop variable. A lambda closing
@@ -400,7 +399,6 @@ namespace SpaceGame.Core
         {
             EnsureInputs();
             inputs.Enable();
-            aim?.Enable();
         }
 
         private void OnDisable()
@@ -408,7 +406,6 @@ namespace SpaceGame.Core
             // Not EnsureInputs: if the asset was never created there is nothing enabled to stop,
             // and building one here just to disable it would leak it past OnDestroy.
             inputs?.Disable();
-            aim?.Disable();
             packYaw?.Disable();
             packYawAccumulator = 0f;
 
@@ -423,16 +420,12 @@ namespace SpaceGame.Core
             MoveInput = Vector2.zero;
             LookInput = Vector2.zero;
             CrouchHeld = false;
-            AimHeld = false;
         }
 
         private void OnDestroy()
         {
             inputs?.Dispose();
             inputs = null;
-
-            aim?.Dispose();
-            aim = null;
 
             packYaw?.Dispose();
             packYaw = null;
@@ -444,6 +437,21 @@ namespace SpaceGame.Core
 
             packRack?.Dispose();
             packRack = null;
+        }
+
+        /// <summary>
+        /// Every jump press jumps. The second of two quick ones also deploys the back item.
+        ///
+        /// Unscaled time, so the window is the same width in slow motion and while a menu holds
+        /// the clock — and lazily built, because the window is a serialized field that is not
+        /// readable before Awake and the first press can arrive from OnEnable before that.
+        /// </summary>
+        private void HandleJump()
+        {
+            OnJumpPressed?.Invoke();
+
+            bodyActivate ??= new Items.DoubleTap(bodyActivateDoubleTap);
+            if (bodyActivate.Press(Time.unscaledTime)) OnBodyActivatePressed?.Invoke();
         }
 
         /// <summary>

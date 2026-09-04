@@ -162,6 +162,81 @@ namespace SpaceGame.EditorTools
                         "back to guessing.");
         }
 
+        // ─────────── What the pilot's motion is worth ───────────
+        //
+        // The vertical used to be thrown away, which cost nothing while the only way to reach the
+        // launch was a run and a jump off a ledge, and cost everything once a grapple swing could
+        // get there: the whole point of an arc is the height it buys.
+
+        private const float Carry = 1f;
+        private const float HeadingFromSpeed = 4f;
+
+        [Test]
+        public void ASwingsVerticalSpeedIsNotThrownAway()
+        {
+            // Slung upward out of the bottom of an arc: 18 m/s along, 18 m/s up.
+            var carry = WingPackItem.CarryFrom(new Vector3(0f, 18f, 18f), Vector3.forward,
+                                               Carry, HeadingFromSpeed);
+
+            Assert.Greater(carry.Speed, 24f,
+                "Flattening the velocity discards the climb a swing was worth. 18 by 18 is over " +
+                $"25 m/s of real motion; the launch valued it at {carry.Speed:F1}.");
+            Assert.AreEqual(45f, carry.ClimbDegrees, 0.5f,
+                "A pilot going up at 45 degrees has to enter the flight going up at 45 degrees.");
+        }
+
+        [Test]
+        public void TheHeadingFollowsTheVelocityNotTheCamera()
+        {
+            // Arcing hard to the right while still looking dead ahead. Projecting that onto the
+            // nose would hand over a free 20 m/s in a direction the pilot was never travelling.
+            var carry = WingPackItem.CarryFrom(new Vector3(20f, 0f, 0f), Vector3.forward,
+                                               Carry, HeadingFromSpeed);
+
+            Assert.That(Vector3.Dot(carry.Forward, Vector3.right), Is.GreaterThan(0.99f),
+                "The launch heading must be where the pilot was going, or turning the camera " +
+                "mid-arc is worth more than flying well.");
+        }
+
+        [Test]
+        public void SteppingOffALedgeLaunchesWhereThePilotIsLooking()
+        {
+            // Falling, barely moving horizontally: there is no direction in the velocity to read,
+            // so facing is the only intent there is. This is the ordinary launch and it must not
+            // have changed.
+            var carry = WingPackItem.CarryFrom(new Vector3(0f, -7f, 0.5f), Vector3.right,
+                                               Carry, HeadingFromSpeed);
+
+            Assert.That(Vector3.Dot(carry.Forward, Vector3.right), Is.GreaterThan(0.99f),
+                "Below the threshold the pilot's facing is the launch heading.");
+            Assert.Less(carry.ClimbDegrees, -45f,
+                "The measured climb is the plunge itself. Taming it is the airframe's job, not " +
+                "this one's — see OrnithopterFlightMotor.Launch.");
+        }
+
+        [Test]
+        public void TheLaunchHeadingIsAlwaysFlatAndUnit()
+        {
+            // A pilot in a vertical dive has a velocity with no horizontal part at all, and the
+            // spawn rotation is built from whatever comes back here.
+            var carry = WingPackItem.CarryFrom(new Vector3(0f, -30f, 0f), Vector3.up,
+                                               Carry, HeadingFromSpeed);
+
+            Assert.AreEqual(0f, carry.Forward.y, 1e-4f, "The craft is not spawned pitched.");
+            Assert.AreEqual(1f, carry.Forward.magnitude, 1e-4f,
+                "Quaternion.LookRotation is handed this directly; a zero vector logs and a scaled " +
+                "one is a silent tilt.");
+        }
+
+        [Test]
+        public void SpeedCarryStillScalesTheLaunch()
+        {
+            var half = WingPackItem.CarryFrom(new Vector3(0f, 0f, 20f), Vector3.forward,
+                                              0.5f, HeadingFromSpeed);
+
+            Assert.AreEqual(10f, half.Speed, 1e-3f, "speedCarry has to keep working on the whole vector.");
+        }
+
         private static System.Collections.IComparer Vector3Within(float tolerance) =>
             new Vector3Comparer(tolerance);
 

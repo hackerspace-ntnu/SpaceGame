@@ -139,7 +139,7 @@ Record it in `<model_name>_BUILD.md` next to the model file, stating:
 
 This is a build record, not a proposal. It exists so that a later reader — including you, months on — can see why the model is cut the way it is without reverse-engineering it from geometry. Write it as you go and finish it when the model is done.
 
-**Decompose to the smallest sensible unit.** The test is reuse potential: if a piece could plausibly appear on a different model, it is its own component. A door is not one component — it is a panel, a frame, a hinge, and a handle. Err toward more components; merging later is easy, splitting later is not.
+**Decompose to the smallest sensible unit.** The test is reuse potential: if a piece could plausibly appear on a different model, it is its own component. A door is not one component — it is a panel, a frame, a hinge, and a handle. Err toward more components — parts are never merged anyway (see the geometry rules below), so a finer cut costs nothing later, while splitting a fused mesh is surgery.
 
 ## Variation
 
@@ -190,6 +190,38 @@ Link or append the components into the model file, position them, and add whatev
 
 Where an element repeats, distribute the variations rather than reaching for the same one each time, and vary rotation and placement so repeated pieces do not sit in visible lockstep.
 
+## Geometry rules
+
+Three hard rules that apply at every phase — component builds, assembly, and any later edit.
+
+### Never merge — every part stays its own object
+
+Parts are **never** joined, merged, or boolean-unioned into a single mesh. Not during the build, not at assembly, not as a final "cleanup". Every logical part — a handle, a hinge leaf, a bolt, a strut, a panel — remains a separate, named object for its whole life, so anyone can later select, move, reshape, or delete it without performing surgery on a combined mesh.
+
+- No `bpy.ops.object.join()`. No `bmesh` operation that folds two parts into one datablock. No applied boolean union between parts.
+- Booleans are permitted only *within* one part's own construction (cutting a hole in a single panel), never to fuse two parts together.
+- Rigidity comes from parenting — to the body object, an empty, or a bone — never from merging.
+- "It's just two bolts" is not an exception. If it deserves a name, it stays an object.
+
+Merging is destructive and one-way; the entire point of the library is that everything stays modifiable.
+
+### No z-fighting
+
+Separate objects mean surfaces sit against each other, and two coplanar overlapping faces flicker unpredictably in the viewport and in-game. Never let two faces from different objects occupy the same plane.
+
+- Where parts touch, either **embed** one slightly into the other (overlap by a few millimetres so the hidden face is inside, not coincident) or **offset** the exposed face by at least 1–2 mm.
+- Panels, plates, and decals sitting on a surface get a visible thickness or a deliberate stand-off — never a zero-distance face-on-face placement.
+- Verify it: for every pair of touching parts, confirm from positions and dimensions that their face planes either differ by ≥ 0.001 m or genuinely interpenetrate. When in doubt, render or capture the viewport at a grazing angle and look.
+
+### Rotations are verified, never trusted
+
+A wrong rotation is the most common silent build error: an axis flipped, a sign inverted, degrees passed where radians were expected, a part facing +Y in this library's −Y-forward convention. **Always double-check every rotation** — assume yours is wrong until the data proves otherwise.
+
+- `bpy` rotations are **radians**. Write `math.radians(45)`, never a bare `45`.
+- After placing or rotating any part, verify from the file, not from intention: dump the object's world matrix or a known landmark vertex and confirm the axes point where intended (see `references/scripting.md` for the pattern). For anything visually asymmetric — a spout, a door, a seat, text — also capture a render or viewport image and look at it.
+- Check the sign and the axis separately. A part rotated −90° about X looks superficially plausible next to one rotated +90°; only measurement tells them apart.
+- Never stack a second rotation to "fix" one that looks wrong without first establishing what the current orientation actually is — compounding guesses is how parts end up mirrored.
+
 ### Phase 6 — Verify
 
 Production-ready means someone else could open this file and use it immediately without cleanup. Check every item:
@@ -198,6 +230,9 @@ Production-ready means someone else could open this file and use it immediately 
 - [ ] All transforms applied; scale is uniform 1.0 unless deformation is intentional
 - [ ] Normals consistent and outward-facing
 - [ ] No loose geometry, no interior faces, no duplicate vertices
+- [ ] Nothing merged: every logical part is still its own named object — no joins, no boolean unions between parts
+- [ ] No z-fighting: no coplanar overlapping faces between objects — touching surfaces are offset or embedded
+- [ ] Every rotation verified against the data (world matrix / landmark check) and, for asymmetric parts, a visual capture — not assumed correct
 - [ ] Origins at logical connection points
 - [ ] Every material comes from the palette
 - [ ] Armature present wherever something articulates, with named bones and sensible rest pose

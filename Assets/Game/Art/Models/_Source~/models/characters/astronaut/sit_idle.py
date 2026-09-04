@@ -450,4 +450,7 @@ def main():
     # Deliberately no save_mainfile: the .blend is the source of truth.
 
 
-main()
+# Guarded so gauntlet_point.py can import the posing helpers (aim, rotate, limb_dir,
+# preview, the exporter) without this clip being built as a side effect.
+if __name__ == "__main__":
+    main()

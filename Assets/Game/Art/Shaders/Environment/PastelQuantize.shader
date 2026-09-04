@@ -1,10 +1,8 @@
 Shader "Hidden/PastelQuantize"
 {
-    Properties
-    {
-        _Blend ("Blend", Range(0, 1)) = 1
-        _DitherStrength ("Dither Strength", Range(0, 0.2)) = 0
-    }
+    // No properties: the palette and blend come from PastelQuantizeRenderFeature each
+    // frame, so a material-level copy would only be a second source of truth that drifts.
+    Properties { }
 
     SubShader
     {
@@ -44,12 +42,15 @@ Shader "Hidden/PastelQuantize"
             TEXTURE2D(_BlitTexture);
             SAMPLER(sampler_BlitTexture);
 
-            #define MAX_PALETTE 128
+            // Must equal MaxPaletteSize in PastelQuantizeRenderFeature.cs: a material's
+            // vector-array size freezes the first time it is set, so the C# side always
+            // uploads exactly this many entries and uses _PaletteCount as the loop bound.
+            #define MAX_PALETTE 256
+
             float4 _PaletteLinear[MAX_PALETTE]; // linear RGB, what gets written out
             float4 _PaletteOklab[MAX_PALETTE];  // CPU-precomputed, what gets matched against
             int _PaletteCount;
             float _Blend;
-            float _DitherStrength;
 
             // Bjorn Ottosson's Oklab. Nearest-neighbour distances here track perceived
             // colour; the same search in raw RGB drags greens toward grey and crushes blues.
@@ -66,23 +67,10 @@ Shader "Hidden/PastelQuantize"
                     dot(lms, float3(0.0259040371,  0.7827717662, -0.8086757660)));
             }
 
-            // Error diffusion cannot run in a fragment shader, so banding control is an
-            // ordered 4x4 Bayer offset on lightness before the match. Off by default.
-            static const float BAYER4[16] =
-            {
-                 0.0 / 16.0,  8.0 / 16.0,  2.0 / 16.0, 10.0 / 16.0,
-                12.0 / 16.0,  4.0 / 16.0, 14.0 / 16.0,  6.0 / 16.0,
-                 3.0 / 16.0, 11.0 / 16.0,  1.0 / 16.0,  9.0 / 16.0,
-                15.0 / 16.0,  7.0 / 16.0, 13.0 / 16.0,  5.0 / 16.0
-            };
-
             half4 frag(Varyings input) : SV_Target
             {
                 half4 source = SAMPLE_TEXTURE2D(_BlitTexture, sampler_BlitTexture, input.texcoord);
                 float3 okl = LinearToOklab(saturate(source.rgb));
-
-                uint2 cell = uint2(input.positionCS.xy) & 3;
-                okl.x += (BAYER4[cell.y * 4 + cell.x] - 0.5) * _DitherStrength;
 
                 int best = 0;
                 float bestDist = 1e10;
@@ -98,7 +86,7 @@ Shader "Hidden/PastelQuantize"
                 }
 
                 half3 result = lerp(source.rgb, _PaletteLinear[best].rgb, _Blend);
-                return half4(result, source.a);
+                return half4(saturate(result), source.a);
             }
             ENDHLSL
         }

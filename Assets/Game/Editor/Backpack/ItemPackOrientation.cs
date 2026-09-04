@@ -6,7 +6,7 @@ using SpaceGame.Items;
 namespace SpaceGame.EditorTools
 {
     /// <summary>
-    /// Puts five artifact prefabs the right way up.
+    /// Puts two artifact prefabs the right way up.
     ///
     /// <para><b>Why the pack cannot fix this itself.</b> A stowed item keeps its own up: the
     /// backpack turns it about the surface normal by the player's yaw and nothing else. That is
@@ -26,53 +26,21 @@ namespace SpaceGame.EditorTools
     /// anything the mesh currently occupies, and on the stem once it stands up.</item>
     /// <item><c>LightningSpell</c> — SphereCollider centred at y 0.132, radius 0.133; the mesh runs
     /// z -0.264..0. Half of 0.264 is 0.132.</item>
-    /// <item><c>Leash</c> — BoxCollider size (0.126, 0.147, 0.160) against a mesh of
-    /// (0.126, 0.160, 0.147): the same box with Y and Z swapped. Its centre matches the rotated
-    /// mesh centre on every axis but the sign of x, which is a separate hand-typo and is left
-    /// alone.</item>
     /// </list>
-    /// <para>All three carry the identical override on their model instance — a -90&#176; X
+    /// <para>Both carry the identical override on their model instance — a -90&#176; X
     /// rotation, quaternion (-0.7071068, 0, 0, 0.7071067) — which is exactly the Blender-Z-up to
     /// Unity-Y-up conversion the FBX importer had already done, applied a second time. The
     /// colliders and grip points were authored before it. Removing it is the fix, and it also
     /// makes <c>rotationOffset (0,0,0)</c> mean what <see cref="ItemGrip"/> documents it to mean:
     /// "the item's +Y points out the thumb side, as a torch's flame would."</para>
     ///
-    /// <para><b>The fourth is a judgement call and is treated differently.</b>
-    /// <c>ItemScanner</c> is internally consistent — its sphere collider agrees with its upright
-    /// mesh — but it is a forearm terminal, and standing a 0.486 m one on the open end of its own
-    /// arm cuff is not how it would be set down. Its correction re-frames the whole item and
-    /// compensates <c>rotationOffset</c> by the inverse, so <b>the pose in the hand is preserved
-    /// exactly</b> (<c>t.rotation = handRotation * Euler(offset)</c>, so rotating the contents by
-    /// R and the offset by R⁻¹ multiplies out) while the pack and the ground get a unit lying
-    /// screen-up.</para>
+    /// <para><b>Three more entries used to live here</b> — <c>Leash</c>, <c>ItemScanner</c> and
+    /// <c>RuinScanner</c>, all forearm devices standing on the edge of the webbing cuff they were
+    /// mounted on. They went when the gauntlets were rebuilt on the shared gauntlet base
+    /// (2026-09-02): a gauntlet now lies deck-up with the arm's own axis flat on the mat, which is
+    /// both its smallest footprint and the one that shows what the item is. See the note in
+    /// <c>Fixes</c>.</para>
     ///
-    /// <para><b>The fifth was measured out of the mesh, not judged by eye.</b>
-    /// <c>RuinScanner</c> is a pistol-grip survey unit: a body slab 0.75 x 0.32 x 0.22 m with the
-    /// readout on its broad face, a grip hanging off one side of it, an emitter at one end and an
-    /// antenna at the other. Blender's own axes say which way is up — the screen plate and the
-    /// top button both sit on the +Z face, the grip and its four ribs run down -Z, the emitter
-    /// housing and lens are the +Y end — and the prefab's model instance turns that frame by
-    /// (90, -90, 0), which lands the emitter axis on the item's +Y. So the prefab was standing on
-    /// the REAR face of its body slab with the emitter pointing at the sky, and
-    /// <c>FootprintOf</c> reserved the 8 x 3 cells of a slab on its edge. -90 about X lays it on a
-    /// flank, which is what a pistol-grip tool does on a bench: 8 x 6 cells, the device's own
-    /// silhouette. Screen-UP is not available and is not the answer — the grip and its pommel hang
-    /// 0.91 m below the screen plane in the model's own metres (z 0.6795 down to z -0.2285, on a
-    /// 1.13 m long axis), so an item resting screen-up balances on the pommel.</para>
-    /// <para>The SIGN is the one thing the outline cannot settle: the two flanks are mirror
-    /// images to within 0.07% of face area, so neither lays it upside down. It is decided by what
-    /// the player ends up looking at — the +X flank carries the three control buttons (one red,
-    /// two amber, out to x +0.1775), the -X flank only the brass dial — and -90 about X takes the
-    /// item's +Z, which is that +X flank, to +Y.</para>
-    ///
-    /// <para><b>Idempotent.</b> Every entry states the rotation it expects to find before it will
-    /// touch anything, so a second run reports "already correct" rather than turning the roster
-    /// through another 90&#176;.</para>
-    ///
-    /// <para><b>Verified out loud.</b> Unity discards prefab saves outright when the AssetDatabase
-    /// goes read-only, and says nothing. So the last thing this does is re-load every prefab it
-    /// wrote, off disk, and assert the rotation actually landed.</para>
     /// </summary>
     public static class ItemPackOrientation
     {
@@ -126,18 +94,15 @@ namespace SpaceGame.EditorTools
                 new Vector3(-90f, 0f, 0f),
                 "mesh lies along -Z; its own SphereCollider is centred at y 0.132, r 0.133"),
 
-            new("Leash.prefab", Mode.AlignModel, new Vector3(90f, 0f, 0f),
-                new Vector3(-90f, 0f, 0f),
-                "mesh is (0.126, 0.160, 0.147); its own BoxCollider is (0.126, 0.147, 0.160)"),
-
-            new("ItemScanner.prefab", Mode.Reframe, new Vector3(-90f, 0f, 0f),
-                new Vector3(-90f, 0f, 0f),
-                "forearm terminal stood on the open end of its cuff; lies screen-up instead"),
-
-            new("RuinScanner.prefab", Mode.Reframe, new Vector3(-90f, 0f, 0f),
-                new Vector3(0f, 90f, 0f),
-                "body slab stood on its rear face, emitter at the sky; lies on the dial flank "
-                + "with the three control buttons up"),
+            // The gauntlet family had three rows here and no longer needs them. They turned a
+            // device that was standing on the edge of its webbing cuff onto its flank. Since the
+            // family was rebuilt on `components/props/gauntlet_base.blend` (2026-09-02) a gauntlet
+            // already lies the way it should: across the arm on X, the arm's own axis on Z, and
+            // the device standing UP on Y off the hardpoint. That is both the smaller footprint
+            // and the readable one — a bracer laid on its flank hides its device behind its own
+            // shell, and the device is how a player tells one gauntlet from another at a glance
+            // (GDC-L1-UX-0003). Its hand offset is identity now too, so there is nothing left to
+            // divide out.
         };
 
         /// <summary>Degrees of slop when matching an expected rotation.</summary>

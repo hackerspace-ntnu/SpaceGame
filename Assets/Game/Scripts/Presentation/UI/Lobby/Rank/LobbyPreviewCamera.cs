@@ -39,11 +39,6 @@ namespace SpaceGame.Presentation.Lobbies
         /// </summary>
         private const float ChromeBottom = MenuEntry.MessageBottom + 44f;
 
-        /// <summary>The canvas the menu's chrome is laid out on. Matches MainMenu.unity's CanvasScaler.</summary>
-        private const float ReferenceWidth = 1920f;
-
-        private const float ReferenceHeight = 1080f;
-
         /// <summary>
         /// How far above the HIGHEST team plate the shot has to reach, in metres — the plate's own
         /// height plus air. The plate lift itself is per-row (<c>RankLayout.MaxPlateLift</c>), so
@@ -169,17 +164,23 @@ namespace SpaceGame.Presentation.Lobbies
         /// How much of the frame's height the rank may use, as a fraction, once the status line and
         /// footer have taken theirs.
         ///
-        /// Computed from the LIVE canvas height rather than assumed to be 1080: the menu's
-        /// CanvasScaler matches WIDTH at 1920x1080, so the canvas is always 1920 wide and its height
-        /// is what moves with the aspect ratio. A short, wide window therefore has a SHORT canvas,
-        /// and the fixed chrome along its bottom eats a bigger fraction of it — which is precisely
-        /// the small-window case a width-only fit never noticed.
+        /// <para>
+        /// Asked of <see cref="UIScale"/> rather than derived here. This used to compute the canvas
+        /// height as <c>1920 * Screen.height / Screen.width</c>, which is the answer for a scaler
+        /// matching WIDTH — not the rule the lobby's canvas follows. It read about 14% short on a
+        /// 21:9 monitor, so the chrome looked like a bigger share of the canvas than it is and the
+        /// fit backed the camera off further than the shot needed.
+        /// </para>
+        ///
+        /// <para>
+        /// Under the project's rule the canvas is never shorter than the 1080 the chrome is measured
+        /// in, so this is a constant 0.80 at 16:9 and at every wider aspect, and grows on a window
+        /// narrower than 16:9 — which genuinely has more vertical room to give the rank.
+        /// </para>
         /// </summary>
         private static float BandFraction()
         {
-            if (Screen.width <= 0 || Screen.height <= 0) return 1f - ChromeBottom / ReferenceHeight;
-
-            float canvasHeight = ReferenceWidth * Screen.height / Screen.width;
+            float canvasHeight = UIScale.CanvasSize().y;
 
             return Mathf.Clamp(1f - ChromeBottom / Mathf.Max(1f, canvasHeight), 0.2f, 1f);
         }

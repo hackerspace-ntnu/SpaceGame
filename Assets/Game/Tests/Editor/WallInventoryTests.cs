@@ -218,7 +218,7 @@ namespace SpaceGame.Tests
         /// item at all, so there is nothing on it for a press to reach even if one got through.
         ///
         /// <para>
-        /// <see cref="BackpackItemVisual.Strip"/> is what guarantees it, and it guarantees it for
+        /// <see cref="DisplayCopy.Strip"/> is what guarantees it, and it guarantees it for
         /// the backpack mat and the gear wall at once — they build their display copies through
         /// the same function. A copy that kept its <c>UsableItem</c> would be a live artifact
         /// bolted to a shelf: it would run <c>Awake</c>, hold state, and answer an aim ray as
@@ -234,7 +234,7 @@ namespace SpaceGame.Tests
             spawned.Add(stage);
 
             GameObject copy = UnityEngine.Object.Instantiate(Usable(), stage.transform);
-            BackpackItemVisual.Strip(copy);
+            DisplayCopy.Strip(copy);
 
             Assert.IsNull(copy.GetComponentInChildren<UsableItem>(true),
                           "a display copy on an inventory surface still carries a UsableItem — " +
@@ -244,7 +244,7 @@ namespace SpaceGame.Tests
                            "a display copy is scenery and must run no gameplay code at all.");
         }
 
-        /// <summary>A prefab-shaped object carrying a usable item, for <see cref="Strip"/> to take off.</summary>
+        /// <summary>A prefab-shaped object carrying a usable item, for <see cref="DisplayCopy.Strip"/> to take off.</summary>
         private GameObject Usable()
         {
             var go = new GameObject("UsableFixture");
@@ -437,6 +437,12 @@ namespace SpaceGame.Tests
             public bool TryAddItem(InventoryItem item) => inner.TryAddItem(item);
             public bool TryRemoveItem(int index) => inner.TryRemoveItem(index);
             public void SelectSlot(int slotIndex) => inner.SelectSlot(slotIndex);
+
+            public bool TrySetSlot(int index, InventoryItem item)
+            {
+                inner.SetSlot(index, item);
+                return true;
+            }
 
             public void RestoreSlots(IReadOnlyList<InventoryItem> items, int selectedSlot) =>
                 inner.RestoreSlots(items, selectedSlot);

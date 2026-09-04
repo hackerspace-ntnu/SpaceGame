@@ -154,9 +154,7 @@ namespace SpaceGame.Presentation
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 1000; // above the gameplay HUD
 
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            UIScale.Configure(canvasGo.GetComponent<CanvasScaler>());
 
             panel = CreateChild("Panel", canvasGo.transform, out RectTransform panelRect);
             panelRect.anchorMin = Vector2.zero;

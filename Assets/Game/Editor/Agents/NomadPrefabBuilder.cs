@@ -779,7 +779,7 @@ namespace SpaceGame.EditorTools
         /// <para>
         /// A visual-only FBX rather than one of the gun prefabs from
         /// <c>Prefabs/Items/Artifacts/Guns</c>: those carry NetworkObject, PickupableItem and
-        /// DropItemPhysics, because they are things lying in the world waiting to be picked up.
+        /// WorldItem, because they are things lying in the world waiting to be picked up.
         /// Parenting one to a bone nests a NetworkObject inside the Nomad's own and hangs a
         /// droppable physics item off an NPC. An equipped visual must be inert.
         /// </para>

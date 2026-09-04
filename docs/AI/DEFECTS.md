@@ -35,6 +35,7 @@ Recorded 2026-09-01 during the full documentation pass.
 
 | Defect | Detail | Doc |
 | --- | --- | --- |
+| The grapple's pendulum swing is capped at ~1.5 s | `GrapplingHookArtifact` never overrides `WantsHold`, so `UseChannel.Release` ends its hold stream on the frame the trigger comes up. `Update`'s `holdTimeout` net then fires on a rope the player is deliberately swinging on and drops it, roughly a second and a half into every swing — the mode the item documents at length as "let go to trade the climb for a swing". Not the same bug as the tow's exemption, which is already handled. A fix has to keep the release meaning "stop winching": the stream carries `active: true` only, so `WantsHold => _isGrappling` alone would winch forever. | [Artifacts](systems/Artifacts.md) |
 | Sandstorm jitters against the wrong resolution | `Sandstorm.shader` jitters against `_ScreenParams` rather than its own march-target texel size — the exact stipple bug the fog and cloud shaders were already fixed for. | [Environment](systems/Environment.md) |
 | Chunk scene-path casing drift | Every `scenePath` in the streaming config and the chunker's output folder say `Scenes/World/Chunks`, while disk, git and build settings are lowercase `Scenes/world/Chunks`. Runtime is unaffected (loads go by scene *name*), but every `AssetDatabase`-driven editor tool — NavMesh baker, staleness check, map baker — silently skips every chunk. No tooling guards against this recurring. | [WorldStreaming](systems/WorldStreaming.md), [Scenes](systems/Scenes.md) |
 | World bake diverges from the configured agent | The world NavMesh bake overrides the single Humanoid agent type with slope 60° / climb 0.8 / voxel 0.333, against the project's 45° / 0.75. Editor previews will not reflect what ships. | [NavMesh](systems/NavMeshSystem.md) |
@@ -59,3 +60,7 @@ The suite is edit-mode only — there are no play-mode tests at all, so no runti
 covered. Subsystems with **zero** tests: procedural world generation (68 source files), all of
 `Weapons/`, audio, cutscenes, most of the UI, the backpack display layer, `Vehicles/Rover`, and
 agent perception. See [Testing](systems/Testing.md).
+
+
+defekt: 
+grappling hook does not hook where it is pointet at while riding orniecopter, it hoks streaight down. all items must hit whatever it is pointet at when mounted, riding a ornecopter, gliding etc.

@@ -41,9 +41,12 @@ namespace SpaceGame.Items
     /// <item><description>WingLeft / Right, 0.378 x 0.6615 m -> 4 x 7</description></item>
     /// <item><description>LongGoods, 1.701 x 0.0945 m -> 18 x 1</description></item>
     /// <item><description>Rack, 0.8505 x 0.8505 m -> 9 x 9</description></item>
+    /// <item><description>BackPanelCentre, 0.2835 x 0.567 m -> 3 x 6 — the oxygen bottle's
+    /// socket, added 2026-09-03 where the rig's own modelled bottle used to be bolted. The one
+    /// RESERVED face in the game: see <see cref="PackSurfaceId.BackPanelCentre"/>.</description></item>
     /// </list>
     /// <para>
-    /// 255 cells over the rig, filling the seven rectangles edge to edge with zero
+    /// 273 cells over the rig, filling the eight rectangles edge to edge with zero
     /// <see cref="Hem"/>. That count has never changed with a move of
     /// <see cref="PackScale.Factor"/> and could not have: <see cref="PackScale"/> multiplies the
     /// cell and the faces by the same factor, so every division below is unchanged and every

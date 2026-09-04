@@ -287,6 +287,10 @@ namespace SpaceGame.Items
             // null exactly once per equip.
             owner = holder;
 
+            // A worn item — a gauntlet on the forearm, a pack on the back — must never pose the
+            // arm as though gripping it: the hand is free to hold something else at the same time.
+            if (Worn) return;
+
             // Give the item a hold pose whether or not anyone remembered to author one.
             //
             // This used to read the component and do nothing when it was absent, which made the
@@ -300,6 +304,19 @@ namespace SpaceGame.Items
             if (hold == null && UsesHoldPose) hold = gameObject.AddComponent<HoldAnimator>();
             if (hold != null) hold.SetHeld(holder, true);
         }
+
+        /// <summary>
+        /// Is this instance worn on the body rather than held in the hand?
+        ///
+        /// <para>
+        /// Set by the controller that seats it, BEFORE <see cref="OnEquipped"/>, and read only
+        /// there: a worn instance skips the hold pose. Everything else an item does on equip —
+        /// its own setup, its state restore, its use pipeline — is identical either way, which is
+        /// the point: the gauntlet is the same artifact it was in the hand, fired from a different
+        /// button.
+        /// </para>
+        /// </summary>
+        public bool Worn { get; set; }
 
         /// <summary>
         /// Whether holding this item should pose the holder's body.

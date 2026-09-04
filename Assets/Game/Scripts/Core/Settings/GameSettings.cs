@@ -27,7 +27,7 @@ namespace SpaceGame.Core
 
         // Bumped when a default changes in a way that should override what players already have
         // stored. Everything is re-seeded from defaults when the stored version is older.
-        private const int SchemaVersion = 1;
+        private const int SchemaVersion = 2;
 
         /// <summary>
         /// Screen shake is the most over-applied juice technique there is, and the crash landing
@@ -70,6 +70,8 @@ namespace SpaceGame.Core
         private static int resolutionIndex;
         private static bool vSync;
         private static int frameRateCap;
+        private static int visorDetail;
+        private static bool reduceVisorMotion;
 
         private static Resolution[] resolutionChoices;
 
@@ -182,13 +184,52 @@ namespace SpaceGame.Core
             set => SetBool(ref invertHotbarScroll, value, "InvertHotbarScroll");
         }
 
+        // ---------------------------------------------------------------- visor
+
+        /// <summary>Full visor: the vitals and the world annotations both drawn.</summary>
+        public const int VisorDetailFull = 0;
+
+        /// <summary>Vitals only — the readouts you play by. Markers and commentary go away.</summary>
+        public const int VisorDetailVitals = 1;
+
+        /// <summary>Nothing. The screenshot state.</summary>
+        public const int VisorDetailOff = 2;
+
+        /// <summary>
+        /// How much of the helmet visor is drawn, cycled by H.
+        /// <para>
+        /// Three states rather than two because health lives on the visor now: a plain on/off
+        /// toggle would let the player hide their own health bar, which the old two-state toggle
+        /// deliberately never could.
+        /// </para>
+        /// </summary>
+        public static int VisorDetail
+        {
+            get { EnsureLoaded(); return visorDetail; }
+            set => SetInt(ref visorDetail, Mathf.Clamp(value, VisorDetailFull, VisorDetailOff), "VisorDetail");
+        }
+
+        /// <summary>
+        /// Switches off the visor's idle motion — the sway, the boot rise and the bloom.
+        /// <para>
+        /// A vestibular-accessibility control in the same family as <see cref="CameraShakeIntensity"/>,
+        /// not a polish dial. Off by default, because the motion is the thing that makes the layer
+        /// read as projected rather than pasted on.
+        /// </para>
+        /// </summary>
+        public static bool ReduceVisorMotion
+        {
+            get { EnsureLoaded(); return reduceVisorMotion; }
+            set => SetBool(ref reduceVisorMotion, value, "ReduceVisorMotion");
+        }
+
         // ---------------------------------------------------------------- developer
 
         /// <summary>
-        /// Unlocks the in-game developer tools — currently the artifact browser on I.
+        /// Unlocks the in-game developer tools — currently the artifact browser on O.
         /// <para>
         /// Persisted like any other preference so it survives a restart, and off by default so a
-        /// player who never opens the dev page cannot open the browser by pressing I.
+        /// player who never opens the dev page cannot open the browser by pressing O.
         /// </para>
         /// </summary>
         public static bool DevMode
@@ -375,7 +416,8 @@ namespace SpaceGame.Core
             {
                 "PlayerName", "SuitColorIndex", "MasterVolume", "MusicVolume", "SfxVolume", "UiVolume", "AmbienceVolume",
                 "MouseSensitivity", "InvertLookY", "InvertHotbarScroll", "DevMode", "FieldOfView",
-                "QualityLevel", "Fullscreen", "ResolutionIndex", "VSync", "FrameRateCap", "Version",
+                "QualityLevel", "Fullscreen", "ResolutionIndex", "VSync", "FrameRateCap",
+                "VisorDetail", "ReduceVisorMotion", "Version",
             })
             {
                 PlayerPrefs.DeleteKey(Prefix + key);
@@ -442,6 +484,8 @@ namespace SpaceGame.Core
             resolutionIndex = PlayerPrefs.GetInt(Prefix + "ResolutionIndex", DefaultResolutionIndex());
             vSync = PlayerPrefs.GetInt(Prefix + "VSync", QualitySettings.vSyncCount > 0 ? 1 : 0) == 1;
             frameRateCap = PlayerPrefs.GetInt(Prefix + "FrameRateCap", 0);
+            visorDetail = PlayerPrefs.GetInt(Prefix + "VisorDetail", VisorDetailFull);
+            reduceVisorMotion = PlayerPrefs.GetInt(Prefix + "ReduceVisorMotion", 0) == 1;
 
             masterVolume = Mathf.Clamp01(masterVolume);
             musicVolume = Mathf.Clamp01(musicVolume);
@@ -472,6 +516,16 @@ namespace SpaceGame.Core
 
             field = value;
             PlayerPrefs.SetInt(Prefix + key, value ? 1 : 0);
+            Raise();
+        }
+
+        private static void SetInt(ref int field, int value, string key)
+        {
+            EnsureLoaded();
+            if (value == field) return;
+
+            field = value;
+            PlayerPrefs.SetInt(Prefix + key, value);
             Raise();
         }
 

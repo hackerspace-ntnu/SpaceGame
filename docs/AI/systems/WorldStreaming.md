@@ -17,8 +17,11 @@ symptoms:
   - "chunks never unload, or a caravan drags loaded chunks around with it"
   - "a position 16 km out reads as terrain in the corner of the world"
   - "after the crash-landing intro the player walks and steers but never falls"
+  - "loading takes a minute or two with several players when it takes seconds alone"
+  - "the loading screen says still waiting on player spawn after 30s while chunks keep loading"
+  - "the host is the last player to spawn and misses the crew gather"
 reads_with: [TerrainGeneration, Persistence, SceneTransitions, NavMeshSystem]
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # World Streaming
@@ -37,7 +40,9 @@ Server-authoritative additive loading of chunk scenes around moving anchors, plu
 - "Required" is decided by `TryGetStreamingCoord`, not `Contains`. Outside the grid but within `offWorldDistance` (2000 m) clamps to the nearest edge chunk and keeps it loaded; beyond that (the minigame arena, ~16.5 km east) the anchor holds nothing.
 - Unload is grace-timed (`unloadGracePeriod`, 10 s) and blocked while any non-`Despawn` `SceneTracked` sits in the chunk (radius-0 anchor).
 - All scene ops go through one sequential queue — NGO permits one scene event at a time. `Update` ticks the queue at 0.5 s (`updateInterval`) and paces it against [ChunkActivationQueue](Assets/Game/Scripts/World/Streaming/Core/ChunkActivationQueue.cs): no new load while a chunk is still building.
-- Loaded ≠ built. Terrain features defer their GameObject+MeshCollider construction into `ChunkActivationQueue` under a ms budget (`chunkActivationBudgetMs`, 2 ms). Player spawns wait on `WhenChunkContentBuilt`, not on the scene event.
+- Loaded ≠ built. Terrain features defer their GameObject+MeshCollider construction into `ChunkActivationQueue` under a ms budget (`chunkActivationBudgetMs`, 2 ms). Player spawns wait on `WhenChunkContentBuilt`, not on the scene event — and that wait is gated on the activation queue **alone**, never on the operation queue (see Gotchas).
+- A preload waits for every chunk it asked for that is not yet `Loaded`, **including one somebody else is already loading** (`EnqueueLoad` attaches the callback to the in-flight op via `loadListeners`, answered by `FinishLoad` on success or failure). Six players preloading one spawn area all wait for it.
+- An anchor can be **suspended** (`SuspendAnchor` / `ResumeAnchor`): it then pulls nothing in until resumed, and resuming drops its velocity sample so it does not read as having flown there. The arrival uses this for the crew in flight (see [PlayerShip](PlayerShip.md)).
 
 ## Key types
 
@@ -46,7 +51,7 @@ Server-authoritative additive loading of chunk scenes around moving anchors, plu
 | `WorldStreamer` | [Core/WorldStreamer.cs](Assets/Game/Scripts/World/Streaming/Core/WorldStreamer.cs) | NetworkBehaviour; anchors, op queue, terrain cache, migration RPC, `OnChunkLoaded/WillUnload/Unloaded` (static) |
 | `WorldStreamingConfig` | [Core/WorldStreamingConfig.cs](Assets/Game/Scripts/World/Streaming/Core/WorldStreamingConfig.cs) | ScriptableObject: grid, tunables, `ConfigId` (asset GUID), `ChunkInfo[]` |
 | `ChunkInfo` (struct) | same file | `gridCoord`, `sceneName`, `scenePath`, `worldBounds`, `hasTerrain` |
-| `ChunkGrid` (struct) | [Grid/ChunkGrid.cs](Assets/Game/Scripts/World/Streaming/Grid/ChunkGrid.cs) | Pure geometry; `ToCoord` clamps, `TryGetStreamingCoord`/`DistanceOutside`/`PredictAhead` |
+| `ChunkGrid` (struct) | [Grid/ChunkGrid.cs](Assets/Game/Scripts/World/Streaming/Grid/ChunkGrid.cs) | Pure geometry; `ToCoord` clamps, `TryGetStreamingCoord`/`DistanceOutside`/`PredictAhead`, and `WindowAround` for the chunks a view of a given span centred on a position covers (Gotchas) |
 | `SceneTracked` | [Core/SceneTracked.cs](Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs) | `Pin`/`Migrate`/`Despawn` + `keepChunksLoaded`; also `IPersistentEntity` |
 | `ChunkActivationQueue` | [Core/ChunkActivationQueue.cs](Assets/Game/Scripts/World/Streaming/Core/ChunkActivationQueue.cs) | Static budgeted work queue; self-drains via `ChunkActivationRunner` |
 | `WorldNavMeshProvider` | [NavMesh/WorldNavMeshProvider.cs](Assets/Game/Scripts/World/Streaming/NavMesh/WorldNavMeshProvider.cs) | Adds the pre-baked [WorldNavMeshAsset](Assets/Game/Scripts/World/Streaming/NavMesh/WorldNavMeshAsset.cs); no runtime bake |
@@ -91,6 +96,7 @@ Config vs disk: **48 declared / 48 on disk** (main), **8 / 8** (Ferdinand). All 
 - Chunk loads are NGO scene events, so client scenes arrive asynchronously and *after* the server's. `UnderTerrainGuard.IsAwaitingGround` exists for exactly this window.
 - NGO matches scenes by a hash of the **build-settings path**, case-sensitively. Folder-casing drift between machines produces `Scene Hash N does not exist in the HashToBuildIndex table` on client join. Chunk scenes must stay in build settings and keep the on-disk casing.
 - [NetworkGameManager](Assets/Game/Scripts/Core/Multiplayer/Joining/NetworkGameManager.cs) waits for `IsReady`, calls `PreloadChunksAroundPositions(spawnPositions)`, and only spawns players in the callback; [LoadingScreenUI](Assets/Game/Scripts/Presentation/UI/Pages/LoadingScreenUI.cs) waits on `InitialChunksLoaded`.
+- **Every chunk load is a scene event every client must finish before the next can start**, so with N players the cost of a load is the slowest client's, serialised. The count of loads is therefore the lever: anything that pulls chunks in that nobody will stand on (a body two kilometres up) is a join delay for everyone. `SuspendAnchor` exists for exactly that.
 
 ## Persistence
 
@@ -105,6 +111,7 @@ Detail lives in [Persistence.md](Persistence.md); the streaming contract is:
 
 - **Casing mismatch (live).** Every `scenePath` in `WorldStreamingConfig.asset` and `WorldChunkerEditor.outputFolder` say `Assets/Game/Scenes/World/Chunks`, but git and disk are lowercase `.../Scenes/world/Chunks` (build settings agree with disk). Runtime is unaffected — `ExecuteLoad` loads by `sceneName` and only logs `scenePath` — but every editor tool that consumes `scenePath` (`WorldNavMeshBaker`, `WorldNavMeshStaleness`, `MapMeshBaker`, `WorldStreamerEditor`) goes through `AssetDatabase`, which is case-sensitive. If a bake silently skips chunks, check this first.
 - **Scenes are matched by name, not path.** Two worlds must not share a chunk scene name; chunk deltas in a save are keyed by scene name, which is why cross-world loads are refused outright.
+- **A window to DRAW around somebody is not `ToCoord` plus a radius.** That window is symmetric about the *chunk*, so it reaches up to half a chunk further on one side of the position than the other and swaps which side at every boundary. Nothing notices when the window decides what to LOAD; the map hologram, which uses one to decide what to draw around the player, sat visibly off the centre of its own plate and could leave a bald edge inside the view. `ChunkGrid.WindowAround` is the drawing form: every chunk a rectangle of a given span centred on the position touches, min inclusive, max exclusive, unclamped. It never falls short of the requested span — it overhangs instead, by up to a chunk on one side, since the window is still whole chunks. Covered by [ChunkWindowTests](Assets/Game/Tests/EditMode/ChunkWindowTests.cs).
 - **`WorldToChunkCoord` clamps.** Anything outside the grid maps to the nearest edge chunk. Call `IsWithinGrid` or `TryGetStreamingCoord` first, or the arena 16.5 km east reads as the world's corner terrain.
 - **`hasTerrain: 0` is not "not loaded yet".** Twelve main-world chunks are authored empty; `IsInsideWorldGrid` returns false there on purpose so `UnderTerrainGuard` does not pin a body waiting for ground nobody owes it.
 - **A park is a *claim*, not a private edit.** `UnderTerrainGuard.EnterPark` suspends gravity through [`CarriedBody.SuspendGravity`](Assets/Game/Scripts/agents/Modules/Riding/CarriedBody.cs) and `ExitPark` gives it back through `CarriedBody.Release`. It must never write `useGravity` itself again. It did once, and the crash landing is what that cost: `ArrivalDirector` spawns the crew at the top of the descent — 2200 m up, 900 m out, over chunks the streamer has not reached — and seats them **one frame later**. `IsInsideWorldGrid` ignores altitude, so the guard parks a body two kilometres in the sky; `SeatedRider` then captures `useGravity == false` as that player's normal state, and hands it back thirty seconds later when they stand up out of the wreck. Pinned by [ParkedBodyCarryTests](Assets/Game/Editor/Tests/ParkedBodyCarryTests.cs).
@@ -114,6 +121,8 @@ Detail lives in [Persistence.md](Persistence.md); the streaming contract is:
 - **Regeneration drops tunables.** The chunker writes only `chunkSize`, `gridDimensions`, `worldOrigin`, `loadRadius`, `unloadGracePeriod`, `chunks`. `WorldStreamingConfig.asset` currently has **no** serialized `offWorldDistance`/`streamLookaheadSeconds` keys (the Ferdinand config does) — they fall back to the C# field initialisers (2000 / 2).
 - **World selection reaches one world only.** `MainMenuUI.worldConfig` is a serialized reference pinned to the main config; `WorldSelectUI` reads it through `menu.WorldConfig`. The Ferdinand world is reachable only by opening its scene in the editor — and the `MapService` in that scene still points at the *main* config.
 - **Pre-opened chunk scenes are adopted, not ignored.** `InitializeChunkStates` calls `AdoptLoadedChunk` for anything already open (common when editing chunks additively), which also fires `OnChunkLoaded` so persistence still hydrates them.
+- **A preload's callback waits for its own content, not for the world to go quiet.** `FlushContentCallbacks` used to also require `operationQueue` empty and no operation in progress — and in a six-player arrival that queue never emptied: five crew already seated were pulling chunks in around themselves, every load refilled the activation queue, and the host's spawn callback (first in, its four chunks long since built) sat behind twenty of somebody else's loads. Seen as `[LoadingScreen] Still waiting on player spawn after 30s` on a world that was ready, and the host seated last, after the crew-gather timeout. The flush now runs **before** `ProcessNextOperation` in `Update` and is gated on `ChunkActivationQueue.PendingCount == 0` alone.
+- **A second preload of the same area used to skip the wait.** `PreloadChunksAroundPositions` only counted `NotLoaded` chunks, so every caller after the first found them `Loading`, was told there was nothing to load, and went looking for ground that was not there yet. Now anything not `Loaded` is waited for, through `loadListeners`.
 - **`SceneEventInProgress` is not an error.** NGO's busy flag is global; the retry path is load-bearing. Never "fix" it by dequeuing the next op.
 - **Domain-reload-off leaks the activation queue.** `ChunkActivationQueue` clears itself via `[RuntimeInitializeOnLoadMethod(SubsystemRegistration)]`; anything else static in this subsystem must do the same.
 - **`SnapAgentsToNavMesh` re-enables agents.** `NavMeshAgentMotor.Awake` disables its own agent when no mesh is under it and relies on this to switch it back on. Nothing else keeps that promise.

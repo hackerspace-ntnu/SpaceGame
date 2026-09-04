@@ -82,7 +82,7 @@ namespace SpaceGame.Gameplay.Arrival
         /// nobody else.
         /// </para>
         /// </summary>
-        public static event Action LocalPlayerSeated;
+        public static event Action<GameObject> LocalPlayerSeated;
 
         /// <summary>Counterpart to <see cref="LocalPlayerSeated"/>.</summary>
         public static event Action LocalPlayerReleased;
@@ -896,7 +896,10 @@ namespace SpaceGame.Gameplay.Arrival
 
                 if (Network.Owns(player.transform))
                 {
-                    LocalPlayerSeated?.Invoke();
+                    // The body itself travels with the event: the presentation it starts has to
+                    // lock and rig THIS player, and on a machine holding six PlayerControllers
+                    // nothing downstream can work out which one that is by searching.
+                    LocalPlayerSeated?.Invoke(player);
 
                     // Seated into a descent that is already under way: the launch was announced
                     // before this machine had a body in the hull, so the announcement is caught up

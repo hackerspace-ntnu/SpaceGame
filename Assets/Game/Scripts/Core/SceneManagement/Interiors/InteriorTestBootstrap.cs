@@ -5,7 +5,7 @@ namespace SpaceGame.Core
 {
     /// <summary>
     /// TEST-ONLY: ensures an InteriorManager exists in the scene and spawns a placeholder
-    /// entrance "door" near the player on Start. Walk up and press E to test the interior system.
+    /// entrance "door" near the player on Start. Walk up and right-click to test the interior system.
     ///
     /// Self-installs on play via RuntimeInitializeOnLoadMethod — no manual scene wiring required.
     /// Set <see cref="autoInstallEnabled"/> to false (or delete this script) once real entrances exist.
@@ -62,7 +62,7 @@ namespace SpaceGame.Core
             // session returns an arbitrary body — and the door below is a plain CreatePrimitive with
             // no NetworkObject, so it exists on this machine only. Placed three metres from someone
             // else's player it would be a door nobody can reach: invisible to them because it was
-            // never replicated, and out of reach for the person who is meant to walk up and press E.
+            // never replicated, and out of reach for the person who is meant to walk up and use it.
             // "Any player" is never what a locally-spawned test fixture wants.
             Transform player = playerOverride != null
                 ? playerOverride
@@ -84,7 +84,7 @@ namespace SpaceGame.Core
             var entrance = door.AddComponent<InteriorEntrance>();
             entrance.Initialize(interiorToTest);
 
-            Debug.Log($"[InteriorTestBootstrap] Spawned test entrance at {door.transform.position}. Walk up and press E.");
+            Debug.Log($"[InteriorTestBootstrap] Spawned test entrance at {door.transform.position}. Walk up and right-click.");
             spawned = true;
         }
     }

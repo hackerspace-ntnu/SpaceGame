@@ -158,9 +158,7 @@ namespace SpaceGame.Presentation
             // anchored to the top and bottom edges, so nothing actually overlaps the table.
             canvas.sortingOrder = 1100;
 
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            UIScale.Configure(canvasGo.GetComponent<CanvasScaler>());
 
             panel = CreateChild("Panel", canvasGo.transform, out panelRect);
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);

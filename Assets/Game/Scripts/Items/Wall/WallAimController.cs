@@ -30,7 +30,7 @@ namespace SpaceGame.Items
     /// </para>
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class WallAimController : MonoBehaviour
+    public sealed class WallAimController : MonoBehaviour, ICrosshairReadout
     {
         /// <summary>
         /// The controller whose wall currently owns the Use button, if any. At most one, on one
@@ -115,6 +115,13 @@ namespace SpaceGame.Items
 
         /// <summary>Whether the wheel is currently ours. Tracked so the hand-back happens once.</summary>
         private bool wheelTaken;
+
+        /// <summary>
+        /// What the visor says about the wall this frame. Resolved here rather than on demand: the
+        /// HUD asks in LateUpdate and must not be the thing that casts a ray.
+        /// </summary>
+        private CrosshairReadout readout;
+        private bool hasReadout;
 
         private void Awake()
         {
@@ -207,6 +214,10 @@ namespace SpaceGame.Items
 
             if (held != null) ShowPlacement(held);
             else ShowTake();
+
+            // Last, because ShowPlacement snaps `uv` to the cell grid and the readout names the
+            // cell the press will actually use, not the pixel the crosshair happens to be on.
+            PublishReadout(held);
         }
 
         /// <summary>
@@ -357,6 +368,7 @@ namespace SpaceGame.Items
             placementLegal =
                 !wall.Holds(held.ID)
                 && wall.Reaches(surface.Id)
+                && surface.AcceptsItem(held)
                 && wall.Layout.CanPlace(surface.Id, surface.Size, shape, uv, turn, null);
 
             if (proxyTried != held)
@@ -422,9 +434,83 @@ namespace SpaceGame.Items
             hovered = null;
             hasHovered = false;
             placementLegal = false;
+            hasReadout = false;
 
             cells?.Hide();
             visuals?.SetHovered(null);
+        }
+
+        // ── What the visor says about it ─────────────────────────────────────
+
+        /// <summary>
+        /// The wall, in words, for the helmet's info box.
+        ///
+        /// <para>
+        /// The wall is the one surface in the game the visor could say nothing about. It cannot be
+        /// an <c>IInteractable</c> — its verb changes per cell, and one <c>Interact</c> cannot mean
+        /// both "stow this" and "take that" — so the crosshair went blank in front of a rack of
+        /// gear. <see cref="ICrosshairReadout"/> is the seam for exactly that: a thing the player
+        /// is aiming at whose answer only the player's own aim knows.
+        /// </para>
+        /// <para>
+        /// Three answers, and they are the three the player is actually asking. With something in
+        /// hand it names what would land and whether it fits, because that is the whole decision.
+        /// Over gear on the wall it names the gear, which is the only way to tell two canisters
+        /// apart at arm's length. On bare canvas it names the wall and says what it is for.
+        /// </para>
+        /// </summary>
+        private void PublishReadout(InventoryItem held)
+        {
+            hasReadout = false;
+            if (wall == null || surface == null) return;
+
+            if (held != null)
+            {
+                Publish(held.itemName,
+                        placementLegal ? "RMB / LMB: stow" : "Will not fit here",
+                        string.Empty,
+                        subject: null,
+                        point: surface.ToWorld(uv, 0f),
+                        key: surface);
+                return;
+            }
+
+            if (hasHovered)
+            {
+                InventoryItem placed = wall.ItemFor(hoveredPlacement.ItemId);
+
+                Publish(placed != null ? placed.itemName : hoveredPlacement.ItemId,
+                        "RMB / LMB: take",
+                        string.Empty,
+                        subject: hovered != null ? hovered.transform : null,
+                        point: hovered != null ? hovered.transform.position : surface.ToWorld(uv, 0f),
+                        key: hovered != null ? hovered : (Object)surface);
+                return;
+            }
+
+            int stowed = wall.Layout.Placements.Count;
+
+            Publish(InteractionPromptResolver.Humanise(wall.name),
+                    "Hold something to stow it here",
+                    stowed == 1 ? "1 item stowed" : stowed + " items stowed",
+                    subject: null,
+                    point: surface.ToWorld(uv, 0f),
+                    key: surface);
+        }
+
+        private void Publish(string label, string prompt, string valueText,
+                             Transform subject, Vector3 point, Object key)
+        {
+            readout = new CrosshairReadout(
+                new InteractionDisplay(label, prompt, null, valueText), subject, point, key);
+            hasReadout = true;
+        }
+
+        /// <inheritdoc />
+        public bool TryReadCrosshair(out CrosshairReadout value)
+        {
+            value = readout;
+            return hasReadout;
         }
 
         /// <summary>Take the Use button for the wall. Idempotent.</summary>

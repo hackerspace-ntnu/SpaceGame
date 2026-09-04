@@ -15,8 +15,10 @@ symptoms:
   - "a joining client fails with 'Scene Hash N does not exist in the HashToBuildIndex table'"
   - "the server teleports a player and it snaps back within a frame"
   - "'Failed to bind UDP socket' or a 409 'already a member of the lobby' when launching two instances"
+  - "the game is laggy with five or six players but fine with two"
+  - "Could not start a local session on port N / another program may be using it"
 reads_with: [Lobby, Persistence, Testing, CoreServices]
-updated: 2026-09-01
+updated: 2026-09-03
 ---
 
 # Multiplayer / Netcode core
@@ -82,11 +84,13 @@ Part of the contract but outside the folder: [NetDamage.cs](Assets/Game/Scripts/
 | Drive from input | `Network.Owns(this)` — covers host, offline, and a mount handed to its rider |
 | Broadcast | Server only; `NetRelay.RequireServer` warns and drops a client's `All`/`Others` |
 | Player transform | **Owner-authoritative.** A server write to a remote player is overwritten within a tick, silently ⇒ `NetworkedTeleport.Move`, owner-gated failsafes |
-| Item use | `Use()` on the authority, `Present()` everywhere; `NetMsg.UseItem`/`ItemUsed`, hold stream `UseItemHold`/`ItemUseHeld` (B=1 continue, 0 stop; P/R carry the aim **ray**, not the hit point) |
+| Item use | `Use()` on the authority, `Present()` everywhere; `NetMsg.UseItem`/`ItemUsed`, hold stream `UseItemHold`/`ItemUseHeld` (B=1 continue, 0 stop; P/R carry the aim **ray**, not the hit point). A hold identical to the last one sent goes out only every `UseChannel.HoldKeepAliveInterval` (0.2 s) — the local `PlayHold`/`TryHold` still run every tick; artifacts with a `holdTimeout` must keep it above that |
+| Continuous values | Compare before sending. `VehicleStation` announces and renews only on a change past `ValueDeadband`, plus a `KeepAliveInterval` (1 s) repair; `PlayerMovement` writes its animator floats through `DampedAnimatorFloat` so a resting player's `ClientNetworkAnimator` has nothing to send |
 | Damage | `NetDamage.Apply`; `NetMsg.Damage` → server on the target's relay; `NetMsg.Damaged` broadcast on the victim's relay |
 | Remote copies | `NetAuthority` suppresses drivers, so anything a suppressed driver would have drawn must be broadcast explicitly |
 | Late joiners | `NetworkVariable.OnValueChanged` never replays — read the value in `OnNetworkSpawn`; event-only state goes in `SessionSnapshot` |
-| Config | `TickRate 30`, `ConnectionApproval 0` (**off**, deliberately), `EnableSceneManagement 1`, `PlayerPrefab: {fileID: 0}` (**null** — `SpawnManager` spawns the real one), one list `DefaultNetworkPrefabs.asset` guid `c9ad996e…`, UTP port `7781` |
+| Config | `TickRate 30`, `ConnectionApproval 0` (**off**, deliberately), `EnableSceneManagement 1`, `PlayerPrefab: {fileID: 0}` (**null** — `SpawnManager` spawns the real one), one list `DefaultNetworkPrefabs.asset` guid `c9ad996e…`, UTP port `7782`, `LoadSceneTimeOut 120` |
+| Transform settings | Every `NetworkTransform`/`ClientNetworkTransform` in the project (players, 16 agents and vehicles, `SyncedPlayer`, `CowBotRocket`) ships `UseUnreliableDeltas 1`, `UseHalfFloatPrecision 1`, `UseQuaternionSynchronization 1` + `Compression 1`, `PositionThreshold 0.02`, `RotAngleThreshold 0.5`. NGO's defaults (reliable, full float, three Euler floats, 1 mm) had six interpolating Rigidbodies never going idle on the reliable channel. A new networked prefab must match; `AgentBullet` is the one deliberate exception |
 
 ## Persistence
 

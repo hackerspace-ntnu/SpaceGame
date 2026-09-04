@@ -95,6 +95,12 @@ namespace SpaceGame.Items
         /// hovered face underneath it. They carry the verdict: green where the placement is legal
         /// and red where it is not. Nothing corrects the player's aim, so those cells are the only
         /// thing telling them whether the click they are about to make will land.
+        ///
+        /// <para>
+        /// It also draws the one readout here that is NOT about where the cursor is: a face
+        /// reserved for what is in the hand, lit wherever it happens to be — see
+        /// <see cref="ShowSocketInvite"/>.
+        /// </para>
         /// </summary>
         private PackGridVisual cellGrid;
 
@@ -301,7 +307,7 @@ namespace SpaceGame.Items
         /// </summary>
         private void OnLayoutChanged()
         {
-            if (cellGrid != null) cellGrid.MarkLatticeDirty();
+            if (cellGrid != null) cellGrid.MarkDirty();
 
             if (carrying && heldFrom == HandSource.Pack && !OriginStillThere()) ReturnToOrigin();
         }
@@ -736,7 +742,7 @@ namespace SpaceGame.Items
 
             yaw = 0f;
 
-            if (cellGrid != null) cellGrid.MarkLatticeDirty();
+            if (cellGrid != null) cellGrid.MarkDirty();
 
             // No target yet — the cursor is over the HUD, which is not a face, and TryHitSurface
             // is what will say otherwise on some later frame.
@@ -828,7 +834,7 @@ namespace SpaceGame.Items
             overSurface = true;
             placementLegal = true;
 
-            if (cellGrid != null) cellGrid.MarkLatticeDirty();
+            if (cellGrid != null) cellGrid.MarkDirty();
 
             // The rim is traced over the display copy that is about to stop being drawn, and a
             // hover that outlived it would light up the next item to be built into that slot.
@@ -889,8 +895,14 @@ namespace SpaceGame.Items
                 // is whether that is legal — which is what the cells answer.
                 targetUv = PackLayout.Snap(surface.Id, surface.Size, shape, uv, yaw);
 
-                placementLegal = pack.Layout.CanPlace(surface.Id, surface.Size, shape,
-                                                      targetUv, yaw, HeldItemId());
+                // The face's own refusal, asked first: the ghost has to paint red where the drop
+                // will refuse, or the player watches green cells do nothing. Asked of the ASSET
+                // and not of HeldItemId(), which is deliberately null for a hotbar lift — an id
+                // the face cannot recognise reads as "no reserved face objects", so the ghost
+                // approved every drop the server was about to turn down.
+                placementLegal = surface.AcceptsItem(heldItem)
+                                 && pack.Layout.CanPlace(surface.Id, surface.Size, shape,
+                                                         targetUv, yaw, HeldItemId());
             }
             else
             {
@@ -931,8 +943,15 @@ namespace SpaceGame.Items
             }
             else
             {
-                cellGrid.Hide();
+                // The two cursor passes only, never Hide(): the socket invitation below is not
+                // about the cursor and has to survive it leaving the faces, which is exactly when
+                // a player who has not found the socket yet is looking for somewhere to put the
+                // thing they are holding.
+                cellGrid.HideGhost();
+                cellGrid.HideLattice();
             }
+
+            ShowSocketInvite(pack, overMat ? targetSurface : null);
 
             visuals.ShowName(overHotbar ? SlotHint(hoveredSlot) : null,
                              PackPointer.CursorPosition);
@@ -943,6 +962,38 @@ namespace SpaceGame.Items
             // a lift of whatever now sits in the slot it was just put into.
             if (!overHotbar && mouse != null && mouse.leftButton.wasPressedThisFrame)
                 ClickWhileCarrying(pack);
+        }
+
+        /// <summary>
+        /// Light up the face RESERVED for what is in the hand, wherever on the rig it is.
+        ///
+        /// <para>
+        /// Today that is exactly one face and one kind of item: the oxygen bottle's socket on the
+        /// centre back panel, the only reserved face in the game. Every other readout in focus
+        /// mode answers "can this land HERE", which is only useful to a player already aiming at
+        /// the right face — and a socket is the one place on the rig nobody would think to aim at,
+        /// because it looks like the two ordinary back panels beside it. So the invitation goes
+        /// out on its own, independent of the cursor, for as long as a bottle is in hand.
+        /// </para>
+        /// <para>
+        /// <b>Never on the face under the cursor.</b> There the ghost is already saying yes or no
+        /// about the exact cells of the exact turn being aimed at, which is strictly the better
+        /// answer; and both passes lie at one <c>Lift</c> with depth writes off, so drawing them
+        /// together is a fight for the pixel rather than two readouts.
+        /// </para>
+        /// <para>
+        /// Asked every frame rather than latched at the lift, because the socket can fill or empty
+        /// under another player's hands while this one is still deciding. It is a cheap question —
+        /// one first-fit over an 18-cell face — and <see cref="PackGridVisual.ShowSocket"/> rebuilds
+        /// no geometry for a frame in which nothing moved.
+        /// </para>
+        /// </summary>
+        private void ShowSocketInvite(BackpackObject pack, PackSurface hovered)
+        {
+            PackSurface socket = pack.SocketFor(heldItem, HeldItemId());
+
+            if (socket == null || socket == hovered) cellGrid.HideSocket();
+            else cellGrid.ShowSocket(socket, pack.Layout, HeldItemId());
         }
 
         /// <summary>

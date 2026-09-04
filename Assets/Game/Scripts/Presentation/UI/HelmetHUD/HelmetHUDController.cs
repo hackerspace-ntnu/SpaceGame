@@ -1,65 +1,75 @@
 using UnityEngine;
-using SpaceGame.Agents;
 using SpaceGame.Characters;
 using SpaceGame.Gameplay;
 
 namespace SpaceGame.Presentation
 {
     /// <summary>
-    /// Top-level controller for the helmet AR HUD overlay.
+    /// The root of the helmet visor — the blue layer drawn on the inside of the glass.
     ///
-    /// Drop this on a child of the PlayerHUD canvas (or any UI Canvas). It will:
-    ///   - Spawn a HelmetDangerVignette child (curved warning line on each side).
-    ///   - Spawn a HelmetNavMarkers child (AR markers around the screen).
-    ///   - Subscribe to the assigned HealthComponent's OnDamage event and grow
-    ///     both warning lines whenever the player takes damage.
-    ///
-    /// Marker sources (zero scene setup needed):
-    ///   - Every entity with an EntityFaction component shows up automatically,
-    ///     colored by its relationship to the player faction.
-    ///   - Every MapPOI / MapService static marker shows up too.
-    ///
-    /// References auto-resolve when not set:
-    ///   - playerHealth -> the health of the player this HUD belongs to
-    ///   - referenceCamera -> left null, which leaves each subsystem on Camera.main
+    /// <para>
+    /// Drop this on a child of the PlayerHUD canvas. Its whole job is to build the layer and own
+    /// its lifecycle; it deliberately does not bind anything except the health the gauge reads.
+    /// Each module below resolves its own source and binds it in its own <c>OnEnable</c>, which is
+    /// what stops this class turning into the place every HUD feature ends up.
+    /// </para>
+    /// <para>
+    /// <b>Two sublayers, not one flat set.</b> <see cref="Vitals"/> holds the readouts you play by
+    /// — the gauges, the damage arcs. <see cref="Annotations"/> holds the things that describe the
+    /// world — the target bracket and its look-at info box. <see cref="HelmetOverlayVisibility"/> cycles
+    /// between them on H, so there is a state that quiets the world commentary without hiding the
+    /// player's own health.
+    /// </para>
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
     public class HelmetHUDController : MonoBehaviour
     {
         [Header("References (auto-resolve at runtime if null)")]
-        [Tooltip("Optional override. Left empty — which is how PlayerHUD.prefab ships — the health of " +
-                 "the player this HUD hangs under is used.")]
+        [Tooltip("Optional override. Left empty — which is how PlayerHUD.prefab ships — the health " +
+                 "of the player this HUD hangs under is used.")]
         [SerializeField] private HealthComponent playerHealth;
-
-        [Tooltip("Optional override handed down to the nav markers. Left empty they project through " +
-                 "Camera.main, which is this peer's own view.")]
-        [SerializeField] private Camera referenceCamera;
-
-        [Header("Damage Response")]
-        [Tooltip("Damage amount that maps to a full-strength hit. Smaller hits scale down linearly.")]
-        [SerializeField] private int damageForFullFlash = 25;
 
         [Header("Subsystems")]
         [SerializeField] private HelmetDangerVignette dangerVignette;
-        [SerializeField] private HelmetNavMarkers navMarkers;
 
-        private Canvas hudCanvas;
+        /// <summary>Things you play by. Drawn at every detail level except Off.</summary>
+        public RectTransform Vitals { get; private set; }
 
-        /// <summary>
-        /// The health this HUD is currently subscribed to, which is not the same thing as
-        /// <see cref="playerHealth"/>: that field is a designer's override and must survive being
-        /// resolved around, so what we actually bound to is tracked separately.
-        /// </summary>
-        private HealthComponent boundHealth;
-
-        /// <summary>Whose health this visor is currently reacting to. Null until one resolves.</summary>
-        public HealthComponent BoundHealth => boundHealth;
+        /// <summary>Things that describe the world. Drawn only at the Full detail level.</summary>
+        public RectTransform Annotations { get; private set; }
 
         /// <summary>
-        /// Points the visor at the health of the player wearing it, moving the subscription if it
-        /// was pointed somewhere else. Safe to call repeatedly — see <see cref="BindHealth"/>.
+        /// What the integrity gauge reads. Held rather than re-created, so re-resolving the
+        /// player's health does not require rebuilding the gauge that is pointed at it.
         /// </summary>
-        public void RebindHealth() => BindHealth(ResolveHealth());
+        private readonly HealthGaugeSource healthSource = new();
+
+        /// <summary>What the oxygen gauge reads. Held for <see cref="healthSource"/>'s reason.</summary>
+        private readonly OxygenGaugeSource oxygenSource = new();
+
+        private VisorGauge integrityGauge;
+        private VisorGauge oxygenGauge;
+        private VisorReticle reticle;
+
+        /// <summary>Whose health this visor is currently showing. Null until one resolves.</summary>
+        public HealthComponent BoundHealth => healthSource.Health;
+
+        /// <summary>
+        /// Points the visor at the health of the player wearing it. Safe to call repeatedly — the
+        /// source holds a reference rather than subscribing, so there is no double-subscription to
+        /// get wrong here.
+        /// </summary>
+        public void RebindHealth()
+        {
+            PlayerController player = GameplayMenuScope.FindLocalPlayer(this);
+
+            healthSource.Bind(ResolveHealth(player));
+            if (integrityGauge != null) integrityGauge.Bind(healthSource);
+            if (dangerVignette != null) dangerVignette.Watch(healthSource.Health);
+
+            oxygenSource.Bind(player != null ? player.GetComponentInChildren<SuitOxygen>() : null);
+            if (oxygenGauge != null) oxygenGauge.Bind(oxygenSource);
+        }
 
         private void Awake()
         {
@@ -79,15 +89,16 @@ namespace SpaceGame.Presentation
 
         private void OnDisable()
         {
-            BindHealth(null);
+            healthSource.Bind(null);
+            oxygenSource.Bind(null);
         }
 
         private void EnsureCanvas()
         {
-            hudCanvas = GetComponentInParent<Canvas>();
-            if (hudCanvas == null)
+            if (GetComponentInParent<Canvas>() == null)
             {
-                Debug.LogWarning("[HelmetHUDController] No parent Canvas found. Place this component under a UI Canvas (e.g. PlayerHUD).", this);
+                Debug.LogWarning("[HelmetHUDController] No parent Canvas found. Place this component " +
+                                 "under a UI Canvas (e.g. PlayerHUD).", this);
             }
         }
 
@@ -102,72 +113,71 @@ namespace SpaceGame.Presentation
         /// PlayerController only switches on the owner's.
         /// </para>
         /// </summary>
-        private HealthComponent ResolveHealth()
+        private HealthComponent ResolveHealth(PlayerController player)
         {
             if (playerHealth != null) return playerHealth;
 
-            PlayerController player = GameplayMenuScope.FindLocalPlayer(this);
             return player != null ? player.GetComponentInChildren<HealthComponent>() : null;
-        }
-
-        /// <summary>
-        /// Moves the damage subscription to <paramref name="next"/>. Idempotent, and safe with
-        /// null, so it doubles as the unsubscribe path — a bare += here is what makes one hit
-        /// flash the visor twice.
-        /// </summary>
-        private void BindHealth(HealthComponent next)
-        {
-            // Detach first, unconditionally: that is what makes re-binding the same component a
-            // no-op rather than a second subscription, and it is why there is no early return.
-            if (boundHealth != null) boundHealth.OnDamage -= HandleDamage;
-            boundHealth = next;
-            if (boundHealth != null) boundHealth.OnDamage += HandleDamage;
         }
 
         private void EnsureSubsystems()
         {
-            var rt = (RectTransform)transform;
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
+            RectTransform root = (RectTransform)transform;
+            Stretch(root);
+
+            // The layer's ambient motion lives on the root, so one sway and one boot cover
+            // everything the visor draws rather than each module animating itself.
+            if (GetComponent<CanvasGroup>() == null) gameObject.AddComponent<CanvasGroup>();
+            if (GetComponent<VisorBoot>() == null) gameObject.AddComponent<VisorBoot>();
+            if (GetComponent<VisorSway>() == null) gameObject.AddComponent<VisorSway>();
+
+            Vitals ??= MakeLayer("Vitals", root);
+            Annotations ??= MakeLayer("Annotations", root);
+
+            // The two survival numbers go in opposite top corners: furthest apart, so neither can
+            // hide the other, and both out of the sightline.
+            if (oxygenGauge == null)
+            {
+                oxygenGauge = VisorGauge.Create(Vitals, "OxygenGauge",
+                                                VisorGauge.Align.Left, oxygenSource);
+            }
+
+            if (integrityGauge == null)
+            {
+                integrityGauge = VisorGauge.Create(Vitals, "IntegrityGauge",
+                                                   VisorGauge.Align.Right, healthSource);
+            }
 
             if (dangerVignette == null)
             {
-                var go = new GameObject("DangerVignette", typeof(RectTransform));
-                go.transform.SetParent(transform, false);
-                var dvRt = (RectTransform)go.transform;
-                dvRt.anchorMin = Vector2.zero;
-                dvRt.anchorMax = Vector2.one;
-                dvRt.offsetMin = Vector2.zero;
-                dvRt.offsetMax = Vector2.zero;
-                dangerVignette = go.AddComponent<HelmetDangerVignette>();
+                dangerVignette = MakeLayer("DangerVignette", Vitals)
+                                 .gameObject.AddComponent<HelmetDangerVignette>();
             }
 
-            if (navMarkers == null)
+            // Annotations, not Vitals: the reticle describes something in the world rather than
+            // being a readout you play by, so it goes quiet along with the middle H level.
+            if (reticle == null)
             {
-                var go = new GameObject("NavMarkers", typeof(RectTransform));
-                go.transform.SetParent(transform, false);
-                var nmRt = (RectTransform)go.transform;
-                nmRt.anchorMin = Vector2.zero;
-                nmRt.anchorMax = Vector2.one;
-                nmRt.offsetMin = Vector2.zero;
-                nmRt.offsetMax = Vector2.zero;
-                navMarkers = go.AddComponent<HelmetNavMarkers>();
+                reticle = MakeLayer("Reticle", Annotations)
+                          .gameObject.AddComponent<VisorReticle>();
             }
-
-            // One camera decision for the whole helmet. Pushed down only when it was authored:
-            // writing a null here would clear a camera the nav markers had wired themselves, and
-            // null on either of them already means "use Camera.main", live, every frame.
-            if (referenceCamera != null && navMarkers != null)
-                navMarkers.ReferenceCamera = referenceCamera;
         }
 
-        private void HandleDamage(int amount)
+        private static RectTransform MakeLayer(string name, RectTransform parent)
         {
-            if (dangerVignette == null) return;
-            float strength = Mathf.Clamp01((float)amount / Mathf.Max(1, damageForFullFlash));
-            dangerVignette.HitBoth(strength);
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            RectTransform rect = (RectTransform)go.transform;
+            Stretch(rect);
+            return rect;
+        }
+
+        private static void Stretch(RectTransform rect)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
         }
 
         private void Update()
@@ -176,12 +186,8 @@ namespace SpaceGame.Presentation
             // asynchronously and its chunk is still streaming, so OnEnable's attempt is allowed to
             // come back empty; the cost while it does is one walk up the parent chain per frame,
             // and it stops the moment there is something to bind.
-            if (boundHealth == null)
-                BindHealth(ResolveHealth());
-
-            // Nav markers still need their per-frame projection update.
-            if (navMarkers != null)
-                navMarkers.Tick(out _, out _);
+            if (healthSource.Health == null || oxygenSource.Suit == null)
+                RebindHealth();
         }
     }
 }

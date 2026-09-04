@@ -19,16 +19,18 @@ Shader "SpaceGame/ItemScannerScreen"
     {
         _Phosphor    ("Phosphor",             Color)        = (0.42, 1.0, 0.60, 1)
         _Deep        ("Tube Base",            Color)        = (0.02, 0.075, 0.045, 1)
+        [Header(Live state driven from ItemScannerScreen)]
+        // Aspect and Flip X are measured off the plate's own UVs and transform
+        // every frame, so the values below are only what a preview shows before
+        // anything drives them.
         _Aspect      ("Aspect (w / h)",       Float)        = 1.23
         _FlipX       ("Flip X",               Range(0, 1))  = 0
-
-        [Header(Live state driven from ItemScannerScreen)]
         _Power       ("Power 0..1",           Range(0, 1))  = 1
         _Sweep       ("Sweep 0..1",           Range(0, 1))  = 0
         _BlipCount   ("Blip Count",           Float)        = 0
         _Contacts    ("Contacts Total",       Float)        = 0
         _Nearest     ("Nearest Metres",       Float)        = 0
-        _RangeM      ("Range Metres",         Float)        = 100
+        _RangeM      ("Range Metres",         Float)        = 50
 
         [Header(Tube character)]
         _Gain        ("Beam Gain",            Range(0.2, 4))    = 1.35

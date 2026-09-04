@@ -19,7 +19,7 @@ namespace SpaceGame.Items
     /// leave the registry with them.
     /// </para>
     /// </summary>
-    class PickupableItem : NetworkBehaviour, IInteractable, IScanTarget
+    class PickupableItem : NetworkBehaviour, IInteractable, IScanTarget, IInteractionReadout
     {
        [SerializeField] private InventoryItem item;
 
@@ -31,6 +31,29 @@ namespace SpaceGame.Items
        {
           return true;
        }
+
+       // ── IInteractionReadout ──────────────────────────────────────────────
+
+       /// <summary>
+       /// The item's own name, which is the only thing about a pickup worth saying.
+       ///
+       /// <para>
+       /// Without this every loose object in the world read "Pickupable Item" — the humanised type
+       /// name, which is what <c>InteractionPromptResolver</c> falls back to when nothing more
+       /// specific answers. Salvage is the most common interactable in the game and the one whose
+       /// identity matters most, since deciding whether to spend a hotbar slot on it is the whole
+       /// interaction. The name was already being written for the scanner
+       /// (<see cref="ScanLabel"/>); nothing read it at the crosshair.
+       /// </para>
+       /// </summary>
+       public string Label => ScanLabel;
+
+       public string Prompt => "RMB: pick up";
+
+       /// <summary>Nothing continuous about a pickup: it is there or it is in your hand.</summary>
+       public float? Value01 => null;
+
+       public string ValueText => string.Empty;
 
        // ── IScanTarget ──────────────────────────────────────────────────────────
 

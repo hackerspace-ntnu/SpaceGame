@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: WingsuitMembrane
+  m_Shader: {fileID: 4800000, guid: 3a7f21c8b45d4e11a9c06f7d2b83e510, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AnchorAxis: 1
+    - _AnchorOrigin: 0
+    - _Backlight: 0.85
+    - _FlutterAmp: 0.12
+    - _FlutterFreq: 2.4
+    - _FlutterSpeed: 5
+    - _FreeLength: -0.0086
+    - _GustAmount: 0.45
+    - _GustSpeed: 0.55
+    - _MaxStretch: 0.30100003
+    - _Metallic: 0
+    - _Smoothness: 0.12
+    - _Stiffness: 2.2
+    - _Turbulence: 0.3
+    - _WaveLength: 1.6
+    - _WaveSpeed: 2.2
+    - _WeaveDepth: 0
+    - _WeaveScale: 22
+    - _WindStrength: 0.22
+    m_Colors:
+    - _BaseColor: {r: 0.796, g: 0.714, b: 0.557, a: 1}
+    - _WindDirection: {r: 1, g: 0, b: 0.35, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

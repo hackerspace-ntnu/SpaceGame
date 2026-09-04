@@ -116,6 +116,10 @@ namespace SpaceGame.EditorTools
             ("SURF_Rack",      PackSurfaceId.Rack,           new Vector2(0.8505f, 0.8505f)),
             ("SURF_Back_L",    PackSurfaceId.BackPanelLeft,  new Vector2(0.2835f, 0.567f)),
             ("SURF_Back_R",    PackSurfaceId.BackPanelRight, new Vector2(0.2835f, 0.567f)),
+            // The strip between those two, where the modelled bottle used to be bolted. The same
+            // 3 x 6 cells as its neighbours by construction, not by coincidence: it is their row
+            // with x zeroed, and the panels' inner edges leave it 15 mm of clearance each side.
+            ("SURF_Back_C",    PackSurfaceId.BackPanelCentre, new Vector2(0.2835f, 0.567f)),
             ("SURF_Wing_L",    PackSurfaceId.WingLeft,       new Vector2(0.378f,  0.6615f)),
             ("SURF_Wing_R",    PackSurfaceId.WingRight,      new Vector2(0.378f,  0.6615f)),
         };
@@ -146,6 +150,31 @@ namespace SpaceGame.EditorTools
         /// they do in the .blend.
         /// </para>
         /// </summary>
+        /// <summary>
+        /// The one reserved face on the rig, and the items it takes.
+        ///
+        /// <para>
+        /// The centre back strip is the oxygen bottle's socket rather than a shelf: the pack is
+        /// plumbed into whatever stands there, so a rifle in it would be plumbed into nothing.
+        /// BOTH bottles are listed — a player takes a full one out and puts a drained one back,
+        /// and a socket that only accepted one of the two would be a rule nobody could learn.
+        /// </para>
+        /// <para>
+        /// Wired here rather than named in <c>PackSurface</c>, because a reservation names an
+        /// ASSET and the component cannot reach one from a static table. Missing assets are a
+        /// warning, not a failure: a rig built before the bottles exist is a rig whose socket
+        /// takes anything, which is visible and recoverable, where a refusal to build is not.
+        /// </para>
+        /// </summary>
+        private static readonly string[] CentreBackAccepts =
+        {
+            "Assets/Game/Resources/Items/Supplies/OxygenTank.asset",
+            "Assets/Game/Resources/Items/Supplies/OxygenTankEmpty.asset",
+        };
+
+        // The marker the breathing hose leaves the manifold from, and the component that draws it.
+        private const string HoseOutletNode = "Marker_Rig_HoseOutlet";
+
         private static readonly (string node, BackpackHingePart part, Vector3 axis, float fold)[] HingeTable =
         {
             // If a hinge sign is ever in doubt: measure it IN UNITY on the imported asset
@@ -181,8 +210,20 @@ namespace SpaceGame.EditorTools
         /// <summary>The two pins that hold the leaf's front corners down.</summary>
         private static readonly string[] StakeNodes = { "Mesh_Rig_Stake_L", "Mesh_Rig_Stake_R" };
 
-        /// <summary>The rig's fixed landmark, and what the holders pop outward from.</summary>
-        private const string TankNode = "Mesh_Rig_OxygenTank";
+        /// <summary>
+        /// The rig's fixed landmark, and what the holders pop outward from on the last beat of
+        /// the deploy.
+        ///
+        /// <para>
+        /// It was the modelled oxygen bottle until 2026-09-03, when that became a real item and
+        /// the geometry was deleted. The MANIFOLD is its successor and is the better landmark of
+        /// the two anyway: it is bolted to the panel rather than to the bottle, so it is there
+        /// whether or not a bottle is in the socket above it, and it carries the only emissive in
+        /// the whole rig — which is the actual claim this constant makes, that it is where a
+        /// player's eye is already resting when the pack finishes opening.
+        /// </para>
+        /// </summary>
+        private const string TankNode = "Mesh_Rig_OxygenTank_Manifold";
 
         // ── Entry point ──────────────────────────────────────────────────────
 
@@ -568,6 +609,8 @@ namespace SpaceGame.EditorTools
                     surfaces.Add(surface);
                 }
 
+                AttachHose(rig.transform, pack, log);
+
                 var hinges = new List<(Transform pivot, BackpackHingePart part, Vector3 axis, float fold)>();
 
                 foreach ((string node, BackpackHingePart part, Vector3 axis, float fold) in HingeTable)
@@ -693,6 +736,7 @@ namespace SpaceGame.EditorTools
 
             var so = new SerializedObject(surface);
             SetEnum(so, "id", (int)id, log);
+            SetReservation(so, id, log);
             SetVector2(so, "size", size, log);
             so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -950,6 +994,21 @@ namespace SpaceGame.EditorTools
                         if (found == null) problems.Add($"surface {id} ({node}) is missing from the saved rig.");
                         else if ((found.Size - size).sqrMagnitude > 1e-6f)
                             problems.Add($"surface {id} saved at {found.Size}, expected {size}.");
+                        else problems.AddRange(ReservationProblems(found));
+                    }
+
+                    // The hose is the only thing that says the pack is PLUMBED INTO the bottle
+                    // rather than just carrying it, and a missing one is invisible: the socket
+                    // still works, the bottle still sits in it, and nothing anywhere complains.
+                    var hoses = rig.GetComponentsInChildren<PackHose>(true);
+                    if (hoses.Length != 1)
+                        problems.Add($"the saved rig has {hoses.Length} hoses, expected 1.");
+                    else
+                    {
+                        var hoseSo = new SerializedObject(hoses[0]);
+                        foreach (string field in new[] { "container", "outlet" })
+                            if (hoseSo.FindProperty(field).objectReferenceValue == null)
+                                problems.Add($"the hose's '{field}' is null, so it draws nothing.");
                     }
 
                     SerializedProperty hinges = so.FindProperty("hinges");
@@ -1041,6 +1100,138 @@ namespace SpaceGame.EditorTools
             }
 
             property.objectReferenceValue = value;
+        }
+
+        /// <summary>
+        /// Give the rig its breathing hose: the component that draws a tube from the manifold's
+        /// outlet marker to whatever is standing in the reserved socket.
+        ///
+        /// <para>
+        /// The marker is the model's; the tube is not modelled at all, because a hose in the model
+        /// runs to thin air whenever the bottle is out — which it is meant to be. See
+        /// <see cref="PackHose"/>.
+        /// </para>
+        /// <para>
+        /// Its material is taken off the rig's OWN meshes rather than authored here, so the hose
+        /// is a palette material by construction and a re-export that retints the pack retints the
+        /// hose with it. Rubber if the model has it, the manifold's own material otherwise.
+        /// </para>
+        /// </summary>
+        private static void AttachHose(Transform rig, PackContainer pack, StringBuilder log)
+        {
+            Transform outlet = FindDeep(rig, HoseOutletNode);
+
+            if (outlet == null)
+            {
+                log.Append("  MISSING  no '").Append(HoseOutletNode).Append("' in ").Append(RigFbx)
+                   .Append(", so the pack has no visible connection to the bottle it carries.\n");
+                return;
+            }
+
+            var hose = outlet.GetComponent<PackHose>();
+            if (hose == null) hose = outlet.gameObject.AddComponent<PackHose>();
+
+            var so = new SerializedObject(hose);
+            SetObject(so, "container", pack, log);
+            SetObject(so, "outlet", outlet, log);
+            SetEnum(so, "socket", (int)PackSurfaceId.BackPanelCentre, log);
+            SetObject(so, "material", HoseMaterial(rig), log);
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            log.Append("  HOSE     drawn from ").Append(HoseOutletNode).Append(" to whatever is in ")
+               .Append(PackSurfaceId.BackPanelCentre).Append(".\n");
+        }
+
+        /// <summary>
+        /// Is this face reserved exactly as it should be? Both directions are checked, because
+        /// both fail silently: a socket that lost its reservation quietly becomes a shelf and the
+        /// first thing that fits goes in it, and a face that gained one quietly stops taking gear
+        /// the player has always put there.
+        /// </summary>
+        private static IEnumerable<string> ReservationProblems(PackSurface surface)
+        {
+            int wanted = surface.Id == PackSurfaceId.BackPanelCentre ? CentreBackAccepts.Length : 0;
+            int got = surface.AcceptsOnly != null ? surface.AcceptsOnly.Count : 0;
+
+            if (got != wanted)
+            {
+                yield return $"surface {surface.Id} accepts {got} named item(s), expected {wanted}" +
+                             (wanted == 0
+                                 ? " — an ordinary face takes anything that fits."
+                                 : " — the oxygen bottle's socket takes both bottles and nothing else.");
+                yield break;
+            }
+
+            for (int i = 0; i < got; i++)
+                if (surface.AcceptsOnly[i] == null)
+                    yield return $"surface {surface.Id} has a null entry in its reservation, which " +
+                                 "refuses everything rather than the one thing it names.";
+        }
+
+        /// <summary>A rubber material off the rig's own meshes, or the nearest thing to one.</summary>
+        private static Material HoseMaterial(Transform rig)
+        {
+            Material fallback = null;
+
+            foreach (Renderer renderer in rig.GetComponentsInChildren<Renderer>(true))
+            {
+                foreach (Material material in renderer.sharedMaterials)
+                {
+                    if (material == null) continue;
+                    if (material.name.Contains("Rubber")) return material;
+
+                    fallback ??= material;
+                }
+            }
+
+            return fallback;
+        }
+
+        /// <summary>
+        /// Write the face's reservation, or clear it. Cleared explicitly on every other face,
+        /// because this pass rebuilds the prefab from the model and a field left alone is a field
+        /// carrying whatever the last build put there.
+        /// </summary>
+        private static void SetReservation(SerializedObject so, PackSurfaceId id, StringBuilder log)
+        {
+            SerializedProperty list = so.FindProperty("acceptsOnly");
+
+            if (list == null)
+            {
+                log.Append("  FIELD    'acceptsOnly' no longer exists on PackSurface.\n");
+                return;
+            }
+
+            if (id != PackSurfaceId.BackPanelCentre)
+            {
+                list.arraySize = 0;
+                return;
+            }
+
+            var items = new List<Object>();
+
+            foreach (string path in CentreBackAccepts)
+            {
+                var item = AssetDatabase.LoadAssetAtPath<InventoryItem>(path);
+
+                if (item == null)
+                {
+                    // A warning, not a failure. A rig built before the bottles exist is a rig whose
+                    // socket takes anything — visible, and fixed by building them and re-running.
+                    log.Append("  MISSING  no item at ").Append(path)
+                       .Append(", so the centre back socket is not reserved for it.\n");
+                    continue;
+                }
+
+                items.Add(item);
+            }
+
+            list.arraySize = items.Count;
+            for (int i = 0; i < items.Count; i++)
+                list.GetArrayElementAtIndex(i).objectReferenceValue = items[i];
+
+            log.Append("  RESERVED ").Append(PackSurfaceId.BackPanelCentre).Append(" for ")
+               .Append(items.Count).Append(" item(s): the oxygen bottle's socket.\n");
         }
 
         private static void SetEnum(SerializedObject so, string field, int value, StringBuilder log)

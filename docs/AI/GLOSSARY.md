@@ -17,7 +17,8 @@ they are the ones worth reading before you start grepping.
 | **anchor** | Streaming: a transform chunks stay loaded around, server-only. Not `InteriorAnchor`, not a storm/sky clock anchor | [WorldStreaming](systems/WorldStreaming.md) |
 | **arena** | `MinigameArena.unity`, loaded additively ~16.5 km east of the grid for bot deathmatch — currently an empty scene | [GameModes](systems/GameModes.md) |
 | **arrival** | The one-time crash landing that opens a story world; a server-flown hull plus a local-only cutscene | [PlayerShip](systems/PlayerShip.md) |
-| **artifact** | A player-held usable item occupying a hotbar slot and firing on the shared `Player/Use` action | [Artifacts](systems/Artifacts.md) |
+| **artifact** | A player-held usable item occupying a hotbar slot and firing on the shared `Player/Use` action — or worn (a gauntlet, the wing pack) and fired on its own key | [Artifacts](systems/Artifacts.md) |
+| **body slot** | One of the three worn slots — Back, LeftGauntlet, RightGauntlet — beside the three-slot hotbar; arranged on the F screen | [BodyEquipment](systems/BodyEquipment.md) |
 | **authored** | A saved object that already exists in a scene file, so its record is a *delta*; the opposite of runtime-spawned | [Persistence](systems/Persistence.md) |
 | **autotest** | The two-process batch-mode run (`-sgmode host\|client\|persist`) printing `[MPTEST] key=value` | [Testing](systems/Testing.md) |
 | **backpack** | The physical inventory: a deployable rig whose seven gridded faces hold real item instances | [Backpack](systems/Backpack.md) |
@@ -26,6 +27,8 @@ they are the ones worth reading before you start grepping.
 | **chunk** | One 500x500 m additive scene of the streamed world; 48 in the main world, addressed by scene *name* | [WorldStreaming](systems/WorldStreaming.md) |
 | **crawler** | Six-legged walker. `DesertCrawler` is the AI-driven habitat; `RigWalker` is the piloted mount version | [Vehicles](systems/Vehicles.md) |
 | **cutscene** | A coroutine `MonoBehaviour` (no Timeline, no Cinemachine), local to one machine, run by `CutsceneDirector` | [Cutscenes](systems/Cutscenes.md) |
+| **EquipKind** | `Hand` / `Gauntlet` / `Back` on an `InventoryItem` asset: where the item is equipped. The hotbar stores any kind; the hand equips only `Hand` | [BodyEquipment](systems/BodyEquipment.md) |
+| **gauntlet** | An artifact worn on a forearm (`EquipKind.Gauntlet`), fired on Q (left) or E (right); inert in the hotbar. Six today | [BodyEquipment](systems/BodyEquipment.md) |
 | **DefaultNetworkPrefabs.asset** | The live network prefab list under `ScriptableObjects/Networking/`; the copy at the repo root is stale and unused | [Multiplayer](systems/Multiplayer.md) |
 | **deferred pass** | `IDeferredSaveable.OnLoadComplete`, re-run per player bind and per late chunk — must be idempotent | [Persistence](systems/Persistence.md) |
 | **DuneFoil** (the **foil**) | The sand sailer: no mount at all, a walkable deck with claimable stations and a wheel that turns the foil | [Vehicles](systems/Vehicles.md) |

@@ -19,7 +19,7 @@ namespace SpaceGame.Presentation
         [SerializeField] private bool startVisible;
 
         [Header("Placement (relative to projector anchor)")]
-        [Tooltip("Transform that defines where the hologram floats. The hologram is placed at this anchor's position plus the offsets below, using the anchor's forward/right/up axes. If null, falls back to the player.")]
+        [Tooltip("Assign to pin the hologram to a fixed emitter in the world (a projector prop): it is placed at this anchor's position plus the offsets below, using the anchor's axes. Leave null for the personal map, which follows the camera.")]
         [SerializeField] private Transform projectorAnchor;
         [SerializeField] private Transform helmetAnchor;
         [SerializeField] private float helmetHeightFallback = 1.7f;
@@ -39,10 +39,10 @@ namespace SpaceGame.Presentation
         [Tooltip("Vertical exaggeration. 1 = real proportions, <1 flattens. Lower = more readable, higher = dramatic peaks.")]
         [Range(0.05f, 10f)]
         [SerializeField] private float verticalExaggeration = 0.6f;
-        [Tooltip("How many chunks around the player are shown. 1 = 3x3 area, 2 = 5x5, etc. Set very high to show the whole world.")]
+        [Tooltip("Half-width of the window drawn around the player, in chunks. 1 = 3x3 area, 2 = 5x5, etc. Set very high to show the whole world.")]
         [Range(0, 12)]
         [SerializeField] private int viewRadius = 6;
-        [Tooltip("If on, the hologram recenters on the player's current chunk each frame (mini-map style).")]
+        [Tooltip("If on, the hologram recenters on the player's position each frame (mini-map style).")]
         [SerializeField] private bool centerOnPlayer = true;
 
         [Header("Hologram Look")]
@@ -198,9 +198,14 @@ namespace SpaceGame.Presentation
             SubscribeToMapService();
             ApplyHologramLayer();
 
-            toggleAction = InputSystem.actions?.FindAction(toggleActionName);
-            if (toggleAction == null)
-                Debug.LogWarning($"[MapHologramTerrain] Input action '{toggleActionName}' not found.", this);
+            // An empty action name means "no hotkey" — a world projector is switched by its own
+            // interactable, and must not also flip whenever the player presses the map key.
+            if (!string.IsNullOrEmpty(toggleActionName))
+            {
+                toggleAction = InputSystem.actions?.FindAction(toggleActionName);
+                if (toggleAction == null)
+                    Debug.LogWarning($"[MapHologramTerrain] Input action '{toggleActionName}' not found.", this);
+            }
 
             SetVisible(startVisible);
         }
@@ -926,21 +931,23 @@ namespace SpaceGame.Presentation
 
         private void UpdateRootTransform()
         {
-            // Anchor: prefer the live camera so the hologram tracks the screen
-            // (yaw + pitch). projectorAnchor / player are fallbacks if no camera
-            // resolves.
+            // Anchor: an assigned projectorAnchor wins — that is a fixed emitter in the world (a
+            // projector prop), and a hologram pinned to a prop must not drift off toward the
+            // camera. Otherwise prefer the live camera so the personal map tracks the screen
+            // (yaw + pitch), with the player as the last fallback.
             //
-            // Camera.main is the right question here even in a full session, and for a different
-            // reason than the player lookup above: it only ever returns an ACTIVE AND ENABLED
-            // camera tagged MainCamera, and PlayerController.DisablePlayer deactivates the camera
-            // GameObject of every player this peer does not own. What survives that filter is
-            // whichever camera is rendering this peer's view right now, which is what a hologram
-            // that floats beside your face has to track. Read once into a local: the property does
-            // a lookup when its cache is stale, and this used to call it three times a frame.
+            // Camera.main is the right question for the personal map even in a full session, and
+            // for a different reason than the player lookup above: it only ever returns an ACTIVE
+            // AND ENABLED camera tagged MainCamera, and PlayerController.DisablePlayer deactivates
+            // the camera GameObject of every player this peer does not own. What survives that
+            // filter is whichever camera is rendering this peer's view right now, which is what a
+            // hologram that floats beside your face has to track. Read once into a local: the
+            // property does a lookup when its cache is stale, and this used to call it three times
+            // a frame.
             Camera view = Camera.main;
-            Transform anchor = (view != null && view.isActiveAndEnabled)
-                ? view.transform
-                : (projectorAnchor != null ? projectorAnchor : player);
+            Transform anchor = projectorAnchor != null
+                ? projectorAnchor
+                : (view != null && view.isActiveAndEnabled) ? view.transform : player;
 
             Vector3 anchorPos = anchor.position;
             Vector3 anchorFwd = anchor.forward;
@@ -996,17 +1003,18 @@ namespace SpaceGame.Presentation
             Vector2 visSize;
             if (centerOnPlayer)
             {
-                var pChunk = config.WorldToChunkCoord(player.position);
-                visMin = new Vector2Int(pChunk.x - viewRadius,     pChunk.y - viewRadius);
-                visMax = new Vector2Int(pChunk.x + viewRadius + 1, pChunk.y + viewRadius + 1);
-
                 // Continuous center in container space (= world XZ minus worldOrigin).
                 visCenter = new Vector2(
                     player.position.x - config.worldOrigin.x,
                     player.position.z - config.worldOrigin.z);
                 visSize = new Vector2(
-                    (visMax.x - visMin.x) * config.chunkSize.x,
-                    (visMax.y - visMin.y) * config.chunkSize.y);
+                    (viewRadius * 2 + 1) * config.chunkSize.x,
+                    (viewRadius * 2 + 1) * config.chunkSize.y);
+
+                // Every chunk that window touches — NOT the player's own chunk ± viewRadius, which
+                // is symmetric about the CHUNK rather than about the player, so it drew up to half
+                // a chunk more terrain on one side of the hologram's centre than the other.
+                config.Grid.WindowAround(player.position, visSize, out visMin, out visMax);
             }
             else
             {

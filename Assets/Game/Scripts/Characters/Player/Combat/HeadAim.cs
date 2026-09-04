@@ -33,7 +33,7 @@ namespace SpaceGame.Characters
     /// How far a neck may turn, and what a look of that size does to it.
     ///
     /// <para>
-    /// Separated from <see cref="PlayerHeadLook"/> for the same reason <see cref="AimPose"/> is
+    /// Separated from <see cref="PlayerHeadLook"/> for the same reason <see cref="PoseBlend"/> is
     /// separated from <see cref="PlayerAimRig"/>: nothing here has state, a frame, an Animator or a
     /// network session in it, so the rules can be reasoned about — and tested — on their own.
     /// </para>

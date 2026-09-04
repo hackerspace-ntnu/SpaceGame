@@ -56,8 +56,8 @@ namespace SpaceGame.Vehicles
         /// <summary>What the craft is called on the HUD.</summary>
         public string Label => "Dune foiler";
 
-        /// <summary>Prompt text. Drawn by InteractionPromptUI.</summary>
-        public string Prompt => "E: climb aboard";
+        /// <summary>Prompt text. Drawn by VisorReticle's info box.</summary>
+        public string Prompt => "RMB: climb aboard";
 
         /// <summary>Boarding has no position to show, so no bar is drawn.</summary>
         public float? Value01 => null;

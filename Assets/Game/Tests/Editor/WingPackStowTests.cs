@@ -95,5 +95,50 @@ namespace SpaceGame.Tests
             Assert.That(shape.x, Is.LessThanOrEqualTo(wall.x),
                         $"The wing pack is {shape.x} cells wide and the gear wall is {wall.x}.");
         }
+
+        /// <summary>
+        /// The rack and the gear wall are the only two places the folded craft is meant to live —
+        /// the two this file's other tests size it against. Nothing gates it to just those, though:
+        /// <see cref="PackOverhang"/> lets a back panel take an item far wider than its own 3x6
+        /// span by clamping it down to fit, which is right for a bedroll and wrong for a whole
+        /// aircraft — the craft would strap onto a panel the leaf covers the instant the pack
+        /// closes, "storing" it somewhere it is invisible and cannot be flown from.
+        /// </summary>
+        [Test]
+        public void OnlyTheRackAndTheGearWallTakeTheFoldedCraft()
+        {
+            var item = AssetDatabase.LoadAssetAtPath<InventoryItem>(ItemPath);
+            Assert.That(item, Is.Not.Null, $"No Wing Pack item at {ItemPath}.");
+
+            var rig = AssetDatabase.LoadAssetAtPath<GameObject>(RigPath);
+            Assert.That(rig, Is.Not.Null, $"No prefab at {RigPath}.");
+
+            var wall = AssetDatabase.LoadAssetAtPath<GameObject>(WallPath);
+            Assert.That(wall, Is.Not.Null, $"No prefab at {WallPath}.");
+
+            Assert.That(SurfaceOn(rig, PackSurfaceId.Rack).AcceptsItem(item), Is.True,
+                        "The rack refuses the folded craft it is sized to fill.");
+            Assert.That(SurfaceOn(wall, PackSurfaceId.WallGrid).AcceptsItem(item), Is.True,
+                        "The gear wall refuses the folded craft.");
+
+            Assert.That(SurfaceOn(rig, PackSurfaceId.BackPanelLeft).AcceptsItem(item), Is.False,
+                        "The left back panel accepts the folded craft — it is covered the instant " +
+                        "the pack closes and should refuse everything but the rack and the wall.");
+            Assert.That(SurfaceOn(rig, PackSurfaceId.BackPanelRight).AcceptsItem(item), Is.False,
+                        "The right back panel accepts the folded craft.");
+            Assert.That(SurfaceOn(rig, PackSurfaceId.Leaf).AcceptsItem(item), Is.False,
+                        "The leaf accepts the folded craft.");
+        }
+
+        /// <summary>The face of one prefab that carries a given id, else the test fails by name.</summary>
+        private static PackSurface SurfaceOn(GameObject prefab, PackSurfaceId id)
+        {
+            foreach (PackSurface surface in prefab.GetComponentsInChildren<PackSurface>(true))
+                if (surface.Id == id)
+                    return surface;
+
+            Assert.Fail($"{prefab.name} has no {id} surface wired.");
+            return null;
+        }
     }
 }

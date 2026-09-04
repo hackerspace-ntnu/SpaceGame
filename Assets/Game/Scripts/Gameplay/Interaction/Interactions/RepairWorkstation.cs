@@ -6,6 +6,7 @@ using SpaceGame.Audio;
 using SpaceGame.Core;
 using SpaceGame.Items;
 using SpaceGame.Persistence;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Gameplay
 {
@@ -71,13 +72,8 @@ namespace SpaceGame.Gameplay
         private int progress;
         private bool spawned;
 
-        private MaterialPropertyBlock propertyBlock;
         private Vector3 clunkRestPosition;
         private float clunkTimer;
-
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-        private static readonly int ColorId = Shader.PropertyToID("_Color");
-        private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
         /// <summary>Raised on every progress change, with the new progress in 0..1.</summary>
         public event System.Action<float> ProgressChanged;
@@ -299,19 +295,8 @@ namespace SpaceGame.Gameplay
             if (clunkTimer <= 0f) clunkTarget.localPosition = clunkRestPosition;
         }
 
-        private void ApplyStatusLight()
-        {
-            if (statusLight == null) return;
-
-            propertyBlock ??= new MaterialPropertyBlock();
-            Color color = Color.Lerp(brokenColor, repairedColor, Progress01);
-
-            statusLight.GetPropertyBlock(propertyBlock);
-            propertyBlock.SetColor(BaseColorId, color);
-            propertyBlock.SetColor(ColorId, color);
-            propertyBlock.SetColor(EmissionColorId, color * 2f);
-            statusLight.SetPropertyBlock(propertyBlock);
-        }
+        private void ApplyStatusLight() =>
+            EmissiveLamp.Paint(statusLight, Color.Lerp(brokenColor, repairedColor, Progress01));
 
     #if UNITY_EDITOR
         private void OnValidate()

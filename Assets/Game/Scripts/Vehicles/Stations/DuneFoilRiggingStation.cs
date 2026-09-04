@@ -110,7 +110,7 @@ namespace SpaceGame.Vehicles
         protected override float ImmediateStep => tapStep;
 
         // --- IInteractionReadout ----------------------------------------------
-        // Drawn by InteractionPromptUI whenever the crosshair is on this handle. Four winches within
+        // Drawn by VisorReticle's info box whenever the crosshair is on this handle. Four winches within
         // a couple of metres of each other, all answering the same two buttons, are unusable
         // without this — which is how the rig shipped.
 
@@ -128,9 +128,9 @@ namespace SpaceGame.Vehicles
         /// <summary>What the two buttons do here.</summary>
         public string Prompt => function switch
         {
-            StationFunction.Sheet => "E: ease sheet   LMB: haul in   (hold)",
-            StationFunction.Hoist => "E: raise sail   LMB: lower sail   (hold)",
-            StationFunction.MastCant => "E: lean to starboard   LMB: lean to port   (hold)",
+            StationFunction.Sheet => "RMB: ease sheet   LMB: haul in   (hold)",
+            StationFunction.Hoist => "RMB: raise sail   LMB: lower sail   (hold)",
+            StationFunction.MastCant => "RMB: lean to starboard   LMB: lean to port   (hold)",
             _ => string.Empty,
         };
 

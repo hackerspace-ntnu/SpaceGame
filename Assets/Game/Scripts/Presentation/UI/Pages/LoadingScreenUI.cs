@@ -261,9 +261,7 @@ namespace SpaceGame.Presentation
             // Above every other overlay in the project — this one exists to hide what's behind it.
             canvas.sortingOrder = 5000;
 
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            UIScale.Configure(canvasGo.GetComponent<CanvasScaler>());
 
             panel = CreateChild("Panel", canvasGo.transform, out RectTransform panelRect);
             panelRect.anchorMin = Vector2.zero;

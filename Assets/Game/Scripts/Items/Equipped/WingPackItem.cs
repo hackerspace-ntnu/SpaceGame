@@ -41,6 +41,12 @@ namespace SpaceGame.Items
                  "and a jump should be worth something.")]
         [SerializeField, Range(0f, 1f)] private float speedCarry = 1f;
 
+        [Tooltip("Speed above which the launch takes its DIRECTION from how the pilot was moving " +
+                 "rather than from where they were looking, m/s. Below it there is no meaningful " +
+                 "direction in the velocity — a pilot stepping off a ledge is falling and nothing " +
+                 "else — so the way they are facing is the only intent there is to read.")]
+        [SerializeField, Min(0.1f)] private float headingFromSpeed = 4f;
+
         [Tooltip("Metres above the player to place the craft, so the wings do not open through the " +
                  "ledge that was just stepped off.")]
         [SerializeField] private float launchLift = 1.2f;
@@ -110,38 +116,54 @@ namespace SpaceGame.Items
         {
             if (owner == null) return;
 
-            Vector3 forward = owner.transform.forward;
-            forward.y = 0f;
-            if (forward.sqrMagnitude < 1e-4f) forward = Vector3.forward;
+            var carry = CarryFrom(PilotVelocity(), owner.transform.forward,
+                                  speedCarry, headingFromSpeed);
 
-            arg.R = Quaternion.LookRotation(forward.normalized, Vector3.up);
-            arg.P = new Vector3(LaunchSpeed(), 0f, 0f);
+            arg.R = Quaternion.LookRotation(carry.Forward, Vector3.up);
+
+            // Speed and climb, in that order. Both unclamped: this side reports what the pilot was
+            // doing and the airframe decides what it will take — see OrnithopterFlightMotor.Launch.
+            arg.P = new Vector3(carry.Speed, carry.ClimbDegrees, 0f);
         }
+
+        /// <summary>
+        /// Turn how the pilot was moving into how the craft starts flying.
+        ///
+        /// <para>
+        /// The arithmetic moved to <see cref="FlightLaunch.CarryFrom"/> when the wingsuit needed
+        /// the same answer; this stays as the pack's own name for it, because the tests that pin
+        /// the rule are written against the launcher rather than against the flight library.
+        /// </para>
+        /// </summary>
+        public static FlightLaunch.LaunchCarry CarryFrom(Vector3 velocity, Vector3 facing,
+                                                         float speedCarry, float headingFromSpeed) =>
+            FlightLaunch.CarryFrom(velocity, facing, speedCarry, headingFromSpeed);
 
         // Server-authoritative (the UsableItem default), so this only ever runs where spawning is
         // allowed. The pilot never names a prefab: the server reads ornithopterPrefab off its own
         // copy of the pack, which is why no whitelist is needed to stop a client asking for
         // something else.
         protected override void Use() =>
-            SpawnAndMountCraft(owner, UseArg.R, UseArg.P.x);
+            SpawnAndMountCraft(owner, UseArg.R, UseArg.P.x, UseArg.P.y);
 
-        /// <summary>How much of the player's current speed carries into the launch.</summary>
-        private float LaunchSpeed()
-        {
-            if (!owner.TryGetComponent(out Rigidbody playerBody))
-                return 0f;
-
-            Vector3 flat = playerBody.linearVelocity;
-            flat.y = 0f;
-            return flat.magnitude * speedCarry;
-        }
+        /// <summary>
+        /// How the pilot is moving at the moment of use — the whole vector, vertical included.
+        ///
+        /// The vertical used to be thrown away, which cost nothing while the only way to reach the
+        /// launch was a run and a jump, and cost everything once a grapple swing could get there:
+        /// the entire point of an arc is the height it buys, and flattening the velocity handed the
+        /// pilot a craft that had never heard of it.
+        /// </summary>
+        private Vector3 PilotVelocity() =>
+            owner.TryGetComponent(out Rigidbody playerBody) ? playerBody.linearVelocity : Vector3.zero;
 
         /// <summary>
         /// The whole launch, from spawning the craft to handing the pilot the controls. One path for
         /// offline, host and a remote pilot's launch running on the server — the difference is only
         /// WHERE it runs, never WHAT it does.
         /// </summary>
-        public bool SpawnAndMountCraft(GameObject pilot, Quaternion facing, float carriedSpeed)
+        public bool SpawnAndMountCraft(GameObject pilot, Quaternion facing, float carriedSpeed,
+                                       float carriedClimb = 0f)
         {
             if (craft != null)
                 return false;               // already flying
@@ -197,7 +219,7 @@ namespace SpaceGame.Items
             // switched this copy to following the wire and frozen its body, so a launch applied
             // locally would be a launch nothing ever integrates. See
             // OrnithopterFlightMotor.Replication.cs.
-            craftMotor.NetworkLaunch(forward, carriedSpeed);
+            craftMotor.NetworkLaunch(forward, carriedSpeed, carriedClimb);
             SetHeldVisible(false);
             return true;
         }

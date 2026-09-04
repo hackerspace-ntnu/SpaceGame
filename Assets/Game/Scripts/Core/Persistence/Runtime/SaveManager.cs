@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using SpaceGame.Persistence;
@@ -19,16 +20,20 @@ namespace SpaceGame.Core.Persistence
     /// get loaded state the same way they get every other change: through replication.
     /// </summary>
     /// <remarks>
-    /// <b>Execution order is part of the contract.</b> Unity delivers <c>OnApplicationQuit</c> in
-    /// script execution order, and NetworkManager tears the session down on quit as well. Whichever
-    /// ran first decided what the quit-save contained, and nothing pinned the order — so a save
-    /// taken after netcode teardown found every Rigidbody already made kinematic (no momentum), and
-    /// every remote player already unbound (no capture, and mount riders unresolvable). Running
-    /// first makes the quit-save a save of the session rather than of its wreckage.
+    /// <b>The quit-save must see the session, not its wreckage.</b> NetworkManager tears the
+    /// session down on quit as well, and a save taken after that teardown finds every Rigidbody
+    /// already made kinematic (no momentum), every remote player already unbound, and every
+    /// dynamically spawned NetworkObject destroyed — which the world store reads as the player
+    /// having destroyed them. The execution order below puts this class's <c>OnApplicationQuit</c>
+    /// ahead of NetworkManager's in a build, but it is NOT enough in the editor: Netcode runs its
+    /// whole shutdown from its own <c>playModeStateChanged</c> hook at ExitingPlayMode, before Unity
+    /// delivers <c>OnApplicationQuit</c> to anyone. So the world is captured and sealed at
+    /// <c>NetworkManager.OnPreShutdown</c> instead — see <see cref="HandleNetworkShuttingDown"/> —
+    /// and the quit-save then writes that capture rather than redoing it.
     ///
-    /// It also puts <c>Awake</c> ahead of the rest of the scene, which this class already depended
-    /// on informally: both stores must be holding the loaded document before the first chunk
-    /// hydrates or a player spawns.
+    /// The execution order also puts <c>Awake</c> ahead of the rest of the scene, which this class
+    /// already depended on informally: both stores must be holding the loaded document before the
+    /// first chunk hydrates or a player spawns.
     /// </remarks>
     [DefaultExecutionOrder(-10000)]
     public class SaveManager : MonoBehaviour
@@ -196,7 +201,57 @@ namespace SpaceGame.Core.Persistence
             worldStore.OnSceneHydrated += HandleSceneHydrated;
             playerService.PlayerBound += HandlePlayerBound;
 
+            // The last moment the world is intact before Netcode destroys its spawned objects. An
+            // offline editor session has no NetworkManager and no teardown, so nothing to hook.
+            if (NetworkManager.Singleton != null)
+                NetworkManager.Singleton.OnPreShutdown += HandleNetworkShuttingDown;
+
             nextAutoSaveTime = Time.time + Mathf.Max(1f, autoSaveIntervalSeconds);
+        }
+
+        /// <summary>
+        /// Takes the session's final capture the moment Netcode starts shutting down, and seals the
+        /// world store behind it.
+        ///
+        /// <para>
+        /// <c>NetworkManager.OnPreShutdown</c> fires at the top of <c>ShutdownInternal</c>; what
+        /// follows it is <c>DespawnAndDestroyNetworkObjects</c>, which destroys every dynamically
+        /// spawned NetworkObject. In the editor that whole shutdown runs from Netcode's own
+        /// <c>playModeStateChanged</c> hook at ExitingPlayMode — BEFORE Unity delivers
+        /// <c>OnApplicationQuit</c> to anyone, whatever their execution order — so the quit-save
+        /// captured a world whose runtime-spawned objects were already gone, and
+        /// <c>WorldSaveStore.DropVanishedRuntime</c> read their absence as destruction. The player
+        /// ship, the one runtime-spawned object in the persistent scene, vanished from the file on
+        /// every Stop with nothing logged; a timer autosave or a pause-menu exit kept it, which is
+        /// what made the loss look intermittent.
+        /// </para>
+        /// <para>
+        /// The capture is the same one a save takes; the seal is what makes the save that follows
+        /// write it rather than redo it. Players are left alone: <c>PlayerSaveSync</c> captures each
+        /// one as it despawns, and that path is shared with an ordinary disconnect.
+        /// </para>
+        /// </summary>
+        private void HandleNetworkShuttingDown()
+        {
+            if (Instance != this) return;
+            if (worldStore == null || worldStore.IsSealed) return;
+            if (!WorldSession.IsActive) return;
+            if (Network.IsNetworked && !Network.Server) return;
+
+            try
+            {
+                Capturing?.Invoke();
+                CaptureLoadedScenes();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[Save] The final capture before network shutdown failed: {e}", this);
+            }
+
+            // Sealed even after a failed capture: whatever the records hold is closer to the
+            // session than what a capture over a torn-down world would replace them with.
+            worldStore.Seal();
+            Log("Network shutting down: world records captured and sealed.");
         }
 
         /// <summary>
@@ -269,6 +324,9 @@ namespace SpaceGame.Core.Persistence
 
             if (worldStore != null) worldStore.OnSceneHydrated -= HandleSceneHydrated;
             if (playerService != null) playerService.PlayerBound -= HandlePlayerBound;
+
+            if (NetworkManager.Singleton != null)
+                NetworkManager.Singleton.OnPreShutdown -= HandleNetworkShuttingDown;
 
             if (Instance != this) return;
 

@@ -1,6 +1,6 @@
 ---
 name: spacegame-artifact
-description: Use when adding or fixing a usable item in this Unity project — a new artifact, gadget, spell, scanner, throwable, potion, deployable, hand tool or weapon-like equippable that occupies a hotbar slot and fires on the Use button. Also use when an existing artifact works for the host but does nothing for a client, is invisible to other players, logs "[WorldService] Prefab 'X' has no NetworkObject" when dropped, cannot be picked back up, never appears in the dev item browser (I), has a blank or wrong inventory icon, floats in the wrong place in the hand, or stands in the idle pose instead of the hold pose. Covers UsableItem / ToolItem / EffectItem subclasses, InventoryItem assets under Assets/Game/Resources/Items, prefabs under Assets/Game/Prefabs/Items/Artifacts/Gadgets, and their network-prefab registration.
+description: Use when adding or fixing a usable item in this Unity project — a new artifact, gadget, spell, scanner, throwable, potion, deployable, hand tool or weapon-like equippable that occupies a hotbar slot and fires on the Use button. Also use when an existing artifact works for the host but does nothing for a client, is invisible to other players, logs "[WorldService] Prefab 'X' has no NetworkObject" when dropped, cannot be picked back up, never appears in the dev item browser (O), has a blank or wrong inventory icon, floats in the wrong place in the hand, or stands in the idle pose instead of the hold pose. Covers UsableItem / ToolItem / EffectItem subclasses, InventoryItem assets under Assets/Game/Resources/Items, prefabs under Assets/Game/Prefabs/Items/Artifacts/Gadgets, and their network-prefab registration.
 ---
 
 # SpaceGame Artifacts
@@ -143,7 +143,7 @@ namespace SpaceGame.Items
 | Timed change to the holder's body | `EffectItem` — override `ApplyEffect()`, **not** `Use()` (sealed) |
 | Acts while the button is held | `override bool IsContinuous => true` + `OnRequestHold`/`Hold`/`PresentHold` |
 | Owner's aim, per press / per tick | `OnRequestUse(ref NetArg)` / `OnRequestHold(ref NetArg, bool)`; read it back as `UseArg` |
-| Payload fields | `NetArg.P` (Vector3), `.R` (Quaternion), `.A` (int, already the hotbar slot), `.B` (int), `.With(go)` for a subject |
+| Payload fields | `NetArg.P` (Vector3), `.R` (Quaternion), `.A` (int, already the slot code — bare hotbar index, or `UseSlotCode` for a worn slot), `.B` (int), `.With(go)` for a subject |
 | Consumable | `maxUses` on `UsableItem`; depletion removes the slot automatically |
 | Equip / unequip hooks | `OnEquipped(GameObject holder)` / `OnUnequipped` — always call `base` |
 | Worn, not gripped | `override bool UsesHoldPose => false` |

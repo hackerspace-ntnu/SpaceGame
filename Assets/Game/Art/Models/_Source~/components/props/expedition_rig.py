@@ -334,8 +334,9 @@ RACK_FACE = -0.051
 RACK_MID_Y = -0.505 - LEAF_EXTRA / 2.0
 RACK_W, RACK_D = 0.810, 0.610 + LEAF_EXTRA
 
+# Where the bottle USED to be bolted. The bottle itself is gone (see the header note);
+# these survive because the brass manifold under it is still here and is placed from them.
 TANK_S = 0.330                # tank centre along the panel's slope
-TANK_R = 0.110
 TANK_OFF = 0.125              # tank axis stand-off from the panel face
 
 # Panel frame: X across the panel, U up its slope, N out of its face.
@@ -378,7 +379,11 @@ def pface(x, s):
 
 
 def tcen(ds=0.0):
-    """A point on the oxygen tank's axis, ds along the slope from its centre."""
+    """A point on the line the oxygen bottle used to stand on, ds along the slope.
+
+    Kept after the bottle was removed because the manifold is placed from it, and because
+    it is the line a real bottle is meant to read as belonging to.
+    """
     return pface(0.0, TANK_S + ds) + BN * TANK_OFF
 
 
@@ -407,6 +412,12 @@ SURFACES = [
     # at the foot, on the loft to within a 3 mm corner sliver at the head.
     ("SURF_Back_L", "back", pface(-0.285, 0.300) + BN * 0.006, ROT_PANEL, 0.270, 0.540),
     ("SURF_Back_R", "back", pface(0.285, 0.300) + BN * 0.006, ROT_PANEL, 0.270, 0.540),
+    # The strip between them, where the modelled oxygen bottle used to be bolted
+    # (deleted 2026-09-03 — see the build record). Same plane, same rotation and
+    # the same 3 x 6 cells as its two neighbours, on the pack's centre line; the
+    # panels' inner edges are 0.150 either side of it in this frame, so it has a
+    # 15 mm margin. Reserved for the oxygen bottle alone on Unity's side.
+    ("SURF_Back_C", "back", pface(0.0, 0.300) + BN * 0.006, ROT_PANEL, 0.270, 0.540),
     # y -0.165..-0.885: 26 mm clear of the hinge knuckles, 5 mm clear of the
     # lash rail's near webbing run.
     ("SURF_Leaf", "leaf", Vector((0.0, -0.525, CLOTH_T + 0.005)),
@@ -819,48 +830,16 @@ for _sx, _side in ((-1, "L"), (1, "R")):
          parent="back")(_harness(_sx))
 
 
-# --- the oxygen tank ------------------------------------------------------
-
-@part("Mesh_Rig_OxygenTank", origin=tcen(), parent="back")
-def _tank(p):
-    """A fixed fitting, not an item.
-
-    The composition's landmark: it is in the same place every single time the
-    pack opens, which is what lets a player orient instantly.
-    """
-    p.cyl(tcen(), TANK_R, 0.440, axis='Z', seg=18, mat=ORANGE, rot=BROT_U)
-    p.cyl(tcen(0.240), TANK_R, 0.040, axis='Z', seg=18, mat=ORANGE,
-          rot=BROT_U, radius_top=0.072)
-    p.cyl(tcen(-0.240), 0.072, 0.040, axis='Z', seg=18, mat=ORANGE,
-          rot=BROT_U, radius_top=TANK_R)
-    # A painted collar band, so the bottle is not one flat orange tube.
-    p.cyl(tcen(0.190), TANK_R + 0.002, 0.026, axis='Z', seg=18, mat=CANVAS,
-          rot=BROT_U)
-
-
-@part("Mesh_Rig_OxygenTank_Bands", origin=tcen(), parent="back")
-def _tank_bands(p):
-    """Two over-centre steel bands and the cradle feet bolting them down.
-
-    The only hard mechanism on the panel, which is what makes the webbing
-    either side of it read as soft by contrast.
-    """
-    for ds in (-0.150, 0.150):
-        p.cyl(tcen(ds), TANK_R + 0.010, 0.034, axis='Z', seg=18, mat=STEEL,
-              rot=BROT_U)
-        c = tcen(ds) + BN * (TANK_R + 0.014)
-        p.box(c, (0.062, 0.062, 0.026), STEEL, rot=BROT)
-        p.box(c + BN * 0.020, (0.030, 0.088, 0.016), BRASS, rot=BROT)
-        for sx in (-1, 1):
-            # 0.124, not 0.128 (2026-08-25): the grown back rects reach in to
-            # x 0.150, and at 0.128 the posts' outer faces sat flush on that
-            # line. 4 mm of air now. The flange sinks to crest +0.004, under
-            # the rect plane's +0.006 — and its INNER face sits at -0.016, not
-            # the webbing tapes' -0.010: the tapes moved onto x 0.150 and two
-            # same-facing faces on one plane is exactly what _zverify.py flags.
-            pbox(p, sx * 0.124, TANK_S + ds, 0.044, 0.052, 0.124, STEEL, off=0.0)
-            pbox(p, sx * 0.124, TANK_S + ds, 0.076, 0.076, 0.020, STEEL, off=-0.016)
-
+# --- the oxygen bottle's fitting -----------------------------------------
+#
+# The BOTTLE and its two over-centre bands used to be here, modelled into the pack as
+# "a fixed fitting, not an item". That was reversed on 2026-09-03: an oxygen bottle is a
+# real, carryable item now (Assets/Game/Resources/Items/Supplies/OxygenTank.asset), and a
+# second one welded to the rig was a tank the player could see and never take off. Both
+# parts were deleted from the .blend by hand and removed from here so a regenerate agrees.
+#
+# The manifold stays. It is the brass valve block bolted to the PANEL rather than to the
+# bottle, and it carries the only emissive in the whole rig.
 
 @part("Mesh_Rig_OxygenTank_Manifold", origin=pface(0.0, 0.040) + BN * 0.125,
       parent="back")
@@ -1375,6 +1354,16 @@ def main():
         surf = empty(name, loc, coll, rot=rot, size=0.09)
         host, host_world = pivots[parent]
         attach(surf, host, host_world)
+
+    # Where the breathing hose leaves the brass valve block. A MARKER, not
+    # geometry: the hose only exists while a bottle is actually in the slot
+    # above, so Unity draws it between this and the placed bottle rather than
+    # the model carrying a tube that runs to nothing. On the block's front face,
+    # beside its right-hand port.
+    outlet = empty("Marker_Rig_HoseOutlet",
+                   pface(0.104, 0.040) + BN * 0.169, coll, size=0.03)
+    host, host_world = pivots["back"]
+    attach(outlet, host, host_world)
 
     report()
     dump_surfaces()

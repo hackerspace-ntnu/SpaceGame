@@ -96,6 +96,19 @@ namespace SpaceGame.EditorTools
         /// <summary>Metres of slop when matching a table's expected value against a prefab.</summary>
         private const float Slack = 1e-3f;
 
+        /// <summary>
+        /// Why all seven gauntlets sit at zero, in one place rather than seven near-identical
+        /// sentences. Zero is not "unset" to <c>ItemGrip</c>: it means "keep the size the artist
+        /// built", which is the whole point of a family authored at the suit's true scale — and
+        /// since 2026-09-04 it is what the mat uses too, because the bracer that made a gauntlet
+        /// too bulky to lie down is worn permanently and is not part of the item any more.
+        /// </summary>
+        private const string GauntletWhy =
+            "PINNED at 0: a forearm gauntlet since 2026-09-02, authored against the deck of the " +
+            "bracer the player wears and worn at GauntletFit scale 1, so 'the size the artist " +
+            "built' IS the size — on the arm and, since the bracer left the model on 2026-09-04, " +
+            "on the mat as well. See GauntletPrefab.PackSize";
+
         private readonly struct Step
         {
             public readonly string Path;
@@ -123,6 +136,32 @@ namespace SpaceGame.EditorTools
 
         private const string Gadgets = "Assets/Game/Prefabs/Items/Artifacts/Gadgets/";
         private const string Guns = "Assets/Game/Prefabs/Items/Artifacts/Guns/";
+        private const string Supplies = "Assets/Game/Prefabs/Items/Supplies/";
+
+        /// <summary>
+        /// Why the three oxygen-plant supplies share one size, in one place rather than three
+        /// near-identical sentences.
+        ///
+        /// <para>
+        /// A pressure bottle (true 0.54 m) and a slab battery (true 0.55 m) are within 2% of each
+        /// other, so one bracket is honest: what tells them apart is silhouette — a cylinder with
+        /// an orange collar against a green-cornered brick — which is exactly what a bracket is for
+        /// (<c>GDC-L1-UX-0003</c>). 0.90 is two thirds of the anchor: bulky enough to read as
+        /// two-handed hardware and clear of the guns above it. Both are hugged rather than gripped,
+        /// so they carry <c>HoldStyle.TwoHanded</c>.
+        /// </para>
+        /// <para>
+        /// PINNED because <c>OxygenGearBuilder</c> writes these prefabs wholesale on every run and
+        /// authors this same number; moving it means moving it there.
+        /// </para>
+        /// </summary>
+        private const string SupplyWhy =
+            "PINNED at 0.90, authored by OxygenGearBuilder: a two-handed 0.54 m bottle and a " +
+            "0.55 m battery in a hand 1.7x a human's, two thirds of the anchor. The bottle is " +
+            "turned a quarter about X inside its prefab so it LIES DOWN on the mat, and the " +
+            "grip's rotationOffset carries the exact inverse — so this hand size, and the pose " +
+            "it was tuned with, are untouched by that. Its share of the mat is a separate " +
+            "number — see PackSizeTests";
 
         /// <summary>
         /// Every prefab in the project that carries an <see cref="ItemGrip"/>, with the size it
@@ -157,13 +196,7 @@ namespace SpaceGame.EditorTools
             new(Gadgets + "RobotPistolModel.prefab", Bracket.Gun, 0.45f, 1.10f,
                 "a pistol, so it stays the smallest thing in the bracket while still reading as a gun"),
 
-            // ── Big tools: bulky enough to change the silhouette ──────────────────────────
-            new(Gadgets + "GrapplingHook.prefab", Bracket.BigTool, 0.80f, 1.00f,
-                "a braced launcher rather than a gun; below the guns, clearly above the hand tools"),
-
             // ── Hand tools: one hand, used at arm's length ────────────────────────────────
-            new(Gadgets + "RuinScanner.prefab", Bracket.HandTool, 0.42f, 0.65f,
-                "held out and read off, so it has to be legible at arm's length"),
 
             new(Gadgets + "RocketArtifact.prefab", Bracket.HandTool, 0.40f, 0.65f,
                 "a turret carried to where it is put down; the same bulk as the scanner"),
@@ -172,8 +205,11 @@ namespace SpaceGame.EditorTools
                 "sized on its Coil via sizeReference, so the rope follows the handle rather than " +
                 "the handle shrinking to fit the rope"),
 
-            new(Gadgets + "Leash.prefab", Bracket.HandTool, 0.26f, 0.55f,
-                "was the smallest item in the game and read as nothing in the hand"),
+
+            // ── Big tools: two hands, and bulky enough to change the silhouette ───────────
+            new(Supplies + "OxygenTank.prefab", Bracket.BigTool, 0.90f, 0.90f, SupplyWhy),
+            new(Supplies + "OxygenTankEmpty.prefab", Bracket.BigTool, 0.90f, 0.90f, SupplyWhy),
+            new(Supplies + "PowerCell.prefab", Bracket.BigTool, 0.90f, 0.90f, SupplyWhy),
 
             // ── Consumables: read as a phial, not a weapon ────────────────────────────────
             new(Gadgets + "AntiGravityPotion.prefab", Bracket.Consumable, 0.30f, 0.50f,
@@ -183,17 +219,18 @@ namespace SpaceGame.EditorTools
                 "matched to the potion — both are held Relaxed and should read as the same class"),
 
             // ── Fitted: sized by anatomy. Do not move these. ──────────────────────────────
-            new(Gadgets + "SuckerPuncher.prefab", Bracket.Fitted, 0.674f, 0.674f,
-                "PINNED: the hand cavity is measured against the rig, and SuckerPuncherBuilder " +
-                "states that any scaling at all invalidates it"),
-
-            new(Gadgets + "RepulsorGauntlet.prefab", Bracket.Fitted, 0.30f, 0.30f,
-                "PINNED: a cuff the forearm slides through — at hand-tool size it would reach " +
-                "past the elbow"),
-
-            new(Gadgets + "ItemScanner.prefab", Bracket.Fitted, 0f, 0f,
-                "PINNED: a forearm terminal, and its holdSize 0 deliberately means 'keep the size " +
-                "the artist built' — ItemFootprint reads the mesh for it"),
+            // The six gauntlets are one family and answer this question once, in
+            // GauntletPrefab.HoldSize. Their models are built on components/props/gauntlet_base.blend,
+            // which is modelled against the rig's own forearm, so a hold size here would be a
+            // second opinion about how big an arm is. They keep separate rows rather than a loop
+            // because the roster is meant to be the whole set of gripped prefabs, readable as a
+            // list: "was this one considered?" is answerable without grepping.
+            new(Gadgets + "SuckerPuncher.prefab", Bracket.Fitted, 0f, 0f, GauntletWhy),
+            new(Gadgets + "RepulsorGauntlet.prefab", Bracket.Fitted, 0f, 0f, GauntletWhy),
+            new(Gadgets + "ItemScanner.prefab", Bracket.Fitted, 0f, 0f, GauntletWhy),
+            new(Gadgets + "GrapplingHook.prefab", Bracket.Fitted, 0f, 0f, GauntletWhy),
+            new(Gadgets + "Leash.prefab", Bracket.Fitted, 0f, 0f, GauntletWhy),
+            new(Gadgets + "RuinScanner.prefab", Bracket.Fitted, 0f, 0f, GauntletWhy),
 
             new("Assets/Game/Prefabs/Items/Equipment/WingPack.prefab", Bracket.Fitted, 1.26f, 1.26f,
                 "PINNED: worn across the back, so its span is the wearer's, not the ladder's"),

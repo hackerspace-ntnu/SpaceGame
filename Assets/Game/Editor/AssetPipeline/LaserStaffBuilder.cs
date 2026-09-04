@@ -58,9 +58,6 @@ namespace SpaceGame.EditorTools
         /// <summary>The strike graph the arc drops on whatever it rests on. Tinted at runtime.</summary>
         private const string StrikeVfxPath = "Assets/Game/Prefabs/VisualEffects/Lightning/Lightning.prefab";
 
-        /// <summary>The ground layer DropItemPhysics settles against, copied from LightningSpell.</summary>
-        private const int GroundLayerMask = 128;
-
         [MenuItem("Tools/Build Laser Staff Artifact")]
         public static void Build()
         {
@@ -196,19 +193,13 @@ namespace SpaceGame.EditorTools
             var netObject = root.AddComponent<NetworkObject>();
             netObject.SynchronizeTransform = true;
 
-            SphereCollider sphere = root.AddComponent<SphereCollider>();
-            sphere.radius = 0.16f;
-            sphere.center = Vector3.zero;
-
-            Rigidbody body = root.AddComponent<Rigidbody>();
-            body.isKinematic = true;
-            body.useGravity = true;
-
             AddInternal(root, "SpaceGame.Items.PickupableItem");
 
-            var drop = root.AddComponent<DropItemPhysics>();
-            SetPrivate(drop, "rb", body);
-            SetPrivateLayerMask(drop, "groundLayer", GroundLayerMask);
+            // The body, a collider the shape of the item, the sizing and the netcode that lets
+            // another machine watch it be shoved about. One shared block - see ItemWorldPresence
+            // for what nine hand-written copies of it cost, and why the sphere it replaces here
+            // made a dropped item roll like a marble.
+            ItemWorldPresence.Apply(root);
 
             root.AddComponent<SpaceGame.Core.NetRelay>();
             root.AddComponent<SpaceGame.Core.Persistence.SaveableEntity>();

@@ -124,9 +124,15 @@ Everything that can hurt anything — guns, gadgets, creature claws, cacti, sand
 
 ### Hotbar and items *(Inventory)*
 
-Four hotbar slots, each holding an item definition; selecting a slot spawns a fresh copy of that item into the hand and unselecting destroys it, and re-selecting the slot you are already on empties your hands. One prefab is both the thing in your hand and the thing lying in the sand, so pickup and drop are a round trip through the same asset. Because the held copy is thrown away on every slot switch, whatever an item remembers is stored on the slot instead of on the object.
+Three hotbar slots, each holding an item definition; selecting a slot spawns a fresh copy of that item into the hand and unselecting destroys it, and re-selecting the slot you are already on empties your hands. One prefab is both the thing in your hand and the thing lying in the sand, so pickup and drop are a round trip through the same asset. Because the held copy is thrown away on every slot switch, whatever an item remembers is stored on the slot instead of on the object.
 
 **Worth knowing:** an item asset saved outside the items Resources folder is never registered — absent from the dev browser and every save slot holding it comes back empty, with no error anywhere.
+
+### Gear you wear *(BodyEquipment)*
+
+Some gadgets are worn, not held: two gauntlets on your forearms and one thing on your trunk. The left gauntlet fires on Q, the right on E, and the trunk item — the wing pack — deploys when you tap Space twice. Press I for the gear screen: the camera steps out in front of you and you see your own character, with a faint ghost of a blank device standing on each empty forearm and the three hand slots along the bottom. Pick something up and every place it can go lights up — a see-through copy of it sitting exactly where it will sit — then click there. Pick up something that goes on your **back** and the camera swings right round behind you, to the bar across your pack whose ends stick out past each side; the bar lights up, and that is what you clip the wing pack to. Some gear goes on your **chest** instead, and for that the camera stays where it is. You get one or the other, never both — the back and the chest are two places for the same single slot, so putting something on one takes whatever was on the other back off. Nothing pauses while you do it. A gauntlet can sit in the hotbar, but it does nothing until it is on an arm. **You are always wearing the bracers themselves.** Both forearms carry one from the moment you exist — an armoured shell with a flat hardpoint deck on the back of the arm — and a gauntlet is only the machine that clamps onto that deck. So an empty arm is not a bare sleeve, it is a mount with nothing on it, and every gadget you own is the size of a gadget rather than a whole forearm. Seven gadgets are gauntlets: the grappling hook, the sucker puncher, the leash, both scanners, the repulsor and the torch. They share a mount rather than a costume, so a stranger across a dune is recognisable by the device on their arm rather than by seven unrelated shapes.
+
+**Worth knowing:** Q and E also steer every mount, so gauntlets go quiet while you are riding; and moving an item through the body screen resets whatever it remembered, the same as the backpack does.
 
 ### Gadgets you can use *(Artifacts)*
 
@@ -146,17 +152,23 @@ One button ties a rope between any two things in the world: creature to post, pl
 
 **Worth knowing:** the AI is never told it has been leashed — a roped creature keeps trying to walk where it was going, and that visible straining against the rope is the whole effect.
 
-### Looking at things and pressing E *(InteractionSystem)*
+### Looking at things and right-clicking *(InteractionSystem)*
 
-Doors, levers, ship consoles, repair workstations, seats and helms, pickups, cave exits and dialogue all work the same way: look at a collider, press E. One ray picks the target, one resolver turns it into the label and prompt you read, and the thing itself owns whatever it takes to get its effect onto other machines. Prompts are on by default — anything interactable gets a readable name derived from what it is unless it is given a better one.
+Doors, levers, ship consoles, repair workstations, seats and helms, pickups, cave exits and dialogue all work the same way: look at a collider, right-click (it was E until the right gauntlet took that key, then I until interact took right mouse outright). One ray picks the target, one resolver turns it into the label and prompt you read, and the thing itself owns whatever it takes to get its effect onto other machines. Prompts are on by default — anything interactable gets a readable name derived from what it is unless it is given a better one.
 
 **Worth knowing:** trading is fully written but completely unauthored — no trader profile asset exists and nothing in any prefab or scene references it, so barter has never actually run in the game.
+
+### The oxygen plant *(Oxygen)*
+
+A wall-mounted machine on the lander's main deck with two receptacles that can only take one thing each: a rectangular slot for a slab power cell, and a round collar above it that an oxygen bottle plugs into base-first. Fit a cell and the machine's amber lamp and green readout come on and it starts casting light on the bulkhead beside it; plug in an empty bottle and it hisses for five seconds, the bottle's own gauge climbing from dark to green, and hands you back a full one. Either receptacle can be emptied again by right-clicking it, and both keep what is in them across a save. There is one empty bottle and one power cell waiting on the ship's gear wall, a few metres from the machine that wants them.
+
+**Worth knowing:** nothing in the game breathes yet, so a full bottle is something you own rather than something you spend — the plant's supply is unlimited and the cell never runs down. The two receptacles differ in *shape* before they differ in colour on purpose: a cell physically cannot enter the bottle collar, so you can see which is which before any words appear, and the same is true for a player who cannot tell green from orange.
 
 ### The torch *(Flashlight)*
 
 Toggled with L, built in three layers: an ordinary short-range spot light of about 40 m that lights the world for everyone, a cheap shadowless long-throw glow reaching 120 m that only certain terrain and cave surfaces respond to, and a screen-space cone so you can see the beam hanging in the air. The split is what lets the near light be bright without blowing out a wall a metre in front of you. The beam's visible length comes from firing a handful of probe rays and taking the shortest hit.
 
-**Worth knowing:** there can only ever be one long-throw torch — that far-reaching layer is a single global slot owned by the local player's lamp, so other players' torches light the world with their ordinary spot light only.
+**Worth knowing:** the torch is a gauntlet you wear, not part of the suit. Take it off and you have no light at all — and because it is bolted to your forearm, it lights where your arm points rather than where you are looking, so switching it on brings that arm up into the body's ordinary carrying pose, and switching it off lets it drop. There can also only ever be one long-throw torch: that far-reaching layer is a single global slot owned by the local player's lamp, so other players' torches light the world with their ordinary spot light only.
 
 ## Getting around
 
@@ -178,13 +190,29 @@ A 10 m ornithopter carried folded in your inventory and thrown open in mid-air; 
 
 **Worth knowing:** Crash damage is measured on how fast you close on the surface, not how fast you were travelling — gliding onto sand at 20 m/s costs nothing and a scraped wingtip costs nothing, while a held dive into a cliff is instantly fatal.
 
+### The wingsuit *(Wingsuit)*
+
+A membrane worn on your back that runs from your arms down to your hips. Tap Space twice in mid-air and it snaps open; you fly your own body, prone, with the wings spread and the air visibly billowing up into the cloth. It flies on exactly the same physics as the ornithopter with one thing taken away: there is nothing to flap, so it can never put energy in. Every metre of height you gain has to be bought with speed you already had. You go about four metres forward for every metre down, pointing where you look — mouse to aim the nose, A and D to bank into a turn, Ctrl to pull your arms in and dive. Tap Space twice again to fold, and touching the ground folds it for you.
+
+It takes the same single slot as the wing pack, so you carry one or the other. The wings are cut from the same colour as your suit, so you can tell each other apart in the air.
+
+**Worth knowing:** It uses the ornithopter's crash rule, so flying it onto sand properly costs nothing while a held dive into a rock face is still fatal — the wingsuit is a way down, not a way out of falling.
+
 ## What you see and hear
 
 ### Screens, menus and the HUD *(UI)*
 
-Every menu page, overlay, hotbar, helmet display and floating world label is built in code at runtime — there is no UI art in the project at all, and the rounded panels, discs and chevrons are drawn into textures as the game runs. Two visual languages coexist: dark navy lettering over the live 3D menu set, and a near-black panel with a blue accent for anything opening over gameplay. One shared owner hands the cursor, the input and the clock between screens, so two overlays can be open at once and control is returned cleanly; time only actually freezes when you are playing alone.
+Every menu page, overlay, hotbar, helmet display and floating world label is built in code at runtime — there is no UI art in the project at all, and the rounded panels, discs and chevrons are drawn into textures as the game runs. Three visual languages coexist: dark navy lettering over the live 3D menu set, a near-black panel with a blue accent for anything opening over gameplay, and the helmet visor described below. One shared owner hands the cursor, the input and the clock between screens, so two overlays can be open at once and control is returned cleanly; time only actually freezes when you are playing alone.
 
 **Worth knowing:** Never tint a label to show that a row is selected — the shared button animation rewrites the label's colour on every state change, so the tint survives exactly one frame; say it on a separate object instead.
+
+### The helmet visor *(Visor)*
+
+The blue readout projected on the inside of your helmet glass: how intact your suit is and what you are looking at. It follows one rule, which is what makes it feel like a single machine rather than a pile of widgets — **blue is the language, warm is the alarm**. Everything the suit tells you is drawn in the same cold blue, and amber and orange are spent on nothing except danger, so a warning is impossible to miss without having to shout. Because colour alone excludes anyone who cannot separate the two, an alarm also changes shape and adds a word. The layer lags a few pixels behind your head when you turn, which is the small trick that makes it read as light on glass rather than a picture stuck to your monitor.
+
+It also carries the game's one system voice — hints, warnings, and events all arrive in the same place instead of in three competing boxes — and the team chat now reads in the same language. Your air is a real resource: it drains whenever you are not somewhere breathable, a charged bottle from the ship's oxygen plant is what refills it, and running out suffocates you rather than killing you outright.
+
+**Worth knowing:** H used to switch the visor off entirely, but your health lives on it now — so it cycles through three states instead, and the middle one hides the world commentary — the target bracket and system messages — while keeping every readout you actually play by. The warning banner stays visible even then: turning the world commentary off is not consent to stop being told your suit is failing.
 
 ### Scripted camera moments *(Cutscenes)*
 

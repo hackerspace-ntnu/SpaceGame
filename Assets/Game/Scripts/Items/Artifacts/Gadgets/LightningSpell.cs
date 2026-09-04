@@ -61,31 +61,12 @@ namespace SpaceGame.Items
 
             Vector3 ground = strike - Vector3.up * spawnHeightOffset;
 
-            Collider[] caught = Physics.OverlapSphere(ground, damageRadius, damageMask,
-                                                      QueryTriggerInteraction.Ignore);
-
-            // Colliders, not creatures: a body is several of them, and billing each would multiply
-            // the damage by however many limbs happened to be inside the radius.
-            var billed = new System.Collections.Generic.HashSet<GameObject>();
-
-            foreach (Collider collider in caught)
-            {
-                if (collider == null) continue;
-
-                if (!damagesCaster && owner != null && collider.transform.IsChildOf(owner.transform))
-                    continue;
-
-                HealthComponent health = collider.GetComponentInParent<HealthComponent>();
-
-                // Not everything hurtable owns a HealthComponent — destructible props implement
-                // IDamageable directly — so fall back to the collider itself and let NetDamage
-                // work out which of the two it is looking at.
-                GameObject target = health != null ? health.gameObject : collider.gameObject;
-
-                if (!billed.Add(target)) continue;
-
-                NetDamage.Apply(target, damage, owner != null ? owner.transform : transform);
-            }
+            // Colliders are not creatures: a body is several of them, and billing each would
+            // multiply the damage by however many limbs happened to be inside the radius. That
+            // rule now lives in RadiusDamage, which every blast in the game shares.
+            RadiusDamage.Apply(ground, damageRadius, damageMask, damage,
+                               owner != null ? owner.transform : transform,
+                               damagesCaster ? null : owner != null ? owner.transform : null);
         }
 
         protected override void Present()

@@ -145,8 +145,9 @@ GameObject:
   - component: {fileID: -4265280980628608086}
   - component: {fileID: 3655106206807437296}
   - component: {fileID: -4999026456586161738}
+  - component: {fileID: 382325483763001357}
   m_Layer: 0
-  m_Name: BallLigthningProjectile
+  m_Name: BallLightningProjectile
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -371,6 +372,15 @@ MonoBehaviour:
     m_Bits: 4294967295
   destroyOnHit: 1
   damage: 10
+  fleshImpactId: 300
+  hardImpactId: 301
+  impactSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
   speed: 10
   wanderStrength: 4.5
   wanderFrequency: 1.8
@@ -401,6 +411,58 @@ MonoBehaviour:
   impactSpotRange: 12
   impactSpotIntensity: 35
   impactSpotLifetime: 0.25
+  discharge: {fileID: 0}
+  chargeMinScale: 0.2
+  chargeMaxScale: 1
+  chargeScaleCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &382325483763001357
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5700003475246215283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cee03638847beb40a389137f2e06cf8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Weapons.BallLightningDischarge
+  dischargeRadius: 6
+  damageMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  scanInterval: 0.05
+  damage: 100
+  boltTargeting: {fileID: 3655106206807437296}
+  arcDuration: 0.45
+  arcSwitchRate: 26
+  flashColor: {r: 0.65, g: 0.85, b: 1.6, a: 1}
+  flashIntensity: 220
+  flashRange: 22
+  flashDuration: 0.35
 --- !u!1 &8856578778651788822
 GameObject:
   m_ObjectHideFlags: 0

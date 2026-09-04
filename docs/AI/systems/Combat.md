@@ -18,6 +18,9 @@ symptoms:
   - "the corpse stays suspended in the air with its brain switched off"
   - "the turret or NPC aims its weapon at the host's camera"
   - "the projectile works on the host but never appears for clients"
+  - "a blast bills a creature once per limb inside its radius, so a body dies instantly"
+  - "the ball lightning orb drifts through creatures without ever hurting them"
+  - "the orb discharges on the host and on a client at slightly different moments"
 reads_with: [Artifacts, AgentSystem, Inventory, Persistence]
 updated: 2026-09-02
 ---
@@ -46,6 +49,7 @@ Health, damage, weapons, projectiles, death and ragdolls: one server-decided dam
 | `HealthComponent` | [HealthComponent.cs](Assets/Game/Scripts/Gameplay/Health/HealthComponent.cs) | The value + `OnDamage/OnHeal/OnDeath/OnRevive/OnRestored`, `LastDamageSource`, `IsRestoring`, static `AnyDamaged` |
 | `IDamageable` | [IDamageable.cs](Assets/Game/Scripts/Gameplay/Health/IDamageable.cs) | `Damage(int)` + `Alive` for things with no HealthComponent |
 | `NetDamage` | [NetDamage.cs](Assets/Game/Scripts/Gameplay/Health/NetDamage.cs) | Static `Apply` — the only sanctioned way to hurt anything |
+| `RadiusDamage` | [RadiusDamage.cs](Assets/Game/Scripts/Gameplay/Health/RadiusDamage.cs) | Blasts: `Collect`/`Apply` over a sphere, deduplicated to one bill per body |
 | `NetworkedHealthComponent` | [NetworkedHealthComponent.cs](Assets/Game/Scripts/Gameplay/Health/NetworkedHealthComponent.cs) | Replication + `NetMsg.Damage` handler + static `DamageAnnounced` |
 | `DamageFeedback` | [DamageFeedback.cs](Assets/Game/Scripts/Gameplay/Health/DamageFeedback.cs) | Camera shake + hurt Sfx off local `OnDamage` |
 | `HealthSaveable` | [HealthSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/HealthSaveable.cs) | Persists current HP; `max` stored but never applied |
@@ -71,8 +75,10 @@ Health, damage, weapons, projectiles, death and ragdolls: one server-decided dam
 | `EnergyRifle` | [EnergyRifle.cs](Assets/Game/Scripts/Weapons/Firearms/EnergyRifle.cs) | Hitscan, `raysPerShot`/spread/dropoff; damage gated on `ShotDealsDamage` |
 | `BallLightningWeapon` | [BallLightningWeapon.cs](Assets/Game/Scripts/Weapons/BallLightning/BallLightningWeapon.cs) | The only charging weapon: press 1 spawns + charges, press 2 launches |
 | `BasicProjectile` | [BasicProjectile.cs](Assets/Game/Scripts/Weapons/Projectiles/BasicProjectile.cs) | Straight line, interval raycast from `lastPosition`, portal-aware |
-| `BallLightningProjectile` | [BallLightningProjectile.cs](Assets/Game/Scripts/Weapons/Projectiles/BallLightningProjectile.cs) | Perlin wander + hover + dynamic light; implements `IChargeable` |
-| `BallLightningController` / `BoltTargeting` | [Weapons/BallLightning/](Assets/Game/Scripts/Weapons/BallLightning/) | Pure VFX: shader `iTime/iResolution/iMouse` and a cone-scan bolt target |
+| `BallLightningProjectile` | [BallLightningProjectile.cs](Assets/Game/Scripts/Weapons/Projectiles/BallLightningProjectile.cs) | Perlin wander + hover + dynamic light; implements `IChargeable`; drives the discharge once launched |
+| `BallLightningController` / `BoltTargeting` | [Weapons/BallLightning/](Assets/Game/Scripts/Weapons/BallLightning/) | Pure VFX: shader `iTime/iResolution/iMouse` and a cone-scan bolt target. `BoltTargeting.StrikeAt` lends that one bolt to a caller for a frame |
+| `BallLightningDischarge` | [BallLightningDischarge.cs](Assets/Game/Scripts/Weapons/BallLightning/BallLightningDischarge.cs) | The orb's gimmick: sweeps for damageable bodies, bills all of them at once for 100, arcs, then ends the projectile |
+| `BallLightningFlash` | [BallLightningFlash.cs](Assets/Game/Scripts/Weapons/BallLightning/BallLightningFlash.cs) | Unparented point light that fades itself out and self-destructs; outlives the orb that cast it |
 | `BallLightningProjectileOld` | [BallLightningProjectileOld.cs](Assets/Game/Scripts/Weapons/BallLightning/BallLightningProjectileOld.cs) | Dead stub kept as a signpost. Do not use |
 | NPC ranged | [AgentRangedCombatModule.cs](Assets/Game/Scripts/agents/Modules/Combat/AgentRangedCombatModule.cs) | `FireOne` decides, `PresentShot` draws; broadcast as `NetMsg.AgentActed` |
 | NPC melee / turrets | [CloseCombatModule.cs](Assets/Game/Scripts/agents/Modules/Combat/CloseCombatModule.cs), [TurretModule.cs](Assets/Game/Scripts/agents/Modules/Combat/TurretModule.cs), [TurretProjectile.cs](Assets/Game/Scripts/agents/Modules/Combat/TurretProjectile.cs) | Same Use/Present split; `WeaponSelector` shows the model |
@@ -89,6 +95,8 @@ Health, damage, weapons, projectiles, death and ragdolls: one server-decided dam
 6. **Death.** `currentHealth <= 0` → `OnDeath`. `HealthReactionModule` plays the death sound/noise, fires `onDeath`, disables `AgentController`, schedules despawn; `EntityLootTable` drops loot; `MatchManager` credits the kill from `LastDamageSource` and schedules a respawn (`ResetToFull`, never `Heal`); `PlayerController.OnDeath` sets `IsDead` and shows the death screen.
 7. **Ragdoll.** `AgentRagdoll`/`PlayerRagdoll` also hear `OnDeath` on **every** machine (no message needed) — they suspend the transform owners (`AgentController`, `ISelfDrivingMotor`, `LeggedLocomotion`, `PlayerMovement`/`PlayerLook`, root Rigidbody + collider) and call `rig.GoLimp(impulse)`. `RagdollRig` builds the skeleton on the *first* limp, registers with `RagdollBudget`, and either drags the root after the hips (`Drives`) or pins the hips to the replicated root.
 8. **Recovery** (knockdown only): settle test or `maxLimpSeconds` ceiling → `Recover()` returns a `TeleportMove` raised as `ITeleportAware` so legged locomotion rebases instead of teleporting the creature back to where it fell. Control returns at the *start* of the blend.
+
+**Ball lightning discharges instead of colliding.** The orb is a proximity weapon: `BallLightningProjectile.Update` ticks `BallLightningDischarge` once `isLaunched`, which sweeps `RadiusDamage.Collect` every `scanInterval`. The first sweep that finds anything damageable bills *every* body it found for 100 in the same instant, snapshots their positions, and switches the orb to arcing — it stops moving, whips the shader's single direct bolt between those points via `BoltTargeting.StrikeAt`, throws an unparented `BallLightningFlash`, plays `SfxId.WeaponBallLightningArc`, and after `arcDuration` reports `Spent`, at which point the projectile destroys itself. The owner root is passed as the sweep's `exclude`, so the orb cannot kill whoever fired it. `Projectile.HandleHit` is still the path for running into a wall.
 
 ## Multiplayer
 
@@ -128,6 +136,9 @@ Ordering on load: the record lands → `RestoreHealth` clamps to the prefab's `m
 - **A ragdoll frozen out from under you.** `RagdollBudget` may `Freeze` a limp rig; `AgentRagdoll.Update` watches for `!rig.IsLimp` and restores, or the creature stays suspended with its brain off forever.
 - **`Weapon.ExternallyAimed`** must be set when an NPC or turret holds a weapon, or `UpdateWeaponRotation` passes its ownership test on the server and swings every NPC's barrel to follow the host's head.
 - **Loot/enrage replaying on every load.** Anything acting on `OnDeath` or a threshold must check `HealthComponent.IsRestoring` — state yes, announcements no.
+- **A blast must deduplicate by body, not by collider.** A rig is many colliders hanging off its bones, so `OverlapSphere` returns a creature four or five times and a naive loop bills it four or five times. `RadiusDamage` resolves each collider up to the object owning the `HealthComponent` (or the `IDamageable`) and bills that once. Written out by hand this was got wrong: `LightningSpell` deduplicated `HealthComponent` bodies correctly but fell back to `collider.gameObject` for props, so a three-collider `IDamageable` crate took triple damage. Use the helper; do not hand-roll another sweep.
+- **The orb has exactly one bolt, and two things want it.** `BallLightningBoltTargeting`'s idle cone-scan and `BallLightningDischarge` both drive the same shader input (`SetExternalDirectBolt`). `StrikeAt` writes immediately and stamps `Time.frameCount`; `Update` returns early when that stamp is the current frame. Queueing the override for `Update` instead would be a frame late whenever component order put `Update` first — and adding a second LineRenderer bolt, as the laser staff uses, would draw a differently shaded lightning next to the shader's own.
+- **The discharge is decided per machine, so its timing diverges.** Projectiles are not networked — every peer runs its own orb, and `BallLightningProjectile.Initialize` seeds the Perlin wander from `Random`, so the copies drift apart in flight. Damage is billed only by the non-`Cosmetic` copy and is therefore correct, but each copy triggers its own arc when *its* orb comes within `dischargeRadius`, so peers see the flash a few frames apart and, if the wander has separated them far enough, potentially against a different set of bodies. Cosmetic only. Do not "fix" it by billing from every copy.
 - **`DamageNumbers` static subscription.** Outside play mode Unity raises neither `OnDisable` nor `OnDestroy`, so `Bind()` explicitly evicts the previous overlay and compares with `ReferenceEquals`, never `==`.
 
 ## Extending
@@ -146,5 +157,6 @@ Ordering on load: the record lands → `RestoreHealth` clamps to the prefab's `m
 
 1. Call `NetDamage.Apply(targetGameObject, amount, sourceTransform)`. Pass the **shooter/owner root** as source — `LastDamageSource` drives kill credit, `AgentTargeting`'s last-attacker bias, provocation and the ragdoll's death impulse direction.
 2. Decide who calls it. If more than one machine runs the code (a scene prop, a peer's copy of a bullet), gate on `Network.Simulates(victimHealth)` or a `Cosmetic` flag so exactly one call is made.
-3. If the target has no `HealthComponent`, implement `IDamageable` on it — `NetDamage` falls through to that and applies locally.
-4. Nothing else is needed for replication, damage numbers, hit sounds, death, loot, ragdoll or persistence: they all hang off `HealthComponent`'s events.
+3. If it hurts everything in a radius, call `RadiusDamage.Apply` (one shot) or `RadiusDamage.Collect` (sweeping every frame — it fills a caller-owned list and allocates nothing) rather than writing another `OverlapSphere` loop. It resolves and deduplicates bodies for you; see the gotcha above for what hand-rolling it costs.
+4. If the target has no `HealthComponent`, implement `IDamageable` on it — `NetDamage` falls through to that and applies locally.
+5. Nothing else is needed for replication, damage numbers, hit sounds, death, loot, ragdoll or persistence: they all hang off `HealthComponent`'s events.

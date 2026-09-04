@@ -22,6 +22,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | [Save] No prefab registered for id …' and the object never comes back | [Persistence](systems/Persistence.md) |
 | _zverify reports dozens of clashes in a component file that holds several variations | [ArtPipeline](systems/ArtPipeline.md) |
 | a .asset or .unity file fails with 'Unknown error occurred while loading | [ProjectConfig](systems/ProjectConfig.md) |
+| a blast bills a creature once per limb inside its radius, so a body dies instantly | [Combat](systems/Combat.md) |
 | a bottle fills on the host and stays empty for everyone else | [Oxygen](systems/Oxygen.md) |
 | a bottle sits in the plant forever and never fills | [Oxygen](systems/Oxygen.md) |
 | a builder logs success but nothing actually changed on disk | [EditorTooling](systems/EditorTooling.md) |
@@ -62,6 +63,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a generated prefab has an empty motor slot and no error was logged | [EntitySystem](systems/EntitySystem.md) |
 | a geometric test is documented as failing on purpose, and the thing it measures really is too big | [Backpack](systems/Backpack.md) |
 | a grapple swing's speed vanishes the moment the wings deploy | [Ornithopter](systems/Ornithopter.md) |
+| a grounded pack gives one generic prompt whether the press opens it or picks it up | [Backpack](systems/Backpack.md) |
 | a hard dive into a cliff does almost no damage while a gentle landing hurts | [Ornithopter](systems/Ornithopter.md) |
 | a hint or seat prompt stopped appearing during the crash landing | [Visor](systems/Visor.md) |
 | a hosted lobby stays listed after the host has left | [Lobby](systems/Lobby.md) |
@@ -100,6 +102,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a provoked NPC walks toward me instead of running | [AgentSystem](systems/AgentSystem.md) |
 | a raycast right after moving something reads the collider's old position | [ProjectConfig](systems/ProjectConfig.md) |
 | a re-exported character stops animating and the console is clean | [ArtPipeline](systems/ArtPipeline.md) |
+| a readout writes a ValueText and the number never appears on screen | [Visor](systems/Visor.md) |
 | a renamed [SerializeField] and the builder quietly stopped setting it | [EditorTooling](systems/EditorTooling.md) |
 | a render feature is in the renderer asset but never runs | [Environment](systems/Environment.md) |
 | a renderer feature is null even though its sub-asset and script both exist | [Environment](systems/Environment.md) |
@@ -309,11 +312,15 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the arrival sits on a black screen and never plays | [Cutscenes](systems/Cutscenes.md) |
 | the back placeholder is edge-on, lying flat, or sits below the shoulders | [BodyEquipment](systems/BodyEquipment.md) |
 | the back slot is clickable all over my body instead of on the pack's bars | [BodyEquipment](systems/BodyEquipment.md) |
+| the ball lightning orb drifts through creatures without ever hurting them | [Combat](systems/Combat.md) |
 | the beam cone collapses to zero length or stops at nothing | [Flashlight](systems/Flashlight.md) |
 | the beam never stops burning after the button is released | [Artifacts](systems/Artifacts.md) |
 | the beam points somewhere other than the crosshair | [Flashlight](systems/Flashlight.md) |
 | the beam whips around whenever I fire a gauntlet | [Flashlight](systems/Flashlight.md) |
 | the body screen is open but I have a cursor, no controls and no camera | [BodyEquipment](systems/BodyEquipment.md) |
+| the bracket and the name land beside what I am pointing at, not on it | [InteractionSystem](systems/InteractionSystem.md) |
+| the bracket frames a whole ship or hull instead of the control under the crosshair | [Visor](systems/Visor.md) |
+| the bracket marks empty air in front of a machine I am aiming at | [Visor](systems/Visor.md) |
 | the bulb glows while the torch is switched off | [Flashlight](systems/Flashlight.md) |
 | the cabin shakes or the screen comes apart during the descent | [PlayerShip](systems/PlayerShip.md) |
 | the camera cuts instantly to my back instead of swinging | [BodyEquipment](systems/BodyEquipment.md) |
@@ -336,6 +343,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the crew stand up out of the wreck able to walk on air, never falling again | [PlayerShip](systems/PlayerShip.md) |
 | the crosshair lights up on a machine's body but the receptacle beside it cannot be aimed at | [InteractionSystem](systems/InteractionSystem.md) |
 | the crosshair lights up on the oxygen plant's body but neither receptacle can be aimed at | [Oxygen](systems/Oxygen.md) |
+| the crosshair says nothing at all in front of the gear wall | [Backpack](systems/Backpack.md) |
+| the crosshair says nothing at all in front of the ship's inventory wall | [InteractionSystem](systems/InteractionSystem.md) |
 | the crouch eye height keeps snapping back, something else is writing the camera's local position | [PlayerCharacter](systems/PlayerCharacter.md) |
 | the cursor keeps re-locking itself while my panel is open | [PlayerCharacter](systems/PlayerCharacter.md) |
 | the cutscene played but the screen was not black when the ship hit the ground | [Cutscenes](systems/Cutscenes.md) |
@@ -381,6 +390,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the host can pick 8 teams of 12 in a 24-seat lobby | [GameModes](systems/GameModes.md) |
 | the host is the last player to spawn and misses the crew gather | [WorldStreaming](systems/WorldStreaming.md) |
 | the imported mesh arrives untextured, or a handful of faces wear a neighbouring part's colour | [ArtPipeline](systems/ArtPipeline.md) |
+| the info box is cut off by the top of the screen | [Visor](systems/Visor.md) |
 | the item floats beside the hand instead of in it, or comes out comically large | [Inventory](systems/Inventory.md) |
 | the item is removed from the inventory the first time it runs out of charges | [Artifacts](systems/Artifacts.md) |
 | the item loses its charges or its state when I switch slots or re-equip it | [Inventory](systems/Inventory.md) |
@@ -403,6 +413,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the mouse turns my body while the wings are out, and the flight fights it | [Wingsuit](systems/Wingsuit.md) |
 | the NavMesh baker silently skips every chunk / LoadAssetAtPath returns null for a chunk | [Scenes](systems/Scenes.md) |
 | the new asset is rotated relative to every existing one | [ArtPipeline](systems/ArtPipeline.md) |
+| the orb discharges on the host and on a client at slightly different moments | [Combat](systems/Combat.md) |
 | the orientation fix logs 'saved' for a prefab and then FAILED verification on the same run | [Backpack](systems/Backpack.md) |
 | the oxygen bottle's socket paints red when the bottle is dragged out of the hotbar, and the click turns it instead of placing it | [Backpack](systems/Backpack.md) |
 | the oxygen gauge is missing but health shows fine | [Visor](systems/Visor.md) |
@@ -429,6 +440,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the projectile or rope is invisible to everyone except the shooter | [Artifacts](systems/Artifacts.md) |
 | the projectile works on the host but never appears for clients | [Combat](systems/Combat.md) |
 | the prompt lights up but right-clicking refuses to do anything | [InteractionSystem](systems/InteractionSystem.md) |
+| the prompt names a component type instead of the thing — 'Pickupable Item', 'Articulated Part | [InteractionSystem](systems/InteractionSystem.md) |
 | the Q and E chips sit on the wrong arms | [BodyEquipment](systems/BodyEquipment.md) |
 | the Q and E chips stay on screen while I am looking at my own back | [BodyEquipment](systems/BodyEquipment.md) |
 | the quantizer turns a coloured sky or surface flat grey | [Environment](systems/Environment.md) |
@@ -471,6 +483,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the storm's fog and blowing grit are drawn inside a ship or a cave, where the sand cannot reach | [Environment](systems/Environment.md) |
 | the storm's fog and grit are drawn inside the ship, and the crew take sandstorm damage indoors | [PlayerShip](systems/PlayerShip.md) |
 | the sun jumps to a different time of day after loading a save | [Environment](systems/Environment.md) |
+| the target bracket and its name sit beside what I am pointing at, not on it | [Visor](systems/Visor.md) |
 | the team ship spawns for the host and nobody else can see it | [GameModes](systems/GameModes.md) |
 | the Test Runner reports nothing at all instead of a failing test | [Testing](systems/Testing.md) |
 | the third-person camera on the mount jitters or doubles the vehicle's motion | [Vehicles](systems/Vehicles.md) |
@@ -484,7 +497,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the UI is a different size on different screens, or the versus lobby's names are too small on an ultrawide | [UI](systems/UI.md) |
 | the vehicle drives fine for the host but a client steers a body that snaps back | [Vehicles](systems/Vehicles.md) |
 | the versus lobby's player names come out too small on an ultrawide and too large on a narrow window | [Lobby](systems/Lobby.md) |
+| the visor cannot tell me which of two identical canisters on the wall I am pointing at | [Backpack](systems/Backpack.md) |
 | the visor comes back offset to one side after a menu closes | [Visor](systems/Visor.md) |
+| the visor describes what another player is looking at | [Visor](systems/Visor.md) |
 | the visor is a flat overlay and does not feel like it is drawn on glass | [Visor](systems/Visor.md) |
 | the volume sliders in the settings menu do nothing | [audio](systems/audio.md) |
 | the walkability tests are green and I still get caught on something in the cabin | [PlayerShip](systems/PlayerShip.md) |
@@ -759,4 +774,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 518 symptoms, 215 paths, 37 docs -->
+<!-- 533 symptoms, 215 paths, 37 docs -->

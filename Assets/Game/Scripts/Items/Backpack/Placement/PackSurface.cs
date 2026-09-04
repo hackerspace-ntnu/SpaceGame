@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using SpaceGame.Core;
 
 namespace SpaceGame.Items
 {
@@ -70,6 +71,8 @@ namespace SpaceGame.Items
         /// </summary>
         public bool AcceptsItem(InventoryItem item)
         {
+            if (!AllowsPlacementOf(item)) return false;
+
             if (acceptsOnly == null || acceptsOnly.Length == 0) return true;
             if (item == null) return false;
 
@@ -90,11 +93,45 @@ namespace SpaceGame.Items
         /// </summary>
         public bool AcceptsItemId(string itemId)
         {
+            if (!AllowsPlacementOf(string.IsNullOrEmpty(itemId) ? null : Registry<InventoryItem>.Get(itemId)))
+                return false;
+
             if (acceptsOnly == null || acceptsOnly.Length == 0) return true;
             if (string.IsNullOrEmpty(itemId)) return false;
 
             foreach (InventoryItem allowed in acceptsOnly)
                 if (allowed != null && allowed.ID == itemId) return true;
+
+            return false;
+        }
+
+        /// <summary>
+        /// The other half of "does this face take this item" — can the ITEM be here at all,
+        /// regardless of what this face is itself willing to hold.
+        ///
+        /// <para>
+        /// Most gear is sized for a hand and fits wherever its footprint fits. A few items are
+        /// sized against ONE specific face instead (<see cref="ItemGrip.PackSize"/>'s own note) —
+        /// the wing pack fills the rack edge to edge — and <see cref="PackOverhang"/>'s back-panel
+        /// rule, deliberately permissive on both axes for realistic gear like a bedroll, would
+        /// otherwise clamp that same oversized item down to a 3x6 panel and let it be stowed
+        /// somewhere it was never sized for. <see cref="ItemGrip.ConfinedToSurfaces"/> is empty for
+        /// every item but that one, so this is a cheap early-out for everything else — same shape
+        /// as the whitelist beside it, the other direction.
+        /// </para>
+        /// </summary>
+        private bool AllowsPlacementOf(InventoryItem item)
+        {
+            if (item == null || item.itemPrefab == null) return true;
+
+            ItemGrip grip = item.itemPrefab.GetComponentInChildren<ItemGrip>(true);
+            if (grip == null) return true;
+
+            IReadOnlyList<PackSurfaceId> confined = grip.ConfinedToSurfaces;
+            if (confined == null || confined.Count == 0) return true;
+
+            for (int i = 0; i < confined.Count; i++)
+                if (confined[i] == id) return true;
 
             return false;
         }

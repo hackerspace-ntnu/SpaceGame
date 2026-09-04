@@ -895,9 +895,12 @@ namespace SpaceGame.Items
                 // is whether that is legal — which is what the cells answer.
                 targetUv = PackLayout.Snap(surface.Id, surface.Size, shape, uv, yaw);
 
-                // The reserved face's own refusal, asked first: the ghost has to paint red where
-                // the drop will refuse, or the player watches green cells do nothing.
-                placementLegal = surface.AcceptsItemId(HeldItemId())
+                // The face's own refusal, asked first: the ghost has to paint red where the drop
+                // will refuse, or the player watches green cells do nothing. Asked of the ASSET
+                // and not of HeldItemId(), which is deliberately null for a hotbar lift — an id
+                // the face cannot recognise reads as "no reserved face objects", so the ghost
+                // approved every drop the server was about to turn down.
+                placementLegal = surface.AcceptsItem(heldItem)
                                  && pack.Layout.CanPlace(surface.Id, surface.Size, shape,
                                                          targetUv, yaw, HeldItemId());
             }

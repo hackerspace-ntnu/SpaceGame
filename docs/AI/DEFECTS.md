@@ -60,3 +60,7 @@ The suite is edit-mode only — there are no play-mode tests at all, so no runti
 covered. Subsystems with **zero** tests: procedural world generation (68 source files), all of
 `Weapons/`, audio, cutscenes, most of the UI, the backpack display layer, `Vehicles/Rover`, and
 agent perception. See [Testing](systems/Testing.md).
+
+
+defekt: 
+grappling hook does not hook where it is pointet at while riding orniecopter, it hoks streaight down. all items must hit whatever it is pointet at when mounted, riding a ornecopter, gliding etc.

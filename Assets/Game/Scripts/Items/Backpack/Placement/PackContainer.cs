@@ -812,6 +812,13 @@ namespace SpaceGame.Items
                     PackSurface candidate = all[i];
                     if (candidate == null) continue;
 
+                    // The same question TryArrange will ask of each face when this actually runs.
+                    // Geometry alone is not the whole test: a face can refuse an item it has room
+                    // for — because the face is reserved, or because the ITEM is confined to other
+                    // faces (ItemGrip.ConfinedToSurfaces) — and a prediction that skips it approves
+                    // a take whose displaced item then has nowhere to land.
+                    if (!candidate.AcceptsItem(held)) continue;
+
                     if (Layout.TryFindSpot(candidate.Id, candidate.Size, heldShape,
                                            out _, out _, placement.ItemId, mayTurnHeld)) return true;
                 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Items
@@ -86,6 +87,16 @@ namespace SpaceGame.Items
                  "along at whatever scale the handle needed.")]
         [SerializeField] private Transform sizeReference;
 
+        [Header("Pack placement")]
+        [Tooltip("Which pack faces this item may be stowed on. Empty means any face it fits on, " +
+                 "same as every other item — set this only for gear sized against ONE specific " +
+                 "face (see packSize above) rather than a hand, which would otherwise still fit, " +
+                 "via overhang, onto a face it was never sized for. E.g. the Wing Pack, sized to " +
+                 "fill the rack edge to edge, would still clamp down to a back panel's 3x6 span " +
+                 "because a back panel allows overhang on both axes for realistic gear like a " +
+                 "bedroll.")]
+        [SerializeField] private PackSurfaceId[] confinedToSurfaces = new PackSurfaceId[0];
+
         [Header("Escape hatches")]
         [Tooltip("Leave this item's colliders enabled while held. Off by default, and it should stay " +
                  "off: a live collider on the end of an arm shoves the holder around and catches on " +
@@ -145,6 +156,12 @@ namespace SpaceGame.Items
 
         /// <summary>What both sizes are measured against. Null means the whole prefab.</summary>
         public Transform SizeReference => sizeReference;
+
+        /// <summary>
+        /// The pack faces this item may be stowed on, or empty meaning any face that fits it. See
+        /// <see cref="PackSurface.AcceptsItem"/>, the one place this is enforced.
+        /// </summary>
+        public IReadOnlyList<PackSurfaceId> ConfinedToSurfaces => confinedToSurfaces;
 
         public bool KeepColliders => keepColliders;
 

@@ -51,16 +51,6 @@ namespace SpaceGame.Items
         public const float DefaultDroop = 45f;
 
         /// <summary>
-        /// How far below horizontal each arm rests when no worn or carried item asks for the
-        /// fuller <see cref="DefaultDroop"/> pose — every gauntlet-only session on the gear
-        /// screen, which is most of them. Close enough to a natural hang to still read as idle,
-        /// but enough of an outward lift to keep both forearms — and their gauntlet sites —
-        /// clear of the torso's hit-box (user, 2026-09-04: clicking a gauntlet was landing on
-        /// the torso once arms-down became the default for everything but the wingsuit).
-        /// </summary>
-        public const float SeparationDroop = 70f;
-
-        /// <summary>
         /// Put both arms out. <paramref name="body"/> supplies the frame — its own right and
         /// forward, so the pose follows the character rather than the world's axes.
         /// </summary>

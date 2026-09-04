@@ -113,26 +113,24 @@ namespace SpaceGame.EditorTools
                 WornSeat.Apply(worn, spine, fit, mount);
 
                 // The stance the gear screen would put this item in, decided the same way it
-                // decides: the fuller pose only for gear authored along the arms, the resting
-                // separation droop otherwise — always applied, never the rig's bare idle, so a
-                // gauntlet's forearm never previews overlapping the torso the screen keeps it
-                // clear of. Per item, and put back afterwards — there is no Animator running here
-                // to own the arms again on the next frame, so a pose struck for one item would
-                // still be on the body for the next one.
-                bool fullPose = fit != null && fit.HoldsArmsOut;
-                Quaternion[] restPose = ArmPose(animator);
-                InspectStance.Apply(animator, body.transform,
-                    fullPose ? InspectStance.DefaultDroop : InspectStance.SeparationDroop, 0f);
+                // decides: the arms come out only for gear authored along them, everything else is
+                // looked at in the rig's own pose. Per item, and put back afterwards — there is no
+                // Animator running here to own the arms again on the next frame, so a pose struck
+                // for one item would still be on the body for the next one.
+                bool armsOut = fit != null && fit.HoldsArmsOut;
+                Quaternion[] restPose = armsOut ? ArmPose(animator) : null;
+                if (armsOut)
+                    InspectStance.Apply(animator, body.transform, InspectStance.DefaultDroop, 0f);
 
                 report.AppendLine($"{prefab.name}: scale {worn.transform.localScale.x:F4}, " +
                                   $"local position {worn.transform.localPosition:F3}, " +
                                   $"anchored to {(mount != null ? "the rail" : "the bone")}, " +
-                                  $"{(fullPose ? "arms out" : "arms lightly out")}");
+                                  $"{(armsOut ? "arms out" : "arms down")}");
 
                 foreach (var shot in Shots)
                     Render(cam, body, shot.Value, Path.Combine(OutputDir, $"{prefab.name}_{shot.Key}.png"));
 
-                RestoreArmPose(animator, restPose);
+                if (restPose != null) RestoreArmPose(animator, restPose);
                 Object.DestroyImmediate(worn);
             }
 

@@ -182,6 +182,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | different-coloured surfaces collapse to the same colour under the quantizer | [Environment](systems/Environment.md) |
 | distant terrain/objects are missing ahead of me but appear when I turn around | [Environment](systems/Environment.md) |
 | EntityProfile_RobotPhil / _DesertRat is referenced but does not exist | [EntitySystem](systems/EntitySystem.md) |
+| equipping or unequipping a gauntlet keeps selecting the chest or back item | [BodyEquipment](systems/BodyEquipment.md) |
 | Esc right after pressing B leaves no camera enabled at all | [Backpack](systems/Backpack.md) |
 | every client's shot follows the host's crosshair instead of their own aim | [Artifacts](systems/Artifacts.md) |
 | every NPC swings its barrel to follow the host's head | [AgentSystem](systems/AgentSystem.md) |
@@ -307,6 +308,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the arrival logs that the heightmap and the colliders disagree about the ground under the ship | [PlayerShip](systems/PlayerShip.md) |
 | the arrival sits on a black screen and never plays | [Cutscenes](systems/Cutscenes.md) |
 | the back placeholder is edge-on, lying flat, or sits below the shoulders | [BodyEquipment](systems/BodyEquipment.md) |
+| the back slot is clickable all over my body instead of on the pack's bars | [BodyEquipment](systems/BodyEquipment.md) |
 | the beam cone collapses to zero length or stops at nothing | [Flashlight](systems/Flashlight.md) |
 | the beam never stops burning after the button is released | [Artifacts](systems/Artifacts.md) |
 | the beam points somewhere other than the crosshair | [Flashlight](systems/Flashlight.md) |
@@ -757,4 +759,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 516 symptoms, 215 paths, 37 docs -->
+<!-- 518 symptoms, 215 paths, 37 docs -->

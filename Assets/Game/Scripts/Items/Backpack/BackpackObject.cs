@@ -21,7 +21,7 @@ namespace SpaceGame.Items
     /// nothing is hidden inside a pocket any more, so there is no open-only half of the display.
     /// </para>
     /// </summary>
-    public class BackpackObject : PackContainer, IInteractable
+    public class BackpackObject : PackContainer, IInteractable, IInteractionReadout
     {
         [Header("Rig")]
         [Tooltip("Every part that moves when the pack opens, in any order. The expedition rig " +
@@ -1323,6 +1323,42 @@ namespace SpaceGame.Items
             // deliberately: it is how you hand it back to them.
             if (!IsOpen) SetOpen(true);
             else if (owner != null) owner.Reshoulder();
+        }
+
+        // ------------------------------------------------ IInteractionReadout
+
+        /// <summary>
+        /// A pack lying on the sand looks like a pack, so the name is the least of it. What the
+        /// player cannot see is which of the two verbs the button is on right now, and how much is
+        /// in there before they commit to walking over and opening it.
+        /// </summary>
+        public string Label => "Backpack";
+
+        /// <summary>
+        /// Closed on the ground, the press opens the lid; open, it picks the whole pack back up.
+        /// One button, two verbs — so it has to say which one it is on. An owner-less pack has
+        /// nobody to reshoulder it, and the press only shuts the lid again.
+        /// </summary>
+        public string Prompt => !IsOpen
+            ? "RMB: open"
+            : owner != null ? "RMB: shoulder" : "RMB: close";
+
+        /// <summary>
+        /// No bar. A pack's limit is the AREA of its surfaces against the shapes lying on them —
+        /// see <see cref="PackContainer"/> — so there is no honest single number between 0 and 1 to
+        /// draw here, and inventing one would be a fill gauge that lies about whether the next
+        /// thing fits.
+        /// </summary>
+        public float? Value01 => null;
+
+        /// <summary>How much is in there — the question you ask from outside a closed pack.</summary>
+        public string ValueText
+        {
+            get
+            {
+                int stowed = Layout.Placements.Count;
+                return stowed == 1 ? "1 item stowed" : stowed + " items stowed";
+            }
         }
     }
 }

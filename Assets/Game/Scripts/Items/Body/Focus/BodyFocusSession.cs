@@ -67,21 +67,20 @@ namespace SpaceGame.Items
         [Tooltip("Canvas pixels of slack round a site's projected box for the cursor.")]
         [SerializeField, Min(0f)] private float hitPaddingPx = 12f;
 
+        [Tooltip("Half the width of each hit box on the torso's BACK place, metres — one on each " +
+                 "protruding end of the worn pack's lash rail, which is all of that place a click " +
+                 "can land on. Raise it and the two boxes reach in towards the arms.")]
+        [SerializeField, Min(0.02f)] private float torsoHitMetres = 0.28f;
+
         [Header("Inspect stance")]
-        [Tooltip("Hold the body's arms out while the screen is open. Off leaves every item to be " +
-                 "looked at in the rig's own idle, which reintroduces the forearms overlapping the " +
-                 "torso's hit-box — see armSeparationDroop.")]
+        [Tooltip("Let gear hold the body's arms out — only gear whose WornFit asks for it, which " +
+                 "today is the wingsuit alone. Off leaves every item to be looked at in the idle.")]
         [SerializeField] private bool armsOut = true;
 
-        [Tooltip("How far below horizontal each arm hangs, degrees, when gear DOES ask for the full " +
-                 "pose (WornFit.HoldsArmsOut — today the wingsuit alone). 45 is the stance its " +
-                 "leading edge is authored along — move one and the other has to move with it.")]
+        [Tooltip("How far below horizontal each arm hangs, degrees, when gear does ask. 45 is the " +
+                 "stance the worn wingsuit's leading edge is authored along — move one and the " +
+                 "other has to move with it.")]
         [SerializeField, Range(0f, 60f)] private float armDroop = InspectStance.DefaultDroop;
-
-        [Tooltip("How far below horizontal each arm hangs, degrees, the rest of the time — every " +
-                 "gauntlet-only session. Just enough outward lift to keep both gauntlet sites clear " +
-                 "of the torso on screen, without reading as the fuller inspect pose armDroop is.")]
-        [SerializeField, Range(0f, 90f)] private float armSeparationDroop = InspectStance.SeparationDroop;
 
         [Tooltip("How far in front of the shoulder line each arm reaches, degrees.")]
         [SerializeField, Range(-30f, 30f)] private float armForward;
@@ -195,11 +194,11 @@ namespace SpaceGame.Items
             // what decides that. It resolved these bones in Start.
             foreach (BodySlot slot in Gauntlets)
                 sites[(int)slot] = new BodySite(slot, worn, worn.HandSocket(slot), worn.ForearmBone(slot),
-                                                null, null, gauntletPlaceholder);
+                                                null, null, gauntletPlaceholder, torsoHitMetres);
 
             sites[(int)BodySlot.Torso] = new BodySite(BodySlot.Torso, worn, null, null,
                                                       worn.BackBone, worn.ChestBone,
-                                                      backPlaceholder);
+                                                      backPlaceholder, torsoHitMetres);
 
             // Labels project through the lens that is actually rendering — ours, for the duration.
             WorldOverlay overlay = WorldOverlay.Create();
@@ -340,11 +339,11 @@ namespace SpaceGame.Items
             // cursor can click is where the gear is actually drawn. LateUpdate is the only place
             // this can go: the Animator writes the pose between Update and here.
             //
-            // Always on while the screen is open — armSeparationDroop is the resting case, close
-            // enough to the idle to read as one, and armDroop (the fuller pose) only takes over
-            // when gear authored along the arms asks for it. See WornFit.HoldsArmsOut.
-            if (armsOut)
-                InspectStance.Apply(animator, transform, gearHoldsArmsOut ? armDroop : armSeparationDroop, armForward);
+            // Nothing is written on the ordinary frame, and that is the point: the arms hang where
+            // the idle puts them, which is how the character stands everywhere else in the game.
+            // Only gear authored along the arms takes them over — see WornFit.HoldsArmsOut.
+            if (armsOut && gearHoldsArmsOut)
+                InspectStance.Apply(animator, transform, armDroop, armForward);
 
             // The server never answered — a lost race, or a refusal, which announces nothing.
             if (committing >= 0 && Time.unscaledTime > commitDeadline)
@@ -390,15 +389,21 @@ namespace SpaceGame.Items
                     ? focusCamera.Camera.transform.position
                     : transform.position;
 
+                // What the cursor is carrying outranks every geometric rule under it: holding a
+                // gauntlet the arms win, holding a torso item the torso does. Read off the carried
+                // item rather than the site, because it is the same question the move itself will
+                // be judged by — BodySlotRules is what answers both.
+                EquipKind? carriedKind = carriedItem != null ? carriedItem.equipKind : null;
+
                 var nearest = new NearestSite();
 
                 for (int i = 0; i < sites.Length; i++)
                 {
                     if (sites[i] == null
-                        || !sites[i].TryCanvasRect(overlay, hitPaddingPx, out Rect rect)
-                        || !rect.Contains(cursor)) continue;
+                        || !sites[i].TryCursorHit(overlay, hitPaddingPx, cursor, out float centreSqr)) continue;
 
-                    nearest.Offer(i, sites[i].DistanceFrom(lens), (rect.center - cursor).sqrMagnitude);
+                    bool accepts = carriedKind.HasValue && BodySlotRules.Accepts((BodySlot)i, carriedKind.Value);
+                    nearest.Offer(i, accepts, sites[i].DistanceFrom(lens), centreSqr);
                 }
 
                 if (nearest.Any) now = (BodySlot)nearest.Index;

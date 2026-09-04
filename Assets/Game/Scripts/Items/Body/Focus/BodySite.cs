@@ -114,9 +114,18 @@ namespace SpaceGame.Items
         /// <summary>This site's own rim materials — see <see cref="Palette"/> for why they are not shared.</summary>
         private readonly Palette palette;
 
+        /// <summary>Half the width of a box on the torso's back place — see <see cref="TryRailEnds"/>.</summary>
+        private readonly float torsoHitMetres;
+
         private Ghost placeholder;
         private Ghost preview;
         private readonly List<GameObject> shell = new();
+
+        // Reused by the hit test, the depth ranking and the chip placement, every frame the screen
+        // is open: three sites asking for their boxes sixty times a second is not a place to
+        // allocate. Never held across a call — every user fills them first.
+        private readonly List<Bounds> boxes = new();
+        private readonly List<Rect> rects = new();
 
         private GameObject hiddenWorn;
         private readonly List<Renderer> hidden = new();
@@ -135,7 +144,7 @@ namespace SpaceGame.Items
         private bool animating;
 
         public BodySite(BodySlot slot, BodyEquipmentController body, EquipItemSocket socket, Transform forearm,
-                        Transform spine, Transform chest, GameObject placeholderPrefab)
+                        Transform spine, Transform chest, GameObject placeholderPrefab, float torsoHitMetres)
         {
             Slot = slot;
             this.body = body;
@@ -144,6 +153,7 @@ namespace SpaceGame.Items
             this.spine = spine;
             this.chest = chest;
             this.placeholderPrefab = placeholderPrefab;
+            this.torsoHitMetres = torsoHitMetres;
             palette = new Palette();
         }
 
@@ -302,25 +312,97 @@ namespace SpaceGame.Items
             : body.WornInstance(Slot);
 
         /// <summary>
-        /// How far what this site is showing is from <paramref name="point"/> — the lens, when the
-        /// screen is deciding which of two overlapping sites a click belongs to. Infinity when the
-        /// site is showing nothing, which keeps it out of that comparison entirely.
+        /// The world boxes this site can be CLICKED at, which is deliberately not the whole of what
+        /// it draws.
         ///
         /// <para>
-        /// Measured to the centre of the visual's bounds rather than to the nearest face. A worn
-        /// wing is metres across and its near corner reaches past the arm in front of it, so the
-        /// nearest point would hand the click back to the very item this distance exists to rank
-        /// behind; a centre says where the thing actually IS.
+        /// A gauntlet site, and the torso's CHEST place, are clickable where they are drawn: both
+        /// are compact things sitting on the spot they belong to, so their own bounds are already a
+        /// tight target. <b>The torso's BACK place is the exception, and it is why this exists.</b>
+        /// What that place draws is metres across — a mount frame over the shoulders, a wing pack's
+        /// wings down both flanks, a wingsuit spread between the arms — and its projected box
+        /// swallowed both forearms, so a click aimed squarely at a gauntlet went to the torso. It is
+        /// clickable at <b>the lash rail's two protruding ends and nowhere else</b> (user,
+        /// 2026-09-04: "you only can interact with the torso item by clicking on the chest or on the
+        /// two bars on the backpack. nothing else"). Those ends are also the only part of the rail a
+        /// front-on lens can see — the span between them is buried in the rig's rack — so what is
+        /// clickable is what is visible.
+        /// </para>
+        /// <para>
+        /// Both the cursor test and the depth ranking read these, so the site the player is judged
+        /// to be pointing at and the one they are judged to be nearest are the same thing.
         /// </para>
         /// </summary>
-        public float DistanceFrom(Vector3 point)
+        private void HitBoxes(List<Bounds> into)
         {
+            into.Clear();
+
+            if (Slot == BodySlot.Torso && place == EquipKind.Back)
+            {
+                if (TryRailEnds(into)) return;
+
+                // No pack on this back to clip to — it went with the rig when that was deployed.
+                // A box on the spine keeps the slot reachable without handing the sprawling ghost
+                // the rect this method exists to take off it.
+                if (spine != null) into.Add(new Bounds(spine.position, Vector3.one * (torsoHitMetres * 2f)));
+                return;
+            }
+
+            if (TryVisualBounds(out Bounds visual)) into.Add(visual);
+        }
+
+        /// <summary>
+        /// The lash rail's two ends, as boxes. False when there is no rail to measure — the pack is
+        /// deployed, or the part has no renderer to take a size off.
+        ///
+        /// <para>
+        /// The bar's long axis is FOUND rather than assumed: the rail is a mesh part off an FBX and
+        /// which of its local axes runs along the bar is an artefact of the export's axis
+        /// conversion. Its longest local extent is the bar on any convention.
+        /// </para>
+        /// </summary>
+        private bool TryRailEnds(List<Bounds> into)
+        {
+            Transform rail = body.TorsoMount(EquipKind.Back);
+            if (rail == null) return false;
+
+            var renderer = rail.GetComponent<Renderer>();
+            if (renderer == null) return false;
+
+            Bounds local = renderer.localBounds;
+            Vector3 size = local.size;
+            int axis = size.x >= size.y && size.x >= size.z ? 0 : size.y >= size.z ? 1 : 2;
+
+            Vector3 along = Vector3.zero;
+            along[axis] = local.extents[axis];
+
+            Vector3 centre = rail.TransformPoint(local.center);
+            Vector3 arm = rail.TransformVector(along);
+            Vector3 box = Vector3.one * (torsoHitMetres * 2f);
+
+            into.Add(new Bounds(centre + arm, box));
+            into.Add(new Bounds(centre - arm, box));
+            return true;
+        }
+
+        /// <summary>
+        /// The world box of what this site is drawing.
+        ///
+        /// <para>
+        /// Disabled renderers are skipped, which is what makes a <see cref="SiteState.Reserved"/>
+        /// site measure the PLACEHOLDER standing in for the item it is hiding: the worn item is
+        /// hidden by switching its renderers off, and a box measured off the thing the player can no
+        /// longer see would take clicks meant for the ghost in its place.
+        /// </para>
+        /// </summary>
+        private bool TryVisualBounds(out Bounds bounds)
+        {
+            bounds = default;
+
             GameObject visual = Visual;
-            if (visual == null) return float.PositiveInfinity;
+            if (visual == null) return false;
 
             bool any = false;
-            Bounds bounds = default;
-
             foreach (Renderer renderer in visual.GetComponentsInChildren<Renderer>())
             {
                 if (renderer == null || !renderer.enabled || renderer.gameObject.name == OutlineShell.ShellName) continue;
@@ -328,65 +410,118 @@ namespace SpaceGame.Items
                 else bounds.Encapsulate(renderer.bounds);
             }
 
-            return any ? Vector3.Distance(bounds.center, point) : float.PositiveInfinity;
+            return any;
         }
 
         /// <summary>
-        /// Where this site is on the overlay, in canvas pixels: the projected box of whatever it is
-        /// currently showing, padded. False when nothing is showing or it is behind the lens.
+        /// How far the nearest of this site's hit boxes is from <paramref name="point"/> — the lens,
+        /// when the screen is deciding which of two overlapping sites a click belongs to. Infinity
+        /// when the site has nothing to click, which keeps it out of that comparison entirely.
         ///
         /// <para>
-        /// The hit test is done here, in screen space, on purpose. Three sites do not justify
-        /// colliders, and a trigger anywhere near the player's hierarchy or on a gameplay layer is a
-        /// thing the movement probes, the scanner and other players' rays can hit.
+        /// Measured to box CENTRES rather than to nearest faces: a box's near corner reaches past
+        /// whatever stands in front of it, so the nearest point would hand the click back to the
+        /// very thing this distance exists to rank behind. A centre says where the thing actually IS.
         /// </para>
+        /// </summary>
+        public float DistanceFrom(Vector3 point)
+        {
+            HitBoxes(boxes);
+
+            float nearest = float.PositiveInfinity;
+            foreach (Bounds box in boxes) nearest = Mathf.Min(nearest, Vector3.Distance(box.center, point));
+            return nearest;
+        }
+
+        /// <summary>
+        /// Whether the cursor is over this site, and how far it is from the middle of whichever box
+        /// it is over — the tie-break when two sites both contain it.
+        ///
         /// <para>
-        /// Disabled renderers are skipped, which is what makes the <see cref="SiteState.Reserved"/>
-        /// rect the PLACEHOLDER'S: the worn item is hidden by switching its renderers off, and a
-        /// rect measured off the thing the player can no longer see would take clicks meant for the
-        /// ghost standing in its place.
+        /// The hit test is done in screen space on purpose. Three sites do not justify colliders,
+        /// and a trigger anywhere near the player's hierarchy or on a gameplay layer is a thing the
+        /// movement probes, the scanner and other players' rays can all hit.
         /// </para>
+        /// </summary>
+        public bool TryCursorHit(WorldOverlay overlay, float padding, Vector2 cursor, out float cursorToCentreSqr)
+        {
+            cursorToCentreSqr = float.PositiveInfinity;
+            bool hit = false;
+
+            ProjectBoxes(overlay, padding);
+
+            foreach (Rect rect in rects)
+            {
+                if (!rect.Contains(cursor)) continue;
+                hit = true;
+                cursorToCentreSqr = Mathf.Min(cursorToCentreSqr, (rect.center - cursor).sqrMagnitude);
+            }
+
+            return hit;
+        }
+
+        /// <summary>
+        /// Where this site is on the overlay, in canvas pixels — every hit box it has, as one box
+        /// round the lot. For the chips and the caption, which want somewhere to hang rather than
+        /// somewhere to click. False when the site has nothing showing or it is behind the lens.
         /// </summary>
         public bool TryCanvasRect(WorldOverlay overlay, float padding, out Rect rect)
         {
             rect = default;
-            if (overlay == null) return false;
 
-            GameObject visual = Visual;
-            if (visual == null) return false;
+            ProjectBoxes(overlay, padding);
+            if (rects.Count == 0) return false;
 
-            bool any = false;
-            Vector2 min = Vector2.positiveInfinity;
-            Vector2 max = Vector2.negativeInfinity;
+            rect = rects[0];
+            for (int i = 1; i < rects.Count; i++)
+                rect = Rect.MinMaxRect(Mathf.Min(rect.xMin, rects[i].xMin), Mathf.Min(rect.yMin, rects[i].yMin),
+                                       Mathf.Max(rect.xMax, rects[i].xMax), Mathf.Max(rect.yMax, rects[i].yMax));
 
-            foreach (Renderer renderer in visual.GetComponentsInChildren<Renderer>())
+            return true;
+        }
+
+        /// <summary>
+        /// Project every hit box onto the overlay, padded, into <see cref="rects"/> — one rect each,
+        /// never merged, because two rail ends with the whole of a back between them must not become
+        /// one box across the shoulders.
+        ///
+        /// <para>
+        /// A corner behind the lens is skipped, not fatal. A hit box is a world AABB and so is
+        /// generously larger than the thing it stands for; with the camera pulled in against a wall,
+        /// one corner can fall behind the near plane while the site is still plainly on screen.
+        /// Failing the whole site there would make it silently un-clickable — including the site a
+        /// carried item came FROM, which would strand the carry. The rect built from the corners
+        /// that do project is smaller than the true one, which costs a little slack at the edges and
+        /// never puts the site somewhere it is not.
+        /// </para>
+        /// </summary>
+        private void ProjectBoxes(WorldOverlay overlay, float padding)
+        {
+            rects.Clear();
+            if (overlay == null) return;
+
+            HitBoxes(boxes);
+
+            foreach (Bounds box in boxes)
             {
-                if (renderer == null || !renderer.enabled || renderer.gameObject.name == OutlineShell.ShellName) continue;
+                bool any = false;
+                Vector2 min = Vector2.positiveInfinity;
+                Vector2 max = Vector2.negativeInfinity;
 
-                Bounds b = renderer.bounds;
                 for (int i = 0; i < 8; i++)
                 {
-                    var corner = new Vector3((i & 1) == 0 ? b.min.x : b.max.x,
-                                             (i & 2) == 0 ? b.min.y : b.max.y,
-                                             (i & 4) == 0 ? b.min.z : b.max.z);
-                    // A corner behind the lens is skipped, not fatal. Renderer.bounds is a world
-                    // AABB and so is generously larger than the item; with the camera pulled in
-                    // against a wall, one corner of it can fall behind the near plane while the
-                    // site is still plainly on screen. Failing the whole site there would make it
-                    // silently un-clickable — including the site a carried item came FROM, which
-                    // would strand the carry. The rect built from the corners that do project is
-                    // smaller than the true one, which costs a little slack at the edges and never
-                    // puts the site somewhere it is not.
+                    var corner = new Vector3((i & 1) == 0 ? box.min.x : box.max.x,
+                                             (i & 2) == 0 ? box.min.y : box.max.y,
+                                             (i & 4) == 0 ? box.min.z : box.max.z);
+
                     if (!overlay.Project(corner, out Vector2 p)) continue;
                     min = Vector2.Min(min, p);
                     max = Vector2.Max(max, p);
                     any = true;
                 }
-            }
 
-            if (!any) return false;
-            rect = Rect.MinMaxRect(min.x - padding, min.y - padding, max.x + padding, max.y + padding);
-            return true;
+                if (any) rects.Add(Rect.MinMaxRect(min.x - padding, min.y - padding, max.x + padding, max.y + padding));
+            }
         }
 
         // ── Teardown ──────────────────────────────────────────────────────────

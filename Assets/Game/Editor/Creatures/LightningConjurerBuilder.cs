@@ -490,6 +490,15 @@ namespace SpaceGame.EditorTools
         /// pointless -- you would fight the cooldown rather than the creature.
         private const int CastDamage = 10;
 
+        /// What it takes to put the machine down.
+        ///
+        /// Deliberately low for something this size -- a fifth of a rock golem's 420, and less
+        /// than a dune rat's 90 buys after the rat's fur. The creature's defence is the range it
+        /// fights at, not the hits it can absorb: it opens at 28 m and drops bolts on where you
+        /// stood, so the fight is decided by whether you can close the distance at all. A health
+        /// pool sized off its silhouette instead would make that closing run the whole encounter.
+        private const int MaxHealth = 100;
+
         /// How far above the impact point the bolt is DRAWN from.
         ///
         /// Presentation only -- LightningStrike.Damage is always billed at the ground point,
@@ -1553,6 +1562,10 @@ namespace SpaceGame.EditorTools
             WireMotor(root, animator);
             WireBrain(root);
             WireNetworking(root);
+            // After WireNetworking: NetworkedHealthComponent is a NetworkBehaviour and wants the
+            // NetworkObject to already be on the object. Before SaveablePolicy.Ensure below,
+            // which decides on HealthSaveable by looking for a HealthComponent.
+            WireHealth(root);
 
             // Footstep camera shake, driven by the two OnFootPlant events baked onto the
             // Walk clip in ConfigureImporter.
@@ -1652,8 +1665,9 @@ namespace SpaceGame.EditorTools
         /// creature IS the server, so it behaves as server-authoritative -- while leaving the
         /// door open for a creature that is ever handed to a client.
         ///
-        /// NOT here: NetworkedHealthComponent. This creature has no HealthComponent at all yet,
-        /// so there is no health to replicate; it can hurt a player and cannot be hurt back.
+        /// NetworkedHealthComponent is NOT here either -- it goes on in WireHealth beside the
+        /// HealthComponent it replicates, because the two are one decision and splitting them
+        /// across two methods is how one of them gets forgotten.
         private static void WireNetworking(GameObject root)
         {
             var netObject = root.AddComponent<Unity.Netcode.NetworkObject>();
@@ -1674,6 +1688,65 @@ namespace SpaceGame.EditorTools
             netTransform.Interpolate = true;
 
             root.AddComponent<SpaceGame.Core.NetAuthority>();
+        }
+
+        /// Makes the creature killable. Until this existed it could hurt a player and could not
+        /// be hurt back -- every shot at it found no IDamageable and passed straight through.
+        ///
+        /// Three components, and each one covers a case the other two do not:
+        ///
+        ///   HealthComponent           IS the IDamageable. NetDamage and AgentProjectile both
+        ///                             resolve their victim with GetComponentInParent, so on the
+        ///                             root it catches hits landing on any part of the rig.
+        ///   HealthReactionModule      turns the death into something that happened: the hurt and
+        ///                             death sounds, a noise event other agents can hear, and the
+        ///                             despawn timer. Without it a killed conjurer stands at zero
+        ///                             health, still casting, forever.
+        ///   NetworkedHealthComponent  makes the server the only machine that may spend that
+        ///                             health, and publishes what is left to everyone else.
+        ///                             Without it a client's shots are decided locally and the
+        ///                             two machines disagree about whether it is dead.
+        ///
+        /// The capsule that catches those hits is already on the root, sized to the model, so
+        /// nothing extra is needed to be shootable.
+        private static void WireHealth(GameObject root)
+        {
+            var health = root.AddComponent<HealthComponent>();
+            var hso = new SerializedObject(health);
+            SetInt(hso, "maxHealth", MaxHealth);
+            // Full, not zero. currentHealth is a serialized field with its own default, and a
+            // prefab that ships at a different number than its maximum spawns pre-damaged.
+            SetInt(hso, "currentHealth", MaxHealth);
+            hso.ApplyModifiedPropertiesWithoutUndo();
+
+            var reaction = root.AddComponent<HealthReactionModule>();
+            var rso = new SerializedObject(reaction);
+            // BOTH trigger names cleared, which is not the golem's setup and is correct here.
+            // The module's defaults are "Hurt" and "Death"; this controller has neither
+            // parameter -- BuildController declares SpeedX, SpeedY, FallSpeed, IsGrounded,
+            // IsImmobalized, IsAiming, Cast, Wake and Awake, and nothing else. SetTrigger on a
+            // name the controller does not have is a warning per call, so a creature being shot
+            // would fill the console. Empty strings are skipped outright by the module.
+            //
+            // The consequence is that death is not animated: the machine stops mid-pose and
+            // fades out on the despawn timer. Giving it a real collapse means authoring the clip
+            // in _Source~/anim.py first, then declaring the parameter here -- not naming a
+            // trigger that does not exist and hoping.
+            SetString(rso, "hurtAnimTrigger", string.Empty);
+            SetString(rso, "dieAnimTrigger", string.Empty);
+            // It is a large machine and it dies loudly. Both radii are above the module's own
+            // defaults for the same reason ActivationRange is 28 m: everything about this
+            // creature is scaled to a body six times the player's height.
+            SetFloat(rso, "damageNoiseRadius", 25f);
+            SetFloat(rso, "deathNoiseRadius", 40f);
+            // Switches off AgentController on death, which is what stops the corpse casting.
+            SetBool(rso, "disableAgentOnDeath", true);
+            // Long enough to walk up to the thing you just killed. It falls where it stood and
+            // there is no death animation to watch, so the body IS the feedback.
+            SetFloat(rso, "despawnDelay", 12f);
+            rso.ApplyModifiedPropertiesWithoutUndo();
+
+            root.AddComponent<NetworkedHealthComponent>();
         }
 
         private static void WireMotor(GameObject root, Animator animator)

@@ -25,14 +25,19 @@ GameObject:
   - component: {fileID: 5786818673765399766}
   - component: {fileID: 1793298049416847519}
   - component: {fileID: 4380562659852610884}
+  - component: {fileID: 6567108366551290792}
+  - component: {fileID: 1052566139740514403}
+  - component: {fileID: 1028006592751415487}
   - component: {fileID: 1375402022796731716}
   - component: {fileID: 3356275409918690917}
+  - component: {fileID: 9097811610019955118}
   - component: {fileID: 4020092320805784377}
   - component: {fileID: 5593102345198798214}
   - component: {fileID: 4359041970870145170}
   - component: {fileID: 774860145324736491}
   - component: {fileID: 3417621457571069604}
   - component: {fileID: 3986806851420145107}
+  - component: {fileID: 3419823527871077112}
   - component: {fileID: 6369762321036866136}
   m_Layer: 0
   m_Name: LightningConjurer
@@ -423,6 +428,73 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   simulationDrivers: []
   freezePhysicsOnRemote: 1
+--- !u!114 &6567108366551290792
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9126126734686017781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc48a3302b6d69f41839c4004ccf08a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.HealthComponent
+  maxHealth: 100
+  currentHealth: 100
+--- !u!114 &1052566139740514403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9126126734686017781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5bdb2dfd50e904a02822de43186a02e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.HealthReactionModule
+  thresholdReactions: []
+  hurtAnimTrigger: 
+  dieAnimTrigger: 
+  emitNoiseOnDamage: 1
+  damageNoiseRadius: 25
+  hurtId: 409
+  hurtSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  onDeath:
+    m_PersistentCalls:
+      m_Calls: []
+  emitNoiseOnDeath: 1
+  deathNoiseRadius: 40
+  deathId: 410
+  deathSound:
+    Guid:
+      Data1: 0
+      Data2: 0
+      Data3: 0
+      Data4: 0
+    Path: 
+  despawnDelay: 12
+  disableAgentOnDeath: 1
+--- !u!114 &1028006592751415487
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9126126734686017781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2a140c4cd8644f69b66c4a36ec82f21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.NetworkedHealthComponent
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!114 &1375402022796731716
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -451,6 +523,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15182f263d2d948b5b98ade6a0a6980c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.TransformSaveable
+--- !u!114 &9097811610019955118
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9126126734686017781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c18a9adbe9734a35aee1b80b9c4bcda, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthSaveable
 --- !u!114 &4020092320805784377
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -524,6 +608,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
+--- !u!114 &3419823527871077112
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9126126734686017781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a57eeae665b53463c809438f31f5208b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthReactionSaveable
 --- !u!114 &6369762321036866136
 MonoBehaviour:
   m_ObjectHideFlags: 0

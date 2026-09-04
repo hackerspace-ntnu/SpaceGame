@@ -67,6 +67,7 @@ namespace SpaceGame.Gameplay
                 // machine that ever learns who dealt a hit — LastDamageSource is written by
                 // HealthComponent.Damage, which runs nowhere else.
                 health.OnDamage += AnnounceDamage;
+                health.OnDamage += TellOwnerWhereFrom;
             }
             else
             {
@@ -92,6 +93,7 @@ namespace SpaceGame.Gameplay
                     health.OnDeath -= SyncHealth;
                     health.OnRestored -= SyncHealth;
                     health.OnDamage -= AnnounceDamage;
+                    health.OnDamage -= TellOwnerWhereFrom;
                 }
                 else
                 {
@@ -113,6 +115,46 @@ namespace SpaceGame.Gameplay
 
             GameObject source = arg.Resolve();
             health.Damage(arg.A, source != null ? source.transform : null);
+        }
+
+        /// <summary>
+        /// Tells the victim's own machine which way the hit came from, so their visor can point at
+        /// it.
+        ///
+        /// <para>
+        /// Separate from <see cref="AnnounceDamage"/> and deliberately not folded into it. That one
+        /// is a BROADCAST and is gated on a player having dealt the hit, because damage numbers
+        /// over things nobody is watching are not worth the bandwidth — which means a client mauled
+        /// by a creature is told nothing at all by it. This is a UNICAST to one player about their
+        /// own body, so it is cheap enough to send for every source, creature and cactus included.
+        /// </para>
+        /// <para>
+        /// An Rpc rather than a NetMessaging message because that layer has no unicast: its sends
+        /// are to everyone or to everyone-but-me, and this must not tell the whole session which
+        /// way to flinch.
+        /// </para>
+        /// </summary>
+        private void TellOwnerWhereFrom(int amount)
+        {
+            if (health == null || amount <= 0) return;
+
+            // The host's own player already raised the event locally inside Damage(); sending to
+            // it as well would flash the arc twice for one hit.
+            if (!IsSpawned || OwnerClientId == NetworkManager.ServerClientId) return;
+
+            Transform source = health.LastDamageSource;
+            DamageDirectionRpc(amount, source != null ? source.position : Vector3.zero, source != null);
+        }
+
+        /// <summary>
+        /// Runs on the victim's machine only. Raises the directional event and changes no health:
+        /// the value itself arrives through <see cref="networkHealth"/>, and subtracting here as
+        /// well would apply the same hit twice.
+        /// </summary>
+        [Rpc(SendTo.Owner)]
+        private void DamageDirectionRpc(int amount, Vector3 sourcePosition, bool hasSource)
+        {
+            if (health != null) health.ReportDamageDirection(amount, sourcePosition, hasSource);
         }
 
         private void SyncHealth(int _) => SyncHealth();

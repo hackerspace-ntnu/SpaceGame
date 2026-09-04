@@ -25,9 +25,14 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
+    - _ArcFade: 0
+    - _ArcFeather: 0.18
+    - _EdgeSharpness: 6
     - _Intensity: 2.4
     - _Progress: 0
     - _TrailStrength: 0.5
+    - _TurbScale: 26
+    - _Turbulence: 0.45
     m_Colors:
     - _Color: {r: 1, g: 0.86, b: 0.62, a: 1}
   m_BuildTextureStacks: []

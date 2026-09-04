@@ -41,7 +41,6 @@ GameObject:
   m_Component:
   - component: {fileID: 8634185112703890425}
   - component: {fileID: 1511543762564884288}
-  - component: {fileID: 5178185435962744449}
   - component: {fileID: 5133823968403859250}
   - component: {fileID: 6595338401192417714}
   - component: {fileID: 3430819889442269941}
@@ -51,6 +50,9 @@ GameObject:
   - component: {fileID: 8416476732712291472}
   - component: {fileID: 8335813745079777345}
   - component: {fileID: 4267339532360086985}
+  - component: {fileID: 7627548566155297276}
+  - component: {fileID: 8454917835530842175}
+  - component: {fileID: 1354241594920813519}
   m_Layer: 0
   m_Name: SmallMotor
   m_TagString: Untagged
@@ -100,27 +102,6 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!65 &5178185435962744449
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6903902851709510415}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1.46, y: 1.8000002, z: 1.8000002}
-  m_Center: {x: 0, y: -0.00000011920929, z: 0}
 --- !u!54 &5133823968403859250
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -285,6 +266,93 @@ MonoBehaviour:
   aimMargin: 0.5
   ghostRange: 120
   fittedSoundId: 506
+--- !u!114 &7627548566155297276
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6903902851709510415}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e96cb6065543e43c4a752faaa1468eb1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.Components.NetworkTransform
+  ShowTopMostFoldoutHeaderGroup: 1
+  NetworkTransformExpanded: 0
+  AutoOwnerAuthorityTickOffset: 1
+  PositionInterpolationType: 0
+  RotationInterpolationType: 0
+  ScaleInterpolationType: 0
+  PositionLerpSmoothing: 1
+  PositionMaxInterpolationTime: 0.1
+  RotationLerpSmoothing: 1
+  RotationMaxInterpolationTime: 0.1
+  ScaleLerpSmoothing: 1
+  ScaleMaxInterpolationTime: 0.1
+  AuthorityMode: 0
+  TickSyncChildren: 0
+  UseUnreliableDeltas: 0
+  SyncPositionX: 1
+  SyncPositionY: 1
+  SyncPositionZ: 1
+  SyncRotAngleX: 1
+  SyncRotAngleY: 1
+  SyncRotAngleZ: 1
+  SyncScaleX: 1
+  SyncScaleY: 1
+  SyncScaleZ: 1
+  PositionThreshold: 0.001
+  RotAngleThreshold: 0.01
+  ScaleThreshold: 0.01
+  UseQuaternionSynchronization: 0
+  UseQuaternionCompression: 0
+  UseHalfFloatPrecision: 0
+  InLocalSpace: 0
+  SwitchTransformSpaceWhenParented: 0
+  Interpolate: 1
+  SlerpPosition: 0
+--- !u!114 &8454917835530842175
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6903902851709510415}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f50f2a17a0a945af85a1e2619d71e13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.WorldItem
+  sizing: 1
+  mass: 300
+  density: 90
+  minimumMass: 1.5
+  maximumMass: 80
+  linearDamping: 1.5
+  angularDamping: 4
+  minimumGrabSize: 0.45
+--- !u!65 &1354241594920813519
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6903902851709510415}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.46, y: 1.8000002, z: 1.8000002}
+  m_Center: {x: 0, y: -0.00000011920929, z: 0}
 --- !u!1001 &8036714199032211643
 PrefabInstance:
   m_ObjectHideFlags: 0

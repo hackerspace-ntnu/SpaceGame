@@ -260,10 +260,7 @@ namespace SpaceGame.Presentation
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 2000; // above the HUD (0) and the match result screen (1000)
 
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
+            UIScale.Configure(canvasGo.GetComponent<CanvasScaler>());
 
             group = canvasGo.GetComponent<CanvasGroup>();
             group.alpha = 0f;
@@ -655,14 +652,21 @@ namespace SpaceGame.Presentation
             SettingsWidgets.Heading(page, "Actions");
 
             Binding(page, "Use / fire", "Left Mouse");
-            Binding(page, "Interact", "E");
+            Binding(page, "Interact", "Right Mouse");
             Binding(page, "Backpack", "B");
             Binding(page, "Flashlight", "L");
             Binding(page, "Answer a question", "Y  ·  N");
 
+            SettingsWidgets.Heading(page, "Worn gear");
+
+            Binding(page, "Left gauntlet", "Q");
+            Binding(page, "Right gauntlet", "E");
+            Binding(page, "Body gear", "I");
+            Binding(page, "Deploy back item", "Space, twice");
+
             SettingsWidgets.Heading(page, "Held item");
 
-            Binding(page, "Select slot", "1 – 0");
+            Binding(page, "Select slot", "1 – 3");
             Binding(page, "Cycle slots", "Scroll");
             Binding(page, "Drop", "G");
 
@@ -683,7 +687,7 @@ namespace SpaceGame.Presentation
             Binding(page, "Skip transition", "Space");
             Binding(page, "Quicksave", "F5");
             Binding(page, "Quickload", "F9");
-            Binding(page, "Artifact browser  ·  dev mode", "I");
+            Binding(page, "Artifact browser  ·  dev mode", "O");
 
             SettingsWidgets.Caption(page, "Bindings are fixed for now — this page is a reference, not an editor.");
 
@@ -734,7 +738,7 @@ namespace SpaceGame.Presentation
 
             SettingsWidgets.Caption(page, "Also on I during play, while developer mode is on.");
 
-            Binding(page, "Artifact browser", "I");
+            Binding(page, "Artifact browser", "O");
         }
 
         /// <summary>

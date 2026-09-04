@@ -16,7 +16,7 @@ symptoms:
   - "my asmdef cannot see PlayerController / GameServices / NetMessaging"
   - "a gameplay hotkey still fires while a menu or the chat box is open"
 reads_with: [Multiplayer, Persistence, SceneTransitions, UI]
-updated: 2026-09-01
+updated: 2026-09-03
 ---
 
 # Core Services
@@ -86,13 +86,13 @@ Asset: [InputSystem_Actions.inputactions](Assets/Game/Settings/Input/InputSystem
 
 | Map | Actions |
 | --- | --- |
-| `Player` | Move, Look, Use, Interact, Crouch, Jump, Previous, Next, Sprint, Dash, Vertical, Turn, Backpack |
-| `UI` | Navigate, Submit, Cancel, Point, Click, RightClick, MiddleClick, ScrollWheel, TrackedDevice*, Hotkey, Map, Pause, DevInventory, Chat, Hud |
+| `Player` | Move, Look, Use, Interact (**right mouse**), Crouch, Jump, Previous, Next, Sprint, Dash, Vertical, Turn (Q/E, mounts), Backpack, GauntletLeft (**Q**), GauntletRight (**E**) |
+| `UI` | Navigate, Submit, Cancel, Point, Click, RightClick, MiddleClick, ScrollWheel, TrackedDevice*, Hotkey, Map, Pause, DevInventory (**O**), Chat, Hud, BodyInventory (**I**) |
 | `Hotbar` | Hotbar1–Hotbar10, Drop, HotbarScroll |
 
 Control schemes: `Keyboard&Mouse`, `Gamepad`, `Touch`, `Joystick`, `XR`.
 
-**The generated file embeds its own copy of the JSON** (`InputActionAsset.FromJson(@"...")` at line 87) and is what binds at runtime — editing the `.inputactions` changes nothing until the asset is reimported and the wrapper regenerated. Because that regeneration rewrites 3000 lines, several actions are instead **built in code** in `PlayerInputManager.EnsureInputs()`: `Aim` (RMB / left trigger), `PackYaw` (wheel), `PackStow1–4` (keys 1–4), `PackRack` (R / north button). Those are enabled explicitly (`SetPackYawEnabled` etc.) because focus mode disables the whole component.
+**The generated file embeds its own copy of the JSON** (`InputActionAsset.FromJson(@"...")` at line 87) and is what binds at runtime — editing the `.inputactions` changes nothing until the asset is reimported and the wrapper regenerated. Because that regeneration rewrites 3000 lines, several actions are instead **built in code** in `PlayerInputManager.EnsureInputs()`: `PackYaw` (wheel), `PackStow1–4` (keys 1–4), `PackRack` (R / north button). Those are enabled explicitly (`SetPackYawEnabled` etc.) because focus mode disables the whole component.
 
 ## Flows
 
@@ -129,7 +129,7 @@ Control schemes: `Keyboard&Mouse`, `Gamepad`, `Touch`, `Joystick`, `XR`.
 - Registry order matters: items **before** `SaveablePrefabRegistry.LoadAll()`, since half the prefab table is derived from items.
 - Playing directly from a world/menu scene skips Bootstrap's registry and audio; `NetworkBootstrap` patches only the NetworkManager and logs a warning that the rest are still absent.
 - `PlayerInputManager.OnEnable` can run before its own `Awake` (`PlayerController.Awake` toggles the component), hence `EnsureInputs()` at every entry point. Callbacks are bound once in `BindActions`, never in `OnEnable` — lambdas cannot be unsubscribed, and a death/respawn cycle would double-fire jump.
-- `OnDisable` zeroes `MoveInput`/`LookInput`/`CrouchHeld`/`AimHeld` on purpose: axes are only written in `Update`, so a stale vector would outlive death.
+- `OnDisable` zeroes `MoveInput`/`LookInput`/`CrouchHeld` on purpose: axes are only written in `Update`, so a stale vector would outlive death.
 - `SceneReference` stores a scene **name**, not a path or index. NGO hashes scene *paths* case-sensitively — see [Multiplayer.md](Multiplayer.md).
 - `Bootstrapper.AfterSceneLoad` is `async void` with no error handling; an exception during the target load is swallowed. `ApplyEngineSettings` skips window mode in the editor deliberately (it would fullscreen the Game view every Play).
 - Any world-level hotkey must first check `GameplayMenuScope.AcceptsGameplayInput` — the shared, reference-counted gate.

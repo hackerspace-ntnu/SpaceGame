@@ -42,9 +42,6 @@ namespace SpaceGame.EditorTools
         private const string NetworkPrefabsPath =
             "Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset";
 
-        /// <summary>The ground layer DropItemPhysics settles against, shared by every artifact.</summary>
-        private const int GroundLayerMask = 128;
-
         /// <summary>
         /// Nets in the canister.
         ///
@@ -82,9 +79,6 @@ namespace SpaceGame.EditorTools
         /// </para>
         /// </summary>
         private const int CatchableLayers = 1 << 0;
-
-        /// <summary>Pickup volume, matching the other gun-sized artifacts.</summary>
-        private const float PickupRadius = 0.16f;
 
         private const string CordShaderName = "Universal Render Pipeline/Lit";
 
@@ -189,20 +183,12 @@ namespace SpaceGame.EditorTools
             NetworkObject netObject = root.AddComponent<NetworkObject>();
             netObject.SynchronizeTransform = true;
 
-            SphereCollider sphere = root.AddComponent<SphereCollider>();
-            sphere.radius = PickupRadius;
-
-            Rigidbody body = root.AddComponent<Rigidbody>();
-            body.isKinematic = true;
-            body.useGravity = true;
-
             AddByName(root, "SpaceGame.Items.PickupableItem");
 
-            DropItemPhysics drop = root.AddComponent<DropItemPhysics>();
-            var dropSo = new SerializedObject(drop);
-            Field.Set(dropSo, "rb", body);
-            Field.SetInt(dropSo, "groundLayer", GroundLayerMask);
-            dropSo.ApplyModifiedPropertiesWithoutUndo();
+            // The body, a collider the shape of the item, the sizing and the netcode that lets
+            // another machine watch it be shoved about. One shared block - see ItemWorldPresence
+            // for what nine hand-written copies of it cost.
+            ItemWorldPresence.Apply(root);
 
             root.AddComponent<NetRelay>();
             root.AddComponent<SaveableEntity>();

@@ -42,9 +42,10 @@ namespace SpaceGame.Items
         [Tooltip("Metres the stakes sit above their authored position while the pack is stowed.")]
         [SerializeField, Min(0f)] private float stakeLift = 0.14f;
 
-        [Tooltip("What the holders populate outward FROM on the last beat — the oxygen tank, " +
-                 "which is the rig's fixed landmark and therefore the one place a player's eye is " +
-                 "already resting when the pack finishes opening. Unwired, the pack's own origin " +
+        [Tooltip("What the holders populate outward FROM on the last beat — the rig's fixed " +
+                 "landmark, and therefore the one place a player's eye is already resting when " +
+                 "the pack finishes opening. On the expedition rig that is the oxygen " +
+                 "manifold, which carries its only emissive. Unwired, the pack's own origin " +
                  "stands in, which is close enough on any rig whose landmark is central.")]
         [SerializeField] private Transform holderOrigin;
 
@@ -61,6 +62,15 @@ namespace SpaceGame.Items
 
         public bool IsOpen { get; private set; }
         public bool IsWorn { get; private set; } = true;
+
+        /// <summary>
+        /// Whether the rig is mid-flight: thrown down, or on its way back to a back.
+        ///
+        /// A flight is an ANIMATION — <c>BackpackController</c> writes the transform frame by frame
+        /// — and an animation is not a body. See <see cref="RefreshBody"/> for what that costs when
+        /// it is treated as one.
+        /// </summary>
+        public bool IsFlying { get; private set; }
 
         /// <summary>
         /// Is the front leaf standing up as a rack?
@@ -195,10 +205,39 @@ namespace SpaceGame.Items
                 SnapRack(false);
             }
 
-            // Off while worn. Colliders under the same Rigidbody are one compound collider, so a
-            // worn pack would otherwise bolt a 0.35 x 0.53 m box onto the player's own capsule and
-            // wedge them in every doorway they fit through before.
-            if (bodyCollider != null) bodyCollider.enabled = !worn;
+            RefreshBody();
+        }
+
+        /// <summary>Set by <c>BackpackController</c> at both ends of every arc it flies.</summary>
+        public void SetFlying(bool flying)
+        {
+            IsFlying = flying;
+            RefreshBody();
+        }
+
+        /// <summary>
+        /// The rig is a solid body in exactly one situation: standing still on the ground where
+        /// somebody put it. Worn and in flight are both off, for two different reasons.
+        ///
+        /// <para>
+        /// <b>Worn</b>, because colliders under the same Rigidbody are one compound collider, so a
+        /// worn pack would bolt the box below onto the wearer's own capsule and wedge them in
+        /// every doorway they fit through before.
+        /// </para>
+        /// <para>
+        /// <b>In flight</b>, because the box is fitted to the UNFOLDED rig — 1.81 x 0.87 x 2.19 m
+        /// on the shipped one, see <c>ExpeditionRigWiring.EnsureBodyCollider</c> — and it reaches
+        /// 1.58 m along +Z, which the deploy points AT the player. The toss starts 0.45 m in front
+        /// of them at chest height, so switching the box on there drops a static collider straight
+        /// through the wearer's 3 m capsule with the shallowest way out pointing DOWN. PhysX
+        /// obliges: on sand you are shoved into the ground and the terrain shoves you back, on any
+        /// built floor you go through it. That is the "I put my pack down in the ship and ended up
+        /// under the ship" bug, and it is not the ship's — it is every floor's.
+        /// </para>
+        /// </summary>
+        private void RefreshBody()
+        {
+            if (bodyCollider != null) bodyCollider.enabled = !IsWorn && !IsFlying;
         }
 
         public void SetOpen(bool open)
@@ -227,11 +266,15 @@ namespace SpaceGame.Items
             if (doorRoutine != null) StopCoroutine(doorRoutine);
             doorRoutine = null;
 
-            // A pack that is not running cannot start a coroutine, and StartCoroutine THROWS
-            // rather than returning null. Same guard, same reason, as SetRacked's: a prefab being
-            // wired, an EditMode test or an object deactivated mid-swing gets the settled pose
-            // instead of the animation. Without it BackpackController.RunStow would also be left
-            // waiting on IsSwinging for a swing that never began.
+            // A pack that is not running cannot start a coroutine: measured 2026-09-03, Unity logs
+            // "Coroutine couldn't be started because the game object is inactive!" as an ERROR and
+            // hands back null — it does not throw, which matters because an unexpected error log
+            // fails whatever test provoked it. (On an ACTIVE object in EditMode it does start, runs
+            // to the first yield, and is never ticked again.) Same guard, same reason, as
+            // SetRacked's: a prefab being wired, an EditMode test or an object deactivated
+            // mid-swing gets the settled pose instead of the animation. Without it
+            // BackpackController.RunStow would also be left waiting on IsSwinging for a swing that
+            // never began.
             if (!isActiveAndEnabled)
             {
                 if (open)

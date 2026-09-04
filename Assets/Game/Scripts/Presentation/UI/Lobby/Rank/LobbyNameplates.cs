@@ -109,7 +109,7 @@ namespace SpaceGame.Presentation.Lobbies
         public void Position(Camera camera, IReadOnlyList<Transform> heads, IReadOnlyList<bool> occupied)
         {
             float nameWidth = WidestName();
-            float pitch = SeatPitchOnScreen(camera, heads, occupied);
+            float pitch = SeatPitchOnCanvas(camera, heads, occupied);
 
             RankNameVisibility visibility = RankOverlayScale.NamesFor(pitch, nameWidth);
             float size = Mathf.Max(RankOverlayScale.MinFontSize,
@@ -148,47 +148,47 @@ namespace SpaceGame.Presentation.Lobbies
         /// <summary>
         /// How far apart the two nearest heads are on the canvas, which is the room one name has.
         ///
+        /// <para>
         /// Measured between real heads rather than derived from <see cref="RankLayout"/>, because
         /// that distance depends on where the camera ended up — and where the camera ended up is the
         /// thing being adapted to. Heads more than a row apart vertically are skipped: one well
         /// above another is not competing with it for horizontal space.
+        /// </para>
+        ///
+        /// <para>
+        /// Measured through <see cref="LobbyOverlayLayer.TryToCanvas"/>, so the answer is already in
+        /// the canvas pixels every size in this file is written in. It used to project to SCREEN
+        /// pixels and convert with a constant asserting the canvas matched width at 1920 — which
+        /// described neither the scaler the lobby actually draws on nor, after the project settled
+        /// on one rule, any scaler at all. The error was the ratio between the two rules, about 15%
+        /// on a 21:9 monitor and the other way on a narrow window, and it fed straight into the font
+        /// size ladder below.
+        /// </para>
         /// </summary>
-        private float SeatPitchOnScreen(Camera camera, IReadOnlyList<Transform> heads,
+        private float SeatPitchOnCanvas(Camera camera, IReadOnlyList<Transform> heads,
             IReadOnlyList<bool> occupied)
         {
             float nearest = float.MaxValue;
-            float scale = CanvasScale();
 
             for (int i = 0; i < heads.Count; i++)
             {
                 if (i >= occupied.Count || !occupied[i] || heads[i] == null) continue;
-
-                Vector3 a = camera.WorldToScreenPoint(heads[i].position);
-                if (a.z <= 0f) continue;
+                if (!layer.TryToCanvas(camera, heads[i].position, out Vector2 a)) continue;
 
                 for (int j = i + 1; j < heads.Count; j++)
                 {
                     if (j >= occupied.Count || !occupied[j] || heads[j] == null) continue;
+                    if (!layer.TryToCanvas(camera, heads[j].position, out Vector2 b)) continue;
 
-                    Vector3 b = camera.WorldToScreenPoint(heads[j].position);
-                    if (b.z <= 0f) continue;
+                    if (Mathf.Abs(a.y - b.y) > RowHeight) continue;
 
-                    if (Mathf.Abs(a.y - b.y) * scale > RowHeight) continue;
-
-                    nearest = Mathf.Min(nearest, Mathf.Abs(a.x - b.x) * scale);
+                    nearest = Mathf.Min(nearest, Mathf.Abs(a.x - b.x));
                 }
             }
 
             // One person standing alone has the whole row to themselves.
             return nearest == float.MaxValue ? RowWidth : nearest;
         }
-
-        /// <summary>
-        /// Screen pixels to canvas pixels. The menu's CanvasScaler matches WIDTH at 1920, so one
-        /// screen pixel is 1920 / Screen.width canvas pixels — and every size in this file is a
-        /// canvas pixel.
-        /// </summary>
-        private static float CanvasScale() => Screen.width > 0 ? 1920f / Screen.width : 1f;
 
         /// <summary>The longest name currently standing, measured at the authored size.</summary>
         private float WidestName()

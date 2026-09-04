@@ -7,7 +7,7 @@ using SpaceGame.Core;
 namespace SpaceGame.Items
 {
     /// <summary>
-    /// Item Scanner — a forearm-mounted set that finds loose salvage inside 100 m and draws it on
+    /// Item Scanner — a forearm-mounted set that finds loose salvage inside 50 m and draws it on
     /// a phosphor display.
     ///
     /// <para>
@@ -35,7 +35,7 @@ namespace SpaceGame.Items
     {
         [Header("Scan")]
         [Tooltip("Detection radius in metres.")]
-        [SerializeField] private float range = 100f;
+        [SerializeField] private float range = 50f;
 
         [Tooltip("Seconds between scans. The display interpolates between them, so this can be " +
                  "slow without the screen looking slow.")]
@@ -85,6 +85,13 @@ namespace SpaceGame.Items
 
         private readonly List<ScanContact> contacts = new();
 
+        // The pose each animated part was modelled in. Both are driven as OFFSETS from these
+        // rather than as absolute local rotations: the parts are placed by the .blend's own object
+        // transforms, which the export ships unbaked, so assigning localRotation outright snapped
+        // whatever the model was authored with back to identity the moment the set was switched on.
+        private Quaternion dialRest = Quaternion.identity;
+        private Quaternion antennaRest = Quaternion.identity;
+
         private bool powered;
         private float nextScanTime;
         private float nextPingTime;
@@ -100,6 +107,12 @@ namespace SpaceGame.Items
 
         /// <summary>The whole effect is local and cosmetic. See the class summary.</summary>
         public override UseAuthority Authority => UseAuthority.Owner;
+
+        private void Awake()
+        {
+            if (dial != null) dialRest = dial.localRotation;
+            if (antenna != null) antennaRest = antenna.localRotation;
+        }
 
         protected override void Use()
         {
@@ -301,15 +314,16 @@ namespace SpaceGame.Items
                 dialAngle += dialSpeed * load * lit * Time.deltaTime;
                 // Local Z, because the knob's axis is its own -Y in Blender, which the FBX
                 // conversion lands on local Z. Its origin is on that axis, so a local rotation
-                // spins it in place.
-                dial.localRotation = Quaternion.Euler(0f, 0f, dialAngle);
+                // spins it in place. Post-multiplied, so the axle stays the axle however the
+                // model happens to have been seated on the arm.
+                dial.localRotation = dialRest * Quaternion.Euler(0f, 0f, dialAngle);
             }
 
             if (antenna != null)
             {
                 float t = Time.time;
                 float sway = antennaSway * lit;
-                antenna.localRotation = Quaternion.Euler(
+                antenna.localRotation = antennaRest * Quaternion.Euler(
                     Mathf.Sin(t * 2.3f) * sway * 0.6f,
                     0f,
                     Mathf.Sin(t * 1.7f + 1.1f) * sway);

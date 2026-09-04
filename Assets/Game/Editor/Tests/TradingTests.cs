@@ -113,6 +113,15 @@ namespace SpaceGame.EditorTools
                 OnSlotSelected?.Invoke(GetSelectedSlot());
             }
 
+            public bool TrySetSlot(int index, InventoryItem item)
+            {
+                if (index < 0 || index >= slots.Length) return false;
+
+                slots[index].Item = item;
+                OnSlotChanged?.Invoke(index, slots[index]);
+                return true;
+            }
+
             public void RestoreSlots(IReadOnlyList<InventoryItem> items, int selectedSlot)
             {
                 for (int i = 0; i < slots.Length; i++)

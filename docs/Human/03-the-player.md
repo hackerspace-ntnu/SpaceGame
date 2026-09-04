@@ -14,7 +14,7 @@ One number causes more confusion than any other: the player's own origin point i
 
 Every physics step, movement takes your input, works out how fast you should be going, and **assigns** your horizontal velocity. It does not push you, it does not add a force — it writes the number. The vertical axis is deliberately left alone, which is why jumping, pogo-sticking and being launched by an explosion all work: they own up-and-down, movement owns side-to-side.
 
-Speeds come in a fixed order of precedence: **crouching** is slowest, then **aiming**, then **sprinting**, with plain walking in between. Whichever condition is currently true and highest in that order sets the target speed; the actual speed eases toward it rather than snapping, so starting and stopping have weight.
+Speeds come in a fixed order of precedence: **crouching** is slowest, then **sprinting**, with plain walking in between. Whichever condition is currently true and highest in that order sets the target speed; the actual speed eases toward it rather than snapping, so starting and stopping have weight.
 
 In the air you keep about **30% of your usual steering authority**. You can nudge a jump, you cannot fly it.
 
@@ -34,7 +34,7 @@ Look is split across two clocks, which is invisible in play but explains a coupl
 
 **Yaw** — turning left and right — rotates the whole body, and it is banked up frame by frame and spent as a single rotation on the physics step, so the body turns smoothly with the physics rather than fighting it. **Pitch** — looking up and down — is only the camera, and it happens every frame so that mouse aim feels immediate regardless of physics rate.
 
-Sensitivity comes from the settings menu and is scaled down while aiming down sights, so the slow, precise feel while aiming is a deliberate multiplier and not just a lower field of view. Field of view itself is a base value from settings plus offsets that other systems can push (sprinting, grappling, vehicle speed) — nothing writes the FOV directly, it adds to the offset and lets go.
+Sensitivity comes from the settings menu. Field of view itself is a base value from settings plus offsets that other systems can push (sprinting, grappling, vehicle speed) — nothing writes the FOV directly, it adds to the offset and lets go.
 
 The cursor is re-locked to the centre of the screen **every single frame** while you have control. Any panel that wants a visible mouse pointer has to formally take the player out of gameplay control; it cannot just unhide the cursor and hope. This is the single most common cause of "my UI works but the mouse keeps snapping away."
 
@@ -46,11 +46,11 @@ Sprint is a **double-tap** rather than a held modifier, and it draws from a char
 
 Both of these live in a part of the player that runs on **every machine in the session**, not just yours. That is the whole reason they were built the way they were: if crouching only existed on your own computer, other players would watch you glide around at full height while you crawled through a duct. Anything about the player that other people must see has to live outside the components that get switched off on remote copies.
 
-## Hands, aiming and holding things
+## Hands and holding things
 
-When you hold an item, an upper-body animation layer takes over your arms while your legs keep walking normally. Two values blend independently: how strongly you are in the **hold pose** for the current item, and how far you have raised it into an **aim**. Aiming can never exceed holding, so you cannot aim an item you are not really holding yet.
+When you hold an item, an upper-body animation layer takes over your arms while your legs keep walking normally. Two things share that layer: how strongly you are in the **hold pose** for the current item, and how far a gauntlet arm has come up to point at what you are looking at while it fires. The layer's weight is whichever of them wants it most.
 
-On top of that, inverse kinematics pulls your right hand onto a shared pivot point, so the weapon and the hand agree with each other rather than the hand floating near an animated pose.
+**There is no aim-down-sights.** There was one — right mouse brought the item up to your eye, slowed you down and narrowed your mouse sensitivity — and it was removed in September 2026 when right mouse became the interact button. Holding a weapon steady is not a verb in this game any more; pointing it and firing is.
 
 There is exactly one camera-derived aim ray in the game, and everything that needs to know "where is this player pointing" asks for it rather than reading a camera itself. When you fire, the direction of the shot **travels with the shot** as data — it is never recalculated on another machine. If it were, every other player's copy of your bullet would be aimed down the host's line of sight instead of yours.
 
@@ -58,17 +58,17 @@ There is exactly one camera-derived aim ray in the game, and everything that nee
 
 Your body exists on every machine in the session, but only *your* copy is switched on. On everyone else's machine your camera object and your HUD are deactivated, and your input, movement and look components are turned off. Your body is still there, still animating, still replicating its position — it is a puppet driven by the network rather than by a person.
 
-The consequence is a rule worth knowing before you attach anything to the player: **anything parented under the camera is invisible to other players.** The camera object itself is off on their machines. The flashlight is the worked example — it is authored under the camera for the local player's benefit, and on remote copies it is moved onto a neutral pivot that stays active so other people can actually see the beam.
+The consequence is a rule worth knowing before you attach anything to the player: **anything parented under the camera is invisible to other players.** The camera object itself is off on their machines. The flashlight used to be the worked example, and its answer in the end was to stop being on the camera at all: it is now the head of a gauntlet worn on the forearm, which is a normal part of the character everyone can see.
 
-What does replicate: your position and rotation, your animation state (which carries crouching, what kind of hold pose you are in, and whether you are aiming), your head pitch, your torch, your name, your suit colour and your team, your health, and your inventory and backpack contents.
+What does replicate: your position and rotation, your animation state (which carries crouching, what kind of hold pose you are in, and which arm is raised), your head pitch, your torch, your name, your suit colour and your team, your health, and your inventory and backpack contents.
 
 Your suit colour is a single swatch index. It recolours seven materials on the astronaut by name — including the visor — so a colour change is one small replicated number rather than a stream of material data.
 
-## Interacting: look at it, press E
+## Interacting: look at it, right-click
 
 Interaction is a raycast, not a list of nearby things. Every frame, a ray goes out of the camera up to **20 metres**, and whatever it lands on becomes what you are looking at. There is no proximity registry, no trigger volumes you have to stand inside, and no held-to-charge interaction: interaction is a single press.
 
-The arbitration rules along that ray are worth understanding, because they explain most "why can't I press E on this" reports:
+The arbitration rules along that ray are worth understanding, because they explain most "why can't I use this" reports:
 
 - Your own body is skipped entirely.
 - A **trigger** collider only answers if the interactable thing is on that exact object. Otherwise the ray passes straight through it. This is what stops a large "you are standing on the deck" volume from swallowing every control on a vehicle.
@@ -76,9 +76,9 @@ The arbitration rules along that ray are worth understanding, because they expla
 
 Availability is checked once and used for both the prompt and the press, so the crosshair can never light up on something that will then refuse you. Some things refuse *per player* — you cannot board a seat you are already sitting in, and an NPC currently fighting you will not chat — and that refusal hides the prompt too.
 
-Prompts are on by default and derived rather than authored. If nobody wrote a label, the game humanises the name of the thing itself, so a door reads "Door" without anyone typing that. The default line is **"E: interact"**, and things with an opposite action add **"LMB: use"** — that is how "haul the rigging in / let it out" reads as one control instead of two.
+Prompts are on by default and derived rather than authored. If nobody wrote a label, the game humanises the name of the thing itself, so a door reads "Door" without anyone typing that. The default line is **"RMB: interact"**, and things with an opposite action add **"LMB: use"** — that is how "haul the rigging in / let it out" reads as one control instead of two.
 
-Things you can press E on today include doors, levers, a repair workstation that eats a specific item from your hotbar, NPCs you can talk to, items and backpacks on the ground, mounts and their seats, vehicle stations like the helm and the rigging, articulated parts that fold and unfold, the ship, cave exits, and interior entrances.
+Things you can right-click today include doors, levers, a repair workstation that eats a specific item from your hotbar, NPCs you can talk to, items and backpacks on the ground, mounts and their seats, vehicle stations like the helm and the rigging, articulated parts that fold and unfold, the ship, cave exits, and interior entrances.
 
 **Execution is local to whoever pressed.** The press only ever runs on the machine of the player who pressed it — everyone else's copy never fires. Getting the *consequence* onto other machines is the job of the thing you pressed, and different things do it differently: doors and levers flip a single replicated bit, vehicle stations run a claim table on the server, the workstation counts progress on the server and broadcasts feedback, and dialog does nothing at all on the network because dialog is genuinely private to you.
 
@@ -93,8 +93,8 @@ While you are playing you have:
 - A **health bar** with numbers, driven by damage and heal events rather than polled.
 - A **crosshair**. Its hover-brightening half has never run — it was never wired up, and that is a deliberate open question about the look rather than a bug waiting to be fixed.
 - The **interaction prompt** — what you are looking at, what the buttons will do, and a progress bar when the thing has one.
-- A **four-slot hotbar**.
-- The **helmet overlay** — a visor layer with AR markers for nearby entities coloured by faction, points of interest, and two curved arcs that flare when you take a hit from a direction and decay afterwards. **H** toggles the helmet layer on its own.
+- A **three-slot hotbar**, plus two gauntlet slots and a back slot you arrange on the body screen (F).
+- The **helmet overlay** — a visor layer with corner marks around whatever you are looking at, a name and prompt that unfold beside them, and two curved arcs that flare when you take a hit from a direction and decay afterwards. **H** toggles the helmet layer on its own.
 - Floating **damage numbers** for hits you personally caused, and **nameplates** over other players that fade with distance and hide behind geometry.
 
 Full-screen things open over the top: pause on **M** (not Escape), chat on **T**, and in dev mode an artifact browser on **I**.
@@ -103,7 +103,7 @@ Two rules govern all of them. First, only one thing owns the cursor, your input 
 
 ## Carrying and firing things
 
-You have four hotbar slots, and the selected one is what your hands are holding. Using an item is a held stream rather than a single press — the Use button reports pressed, held and released, which is what lets a weapon charge, a spray can keep spraying, and a lasso keep twirling.
+You have three hotbar slots, and the selected one is what your hands are holding. Gauntlets are worn instead, on Q and E, and the wing pack on your back deploys on a double tap of Space — see the body gear chapter in the-systems. Using an item is a held stream rather than a single press — the Use button reports pressed, held and released, which is what lets a weapon charge, a spray can keep spraying, and a lasso keep twirling.
 
 Weapons follow a strict split that is worth internalising because every usable item in the game copies it: there is a **decide** step and a **present** step. The decide step runs only on the machine with authority, and it is the one that spends ammunition officially and deals damage. The present step runs on **every** machine, plays the report, mirrors the local ammo count and draws its own copy of the bullet — with the damage suppressed. That is why the sound and the muzzle flash and the impact sparks appear for everybody while the target only loses health once.
 
@@ -143,7 +143,7 @@ Damage numbers need two separate signals to work, which is a nice illustration o
 
 Your state is keyed to your **profile**, not to the scene you were standing in. Quit in a cave and load back into the world, and you are still you.
 
-What is written down: where you are and which way you are facing, your look pitch (your yaw rides along with the body rotation), your display name, your health, your inventory and backpack contents, your suit colour, whether your torch was on, the status effects on you, which interiors you have visited, and your portal pairing.
+What is written down: where you are and which way you are facing, your look pitch (your yaw rides along with the body rotation), your display name, your health, your inventory and backpack contents, your suit colour, the status effects on you, which interiors you have visited, and your portal pairing.
 
 The world around you keeps its own notes: whether each door is open, whether a lever has been pulled and whether a one-shot lever has been spent, how far a repair workstation got, and what a trader still has in stock. Mounts you were riding, station seats and dialog progress are deliberately **not** saved.
 
@@ -151,9 +151,9 @@ Two failure modes here are worth knowing because they are both completely silent
 
 ## Where this lives
 
-- `docs/AI/systems/PlayerCharacter.md` — the body, movement, look, stances, aim rig, suit colour, and everything about what replicates.
+- `docs/AI/systems/PlayerCharacter.md` — the body, movement, look, stances, the upper-body rig, suit colour, and everything about what replicates.
 - `docs/AI/systems/InteractionSystem.md` — the interaction raycast, arbitration rules, the full list of interactables, and trading.
 - `docs/AI/systems/Combat.md` — health, the damage pipeline, weapons, projectiles, death and ragdolls.
 - `docs/AI/systems/UI.md` — HUD, overlays, the menu families, and how cursor/input/time handover works.
-- `docs/AI/systems/Inventory.md` and `docs/AI/systems/Artifacts.md` — what goes in the four hotbar slots and how using it works.
+- `docs/AI/systems/Inventory.md` and `docs/AI/systems/Artifacts.md` — what goes in the three hotbar slots and how using it works; `docs/AI/systems/BodyEquipment.md` for the worn slots.
 - `docs/AI/systems/Persistence.md` — what of the player survives quit and load, and why it fails silently when it doesn't.

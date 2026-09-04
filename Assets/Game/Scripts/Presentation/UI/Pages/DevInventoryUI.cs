@@ -11,7 +11,7 @@ namespace SpaceGame.Presentation
 {
     /// <summary>
     /// Developer artifact browser: every item in <see cref="Registry{T}"/>, in a grid, one click to
-    /// put it on the hotbar and one to take it off. Opened with I while developer mode is on.
+    /// put it on the hotbar and one to take it off. Opened with O while developer mode is on.
     /// <para>
     /// Gated behind <see cref="GameSettings.DevMode"/> rather than a build flag so it can be turned
     /// on during a live session — which is the point of it. The hotbar edits go through
@@ -128,7 +128,7 @@ namespace SpaceGame.Presentation
 
         public void Toggle()
         {
-            // I is a letter before it is a shortcut, so a focused field owns it.
+            // O is a letter before it is a shortcut, so a focused field owns it.
             if (IsTypingInField()) return;
 
             if (open) Close();
@@ -308,10 +308,7 @@ namespace SpaceGame.Presentation
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 2100; // above the pause menu, which can open it
 
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
+            UIScale.Configure(canvasGo.GetComponent<CanvasScaler>());
 
             group = canvasGo.GetComponent<CanvasGroup>();
             group.alpha = 0f;

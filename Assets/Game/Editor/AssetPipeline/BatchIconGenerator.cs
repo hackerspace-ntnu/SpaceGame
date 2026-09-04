@@ -44,17 +44,27 @@ namespace SpaceGame.EditorTools
         /// <summary>
         /// Per-asset (pitch, yaw) overrides.
         ///
-        /// Only needed where two items share one model: <c>basicgun</c> and
+        /// Two items sharing one model is the first reason: <c>basicgun</c> and
         /// <c>BallLightningWeapon</c> are both <c>cixinGunFinal.fbx</c>, so rendering them from
         /// the same angle would produce two identical icons. Shooting them from opposite sides
         /// at least keeps them tellable apart in the hotbar. The real fix is a distinct model for
         /// the ball lightning weapon.
+        ///
+        /// The second is an item whose only legible feature faces one way. The gauntlet item
+        /// scanner is a dark steel box whose one bright surface is its CRT, and that screen looks
+        /// out over the arm's little-finger flank — Unity <c>(0.959, 0, -0.285)</c>, measured in
+        /// <c>gauntlet_item_scanner_BUILD.md</c>. <see cref="DefaultAngle"/> looks ALONG +X, so it
+        /// catches the console's blank back and renders near-black on a near-black ground. Turned
+        /// to look back down −X instead, at the same 3/4 obliqueness the house angle uses, the
+        /// screen and the antenna both read. It only became the whole icon on 2026-09-04, when the
+        /// bracer stopped being part of the item and stopped carrying the silhouette.
         /// </summary>
         private static readonly Dictionary<string, Vector2> AngleOverrides =
             new Dictionary<string, Vector2>
             {
                 { "basicgun", new Vector2(18f, 125f) },
                 { "BallLightningWeapon", new Vector2(30f, 305f) },
+                { "ItemScanner", new Vector2(22f, 320f) },
             };
 
         [MenuItem("Tools/Generate Icon For Selected Item")]

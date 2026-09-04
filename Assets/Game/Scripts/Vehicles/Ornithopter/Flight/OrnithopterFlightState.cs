@@ -50,17 +50,28 @@ namespace SpaceGame.Vehicles.Ornithopter
         public float AngleOfAttack => Pitch - Gamma;
 
         /// <summary>
-        /// A craft launched into the air with an initial speed and heading, wings still folded.
-        /// Pitch and flight path both start level, so the first thing the wings do is arrest the
-        /// fall rather than pitch the pilot into the ground.
+        /// A craft launched into the air with an initial speed, heading and climb angle, wings
+        /// still folded.
+        ///
+        /// <para>
+        /// Pitch is set to the flight path rather than to level, which is the same rule the level
+        /// launch always followed and generalised to a pilot who arrives already climbing or
+        /// diving. It puts the angle of attack at zero, so the first thing the wings do is arrest
+        /// the fall rather than pitch the pilot into the ground. Starting nose-level on a path that
+        /// is climbing would be a THIRTY DEGREE negative angle of attack — the wing would make lift
+        /// downwards and slam the craft into the deck on the frame it deployed.
+        /// </para>
         /// </summary>
-        public static OrnithopterFlightState Launch(float airspeed, float headingDegrees)
+        public static OrnithopterFlightState Launch(float airspeed, float headingDegrees,
+                                                    float gammaDegrees = 0f)
         {
+            float gamma = Mathf.Clamp(gammaDegrees, -89f, 89f);
+
             return new OrnithopterFlightState
             {
                 Airspeed = Mathf.Max(0f, airspeed),
-                Gamma = 0f,
-                Pitch = 0f,
+                Gamma = gamma,
+                Pitch = gamma,
                 Roll = 0f,
                 Heading = Mathf.Repeat(headingDegrees, 360f),
                 FlapPhase = 0f,

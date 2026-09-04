@@ -54,9 +54,6 @@ namespace SpaceGame.EditorTools
         private const string NetworkPrefabsPath =
             "Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset";
 
-        /// <summary>The ground layer DropItemPhysics settles against, shared by every artifact.</summary>
-        private const int GroundLayerMask = 128;
-
         // Festival reds and golds, matching the lacquer and gold-leaf palette entries the model
         // is finished in. The trail is the item's signature, so it is a saturated red rather than
         // a realistic grey-brown smoke — this is a firework, not ordnance.
@@ -268,18 +265,12 @@ namespace SpaceGame.EditorTools
             var netObject = root.AddComponent<NetworkObject>();
             netObject.SynchronizeTransform = true;
 
-            SphereCollider sphere = root.AddComponent<SphereCollider>();
-            sphere.radius = 0.18f;
-
-            Rigidbody body = root.AddComponent<Rigidbody>();
-            body.isKinematic = true;
-            body.useGravity = true;
-
             AddInternal(root, "SpaceGame.Items.PickupableItem");
 
-            var drop = root.AddComponent<DropItemPhysics>();
-            SetPrivate(drop, "rb", body);
-            SetPrivateLayerMask(drop, "groundLayer", GroundLayerMask);
+            // The body, a collider the shape of the bazooka, the sizing and the netcode that lets
+            // another machine watch it be shoved about. One shared block — this used to be a
+            // hand-written sphere of radius 0.18, which is a marble, and it rolled like one.
+            ItemWorldPresence.Apply(root);
 
             root.AddComponent<SpaceGame.Core.NetRelay>();
             root.AddComponent<SpaceGame.Core.Persistence.SaveableEntity>();

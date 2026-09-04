@@ -41,6 +41,11 @@ namespace SpaceGame.Items
         [SerializeField] private Vector3 wornLocalPosition = new(0f, 0.12f, -0.18f);
         [SerializeField] private Vector3 wornLocalEuler = new(0f, 0f, 0f);
 
+        [Tooltip("The part of the rig that worn back gear clips to — the lash rail. Its transform " +
+                 "sits at the middle of the lash line, on the outermost face of the folded pack, " +
+                 "with its ends protruding past each flank. See GearMount.")]
+        [SerializeField] private string gearMountPartName = "Mesh_Rig_LashRail";
+
         [Header("Deploy")]
         [SerializeField, Min(0.05f)] private float deploySeconds = 0.9f;
 
@@ -117,6 +122,31 @@ namespace SpaceGame.Items
 
         public State CurrentState { get; private set; } = State.Shouldered;
         public BackpackObject Pack { get; private set; }
+
+        /// <summary>
+        /// The part of the worn rig that body gear clips to — the lash rail, whose ends stick out
+        /// past each flank of the folded pack — or null when there is no pack on this back to clip
+        /// to. Body equipment seats its back gear here and the gear screen outlines it.
+        ///
+        /// <para>
+        /// A seam rather than two lookups, so the place gear <em>lands</em> and the place the screen
+        /// <em>promises</em> are read off one object. Resolved on demand and not cached: the pack
+        /// instance is rebuilt on a respawn and comes and goes with every deploy, and a cached
+        /// transform would outlive it as a null the callers would have to re-check anyway.
+        /// </para>
+        /// </summary>
+        public Transform GearMount
+        {
+            get
+            {
+                if (Pack == null || !Pack.IsWorn) return null;
+
+                foreach (Transform t in Pack.GetComponentsInChildren<Transform>(true))
+                    if (t.name == gearMountPartName) return t;
+
+                return null;
+            }
+        }
 
         private PlayerInputManager input;
         private Transform backSocket;
@@ -578,6 +608,12 @@ namespace SpaceGame.Items
             hasPendingDeploy = true;
 
             CurrentState = State.Deploying;
+
+            // BEFORE SetWorn, which is what would otherwise switch the body collider on: the pack
+            // comes off the back and the box is only allowed to exist once the pack is standing
+            // still on the ground. See BackpackObject.RefreshBody for what a solid pack in flight
+            // does to whoever threw it.
+            Pack.SetFlying(true);
             Pack.SetWorn(false);
             Pack.transform.SetParent(null, true);
 
@@ -637,6 +673,12 @@ namespace SpaceGame.Items
             //
             // The target is recomputed every frame instead of captured: re-shouldering is allowed
             // from across the map, and the player is usually walking while it flies back.
+            //
+            // Here rather than in StartReshoulder: the fold above happens with the pack still
+            // standing on the sand, where being solid is correct. It stops being a body at the
+            // instant it leaves the ground — this arc goes up over the wearer's own head.
+            Pack.SetFlying(true);
+
             yield return Fly(CurrentWorldPose(Pack), WornWorldPose, arcHeight, arcOutward);
 
             arcRoutine = null;
@@ -778,6 +820,8 @@ namespace SpaceGame.Items
 
             InventoryItem packItem = Pack.ItemFor(grabbed.ItemId);
             if (packItem == null || string.IsNullOrEmpty(packItem.ID)) return false;
+
+            if (!PackContainer.HotbarCanResolve(packItem)) return false;
 
             InventorySlot slot = hotbar.GetSlot(slotIndex);
             InventoryItem held = slot != null && !slot.IsEmpty ? slot.Item : null;
@@ -1057,6 +1101,13 @@ namespace SpaceGame.Items
             Pack.transform.SetParent(null, true);
             Pack.transform.SetPositionAndRotation(grounded.position, grounded.rotation);
             Pack.SetWorn(false);
+
+            // The one place the rig becomes a body again, and it is deliberately AFTER the pose:
+            // switching the box on while the pack is still wherever the arc left it puts a solid
+            // 2 m box across the player rather than in front of them. Reached by every path that
+            // ends Open — the arc landing, a joiner's answer, an interrupted flight, a restore —
+            // so there is no way to arrive on the ground and stay a ghost.
+            Pack.SetFlying(false);
             CurrentState = State.Open;
             Pack.SetOpen(true);
         }
@@ -1064,6 +1115,10 @@ namespace SpaceGame.Items
         private void SnapToWorn()
         {
             hasPendingDeploy = false;
+
+            // Cleared here as well as at the landing, because this is the other way a flight ends
+            // — the stow, and every interrupted arc that is put back on a back.
+            Pack.SetFlying(false);
 
             // SnapStowed, not SetOpen(false), and that is the whole of the "it goes back on my
             // back still folded open" bug. SetOpen answers a pack whose IsOpen is already false by

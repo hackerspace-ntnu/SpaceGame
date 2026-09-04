@@ -8,7 +8,7 @@ SpaceGame's machines fall into three shapes, and knowing which shape a thing is 
 
 ### Mounting — you become the vehicle
 
-Press E on an ostrich and you *are* the ostrich. Your body is put in the saddle, your camera is taken over, and your movement keys go to the machine instead of your legs. This is the model for anything you ride: creatures, walkers, aircraft, the lander's helm.
+Right-click an ostrich and you *are* the ostrich. Your body is put in the saddle, your camera is taken over, and your movement keys go to the machine instead of your legs. This is the model for anything you ride: creatures, walkers, aircraft, the lander's helm.
 
 Three moving parts make a mount: something that owns the **seat and camera**, something that reads your **input**, and a **motor** that knows how this particular machine moves. New vehicles are assembled from those, not written from scratch.
 
@@ -29,7 +29,7 @@ The opposite trade. No seat, no camera takeover; you stand on a walkable deck an
 
 Claiming is arbitrated by the server, which owns the table of who has what and the control's actual value. The person holding a control drives it locally and ignores the echo of their own input coming back, so it feels direct.
 
-Boarding a deck is deliberately **not** a mount: look at the hull, press E, and you are placed on the deck as yourself.
+Boarding a deck is deliberately **not** a mount: look at the hull, right-click, and you are placed on the deck as yourself.
 
 Walkable decks need one non-obvious support. A hull that moves by having its transform written imparts no friction to anything standing on it — you would slide straight off the back. So the hull's per-frame movement, including rotation about its pivot, is re-applied to every body inside its carry volume.
 
@@ -141,6 +141,8 @@ Its collision is a **baked convex decomposition**, not one collider per mesh. Th
 Taking the helm closes all seven moving parts; getting up reopens them.
 
 **Salvage sockets** track what has been pulled out, saved and replicated as a single bitmask.
+
+**A repair station.** On the deck opposite the gear wall, just aft of the map projector, stands a bench with a scrap hopper on it, a lamp on top and a gauge above the hopper. Walk up with ship scrap in your selected hotbar slot and right-click to feed it one piece; anything else in your hand is refused with a buzz. Five pieces bring it online — the lamp goes from red to green, the gauge reads ONLINE and the grinder on the bench starts turning. The count is saved with the ship and every crewmate sees the same gauge.
 
 One naming trap that catches people reading the code: there is an unrelated scenery rocket in the project with a launch button and a full idle/flight/crash state machine. That is not this ship. **The lander has no take-off.**
 

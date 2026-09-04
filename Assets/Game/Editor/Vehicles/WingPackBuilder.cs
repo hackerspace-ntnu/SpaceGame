@@ -28,6 +28,33 @@ namespace SpaceGame.EditorTools
         private const string ItemPath = "Assets/Game/Resources/Items/Artifacts/WingPack.asset";
         private const string FoldedModelPath =
             "Assets/Game/Art/Models/Vehicles/Ornithopter/wing_pack_folded.fbx";
+        private const string WornModelPath =
+            "Assets/Game/Art/Models/Vehicles/Ornithopter/ornithopter_worn.fbx";
+
+        /// <summary>
+        /// How wide the worn wings are drawn across the wearer's back, in metres — and therefore
+        /// the scale correction, because the model is authored at exactly this span.
+        ///
+        /// <para>
+        /// Pinned rather than left at zero ("keep the prefab's own scale") on purpose. The model's
+        /// two shoulder pivots are placed on the expedition rig's two protruding bar tips, which
+        /// were MEASURED off the game at x = ±0.885 m in the spine bone's frame — so the span and
+        /// the mount are one number, and an export that changed the span would walk the wings off
+        /// the bar silently. Written here, a changed export shows up as wings the wrong size next
+        /// to a value somebody can check against the exporter's own printout
+        /// (`ornithopter_worn_export.py` prints "pin WornFit.size to ...").
+        /// </para>
+        /// <para>
+        /// <b>3.47 → 5.51 on 2026-09-04</b>, and the enlargement is in the MODEL, not here. The
+        /// wings were re-posed at half again their reach and opened out to the side
+        /// (`ornithopter_worn.py`'s <c>TARGET_REACH</c> and <c>FLAP</c>), which is the only way to
+        /// grow them and keep their roots on the bar tips: this number is a uniform scale about
+        /// the rail, so raising IT moves the roots outboard and hangs the tips through the ground.
+        /// That was tried first, on 2026-09-04, and both failures were visible immediately. If the
+        /// wings need to be bigger again, the change belongs in the .blend.
+        /// </para>
+        /// </summary>
+        private const float WornSize = 5.51f;
 
         [MenuItem("Tools/Vehicles/Build Wing Pack Item")]
         public static void Build()
@@ -42,18 +69,7 @@ namespace SpaceGame.EditorTools
 
             var root = new GameObject("WingPack");
             BuildFoldedBundle(root);
-
-            // Kinematic body + collider, per the inventory system's contract: a dropped item needs a
-            // Rigidbody to be thrown and a collider to be picked back up, and isKinematic keeps it
-            // still on the ground until DropItemPhysics takes over.
-            Rigidbody rb = root.AddComponent<Rigidbody>();
-            rb.isKinematic = true;
-            rb.useGravity = false;
-
-            // The folded craft's baked bounds; the mesh origin is its bounds centre.
-            BoxCollider box = root.AddComponent<BoxCollider>();
-            box.center = Vector3.zero;
-            box.size = new Vector3(0.41f, 0.16f, 0.95f);
+            BuildWornWings(root);
 
             WingPackItem item = root.AddComponent<WingPackItem>();
             var so = new SerializedObject(item);
@@ -78,7 +94,25 @@ namespace SpaceGame.EditorTools
             SetFloat(gripSo, "packSize", PackSizeForRack(root));
             gripSo.ApplyModifiedPropertiesWithoutUndo();
 
-            AddIfPresent(root, "DropItemPhysics");
+            AddIfPresent(root, "SpaceGame.Items.PickupableItem");
+
+            // Without a NetworkObject a dropped pack exists only on the host and never survives a
+            // reload. It was on the prefab and NOT in this builder, so every re-run silently took
+            // it away again - see Ornithopter.md.
+            Unity.Netcode.NetworkObject netObject = root.AddComponent<Unity.Netcode.NetworkObject>();
+            netObject.SynchronizeTransform = true;
+
+            // The body, the collider measured off the folded bundle, the sizing and the netcode
+            // that lets another machine watch it be shoved about. One shared block - see
+            // ItemWorldPresence. The box it replaces here was three numbers typed by hand.
+            ItemWorldPresence.Apply(root);
+
+            // Same story as the NetworkObject above: on the prefab, absent from the builder, and
+            // silently stripped by every re-run. prefabId and instanceId are left blank on purpose
+            // — SaveableEntity.OnValidate stamps them, and a hand-written id is how two prefabs end
+            // up sharing one.
+            root.AddComponent<SpaceGame.Core.Persistence.SaveableEntity>();
+            root.AddComponent<SpaceGame.Core.Persistence.TransformSaveable>();
 
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(PrefabPath));
             GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
@@ -171,6 +205,57 @@ namespace SpaceGame.EditorTools
             visual.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
         }
 
+        /// <summary>
+        /// Nest the worn wings — what the pack looks like on somebody's back, as opposed to the
+        /// folded bundle above, which is what it looks like in their hand.
+        ///
+        /// <para>
+        /// Switched off here, on the asset, and switched on by <see cref="WornSeat"/> through
+        /// <see cref="WornVisual"/>. That is not belt-and-braces: <c>ItemBounds</c> measures only
+        /// what is switched on within the item, and <see cref="PackSizeForRack"/> below measures
+        /// this same root — a visible 3.5 m pair of wings would have the folded craft sized as if
+        /// it filled the rack five times over, and the hand size would shrink the bundle to a
+        /// splinter. The wingsuit shipped exactly that bug with its flight wings once.
+        /// </para>
+        /// <para>
+        /// <b>No rotation, unlike the bundle above, and that is the fix for a real bug.</b> An FBX
+        /// from `_exportlib` arrives ALREADY converted: every mesh node carries the Blender-to-Unity
+        /// position (`(x, y, z) → (−x, z, −y)`) and its own −90 X, with the vertices left in
+        /// Blender's axes. So a −90 X on the parent is a SECOND conversion. On the bundle that is
+        /// deliberate — it is a hand-held object and the extra turn is what points its length out
+        /// of the fist — but this model is authored in the wearer's own frame and any turn at all
+        /// moves it off the wearer. Applied here it put the wings 0.6 m below the shoulders and
+        /// half a metre behind them, and everything still looked plausibly like a pair of wings.
+        /// </para>
+        /// </summary>
+        private static void BuildWornWings(GameObject root)
+        {
+            GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>(WornModelPath);
+            if (model == null)
+            {
+                Debug.LogError($"[WingPack] No worn model at {WornModelPath}. Run " +
+                               "_Source~/models/vehicles/ornithopter_worn_export.py first. " +
+                               "Without it the pack is worn as a folded aircraft.");
+                return;
+            }
+
+            var visual = (GameObject)PrefabUtility.InstantiatePrefab(model);
+            visual.name = WornVisual.ChildName;
+            visual.transform.SetParent(root.transform, false);
+            visual.SetActive(false);
+
+            WornFit fit = root.AddComponent<WornFit>();
+            var so = new SerializedObject(fit);
+
+            // Only the fallback for a back with no rig shouldered on it. With the rig on — which
+            // is every player, always — WornSeat takes the position off the lash rail instead, and
+            // the wings' own pivots reach out along it to its two tips.
+            SetVector(so, "localPosition", new Vector3(0f, 0.05f, -0.22f));
+            SetVector(so, "localEuler", Vector3.zero);
+            SetFloat(so, "size", WornSize);
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         private static void BuildInventoryItem(GameObject prefab)
         {
             InventoryItem item = AssetDatabase.LoadAssetAtPath<InventoryItem>(ItemPath);
@@ -215,6 +300,12 @@ namespace SpaceGame.EditorTools
         {
             SerializedProperty p = Find(so, field);
             if (p != null) p.intValue = value;
+        }
+
+        private static void SetVector(SerializedObject so, string field, Vector3 value)
+        {
+            SerializedProperty p = Find(so, field);
+            if (p != null) p.vector3Value = value;
         }
 
         private static SerializedProperty Find(SerializedObject so, string field)

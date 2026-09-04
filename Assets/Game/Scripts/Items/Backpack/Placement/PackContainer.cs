@@ -307,6 +307,49 @@ namespace SpaceGame.Items
             return null;
         }
 
+        /// <summary>
+        /// The face RESERVED for <paramref name="item"/> that has room for it right now, or null.
+        /// The rig has exactly one — the oxygen bottle's socket on the centre back panel — and
+        /// today it is the only reserved face in the game.
+        ///
+        /// <para>
+        /// <b>Only a reserved face answers.</b> An ordinary face takes anything that fits, so it
+        /// would qualify for every item there is and say nothing at all. A socket is different in
+        /// kind: it is the one place on the container the player has no way of guessing at, because
+        /// the ordinary readout — cells that go green under the cursor — only speaks about the face
+        /// already being aimed at, and a socket has to be FOUND before it can be aimed at.
+        /// </para>
+        /// <para>
+        /// <b>Room is asked, not assumed.</b> A socket already holding a bottle is full, and
+        /// naming it would send the player to a face that answers red the moment they arrive.
+        /// <paramref name="ignoreItemId"/> excludes the item in the player's own hand, exactly as
+        /// <see cref="PackLayout.TryFindSpot"/> does for a swap — it is still ON the layout while
+        /// it is being carried.
+        /// </para>
+        /// </summary>
+        public PackSurface SocketFor(InventoryItem item, string ignoreItemId = null)
+        {
+            if (item == null) return null;
+
+            IReadOnlyList<PackSurface> all = ResolvedSurfaces();
+            PackShape shape = ShapeFor(item);
+
+            for (int i = 0; i < all.Count; i++)
+            {
+                PackSurface surface = all[i];
+
+                if (surface == null) continue;
+                if (surface.AcceptsOnly == null || surface.AcceptsOnly.Count == 0) continue;
+                if (!surface.AcceptsItem(item)) continue;
+                if (!Reaches(surface.Id)) continue;
+
+                if (Layout.TryFindSpot(surface.Id, surface.Size, shape, out _, out _, ignoreItemId))
+                    return surface;
+            }
+
+            return null;
+        }
+
         // ------------------------------------------------------------------ contents
 
         /// <summary>The asset an item id names, or null if nothing here or in the registry knows it.</summary>
@@ -368,6 +411,13 @@ namespace SpaceGame.Items
             PackSurface surface = SurfaceFor(surfaceId);
             if (surface == null) return false;
 
+            // A reserved face refuses before the geometry is ever asked. Gated even here, on the
+            // primitive every RESTORE goes through, unlike Reaches: a save or a wire message
+            // naming an item that face no longer takes — one written before it was reserved, or
+            // by a build that reserved it differently — must not put it back. Nothing is lost by
+            // refusing, because every restore path falls through to first-fit.
+            if (!surface.AcceptsItem(item)) return false;
+
             // Cached BEFORE the layout is told, not after. TryPlace raises OnChanged synchronously
             // and the display rebuild that answers it resolves every placement's id back to an
             // asset — so an item registered afterwards is invisible for exactly the rebuild that
@@ -392,6 +442,8 @@ namespace SpaceGame.Items
 
             PackSurface surface = SurfaceFor(surfaceId);
             if (surface == null) return false;
+
+            if (!surface.AcceptsItem(item)) return false;
 
             return Layout.TryMove(itemId, surfaceId, surface.Size, PackShapes.For(item, shapes),
                                   uv, PackShapes.SnapYaw(item, shapes, yaw));
@@ -575,15 +627,33 @@ namespace SpaceGame.Items
             // a turned spot that TryPlace then straightens would find room and lose it again.
             bool mayTurn = PackShapes.AllowsRotation(item, shapes);
 
-            for (int i = 0; i < surfaces.Count; i++)
+            // TWO passes, and the order is the point. A face RESERVED for this item is where the
+            // item belongs — the pack is plumbed into its socket — so it is offered before the
+            // general shelves. Single-pass first-fit walks the table in order and puts the bottle
+            // on the mat, leaving the one place that means anything empty; nothing about that is
+            // visible, because the mat is a perfectly good spot.
+            for (int pass = 0; pass < 2; pass++)
             {
-                PackSurface surface = surfaces[i];
-                if (surface == null) continue;
+                bool wantReserved = pass == 0;
 
-                if (layout.TryFindSpot(surface.Id, surface.Size, shape, out Vector2 uv, out float yaw,
-                                       ignoreItemId: null, allowTurns: mayTurn)
-                    && layout.TryPlace(item.ID, surface.Id, surface.Size, shape, uv, yaw))
-                    return true;
+                for (int i = 0; i < surfaces.Count; i++)
+                {
+                    PackSurface surface = surfaces[i];
+                    if (surface == null) continue;
+
+                    // First-fit is the one path with nobody pointing at anything, so a reserved
+                    // face has to opt out here or the search fills the bottle's socket with the
+                    // first thing that happens to fit it.
+                    if (!surface.AcceptsItem(item)) continue;
+
+                    bool reserved = surface.AcceptsOnly != null && surface.AcceptsOnly.Count > 0;
+                    if (reserved != wantReserved) continue;
+
+                    if (layout.TryFindSpot(surface.Id, surface.Size, shape, out Vector2 uv,
+                                           out float yaw, ignoreItemId: null, allowTurns: mayTurn)
+                        && layout.TryPlace(item.ID, surface.Id, surface.Size, shape, uv, yaw))
+                        return true;
+                }
             }
 
             return false;
@@ -617,6 +687,8 @@ namespace SpaceGame.Items
 
             InventoryItem heldItem = ItemFor(placement.ItemId);
             if (heldItem == null) return false;
+
+            if (!HotbarCanResolve(heldItem)) return false;
 
             // Tested BEFORE the item leaves, because a take-then-put-back whose add failed in
             // between would have already fired a change and destroyed the display object.
@@ -709,15 +781,23 @@ namespace SpaceGame.Items
             // that both swap paths use to avoid mutating the layout to ask the question.
             bool aimReaches = targetSlot < 0 || Reaches(placement.Surface);
 
-            if (aimReaches && Layout.CanPlace(placement.Surface, surface.Size, heldShape,
-                                              placement.Uv, placement.Yaw, placement.ItemId))
+            // Whether this FACE will have the displaced item at all, asked once. A reserved face
+            // is a socket: the bottle can come out of it, but whatever the player was holding
+            // cannot go in. Only the same-face attempts below are gated — the cross-face fallback
+            // is TryArrange's, which asks every face this same question for itself.
+            bool faceTakesHeld = surface.AcceptsItem(held);
+
+            if (aimReaches && faceTakesHeld
+                && Layout.CanPlace(placement.Surface, surface.Size, heldShape,
+                                   placement.Uv, placement.Yaw, placement.ItemId))
                 return true;
 
             if (targetSlot < 0)
             {
                 // TrySwapWithHotbar's own fallback: the same face, second try, nowhere else.
-                if (Layout.TryFindSpot(placement.Surface, surface.Size, heldShape,
-                                       out _, out _, placement.ItemId, mayTurnHeld)) return true;
+                if (faceTakesHeld
+                    && Layout.TryFindSpot(placement.Surface, surface.Size, heldShape,
+                                          out _, out _, placement.ItemId, mayTurnHeld)) return true;
             }
             else
             {
@@ -738,6 +818,40 @@ namespace SpaceGame.Items
             }
 
             refused = true;
+            return false;
+        }
+
+        /// <summary>
+        /// Refuses — loudly — any transfer toward a hotbar of an item the registry cannot resolve.
+        ///
+        /// <para>
+        /// This container resolves items through its own references first (<see cref="ItemFor"/>),
+        /// so it can hold, draw and hand over an asset the registry never loaded — one authored
+        /// from outside <c>Assets/Game/Resources/Items</c>. The hotbar has no such cache: it
+        /// stores nothing but the <c>ID</c> and resolves every read through
+        /// <c>Registry&lt;InventoryItem&gt;</c>, so handing such an item over "succeeds" and then
+        /// every read of the slot resolves null — gone from the mat, never in the bar. That is
+        /// wrong authored data, so the answer is an error naming the asset and a refusal that
+        /// leaves the item where the player can still see it. <c>PackStartingItemTests</c> sweeps
+        /// shipped prefabs for exactly this.
+        /// </para>
+        /// </summary>
+        public static bool HotbarCanResolve(InventoryItem item)
+        {
+            if (item == null || string.IsNullOrEmpty(item.ID)) return false;
+            if (Registry<InventoryItem>.Get(item.ID) != null) return true;
+
+            // No registry at all means nowhere the ID round trip can lose the item: an EditMode
+            // test or a bare scene has no RegistryLoader, and its hotbars are plain
+            // PlayerInventory objects holding direct references. Only a POPULATED registry that
+            // cannot answer for this ID is the authored-data fault this refuses.
+            using (IEnumerator<InventoryItem> entries = Registry<InventoryItem>.All.GetEnumerator())
+                if (!entries.MoveNext()) return true;
+
+            Debug.LogError($"[Pack] Refused to hand '{item.name}' (ID {item.ID}) to a hotbar: the " +
+                           "item registry cannot resolve that ID, so the slot would read as empty " +
+                           "and the item would be lost. The item asset must live under " +
+                           "Assets/Game/Resources/Items.", item);
             return false;
         }
 
@@ -788,15 +902,21 @@ namespace SpaceGame.Items
             Vector2 uv = placement.Uv;
             float yaw = placement.Yaw;
 
-            bool inPlace = Layout.CanPlace(placement.Surface, surface.Size, heldShape, uv, yaw,
-                                           placement.ItemId);
+            // The same gate the prediction above applies, and it has to be the same or a green
+            // preview turns into a press that does nothing.
+            bool faceTakesHeld = surface.AcceptsItem(held);
+
+            bool inPlace = faceTakesHeld
+                           && Layout.CanPlace(placement.Surface, surface.Size, heldShape, uv, yaw,
+                                              placement.ItemId);
 
             // Same spot first, because that is where the player is looking. Anywhere on the same
             // face second. A swap that silently moved gear onto a different panel would read as the
             // container shuffling its own contents.
-            if (!inPlace && !Layout.TryFindSpot(placement.Surface, surface.Size, heldShape,
-                                                out uv, out yaw, placement.ItemId,
-                                                PackShapes.AllowsRotation(held, shapes)))
+            if (!inPlace && (!faceTakesHeld
+                             || !Layout.TryFindSpot(placement.Surface, surface.Size, heldShape,
+                                                    out uv, out yaw, placement.ItemId,
+                                                    PackShapes.AllowsRotation(held, shapes))))
                 return false;
 
             // Clears the slot. It does NOT spawn a world pickup — that is PlayerInventory.DropItem,

@@ -13,13 +13,16 @@ namespace SpaceGame.EditorTools
 {
     /// <summary>
     /// Builds the Repulsor Gauntlet artifact: its blast-ring and air-warp materials, its two shake
-    /// assets, its prefab — greybox model, ammo capacitor and the whole blast VFX rig — its
+    /// assets, its prefab — model, ammo capacitor and the whole blast VFX rig — its
     /// <see cref="InventoryItem"/> asset, its entry in the network prefab list, and the
     /// <see cref="FlungBody"/> landing on the player prefab.
     ///
     /// <para>
-    /// The model is a GREYBOX built from primitives — the real mesh is a deferred follow-up, and
-    /// authoring the prefab now means the whole use flow can be proven before any art exists.
+    /// The model is <c>gauntlet_repulsor.fbx</c>, built on the shared gauntlet base and worn on the
+    /// forearm like the rest of the family (2026-09-02). It replaced a greybox of Unity primitives
+    /// — a cylinder cuff and a flat plate — which existed so the whole use flow could be proven
+    /// before any art did. Every landmark the prefab needs is now a named node or marker in the
+    /// FBX rather than a metre typed in here.
     /// </para>
     /// <para>
     /// It is re-runnable, and re-running it REPLACES the prefab wholesale. Anything hand-added in
@@ -32,6 +35,12 @@ namespace SpaceGame.EditorTools
     /// </summary>
     public static class RepulsorGauntletBuilder
     {
+        private const string LogTag      = "RepulsorGauntlet";
+        private const string ModelPath   = "Assets/Game/Art/Models/Items/gauntlet_repulsor.fbx";
+
+        /// <summary>The glass ball the artifact lights. Named in the .blend; see its BUILD.md.</summary>
+        private const string CapacitorNode = "Mesh_Repulsor_Capacitor";
+
         private const string PrefabPath  = "Assets/Game/Prefabs/Items/Artifacts/Gadgets/RepulsorGauntlet.prefab";
         private const string ItemPath    = "Assets/Game/Resources/Items/Artifacts/RepulsorGauntlet.asset";
         private const string RingMatPath = "Assets/Game/Art/Materials/Artifacts/RepulsorBlastRing.mat";
@@ -73,9 +82,6 @@ namespace SpaceGame.EditorTools
         private const string NetworkPrefabsPath =
             "Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset";
 
-        /// <summary>The ground layer DropItemPhysics settles against, shared by every artifact.</summary>
-        private const int GroundLayerMask = 128;
-
         // ── Blast VFX tuning ───────────────────────────────────────────────────
         //
         // Read every number below against the artifact's own: a 20 m reach and a 70° cone, spent in
@@ -88,9 +94,6 @@ namespace SpaceGame.EditorTools
         // it, while a tight fast core with a slower skirt around it gets read as something that
         // WENT somewhere (GDC-L1-FEEL-0004 — the layers have to agree on the same story, and the
         // story here is a direction).
-
-        /// <summary>Where the blast leaves the gauntlet: metres in front of the cuff, along +Z.</summary>
-        private const float EmitterForwardOffset = 0.16f;
 
         private const float DustCone = 26f;
         private const short DustCount = 95;
@@ -180,12 +183,6 @@ namespace SpaceGame.EditorTools
         /// <summary>How much of the refraction follows the shell outward rather than the noise.</summary>
         private const float WarpFlowBias = 0.65f;
 
-        /// <summary>
-        /// Rest scale of the capacitor sphere. The artifact overwrites this every frame from its own
-        /// capacitorGlowScale — this is only what the prefab looks like sitting in the project view.
-        /// </summary>
-        private const float CapacitorRestScale = 0.14f;
-
         /// <summary>Compressed air and the desert it tears up.</summary>
         private static readonly Color DustLight  = new Color(0.78f, 0.72f, 0.60f);
         private static readonly Color DustDark   = new Color(0.46f, 0.42f, 0.35f);
@@ -220,7 +217,15 @@ namespace SpaceGame.EditorTools
             ShakeData blastShake = EnsureShake(BlastShakePath);
             if (blastShake == null) return;
 
-            GameObject root = BuildHierarchy(ringMat, glowMat, coneMat, blastMats, blastShake);
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
+            if (model == null)
+            {
+                Debug.LogError($"[{LogTag}] No model at {ModelPath}. " +
+                               "Run models/gear/gauntlet_repulsor_export.py first.");
+                return;
+            }
+
+            GameObject root = BuildHierarchy(model, ringMat, glowMat, coneMat, blastMats, blastShake);
 
             Directory.CreateDirectory(Path.GetDirectoryName(PrefabPath) ?? ".");
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
@@ -240,70 +245,63 @@ namespace SpaceGame.EditorTools
 
         // ── Hierarchy ──────────────────────────────────────────────────────────
 
-        private static GameObject BuildHierarchy(Material ringMat, Material glowMat, Material coneMat,
-                                                 BlastMaterials blastMats, ShakeData blastShake)
+        private static GameObject BuildHierarchy(GameObject model, Material ringMat, Material glowMat,
+                                                 Material coneMat, BlastMaterials blastMats,
+                                                 ShakeData blastShake)
         {
             var root = new GameObject("RepulsorGauntlet");
 
-            // ── Greybox model ──
-            // Primitives, not an FBX: the real gauntlet mesh is a deferred follow-up, and the
-            // builder simply re-runs over this slot when it lands. A cylinder cuff the forearm
-            // slides through, and a flat plate over the back of the hand. The colliders the
-            // primitives arrive with would fight the root's own pickup sphere.
-            var model = new GameObject("Model");
-            model.transform.SetParent(root.transform, false);
-
-            GameObject cuff = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            cuff.name = "Cuff";
-            cuff.transform.SetParent(model.transform, false);
-            cuff.transform.localRotation = Quaternion.Euler(90f, 0f, 0f); // Long axis along +Z.
-            cuff.transform.localScale = new Vector3(0.09f, 0.11f, 0.09f);
-            UnityEngine.Object.DestroyImmediate(cuff.GetComponent<Collider>());
-
-            GameObject plate = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            plate.name = "Plate";
-            plate.transform.SetParent(model.transform, false);
-            plate.transform.localPosition = new Vector3(0f, 0.02f, 0.13f);
-            plate.transform.localScale = new Vector3(0.1f, 0.04f, 0.08f);
-            UnityEngine.Object.DestroyImmediate(plate.GetComponent<Collider>());
+            // ── Model ──
+            // The gauntlet family's own mesh, replacing the primitive greybox this builder shipped
+            // while the art was outstanding. It arrives in the gauntlet frame — origin at the
+            // wrist joint, the arm down the model's -Z, the coil out past the hand on +Z — so it
+            // goes on at identity and every landmark below is read off it rather than typed.
+            var modelInstance = (GameObject)PrefabUtility.InstantiatePrefab(model);
+            modelInstance.name = "Model";
+            modelInstance.transform.SetParent(root.transform, false);
 
             // ── Grip ──
-            var grip = new GameObject("GripPoint");
-            grip.transform.SetParent(root.transform, false);
-            grip.transform.localPosition = new Vector3(0f, 0f, -0.05f);
+            Transform grip = GauntletPrefab.AdoptMarker(root.transform, modelInstance.transform,
+                                                        "Marker_Grip", "GripPoint", LogTag);
 
             // ── Ammo capacitor ──
             // Lit while a shot is loaded, dark while it recharges — the gauntlet's whole magazine
-            // readout, driven by the artifact's UpdateCapacitor. Built inactive; the artifact turns
+            // readout, driven by the artifact's UpdateCapacitor. Left inactive; the artifact turns
             // it on from Awake, so a gauntlet lying in the sand already shows a full magazine.
             //
-            // Its own flat additive material, NOT the ring's. The shockwave shader reads uv.y as
+            // The modelled glass ball in its cradle, not a primitive sphere, and its material is
+            // swapped for the flat additive one, NOT the ring's. The shockwave shader reads uv.y as
             // "across the annulus width" and sweeps it with _Progress; on a sphere that coordinate
             // is latitude and nothing animates _Progress, so the ring material renders the glow
             // bright at one pole and invisible at the other.
-            GameObject glow = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            glow.name = "Capacitor";
-            glow.transform.SetParent(root.transform, false);
-            glow.transform.localPosition = new Vector3(0f, 0f, 0.12f);
-            glow.transform.localScale = Vector3.one * CapacitorRestScale;
-            UnityEngine.Object.DestroyImmediate(glow.GetComponent<Collider>());
-            glow.GetComponent<MeshRenderer>().sharedMaterial = glowMat;
-            glow.SetActive(false);
+            Transform glow = GauntletPrefab.FindDeep(modelInstance.transform, CapacitorNode);
+            if (glow == null)
+            {
+                Debug.LogError($"[{LogTag}] No '{CapacitorNode}' in the FBX; the magazine readout is dead.");
+            }
+            else
+            {
+                var glowRenderer = glow.GetComponent<MeshRenderer>();
+                if (glowRenderer != null) glowRenderer.sharedMaterial = glowMat;
+                glow.gameObject.SetActive(false);
+            }
 
             // ── Blast emitter ──
             // One transform carrying the muzzle position, with the three bursts and the flash at
             // zero offset under it. That split is load-bearing: the artifact's PlayBurst writes each
             // system's world ROTATION every shot and never its position, so a system that carried an
             // offset of its own would swing around the hand as the player turned.
-            var emitter = new GameObject("BlastEmitter");
-            emitter.transform.SetParent(root.transform, false);
-            emitter.transform.localPosition = new Vector3(0f, 0f, EmitterForwardOffset);
+            // Its place is the coil's own mouth, adopted from the model, rather than the metre
+            // guess the greybox needed.
+            Transform emitter = GauntletPrefab.AdoptMarker(root.transform, modelInstance.transform,
+                                                           "Marker_Emitter", "BlastEmitter", LogTag);
+            GauntletPrefab.HideRemainingMarkers(modelInstance.transform);
 
-            ParticleSystem dust = BuildBlastDust(emitter.transform, blastMats.Dust);
-            ParticleSystem streaks = BuildBlastStreaks(emitter.transform, blastMats.Streaks);
-            ParticleSystem debris = BuildBlastDebris(emitter.transform, blastMats.Debris);
-            ParticleSystem sheet = BuildBlastShockSheet(emitter.transform, blastMats.Dust);
-            Light flash = BuildMuzzleFlash(emitter.transform);
+            ParticleSystem dust = BuildBlastDust(emitter, blastMats.Dust);
+            ParticleSystem streaks = BuildBlastStreaks(emitter, blastMats.Streaks);
+            ParticleSystem debris = BuildBlastDebris(emitter, blastMats.Debris);
+            ParticleSystem sheet = BuildBlastShockSheet(emitter, blastMats.Dust);
+            Light flash = BuildMuzzleFlash(emitter);
 
             // ── Pickup / world presence ──
             // Mirrors LightningSpell.prefab component for component: the same prefab is both the
@@ -311,31 +309,31 @@ namespace SpaceGame.EditorTools
             var netObject = root.AddComponent<NetworkObject>();
             netObject.SynchronizeTransform = true;
 
-            SphereCollider sphere = root.AddComponent<SphereCollider>();
-            sphere.radius = 0.14f;
-
-            Rigidbody body = root.AddComponent<Rigidbody>();
-            body.isKinematic = true;
-            body.useGravity = true;
-
             AddInternal(root, "SpaceGame.Items.PickupableItem");
 
-            var drop = root.AddComponent<DropItemPhysics>();
-            SetPrivate(drop, "rb", body);
-            SetPrivateLayerMask(drop, "groundLayer", GroundLayerMask);
+            // The body, a collider the shape of the item, the sizing and the netcode that lets
+            // another machine watch it be shoved about. One shared block - see ItemWorldPresence
+            // for what nine hand-written copies of it cost, and why the sphere it replaces here
+            // made a dropped item roll like a marble.
+            ItemWorldPresence.Apply(root);
 
             root.AddComponent<SpaceGame.Core.NetRelay>();
             root.AddComponent<SpaceGame.Core.Persistence.SaveableEntity>();
             root.AddComponent<SpaceGame.Core.Persistence.TransformSaveable>();
 
-            var itemGrip = root.AddComponent<ItemGrip>();
-            SetPrivate(itemGrip, "gripPoint", grip.transform);
-            SetPrivate(itemGrip, "holdSize", 0.3f);
-            SetPrivate(itemGrip, "sizeReference", model.transform);
+            // Worn on the forearm like every other gauntlet since 2026-09-02, authored at the
+            // suit's true size: no hold size and no rotation offset. See GauntletPrefab.
+            GauntletPrefab.MakeWorn(root, grip, modelInstance.transform);
 
             // ── The artifact ──
             var artifact = root.AddComponent<RepulsorGauntletArtifact>();
-            SetPrivate(artifact, "capacitorGlow", glow.transform);
+            SetPrivate(artifact, "capacitorGlow", glow);
+
+            // The ball is modelled at the size it should be lit at, so the artifact must not
+            // resize it. capacitorGlowScale is written into localScale EVERY FRAME while a shot
+            // is loaded: leave it at the greybox's 0.14 and the capacitor collapses to 14 mm the
+            // moment the artifact wakes, with nothing in the console.
+            SetPrivate(artifact, "capacitorGlowScale", 1f);
             SetPrivate(artifact, "ringMaterial", ringMat);
             SetPrivate(artifact, "coneMaterial", coneMat);
             SetPrivate(artifact, "blastDust", dust);

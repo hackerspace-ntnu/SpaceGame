@@ -44,28 +44,11 @@ namespace SpaceGame.Items
         private int equippedSlotIndex = -1;
 
         /// <summary>
-        /// How often a held item's aim goes on the wire. 15 Hz rather than every frame: the aim is
-        /// the only thing in the tick that changes, peers smooth between ticks anyway, and the
-        /// machine that would notice a faster rate — the owner's — does not use the messages at
-        /// all. It reads its own camera live.
+        /// The hand's trigger: the Use button on whatever the selected hotbar slot holds. The
+        /// pipeline itself — request, present, authority, broadcast, hold stream — lives in
+        /// <see cref="UseChannel"/>, shared with the worn gear's three triggers.
         /// </summary>
-        private const float HoldSendInterval = 1f / 15f;
-
-        /// <summary>Are hold ticks streaming? Not the same as the button being down — see <see cref="useButtonDown"/>.</summary>
-        private bool useHeld;
-
-        /// <summary>
-        /// Is the use button physically down?
-        ///
-        /// Tracked apart from <see cref="useHeld"/> because a self-timed item — one whose
-        /// <see cref="UsableItem.WantsHold"/> is true — outlives the press, and the stream has to
-        /// keep running while it does. Collapsing the two back into one flag is what makes a
-        /// three-second burst freeze its aim the moment the player lets go.
-        /// </summary>
-        private bool useButtonDown;
-
-        private float nextHoldSend;
-
+        private UseChannel hand;
 
         /// <summary>
         /// The main hand's grip rotation, in that hand bone's own space.
@@ -79,13 +62,23 @@ namespace SpaceGame.Items
         public Quaternion MainHandGripLocalRotation =>
             equipmentSocket != null ? equipmentSocket.FrameLocalRotation : Quaternion.identity;
 
+        /// <summary>The off hand's grip rotation in its own bone's space; identity without an off hand.</summary>
+        public Quaternion OffHandGripLocalRotation =>
+            offHandSocket != null ? offHandSocket.FrameLocalRotation : Quaternion.identity;
+
+        /// <summary>The grip rotation for either hand — see <see cref="MainHandGripLocalRotation"/>.</summary>
+        public Quaternion GripLocalRotation(ItemGrip.Hand hand) =>
+            hand == ItemGrip.Hand.Left ? OffHandGripLocalRotation : MainHandGripLocalRotation;
+
+        private Animator rigAnimator;
+
         private void Awake()
         {
-            var anim = GetComponentInChildren<Animator>(true);
+            rigAnimator = GetComponentInChildren<Animator>(true);
 
             // Always prefer the actual armature bone — the serialized handSocket is
             // only a manual override for rigs the auto-resolver can't handle.
-            var resolved = ResolveBone(anim, handBone, handBoneNameHints);
+            var resolved = BoneResolver.Resolve(rigAnimator, transform, handBone, handBoneNameHints);
             if (resolved != null)
             {
                 handSocket = resolved;
@@ -99,18 +92,20 @@ namespace SpaceGame.Items
                 Debug.LogWarning("EquipmentController: hand bone auto-resolve failed; falling back to the serialized handSocket Transform.", this);
             }
 
-            equipmentSocket = BuildSocket(anim, handSocket, isRightHand: true);
+            equipmentSocket = NewSocket(ItemGrip.Hand.Right);
 
             // The off hand is genuinely optional. A rig without one, or a character that only ever
             // holds things in the main hand, just gets a null here and every item goes to the main
             // socket — no warning, because nothing is wrong.
-            var offHand = ResolveBone(anim, offHandBone, offHandBoneNameHints);
-            if (offHand != null && offHand != handSocket)
-                offHandSocket = BuildSocket(anim, offHand, isRightHand: false);
+            offHandSocket = NewSocket(ItemGrip.Hand.Left);
+
+            hand = new UseChannel(this, GearArea.Hotbar,
+                                  () => GearRef.Hotbar(inventory?.SelectedSlotIndex ?? -1),
+                                  HeldItem);
         }
 
         /// <summary>
-        /// Build the socket for one hand, with the grip frame derived from the rig's own anatomy.
+        /// A fresh socket on one hand, with the grip frame derived from the rig's own anatomy.
         ///
         /// <para>
         /// Derived rather than serialized on purpose: a hand bone's rotation is whatever the FBX
@@ -118,10 +113,21 @@ namespace SpaceGame.Items
         /// character. Reading the fingers instead gives a frame that means the same thing on all
         /// of them, so an item tuned once is tuned everywhere.
         /// </para>
+        /// <para>
+        /// Public because a worn gauntlet sits on the same bone as a held item and needs a socket
+        /// of its own — one bone, two things on it — seated in the same frame so one set of
+        /// <see cref="ItemGrip"/> offsets serves both. Null when the rig has no such hand.
+        /// </para>
         /// </summary>
-        private EquipItemSocket BuildSocket(Animator anim, Transform bone, bool isRightHand)
+        public EquipItemSocket NewSocket(ItemGrip.Hand which)
         {
+            bool isRightHand = which == ItemGrip.Hand.Right;
+            Transform bone = isRightHand
+                ? handSocket
+                : BoneResolver.Resolve(rigAnimator, transform, offHandBone, offHandBoneNameHints);
+
             if (bone == null) return null;
+            if (!isRightHand && bone == handSocket) return null;
 
             HandGripFrame frame;
 
@@ -134,39 +140,10 @@ namespace SpaceGame.Items
             }
             else
             {
-                frame = HandGripFrame.Derive(anim, bone, isRightHand);
+                frame = HandGripFrame.Derive(rigAnimator, bone, isRightHand);
             }
 
             return new EquipItemSocket(bone, frame, holdScaleMultiplier);
-        }
-
-        private Transform ResolveBone(Animator anim, HumanBodyBones bone, string[] nameHints)
-        {
-            // Humanoid rig: ask the Animator for the actual bone Transform.
-            if (anim != null && anim.isHuman)
-            {
-                var mapped = anim.GetBoneTransform(bone);
-                if (mapped != null) return mapped;
-            }
-
-            // Generic rig: substring-search the hierarchy by bone name.
-            if (nameHints != null && nameHints.Length > 0)
-            {
-                var all = GetComponentsInChildren<Transform>(true);
-                for (int i = 0; i < all.Length; i++)
-                {
-                    string n = all[i].name;
-                    for (int h = 0; h < nameHints.Length; h++)
-                    {
-                        var hint = nameHints[h];
-                        if (string.IsNullOrEmpty(hint)) continue;
-                        if (n.IndexOf(hint, StringComparison.OrdinalIgnoreCase) >= 0)
-                            return all[i];
-                    }
-                }
-            }
-
-            return null;
         }
 
         private void Start()
@@ -204,7 +181,16 @@ namespace SpaceGame.Items
                 Unequip();
                 return;
             }
-        
+
+            // A gauntlet or a pack lying in the hotbar is storage, not a thing to hold. Selecting
+            // it empties the hands — the HUD marks the tile so the player knows why — and the item
+            // only ever comes alive in the body slot it was made for.
+            if (!BodySlotRules.HandEquips(slot.Item.equipKind))
+            {
+                Unequip();
+                return;
+            }
+
             // No network hop here on purpose. What is in a player's hands follows from which
             // hotbar slot is selected, and PlayerInventoryNetwork already replicates that as
             // server-owned state — so every machine reaches this method on its own and equips the
@@ -326,7 +312,7 @@ namespace SpaceGame.Items
 
             // Before anything is cleared, while HeldItem() still answers with the item that is
             // actually burning. Putting a beam away has to put the beam out.
-            EndHold(send: true);
+            hand?.EndHold(send: true);
 
             if (equippedItemObject)
             {
@@ -366,10 +352,9 @@ namespace SpaceGame.Items
 
         // ─────────── Using the held item, across the network ───────────
         //
-        // This is the only place an artifact is triggered, which is why it is the only place that
-        // needs to know about the network. Every artifact — the eight that exist and every one
-        // written after this — replicates because of these three methods, not because anyone
-        // remembered to add a sync component to it.
+        // The pipeline is UseChannel's. This component owns the hand's channel, registers for the
+        // four use messages on the player's relay and forwards the hotbar's share of them; the
+        // worn gear's controller does the same for its three channels on the same relay.
 
         private void OnEnable()
         {
@@ -386,7 +371,7 @@ namespace SpaceGame.Items
             // beam is dropped here and the SERVER is left to notice the stream stopped. That is
             // what the item's own hold timeout is for, and it is the same thing that covers a
             // player who disconnects mid-beam, which no amount of sending here could.
-            EndHold(send: false);
+            hand?.EndHold(send: false);
 
             this.NetOff(NetMsg.UseItem, OnUseRequested);
             this.NetOff(NetMsg.ItemUsed, OnItemUsedElsewhere);
@@ -408,179 +393,31 @@ namespace SpaceGame.Items
             // and neither is something to hang a weapon discharge on.
             if (WallAimController.Aiming != null) return;
 
-            UsableItem usable = HeldItem();
-            if (usable == null) return;
-
-            // The owner describes the use — chiefly where they aimed, which is knowable only here.
-            var arg = new NetArg { A = inventory?.SelectedSlotIndex ?? -1 };
-            usable.OnRequestUse(ref arg);
-
-            // Presented immediately, always, so no item ever feels like it is waiting for a reply.
-            usable.PlayUse(gameObject, arg);
-
-            // An owner-authoritative tool is ours to run, right now — its effect is this player's
-            // own body, which already replicates through the transform they own.
-            if (usable.Authority == UseAuthority.Owner)
-                usable.TryUse(gameObject, arg);
-
-            // Either way the server hears about it, because only the server can reach the peers.
-            this.NetToServer(NetMsg.UseItem, arg);
-
-            // A continuous item's press is also the start of its hold. The first tick goes out on
-            // the next Update rather than here, so that start and sustain travel through one code
-            // path and cannot describe the aim two different ways.
-            if (usable.IsContinuous)
-            {
-                useHeld = true;
-                useButtonDown = true;
-                nextHoldSend = 0f;
-            }
+            hand?.Press();
         }
 
-        /// <summary>
-        /// Owner let go of use.
-        ///
-        /// A self-timed item is not finished just because the finger came up, and cutting the
-        /// stream here would strand every other machine on the aim it had at the press. Its stream
-        /// ends in <see cref="Update"/>, when the item itself says it is done.
-        /// </summary>
-        private void OnUseRelease()
-        {
-            useButtonDown = false;
+        private void OnUseRelease() => hand?.Release();
 
-            UsableItem usable = HeldItem();
-            if (usable != null && usable.IsContinuous && usable.WantsHold) return;
+        private void Update() => hand?.Tick(Time.time);
 
-            EndHold(send: true);
-        }
-
-        /// <summary>
-        /// Owner side: keep the aim flowing while the button is down.
-        ///
-        /// Guarded on the item still being the continuous one that started the hold — swapping
-        /// hotbar slots mid-beam otherwise leaves this streaming hold ticks at whatever is in the
-        /// hand now, and Unequip's EndHold would have nothing left to switch off.
-        /// </summary>
-        private void Update()
-        {
-            if (!useHeld) return;
-
-            UsableItem usable = HeldItem();
-            if (usable == null || !usable.IsContinuous)
-            {
-                EndHold(send: true);
-                return;
-            }
-
-            // The button is up and the item has stopped asking. For an ordinary held item this is
-            // never reached — OnUseRelease already ended it — so this is the self-timed item's
-            // release, arriving whenever the item decided rather than whenever the finger did.
-            if (!useButtonDown && !usable.WantsHold)
-            {
-                EndHold(send: true);
-                return;
-            }
-
-            if (Time.time < nextHoldSend) return;
-            nextHoldSend = Time.time + HoldSendInterval;
-
-            SendHold(usable, active: true);
-        }
-
-        /// <summary>
-        /// Stop the beam. Safe to call from anywhere, including twice.
-        ///
-        /// <paramref name="send"/> is false only where the network cannot be trusted to still be
-        /// there — see <see cref="OnDisable"/>.
-        /// </summary>
-        private void EndHold(bool send)
-        {
-            if (!useHeld) return;
-            useHeld = false;
-            useButtonDown = false;
-
-            UsableItem usable = HeldItem();
-            if (usable == null) return;
-
-            if (send)
-            {
-                SendHold(usable, active: false);
-                return;
-            }
-
-            usable.PlayHold(gameObject, default, active: false);
-            if (usable.Authority == UseAuthority.Owner)
-                usable.TryHold(gameObject, default, active: false);
-        }
-
-        /// <summary>One tick of a hold, down the same three routes a press takes.</summary>
-        private void SendHold(UsableItem usable, bool active)
-        {
-            var arg = new NetArg
-            {
-                A = inventory?.SelectedSlotIndex ?? -1,
-                B = active ? 1 : 0,
-            };
-
-            usable.OnRequestHold(ref arg, active);
-
-            usable.PlayHold(gameObject, arg, active);
-
-            if (usable.Authority == UseAuthority.Owner)
-                usable.TryHold(gameObject, arg, active);
-
-            this.NetToServer(NetMsg.UseItemHold, arg);
-        }
-
-        /// <summary>Server side: the same shape as <see cref="OnUseRequested"/>, per tick.</summary>
-        private void OnHoldRequested(in NetArg arg, ulong sender)
-        {
-            if (!Network.Simulates(this)) return;
-
-            UsableItem usable = HeldItem();
-            if (usable == null) return;
-
-            // Same stale-slot guard as a press. A hold that crossed a hotbar switch would
-            // otherwise keep an artifact the player is no longer holding running on the server.
-            if (arg.A >= 0 && inventory != null && arg.A != inventory.SelectedSlotIndex) return;
-
-            bool active = arg.B != 0;
-
-            if (usable.Authority == UseAuthority.Server)
-                usable.TryHold(gameObject, arg, active);
-
-            this.NetToOthers(NetMsg.ItemUseHeld, arg, except: sender);
-        }
-
-        /// <summary>Peer side: cosmetics only, exactly as with a press.</summary>
-        private void OnItemHeldElsewhere(in NetArg arg, ulong sender)
-        {
-            HeldItem()?.PlayHold(gameObject, arg, arg.B != 0);
-        }
-
-        /// <summary>Server side: run the effect if it is the server's to run, then tell the peers.</summary>
         private void OnUseRequested(in NetArg arg, ulong sender)
         {
-            if (!Network.Simulates(this)) return;
-
-            UsableItem usable = HeldItem();
-            if (usable == null) return;
-
-            // The slot the owner used must still be the slot they hold. Without this a stale
-            // request that crossed a hotbar switch fires the wrong artifact on the server only.
-            if (arg.A >= 0 && inventory != null && arg.A != inventory.SelectedSlotIndex) return;
-
-            if (usable.Authority == UseAuthority.Server)
-                usable.TryUse(gameObject, arg);
-
-            // Everyone except the machine that already presented it locally.
-            this.NetToOthers(NetMsg.ItemUsed, arg, except: sender);
+            if (hand != null && hand.Owns(arg.A)) hand.OnUseRequested(arg, sender);
         }
 
-        /// <summary>Peer side: cosmetics only. The effect happened on the server.</summary>
         private void OnItemUsedElsewhere(in NetArg arg, ulong sender)
         {
-            HeldItem()?.PlayUse(gameObject, arg);
+            if (hand != null && hand.Owns(arg.A)) hand.OnUsedElsewhere(arg, sender);
+        }
+
+        private void OnHoldRequested(in NetArg arg, ulong sender)
+        {
+            if (hand != null && hand.Owns(arg.A)) hand.OnHoldRequested(arg, sender);
+        }
+
+        private void OnItemHeldElsewhere(in NetArg arg, ulong sender)
+        {
+            if (hand != null && hand.Owns(arg.A)) hand.OnHeldElsewhere(arg, sender);
         }
 
         private UsableItem HeldItem() =>

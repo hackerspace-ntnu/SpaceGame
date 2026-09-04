@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1831178979518752498}
   - component: {fileID: 6998106084734218679}
-  - component: {fileID: 5013738966566049904}
   - component: {fileID: 2421308541063803463}
   - component: {fileID: 9169606087591402535}
   - component: {fileID: 2122698108282697549}
@@ -20,6 +19,9 @@ GameObject:
   - component: {fileID: 7244344967411671907}
   - component: {fileID: 2777723932628652242}
   - component: {fileID: 928104910239665595}
+  - component: {fileID: 6299870734122687815}
+  - component: {fileID: 5941519148303882103}
+  - component: {fileID: 2607225271262132219}
   m_Layer: 0
   m_Name: AirIntake
   m_TagString: Untagged
@@ -69,27 +71,6 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!65 &5013738966566049904
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1018862276870464110}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 2.8670592, y: 1.3151053, z: 0.40494454}
-  m_Center: {x: 0, y: 0.000000059604645, z: 0.000000029802322}
 --- !u!54 &2421308541063803463
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -254,6 +235,93 @@ MonoBehaviour:
   aimMargin: 0.5
   ghostRange: 120
   fittedSoundId: 506
+--- !u!114 &6299870734122687815
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1018862276870464110}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e96cb6065543e43c4a752faaa1468eb1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.Components.NetworkTransform
+  ShowTopMostFoldoutHeaderGroup: 1
+  NetworkTransformExpanded: 0
+  AutoOwnerAuthorityTickOffset: 1
+  PositionInterpolationType: 0
+  RotationInterpolationType: 0
+  ScaleInterpolationType: 0
+  PositionLerpSmoothing: 1
+  PositionMaxInterpolationTime: 0.1
+  RotationLerpSmoothing: 1
+  RotationMaxInterpolationTime: 0.1
+  ScaleLerpSmoothing: 1
+  ScaleMaxInterpolationTime: 0.1
+  AuthorityMode: 0
+  TickSyncChildren: 0
+  UseUnreliableDeltas: 0
+  SyncPositionX: 1
+  SyncPositionY: 1
+  SyncPositionZ: 1
+  SyncRotAngleX: 1
+  SyncRotAngleY: 1
+  SyncRotAngleZ: 1
+  SyncScaleX: 1
+  SyncScaleY: 1
+  SyncScaleZ: 1
+  PositionThreshold: 0.001
+  RotAngleThreshold: 0.01
+  ScaleThreshold: 0.01
+  UseQuaternionSynchronization: 0
+  UseQuaternionCompression: 0
+  UseHalfFloatPrecision: 0
+  InLocalSpace: 0
+  SwitchTransformSpaceWhenParented: 0
+  Interpolate: 1
+  SlerpPosition: 0
+--- !u!114 &5941519148303882103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1018862276870464110}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f50f2a17a0a945af85a1e2619d71e13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.WorldItem
+  sizing: 1
+  mass: 200
+  density: 90
+  minimumMass: 1.5
+  maximumMass: 80
+  linearDamping: 1.5
+  angularDamping: 4
+  minimumGrabSize: 0.45
+--- !u!65 &2607225271262132219
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1018862276870464110}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.8670592, y: 1.3151053, z: 0.40494454}
+  m_Center: {x: 0, y: 0.000000059604645, z: 0.000000029802322}
 --- !u!1 &1244540100207843431
 GameObject:
   m_ObjectHideFlags: 0

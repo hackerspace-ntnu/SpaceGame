@@ -357,6 +357,7 @@ namespace SpaceGame.Items
             placementLegal =
                 !wall.Holds(held.ID)
                 && wall.Reaches(surface.Id)
+                && surface.AcceptsItem(held)
                 && wall.Layout.CanPlace(surface.Id, surface.Size, shape, uv, turn, null);
 
             if (proxyTried != held)

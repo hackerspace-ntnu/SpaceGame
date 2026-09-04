@@ -133,6 +133,8 @@ namespace SpaceGame.Core
                 Report("CLIENT_QUARRY_BOUND", AutotestProbes.IsNetted(quarry.gameObject));
             }
 
+            yield return ReadWornGearAsClient();
+
             Report("CLIENT_DONE", true);
             Finish();
         }

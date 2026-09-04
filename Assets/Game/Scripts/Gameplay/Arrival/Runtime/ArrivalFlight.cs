@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Gameplay.Arrival
@@ -60,6 +61,19 @@ namespace SpaceGame.Gameplay.Arrival
         /// whose ship went away with its scene answers false here rather than throwing a frame later
         /// inside the descent.
         /// </summary>
+        /// <summary>
+        /// The one thing that keeps ground loaded for this flight while it is in the air: a
+        /// marker at the landing point registered with the streamer. See
+        /// <c>ArrivalDirector.HoldStreamingAtLandingSite</c>.
+        /// </summary>
+        public Transform LandingAnchor { get; set; }
+
+        /// <summary>
+        /// Crew whose own chunk anchoring is suspended for the length of the flight. Handed back
+        /// one by one as they leave, and all together when the hull is down.
+        /// </summary>
+        public List<Transform> SuspendedCrew { get; } = new();
+
         public bool IsAlive => Ship != null && Seating != null;
     }
 }

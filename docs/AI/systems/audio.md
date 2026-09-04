@@ -18,7 +18,7 @@ symptoms:
   - "I want to add a new sound and cannot find where to author the FMOD event"
   - "an NPC's chatter mutes every other NPC of the same kind"
 reads_with: [Multiplayer, AgentSystem, Combat, Cutscenes]
-updated: 2026-09-01
+updated: 2026-09-03
 ---
 
 # Audio
@@ -42,7 +42,7 @@ FMOD is the only playback backend; every gameplay sound is asked for by *meaning
 
 | Type | File | Role |
 |---|---|---|
-| `SfxId` | [SfxId.cs](Assets/Game/Scripts/Audio/SfxId.cs) | The vocabulary — **71** named sounds, explicit values grouped in hundreds. Serialized; never reuse a number. |
+| `SfxId` | [SfxId.cs](Assets/Game/Scripts/Audio/SfxId.cs) | The vocabulary — **73** named sounds, explicit values grouped in hundreds. Serialized; never reuse a number. |
 | `AudioCatalog` / `AudioCatalog.Entry` | [AudioCatalog.cs](Assets/Game/Scripts/Audio/AudioCatalog.cs) | ScriptableObject: `id → eventRef, cooldown, maxDistance, volume, note`. Static `Default` loads `Resources/AudioCatalog` once. |
 | `Sfx` | [Sfx.cs](Assets/Game/Scripts/Audio/Sfx.cs) | Static façade: `Play`, `PlayAttached`, `Play2D`, `Reset`. Cooldown table + one-warning-per-id. |
 | `LoopingEmitter` | [LoopingEmitter.cs](Assets/Game/Scripts/Audio/LoopingEmitter.cs) | Owns one sustained `EventInstance`. `Play/Stop/SetParameter/SetVolume/SetPosition`. Safe to double-Play and double-Stop. |
@@ -56,8 +56,8 @@ FMOD is the only playback backend; every gameplay sound is asked for by *meaning
 ## Catalog
 
 - Asset: [`Assets/Game/Resources/AudioCatalog.asset`](Assets/Game/Resources/AudioCatalog.asset) — path constant `AudioCatalog.ResourcePath`. Must stay under *some* `Resources` folder.
-- **71 entries — one per non-`None` `SfxId`.** Groups: Player 100s, Weapons 200s, Impacts 300s, NPC/entity 400s, Interaction 500s, Wings 600s, Ship/vehicle 700s, Ambience 800s, UI 900s, Portals 1000s.
-- Those 71 slots resolve to only **18 distinct FMOD events** (plus `event:/Music/TestSong` used directly by `AudioManager.PlayTestMusic` = 19 shipped events total). Heaviest reuse: `SFX/Wham` ×9, `SFX/ElectricHum` ×9, `UI/No` ×8, `SFX/Slurp` ×7, `SFX/Antigravity` ×7.
+- **73 entries — one per non-`None` `SfxId`.** Groups: Player 100s, Weapons 200s, Impacts 300s, NPC/entity 400s, Interaction 500s, Wings 600s, Ship/vehicle 700s, Ambience 800s, UI 900s, Portals 1000s.
+- Those 73 slots resolve to only **18 distinct FMOD events** (plus `event:/Music/TestSong` used directly by `AudioManager.PlayTestMusic` = 19 shipped events total). Heaviest reuse: `SFX/Wham` ×9, `SFX/ElectricHum` ×9, `UI/No` ×8, `SFX/Slurp` ×7, `SFX/Antigravity` ×7.
 - **No FMOD Studio project.** [`FMODStudioSettings.asset`](Assets/Plugins/FMOD/Resources/FMODStudioSettings.asset) has `ImportType: 0` (single bank folder), `TargetAssetPath: FMODBanks`, and **no `SourceProjectPath`** — the `.fspro` that built these banks is not in the repo. Banks are the compiled `.bank` files in [`Assets/Game/Audio/`](Assets/Game/Audio) and `Assets/StreamingAssets/` (Master, Master.strings, SFX, UI, Music). New events cannot be authored until a `.fspro` exists.
 - [`Assets/Game/Audio/GUIDs.txt`](Assets/Game/Audio/GUIDs.txt) is the authoritative manifest of everything the banks contain: 5 banks, 5 busses, **19 events**, and one parameter (`parameter:/Floor`). Read it before assuming an event exists.
 - Every entry carries a `note` string; stand-in mappings are marked there, so `grep` the asset to find them. Per-slot event/cooldown/distance/volume values are in the asset — read it, do not mirror it here.

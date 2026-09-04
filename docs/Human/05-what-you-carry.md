@@ -93,6 +93,8 @@ There is a real spot light with a deliberately short range — about 40 m. Dista
 
 The third layer is the visible shaft of light in the air. It is not ray-marched. For each pixel it finds the closest point on your view ray to the beam axis and shades by how far off-axis and how far along you are. Which means: **looking straight down your own beam does not brighten the screen.** That is intentional and correct, though it does confuse people who expect a volumetric.
 
+The torch is **worn, not built in**. It is the Flashlight Gauntlet: a lamp clamped to the bracer every astronaut wears on both forearms, switched with that arm's key like any other gauntlet, and the beam comes out of its horn — so it lights where your arm is pointing, not where you are looking. Switching it on brings the arm up into the same pose the body uses to carry an item, which is what puts the beam where you are looking; switching it off lets the arm down again. Put something in your hands and that wins. Lose the gauntlet and you are in the dark. Everyone starts wearing one on the right forearm.
+
 One real limitation: **there is exactly one long-throw torch.** The slot it writes into is singular, so it belongs to whoever owns the local camera. Everyone else's spot light is real and lights the world correctly for all viewers, but only the local player gets the long throw and the visible shaft. Giving every player their own would mean turning that one slot into an array — a rendering change, not a networking one, and nobody has needed it yet.
 
 ---
@@ -103,7 +105,7 @@ This is quietly one of the most-iterated parts of the game, because an item that
 
 **The hand has a frame, derived from the skeleton.** Not authored per character — measured. It has an origin in the middle of the fist, an axis pointing the way an item points, and an axis toward the thumb side. Held items point **along the fingers**, and the palm-normal direction depends on which hand it is. This matters because the astronaut is a 3 m character whose hand is about 1.7 times a human hand; nothing generalises if you eyeball it off mesh bounds.
 
-**Size is a size, not a multiplier.** Each item declares how long its longest axis should be, in metres. Zero means "trust the artist's scale". These are not arbitrary — they are **brackets on a ladder**, anchored on the dragon bazooka at 1.25 m, so the whole armoury reads as one family in the hand. Four items are pinned as hand-fitted and must never be rescaled: the sucker puncher, the repulsor gauntlet, the item scanner and the wing pack.
+**Size is a size, not a multiplier.** Each item declares how long its longest axis should be, in metres. Zero means "trust the artist's scale". These are not arbitrary — they are **brackets on a ladder**, anchored on the dragon bazooka at 1.25 m, so the whole armoury reads as one family in the hand. Eight items sit outside the ladder because their size is set by a body rather than by taste: all seven gauntlets, which are modelled against the deck of the bracer on the astronaut's own forearm and so declare zero, and the wing pack, whose span is the wearer's. None of them should ever be rescaled.
 
 Two related gotchas that bite people:
 

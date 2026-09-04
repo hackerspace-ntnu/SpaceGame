@@ -85,6 +85,12 @@ namespace SpaceGame.EditorTools
             var item = ScriptableObject.CreateInstance<InventoryItem>();
             item.itemName = itemName;
             item.ID = itemName;
+
+            // Registered like a shipped item — the take path refuses an ID a populated registry
+            // cannot resolve, and whether this domain's registry is populated depends on whether
+            // play mode has run since the last reload. See BackpackSwapTests.Item.
+            SpaceGame.Core.Registry<InventoryItem>.Register(item);
+
             assets.Add(item);
             return item;
         }
@@ -510,6 +516,14 @@ namespace SpaceGame.EditorTools
             }
 
             public bool TryRemoveItem(int index) => bag.TryRemoveItem(index);
+
+            public bool TrySetSlot(int index, InventoryItem item)
+            {
+                if (index < 0 || index >= bag.GetSize()) return false;
+                bag.RestoreSlot(index, item);
+                OnSlotChanged?.Invoke(index, bag.GetSlot(index));
+                return true;
+            }
 
             public void SelectSlot(int slotIndex)
             {

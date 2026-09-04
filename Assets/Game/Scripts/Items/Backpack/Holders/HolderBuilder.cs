@@ -8,7 +8,7 @@ namespace SpaceGame.Items
     ///
     /// <para>
     /// A holder is <b>scenery</b>. It is never picked, never collides and never ticks, so it goes
-    /// through the same <see cref="BackpackItemVisual.Strip"/> the item display copies do and
+    /// through the same <see cref="DisplayCopy.Strip"/> the item display copies do and
     /// leaves without a collider. Nothing about it is state: it is rebuilt from the placement every
     /// time the layout changes and torn down with the item it covers.
     /// </para>
@@ -80,7 +80,7 @@ namespace SpaceGame.Items
             stage.SetActive(false);
 
             GameObject holder = Object.Instantiate(holderPrefab, stage.transform);
-            BackpackItemVisual.Strip(holder);
+            DisplayCopy.Strip(holder);
 
             Transform t = holder.transform;
 

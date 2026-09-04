@@ -1,40 +1,43 @@
 ---
 system: Interaction
 layer: items
-summary: "Look at a collider, press E: one raycast picks the target, one resolver labels it, the target replicates"
+summary: "Look at a collider, right-click: one raycast picks the target, one resolver labels it, the target replicates"
 paths:
   - Assets/Game/Scripts/Gameplay/Interaction
   - Assets/Game/Scripts/Gameplay/Trading
   - Assets/Game/Scripts/Presentation/UI/HUD
   - Assets/Game/Scripts/Core/Persistence/Adapters
 symptoms:
-  - "no E prompt appears on the control I am looking at"
-  - "the prompt lights up but pressing E refuses to do anything"
+  - "no prompt appears on the control I am looking at"
+  - "the prompt lights up but right-clicking refuses to do anything"
   - "a trigger volume in front of a control swallows every interactable behind it"
   - "I can use a control through a window, a windscreen or a canopy from outside"
-  - "pressing E at a vehicle from outside seats me in its cockpit"
+  - "right-clicking a vehicle from outside seats me in its cockpit"
   - "the door opens for the host and stays shut for clients"
-  - "pressing E opens the wrong door on the other machine"
+  - "right-clicking opens the wrong door on the other machine"
   - "interaction dies silently on the client while the host works fine"
   - "a door, lever or workstation is back in its authored state after loading a save"
-reads_with: [Vehicles, Inventory, Persistence]
-updated: 2026-09-02
+  - "the crosshair lights up on a machine's body but the receptacle beside it cannot be aimed at"
+reads_with: [Vehicles, Inventory, Persistence, Oxygen, Visor]
+updated: 2026-09-04
 ---
 
 # Interaction
 
-Look at a collider, press E: one raycast picks a target, one resolver describes it, and the target
-itself owns whatever replication its effect needs.
+Look at a collider, **right-click**: one raycast picks a target, one resolver describes it, and the target
+itself owns whatever replication its effect needs. The key has moved twice — E until 2026-09-02, when E
+became the right gauntlet's trigger; I until 2026-09-03, when interact took right mouse outright and the
+ADS that used to hold that button was deleted rather than rebound (see [PlayerCharacter](PlayerCharacter.md)).
 
 **Scope:** [`Assets/Game/Scripts/Gameplay/Interaction/`](Assets/Game/Scripts/Gameplay/Interaction/) (Core, Interactions, Triggers), [`Gameplay/Trading/`](Assets/Game/Scripts/Gameplay/Trading/)
-**Related:** [Vehicles.md](Vehicles.md) (stations), [MountSystem.md](MountSystem.md), [Inventory.md](Inventory.md), [Persistence.md](Persistence.md), [Interiors.md](Interiors.md), [Cutscenes.md](Cutscenes.md)
+**Related:** [Vehicles.md](Vehicles.md) (stations), [MountSystem.md](MountSystem.md), [Inventory.md](Inventory.md), [Persistence.md](Persistence.md), [Interiors.md](Interiors.md), [Cutscenes.md](Cutscenes.md), [Visor.md](Visor.md) (the prompt's drawing — `VisorReticle`)
 
 ## Model
 
 - **Detection is a raycast, not a registry.** [`Interactor`](Assets/Game/Scripts/Gameplay/Interaction/Core/Interactor.cs) sits on the `PlayerCharacter` root ([`PlayerCharacter.prefab`](Assets/Game/Prefabs/Characters/Player/PlayerCharacter.prefab), `_castDistance` overridden to 20), casts from `lookTransform` (camera) every `Update` and again on each press. `RaycastNonAlloc` into a 16-hit buffer, mask `~Player`, sorted by distance.
 - **Arbitration** (`Interactor.ResolveAlongRay`, static and testable): skip anything under the interactor's own `transform.root`; a **trigger** collider only answers if the `IInteractable` is on that same GameObject, otherwise the ray passes through it; a solid collider answers with its own or its parents' `IInteractable`, and if it has none it **blocks** the line of sight. The one trigger that is not see-through is an [`InteractionBlocker`](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionBlocker.cs) — glass: it offers nothing and stops the ray.
 - **One availability gate for hover and press** (`Interactor.IsAvailable`): `IInteractable.CanInteract()` **and** `IContextualInteractable.CanInteract(interactor)`, plus a `Behaviour.isActiveAndEnabled` check. The crosshair can therefore never light up on something that will refuse.
-- **Prompts are default-on.** [`InteractionPromptResolver`](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionPromptResolver.cs) composes, most specific first: an authored [`InteractionPrompt`](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionPrompt.cs) component → [`IInteractionReadout`](Assets/Game/Scripts/Gameplay/Interaction/Core/IInteractionReadout.cs) (live label/prompt/0-1 bar/value text) → the humanised type name with noise suffixes stripped (`DoorInteraction` → "Door"). Default prompt `"E: interact"`, plus `"   LMB: use"` for an `ISecondaryInteractable`.
+- **Prompts are default-on.** [`InteractionPromptResolver`](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionPromptResolver.cs) composes, most specific first: an authored [`InteractionPrompt`](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionPrompt.cs) component → [`IInteractionReadout`](Assets/Game/Scripts/Gameplay/Interaction/Core/IInteractionReadout.cs) (live label/prompt/0-1 bar/value text) → the humanised type name with noise suffixes stripped (`DoorInteraction` → "Door"). Default prompt `"RMB: interact"`, plus `"   LMB: use"` for an `ISecondaryInteractable`.
 - **Execution is local to the presser.** `Interact()` only ever runs on the machine of the player who pressed (input is disabled on non-owned bodies). Getting the consequence onto other machines is the interactable's own job — via [`NetLatch`](Assets/Game/Scripts/Gameplay/Interaction/Core/NetLatch.cs), an `[Rpc]` + [`InteractorRelay`](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractorRelay.cs), or a `NetMsg` of its own.
 - **Hold-to-interact: N/A** — `Interact` is bound to `Player.Interact.performed` only ([`PlayerInputManager`](Assets/Game/Scripts/Core/Input/PlayerInputManager.cs)). Continuous controls (winches, helm) are repeated presses plus a station claim; the only held stream is `Use` for held items.
 
@@ -52,19 +55,21 @@ itself owns whatever replication its effect needs.
 | `NetLatch` + `ILatchHost` | [Core/NetLatch.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/NetLatch.cs) | One networked bit: request → server decides → `NetMsg.LatchState` to all; late-joiner ask; `oneWay`; `Restore()`. Plain class, driven from the fixture's `OnEnable`/`OnDisable`. |
 | `InteractorRelay` | [Core/InteractorRelay.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractorRelay.cs) | `GetComponentInParent<NetworkObject>()` out, `GetComponentInChildren<Interactor>(true)` back. |
 | `ITriggerable` | [Core/ITriggerable.cs](Assets/Game/Scripts/Gameplay/Interaction/Core/ITriggerable.cs) | "Fire this action for an initiator" — scene transitions, cutscenes, portals. |
-| `InteractionPromptUI` / `CrosshairUI` | [UI/HUD/](Assets/Game/Scripts/Presentation/UI/HUD/) | Panel reads `HoveredInteractable` each frame (self-finds the Interactor). Crosshair's hover half is unwired on `PlayerHUD.prefab`. |
+| `VisorReticle` / `CrosshairUI` | [UI/HelmetHUD/VisorReticle.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorReticle.cs), [UI/HUD/CrosshairUI.cs](Assets/Game/Scripts/Presentation/UI/HUD/CrosshairUI.cs) | The visor's info box reads `HoveredInteractable` each frame (self-finds the Interactor) and draws beside the target bracket; see [Visor.md](Visor.md). Crosshair's hover half is unwired on `PlayerHUD.prefab`. |
 | `TraderInteraction` / `TraderProfile` / `TradeOffer` | [Gameplay/Trading/](Assets/Game/Scripts/Gameplay/Trading/) | Barter: N slots of X for M of Y. Not an `IInteractable` — see Flows. |
 | `TradeUI` | [UI/Pages/TradeUI.cs](Assets/Game/Scripts/Presentation/UI/Pages/TradeUI.cs) | Code-built full-screen panel, `DontDestroyOnLoad` singleton, `GameplayMenuScope`. |
 
 ## Interactables
 
-| Interactable | File | Pressing E |
+| Interactable | File | Right-clicking it |
 | --- | --- | --- |
 | `DoorInteraction` | [Interactions/DoorInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/DoorInteraction.cs) | Toggles a `NetLatch`; two leaves swing ±90° from their authored **local** pose. `IsOpen` is read by `SandstormShelter`. |
 | `LeverInteraction` | [Interactions/LeverInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/LeverInteraction.cs) | Swings the handle, fires `onPulled` on **every** machine once per pull. `oneShot` ⇒ one-way latch; `replayOnJoin` decides whether joiners/loads re-run the event. |
-| `RepairWorkstation` | [Interactions/RepairWorkstation.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/RepairWorkstation.cs) | Consumes the selected hotbar slot if it holds `requiredItem`; server `NetworkVariable<int>` progress; accept/reject feedback via `[Rpc(SendTo.Everyone)]`. Refuses when repaired. |
+| `RepairWorkstation` | [Interactions/RepairWorkstation.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/RepairWorkstation.cs) | Consumes the selected hotbar slot if it holds `requiredItem`; server `NetworkVariable<int>` progress; accept/reject feedback via `[Rpc(SendTo.Everyone)]`. Refuses when repaired. Two prefabs carry it: the primitive-built [RepairWorkstation.prefab](Assets/Game/Prefabs/Environment/Structures/Facilities/RepairWorkstation.prefab) in the ShipRV's cargo bay, and [RepairStation.prefab](Assets/Game/Prefabs/Environment/Structures/Facilities/RepairStation.prefab) — the modelled bench with a scrap hopper, spindle, lamp and gauge, built by `Tools > SpaceGame > Build Repair Station Prefab` ([RepairStationBuilder](Assets/Game/Editor/Environment/RepairStationBuilder.cs)) and nested on `PlayerShip.prefab` by `PlayerShipBuilder.BuildRepairStation`. Neither prefab has a `NetworkObject` of its own; the ship's carries the RPCs. |
+| `OxygenGeneratorDock` | [Interactions/OxygenGeneratorDock.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGeneratorDock.cs) | Fits or takes back a power cell / an oxygen bottle at one of the ship plant's two receptacles. Owns nothing: `OxygenGenerator` decides, over one `NetworkVariable`. Its collider is a **trigger standing proud of the machine's own body box** — the one arrangement that lets a receptacle inside a solid fixture be aimed at. See [Oxygen.md](Oxygen.md). |
 | `DialogInteraction` | [Interactions/DialogInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/DialogInteraction.cs) | Speaks the next line (sequence / random pool / [`DialogPool`](Assets/Game/Scripts/Gameplay/Interaction/Interactions/DialogPool.cs) / branching Y-N). Contextual: silent while `AgentTargeting`/`ProvocationModule` says it is fighting **you**. Purely local, no netcode. |
 | `ShipInteraction` | [Interactions/ShipInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/ShipInteraction.cs) | Hands the selected scrap to `Ship.AddScrap()`. `Network.Execute` + `InteractServerRpc`. Sound plays on attempt, not outcome. |
+| `HoloProjectorInteraction` | [Interactions/HoloProjectorInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/HoloProjectorInteraction.cs) | Powers a fixed `MapHologramTerrain` (its `projectorAnchor` mode) on/off via a `NetLatch`. On the `HoloProjector` prefab ([Environment/Structures](Assets/Game/Prefabs/Environment/Structures)), rebuilt by `Tools > SpaceGame > Build Holo Projector Prefab`. Ships nested on `PlayerShip.prefab` (placed by `PlayerShipBuilder.BuildHoloProjector`), where the ship's NetworkObject makes the switch replicate. As a plain chunk prop the latch is local-per-machine — coherent, since the hologram's content (fog of war) is per-viewer anyway. |
 | `InteractableTrigger` | [Triggers/InteractableTrigger.cs](Assets/Game/Scripts/Gameplay/Interaction/Triggers/InteractableTrigger.cs) | Forwards to the `ITriggerable` on the same GameObject. Ungated on purpose (unlike [`VolumeTrigger`](Assets/Game/Scripts/Gameplay/Interaction/Triggers/VolumeTrigger.cs), which is server-only). |
 | `InteractableProxy` | [Triggers/InteractableProxy.cs](Assets/Game/Scripts/Gameplay/Interaction/Triggers/InteractableProxy.cs) | Redirects the same press to an `IInteractable` on another GameObject. Must stay netcode-free. |
 | `PickupableItem` | [Items/Core/PickupableItem.cs](Assets/Game/Scripts/Items/Core/PickupableItem.cs) | Picks the item up (`Network.Execute` → server). |
@@ -73,7 +78,7 @@ itself owns whatever replication its effect needs.
 | `MountStation` | [Vehicles/Stations/MountStation.cs](Assets/Game/Scripts/Vehicles/Stations/MountStation.cs) | Same seat, but only from an authored control (cockpit, wheel). |
 | `VehicleStation` (abstract) | [Vehicles/Stations/VehicleStation.cs](Assets/Game/Scripts/Vehicles/Stations/VehicleStation.cs) | Claim/work/stand-down over `NetMsg.StationClaim`/`StationState`, addressed to the **vehicle's** channel. |
 | `DuneFoilHelm` | [Vehicles/Stations/DuneFoilHelm.cs](Assets/Game/Scripts/Vehicles/Stations/DuneFoilHelm.cs) | Take the wheel / stand down; steers the foil. `IInteractionReadout`. |
-| `DuneFoilRiggingStation` | [Vehicles/Stations/DuneFoilRiggingStation.cs](Assets/Game/Scripts/Vehicles/Stations/DuneFoilRiggingStation.cs) | E = more, LMB = less (`ISecondaryInteractable`), predicted locally then confirmed. |
+| `DuneFoilRiggingStation` | [Vehicles/Stations/DuneFoilRiggingStation.cs](Assets/Game/Scripts/Vehicles/Stations/DuneFoilRiggingStation.cs) | RMB = more, LMB = less (`ISecondaryInteractable`), predicted locally then confirmed. |
 | `DeckBoarding` | [Vehicles/Stations/DeckBoarding.cs](Assets/Game/Scripts/Vehicles/Stations/DeckBoarding.cs) | Teleports you onto the deck. Contextual: refused while you stand in the carry volume; `Network.Owns(player)` guard. |
 | `ArticulatedPartInteraction` | [Vehicles/Parts/ArticulatedPartInteraction.cs](Assets/Game/Scripts/Vehicles/Parts/ArticulatedPartInteraction.cs) | Toggles a group of hinged parts via `NetMsg.PartToggle`. |
 | `SpaceshipLaunchInteract` | [Spaceship/SpaceshipLaunchInteract.cs](Assets/Game/Scripts/Spaceship/SpaceshipLaunchInteract.cs) | Launches the ship; `NetLatch` (`ILatchHost`). |
@@ -82,9 +87,9 @@ itself owns whatever replication its effect needs.
 
 ## Flows
 
-**Press E**
+**Right-click**
 1. `Update` casts, resolves along the ray, stores `HoveredInteractable` when `IsAvailable`.
-2. `InteractionPromptUI` resolves that into label/prompt/bar and fades the panel in.
+2. `VisorReticle` resolves that into label/prompt/bar and fades its info box in, beside the bracket already snapped onto the target.
 3. `OnInteractPressed` → `Interactor.Interact()` re-casts and re-checks (never trusts the cached hover).
 4. The interactable asks its authority: `latch.Toggle()`, `NetToServer(...)`, or `Network.Execute(local, client: InteractorRelay.RequestFrom(…, rpc))`.
 5. Server validates again, mutates, broadcasts (`LatchState` / `NetworkVariable` / `SendTo.Everyone` feedback RPC); every machine applies in the same handler. Offline/host collapses to the same frame.
@@ -100,7 +105,7 @@ itself owns whatever replication its effect needs.
 
 | Path | Carrier | Authority |
 | --- | --- | --- |
-| Doors, levers, spaceship launch | `NetMsg.LatchSet` (63) / `LatchState` (64), `A` = latch index, `B` = verb (−1 ask, 0/1 set, 2/3 instant) | `Network.Simulates(owner)`, re-runs `Accepts` on arrival, idempotent on state |
+| Doors, levers, spaceship launch, map projector | `NetMsg.LatchSet` (63) / `LatchState` (64), `A` = latch index, `B` = verb (−1 ask, 0/1 set, 2/3 instant) | `Network.Simulates(owner)`, re-runs `Accepts` on arrival, idempotent on state |
 | Vehicle stations | `NetMsg.StationClaim` (65) / `StationState` (66) on the vehicle's channel | Server owns the claim table; occupant predicts locally |
 | Articulated parts | `NetMsg.PartToggle` (60) / `PartState` | Server |
 | Workstation, ship scrap, pickups | `[Rpc(SendTo.Server, InvokePermission = Everyone)]` + `InteractorRelay` | Server; feedback re-broadcast `SendTo.Everyone` |
@@ -115,16 +120,19 @@ itself owns whatever replication its effect needs.
 | --- | --- | --- |
 | Door open/shut | [`DoorSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/DoorSaveable.cs) → `RestoreOpen` | `door` |
 | Lever pulled (incl. one-shot spent) | [`LeverSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/LeverSaveable.cs) → `RestorePulled` | `lever` |
-| Scrap progress | [`RepairWorkstationSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/RepairWorkstationSaveable.cs) → `RestoreProgress` | `repair` |
+| Oxygen plant: cell fitted, bottle docked | [`OxygenGeneratorSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/OxygenGeneratorSaveable.cs) → `RestoreDock`. Baked into the fixture prefab and collected by the hull's root entity, like the station's | `oxygen` |
+| Scrap progress | [`RepairWorkstationSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/RepairWorkstationSaveable.cs) → `RestoreProgress`. On the lander it is baked into `RepairStation.prefab` and collected by the hull's root entity — see [PlayerShip](PlayerShip.md) Gotchas on nested fixtures | `repair` |
+| Projector powered | [`ProjectorSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/ProjectorSaveable.cs) → `RestorePowered` | `projector` |
 | Trader stock + decline cooldown (remaining seconds, not a deadline) | [`TraderSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/TraderSaveable.cs) → `RestoreOffers` | `trader` |
 
-All four are auto-attached by [`SaveablePolicy`](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs); doors, levers and workstations are `IPersistentEntity` because nothing else about them qualifies. Restores go through `NetLatch.Restore` / the `NetworkVariable` (instant + silent, then announced) — never by posing transforms. Stations, mounts and dialog progress are **not** saved.
+All five are auto-attached by [`SaveablePolicy`](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs); doors, levers and workstations are `IPersistentEntity` because nothing else about them qualifies. Restores go through `NetLatch.Restore` / the `NetworkVariable` (instant + silent, then announced) — never by posing transforms. Stations, mounts and dialog progress are **not** saved.
 
 ## Gotchas
 
 - **A trigger collider is see-through** unless the `IInteractable` is on that exact GameObject — carry volumes used to swallow every control on a deck. Put the component on the trigger, or use `InteractableProxy`.
 - **See-through means reach-through, and a hull is only as opaque as its collision.** The ray stops at *solid* colliders, so anything drawn without one — glass, a hologram, a grille — is not in the way at all, and whatever is behind it is usable from outside. This is how the PlayerShip became boardable from the air above its canopy: the dome carries no collider on purpose and the cockpit chairs' own trigger volumes were the first thing an outside ray met. Glass gets an [`InteractionBlocker`](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionBlocker.cs): a **trigger**, so no body collides with it and every movement, ground and clearance query (all of which ask with `QueryTriggerInteraction.Ignore`) still ignores it. It must **enclose what it protects**, not merely stand in front of it — a ray that *starts* inside a collider is not reported as hitting it, which is exactly what keeps the pilot standing under the canopy able to reach their own chair, and is why the blocker is a box over the cockpit rather than a skin on the glass.
 - **A solid collider with no interactable blocks the ray.** A stray hull box in front of a control silently kills its prompt.
+- **And a solid collider WITH one answers for everything inside it.** A fixture whose own body box carries — or sits under — an `IInteractable` is the nearest hit for every control mounted on it, so those controls are wired, replicated, saved and unreachable. The two ways out are the ones the ship already uses: put the interactable on a **trigger** (see-through unless the component is on the trigger's own GameObject) and stand that trigger **proud of the solid box**, which is what `AddSeatVolume`'s padding and `OxygenGeneratorBuilder`'s `DockFrontClearance` both buy. A probe that guards this must include triggers — `Interactor`'s own raycast does.
 - **`CanInteract()` must equal what the press will do**, or the prompt lights up and refuses. Per-player refusals belong in `IContextualInteractable`, not in `CanInteract()`.
 - **Disabling the Interactor freezes nothing** — `OnDisable` calls `ClearHoverState()`; mounting takes that route. A future path that stops `Update` without disabling would strand the panel.
 - **`InteractorRelay` exists because the lookups are one level off:** the `Interactor` is not on the `NetworkObject` root, so `interactor.GetComponent<NetworkObject>()` and `netObj.GetComponent<Interactor>()` both return null and client interaction dies silently. Always use the relay.
@@ -134,8 +142,9 @@ All four are auto-attached by [`SaveablePolicy`](Assets/Game/Scripts/Core/Persis
 - **`TraderProfile.CloneOffers()` rebuilds the live list in `Awake` every session**, so a restore has to *replace* the list (`RestoreOffers`), not nudge it. Mutating the asset directly empties every trader sharing it — and persists to disk in the editor.
 - **Trading is code-complete but unauthored**: no `TraderProfile` asset exists and no prefab or scene references `TraderInteraction`. It also needs a `DialogInteraction` on the same GameObject (that is the only entry point) and an `EntityInventoryComponent` if payment should land anywhere.
 - **A second `IInteractable` on the same collider is ambiguous** — `GetComponent<IInteractable>()` picks by component order. That is why `TraderInteraction` routes through `DialogInteraction`.
-- **Menus gate input via `GameplayMenuScope`**, which puts the player in cutscene mode; the E key stops reaching `Interactor` while `TradeUI` (or any scoped panel) is open. `TradeUI` fades on `unscaledDeltaTime` because the scope freezes the clock solo.
-- **`CrosshairUI.playerInteractor` is unassigned** on `PlayerHUD.prefab`, so hover-brightening has never run. `InteractionPromptUI` self-finds instead.
+- **Menus gate input via `GameplayMenuScope`**, which puts the player in cutscene mode; right mouse stops reaching `Interactor` while `TradeUI` (or any scoped panel) is open. `TradeUI` fades on `unscaledDeltaTime` because the scope freezes the clock solo.
+- **Right mouse is shared with the UI map and with the lasso.** `UI/RightClick` is bound to the same physical button and stays enabled during play, so a lasso rope reels in on the same press that interacts. Harmless in practice — interact does nothing without a hovered target — but a new right-mouse gameplay verb has to reckon with it rather than assume the button is free.
+- **`CrosshairUI.playerInteractor` is unassigned** on `PlayerHUD.prefab`, so hover-brightening has never run. `VisorReticle` self-finds instead.
 
 ## Extending
 

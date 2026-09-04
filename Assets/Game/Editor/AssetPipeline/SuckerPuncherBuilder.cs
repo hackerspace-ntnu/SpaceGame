@@ -24,7 +24,17 @@ namespace SpaceGame.EditorTools
     /// </summary>
     public static class SuckerPuncherBuilder
     {
-        private const string ModelPath  = "Assets/Game/Art/Models/Items/sucker_puncher.fbx";
+        private const string LogTag     = "SuckerPuncher";
+
+        /// <summary>
+        /// How far the ram slides, in metres. This is not a feel number — it is the model's, and
+        /// <c>gauntlet_puncher.py</c> derives and asserts it: the sled has to stay on the base's
+        /// rails, which are 0.240 m long and belong to <c>gauntlet_base.blend</c> rather than to
+        /// the device, and the rod's piston has to stay inside its gland at full extension. Set it
+        /// longer than the .blend allows and the fist walks off the end of its own track.
+        /// </summary>
+        private const float RamStroke = 0.168f;
+        private const string ModelPath  = "Assets/Game/Art/Models/Items/gauntlet_puncher.fbx";
         private const string PrefabPath = "Assets/Game/Prefabs/Items/Artifacts/Gadgets/SuckerPuncher.prefab";
         private const string ItemPath   = "Assets/Game/Resources/Items/Artifacts/SuckerPuncher.asset";
         private const string RingMatPath = "Assets/Game/Art/Materials/Artifacts/SuckerPuncherShockRing.mat";
@@ -33,9 +43,6 @@ namespace SpaceGame.EditorTools
         private const string ShockShader = "SpaceGame/Artifacts/RepulsorShockwave";
         private const string NetworkPrefabsPath =
             "Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset";
-
-        /// <summary>The ground layer DropItemPhysics settles against, shared by every artifact.</summary>
-        private const int GroundLayerMask = 128;
 
         /// <summary>
         /// The four objects that ride the rails. They share one origin in the .blend
@@ -66,7 +73,7 @@ namespace SpaceGame.EditorTools
             if (model == null)
             {
                 Debug.LogError($"[SuckerPuncher] No model at {ModelPath}. " +
-                               "Run models/gear/sucker_puncher_export.py first.");
+                               "Run models/gear/gauntlet_puncher_export.py first.");
                 return;
             }
 
@@ -100,18 +107,17 @@ namespace SpaceGame.EditorTools
             modelInstance.name = "Model";
             modelInstance.transform.SetParent(root.transform, false);
 
-            // The gauntlet was authored -Y forward / +Z up and exported with the same flags as the
-            // portal gun and the gravel blaster, so it arrives pointing down the prefab's own +Z
-            // with the hazard plate up. No correction rotation is applied here for the same reason
-            // those two apply none.
-            Transform grip = AdoptMarker(root.transform, modelInstance.transform,
-                                         "Marker_Grip", "GripPoint");
-            Transform vent = AdoptMarker(root.transform, modelInstance.transform,
-                                         "Marker_Vent", "Vent");
+            // Built on the shared gauntlet base since 2026-09-02, in the family frame: origin at
+            // the wrist joint, the arm down the model's -Z, the fist out past the hand on +Z. It
+            // goes on at identity and the markers below carry every landmark.
+            Transform grip = GauntletPrefab.AdoptMarker(root.transform, modelInstance.transform,
+                                                        "Marker_Grip", "GripPoint", LogTag);
+            Transform vent = GauntletPrefab.AdoptMarker(root.transform, modelInstance.transform,
+                                                        "Marker_Vent", "Vent", LogTag);
 
-            // Marker_Fist and Marker_Gauge are exported too and nothing consumes them yet. They
-            // are 4 mm cubes, so leaving them visible would float two specks in the model.
-            HideRemainingMarkers(modelInstance.transform);
+            // Anything else the .blend ships as a marker is a build helper, not a socket, and
+            // leaving it visible would float a speck in the model.
+            GauntletPrefab.HideRemainingMarkers(modelInstance.transform);
 
             // Steam is vented backwards and up, away from the punch — a plume that followed the
             // fist would sit in front of the thing the player is trying to look at.
@@ -124,54 +130,35 @@ namespace SpaceGame.EditorTools
             var netObject = root.AddComponent<NetworkObject>();
             netObject.SynchronizeTransform = true;
 
-            SphereCollider sphere = root.AddComponent<SphereCollider>();
-            sphere.radius = 0.2f;
-
-            Rigidbody body = root.AddComponent<Rigidbody>();
-            body.isKinematic = true;
-            body.useGravity = true;
-
             AddInternal(root, "SpaceGame.Items.PickupableItem");
 
-            var drop = root.AddComponent<DropItemPhysics>();
-            SetPrivate(drop, "rb", body);
-            SetPrivateLayerMask(drop, "groundLayer", GroundLayerMask);
+            // The body, a collider the shape of the item, the sizing and the netcode that lets
+            // another machine watch it be shoved about. One shared block - see ItemWorldPresence
+            // for what nine hand-written copies of it cost, and why the sphere it replaces here
+            // made a dropped item roll like a marble.
+            ItemWorldPresence.Apply(root);
 
             root.AddComponent<SpaceGame.Core.NetRelay>();
             root.AddComponent<SpaceGame.Core.Persistence.SaveableEntity>();
             root.AddComponent<SpaceGame.Core.Persistence.TransformSaveable>();
 
             // ── Grip ──
-            var itemGrip = root.AddComponent<ItemGrip>();
-            SetPrivate(itemGrip, "gripPoint", grip);
-
-            // The model's own longest axis, so world scale is pinned at 1.0 and the metres in the
-            // .blend are metres in the game. That matters for a worn item more than for a held
-            // one: the cavity is sized against measured hand dimensions, and any scaling at all
-            // invalidates it.
+            // Worn on the forearm like every other gauntlet, and authored at the suit's true size,
+            // so the whole family answers this the same way — see GauntletPrefab.
             //
-            // `holdSize = 0` would give the same 1.0 here, since ApplyScale divides out the rig's
-            // scale before applying the authored one. Stating it explicitly is the point — it
-            // stops a future rig or export change from silently resizing a part that has to fit a
-            // hand. Re-measure if the model's extents change: it is the Y extent of the .blend's
-            // bounding box (see sucker_puncher_BUILD.md).
-            SetPrivate(itemGrip, "holdSize", 0.674f);
-
-            // A quarter turn about the item's own forward, so the guard plate ends up on the BACK
-            // OF THE HAND rather than out past the thumb.
-            //
-            // HandGripFrame's up is the thumb side, which is right for a gun (the sights sit
-            // thumb-side in a pistol grip) and wrong for something worn over the hand. The frame's
-            // remaining axis is the palm normal, and for a right hand the thumb sits on the index
-            // side of index->pinky, which puts the item's +X out the back of the hand — hence -90
-            // rather than +90. If it ever reads mirrored, this is the single number to flip.
-            SetPrivate(itemGrip, "rotationOffset", new Vector3(0f, 0f, -90f));
-            SetPrivate(itemGrip, "positionOffset", Vector3.zero);
+            // It used to carry holdSize 0.674 and a -90 rotationOffset. Both belonged to the era
+            // when the puncher was seated in the HAND frame: the size pinned a hand cavity
+            // measured against the rig, and the quarter turn put the guard plate on the back of
+            // the hand rather than out past the thumb. On the forearm the model's own axes ARE
+            // the frame, so a rotation offset is a tilt nobody asked for, and the size is the
+            // wearer's arm.
+            GauntletPrefab.MakeWorn(root, grip, modelInstance.transform);
 
             // ── The artifact ──
             var artifact = root.AddComponent<SuckerPuncherArtifact>();
             SetPrivate(artifact, "steamBurst", steam);
             SetPrivate(artifact, "ringMaterial", ringMat);
+            SetPrivate(artifact, "ramThrow", RamStroke);
             SetPrivateEnum(artifact, "useSoundId", "WeaponMeleeImpact");
 
             var shake = AssetDatabase.LoadAssetAtPath<ShakeData>(ShakePath);
@@ -199,7 +186,7 @@ namespace SpaceGame.EditorTools
             var parts = new List<Transform>();
             foreach (string name in RamParts)
             {
-                Transform part = FindDeep(model, name);
+                Transform part = GauntletPrefab.FindDeep(model, name);
                 if (part == null)
                 {
                     Debug.LogError($"[SuckerPuncher] No '{name}' in the FBX. The ram will not move.");
@@ -331,44 +318,6 @@ namespace SpaceGame.EditorTools
         }
 
         // ── Markers ────────────────────────────────────────────────────────────
-
-        /// <summary>
-        /// Turn an exported marker cube into a plain transform on the prefab root. The 4 mm mesh
-        /// exists only to carry a coordinate across the FBX; leaving its renderer would float a
-        /// cube in the model.
-        /// </summary>
-        private static Transform AdoptMarker(Transform root, Transform model, string markerName,
-                                             string wantedName)
-        {
-            var adopted = new GameObject(wantedName);
-            adopted.transform.SetParent(root, false);
-
-            Transform marker = FindDeep(model, markerName);
-            if (marker == null)
-            {
-                Debug.LogWarning($"[SuckerPuncher] No {markerName} in the FBX; {wantedName} left at origin.");
-                return adopted.transform;
-            }
-
-            adopted.transform.localPosition = root.InverseTransformPoint(marker.position);
-            marker.gameObject.SetActive(false);
-            return adopted.transform;
-        }
-
-        /// <summary>Hide every marker nothing adopted, so no stray cube ships in the model.</summary>
-        private static void HideRemainingMarkers(Transform model)
-        {
-            foreach (Transform child in model.GetComponentsInChildren<Transform>(true))
-                if (child.name.StartsWith("Marker_", StringComparison.Ordinal))
-                    child.gameObject.SetActive(false);
-        }
-
-        private static Transform FindDeep(Transform parent, string name)
-        {
-            foreach (Transform child in parent.GetComponentsInChildren<Transform>(true))
-                if (child.name == name) return child;
-            return null;
-        }
 
         // ── Item asset, pickup, network registration ───────────────────────────
 

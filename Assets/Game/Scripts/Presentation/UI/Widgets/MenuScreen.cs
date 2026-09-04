@@ -227,12 +227,9 @@ namespace SpaceGame.Presentation
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = SortingOrder;
 
-            // The reference resolution MainMenu.unity's own canvas uses, so type sized against the
-            // menu's 90pt entries scales identically.
-            var scaler = canvasObject.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
+            // The project-wide rule, which MainMenu.unity's own canvas also follows, so type sized
+            // against the menu's 90pt entries scales identically.
+            UIScale.Configure(canvasObject.GetComponent<CanvasScaler>());
 
             return UIBuilder.Fill(UIBuilder.Rect("Page", canvasObject.transform));
         }

@@ -80,6 +80,31 @@ namespace SpaceGame.Items
         /// cut. The bays are decoration on a continuous grid.
         /// </para>
         /// </summary>
-        WallGrid = 7
+        WallGrid = 7,
+
+        /// <summary>
+        /// <c>SURF_Back_C</c>: the 3 x 6 cell strip between the two back panels, on the pack's
+        /// centre line — the spot the rig's own modelled oxygen bottle used to be bolted to.
+        ///
+        /// <para>
+        /// It exists because that bottle was <b>geometry</b>, authored as "a fixed fitting, not an
+        /// item", so nothing could ever take it off. It is gone (see
+        /// <c>expedition_rig_BUILD.md</c>), and this is the face that gives the real bottle its
+        /// place: same plane, same rotation and the same 3 x 6 cells as its two neighbours, with
+        /// 15 mm of clearance to each of them.
+        /// </para>
+        /// <para>
+        /// <b>The only RESERVED face on any container.</b> A face normally takes anything that
+        /// fits; this one accepts the oxygen bottle alone (<see cref="PackSurface.AcceptsOnly"/>),
+        /// because it is a socket rather than a shelf — the pack plumbs into whatever stands here,
+        /// and a rifle in the bottle's cradle would be plumbed into nothing. Overhang is strict
+        /// for the same reason: an item hanging past this strip is hanging over the two panels
+        /// beside it.
+        /// </para>
+        /// <para>
+        /// Appended rather than renumbered, because these values are persisted and sent as a byte.
+        /// </para>
+        /// </summary>
+        BackPanelCentre = 8
     }
 }

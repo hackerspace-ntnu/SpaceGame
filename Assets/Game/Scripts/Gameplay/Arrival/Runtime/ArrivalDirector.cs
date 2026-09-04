@@ -4,6 +4,7 @@ using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Core;
 using SpaceGame.Presentation;
+using SpaceGame.World;
 
 namespace SpaceGame.Gameplay.Arrival
 {
@@ -245,6 +246,10 @@ namespace SpaceGame.Gameplay.Arrival
             SeatedRider.LocalPlayerSeated -= PlayLocalCutscene;
             SeatedRider.LocalCrewLaunched -= LaunchLocalCutscene;
             SpaceGame.Core.Persistence.SaveManager.Capturing -= GroundUnfinishedFlights;
+
+            // A director switched off mid-flight must not leave the crew unable to pull ground
+            // in for the rest of the session.
+            ReleaseAllStreamingHolds();
         }
 
         private void OnDestroy()
@@ -317,8 +322,10 @@ namespace SpaceGame.Gameplay.Arrival
             if (player == null) return;
 
             foreach (ArrivalFlight flight in flights.Values)
-                if (flight.IsAlive)
-                    flight.Seating.Release(player);
+            {
+                if (flight.IsAlive) flight.Seating.Release(player);
+                ResumeCrewAnchor(flight, player);
+            }
         }
 
         /// <summary>
@@ -350,6 +357,13 @@ namespace SpaceGame.Gameplay.Arrival
             SpawnManager.Instance.SpawnPlayerForClient(clientId, hull.position, hull.rotation);
             attempt.Handled = true;
 
+            // Suspended on the spawn frame, not the seating frame: the player object exists as
+            // soon as the call above returns, and the streamer's next tick can fall in the one
+            // frame between here and the seat — a body 2 km up pulling a 3x3 of chunks in around
+            // the top of the arc before anybody has told it not to.
+            GameObject spawned = ResolvePlayer(clientId);
+            if (spawned != null) SuspendCrewAnchor(flight, spawned);
+
             // The body is created by the call above, but its NetworkObject is not addressable until
             // the next frame — and SeatedRider addresses players by NetworkObjectId.
             yield return null;
@@ -363,6 +377,7 @@ namespace SpaceGame.Gameplay.Arrival
             }
 
             flight.Seating.Seat(player, seatIndex);
+            SuspendCrewAnchor(flight, player);
 
             seatedClients++;
 
@@ -478,7 +493,84 @@ namespace SpaceGame.Gameplay.Arrival
 
             var flight = new ArrivalFlight(team, ship, seating, flightPath);
             flights[team] = flight;
+            HoldStreamingAtLandingSite(flight);
             return flight;
+        }
+
+        // ── What the streamer loads during a flight ──────────────────────────────
+        //
+        // Nothing in the air needs ground under it. The hull is teleported down an arc and the
+        // crew are held in their seats, so the only chunks a flight needs are the ones it lands
+        // on — and those are preloaded before anybody is spawned. Left to itself the streamer
+        // disagreed: every seated body is a player object, every player object is an anchor, and
+        // six bodies two kilometres up pulled a 3x3 of chunks in around the START of the arc,
+        // plus a look-ahead box. Each of those is a networked scene event that every client has
+        // to finish before the next can begin, so a six-player session spent over a minute
+        // loading twenty-odd chunks nobody would stand on. A marker at the landing point holds
+        // the ground that matters; the crew get their anchoring back the moment they may stand.
+
+        private WorldStreamer worldStreamer;
+
+        private WorldStreamer Streamer =>
+            worldStreamer != null ? worldStreamer : worldStreamer = FindFirstObjectByType<WorldStreamer>();
+
+        private void HoldStreamingAtLandingSite(ArrivalFlight flight)
+        {
+            WorldStreamer streamer = Streamer;
+            if (streamer == null) return;
+
+            var marker = new GameObject($"Arrival landing anchor ({flight.Ship.name})");
+            marker.transform.position = flight.Path.ImpactPosition;
+
+            // Into this director's scene rather than whichever scene happens to be active — a
+            // marker that landed in a chunk scene would be destroyed with it.
+            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(marker, gameObject.scene);
+
+            flight.LandingAnchor = marker.transform;
+            streamer.RegisterTrackedTransform(marker.transform);
+        }
+
+        private void SuspendCrewAnchor(ArrivalFlight flight, GameObject player)
+        {
+            // Seated into a hull that is already down: they need the ground under it like anyone.
+            if (flight.Landed) return;
+            if (flight.SuspendedCrew.Contains(player.transform)) return;
+
+            WorldStreamer streamer = Streamer;
+            if (streamer == null) return;
+
+            streamer.SuspendAnchor(player.transform);
+            flight.SuspendedCrew.Add(player.transform);
+        }
+
+        private void ResumeCrewAnchor(ArrivalFlight flight, GameObject player)
+        {
+            if (!flight.SuspendedCrew.Remove(player.transform)) return;
+
+            WorldStreamer streamer = Streamer;
+            if (streamer != null) streamer.ResumeAnchor(player.transform);
+        }
+
+        private void ReleaseStreamingHold(ArrivalFlight flight)
+        {
+            WorldStreamer streamer = Streamer;
+
+            foreach (Transform crew in flight.SuspendedCrew)
+                if (streamer != null) streamer.ResumeAnchor(crew);
+
+            flight.SuspendedCrew.Clear();
+
+            if (flight.LandingAnchor == null) return;
+
+            if (streamer != null) streamer.UnregisterTrackedTransform(flight.LandingAnchor);
+            Destroy(flight.LandingAnchor.gameObject);
+            flight.LandingAnchor = null;
+        }
+
+        private void ReleaseAllStreamingHolds()
+        {
+            foreach (ArrivalFlight flight in flights.Values)
+                ReleaseStreamingHold(flight);
         }
 
         /// <summary>
@@ -546,6 +638,11 @@ namespace SpaceGame.Gameplay.Arrival
             foreach (ArrivalFlight flight in flights.Values)
                 if (flight.IsAlive)
                     flight.Seating.AllowRelease();
+
+            // The crew may stand, so the ground is theirs to keep loaded again; the landing
+            // markers have done their job. Every flight, alive or not — a destroyed hull's crew
+            // still need their anchoring back.
+            ReleaseAllStreamingHolds();
 
             HasArrived = true;
             IsRunning = false;
@@ -1021,7 +1118,7 @@ namespace SpaceGame.Gameplay.Arrival
         /// seconds apart and the descent is not.
         /// </para>
         /// </summary>
-        private void PlayLocalCutscene()
+        private void PlayLocalCutscene(GameObject player)
         {
             if (cutscene == null)
             {
@@ -1042,7 +1139,9 @@ namespace SpaceGame.Gameplay.Arrival
             // TEMPORARY DIAGNOSTIC (2026-09-02) — remove once the missing arrival blackout is
             // diagnosed. Play() returning false is currently the only non-silent failure here, and
             // it is indistinguishable from this method never having been called at all.
-            bool started = CutsceneDirector.Instance.Play(cutscene);
+            // The seated body is the subject, so the director locks and rigs this machine's
+            // player rather than whichever PlayerController it would otherwise find first.
+            bool started = CutsceneDirector.Instance.Play(cutscene, player);
             Debug.Log($"[Arrival:DIAG] PlayLocalCutscene started={started} " +
                       $"descent={descentDuration} settle={settleHold + settleDuration}", this);
         }

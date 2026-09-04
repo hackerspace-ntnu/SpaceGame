@@ -73,11 +73,10 @@ bar, a crosshair, a four-slot hotbar, an interaction prompt that answers "what a
 what will the buttons do", a timed prompt after the crash landing telling you how to leave your
 seat, and a death overlay.
 
-**The helmet layer** is the visor HUD: AR markers for known entities (coloured by faction) and map
-points of interest, drawn as an on-screen ring when they are in view and clamped to the screen edge
-as an arrow when they are not, plus a danger vignette of two curved arcs that grow with each hit
-from a direction and decay afterwards. It toggles on its own key, independently of the rest of the
-HUD.
+**The helmet layer** is the visor HUD: corner marks that snap around whatever you are looking at,
+a name and a prompt that unfold beside them, plus a danger vignette of two curved arcs that grow
+with each hit from a direction and decay afterwards. It toggles on its own key, independently of
+the rest of the HUD.
 
 **World-anchored labels** are their own layer that survives the world streaming underneath it:
 floating damage numbers for your own hits, names over other players (distance-faded and
@@ -85,7 +84,7 @@ occlusion-tested), and a world-space progress gauge on the repair workstation. N
 scene-authored speech popup with a typewriter reveal, a hold, and an optional yes/no.
 
 **The map** is a floating 3D hologram beside the player — one low-poly mesh per chunk you have
-revealed. There is no 2D map screen; the helmet markers are the other half of the same idea.
+revealed. There is no 2D map screen.
 
 **Overlays over gameplay** are pause (on **M**, not Escape), chat (**T**), the dev artifact browser
 (**I**, in dev mode), the trader window, the loading screen, and the match result and scoreboard

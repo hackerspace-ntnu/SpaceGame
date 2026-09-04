@@ -41,6 +41,7 @@ using UnityEngine;
 using SpaceGame.Agents;
 using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
+using SpaceGame.Gameplay;
 using SpaceGame.Items;
 using SpaceGame.Vehicles;
 using SpaceGame.World.Safety;
@@ -59,6 +60,62 @@ namespace SpaceGame.EditorTools
         // a hand-added child would survive exactly until the next rebuild.
         private const string InventoryWallPrefabPath =
             "Assets/Game/Prefabs/Items/Equipment/InventoryWall.prefab";
+
+        // Built by HoloProjectorBuilder from holo_base_pedestal.fbx. Same rule as the wall: placed
+        // by this builder, never by hand, or it dies on the next rebuild.
+        private const string HoloProjectorPrefabPath =
+            "Assets/Game/Prefabs/Environment/Structures/HoloProjector.prefab";
+
+        // Built by RepairStationBuilder from repair_station.fbx. Third fixture under the same
+        // rule: placed here, never by hand, or it dies on the next rebuild.
+        private const string RepairStationPrefabPath = RepairStationBuilder.PrefabPath;
+
+        // Built by OxygenGeneratorBuilder from oxygen_generator.fbx. Fourth fixture under the same
+        // rule: placed here, never by hand, or it dies on the next rebuild.
+        private const string OxygenGeneratorPrefabPath = OxygenGeneratorBuilder.PrefabPath;
+
+        // The library's fixtures are human-scale furniture (the pedestal is 0.88 m, the bench
+        // 0.90 m to its top); the astronaut is ~1.7x human (see the worn-item hand-fit work), so
+        // every one of them is enlarged by the SAME factor to read as one crew's furniture.
+        private const float CrewFixtureScale = 1.7f;
+
+        // Inboard of the skin, past the rib feet AND the baked hull fill — the deck's outboard
+        // half-metre is solid ~0.36 m up with nothing drawn there (see the wall's history above),
+        // so anything standing on the floor must keep well clear of the curve.
+        private const float HoloProjectorInboard = 1.6f;
+
+        // The repair station's BACK keeps the gear wall's clearance off the deck edge, for the
+        // same rib feet and the same hull fill; its face is turned into the room.
+        private const float RepairStationRibClearance = WallRibClearance;
+
+        // Metres aft of the deck's centre — which is where the projector stands — so the two
+        // fixtures share the port side without contesting floor. Measured on the BUILT ship, not
+        // the blockout: the closed bay-door leaves stand across the aft doorway at z -4.14..-3.94
+        // (PlayerShip_RepairStationStandsOnTheDeckClearOfTheHull named them when the station was
+        // first put at 1.85 m, 0.24 m aft of where the blockout's AABBs put the bulkhead), so at
+        // 1.64 the 2.45 m station ends at -3.85, 0.09 m short of them, and its forward end sits
+        // 0.06 m from the projector's 0.34 m pedestal. Snug, and it cannot go the other way: the
+        // projector cannot move forward either, because PlayerShip_InventoryWallFaceIsAimableFromTheRoom
+        // stands its player at z -0.58 on this side of the deck, 5 cm off the pedestal's aft face.
+        private const float RepairStationAft = 1.64f;
+
+        // The oxygen plant's back keeps the same clearance off the deck edge as the wall and the
+        // station, for the same rib feet and the same baked hull fill.
+        private const float OxygenGeneratorRibClearance = WallRibClearance;
+
+        // Metres FORWARD of the deck's centre, on the same port side as the projector and the
+        // repair station — those two run aft from the centre, so forward of it is the only free
+        // run left on that side, and a wall-mounted plant wants a bulkhead.
+        //
+        // The window is NARROW and was swept on the BUILT ship rather than reasoned about, because
+        // both ends of it are things the blockout's own AABBs do not describe: aft, the map
+        // projector's pedestal; forward, the aft-most cockpit chair `Cockpit_Seat_Command.003`,
+        // whose fitting collider bites 0.1 m before its renderer bounds do. At CrewFixtureScale
+        // the 1.83 m-wide plant is clear from **1.05 to 1.65 m**; 1.35 is the middle of that, with
+        // 0.30 m of margin either way. An earlier 2.0 — reasoned from the projector alone — stood
+        // the plant inside that chair and a hull block, which is exactly what
+        // PlayerShip_OxygenPlantStandsOnTheDeckClearOfEverything exists to catch.
+        private const float OxygenGeneratorFore = 1.35f;
 
         // Ground clearance the hover servo holds. Larger than ShipRV's 0.15: the boarding stair's
         // open pose reaches ~0.4 m below the hull skirts, and it must land beside the sand rather
@@ -400,6 +457,9 @@ namespace SpaceGame.EditorTools
             BuildArrivalSeats(root.transform, parts);
             BuildCabinAlert(root.transform, parts);
             BuildInventoryWall(root.transform, mainDeck, sideDoor);
+            BuildHoloProjector(root.transform, mainDeck, sideDoor);
+            BuildRepairStation(root.transform, mainDeck, sideDoor);
+            BuildOxygenGenerator(root.transform, mainDeck, sideDoor);
             BuildInteriorVolume(root, mainDeck, foreDeck);
 
             MountModule mount = BuildRootComponents(root, seat, dismount, cameraPivot,
@@ -2193,6 +2253,60 @@ namespace SpaceGame.EditorTools
                       ", normal " + surface.transform.up.ToString("0.00") + ".");
         }
 
+        /// <summary>
+        /// The map projector, standing on the main deck on the side OPPOSITE the gear wall, its
+        /// control fascia turned into the room. A nested instance of the HoloProjector prefab, so
+        /// its own builder stays the one place its wiring lives; nested under the ship it also
+        /// inherits the ship's NetworkObject, which is what makes its NetLatch replicate, and the
+        /// ship's SaveableEntity, which is what collects its ProjectorSaveable.
+        /// </summary>
+        private static void BuildHoloProjector(Transform root, Bounds deck, Bounds door)
+        {
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(HoloProjectorPrefabPath);
+            if (source == null)
+            {
+                Debug.LogWarning("[PlayerShipBuilder] No projector at " + HoloProjectorPrefabPath +
+                                 " — run Tools/SpaceGame/Build Holo Projector Prefab. The ship is " +
+                                 "built without it.");
+                return;
+            }
+
+            if (deck.size == Vector3.zero || door.size == Vector3.zero)
+            {
+                Debug.LogWarning("[PlayerShipBuilder] Could not measure the main deck or the side " +
+                                 "door, so the map projector was not placed.");
+                return;
+            }
+
+            // The wall stands on the door's side (see BuildInventoryWall); the projector takes the
+            // other, so the two fixtures cannot contest the same floor.
+            Vector3 toDoor = door.center - deck.center;
+            var across = new Vector3(-Mathf.Sign(toDoor.x), 0f, 0f);
+
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(source);
+            instance.name = "HoloProjector";
+            instance.transform.SetParent(root, false);
+            instance.transform.localScale = Vector3.one * CrewFixtureScale;
+            StripNestedSavers(instance);
+
+            // The projector's own SaveableEntity and TransformSaveable — carried for standalone
+            // placements — are stripped by the wiring pass Build() runs after saving (see
+            // SaveableWiring.StripNestedSavers): nested under the ship they would spawn a second hull
+            // on every load and overwrite the ship's pose record. Verify() checks the result.
+
+            // Fascia (+Z on the prefab, the Blender front) into the room.
+            instance.transform.localRotation = Quaternion.LookRotation(-across);
+
+            instance.transform.localPosition =
+                deck.center
+                + across * (deck.extents.x - HoloProjectorInboard)
+                + Vector3.up * (deck.max.y - deck.center.y);
+
+            Debug.Log("[PlayerShipBuilder] Map projector on the " +
+                      (across.x > 0f ? "+X" : "-X") + " side at " +
+                      instance.transform.localPosition.ToString("0.00") + ".");
+        }
+
         // ─────────── Interior safe zone ───────────
 
         /// <summary>
@@ -2227,6 +2341,153 @@ namespace SpaceGame.EditorTools
         /// parts first; that is a change to the shelter, not to this builder.
         /// </para>
         /// </remarks>
+        /// <summary>
+        /// The scrap-fed repair station: on the main deck on the projector's side (opposite the
+        /// gear wall), aft of the projector, its back stood the same rib clearance off the deck
+        /// edge the wall keeps, its face turned into the room. A nested instance of the
+        /// RepairStation prefab, so RepairStationBuilder stays the one place its wiring lives;
+        /// nested under the ship it inherits the ship's NetworkObject — which is what makes the
+        /// workstation's NetworkVariable and RPCs replicate — and the ship's SaveableEntity, which
+        /// collects its RepairWorkstationSaveable (see <see cref="StripNestedSavers"/>).
+        /// </summary>
+        private static void BuildRepairStation(Transform root, Bounds deck, Bounds door)
+        {
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(RepairStationPrefabPath);
+            if (source == null)
+            {
+                Debug.LogWarning("[PlayerShipBuilder] No repair station at " + RepairStationPrefabPath +
+                                 " — run Tools/SpaceGame/Build Repair Station Prefab. The ship is " +
+                                 "built without it.");
+                return;
+            }
+
+            if (deck.size == Vector3.zero || door.size == Vector3.zero)
+            {
+                Debug.LogWarning("[PlayerShipBuilder] Could not measure the main deck or the side " +
+                                 "door, so the repair station was not placed.");
+                return;
+            }
+
+            // The projector's side (see BuildHoloProjector): lateral component only, and X is
+            // lateral by construction.
+            Vector3 toDoor = door.center - deck.center;
+            var across = new Vector3(-Mathf.Sign(toDoor.x), 0f, 0f);
+
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(source);
+            instance.name = "RepairStation";
+            instance.transform.SetParent(root, false);
+            instance.transform.localScale = Vector3.one * CrewFixtureScale;
+            StripNestedSavers(instance);
+
+            // Face (+Z on the prefab, the Blender front) into the room.
+            instance.transform.localRotation = Quaternion.LookRotation(-across);
+
+            // How far the fixture reaches behind its own origin at the drawn scale: the prefab's
+            // collider is measured off its renderers by its builder, and its back is its local
+            // -Z. Read rather than typed, so a remodelled bench keeps its clearance.
+            var box = instance.GetComponent<BoxCollider>();
+            float backReach = box != null
+                ? (box.size.z * 0.5f - box.center.z) * CrewFixtureScale
+                : 0.6f;
+
+            instance.transform.localPosition =
+                deck.center
+                + across * (deck.extents.x - RepairStationRibClearance - backReach)
+                + Vector3.up * (deck.max.y - deck.center.y)
+                + Vector3.back * RepairStationAft;
+
+            Debug.Log("[PlayerShipBuilder] Repair station on the " +
+                      (across.x > 0f ? "+X" : "-X") + " side at " +
+                      instance.transform.localPosition.ToString("0.00") + ".");
+        }
+
+        /// <summary>
+        /// The oxygen plant: wall-mounted on the main deck, on the projector's side and FORWARD of
+        /// it, its back the same rib clearance off the deck edge the wall and the station keep, its
+        /// fascia turned into the room. A nested instance of the OxygenGenerator prefab, so
+        /// <see cref="OxygenGeneratorBuilder"/> stays the one place its wiring lives; nested under
+        /// the ship it inherits the ship's NetworkObject — which is what makes the plant's
+        /// NetworkVariable and RPC replicate — and the ship's SaveableEntity, which collects its
+        /// OxygenGeneratorSaveable (see <see cref="StripNestedSavers"/>).
+        /// </summary>
+        private static void BuildOxygenGenerator(Transform root, Bounds deck, Bounds door)
+        {
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(OxygenGeneratorPrefabPath);
+            if (source == null)
+            {
+                Debug.LogWarning("[PlayerShipBuilder] No oxygen plant at " + OxygenGeneratorPrefabPath +
+                                 " — run Tools/SpaceGame/Build Oxygen System. The ship is built " +
+                                 "without it.");
+                return;
+            }
+
+            if (deck.size == Vector3.zero || door.size == Vector3.zero)
+            {
+                Debug.LogWarning("[PlayerShipBuilder] Could not measure the main deck or the side " +
+                                 "door, so the oxygen plant was not placed.");
+                return;
+            }
+
+            // The projector's side (see BuildHoloProjector): lateral component only, and X is
+            // lateral by construction.
+            Vector3 toDoor = door.center - deck.center;
+            var across = new Vector3(-Mathf.Sign(toDoor.x), 0f, 0f);
+
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(source);
+            instance.name = "OxygenGenerator";
+            instance.transform.SetParent(root, false);
+            instance.transform.localScale = Vector3.one * CrewFixtureScale;
+            StripNestedSavers(instance);
+
+            // Fascia (+Z on the prefab, the Blender front) into the room.
+            instance.transform.localRotation = Quaternion.LookRotation(-across);
+
+            // How far the machine reaches behind its own origin at the drawn scale. Read off the
+            // body collider its own builder measured, not typed, so a remodel keeps its clearance.
+            // The plant is a wall unit whose origin IS its mounting plane, so this is ~0.
+            var box = instance.GetComponent<BoxCollider>();
+            float backReach = box != null
+                ? Mathf.Max(0f, (box.size.z * 0.5f - box.center.z) * CrewFixtureScale)
+                : 0f;
+
+            instance.transform.localPosition =
+                deck.center
+                + across * (deck.extents.x - OxygenGeneratorRibClearance - backReach)
+                + Vector3.up * (deck.max.y - deck.center.y)
+                + Vector3.forward * OxygenGeneratorFore;
+
+            Debug.Log("[PlayerShipBuilder] Oxygen plant on the " +
+                      (across.x > 0f ? "+X" : "-X") + " side at " +
+                      instance.transform.localPosition.ToString("0.00") + ".");
+        }
+
+        /// <summary>
+        /// One entity per prefab, on the ROOT. A fixture prefab carries its own SaveableEntity —
+        /// the wiring pass stamps every prefab whose components imply saving — and, with it, a
+        /// TransformSaveable. Nested under the ship both are wrong, and both silently:
+        /// <list type="bullet">
+        /// <item>the entity stops the hull's saver collection at the fixture
+        /// (<c>SaveableEntity.Collect</c> halts at any nested entity), so the fixture's own saver
+        /// never reaches the hull's record — and <c>OnValidate</c> stamps the nested entity with
+        /// the SHIP's prefab id, so its own record would instantiate a second hull on every load.
+        /// <c>SaveableEntity.OnValidate</c> warns about exactly this and says the nesting builder
+        /// has to remove it;</item>
+        /// <item>the transform saver writes the fixture's WORLD pose under the same
+        /// <c>"transform"</c> key as the hull's, and the bag keeps whichever was collected last —
+        /// the child. A fixture bolted to the hull has no pose of its own to save.</item>
+        /// </list>
+        /// The dependent saver goes first: a component another one requires cannot be removed
+        /// while the requirer is still there.
+        /// </summary>
+        private static void StripNestedSavers(GameObject instance)
+        {
+            var pose = instance.GetComponent<TransformSaveable>();
+            if (pose != null) Object.DestroyImmediate(pose);
+
+            var entity = instance.GetComponent<SaveableEntity>();
+            if (entity != null) Object.DestroyImmediate(entity);
+        }
+
         private static void BuildInteriorVolume(GameObject root, Bounds mainDeck, Bounds foreDeck)
         {
             Bounds decks = mainDeck;
@@ -2245,6 +2506,45 @@ namespace SpaceGame.EditorTools
 
             SandstormShelter shelter = root.AddComponent<SandstormShelter>();
             Apply(shelter, so => SetBounds(so, "localVolume", volume));
+
+            BuildBreathableAir(root, volume);
+        }
+
+        /// <summary>
+        /// The air inside the hull, as a trigger the suit can enter and leave.
+        ///
+        /// <para>
+        /// Measured from the same box as the sandstorm shelter above, because they answer the same
+        /// question — is the player inside the ship — and two boxes drawn from one set of decks
+        /// would drift apart the first time either was tuned.
+        /// </para>
+        /// <para>
+        /// A TRIGGER rather than a bounds check like the shelter's, because
+        /// <see cref="SpaceGame.Gameplay.BreathableVolume"/> has to work for interiors and caves
+        /// too, whose shape is whatever collider somebody put there. The ship is simply the first
+        /// place one exists.
+        /// </para>
+        /// <para>
+        /// Built here rather than added to the prefab by hand for this builder's usual reason: it
+        /// rewrites the prefab wholesale, so anything bolted on by hand survives exactly until the
+        /// next rebuild — and air that silently stops working is a suffocation bug nobody would
+        /// connect to a ship rebuild.
+        /// </para>
+        /// </summary>
+        private static void BuildBreathableAir(GameObject root, Bounds volume)
+        {
+            Transform existing = root.transform.Find("BreathableAir");
+            if (existing != null) Object.DestroyImmediate(existing.gameObject);
+
+            var air = new GameObject("BreathableAir");
+            air.transform.SetParent(root.transform, false);
+            air.transform.localPosition = volume.center;
+
+            var box = air.AddComponent<BoxCollider>();
+            box.isTrigger = true;
+            box.size = volume.size;
+
+            air.AddComponent<SpaceGame.Gameplay.BreathableVolume>();
         }
 
         // ─────────── Cabin alert ───────────
@@ -3248,6 +3548,96 @@ namespace SpaceGame.EditorTools
                     problems.Add($"helm station '{station.name}' does not name the hull's "
                                  + "MountModule, so taking the helm does not take the controls");
             }
+
+            // The map projector on the main deck. Every failure here is silent in play: a missing
+            // hologram reference makes CanInteract() refuse forever with no prompt, and a missing
+            // saver just forgets the switch on the first reload.
+            HoloProjectorInteraction[] projectors =
+                prefab.GetComponentsInChildren<HoloProjectorInteraction>(true);
+            if (projectors.Length != 1)
+                problems.Add($"expected 1 map projector on the main deck, found {projectors.Length}");
+            foreach (HoloProjectorInteraction projector in projectors)
+            {
+                SerializedProperty holo = new SerializedObject(projector).FindProperty("hologram");
+                if (holo == null || holo.objectReferenceValue == null)
+                    problems.Add("the map projector has no hologram wired, so its prompt never lights");
+                if (projector.GetComponent<ProjectorSaveable>() == null)
+                    problems.Add("the map projector has no ProjectorSaveable, so its switch resets on load");
+            }
+
+            // One SaveableEntity per prefab, on the root. A second one anywhere below it splits the
+            // savers under it into a record of its own — stamped, by OnValidate, with THIS prefab's
+            // GUID, so every load instantiated another whole ship from it (Persistence.md, Gotchas).
+            foreach (SaveableEntity entity in prefab.GetComponentsInChildren<SaveableEntity>(true))
+                if (entity.gameObject != prefab)
+                    problems.Add($"'{entity.name}' nests a second SaveableEntity under the hull, which " +
+                                 "spawns a duplicate ship on every load");
+
+            // The repair station beside it. Same class of silent failure: no required item makes
+            // every deposit a rejection, no status light means no feedback, no saver puts the
+            // scrap count back at zero on the first reload.
+            RepairWorkstation[] stations = prefab.GetComponentsInChildren<RepairWorkstation>(true);
+            if (stations.Length != 1)
+                problems.Add($"expected 1 repair station on the main deck, found {stations.Length}");
+            foreach (RepairWorkstation station in stations)
+            {
+                var wired = new SerializedObject(station);
+                if (wired.FindProperty("requiredItem").objectReferenceValue == null)
+                    problems.Add("the repair station accepts no item, so every deposit is refused");
+                if (wired.FindProperty("statusLight").objectReferenceValue == null)
+                    problems.Add("the repair station has no status light, so a deposit shows nothing");
+                if (station.GetComponent<RepairWorkstationSaveable>() == null)
+                    problems.Add("the repair station has no RepairWorkstationSaveable, so its scrap count resets on load");
+                if (station.GetComponentInChildren<Presentation.RepairProgressUI>(true) == null)
+                    problems.Add("the repair station has no gauge, so nobody can read how much scrap it still wants");
+            }
+
+            // The oxygen plant forward of them. Its failures are silent in the same way, plus one
+            // of its own: a dock whose aim volume is not a TRIGGER is answered for by the hull, so
+            // the receptacle exists, is wired, replicates, and can never be pointed at.
+            OxygenGenerator[] plants = prefab.GetComponentsInChildren<OxygenGenerator>(true);
+            if (plants.Length != 1)
+                problems.Add($"expected 1 oxygen plant on the main deck, found {plants.Length}");
+            foreach (OxygenGenerator plant in plants)
+            {
+                var wired = new SerializedObject(plant);
+                foreach (string field in new[] { "drainedTank", "chargedTank", "powerCell",
+                                                 "tankSeat", "cellSeat" })
+                {
+                    if (wired.FindProperty(field).objectReferenceValue == null)
+                        problems.Add($"the oxygen plant has no '{field}', so its docks refuse everything");
+                }
+
+                if (wired.FindProperty("lamps").arraySize == 0)
+                    problems.Add("the oxygen plant has no lamps, so a fitted cell shows nothing");
+
+                if (plant.GetComponent<OxygenGeneratorSaveable>() == null)
+                    problems.Add("the oxygen plant has no OxygenGeneratorSaveable, so a fitted cell is lost on load");
+
+                OxygenGeneratorDock[] docks = plant.GetComponentsInChildren<OxygenGeneratorDock>(true);
+                if (docks.Length != 2)
+                    problems.Add($"the oxygen plant has {docks.Length} docks, expected 2");
+
+                foreach (OxygenGeneratorDock dock in docks)
+                {
+                    var volume = dock.GetComponent<Collider>();
+                    if (volume == null || !volume.isTrigger)
+                        problems.Add($"the oxygen plant's '{dock.name}' has no trigger volume, so " +
+                                     "the hull answers the ray and the dock cannot be aimed at");
+                    if (dock.Generator == null)
+                        problems.Add($"the oxygen plant's '{dock.name}' does not name its machine");
+                }
+            }
+
+            // The entity check above has a twin: a nested fixture's TransformSaveable writes its
+            // own world pose under the hull's "transform" key, and the record keeps the child's.
+            // Both are stripped by StripNestedSavers at nesting time — which only works if the
+            // fixture's own builder wired its prefab BEFORE the ship nested it; the sweep this
+            // build runs afterwards adds them to the SOURCE, and the nested instance inherits.
+            int poses = prefab.GetComponentsInChildren<TransformSaveable>(true).Length;
+            if (poses != 1)
+                problems.Add($"{poses} TransformSaveables on the hull — a nested fixture's would " +
+                             "overwrite the wreck's saved pose with its own");
 
             // And the glass in front of all four of them. Losing it is invisible from the inside —
             // the cockpit works exactly as before — and hands the whole ship back to anyone who

@@ -32,8 +32,12 @@ namespace SpaceGame.Items
     /// </summary>
     public class EquipItemSocket
     {
-        /// <summary>Longest-axis size, in metres, given to an item that never declared one.</summary>
-        private const float DefaultHoldSize = 0.30f;
+        /// <summary>
+        /// Longest-axis size, in metres, given to an item that never declared one. Shared with the
+        /// pack and the world so an unsized item is one size everywhere — see
+        /// <see cref="ItemBounds.DefaultSize"/>.
+        /// </summary>
+        private const float DefaultHoldSize = ItemBounds.DefaultSize;
 
         private readonly Transform socket;
         private readonly HandGripFrame frame;
@@ -233,8 +237,20 @@ namespace SpaceGame.Items
         /// and a dropped item is built from the prefab again.
         /// </para>
         /// </summary>
-        private static void Sanitize(GameObject item)
+        /// <summary>
+        /// Turn a fresh instance into something that can hang off a bone: every collider off,
+        /// every body kinematic and not detecting collisions. Public because a worn item is seated
+        /// by its own socket and needs exactly this, and a second copy of the rule would be the one
+        /// that forgets a component.
+        /// </summary>
+        public static void Sanitize(GameObject item)
         {
+            // Before the KeepColliders escape hatch, not after: an item that keeps its colliders in
+            // the hand is still an item in a HAND, and the world's sizing has to come off it either
+            // way. WorldItem.Awake has already run — Instantiate is synchronous — and its scale is
+            // the one thing below does not undo.
+            WorldItem.Suppress(item);
+
             var grip = item.GetComponent<ItemGrip>();
             if (grip != null && grip.KeepColliders) return;
 

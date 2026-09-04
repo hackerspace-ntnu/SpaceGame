@@ -78,6 +78,8 @@ namespace SpaceGame.Audio
         InteractScannerDiscovery = 507,
         InteractDenied = 508,
         InteractPrompt = 509,
+        InteractOxygenFillLoop = 510,
+        InteractOxygenFilled = 511,
 
         // ---- Wings and flight (600) ----
         WingsDeploy = 600,

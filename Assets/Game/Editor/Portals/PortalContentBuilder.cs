@@ -36,9 +36,6 @@ namespace SpaceGame.EditorTools.Portals
         private const string NetworkPrefabsPath =
             "Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset";
 
-        /// <summary>The ground layer DropItemPhysics settles a dropped item against.</summary>
-        private const int GroundLayerMask = 128;
-
         // Named to match the FBX's own material slots, so the remap below is a
         // substitution rather than a rename — and so PortalGunItem, which finds
         // the two fluids by material name, keeps working against either.
@@ -800,24 +797,12 @@ namespace SpaceGame.EditorTools.Portals
             NetworkObject netObject = Ensure<NetworkObject>(root);
             netObject.SynchronizeTransform = true;
 
-            // Roughly the gun's half-size at the 0.42 m it is held at. ItemGrip.keepColliders is
-            // off, so this is disabled while held and only has to be right for the thing lying in
-            // the sand.
-            SphereCollider sphere = Ensure<SphereCollider>(root);
-            sphere.radius = 0.18f;
-            sphere.center = Vector3.zero;
-
-            Rigidbody body = Ensure<Rigidbody>(root);
-            body.isKinematic = true;
-            body.useGravity = true;
-
             EnsureInternal(root, "SpaceGame.Items.PickupableItem");
 
-            DropItemPhysics drop = Ensure<DropItemPhysics>(root);
-            var serializedDrop = new SerializedObject(drop);
-            serializedDrop.FindProperty("rb").objectReferenceValue = body;
-            serializedDrop.FindProperty("groundLayer").intValue = GroundLayerMask;
-            serializedDrop.ApplyModifiedPropertiesWithoutUndo();
+            // The body, a collider the shape of the gun, the sizing and the netcode that lets
+            // another machine watch it be shoved about. One shared block - see ItemWorldPresence.
+            // What it replaces here was a sphere of radius 0.18, which is a marble.
+            ItemWorldPresence.Apply(root);
 
             Ensure<SpaceGame.Core.NetRelay>(root);
 

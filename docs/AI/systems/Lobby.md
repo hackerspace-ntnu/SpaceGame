@@ -18,6 +18,7 @@ symptoms:
   - "the menu's decorative astronauts stand in front of the roster once the lobby has several teams"
   - "the two rows of team plates land in the same band of screen and smear together"
   - "the lobby rank is tiny, clipped or badly framed on a small or narrow window"
+  - "the versus lobby's player names come out too small on an ultrawide and too large on a narrow window"
   - "the compiler cannot resolve Unity's Lobby type inside this folder"
   - "a lobby control looks enabled but does nothing while a request is in flight"
 reads_with: [UI, GameModes, Multiplayer]
@@ -120,6 +121,15 @@ Nothing here is saved. Lobby state lives on the service and dies with the sessio
 - **Team plates hang higher per row of teams** (`RankLayout.PlateLift`), because from a near-level
   eye with one shared lift the front and back rows' plates projected fractions of a degree apart
   and smeared. Vertical position is what says which row a plate belongs to.
+- **The rank's overlays measure in CANVAS pixels, never screen pixels.**
+  [`LobbyOverlayLayer.TryToCanvas`](Assets/Game/Scripts/Presentation/UI/Lobby/Rank/LobbyOverlayLayer.cs)
+  is the one conversion out of world space, and it hands back the same units every font size and row
+  width in these files is written in. `LobbyNameplates` used to project to screen pixels and convert
+  with `1920 / Screen.width` — the answer for a scaler matching WIDTH, which is not the rule the
+  lobby's canvas follows — so names came out about 15% too small on a 21:9 monitor and too large on a
+  narrow window, and `LobbyPreviewCamera` made the mirror-image error deciding how much of the frame
+  the rank could use. `LobbyTeamPlates` never had the bug because it already measured in canvas
+  space. See [UI.md](UI.md) for the scaling rule itself.
 - **The menu's decorative astronauts are hidden by name prefix at scene ROOT only.**
   `LobbySetDressing` matches `AstronautArmature*` root objects; the rank's own figures contain an
   `AstronautArmature` node *inside* their hierarchy, so a deep search would hide the roster itself.

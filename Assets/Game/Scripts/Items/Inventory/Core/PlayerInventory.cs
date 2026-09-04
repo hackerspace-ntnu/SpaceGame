@@ -47,6 +47,17 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// Assign one slot and say so. <see cref="SetItem"/> is silent by design; this is for a
+        /// single-slot assignment that stands on its own — a move landing in the hotbar — where
+        /// nothing else will raise the change.
+        /// </summary>
+        public void SetSlot(int index, InventoryItem item)
+        {
+            inventory.RestoreSlot(index, item);
+            if (SelectedSlotIndex == index) OnSlotSelected?.Invoke(GetSlot(index));
+        }
+
+        /// <summary>
         /// Assigns the whole hotbar and the selection at once, as a load does. Bypasses SelectSlot
         /// because that toggles, and a restore is an assignment of a known state rather than a
         /// player pressing a key.

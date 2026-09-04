@@ -75,7 +75,21 @@ namespace SpaceGame.Presentation
         /// which sit over heads that are below this line and over sand.
         /// </para>
         /// </summary>
-        public const float Horizon = 540f;
+        public static float Horizon => HorizonFor(UIScale.CanvasSize().y);
+
+        /// <summary>
+        /// <see cref="Horizon"/> on a canvas <paramref name="canvasHeight"/> tall.
+        ///
+        /// Proportional above the reference height, because the skyline is put where it is by a
+        /// camera with a fixed pitch and a fixed vertical field of view — so it sits at a fixed
+        /// FRACTION of the frame, not a fixed number of pixels down from the top. Never raised on a
+        /// canvas shorter than the reference, which under <see cref="UIScale"/> cannot happen
+        /// anyway; the guard is there so the two ways of saying it agree.
+        /// </summary>
+        public static float HorizonFor(float canvasHeight) => AuthoredHorizon * Stretch(canvasHeight);
+
+        /// <summary>The authored <see cref="Horizon"/>, on the 1080-high reference canvas.</summary>
+        private const float AuthoredHorizon = 540f;
 
         /// <summary>
         /// Where a page's title sits, measured down from the top.
@@ -97,7 +111,36 @@ namespace SpaceGame.Presentation
         /// ButtonRow arrives at the same place from the other direction, by anchoring at 0.5 and
         /// growing downward.
         /// </summary>
-        public const float ContentTop = -560f;
+        public static float ContentTop => ContentTopFor(UIScale.CanvasSize().y);
+
+        /// <summary>
+        /// <see cref="ContentTop"/> on a canvas <paramref name="canvasHeight"/> tall.
+        ///
+        /// <para>
+        /// Content is pushed down in step with the skyline rather than staying a fixed distance from
+        /// the top, for the reason <see cref="HorizonFor"/> gives: the two have to keep their order,
+        /// and only one of them is a fixed pixel offset. Under <see cref="UIScale"/> the canvas is
+        /// exactly 1080 tall at 16:9 and at every wider aspect, so this returns the authored -560
+        /// unchanged on essentially every monitor and only moves on a window narrower than 16:9 —
+        /// where, without it, a 5:4 canvas 1536 tall would put the entries about 50 px ABOVE the
+        /// skyline and draw dark navy text on bright sky.
+        /// </para>
+        /// </summary>
+        public static float ContentTopFor(float canvasHeight) => AuthoredContentTop * Stretch(canvasHeight);
+
+        /// <summary>The authored <see cref="ContentTop"/>, on the 1080-high reference canvas.</summary>
+        private const float AuthoredContentTop = -560f;
+
+        /// <summary>
+        /// How much taller than the reference the canvas is, never less than 1.
+        ///
+        /// Only the horizon-relative offsets use this. The footer and the status line are chrome
+        /// pinned to the bottom edge and are deliberately NOT stretched — they belong to the page,
+        /// not to the set behind it, and a taller canvas should give its extra room to the content
+        /// band rather than spend it on margins.
+        /// </summary>
+        private static float Stretch(float canvasHeight) =>
+            Mathf.Max(1f, canvasHeight / UIScale.ReferenceResolution.y);
 
         /// <summary>Height of the footer row of actions, pinned to the bottom of a page.</summary>
         public const float FooterBottom = 64f;

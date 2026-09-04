@@ -14,9 +14,13 @@
 //     at a seat pose by somebody else, so the horizontal half of their look is spent on their neck
 //     instead (PlayerHeadLook) and travels here beside the pitch. On foot it is zero and nothing
 //     downstream changes.
-//   • WHETHER THEIR TORCH IS ON. The flashlight is a child of that same camera, so a remote
-//     player's lamp was not merely un-replicated, it was switched off with its parent — there was
-//     no light in the scene to replicate.
+//   • WHETHER THEIR TORCH IS ON. The flashlight used to be a child of that same camera, so a
+//     remote player's lamp was not merely un-replicated, it was switched off with its parent —
+//     there was no light in the scene to replicate. Since 2026-09-03 the lamp is the head of a
+//     WORN GAUNTLET on the forearm (FlashlightGauntletArtifact), which is instantiated on every
+//     machine from replicated body-slot state and is never switched off with a camera. The lamp is
+//     handed to this component by that gauntlet rather than searched for, and a player wearing no
+//     flashlight gauntlet has no torch to replicate at all.
 //
 // ── Why NetworkVariables and not messages ──
 // Both are STATE that a late joiner has to see, not events. Somebody who joins while a player is
@@ -72,14 +76,6 @@ namespace SpaceGame.Characters
         private readonly NetworkVariable<bool> netTorch = new(
             false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
-        /// <summary>
-        /// Is this player aiming? Same argument as the other two: a late joiner has to see a
-        /// player who is already holding their weapon up, and the message announcing the press
-        /// went out long before they connected.
-        /// </summary>
-        private readonly NetworkVariable<bool> netAiming = new(
-            false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-
         private PlayerController controller;
         private PlayerLook look;
         private PlayerHeadLook headLook;
@@ -117,41 +113,17 @@ namespace SpaceGame.Characters
         /// <summary>Is this player's torch lit? True on every machine, not just theirs.</summary>
         public bool TorchOn => netTorch.Value;
 
-        /// <summary>Is this player aiming? True on every machine, not just theirs.</summary>
-        public bool Aiming => netAiming.Value;
-
-        /// <summary>
-        /// Owner-only. Called by <see cref="PlayerAimRig"/> once its own decision has been made.
-        ///
-        /// <para>
-        /// Pushed rather than pulled because the rig is the thing that knows, and a pull would
-        /// mean this component reaching for a component that may not be on every character.
-        /// Guarded on IsSpawned for the same reason <see cref="Publish"/> is: writing a
-        /// NetworkVariable before Netcode has spawned this object throws.
-        /// </para>
-        /// </summary>
-        public void PublishAiming(bool aiming)
-        {
-            if (!IsSpawned || !IsOwner) return;
-            if (netAiming.Value == aiming) return;
-            netAiming.Value = aiming;
-        }
-
         private void Awake()
         {
             controller = GetComponent<PlayerController>();
             look = GetComponent<PlayerLook>();
 
-            // Added here rather than authored on the prefab, for the reason PlayerAimRig adds
-            // AimIkRelay: this is the component that publishes what the head is doing, so it is the
-            // one that must be sure there is something deciding it — on remote copies too, where
-            // nothing else on the character is still running.
+            // Added here rather than authored on the prefab: this is the component that publishes
+            // what the head is doing, so it is the one that must be sure there is something
+            // deciding it — on remote copies too, where nothing else on the character is still
+            // running, and where re-exporting the model cannot lose it.
             headLook = GetComponent<PlayerHeadLook>();
             if (headLook == null) headLook = gameObject.AddComponent<PlayerHeadLook>();
-
-            // Included-inactive, because on a remote copy the camera this hangs under has already
-            // been switched off by PlayerController.Awake.
-            torch = GetComponentInChildren<Flashlight>(true);
 
             aimPivot = new GameObject("AimPivot").transform;
             aimPivot.SetParent(transform, worldPositionStays: false);
@@ -165,37 +137,52 @@ namespace SpaceGame.Characters
             shownPitch = netPitch.Value;
             shownHeadYaw = netHeadYaw.Value;
 
-            // Before the torch is applied, not after. Reparenting a lamp out of the switched-off
-            // camera ACTIVATES it, which runs Flashlight.Awake — and Awake switches the light off.
-            // Lighting it first would be undone a line later.
-            if (!IsOwner) AdoptTorchForRemoteView();
-
+            // Usually null here: nothing is worn until BodyEquipmentController's adopt pass has
+            // run. A gauntlet arriving later brings its own lamp through SetTorch, which applies
+            // the current value at that point.
             ApplyTorch(netTorch.Value);
         }
 
         /// <summary>
-        /// Move the lamp somewhere it can actually be seen.
+        /// Take charge of a lamp somebody put on this body.
         ///
         /// <para>
-        /// The flashlight is authored as a child of the Main Camera, and a remote player's camera
-        /// GameObject is switched off wholesale — so there is nothing to light up. Rather than
-        /// duplicating the lamp (two objects, two sets of tuning, one of them silently drifting
-        /// from the other), the shipped one is moved onto the pivot, which is always active and
-        /// carries the same pose the camera would have.
+        /// Called by <see cref="SpaceGame.Items.FlashlightGauntletArtifact"/> as it is worn, on
+        /// every machine. Pushed rather than pulled because a worn gauntlet is instantiated and
+        /// parented inside one call, and a search of the player for a <see cref="Flashlight"/> run
+        /// any earlier than that — in <c>Awake</c>, in <c>OnNetworkSpawn</c> — finds nothing and
+        /// never looks again.
         /// </para>
         /// <para>
-        /// Remote copies only. The owner's lamp is left exactly where it was authored, because for
-        /// them it already works and the pivot would be a change with nothing to gain.
+        /// The new lamp is switched to the replicated value immediately on a peer, so a player
+        /// putting a lit torch on is lit for everyone on the frame it appears rather than on the
+        /// owner's next publish.
         /// </para>
         /// </summary>
-        private void AdoptTorchForRemoteView()
+        public void SetTorch(Flashlight lamp)
         {
+            torch = lamp;
             if (torch == null) return;
 
-            // worldPositionStays: false keeps the authored local offset — the lamp sits slightly
-            // right of and below the eye, and that offset is expressed in camera space, which is
-            // exactly what the pivot reproduces.
-            torch.transform.SetParent(aimPivot, worldPositionStays: false);
+            if (!OwnsThisPlayer()) ApplyTorch(netTorch.Value);
+        }
+
+        /// <summary>
+        /// Give up a lamp that is about to be destroyed.
+        ///
+        /// <para>
+        /// Ignores a lamp that is not the one held, so an unequip arriving after a swap cannot
+        /// unhook the gauntlet that replaced it.
+        /// </para>
+        /// <para>
+        /// The owner does NOT publish false here: <see cref="Publish"/> reads <c>torch != null &amp;&amp;
+        /// torch.IsOn</c> every frame and will send it on the next one. Doing it twice is how the
+        /// published value and the variable get to disagree.
+        /// </para>
+        /// </summary>
+        public void ClearTorch(Flashlight lamp)
+        {
+            if (torch == lamp) torch = null;
         }
 
         // LateUpdate, so the pitch read here is the one PlayerLook wrote in Update this frame
@@ -268,7 +255,7 @@ namespace SpaceGame.Characters
         {
             if (torch == null || torch.IsOn == lit) return;
 
-            torch.RestoreOn(lit);
+            torch.Switch(lit);
         }
 
         private void PoseAimPivot()

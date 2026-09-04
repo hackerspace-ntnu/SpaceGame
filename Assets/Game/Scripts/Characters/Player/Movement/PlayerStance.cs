@@ -68,7 +68,6 @@ namespace SpaceGame.Characters
 
         private PlayerInputManager inputs;
         private PlayerController controller;
-        private PlayerAimRig aimRig;
 
         private bool isCrouching;
         private bool isSprinting;
@@ -114,7 +113,6 @@ namespace SpaceGame.Characters
         private void Awake()
         {
             controller = GetComponent<PlayerController>();
-            aimRig = GetComponent<PlayerAimRig>();
 
             if (movement == null) movement = GetComponent<PlayerMovement>();
             if (animator == null) animator = GetComponentInChildren<Animator>(true);
@@ -219,10 +217,7 @@ namespace SpaceGame.Characters
             // It ends by itself. Letting go of forward is the obvious way out, crouching is the
             // second — a sprint that survived going low would outrun both the crouch speed and the
             // crouch animation — and being out of breath is the third.
-            // Aiming joins the list for the same reason crouching is on it: a sprint outruns both
-            // the animation and the pose, and a player who wants to aim has stopped wanting to run.
-            bool aiming = aimRig != null && aimRig.IsAiming;
-            if (!forwardHeld || isCrouching || winded || aiming) isSprinting = false;
+            if (!forwardHeld || isCrouching || winded) isSprinting = false;
 
             if (isSprinting) Spend(Time.deltaTime);
             else Recover(Time.deltaTime);

@@ -12,6 +12,7 @@ using SpaceGame.Agents;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
 using SpaceGame.Items;
+using SpaceGame.Presentation;
 using SpaceGame.Vehicles;
 using SpaceGame.World.Weather;
 
@@ -21,11 +22,59 @@ namespace SpaceGame.EditorTools
     {
         private const string PrefabPath = "Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab";
 
-        // The player's capsule, from PlayerCharacterNetworked. Walkability means room for THIS,
-        // not for a point.
-        private const float BodyRadius = 0.5f;
-        private const float BodyHeight = 2f;
+        // The player's capsule. Walkability means room for THIS, not for a point.
+        //
+        // MEASURED off the prefab, not typed here, and it is typing them here that went wrong: they
+        // read 0.5 x 2 m, and the body that walks this deck is 0.5 x 3 m. The CapsuleCollider is
+        // authored 2 m high on a child scaled 1.5 in Y, and no inspector anywhere shows the product
+        // — so every probe below modelled a body a metre shorter than the real one, and anything
+        // intruding between 2 m and 3 m over the floor (a rib, the gear wall's header, a low
+        // deckhead) walked past all of them. A number copied out of a prefab is a number that can
+        // only be right on the day it was copied; see PlayerShip.md's Gotchas.
+        private static float? bodyRadius;
+        private static float? bodyHeight;
+
+        private static float BodyRadius { get { MeasureBody(); return bodyRadius.Value; } }
+        private static float BodyHeight { get { MeasureBody(); return bodyHeight.Value; } }
+
         private const float StandingSkin = 0.02f;
+
+        /// <summary>
+        /// Metres either side of the deck's centre line that the cabin owes a player to walk in.
+        ///
+        /// <para>
+        /// One metre, which is a body's whole width either side of the middle: enough to step round
+        /// something, and comfortably inside the run between the gear wall's face on the +X side
+        /// (2.49) and the projector and repair station on the -X side (-1.8), so it asks nothing of
+        /// the outboard deck the hull's baked fill deliberately owns. It is a promise about the
+        /// ROOM, not a measurement of it — widen it and the sweep starts asking the hull for floor
+        /// nobody decided to give it.
+        /// </para>
+        /// </summary>
+        private const float AisleHalfWidth = 1f;
+
+        /// <summary>
+        /// The player's capsule as it stands in the WORLD: the authored collider times the scale of
+        /// the transform it hangs on, which is where the missing metre was hiding. Cached the way
+        /// <see cref="InteractReach"/> caches its own read off the same prefab.
+        /// </summary>
+        private static void MeasureBody()
+        {
+            if (bodyHeight != null) return;
+
+            GameObject player = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
+            Assert.IsNotNull(player, $"No player prefab at {PlayerPrefabPath}.");
+
+            var capsule = player.GetComponentInChildren<CapsuleCollider>(true);
+            Assert.IsNotNull(capsule, "The player prefab has no CapsuleCollider for these probes to model.");
+            Assert.AreEqual(1, capsule.direction,
+                            "The player's capsule is no longer upright (Y), so the height and radius " +
+                            "below are being read off the wrong axes.");
+
+            Vector3 scale = capsule.transform.lossyScale;
+            bodyHeight = capsule.height * Mathf.Abs(scale.y);
+            bodyRadius = capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+        }
 
         // The interior is full of trigger volumes that are not walls — the four chairs' click
         // surfaces reach out over the aisle on purpose. Unity's queries count triggers by default,
@@ -154,9 +203,23 @@ namespace SpaceGame.EditorTools
         /// their own. Found the way <see cref="Interactor.ResolveAlongRay"/> finds them rather than
         /// by name, so a fifth one added later is covered without touching these tests.
         /// </summary>
+        /// <summary>
+        /// The trigger volumes a body is BOARDED through — a chair's, or a station's.
+        ///
+        /// <para>
+        /// Narrowed from "every trigger carrying an <c>IInteractable</c>", which was the same set
+        /// only for as long as seats were the only controls on this hull mounted behind a trigger.
+        /// The oxygen plant's two receptacles are triggers with an interactable as well, and for
+        /// the same reason (a solid fixture's own body box answers for everything inside it) — so
+        /// the old filter handed them to `DismountPointOf`, which asks a `SerializedObject` about a
+        /// mount that is not there and throws. Both callers ask about boarding; the filter now says
+        /// so instead of standing in for it.
+        /// </para>
+        /// </summary>
         private Collider[] BoardingVolumes() =>
             ship.GetComponentsInChildren<Collider>(true)
-                .Where(c => c.isTrigger && c.GetComponent<IInteractable>() != null)
+                .Where(c => c.isTrigger &&
+                            (c.GetComponent<MountStation>() != null || c.GetComponent<MountModule>() != null))
                 .ToArray();
 
         /// <summary>
@@ -546,10 +609,19 @@ namespace SpaceGame.EditorTools
         /// (see PlayerShipBuilder), and this is the assertion that says so in terms of the thing
         /// that actually broke.
         ///
-        /// The centre line rather than the whole deck, because the deck slab is not the room: it
-        /// runs on under the hull walls that stand on it, so its own footprint includes metres
-        /// that were never floor. The aisle is the part the design does promise — the way from the
-        /// back ramp forward — and it needs no threshold to be meaningful.
+        /// The aisle rather than the whole deck, because the deck slab is not the room: it runs on
+        /// under the hull walls that stand on it, so its own footprint includes metres that were
+        /// never floor — and the outboard strip of it is deliberately inside the hull skin's baked
+        /// convex fill (see PlayerShip.md), which a full-width sweep would report as a fault when it
+        /// is a decision. The aisle is the part the design does promise — the way from the back ramp
+        /// forward — and it needs no threshold to be meaningful.
+        ///
+        /// But the aisle is a CORRIDOR, not a line, and for a long time this swept one x: the deck's
+        /// exact centre. A column of samples half a metre wide says nothing about the floor half a
+        /// metre to the side of it, which is where a player walks the moment they step round
+        /// anything — so an intrusion that left the centre line clear was invisible here and showed
+        /// up in play as being shoved by nothing. It sweeps a grid across
+        /// <see cref="AisleHalfWidth"/> either side now.
         ///
         /// Each position stands on whatever the floor turns out to be there rather than on the
         /// deck slab's own plane. The deck steps up toward the cockpit, and a probe held at one
@@ -569,32 +641,44 @@ namespace SpaceGame.EditorTools
             var blocked = new List<string>();
 
             const int steps = 16;
-            for (int i = 0; i <= steps; i++)
+            const int columns = 4;
+            int positions = 0;
+
+            for (int c = 0; c <= columns; c++)
             {
-                float z = Mathf.Lerp(deck.min.z + BodyRadius, deck.max.z - BodyRadius, i / (float)steps);
-                Vector3 above = new Vector3(deck.center.x, deck.max.y + BodyHeight, z);
+                float x = Mathf.Lerp(deck.center.x - AisleHalfWidth, deck.center.x + AisleHalfWidth,
+                                     c / (float)columns);
 
-                float? floor = FloorUnderFootprint(above);
-                if (floor == null)
+                for (int i = 0; i <= steps; i++)
                 {
-                    blocked.Add($"z {z:F1}: no floor under the aisle");
-                    continue;
-                }
+                    float z = Mathf.Lerp(deck.min.z + BodyRadius, deck.max.z - BodyRadius, i / (float)steps);
+                    Vector3 above = new Vector3(x, deck.max.y + BodyHeight, z);
+                    positions++;
 
-                // A little standing skin: a capsule seated exactly on the surface it stands on is
-                // tangent to it, and tangency is not a reading worth arguing about.
-                Vector3 feet = new Vector3(above.x, floor.Value + StandingSkin, above.z);
-                Collider[] hit = Ours(Physics.OverlapCapsule(
-                    feet + Vector3.up * BodyRadius,
-                    feet + Vector3.up * (BodyHeight - BodyRadius), BodyRadius, ~0, NotTriggers)).ToArray();
-                if (hit.Length > 0)
-                    blocked.Add($"z {z:F1}: standing at y {floor.Value:F2} is inside " + Describe(hit[0]));
+                    float? floor = FloorUnderFootprint(above);
+                    if (floor == null)
+                    {
+                        blocked.Add($"({x:F1}, {z:F1}): no floor under the aisle");
+                        continue;
+                    }
+
+                    // A little standing skin: a capsule seated exactly on the surface it stands on
+                    // is tangent to it, and tangency is not a reading worth arguing about.
+                    Vector3 feet = new Vector3(above.x, floor.Value + StandingSkin, above.z);
+                    Collider[] hit = Ours(Physics.OverlapCapsule(
+                        feet + Vector3.up * BodyRadius,
+                        feet + Vector3.up * (BodyHeight - BodyRadius), BodyRadius, ~0, NotTriggers)).ToArray();
+                    if (hit.Length > 0)
+                        blocked.Add($"({x:F1}, {z:F1}): standing at y {floor.Value:F2} is inside "
+                                    + Describe(hit[0]));
+                }
             }
 
             Assert.IsEmpty(blocked,
-                $"{blocked.Count} of {steps + 1} standing positions along the main deck's centre " +
-                "line are inside collision. The interior is filling in again — check the collision " +
-                "bake in player_ship_export.py.");
+                $"{blocked.Count} of {positions} standing positions in the main deck's aisle are " +
+                $"inside collision, for a {BodyRadius * 2f:F1} x {BodyHeight:F1} m body. Either the " +
+                "interior is filling in again — check the collision bake in player_ship_export.py — " +
+                "or something has been stood in the aisle that does not fit beside a player.");
         }
 
         /// <summary>
@@ -732,6 +816,275 @@ namespace SpaceGame.EditorTools
         // with nothing at all in the console.
 
         private WallInventory Wall() => ship.GetComponentInChildren<WallInventory>(true);
+
+        // ── Repair station ──
+        // Nested like the projector, by PlayerShipBuilder.BuildRepairStation: the scrap-fed
+        // RepairWorkstation on the side opposite the gear wall, aft of the map projector. What a
+        // sweep cannot know: that it stands where the room leaves floor for it, that its face is
+        // what a player in the aisle reaches, and that its progress lands in the HULL's record
+        // rather than in a second entity the fixture prefab brought aboard.
+
+        private RepairWorkstation Station() => ship.GetComponentInChildren<RepairWorkstation>(true);
+
+        [Test]
+        public void PlayerShip_HasOneRepairStationOnTheProjectorsSideFacingTheRoom()
+        {
+            InstantiateShip();
+
+            RepairWorkstation[] stations = ship.GetComponentsInChildren<RepairWorkstation>(true);
+            Assert.AreEqual(1, stations.Length,
+                            "The ship carries exactly one repair station — its saver writes one " +
+                            "key, and a second machine's count would overwrite the first's.");
+            RepairWorkstation station = stations[0];
+
+            HoloProjectorInteraction projector = ship.GetComponentInChildren<HoloProjectorInteraction>(true);
+            Assert.IsNotNull(projector, "No map projector to stand beside.");
+            PackSurface wallFace = Wall().GetComponentInChildren<PackSurface>(true);
+
+            Vector3 stationLocal = ship.transform.InverseTransformPoint(station.transform.position);
+            Vector3 projectorLocal = ship.transform.InverseTransformPoint(projector.transform.position);
+            Vector3 wallLocal = ship.transform.InverseTransformPoint(wallFace.transform.position);
+
+            Assert.AreEqual(Mathf.Sign(projectorLocal.x), Mathf.Sign(stationLocal.x),
+                            "The station shares the projector's side of the deck.");
+            Assert.AreNotEqual(Mathf.Sign(wallLocal.x), Mathf.Sign(stationLocal.x),
+                               "The station is on the gear wall's side — the two would contest " +
+                               "the same floor.");
+            Assert.Less(stationLocal.z, projectorLocal.z,
+                        "The station stands forward of the projector; the builder puts it aft.");
+
+            // Its face looks across the deck, toward the wall's side — into the room.
+            var acrossToWall = new Vector3(Mathf.Sign(wallLocal.x), 0f, 0f);
+            Vector3 facing = ship.transform.InverseTransformDirection(station.transform.forward);
+            Assert.Greater(Vector3.Dot(facing, acrossToWall), 0.99f,
+                           $"The station faces {facing:0.00} in ship space; it should face " +
+                           $"{acrossToWall} so its hopper and gauge are the side a player meets.");
+
+            // Wired — every one of these fails silently in play.
+            var wired = new SerializedObject(station);
+            Assert.IsNotNull(wired.FindProperty("requiredItem").objectReferenceValue,
+                             "The station accepts no item, so every deposit is refused.");
+            Assert.IsNotNull(wired.FindProperty("statusLight").objectReferenceValue,
+                             "The station has no status lamp, so a deposit shows nothing.");
+            Assert.IsNotNull(station.GetComponent<RepairWorkstationSaveable>(),
+                             "The station has no saver, so its scrap count resets on load.");
+            Assert.IsNotNull(station.GetComponentInChildren<RepairProgressUI>(true),
+                             "The station has no gauge, so nobody can read what it still wants.");
+        }
+
+        /// <summary>
+        /// Its volume shares no space with anything else of the ship's — the rib feet, the baked
+        /// hull fill, the projector, the aft bulkhead's panels and the bay-door leaves — and its
+        /// base is on the deck. A re-export that moves the aft bulkhead forward, or a nudge to
+        /// <c>RepairStationAft</c>, fails here with the intruding collider named.
+        /// </summary>
+        [Test]
+        public void PlayerShip_RepairStationStandsOnTheDeckClearOfTheHull()
+        {
+            InstantiateShip();
+
+            RepairWorkstation station = Station();
+            var box = station.GetComponent<BoxCollider>();
+            Assert.IsNotNull(box, "The station has no collider, so no look-ray can find it.");
+
+            // Shrunk by the standing skin: the fixture's base sits ON the deck plate, and an
+            // overlap query counts a touching face as an overlap.
+            Vector3 centre = box.transform.TransformPoint(box.center);
+            Vector3 half = Vector3.Scale(box.size, box.transform.lossyScale) * 0.5f
+                           - Vector3.one * StandingSkin;
+            Collider[] inside = Ours(Physics.OverlapBox(centre, half, box.transform.rotation, ~0, NotTriggers))
+                .Where(c => !c.transform.IsChildOf(station.transform))
+                .ToArray();
+            Assert.IsEmpty(inside.Select(Describe),
+                           "Something of the ship's own is standing inside the repair station.");
+
+            // The origin is the model's floor line; a ray from just above it finds the deck.
+            Vector3 probe = station.transform.position + Vector3.up * 0.05f;
+            RaycastHit[] under = Ours(Physics.RaycastAll(probe, Vector3.down, 1f, ~0, NotTriggers))
+                .Where(h => !h.collider.transform.IsChildOf(station.transform))
+                .OrderBy(h => h.distance)
+                .ToArray();
+            Assert.IsNotEmpty(under, "Nothing under the repair station at all — it is not on a deck.");
+            float clearance = probe.y - under[0].point.y;
+            Assert.That(clearance, Is.InRange(0.0f, 0.10f),
+                        $"The station's base sits {clearance - 0.05f:0.00} m over the floor " +
+                        "under it; it should stand on the deck.");
+        }
+
+        /// <summary>
+        /// A player in the aisle can use it: the look-ray from a standing eye in front of the
+        /// face meets the station's own collider before anything else of the ship's, and there
+        /// is room for a body to stand there.
+        /// </summary>
+        [Test]
+        public void PlayerShip_RepairStationIsReachedFromTheAisle()
+        {
+            InstantiateShip();
+
+            RepairWorkstation station = Station();
+            var box = station.GetComponent<BoxCollider>();
+            Vector3 target = box.transform.TransformPoint(box.center);
+            Vector3 face = box.transform.TransformPoint(box.center + Vector3.forward * box.size.z * 0.5f);
+
+            Vector3 feet = face + station.transform.forward * (BodyRadius + 0.6f);
+            feet.y = station.transform.position.y;
+            Vector3 eye = feet + Vector3.up * WallUseEyeHeight;
+
+            RaycastHit[] hits = Ours(Physics.RaycastAll(eye, (target - eye).normalized, InteractReach, ~0, NotTriggers))
+                .OrderBy(h => h.distance)
+                .ToArray();
+            Assert.IsNotEmpty(hits, "The look-ray from the aisle meets nothing of the ship's at all.");
+            Assert.IsTrue(hits[0].collider.transform.IsChildOf(station.transform),
+                          $"The first thing the look-ray meets is {Describe(hits[0].collider)}, " +
+                          "not the repair station.");
+
+            Collider[] blocking = Ours(Physics.OverlapCapsule(
+                    feet + Vector3.up * (BodyRadius + StandingSkin),
+                    feet + Vector3.up * (BodyHeight - BodyRadius + StandingSkin),
+                    BodyRadius, ~0, NotTriggers))
+                .ToArray();
+            Assert.IsEmpty(blocking.Select(Describe),
+                           "A body cannot stand in front of the repair station's face.");
+        }
+
+        /// <summary>
+        /// Scrap progress is collected by the HULL's entity. A fixture prefab carries its own
+        /// SaveableEntity and TransformSaveable (the wiring pass stamps every saveable prefab);
+        /// nested, the entity stops the hull's collection at the fixture and names the ship's own
+        /// prefab id, and the pose saver overwrites the wreck's pose in the record. The builder
+        /// strips both (<c>PlayerShipBuilder.StripNestedSavers</c>); this is what proves it.
+        /// </summary>
+        [Test]
+        public void PlayerShip_RepairProgressIsSavedInTheHullsOwnRecord()
+        {
+            InstantiateShip();
+
+            SaveableEntity[] entities = ship.GetComponentsInChildren<SaveableEntity>(true);
+            Assert.AreEqual(1, entities.Length,
+                            "SaveableEntities on the hull: " + string.Join(", ", entities.Select(e => e.name)) +
+                            " — one per prefab, on the root. A nested one is a second hull on every load.");
+            Assert.AreEqual(ship.transform, entities[0].transform, "The one entity is not on the root.");
+
+            TransformSaveable[] poses = ship.GetComponentsInChildren<TransformSaveable>(true);
+            Assert.AreEqual(1, poses.Length,
+                            "TransformSaveables on the hull: " + string.Join(", ", poses.Select(p => p.name)) +
+                            " — a fixture's would overwrite the wreck's saved pose with its own.");
+
+            // Both fixtures' savers are the hull's now. Asked of the saver list rather than of a
+            // capture for the projector, because ProjectorSaveable deliberately writes nothing
+            // while the switch is off — its authored state — so an absent key proves nothing.
+            IReadOnlyList<SpaceGame.Persistence.ISaveable> savers = entities[0].Savers();
+            Assert.IsTrue(savers.Any(s => s is RepairWorkstationSaveable),
+                          "The hull's entity does not collect the station's saver.");
+            Assert.IsTrue(savers.Any(s => s is ProjectorSaveable),
+                          "The hull's entity does not collect the projector's saver.");
+
+            Station().RestoreProgress(3);
+
+            var bag = new SpaceGame.Persistence.StateBag();
+            entities[0].Capture(bag);
+            Assert.IsTrue(bag.Has(RepairWorkstationSaveable.Key),
+                          "The hull's record has no '" + RepairWorkstationSaveable.Key +
+                          "' — the station's scrap count is not being saved with the ship.");
+        }
+
+        // ─────────── The oxygen plant ───────────
+        //
+        // Fourth fixture on the main deck, forward of the projector on the same side. Two things
+        // are worth guarding: that it stands ON the deck with nothing of the ship's own inside it,
+        // and that each of its two receptacles is what a look-ray from the aisle meets FIRST.
+        // The second is not a nicety — the plant's own body box is solid and has an interactable
+        // above it on the hull, so a dock whose trigger volume does not stand proud of that box is
+        // wired, replicated, saved and completely unreachable.
+
+        private OxygenGenerator Plant() => ship.GetComponentInChildren<OxygenGenerator>(true);
+
+        [Test]
+        public void PlayerShip_OxygenPlantStandsOnTheDeckClearOfEverything()
+        {
+            InstantiateShip();
+
+            OxygenGenerator[] plants = ship.GetComponentsInChildren<OxygenGenerator>(true);
+            Assert.AreEqual(1, plants.Length,
+                            "The ship carries exactly one oxygen plant — run Tools ▸ SpaceGame ▸ " +
+                            "Build Oxygen System, then rebuild the ship.");
+
+            OxygenGenerator plant = plants[0];
+            var box = plant.GetComponent<BoxCollider>();
+            Assert.IsNotNull(box, "The plant has no body collider, so a player walks through it.");
+
+            // Shrunk by the standing skin: the fixture's base sits ON the deck plate, and an
+            // overlap query counts a touching face as an overlap.
+            Vector3 centre = box.transform.TransformPoint(box.center);
+            Vector3 half = Vector3.Scale(box.size, box.transform.lossyScale) * 0.5f
+                           - Vector3.one * StandingSkin;
+            Collider[] inside = Ours(Physics.OverlapBox(centre, half, box.transform.rotation, ~0, NotTriggers))
+                .Where(c => !c.transform.IsChildOf(plant.transform))
+                .ToArray();
+            Assert.IsEmpty(inside.Select(Describe),
+                           "Something of the ship's own is standing inside the oxygen plant — it " +
+                           "is in the hull, the deckhead, or one of the other three fixtures.");
+
+            // The origin is the model's floor line; a ray from just above it finds the deck.
+            Vector3 probe = plant.transform.position + Vector3.up * 0.05f;
+            RaycastHit[] under = Ours(Physics.RaycastAll(probe, Vector3.down, 1f, ~0, NotTriggers))
+                .Where(h => !h.collider.transform.IsChildOf(plant.transform))
+                .OrderBy(h => h.distance)
+                .ToArray();
+            Assert.IsNotEmpty(under, "Nothing under the oxygen plant at all — it is not on a deck.");
+            float clearance = probe.y - under[0].point.y;
+            Assert.That(clearance, Is.InRange(0.0f, 0.10f),
+                        $"The plant's base sits {clearance - 0.05f:0.00} m over the floor under " +
+                        "it; a wall unit should stand on the deck.");
+        }
+
+        /// <summary>
+        /// Both receptacles are reachable: a look-ray from a standing eye in front of each one
+        /// meets that dock's own trigger volume before anything else of the ship's.
+        ///
+        /// <para>
+        /// Triggers are deliberately INCLUDED in this probe, unlike every walkability probe above
+        /// it, because the thing under test is a trigger and because <c>Interactor</c>'s own
+        /// raycast includes them. That is the whole mechanism: a trigger answers only when the
+        /// interactable is on the trigger's own GameObject, so it is see-through to everything
+        /// else while still being the nearest hit.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void PlayerShip_BothOxygenDocksAreAimedAtFromTheAisle()
+        {
+            InstantiateShip();
+
+            OxygenGeneratorDock[] docks = Plant().GetComponentsInChildren<OxygenGeneratorDock>(true);
+            Assert.AreEqual(2, docks.Length, "The plant does not have both of its receptacles.");
+
+            foreach (OxygenGeneratorDock dock in docks)
+            {
+                var volume = dock.GetComponent<BoxCollider>();
+                Assert.IsNotNull(volume, dock.name + " has no aim volume.");
+                Assert.IsTrue(volume.isTrigger,
+                              dock.name + "'s aim volume is SOLID, so the ray resolves it up to " +
+                              "the hull and the dock offers nothing.");
+
+                Vector3 target = volume.transform.TransformPoint(volume.center);
+                Vector3 outward = dock.transform.forward;
+
+                // Standing far enough back that a body fits, and looking from a standing eye.
+                Vector3 feet = target + outward * (BodyRadius + 0.9f);
+                feet.y = Plant().transform.position.y;
+                Vector3 eye = feet + Vector3.up * WallUseEyeHeight;
+
+                RaycastHit[] hits = Ours(Physics.RaycastAll(eye, (target - eye).normalized, InteractReach))
+                    .OrderBy(h => h.distance)
+                    .ToArray();
+
+                Assert.IsNotEmpty(hits, "The look-ray at " + dock.name + " meets nothing at all.");
+                Assert.IsTrue(hits[0].collider == volume,
+                              "The first thing the look-ray meets on the way to " + dock.name +
+                              " is " + Describe(hits[0].collider) + ", not the dock's own volume. " +
+                              "Its aim volume is not standing proud of the machine's body box.");
+            }
+        }
 
         [Test]
         public void PlayerShip_HasOneInventoryWall()

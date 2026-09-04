@@ -241,7 +241,7 @@ namespace SpaceGame.Presentation
                 canvas = canvasGO.AddComponent<Canvas>();
                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
                 canvas.sortingOrder = 32000; // above everything
-                canvasGO.AddComponent<CanvasScaler>();
+                UIScale.Apply(canvasGO);
                 canvasGO.AddComponent<GraphicRaycaster>();
             }
 

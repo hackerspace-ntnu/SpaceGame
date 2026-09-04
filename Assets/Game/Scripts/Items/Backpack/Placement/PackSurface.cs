@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Items
@@ -40,8 +41,63 @@ namespace SpaceGame.Items
                  "PackGrid cells, or the grid is inset by a hem and the face loses a row.")]
         [SerializeField] private Vector2 size = new(8f * PackGrid.Cell, 8f * PackGrid.Cell);
 
+        [Tooltip("Leave EMPTY for an ordinary face, which takes anything that fits. A face with " +
+                 "entries is a socket rather than a shelf and accepts only these items.")]
+        [SerializeField] private InventoryItem[] acceptsOnly = new InventoryItem[0];
+
         public PackSurfaceId Id => id;
         public Vector2 Size => size;
+
+        /// <summary>The items this face is reserved for, or empty when it takes anything.</summary>
+        public IReadOnlyList<InventoryItem> AcceptsOnly => acceptsOnly;
+
+        /// <summary>
+        /// Is this face willing to hold <paramref name="item"/> at all? The question that comes
+        /// BEFORE the geometry — a reserved face refuses a perfectly well-fitting item.
+        ///
+        /// <para>
+        /// Only one face in the game is reserved: the rig's centre back strip, which is the
+        /// oxygen bottle's socket and is plumbed into whatever stands there
+        /// (<see cref="PackSurfaceId.BackPanelCentre"/>). Everything else answers true for
+        /// everything, which is why this is a cheap early-out and not a rule callers have to
+        /// think about.
+        /// </para>
+        /// <para>
+        /// Reference first, then ID — the same test <c>PackContainer</c> uses everywhere else,
+        /// because every slot resolves through the registry to the same Resources asset the
+        /// inspector points at, and an ID compare is the fallback for a runtime copy.
+        /// </para>
+        /// </summary>
+        public bool AcceptsItem(InventoryItem item)
+        {
+            if (acceptsOnly == null || acceptsOnly.Length == 0) return true;
+            if (item == null) return false;
+
+            foreach (InventoryItem allowed in acceptsOnly)
+            {
+                if (allowed == null) continue;
+                if (allowed == item) return true;
+
+                if (!string.IsNullOrEmpty(allowed.ID) && allowed.ID == item.ID) return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The same question asked of an item ID, for the paths that hold one rather than an
+        /// asset — a placement off the wire, or a record out of a save.
+        /// </summary>
+        public bool AcceptsItemId(string itemId)
+        {
+            if (acceptsOnly == null || acceptsOnly.Length == 0) return true;
+            if (string.IsNullOrEmpty(itemId)) return false;
+
+            foreach (InventoryItem allowed in acceptsOnly)
+                if (allowed != null && allowed.ID == itemId) return true;
+
+            return false;
+        }
 
         /// <summary>Whole cells this face holds, across and along. See <see cref="PackGrid"/>.</summary>
         public Vector2Int Cells => PackGrid.CellsOn(size);

@@ -151,7 +151,6 @@ GameObject:
   - component: {fileID: 8810500734875081020}
   - component: {fileID: 1763784955351260425}
   - component: {fileID: 9072012641762215819}
-  - component: {fileID: 995803198157979358}
   - component: {fileID: -1935276263292882041}
   - component: {fileID: -7011281062608119530}
   - component: {fileID: -7526851245670682667}
@@ -162,6 +161,10 @@ GameObject:
   - component: {fileID: 6607683940042161100}
   - component: {fileID: 7810651834829988110}
   - component: {fileID: 6367044566160057266}
+  - component: {fileID: 761809569558038348}
+  - component: {fileID: 432666778331733822}
+  - component: {fileID: 2466865787249058363}
+  - component: {fileID: 5675741815915529215}
   m_Layer: 0
   m_Name: PlayerCharacter
   m_TagString: Player
@@ -271,6 +274,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInputManager
   invertHotbarScroll: 0
   scrollUnitsPerSlot: 0
+  bodyActivateDoubleTap: 0.3
 --- !u!114 &5205092769686626828
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -302,7 +306,6 @@ MonoBehaviour:
   moveSpeed: 6
   sprintSpeed: 9
   crouchSpeed: 2.6
-  aimSpeed: 3.5
   airControl: 0.3
   momentumRiseThreshold: 0.5
   tetherAcceleration: 22
@@ -314,6 +317,8 @@ MonoBehaviour:
     m_Bits: 4294967295
   runClipSpeed: 7.2
   crouchClipSpeed: 1.6
+  animatorDampTime: 0.1
+  animatorFloatQuantum: 0.05
   dashSpeed: 10
   playerCamera: {fileID: 0}
   rb: {fileID: 5527306943363674078}
@@ -341,7 +346,6 @@ MonoBehaviour:
   playerBody: {fileID: 6372178186651775710}
   sensitivity: 20
   verticalClamp: 80
-  aimSensitivity: 0.5
   fovKickInSpeed: 60
   fovKickOutSpeed: 35
   lookDownOffset: 0.4
@@ -534,6 +538,7 @@ MonoBehaviour:
   backSocketOverride: {fileID: 0}
   wornLocalPosition: {x: 0.003, y: -0.255, z: -0.415}
   wornLocalEuler: {x: 358.96542, y: 180, z: 0}
+  gearMountPartName: Mesh_Rig_LashRail
   deploySeconds: 0.9
   deployDistance: 2.96
   tossStartForward: 0.45
@@ -694,18 +699,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5aa099e098ffb4812bd320e50e4dad94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.PlayerLookSaveable
---- !u!114 &995803198157979358
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4516265153368369930}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 926ea1aa408324bb4a8e2d092df35058, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FlashlightSaveable
 --- !u!114 &-1935276263292882041
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -798,9 +791,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAimRig
   animator: {fileID: 5496312837281773235}
   holdBlendTime: 0.18
-  aimBlendTime: 0.15
-  aimHandOffset: {x: 0.06, y: -0.05, z: 0.34}
-  elbowPush: {x: 0.3, y: -0.28, z: -0.05}
+  raiseBlendTime: 0.12
+  raisePitchRange: 45
 --- !u!114 &6558388417224476658
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -881,6 +873,93 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.WallAimController
   reach: 0
+--- !u!114 &761809569558038348
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca9fffc2346349db9fc89d4afac038dc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BodyEquipmentController
+  backBone: 7
+  backBoneNameHints:
+  - Spine
+  - Chest
+  - Torso
+  backSocketOverride: {fileID: 0}
+  chestBone: 8
+  chestBoneNameHints:
+  - Chest
+  - Spine2
+  - UpperChest
+  raiseLingerSeconds: 0.6
+  wearSettleSeconds: 2
+--- !u!114 &432666778331733822
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67c527e3ec784ca89c5844128d2f0f8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.BodyEquipmentSaveable
+--- !u!114 &2466865787249058363
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5cf70113a8fe1462fac59faab363930c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.BodyFocusSession
+  shot:
+    LensDistance: 4.4
+    LensRise: 0.5
+    PitchDown: 9
+    FieldOfView: 44
+    FlyInSeconds: 0.4
+    MinLensDistance: 0.9
+    PullInRadius: 0.25
+    Blockers:
+      serializedVersion: 2
+      m_Bits: 4294967295
+  flyOutSeconds: 0.25
+  chestBone: 8
+  chestBoneNameHints:
+  - Chest
+  - Spine
+  fallbackLookHeight: 0.4
+  gauntletPlaceholder: {fileID: 5438755938205746983, guid: 6703bc28a40834db893580687e6d02ed, type: 3}
+  backPlaceholder: {fileID: 904798701788826256, guid: 3191c67ea4db545579e32b03caf6b0fc, type: 3}
+  commitTimeoutSeconds: 1
+  hitPaddingPx: 12
+  armsOut: 1
+  armDroop: 45
+  armSeparationDroop: 70
+  armForward: 0
+--- !u!114 &5675741815915529215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4516265153368369930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 295abae3e5aa24db1b53d3323a60f9db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ForearmBracers
+  bracerPrefab: {fileID: 8788718318021149366, guid: 94ef24b33e4c1490685eb8276469cdf3, type: 3}
 --- !u!1001 &5142600832843963879
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1010,8 +1089,7 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 4516265153368369930}
     m_RemovedComponents: []
-    m_RemovedGameObjects:
-    - {fileID: 5642419939978909808, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}
+    m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0f8f8f61db7d1a04ba9f2240bf9b2c17, type: 3}

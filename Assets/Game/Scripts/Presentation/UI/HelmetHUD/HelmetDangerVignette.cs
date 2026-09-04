@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using SpaceGame.Gameplay;
 
 namespace SpaceGame.Presentation
 {
@@ -69,6 +70,12 @@ namespace SpaceGame.Presentation
         [Tooltip("How long, after the delay, the arc shrinks back to zero span.")]
         [SerializeField] private float shrinkDuration = 2f;
 
+        [Header("Direction")]
+        [Tooltip("Camera the bearing of a hit is measured against. Left empty it uses Camera.main, " +
+                 "re-read each hit, which is what lets the arcs stay correct after the view moves " +
+                 "onto a mount.")]
+        [SerializeField] private Camera referenceCamera;
+
         private Material material;
         private readonly Image[] images = new Image[SideCount];
         private readonly float[] currentSpan = new float[SideCount];
@@ -78,9 +85,47 @@ namespace SpaceGame.Presentation
         private readonly float[] currentSpike = new float[SideCount];     // 0..1, fast decay, drives _Spike
         private readonly float[] currentOvershoot = new float[SideCount]; // extra span, fast decay
 
+        [Tooltip("Damage amount that maps to a full-strength flare. Smaller hits scale down.")]
+        [SerializeField, Min(1)] private int damageForFullFlash = 25;
+
+        /// <summary>
+        /// Whose hits this arc reacts to. Set by <see cref="HelmetHUDController"/> when the local
+        /// player resolves; until then the vignette listens and ignores everything, which is
+        /// correct — a hit on somebody else must never flash this player's visor.
+        /// </summary>
+        private HealthComponent watched;
+
+        /// <summary>Points the vignette at the wearer's health. Safe with null, and idempotent.</summary>
+        public void Watch(HealthComponent health) => watched = health;
+
         private void Awake()
         {
             BuildPanels();
+        }
+
+        private void OnEnable()
+        {
+            // The static carries every hit in the world, which is why the handler filters by
+            // victim. Subscribing per-victim instead is not possible here: on a client the hit is
+            // announced by a replicated message, not by the victim's own Damage call.
+            HealthComponent.AnyDamagedFrom += OnAnyDamagedFrom;
+        }
+
+        private void OnDisable()
+        {
+            HealthComponent.AnyDamagedFrom -= OnAnyDamagedFrom;
+        }
+
+        private void OnAnyDamagedFrom(HealthComponent victim, int amount, Vector3 sourcePosition, bool hasSource)
+        {
+            if (watched == null || victim != watched || amount <= 0) return;
+
+            float strength = Mathf.Clamp01((float)amount / Mathf.Max(1, damageForFullFlash));
+
+            // No source means a fall, suffocation or the sand: nothing to point at, so the whole
+            // rim lights rather than an arbitrary side of it.
+            if (hasSource) HitFrom(sourcePosition, strength);
+            else HitBoth(strength);
         }
 
         private void BuildPanels()
@@ -150,6 +195,46 @@ namespace SpaceGame.Presentation
         {
             HitSide(Side.Left, strength);
             HitSide(Side.Right, strength);
+        }
+
+        /// <summary>
+        /// Register a hit that came from somewhere, splitting it across the two arcs by how far to
+        /// the left or right of the view that somewhere is.
+        ///
+        /// <para>
+        /// A hit from due left lights the left arc alone, from due right the right one, and one
+        /// from directly ahead or directly behind splits evenly — which is exactly
+        /// <see cref="HitBoth"/>. <b>Front and back are deliberately indistinguishable</b>: there
+        /// are two arcs and they are on the left and right edges of the screen, so there is no
+        /// honest way to say "behind you" with them. Widening that would be a shader change, not a
+        /// maths change.
+        /// </para>
+        /// </summary>
+        public void HitFrom(Vector3 worldSource, float strength = 1f)
+        {
+            Camera view = referenceCamera != null ? referenceCamera : Camera.main;
+            if (view == null)
+            {
+                HitBoth(strength);
+                return;
+            }
+
+            Vector3 toSource = worldSource - view.transform.position;
+
+            // Flattened: a hit from above should not read as a hit from the side just because the
+            // player happened to be looking at their feet.
+            toSource.y = 0f;
+            if (toSource.sqrMagnitude < 0.0001f)
+            {
+                HitBoth(strength);
+                return;
+            }
+
+            float lateral = Vector3.Dot(toSource.normalized, view.transform.right);
+            float rightShare = 0.5f + (0.5f * Mathf.Clamp(lateral, -1f, 1f));
+
+            HitSide(Side.Right, strength * rightShare);
+            HitSide(Side.Left, strength * (1f - rightShare));
         }
 
         private void Update()

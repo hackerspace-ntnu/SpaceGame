@@ -41,9 +41,6 @@ namespace SpaceGame.EditorTools
         private const string ShakeSourcePath = "Assets/Game/ScriptableObjects/Shake/DamageShake.asset";
         private const string BlastShakePath  = "Assets/Game/ScriptableObjects/Shake/GravelBlastShake.asset";
 
-        /// <summary>The ground layer DropItemPhysics settles against, shared by every artifact.</summary>
-        private const int GroundLayerMask = 128;
-
         /// <summary>Desert gravel: dry brown-grey rock, and the dust it throws.</summary>
         private static readonly Color Gravel     = new Color(0.42f, 0.36f, 0.29f);
         private static readonly Color DustLight  = new Color(0.76f, 0.68f, 0.52f);
@@ -174,18 +171,13 @@ namespace SpaceGame.EditorTools
             var netObject = root.AddComponent<NetworkObject>();
             netObject.SynchronizeTransform = true;
 
-            SphereCollider sphere = root.AddComponent<SphereCollider>();
-            sphere.radius = 0.16f;
-
-            Rigidbody body = root.AddComponent<Rigidbody>();
-            body.isKinematic = true;
-            body.useGravity = true;
-
             AddInternal(root, "SpaceGame.Items.PickupableItem");
 
-            var drop = root.AddComponent<DropItemPhysics>();
-            SetPrivate(drop, "rb", body);
-            SetPrivateLayerMask(drop, "groundLayer", GroundLayerMask);
+            // The body, a collider the shape of the item, the sizing and the netcode that lets
+            // another machine watch it be shoved about. One shared block - see ItemWorldPresence
+            // for what nine hand-written copies of it cost, and why the sphere it replaces here
+            // made a dropped item roll like a marble.
+            ItemWorldPresence.Apply(root);
 
             root.AddComponent<SpaceGame.Core.NetRelay>();
             root.AddComponent<SpaceGame.Core.Persistence.SaveableEntity>();

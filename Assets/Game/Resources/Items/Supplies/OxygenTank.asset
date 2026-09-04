@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2e489ee51f24b98b3370b5014161b18, type: 3}
+  m_Name: OxygenTank
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.InventoryItem
+  <ID>k__BackingField: f78494893a7b54bd0a9d7c390fe6babe
+  itemName: Oxygen Tank
+  itemPrefab: {fileID: 2228828423927357812, guid: 193e63f9959de4936a1d094eac1ce0ca, type: 3}
+  icon: {fileID: 21300000, guid: 3012423b9913143e591c5e610eef5329, type: 3}
+  iconPrefab: {fileID: 0}
+  equipKind: 0

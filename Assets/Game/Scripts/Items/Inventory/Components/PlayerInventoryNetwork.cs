@@ -142,6 +142,11 @@ namespace SpaceGame.Items
         public void SelectSlot(int slotIndex)
         {
             if(!IsOwner) return;
+
+            // The Hotbar map still binds keys past the bar's width — 4 on a three-slot bar — and
+            // a selection past the end would clear the hands for a slot that does not exist.
+            if (slotIndex >= inventorySize) return;
+
             SelectSlotServerRpc(slotIndex);
         }
 
@@ -196,6 +201,23 @@ namespace SpaceGame.Items
             }
 
             networkSelectedSlot.Value = selectedSlot >= 0 && selectedSlot < networkItems.Count ? selectedSlot : -1;
+        }
+
+        public bool TrySetSlot(int index, InventoryItem item)
+        {
+            if (!Network.Simulates(this))
+            {
+                Debug.LogWarning("[Inventory] TrySetSlot ignored on a client — the hotbar is server state.", this);
+                return false;
+            }
+
+            if (index < 0 || index >= networkItems.Count) return false;
+
+            // Typed empty value, not `default` in a ternary against item.ID — see RestoreSlots.
+            networkItems[index] = item != null && !string.IsNullOrEmpty(item.ID)
+                ? new FixedString64Bytes(item.ID)
+                : default(FixedString64Bytes);
+            return true;
         }
 
         // --- Client requests add ---

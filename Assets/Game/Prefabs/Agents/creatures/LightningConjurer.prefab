@@ -19,6 +19,7 @@ GameObject:
   - component: {fileID: 1304053845602358584}
   - component: {fileID: 7932695942825182572}
   - component: {fileID: 1453456614818677739}
+  - component: {fileID: 8480173472527243919}
   - component: {fileID: 2378204516048479697}
   - component: {fileID: 721406942356391028}
   - component: {fileID: 5786818673765399766}
@@ -263,12 +264,15 @@ MonoBehaviour:
   active: 1
   castRange: 25
   requireLineOfSight: 1
-  aim: 0
-  castSeconds: 3
-  cooldownSeconds: 5
+  aim: 2
+  castSeconds: 4
+  aimLockSeconds: 1
+  cooldownSeconds: 6.5
   castAnimTrigger: Cast
   animator: {fileID: 6649228884045001422}
   lightningVFXPrefab: {fileID: 4155238812004112330, guid: b7e3c1a49d2f4e8ab05c6f1d3a7e9c24, type: 3}
+  skyStrike: 1
+  beamRadius: 0.6
   drawHeight: 100
   vfxLifetime: 5
   damage: 10
@@ -276,8 +280,30 @@ MonoBehaviour:
   damageMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  chargeVFXPrefab: {fileID: 0}
-  chargeSocketBone: CastSocket.R
+  chargeVFXPrefab: {fileID: 487757261919396083, guid: 547ea51696370634db7add89f37cefe1, type: 3}
+  chargeSocketBone: StaffTip
+  telegraphPrefab: {fileID: 0}
+  muzzleBone: StaffTip
+--- !u!114 &8480173472527243919
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9126126734686017781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9dddc723ba507484b9e52328c5e304f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.DormantModule
+  priority: 100
+  active: 1
+  wakeRadius: 20
+  rescanInterval: 0.35
+  awakenSeconds: 1.2
+  animator: {fileID: 6649228884045001422}
+  wakeTrigger: Wake
+  awakeBool: Awake
 --- !u!114 &2378204516048479697
 MonoBehaviour:
   m_ObjectHideFlags: 0

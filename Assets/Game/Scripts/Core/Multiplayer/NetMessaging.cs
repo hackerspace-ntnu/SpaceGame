@@ -326,13 +326,23 @@ namespace SpaceGame.Core
         // NetworkTransform carries the body and AgentAnimatorDriver measures it -- but a
         // discrete effect nobody ran has to be told.
         //
-        // Two messages rather than one because the cast is three seconds long and its two halves
-        // land three seconds apart: the wind-up has to start when the server starts winding up,
+        // Two messages rather than one because the cast is four seconds long and its two halves
+        // land four seconds apart: the wind-up has to start when the server starts winding up,
         // and the bolt has to land when the server says it landed. One message plus a local timer
         // on each peer would drift, and a peer that joined mid-cast would never start it at all.
         //
-        //   ConjurerCast     A = 1 when a charge effect should be spawned too.
+        //   ConjurerCast     Target = the VICTIM, so each peer's ground warning can follow it
+        //                    locally instead of being told where it is every frame; P = where
+        //                    the strike is aimed at the moment the cast begins, and the whole
+        //                    of the answer when the aim is committed up front or the victim
+        //                    cannot be resolved.
         //   ConjurerStruck   P = where the bolt earths, in world space.
+        //
+        // Nothing carries the AIM LOCK, and that is deliberate: every machine begins the wind-up
+        // on the same frame from ConjurerCast and freezes its own mark after the same authored
+        // delay. The one number that has to be exact -- where the bolt actually landed -- comes
+        // back authoritatively in ConjurerStruck, so a cosmetic ring a frame out of step on a
+        // peer is not worth a packet per frame to prevent.
         public const ushort ConjurerCast   = 76; // server → everyone: begin the wind-up
         public const ushort ConjurerStruck = 77; // server → everyone: draw the bolt at P
     }

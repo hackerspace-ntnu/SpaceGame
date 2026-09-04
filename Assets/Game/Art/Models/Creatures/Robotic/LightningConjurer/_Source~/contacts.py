@@ -5,7 +5,7 @@ arm.animation_data.action=bpy.data.actions["Walk"]
 sc=bpy.context.scene
 SCALE=(3.019*6)/(37.49-2.757)   # 6x player height now
 FPS=30.0
-N=72
+N=int(bpy.data.actions["Walk"].frame_range[1])-1
 dg=bpy.context.evaluated_depsgraph_get()
 def lowest(objname):
     o=bpy.data.objects[objname]

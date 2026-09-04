@@ -71,6 +71,83 @@ namespace SpaceGame.Gameplay
         }
 
         /// <summary>
+        /// Where a bolt fired ALONG a line actually stops.
+        ///
+        /// <para>
+        /// Pure geometry, no damage: safe on any machine, and every machine needs it,
+        /// because the bolt has to be DRAWN to the same place it is billed at. The
+        /// conjurer's chest cast fires from between its hands rather than dropping out of
+        /// the sky, so a wall between it and its target should stop the bolt at the wall
+        /// instead of letting it pass through and hurt whatever is behind.
+        /// </para>
+        /// <para>
+        /// A sweep rather than a ray because the visible bolt is a ribbon with width, and
+        /// a zero-thickness ray slips through gaps the picture clearly does not.
+        /// </para>
+        /// </summary>
+        /// <returns>The first thing hit, or <paramref name="to"/> if the line is clear.</returns>
+        public static Vector3 BeamImpact(Vector3 from, Vector3 to, float radius,
+                                         LayerMask mask, GameObject attacker)
+        {
+            Vector3 span = to - from;
+            float distance = span.magnitude;
+            if (distance < 1e-4f) return to;
+
+            Vector3 direction = span / distance;
+            RaycastHit[] hits = Physics.SphereCastAll(
+                from, Mathf.Max(0.01f, radius), direction, distance, mask,
+                QueryTriggerInteraction.Ignore);
+
+            float nearest = float.MaxValue;
+            Vector3 impact = to;
+
+            foreach (RaycastHit hit in hits)
+            {
+                if (hit.collider == null) continue;
+
+                // The muzzle sits a metre in front of the caster's own chest, so its body
+                // is the FIRST thing any sweep from there finds. Without this the conjurer
+                // shoots itself in the ring every time.
+                if (attacker != null && hit.collider.transform.IsChildOf(attacker.transform))
+                    continue;
+
+                if (hit.distance >= nearest) continue;
+                nearest = hit.distance;
+
+                // A sweep that starts already overlapping a collider reports distance 0
+                // and a meaningless point at the world origin. Use the muzzle itself in
+                // that case rather than drawing the bolt to (0,0,0).
+                impact = hit.distance > 0f ? hit.point : from + direction * radius;
+            }
+
+            return impact;
+        }
+
+        /// <summary>
+        /// Fire a bolt along a line and hurt what it lands on.
+        ///
+        /// <para>
+        /// SERVER ONLY, for the same reason <see cref="Damage"/> is: it bills damage.
+        /// </para>
+        /// <para>
+        /// The splash is deliberately small compared to the sky strike's blast. A bolt
+        /// aimed down a line that you can break by stepping behind something has already
+        /// given the player their counterplay; giving it the falling bolt's radius on top
+        /// would make it strictly better than the attack it replaced.
+        /// </para>
+        /// </summary>
+        /// <param name="impact">Where it stopped -- draw the bolt to exactly this point.</param>
+        /// <returns>How many distinct things were billed.</returns>
+        public static int Beam(Vector3 from, Vector3 to, float radius, int damage,
+                               float splashRadius, LayerMask mask, GameObject attacker,
+                               out Vector3 impact)
+        {
+            impact = BeamImpact(from, to, radius, mask, attacker);
+            return Damage(impact, damage, splashRadius, mask, attacker,
+                          damagesAttacker: false);
+        }
+
+        /// <summary>
         /// Draw the bolt. Pure presentation -- safe to run on any machine, and it must
         /// run on every machine that should see it.
         /// </summary>

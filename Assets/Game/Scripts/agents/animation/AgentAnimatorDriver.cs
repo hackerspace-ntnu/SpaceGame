@@ -1,4 +1,4 @@
-// Bridges motor output into animator parameters for agent characters.
+﻿// Bridges motor output into animator parameters for agent characters.
 // Converts world velocity into local animation-space values each frame.
 // Keeps animation updates centralized and independent from brain logic.
 //
@@ -160,8 +160,18 @@ namespace SpaceGame.Agents
             }
 
             float speedScale = animationSpeedMultiplier * (isRunning ? 1f : walkAnimBoost);
-            // Convert velocity in the animator rig's local space (important when rig is on a child transform).
-            Vector3 localVelocity = animator.transform.worldToLocalMatrix.MultiplyVector(worldVelocity) * speedScale;
+
+            // Convert velocity into the animator rig's local space (important when the rig is on a
+            // child transform that is yawed relative to the agent root).
+            //
+            // InverseTransformDirection rather than worldToLocalMatrix.MultiplyVector: the matrix
+            // carries the transform's SCALE, and dividing metres per second by it turns a real
+            // speed into a meaningless one. A rig imported at 100x -- which is what a Blender model
+            // scaled by the importer rather than by the armature looks like -- reported an 8.99 m/s
+            // charge as 0.09, every locomotion threshold in its controller stayed unmet, and the
+            // creature slid across the ground in its idle pose. Direction is what this wants; scale
+            // is not part of it.
+            Vector3 localVelocity = animator.transform.InverseTransformDirection(worldVelocity) * speedScale;
 
             animator.SetFloat("SpeedX", localVelocity.x, 0.1f, Time.deltaTime);
             animator.SetFloat("SpeedY", localVelocity.z, 0.1f, Time.deltaTime);
@@ -176,6 +186,16 @@ namespace SpaceGame.Agents
         public void TriggerSpearAttack() => SetTriggerSafe("SpearAttack");
         public void TriggerByName(string triggerName) => SetTriggerSafe(triggerName);
         public void SetIsAiming(bool aiming) => animator?.SetBool("IsAiming", aiming);
+
+        // The counterpart of TriggerByName, for a state a module has to HOLD rather than enter
+        // once. Guarded the same way SetTriggerSafe is: an Animator with no controller assigned
+        // logs a warning per call, and a module that writes a flag every frame turns that into a
+        // warning per frame per creature.
+        public void SetBoolByName(string boolName, bool value)
+        {
+            if (animator && animator.runtimeAnimatorController != null)
+                animator.SetBool(boolName, value);
+        }
 
         private void SetTriggerSafe(string triggerName)
         {

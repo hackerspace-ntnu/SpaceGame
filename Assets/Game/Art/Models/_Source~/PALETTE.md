@@ -6,7 +6,7 @@ edit the palette and regenerate, or the two will disagree.
 Every model and component in this repository links its materials from here.
 Before adding anything, search this table for something that would serve.
 
-**44 material(s)** across 9 categor(ies).
+**47 material(s)** across 9 categor(ies).
 
 ## Emissive
 
@@ -58,7 +58,10 @@ Before adding anything, search this table for something that would serve.
 | `Mat_Metal_Chrome_Scuffed` | `#C9CDD2` | 0.22 | 1.0 | Bright trim: handles, grab rails, wheel rim, galley fittings, RV chrome mouldings. |
 | `Mat_Metal_Copper_Oxide` | `#4E8C7A` | 0.6 | 0.8 | Verdigris pipework and coil windings - coolant runs, reactor plumbing, old wiring conduit. |
 | `Mat_Metal_HullRust_Orange` | `#764E2A` | 0.72 | 0.15 | (existing) Primary hull skin of the RV ship - oxidised orange-brown steel. Main exterior body colour. |
+| `Mat_Metal_Patina_Khaki` | `#BFA070` | 0.8 | 0.6 | Pale khaki-brown weathering on metal: dust bonded onto old steel, the light end of a grey/green/brown weathering ramp. The warm note that reads against Mat_Metal_Steel_Worn (neutral grey) and Mat_Metal_Copper_Oxide (verdigris green) on the same object. Distinct from Mat_Hide_Dune_Tan, which is creature hide at metallic 0, and from the rust family, which is oxidised orange rather than dust-toned. |
+| `Mat_Metal_Rust_Deep` | `#4E3418` | 1.0 | 0.4 | Near-black pitted corrosion: the dark end of the rust ramp. Recesses, undersides, ground-splash zones and anywhere water sits. The shadow value that lets Mat_Metal_Rust_Heavy and Mat_Metal_Rust_Pale read as a weathered surface rather than a flat repaint. |
 | `Mat_Metal_Rust_Heavy` | `#9A5D1D` | 1.0 | 0.5 | (existing) Deep corrosion: weld-on repair patches, streak damage, exhaust scorching, rotted panel edges. |
+| `Mat_Metal_Rust_Pale` | `#C6884A` | 0.85 | 0.35 | Sun-bleached flaked rust: the light end of the corrosion ramp. Upper surfaces and sun-facing plate on weathered machines, where oxide has powdered and lost its metallic sheen. Lighter and less metallic than Mat_Metal_Rust_Heavy; the two are meant to be used together on one object set, not chosen between. |
 | `Mat_Metal_Steel_Dark` | `#3A3E42` | 0.45 | 1.0 | Machined mechanism metal: brackets, bolts, hydraulic rams, engine internals, tool bodies. |
 | `Mat_Metal_Steel_Worn` | `#7A7D80` | 0.55 | 1.0 | Bare structural steel: frames, ribs, beams, hinge barrels, exposed load-bearing parts. |
 

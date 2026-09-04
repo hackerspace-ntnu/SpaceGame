@@ -1,4 +1,4 @@
-// Builds every Unity-side asset the Lightning Conjurer needs, from the exported FBX up.
+﻿// Builds every Unity-side asset the Lightning Conjurer needs, from the exported FBX up.
 //
 // The FBX comes out of Blender via the rig/anim/export scripts kept beside the
 // model in Assets/Game/Art/Models/Creatures/Robotic/LightningConjurer/_Source~/.
@@ -25,15 +25,15 @@
 // walker system is untouched and still carries the ostrich, the horse, the crab and
 // the humanoid robot.
 //
-// What that trade actually costs, so nobody re-litigates it by accident: the baked
-// walk is NOT foot-locked. _Source~/stride.py measures the planted foot sliding
-// across a range of 6.6 to 11.5 m/s about its 8.99 m/s mean, and no amount of
-// tuning removes a slide from a clip that has no idea where the ground is. What CAN
-// be removed is the systematic half of it -- a clip played at a rate that does not
-// match the speed the body is travelling -- and that is what StrideSpeed, the blend
-// tree's thresholds and AgentAnimatorDriver.animatorSpeedScale are all for below.
-// Slopes and uneven ground are simply not modelled: the agent's transform slides
-// along the NavMesh and the feet go where the clip puts them.
+// What that trade actually costs, so nobody re-litigates it by accident. The walk
+// clip IS foot-locked on flat ground -- anim.py solves the legs from a constant-speed
+// contact trajectory and _Source~/stride.py asserts the planted foot holds 8.99 m/s
+// to within 0.05% -- so the creature does not skate at the speed the clip was
+// authored at. What it still cannot do is know about the WORLD: play the clip at a
+// rate that does not match the body's speed and the lock is worthless, which is what
+// StrideSpeed, the blend tree's thresholds and AgentAnimatorDriver.animatorSpeedScale
+// are all for below. Slopes and uneven ground are not modelled at all -- the agent's
+// transform slides along the NavMesh and the feet go where the clip puts them.
 //
 // The rig keeps walkerize.py's Coxa_/Hip_/Knee_/Ankle_/Foot_ naming. Nothing needs
 // it now, but anim.py keys those bone names and re-running the pipeline against the
@@ -51,6 +51,7 @@ using UnityEngine.AI;
 using UnityEngine.SceneManagement;
 using SpaceGame.Agents;
 using SpaceGame.Core.Persistence;
+using SpaceGame.Gameplay;
 
 namespace SpaceGame.EditorTools
 {
@@ -63,9 +64,21 @@ namespace SpaceGame.EditorTools
         private const string ControllerPath = ControllerDir + "/LightningConjurer.controller";
         private const string PrefabDir = "Assets/Game/Prefabs/Agents/creatures";
         private const string PrefabPath = PrefabDir + "/LightningConjurer.prefab";
+
+        /// The two generated clips, kept beside the controller that is the only thing
+        /// referencing them. Regenerated wholesale on every build, like everything else here.
+        private const string SleepClipPath = ControllerDir + "/LightningConjurer_Sleep.anim";
+        private const string AwakenClipPath = ControllerDir + "/LightningConjurer_Awakening.anim";
         private const string ScenePath = "Assets/Game/Scenes/Tests/Marius test scene.unity";
         private const string InstanceName = "LightningConjurer";
         private const string MaterialDir = "Assets/Game/Art/Materials/Palette";
+
+        /// The body's single material and the shader behind it. Not in the palette
+        /// folder: every asset in there is a flat colour from PALETTE.md, and this
+        /// one has no colour of its own -- the mesh carries it.
+        private const string WeatheredShader = "SpaceGame/ConjurerWeathered";
+        private const string WeatheredMatPath =
+            "Assets/Game/Art/Materials/Creatures/Mat_Weathered_Blend.mat";
         private const string ShakeDir = "Assets/Game/ScriptableObjects/Shake";
         private const string ShakeDataPath = ShakeDir + "/ConjurerFootstepShake.asset";
 
@@ -79,6 +92,92 @@ namespace SpaceGame.EditorTools
         /// staff's red.
         private const string LightningVfxPath =
             "Assets/Game/Prefabs/VisualEffects/Lightning/ConjurerLightningBolt.prefab";
+
+        /// The charge that gathers on the staff, built by BuildStaffCharge.
+        ///
+        /// Replaces ConjurerChestCharge.prefab, which lit a ring in the creature's chest
+        /// and ran arcs inward to the two palms hovering either side of it. Both the ring
+        /// and the pose are gone: _Source~/staff.py deleted the charger and gave the
+        /// creature a staff, and the arcs now run from the emitter above the turbine and
+        /// increasingly UP into the sky, because that is where the bolt is coming from.
+        ///
+        /// Generated rather than hand-authored for the same reason the prefab is: its arc
+        /// widths, core size and fan radius are sized against the MODEL, whose scale is
+        /// derived here. An asset dragged together by hand goes stale the moment the model
+        /// is re-exported at a different size.
+        private const string ChargeVfxPath =
+            "Assets/Game/Prefabs/VisualEffects/Lightning/ConjurerStaffCharge.prefab";
+
+        /// Enough that the turbine is lit all round and a growing share can peel off into
+        /// the sky without the fan going dark. ConjurerStaffCharge splits them by index,
+        /// so this only wants to be big enough that a fraction of it is still several.
+        private const int ChargeArcCount = 10;
+
+        /// Arc ribbon width. Two orders of magnitude below the strike's 0.6-1.4 m, because
+        /// this one spans a turbine and that one spans the distance from the clouds.
+        private const float ChargeArcWidth = 0.045f;
+
+        /// The staff's own size factor, mirroring _Source~/staff.py's SIZE. Kept here so
+        /// the numbers below can be read against the ones in that file rather than being
+        /// pre-multiplied and unrecognisable.
+        private const float StaffSize = 0.75f;
+
+        /// The turbine, in metres, for the arcs that play over it. Both derived from
+        /// _Source~/staff.py rather than typed: FAN_R1 is the blade tip radius, and the
+        /// drop is the gap from the fan's hub (HUB_Z 38.0) up to the emitter
+        /// (TOP_Z 41.975) that ConjurerStaffCharge hangs off.
+        private const float StaffFanRadiusBlender = 4.60f * StaffSize;
+        private const float StaffFanDropBlender = 41.975f - 38.00f;
+        private static float ChargeFanRadius => StaffFanRadiusBlender * Scale;
+        private static float ChargeFanDrop => StaffFanDropBlender * Scale;
+
+        /// How far the skyward arcs reach at full charge, in metres. Deliberately several
+        /// times the fan's own size: these are the part of the effect that says the answer
+        /// is coming from above, and an arc that only just clears the turbine says nothing.
+        private const float ChargeSkyReach = 16f;
+
+        /// Whether the cast paints a ring on the ground where the bolt will land.
+        ///
+        /// OFF, by request. Flip it back to true and the ring returns: it gates the build
+        /// and the wiring together, so nothing else has to change.
+        ///
+        /// Worth knowing what it costs, because the ring was not decoration. A falling
+        /// bolt cannot be blocked, and it cannot be dodged by angle the way a fired line
+        /// can -- it simply arrives on the point the caster picked. The ring was the whole
+        /// of the player's warning, so with it off the attack is damage on a timer and the
+        /// only counterplay left is reading the CREATURE: the four-and-a-half second cast,
+        /// the staff coming up, the turbine spinning, and the emitter lighting. That is a
+        /// real telegraph and it may well be the one you want -- it just all lives on the
+        /// creature now, and at range it is the only thing there is.
+        private const bool GroundWarning = false;
+
+        /// The mark on the ground under the strike, built by BuildStrikeTelegraph.
+        /// Only built and wired when GroundWarning is on.
+        private const string TelegraphVfxPath =
+            "Assets/Game/Prefabs/VisualEffects/Lightning/ConjurerStrikeWarning.prefab";
+
+        /// The generated annulus the warning ring is drawn with, kept beside the prefab.
+        ///
+        /// A mesh asset rather than a scaled primitive because Unity has no ring: a flat
+        /// cylinder gives a filled disc, and a filled disc under the player's feet hides
+        /// the ground they are trying to run across. The outline is the readable shape.
+        private const string RingMeshPath =
+            "Assets/Game/Art/Models/Generated/StrikeWarningRing.asset";
+
+        /// Ring proportions. The mesh is authored at radius 1 and scaled to the blast
+        /// radius at runtime, so this is the fraction of that radius the band occupies.
+        private const float RingThickness = 0.12f;
+        private const int RingSegments = 64;
+
+        /// How high the warning column starts, in metres. Tall enough to be visible from
+        /// outside the blast when the cast begins, and it descends to nothing as the bolt
+        /// arrives -- that fall is what tells the player how long is left.
+        private const float TelegraphColumnHeight = 55f;
+
+        /// How far the ring looks for ground, in metres. Short on purpose: it is meant to
+        /// find the floor under the target's feet, and a long probe finds the canyon floor
+        /// instead when somebody is standing on a ledge.
+        private const float TelegraphGroundProbe = 8f;
         private const string FactionDir = "Assets/Game/ScriptableObjects/Factions/Core";
         private const string RobotFactionPath = FactionDir + "/RobotFaction.asset";
         private const string RelationshipsPath = FactionDir + "/GlobalRelationships.asset";
@@ -137,6 +236,27 @@ namespace SpaceGame.EditorTools
 
         private static readonly Pal[] Palette =
         {
+            // The body, and it is a RAMP rather than one colour. rustify.py spreads
+            // these three over the creature through a warped noise field -- dusty
+            // khaki up top where the sun hits, bare grey through the body,
+            // verdigris green down at the feet where water sits. One flat colour
+            // over 48 parts reads as a repaint; three read as weathering.
+            //
+            // Every ramp entry must be listed here or the missing ones import as
+            // default grey however good the .blend looks: the FBX remaps materials
+            // BY NAME onto these assets, and a name with no entry matches nothing.
+            //
+            // Steel_Worn and Copper_Oxide are further down this array already and
+            // are NOT repeated -- they are shared palette entries this creature
+            // reuses rather than materials it owns. Only the khaki was added.
+            new Pal("Mat_Metal_Patina_Khaki",    0xBFA070, 0.60f, 0.80f),
+            // The rust family the creature wore before the grey/green/brown brief.
+            // Kept listed because the FBX remap is by name and an older export --
+            // or a rollback of rustify.py's RAMP -- would otherwise import grey.
+            new Pal("Mat_Metal_Rust_Pale",       0xC6884A, 0.35f, 0.85f),
+            new Pal("Mat_Metal_Rust_Heavy",      0x9A5D1D, 0.50f, 1.00f),
+            new Pal("Mat_Metal_HullRust_Orange", 0x764E2A, 0.15f, 0.72f),
+            new Pal("Mat_Metal_Rust_Deep",       0x4E3418, 0.40f, 1.00f),
             new Pal("Mat_Metal_Steel_Dark",      0x3A3E42, 1.00f, 0.45f),
             new Pal("Mat_Metal_Steel_Worn",      0x7A7D80, 1.00f, 0.55f),
             new Pal("Mat_Metal_Brass_Tarnished", 0x9C7B3F, 1.00f, 0.45f),
@@ -171,30 +291,30 @@ namespace SpaceGame.EditorTools
 
         /// Ground speed the Walk clip is authored at, in m/s. Load-bearing.
         ///
-        /// MEASURED, not derived. A closed form over the thigh swing alone ignores the
-        /// knee: the shin flexes through swing and carries the contact further back than
-        /// the hip angle by itself accounts for. _Source~/stride.py samples the planted
-        /// foot's actual backward velocity across the stance frames and reports the mean,
-        /// which is this number. Re-run it after ANY change to SW, KN or the cycle length
-        /// in anim.py, and put the answer here.
+        /// AUTHORED, and then verified. anim.py builds the walk out of a foot trajectory
+        /// whose stance leg travels at one constant speed, so the clip has exactly one ground
+        /// speed rather than an average of several: HALF and WALK_FRAMES there are chosen to
+        /// land on this number, and _Source~/stride.py re-measures the planted foot and
+        /// ASSERTS it, rather than reporting a mean somebody then has to copy across.
+        ///
+        /// It used to be a mean, and the mean was 25% high -- taken over sixteen frames of a
+        /// cycle whose foot speed swung from 6.6 to 11.5 m/s, on a clip that was not
+        /// foot-locked at all. Everything downstream was then playing a 7.2 m/s walk as if it
+        /// were a 9 m/s one, which is a fifth of the creature's speed spent skating.
         ///
         /// Three things downstream ARE this number, and they have to move together or the
         /// feet skate: RunSpeed below, the blend tree's top threshold, and
         /// AgentAnimatorDriver.animatorSpeedScale. All three are written in terms of this
         /// constant precisely so that re-measuring is a one-line change.
-        ///
-        /// It does not eliminate the slide -- the clip is not foot-locked, and stride.py
-        /// measures the instantaneous speed ranging over 6.6 to 11.5 m/s about this mean.
-        /// It removes the systematic part, which is the part that reads as a bug.
         private const float StrideSpeed = 8.99f;
 
         /// Top speed, and the speed at which the clip plays at its authored rate.
         ///
         /// Pinned to the clip rather than chosen: at exactly StrideSpeed the animator runs
-        /// at 1.0 and the walk cycle is the one anim.py authored. Nine metres a second
-        /// sounds absurd until you remember the stride is nearly ten metres long and the
-        /// cycle is 2.4 seconds -- this is a slow, heavy gait on a machine six times the
-        /// player's height, not a sprint.
+        /// at 1.0 and the walk cycle is the one anim.py authored. Nine metres a second sounds
+        /// absurd until you remember the stride is a full nine metres and the cycle is 1.73
+        /// seconds -- this is a heavy gait on a machine six times the player's height, not a
+        /// sprint.
         private const float RunSpeed = StrideSpeed;
 
         /// The stroll. Everything that is not chasing moves at this.
@@ -245,48 +365,120 @@ namespace SpaceGame.EditorTools
         {
             public readonly string Name, Take;
             public readonly int First, Last;
-            public Clip(string name, string take, int first, int last)
+            public readonly bool Loop;
+            public Clip(string name, string take, int first, int last, bool loop)
             {
-                Name = name; Take = take; First = first; Last = last;
+                Name = name; Take = take; First = first; Last = last; Loop = loop;
             }
         }
 
         private const float Fps = 30f;
 
-        /// Frames where a foot's lowest point reaches the ground in the Walk clip,
-        /// measured by _Source~/contacts.py rather than eyeballed. The two sit exactly 36
-        /// frames apart, which is half of the 72-frame cycle -- the check that the gait is
-        /// actually symmetric.
-        private static readonly int[] FootPlantFrames = { 7, 43 };
+        /// Frames where a foot lands in the Walk clip.
+        ///
+        /// NOT eyeballed and not measured after the fact either: anim.py places the two
+        /// touchdowns at whole frames on purpose (PHASE0 is a quarter cycle), and
+        /// _Source~/contacts.py confirms them. They sit exactly 26 frames apart, half of
+        /// the 52-frame cycle -- the check that the gait is symmetric.
+        private static readonly int[] FootPlantFrames = { 14, 40 };
 
-        // Frame ranges match the actions authored in anim.py. Both are cycles whose
-        // last frame duplicates the first, so they loop without a seam. Slowed from
-        // 40/90 to 72/120 frames when the creature doubled in size.
+        /// Frames in the Walk cycle, and the one number that decides its cadence.
+        ///
+        /// 52, down from 72. The clip is foot-locked now (see anim.py) so its stride and
+        /// its frame count TOGETHER fix the ground speed, and these are the pair that
+        /// lands on StrideSpeed exactly. Change either in anim.py and stride.py will say
+        /// so -- it asserts the clip's measured speed rather than reporting it.
+        private const int WalkFrames = 52;
+
+        // Frame ranges match the actions authored in anim.py. Both cycles have a last
+        // frame duplicating the first, so they loop without a seam.
         private static readonly Clip[] Clips =
         {
-            new Clip("Idle", "ConjurerRig|Idle", 1, 120),
-            new Clip("Walk", "ConjurerRig|Walk", 1, 73),
-            new Clip("Attack", "ConjurerRig|Attack", 1, AttackFrames),
+            new Clip("Idle", "ConjurerRig|Idle", 1, 120, true),
+            new Clip("Walk", "ConjurerRig|Walk", 1, WalkFrames + 1, true),
+            new Clip("Attack", "ConjurerRig|Attack", 1, AttackFrames, false),
+            // Sleep and Awakening are NOT here. They are generated -- see BuildEyeClips --
+            // because the only thing that moves in either is the eyelid's blend shapes, and
+            // Blender exports shape-key animation as its own FBX take that Unity's clip
+            // slicer cannot reach. anim.py's header says the same from the other side.
         };
+
+        /// The Eyelid mesh's two shape keys, spelled exactly as the .blend spells them --
+        /// including the capital on one and not the other. A name that does not match is not an
+        /// error anywhere; it is a clip with a curve nothing is listening to.
+        private const string EyeTopShape = "Top open";
+        private const string EyeBottomShape = "Bottom Open";
+
+        /// How long the eye takes to open, in seconds, and therefore the Awakening clip's
+        /// length. DormantModule stands still for exactly this long after it fires the trigger,
+        /// and the builder writes the number onto it rather than leaving two copies to drift.
+        ///
+        /// Short, because there is nothing else to the wake-up: the body does not move, so a
+        /// long open is just a slow eye rather than a beat.
+        private const float AwakenSeconds = 1.2f;
+
+        /// Length of the held Sleep loop. Nothing in it changes, so this is arbitrary -- but
+        /// not one frame: a zero-length clip is a division by zero in the animator's normalised
+        /// time and Unity logs about it every frame.
+        private const float SleepSeconds = 1f;
+
+        /// How close a hostile gets before the eye opens.
+        ///
+        /// Expressed against CastRange rather than typed, and INSIDE it deliberately: a target
+        /// sitting exactly on the creature's own weapon range would flicker the eye open and shut
+        /// as it drifted a step either way. At four fifths there is a real margin before the
+        /// creature can actually fight back.
+        private const float WakeRadius = CastRange * 0.8f;
 
         /// Length of the Attack clip, straight off the action anim.py authors.
         ///
         /// NOT a cycle, unlike the other two: it runs neutral-to-neutral once, so whatever
         /// it hands back to has nothing to blend away.
-        private const int AttackFrames = 90;
+        private const int AttackFrames = 135;
+
+        /// The frame the bolt lands on.
+        ///
+        /// This and AttackFrames used to be one number -- the clip fired on its last
+        /// frame, so its LENGTH was also its wind-up. They are two now, because the clip
+        /// has a recoil after the strike: 135 frames long, striking at 120. Conflating
+        /// them puts the lightning against the wrong frame of the animation, and that
+        /// failure reads as a bug in the VFX rather than as a number nobody updated.
+        ///
+        /// anim.py's third beat -- the staff thrusting up and the free hand snapping out
+        /// to point -- starts at frame 105 and is deliberately NOT a constant here. It
+        /// used to be, because the chest charge had to converge its arcs on the aperture
+        /// when the hands moved; nothing on the Unity side is keyed to it any more.
+        private const int FireFrame = 120;
 
         /// Wind-up before the bolt lands, in seconds.
         ///
-        /// Derived from the clip rather than typed, and that matters: ConjurerCastModule
-        /// times the strike off this number while the Animator times the picture off the
-        /// clip. Two hand-entered threes would drift the moment the animation is re-timed,
-        /// and the failure -- a bolt landing while the hands are still opening -- looks like
-        /// a bug in the VFX rather than a number nobody updated.
-        private const float CastSeconds = AttackFrames / Fps;
+        /// Derived from FireFrame rather than typed, and deliberately NOT from the clip
+        /// length: ConjurerCastModule commits on this number while the Animator plays the
+        /// whole 4.5 s, and the half second between them is the recoil.
+        private const float CastSeconds = FireFrame / Fps;
 
-        /// Measured from the START of a cast, so at 3 s of casting this leaves 2 s of
-        /// recovery and the creature throws once every five seconds.
-        private const float CastCooldown = 5f;
+        /// How long before impact the aim stops following the target, in seconds.
+        ///
+        /// This is the dodge window, and it is the single number that decides whether the
+        /// attack is fair. The strike falls out of the sky, so there is no cover and no
+        /// angle to beat it with -- all the player has is this last second and their own
+        /// legs, and the ring on the ground telling them which way to use them.
+        ///
+        /// One second against a 3.5 m blast radius asks for 3.5 m/s to clear it from dead
+        /// centre, which the player's run speed covers with something to spare but their
+        /// walk does not. That is the intended shape: reacting is enough, strolling is not.
+        private const float CastAimLockSeconds = 1f;
+
+        /// Measured from the START of a cast. The clip itself takes 4.5 s, so this leaves
+        /// about two seconds of standing before the creature can throw again.
+        private const float CastCooldown = 6.5f;
+
+        /// Thickness of the fired bolt's sweep, in metres.
+        ///
+        /// Between the strike ribbon's own 0.6 m top and 1.4 m tail, so the volume that
+        /// gets billed is about the volume that gets drawn. A thinner sweep than the
+        /// picture slips through gaps the player can plainly see it should not.
+        private const float BeamRadius = 0.6f;
 
         /// What the bolt takes off, in whole hit points.
         ///
@@ -388,6 +580,7 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
+            BuildEyeClips();
             BuildPrefab(BuildController());
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -405,8 +598,18 @@ namespace SpaceGame.EditorTools
             }
 
             BuildMaterials();
+            EnsureFolder("Assets/Game/Art/Materials/Creatures");
+            BuildWeatheredMaterial();
+            // After the materials: the core takes Mat_Emissive_Portal_Blue, which
+            // BuildMaterials is what creates.
+            BuildStaffCharge();
+            if (GroundWarning) BuildStrikeTelegraph();
             BuildShakeData();
             ConfigureImporter();
+            // After the importer, before the controller: it samples the imported Idle clip for
+            // its held pose, so it needs the FBX's clips to exist and the controller needs its
+            // output to exist.
+            BuildEyeClips();
             AnimatorController controller = BuildController();
             GameObject prefab = BuildPrefab(controller);
             AddToTestScene(prefab);
@@ -423,6 +626,8 @@ namespace SpaceGame.EditorTools
             AnimatorState idleState = states.FirstOrDefault(s => s.name == "Idle");
             AnimatorState walkState = states.FirstOrDefault(s => s.name == "Walk");
             AnimatorState attackState = states.FirstOrDefault(s => s.name == "Attack");
+            AnimatorState sleepState = states.FirstOrDefault(s => s.name == "Sleep");
+            AnimatorState awakenState = states.FirstOrDefault(s => s.name == "Awakening");
             var tree = walkState?.motion as BlendTree;
             if (idleState == null || idleState.motion == null ||
                 attackState == null || attackState.motion == null || tree == null ||
@@ -435,10 +640,318 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
+            // Separately, and just as fatal: the ENTRY state is Sleep. An unpopulated one is a
+            // creature that spawns frozen in its bind pose and never leaves it, which looks
+            // nothing like the missing-FBX failure above and has a different cause.
+            if (sleepState == null || sleepState.motion == null ||
+                awakenState == null || awakenState.motion == null)
+            {
+                Debug.LogError("[LightningConjurer] Controller has no populated Sleep or " +
+                               "Awakening state - not reporting success. BuildEyeClips failed " +
+                               "to write them, so the creature would spawn into an empty entry " +
+                               "state and never move again.");
+                return;
+            }
+
             Debug.Log($"[LightningConjurer] Built. Height {TargetHeight:0.00} m " +
                       $"(scale {Scale:0.0000}); walks its baked clip on a NavMeshAgent at " +
                       $"{WalkSpeed:0.00} m/s, runs at {RunSpeed:0.00} m/s, clip authored at " +
                       $"{StrideSpeed:0.00} m/s.");
+        }
+
+        /// Builds the staff charge prefab: an emissive core at the emitter, a point
+        /// light, and a handful of arcs that ConjurerStaffCharge re-points between the
+        /// emitter and the turbine below it, turning more and more of them skyward as
+        /// the wind-up runs.
+        ///
+        /// The arcs are LightningBoltEffect, the same component the strike uses, with
+        /// `duration` set to ZERO. That component reads a non-positive duration as
+        /// "do not destroy yourself" (see its Update), which turns a one-shot bolt
+        /// into a persistent arc that keeps re-kinking -- exactly what a four-second
+        /// charge needs, and without churning hundreds of instances through Instantiate.
+        ///
+        /// The arc material is taken off the strike prefab rather than named here,
+        /// so the charge and the bolt it becomes cannot drift apart.
+        private static GameObject BuildStaffCharge()
+        {
+            Material arcMat = ArcMaterial();
+
+            var root = new GameObject("ConjurerStaffCharge");
+
+            // No emissive sphere. It used to swell at the emitter through the wind-up,
+            // carried over from the chest charge where a ball growing inside a ring was
+            // the whole picture; on the end of a staff it read as a blue balloon on a
+            // stick and it hid the turbine, which is the part that actually tells the
+            // player what is happening. The light below does the lighting the sphere was
+            // really there for, without drawing a shape.
+            var glowGo = new GameObject("Glow");
+            glowGo.transform.SetParent(root.transform, false);
+            Light glow = glowGo.AddComponent<Light>();
+            glow.type = LightType.Point;
+            glow.color = new Color(0.18f, 0.72f, 1f);
+            glow.range = 14f;      // it is up in the air now, not down in a chest
+            glow.intensity = 1f;
+            glow.shadows = LightShadows.None;   // 5 s at a time, on a moving staff
+
+            var arcs = new LightningBoltEffect[ChargeArcCount];
+            for (int i = 0; i < ChargeArcCount; i++)
+            {
+                var go = new GameObject($"Arc{i}");
+                go.transform.SetParent(root.transform, false);
+
+                var lr = go.AddComponent<LineRenderer>();
+                lr.sharedMaterial = arcMat;
+                lr.useWorldSpace = true;
+                lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                lr.receiveShadows = false;
+
+                var fx = go.AddComponent<LightningBoltEffect>();
+                var fso = new SerializedObject(fx);
+                SetProp(fso, "line", lr);
+                // More segments than the chest charge had: these arcs are metres long
+                // rather than centimetres once they start reaching for the sky, and ten
+                // kinks over sixteen metres reads as a folded wire.
+                SetInt(fso, "segments", 18);
+                SetFloat(fso, "spread", 0.22f);
+                SetFloat(fso, "maxOffset", 0.35f);
+                SetFloat(fso, "restrikeRate", 30f);
+                SetFloat(fso, "duration", 0f);        // persist; see the summary above
+                SetFloat(fso, "startWidth", ChargeArcWidth);
+                SetFloat(fso, "endWidth", ChargeArcWidth);
+                SetFloat(fso, "fallbackDrop", 0f);
+                fso.ApplyModifiedPropertiesWithoutUndo();
+
+                arcs[i] = fx;
+            }
+
+            var charge = root.AddComponent<ConjurerStaffCharge>();
+            var bso = new SerializedObject(charge);
+            SetProp(bso, "glow", glow);
+            // Derived, like everything else timed off the clip: the glow peaks exactly as
+            // the bolt lands.
+            SetFloat(bso, "chargeSeconds", CastSeconds);
+            SetFloat(bso, "fanRadius", ChargeFanRadius);
+            SetFloat(bso, "fanDrop", ChargeFanDrop);
+            SetFloat(bso, "skyReach", ChargeSkyReach);
+
+            SerializedProperty arr = Find(bso, "arcs");
+            if (arr != null)
+            {
+                arr.arraySize = arcs.Length;
+                for (int i = 0; i < arcs.Length; i++)
+                    arr.GetArrayElementAtIndex(i).objectReferenceValue = arcs[i];
+            }
+            bso.ApplyModifiedPropertiesWithoutUndo();
+
+            GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, ChargeVfxPath);
+            Object.DestroyImmediate(root);
+            return saved;
+        }
+
+        /// The material both the arcs and the ground warning are drawn with.
+        ///
+        /// Lifted off the strike prefab's own LineRenderer rather than named here, so the
+        /// wind-up, the warning and the bolt they resolve into cannot drift apart. If the
+        /// bolt is ever restyled, all three follow.
+        private static Material ArcMaterial()
+        {
+            var bolt = AssetDatabase.LoadAssetAtPath<GameObject>(LightningVfxPath);
+            var line = bolt != null ? bolt.GetComponentInChildren<LineRenderer>(true) : null;
+            Material mat = line != null ? line.sharedMaterial : null;
+
+            if (mat == null)
+                Debug.LogWarning("[LightningConjurer] No material on the strike prefab; " +
+                                 "the charge arcs and the ground warning will draw " +
+                                 "untextured.");
+            return mat;
+        }
+
+        /// Builds the ground warning prefab: a ring at the blast radius, a column of glow
+        /// descending onto it, and a light.
+        ///
+        /// This is the player's entire counterplay against the sky strike, which cannot be
+        /// blocked or dodged by angle -- see ConjurerCastModule's header for why it is not
+        /// really optional. It is generated here rather than authored so that its ring is
+        /// always the blast radius: a hand-made warning that says 3 m while the blast bills
+        /// 3.5 m teaches the player something false, and the first time they learn it is by
+        /// dying just outside a ring they had cleared.
+        private static GameObject BuildStrikeTelegraph()
+        {
+            var root = new GameObject("ConjurerStrikeWarning");
+
+            var ringGo = new GameObject("Ring");
+            ringGo.transform.SetParent(root.transform, false);
+            var mf = ringGo.AddComponent<MeshFilter>();
+            mf.sharedMesh = BuildRingMesh();
+            var mr = ringGo.AddComponent<MeshRenderer>();
+            mr.sharedMaterial = ArcMaterial();
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            mr.receiveShadows = false;
+
+            // A stretched cylinder, and the collider that comes with the primitive has to
+            // go: the blast's own OverlapSphere runs at this exact point, and a 55 m
+            // capsule standing on it would be the first thing every strike found.
+            var column = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            column.name = "Column";
+            Object.DestroyImmediate(column.GetComponent<Collider>());
+            column.transform.SetParent(root.transform, false);
+            var cr = column.GetComponent<MeshRenderer>();
+            cr.sharedMaterial = ArcMaterial();
+            cr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            cr.receiveShadows = false;
+
+            var glowGo = new GameObject("Glow");
+            glowGo.transform.SetParent(root.transform, false);
+            Light glow = glowGo.AddComponent<Light>();
+            glow.type = LightType.Point;
+            glow.color = new Color(0.25f, 0.7f, 1f);
+            glow.range = 12f;
+            glow.intensity = 1.5f;
+            glow.shadows = LightShadows.None;
+
+            var tel = root.AddComponent<StrikeTelegraph>();
+            var tso = new SerializedObject(tel);
+            SetProp(tso, "ring", ringGo.transform);
+            SetProp(tso, "column", column.transform);
+            SetProp(tso, "glow", glow);
+            SetFloat(tso, "warningSeconds", CastSeconds);
+            SetFloat(tso, "radius", CastBlastRadius);
+            SetFloat(tso, "columnHeight", TelegraphColumnHeight);
+            SetFloat(tso, "groundProbe", TelegraphGroundProbe);
+            tso.ApplyModifiedPropertiesWithoutUndo();
+
+            GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, TelegraphVfxPath);
+            Object.DestroyImmediate(root);
+            return saved;
+        }
+
+        /// A flat annulus in the XZ plane, outer radius 1, saved as a mesh asset.
+        ///
+        /// Radius 1 so StrikeTelegraph can scale it to whatever blast radius it is handed
+        /// without the mesh needing to be rebuilt, and flat in XZ so that scaling is a
+        /// plain (r, 1, r) and never distorts the band's width.
+        ///
+        /// Double-sided, by emitting each quad twice with opposite winding. It lies within
+        /// a few centimetres of the ground and the player's camera can end up under it on
+        /// a slope or a rise; a single-sided ring simply vanishes from those angles, which
+        /// is the one thing a warning must never do.
+        private static Mesh BuildRingMesh()
+        {
+            int n = RingSegments;
+            var verts = new Vector3[n * 2];
+            var uvs = new Vector2[n * 2];
+            for (int i = 0; i < n; i++)
+            {
+                float a = i / (float)n * Mathf.PI * 2f;
+                float c = Mathf.Cos(a), s = Mathf.Sin(a);
+                verts[i] = new Vector3(c, 0f, s);                                  // outer
+                verts[n + i] = new Vector3(c, 0f, s) * (1f - RingThickness);       // inner
+                uvs[i] = new Vector2(i / (float)n, 1f);
+                uvs[n + i] = new Vector2(i / (float)n, 0f);
+            }
+
+            var tris = new int[n * 12];
+            int t = 0;
+            for (int i = 0; i < n; i++)
+            {
+                int j = (i + 1) % n;
+                int o0 = i, o1 = j, i0 = n + i, i1 = n + j;
+
+                tris[t++] = o0; tris[t++] = i0; tris[t++] = o1;
+                tris[t++] = o1; tris[t++] = i0; tris[t++] = i1;
+
+                tris[t++] = o1; tris[t++] = i0; tris[t++] = o0;   // and the same, reversed
+                tris[t++] = i1; tris[t++] = i0; tris[t++] = o1;
+            }
+
+            EnsureFolder("Assets/Game/Art/Models/Generated");
+
+            // Rewritten IN PLACE when it already exists, rather than replaced. CreateAsset
+            // over a live asset mints a new object and breaks every pointer to the old one,
+            // so the warning prefab saved by a previous run would come back from a rebuild
+            // with a missing mesh -- a ring that is simply not drawn, which is the one
+            // failure this effect must not have.
+            //
+            // Building the arrays first and only then deciding is what keeps this from
+            // leaking: `new Mesh()` up front would be an orphaned object on the update
+            // path, and Unity does not collect those.
+            Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(RingMeshPath);
+            bool fresh = mesh == null;
+            if (fresh) mesh = new Mesh();
+            else mesh.Clear();
+
+            mesh.name = "StrikeWarningRing";
+            mesh.vertices = verts;
+            mesh.uv = uvs;
+            mesh.triangles = tris;
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+
+            if (fresh) AssetDatabase.CreateAsset(mesh, RingMeshPath);
+            else EditorUtility.SetDirty(mesh);
+
+            return mesh;
+        }
+
+        /// The one material the weathered body wears.
+        ///
+        /// Its colour is not in here. rustify.py bakes a khaki -> grey -> verdigris
+        /// ramp into the mesh as a per-vertex colour attribute, and
+        /// SpaceGame/ConjurerWeathered reads that as base colour -- which is the
+        /// whole reason a custom shader exists, since URP/Lit ignores vertex colour
+        /// entirely. The GPU interpolating that attribute across each triangle is
+        /// where the gradients come from; assigning palette materials per object or
+        /// per face, which is what this used to do, can only ever produce hard steps
+        /// at polygon edges.
+        ///
+        /// Vertex ALPHA carries how corroded each point is and drives metallic and
+        /// smoothness together, so the numbers below are the two ENDS of that range
+        /// rather than one surface.
+        private static Material BuildWeatheredMaterial()
+        {
+            Shader shader = Shader.Find(WeatheredShader);
+            if (shader == null)
+            {
+                Debug.LogError($"[LightningConjurer] Shader '{WeatheredShader}' not " +
+                               "found. The body will import untextured; check " +
+                               "Assets/Game/Art/Shaders/ConjurerWeathered.shader " +
+                               "compiled.");
+                return null;
+            }
+
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(WeatheredMatPath);
+            bool isNew = mat == null;
+            if (isNew) mat = new Material(shader);
+            else mat.shader = shader;
+
+            mat.SetColor("_BaseColor", Color.white);   // tint only; mesh owns the colour
+
+            // Dry, bare metal at one end; oxide at the other. Corrosion is not a
+            // conductor, so metallic collapses as weathering rises.
+            // Held well below a bare-metal 1.0 even at the dry end. A fully
+            // metallic surface has no diffuse response at all, so with only a
+            // sun and a dim sky to reflect it reads as near-black -- which is
+            // exactly how the first build of this looked.
+            mat.SetFloat("_Metallic", 0.45f);
+            mat.SetFloat("_MetallicWeathered", 0.08f);
+            mat.SetFloat("_Smoothness", 0.40f);
+            mat.SetFloat("_SmoothnessWeathered", 0.10f);
+
+            // Detail finer than the mesh can carry. Vertex spacing on this model is
+            // about 0.09 m, so anything above ~11 cycles/m has to come from here.
+            mat.SetFloat("_GrungeScale", 6.0f);
+            mat.SetFloat("_GrungeAmount", 0.22f);
+            mat.SetFloat("_GrungeContrast", 1.6f);
+
+            // Runs travel downward. Weathering with no vertical bias reads as
+            // camouflage rather than as age.
+            mat.SetFloat("_StreakScale", 2.5f);
+            mat.SetFloat("_StreakStretch", 7.0f);
+            mat.SetFloat("_StreakAmount", 0.18f);
+
+            if (isNew) AssetDatabase.CreateAsset(mat, WeatheredMatPath);
+            else EditorUtility.SetDirty(mat);
+            return mat;
         }
 
         /// Creates or updates a URP material per palette entry, in a shared folder
@@ -535,11 +1048,11 @@ namespace SpaceGame.EditorTools
                 events = c.Name == "Walk" ? FootPlantEvents() : new AnimationEvent[0],
                 firstFrame = c.First,
                 lastFrame = c.Last,
-                // Idle and Walk are cycles; Attack is not. Marking a one-shot as looping
-                // costs nothing while the exit transition works and hides a spin-forever
-                // bug the moment it does not.
-                loopTime = c.Name != "Attack",
-                loopPose = c.Name != "Attack",
+                // Idle and Walk are cycles; Attack is not. Marking a one-shot as looping costs
+                // nothing while the exit transition works and hides a spin-forever bug the
+                // moment it does not.
+                loopTime = c.Loop,
+                loopPose = c.Loop,
                 wrapMode = WrapMode.Loop,
                 keepOriginalPositionY = true,
                 keepOriginalPositionXZ = true,
@@ -562,6 +1075,23 @@ namespace SpaceGame.EditorTools
                     new AssetImporter.SourceAssetIdentifier(typeof(Material), p.Name), mat);
                 remapped++;
             }
+
+            // The body's own material, which is not a palette entry. Almost every
+            // mesh in the FBX now references this one name -- rustify.py collapsed
+            // the per-face submeshes back into a single material once the colour
+            // moved into the vertex attribute -- so missing this remap leaves the
+            // whole creature on an imported stand-in that ignores vertex colour and
+            // renders flat white.
+            var weathered = AssetDatabase.LoadAssetAtPath<Material>(WeatheredMatPath);
+            if (weathered != null)
+            {
+                importer.AddRemap(
+                    new AssetImporter.SourceAssetIdentifier(typeof(Material),
+                                                            "Mat_Weathered_Blend"),
+                    weathered);
+                remapped++;
+            }
+
             Debug.Log($"[LightningConjurer] Remapped {remapped} materials.");
 
             EditorUtility.SetDirty(importer);
@@ -574,6 +1104,151 @@ namespace SpaceGame.EditorTools
             // which is exactly what happened on the second run of this builder.
             AssetDatabase.ImportAsset(
                 Fbx, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+        }
+
+        /// Authors the Sleep and Awakening clips, which the FBX cannot carry.
+        ///
+        /// WHY THESE ARE GENERATED AND THE OTHER THREE ARE NOT. The only thing that animates in
+        /// either is the Eyelid's two blend shapes, and Blender exports shape-key animation as
+        /// its OWN FBX take -- "Key|ConjurerRig|Idle" and friends -- one per (object, action)
+        /// pair. Unity's clip slicer reads takes by name and never looks at those, which is why
+        /// every clip in this creature's FBX carries a frozen copy of the lid and none of them
+        /// can move it. Authoring the two clips here sidesteps the whole problem, and it buys
+        /// something else worth having: the sleeping pose is Idle's own first frame, sampled,
+        /// so the hand-off out of Awakening into Idle is exactly a no-op on every bone.
+        ///
+        /// The body curves are held FLAT rather than left out. A clip with no curve for a bone
+        /// is not a clip that holds the bone still -- the states here run with write-defaults
+        /// OFF (see BuildController), so an unwritten bone keeps whatever the last state left
+        /// on it, and a creature that fell asleep would sleep in its last walk pose.
+        private static void BuildEyeClips()
+        {
+            AnimationClip idle = FindClip("Idle");
+
+            // Path from the Animator's own transform. The Animator lives on the model child,
+            // which IS the FBX root, so a path computed against the imported asset is the path
+            // the clip needs -- no instantiation required.
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(Fbx);
+            string eyelidPath = null;
+            foreach (SkinnedMeshRenderer smr in
+                     source.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (smr.sharedMesh == null ||
+                    smr.sharedMesh.GetBlendShapeIndex(EyeTopShape) < 0) continue;
+                eyelidPath = AnimationUtility.CalculateTransformPath(smr.transform,
+                                                                    source.transform);
+                break;
+            }
+
+            if (eyelidPath == null)
+            {
+                // Loud rather than fatal: the creature still sleeps and wakes on schedule, it
+                // just never blinks, and that is a much harder thing to diagnose from the
+                // symptom than from this line.
+                Debug.LogWarning(
+                    "[LightningConjurer] No renderer in the FBX carries a " +
+                    $"'{EyeTopShape}' blend shape, so Sleep and Awakening will hold the pose " +
+                    "with the eye already open. The usual cause is export.py failing to bake " +
+                    "the Eyelid's Solidify into its shape keys -- Blender's FBX exporter drops " +
+                    "shape keys off any mesh it has to evaluate.");
+            }
+
+            // The IMPORTED clips carry the lid too, and this is the check that they carry it
+            // OPEN. Blender bakes each shape key's export-time value into every animation stack
+            // as a constant channel, and Unity reads those onto the armature take -- so Idle,
+            // Walk and Attack all animate the eyelid whether anyone meant them to or not. If
+            // that constant is 0, the frame after Awakening finishes is the frame Idle shuts
+            // the eye again, and no amount of write-defaults fiddling on this side can outvote
+            // a curve. The fix is one line in export.py; see EXPORT_OPEN there.
+            if (eyelidPath != null)
+            {
+                var held = new EditorCurveBinding();
+                bool found = false;
+                foreach (EditorCurveBinding b in AnimationUtility.GetCurveBindings(idle))
+                {
+                    if (b.path != eyelidPath ||
+                        b.propertyName != $"blendShape.{EyeTopShape}") continue;
+                    held = b;
+                    found = true;
+                    break;
+                }
+
+                // A MISSING curve is just as wrong as a shut one, and quieter. States run with
+                // write defaults on, so a clip that does not animate the lid hands it back to
+                // the prefab's own weight -- which is the imported mesh's 0, the closed lid.
+                float lid = found ? AnimationUtility.GetEditorCurve(idle, held).Evaluate(0f) : -1f;
+                if (lid < 99f)
+                {
+                    Debug.LogError(
+                        $"[LightningConjurer] The imported Idle clip leaves '{EyeTopShape}' at " +
+                        (found ? $"{lid:0}" : "no curve at all") + " rather than 100, so the " +
+                        "creature will shut its eye the instant it finishes waking up. Re-export " +
+                        "with export.py's EXPORT_OPEN carrying both lid shape keys.");
+                }
+            }
+
+            EnsureFolder(ControllerDir);
+            WriteEyeClip(SleepClipPath, idle, eyelidPath, SleepSeconds, 0f, 0f, loop: true);
+            WriteEyeClip(AwakenClipPath, idle, eyelidPath, AwakenSeconds, 0f, 1f, loop: false);
+        }
+
+        /// One held-pose clip, with the lid driven from `from` to `to` across its length.
+        private static void WriteEyeClip(string path, AnimationClip pose, string eyelidPath,
+                                         float length, float from, float to, bool loop)
+        {
+            var clip = new AnimationClip { frameRate = Fps };
+
+            foreach (EditorCurveBinding binding in AnimationUtility.GetCurveBindings(pose))
+            {
+                float held = AnimationUtility.GetEditorCurve(pose, binding).Evaluate(0f);
+                AnimationUtility.SetEditorCurve(
+                    clip, binding,
+                    new AnimationCurve(new Keyframe(0f, held), new Keyframe(length, held)));
+            }
+
+            if (eyelidPath != null)
+            {
+                // Staggered, not moved together: the top lifts first and the bottom follows a
+                // third of the way in. They are separate shape keys precisely so this costs
+                // nothing, and a shutter whose halves part in lockstep reads as one object
+                // splitting rather than as an eye opening.
+                Lid(clip, eyelidPath, EyeTopShape, length, from, to, 0f, 0.7f);
+                Lid(clip, eyelidPath, EyeBottomShape, length, from, to, 0.3f, 1f);
+            }
+
+            AnimationClipSettings settings = AnimationUtility.GetAnimationClipSettings(clip);
+            settings.loopTime = loop;
+            AnimationUtility.SetAnimationClipSettings(clip, settings);
+
+            AssetDatabase.DeleteAsset(path);
+            AssetDatabase.CreateAsset(clip, path);
+        }
+
+        /// One blend-shape curve, weighted 0..100, over the [begin, end] slice of the clip.
+        private static void Lid(AnimationClip clip, string eyelidPath, string shape,
+                                float length, float from, float to, float begin, float end)
+        {
+            var curve = new AnimationCurve();
+            if (Mathf.Approximately(from, to))
+            {
+                curve.AddKey(0f, from * 100f);
+                curve.AddKey(length, from * 100f);
+            }
+            else
+            {
+                curve = AnimationCurve.EaseInOut(begin * length, from * 100f,
+                                                 end * length, to * 100f);
+                // Flat outside the slice, or the eased segment extrapolates and the lid
+                // overshoots past shut on the way in.
+                if (begin > 0f) curve.AddKey(new Keyframe(0f, from * 100f));
+                if (end < 1f) curve.AddKey(new Keyframe(length, to * 100f));
+            }
+
+            AnimationUtility.SetEditorCurve(
+                clip,
+                EditorCurveBinding.FloatCurve(eyelidPath, typeof(SkinnedMeshRenderer),
+                                              $"blendShape.{shape}"),
+                curve);
         }
 
         private static AnimationClip FindClip(string name)
@@ -634,10 +1309,15 @@ namespace SpaceGame.EditorTools
         /// SpeedX rather than the SpeedY every other creature here uses. Not a typo; see
         /// the constant.
         ///
-        /// There is no Attack state because there is no attack clip -- anim.py authors Idle
-        /// and Walk and nothing else -- and no combat module on the prefab to fire one. When
-        /// both exist the shape is the one the golem uses: an Attack state entered from Any
-        /// State on the trigger CloseCombatModule.attackAnimTrigger names.
+        /// The graph is five states and it is deliberately not symmetric:
+        ///
+        ///     [entry] -> Sleep -> Awakening -> Idle <-> Walk
+        ///                                       ^        ^
+        ///                                       +- Attack +      (from Any State, gated Awake)
+        ///
+        /// Sleep and Awakening are entered once, in that order, and never again -- see the
+        /// one-way note where they are built. Everything after them is the usual locomotion
+        /// pair plus an Attack hung off Any State.
         private static AnimatorController BuildController()
         {
             EnsureFolder(ControllerDir);
@@ -656,6 +1336,12 @@ namespace SpaceGame.EditorTools
             controller.AddParameter("IsAiming", AnimatorControllerParameterType.Bool);
             // ConjurerCastModule.castAnimTrigger names this one.
             controller.AddParameter("Cast", AnimatorControllerParameterType.Trigger);
+            // DormantModule names these two. Wake is the edge out of the entry state; Awake is a
+            // LATCH, set once when the eye finishes opening and never cleared, which is what
+            // makes "you can never go back to sleep" a property of the graph rather than of the
+            // module's good behaviour.
+            controller.AddParameter("Wake", AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("Awake", AnimatorControllerParameterType.Bool);
 
             var tree = new BlendTree
             {
@@ -686,9 +1372,42 @@ namespace SpaceGame.EditorTools
             AnimatorState walking = root.AddState("Walk");
             walking.motion = tree;
 
-            // Idle, not Walk: the creature is spawned standing, and a default state that
-            // strides on the first frame is visible every time one is placed or loaded.
-            root.defaultState = idle;
+            // ---- the one-way half of the graph -------------------------------------------
+            //
+            //     Sleep -> Awakening -> Idle <-> Walk,  Idle/Walk <-> Attack
+            //
+            // and nothing anywhere targets Sleep or Awakening again. That is deliberate and it
+            // is enforced here rather than in DormantModule: the module could be re-enabled, or
+            // added twice, or a designer could drop another one on an instance, and none of
+            // that can put the creature back to sleep if the graph has no edge for it.
+            AnimatorState sleep = root.AddState("Sleep");
+            sleep.motion = AssetDatabase.LoadAssetAtPath<AnimationClip>(SleepClipPath);
+
+            AnimatorState awakening = root.AddState("Awakening");
+            awakening.motion = AssetDatabase.LoadAssetAtPath<AnimationClip>(AwakenClipPath);
+
+            // Sleep, not Idle: every conjurer in the world is asleep until something walks up to
+            // it, and an entry state that stands there alert is visible the moment one spawns
+            // off screen. DormantModule is the only thing that fires the trigger out of it.
+            root.defaultState = sleep;
+
+            // Duration zero. There is nothing to cross-fade: the two clips hold the SAME pose,
+            // and the only property that differs is the lid, which Awakening is about to drive
+            // from exactly where Sleep left it.
+            AnimatorStateTransition rouse = sleep.AddTransition(awakening);
+            rouse.hasExitTime = false;
+            rouse.hasFixedDuration = true;
+            rouse.duration = 0f;
+            rouse.AddCondition(AnimatorConditionMode.If, 0f, "Wake");
+
+            // Exit time, because this one IS about the clip finishing -- the eye has to be open
+            // before anything else happens. Landing on Idle is safe even if the creature is
+            // already being asked to walk: Idle's own condition forwards it on the next frame.
+            AnimatorStateTransition risen = awakening.AddTransition(idle);
+            risen.hasExitTime = true;
+            risen.exitTime = 1f;
+            risen.hasFixedDuration = true;
+            risen.duration = 0.1f;
 
             // hasExitTime false on both: these follow the motor, and exit time would make
             // the creature finish the cycle it is in before admitting it had stopped.
@@ -722,6 +1441,11 @@ namespace SpaceGame.EditorTools
             // clock -- the bolt then lands halfway through the animation.
             cast.canTransitionToSelf = false;
             cast.AddCondition(AnimatorConditionMode.If, 0f, "Cast");
+            // "Any State" includes Sleep and Awakening, which is the whole cost of hanging the
+            // attack off it. The latch is what buys the convenience back: before the eye is open
+            // this edge cannot fire, so a sleeping creature cannot be startled straight into a
+            // cast and the sequence really is sleep -> awakening -> everything else.
+            cast.AddCondition(AnimatorConditionMode.If, 0f, "Awake");
 
             // Exit time, unlike every other transition here: this one IS about the clip
             // reaching its end rather than about what the motor is doing. Landing back on
@@ -732,6 +1456,16 @@ namespace SpaceGame.EditorTools
             recover.exitTime = 1f;
             recover.hasFixedDuration = true;
             recover.duration = 0.25f;
+
+            // Write defaults are left ON, which is Unity's default and is deliberately NOT
+            // load-bearing here. The eyelid is the property that would care -- it is animated by
+            // some states and not others, which is exactly the case write defaults exist for --
+            // and the answer is that it is animated by ALL of them: the FBX's three takes carry
+            // it held open (export.py, EXPORT_OPEN) and the two generated clips drive it. So
+            // whichever way the flag is set, no state can silently restore a stale lid.
+            //
+            // BuildEyeClips is what keeps that true; it fails the build if the imported clips
+            // stop holding the lid open.
 
             // IsGrounded defaults true so the creature is not treated as falling on the
             // first frame, before AgentAnimatorDriver has written anything.
@@ -778,6 +1512,15 @@ namespace SpaceGame.EditorTools
             // imports as Unity (x, z, -y) once bakeAxisConversion has run.
             var footInModel = new Vector3(BodyX, BlenderFloor, -BodyY) * Scale;
             model.transform.localPosition = -(model.transform.localRotation * footInModel);
+
+            // The eyelid is deliberately NOT touched here. Its weights stay at the imported
+            // mesh's own 0, which is the closed lid -- and that is the honest preview: a conjurer
+            // spawns asleep, so a shut eye in the project window and the scene view is what the
+            // thing actually looks like when it is put down. Every clip drives the lid from its
+            // first frame anyway, so nothing runtime depends on the resting value. (Setting it
+            // does not work by the obvious route in any case: `model` is a nested prefab
+            // instance, and neither SetBlendShapeWeight nor a SerializedObject edit of
+            // m_BlendShapeWeights survives SaveAsPrefabAsset as a recorded modification.)
 
             Animator animator = model.GetComponent<Animator>();
             if (animator == null) animator = model.AddComponent<Animator>();
@@ -1145,10 +1888,16 @@ namespace SpaceGame.EditorTools
             // remembered spot whatever happens -- that is what makes stepping behind cover
             // mid-wind-up work as an escape rather than as a cancel button.
             SetBool(kso, "requireLineOfSight", true);
-            // Tracks the target through the wind-up and lands on it, rather than striking
-            // where it stood when the cast began. Flip to WhereItCommitted (1) if the
-            // attack starts reading as unavoidable -- see the module's header.
-            SetEnum(kso, "aim", (int)CastAim.TracksTarget);
+            // Tracks the target through most of the wind-up and then LOCKS, a second
+            // before the bolt lands. That last second is the counterplay: standing still
+            // is punished and a late move beats it.
+            //
+            // It is the mode this attack needs rather than a preference. The strike falls
+            // out of the sky, so it cannot be blocked by cover or beaten by an angle --
+            // under TracksTarget (0) it would be unavoidable damage on a timer, and under
+            // WhereItCommitted (1) a player who simply keeps walking is never hit at all.
+            SetEnum(kso, "aim", (int)CastAim.TracksThenCommits);
+            SetFloat(kso, "aimLockSeconds", CastAimLockSeconds);
 
             // Assigned here rather than left for someone to drag in, for the same reason
             // everything else on this prefab is: a slot filled by hand is a slot that is
@@ -1162,6 +1911,57 @@ namespace SpaceGame.EditorTools
                                  $"{LightningVfxPath} - the cast will damage correctly and " +
                                  "draw nothing.");
 
+            // The charge on the staff. Without this the wind-up is four seconds of a
+            // creature standing still with a stick in the air -- the pose reads as a
+            // charge only because something is visibly charging.
+            //
+            // The module parents it to chargeSocketBone and destroys it when the bolt
+            // lands, so its whole lifetime is handled here.
+            var charge = AssetDatabase.LoadAssetAtPath<GameObject>(ChargeVfxPath);
+            if (charge != null)
+                SetProp(kso, "chargeVFXPrefab", charge);
+            else
+                Debug.LogWarning($"[LightningConjurer] No charge effect at {ChargeVfxPath} - " +
+                                 "the wind-up will play with a dark turbine.");
+
+            // staff.py puts this bone at the emitter above the turbine, so the effect
+            // rides the staff through the whole raise for free.
+            SetString(kso, "chargeSocketBone", "StaffTip");
+
+            // The warning on the ground, when GroundWarning is on.
+            //
+            // The null branch is not "skip it" -- it WRITES null. A field the builder
+            // leaves alone is a field that keeps whatever the last build put there, so
+            // turning the ring off by not wiring it would leave every already-built prefab
+            // still pointing at the old asset and still drawing it. Same reason every
+            // other field on this prefab is written explicitly.
+            if (GroundWarning)
+            {
+                var warning = AssetDatabase.LoadAssetAtPath<GameObject>(TelegraphVfxPath);
+                if (warning != null)
+                    SetProp(kso, "telegraphPrefab", warning);
+                else
+                    Debug.LogError($"[LightningConjurer] No ground warning at " +
+                                   $"{TelegraphVfxPath} - the sky strike will land with no " +
+                                   "warning on the ground, which makes it unavoidable.");
+            }
+            else
+            {
+                SetProp(kso, "telegraphPrefab", null);
+            }
+
+            // LINE FIRE ONLY, and the staff's emitter is where a line would leave from.
+            // Written here rather than left to the module's serialized default for the same
+            // reason as everything else on this prefab: a field the builder does not write
+            // is a field that silently reverts.
+            SetString(kso, "muzzleBone", "StaffTip");
+
+            // Dropped out of the sky onto the target. This is the creature's attack now;
+            // the line-fired path is still in the module behind this flag -- see its header
+            // for why it was kept.
+            SetBool(kso, "skyStrike", true);
+            SetFloat(kso, "beamRadius", BeamRadius);
+
             // Long enough to outlast the graph, short enough that spent bolts do not pile
             // up. Lightning.prefab has no self-destruct of its own.
             SetFloat(kso, "vfxLifetime", 5f);
@@ -1169,6 +1969,33 @@ namespace SpaceGame.EditorTools
             // The Animator is on the MODEL CHILD, not on root, so this has to search.
             SetProp(kso, "animator", root.GetComponentInChildren<Animator>(true));
             kso.ApplyModifiedPropertiesWithoutUndo();
+
+            // Asleep, standing, until someone comes close. Scripted priority, which is the top of
+            // the ladder, and while it is asleep it returns Idle every frame -- so cast, chase
+            // and wander are all starved for the length of the sequence and no other module on
+            // this prefab needed to learn the word "dormant". The body never moves; only the
+            // eyelid does. The instant the eye finishes opening the module switches itself off
+            // and they start winning frames on the very next tick.
+            //
+            // On the PREFAB, so every conjurer in the world starts asleep. Delete the component
+            // from an instance to get one that is simply standing there, eye open.
+            var dormant = root.AddComponent<DormantModule>();
+            var dso = new SerializedObject(dormant);
+            // Explicit, like every other module here: Unity does not call Reset() for
+            // AddComponent, so a script-added module keeps the serialized default of Fallback
+            // (0). At 0 this would tie with the wander and the creature would occasionally walk
+            // off asleep instead of waking up.
+            SetInt(dso, "priority", ModulePriority.Scripted);
+            SetFloat(dso, "wakeRadius", WakeRadius);
+            // Written from the clip's own length rather than typed twice. The module stands the
+            // creature still for exactly as long as the Awakening state plays, and the two
+            // drifting apart is either a creature that acts before its eye is open or one that
+            // stands blinking at nothing.
+            SetFloat(dso, "awakenSeconds", AwakenSeconds);
+            // The Animator is on the MODEL CHILD, not on root, so this cannot be left to a
+            // GetComponent on the same object.
+            SetProp(dso, "animator", root.GetComponentInChildren<Animator>(true));
+            dso.ApplyModifiedPropertiesWithoutUndo();
 
             var agent = root.AddComponent<AgentController>();
             var aso = new SerializedObject(agent);
@@ -1210,6 +2037,12 @@ namespace SpaceGame.EditorTools
         {
             SerializedProperty p = Find(so, field);
             if (p != null) p.intValue = value;
+        }
+
+        private static void SetString(SerializedObject so, string field, string value)
+        {
+            SerializedProperty p = Find(so, field);
+            if (p != null) p.stringValue = value;
         }
 
         private static void SetBool(SerializedObject so, string field, bool value)

@@ -61,14 +61,17 @@ BIND = {
     "BézierCurve": "UpperArm.R", "BézierCurve.002": "UpperArm.R",
     "BézierCurve.001": "Forearm.R", "BézierCurve.003": "Forearm.R",
     "BézierCurve.004": "Forearm.R", "BézierCurve.005": "Forearm.R",
-    "Armature": "Hand.R",                       # existing right-hand finger rig, rides along
+    # Only the PALM binds to the wrist. The fifteen phalanges get a bone each in
+    # hands_rebuild.py and must not be rigidly stuck to the wrist here, or the
+    # hand travels with the arm and can never close.
+    "Hand_Palm.R": "Hand.R",
     # left floating arm (y ~ +6.3)
     "Cylinder.004": "UpperArm.L", "Cube.009": "UpperArm.L", "Cylinder.005": "UpperArm.L",
     "LowerArm.003": "Forearm.L", "Cube.011": "Hand.L", "Cube.013": "Hand.L",
     "BézierCurve.006": "UpperArm.L", "BézierCurve.008": "UpperArm.L",
     "BézierCurve.007": "Forearm.L", "BézierCurve.009": "Forearm.L",
     "BézierCurve.010": "Forearm.L", "BézierCurve.011": "Forearm.L",
-    "Armature.001": "Hand.L",                   # existing left-hand finger rig
+    "Hand_Palm.L": "Hand.L",
 }
 
 # --------------------------------------------------------------- build rig
@@ -119,10 +122,16 @@ for obj_name, bone_name in BIND.items():
     bound += 1
 print(f"bound {bound} objects; missing: {missing}")
 
-# --- collapse the two legacy hand rigs out of the deform hierarchy -------------
+# --- collapse any legacy hand rig left in the deform hierarchy -----------------
 # Exactly one armature must reach Unity: nested armatures produce an FBX that even
-# Blender's own importer cannot read back. The legacy rigs stay in the file (parked
-# in WIP_Spares below); only the finger MESHES move onto ConjurerRig's hand bones.
+# Blender's own importer cannot read back.
+#
+# This used to be load-bearing, back when the model's own two salvaged hand rigs
+# were what the creature had for hands. restore_parts.py now parks both of them
+# and their meshes in WIP_Spares before this script ever runs, so the loop
+# normally finds nothing and the count below is unchanged. It stays because it is
+# the guard that makes that true rather than assumed: a legacy rig that somehow
+# still owns children would otherwise reach the exporter as a second armature.
 for legacy_name, hand_bone in (("Armature", "Hand.R"), ("Armature.001", "Hand.L")):
     legacy = bpy.data.objects.get(legacy_name)
     if legacy is None:
@@ -143,7 +152,11 @@ SPARES = ["Head", "Shoulder", "Shoulder.001", "Elbow", "Elbow.001", "UpperArm", 
           "Cube.004", "Cube.005", "Cube.008", "Cube.010", "Cube.012", "Cube.014", "Cube.016",
           "Cube.018", "Cube.019", "Cube.020", "Cube.033", "Cube.034", "Cylinder.003",
           "Cylinder.007", "Cylinder.010", "Cylinder.012", "Icosphere", "Sphere.001", "Sphere.002",
-          "Legs", "Armature", "Armature.001"]
+          "Legs", "Armature", "Armature.001",
+          # The legacy hands the grafted ones replaced. restore_parts.py has
+          # already parked these; naming them again costs nothing and means a
+          # file that skipped that step still exports the right hands.
+          "Hand.001", "Hand.003", "Hand.004", "Hand.011", "Hand.016", "Hand.035"]
 spare_col = bpy.data.collections.get("WIP_Spares")
 if spare_col is None:
     spare_col = bpy.data.collections.new("WIP_Spares")

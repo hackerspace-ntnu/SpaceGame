@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using FMODUnity;
+using SpaceGame.Agents;
 using SpaceGame.Audio;
 using SpaceGame.Characters;
 using SpaceGame.Core;
@@ -44,6 +45,14 @@ namespace SpaceGame.Weapons
         [SerializeField] protected EventReference fireSound;
         [SerializeField] protected SfxId chargeStartSoundId = SfxId.WeaponEnergyChargeLoop;
         [SerializeField] protected EventReference chargeStartSound;
+
+        // Hearing, not listening: this is what makes a shot a gameplay event rather than only a
+        // sound. Anything with a NoiseReceiverModule inside this radius is told a gun went off and
+        // who fired it — guards investigate, wildlife bolts. Zero disables it for a weapon that
+        // should not carry, which is why it is per-weapon and not a constant.
+        [Tooltip("Metres a shot from this weapon is heard over. Anything with a NoiseReceiverModule " +
+                 "inside it reacts. 0 = silent to AI.")]
+        [SerializeField] protected float gunshotNoiseRadius = 40f;
 
         [Header("Charging")]
         [SerializeField] protected bool enableCharging = false; // Toggle charging mode on/off
@@ -289,6 +298,7 @@ namespace SpaceGame.Weapons
                     
                         // Launch the already-charged projectile with current aim direction
                         Fire();
+                        ReportGunshot();
                     }
                     catch (MissingReferenceException)
                     {
@@ -319,6 +329,7 @@ namespace SpaceGame.Weapons
             {
                 // Normal firing (no charging)
                 Fire();
+                ReportGunshot();
                 nextFireTime = Time.time + (1f / Mathf.Max(0.01f, fireRate));
                 return true;
             }
@@ -538,6 +549,42 @@ namespace SpaceGame.Weapons
         /// bills the target for the same bullet.
         /// </summary>
         protected bool ShotDealsDamage { get; private set; } = true;
+
+        /// <summary>
+        /// Tell the world a shot was fired here, so AI can react to it.
+        ///
+        /// <para>
+        /// Called from <see cref="TryFire"/> only, and only after a round has actually left — not
+        /// when a charge starts, which makes no noise and puts nothing in the air. That placement is
+        /// also what keeps this authority-only without a check of its own: <c>TryFire</c> is reached
+        /// from <see cref="Use"/> and nowhere else, and <c>Use</c> runs on the deciding machine.
+        /// <see cref="Present"/> calls <c>Fire</c> directly, so a peer showing a copy of someone
+        /// else's shot never emits a second one.
+        /// </para>
+        /// <para>
+        /// That matters more than it looks: a creature only ticks on the machine that owns it, so a
+        /// noise emitted on a peer would be heard by a copy of the animal that cannot act on it,
+        /// while the copy that can heard nothing.
+        /// </para>
+        /// <para>
+        /// The instigator is the holder, not the gun. A receiver set to aggro on gunfire targets
+        /// whoever it is handed, and the weapon is about to be unequipped, dropped or destroyed.
+        /// </para>
+        /// </summary>
+        private void ReportGunshot()
+        {
+            if (gunshotNoiseRadius <= 0f)
+                return;
+
+            Transform origin = GetFireOrigin();
+            Transform shooter = owner != null ? owner.transform : transform;
+
+            Noise.Emit(NoiseType.Gunshot,
+                       origin != null ? origin.position : transform.position,
+                       gunshotNoiseRadius,
+                       shooter,
+                       shooter);
+        }
 
         // ── Per-instance state ─────────────────────────────────────────────────
         //

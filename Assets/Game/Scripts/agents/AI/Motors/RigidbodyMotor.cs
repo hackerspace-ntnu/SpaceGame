@@ -330,6 +330,8 @@ namespace SpaceGame.Agents
             currentDestination = position;
         }
 
+        public bool IsAirborne => arcing;
+
         public void RequestJump()
         {
             if (!enableJump || arcing || arcCooldownTimer > 0f)

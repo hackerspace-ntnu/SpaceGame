@@ -21,6 +21,7 @@ the editor assembly is where every test and every prefab builder lives.
 Exit code 0 means the project compiles. Anything else prints the errors.
 """
 
+import os
 import pathlib
 import re
 import subprocess
@@ -28,7 +29,19 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-UNITY = pathlib.Path("/Applications/Unity/Hub/Editor")
+
+# The Hub lays the editor out differently per platform, and the compiler lives in
+# a different place inside it. Set UNITY_EDITOR_ROOT to override the Hub location.
+if sys.platform == "win32":
+    UNITY = pathlib.Path(os.environ.get(
+        "UNITY_EDITOR_ROOT", r"C:/Program Files/Unity/Hub/Editor"))
+    SCRIPTING_SUBDIR = "Editor/Data"
+    DOTNET_NAME = "dotnet.exe"
+else:
+    UNITY = pathlib.Path(os.environ.get(
+        "UNITY_EDITOR_ROOT", "/Applications/Unity/Hub/Editor"))
+    SCRIPTING_SUBDIR = "Unity.app/Contents/Resources/Scripting"
+    DOTNET_NAME = "dotnet"
 
 
 def editor_version() -> str:
@@ -136,8 +149,8 @@ def main() -> int:
     want_editor = "--editor" in sys.argv
 
     version = editor_version()
-    scripting = UNITY / version / "Unity.app/Contents/Resources/Scripting"
-    dotnet = scripting / "NetCoreRuntime/dotnet"
+    scripting = UNITY / version / SCRIPTING_SUBDIR
+    dotnet = scripting / "NetCoreRuntime" / DOTNET_NAME
     csc = scripting / "DotNetSdkRoslyn/csc.dll"
 
     for required in (dotnet, csc):

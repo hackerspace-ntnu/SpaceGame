@@ -513,6 +513,8 @@ namespace SpaceGame.Agents
             jumpCooldownTimer = mountedJumpCooldown;
         }
 
+        public bool IsAirborne => jumpElapsed >= 0f || isLeaping;
+
         public bool IsLeapAvailable => enableMountedLeap && !isLeaping && leapCooldownTimer <= 0f;
         public bool IsLeaping => isLeaping;
 

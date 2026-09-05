@@ -122,6 +122,15 @@ namespace SpaceGame.Items
         private readonly BodySite[] sites = new BodySite[GearRef.BodySlotCount];
 
         private BodySlot? hovered;
+
+        /// <summary>
+        /// A site the UI says the cursor is over, when the cursor is over the UI and not the body.
+        /// The gear screen's rail has a tile for each of these three slots, and pointing at one has
+        /// to light the site it names — otherwise the rail and the figure are two screens that
+        /// happen to share a canvas.
+        /// </summary>
+        private BodySlot? externalHover;
+
         private GearRef carried = GearRef.None;
         private InventoryItem carriedItem;
 
@@ -221,6 +230,7 @@ namespace SpaceGame.Items
             slots.OnBodySlotChanged += OnSlotChanged;
 
             hovered = null;
+            externalHover = null;
             carried = GearRef.None;
             carriedItem = null;
             committing = -1;
@@ -287,6 +297,7 @@ namespace SpaceGame.Items
             DestroyLookAnchor();
 
             hovered = null;
+            externalHover = null;
         }
 
         // ── What the UI tells us ─────────────────────────────────────────────
@@ -299,6 +310,18 @@ namespace SpaceGame.Items
             carried = from;
             carriedItem = item;
             ApplyAll();
+        }
+
+        /// <summary>
+        /// The cursor is over the rail tile naming <paramref name="slot"/>, or over no tile at all.
+        /// Only consulted while the cursor is over the UI, so it can never fight the body's own
+        /// hit-test — a cursor on the figure is answered by the figure.
+        /// </summary>
+        public void SetExternalHover(BodySlot? slot)
+        {
+            if (!IsOpen) return;
+
+            externalHover = slot;
         }
 
         /// <summary>A legal move to <paramref name="slot"/> was sent. The site stays lit until the answer or the timeout.</summary>
@@ -392,7 +415,7 @@ namespace SpaceGame.Items
 
         private void UpdateHover(bool overUi)
         {
-            BodySlot? now = null;
+            BodySlot? now = overUi ? externalHover : null;
 
             WorldOverlay overlay = WorldOverlay.Instance;
 

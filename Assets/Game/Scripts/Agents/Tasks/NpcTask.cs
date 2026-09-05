@@ -51,6 +51,14 @@ namespace SpaceGame.Agents
                  "and the NPC works in silence.")]
         public string[] chatter;
 
+        [Tooltip("Optional. Animator BOOL held true for as long as the NPC is working this site, " +
+                 "and cleared the moment it moves on — 'IsGrazing' for a feeding animal. " +
+                 "A bool rather than a trigger because dwelling lasts tens of seconds: a one-shot " +
+                 "would play once and leave the animal standing at attention for the rest of its " +
+                 "meal. Left empty, the NPC works the site in its ordinary idle, which is right " +
+                 "for anything whose job does not look like anything in particular.")]
+        public string dwellFlag = "";
+
         [Tooltip("Relative chance of this task being picked next. 0 disables it without deleting it.")]
         public float weight = 1f;
 

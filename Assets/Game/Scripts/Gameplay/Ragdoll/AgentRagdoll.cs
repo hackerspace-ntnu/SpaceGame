@@ -98,9 +98,6 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// <summary>Is something holding this creature down right now?</summary>
         public bool IsHeld => holders.Count > 0;
 
-        /// <summary>The same question, named as the guards below read it.</summary>
-        private bool Held => holders.Count > 0;
-
         /// <summary>
         /// The motor, asked for at the moment it is needed rather than cached in Awake.
         ///
@@ -304,7 +301,7 @@ namespace SpaceGame.Gameplay.Ragdoll
 
             // Somebody else already has it down. Take a claim and say so, rather than repeating
             // work that would record the suspended state as this creature's normal one.
-            if (Held)
+            if (IsHeld)
             {
                 holders.Add(holder);
                 return true;
@@ -342,7 +339,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         public void ReleaseHold(object holder)
         {
             if (holder == null || !holders.Remove(holder)) return;
-            if (Held) return;
+            if (IsHeld) return;
 
             rig.BudgetExempt = false;
             downUntil = 0f;
@@ -357,7 +354,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             // A hold has no timer and no settle condition to wait for, so every reason to stand up
             // below is the wrong one — including the budget rescue underneath, which is the path
             // BudgetExempt exists to keep a captive off.
-            if (Held) return;
+            if (IsHeld) return;
 
             // The budget froze this body out from under us (RagdollBudget evicts the oldest limp
             // rig past the cap). Nothing is going to come to rest and nothing is going to tell us

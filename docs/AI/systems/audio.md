@@ -16,6 +16,7 @@ symptoms:
   - "menu buttons do not click when MainMenu is entered directly"
   - "the volume sliders in the settings menu do nothing"
   - "I want to add a new sound and cannot find where to author the FMOD event"
+  - "I have an mp3 or wav and need it played by a creature or a prop"
   - "an NPC's chatter mutes every other NPC of the same kind"
 reads_with: [Multiplayer, AgentSystem, Combat, Cutscenes]
 updated: 2026-09-05
@@ -59,6 +60,7 @@ FMOD is the only playback backend; every gameplay sound is asked for by *meaning
 - **73 entries — one per non-`None` `SfxId`.** Groups: Player 100s, Weapons 200s, Impacts 300s, NPC/entity 400s, Interaction 500s, Wings 600s, Ship/vehicle 700s, Ambience 800s, UI 900s, Portals 1000s.
 - Those 73 slots resolve to only **18 distinct FMOD events** (plus `event:/Music/TestSong` used directly by `AudioManager.PlayTestMusic` = 19 shipped events total). Heaviest reuse: `SFX/Wham` ×9, `SFX/ElectricHum` ×9, `UI/No` ×8, `SFX/Slurp` ×7, `SFX/Antigravity` ×7.
 - **No FMOD Studio project.** [`FMODStudioSettings.asset`](Assets/Plugins/FMOD/Resources/FMODStudioSettings.asset) has `ImportType: 0` (single bank folder), `TargetAssetPath: FMODBanks`, and **no `SourceProjectPath`** — the `.fspro` that built these banks is not in the repo. Banks are the compiled `.bank` files in [`Assets/Game/Audio/`](Assets/Game/Audio) and `Assets/StreamingAssets/` (Master, Master.strings, SFX, UI, Music). New events cannot be authored until a `.fspro` exists.
+- **A new sound can only arrive as a Unity `AudioClip`.** Since events cannot be authored, the escape hatch is an inspector-pinned clip that beats the catalog id — the same shape as the pinned `EventReference` override, one layer further out. `FightOrFlightModule.roarClip` is the first: assigned, it plays through a lazily-built 3D `AudioSource` and the `SfxId` is ignored; empty, nothing changes. Build the `AudioSource` in code rather than authoring it on the prefab, so a creature with no clip never carries a dead one and the 3D settings cannot be half-set. This is the second documented exception after `SandstormAudio`, and unlike that one it **is** the pattern to copy until a `.fspro` exists.
 - [`Assets/Game/Audio/GUIDs.txt`](Assets/Game/Audio/GUIDs.txt) is the authoritative manifest of everything the banks contain: 5 banks, 5 busses, **19 events**, and one parameter (`parameter:/Floor`). Read it before assuming an event exists.
 - Every entry carries a `note` string; stand-in mappings are marked there, so `grep` the asset to find them. Per-slot event/cooldown/distance/volume values are in the asset — read it, do not mirror it here.
 - Roughly **37 inspector `EventReference` assignments** still sit in prefabs/scenes and override the catalog for those components.

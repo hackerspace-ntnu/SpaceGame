@@ -218,9 +218,10 @@ namespace SpaceGame.Items
         /// not leave a creature limp or hobbled forever with nothing left alive to release it.
         ///
         /// <para>
-        /// The two lines under it are unreachable today — <see cref="CapSpeed"/> is only ever
-        /// reached from <see cref="Bind"/>, which either sets <c>bound</c> or undoes the cap on the
-        /// same pass — and they are kept anyway because of what the unreachable case would cost:
+        /// The two lines under the <see cref="Release"/> call are unreachable today —
+        /// <see cref="CapSpeed"/> is only ever reached from <see cref="Bind"/>, which either sets
+        /// <c>bound</c> or undoes the cap on the same pass — and they are kept anyway because of
+        /// what the unreachable case would cost:
         /// <c>NavMeshAgent.speed</c> is a SERIALIZED field, so a hobble stranded by any future path
         /// that leaves this component capped-but-not-bound is captured by the quit-time autosave,
         /// and the world reloads with a creature that cannot move and nothing in the log to say

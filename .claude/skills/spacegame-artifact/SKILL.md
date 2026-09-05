@@ -108,11 +108,11 @@ namespace SpaceGame.Items
         /// </summary>
         public override void OnRequestUse(ref NetArg arg)
         {
-            RaycastHit? hit = aimProvider != null ? aimProvider.GetRayCast(range) : null;
+            bool aimed = aimProvider != null && aimProvider.TryGetAimHit(range, out RaycastHit hit);
 
-            // Zero means "aimed at open sky". Without this, `?? Vector3.zero` reads as a position
-            // and the throw lands at the world origin.
-            arg.P = hit.HasValue ? hit.Value.point : Vector3.zero;
+            // Zero means "aimed at open sky". Without this, a miss reads as a position and the
+            // throw lands at the world origin.
+            arg.P = aimed ? hit.point : Vector3.zero;
         }
 
         /// <summary>Authority only — the server, or the single machine when offline.</summary>

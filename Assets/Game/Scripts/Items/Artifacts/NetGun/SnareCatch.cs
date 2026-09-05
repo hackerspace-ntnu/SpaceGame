@@ -61,6 +61,29 @@ namespace SpaceGame.Items
         private readonly List<GameObject> captives = new List<GameObject>();
         private readonly List<SnareDrape.Capsule> proxies = new List<SnareDrape.Capsule>();
 
+        /// <summary>
+        /// How hard each captive is fighting, index-aligned with <see cref="captives"/>.
+        ///
+        /// <para>
+        /// A second meter, and the duplication is the design. The captive's own
+        /// <c>SnaredBody</c> meter runs on THEIR machine and decides what they may send; this one
+        /// runs on the authority and decides what the net gives out under. Sharing one would mean
+        /// putting a level on the wire, which is handing the client the escape.
+        /// </para>
+        /// <para>
+        /// Only the authority ever pushes or reads these — see <see cref="Struggled"/> and
+        /// <see cref="Advance"/> — but the list is kept aligned on every machine regardless, so
+        /// "these two lists are the same length" is a claim that needs no per-machine reasoning.
+        /// It is mutated in exactly the three places <see cref="captives"/> is.
+        /// </para>
+        /// <para>
+        /// A parallel list rather than a dictionary keyed by the captive, because a destroyed
+        /// GameObject is a key with Unity's own null semantics under it, and this way the entry
+        /// simply leaves at the index the body left from.
+        /// </para>
+        /// </summary>
+        private readonly List<SnareStruggleMeter> struggles = new List<SnareStruggleMeter>();
+
         private Vector3 flightOrigin;
         private Vector3 flightAim;
         private float flightElapsed;
@@ -73,9 +96,11 @@ namespace SpaceGame.Items
         private float landedElapsed;
 
         /// <summary>
-        /// Whose shot this was. Held only so the impact cast can ignore them: the net starts life
-        /// INSIDE the player who fired it, and a cast that stops on its own owner lands every shot
-        /// at the shooter's feet.
+        /// Whose shot this was, for the two things that need to know.
+        ///
+        /// The impact cast ignores them: the net starts life INSIDE the player who fired it, and a
+        /// cast that stops on its own owner lands every shot at the shooter's feet. And a captive
+        /// reporting a struggle addresses it here — see <see cref="Shooter"/>.
         /// </summary>
         private GameObject shooter;
 
@@ -96,6 +121,15 @@ namespace SpaceGame.Items
 
         /// <summary>Everything currently held. The artifact reads this to broadcast.</summary>
         public IReadOnlyList<GameObject> Captives => captives;
+
+        /// <summary>
+        /// The player whose gun put this net in the world, or null offline-in-a-test.
+        ///
+        /// Read by <c>SnaredBody</c> so a captive can address its struggle report: the listener is
+        /// <c>SnareReceiver</c>, which lives on the shooter, so the shooter is whose relay the
+        /// message has to ride. See <c>NetMsg.SnareStruggled</c>.
+        /// </summary>
+        public GameObject Shooter => shooter;
 
         /// <summary>
         /// The net has finished flying and is where it is going to be.
@@ -240,6 +274,33 @@ namespace SpaceGame.Items
             if (!took) return false;
 
             captives.Add(body);
+            struggles.Add(new SnareStruggleMeter(struggle.MaxUsefulStruggleRate,
+                                                 struggle.StruggleDecaySeconds));
+            return true;
+        }
+
+        /// <summary>
+        /// One captive fought the net, once. The authority's side of <c>NetMsg.SnareStruggled</c>.
+        ///
+        /// <para>
+        /// Offered rather than added. The meter here carries the same cooldown the captive's own
+        /// does, so a client sending a hundred a second is discarded here exactly as it would be
+        /// there — which is what makes it safe for the wire to carry no magnitude at all.
+        /// </para>
+        /// </summary>
+        /// <returns>
+        /// True when this net is the one holding <paramref name="captive"/>, so a caller sweeping
+        /// its live nets can stop at the first that answers. False on a machine that does not
+        /// decide, which has no meter worth pushing: it waits to be told the net tore.
+        /// </returns>
+        public bool Struggled(GameObject captive)
+        {
+            if (!authoritative || captive == null) return false;
+
+            int index = captives.IndexOf(captive);
+            if (index < 0) return false;
+
+            struggles[index].Push();
             return true;
         }
 
@@ -254,6 +315,7 @@ namespace SpaceGame.Items
             }
 
             captives.Clear();
+            struggles.Clear();
         }
 
         /// <summary>
@@ -318,6 +380,11 @@ namespace SpaceGame.Items
             if (rotElapsed < 0f && lifeElapsed >= maxLifeSeconds) Tear();
 
             if (!authoritative) return;
+
+            // Advanced before the drain, and only here: this is the one machine that both counts
+            // the struggle and spends the pool, so a peer never runs a meter it would then have
+            // nothing to do with.
+            foreach (SnareStruggleMeter meter in struggles) meter.Advance(delta);
 
             integrity.Drain(StrugglingMass(), delta);
             if (integrity.IsSpent) Tear();
@@ -457,21 +524,52 @@ namespace SpaceGame.Items
 
             for (int i = captives.Count - 1; i >= 0; i--)
             {
-                if (captives[i] == null) { captives.RemoveAt(i); continue; }
+                // The meter leaves with the body, so the two lists stay index-aligned.
+                if (captives[i] == null)
+                {
+                    captives.RemoveAt(i);
+                    struggles.RemoveAt(i);
+                    continue;
+                }
+
                 proxies.Add(SnareDrape.ProxyFor(captives[i]));
             }
         }
 
+        /// <summary>
+        /// What the net is holding, weighed the way <see cref="SnareIntegrity.Drain"/> reads it.
+        ///
+        /// <para>
+        /// A creature needs no meter, and that is not an omission. <see cref="SnareTether.Mass"/>
+        /// already scales with what the animal weighs, so an ant and a six-legged habitat present
+        /// wildly different loads without either pressing a key — the weight IS the struggle. A
+        /// player weighs the same whatever they do, so theirs is the branch the multiplier belongs
+        /// on: a captive fighting flat out presents <c>1 + StruggleMultiplier</c> captives' worth,
+        /// which is what turns mashing into getting out.
+        /// </para>
+        /// <para>
+        /// Nothing about <see cref="SnareIntegrity"/> changes for this. It already takes the
+        /// greater of the idle rot and <c>load / ReferenceLoad</c>; a struggling captive simply
+        /// arrives as more mass.
+        /// </para>
+        /// </summary>
         private float StrugglingMass()
         {
             float total = 0f;
 
-            foreach (GameObject captive in captives)
+            for (int i = 0; i < captives.Count; i++)
             {
+                GameObject captive = captives[i];
                 if (captive == null) continue;
 
-                if (captive.TryGetComponent(out SnareTether tether)) total += tether.Mass;
-                else total += SnareIntegrity.ReferenceLoad;
+                if (captive.TryGetComponent(out SnareTether tether))
+                {
+                    total += tether.Mass;
+                    continue;
+                }
+
+                total += SnareIntegrity.ReferenceLoad
+                       * (1f + struggle.StruggleMultiplier * struggles[i].Level);
             }
 
             return total;

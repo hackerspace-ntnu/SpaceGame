@@ -30,10 +30,13 @@ namespace SpaceGame.Items
     [System.Serializable]
     public class SnareStruggle
     {
-        [Tooltip("Seconds an ordinary single captive is held before the net rots away.\n\n" +
-                 "It means exactly that: one captive of SnareIntegrity.ReferenceLoad mass is held " +
-                 "for this long. Three of them share the same pool and get a third of it each, " +
-                 "which is what stops a wide net being strictly better than a careful shot.")]
+        [Tooltip("Seconds an ordinary single captive who does NOT fight is held before the net " +
+                 "rots away.\n\n" +
+                 "It means exactly that: one captive of SnareIntegrity.ReferenceLoad mass, lying " +
+                 "still, is held for this long. Three of them share the same pool and get a third " +
+                 "of it each, which is what stops a wide net being strictly better than a careful " +
+                 "shot — and a captive who struggles gets out sooner still, by the multiplier " +
+                 "below.")]
         [SerializeField, Min(0.01f)] private float holdSeconds = 30f;
 
         [Tooltip("Fraction of its normal speed a netted thing may move at, when the net could not " +

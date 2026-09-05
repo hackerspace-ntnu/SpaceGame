@@ -31,6 +31,9 @@ namespace SpaceGame.Characters
         [SerializeField] private float holdBlendTime = 0.18f;
 
         [Header("Gauntlet raise")]
+        [Tooltip("Seconds a one-shot gesture keeps the Upper Body layer up after it starts. Set from the clip length by whoever plays it; this is only the fallback.")]
+        [SerializeField] private float defaultGestureSeconds = 2.5f;
+
         [Tooltip("Seconds for a gauntlet arm to come up when its item fires, and to drop after.")]
         [SerializeField] private float raiseBlendTime = 0.12f;
 
@@ -43,6 +46,10 @@ namespace SpaceGame.Characters
         private PlayerViewNetwork view;
 
         /// <summary>Int the Upper Body layer's raise states are entered on: 0 none, 1 left, 2 right, 3 both.</summary>
+        // Held true while a one-shot gesture plays, so the Upper Body layer's states can gate on
+        // it and an AnyState transition cannot evict the gesture mid-play.
+        private const string GesturingParameter = "Gesturing";
+
         private const string ArmRaiseParameter = "ArmRaise";
 
         /// <summary>Float the raise states blend on: the look pitch in degrees, up positive.</summary>
@@ -60,6 +67,13 @@ namespace SpaceGame.Characters
         // One raise per arm: the decision, and its blend.
         private bool raiseLeft;
         private bool raiseRight;
+        private int gesturingHash;
+
+        // Counts down while a gesture plays. Holds the masked layer up so the gesture is visible
+        // with EMPTY hands, which is the whole point: you pet an animal with a free hand, and the
+        // layer is otherwise only raised by holding an item or by a gauntlet firing.
+        private float gestureTimer;
+
         private float raiseLeftT;
         private float raiseRightT;
 
@@ -92,6 +106,7 @@ namespace SpaceGame.Characters
             if (animator == null) animator = GetComponentInChildren<Animator>(true);
 
             holdStyleHash = Animator.StringToHash(HoldStyleParameter);
+            gesturingHash = Animator.StringToHash(GesturingParameter);
             armRaiseHash = Animator.StringToHash(ArmRaiseParameter);
             aimPitchHash = Animator.StringToHash(AimPitchParameter);
 
@@ -121,6 +136,25 @@ namespace SpaceGame.Characters
         /// machine, since the use is presented on every machine — so a peer sees the same arm come
         /// up that the wearer does.
         /// </summary>
+        /// <summary>
+        /// Play a one-shot on the masked Upper Body layer, and hold the layer up while it runs.
+        ///
+        /// <para>
+        /// Routed through this component rather than set on the Animator directly because this
+        /// component owns the layer weight - it writes it every frame from holdT, so a trigger
+        /// fired from outside plays a clip on a layer weighted 0 and nothing appears.
+        /// </para>
+        /// </summary>
+        public void PlayGesture(string trigger, float seconds = 0f)
+        {
+            if (animator == null || animator.runtimeAnimatorController == null) return;
+            if (string.IsNullOrEmpty(trigger)) return;
+
+            gestureTimer = Mathf.Max(gestureTimer, seconds > 0f ? seconds : defaultGestureSeconds);
+            animator.SetBool(gesturingHash, true);
+            animator.SetTrigger(trigger);
+        }
+
         public void RaiseArm(ItemGrip.Hand hand, bool raised)
         {
             if (hand == ItemGrip.Hand.Left) raiseLeft = raised;
@@ -176,10 +210,13 @@ namespace SpaceGame.Characters
 
         private void Blend(float deltaTime)
         {
+            if (gestureTimer > 0f)
+                gestureTimer -= deltaTime;
+
             // The pose comes off entirely while dead, whatever is in the hand. The death clip runs
             // on the Base Layer, and an Upper Body layer left at weight 1 would override its arms
             // and leave the corpse holding its rifle out in front of it.
-            bool posed = heldStyle != ItemGrip.HoldStyle.None
+            bool posed = (heldStyle != ItemGrip.HoldStyle.None || gestureTimer > 0f)
                          && !Relaxed
                          && (controller == null || !controller.IsDead);
 
@@ -202,6 +239,7 @@ namespace SpaceGame.Characters
             // The lit torch's style is written into the same parameter the hand uses, so a torch
             // pose and a held item cannot both be on: there is one pose and one state machine.
             animator.SetInteger(holdStyleHash, (int)EffectiveStyle);
+            animator.SetBool(gesturingHash, gestureTimer > 0f);
 
             // The raise is a state on the same layer — three pointing clips blended on the look
             // pitch — not an IK goal: the layer sits in Empty whenever the hands are empty, which

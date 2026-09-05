@@ -8,8 +8,10 @@
 // drive the root and which merely watches it flail. So the hold runs everywhere.
 //
 // The struggle INPUT is the one part that stays owner-only, because it is the one part only one
-// machine can know: the keys the captive is pressing. Task 7 turns an accepted press into a
-// message; until then it stops at the meter.
+// machine can know: the keys the captive is pressing. An accepted press becomes one
+// NetMsg.SnareStruggled on the shooter's relay and nothing else; the meter here exists to decide
+// which presses are worth sending, and the authority keeps a meter of its own to decide what they
+// cost the net.
 using UnityEngine;
 using SpaceGame.Core;
 using SpaceGame.Gameplay;
@@ -170,13 +172,16 @@ namespace SpaceGame.Items
         /// own — a corpse is already limp and stays that way — but nothing there knows about the
         /// net, so without this the binding outlives the player: <see cref="Update"/> goes on
         /// reading a dead player's keys (the menu gate is open for a corpse, there being no menu),
-        /// and the struggle they cannot have stopped goes on being counted. Today the meter is
-        /// read by nothing; the moment Task 8 bills it, that is a corpse eating the shooter's net,
-        /// and it would read as a balance problem rather than a lifecycle one.
+        /// and the struggle they cannot have stopped goes on being reported and billed to the
+        /// shooter's net — which would read as a balance problem rather than the lifecycle one it
+        /// is.
         /// </para>
         /// <para>
         /// The captive stays in <c>SnareCatch</c>'s own captive list until the net rots — this ends
-        /// the struggle, not the base load of a body lying in the net.
+        /// the struggle, not the base load of a body lying in the net. The authority's own meter
+        /// for them is not cleared here and does not need to be: nothing pushes it once the reports
+        /// stop, so it decays back to a corpse's flat <c>ReferenceLoad</c> within a couple of
+        /// seconds of the death.
         /// </para>
         /// </summary>
         private void OnCaptiveDied() => Release(anchor);
@@ -228,9 +233,53 @@ namespace SpaceGame.Items
 
             // Offered rather than added. Push answering false means this input landed inside the
             // cooldown and was discarded, and that is the throttle on the WIRE as much as on the
-            // meter — so Task 7 sends its message only when this answers true, and from here.
-            meter.Push();
+            // meter — a rejected input must not be reported either, or the cooldown throttles
+            // nothing and a held key becomes a message per frame.
+            if (meter.Push()) ReportStruggle();
         }
+
+        /// <summary>
+        /// Tell the authority this captive fought, once.
+        ///
+        /// <para>
+        /// <b>On the SHOOTER's relay, not on this player's.</b> The only listener is
+        /// <see cref="SnareReceiver"/> and it lives on the shooter; <c>NetOn</c> registers against
+        /// the channel of the entity the listener sits under, and a relay delivers to the channel
+        /// of its own entity. Sent from this body's relay the message would arrive at this body's
+        /// channel, where nothing is subscribed, and be dropped without a word. The wire allows the
+        /// crossing: <c>NetRelay</c>'s server RPC is <c>InvokePermission.Everyone</c>, which is what
+        /// lets a captive send on the relay of the player who shot them — the same crossing an
+        /// attacker makes to send <c>NetMsg.Damage</c> on their victim's.
+        /// </para>
+        /// <para>
+        /// The level is not sent, only the fact of the input. The server keeps its own meter,
+        /// rate-limited by the same authored cap this one is, and works out the load from a run of
+        /// these — because a level computed here would be a number the client chooses, and the
+        /// escape is not the client's to decide (GDC-L1-MP-0004).
+        /// </para>
+        /// <para>
+        /// Silent when the anchor carries no net. An EditMode test binds a bare transform, and a
+        /// captive whose shooter has since despawned has nobody left to tell.
+        /// </para>
+        /// </summary>
+        private void ReportStruggle()
+        {
+            SnareCatch net = Net;
+            GameObject shooter = net != null ? net.Shooter : null;
+            if (shooter == null) return;
+
+            NetMessaging.NetSendTo(shooter, NetMsg.SnareStruggled,
+                                   new NetArg().With(gameObject), NetTo.Server);
+        }
+
+        /// <summary>
+        /// The net that has hold of this body, resolved from its anchor rather than kept beside it.
+        ///
+        /// One field for one relationship: a second reference would be a second thing for
+        /// <see cref="Release"/> to remember to clear, and this is read at most a couple of times a
+        /// second, on the owner's machine, only while a net has hold.
+        /// </summary>
+        private SnareCatch Net => anchor != null ? anchor.GetComponent<SnareCatch>() : null;
 
         /// <summary>Has the captive thrown themselves the other way since last time?</summary>
         private bool IsReversal(Vector2 move)

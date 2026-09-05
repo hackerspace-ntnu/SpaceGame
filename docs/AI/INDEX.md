@@ -68,6 +68,8 @@ grep -i 'client' docs/AI/ROUTING.md
 | [Lasso](systems/Lasso.md) | Throwable loop: wind up to charge, release to throw a solved arc, catch, fight, tie off to a leash | [Artifacts](systems/Artifacts.md), [LeashSystem](systems/LeashSystem.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [AgentSystem](systems/AgentSystem.md) |
 | [LeashSystem](systems/LeashSystem.md) | A rope tied between any two things; every machine draws its own copy and resolves only the ends it owns | [Artifacts](systems/Artifacts.md), [Lasso](systems/Lasso.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [PlayerCharacter](systems/PlayerCharacter.md), [Locomotion](systems/Locomotion.md) |
 | [Oxygen](systems/Oxygen.md) | The ship's oxygen plant: two receptacles, a power cell that wakes it and a bottle it fills in five seconds | [Inventory](systems/Inventory.md), [Backpack](systems/Backpack.md), [PlayerShip](systems/PlayerShip.md), [InteractionSystem](systems/InteractionSystem.md), [Persistence](systems/Persistence.md), [Multiplayer](systems/Multiplayer.md) |
+| [Placeables](systems/Placeables.md) | Items put into the world under a placement rule, and picked back up with Q | [Artifacts](systems/Artifacts.md), [InteractionSystem](systems/InteractionSystem.md), [Backpack](systems/Backpack.md), [Saddles](systems/Saddles.md) |
+| [Saddles](systems/Saddles.md) | Fitting a saddle to an animal: what makes it rideable, what it carries, and what happens when it comes off | [AgentSystem](systems/AgentSystem.md), [Backpack](systems/Backpack.md), [Artifacts](systems/Artifacts.md), [Vehicles](systems/Vehicles.md) |
 | [ShipSchematic](systems/ShipSchematic.md) | The terminal's SHIP page: a live 3D lander whose missing modules glow and can be pointed at | [Terminal](systems/Terminal.md), [PlayerShip](systems/PlayerShip.md), [Multiplayer](systems/Multiplayer.md) |
 | [SupplyCharge](systems/SupplyCharge.md) | A fraction that rides one item instance through every container: hotbar, pack, gear, world, machine | [Inventory](systems/Inventory.md), [Backpack](systems/Backpack.md), [Oxygen](systems/Oxygen.md), [Persistence](systems/Persistence.md), [Multiplayer](systems/Multiplayer.md) |
 | [Terminal](systems/Terminal.md) | The lander's standing CRT console: right-click zooms onto its glass; three replicated pages | [ShipSchematic](systems/ShipSchematic.md), [InteractionSystem](systems/InteractionSystem.md), [PlayerShip](systems/PlayerShip.md), [Multiplayer](systems/Multiplayer.md), [Backpack](systems/Backpack.md), [Oxygen](systems/Oxygen.md) |
@@ -125,4 +127,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 42 system docs, 6 redirects -->
+<!-- 44 system docs, 6 redirects -->

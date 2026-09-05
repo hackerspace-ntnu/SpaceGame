@@ -93,6 +93,7 @@ namespace SpaceGame.Gameplay
             PlayerInputManager input = GetComponent<PlayerController>().Input;
             input.OnInteractPressed += Interact;
             input.OnUsePressed += SecondaryInteract;
+            input.OnRetrievePressed += RetrieveTarget;
         }
 
         /// <summary>
@@ -135,7 +136,7 @@ namespace SpaceGame.Gameplay
             // Match the crosshair to what pressing Interact would actually do. Without the
             // CanInteract test the crosshair lights up over things that refuse the interaction —
             // e.g. a whole vehicle hull whose root MountModule is the nearest IInteractable.
-            IsHoveringInteractable = IsAvailable(interactable);
+            IsHoveringInteractable = IsActionable(interactable);
             HoveredInteractable = IsHoveringInteractable ? interactable : null;
 
             // The arbitrated hit, kept beside the interactable it answered with. Cleared with it,
@@ -163,6 +164,18 @@ namespace SpaceGame.Gameplay
         /// crosshair and the key can never disagree — a prompt that lights up and then refuses the
         /// press is the failure this method exists to prevent.
         /// </summary>
+        /// <summary>
+        /// Whether the player can do ANYTHING here, which is what the crosshair and the prompt
+        /// answer to. Wider than <see cref="IsAvailable"/> on purpose: a placeable has no E verb at
+        /// all, only Q, and gating the hover on <c>CanInteract</c> alone left it with no prompt and
+        /// an unlit crosshair — the player had no way to learn it could be picked up.
+        /// </summary>
+        private bool IsActionable(IInteractable interactable)
+        {
+            if (IsAvailable(interactable)) return true;
+            return interactable is IRetrievable retrievable && retrievable.CanRetrieve();
+        }
+
         private bool IsAvailable(IInteractable interactable)
         {
             if (interactable == null || !interactable.CanInteract()) return false;
@@ -185,6 +198,21 @@ namespace SpaceGame.Gameplay
                 return;
             if (!secondary.CanSecondaryInteract()) return;
             secondary.SecondaryInteract(this);
+        }
+
+        /// <summary>
+        /// Pick up, on whatever the crosshair is on. Only reaches things that opt in by
+        /// implementing <see cref="IRetrievable"/>, so Q over an ordinary interactable does
+        /// nothing rather than something surprising.
+        /// </summary>
+        private void RetrieveTarget()
+        {
+            if (!DoInteractionTest(out IInteractable interactable)) return;
+            if (interactable is not IRetrievable retrievable) return;
+
+            if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled) return;
+            if (!retrievable.CanRetrieve()) return;
+            retrievable.Retrieve(this);
         }
 
         private bool DoInteractionTest(out IInteractable interactable)

@@ -42,6 +42,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a component I added to PlayerShip.prefab by hand disappeared after a rebuild | [PlayerShip](systems/PlayerShip.md) |
 | a creature disappears for clients when it walks into another chunk | [EntitySystem](systems/EntitySystem.md) |
 | a creature is teleported but its NavMeshAgent stays behind | [SceneTransitions](systems/SceneTransitions.md) |
+| a creature keeps taking damage and there is no attacker anywhere | [AgentSystem](systems/AgentSystem.md) |
 | a creature or vehicle reappears at its authored position instead of where I left it | [Persistence](systems/Persistence.md) |
 | a crewmate rides the descent metres behind their chair, trailing through the cabin wall | [PlayerShip](systems/PlayerShip.md) |
 | a cutscene locked or blacked out the wrong player in a multiplayer session | [Cutscenes](systems/Cutscenes.md) |
@@ -62,15 +63,18 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a fast or lightly-charged throw passes straight through a thin target and reports a miss | [Lasso](systems/Lasso.md) |
 | a filled bottle is refused by the backpack that took the empty one | [Oxygen](systems/Oxygen.md) |
 | a flat ground apron appears around a generated rock | [TerrainGeneration](systems/TerrainGeneration.md) |
+| a fleeing creature walks toward the thing it is running from | [AgentSystem](systems/AgentSystem.md) |
 | a freshly built prefab works in the editor but not on clients (GlobalObjectIdHash 0) | [EditorTooling](systems/EditorTooling.md) |
 | a gameplay hotkey still fires while a menu or the chat box is open | [CoreServices](systems/CoreServices.md) |
 | a gauge draws a full bar before the player has finished spawning | [Visor](systems/Visor.md) |
 | a gauge flickers between two colours while the value sits on a threshold | [Visor](systems/Visor.md) |
 | a gauntlet floats over my arm with nothing underneath it | [BodyEquipment](systems/BodyEquipment.md) |
+| a gauntlet sitting correctly on the gear screen's rail is badged as misplaced | [BodyEquipment](systems/BodyEquipment.md) |
 | a generated prefab has an empty motor slot and no error was logged | [EntitySystem](systems/EntitySystem.md) |
 | a geometric test is documented as failing on purpose, and the thing it measures really is too big | [Backpack](systems/Backpack.md) |
 | a ghostly second lander floats inside the cockpit where the terminal stands | [ShipSchematic](systems/ShipSchematic.md) |
 | a grapple swing's speed vanishes the moment the wings deploy | [Ornithopter](systems/Ornithopter.md) |
+| a grazing animal never puts its head down | [AgentSystem](systems/AgentSystem.md) |
 | a grounded pack gives one generic prompt whether the press opens it or picks it up | [Backpack](systems/Backpack.md) |
 | a hard dive into a cliff does almost no damage while a gentle landing hurts | [Ornithopter](systems/Ornithopter.md) |
 | a hint or seat prompt stopped appearing during the crash landing | [Visor](systems/Visor.md) |
@@ -104,7 +108,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a pack test says an item came back at (0.58, 0.41) when it was put down at (0.60, 0.45) | [Backpack](systems/Backpack.md) |
 | a palette colour looks darker or duller on screen than the value it was authored at | [Environment](systems/Environment.md) |
 | a parked ship, or a wreck loaded from a save, is sitting inside a ball of orange fire | [PlayerShip](systems/PlayerShip.md) |
+| a peaceful creature stands still and lets itself be shot instead of running | [AgentSystem](systems/AgentSystem.md) |
 | a pickup placed in a chunk is stacked ten deep at its authored spot | [Persistence](systems/Persistence.md) |
+| a placed object is gone after a save and reload | [Placeables](systems/Placeables.md) |
 | a player who has been carried walks and steers but never falls again | [Vehicles](systems/Vehicles.md) |
 | a portal stays open forever with no partner after someone traverses | [Portals](systems/Portals.md) |
 | a position 16 km out reads as terrain in the corner of the world | [WorldStreaming](systems/WorldStreaming.md) |
@@ -114,6 +120,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a raycast right after moving something reads the collider's old position | [ProjectConfig](systems/ProjectConfig.md) |
 | a re-exported character stops animating and the console is clean | [ArtPipeline](systems/ArtPipeline.md) |
 | a readout writes a ValueText and the number never appears on screen | [Visor](systems/Visor.md) |
+| a refused click beeps on the body but is silent on the rail | [BodyEquipment](systems/BodyEquipment.md) |
 | a renamed [SerializeField] and the builder quietly stopped setting it | [EditorTooling](systems/EditorTooling.md) |
 | a render feature is in the renderer asset but never runs | [Environment](systems/Environment.md) |
 | a renderer feature is null even though its sub-asset and script both exist | [Environment](systems/Environment.md) |
@@ -134,6 +141,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a row silently inflates and blows out the layout | [UI](systems/UI.md) |
 | a runtime-spawned entity is captured in the save but never comes back | [EntitySystem](systems/EntitySystem.md) |
 | a runtime-spawned object was in the world all session and is simply absent after a reload, with nothing on the console at load time | [Persistence](systems/Persistence.md) |
+| a saddle on an animal holds nothing, or its faces are on a slope | [Backpack](systems/Backpack.md) |
+| a saddled animal can be ridden but not driven — the rider has no control | [Saddles](systems/Saddles.md) |
+| a saddled animal comes back bare after a save and reload | [Saddles](systems/Saddles.md) |
 | a save-restored creature is on the NavMesh but never moves | [NavMeshSystem](systems/NavMeshSystem.md) |
 | a seated crewmate sits rigidly staring ahead while their view is clearly sweeping the cabin | [Cutscenes](systems/Cutscenes.md) |
 | a seated player's head stays turned after they stand up | [PlayerCharacter](systems/PlayerCharacter.md) |
@@ -169,6 +179,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an item taken from the pack into a hotbar slot vanishes — gone from the mat AND the slot reads empty | [Backpack](systems/Backpack.md) |
 | an item that moves the player does nothing at all while I am riding something | [Artifacts](systems/Artifacts.md) |
 | an item transferred from the backpack to a hotbar slot disappears instead of appearing in the bar | [Inventory](systems/Inventory.md) |
+| an item was placed but cannot be picked up again | [Placeables](systems/Placeables.md) |
 | an item's charge resets when I scroll one hotbar slot and back | [SupplyCharge](systems/SupplyCharge.md) |
 | an item, faction or targeting asset never turns up in Registry<T>.Get | [CoreServices](systems/CoreServices.md) |
 | an NPC is completely invisible to AI targeting | [EntitySystem](systems/EntitySystem.md) |
@@ -200,11 +211,13 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | closing focus mode leaves a black screen with only the HUD, and no sound | [Backpack](systems/Backpack.md) |
 | collisions inside the ship went weird once there was gear on the wall | [Backpack](systems/Backpack.md) |
 | console warns No prefab registered for id when loading a world | [EntitySystem](systems/EntitySystem.md) |
+| Copied Avatar Rig Configuration mis-match: Transform not found in HumanDescription | [ArtPipeline](systems/ArtPipeline.md) |
 | Could not start a local session on port N / another program may be using it | [Multiplayer](systems/Multiplayer.md) |
 | creatures path through geometry that is no longer there | [NavMeshSystem](systems/NavMeshSystem.md) |
 | damage lands once per player in the session, so a target dies four times too fast | [Combat](systems/Combat.md) |
 | damage numbers and nameplates exist in code but nothing ever shows in game, for host and clients alike | [Combat](systems/Combat.md) |
 | damage numbers and nameplates never appear for anyone, no errors — their Canvas is disabled | [UI](systems/UI.md) |
+| dark patches that look like holes punched in the model, symmetric on both sides | [ArtPipeline](systems/ArtPipeline.md) |
 | dead NPCs re-instantiate themselves on every reload | [EntitySystem](systems/EntitySystem.md) |
 | different-coloured surfaces collapse to the same colour under the quantizer | [Environment](systems/Environment.md) |
 | distant terrain/objects are missing ahead of me but appear when I turn around | [Environment](systems/Environment.md) |
@@ -223,6 +236,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | everything not on the rack disappears when the pack is reshouldered or restored | [Backpack](systems/Backpack.md) |
 | exit momentum is confiscated a fraction of a second after coming through | [Portals](systems/Portals.md) |
 | Failed to bind UDP socket' or a 409 'already a member of the lobby' when launching two instances | [Multiplayer](systems/Multiplayer.md) |
+| firing a gun near wildlife does nothing at all | [AgentSystem](systems/AgentSystem.md) |
+| firing a gun near wildlife or a guard provokes no reaction at all | [Combat](systems/Combat.md) |
 | firing the grappling hook from the cradle hooks the aircraft I am sitting in | [Ornithopter](systems/Ornithopter.md) |
 | fog and clouds do not render at all and the renderer logs that it is missing RendererFeatures | [Environment](systems/Environment.md) |
 | fog draws over every particle and pane of glass | [Environment](systems/Environment.md) |
@@ -231,6 +246,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | gear clanks and both arms fly up every time I load a save | [BodyEquipment](systems/BodyEquipment.md) |
 | gear on the mat jumped to different cells after loading an old save | [Backpack](systems/Backpack.md) |
 | gear placed on the pack is missing after a save and reload | [Backpack](systems/Backpack.md) |
+| gear stowed on an animal vanished when the saddle came off | [AgentSystem](systems/AgentSystem.md) |
+| gear stowed on an animal vanished when the saddle came off | [Saddles](systems/Saddles.md) |
 | gliding into a cliff at full speed costs nothing | [Wingsuit](systems/Wingsuit.md) |
 | half the player is uncoloured while standing in the aperture | [Portals](systems/Portals.md) |
 | high up during the intro descent the skybox still shows ground-level mountains at eye level | [Environment](systems/Environment.md) |
@@ -255,6 +272,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | I fall through the ship's floor or cannot climb the boarding stair | [PlayerShip](systems/PlayerShip.md) |
 | I fixed the mapping mid-session and it is still silent | [audio](systems/audio.md) |
 | I get charged fall damage AND crash damage for one landing | [Wingsuit](systems/Wingsuit.md) |
+| I have an mp3 or wav and need it played by a creature or a prop | [audio](systems/audio.md) |
 | I keep the shelter of a building after walking out of it, or after the chunk unloads | [Visor](systems/Visor.md) |
 | I moved the creature's transform and it snapped back next frame | [Locomotion](systems/Locomotion.md) |
 | I put my backpack down inside the ship and ended up under the ship | [Backpack](systems/Backpack.md) |
@@ -271,6 +289,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | legacy Input.GetKey compiles fine but throws at runtime | [ProjectConfig](systems/ProjectConfig.md) |
 | loading a save does not put the player back inside the cave they were in | [SceneTransitions](systems/SceneTransitions.md) |
 | loading takes a minute or two with several players when it takes seconds alone | [WorldStreaming](systems/WorldStreaming.md) |
+| looking at the saddle always offers to ride, never to take it off | [Saddles](systems/Saddles.md) |
 | looking straight down I see my own chest instead of the floor I am standing on | [PlayerCharacter](systems/PlayerCharacter.md) |
 | loot drops all over again every time I load the world | [AgentSystem](systems/AgentSystem.md) |
 | loot drops or the enrage fires again every time I load the world | [Combat](systems/Combat.md) |
@@ -302,19 +321,26 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | nothing on the pack says where the oxygen bottle is supposed to go | [Backpack](systems/Backpack.md) |
 | nothing on the pack says where the oxygen bottle is supposed to go | [Oxygen](systems/Oxygen.md) |
 | NPCs cannot walk on a rock or mesa I just generated | [TerrainGeneration](systems/TerrainGeneration.md) |
+| one material kept its texture through export and the others silently lost theirs | [ArtPipeline](systems/ArtPipeline.md) |
 | one player walks into a wall where everyone else walks through a portal | [Portals](systems/Portals.md) |
 | one press seated the player in all four ship chairs at once | [Vehicles](systems/Vehicles.md) |
 | one wing opens while the other closes | [Ornithopter](systems/Ornithopter.md) |
 | one worn wing fans outward and the other fans inward | [Ornithopter](systems/Ornithopter.md) |
+| only the skinned parts of the model render inside-out; the rigid props are fine | [ArtPipeline](systems/ArtPipeline.md) |
+| opening the creature's mouth drags its eyes and brow down with the jaw | [ArtPipeline](systems/ArtPipeline.md) |
 | other players do not see the items lying on my pack | [Backpack](systems/Backpack.md) |
+| picking a placed thing up gave back a different item, or nothing | [Placeables](systems/Placeables.md) |
 | picking an item up works for the host and does nothing for a client | [Inventory](systems/Inventory.md) |
 | picking one module on the schematic makes the others impossible to click | [ShipSchematic](systems/ShipSchematic.md) |
+| placing an item did not consume it, or consumed it without placing anything | [Placeables](systems/Placeables.md) |
 | players land inside the wrong team's ship or on top of each other | [GameModes](systems/GameModes.md) |
 | playing straight from a world scene has no items, no audio, no registries | [CoreServices](systems/CoreServices.md) |
 | pointing an empty hand at a receptacle does nothing and says nothing | [Oxygen](systems/Oxygen.md) |
+| pointing at a worn tile on the gear screen lights nothing on the character | [BodyEquipment](systems/BodyEquipment.md) |
 | pressing B or F again during the fly-out kills my own camera for the rest of the session | [Backpack](systems/Backpack.md) |
 | pressing H does nothing at all — no gauges, no bracket, no message-stack change | [Visor](systems/Visor.md) |
 | pressing Play in my own scene bounces through Bootstrap and lands somewhere else | [Scenes](systems/Scenes.md) |
+| pressing Q over a placed object does nothing | [Placeables](systems/Placeables.md) |
 | pulling back on the stick does not climb, or the craft drops like a brick | [Ornithopter](systems/Ornithopter.md) |
 | Q or E does nothing even though a gauntlet is worn | [BodyEquipment](systems/BodyEquipment.md) |
 | re-running a generator script destroyed hand edits that existed only in the .blend | [ArtPipeline](systems/ArtPipeline.md) |
@@ -336,6 +362,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | something invisible shoves me around inside the ship as soon as I step off the middle of the aisle | [PlayerShip](systems/PlayerShip.md) |
 | starting a deathmatch drops me into an empty arena with no bots and no spawns | [GameModes](systems/GameModes.md) |
 | state resets to prefab defaults after I save, quit and load the world | [Persistence](systems/Persistence.md) |
+| stirrup irons or buckles float on the flank with nothing joining them to a strap | [Saddles](systems/Saddles.md) |
 | streaming stops dead — no chunk ever loads or unloads again after one error | [WorldStreaming](systems/WorldStreaming.md) |
 | surface detail I dialled up does not show in the meshed feature | [TerrainGeneration](systems/TerrainGeneration.md) |
 | taking the gauntlet off leaves a light burning on someone's arm | [Flashlight](systems/Flashlight.md) |
@@ -343,6 +370,9 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | Temp/headless_tests.txt never appears and I cannot tell if the run started | [Testing](systems/Testing.md) |
 | text or a panel is tiny on a 4K monitor and normal at 1080p | [UI](systems/UI.md) |
 | the agent just stands there doing nothing and the console is clean | [AgentSystem](systems/AgentSystem.md) |
+| the animal cannot be ridden, or can be ridden with no saddle on it | [AgentSystem](systems/AgentSystem.md) |
+| the animal cannot be ridden, or can be ridden with no saddle on it | [Saddles](systems/Saddles.md) |
+| the animator controller came out with only the clips the model used to have | [ArtPipeline](systems/ArtPipeline.md) |
 | the arm holding the torch drops whenever I pick something up | [Flashlight](systems/Flashlight.md) |
 | the arm stays up after the torch is switched off | [Flashlight](systems/Flashlight.md) |
 | the arrival cutscene plays for the host only | [PlayerShip](systems/PlayerShip.md) |
@@ -351,6 +381,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the arrival log says the ship landed cleanly but it is visibly hanging in the sky | [PlayerShip](systems/PlayerShip.md) |
 | the arrival logs that the heightmap and the colliders disagree about the ground under the ship | [PlayerShip](systems/PlayerShip.md) |
 | the arrival sits on a black screen and never plays | [Cutscenes](systems/Cutscenes.md) |
+| the authored gesture plays but the character barely moves, or waves instead of reaching | [ArtPipeline](systems/ArtPipeline.md) |
 | the back placeholder is edge-on, lying flat, or sits below the shoulders | [BodyEquipment](systems/BodyEquipment.md) |
 | the back slot is clickable all over my body instead of on the pack's bars | [BodyEquipment](systems/BodyEquipment.md) |
 | the ball lightning orb drifts through creatures without ever hurting them | [Combat](systems/Combat.md) |
@@ -362,6 +393,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the bracket and the name land beside what I am pointing at, not on it | [InteractionSystem](systems/InteractionSystem.md) |
 | the bracket frames a whole ship or hull instead of the control under the crosshair | [Visor](systems/Visor.md) |
 | the bracket marks empty air in front of a machine I am aiming at | [Visor](systems/Visor.md) |
+| the builder says the clip is missing from the FBX it just imported | [ArtPipeline](systems/ArtPipeline.md) |
 | the bulb glows while the torch is switched off | [Flashlight](systems/Flashlight.md) |
 | the cabin shakes or the screen comes apart during the descent | [PlayerShip](systems/PlayerShip.md) |
 | the camera cuts instantly to my back instead of swinging | [BodyEquipment](systems/BodyEquipment.md) |
@@ -382,7 +414,10 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the crash cutscene starts seconds earlier on the host than on the client | [Cutscenes](systems/Cutscenes.md) |
 | the crash-landing intro never plays and nobody spawns, with one error in the console | [PlayerShip](systems/PlayerShip.md) |
 | the crash-landing scene goes on too long before I get control | [PlayerShip](systems/PlayerShip.md) |
+| the creature charges without ever telegraphing it | [AgentSystem](systems/AgentSystem.md) |
+| the creature hears the gunshot and targets me but never actually runs | [AgentSystem](systems/AgentSystem.md) |
 | the creature ignores me completely and never attacks anything | [AgentSystem](systems/AgentSystem.md) |
+| the creature pivots on the spot like a turret when it changes direction | [AgentSystem](systems/AgentSystem.md) |
 | the creature stopped walking after I added a LateUpdate to its subclass | [Locomotion](systems/Locomotion.md) |
 | the creature's legs skate instead of walking | [AgentSystem](systems/AgentSystem.md) |
 | the crew stand up out of the wreck able to walk on air, never falling again | [PlayerShip](systems/PlayerShip.md) |
@@ -404,6 +439,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the entry fire is drawn over the inside of the cabin as well as out of the window | [PlayerShip](systems/PlayerShip.md) |
 | the exported FBX is nowhere in the project and nothing imports it | [ArtPipeline](systems/ArtPipeline.md) |
 | the fade to black hangs and the door stays busy | [SceneTransitions](systems/SceneTransitions.md) |
+| the feet swing correctly but the legs above them stay rigid, so the creature skates | [ArtPipeline](systems/ArtPipeline.md) |
 | the feet trail behind the body, or a planted foot slips along the ground | [Locomotion](systems/Locomotion.md) |
 | the first-person camera creeps forward out of the helmet as I look at my feet | [PlayerCharacter](systems/PlayerCharacter.md) |
 | the flashlight or thing I attached to the player is invisible to other players | [PlayerCharacter](systems/PlayerCharacter.md) |
@@ -433,6 +469,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the ground does not appear when I look at it from far away, even though the chunks are loaded | [Environment](systems/Environment.md) |
 | the gun fires at the ground, or at the vehicle, while its holder is mounted | [Combat](systems/Combat.md) |
 | the gun fires but no bullet appears and the ammo never goes down | [Combat](systems/Combat.md) |
+| the hair shreds into floating shards once the animation plays, but is fine in the rest pose | [ArtPipeline](systems/ArtPipeline.md) |
 | the health bar is gone after I pressed H | [Visor](systems/Visor.md) |
 | the highlighted cell on the gear wall is not the one under the crosshair, or its board is bigger than the grid drawn on it | [Backpack](systems/Backpack.md) |
 | the horizon rolls when I bank and it makes me ill | [Wingsuit](systems/Wingsuit.md) |
@@ -473,6 +510,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the NavMesh baker silently skips every chunk / LoadAssetAtPath returns null for a chunk | [Scenes](systems/Scenes.md) |
 | the near edge of the board is cut off the bottom of the frame after I raised the focus camera | [Backpack](systems/Backpack.md) |
 | the new asset is rotated relative to every existing one | [ArtPipeline](systems/ArtPipeline.md) |
+| the object I put in Bootstrap is gone the moment the game starts | [Scenes](systems/Scenes.md) |
 | the orb discharges on the host and on a client at slightly different moments | [Combat](systems/Combat.md) |
 | the orientation fix logs 'saved' for a prefab and then FAILED verification on the same run | [Backpack](systems/Backpack.md) |
 | the oxygen bottle's socket paints red when the bottle is dragged out of the hotbar, and the click turns it instead of placing it | [Backpack](systems/Backpack.md) |
@@ -490,6 +528,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the pack's status lamp is right for me and wrong on the other player's screen | [Backpack](systems/Backpack.md) |
 | the panel draws fine but no button responds to clicks | [UI](systems/UI.md) |
 | the parked ship stands half a metre off its own skirts with nothing under it | [PlayerShip](systems/PlayerShip.md) |
+| the pet prompt appears everywhere on the animal instead of only on its head | [AgentSystem](systems/AgentSystem.md) |
+| the pet prompt never appears no matter where I aim at the creature | [AgentSystem](systems/AgentSystem.md) |
 | the placement ghost flickers between two cells while the cursor rests on a cell border | [Backpack](systems/Backpack.md) |
 | the placement ghost paints green on a face on the other side of the fold and the drop is refused anyway | [Backpack](systems/Backpack.md) |
 | the plant clunks and hisses its way through a reload | [Oxygen](systems/Oxygen.md) |
@@ -501,6 +541,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the player standing on the deck is read as ground and the walker climbs into the sky | [Vehicles](systems/Vehicles.md) |
 | the player teleports and snaps straight back to where they were | [SceneTransitions](systems/SceneTransitions.md) |
 | the player's arms do not move when holding an item, or the rig looks armless | [PlayerCharacter](systems/PlayerCharacter.md) |
+| the player's gesture animation plays but nothing visibly happens | [AgentSystem](systems/AgentSystem.md) |
 | the playOnce cutscene replays after loading a save | [Cutscenes](systems/Cutscenes.md) |
 | the power cell I fitted is gone after loading the world, and the plant is dark again | [Oxygen](systems/Oxygen.md) |
 | the power cell I fitted never appears in the slot, and the one I took out is still standing there | [Oxygen](systems/Oxygen.md) |
@@ -517,6 +558,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the repair station stands in the aft bulkhead, or inside the map projector, after a re-export of the lander | [PlayerShip](systems/PlayerShip.md) |
 | the respawn button is unclickable after dismounting a dead rider | [Vehicles](systems/Vehicles.md) |
 | the rider floats above the saddle on every machine but the host's | [Vehicles](systems/Vehicles.md) |
+| the rider is sunk into the animal up to the chest, or stands on top of the saddle | [Saddles](systems/Saddles.md) |
 | the room is solved by flinging the cell past the socket | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the rope holds a host-ridden animal but is inert against a client-ridden one | [LeashSystem](systems/LeashSystem.md) |
 | the rope hums, or the two ends accelerate together and collide | [LeashSystem](systems/LeashSystem.md) |
@@ -527,6 +569,10 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the rope snaps the instant I try to haul a crate or a dropped item anywhere | [LeashSystem](systems/LeashSystem.md) |
 | the rope tows the player like a grappling hook and launches them | [LeashSystem](systems/LeashSystem.md) |
 | the roster shows the wrong team, team colour or suit for a player | [Lobby](systems/Lobby.md) |
+| the saddle arrives a hundred times too big, or floating beside the animal | [Saddles](systems/Saddles.md) |
+| the saddle is the right size for the world but too small for the animal wearing it | [Saddles](systems/Saddles.md) |
+| the saddle stands off the animal like a shelf instead of lying on it | [Saddles](systems/Saddles.md) |
+| the saddle's straps, skirts or stirrups are sunk inside the animal | [Saddles](systems/Saddles.md) |
 | the salvage sockets forget what has been taken after a reload | [PlayerShip](systems/PlayerShip.md) |
 | the same creature stands in one chunk ten times over after an hour of play, and the copies survive a reload | [Persistence](systems/Persistence.md) |
 | the same item cannot be put in the pack twice | [Backpack](systems/Backpack.md) |
@@ -578,6 +624,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the torch came back on after a reload but the world is still dark for everyone else | [Flashlight](systems/Flashlight.md) |
 | the torch dies at about 40 m and distant terrain stays black | [Flashlight](systems/Flashlight.md) |
 | the torch is off after a load, or a remote player's torch state is wrong | [Flashlight](systems/Flashlight.md) |
+| the torso tile on the gear screen lights up whenever hotbar slot 1 is in my hand | [BodyEquipment](systems/BodyEquipment.md) |
 | the turret or NPC aims its weapon at the host's camera | [Combat](systems/Combat.md) |
 | the two rows of team plates land in the same band of screen and smear together | [Lobby](systems/Lobby.md) |
 | the UI is a different size on different screens, or the versus lobby's names are too small on an ultrawide | [UI](systems/UI.md) |
@@ -589,6 +636,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the visor describes what another player is looking at | [Visor](systems/Visor.md) |
 | the visor is a flat overlay and does not feel like it is drawn on glass | [Visor](systems/Visor.md) |
 | the volume sliders in the settings menu do nothing | [audio](systems/audio.md) |
+| the walk cycle plays but the legs never move, and the clip is full of keyframes | [ArtPipeline](systems/ArtPipeline.md) |
 | the walkability tests are green and I still get caught on something in the cabin | [PlayerShip](systems/PlayerShip.md) |
 | the walker stands frozen and never takes a step, with no error in the console | [Locomotion](systems/Locomotion.md) |
 | the walker stops dead at the rim of a portal it should be able to cross | [Locomotion](systems/Locomotion.md) |
@@ -638,6 +686,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | two sites on the body screen light up at each other's outline thickness | [BodyEquipment](systems/BodyEquipment.md) |
 | typecheck.py prints 'No errors.' but the Editor still shows compile errors | [Testing](systems/Testing.md) |
 | typecheck.py says a type I just added to an asmdef does not exist | [Testing](systems/Testing.md) |
+| using the saddle saddles whatever the host is looking at | [Saddles](systems/Saddles.md) |
 | walking into a portal does nothing and no trigger ever fires | [Portals](systems/Portals.md) |
 | walking through a door bounces the player straight back in | [SceneTransitions](systems/SceneTransitions.md) |
 | which menu item rebuilds this prefab, item, creature or vehicle | [EditorTooling](systems/EditorTooling.md) |
@@ -694,7 +743,9 @@ Longest match wins.
 | `Assets/Game/Scripts/agents/AI/Motors/OrnithopterFlightMotor.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Editor/AssetPipeline/FlashlightGauntletBuilder.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Characters/Player/Equipment/Flashlight.cs` | [Flashlight](systems/Flashlight.md) |
+| `Assets/Game/Scripts/Gameplay/Interaction/Core/IRetrievable.cs` | [Placeables](systems/Placeables.md) |
 | `Assets/Game/Scripts/Items/Backpack/Placement/PackPlacement.cs` | [SupplyCharge](systems/SupplyCharge.md) |
+| `Assets/Game/Scripts/Items/Placeables/Rules/SaddlePlacement.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Art/Animations/UI/Buttons/Menu Button.controller` | [UI](systems/UI.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/wingsuit_worn.py` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Prefabs/VisualEffects/Lighting/Flashlight.prefab` | [Flashlight](systems/Flashlight.md) |
@@ -707,8 +758,11 @@ Longest match wins.
 | `Assets/Game/Art/Models/_Source~/models/gear/strip_bracer.py` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicOrbit.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Items/Backpack/Placement/PackItemKey.cs` | [SupplyCharge](systems/SupplyCharge.md) |
+| `Assets/Game/Scripts/Presentation/UI/Pages/GearRailLayout.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicPick.cs` | [ShipSchematic](systems/ShipSchematic.md) |
+| `Assets/Game/Scripts/agents/Modules/Riding/SaddleRemover.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Editor/Environment/StandingTerminalBuilder.cs` | [Terminal](systems/Terminal.md) |
+| `Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/_wingsuit.py` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Art/Shaders/UI/Terminal/SchematicHull.shader` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Art/Shaders/UI/Terminal/SchematicWire.shader` | [ShipSchematic](systems/ShipSchematic.md) |
@@ -773,6 +827,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Core/Persistence/Adapters/` | [Persistence](systems/Persistence.md) |
 | `Assets/Game/Scripts/Items/Equipped/WornSeat.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/Presentation/UI/HelmetHUD/` | [Visor](systems/Visor.md) |
+| `Assets/Game/Editor/Creatures/SaddleBuilder.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Editor/Items/ItemWorldPresence.cs` | [Inventory](systems/Inventory.md) |
 | `Assets/Game/Editor/Items/OxygenGearBuilder.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters` | [InteractionSystem](systems/InteractionSystem.md) |
@@ -787,6 +842,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/Appearance/` | [PlayerCharacter](systems/PlayerCharacter.md) |
 | `Assets/Game/Scripts/Presentation/UI/Widgets/` | [Lobby](systems/Lobby.md) |
 | `Assets/Game/Scripts/World/Streaming/NavMesh/` | [NavMeshSystem](systems/NavMeshSystem.md) |
+| `Assets/Game/Art/Models/_Source~/models/gear` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Editor/Items/WingsuitBuilder.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Editor/Items/WornGearPreview.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Editor/PlayerGlideLayerSetup.cs` | [Wingsuit](systems/Wingsuit.md) |
@@ -839,6 +895,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Gameplay/Trading` | [InteractionSystem](systems/InteractionSystem.md) |
 | `Assets/Game/Scripts/Gameplay/Versus/` | [GameModes](systems/GameModes.md) |
 | `Assets/Game/Scripts/Items/Body/Focus` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Scripts/Items/Placeables` | [Placeables](systems/Placeables.md) |
 | `Assets/Game/Scripts/Presentation/UI/` | [UI](systems/UI.md) |
 | `Assets/Game/Scripts/World/Streaming/` | [WorldStreaming](systems/WorldStreaming.md) |
 | `Assets/Game/Scripts/agents/Profiles/` | [EntitySystem](systems/EntitySystem.md) |
@@ -902,4 +959,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 628 symptoms, 248 paths, 42 docs -->
+<!-- 677 symptoms, 256 paths, 44 docs -->

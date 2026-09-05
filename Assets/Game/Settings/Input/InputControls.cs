@@ -226,6 +226,15 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Retrieve"",
+                    ""type"": ""Button"",
+                    ""id"": ""0554ff0c-7b28-42bb-ab93-935d0029059c"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -820,6 +829,28 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": ""Gamepad"",
                     ""action"": ""GauntletRight"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e4c2555a-1189-4db9-8240-b29afd0523fa"",
+                    ""path"": ""<Keyboard>/q"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""Retrieve"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f056882e-bc1e-4c78-931b-26f94ee892ab"",
+                    ""path"": ""<Gamepad>/buttonWest"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""Retrieve"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1931,6 +1962,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         m_Player_Backpack = m_Player.FindAction("Backpack", throwIfNotFound: true);
         m_Player_GauntletLeft = m_Player.FindAction("GauntletLeft", throwIfNotFound: true);
         m_Player_GauntletRight = m_Player.FindAction("GauntletRight", throwIfNotFound: true);
+        m_Player_Retrieve = m_Player.FindAction("Retrieve", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -2061,6 +2093,7 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Backpack;
     private readonly InputAction m_Player_GauntletLeft;
     private readonly InputAction m_Player_GauntletRight;
+    private readonly InputAction m_Player_Retrieve;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -2133,6 +2166,10 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @GauntletRight => m_Wrapper.m_Player_GauntletRight;
         /// <summary>
+        /// Provides access to the underlying input action "Player/Retrieve".
+        /// </summary>
+        public InputAction @Retrieve => m_Wrapper.m_Player_Retrieve;
+        /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
         public InputActionMap Get() { return m_Wrapper.m_Player; }
@@ -2203,6 +2240,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @GauntletRight.started += instance.OnGauntletRight;
             @GauntletRight.performed += instance.OnGauntletRight;
             @GauntletRight.canceled += instance.OnGauntletRight;
+            @Retrieve.started += instance.OnRetrieve;
+            @Retrieve.performed += instance.OnRetrieve;
+            @Retrieve.canceled += instance.OnRetrieve;
         }
 
         /// <summary>
@@ -2259,6 +2299,9 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
             @GauntletRight.started -= instance.OnGauntletRight;
             @GauntletRight.performed -= instance.OnGauntletRight;
             @GauntletRight.canceled -= instance.OnGauntletRight;
+            @Retrieve.started -= instance.OnRetrieve;
+            @Retrieve.performed -= instance.OnRetrieve;
+            @Retrieve.canceled -= instance.OnRetrieve;
         }
 
         /// <summary>
@@ -2958,6 +3001,13 @@ public partial class @InputControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnGauntletRight(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Retrieve" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnRetrieve(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.

@@ -339,8 +339,11 @@ namespace SpaceGame.Presentation
             label.alignment = TextAlignmentOptions.TopLeft;
             label.raycastTarget = false;
 
+            // Wide enough for the longest key any tile carries — "SPACE ×2", on the body screen's
+            // torso tile, at ~82 px in this face. It was 60 px while every key was one character,
+            // which wrapped that one onto a second line and clipped it against the 26 px height.
             Anchor(rect, new Vector2(0f, 1f), new Vector2(0f, 1f),
-                   new Vector2(60f, 26f), new Vector2(10f, -8f));
+                   new Vector2(104f, 26f), new Vector2(10f, -8f));
 
             return label;
         }

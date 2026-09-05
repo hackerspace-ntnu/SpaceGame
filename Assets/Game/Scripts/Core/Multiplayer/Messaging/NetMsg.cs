@@ -411,6 +411,32 @@ namespace SpaceGame.Core
         public const ushort Snared     = 88; // server → everyone, on the SHOOTER's relay
         public const ushort SnareFreed = 89; // server → everyone, on the SHOOTER's relay
 
+        // ── Net gun: the captive fighting back ──
+        // "I fought the net, once, just now." The captive's owner → server.
+        //
+        // On the SHOOTER's relay like the two above, and that is the whole subtlety of this id
+        // rather than a detail copied from them. The only listener is SnareReceiver, which lives on
+        // the SHOOTER; NetOn registers a handler against the channel of the entity the listener
+        // sits under, and a relay delivers to the channel of its OWN entity. Sent on the victim's
+        // relay this would arrive at the victim's channel, where nothing is subscribed, and be
+        // dropped in silence on every machine — the host included. The wire itself allows it:
+        // NetRelay's server RPC is InvokePermission.Everyone, so a captive may send on a relay
+        // belonging to the player who shot them, exactly as an attacker sends Damage on their
+        // victim's.
+        //
+        // No magnitude travels, only the fact of one input. The server keeps its own
+        // SnareStruggleMeter per captive, rate-limited by the same MaxUsefulStruggleRate the
+        // captive's own meter uses, so a client fabricating a hundred of these a second is refused
+        // by the server's cooldown and gains nothing over one struggling honestly — the escape is
+        // the server's to decide, never the client's (GDC-L1-MP-0004). The server also checks that
+        // the sender owns the body named in Target, so one player cannot report struggles on
+        // another's behalf and drain a net holding somebody else's captive.
+        //
+        //   Target  the captive who struggled. Which net that is, is the server's to work out —
+        //           naming one on the wire would be a second spoofable field for no gain, since a
+        //           body can only ever be in one net (SnaredBody.Bind refuses a second).
+        public const ushort SnareStruggled = 103; // captive's owner → server, on the SHOOTER's relay
+
         // ── Arrival ──
         // Sent on the SHIP's channel, not the player's. The ship is the thing that has seats, it is
         // a spawned NetworkObject with a relay of its own, and it outlives any one player's seating.
@@ -483,5 +509,32 @@ namespace SpaceGame.Core
         //
         //   Target  the ship that launched, so a versus formation's other hulls are ignored.
         public const ushort ArrivalLaunched = 97; // server → everyone, on the SHIP's relay
+
+        // ── Petting ──
+        // A creature's reaction to being petted is world state, not a local flourish: the other
+        // players are standing there watching it happen. So the press asks, the server decides
+        // (it re-checks the mood — the presser's copy may not have started charging yet), and the
+        // answer goes to everyone including the presser, who has played nothing yet.
+        //
+        // No payload. Which creature it is, is already carried by the relay the message is sent
+        // on, and there is only ever one thing to do to it.
+        public const ushort PetRequest = 98; // player -> server, on the ANIMAL's relay
+        public const ushort Petted     = 99; // server -> everyone, on the ANIMAL's relay
+
+        // ── Saddling ──
+        // Whether an animal is wearing a saddle is one bool of world state, and the saddle itself
+        // is a plain Instantiate on every machine rather than a spawned NetworkObject -- the same
+        // shape as the backpack. So the wire carries the decision, not the object.
+        //
+        // A = 1 to fit, 0 to remove. Target = the player who asked, for the fit; unused coming back.
+        public const ushort SaddleFit = 100; // player -> server, on the ANIMAL's relay
+        public const ushort SaddleSet = 101; // server -> everyone, on the ANIMAL's relay
+
+        /// <summary>
+        /// Player -> server, on the PLACED OBJECT's relay: "I pressed Q on this, give it to me".
+        /// There is no reply id. The server answers by adding the item and despawning the object,
+        /// and the despawn is what every other machine sees.
+        /// </summary>
+        public const ushort RetrieveRequest = 102;
     }
 }

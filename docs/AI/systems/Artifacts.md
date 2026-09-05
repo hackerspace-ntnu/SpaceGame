@@ -21,7 +21,7 @@ symptoms:
   - "a moving part of a held item snaps out of place the moment the item is switched on"
   - "the range rings on the scanner display are ellipses instead of circles"
 reads_with: [Inventory, Lasso, LeashSystem, Portals, Persistence]
-updated: 2026-09-05
+updated: 2026-09-06
 ---
 
 # Artifacts
@@ -107,7 +107,7 @@ Player-held usable items — every gadget, spell, scanner, throwable and hand to
 ## Multiplayer
 
 - **Authority split:** `Server` for shared world state (spawn, damage, consumption); `Owner` when the whole effect is the holder's own body — their transform is owner-authoritative, so a server-applied force is overwritten within a tick, silently.
-- **Messages:** `NetMsg.UseItem` / `ItemUsed` / `UseItemHold` / `ItemUseHeld`, all handled in `EquipmentController`. Artifacts add none of their own except where a subsystem needs a second channel (net gun's `SnareReceiver`).
+- **Messages:** `NetMsg.UseItem` / `ItemUsed` / `UseItemHold` / `ItemUseHeld`, all handled in `EquipmentController`. Artifacts add none of their own except where a subsystem needs a second channel (net gun's `SnareReceiver`, which owns `Snared` / `SnareFreed` / `SnareStruggled` — **all three on the SHOOTER's relay**, including the one the captive sends).
 - **Network prefab list is [Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset](Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset)** — the copy at `Assets/DefaultNetworkPrefabs.asset` is stale and unused. Register: **item prefabs** (dropping routes through `PlayerDropService` → `GameServices.World.Spawn`) and **deployables**. Never register: projectiles, flying arcs, equipped visuals, ropes, nets — those are plain local `Instantiate` from `Present()`.
 - **Seeded determinism** is the standard pattern for anything erratic that every machine must draw identically: the owner rolls one seed into `NetArg.B`, and pure static math derives the rest (`GravelBlastMath`, `DragonRocketFlight`, `NetGunFlight`). The authority bills the same trace the peers draw.
 - **`Network.Simulates(this)` is true everywhere for a held item** — its NetworkObject is dormant (never spawned). Ask the *owner*: `OwnerIsLocal()` on `UsableItem`, `Network.Owns(owner.transform)` in `EffectItem`.
@@ -130,6 +130,7 @@ Player-held usable items — every gadget, spell, scanner, throwable and hand to
 - **Recomputing aim on the receiving machine** → `Camera.main` on the server is the *host's* camera, so every client's shot follows the host's crosshair. Aim only ever travels in `NetArg`.
 - **For a continuous item, send the ray (origin `P` + rotation `R`), not the hit point** — let each machine trace it.
 - **No `holdTimeout` on a held item** → a release is one message and a disconnect sends none, so the beam burns forever. Also record the aim on the `Hold` path: a dedicated server never receives `PresentHold`.
+- **A message is delivered to the channel of the entity whose relay carried it**, so a listener has to sit under that entity. `SnareReceiver` lives on the shooter, so a netted player reporting a struggle sends on the *shooter's* relay, not their own — the same crossing an attacker makes for `NetMsg.Damage`. Sent on the sender's own relay it lands on a channel nobody subscribed to and is dropped with no error, on every machine. `NetRelay`'s server RPC is `InvokePermission.Everyone` precisely so a non-owner may make that crossing.
 - **Missing network prefab entry fails on clients only.** The host instantiates its own copy and never consults the list.
 - **Item asset outside `Assets/Game/Resources/Items/`** never registers (`RegistryLoader` does `Resources.LoadAll<InventoryItem>("Items")`), never shows in the dev browser (`O` in dev mode), and every save slot holding it loads empty. `Assets/Game/ScriptableObjects/Items/` holds unreachable duplicates.
 - **`owner` is null exactly once per equip** if you read it before `OnEquipped` — which is why `OnEquipped` sets it, and why `UsableItem.aimProvider` resolves on demand rather than caching.

@@ -1425,6 +1425,342 @@ namespace SpaceGame.EditorTools
             Assert.IsFalse(net.IsTearing, "the net tore itself out of its own re-registration.");
         }
 
+        // ── The struggle, end to end: keys → wire → the shooter's net ────────
+        //
+        // The seam this section exists for is the one that cannot fail loudly. SnareReceiver lives
+        // on the SHOOTER and the captive is the one with something to say, so the report has to
+        // cross from one player's entity to another's — and a message sent on the wrong relay is
+        // delivered to a channel where nothing is subscribed and dropped without a word. There is
+        // no exception, no warning and no missing frame; the net simply never notices anyone
+        // fighting it. Every test below that registers a handler on the shooter is, among other
+        // things, a test that the report was addressed to the shooter.
+
+        /// <summary>Seconds of net life these tests run, and the tick they run it at.</summary>
+        private const float StruggleSeconds = 5f;
+        private const float StruggleTick = 1f / 60f;
+        private static int StruggleFrames => Mathf.RoundToInt(StruggleSeconds / StruggleTick);
+
+        private int reportsHeard;
+        private GameObject reportedCaptive;
+
+        /// <summary>
+        /// A handler standing in for <see cref="SnareReceiver"/>, so a test can count reports
+        /// without one. A method rather than a lambda because <c>NetHandler</c> takes its argument
+        /// by <c>in</c>.
+        /// </summary>
+        private void CountStruggleReport(in NetArg arg, ulong sender)
+        {
+            reportsHeard++;
+            reportedCaptive = arg.Resolve();
+        }
+
+        /// <summary>A player a net can actually take hold of: tagged, and with a rig that fells.</summary>
+        private GameObject NewNettablePlayer(string name)
+        {
+            GameObject player = NewRagdollBody(name);
+            player.tag = "Player";
+            Woken<PlayerRagdoll>(player);
+            return player;
+        }
+
+        /// <summary>A creature a net can take hold of, by the hobble rather than by felling.</summary>
+        private GameObject NewNettableCreature(string name)
+        {
+            GameObject creature = NewCreature(name);
+            AuthoredAgent(creature);
+
+            // Never woken: SnareCatch.Capture only asks whether one is present, and an AgentController
+            // that had run its Awake would want a motor, a brain and a faction this test has no use for.
+            creature.AddComponent<SpaceGame.Agents.AgentController>();
+            return creature;
+        }
+
+        /// <summary>
+        /// A <see cref="SnareReceiver"/> with its handlers actually registered.
+        ///
+        /// AddComponent does not raise OnEnable outside play mode — one callback along from the
+        /// trap <see cref="Woken{T}"/> exists for — and OnEnable is the only place this component
+        /// subscribes. Left unraised it is a receiver that hears nothing, and a test of the message
+        /// path would pass just as happily against a send that goes nowhere.
+        /// </summary>
+        private static SnareReceiver ListeningReceiver(GameObject shooter)
+        {
+            SnareReceiver receiver = SnareReceiver.Ensure(shooter);
+
+            System.Reflection.MethodInfo onEnable = typeof(SnareReceiver).GetMethod(
+                "OnEnable",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+
+            Assert.IsNotNull(onEnable,
+                "SnareReceiver no longer has an OnEnable to raise, so this helper would hand back " +
+                "a receiver subscribed to nothing and every message test below would be vacuous.");
+
+            onEnable.Invoke(receiver, null);
+            return receiver;
+        }
+
+        /// <summary>A net already holding a fresh player, with the shooter named so reports can be addressed.</summary>
+        private SnareCatch NetHolding(GameObject shooter, out GameObject captive, bool authority = true)
+        {
+            SnareCatch net = FireNet(new Vector3(0f, 1.6f, 0f), Vector3.forward, shooter, authority);
+
+            captive = NewNettablePlayer("Captive");
+
+            Assert.IsTrue(net.Capture(captive),
+                "The net never took the player, so nothing below is measuring a captive at all.");
+
+            return net;
+        }
+
+        [Test]
+        public void AnAcceptedStruggleIsReportedAndARejectedOneIsNot()
+        {
+            // The cooldown IS the throttle on the wire. Reporting a rejected push turns a held key
+            // into a message per frame per netted player — and buys nothing, because the server's
+            // own meter would discard it on arrival anyway.
+            //
+            // The handler is registered on the SHOOTER, which is the second thing under test: the
+            // only listener in the game lives there, so a report addressed to the captive's own
+            // relay arrives at a channel nobody is subscribed to and is dropped in silence.
+            GameObject shooter = NewObject("Shooter");
+            shooter.transform.NetOn(NetMsg.SnareStruggled, CountStruggleReport);
+
+            SnareCatch net = NetHolding(shooter, out GameObject captive);
+            SnaredBody snared = captive.GetComponent<SnaredBody>();
+
+            Assert.IsNotNull(snared, "Capture did not leave a SnaredBody to drive.");
+
+            snared.Step(0f, jumpPressed: true, Vector2.zero);
+
+            Assert.AreEqual(1, reportsHeard,
+                "The first struggle was not reported to the shooter. Either the accepted push " +
+                "sends nothing, or it was sent on the captive's own relay — where SnareReceiver " +
+                "is not, and never will be.");
+            Assert.AreSame(captive, reportedCaptive,
+                "The report named " + (reportedCaptive == null ? "nobody" : reportedCaptive.name) +
+                " rather than the captive, so the server cannot tell whose net to drain.");
+
+            snared.Step(0f, jumpPressed: true, Vector2.zero);
+
+            Assert.AreEqual(1, reportsHeard,
+                "A push inside the cooldown was reported anyway. The meter discarded it, so this " +
+                "is a message the server will discard too — one per frame, per netted player.");
+
+            // Past the cooldown (0.4 s at the authored 2.5 Hz) and it counts again.
+            snared.Step(0.5f, jumpPressed: true, Vector2.zero);
+
+            Assert.AreEqual(2, reportsHeard,
+                "The captive waited out the cooldown and their struggle still went unreported.");
+
+            net.Tear();
+        }
+
+        [Test]
+        public void AnUnheldBodyReportsNothing()
+        {
+            // Belt to the braces on the server's ownership check. Step already refuses to read
+            // input on a machine that does not own the body — this pins that the SEND sits on the
+            // same side of that gate, so a peer watching a captive flail does not report it as
+            // well and bill the shooter's net once per machine in the session.
+            //
+            // Offline every machine owns everything, so what this can actually check is that the
+            // send is downstream of the push rather than beside it: an unbound body reads no input,
+            // pushes nothing, and must therefore say nothing.
+            GameObject shooter = NewObject("Shooter");
+            shooter.transform.NetOn(NetMsg.SnareStruggled, CountStruggleReport);
+
+            SnareCatch net = NetHolding(shooter, out GameObject captive);
+            SnaredBody snared = captive.GetComponent<SnaredBody>();
+
+            snared.Release(net.transform);
+            snared.Step(0f, jumpPressed: true, Vector2.zero);
+
+            Assert.AreEqual(0, reportsHeard,
+                "A player no net is holding reported a struggle. The send is running ahead of the " +
+                "bound check rather than behind the accepted push.");
+        }
+
+        [Test]
+        public void AStrugglingCaptiveDrainsTheNetFasterThanAStillOne()
+        {
+            // The whole point of the feature, measured at the pool rather than at the meter. A
+            // meter that rises and is never billed looks exactly like a working struggle from
+            // everywhere except here.
+            float still = HoldLeftAfter(struggling: false);
+            float fighting = HoldLeftAfter(struggling: true);
+
+            Assert.That(still, Is.GreaterThan(0.7f),
+                $"A captive lying still cost the net {1f - still:P0} of its pool in " +
+                $"{StruggleSeconds:F0} s. One reference captive should cost " +
+                $"{StruggleSeconds / PoolSeconds:P0}, so the baseline is wrong and the comparison " +
+                "below means nothing.");
+
+            Assert.That(fighting, Is.LessThan(still - 0.15f),
+                $"Fighting left {fighting:F3} of the net against {still:F3} for lying still — the " +
+                "struggle is reaching the meter but not the pool. Check that StrugglingMass " +
+                "applies StruggleMultiplier to the player branch.");
+        }
+
+        [Test]
+        public void HammeringTheKeyGainsNothingOverStrugglingAtTheCap()
+        {
+            // GDC-L1-UX-0006, checked where it can actually be violated. The cap has to survive the
+            // trip over the wire: the captive's meter throttles what they send, and the server's
+            // discards anything that arrives too fast anyway. Remove either cooldown and a macro
+            // pins the level at 1 permanently, which is a third off the escape time.
+            GameObject shooter = NewObject("Shooter");
+
+            SnareCatch spammed = NetHolding(shooter, out GameObject spammer);
+            SnareCatch honest = NetHolding(shooter, out GameObject fighter);
+
+            for (int frame = 0; frame < StruggleFrames; frame++)
+            {
+                // Every single frame — sixty a second against an authored cap of two and a half.
+                spammed.Struggled(spammer);
+
+                // Every 21 frames is about 2.86 Hz: over the cap, so the honest player is already
+                // getting everything the cap has to give.
+                if (frame % 21 == 0) honest.Struggled(fighter);
+
+                spammed.Advance(StruggleTick);
+                honest.Advance(StruggleTick);
+            }
+
+            Assert.That(spammed.HoldFraction, Is.EqualTo(honest.HoldFraction).Within(0.05f),
+                $"Hammering left {spammed.HoldFraction:F3} of the net against {honest.HoldFraction:F3} " +
+                "for struggling at the cap. Input rate is buying escape speed, which excludes " +
+                "anyone who cannot spam a key and rewards anyone who binds a macro.");
+
+            spammed.Tear();
+            honest.Tear();
+        }
+
+        [Test]
+        public void ACreaturesDrainIsItsWeightAndNothingElse()
+        {
+            // A creature needs no meter: SnareTether.Mass already scales with what it weighs, and
+            // that IS its struggle. Handing the multiplier to every captive rather than to the
+            // player branch would double-count an animal's fight — and it would do it invisibly,
+            // because a creature that drains too fast just looks like a net that is too weak.
+            GameObject shooter = NewObject("Shooter");
+
+            SnareCatch quiet = FireNet(new Vector3(0f, 1.6f, 0f), Vector3.forward, shooter, true);
+            SnareCatch prodded = FireNet(new Vector3(0f, 1.6f, 0f), Vector3.forward, shooter, true);
+
+            GameObject calm = NewNettableCreature("Calm");
+            GameObject prod = NewNettableCreature("Prodded");
+
+            Assert.IsTrue(quiet.Capture(calm), "The net never took the creature.");
+            Assert.IsTrue(prodded.Capture(prod), "The net never took the creature.");
+
+            for (int frame = 0; frame < StruggleFrames; frame++)
+            {
+                Assert.IsTrue(prodded.Struggled(prod),
+                    "The net denied holding a creature it just caught, so the assertion below " +
+                    "would pass on a call that did nothing whatever.");
+
+                quiet.Advance(StruggleTick);
+                prodded.Advance(StruggleTick);
+            }
+
+            Assert.That(prodded.HoldFraction, Is.EqualTo(quiet.HoldFraction).Within(1e-4f),
+                $"Struggle reports moved a creature's drain, {prodded.HoldFraction:F4} against " +
+                $"{quiet.HoldFraction:F4}. The multiplier belongs to the player branch only.");
+
+            quiet.Tear();
+            prodded.Tear();
+        }
+
+        [Test]
+        public void APeersNetNeitherCountsAStruggleNorSpendsItsOwnPool()
+        {
+            // A peer waits to be told its net has torn. If it drained its own pool it would tear
+            // early and free the captive on one screen while every other machine still holds them
+            // — the exact split-brain the authority flag exists to prevent, and one that never
+            // shows up on a host because the host is always the authority.
+            GameObject shooter = NewObject("Shooter");
+            SnareCatch net = NetHolding(shooter, out GameObject captive, authority: false);
+
+            Assert.IsFalse(net.Struggled(captive),
+                "A net on a machine that does not decide counted a struggle. Only the authority " +
+                "keeps a meter, and only the authority spends the pool.");
+
+            for (int frame = 0; frame < StruggleFrames; frame++)
+            {
+                net.Struggled(captive);
+                net.Advance(StruggleTick);
+            }
+
+            Assert.That(net.HoldFraction, Is.EqualTo(1f).Within(1e-4f),
+                $"A peer's net spent {1f - net.HoldFraction:P0} of its pool on its own. It has no " +
+                "business draining at all, struggle or no struggle.");
+
+            net.Tear();
+        }
+
+        [Test]
+        public void ACaptivesKeysReachTheShooterNetThroughTheReceiver()
+        {
+            // Every piece of the pass at once, because every piece of it is separately capable of
+            // failing in silence: the accepted push, the send on the shooter's relay, the
+            // receiver's handler, the sweep for whichever net holds the body, and the meter the net
+            // bills the pool from. Each of the tests above holds one of those still; this is the
+            // one that would notice if two of them were wired to each other wrongly.
+            float still = HoldLeftAfterPressing(jump: false);
+            float fighting = HoldLeftAfterPressing(jump: true);
+
+            Assert.That(fighting, Is.LessThan(still - 0.15f),
+                $"A captive mashing jump left {fighting:F3} of the net against {still:F3} for one " +
+                "pressing nothing. Somewhere between the key and the pool the report is being " +
+                "dropped, and nothing anywhere logs that it was.");
+        }
+
+        /// <summary>
+        /// A whole net's five seconds, driven from the captive's own keys through the real
+        /// receiver. <paramref name="jump"/> false is the control: the same rig, no input.
+        /// </summary>
+        private float HoldLeftAfterPressing(bool jump)
+        {
+            GameObject shooter = NewObject("Shooter");
+            SnareReceiver receiver = ListeningReceiver(shooter);
+
+            SnareCatch net = NetHolding(shooter, out GameObject captive);
+            receiver.Track(netId: 11, net, catchableLayers: ~0, captureHeight: 2.5f);
+
+            SnaredBody snared = captive.GetComponent<SnaredBody>();
+
+            for (int frame = 0; frame < StruggleFrames; frame++)
+            {
+                snared.Step(StruggleTick, jump, Vector2.zero);
+                net.Advance(StruggleTick);
+            }
+
+            float left = net.HoldFraction;
+            net.Tear();
+            return left;
+        }
+
+        /// <summary>
+        /// A whole net's five seconds with the report shortcut past the wire, so a failure here is
+        /// the drain and not the routing. <paramref name="struggling"/> false is the control.
+        /// </summary>
+        private float HoldLeftAfter(bool struggling)
+        {
+            GameObject shooter = NewObject("Shooter");
+            SnareCatch net = NetHolding(shooter, out GameObject captive);
+
+            for (int frame = 0; frame < StruggleFrames; frame++)
+            {
+                if (struggling) net.Struggled(captive);
+                net.Advance(StruggleTick);
+            }
+
+            float left = net.HoldFraction;
+            net.Tear();
+            return left;
+        }
+
+
         // ── SnareDrape: landing on a body ────────────────────────────────────
 
         [Test]
@@ -1769,14 +2105,19 @@ namespace SpaceGame.EditorTools
             return go;
         }
 
-        private SnareCatch FireNet(Vector3 muzzle, Vector3 aim, GameObject shooter)
+        /// <summary>
+        /// One net in the world. <paramref name="authority"/> false is a PEER's copy — the one that
+        /// draws the net and holds its captives but never decides anything about it.
+        /// </summary>
+        private SnareCatch FireNet(Vector3 muzzle, Vector3 aim, GameObject shooter,
+                                   bool authority = true)
         {
             GameObject go = NewObject("SnareNet");
             go.transform.position = muzzle;
 
             var net = go.AddComponent<SnareCatch>();
             net.Begin(netId: 4242, muzzle, aim, HalfWidth, CordWidth,
-                      NewLattice(), new SnareStruggle(), authority: true, firedBy: shooter);
+                      NewLattice(), new SnareStruggle(), authority, firedBy: shooter);
             return net;
         }
 
@@ -2934,7 +3275,7 @@ namespace SpaceGame.EditorTools
             int update = source.IndexOf("private void Update()", System.StringComparison.Ordinal);
             Assert.Greater(update, -1, path + " lost its Update.");
 
-            int guard = IndexAfter(source, "if (Held) return;", update,
+            int guard = IndexAfter(source, "if (IsHeld) return;", update,
                                    path + ".Update lost its held guard.");
             int budgetRescue = IndexAfter(source, "if (!rig.IsLimp)", update,
                                           path + ".Update lost its budget-eviction rescue.");

@@ -11,17 +11,19 @@
 // ItemState exists because of the same truth. Anything that has to outlive an equip cannot live on
 // the item, so this is the piece that does not.
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Core;
 
 namespace SpaceGame.Items
 {
     /// <summary>
-    /// One shooter's live nets: the registry, the two message handlers, and the landing pass.
+    /// One shooter's live nets: the registry, the three message handlers, and the landing pass.
     ///
     /// <para>
-    /// Both messages carry the net id in <c>A</c>, because <c>B</c> held the flight seed on the way
-    /// out and the two must not collide.
+    /// <c>Snared</c> and <c>SnareFreed</c> carry the net id in <c>A</c>, because <c>B</c> held the
+    /// flight seed on the way out and the two must not collide. <c>SnareStruggled</c> names no net
+    /// at all — see <see cref="OnSnareStruggled"/>.
     /// </para>
     ///
     /// <para>
@@ -200,15 +202,19 @@ namespace SpaceGame.Items
 
         // ── Hearing about a catch ──────────────────────────────────────────────
         //
-        // Both handlers are broadcast to All, the sender included, so both have to be idempotent:
-        // Capture refuses a body the net already holds and Tear refuses a net already rotting. That
-        // is what lets a machine receive a message twice, or receive one it already acted on
-        // locally, and do nothing the second time.
+        // Snared and SnareFreed are broadcast to All, the sender included, so both have to be
+        // idempotent: Capture refuses a body the net already holds and Tear refuses a net already
+        // rotting. That is what lets a machine receive a message twice, or receive one it already
+        // acted on locally, and do nothing the second time.
+        //
+        // SnareStruggled is the exception, deliberately. It reports an EVENT rather than a state,
+        // so it is delivered once, to the server only, and counted once — see OnSnareStruggled.
 
         private void OnEnable()
         {
             this.NetOn(NetMsg.Snared, OnSnared);
             this.NetOn(NetMsg.SnareFreed, OnSnareFreed);
+            this.NetOn(NetMsg.SnareStruggled, OnSnareStruggled);
         }
 
         /// <summary>
@@ -232,6 +238,7 @@ namespace SpaceGame.Items
         {
             this.NetOff(NetMsg.Snared, OnSnared);
             this.NetOff(NetMsg.SnareFreed, OnSnareFreed);
+            this.NetOff(NetMsg.SnareStruggled, OnSnareStruggled);
 
             foreach (Tracked tracked in live.Values)
                 if (tracked.Net != null) tracked.Net.Tear();
@@ -250,6 +257,59 @@ namespace SpaceGame.Items
         {
             if (live.TryGetValue(arg.A, out Tracked tracked) && tracked.Net != null)
                 tracked.Net.Tear();
+        }
+
+        /// <summary>
+        /// A captive of one of this shooter's nets fought it, once.
+        ///
+        /// <para>
+        /// Unlike the two above this is not idempotent and must not be: the whole content of the
+        /// message is that one more input happened, so acting on it twice would count it twice.
+        /// That is what makes it a <c>NetTo.Server</c> message rather than a broadcast — it is
+        /// delivered exactly once, to the one machine that spends the pool.
+        /// </para>
+        /// <para>
+        /// Which net is worked out here rather than named on the wire. A body can only be in one:
+        /// <c>SnaredBody.Bind</c> and <c>SnareTether.Bind</c> both refuse a second net, so
+        /// <c>SnareCatch.Capture</c> never records a captive something else already holds — which
+        /// makes the first net that answers the only one that could have.
+        /// </para>
+        /// </summary>
+        private void OnSnareStruggled(in NetArg arg, ulong sender)
+        {
+            if (!Decides) return;
+
+            GameObject captive = arg.Resolve();
+            if (captive == null || !MayActFor(captive, sender)) return;
+
+            foreach (Tracked tracked in live.Values)
+                if (tracked.Net != null && tracked.Net.Struggled(captive)) return;
+        }
+
+        /// <summary>
+        /// May <paramref name="sender"/> speak for <paramref name="captive"/>?
+        ///
+        /// <para>
+        /// Checked rather than trusted, the same way <c>VehicleStation</c> and
+        /// <c>SeatedRider.OnLeaveSeatRequested</c> check theirs. Without it any client could report
+        /// struggles on any captive's behalf and drain a net holding somebody else's catch, which
+        /// is a way of freeing another player's prize while never being netted at all.
+        /// </para>
+        /// <para>
+        /// The server and unnetworked bodies are not checked: the server speaks for everyone by
+        /// definition, and offline there is only one machine, whose captives have no owner to
+        /// disagree with.
+        /// </para>
+        /// </summary>
+        private static bool MayActFor(GameObject captive, ulong sender)
+        {
+            if (!Network.IsNetworked) return true;
+            if (sender == NetworkManager.ServerClientId) return true;
+
+            NetworkObject body = captive.GetComponent<NetworkObject>();
+            if (body == null || !body.IsSpawned) return true;
+
+            return body.OwnerClientId == sender;
         }
 
         private void Update()

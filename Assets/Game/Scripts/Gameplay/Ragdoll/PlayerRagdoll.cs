@@ -96,7 +96,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         private readonly HashSet<object> holders = new HashSet<object>();
 
         /// <summary>Is anything holding this player down right now?</summary>
-        private bool Held => holders.Count > 0;
+        private bool IsHeld => holders.Count > 0;
 
         private Transform cameraTransform;
         private Transform cameraParent;
@@ -268,8 +268,8 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// <c>RagdollRig.GoLimp</c> returns without a word when the skeleton build kept no bones,
         /// and a caller that assumed otherwise would leave a player suspended with their input
         /// switched off and nothing in the console: the <c>!rig.IsLimp</c> rescue in
-        /// <see cref="Update"/> is skipped while <c>held</c> is set, so nothing else would ever
-        /// pick them back up.
+        /// <see cref="Update"/> is skipped while any claim is still standing, so nothing else would
+        /// ever pick them back up.
         /// </returns>
         public bool HoldDown(object holder)
         {
@@ -278,7 +278,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             // Somebody else already has this body down. Take a claim on it and say so: the work
             // below has been done, and doing it twice would record the suspended state as this
             // body's normal one.
-            if (Held)
+            if (IsHeld)
             {
                 holders.Add(holder);
                 return true;
@@ -323,7 +323,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         public void ReleaseHold(object holder)
         {
             if (holder == null || !holders.Remove(holder)) return;
-            if (Held) return;
+            if (IsHeld) return;
 
             rig.BudgetExempt = false;
 
@@ -340,7 +340,7 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// just as tieable as a netted one, and refusing that would make the two feel like
         /// unrelated systems.
         /// </summary>
-        public bool IsHeldOrDown => Held || (rig != null && rig.IsLimp);
+        public bool IsHeldOrDown => IsHeld || (rig != null && rig.IsLimp);
 
         // ── Getting back up ───────────────────────────────────────────────────
 
@@ -359,7 +359,7 @@ namespace SpaceGame.Gameplay.Ragdoll
             // captive up because a corpse elsewhere took their place in the budget is the exact
             // defect BudgetExempt exists to close. Belt and braces — an exempt rig should never
             // reach it.
-            if (Held) return;
+            if (IsHeld) return;
 
             // Frozen out from under us by RagdollBudget — see AgentRagdoll for the same guard. On a
             // player this one is not cosmetic: leaving it suspended is leaving them unable to move.

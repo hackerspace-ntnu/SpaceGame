@@ -27,6 +27,12 @@ namespace SpaceGame.Items
         [Tooltip("Longest-axis size to draw the worn item at, in metres. 0 keeps the prefab's own scale.")]
         [SerializeField, Min(0f)] private float size;
 
+        [Tooltip("Longest-axis size for the gear screen's model, in metres, when the item has one " +
+                 "(a WornVisual InspectModel child). 0 means it has none, or that the same size " +
+                 "serves. Only the wing pack uses it: stowed in the world at 1.97 m, spread on " +
+                 "the gear screen at 5.51 m, and those are two different models with two spans.")]
+        [SerializeField, Min(0f)] private float inspectSize;
+
         [Tooltip("Ignore the pack's lash rail and sit at localPosition on the bone even when the " +
                  "rig IS shouldered. For gear fitted to the BODY rather than clipped to the pack.")]
         [SerializeField] private bool anchorToBone;
@@ -39,6 +45,21 @@ namespace SpaceGame.Items
         public Vector3 LocalPosition => localPosition;
         public Quaternion LocalRotation => Quaternion.Euler(localEuler);
         public float Size => size;
+
+        /// <summary>
+        /// The size the model showing in <paramref name="form"/> should be drawn at.
+        ///
+        /// <para>
+        /// A second size rather than one, because the gear screen's model is a different object
+        /// with a different span, not the same object seen larger. Sizing both from one number
+        /// would squeeze the wing pack's 5.51 m of spread wing into the 1.97 m the stowed bundle
+        /// measures — which is the same failure as scaling the worn wings by hand: it drags the
+        /// two shoulder pivots off the rail tips they are authored onto. Falls through to
+        /// <see cref="Size"/> at zero, which is every item that has no gear-screen model.
+        /// </para>
+        /// </summary>
+        public float SizeFor(WornVisual.Form form) =>
+            form == WornVisual.Form.Inspected && inspectSize > 0f ? inspectSize : size;
 
         /// <summary>
         /// Whether this item's position is the bone's, not the pack rail's.

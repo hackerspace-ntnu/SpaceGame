@@ -16,13 +16,13 @@ symptoms:
   - "the door opens for the host and stays shut for clients"
   - "right-clicking opens the wrong door on the other machine"
   - "interaction dies silently on the client while the host works fine"
-  - "a door, lever or workstation is back in its authored state after loading a save"
+  - "a door or lever is back in its authored state after loading a save"
   - "the crosshair lights up on a machine's body but the receptacle beside it cannot be aimed at"
   - "the prompt names a component type instead of the thing — 'Pickupable Item', 'Articulated Part'"
   - "the crosshair says nothing at all in front of the ship's inventory wall"
   - "the bracket and the name land beside what I am pointing at, not on it"
-reads_with: [Vehicles, Inventory, Persistence, Oxygen, Visor]
-updated: 2026-09-04
+reads_with: [Vehicles, Inventory, Persistence, Oxygen, Visor, Terminal]
+updated: 2026-09-05
 ---
 
 # Interaction
@@ -71,10 +71,9 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 | --- | --- | --- |
 | `DoorInteraction` | [Interactions/DoorInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/DoorInteraction.cs) | Toggles a `NetLatch`; two leaves swing ±90° from their authored **local** pose. `IsOpen` is read by `SandstormShelter`. |
 | `LeverInteraction` | [Interactions/LeverInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/LeverInteraction.cs) | Swings the handle, fires `onPulled` on **every** machine once per pull. `oneShot` ⇒ one-way latch; `replayOnJoin` decides whether joiners/loads re-run the event. |
-| `RepairWorkstation` | [Interactions/RepairWorkstation.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/RepairWorkstation.cs) | Consumes the selected hotbar slot if it holds `requiredItem`; server `NetworkVariable<int>` progress; accept/reject feedback via `[Rpc(SendTo.Everyone)]`. Refuses when repaired. Two prefabs carry it: the primitive-built [RepairWorkstation.prefab](Assets/Game/Prefabs/Environment/Structures/Facilities/RepairWorkstation.prefab) in the ShipRV's cargo bay, and [RepairStation.prefab](Assets/Game/Prefabs/Environment/Structures/Facilities/RepairStation.prefab) — the modelled bench with a scrap hopper, spindle, lamp and gauge, built by `Tools > SpaceGame > Build Repair Station Prefab` ([RepairStationBuilder](Assets/Game/Editor/Environment/RepairStationBuilder.cs)) and nested on `PlayerShip.prefab` by `PlayerShipBuilder.BuildRepairStation`. Neither prefab has a `NetworkObject` of its own; the ship's carries the RPCs. |
 | `OxygenGeneratorDock` | [Interactions/OxygenGeneratorDock.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGeneratorDock.cs) | Fits or takes back a power cell / an oxygen bottle at one of the ship plant's two receptacles. Owns nothing: `OxygenGenerator` decides, over one `NetworkVariable`. Its collider is a **trigger standing proud of the machine's own body box** — the one arrangement that lets a receptacle inside a solid fixture be aimed at. See [Oxygen.md](Oxygen.md). |
+| `TerminalConsole` | [Terminal/TerminalConsole.cs](Assets/Game/Scripts/Gameplay/Terminal/TerminalConsole.cs) | Opens the standing terminal's zoom-in on the presser's machine and claims the keyboard on the server (`NetworkVariable` operator, `IContextualInteractable` refuses everyone else while it is held). Its pages replicate the same way; the camera does not. On the `StandingTerminal` prefab nested in the lander's cockpit at scale 1. See [Terminal.md](Terminal.md). |
 | `DialogInteraction` | [Interactions/DialogInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/DialogInteraction.cs) | Speaks the next line (sequence / random pool / [`DialogPool`](Assets/Game/Scripts/Gameplay/Interaction/Interactions/DialogPool.cs) / branching Y-N). Contextual: silent while `AgentTargeting`/`ProvocationModule` says it is fighting **you**. Purely local, no netcode. |
-| `ShipInteraction` | [Interactions/ShipInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/ShipInteraction.cs) | Hands the selected scrap to `Ship.AddScrap()`. `Network.Execute` + `InteractServerRpc`. Sound plays on attempt, not outcome. |
 | `HoloProjectorInteraction` | [Interactions/HoloProjectorInteraction.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/HoloProjectorInteraction.cs) | Powers a fixed `MapHologramTerrain` (its `projectorAnchor` mode) on/off via a `NetLatch`. On the `HoloProjector` prefab ([Environment/Structures](Assets/Game/Prefabs/Environment/Structures)), rebuilt by `Tools > SpaceGame > Build Holo Projector Prefab`. Ships nested on `PlayerShip.prefab` (placed by `PlayerShipBuilder.BuildHoloProjector`), where the ship's NetworkObject makes the switch replicate. As a plain chunk prop the latch is local-per-machine — coherent, since the hologram's content (fog of war) is per-viewer anyway. |
 | `InteractableTrigger` | [Triggers/InteractableTrigger.cs](Assets/Game/Scripts/Gameplay/Interaction/Triggers/InteractableTrigger.cs) | Forwards to the `ITriggerable` on the same GameObject. Ungated on purpose (unlike [`VolumeTrigger`](Assets/Game/Scripts/Gameplay/Interaction/Triggers/VolumeTrigger.cs), which is server-only). |
 | `InteractableProxy` | [Triggers/InteractableProxy.cs](Assets/Game/Scripts/Gameplay/Interaction/Triggers/InteractableProxy.cs) | Redirects the same press to an `IInteractable` on another GameObject. Must stay netcode-free. |
@@ -114,7 +113,7 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 | Doors, levers, spaceship launch, map projector | `NetMsg.LatchSet` (63) / `LatchState` (64), `A` = latch index, `B` = verb (−1 ask, 0/1 set, 2/3 instant) | `Network.Simulates(owner)`, re-runs `Accepts` on arrival, idempotent on state |
 | Vehicle stations | `NetMsg.StationClaim` (65) / `StationState` (66) on the vehicle's channel | Server owns the claim table; occupant predicts locally |
 | Articulated parts | `NetMsg.PartToggle` (60) / `PartState` | Server |
-| Workstation, ship scrap, pickups | `[Rpc(SendTo.Server, InvokePermission = Everyone)]` + `InteractorRelay` | Server; feedback re-broadcast `SendTo.Everyone` |
+| Pickups | `[Rpc(SendTo.Server, InvokePermission = Everyone)]` + `InteractorRelay` | Server; feedback re-broadcast `SendTo.Everyone` |
 | Trade | `NetMsg.Trade` (50) for the trader's books only | Server re-checks stock; player's inventory replicates on its own |
 | Dialog, `InteractableProxy`, `DeckBoarding` | none | Local to the presser by design |
 
@@ -127,7 +126,6 @@ ADS that used to hold that button was deleted rather than rebound (see [PlayerCh
 | Door open/shut | [`DoorSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/DoorSaveable.cs) → `RestoreOpen` | `door` |
 | Lever pulled (incl. one-shot spent) | [`LeverSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/LeverSaveable.cs) → `RestorePulled` | `lever` |
 | Oxygen plant: cell fitted, bottle docked | [`OxygenGeneratorSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/OxygenGeneratorSaveable.cs) → `RestoreDock`. Baked into the fixture prefab and collected by the hull's root entity, like the station's | `oxygen` |
-| Scrap progress | [`RepairWorkstationSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/RepairWorkstationSaveable.cs) → `RestoreProgress`. On the lander it is baked into `RepairStation.prefab` and collected by the hull's root entity — see [PlayerShip](PlayerShip.md) Gotchas on nested fixtures | `repair` |
 | Projector powered | [`ProjectorSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/ProjectorSaveable.cs) → `RestorePowered` | `projector` |
 | Trader stock + decline cooldown (remaining seconds, not a deadline) | [`TraderSaveable`](Assets/Game/Scripts/Core/Persistence/Adapters/TraderSaveable.cs) → `RestoreOffers` | `trader` |
 

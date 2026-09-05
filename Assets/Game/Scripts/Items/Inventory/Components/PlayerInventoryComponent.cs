@@ -25,7 +25,7 @@ namespace SpaceGame.Items
             remove => playerInventory.OnSlotChanged -= value;
         }
     
-        public event Action<InventoryItem> OnItemDropped
+        public event Action<InventoryItem, float> OnItemDropped
         {
             add => playerInventory.OnItemDropped += value; 
             remove => playerInventory.OnItemDropped -= value;
@@ -58,6 +58,9 @@ namespace SpaceGame.Items
         }
 
         public bool TryAddItem(InventoryItem item) => playerInventory.TryAddItem(item);
+
+        public bool TryAddItem(InventoryItem item, out int index) =>
+            playerInventory.TryAddItem(item, out index);
 
         public bool TrySetSlot(int index, InventoryItem item)
         {

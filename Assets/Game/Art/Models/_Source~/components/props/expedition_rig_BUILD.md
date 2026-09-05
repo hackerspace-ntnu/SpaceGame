@@ -367,6 +367,22 @@ Triangles: 20,972 -> 25,184 (+4,212, the pouch lofts and roll). 33 meshes.
 
 ## Hand edits after generation
 
+**2026-09-05 — the two SIDE back panels were NARROWED to two cells.** `SURF_Back_L/R` moved
+from x ±0.2993 to **±0.3465** (generator ±0.285 → ±0.330, times the 1.05 stamp) and the rect
+Unity lays on them went from 0.2835 to **0.189 m** wide (3 → 2 cells of 0.0945), so the OUTER
+edge at generator x 0.420 did not move and the inner column — the one against the bottle's
+cradle rings, which sit at x ±0.135 — is the one that went. `Mesh_Rig_BackWebbing_L/R`, whose
+two tapes ARE the rect's edges, moved to the same centre and were scaled in X to **2/3** (tapes
+from local ±0.135 to ±0.090); that replaces the asymmetric hand scales (0.7875 / 0.8577) the
+file carried before, which were a by-hand nudge to clear the cradle. The tapes are proportionally
+thinner for it (a scale, not a rebuild); the generator's `_back_webbing` was updated to the same
+numbers and would draw them at full width on a regenerate. `SURF_Back_C` is untouched at 3 x 6.
+Edited headlessly (`narrow_back_panels.py`, four objects, everything else fingerprint-identical),
+then re-exported. Unity's side: `ExpeditionRigWiring.SurfaceTable`, `PackGrid`'s table, the
+prefab's two `_Rect` corners (size and half-width), and `PackOverhang` made the side panels
+strict in the same change — the narrowing and the overhang cut are one decision: the strips
+beside the bottle held every rectangle in the game and read as having more room than the mat.
+
 **2026-09-03 — the modelled oxygen bottle was DELETED.** `Mesh_Rig_OxygenTank` (216 verts) and
 `Mesh_Rig_OxygenTank_Bands` (432 verts) are gone from the `.blend` and from
 `expedition_rig.py`. They were authored as *"a fixed fitting, not an item — the composition's

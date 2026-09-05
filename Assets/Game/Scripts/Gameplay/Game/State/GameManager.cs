@@ -68,11 +68,12 @@ namespace SpaceGame.Gameplay
         /// </para>
         ///
         /// <para>
-        /// And winning is not this machine's to declare. Scrap is handed over through
-        /// ShipInteraction, which routes every deposit to the server, so a client boarding the ship
-        /// still wins the game for everyone: the decision is simply made on the machine allowed to
-        /// make it and comes back as the scene change below. A client that reached this method
-        /// anyway would load the win scene on its own and abandon a session that is still running.
+        /// And winning is not this machine's to declare, which is why the guard below is here for
+        /// whatever calls this next. NOTHING CALLS IT TODAY: the only caller was the scrap-fed
+        /// <c>Ship</c>, removed with the rest of the scrap system, so the run currently has no way
+        /// to end in a win. Whatever replaces it must route the decision to the server the way that
+        /// deposit did — a client that reached this method would load the win scene on its own and
+        /// abandon a session that is still running.
         /// </para>
         ///
         /// <para>

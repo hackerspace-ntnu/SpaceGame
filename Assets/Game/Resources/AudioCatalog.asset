@@ -889,3 +889,75 @@ MonoBehaviour:
     maxDistance: 35
     volume: 0.55
     note: 'Paint landing on a wall. Shares Slurp.'
+  - id: 1100
+    eventRef:
+      Guid:
+        Data1: -161778425
+        Data2: 1151011309
+        Data3: -584404083
+        Data4: -984381549
+      Path: event:/SFX/Wind
+    cooldown: 0.0
+    maxDistance: 45
+    volume: 0.45
+    note: 'Rope wound over the head. Shares Wind until a real whirl loop is authored.'
+  - id: 1101
+    eventRef:
+      Guid:
+        Data1: 1209704560
+        Data2: 1259274395
+        Data3: -1562606685
+        Data4: 1967096403
+      Path: event:/SFX/Wham
+    cooldown: 0.0
+    maxDistance: 45
+    volume: 0.6
+    note: 'The throw leaving the hand. Shares Wham.'
+  - id: 1102
+    eventRef:
+      Guid:
+        Data1: 568073404
+        Data2: 1232003800
+        Data3: -533523275
+        Data4: -1075932117
+      Path: event:/SFX/Hit
+    cooldown: 0.0
+    maxDistance: 50
+    volume: 0.85
+    note: 'The loop closing and the rope cracking taut - the most legible moment the lasso has.'
+  - id: 1103
+    eventRef:
+      Guid:
+        Data1: 1209704560
+        Data2: 1259274395
+        Data3: -1562606685
+        Data4: 1967096403
+      Path: event:/SFX/Wham
+    cooldown: 0.0
+    maxDistance: 50
+    volume: 0.95
+    note: 'The rope parting under load. Shares Wham; louder than the throw on purpose.'
+  - id: 1104
+    eventRef:
+      Guid:
+        Data1: 1684328206
+        Data2: 1268091554
+        Data3: 34304681
+        Data4: -849877735
+      Path: event:/SFX/Pickup
+    cooldown: 0.0
+    maxDistance: 25
+    volume: 0.5
+    note: 'Rope coiling back into the hand after a miss. Shares Pickup.'
+  - id: 1105
+    eventRef:
+      Guid:
+        Data1: 1785186576
+        Data2: 1245510835
+        Data3: -1836278379
+        Data4: 1511765510
+      Path: event:/SFX/MetalPickup
+    cooldown: 0.0
+    maxDistance: 30
+    volume: 0.7
+    note: 'Catch tied off to a post. Shares MetalPickup.'

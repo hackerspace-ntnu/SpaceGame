@@ -106,8 +106,8 @@ MonoBehaviour:
   correction: 0.35
   maxCorrectionSpeed: 25
   maxCorrectionStep: 0.5
-  breakStretch: 2.5
-  breakTime: 0.35
+  resistSeconds: 2
+  strainDecay: 0.5
   payOutMargin: 0.4
   maxPaidOutLength: 16
   rope:

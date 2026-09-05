@@ -150,10 +150,9 @@ namespace SpaceGame.Tests
         /// <para>
         /// It also LIES DOWN on the mat: the carried prefab's model is turned onto its side, so its
         /// footprint is its length rather than its cross-section. That means no face takes it
-        /// strictly, and whichever face does take it takes it by <see cref="PackOverhang"/> — the
+        /// strictly, and the face that does take it takes it by <see cref="PackOverhang"/> — the
         /// rack carries long gear the way a real pack carries skis, lashed across its width and
-        /// hanging past both ends, and the two back panels take it the way a bedroll rides under a
-        /// lid. Which is the right answer for a pole, and the reason the assertion below asks
+        /// hanging past both ends. Which is the right answer for a pole, and the reason the assertion below asks
         /// <see cref="PackLayout.TryFindSpot"/> rather than comparing cell counts by hand:
         /// TryFindSpot is the code a world pickup actually runs, overhang rule and all, so a bare
         /// count comparison would report a pole as homeless while the game stowed it happily. Which

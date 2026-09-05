@@ -21,7 +21,7 @@ GameObject:
   - component: {fileID: 3752692850920612230}
   - component: {fileID: 8872900383006417191}
   - component: {fileID: 6158014237651090219}
-  - component: {fileID: 7583078818720883660}
+  - component: {fileID: -6076005317497521521}
   m_Layer: 0
   m_Name: OxygenTank
   m_TagString: Untagged
@@ -283,6 +283,7 @@ MonoBehaviour:
   holdSize: 0.9
   packSize: 0.5
   sizeReference: {fileID: 470264427130419699}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &6158014237651090219
 MonoBehaviour:
@@ -305,13 +306,14 @@ MonoBehaviour:
       Data3: 0
       Data4: 0
     Path: 
-  charged: 1
+  kind: 0
+  capacity: 1800
+  startingCharge: 1
   readout: {fileID: 5901222068539788741}
   readoutMaterialIndex: 0
   chargedColour: {r: 0.36, g: 0.95, b: 0.45, a: 1}
   emptyColour: {r: 0.05, g: 0.08, b: 0.06, a: 1}
-  spentVariant: {fileID: 11400000, guid: a5e8fb73dbb66415f9232a516b5c5853, type: 2}
---- !u!114 &7583078818720883660
+--- !u!114 &-6076005317497521521
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

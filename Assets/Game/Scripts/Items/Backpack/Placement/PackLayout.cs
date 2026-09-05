@@ -123,6 +123,35 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
+        /// <see cref="Snap(PackSurfaceId, Vector2, PackShape, Vector2, float)"/> for a hand that
+        /// is already showing the item somewhere on this face: <paramref name="heldUv"/> is the
+        /// snapped uv it is showing, and the item stays there until the cursor has crossed a cell
+        /// boundary by <paramref name="deadbandCells"/> — see
+        /// <see cref="PackGrid.BlockOrigin(Vector2, Vector2, Vector2Int, Vector2Int, float)"/>.
+        ///
+        /// <para>
+        /// Only for the SAME face, shape and turn the held uv was snapped for. The held uv is
+        /// turned back into a cell origin by the same round trip the idempotence note on
+        /// <see cref="PackGrid.Snap"/> guarantees, and that guarantee is about a uv this shape
+        /// produced; a uv from another face or another turn names some cell, but not the one the
+        /// player is looking at, and the caller re-snaps fresh instead.
+        /// </para>
+        /// </summary>
+        public static Vector2 Snap(PackSurfaceId surface, Vector2 surfaceSize, PackShape shape,
+                                   Vector2 uv, float yaw, Vector2 heldUv, float deadbandCells)
+        {
+            PackShape oriented = PackOverhang.Clamp(surface, surfaceSize,
+                                                    shape.Rotated(PackGrid.QuarterTurns(yaw)));
+
+            if (oriented.IsEmpty) return uv;
+
+            Vector2Int held = PackGrid.BlockOrigin(surfaceSize, heldUv, oriented.Size);
+            Vector2Int origin = PackGrid.BlockOrigin(surfaceSize, uv, oriented.Size, held, deadbandCells);
+
+            return PackGrid.BlockCentreUv(surfaceSize, origin, oriented.Size);
+        }
+
+        /// <summary>
         /// The placement whose cells cover a point on a surface — how a click names the thing the
         /// player meant. False on bare canvas, and on the hem, which belongs to no cell.
         /// </summary>
@@ -241,12 +270,14 @@ namespace SpaceGame.Items
 
         /// <summary>Put an item on the pack. False leaves the layout exactly as it was.</summary>
         public bool TryPlace(string itemId, PackSurfaceId surface, Vector2 surfaceSize,
-                             PackShape shape, Vector2 uv, float yaw)
+                             PackShape shape, Vector2 uv, float yaw,
+                             float charge = SupplyCharge.None)
         {
             if (string.IsNullOrEmpty(itemId)) return false;
 
-            // An item is one object. Placing one that is already down is a caller bug, not a
-            // second copy — moving is TryMove's job.
+            // A KEY is one object. Placing one that is already down is a caller bug, not a second
+            // copy — moving is TryMove's job. Two copies of the same ASSET are fine and expected;
+            // they arrive carrying two different PackItemKeys.
             if (IndexOf(itemId) >= 0) return false;
 
             if (!TryResolve(surface, surfaceSize, shape, uv, yaw, out Vector2Int origin, out PackShape oriented))
@@ -254,7 +285,34 @@ namespace SpaceGame.Items
 
             if (Clashes(surface, origin, oriented, null)) return false;
 
-            entries.Add(Seat(itemId, surface, surfaceSize, origin, oriented, yaw));
+            entries.Add(Seat(itemId, surface, surfaceSize, origin, oriented, yaw, charge));
+
+            OnChanged?.Invoke();
+            return true;
+        }
+
+        /// <summary>
+        /// Change how full a placed item is, leaving it exactly where it is. False means the key is
+        /// not on the pack.
+        ///
+        /// <para>
+        /// <b>Raises <see cref="OnChanged"/>, so callers must not use it as a per-frame drain.</b>
+        /// A changed layout republishes the whole contents list to every machine
+        /// (<c>BackpackNetwork</c>), which is right for a placement moving and ruinous for a tank
+        /// emptying at sixty frames a second. The socketed tank is drained on <c>SuitOxygen</c>'s
+        /// own float and written back here only when the whole percent the player reads actually
+        /// changes — see that class.
+        /// </para>
+        /// </summary>
+        public bool SetCharge(string itemId, float charge)
+        {
+            int index = IndexOf(itemId);
+            if (index < 0) return false;
+
+            Entry entry = entries[index];
+            if (Mathf.Approximately(entry.Placement.Charge, charge)) return true;
+
+            entries[index] = new Entry(entry.Placement.WithCharge(charge), entry.Origin, entry.Oriented);
 
             OnChanged?.Invoke();
             return true;
@@ -277,7 +335,11 @@ namespace SpaceGame.Items
             // anything by one cell always fails.
             if (Clashes(surface, origin, oriented, itemId)) return false;
 
-            entries[index] = Seat(itemId, surface, surfaceSize, origin, oriented, yaw);
+            // The charge is carried forward off the entry being replaced. A move is a change of
+            // place and nothing else — reading it back here rather than asking the caller for it
+            // is what stops a drag from emptying a tank.
+            entries[index] = Seat(itemId, surface, surfaceSize, origin, oriented, yaw,
+                                  entries[index].Placement.Charge);
 
             OnChanged?.Invoke();
             return true;
@@ -411,12 +473,13 @@ namespace SpaceGame.Items
 
         /// <summary>The entry an accepted placement becomes: snapped uv, snapped yaw, its cells.</summary>
         private static Entry Seat(string itemId, PackSurfaceId surface, Vector2 surfaceSize,
-                                  Vector2Int origin, PackShape oriented, float yaw)
+                                  Vector2Int origin, PackShape oriented, float yaw, float charge)
         {
             Vector2 snapped = PackGrid.BlockCentreUv(surfaceSize, origin, oriented.Size);
 
             return new Entry(
-                new PackPlacement(itemId, surface, snapped, PackGrid.SnapYaw(yaw)), origin, oriented);
+                new PackPlacement(itemId, surface, snapped, PackGrid.SnapYaw(yaw), charge),
+                origin, oriented);
         }
 
         private bool Clashes(PackSurfaceId surface, Vector2Int origin, PackShape oriented,

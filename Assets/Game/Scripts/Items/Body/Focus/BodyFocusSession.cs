@@ -187,6 +187,19 @@ namespace SpaceGame.Items
             // forward — is the wrong subject in frame. Handed straight back in Exit.
             SetRelaxed(true);
 
+            // And stand the GEAR up, which is the other half of the same idea. The wing pack is
+            // stowed out in the world — folded shut so a walking character is not wearing a
+            // wingspan — and this screen is the one place a player looks at their own back on
+            // purpose, with the camera flown round for it. So here the wings are wings. Every
+            // other item has no second model and is unmoved by this.
+            //
+            // BEFORE the sites are built, and that order is load bearing: a site hides the worn
+            // item by switching its renderers off and holding the list, and a swap afterwards
+            // would strand that list on the model that is no longer showing — leaving the item
+            // invisible for good on this machine, which is the exact failure Exit's comment below
+            // records the pack making once.
+            worn.SetTorsoForm(WornVisual.Form.Inspected);
+
             ReportUnwiredPlaceholders();
 
             // Every anchor comes from the controller's own seams rather than being re-derived
@@ -246,6 +259,13 @@ namespace SpaceGame.Items
             // this machine, until the item is re-worn; the pack made exactly that mistake once.
             foreach (BodySite site in sites) site?.Dispose();
             Array.Clear(sites, 0, sites.Length);
+
+            // After the sites, for the mirror of the reason it goes before them in Enter: their
+            // Dispose puts back the renderers they switched off, and it has to find them on the
+            // model it switched them off on. Unconditional, and safe with nothing worn — this
+            // runs on teardown paths too, and gear left spread would wear a five-metre wingspan
+            // through the world.
+            worn.SetTorsoForm(WornVisual.Form.Worn);
 
             // Only ours, and only while it still is ours: something else may have claimed the
             // override since, and stamping our predecessor over that would leave a second screen

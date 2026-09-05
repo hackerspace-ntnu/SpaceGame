@@ -312,11 +312,11 @@ namespace SpaceGame.Items
         /// </summary>
         public override void OnRequestUse(ref NetArg arg)
         {
-            Transform aim = aimProvider != null ? aimProvider.AimTransform : null;
-            if (aim == null) return;
+            if (aimProvider == null || aimProvider.AimTransform == null) return;
 
-            arg.P = aim.position;
-            arg.R = aim.rotation;
+            Ray aim = aimProvider.GetAimRay();
+            arg.P = aim.origin;
+            arg.R = Quaternion.LookRotation(aim.direction);
         }
 
         /// <summary>
@@ -378,20 +378,18 @@ namespace SpaceGame.Items
         /// <summary>
         /// Owner-side, once per tick: put the aim ray in the message.
         ///
-        /// Read straight off <see cref="AimProvider.AimTransform"/> rather than through
-        /// <see cref="AimProvider.GetRayCast"/>, which logs a warning whenever the ray hits
-        /// nothing. Aiming at open sky is a completely ordinary thing to do with a beam weapon,
-        /// and at fifteen ticks a second it would bury the console.
+        /// The ray itself, not the eye's own forward: mounted, the two are different things — the
+        /// eye is still where the beam leaves from, but the view the player is aiming down is the
+        /// mount's, and a beam that ignored it burned the sand under the craft.
         /// </summary>
         public override void OnRequestHold(ref NetArg arg, bool active)
         {
             if (!active) return;
+            if (aimProvider == null || aimProvider.AimTransform == null) return;
 
-            Transform aim = aimProvider != null ? aimProvider.AimTransform : null;
-            if (aim == null) return;
-
-            arg.P = aim.position;
-            arg.R = aim.rotation;
+            Ray aim = aimProvider.GetAimRay();
+            arg.P = aim.origin;
+            arg.R = Quaternion.LookRotation(aim.direction);
         }
 
         // ── Authority side: the damage ─────────────────────────────────────────
@@ -476,11 +474,11 @@ namespace SpaceGame.Items
         {
             if (OwnerIsLocal())
             {
-                Transform aim = aimProvider != null ? aimProvider.AimTransform : null;
-                if (aim != null)
+                if (aimProvider != null && aimProvider.AimTransform != null)
                 {
-                    _rayOrigin = aim.position;
-                    _rayDirection = aim.forward;
+                    Ray aim = aimProvider.GetAimRay();
+                    _rayOrigin = aim.origin;
+                    _rayDirection = aim.direction;
                 }
 
                 _smoothedDirection = _rayDirection;

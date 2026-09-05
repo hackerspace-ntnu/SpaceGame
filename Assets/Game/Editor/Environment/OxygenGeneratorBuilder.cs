@@ -99,11 +99,10 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
-            var drained = AssetDatabase.LoadAssetAtPath<InventoryItem>(OxygenGearBuilder.DrainedTankAsset);
-            var charged = AssetDatabase.LoadAssetAtPath<InventoryItem>(OxygenGearBuilder.ChargedTankAsset);
-            var cell = AssetDatabase.LoadAssetAtPath<InventoryItem>(OxygenGearBuilder.PowerCellAsset);
+            var tank = AssetDatabase.LoadAssetAtPath<InventoryItem>(OxygenGearBuilder.TankAsset);
+            var battery = AssetDatabase.LoadAssetAtPath<InventoryItem>(OxygenGearBuilder.BatteryAsset);
 
-            if (drained == null || charged == null || cell == null)
+            if (tank == null || battery == null)
             {
                 Debug.LogError("[OxygenGenerator] The supply items are missing — run " +
                                "Tools/SpaceGame/Items/Build Oxygen Gear first. This builder " +
@@ -136,18 +135,18 @@ namespace SpaceGame.EditorTools
                 // The bottle stands straight out of the wall, plugged in base first, gauge down.
                 // MEASURED off the item — see PlugPose for why assuming its up is what broke this
                 // once already.
-                Quaternion tankPose = PlugPose(drained);
+                Quaternion tankPose = PlugPose(tank);
 
-                // The cell lies on its back in the slot with its port toward the wall, which is the
-                // pose it is modelled in — its charging port is on its own -Z and its charge ladder
-                // on its +Z, so the machine's own front direction is the item's, unrotated.
+                // The battery lies on its back in the slot with its port toward the wall, which is
+                // the pose it is modelled in — its charging port is on its own -Z and its charge
+                // ladder on its +Z, so the machine's own front direction is the item's, unrotated.
                 Quaternion cellPose = Quaternion.identity;
 
                 Transform tankSeat = BuildDock(root, body, "TankDock",
-                                               tankMarker.localPosition, tankPose, drained,
+                                               tankMarker.localPosition, tankPose, tank,
                                                OxygenGenerator.DockKind.Tank);
                 Transform cellSeat = BuildDock(root, body, "CellDock",
-                                               cellMarker.localPosition, cellPose, cell,
+                                               cellMarker.localPosition, cellPose, battery,
                                                OxygenGenerator.DockKind.Cell);
                 if (tankSeat == null || cellSeat == null) return;
 
@@ -155,9 +154,8 @@ namespace SpaceGame.EditorTools
 
                 var generator = root.AddComponent<OxygenGenerator>();
                 var so = new SerializedObject(generator);
-                so.FindProperty("drainedTank").objectReferenceValue = drained;
-                so.FindProperty("chargedTank").objectReferenceValue = charged;
-                so.FindProperty("powerCell").objectReferenceValue = cell;
+                so.FindProperty("tankItem").objectReferenceValue = tank;
+                so.FindProperty("batteryItem").objectReferenceValue = battery;
                 so.FindProperty("tankSeat").objectReferenceValue = tankSeat;
                 so.FindProperty("cellSeat").objectReferenceValue = cellSeat;
                 so.FindProperty("fillSeconds").floatValue = FillSeconds;

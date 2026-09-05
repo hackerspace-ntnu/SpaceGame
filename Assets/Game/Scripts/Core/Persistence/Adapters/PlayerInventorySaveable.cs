@@ -177,6 +177,13 @@ namespace SpaceGame.Core.Persistence
             // so bags written first would be wiped by the assignment that follows.
             GearSaveCodec.RestoreStates(Slots(inventory), state["itemStates"] as JArray);
 
+            // The bags have just been written straight onto the server's own slots, behind the back
+            // of the replication path that normally publishes a slot change. Anything in them that
+            // another machine can SEE has to be pushed after the fact, and a tank's charge is the
+            // first such thing — without this a client's restored tank shows its authored starting
+            // charge until the next time that slot happens to change for another reason.
+            inventory.PublishSlotCharges();
+
             // Entries past the bar's width would otherwise vanish inside RestoreSlots, which
             // documents that it drops them: the one silent loss this codec used to allow.
             int size = inventory.GetInventorySize();

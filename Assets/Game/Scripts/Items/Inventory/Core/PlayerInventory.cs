@@ -24,7 +24,7 @@ namespace SpaceGame.Items
             remove => inventory.OnSlotChanged -= value;
         }
     
-        public event Action<InventoryItem> OnItemDropped;
+        public event Action<InventoryItem, float> OnItemDropped;
     
         public PlayerInventory(int size, List<InventoryItem> startingItems = null)
         {
@@ -115,10 +115,14 @@ namespace SpaceGame.Items
             if (slot.IsEmpty) return;
         
             InventoryItem item = slot.Item;
+
+            // Read before the removal, which takes the bag with the item.
+            float charge = SupplyCharge.Read(slot.State);
+
             inventory.TryRemoveItem(slotIndex);
             if (SelectedSlotIndex == slotIndex)
                 SelectSlot(-1);
-            OnItemDropped?.Invoke(item);
+            OnItemDropped?.Invoke(item, charge);
         }
 
         public InventorySlot GetSlot(int index) => inventory.GetSlot(index);

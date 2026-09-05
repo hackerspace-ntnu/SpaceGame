@@ -75,6 +75,8 @@ namespace SpaceGame.Core
 
             yield return FitShipPartsAsHost();
 
+            yield return WatchTerminalAsHost();
+
             yield return FireNetGunAtQuarry();
 
             yield return WearGrappleOnRightArm();

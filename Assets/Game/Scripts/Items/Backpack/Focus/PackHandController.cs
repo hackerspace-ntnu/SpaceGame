@@ -72,6 +72,21 @@ namespace SpaceGame.Items
         private const float DeniedFlashSeconds = 0.3f;
 
         /// <summary>
+        /// How far past a cell boundary, in cells, the cursor has to move before the carried item
+        /// steps over to the next cell.
+        ///
+        /// <para>
+        /// A cursor on the seam between two cells re-rounded every frame — the focus camera's
+        /// cursor parallax alone moves the hit point by a hair — so the ghost flickered between
+        /// two spots. A quarter of a cell is 24 mm on the rig: small enough that the item still
+        /// visibly follows the cursor, large enough that no parallax or hand tremor crosses it.
+        /// It must stay under half a cell, or a cursor centred in the next cell would not move
+        /// the item — see <see cref="PackGrid.BlockOrigin(Vector2, Vector2, Vector2Int, Vector2Int, float)"/>.
+        /// </para>
+        /// </summary>
+        private const float SnapDeadbandCells = 0.25f;
+
+        /// <summary>
         /// Metres along the cursor ray the carried copy sits when the ray misses the pack's
         /// horizontal plane entirely — cursor on the sky, or a ray running parallel to the
         /// ground. Roughly the rig's own distance from the focus camera, so the copy neither
@@ -123,6 +138,18 @@ namespace SpaceGame.Items
 
         private bool carrying;
         private InventoryItem heldItem;
+
+        /// <summary>
+        /// The <see cref="PackItemKey"/> of the copy in the hand, for a lift off the MAT. Null for
+        /// a hotbar lift, which has no placement of its own.
+        ///
+        /// <para>
+        /// Kept beside <see cref="heldItem"/> rather than derived from it, because a container can
+        /// hold two of the same asset: the asset alone no longer says WHICH copy is in the hand,
+        /// and every legality test that has to ignore the carried item ignores it by key.
+        /// </para>
+        /// </summary>
+        private string heldKey;
 
         /// <summary>Where the held item came from, and therefore what putting it down means.</summary>
         private enum HandSource
@@ -180,6 +207,15 @@ namespace SpaceGame.Items
         private PackSurface targetSurface;
         private Vector2 targetUv;
 
+        /// <summary>
+        /// Is <see cref="targetUv"/> a cell the carried item is currently being SHOWN on, for the
+        /// shape and turn it is being shown at? While it is, the next snap holds that cell until
+        /// the cursor is <see cref="SnapDeadbandCells"/> past its boundary. Cleared whenever the
+        /// shown cell stops meaning anything: the cursor leaves the faces, or the item turns.
+        /// A change of face is caught by comparing <see cref="targetSurface"/> instead.
+        /// </summary>
+        private bool snapHeld;
+
         /// <summary>Is the cursor on one of the rig's faces at all this frame?</summary>
         private bool overSurface;
 
@@ -213,6 +249,14 @@ namespace SpaceGame.Items
 
         private InventoryItem hintItem;
         private string hintText;
+
+        /// <summary>
+        /// The charge the cached hint was built for, so a tank whose gauge has moved gets a fresh
+        /// label. Quantised to the whole percent the label SHOWS: caching on the raw float would
+        /// rebuild the string every frame the socketed tank drains, which is the allocation the
+        /// cache exists to avoid.
+        /// </summary>
+        private int hintCharge = -1;
 
         private int slotHintIndex = -1;
         private string slotHintText;
@@ -338,7 +382,7 @@ namespace SpaceGame.Items
             if (pack == null || heldItem == null) return false;
 
             return pack.TryFindAt(originSurface, originGrab, out PackPlacement placement)
-                   && placement.ItemId == heldItem.ID;
+                   && placement.ItemId == heldKey;
         }
 
         private void OnDestroy()
@@ -432,6 +476,7 @@ namespace SpaceGame.Items
             RestoreOrigin();
 
             heldItem = null;
+            heldKey = null;
             originSurface = default;
             originGrab = Vector2.zero;
             originSlot = -1;
@@ -572,7 +617,7 @@ namespace SpaceGame.Items
 
             visuals.SetHovered(visual);
 
-            visuals.ShowName(HoverHint(item), PackPointer.CursorPosition);
+            visuals.ShowName(HoverHint(item, placement.Charge), PackPointer.CursorPosition);
 
             if (mouse == null || overBar) return;
 
@@ -727,13 +772,9 @@ namespace SpaceGame.Items
             BackpackObject pack = Pack;
             if (pack == null || interactor == null) return false;
 
-            // The layout is keyed by id, so this asset already lying on the mat is going to be
-            // refused wherever the player tries to put it down. Refusing the lift is honest about
-            // that up front; the alternative is an item in hand with no legal cell anywhere.
-            if (pack.Holds(item.ID)) return false;
-
             carrying = true;
             heldItem = item;
+            heldKey = null;
             heldFrom = HandSource.Hotbar;
             originSlot = slotIndex;
 
@@ -813,6 +854,7 @@ namespace SpaceGame.Items
 
             carrying = true;
             heldItem = item;
+            heldKey = placement.ItemId;
             heldFrom = HandSource.Pack;
             originSlot = -1;
 
@@ -830,9 +872,12 @@ namespace SpaceGame.Items
             targetUv = placement.Uv;
 
             // The lift happened ON a face, so that is the state until the first UpdateCarry says
-            // otherwise — and the item is trivially legal where it already is.
+            // otherwise — and the item is trivially legal where it already is. Its own cells are
+            // the held ones, so a click a little off its centre does not step it over a cell on
+            // the first carried frame.
             overSurface = true;
             placementLegal = true;
+            snapHeld = true;
 
             if (cellGrid != null) cellGrid.MarkDirty();
 
@@ -888,12 +933,18 @@ namespace SpaceGame.Items
 
             if (overMat)
             {
-                targetSurface = surface;
-
                 // Grid-snapped and NOTHING else. The item goes exactly where the cursor is
                 // pointing, at exactly the turn it is being shown at, and the only question left
-                // is whether that is legal — which is what the cells answer.
-                targetUv = PackLayout.Snap(surface.Id, surface.Size, shape, uv, yaw);
+                // is whether that is legal — which is what the cells answer. The one concession
+                // is a dead zone at the cell boundary: on the face it is already shown on, the
+                // item keeps its cell until the cursor is well across the seam, so a cursor
+                // resting on the seam does not flicker it between the two.
+                targetUv = snapHeld && targetSurface == surface
+                    ? PackLayout.Snap(surface.Id, surface.Size, shape, uv, yaw, targetUv, SnapDeadbandCells)
+                    : PackLayout.Snap(surface.Id, surface.Size, shape, uv, yaw);
+
+                targetSurface = surface;
+                snapHeld = true;
 
                 // The face's own refusal, asked first: the ghost has to paint red where the drop
                 // will refuse, or the player watches green cells do nothing. Asked of the ASSET
@@ -907,6 +958,10 @@ namespace SpaceGame.Items
             else
             {
                 placementLegal = false;
+
+                // Off the faces there is no shown cell to hold; the next face the cursor reaches
+                // gets a fresh snap.
+                snapHeld = false;
             }
 
             InventoryUI.SetDropTarget(hoveredSlot);
@@ -1071,6 +1126,9 @@ namespace SpaceGame.Items
             }
 
             yaw = PackGrid.SnapYaw(Mathf.Repeat(yaw + YawPerNotch, 360f));
+
+            // The shown cell was for the old turn; a turned shape re-snaps fresh from the cursor.
+            snapHeld = false;
         }
 
         /// <summary>
@@ -1228,18 +1286,32 @@ namespace SpaceGame.Items
         /// </para>
         /// </summary>
         private string HeldItemId() =>
-            heldFrom == HandSource.Pack && heldItem != null ? heldItem.ID : null;
+            heldFrom == HandSource.Pack ? heldKey : null;
 
-        /// <summary>The label for the item under the cursor, built once per item rather than once
-        /// per frame — see the cached-label note on the fields.</summary>
-        private string HoverHint(InventoryItem item)
+        /// <summary>
+        /// The label for the item under the cursor, built once per item rather than once per frame
+        /// — see the cached-label note on the fields.
+        ///
+        /// <para>
+        /// A reservoir says how full it is. The mat is the only place a carried tank has no readout
+        /// of its own at all: the visor gauge shows the one in the SOCKET, the plant's reticle box
+        /// shows the one docked in it, and neither answers "which of the two spares on my mat is
+        /// fuller" — which is the question the whole swap-under-pressure loop turns on.
+        /// </para>
+        /// </summary>
+        private string HoverHint(InventoryItem item, float charge)
         {
             if (item == null) return null;
 
-            if (item != hintItem)
+            int percent = charge >= 0f ? Mathf.RoundToInt(Mathf.Clamp01(charge) * 100f) : -1;
+
+            if (item != hintItem || percent != hintCharge)
             {
                 hintItem = item;
-                hintText = item.itemName + "   (click to pick up)";
+                hintCharge = percent;
+
+                string fill = percent >= 0f ? "   " + SupplyCharge.Describe(charge) : string.Empty;
+                hintText = item.itemName + fill + "   (click to pick up)";
             }
 
             return hintText;
@@ -1273,6 +1345,9 @@ namespace SpaceGame.Items
             if (!carrying) return;
 
             yaw = PackGrid.SnapYaw(Mathf.Repeat(yaw + notches * YawPerNotch, 360f));
+
+            // As in Turn: the shown cell belonged to the old turn.
+            snapHeld = false;
         }
 
         // ── Carrying off the faces ───────────────────────────────────────────

@@ -115,12 +115,15 @@ namespace SpaceGame.Items
         {
             Transform bore = muzzle != null ? muzzle : transform;
 
-            // AimTransform rather than GetAimRay: it is the null-checked one, and an item can be
-            // held by something with no camera behind it.
-            Transform aim = aimProvider != null ? aimProvider.AimTransform : null;
+            // The bore fires PARALLEL to the aim, from its own position — see above for why this
+            // one deliberately does not converge. Parallel to the aim RAY, though, not to the eye's
+            // own forward: mounted, the eye is pitched with the seat and points at the floor.
+            bool aimed = aimProvider != null && aimProvider.AimTransform != null;
 
             arg.P = bore.position;
-            arg.R = aim != null ? aim.rotation : bore.rotation;
+            arg.R = aimed
+                ? Quaternion.LookRotation(aimProvider.GetAimRay().direction)
+                : bore.rotation;
 
             // One seed, rolled by the owner, so the scatter on the flight is the same everywhere.
             // The same trick the Gravel Blaster uses to make one shot's spread agree across

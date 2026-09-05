@@ -85,8 +85,9 @@ namespace SpaceGame.EditorTools
         /// </para>
         /// </summary>
         // Overhang: the rack additionally lets items LONGER than its 9-cell u span hang past both
-        // ends ski-fashion, and the two back panels — the smallest wired faces — allow it on BOTH
-        // axes, bedroll-fashion. See PackOverhang for the rule and its limits.
+        // ends ski-fashion. It is the ONLY face that does — the two side back panels allowed it on
+        // both axes until 2026-09-05, which let every rectangle in the game clamp onto them. See
+        // PackOverhang for the rule and its limits.
         //
         // DEEPENED 2026-08-25 by the .blend's `LEAF_EXTRA` (0.30 m at the board's leading edge,
         // 0.20 m before the enlargement), after ItemScaleLadder roughly doubled the gear. These
@@ -99,6 +100,11 @@ namespace SpaceGame.EditorTools
         // fills each face edge to edge with zero hem. The model's stitching and webbing pitch was
         // re-drawn onto the same cell boundaries in the same pass, so resizing a row here without
         // moving the .blend's decoration un-aligns the two.
+        //
+        // NARROWED 2026-09-05: the two SIDE back panels went from 3 x 6 to 2 x 6 cells, losing
+        // their inner column — the one against the bottle's cradle — and the .blend's webbing
+        // ladders and `SURF_Back_L/R` empties moved outward with them so the tapes still sit on
+        // the rect's edges. The socket between them is still 3 x 6.
         //
         // SCALED by PackScale.Factor, with the cell and the .blend — 1.5 on 2026-09-01, then 1.05
         // on 2026-09-02 when the 1.5 rig came out too big to wear. The CELL COUNTS above are
@@ -114,11 +120,12 @@ namespace SpaceGame.EditorTools
             ("SURF_Leaf",      PackSurfaceId.Leaf,           new Vector2(0.756f,  0.756f)),
             ("SURF_LongGoods", PackSurfaceId.LongGoods,      new Vector2(1.701f,  0.0945f)),
             ("SURF_Rack",      PackSurfaceId.Rack,           new Vector2(0.8505f, 0.8505f)),
-            ("SURF_Back_L",    PackSurfaceId.BackPanelLeft,  new Vector2(0.2835f, 0.567f)),
-            ("SURF_Back_R",    PackSurfaceId.BackPanelRight, new Vector2(0.2835f, 0.567f)),
-            // The strip between those two, where the modelled bottle used to be bolted. The same
-            // 3 x 6 cells as its neighbours by construction, not by coincidence: it is their row
-            // with x zeroed, and the panels' inner edges leave it 15 mm of clearance each side.
+            ("SURF_Back_L",    PackSurfaceId.BackPanelLeft,  new Vector2(0.189f,  0.567f)),
+            ("SURF_Back_R",    PackSurfaceId.BackPanelRight, new Vector2(0.189f,  0.567f)),
+            // The strip between those two, where the modelled bottle used to be bolted: 3 x 6
+            // cells, one column wider than the two side panels, on the pack's centre line. The
+            // side panels' inner edges leave it 110 mm of clearance each side, room for the
+            // bottle's cradle rings.
             ("SURF_Back_C",    PackSurfaceId.BackPanelCentre, new Vector2(0.2835f, 0.567f)),
             ("SURF_Wing_L",    PackSurfaceId.WingLeft,       new Vector2(0.378f,  0.6615f)),
             ("SURF_Wing_R",    PackSurfaceId.WingRight,      new Vector2(0.378f,  0.6615f)),
@@ -168,12 +175,30 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private static readonly string[] CentreBackAccepts =
         {
+            // ONE entry since 2026-09-04. There used to be two, because a tank's charge was its
+            // item identity and the socket had to take a full one and an empty one; the charge is
+            // a number on the instance now, so there is one tank asset at every fill level.
             "Assets/Game/Resources/Items/Supplies/OxygenTank.asset",
-            "Assets/Game/Resources/Items/Supplies/OxygenTankEmpty.asset",
         };
 
         // The marker the breathing hose leaves the manifold from, and the component that draws it.
         private const string HoseOutletNode = "Marker_Rig_HoseOutlet";
+
+        /// <summary>
+        /// The two status lamps on the valve block, as they are named in the `.blend`. Both meshes
+        /// sit at the SAME point and the same size — one lamp housing, two possible colours — which
+        /// is only legible because <see cref="PackSocketLamp"/> shows exactly one of them; left to
+        /// themselves they z-fight.
+        ///
+        /// <para>
+        /// Hand-modelled names, so they do not follow the generator's <c>Mesh_Rig_</c> convention
+        /// and the red one carries Blender's duplicate suffix. Renaming them in the `.blend` is
+        /// safe and would be tidier; until then these two strings are the only place that knows.
+        /// </para>
+        /// </summary>
+        private const string SuppliedLampNode = "green_light";
+
+        private const string StarvedLampNode = "red_light.001";
 
         private static readonly (string node, BackpackHingePart part, Vector3 axis, float fold)[] HingeTable =
         {
@@ -610,6 +635,7 @@ namespace SpaceGame.EditorTools
                 }
 
                 AttachHose(rig.transform, pack, log);
+                AttachSocketLamps(rig.transform, pack, log);
 
                 var hinges = new List<(Transform pivot, BackpackHingePart part, Vector3 axis, float fold)>();
 
@@ -1011,6 +1037,20 @@ namespace SpaceGame.EditorTools
                                 problems.Add($"the hose's '{field}' is null, so it draws nothing.");
                     }
 
+                    // Same shape of silence as the hose: a lamp whose renderer did not survive the
+                    // save leaves the other one lit forever, which reads as a definite answer.
+                    var lamps = rig.GetComponentsInChildren<PackSocketLamp>(true);
+                    if (lamps.Length != 1)
+                        problems.Add($"the saved rig has {lamps.Length} socket lamps, expected 1.");
+                    else
+                    {
+                        var lampSo = new SerializedObject(lamps[0]);
+                        foreach (string field in new[] { "container", "suppliedLamp", "starvedLamp" })
+                            if (lampSo.FindProperty(field).objectReferenceValue == null)
+                                problems.Add($"the socket lamp's '{field}' is null, so the pack " +
+                                             "cannot say whether it is supplying air.");
+                    }
+
                     SerializedProperty hinges = so.FindProperty("hinges");
                     int hinged = hinges != null ? hinges.arraySize : 0;
                     if (hinged != HingeTable.Length)
@@ -1140,6 +1180,53 @@ namespace SpaceGame.EditorTools
 
             log.Append("  HOSE     drawn from ").Append(HoseOutletNode).Append(" to whatever is in ")
                .Append(PackSurfaceId.BackPanelCentre).Append(".\n");
+        }
+
+        /// <summary>
+        /// Wire the valve block's two status lamps to the socket, so the pack says from the outside
+        /// whether it is actually supplying air.
+        ///
+        /// <para>
+        /// The component goes on the RIG ROOT rather than on either lamp: it owns both of them, and
+        /// hanging it off one would make that one's mesh load-bearing for the other's visibility.
+        /// </para>
+        /// <para>
+        /// Reported the way the hose is, and checked in the verify pass for the same reason: a lamp
+        /// that quietly failed to bind leaves the OTHER one lit forever, and a lamp stuck on reads
+        /// as a definite answer rather than as a fault. <see cref="PackSocketLamp"/> tolerates a
+        /// null renderer at runtime — right there, useless as a wiring report.
+        /// </para>
+        /// </summary>
+        private static void AttachSocketLamps(Transform rig, PackContainer pack, StringBuilder log)
+        {
+            Transform supplied = FindDeep(rig, SuppliedLampNode);
+            Transform starved = FindDeep(rig, StarvedLampNode);
+
+            if (supplied == null || starved == null)
+            {
+                log.Append("  MISSING  no '")
+                   .Append(supplied == null ? SuppliedLampNode : StarvedLampNode)
+                   .Append("' in ").Append(RigFbx)
+                   .Append(", so the pack cannot show whether it is supplying air.\n");
+                return;
+            }
+
+            var lamp = rig.GetComponent<PackSocketLamp>();
+            if (lamp == null) lamp = rig.gameObject.AddComponent<PackSocketLamp>();
+
+            var so = new SerializedObject(lamp);
+            SetObject(so, "container", pack, log);
+            SetEnum(so, "kind", (int)SupplyKind.Oxygen, log);
+            SetObject(so, "suppliedLamp", supplied.GetComponent<Renderer>(), log);
+            SetObject(so, "starvedLamp", starved.GetComponent<Renderer>(), log);
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            lamp.Refresh();
+
+            log.Append("  LAMPS    '").Append(SuppliedLampNode).Append("' lit while ")
+               .Append(PackSurfaceId.BackPanelCentre)
+               .Append(" holds a tank with air in it, '").Append(StarvedLampNode)
+               .Append("' otherwise.\n");
         }
 
         /// <summary>

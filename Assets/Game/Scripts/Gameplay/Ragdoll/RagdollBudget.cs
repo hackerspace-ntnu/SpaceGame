@@ -65,6 +65,47 @@ namespace SpaceGame.Gameplay.Ragdoll
             }
         }
 
+        /// <summary>What the eviction scan does with one candidate.</summary>
+        public enum Verdict
+        {
+            /// <summary>Not a candidate at all: it is the rig that just registered, or it is held.</summary>
+            Skip,
+
+            /// <summary>Evictable but still moving. Worth taking only if nothing better turns up.</summary>
+            Consider,
+
+            /// <summary>Evictable and already at rest. Take this one.</summary>
+            Take
+        }
+
+        /// <summary>
+        /// What to do with one candidate, as a function of nothing but its three facts.
+        ///
+        /// <para>
+        /// Pulled out of the loop because the interesting mistakes live in how these three combine,
+        /// and inside the loop they were unreachable from a test: every rig a scene-free test can
+        /// build is unbuilt, and an unbuilt rig reports <c>IsSettled</c> true off <c>!IsLimp</c>, so
+        /// the <see cref="Verdict.Consider"/> branch could never be entered. That left the exemption
+        /// testable only in combination with settling — and <c>settled &amp;&amp; !exempt</c> reads
+        /// like a correct guard while quietly evicting a captive whenever nothing in the budget has
+        /// come to rest yet. Which is a fresh blast: the one case the budget exists for.
+        /// </para>
+        /// <para>
+        /// Exemption outranks settling, and that is the whole point. A held body is not a worse
+        /// candidate than a moving one, it is not a candidate.
+        /// </para>
+        /// <para>
+        /// Public for the EditMode tests, which compile into Assembly-CSharp-Editor and cannot see
+        /// internals here — the same reason <c>SnareCatch.Advance</c> is public.
+        /// </para>
+        /// </summary>
+        public static Verdict Judge(bool excluded, bool exempt, bool settled)
+        {
+            if (excluded || exempt) return Verdict.Skip;
+
+            return settled ? Verdict.Take : Verdict.Consider;
+        }
+
         /// <summary>
         /// The oldest body that has already come to rest, or failing that the oldest body at all.
         ///
@@ -86,11 +127,27 @@ namespace SpaceGame.Gameplay.Ragdoll
         {
             int fallback = -1;
 
+            // A held body is somebody's captive, not a corpse — see RagdollRig.BudgetExempt. It is
+            // stepped OVER rather than bailed on, so the scan goes on to the next evictable body:
+            // one captive must not suspend the whole budget. Judge holds that rule; this loop only
+            // walks the list and remembers the oldest Consider.
+            //
+            // IsSettled is read for every candidate now, including ones Judge will skip. That is a
+            // handful of extra bone reads at the moment a body goes limp — this runs from Register,
+            // once per limp, not per frame — bought in exchange for a decision a test can reach.
             for (int i = 0; i < live.Count; i++)
             {
-                if (live[i] == null || live[i] == exclude) continue;
-                if (live[i].IsSettled) return i;
-                if (fallback < 0) fallback = i;
+                if (live[i] == null) continue;
+
+                switch (Judge(live[i] == exclude, live[i].BudgetExempt, live[i].IsSettled))
+                {
+                    case Verdict.Take:
+                        return i;
+
+                    case Verdict.Consider:
+                        if (fallback < 0) fallback = i;
+                        break;
+                }
             }
 
             return fallback;
@@ -104,5 +161,8 @@ namespace SpaceGame.Gameplay.Ragdoll
 
         /// <summary>How many bodies are limp right now. For diagnostics.</summary>
         public static int LiveCount => live.Count;
+
+        /// <summary>Is this rig still holding a place? For tests and diagnostics.</summary>
+        public static bool IsLive(RagdollRig rig) => rig != null && live.Contains(rig);
     }
 }

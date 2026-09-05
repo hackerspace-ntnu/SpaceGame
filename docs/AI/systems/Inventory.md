@@ -26,7 +26,7 @@ symptoms:
   - "I cannot get the crosshair onto a small item lying on the ship's floor"
   - "a dropped item is buried up to its middle in the ground"
 reads_with: [Artifacts, Backpack, BodyEquipment, Persistence, Combat, Oxygen]
-updated: 2026-09-03
+updated: 2026-09-05
 ---
 
 # Items & Inventory core
@@ -65,6 +65,8 @@ Hotbar slots holding `InventoryItem` assets, the hand socket that seats a fresh 
 | `DisplayCopy` | [Equipped/DisplayCopy.cs](Assets/Game/Scripts/Items/Equipped/DisplayCopy.cs) | Staged instantiate + `Strip`: the inert, script-free, collider-free copy every surface and ghost draws instead of a live item. Never an item — see [Backpack.md](Backpack.md) |
 | `HoldAnimator` | [Equipped/HoldAnimator.cs](Assets/Game/Scripts/Items/Equipped/HoldAnimator.cs) | Player → `PlayerAimRig.SetHeldStyle`; NPC/turret → a `Hold` bool |
 | `ItemState` / `IItemStateCarrier` / `IItemDeferredRestore` | [Inventory/Core/ItemState.cs](Assets/Game/Scripts/Items/Inventory/Core/ItemState.cs) | String bag per slot; capture/restore; deferred pass for world references |
+| `HotbarSlotWire` | [Inventory/Components/PlayerInventoryNetwork.cs](Assets/Game/Scripts/Items/Inventory/Components/PlayerInventoryNetwork.cs) | One slot on the wire: item id **plus one charge byte**. The bag does not replicate; this does. |
+| `SupplyCharge` | [Items/Supplies/SupplyCharge.cs](Assets/Game/Scripts/Items/Supplies/SupplyCharge.cs) | The one definition of a carried charge: state key, byte quantisation, capacity lookup |
 | `ItemBounds` | [Core/ItemBounds.cs](Assets/Game/Scripts/Items/Core/ItemBounds.cs) | Mesh-based (not `Renderer.bounds`) local extents, shared by hand + pack + world. `DefaultSize` (0.30 m) is the one answer to "how big is an item nobody sized?" |
 | `ItemWorldScale` | [Core/ItemWorldScale.cs](Assets/Game/Scripts/Items/Core/ItemWorldScale.cs) | How big an item is lying in the world: `PackSize` x `Factor`, where `Factor` is **derived from the gear wall** |
 | `WorldItem` | [Core/WorldItem.cs](Assets/Game/Scripts/Items/Core/WorldItem.cs) | The world instance's own component: sizes it, tunes the body, adds a grab volume. `Suppress` undoes it for a copy going into a hand |
@@ -110,7 +112,13 @@ Hotbar slots holding `InventoryItem` assets, the hand socket that seats a fresh 
 
 - **`InventoryItem.ID` needs `[field: SerializeField]`.** `OnValidate` is editor-only; without the attribute every built player ships a null ID and `Registry.Register` throws on the first item — editor-invisible, build-only, i.e. every real multiplayer session.
 - **Item asset outside `Resources/Items`** = never registered, absent from the dev browser, and every save slot holding it comes back empty. No error. It can still be *held and displayed* by anything that keeps a direct reference — a `PackContainer`'s starting items did exactly that with the dead duplicates in `Assets/Game/ScriptableObjects/Items/`, so the item looked healthy on the pack and vanished the moment it crossed into the ID-keyed hotbar. `PackContainer.HotbarCanResolve` now refuses that crossing loudly, and [`PackStartingItemTests`](Assets/Game/Tests/Editor/PackStartingItemTests.cs) sweeps shipped container prefabs for it — see [Backpack.md](Backpack.md)'s Gotchas.
-- **`ItemState` does not replicate, and that decides how an item's state has to be modelled.** The hotbar puts item **IDs** on the wire ([Multiplayer](Multiplayer.md)) and the per-slot bag is local: it is written by whichever machine ran the code that changed it — the server, for anything server-authoritative — and read back by whichever machine equips the item next. So a value the OWNER has to see (a charge, a fill level) kept in a bag is a value only the server knows. Two items is the way out where the state is a handful of discrete steps: the oxygen bottle ships as `OxygenTank` and `OxygenTankEmpty`, and filling one swaps the asset, which reaches the wire, the save, the mat and the icon for free — see [Oxygen.md](Oxygen.md).
+- **`ItemState` does not replicate, and that decides how an item's state has to be modelled.** The per-slot bag is local: it is written by whichever machine ran the code that changed it — the server, for anything server-authoritative — and read back by whichever machine equips the item next. So a value the OWNER has to see kept in a bag is a value only the server knows. There are two ways out, and which one applies depends on the shape of the value:
+  - **A handful of discrete steps ⇒ two items.** The state travels as an item ID, and reaches the wire, the save, the mat and the icon for free.
+  - **A continuous value ⇒ a field on the SLOT's wire form.** `PlayerInventoryNetwork` replicates [`HotbarSlotWire`](Assets/Game/Scripts/Items/Inventory/Components/PlayerInventoryNetwork.cs) — `{ id, charge }` — not a bare `FixedString64Bytes`, and `PackPlacementWire` carries the same byte. That is what an oxygen tank's fill level rides on. Before it, a client's own tank painted its authored starting charge and stayed there while the server drained it. See [Oxygen.md](Oxygen.md) and [`SupplyCharge`](Assets/Game/Scripts/Items/Supplies/SupplyCharge.cs).
+
+  The oxygen tank used the FIRST of these until 2026-09-04 (`OxygenTank` / `OxygenTankEmpty`) and the second since: a tank the player reads to a percent would need a hundred assets, and a second tank type a hundred more.
+- **A slot's `ItemState` written directly must be followed by `IPlayerInventory.PublishSlotCharges()`.** A restore and a transfer off the pack both write the bag behind the back of the replication path that normally publishes a slot change, so anything in it another machine can SEE has to be pushed after the fact.
+- **`TryAddItem(item, out int index)` exists because a hotbar can legitimately hold two of the same asset.** Searching for the item after an add would write one tank's charge onto the other. A CLIENT's optimistic add reports index -1 rather than a guess: the slot is the server's to choose.
 - **`FixedString64Bytes` and null.** `cond ? item.ID : default` types the whole ternary as `string` and NREs on the empty arm — write `default(FixedString64Bytes)` (this took down the entire inventory restore once).
 - **Assigning `InventorySlot.Item` clears `State`.** Anything moving an item must read the bag out first; anything restoring must write items before bags.
 - **`Network.Simulates(heldItem)` is true on every machine** (unspawned NetworkObject). Same trap for `Network.Owns(item.transform)` — ask about the *owner*.

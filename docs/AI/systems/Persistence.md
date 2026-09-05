@@ -21,7 +21,7 @@ symptoms:
   - "the same creature stands in one chunk ten times over after an hour of play, and the copies survive a reload"
   - "a pickup placed in a chunk is stacked ten deep at its authored spot"
 reads_with: [EntitySystem, SceneTransitions, Vehicles, Multiplayer]
-updated: 2026-09-03
+updated: 2026-09-05
 ---
 
 # Persistence / Save-Load
@@ -74,7 +74,7 @@ Identity-keyed, streaming-aware save system: one JSON document per world, assemb
 | Agent mind | `AgentState`ᴰ(agent) `Provocation`ᴰ `Search` `Alert` `NoiseInvestigation` `Flee`ᴰ `Cover`ᴰ `Pursuit`ᴰ `CombatCadence`ᴰ |
 | Agent routine | `Patrol` `BasePatrol` `Wander` `AirWander` `WanderBehaviour` `NpcTask` `AgentGoal` `AgentPacing` `HerdMember` `Formation` `NpcWorld`(one record per caravan group) |
 | Vehicles & turrets | `Mount`ᴰ `DuneFoil` `Ornithopter`ᴰ `Ship` `ShipParts` `ShipAccent` `Spaceship` `Turret`ᴰ `WeaponMount` |
-| World interactables | `Door` `Lever` `RepairWorkstation` `OxygenGenerator`(oxygen, both docks; the fill deadline is deliberately not saved — see [Oxygen.md](Oxygen.md)) `Trader` `VolumeTrigger` `RuinSecret` `ScanBeacon` `CutsceneAction`(stops `playOnce` replaying) |
+| World interactables | `Door` `Lever` `OxygenGenerator`(oxygen, both docks; the fill deadline is deliberately not saved — see [Oxygen.md](Oxygen.md)) `Trader` `VolumeTrigger` `RuinSecret` `ScanBeacon` `CutsceneAction`(stops `playOnce` replaying) |
 | Player-scoped (on `PlayerCharacter.prefab`) | `PlayerInventory`ᴰ(inventory) `Backpack`ᴰ `SuitColor` `PlayerLook` `Flashlight` `Effects` `InteriorVisit`ᴰ `PortalPair`ᴰ `Health` |
 | Global (`RegisterGlobalSaver`) | `GameState`(gameState) `DayNight`(sky) `Sandstorm`(weather) `Map`(map) `HerdState`(herds) `Leash`(leashes)ᴰ |
 

@@ -36,7 +36,9 @@ namespace SpaceGame.Items
     /// boundaries. The rows below must equal <c>ExpeditionRigWiring.SurfaceTable</c>:
     /// </para>
     /// <list type="table">
-    /// <item><description>BackPanelLeft / Right, 0.2835 x 0.567 m -> 3 x 6 cells</description></item>
+    /// <item><description>BackPanelLeft / Right, 0.189 x 0.567 m -> 2 x 6 cells — one column
+    /// narrower than the socket between them since 2026-09-05, when they were also made strict
+    /// (no overhang): a strip beside a bottle holds a bottle's worth, not a launcher's.</description></item>
     /// <item><description>Leaf, 0.756 x 0.756 m -> 8 x 8</description></item>
     /// <item><description>WingLeft / Right, 0.378 x 0.6615 m -> 4 x 7</description></item>
     /// <item><description>LongGoods, 1.701 x 0.0945 m -> 18 x 1</description></item>
@@ -46,7 +48,7 @@ namespace SpaceGame.Items
     /// RESERVED face in the game: see <see cref="PackSurfaceId.BackPanelCentre"/>.</description></item>
     /// </list>
     /// <para>
-    /// 273 cells over the rig, filling the eight rectangles edge to edge with zero
+    /// 261 cells over the rig, filling the eight rectangles edge to edge with zero
     /// <see cref="Hem"/>. That count has never changed with a move of
     /// <see cref="PackScale.Factor"/> and could not have: <see cref="PackScale"/> multiplies the
     /// cell and the faces by the same factor, so every division below is unchanged and every
@@ -127,6 +129,40 @@ namespace SpaceGame.Items
             return new Vector2Int(
                 Mathf.RoundToInt((uv.x - hem.x - size.x * Cell * 0.5f) / Cell),
                 Mathf.RoundToInt((uv.y - hem.y - size.y * Cell * 0.5f) / Cell));
+        }
+
+        /// <summary>
+        /// <see cref="BlockOrigin(Vector2, Vector2, Vector2Int)"/> with a dead zone: the origin the
+        /// block is ALREADY on is kept until the cursor has crossed a cell boundary by more than
+        /// <paramref name="deadbandCells"/> cells, per axis.
+        ///
+        /// <para>
+        /// A cursor resting on the seam between two cells is never really still — the focus
+        /// camera's own cursor parallax moves the hit point by a hair every frame — and plain
+        /// rounding flips it back and forth across the seam, so the ghost flickered between two
+        /// spots. Rounding is kept for the first snap and for any move bigger than the dead zone:
+        /// this is hysteresis at the boundary, not a tether to the old cell, and a flick across the
+        /// face lands exactly where a fresh snap would.
+        /// </para>
+        /// <para>
+        /// The dead zone must be under half a cell, or a cursor centred in the NEXT cell would still
+        /// not move the block. It is the caller's number, not this class's: how far into a cell "far
+        /// enough" is belongs to the hand, which is where the feel is tuned.
+        /// </para>
+        /// </summary>
+        public static Vector2Int BlockOrigin(Vector2 surfaceSize, Vector2 uv, Vector2Int size,
+                                            Vector2Int held, float deadbandCells)
+        {
+            Vector2 hem = Hem(surfaceSize);
+
+            float exactX = (uv.x - hem.x - size.x * Cell * 0.5f) / Cell;
+            float exactY = (uv.y - hem.y - size.y * Cell * 0.5f) / Cell;
+
+            float reach = 0.5f + deadbandCells;
+
+            return new Vector2Int(
+                Mathf.Abs(exactX - held.x) <= reach ? held.x : Mathf.RoundToInt(exactX),
+                Mathf.Abs(exactY - held.y) <= reach ? held.y : Mathf.RoundToInt(exactY));
         }
 
         /// <summary>

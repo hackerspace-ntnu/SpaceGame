@@ -11,7 +11,7 @@ namespace SpaceGame.Presentation
 {
     /// <summary>
     /// The body screen: your own character, seen from the front in the live world, with the three
-    /// worn-gear sites on the body and the hand hotbar's three tiles along the bottom. Opened with I.
+    /// worn-gear sites on the body and the hand hotbar's three tiles down the left edge. Opened with I.
     ///
     /// <para>
     /// <b>Click to carry.</b> Click a filled site or tile and its icon follows the cursor; click
@@ -35,7 +35,7 @@ namespace SpaceGame.Presentation
     public class BodyInventoryUI : MonoBehaviour
     {
         private const float OpenSeconds = 0.14f;
-        private const float HotbarFromBottom = 96f;
+        private const float HandsFromLeft = 122f;
         private const float CaptionGap = 12f;
         private const float ChipGap = 26f;
         private const float ChipHeight = 30f;
@@ -562,34 +562,45 @@ namespace SpaceGame.Presentation
                 UITheme.Faint, TextAlignmentOptions.Right);
         }
 
-        /// <summary>The three hand slots along the bottom — the HUD's own tiles, since the HUD is hidden.</summary>
+        /// <summary>
+        /// The three hand slots, stacked down the LEFT edge — the HUD's own tiles, since the HUD is
+        /// hidden. A column and not the bar's row: the lens frames the WHOLE figure down the middle
+        /// of the screen, so a row along the bottom lies across the legs, and worn torso gear reaches
+        /// to the knees. The tiles keep their numbers, their look and their one gesture, so where
+        /// they hang is the only convention this departs from (user, 2026-09-04).
+        /// </summary>
         private void BuildHotbar(RectTransform host)
         {
-            const float slot = HotbarStyle.SlotWidth;
+            const float slot = HotbarStyle.SlotHeight;
             const float gap = HotbarStyle.SlotSpacing;
 
             int size = hotbar != null ? hotbar.GetInventorySize() : 3;
-            float row = -(slot + gap) * (size - 1) * 0.5f;
+
+            // Slot 1 on top, the column centred on the screen's middle: numbered tiles read downward
+            // the way a list does, and the whole rail stays clear of the figure at any window shape.
+            float top = (slot + gap) * (size - 1) * 0.5f;
+            var anchor = new Vector2(0f, 0.5f);
 
             for (int i = 0; i < size; i++)
-                AddTile(host, GearRef.Hotbar(i), $"Slot {i + 1}", (i + 1).ToString(), new Vector2(row + i * (slot + gap), HotbarFromBottom));
+                AddTile(host, GearRef.Hotbar(i), $"Slot {i + 1}", (i + 1).ToString(), anchor,
+                        new Vector2(HandsFromLeft, top - i * (slot + gap)));
 
             var captionRect = UIBuilder.Rect("Hands caption", host);
-            captionRect.anchorMin = new Vector2(0.5f, 0f);
-            captionRect.anchorMax = new Vector2(0.5f, 0f);
-            captionRect.pivot = new Vector2(0.5f, 1f);
+            captionRect.anchorMin = anchor;
+            captionRect.anchorMax = anchor;
+            captionRect.pivot = new Vector2(0.5f, 0f);
             captionRect.sizeDelta = new Vector2(HotbarStyle.SlotWidth * 2.2f, 24f);
-            captionRect.anchoredPosition = new Vector2(0f, HotbarFromBottom - HotbarStyle.SlotHeight * 0.5f - CaptionGap);
+            captionRect.anchoredPosition = new Vector2(HandsFromLeft, top + HotbarStyle.SlotHeight * 0.5f + CaptionGap);
             UIBuilder.Label(captionRect, "Hands  ·  1 – " + size, UITheme.CaptionSize, UITheme.Muted, TextAlignmentOptions.Center);
         }
 
-        private void AddTile(RectTransform host, GearRef slot, string name, string key, Vector2 at)
+        private void AddTile(RectTransform host, GearRef slot, string name, string key, Vector2 anchor, Vector2 at)
         {
             GearTile view = GearTile.Build(host, name, key);
 
             RectTransform rect = view.Rect;
-            rect.anchorMin = new Vector2(0.5f, 0f);
-            rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.anchorMin = anchor;
+            rect.anchorMax = anchor;
             rect.pivot = new Vector2(0.5f, 0.5f);
             rect.anchoredPosition = at;
 

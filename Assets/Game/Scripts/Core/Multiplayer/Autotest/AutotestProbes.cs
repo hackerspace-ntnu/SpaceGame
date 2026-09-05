@@ -47,7 +47,8 @@ namespace SpaceGame.Core
         /// Asked of the children as well as the root because the two machines can bind different
         /// objects: the server captures whatever collider its <c>OverlapBox</c> returned, while a
         /// peer is told a NetworkObjectId and <c>NetArg.Resolve</c> only ever answers with the
-        /// spawned ROOT. Both end up hobbling the same NavMeshAgent, and both count as bound.
+        /// spawned ROOT. Both resolve to the same body from wherever they were added — the tether
+        /// looks up its ragdoll and its NavMeshAgent through the PARENT — so both count as bound.
         /// </summary>
         public static bool IsNetted(GameObject creature)
         {

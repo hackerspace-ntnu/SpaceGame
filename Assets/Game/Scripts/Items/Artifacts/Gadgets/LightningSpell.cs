@@ -33,11 +33,13 @@ namespace SpaceGame.Items
         /// </summary>
         public override void OnRequestUse(ref NetArg arg)
         {
-            RaycastHit? hit = aimProvider != null ? aimProvider.GetRayCast(raycastDistance) : null;
+            RaycastHit hit = default;
+            bool struck = aimProvider != null
+                          && aimProvider.TryGetAimHit(raycastDistance, out hit);
 
             // Zero means "aimed at open sky" — see Present. `?? Vector3.zero` used to be read as a
             // position, so aiming at nothing struck the world origin.
-            arg.P = hit.HasValue ? hit.Value.point + Vector3.up * spawnHeightOffset : Vector3.zero;
+            arg.P = struck ? hit.point + Vector3.up * spawnHeightOffset : Vector3.zero;
         }
 
         /// <summary>

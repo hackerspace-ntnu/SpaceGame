@@ -9,9 +9,10 @@ namespace SpaceGame.Core.Persistence
     /// Persists a <see cref="SuitOxygen"/>, following <see cref="HealthSaveable"/> exactly.
     ///
     /// <para>
-    /// Air is the one survival number that is not an item identity, so it is the one that needs a
-    /// saver: a bottle's charge rides in the save on its own because a charged and a drained bottle
-    /// are two different items, but a suit that is 41% full is a float and nothing else records it.
+    /// <b>The SUIT's reserve only.</b> The tank's charge is not recorded here and must not be: it
+    /// belongs to the tank, and travels in the pack's own record like every other thing the pack is
+    /// carrying (see <c>PackSaveCodec</c>). Storing it in two files is how the two come to
+    /// disagree, and the tank is the half that would lose.
     /// </para>
     /// </summary>
     [RequireComponent(typeof(SuitOxygen))]
@@ -27,6 +28,7 @@ namespace SpaceGame.Core.Persistence
 
         public struct State
         {
+            /// Seconds of air left in the suit's own reserve.
             public float current;
 
             /// Stored but never applied. The capacity belongs to the prefab, so a save is not
@@ -36,7 +38,7 @@ namespace SpaceGame.Core.Persistence
 
         public object CaptureState() => Suit == null
             ? null
-            : new State { current = Suit.Current, max = Suit.Max };
+            : new State { current = Suit.SuitSeconds, max = Suit.SuitCapacity };
 
         public void RestoreState(JObject state)
         {

@@ -205,11 +205,18 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Take hold of one body. Server-side only — the peers are told, they do not decide.
+        /// Take hold of one body.
         ///
         /// <para>
-        /// Returns false when something else already has it, so the caller does not announce a
-        /// capture that did not happen.
+        /// <b>Every machine runs this; only one of them DECIDES.</b> The deciding machine reaches
+        /// it from <c>SnareReceiver</c>'s own landing pass and then announces the capture, and every
+        /// peer reaches it from <c>SnareReceiver.OnSnared</c> on hearing that announcement. What is
+        /// server-side is the choice of who is caught, not the applying of it — the hold has to be
+        /// present on all of them or a captive is limp on one screen and upright on another.
+        /// </para>
+        /// <para>
+        /// Returns false when something else already has it, or when the body refused to be put
+        /// down at all, so the caller does not announce a capture that did not happen.
         /// </para>
         /// <para>
         /// Refuses anything that is neither a player nor a creature, and that guard is not
@@ -281,7 +288,6 @@ namespace SpaceGame.Items
 
             CarryAlongFlight(delta);
             RefreshProxies();
-            DragTowardCaptives(delta);
 
             lattice.Simulate(delta);
 
@@ -456,27 +462,6 @@ namespace SpaceGame.Items
             }
         }
 
-        /// <summary>
-        /// Let the captives pull the net about.
-        ///
-        /// Without this a captive that shuffles walks out from under a net pinned where it landed,
-        /// which is the single most obvious way for the whole illusion to fail. The net follows the
-        /// mean of what it is holding, slowly, so it drags rather than snapping.
-        /// </summary>
-        private void DragTowardCaptives(float delta)
-        {
-            if (captives.Count == 0) return;
-
-            Vector3 mean = Vector3.zero;
-            foreach (GameObject captive in captives) mean += captive.transform.position;
-            mean /= captives.Count;
-
-            transform.position = Vector3.MoveTowards(
-                transform.position, mean, struggle.DragInfluence * delta);
-
-            groundHeight = SampleGround(transform.position);
-        }
-
         private float StrugglingMass()
         {
             float total = 0f;
@@ -507,8 +492,8 @@ namespace SpaceGame.Items
 
             // Built about this transform, because the nodes are world space and Unity draws the
             // vertex buffer THROUGH the transform. Redraw runs last in the frame for that reason:
-            // both CarryAlongFlight and DragTowardCaptives move the transform, and a mesh built
-            // about where it used to be is a net drawn a frame's travel behind itself.
+            // CarryAlongFlight moves the transform, and a mesh built about where it used to be is a
+            // net drawn a frame's travel behind itself.
             meshFilter.sharedMesh = meshBuilder.Build(lattice, toViewer, cordWidth, transform.position);
         }
 

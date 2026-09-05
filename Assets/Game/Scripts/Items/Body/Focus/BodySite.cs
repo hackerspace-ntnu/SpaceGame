@@ -625,8 +625,13 @@ namespace SpaceGame.Items
             if (copy == null) return null;
             copy.name = name;
 
+            // Inspected, unconditionally: a BodySite exists only while the gear screen is open, and
+            // a ghost promising the stowed bundle beside a real pack wearing its spread wings would
+            // be showing the player the wrong answer to "what does this look like on me". Falls
+            // back to the worn model for every item that has no second one, which is all but one.
             if (Slot == BodySlot.Torso)
-                WornSeat.Apply(copy, trunk, prefab.GetComponent<WornFit>(), body.TorsoMount(place));
+                WornSeat.Apply(copy, trunk, prefab.GetComponent<WornFit>(), body.TorsoMount(place),
+                               WornVisual.Form.Inspected);
             else ForearmSeat.Apply(copy, forearm, socket.Socket, socket.GripRotation,
                                    Slot == BodySlot.LeftGauntlet, prefab.GetComponent<GauntletFit>());
 

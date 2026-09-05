@@ -182,15 +182,17 @@ namespace SpaceGame.Tests
             (float)System.Math.Round(cells * (double)PackGrid.Cell, 6);
 
         /// <summary>
-        /// The rig is still 255 cells. Stated as its own test because it is the number the docs
-        /// quote, and a doc quoting a number nothing checks is how a doc goes stale.
+        /// The rig holds 261 cells. Stated as its own test because it is the number the docs
+        /// quote, and a doc quoting a number nothing checks is how a doc goes stale. It was 255
+        /// with two 3 x 6 back panels, 273 once the 3 x 6 socket joined them (2026-09-03), and
+        /// 261 since the two side panels lost their inner column (2026-09-05).
         /// </summary>
         [Test]
-        public void TheRigStillHolds255Cells()
+        public void TheRigHolds261Cells()
         {
-            int total = 3 * 6 + 3 * 6 + 8 * 8 + 4 * 7 + 4 * 7 + 18 * 1 + 9 * 9;
+            int total = 2 * 6 + 2 * 6 + 3 * 6 + 8 * 8 + 4 * 7 + 4 * 7 + 18 * 1 + 9 * 9;
 
-            Assert.AreEqual(255, total);
+            Assert.AreEqual(261, total);
         }
 
         /// <summary>The middle of a block of cells, at an arbitrary cell size.</summary>

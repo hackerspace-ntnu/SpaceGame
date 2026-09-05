@@ -68,6 +68,21 @@ opens, a slot loads empty. Restore a deleted asset by GUID.
 
 **Where.** [Persistence](systems/Persistence.md) · [EntitySystem](systems/EntitySystem.md) · [SceneTransitions](systems/SceneTransitions.md) · [Inventory](systems/Inventory.md)
 
+## A serialized field keeps its old value; only a RENAMED one gets your new default
+
+**The rule.** Retuning a `[SerializeField]` in code changes nothing that already exists. Every prefab, scene object and variant holds its own
+copy, and Unity fills a field from the serialized data whenever the NAME still matches — your new initialiser is used only where the name is
+new. After changing a default, write the value onto the assets, and pin it with a test that reads the **asset**, not the class.
+
+**Why.** Deserialization matches by name. A renamed field finds nothing and falls back to the C# initialiser, which is why a rename looks
+like it "worked"; a field whose name survived silently keeps a number somebody typed years ago, under a variable that now means something else.
+
+**How it fails.** Nothing throws and nothing logs. The 2026-09-04 oxygen rework redefined `SuitOxygen.drainPerSecond` from arbitrary units to
+seconds-of-air-per-second, and the player prefab came through still holding `0.167` — so the documented 30-minute tank would have run three
+hours and the 60-second reserve six minutes. An `AddComponent` test passed throughout, because constructing the class reads the initialisers.
+
+**Where.** [Oxygen](systems/Oxygen.md) · [Testing](systems/Testing.md) · [Inventory](systems/Inventory.md) · [EntitySystem](systems/EntitySystem.md)
+
 ## Edit the builder, never the asset it writes
 
 **The rule.** Prefabs, scene subtrees, materials and `.blend` files owned by a generator are rewritten wholesale on the next run. Every fix
@@ -108,18 +123,23 @@ its own copy; loot re-dropped and the death animation replayed on each load.
 
 **Where.** [Multiplayer](systems/Multiplayer.md) · [Persistence](systems/Persistence.md) · [Combat](systems/Combat.md) · [Vehicles](systems/Vehicles.md)
 
-## Ground probes reject loose bodies, your own hierarchy, and missing ground
+## A query does not know what the solver was told
 
-**The rule.** Every downward probe skips non-kinematic Rigidbodies and anything under its own transform, and treats a miss as *not yet*, never
-as a height to guess.
+**The rule.** Every probe and every aim skips its own hierarchy and the machine it is standing in or strapped into, filters against
+`hit.collider.transform` rather than `hit.transform`, and treats a miss as *not yet* rather than a value to guess. Ground probes additionally
+skip non-kinematic Rigidbodies.
 
-**Why.** A raycast sees a passenger as geometry: the deck rises, the carrier lifts the rider, the probe finds them higher, and the machine
-climbs its own passenger. `Physics.IgnoreCollision` does nothing to a raycast, so pass-through surfaces must call
-`IGroundProbeExclusions.ExcludeFromGroundProbes`. A miss in a streamed world means the chunk is not loaded.
+**Why.** `Physics.IgnoreCollision` and `RiderCollisionIgnore` suspend *contacts*; raycasts, spherecasts and overlaps ignore that entirely, so
+the hull is still solid to them. A raycast also sees a passenger as geometry — the deck rises, the carrier lifts the rider, the probe finds
+them higher, and the machine climbs its own passenger — which is why pass-through surfaces call
+`IGroundProbeExclusions.ExcludeFromGroundProbes` and why the aim filters in `AimProvider.NearestOutside`. And `RaycastHit.transform` is the
+**rigidbody's**, which over any vehicle is its root, so a filter written against it matches everything or nothing. A miss in a streamed world
+means the chunk is not loaded.
 
-**How it fails.** A vehicle climbs into the sky; a rope tied to a flank rides onto the animal's back; a walker stops at a hole it may cross.
+**How it fails.** A vehicle climbs into the sky; a rope tied to a flank rides onto the animal's back; a walker stops at a hole it may cross;
+every item a mounted player fires lands on their own fuselage a metre from their head.
 
-**Where.** [Locomotion](systems/Locomotion.md) · [Vehicles](systems/Vehicles.md) · [Portals](systems/Portals.md) · [WalkerGround.cs](Assets/Game/Scripts/Locomotion/Ground/WalkerGround.cs)
+**Where.** [Locomotion](systems/Locomotion.md) · [Vehicles](systems/Vehicles.md) · [Portals](systems/Portals.md) · [PlayerCharacter](systems/PlayerCharacter.md) · [Artifacts](systems/Artifacts.md) · [WalkerGround.cs](Assets/Game/Scripts/Locomotion/Ground/WalkerGround.cs)
 
 ## Statics outlive the world, the session and play mode
 

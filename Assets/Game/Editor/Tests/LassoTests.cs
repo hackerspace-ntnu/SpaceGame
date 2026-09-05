@@ -32,6 +32,10 @@ namespace SpaceGame.EditorTools
         /// <summary>Mirrors LassoArtifact's own constant. See <see cref="ThrownRopeTrailsInACurve"/>.</summary>
         private const float FlightSlack = 1.2f;
 
+        /// <summary>Both mirror Lasso.prefab. The arc tests are only worth anything at shipped values.</summary>
+        private const float Gravity = 18f;
+        private const float ThrowSpeed = 30f;
+
         private readonly List<GameObject> spawned = new List<GameObject>();
 
         [TearDown]
@@ -409,6 +413,160 @@ namespace SpaceGame.EditorTools
                 "an ant and a beast were given comparable weight on the rope");
         }
 
+        // ── The arc ────────────────────────────────────────────────────────────
+
+        [Test]
+        public void TheThrowLandsOnThePointItWasAimedAt()
+        {
+            // THE regression. The throw solved a correct ballistic arc to the aimed point and then
+            // added throwArcHeight straight onto the vertical component of the answer, which is not
+            // a loftier throw at the same target — it is a throw at a different one. At the
+            // prefab's own numbers the loop passed 1.6 m over an animal aimed at from 12 m and
+            // 4.0 m over one at 30 m, and crossed the target's own altitude a flat 13 m behind it
+            // every single time. Against a catch radius between 0.22 m and 0.8 m, aiming at a
+            // creature was a reliable way to miss it.
+            //
+            // Nothing failed. The rope drew beautifully, the arc was real ballistics, and the item
+            // simply did not go where the crosshair was — which is why this is measured against the
+            // AIM POINT and not against "looks like an arc".
+            Vector3 start = new Vector3(0f, 1.5f, 0f);
+
+            foreach (Vector3 target in new[]
+            {
+                new Vector3(12f, 1.5f, 0f),    // flick, level
+                new Vector3(30f, 1.5f, 0f),    // full reach, level
+                new Vector3(20f, 7f, 0f),      // uphill, onto a ledge
+                new Vector3(25f, -6f, 0f),     // downhill, into a gully
+                new Vector3(0f, 1.5f, 18f),    // and not only along +X
+            })
+            {
+                Vector3 velocity = LassoThrow.SolveVelocity(start, target, Gravity,
+                    LassoThrow.ApexFor(Vector3.Distance(start, target), 30f, 1f, 4f),
+                    ThrowSpeed, out float flightTime);
+
+                Vector3 arrival = LassoThrow.PointAt(start, velocity, Gravity, flightTime);
+
+                Assert.Less(Vector3.Distance(arrival, target), 0.05f,
+                    "a throw aimed at " + target + " arrived at " + arrival);
+            }
+        }
+
+        [Test]
+        public void TheThrowArrivesOnTheWayDownAndActuallyArcs()
+        {
+            // The other half of the fix, and the one that is trivially satisfied by breaking the
+            // first: an arc that passes through the aim point EXACTLY is also what you get by
+            // firing a flat rifle shot at it. A lasso has to loop over an animal, so it must be
+            // descending when it arrives and must have been meaningfully higher on the way.
+            Vector3 start = new Vector3(0f, 1.5f, 0f);
+            Vector3 target = new Vector3(30f, 1.5f, 0f);
+
+            Vector3 velocity = LassoThrow.SolveVelocity(start, target, Gravity,
+                apex: 4f, maxHorizontalSpeed: ThrowSpeed, out float flightTime);
+
+            float peak = float.MinValue;
+            for (int i = 0; i <= 40; i++)
+                peak = Mathf.Max(peak, LassoThrow.PointAt(start, velocity, Gravity, i / 40f * flightTime).y);
+
+            Assert.Greater(peak - start.y, 3f, "the throw was flat — nothing to drop over an animal");
+
+            float descent = LassoThrow.PointAt(start, velocity, Gravity, flightTime).y
+                          - LassoThrow.PointAt(start, velocity, Gravity, flightTime * 0.98f).y;
+
+            Assert.Less(descent, 0f, "the loop arrived on the way UP, punching the animal from below");
+        }
+
+        [Test]
+        public void AFlickIsFlatterThanAFullyWoundThrow()
+        {
+            // Loft is spent as flight time, so it is not free: if every throw arced the same the
+            // short ones would lob. This is the ramp that keeps a flick across a camp quick.
+            float near = LassoThrow.ApexFor(6f, 30f, 1f, 4f);
+            float far = LassoThrow.ApexFor(30f, 30f, 1f, 4f);
+
+            Assert.Less(near, far, "a six-metre flick arced as high as a thirty-metre throw");
+        }
+
+        // ── Rope under load ────────────────────────────────────────────────────
+
+        [Test]
+        public void ARopeHeldUnderFullStrainEventuallyParts()
+        {
+            // Before this the catch had no way to end but the thrower letting go, so nothing the
+            // animal did mattered. A rope that cannot break is a rope with no stakes.
+            const float BreakSeconds = 7f;
+            float wear = 0f;
+
+            for (int i = 0; i < 500 && wear < 1f; i++)
+                wear = LassoTension.Wear(wear, strain01: 1f, deltaTime: 1f / 50f,
+                                         breakSeconds: BreakSeconds, recoverySeconds: 3.5f);
+
+            Assert.GreaterOrEqual(wear, 1f, "a rope held at full strain never gave way");
+
+            // And not instantly: the animal has to be able to WIN this, which means the player has
+            // to have time to notice they are losing it.
+            float half = LassoTension.Wear(0f, 1f, BreakSeconds * 0.5f, BreakSeconds, 3.5f);
+            Assert.That(half, Is.EqualTo(0.5f).Within(0.01f), "the rope did not wear at the authored rate");
+        }
+
+        [Test]
+        public void SlackGivesTheRopeItsStrengthBack()
+        {
+            // The half that makes reeling a decision rather than a formality. Without it the rope
+            // is a countdown and the only strategy is to hurry.
+            float worn = LassoTension.Wear(0f, strain01: 1f, deltaTime: 3f,
+                                           breakSeconds: 7f, recoverySeconds: 3.5f);
+            float rested = LassoTension.Wear(worn, strain01: 0f, deltaTime: 3f,
+                                             breakSeconds: 7f, recoverySeconds: 3.5f);
+
+            Assert.Less(rested, worn, "a rope given slack did not recover at all");
+            Assert.GreaterOrEqual(rested, 0f, "recovery ran the wear below new");
+        }
+
+        // ── Where the rope ties ────────────────────────────────────────────────
+
+        [Test]
+        public void TheKnotSitsOnTheAnimalWhateverSizeItIs()
+        {
+            // A flat 1.2 m hung the collar in mid-air above anything small and put it round the
+            // shin of a habitat-sized walker. Worse, the number existed TWICE — the artifact drew
+            // to its own copy and the tether constrained against LassoStruggle's, with nothing
+            // keeping them equal.
+            float ant = LassoTether.AttachHeightFor(CreatureWithBounds(new Vector3(0.4f, 0.3f, 0.6f)),
+                                                    fraction: 0.75f, fallbackMetres: 1.2f);
+            float walker = LassoTether.AttachHeightFor(CreatureWithBounds(new Vector3(4f, 6f, 8f)),
+                                                       fraction: 0.75f, fallbackMetres: 1.2f);
+
+            Assert.Less(ant, 0.4f, "the rope was tied above a small creature's head");
+            Assert.Greater(walker, 3f, "the rope was tied round a six-metre walker's ankle");
+
+            // Nothing to measure — a creature whose chunk has not built its colliders yet — falls
+            // back to the authored metres rather than tying the rope to the ground.
+            Assert.AreEqual(1.2f, LassoTether.AttachHeightFor(NewGameObject("bare"), 0.75f, 1.2f), 0.001f);
+        }
+
+        [Test]
+        public void ARestedAnimalGetsItsFightBack()
+        {
+            // The struggle clock used to run one way only, so six seconds after every catch the
+            // creature went limp and stayed limp for the rest of the session — which left the
+            // player dragging a sack rather than holding an animal.
+            GameObject creature = NewGameObject("creature");
+            Transform anchor = NewGameObject("anchor").transform;
+
+            LassoTether tether = LassoTether.Ensure(creature);
+            tether.Bind(anchor, 8f, new LassoStruggle());
+
+            tether.AdvanceStruggle(30f);
+            Assert.Less(tether.StruggleFraction, 0.05f, "the creature never tired");
+
+            // Slack: the creature is standing on the anchor, so nothing is pulling on the rope.
+            creature.transform.position = anchor.position;
+            tether.RecoverStruggle(20f);
+
+            Assert.Greater(tether.StruggleFraction, 0.2f, "a rested animal never got its wind back");
+        }
+
         // ── Dallying ───────────────────────────────────────────────────────────
 
         [Test]
@@ -483,6 +641,7 @@ namespace SpaceGame.EditorTools
             public bool Suspended { get; private set; }
 
             public Vector3 Velocity => Vector3.zero;
+            public float TopSpeed => 0f;
             public bool IsImmobile => true;
             public bool HasReachedDestination => true;
             public Vector3? CurrentDestination => null;

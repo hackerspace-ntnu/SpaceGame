@@ -168,18 +168,48 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
-        /// The layout is keyed by item id, so one wall cannot hold two of the same asset. Pinned
-        /// because the aim controller's green/red readout asks exactly this question before it
-        /// offers a placement — an offer the server would then refuse is a press that does nothing.
+        /// A container holds as many of one asset as it has room for, and each copy is its own
+        /// placement under its own <see cref="PackItemKey"/>.
+        ///
+        /// <para>
+        /// <b>This test asserted the opposite until 2026-09-04.</b> The layout was keyed by item
+        /// id, so one wall could never hold two of anything — a limit nobody had noticed, because
+        /// the only item worth two of was an oxygen tank and a full one and an empty one were two
+        /// different assets. Merging those two into one tank with a charge would have silently
+        /// taken every container from two tanks to one, which is what the instance key exists to
+        /// prevent.
+        /// </para>
+        /// <para>
+        /// Still pinned here rather than only beside the key, because the aim controller's
+        /// green/red readout asks exactly this question before it offers a placement — an offer the
+        /// server would then refuse is a press that does nothing.
+        /// </para>
         /// </summary>
         [Test]
-        public void TheSameAssetCannotBePlacedTwice()
+        public void TheSameAssetCanBePlacedTwiceUnderDifferentKeys()
         {
             WallInventory wall = Wall();
             InventoryItem crate = Item("crate");
 
             Assert.IsTrue(wall.TryPlace(crate, PackSurfaceId.WallGrid, new Vector2(M(0.18f), M(0.18f)), 0f));
-            Assert.IsFalse(wall.TryPlace(crate, PackSurfaceId.WallGrid, new Vector2(M(0.72f), M(0.72f)), 0f));
+            Assert.IsTrue(wall.TryPlace(crate, PackSurfaceId.WallGrid, new Vector2(M(0.72f), M(0.72f)), 0f),
+                          "A second copy of one asset was refused, so the pack is back to holding " +
+                          "one tank.");
+
+            Assert.AreEqual(2, wall.Layout.Placements.Count, "The second copy did not land.");
+
+            // Two placements, two DIFFERENT keys, both naming the same asset — which is what lets
+            // the two carry different charges.
+            string first = wall.Layout.Placements[0].ItemId;
+            string second = wall.Layout.Placements[1].ItemId;
+
+            Assert.AreNotEqual(first, second, "Both copies share a key, so the layout cannot tell " +
+                                              "them apart and neither can a save file.");
+            Assert.AreEqual(crate.ID, PackItemKey.AssetOf(first));
+            Assert.AreEqual(crate.ID, PackItemKey.AssetOf(second));
+
+            // And the container still answers the ASSET question the readout actually asks.
+            Assert.IsTrue(wall.Holds(crate.ID));
         }
 
         // ── Who owns the Use button ──────────────────────────────────────────
@@ -428,7 +458,7 @@ namespace SpaceGame.Tests
                 remove => inner.OnSlotChanged -= value;
             }
 
-            public event Action<InventoryItem> OnItemDropped
+            public event Action<InventoryItem, float> OnItemDropped
             {
                 add => inner.OnItemDropped += value;
                 remove => inner.OnItemDropped -= value;

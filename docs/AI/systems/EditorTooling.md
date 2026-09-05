@@ -16,7 +16,7 @@ symptoms:
   - "scenes are full of missing prefab instances a GUID grep cannot find"
   - "a freshly built prefab works in the editor but not on clients (GlobalObjectIdHash 0)"
 reads_with: [Multiplayer, Persistence, Artifacts, TerrainGeneration]
-updated: 2026-09-02
+updated: 2026-09-05
 ---
 # Editor Tooling
 
@@ -79,7 +79,6 @@ Every custom Unity Editor window, menu command, prefab/asset builder and importe
 | Tools/Tests/Run EditMode Tests (headless) | [HeadlessTestRunner.cs](Assets/Game/Editor/Tests/HeadlessTestRunner.cs) | Runs the EditMode suite, writes a result file |
 | Tools/Tests/{Build Multiplayer Test Player, Print Multiplayer Test Commands} | [MultiplayerTestPlayerBuilder.cs](Assets/Game/Editor/Tests/MultiplayerTestPlayerBuilder.cs) | Builds the standalone player for two-machine tests; logs the host/client CLI invocations |
 | Tools/Vehicles/Build PlayerShip Prefab | [PlayerShipBuilder.cs](Assets/Game/Editor/Vehicles/PlayerShipBuilder.cs) | `PlayerShip.prefab` from `player_ship.fbx` + baked convex collision proxy |
-| Tools/Vehicles/Build ShipRV Prefab | [ShipRVBuilder.cs](Assets/Game/Editor/Vehicles/ShipRVBuilder.cs) | `ShipRV.prefab` incl. the world's only `SpawnPoint` and workstation |
 | Tools/Vehicles/Build Desert Crawler Prefab | [DesertCrawlerBuilder.cs](Assets/Game/Editor/Vehicles/DesertCrawlerBuilder.cs) | `DesertCrawler.prefab` (six-legged habitat) |
 | Tools/Vehicles/Build Dune Foil Prefab | [DuneFoilBuilder.cs](Assets/Game/Editor/Vehicles/DuneFoilBuilder.cs) | `DuneFoil.prefab` + wind prefab reference |
 | Tools/Vehicles/Build Dune Ornithopter Prefab | [OrnithopterBuilder.cs](Assets/Game/Editor/Vehicles/OrnithopterBuilder.cs) | `DuneOrnithopter.prefab` |
@@ -98,7 +97,7 @@ Everything below overwrites its output **wholesale** (`SaveAsPrefabAsset`/`Creat
 
 | Script | Generates/overwrites |
 | --- | --- |
-| [PlayerShipBuilder](Assets/Game/Editor/Vehicles/PlayerShipBuilder.cs) · [ShipRVBuilder](Assets/Game/Editor/Vehicles/ShipRVBuilder.cs) · [DesertCrawlerBuilder](Assets/Game/Editor/Vehicles/DesertCrawlerBuilder.cs) · [DuneFoilBuilder](Assets/Game/Editor/Vehicles/DuneFoilBuilder.cs) · [OrnithopterBuilder](Assets/Game/Editor/Vehicles/OrnithopterBuilder.cs) | `Prefabs/Agents/Vehicles/**` and `Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab`; ShipRV also owns `RepairWorkstation.prefab` and the world's only `SpawnPoint` |
+| [PlayerShipBuilder](Assets/Game/Editor/Vehicles/PlayerShipBuilder.cs) · [DesertCrawlerBuilder](Assets/Game/Editor/Vehicles/DesertCrawlerBuilder.cs) · [DuneFoilBuilder](Assets/Game/Editor/Vehicles/DuneFoilBuilder.cs) · [OrnithopterBuilder](Assets/Game/Editor/Vehicles/OrnithopterBuilder.cs) | `Prefabs/Agents/Vehicles/**` and `Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab` |
 | [CrabWalkerBuilder](Assets/Game/Editor/Creatures/CrabWalkerBuilder.cs) · [DuneRatBuilder](Assets/Game/Editor/Creatures/DuneRatBuilder.cs) · [GolemBuilder](Assets/Game/Editor/Creatures/GolemBuilder.cs) · [VrescalBuilder](Assets/Game/Editor/Creatures/VrescalBuilder.cs) · [NomadPrefabBuilder](Assets/Game/Editor/Agents/NomadPrefabBuilder.cs) | `Prefabs/Agents/Creatures/*.prefab`, `Prefabs/Agents/Characters/Nomad.prefab` |
 | [DragonBazookaBuilder](Assets/Game/Editor/AssetPipeline/DragonBazookaBuilder.cs) · [GravelBlasterBuilder](Assets/Game/Editor/AssetPipeline/GravelBlasterBuilder.cs) · [LaserStaffBuilder](Assets/Game/Editor/AssetPipeline/LaserStaffBuilder.cs) · [SuckerPuncherBuilder](Assets/Game/Editor/AssetPipeline/SuckerPuncherBuilder.cs) · [RepulsorGauntletBuilder](Assets/Game/Editor/AssetPipeline/RepulsorGauntletBuilder.cs) · [PortalContentBuilder](Assets/Game/Editor/Portals/PortalContentBuilder.cs) | `Prefabs/Items/Artifacts/**` + `Resources/Items/Artifacts/*.asset` + shake and material assets |
 | [NetGunBuilder](Assets/Game/Editor/Items/NetGunBuilder.cs) · [JumpingRodBuilder](Assets/Game/Editor/Items/JumpingRodBuilder.cs) · [ShipPartItemBuilder](Assets/Game/Editor/Items/ShipPartItemBuilder.cs) · [WingPackBuilder](Assets/Game/Editor/Vehicles/WingPackBuilder.cs) | Item prefabs + item assets (+ rope textures, pack shapes, test-world placement) |

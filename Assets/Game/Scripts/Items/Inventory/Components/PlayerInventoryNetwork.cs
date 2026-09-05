@@ -8,6 +8,64 @@ using SpaceGame.Core;
 
 namespace SpaceGame.Items
 {
+    /// <summary>
+    /// One hotbar slot on the wire: which item, and how full it is.
+    ///
+    /// <para>
+    /// The charge is here rather than being left to <see cref="ItemState"/> because
+    /// <c>ItemState</c> does not replicate at all — it is a bag on the server's own slot. That was
+    /// harmless while everything in it was invisible (a magazine count, a cooldown), and stopped
+    /// being harmless the moment an item grew a gauge the player reads: a client's own oxygen tank
+    /// painted its authored starting charge and stayed there while the server drained it.
+    /// </para>
+    /// <para>
+    /// One byte, quantised by <see cref="SupplyCharge.ToByte"/> — finer than the whole percent any
+    /// readout shows. Zero for the great majority of items, which hold nothing; the receiving end
+    /// knows from the item id whether the number means anything.
+    /// </para>
+    /// </summary>
+    public struct HotbarSlotWire : INetworkSerializable, IEquatable<HotbarSlotWire>
+    {
+        public FixedString64Bytes ItemId;
+        public byte Charge;
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref ItemId);
+            serializer.SerializeValue(ref Charge);
+        }
+
+        /// <summary>
+        /// Required by <c>NetworkList</c>, which uses it to decide whether a write is a change
+        /// worth telling anyone about.
+        /// </summary>
+        public bool Equals(HotbarSlotWire other) =>
+            ItemId.Equals(other.ItemId) && Charge == other.Charge;
+
+        public override bool Equals(object obj) => obj is HotbarSlotWire other && Equals(other);
+
+        public override int GetHashCode() => HashCode.Combine(ItemId.GetHashCode(), Charge);
+
+        /// <summary>
+        /// The wire form of a slot holding <paramref name="item"/>.
+        ///
+        /// <para>
+        /// The empty case is typed <c>default(FixedString64Bytes)</c> rather than written as
+        /// <c>usable ? item.ID : default</c>. Both arms of that ternary would be strings, so C#
+        /// types the whole expression as string and converts the RESULT — meaning an empty slot
+        /// converts <c>default(string)</c>, i.e. null, and FixedString64Bytes throws an NRE on null.
+        /// That took the entire inventory restore down once already.
+        /// </para>
+        /// </summary>
+        public static HotbarSlotWire For(InventoryItem item, float charge) => new()
+        {
+            ItemId = item != null && !string.IsNullOrEmpty(item.ID)
+                ? new FixedString64Bytes(item.ID)
+                : default(FixedString64Bytes),
+            Charge = SupplyCharge.ToByte(charge),
+        };
+    }
+
     public class PlayerInventoryNetwork : NetworkBehaviour, IPlayerInventory
     {
         [SerializeField] private int inventorySize = 4;
@@ -17,7 +75,7 @@ namespace SpaceGame.Items
         private PlayerInventory inventory;
         PlayerController player;
     
-        private NetworkList<FixedString64Bytes> networkItems = new();
+        private NetworkList<HotbarSlotWire> networkItems = new();
         private NetworkVariable<int> networkSelectedSlot = new(-1);
 
         public int SelectedSlotIndex => networkSelectedSlot.Value;
@@ -25,7 +83,7 @@ namespace SpaceGame.Items
         public event Action<InventorySlot> OnSlotSelected;
         public event Action<int, InventorySlot> OnSlotChanged;
 
-        public event Action<InventoryItem> OnItemDropped;
+        public event Action<InventoryItem, float> OnItemDropped;
 
         private void Awake()
         {
@@ -64,12 +122,7 @@ namespace SpaceGame.Items
         /// </summary>
         private void AdoptCurrentState()
         {
-            for (int i = 0; i < networkItems.Count; i++)
-            {
-                var id = networkItems[i];
-                inventory.SetItem(i, string.IsNullOrEmpty(id.Value) ? null : Registry<InventoryItem>.Get(id.Value));
-                OnSlotChanged?.Invoke(i, inventory.GetSlot(i));
-            }
+            for (int i = 0; i < networkItems.Count; i++) ApplyWire(i);
 
             inventory.SelectSlot(networkSelectedSlot.Value);
             OnSlotSelected?.Invoke(GetSelectedSlot());
@@ -94,21 +147,51 @@ namespace SpaceGame.Items
             base.OnDestroy();
         }
 
-        private void HandleNetworkListChanged(NetworkListEvent<FixedString64Bytes> changeEvent)
+        private void HandleNetworkListChanged(NetworkListEvent<HotbarSlotWire> changeEvent)
         {
             int index = changeEvent.Index;
-        
+
             if (index < 0 || index >= networkItems.Count)
                 return;
-        
-            var id = networkItems[index];
 
-            InventoryItem item = string.IsNullOrEmpty(id.Value)
+            ApplyWire(index);
+        }
+
+        /// <summary>
+        /// Rebuild one local slot from the wire: the item, then the per-instance charge that came
+        /// with it.
+        ///
+        /// <para>
+        /// The order matters and is not interchangeable. <c>Inventory.SetItem</c> clears the slot's
+        /// <see cref="ItemState"/> whenever the item actually changes — which is right, since a slot
+        /// that changed hands must not keep the last item's ammo — so a charge written first would
+        /// be wiped by the assignment that follows.
+        /// </para>
+        /// <para>
+        /// Only written for an item that CARRIES a charge. Stamping every rifle's slot with a bag
+        /// saying "0%" would put an ItemState on every slot in the game and write one into every
+        /// save file.
+        /// </para>
+        /// </summary>
+        private void ApplyWire(int index)
+        {
+            HotbarSlotWire wire = networkItems[index];
+
+            InventoryItem item = string.IsNullOrEmpty(wire.ItemId.Value)
                 ? null
-                : Registry<InventoryItem>.Get(id.Value);
+                : Registry<InventoryItem>.Get(wire.ItemId.Value);
 
             inventory.SetItem(index, item);
-            OnSlotChanged?.Invoke(index, inventory.GetSlot(index));
+
+            InventorySlot slot = inventory.GetSlot(index);
+
+            if (slot != null && SupplyCharge.Carries(item))
+            {
+                slot.State ??= new ItemState();
+                SupplyCharge.Write(slot.State, SupplyCharge.FromByte(wire.Charge));
+            }
+
+            OnSlotChanged?.Invoke(index, slot);
         }
 
         private void HandleSelectedSlotChanged(int oldValue, int newValue)
@@ -134,7 +217,7 @@ namespace SpaceGame.Items
 
                 int index = inventory.FindEmptySlot();
                 if (index != -1)
-                    networkItems[index] = new FixedString64Bytes(item.ID);
+                    networkItems[index] = HotbarSlotWire.For(item, SupplyCharge.StartingChargeOf(item));
             }
         }
 
@@ -190,14 +273,13 @@ namespace SpaceGame.Items
                 InventoryItem item = items != null && i < items.Count ? items[i] : null;
                 bool usable = item != null && !string.IsNullOrEmpty(item.ID);
 
-                // The empty value must be typed FixedString64Bytes, NOT `default` in a ternary
-                // against item.ID. Both arms of such a ternary are string, so C# types the whole
-                // expression as string and converts the RESULT — meaning an empty slot converts
-                // default(string), i.e. null, and FixedString64Bytes throws an NRE on null. That
-                // took the entire inventory restore down and lost every other slot with it.
+                // The charge is deliberately the item's AUTHORED starting value here and not
+                // the saved one: the bags have not been restored yet (see InventorySaveCodec.Restore,
+                // which puts them back after this call and then republishes). Writing a zero here
+                // instead would flash every restored tank empty for one wire round.
                 networkItems[i] = usable
-                    ? new FixedString64Bytes(item.ID)
-                    : default(FixedString64Bytes);
+                    ? HotbarSlotWire.For(item, SupplyCharge.StartingChargeOf(item))
+                    : default;
             }
 
             networkSelectedSlot.Value = selectedSlot >= 0 && selectedSlot < networkItems.Count ? selectedSlot : -1;
@@ -213,11 +295,30 @@ namespace SpaceGame.Items
 
             if (index < 0 || index >= networkItems.Count) return false;
 
-            // Typed empty value, not `default` in a ternary against item.ID — see RestoreSlots.
-            networkItems[index] = item != null && !string.IsNullOrEmpty(item.ID)
-                ? new FixedString64Bytes(item.ID)
-                : default(FixedString64Bytes);
+            networkItems[index] = HotbarSlotWire.For(item, SupplyCharge.StartingChargeOf(item));
             return true;
+        }
+
+        /// <inheritdoc/>
+        public void PublishSlotCharges()
+        {
+            if (!Network.Simulates(this)) return;
+
+            for (int i = 0; i < networkItems.Count; i++)
+            {
+                InventorySlot slot = inventory?.GetSlot(i);
+                if (slot == null || slot.IsEmpty) continue;
+
+                float charge = SupplyCharge.Read(slot.State);
+                if (charge < 0f) continue;
+
+                HotbarSlotWire wire = networkItems[i];
+                byte quantised = SupplyCharge.ToByte(charge);
+                if (wire.Charge == quantised) continue;
+
+                wire.Charge = quantised;
+                networkItems[i] = wire;
+            }
         }
 
         // --- Client requests add ---
@@ -234,26 +335,38 @@ namespace SpaceGame.Items
         /// trip, and no caller on the client path consumes one — every caller that acts on the
         /// result (pickup, backpack transfer) already runs server-side.
         /// </summary>
-        public bool TryAddItem(InventoryItem item)
+        public bool TryAddItem(InventoryItem item) => TryAddItem(item, out _);
+
+        /// <inheritdoc/>
+        /// <remarks>
+        /// A client's optimistic true comes back with index -1, not with a guess. The slot it will
+        /// land in is the server's to decide, so a client that wrote per-instance state into the
+        /// index it predicted would be writing it into whatever the server later put there.
+        /// </remarks>
+        public bool TryAddItem(InventoryItem item, out int index)
         {
+            index = -1;
+
             if (!Network.Simulates(this))
             {
                 TryAddItemServerRpc(item != null ? item.ID : string.Empty);
                 return true;
             }
 
-            return AddItem(item);
+            return AddItem(item, out index);
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
         private void TryAddItemServerRpc(string itemId)
         {
             var item = Registry<InventoryItem>.Get(itemId);
-            AddItem(item);
+            AddItem(item, out _);
         }
 
-        private bool AddItem(InventoryItem item)
+        private bool AddItem(InventoryItem item, out int slot)
         {
+            slot = -1;
+
             // Registry<InventoryItem>.Get returns null for an id this build does not know, so the
             // caller above can hand us nothing at all. Assigning its ID would throw inside
             // FixedString64Bytes rather than simply failing to pick the item up.
@@ -266,7 +379,8 @@ namespace SpaceGame.Items
             int index = inventory.FindEmptySlot();
             if (index == -1) return false;
 
-            networkItems[index] = new FixedString64Bytes(item.ID);
+            networkItems[index] = HotbarSlotWire.For(item, SupplyCharge.StartingChargeOf(item));
+            slot = index;
             return true;
         }
 
@@ -307,15 +421,20 @@ namespace SpaceGame.Items
         {
             if (slotIndex < 0 || slotIndex >= networkItems.Count) return;
 
-            var id = networkItems[slotIndex];
-            if (string.IsNullOrEmpty(id.Value)) return;
+            HotbarSlotWire wire = networkItems[slotIndex];
+            if (string.IsNullOrEmpty(wire.ItemId.Value)) return;
 
-            var item = Registry<InventoryItem>.Get(id.Value);
+            var item = Registry<InventoryItem>.Get(wire.ItemId.Value);
+
+            // The bag before the slot is cleared, so a dropped tank hits the ground holding what it
+            // held in the hand rather than reverting to its prefab's starting charge.
+            InventorySlot slot = inventory?.GetSlot(slotIndex);
+            float charge = SupplyCharge.Read(slot?.State);
 
             networkItems[slotIndex] = default;
             networkSelectedSlot.Value = -1;
 
-            OnItemDropped?.Invoke(item);
+            OnItemDropped?.Invoke(item, charge);
         }
     
         public InventorySlot GetSlot(int index)

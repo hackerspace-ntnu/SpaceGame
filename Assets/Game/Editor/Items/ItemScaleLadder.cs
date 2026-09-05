@@ -208,8 +208,7 @@ namespace SpaceGame.EditorTools
 
             // ── Big tools: two hands, and bulky enough to change the silhouette ───────────
             new(Supplies + "OxygenTank.prefab", Bracket.BigTool, 0.90f, 0.90f, SupplyWhy),
-            new(Supplies + "OxygenTankEmpty.prefab", Bracket.BigTool, 0.90f, 0.90f, SupplyWhy),
-            new(Supplies + "PowerCell.prefab", Bracket.BigTool, 0.90f, 0.90f, SupplyWhy),
+            new(Supplies + "Battery.prefab", Bracket.BigTool, 0.90f, 0.90f, SupplyWhy),
 
             // ── Consumables: read as a phial, not a weapon ────────────────────────────────
             new(Gadgets + "AntiGravityPotion.prefab", Bracket.Consumable, 0.30f, 0.50f,

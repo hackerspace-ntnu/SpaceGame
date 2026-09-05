@@ -90,11 +90,9 @@ namespace SpaceGame.Items
         [Header("Pack placement")]
         [Tooltip("Which pack faces this item may be stowed on. Empty means any face it fits on, " +
                  "same as every other item — set this only for gear sized against ONE specific " +
-                 "face (see packSize above) rather than a hand, which would otherwise still fit, " +
-                 "via overhang, onto a face it was never sized for. E.g. the Wing Pack, sized to " +
-                 "fill the rack edge to edge, would still clamp down to a back panel's 3x6 span " +
-                 "because a back panel allows overhang on both axes for realistic gear like a " +
-                 "bedroll.")]
+                 "face (see packSize above) rather than a hand, which could otherwise still fit, " +
+                 "via the rack's overhang, onto a face it was never sized for. E.g. the Wing " +
+                 "Pack, sized to fill the rack edge to edge, is confined to the rack.")]
         [SerializeField] private PackSurfaceId[] confinedToSurfaces = new PackSurfaceId[0];
 
         [Header("Escape hatches")]

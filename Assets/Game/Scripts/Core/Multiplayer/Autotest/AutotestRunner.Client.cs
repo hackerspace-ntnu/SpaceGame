@@ -109,6 +109,8 @@ namespace SpaceGame.Core
 
             yield return ReadShipPartsAsClient();
 
+            yield return UseTerminalAsClient();
+
             // The net gun, and the reason the whole two-process apparatus exists for it. A net
             // is not a spawned NetworkObject: every machine draws its own from the origin, aim
             // and seed that came with the press, and is then TOLD by the server what that net

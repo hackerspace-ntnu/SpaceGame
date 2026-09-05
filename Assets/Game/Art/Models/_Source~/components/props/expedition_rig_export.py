@@ -101,6 +101,58 @@ TARGETS = [
 ]
 
 
+def _drop_shadow_materials():
+    """Delete unused LOCAL materials, before anything localises the linked ones.
+
+    Hand editing a file in the Blender UI leaves local copies of palette
+    materials behind — appended by mistake, or left over from a slot that was
+    reassigned. They have no users, so they ship nothing and look harmless.
+
+    They are not. `make_local()` cannot give a linked material a name a local
+    one already holds, so the REAL material is the one that gets renamed:
+    `Mat_Metal_Steel_Worn` on 27 slots arrives in the FBX as
+    `Mat_Metal_Steel_Worn.001`. Unity binds imported materials by name, so
+    every renamed slot loses its material and the prefab's overrides go stale —
+    with no error anywhere, because the slot counts still match.
+
+    Returns how many were dropped.
+    """
+    n = 0
+    for mat in list(bpy.data.materials):
+        if mat.library is not None:
+            continue
+        if mat.users - (1 if mat.use_fake_user else 0) > 0:
+            continue
+        bpy.data.materials.remove(mat)
+        n += 1
+    return n
+
+
+def _bake_geometry_to_mesh():
+    """Convert every non-mesh geometry object in the export set to a mesh.
+
+    `object_types` below ships `EMPTY` and `MESH` only, so a bevelled curve —
+    the natural way to model a hose by hand — is dropped without a word. The
+    .blend keeps the curve, because that is the editable form; the FBX gets
+    the tube.
+
+    Returns the names converted.
+    """
+    convertible = [o for o in bpy.data.objects
+                   if o.type in {'CURVE', 'SURFACE', 'FONT', 'META'}]
+    if not convertible:
+        return []
+
+    bpy.ops.object.select_all(action='DESELECT')
+    for obj in convertible:
+        obj.select_set(True)
+    bpy.context.view_layer.objects.active = convertible[0]
+    bpy.ops.object.convert(target='MESH')
+    bpy.ops.object.select_all(action='DESELECT')
+
+    return sorted(o.name for o in convertible)
+
+
 def _bounds(objects):
     lo = Vector((1e9, 1e9, 1e9))
     hi = Vector((-1e9, -1e9, -1e9))
@@ -124,8 +176,11 @@ def export_one(blend_name, coll_names, fbx_parts, axes):
 
     bpy.ops.wm.open_mainfile(filepath=src)
 
-    # FIRST. A linked material does not survive into the FBX, and the model
-    # arrives untextured with nothing in the log to say why.
+    # FIRST, and in this order. A linked material does not survive into the
+    # FBX, and the model arrives untextured with nothing in the log to say why
+    # — but localising over an unused local namesake renames the real one, so
+    # the shadows go before the localise, not after.
+    shadowed = _drop_shadow_materials()
     localised = _localise_materials()
 
     keep = set()
@@ -143,11 +198,21 @@ def export_one(blend_name, coll_names, fbx_parts, axes):
         if obj.name not in keep:
             bpy.data.objects.remove(obj, do_unlink=True)
 
+    # After the filter, so a curve outside the shipped collections costs nothing.
+    baked = _bake_geometry_to_mesh()
+
     objects = list(bpy.data.objects)
     bpy.context.view_layer.update()
 
     for obj in objects:
         obj.select_set(True)
+
+    # The one thing `object_types` can still swallow in silence. Nothing
+    # downstream would notice a missing part; this does.
+    stowaways = sorted(o.name for o in objects if o.type not in {"EMPTY", "MESH"})
+    if stowaways:
+        raise SystemExit("%s ships object types the FBX drops: %s"
+                         % (blend_name, ", ".join(stowaways)))
 
     meshes = [o for o in objects if o.type == 'MESH']
     empties = [o for o in objects if o.type == 'EMPTY']
@@ -179,9 +244,11 @@ def export_one(blend_name, coll_names, fbx_parts, axes):
     converted = axes == BLENDER_TO_UNITY
 
     print("EXPORTED %-22s %2d mesh(es) %2d empt(ies) %6d tri(s) %d mat(s) "
-          "localised  axes %s/%s%s -> %s"
-          % (blend_name, len(meshes), len(empties), tris, localised,
+          "localised, %d shadow(s) dropped  axes %s/%s%s -> %s"
+          % (blend_name, len(meshes), len(empties), tris, localised, shadowed,
              axes[0], axes[1], "" if converted else "  (AS AUTHORED)", dst))
+    if baked:
+        print("    baked to mesh   %s" % ", ".join(baked))
     print("    blender bounds  x[%7.3f %7.3f]  y[%7.3f %7.3f]  z[%7.3f %7.3f]"
           % (lo.x, hi.x, lo.y, hi.y, lo.z, hi.z))
 

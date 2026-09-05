@@ -45,6 +45,7 @@ GameObject:
   - component: {fileID: -7563428158567803625}
   - component: {fileID: 769494859068992477}
   - component: {fileID: 6497769994856577673}
+  - component: {fileID: 8480319596622861477}
   m_Layer: 0
   m_Name: Vrescal
   m_TagString: Untagged
@@ -119,7 +120,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2563642616604865102}
   serializedVersion: 5
-  m_Mass: 1
+  m_Mass: 120
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -724,10 +725,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.RagdollRig
   minBoneWeightFraction: 0.015
   maxBones: 20
+  minimumUsefulBones: 4
   limbAspect: 0.3
   minRadius: 0.04
   totalMass: 70
   minBoneMass: 0.6
+  angularDamping: 0.6
+  linearDamping: 0.05
+  solverIterations: 14
+  sleepWhenSettled: 1
+  selfCollision: 0
   swingLimit: 45
   twistLimit: 25
   settleLinearSpeed: 0.35
@@ -755,6 +762,34 @@ MonoBehaviour:
   deathImpulse: 2.5
   deathImpulseLift: 0.35
   downedSeconds: 1.2
+--- !u!114 &8480319596622861477
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2563642616604865102}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4103cc1ba38fb404ebbe3fb0ab56f9c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGroundConform
+  agent: {fileID: 0}
+  motor: {fileID: 0}
+  bodyRoot: {fileID: 0}
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  probeStartHeight: 0.6
+  probeDistance: 8
+  footprintRadius: 0
+  soleOffset: 0
+  maxCorrection: 1
+  heightFollowSpeed: 12
+  alignToSlope: 1
+  slopeFollow: 0.8
+  maxTiltDegrees: 30
+  tiltFollowSpeed: 8
 --- !u!1001 &3409940362326970143
 PrefabInstance:
   m_ObjectHideFlags: 0

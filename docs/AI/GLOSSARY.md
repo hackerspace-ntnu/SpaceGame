@@ -63,8 +63,8 @@ they are the ones worth reading before you start grepping.
 | **ItemState** | The per-hotbar-slot string bag where an item's instance state lives; the instance itself is destroyed on unequip | [Artifacts](systems/Artifacts.md) |
 | **ITeleportAware** | The seam every instant move announces, carrying a rigid `Transfer` matrix so listeners rebase world-space state | [SceneTransitions](systems/SceneTransitions.md) |
 | **lander** | `PlayerShip`: the script-generated, walkable, 4-seat hover hull that also flies the crash landing | [PlayerShip](systems/PlayerShip.md) |
-| **lasso** | A throwable loop artifact with its own Verlet rope and twirl-charge hold stream — **not** the leash | [Artifacts](systems/Artifacts.md) |
-| **leash** | A rope tied between any two things; each machine resolves only the ends it owns. **Not** the lasso | [LeashSystem](systems/LeashSystem.md) |
+| **lasso** | A throwable loop artifact with its own Verlet rope and twirl-charge hold stream — **not** the leash | [Lasso](systems/Lasso.md) |
+| **leash** | A rope tied between any two things; each machine resolves only the ends it owns. **Not** the lasso — though a lasso catch is *tied off* into one | [LeashSystem](systems/LeashSystem.md) |
 | **LeggedDriver** | The Assembly-CSharp motor that turns rider input and AI intent into a twist for a `LeggedLocomotion` | [Locomotion](systems/Locomotion.md) |
 | **LeggedLocomotion** | The kinematic base class owning procedural walking; it is the *sole* owner of the body transform | [Locomotion](systems/Locomotion.md) |
 | **LobbySession** | App-lifetime owner of UGS lobby state; `Instance` creates one on touch, use `Existing` to merely ask | [Lobby](systems/Lobby.md) |
@@ -110,7 +110,6 @@ they are the ones worth reading before you start grepping.
 | **session** | 4 senses: `WorldSession` (which world), `LobbySession` (UGS), `VersusSession` (the match), the NGO session `SessionLauncher` starts | [Multiplayer](systems/Multiplayer.md) |
 | **settlement** | A seeded, tile-generated town emitted at edit time into the scene. Not a **site** | [ProceduralGeneration](systems/TerrainGeneration.md) |
 | **SfxId** | The 71-value sound vocabulary an `AudioCatalog` maps to FMOD events; new events cannot be authored, the `.fspro` is lost | [Audio](systems/audio.md) |
-| **ShipRV** | The hover RV vehicle prefab — and the carrier of the world's only `SpawnPoint`, so losing it hangs every spawn | [Vehicles](systems/Vehicles.md) |
 | **site** | A hand-placed `WorldSiteMarker` publishing a `WorldSite` record NPCs navigate by. Not a **settlement** | [ProceduralGeneration](systems/TerrainGeneration.md) |
 | **`_Source~`** | `Art/Models/_Source~/`: the Unity-invisible Blender library. No `.meta`, no GUIDs, nothing there is referenceable | [ArtPipeline](systems/ArtPipeline.md) |
 | **SpawnPoint** | The scene marker `SpawnManager` resolves a player spawn anchor from; absent, nobody spawns and one error is logged | [GameModes](systems/GameModes.md) |

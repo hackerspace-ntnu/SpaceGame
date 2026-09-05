@@ -826,24 +826,27 @@ namespace SpaceGame.Items
             InventorySlot slot = hotbar.GetSlot(slotIndex);
             InventoryItem held = slot != null && !slot.IsEmpty ? slot.Item : null;
 
-            // The same asset in both places. A hotbar holds items by reference and the pack's
-            // layout is keyed by id, so the swap would be asked to put an id down that is on its
-            // way up — refused by PackLayout.TryPlace, and rolled back below anyway, but refusing
-            // here says what happened instead of taking the long way round to the same answer.
-            if (held != null && held.ID == packItem.ID) return false;
+            // The same asset in both places used to be refused here: the pack's layout was keyed
+            // by asset id, so the swap would have been asked to put an id down that was on its way
+            // up. It is keyed by PackItemKey now — two tanks are two placements — so this is an
+            // ordinary swap and the room test below is the only thing that can refuse it.
+
+            // Read before either side is written, because both are about to be overwritten and
+            // each one's charge is going the other way.
+            float heldCharge = SupplyCharge.Read(held != null ? slot.State : null);
 
             if (Pack.TakeOut(grabbed.ItemId) == null) return false;
 
-            if (held != null && !TryPlaceDisplaced(held, grabbed))
+            if (held != null && !TryPlaceDisplaced(held, grabbed, heldCharge))
             {
                 // Nowhere for the displaced item to go. Put the dragged one back exactly where it
                 // was and change nothing: every machine's pack, this one included, then agrees
                 // with the display that never moved.
-                Pack.TryPlace(packItem, grabbed.Surface, grabbed.Uv, grabbed.Yaw);
+                Pack.TryPlace(packItem, grabbed.Surface, grabbed.Uv, grabbed.Yaw, grabbed.Charge);
                 return false;
             }
 
-            WriteHotbarSlot(hotbar, slotIndex, packItem);
+            WriteHotbarSlot(hotbar, slotIndex, packItem, grabbed.Charge);
             return true;
         }
 
@@ -860,9 +863,10 @@ namespace SpaceGame.Items
         /// there ever was a question for.
         /// </para>
         /// </summary>
-        private bool TryPlaceDisplaced(InventoryItem held, PackPlacement vacated) =>
-            (Pack.Reaches(vacated.Surface) && Pack.TryPlace(held, vacated.Surface, vacated.Uv, vacated.Yaw))
-            || Pack.TryStow(held);
+        private bool TryPlaceDisplaced(InventoryItem held, PackPlacement vacated, float charge) =>
+            (Pack.Reaches(vacated.Surface)
+             && Pack.TryPlace(held, vacated.Surface, vacated.Uv, vacated.Yaw, charge))
+            || Pack.TryStow(held, charge);
 
         /// <summary>
         /// Put <paramref name="item"/> in one named hotbar slot, leaving the others alone.
@@ -882,7 +886,8 @@ namespace SpaceGame.Items
         /// consequence of dropping something into slot 3.
         /// </para>
         /// </summary>
-        private static void WriteHotbarSlot(IPlayerInventory hotbar, int index, InventoryItem item)
+        private static void WriteHotbarSlot(IPlayerInventory hotbar, int index, InventoryItem item,
+                                            float charge = SupplyCharge.None)
         {
             int size = hotbar.GetInventorySize();
             var slots = new List<InventoryItem>(size);
@@ -898,6 +903,18 @@ namespace SpaceGame.Items
             slots[index] = item;
 
             hotbar.RestoreSlots(slots, hotbar.SelectedSlotIndex);
+
+            // After the write, never before: RestoreSlots assigns the slot's Item, and assigning an
+            // Item that actually CHANGED clears the slot's ItemState with it. The other slots keep
+            // their bags because their items are handed straight back unchanged.
+            if (charge < 0f) return;
+
+            InventorySlot written = hotbar.GetSlot(index);
+            if (written == null || written.IsEmpty) return;
+
+            written.State ??= new ItemState();
+            SupplyCharge.Write(written.State, charge);
+            hotbar.PublishSlotCharges();
         }
 
         /// <summary>

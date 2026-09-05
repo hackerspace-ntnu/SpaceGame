@@ -818,24 +818,27 @@ namespace SpaceGame.EditorTools
         private WallInventory Wall() => ship.GetComponentInChildren<WallInventory>(true);
 
         // ── Repair station ──
-        // Nested like the projector, by PlayerShipBuilder.BuildRepairStation: the scrap-fed
-        // RepairWorkstation on the side opposite the gear wall, aft of the map projector. What a
-        // sweep cannot know: that it stands where the room leaves floor for it, that its face is
-        // what a player in the aisle reaches, and that its progress lands in the HULL's record
-        // rather than in a second entity the fixture prefab brought aboard.
+        // Nested like the projector, by PlayerShipBuilder.BuildRepairStation: the bench on the
+        // side opposite the gear wall, aft of the map projector. Set dressing since scrap was
+        // removed — it holds no state and offers no interaction — but the deck is laid out around
+        // its volume, so what a sweep cannot know still matters: that it stands where the room
+        // leaves floor for it, and that the aisle in front of it is still walkable.
 
-        private RepairWorkstation Station() => ship.GetComponentInChildren<RepairWorkstation>(true);
+        private Transform Station() => ship.GetComponentsInChildren<Transform>(true)
+            .First(t => t.name == "RepairStation");
 
         [Test]
         public void PlayerShip_HasOneRepairStationOnTheProjectorsSideFacingTheRoom()
         {
             InstantiateShip();
 
-            RepairWorkstation[] stations = ship.GetComponentsInChildren<RepairWorkstation>(true);
+            Transform[] stations = ship.GetComponentsInChildren<Transform>(true)
+                .Where(t => t.name == "RepairStation")
+                .ToArray();
             Assert.AreEqual(1, stations.Length,
-                            "The ship carries exactly one repair station — its saver writes one " +
-                            "key, and a second machine's count would overwrite the first's.");
-            RepairWorkstation station = stations[0];
+                            "The ship carries exactly one repair station — a second bench would " +
+                            "stand in floor the deck has already spent.");
+            Transform station = stations[0];
 
             HoloProjectorInteraction projector = ship.GetComponentInChildren<HoloProjectorInteraction>(true);
             Assert.IsNotNull(projector, "No map projector to stand beside.");
@@ -858,18 +861,10 @@ namespace SpaceGame.EditorTools
             Vector3 facing = ship.transform.InverseTransformDirection(station.transform.forward);
             Assert.Greater(Vector3.Dot(facing, acrossToWall), 0.99f,
                            $"The station faces {facing:0.00} in ship space; it should face " +
-                           $"{acrossToWall} so its hopper and gauge are the side a player meets.");
+                           $"{acrossToWall} so its worktop is the side a player meets.");
 
-            // Wired — every one of these fails silently in play.
-            var wired = new SerializedObject(station);
-            Assert.IsNotNull(wired.FindProperty("requiredItem").objectReferenceValue,
-                             "The station accepts no item, so every deposit is refused.");
-            Assert.IsNotNull(wired.FindProperty("statusLight").objectReferenceValue,
-                             "The station has no status lamp, so a deposit shows nothing.");
-            Assert.IsNotNull(station.GetComponent<RepairWorkstationSaveable>(),
-                             "The station has no saver, so its scrap count resets on load.");
-            Assert.IsNotNull(station.GetComponentInChildren<RepairProgressUI>(true),
-                             "The station has no gauge, so nobody can read what it still wants.");
+            Assert.IsNotNull(station.GetComponent<Collider>(),
+                             "The station has no collider, so the crew walks through the bench.");
         }
 
         /// <summary>
@@ -883,9 +878,9 @@ namespace SpaceGame.EditorTools
         {
             InstantiateShip();
 
-            RepairWorkstation station = Station();
+            Transform station = Station();
             var box = station.GetComponent<BoxCollider>();
-            Assert.IsNotNull(box, "The station has no collider, so no look-ray can find it.");
+            Assert.IsNotNull(box, "The station has no collider, so the crew walks through it.");
 
             // Shrunk by the standing skin: the fixture's base sits ON the deck plate, and an
             // overlap query counts a touching face as an overlap.
@@ -912,31 +907,22 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// A player in the aisle can use it: the look-ray from a standing eye in front of the
-        /// face meets the station's own collider before anything else of the ship's, and there
-        /// is room for a body to stand there.
+        /// The bench does not eat the aisle: there is room for a standing body on the floor in
+        /// front of its face. Nothing is interacted with here any more — the station offers no
+        /// prompt since scrap went — but a fixture that walls off its own side of the deck is
+        /// still a bug, and one only a body-sized query finds.
         /// </summary>
         [Test]
-        public void PlayerShip_RepairStationIsReachedFromTheAisle()
+        public void PlayerShip_RepairStationLeavesRoomToStandInFrontOfIt()
         {
             InstantiateShip();
 
-            RepairWorkstation station = Station();
+            Transform station = Station();
             var box = station.GetComponent<BoxCollider>();
-            Vector3 target = box.transform.TransformPoint(box.center);
             Vector3 face = box.transform.TransformPoint(box.center + Vector3.forward * box.size.z * 0.5f);
 
             Vector3 feet = face + station.transform.forward * (BodyRadius + 0.6f);
             feet.y = station.transform.position.y;
-            Vector3 eye = feet + Vector3.up * WallUseEyeHeight;
-
-            RaycastHit[] hits = Ours(Physics.RaycastAll(eye, (target - eye).normalized, InteractReach, ~0, NotTriggers))
-                .OrderBy(h => h.distance)
-                .ToArray();
-            Assert.IsNotEmpty(hits, "The look-ray from the aisle meets nothing of the ship's at all.");
-            Assert.IsTrue(hits[0].collider.transform.IsChildOf(station.transform),
-                          $"The first thing the look-ray meets is {Describe(hits[0].collider)}, " +
-                          "not the repair station.");
 
             Collider[] blocking = Ours(Physics.OverlapCapsule(
                     feet + Vector3.up * (BodyRadius + StandingSkin),
@@ -948,14 +934,14 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// Scrap progress is collected by the HULL's entity. A fixture prefab carries its own
+        /// A fixture's state is collected by the HULL's entity. A fixture prefab carries its own
         /// SaveableEntity and TransformSaveable (the wiring pass stamps every saveable prefab);
         /// nested, the entity stops the hull's collection at the fixture and names the ship's own
         /// prefab id, and the pose saver overwrites the wreck's pose in the record. The builder
         /// strips both (<c>PlayerShipBuilder.StripNestedSavers</c>); this is what proves it.
         /// </summary>
         [Test]
-        public void PlayerShip_RepairProgressIsSavedInTheHullsOwnRecord()
+        public void PlayerShip_FixtureStateIsSavedInTheHullsOwnRecord()
         {
             InstantiateShip();
 
@@ -970,22 +956,12 @@ namespace SpaceGame.EditorTools
                             "TransformSaveables on the hull: " + string.Join(", ", poses.Select(p => p.name)) +
                             " — a fixture's would overwrite the wreck's saved pose with its own.");
 
-            // Both fixtures' savers are the hull's now. Asked of the saver list rather than of a
-            // capture for the projector, because ProjectorSaveable deliberately writes nothing
-            // while the switch is off — its authored state — so an absent key proves nothing.
+            // The projector's saver is the hull's now. Asked of the saver list rather than of a
+            // capture, because ProjectorSaveable deliberately writes nothing while the switch is
+            // off — its authored state — so an absent key proves nothing.
             IReadOnlyList<SpaceGame.Persistence.ISaveable> savers = entities[0].Savers();
-            Assert.IsTrue(savers.Any(s => s is RepairWorkstationSaveable),
-                          "The hull's entity does not collect the station's saver.");
             Assert.IsTrue(savers.Any(s => s is ProjectorSaveable),
                           "The hull's entity does not collect the projector's saver.");
-
-            Station().RestoreProgress(3);
-
-            var bag = new SpaceGame.Persistence.StateBag();
-            entities[0].Capture(bag);
-            Assert.IsTrue(bag.Has(RepairWorkstationSaveable.Key),
-                          "The hull's record has no '" + RepairWorkstationSaveable.Key +
-                          "' — the station's scrap count is not being saved with the ship.");
         }
 
         // ─────────── The oxygen plant ───────────
@@ -1084,6 +1060,91 @@ namespace SpaceGame.EditorTools
                               " is " + Describe(hits[0].collider) + ", not the dock's own volume. " +
                               "Its aim volume is not standing proud of the machine's body box.");
             }
+        }
+
+        /// <summary>
+        /// The standing terminal stands on the cockpit's fore deck with nothing of the ship's
+        /// own inside its box: not the hull's baked fill, not a chair, not another fixture. The
+        /// window it stands in was swept rather than reasoned about (see
+        /// <c>PlayerShipBuilder.StandingTerminalFore</c>); a remodel of the cockpit or the
+        /// terminal that closes it fails here with the intruding collider named.
+        /// </summary>
+        [Test]
+        public void PlayerShip_StandingTerminalStandsOnTheDeckClearOfEverything()
+        {
+            InstantiateShip();
+
+            TerminalConsole terminal = Terminal();
+            var box = terminal.GetComponent<BoxCollider>();
+            Assert.IsNotNull(box, "The terminal has no collider, so no look-ray can find it.");
+
+            Vector3 centre = box.transform.TransformPoint(box.center);
+            Vector3 half = Vector3.Scale(box.size, box.transform.lossyScale) * 0.5f
+                           - Vector3.one * StandingSkin;
+            Collider[] inside = Ours(Physics.OverlapBox(centre, half, box.transform.rotation, ~0, NotTriggers))
+                .Where(c => !c.transform.IsChildOf(terminal.transform))
+                .ToArray();
+            Assert.IsEmpty(inside.Select(Describe),
+                           "Something of the ship's own is standing inside the terminal — the hull, " +
+                           "a chair, or one of the other fixtures.");
+
+            Vector3 probe = terminal.transform.position + Vector3.up * 0.05f;
+            RaycastHit[] under = Ours(Physics.RaycastAll(probe, Vector3.down, 1f, ~0, NotTriggers))
+                .Where(h => !h.collider.transform.IsChildOf(terminal.transform))
+                .OrderBy(h => h.distance)
+                .ToArray();
+            Assert.IsNotEmpty(under, "Nothing under the terminal at all — it is not on a deck.");
+            float clearance = probe.y - under[0].point.y;
+            Assert.That(clearance, Is.InRange(0.0f, 0.10f),
+                        $"The terminal's base sits {clearance - 0.05f:0.00} m over the floor under it.");
+        }
+
+        /// <summary>
+        /// A player in the cockpit walkway can use it: the look-ray from a standing eye in front
+        /// of the glass meets the terminal's own collider before anything else of the ship's,
+        /// there is room for a body to stand there, and the screen is wired to be drawn on.
+        /// </summary>
+        [Test]
+        public void PlayerShip_StandingTerminalIsReachedFromTheWalkway()
+        {
+            InstantiateShip();
+
+            TerminalConsole terminal = Terminal();
+            var box = terminal.GetComponent<BoxCollider>();
+            Vector3 target = box.transform.TransformPoint(box.center);
+            Vector3 face = box.transform.TransformPoint(box.center + Vector3.forward * box.size.z * 0.5f);
+
+            Vector3 feet = face + terminal.transform.forward * (BodyRadius + 0.6f);
+            feet.y = terminal.transform.position.y;
+            Vector3 eye = feet + Vector3.up * WallUseEyeHeight;
+
+            RaycastHit[] hits = Ours(Physics.RaycastAll(eye, (target - eye).normalized, InteractReach, ~0, NotTriggers))
+                .OrderBy(h => h.distance)
+                .ToArray();
+            Assert.IsNotEmpty(hits, "The look-ray from the walkway meets nothing of the ship's at all.");
+            Assert.IsTrue(hits[0].collider.transform.IsChildOf(terminal.transform),
+                          $"The first thing the look-ray meets is {Describe(hits[0].collider)}, " +
+                          "not the terminal.");
+
+            Collider[] blocking = Ours(Physics.OverlapCapsule(
+                    feet + Vector3.up * (BodyRadius + StandingSkin),
+                    feet + Vector3.up * (BodyHeight - BodyRadius + StandingSkin),
+                    BodyRadius, ~0, NotTriggers))
+                .ToArray();
+            Assert.IsEmpty(blocking.Select(Describe),
+                           "A body cannot stand in front of the terminal's screen.");
+
+            Assert.IsNotNull(terminal.GetComponent<TerminalFocusSession>(), "The press has no session to open.");
+            Assert.IsNotNull(terminal.GetComponentInChildren<TerminalScreen>(true), "The glass has no screen to draw.");
+        }
+
+        private TerminalConsole Terminal()
+        {
+            TerminalConsole[] terminals = ship.GetComponentsInChildren<TerminalConsole>(true);
+            Assert.AreEqual(1, terminals.Length,
+                            "The ship carries exactly one standing terminal — run Tools ▸ SpaceGame ▸ " +
+                            "Build Standing Terminal Prefab, then rebuild the ship.");
+            return terminals[0];
         }
 
         [Test]

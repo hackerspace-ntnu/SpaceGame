@@ -628,13 +628,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.SuitOxygen
   ShowTopMostFoldoutHeaderGroup: 1
-  maxOxygen: 100
-  drainPerSecond: 0.167
-  bottleRestores: 100
-  suffocationDamage: 4
-  suffocationInterval: 2
-  warnFraction: 0.3
-  alarmFraction: 0.1
+  suitSeconds: 60
+  drainPerSecond: 1
+  refillPerSecond: 6
+  suffocationDamage: 5
+  suffocationInterval: 1
+  warnFraction: 0.1
 --- !u!4 &1885774286167179584 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3211930088316101119, guid: 9ab1ff9f9caaf86469f66c4bd3fb3b2e, type: 3}

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SpaceGame.Items
@@ -49,23 +50,6 @@ namespace SpaceGame.Items
         [Tooltip("Ceiling on sag depth in metres, for a very long rope between two close points.")]
         [SerializeField] private float maxSag = 3f;
 
-        [Header("Ground")]
-        [Tooltip("Lay the rope on top of the world instead of letting it sag through it.")]
-        [SerializeField] private bool restOnGround = true;
-
-        [Tooltip("What counts as ground. Loose bodies and the rope's own two ends are always " +
-                 "ignored regardless of this — see LeashGround.")]
-        [SerializeField] private LayerMask groundMask = ~0;
-
-        [Tooltip("How far above the surface the rope's centre line sits, in metres. About its own " +
-                 "radius, so it looks like it is lying on the ground rather than in it.")]
-        [SerializeField] private float groundClearance = 0.03f;
-
-        [Tooltip("How far above the straight line between the knots to start looking. This is what " +
-                 "lets the rope climb a rise between its two ends; a whole hill taller than this " +
-                 "will still be cut through.")]
-        [SerializeField] private float groundProbeAbove = 1.5f;
-
         [Tooltip("Metres of idle drift in a rope hanging with slack in it. Zero is a dead line.")]
         [SerializeField] private float swayAmplitude = 0.06f;
         [SerializeField] private float swaySpeed = 0.9f;
@@ -83,12 +67,6 @@ namespace SpaceGame.Items
 
         private LineRenderer line;
         private float biteUntil;
-
-        /// <summary>
-        /// The downward probe, built on first use because <see cref="groundMask"/> is not known
-        /// until this object has been deserialized or copied.
-        /// </summary>
-        private LeashGround ground;
 
         /// <summary>Build the renderer this rope draws into, on the rope's own GameObject.</summary>
         public void Build(GameObject host)
@@ -126,10 +104,6 @@ namespace SpaceGame.Items
             tensionThinning = other.tensionThinning;
             braidsPerMetre = other.braidsPerMetre;
             maxSag = other.maxSag;
-            restOnGround = other.restOnGround;
-            groundMask = other.groundMask;
-            groundClearance = other.groundClearance;
-            groundProbeAbove = other.groundProbeAbove;
             swayAmplitude = other.swayAmplitude;
             swaySpeed = other.swaySpeed;
             shiverAmplitude = other.shiverAmplitude;
@@ -163,87 +137,120 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Lay the rope between two knots.
+        /// Lay the rope along its path.
         ///
-        /// <paramref name="tension01"/> is zero for a slack rope and one for a rope at its breaking
-        /// stretch; it drives the thinning and the shiver.
+        /// <paramref name="tension01"/> is zero for a slack rope and one for a rope at full stretch;
+        /// it drives the thinning and the shiver.
+        ///
+        /// <para>
+        /// Points are emitted evenly along the path's LENGTH rather than evenly per segment, so a
+        /// short bend round a corner does not get the same share of the line renderer's budget as a
+        /// twenty-metre span.
+        /// </para>
+        /// <para>
+        /// There is no ground probe here any more, and that is the point. The rope used to be DRAWN
+        /// draped on a hillside it was still measured straight through; now the bends in the path
+        /// are real contacts, so drawing them is just drawing where the rope is.
+        /// </para>
         /// </summary>
-        public void Draw(Vector3 a, Vector3 b, float length, float tension01)
+        public void Draw(IReadOnlyList<Vector3> path, float length, float tension01)
         {
-            if (line == null) return;
+            if (line == null || path == null || path.Count < 2) return;
 
             int count = Mathf.Max(2, segments);
             if (line.positionCount != count) line.positionCount = count;
             if (drawn.Length != count) drawn = new Vector3[count];
             drawnCount = count;
 
-            Vector3 axis = b - a;
-            float span = axis.magnitude;
+            float total = 0f;
+            for (int i = 1; i < path.Count; i++) total += Vector3.Distance(path[i - 1], path[i]);
 
-            if (span < 0.01f)
+            if (total < 0.01f)
             {
                 for (int i = 0; i < count; i++)
                 {
-                    line.SetPosition(i, a);
-                    drawn[i] = a;
+                    line.SetPosition(i, path[0]);
+                    drawn[i] = path[0];
                 }
                 return;
             }
 
             float tension = Mathf.Clamp01(tension01);
-            float sag = Mathf.Min(maxSag, SagDepth(span, length));
 
             float thickness = width * (1f - tensionThinning * tension);
             line.startWidth = thickness;
             line.endWidth = thickness;
 
-            // Tiling is per metre of rope, so pulling a rope out longer lays down more braid rather
-            // than stretching the braid it already has.
-            line.textureScale = new Vector2(Mathf.Max(0.01f, span * braidsPerMetre), 1f);
+            // Per metre of rope, so a longer rope lays down more braid rather than stretching what
+            // it already has.
+            line.textureScale = new Vector2(Mathf.Max(0.01f, total * braidsPerMetre), 1f);
 
-            Vector3 right = Vector3.Cross(axis / span, Vector3.up);
-            right = right.sqrMagnitude < 1e-4f ? Vector3.right : right.normalized;
-            Vector3 up = Vector3.Cross(right, axis / span);
+            // Spare rope is shared out in proportion to each span, so a rope pinned round a corner
+            // droops in both halves rather than dumping all its slack into one of them.
+            float slack = Mathf.Max(0f, length - total);
 
-            Displacement wobble = WobbleFor(span, tension);
+            Displacement wobble = WobbleFor(total, tension);
+
+            int segment = 0;
+            float consumed = 0f;
+            float segmentSpan = Vector3.Distance(path[0], path[1]);
 
             for (int i = 0; i < count; i++)
             {
-                float t = i / (float)(count - 1);
+                float travel = total * i / (count - 1);
 
-                // Pinned at both knots: an envelope that does not vanish at t=0 and t=1 detaches the
-                // rope from the things it is tied to.
+                while (segment < path.Count - 2 && travel > consumed + segmentSpan)
+                {
+                    consumed += segmentSpan;
+                    segment++;
+                    segmentSpan = Vector3.Distance(path[segment], path[segment + 1]);
+                }
+
+                Vector3 from = path[segment];
+                Vector3 to = path[segment + 1];
+
+                float t = segmentSpan > 0.0001f
+                    ? Mathf.Clamp01((travel - consumed) / segmentSpan)
+                    : 0f;
+
+                Vector3 chord = Vector3.Lerp(from, to, t);
+
+                // Pinned at every point on the path, not just at the two knots. A bend is a place
+                // the rope touches the world, and a rope that sags away from what it is resting on
+                // has not understood what resting means.
                 float envelope = 4f * t * (1f - t);
 
-                Vector3 chord = a + axis * t;
+                float share = segmentSpan / total;
+                float sag = Mathf.Min(maxSag, SagDepth(segmentSpan, segmentSpan + slack * share));
 
                 Vector3 p = chord;
                 p.y -= envelope * sag;
 
                 if (wobble.Amplitude > 0.0001f)
                 {
+                    Vector3 axis = to - from;
+                    Vector3 forward = axis.sqrMagnitude > 1e-6f ? axis.normalized : Vector3.forward;
+
+                    Vector3 right = Vector3.Cross(forward, Vector3.up);
+                    right = right.sqrMagnitude < 1e-4f ? Vector3.right : right.normalized;
+                    Vector3 up = Vector3.Cross(right, forward);
+
                     float amp = wobble.Amplitude * envelope;
                     float phase = Time.time * wobble.Speed;
+                    float along = travel / total;
 
                     // Two axes, deliberately out of step in both frequency and speed, so the motion
                     // turns over in space. One axis alone is a flat ripple, and a flat ripple is
                     // invisible from half of all viewing angles.
-                    p += right * (Mathf.Sin(t * Mathf.PI * 2f * wobble.Waves - phase) * amp);
-                    p += up * (Mathf.Sin(t * Mathf.PI * 2f * wobble.Waves * 0.63f - phase * 1.31f) * amp * 0.7f);
+                    p += right * (Mathf.Sin(along * Mathf.PI * 2f * wobble.Waves - phase) * amp);
+                    p += up * (Mathf.Sin(along * Mathf.PI * 2f * wobble.Waves * 0.63f - phase * 1.31f) * amp * 0.7f);
                 }
-
-                // Last, after the wave. The sway has a vertical component, so clamping before it
-                // lets the rope be pushed straight back down through the surface it was just lifted
-                // out of — by less than the clearance, which is exactly the amount that shows.
-                //
-                // The two knots are exempt: they are tied to things, and lifting one would detach
-                // the rope from what it is attached to.
-                if (i > 0 && i < count - 1) p.y = Mathf.Max(p.y, FloorUnder(chord, sag));
 
                 line.SetPosition(i, p);
                 drawn[i] = p;
             }
         }
+
 
         // ── Aiming at the rope ─────────────────────────────────────────────────
 
@@ -349,44 +356,6 @@ namespace SpaceGame.Items
 
             float s = Mathf.Clamp01(Vector3.Dot(p - a, seg) / segSq);
             return Vector3.Distance(p, a + seg * s);
-        }
-
-        /// <summary>
-        /// The height this point of the rope may not go below, or negative infinity where there is
-        /// nothing underneath.
-        ///
-        /// <para>
-        /// The ray starts a little above the straight line between the knots rather than at the
-        /// sagged point, for two reasons. A point that has sagged into a hillside is INSIDE the
-        /// mesh, and a downward ray from inside a mesh reports nothing — so probing from where the
-        /// rope currently is would go blind in exactly the case this exists to fix. And starting
-        /// above the chord is what lets the rope ride over a rise between its two ends rather than
-        /// only ever being pushed up from below.
-        /// </para>
-        /// <para>
-        /// It is also what keeps this cheap: the ray is only as long as the sag plus the head start,
-        /// so a taut rope strung high in the air casts a two-metre ray that hits nothing, rather
-        /// than hunting the ground all the way down.
-        /// </para>
-        /// </summary>
-        private float FloorUnder(Vector3 chord, float sag)
-        {
-            if (!restOnGround) return float.NegativeInfinity;
-
-            ground ??= new LeashGround(groundMask);
-
-            Vector3 from = chord + Vector3.up * groundProbeAbove;
-            float reach = groundProbeAbove + sag + groundClearance;
-
-            float height = ground.HeightUnder(from, reach);
-            return height > float.NegativeInfinity ? height + groundClearance : height;
-        }
-
-        /// <summary>Tell the probe what this rope is tied to, so it does not rest the rope on that.</summary>
-        public void TiedBetween(Transform a, Transform b)
-        {
-            ground ??= new LeashGround(groundMask);
-            ground.TiedBetween(a, b);
         }
 
         /// <summary>The travelling wave on the rope this frame, whichever of the three is loudest.</summary>

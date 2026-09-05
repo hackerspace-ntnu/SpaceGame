@@ -308,6 +308,7 @@ namespace SpaceGame.Agents
             mountedPlayerRigidbody = mountedPlayer.GetComponent<Rigidbody>();
             mountedFirstPersonCamera = mountedPlayer.GetComponentInChildren<Camera>(true);
             mountedFirstPersonCameraRoot = mountedPlayerLook != null ? mountedPlayerLook.cameraRoot : null;
+            mountedAimProvider = mountedPlayer.GetComponent<AimProvider>();
             activeSeatPoint = mountPointOverride ? mountPointOverride : seatPoint;
         }
 
@@ -505,6 +506,7 @@ namespace SpaceGame.Agents
             mountedPlayerRigidbody = null;
             mountedFirstPersonCamera = null;
             mountedFirstPersonCameraRoot = null;
+            mountedAimProvider = null;
         }
 
         private void ReleaseRuntimeThirdPersonCamera()

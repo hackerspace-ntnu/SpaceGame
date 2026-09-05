@@ -509,13 +509,6 @@ namespace SpaceGame.Core.Persistence
                 parts.Add(nameof(LeverSaveable));
             }
 
-            if (go.GetComponent<RepairWorkstation>() != null &&
-                go.GetComponent<RepairWorkstationSaveable>() == null)
-            {
-                go.AddComponent<RepairWorkstationSaveable>();
-                parts.Add(nameof(RepairWorkstationSaveable));
-            }
-
             // A cell and a bottle left in the plant are items out of somebody's hotbar. Without
             // this they are simply gone on the next load, and the machine comes back dark needing
             // a cell nobody has any more.
@@ -531,13 +524,6 @@ namespace SpaceGame.Core.Persistence
             {
                 go.AddComponent<ProjectorSaveable>();
                 parts.Add(nameof(ProjectorSaveable));
-            }
-
-            // The game's win condition. Deposit two of three scrap, reload, and it was back at zero.
-            if (go.GetComponent<SpaceGame.World.Ship>() != null && go.GetComponent<ShipSaveable>() == null)
-            {
-                go.AddComponent<ShipSaveable>();
-                parts.Add(nameof(ShipSaveable));
             }
 
             if (go.GetComponent<SpaceGame.Gameplay.Trading.TraderInteraction>() != null &&

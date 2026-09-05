@@ -423,9 +423,9 @@ namespace SpaceGame.Items
         private UsableItem HeldItem() =>
             equippedItemObject != null ? equippedItemObject.GetComponent<UsableItem>() : null;
 
-        private void OnItemDropped(InventoryItem item)
+        private void OnItemDropped(InventoryItem item, float charge)
         {
-            GameServices.ItemDropService.DropItem(handSocket, item);
+            GameServices.ItemDropService.DropItem(handSocket, item, charge);
         }
 
         private void OnValidate()

@@ -118,6 +118,14 @@ namespace SpaceGame.Items
                  "of it on purpose — past there the net is a board, and a board is not a net.")]
         [SerializeField, Range(0f, 0.025f)] private float bendStiffness = 0.016f;
 
+        [Tooltip("How hard the net is drawn onto what it caught, 0-1.\n\n" +
+                 "Relaxed inside the same loop as the strands and the bend, and divided across " +
+                 "the passes by PerPass like every other soft family — so this number means the " +
+                 "same thing at any iteration count.\n\n" +
+                 "Too low and the net drifts off a body instead of gripping it. Too high and it " +
+                 "beats the strands, which is a smooth tube rather than a folded net.")]
+        [SerializeField, Range(0f, 1f)] private float cinchStiffness = 0.22f;
+
         [Tooltip("How hard the mesh resists moving broadside-on through air, 0-1. This is what " +
                  "makes the net flutter as it falls and what slows the bloom without a tuned curve.")]
         [SerializeField, Range(0f, 1f)] private float faceDrag = 0.25f;
@@ -189,6 +197,25 @@ namespace SpaceGame.Items
         /// <summary>The authored stiffnesses divided across this substep's passes. See PerPass.</summary>
         private float shearPerPass;
         private float bendPerPass;
+
+        /// <summary>The ring being closed, or null while the net is flying or has missed.</summary>
+        private SnareCinch.Axis? cinchAxis;
+        private float cinchStartRadius;
+        private float cinchTargetRadius;
+        private float cinchDuration;
+        private float cinchElapsed;
+        private float cinchPerPass;
+
+        /// <summary>
+        /// This substep's ring, resolved once in <see cref="Step"/>. Not per pass: every node in a
+        /// pass has to share one ring, and <see cref="SnareCinch.RadiusAt"/> says so in its own
+        /// doc. It sits with <c>shearPerPass</c> and <c>bendPerPass</c> because it is the same kind
+        /// of thing — a per-substep quantity the constraint loop then reads many times.
+        /// </summary>
+        private float cinchRadius;
+
+        /// <summary>Set by <see cref="Freeze"/>. Cleared only by <see cref="Deploy"/>.</summary>
+        private bool frozen;
 
         /// <summary>
         /// Nodes per side. Reports the authored count before <see cref="Deploy"/> and the live one
@@ -320,6 +347,16 @@ namespace SpaceGame.Items
         public void ConfigureHemForTest(float hemWeight) => this.hemWeight = hemWeight;
 
         /// <summary>
+        /// Override how hard the cinch draws the net in. For tests and for tuning sweeps.
+        ///
+        /// A separate seam rather than another argument on <see cref="ConfigureForTest"/>, matching
+        /// the grip and hem overrides above: this is one value a test wants to vary while holding
+        /// everything else at the authored defaults, and widening the five-argument call would make
+        /// every existing caller state a number it does not care about.
+        /// </summary>
+        public void ConfigureCinchForTest(float cinchStiffness) => this.cinchStiffness = cinchStiffness;
+
+        /// <summary>
         /// A fresh lattice with the same tunables and none of the state.
         ///
         /// The instance serialized on the gun prefab is a TEMPLATE, not a net. Two nets in the air
@@ -337,6 +374,7 @@ namespace SpaceGame.Items
             shearLimit = shearLimit,
             shearStiffness = shearStiffness,
             bendStiffness = bendStiffness,
+            cinchStiffness = cinchStiffness,
             faceDrag = faceDrag,
             bloomSpeed = bloomSpeed,
             bundleFraction = bundleFraction,
@@ -493,6 +531,101 @@ namespace SpaceGame.Items
             }
         }
 
+        /// <summary>
+        /// Has this net stopped solving? Set by <see cref="Freeze"/> and cleared by
+        /// <see cref="Deploy"/> — for the life of one net this is one-way, but the lattice instance
+        /// outlives the net and <see cref="Deploy"/> already promises a fresh one.
+        /// </summary>
+        public bool Frozen => frozen;
+
+        /// <summary>
+        /// Start closing the net around a line through what it caught.
+        ///
+        /// <para>
+        /// The start radius is measured here, once, from the lattice's own current spread — not
+        /// authored. A net that caught a body at the edge of its bloom and one that caught it dead
+        /// centre are different sizes at contact, and a fixed start radius would make the first
+        /// jump inward on its first substep.
+        /// </para>
+        /// <para>
+        /// It is the OUTERMOST node's radius, not the mean, and the difference is the whole of
+        /// whether that promise is kept. <see cref="SnareCinch.Correction"/> is one-sided, so every
+        /// node outside the start radius is pulled on the very first substep: starting from the
+        /// mean leaves half the lattice outside the ring by construction, and the mean-to-corner
+        /// part of the close then happens at once no matter what <paramref name="duration"/> says.
+        /// Starting from the maximum leaves nothing outside, so the gather begins at zero and the
+        /// duration means what it claims.
+        /// </para>
+        /// <para>
+        /// <b>The axis is sampled once and never tracked.</b> The body is about to topple, and a
+        /// target frame that tumbled with it would sweep the cinch ring — and every node it holds —
+        /// through the ground.
+        /// </para>
+        /// </summary>
+        public void BeginCinch(SnareCinch.Axis axis, float targetRadius, float duration)
+        {
+            if (pos == null || frozen) return;
+
+            cinchAxis = axis;
+            cinchTargetRadius = Mathf.Max(targetRadius, 0.01f);
+            cinchDuration = Mathf.Max(duration, 0.01f);
+            cinchElapsed = 0f;
+            cinchStartRadius = MaxRadiusAbout(axis);
+        }
+
+        /// <summary>
+        /// Stop solving, keeping the shape exactly as it is. Nothing but <see cref="Deploy"/>
+        /// undoes it.
+        ///
+        /// <para>
+        /// Both <c>pos</c> and <c>prev</c> are pinned, not just <c>pos</c>. Leaving <c>prev</c>
+        /// behind hands every node its own displacement as stored velocity the moment anything
+        /// reads it again — the same defect <see cref="SnareDrape"/> shipped with, where a
+        /// position-only clamp injected speed on every substep of contact.
+        /// </para>
+        /// </summary>
+        public void Freeze()
+        {
+            if (pos == null || frozen) return;
+
+            frozen = true;
+            cinchAxis = null;
+
+            for (int i = 0; i < pos.Length; i++) prev[i] = pos[i];
+        }
+
+        /// <summary>
+        /// Distance of the FURTHEST node from a line, for sizing the cinch that follows.
+        ///
+        /// <para>
+        /// The maximum rather than the mean, so that <see cref="BeginCinch"/> starts with no node
+        /// outside the ring and the close is entirely governed by its duration.
+        /// </para>
+        /// <para>
+        /// The tradeoff is the opposite failure, and it is worth knowing about: one node flung wide
+        /// — a corner snagged on scenery, a hem caught on a limb — sizes the whole ring off that
+        /// outlier, so the cinch spends its early smoothstep closing empty space and back-loads the
+        /// real gather into the end of the window. If that ever shows up as a cinch that looks
+        /// slow to bite, a high percentile is the fix, not the mean.
+        /// </para>
+        /// </summary>
+        private float MaxRadiusAbout(SnareCinch.Axis axis)
+        {
+            if (pos == null || pos.Length == 0) return 0f;
+
+            float furthest = 0f;
+
+            for (int i = 0; i < pos.Length; i++)
+            {
+                Vector3 offset = pos[i] - axis.Origin;
+                float radius = (offset - axis.Direction * Vector3.Dot(offset, axis.Direction)).magnitude;
+
+                if (radius > furthest) furthest = radius;
+            }
+
+            return furthest;
+        }
+
         /// <summary>The axis-aligned box the net currently occupies. Empty before <see cref="Deploy"/>.</summary>
         public Bounds WorldBounds()
         {
@@ -541,6 +674,14 @@ namespace SpaceGame.Items
             restSpacing = bundleSpacing;
             unfurlClock = 0f;
 
+            // Deploy promises a fresh net, and the cinch is state a net carries. Left standing, a
+            // redeployed lattice resumes the last catch's ring — about the last catch's origin,
+            // with cinchElapsed already past the window, so the very first substep snaps the new
+            // net onto the old target radius. Frozen has to go with it or the redeploy is inert.
+            cinchAxis = null;
+            cinchElapsed = 0f;
+            frozen = false;
+
             span *= bundleFraction;
 
             Vector3 axis = forward.sqrMagnitude < 1e-4f ? Vector3.forward : forward.normalized;
@@ -583,6 +724,7 @@ namespace SpaceGame.Items
             // Quiet, unlike Step's throw: this runs every frame, and an undeployed lattice is an
             // ordinary state here — a holstered gun — rather than a caller mistake.
             if (pos == null) return;
+            if (frozen) return;
 
             // Clamped, so a hitch or a breakpoint cannot hand this a two-second delta and spiral
             // through a hundred substeps trying to catch up.
@@ -635,12 +777,20 @@ namespace SpaceGame.Items
                     "SnareLattice.Step before Deploy. Deploy lays out the nodes; there is nothing " +
                     "to advance until it has run.");
 
+            // A frozen net is finished. Not merely "does not move" — nothing integrates either, so
+            // gravity cannot walk it through the floor over the minutes a hogtie can last.
+            if (frozen) return;
+
             AdvanceUnfurl(step);
+            AdvanceCinch(step);
             Integrate(step);
             ApplyFaceDrag();
 
             shearPerPass = PerPass(shearStiffness);
             bendPerPass = PerPass(bendStiffness);
+            cinchPerPass = PerPass(cinchStiffness);
+            cinchRadius = SnareCinch.RadiusAt(cinchStartRadius, cinchTargetRadius,
+                                              cinchElapsed, cinchDuration);
 
             // Alternating direction, because this is Gauss-Seidel: a pass carries tension from the
             // corner it starts at across the whole lattice, so running every pass the same way
@@ -651,11 +801,20 @@ namespace SpaceGame.Items
             // capping the diagonal stretches the strands again. Interleaving lets them converge on
             // each other; running the diagonals once at the end just leaves the strands holding
             // the whole residual.
+            //
+            // The cinch is in here for the same reason, and for the stronger one the summary above
+            // gives: a ring closed after the loop is the Laplacian defect again, a pull that moves
+            // every node it touches off its rest length by construction and leaves the substep
+            // ending off-constraint for the next one to yank back. It is also the only place it
+            // can converge AGAINST the strands rather than argue with them — the strands are what
+            // refuse to let the cord shorten, so cinching inside the loop is what turns the pull
+            // into folds instead of into a shrink-wrapped tube.
             for (int pass = 0; pass < iterations; pass++)
             {
                 ConstrainStrands(forward: (pass & 1) == 0);
                 ConstrainShear();
                 ConstrainBend();
+                ConstrainCinch();
             }
         }
 
@@ -801,6 +960,65 @@ namespace SpaceGame.Items
             pos[b] += correction * weightB;
             pos[a] -= correction * (weightA * 0.5f);
             pos[c] -= correction * (weightC * 0.5f);
+        }
+
+        /// <summary>Move the cinch window on. Separate from the constraint so the ring closes once
+        /// per substep rather than once per pass — the radius must not move underneath the loop
+        /// that is converging on it.</summary>
+        private void AdvanceCinch(float step)
+        {
+            if (cinchAxis == null) return;
+
+            cinchElapsed += step;
+        }
+
+        /// <summary>
+        /// Draw every node that is outside the ring back onto it.
+        ///
+        /// <para>
+        /// <b>Scaled by inverse mass, which is NOT what its neighbours do.</b>
+        /// <see cref="ShareCorrection"/> and <see cref="Straighten"/> divide one correction between
+        /// two or three nodes by their RELATIVE weights, because both ends of a strand pull on each
+        /// other and the pair has to conserve momentum. This constraint has no other end — the ring
+        /// is an immovable target — and the textbook position-based form against infinite mass
+        /// carries no mass term at all. The weight here is a deliberate art choice: the hem is
+        /// heavy (<see cref="rimMassMultiplier"/>), so it answers this pull at about a sixth of the
+        /// mesh's rate and ends up hanging below a gathered body instead of closing with it, which
+        /// is a net rather than a drawstring bag.
+        /// </para>
+        /// <para>
+        /// One cost of that choice, written down because it is invisible: <see cref="PerPass"/>
+        /// guarantees an authored stiffness means the same thing at any iteration count, and that
+        /// guarantee is exact only where the per-pass factor is applied whole. Scaling it by a
+        /// weight below 1 breaks the compounding it inverts, so a rim node's effective cinch drifts
+        /// by roughly a tenth across the usable iteration range. Mesh nodes are exact.
+        /// </para>
+        /// <para>
+        /// Called last in the pass, so the substep ends holding whatever strand residual this pull
+        /// just created, for the next substep's opening <see cref="ConstrainStrands"/> to repair.
+        /// <see cref="ConstrainBend"/> is in the same position but is not the same size: at the
+        /// authored defaults <c>cinchPerPass</c> is about 0.031 against a <c>bendPerPass</c> of
+        /// about 0.002, so this leaves roughly fifteen times the residual bend does. If a fine buzz
+        /// ever shows up under cinch and nowhere else, moving this call BEFORE
+        /// <see cref="ConstrainStrands"/> in the loop body is the cheap thing to try first.
+        /// </para>
+        /// </summary>
+        private void ConstrainCinch()
+        {
+            if (cinchAxis == null || cinchPerPass <= 0f) return;
+
+            SnareCinch.Axis axis = cinchAxis.Value;
+
+            for (int i = 0; i < pos.Length; i++)
+            {
+                Vector3 correction = SnareCinch.Correction(pos[i], axis, cinchRadius, cinchPerPass);
+                if (correction == Vector3.zero) continue;
+
+                // No clamp on the weight: rimMassMultiplier carries [Min(1f)], so an inverse mass
+                // here is never above 1 and a Mathf.Min guarding it would be dead code claiming
+                // otherwise.
+                pos[i] += correction * inverseMass[i];
+            }
         }
 
         /// <summary>

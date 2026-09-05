@@ -52,12 +52,13 @@ namespace SpaceGame.Items
                  "teleported or streamed-in endpoint dragging whatever it is tied to across the map.")]
         [SerializeField] private float maxCorrectionStep = 0.5f;
 
-        [Header("Breaking")]
-        [Tooltip("Metres past its length the rope tolerates before it breaks. Zero is unbreakable.")]
-        [SerializeField] private float breakStretch = 2.5f;
+        [Header("Resist")]
+        [Tooltip("Seconds of pulling squarely away to tear free of an end as strong as you are. " +
+                 "Scales with the other end's pull, so a ship holds you far longer than a player.")]
+        [SerializeField, Min(0.1f)] private float resistSeconds = 2f;
 
-        [Tooltip("How long that overstretch must last. A momentary spike is not a break.")]
-        [SerializeField] private float breakTime = 0.35f;
+        [Tooltip("Strain given back per second when you stop pulling away.")]
+        [SerializeField, Min(0f)] private float strainDecay = 0.5f;
 
         [Header("Tying")]
         [Tooltip("Slack added when a tie lands further away than the rope is long.")]
@@ -65,6 +66,22 @@ namespace SpaceGame.Items
 
         [Tooltip("Hard ceiling on that paying out, so one awkward tie cannot produce a 40 m rope.")]
         [SerializeField] private float maxPaidOutLength = 16f;
+
+        [Header("Collision")]
+        [Tooltip("What the rope may bend around. STATIC GEOMETRY ONLY — every machine derives a " +
+                 "rope's shape independently and nothing about it is sent, so a dynamic collider " +
+                 "in this mask makes the rope a different shape on every screen.")]
+        [SerializeField] private LayerMask wrapLayers = ~0;
+
+        [Tooltip("Probe radius in metres. About the rope's own thickness.")]
+        [SerializeField, Min(0.005f)] private float wrapRadius = 0.05f;
+
+        [Tooltip("How far off a surface a bend sits, in metres.")]
+        [SerializeField, Min(0.001f)] private float wrapClearance = 0.06f;
+
+        [Tooltip("Ceiling on bends in one rope. Past it the rope stops wrapping rather than " +
+                 "misbehaving — a rope with nine bends in it is a rope somebody is abusing.")]
+        [SerializeField, Min(0)] private int maxWrapPoints = 8;
 
         [Header("Visuals")]
         [SerializeField] private LeashRope rope = new();
@@ -138,6 +155,18 @@ namespace SpaceGame.Items
         private static float LengthOf(int packed) => (packed >> 8) * 0.01f;
 
         /// <summary>
+        /// Whether a rope may be tied to what the aim ray hit.
+        ///
+        /// <para>
+        /// Terrain is the one refusal: a rope pinned to open ground is a fence post, and the item
+        /// is for moving things. Rocks, walls and structures still anchor — only the ground itself
+        /// is excluded, and <c>TerrainCollider</c> identifies it exactly, with nothing to keep in
+        /// step and no layer to configure.
+        /// </para>
+        /// </summary>
+        public static bool IsTieable(Collider hit) => hit != null && hit is not TerrainCollider;
+
+        /// <summary>
         /// Owner side: aim, and put the answer in the message.
         ///
         /// <para>
@@ -161,8 +190,8 @@ namespace SpaceGame.Items
 
             if (aimProvider == null) return;
 
-            RaycastHit? aimed = aimProvider.GetRayCast(maxRange);
-            float surface = aimed.HasValue ? aimed.Value.distance : float.MaxValue;
+            bool aimed = aimProvider.TryGetAimHit(maxRange, out RaycastHit hit);
+            float surface = aimed ? hit.distance : float.MaxValue;
 
             // Empty hands: a click on a rope unties it. This is the only way to get rid of a rope
             // that is tied at both ends — until it existed, a rope in the world was permanent.
@@ -172,9 +201,12 @@ namespace SpaceGame.Items
             // control stops being predictable.
             if (held == null && TryAimAtRope(surface, ref arg)) return;
 
-            if (!aimed.HasValue || aimed.Value.collider == null) return;
+            if (!aimed || hit.collider == null) return;
 
-            RaycastHit hit = aimed.Value;
+            // Terrain is the one refusal. A bare return leaves arg.B on the Miss seeded at the top
+            // of this method, which already means "drop what you are holding".
+            if (!IsTieable(hit.collider)) return;
+
             if ((leashableLayers.value & (1 << hit.collider.gameObject.layer)) == 0) return;
 
             // Roping yourself: both as a collider under the player, and as a target that resolves
@@ -410,8 +442,12 @@ namespace SpaceGame.Items
             correction = correction,
             maxCorrectionSpeed = maxCorrectionSpeed,
             maxCorrectionStep = maxCorrectionStep,
-            breakStretch = breakStretch,
-            breakTime = breakTime,
+            resistSeconds = resistSeconds,
+            strainDecay = strainDecay,
+            wrapLayers = wrapLayers,
+            wrapRadius = wrapRadius,
+            wrapClearance = wrapClearance,
+            maxWrapPoints = maxWrapPoints,
             rope = rope,
         };
 
@@ -439,10 +475,16 @@ namespace SpaceGame.Items
                 return true;
             }
 
+            // wrapLayers deliberately 0 on this path: with nothing to bend around the rope is a
+            // straight chord, which is what it was before collision existed. A guessed mask here
+            // would be a guess about which layers are static, and getting that wrong does not lose
+            // the feature — it makes the rope a different shape on every machine.
             settings = new Leash.Settings
             {
                 length = 8f, correction = 0.35f, maxCorrectionSpeed = 25f, maxCorrectionStep = 0.5f,
-                breakStretch = 2.5f, breakTime = 0.35f, rope = new LeashRope(),
+                resistSeconds = 2f, strainDecay = 0.5f,
+                wrapLayers = 0, wrapRadius = 0.05f, wrapClearance = 0.06f, maxWrapPoints = 8,
+                rope = new LeashRope(),
             };
             return false;
         }

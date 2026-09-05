@@ -59,8 +59,8 @@ namespace SpaceGame.Gameplay
         // first so "Interactable" is not half-eaten by "Interact".
         //
         // "Workstation" is deliberately NOT here. It looks like the same kind of noise as
-        // "Station" and it is not: stripping it turned RepairWorkstation into "Repair", which
-        // names the verb instead of the thing.
+        // "Station" and it is not: stripping it names the verb instead of the thing — the
+        // now-removed RepairWorkstation came out as "Repair".
         private static readonly string[] NoiseSuffixes =
         {
             "Interactable", "Interaction", "Component", "Behaviour",
@@ -115,7 +115,7 @@ namespace SpaceGame.Gameplay
 
         /// <summary>
         /// A readable name for an interactable that never said what it was.
-        /// "DoorInteraction" becomes "Door", "RepairWorkstation" becomes "Repair Workstation",
+        /// "DoorInteraction" becomes "Door", "TraderInteraction" becomes "Trader",
         /// "InteriorEntrance" becomes "Interior Entrance". A purely generic wrapper such as
         /// "InteractableTrigger" falls through to the GameObject's own name.
         /// </summary>
@@ -163,7 +163,7 @@ namespace SpaceGame.Gameplay
             return prompt;
         }
 
-        /// <summary>Split a PascalCase identifier into words. "RepairWorkstation" -> "Repair Workstation".</summary>
+        /// <summary>Split a PascalCase identifier into words. "HoloProjector" -> "Holo Projector".</summary>
         public static string Humanise(string identifier)
         {
             if (string.IsNullOrEmpty(identifier)) return string.Empty;

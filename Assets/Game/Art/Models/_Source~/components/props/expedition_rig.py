@@ -399,6 +399,13 @@ def tcen(ds=0.0):
 # each face with zero hem. The centres moved with the resize; each entry says
 # where its rect now runs.
 #
+# 2026-09-05: the two SIDE back panels are 2x6, one column narrower than the
+# 3x6 socket between them. They lost their INNER column — the one against the
+# bottle's cradle — so their outer edge (x 0.420) did not move and their centre
+# went from 0.285 to 0.330. The webbing ladders in `_back_webbing` moved with
+# them: the ladder IS the grid. The cut is a design decision, not a geometry
+# one — see `PackOverhang` in Unity for the overhang rule that went with it.
+#
 # 2026-09-01: these are still authored in the MODELLING frame, one cell = 0.090 m,
 # because so is every other number in this file. The shipped .blend is
 # `expedition_rig_scale.SCALE` times larger — see that script — so the rows
@@ -408,15 +415,15 @@ def tcen(ds=0.0):
 # `expedition_rig_scale.report()` prints this table already multiplied, which is
 # the form to compare against the C# table.
 SURFACES = [
-    # x 0.150..0.420, s 0.030..0.570 up the slope: clear of the hinge knuckles
-    # at the foot, on the loft to within a 3 mm corner sliver at the head.
-    ("SURF_Back_L", "back", pface(-0.285, 0.300) + BN * 0.006, ROT_PANEL, 0.270, 0.540),
-    ("SURF_Back_R", "back", pface(0.285, 0.300) + BN * 0.006, ROT_PANEL, 0.270, 0.540),
+    # x 0.240..0.420, s 0.030..0.570 up the slope: clear of the hinge knuckles
+    # at the foot, on the loft to within a 3 mm corner sliver at the head, and
+    # 105 mm clear of the socket's edge at x 0.135 — room for the cradle rings.
+    ("SURF_Back_L", "back", pface(-0.330, 0.300) + BN * 0.006, ROT_PANEL, 0.180, 0.540),
+    ("SURF_Back_R", "back", pface(0.330, 0.300) + BN * 0.006, ROT_PANEL, 0.180, 0.540),
     # The strip between them, where the modelled oxygen bottle used to be bolted
-    # (deleted 2026-09-03 — see the build record). Same plane, same rotation and
-    # the same 3 x 6 cells as its two neighbours, on the pack's centre line; the
-    # panels' inner edges are 0.150 either side of it in this frame, so it has a
-    # 15 mm margin. Reserved for the oxygen bottle alone on Unity's side.
+    # (deleted 2026-09-03 — see the build record). Same plane and same rotation
+    # as its two neighbours, 3 x 6 cells to their 2 x 6, on the pack's centre
+    # line. Reserved for the oxygen bottle alone on Unity's side.
     ("SURF_Back_C", "back", pface(0.0, 0.300) + BN * 0.006, ROT_PANEL, 0.270, 0.540),
     # y -0.165..-0.885: 26 mm clear of the hinge knuckles, 5 mm clear of the
     # lash rail's near webbing run.
@@ -784,23 +791,23 @@ def _back_webbing(sx):
     what an empty pack shows is this ladder.
     """
     def build(p, sx=sx):
-        # The ladder IS the grid (2026-08-25): verticals ON the rect's outer
-        # cell columns (x 0.150 / 0.420), rungs on the six ROW CENTRES at the
-        # cell's own 0.090 pitch spanning tape to tape, eyelets on row
-        # boundaries. su covers the full 0.540 rect depth.
-        for x in (0.150, 0.420):
+        # The ladder IS the grid (2026-08-25): verticals ON the rect's edges
+        # (x 0.240 / 0.420 since the 2026-09-05 narrowing to two columns), rungs
+        # on the six ROW CENTRES at the cell's own 0.090 pitch spanning tape to
+        # tape, eyelets on row boundaries. su covers the full 0.540 rect depth.
+        for x in (0.240, 0.420):
             pbox(p, sx * x, 0.300, 0.052, 0.540, 0.018, OCHRE, off=-0.010)
         for s in (0.075, 0.165, 0.255, 0.345, 0.435, 0.525):
-            pbox(p, sx * 0.285, s, 0.322, 0.036, 0.026, OCHRE, off=-0.002)
+            pbox(p, sx * 0.330, s, 0.232, 0.036, 0.026, OCHRE, off=-0.002)
         for s in (0.120, 0.390):
-            p.tube(pface(sx * 0.285, s) + BN * 0.020, 0.020, 0.007, 0.014,
+            p.tube(pface(sx * 0.330, s) + BN * 0.020, 0.020, 0.007, 0.014,
                    axis='Z', seg=6, mat=BRASS)
     return build
 
 
 for _sx, _side in ((-1, "L"), (1, "R")):
     part("Mesh_Rig_BackWebbing_" + _side,
-         origin=pface(_sx * 0.285, 0.300),
+         origin=pface(_sx * 0.330, 0.300),
          parent="back")(_back_webbing(_sx))
 
 

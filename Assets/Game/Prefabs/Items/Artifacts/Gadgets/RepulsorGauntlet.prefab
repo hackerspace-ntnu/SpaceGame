@@ -9943,6 +9943,7 @@ GameObject:
   - component: {fileID: 591450901909531089}
   - component: {fileID: 7406234520514226075}
   - component: {fileID: 1355893000879687111}
+  - component: {fileID: -2901958576583378193}
   m_Layer: 0
   m_Name: RepulsorGauntlet
   m_TagString: Untagged
@@ -10205,6 +10206,7 @@ MonoBehaviour:
   holdSize: 0
   packSize: 0
   sizeReference: {fileID: 6889587566874111831}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &7406234520514226075
 MonoBehaviour:
@@ -10282,6 +10284,18 @@ MonoBehaviour:
   blastId: 304
   blastFovKick: 18
   blastFovKickDuration: 0.26
+--- !u!114 &-2901958576583378193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6257140650109888058}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
 --- !u!1 &6556855627268860445
 GameObject:
   m_ObjectHideFlags: 0

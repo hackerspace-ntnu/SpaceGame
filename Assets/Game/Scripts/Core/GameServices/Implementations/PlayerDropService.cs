@@ -27,13 +27,18 @@ namespace SpaceGame.Core
         private const float TossForward = 1.5f;
         private const float TossUp = 1f;
 
-        public void DropItem(Transform origin, InventoryItem item)
+        public void DropItem(Transform origin, InventoryItem item, float charge = SupplyCharge.None)
         {
             if (origin == null || item == null || item.itemPrefab == null) return;
 
             GameObject obj = GameServices.World.Spawn(item.itemPrefab, SpawnPoint(origin, item),
                                                      Quaternion.identity);
             if (obj == null) return;
+
+            // A dropped reservoir keeps what it held. The spawn is a fresh instantiate of the item
+            // prefab, so without this a tank emptied to 3% hits the sand at its authored starting
+            // charge -- an infinite supply of air for anyone who noticed.
+            if (charge >= 0f && obj.TryGetComponent(out DockableSupply supply)) supply.SetCharge(charge);
 
             // Stamped with the ITEM's registry id rather than the prefab's own, because that is the
             // key SaveablePrefabRegistry derives from the item table — so a dropped item persists

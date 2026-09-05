@@ -49,7 +49,7 @@ namespace SpaceGame.EditorTools
             public int SelectedSlotIndex => inventory.SelectedSlotIndex;
             public event System.Action<InventorySlot> OnSlotSelected { add { } remove { } }
             public event System.Action<int, InventorySlot> OnSlotChanged { add { } remove { } }
-            public event System.Action<InventoryItem> OnItemDropped { add { } remove { } }
+            public event System.Action<InventoryItem, float> OnItemDropped { add { } remove { } }
 
             public bool TryAddItem(InventoryItem item) => inventory.TryAddItem(item);
             public bool TryRemoveItem(int index) => inventory.TryRemoveItem(index);

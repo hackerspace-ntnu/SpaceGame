@@ -52,7 +52,7 @@ Three pieces, each living where it belongs:
   saddle gets aim handling, server validation, conserving consumption and the Q verb for free.
   It was a second copy of that loop (`SaddleArtifact`) until the rule split replaced it.
 - **Fitting and removing are deliberately different verbs.** The item fits. The saddle carries `SaddleRemover` — a trigger with its own `IInteractable`, so looking at the saddle offers "take saddle off" while the animal's solid collider goes on offering "ride". You need no saddle in hand to remove one, and a removed saddle has to go somewhere anyway.
-- **The faces are ordinary `PackSurface`s.** `WallInventory` is reused verbatim: it is documented as "a `PackContainer` bolted to something, with no fold, no deploy and no owner", which is a saddle exactly. Three faces, `SaddleLeft`/`SaddleRight`/`SaddleRear` (ids 8–10), 42 cells against the expedition rig's 255.
+- **The faces are ordinary `PackSurface`s.** `WallInventory` is reused verbatim: it is documented as "a `PackContainer` bolted to something, with no fold, no deploy and no owner", which is a saddle exactly. Three faces, `SaddleLeft`/`SaddleRight`/`SaddleRear` (ids 9–11 — `BackPanelCentre` took 8 on main while this branch was in flight, and persisted bytes cannot alias), 42 cells against the expedition rig's 255.
 
 ## Flows
 
@@ -121,7 +121,7 @@ Two ids, both on the **animal's** relay: the saddle has no channel of its own. `
 **Worked example: the Sandloper.** A large rideable cousin of the dune rat, built from the rat's
 shipped FBX (its `.blend` cannot be opened by Blender 4.2) with a subdivided, repainted mesh at
 2x scale. It carries the whole stack — `Coll_Saddle_Loper` in `saddle.blend`, its own
-`PackSurfaceId`s (11-13, sized for a narrow biped rather than a bison), a disabled `MountModule`,
+`PackSurfaceId`s (12-14, sized for a narrow biped rather than a bison), a disabled `MountModule`,
 `SteerModule`, `SaddleSocket`, `SaddleQuickRelease` and `SaddleSaveable` — and none of it needed a
 change to the saddle system itself. `SaddleBuilder` grew a `Design` table instead of a second copy.
 

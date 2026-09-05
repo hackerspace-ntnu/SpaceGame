@@ -17,13 +17,14 @@ symptoms:
   - "loot drops or the enrage fires again every time I load the world"
   - "the corpse stays suspended in the air with its brain switched off"
   - "the turret or NPC aims its weapon at the host's camera"
+  - "the gun fires at the ground, or at the vehicle, while its holder is mounted"
   - "the projectile works on the host but never appears for clients"
   - "a blast bills a creature once per limb inside its radius, so a body dies instantly"
   - "the ball lightning orb drifts through creatures without ever hurting them"
   - "the orb discharges on the host and on a client at slightly different moments"
   - "firing a gun near wildlife or a guard provokes no reaction at all"
 reads_with: [Artifacts, AgentSystem, Inventory, Persistence]
-updated: 2026-09-03
+updated: 2026-09-04
 ---
 
 # Combat
@@ -38,7 +39,7 @@ Health, damage, weapons, projectiles, death and ragdolls: one server-decided dam
 - **One entry point.** Nothing calls `HealthComponent.Damage` directly except the pipeline. Callers use `NetDamage.Apply(target, amount, source)`: it walks `GetComponentInParent<HealthComponent>`, applies locally when `Network.Simulates(health)`, otherwise sends `NetMsg.Damage` to the server. A target with only an `IDamageable` (destructible props) is hit locally with no message.
 - **Authority split is `Use()` vs `Present()`.** `Weapon` extends `UsableItem` and keeps the default `UseAuthority.Server`. `Use()` runs on the server only and sets `ShotDealsDamage = true`; `Present()` runs on every machine, plays the report, mirrors the local magazine, and re-fires with `ShotDealsDamage = false`.
 - **Exactly one copy of a shot bills the target.** Every peer instantiates its own bullet. `Projectile.Cosmetic` / `AgentProjectile.Cosmetic` suppress the `NetDamage` call on the non-deciding copies; impact VFX and sound deliberately run on all of them.
-- **Aim travels, it is never recomputed.** `Weapon.OnRequestUse` stamps `arg.P` (spawn point) and `arg.R` (look rotation) from the owner's *local* camera. `GetAimPoint`/`GetFireDirection` prefer `UseArg` and only fall back to the local camera. `Camera.main` on the server is the host's camera.
+- **Aim travels, it is never recomputed.** `Weapon.OnRequestUse` stamps `arg.P` (spawn point) and `arg.R` (look rotation) from the owner's own aim. `GetAimPoint`/`GetFireDirection` prefer `UseArg` and only fall back to the local one. That local answer comes from the holder's [`AimProvider`](Assets/Game/Scripts/Characters/Player/Combat/AimProvider.cs) — `Camera.main` is the *host's* camera on a server, and is not the mount's orbit camera either (that one is deliberately left `Untagged`), so the `aimCamera`/`Camera.main` path is now the fallback for a weapon with no player behind it. Range is `aimRange` (500 m), serialized, and used by all three of the aim paths.
 - **Health replicates by assignment, not delta.** `NetworkedHealthComponent` holds a `NetworkVariable<int>` (read Everyone / write Server — Owner permission published server-owned creatures to nobody) and clients apply it via `RestoreHealth`, which is the "this value is now the truth" path.
 - **Death is `HealthComponent.OnDeath`**, raised both by a killing blow and by a save restoring a lethal value. `IsRestoring` tells them apart: state must be re-applied, consequences (loot, death sound, despawn timer, ragdoll impulse) must not repeat.
 - **Ragdolls are derived, never authored.** `CharacterJoint` appears nowhere on disk; [RagdollSkeleton.cs](Assets/Game/Scripts/Gameplay/Ragdoll/RagdollSkeleton.cs) picks bones by share of mesh vertex weight, so one implementation covers all ten rigs.

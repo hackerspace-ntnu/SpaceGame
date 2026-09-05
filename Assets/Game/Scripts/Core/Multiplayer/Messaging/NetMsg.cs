@@ -411,6 +411,32 @@ namespace SpaceGame.Core
         public const ushort Snared     = 88; // server → everyone, on the SHOOTER's relay
         public const ushort SnareFreed = 89; // server → everyone, on the SHOOTER's relay
 
+        // ── Net gun: the captive fighting back ──
+        // "I fought the net, once, just now." The captive's owner → server.
+        //
+        // On the SHOOTER's relay like the two above, and that is the whole subtlety of this id
+        // rather than a detail copied from them. The only listener is SnareReceiver, which lives on
+        // the SHOOTER; NetOn registers a handler against the channel of the entity the listener
+        // sits under, and a relay delivers to the channel of its OWN entity. Sent on the victim's
+        // relay this would arrive at the victim's channel, where nothing is subscribed, and be
+        // dropped in silence on every machine — the host included. The wire itself allows it:
+        // NetRelay's server RPC is InvokePermission.Everyone, so a captive may send on a relay
+        // belonging to the player who shot them, exactly as an attacker sends Damage on their
+        // victim's.
+        //
+        // No magnitude travels, only the fact of one input. The server keeps its own
+        // SnareStruggleMeter per captive, rate-limited by the same MaxUsefulStruggleRate the
+        // captive's own meter uses, so a client fabricating a hundred of these a second is refused
+        // by the server's cooldown and gains nothing over one struggling honestly — the escape is
+        // the server's to decide, never the client's (GDC-L1-MP-0004). The server also checks that
+        // the sender owns the body named in Target, so one player cannot report struggles on
+        // another's behalf and drain a net holding somebody else's captive.
+        //
+        //   Target  the captive who struggled. Which net that is, is the server's to work out —
+        //           naming one on the wire would be a second spoofable field for no gain, since a
+        //           body can only ever be in one net (SnaredBody.Bind refuses a second).
+        public const ushort SnareStruggled = 103; // captive's owner → server, on the SHOOTER's relay
+
         // ── Arrival ──
         // Sent on the SHIP's channel, not the player's. The ship is the thing that has seats, it is
         // a spawned NetworkObject with a relay of its own, and it outlives any one player's seating.

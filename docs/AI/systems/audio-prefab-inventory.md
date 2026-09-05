@@ -167,14 +167,13 @@ Every one of these carries `PickupableItem` → `pickupId: 503` (`InteractPickup
 |---|---|---|---|
 | `Items/Artifacts/Gadgets/AntiGravityPotion.prefab` | Drink | `None` 0 → **pinned `event:/SFX/Slurp`** | Gulp + antigrav hum onset |
 | `Items/Artifacts/Gadgets/GrapplingHook.prefab` | Fire hook | `None` 0 → **pinned `event:/SFX/Wham`** | Launch thunk + line reel |
-| `Items/Artifacts/Gadgets/Lasso.prefab` | Throw | `None` 0 → **pinned `event:/SFX/Hit`** | Rope whip + catch |
+| `Items/Artifacts/Gadgets/Lasso.prefab` | — | `useSound` **cleared** 2026-09-05 | The pinned `event:/SFX/Hit` fired on the PRESS (`PlayUse` runs inside `Present`), i.e. at the start of the wind-up and again on the press that dropped the rope — never on the throw or the catch. Replaced by `SfxId.RopeTwirl`/`RopeThrow`/`RopeCatch`/`RopeSnap`/`RopeCoil`/`RopeHitch` (1100-1105), played where each happens. See [Lasso.md](Lasso.md) |
 | `Items/Artifacts/Gadgets/Leash.prefab` | Attach | `None` 0 → **pinned `event:/SFX/Hit`** | Clip-on latch |
 | `Items/Artifacts/Gadgets/LightningSpell.prefab` | Cast | `None` 0 → **pinned `event:/SFX/MetalPickup`** | Electric discharge — the pin is wrong |
 | `Items/Artifacts/Gadgets/RocketArtifact.prefab` | Deploy turret | `None` 0 → **pinned `event:/SFX/Hit`** | Turret deploy servo |
 | `Items/Artifacts/Gadgets/RuinScanner.prefab` | Scan | `None` 0 → **pinned `event:/SFX/Implosion`** | Scanner sweep |
 | ” | Discovery found | `InteractScannerDiscovery` 507 → **pinned `event:/SFX/ElectricHum`** | Positive discovery chime |
 | `Items/Equipment/WingPack.prefab` | Equip / deploy | `None` 0 | Wing pack unfurl — **nothing plays today** |
-| `Items/Pickups/Scraps.prefab` | Pick up | `InteractPickup` 503 | Scrap metal pickup |
 | ” | `StudioEventEmitter`, trigger `2` | **`event:/SFX/MetalPickup`** | Fires independently of `Sfx`; the one prefab with a raw FMOD emitter |
 | `Items/Debug/Cube.prefab`, `Items/Debug/Sphere.prefab` | Pick up | `InteractPickup` 503 | Debug props — leave as is |
 | `Systems/InventoryItemModule.prefab` | Pick up | `InteractPickup` 503 | Template used by spawned inventory items |
@@ -202,14 +201,6 @@ Both `windLoopSound` and `flapSound` overrides exist and are **empty** — delib
 future dedicated event. `windSpeedParameter` is also blank; filling it lets FMOD modulate the loop
 from speed instead of just volume.
 
-### `agents/Vehicles/Spacecraft/ShipRV.prefab` — `AudioLoop`
-
-| Trigger | Id | Sound wanted | State |
-|---|---|---|---|
-| Always-on engine hum (`playOnEnable`, follows transform, fades on stop) | `ShipEngineLoop` 700 | Ship idle hum | catalog |
-
-`intensityParameter` is blank — wire it if the hum should react to throttle.
-
 ### Vehicles with **no audio at all**
 
 `agents/Vehicles/Ground/DuneFoil.prefab`, `DesertCrawler.prefab`, `RigWalker.prefab`,
@@ -231,21 +222,10 @@ references them.** Wanted, per vehicle:
 
 ## 6. Interaction and structures
 
-### `Environment/Structures/Facilities/RepairWorkstation.prefab`
-
-| Trigger | Id | Sound wanted | State |
-|---|---|---|---|
-| Scrap accepted | `InteractWorkstationRepair` 506 | Machinery accepting a part, work cycle | **default** (predates the field) |
-| Scrap rejected | `InteractDenied` 508 | Refusal buzz | **default** |
-
-Also has an unsounded animation: `spinningParts` at 220 °/s and a `clunkTarget` piston (0.04 m, 0.18 s).
-**The spin wants a loop and the clunk wants a hit — neither exists.**
-
 ### Interaction scripts with no prefab
 
-`DoorInteraction` (`InteractDoorOpen` 500 / `InteractDoorClose` 501), `LeverInteraction`
-(`InteractLever` 502) and `ShipInteraction` (`ShipRepair` 703) are **only placed in scenes**, never on a
-prefab. `Environment/Structures/Doors/SandstoneCaveDoor.prefab` and the three
+`DoorInteraction` (`InteractDoorOpen` 500 / `InteractDoorClose` 501) and `LeverInteraction`
+(`InteractLever` 502) are **only placed in scenes**, never on a prefab. `Environment/Structures/Doors/SandstoneCaveDoor.prefab` and the three
 `VisualEffects/cutsceneExamples/CutsceneDoor*.prefab` carry **no interaction component and no audio** —
 they're the natural home for the door sounds.
 
@@ -312,7 +292,7 @@ Every other UI prefab (`PlayerHUD`, `InventoryUI`, `Slot`, `Interact`, `DialogeP
 `UiError` 903, `UiNotify` 904.
 
 One caveat on that list: `ShipEngineLoop` 700 and `NpcMumbleFriendly` 401 *look* unused in code but
-are set as serialized values on `ShipRV` and `Nomad` respectively — a grep for `SfxId.X` misses
+are set as serialized values on `Nomad` — a grep for `SfxId.X` misses
 prefab-side assignment.
 
 `AmbWindLoop` 800 and `AmbThunder` 802 are genuinely unused: the sandstorm deliberately bypasses the

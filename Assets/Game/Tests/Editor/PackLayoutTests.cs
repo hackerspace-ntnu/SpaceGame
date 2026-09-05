@@ -43,12 +43,20 @@ namespace SpaceGame.Tests
         private const PackSurfaceId Right = PackSurfaceId.BackPanelRight;
 
         /// <summary>
-        /// A face the overhang rule leaves strict. The rule keys on the face's IDENTITY, not its
-        /// size — see <c>PackOverhang.Axes</c> — so the leaf at this suite's own 10 x 8 cells
-        /// keeps every uv here checkable by the same arithmetic while refusing the oversized
-        /// shapes the back panels would clamp.
+        /// A face the overhang rule leaves strict — which, since 2026-09-05, is every face but the
+        /// rack. The rule keys on the face's IDENTITY, not its size — see
+        /// <c>PackOverhang.Axes</c> — so the leaf at this suite's own 10 x 8 cells keeps every uv
+        /// here checkable by the same arithmetic.
         /// </summary>
         private const PackSurfaceId Strict = PackSurfaceId.Leaf;
+
+        /// <summary>
+        /// The dead zone the hand snaps with: how far past a cell boundary, in cells, the cursor
+        /// has to travel before the ghost moves over. The value is the hand's own business
+        /// (<c>PackHandController.SnapDeadbandCells</c>); the arithmetic under test holds for any
+        /// value under half a cell.
+        /// </summary>
+        private const float Deadband = 0.25f;
 
         private static readonly PackShape TwoByTwo = PackShape.Rect(2, 2);
         private static readonly PackShape FourByFour = PackShape.Rect(4, 4);
@@ -255,13 +263,16 @@ namespace SpaceGame.Tests
                                             PackGrid.CentreUv(Surface, new Vector2Int(5, 3)), out _));
         }
 
-        // ── Overhang: the rack and the back panels take items bigger than themselves ──
+        // ── Overhang: the rack takes items longer than itself; nothing else does ──
 
         /// <summary>The rack as wired: 0.80 x 0.60 m -> 8 x 6 cells with a (0.04, 0.03) hem.</summary>
         private static readonly Vector2 RackSize = new(M(0.80f), M(0.60f));
 
-        /// <summary>The back panel as wired: 0.27 x 0.54 m -> exactly 3 x 6 cells, zero hem.</summary>
-        private static readonly Vector2 BackSize = new(M(0.27f), M(0.54f));
+        /// <summary>
+        /// A side back panel as wired since 2026-09-05: 0.18 x 0.54 m -> exactly 2 x 6 cells,
+        /// zero hem. One column narrower than the socket between them.
+        /// </summary>
+        private static readonly Vector2 BackSize = new(M(0.18f), M(0.54f));
 
         /// <summary>The wing pack's derived block: 6 cells wide, 14 long — longer than any face.</summary>
         private static readonly PackShape Oversized = PackShape.Rect(6, 14);
@@ -302,12 +313,14 @@ namespace SpaceGame.Tests
                                            new Vector2(M(0.39f), M(0.25f)), 90f));
             Assert.IsFalse(layout.TryFindSpot(PackSurfaceId.Leaf, leaf, Oversized, out _, out _));
 
-            // Overhang belongs to the rack (u only) and the back panels (both axes); every other
-            // face refuses the same way the leaf does.
+            // Overhang belongs to the rack alone, and only along u; every other face refuses the
+            // same way the leaf does — the back panels included, since 2026-09-05.
             Assert.IsFalse(layout.TryFindSpot(PackSurfaceId.WingLeft, new Vector2(M(0.36f), M(0.54f)),
                                               Oversized, out _, out _));
             Assert.IsFalse(layout.TryFindSpot(PackSurfaceId.LongGoods, new Vector2(M(1.62f), M(0.09f)),
                                               Oversized, out _, out _));
+            Assert.IsFalse(layout.TryFindSpot(Left, BackSize, Oversized, out _, out _));
+            Assert.IsFalse(layout.TryFindSpot(Right, BackSize, Oversized, out _, out _));
         }
 
         [Test]
@@ -327,73 +340,158 @@ namespace SpaceGame.Tests
                                             new Vector2(M(0.40f), M(0.70f)), out _));
         }
 
+        /// <summary>
+        /// The back panels used to allow overhang on BOTH axes, which meant every rectangle in the
+        /// game clamped down to the panel's span and was accepted: a 1.3 m launcher lay across a
+        /// 0.57 m strip hanging off both ends, and the panel read as having far more room than it
+        /// has. Since 2026-09-05 they are strict like every face but the rack — an item fits a back
+        /// panel only if its own cells do.
+        /// </summary>
         [Test]
-        public void AnOversizedRectangleOverhangsTheBackPanelOnBothAxes()
+        public void TheBackPanelsRefuseWhatDoesNotFitInsideThem()
         {
             var layout = new PackLayout();
 
-            // 5 x 8 on the 3 x 6 panel: both axes clamp, so the item occupies the WHOLE face and
-            // hangs evenly past every edge. Block centre of the clamped span is (0.135, 0.27).
-            Assert.IsTrue(layout.TryPlace("gear", Left, BackSize, PackShape.Rect(5, 8),
-                                          new Vector2(M(0.135f), M(0.27f)), 0f));
+            // 5 x 8 on the 2 x 6 panel would once have clamped to the whole face. Now it is
+            // simply too big, at either quarter turn, on either panel, by either path.
+            Assert.IsFalse(layout.TryPlace("gear", Left, BackSize, PackShape.Rect(5, 8),
+                                           new Vector2(M(0.09f), M(0.27f)), 0f));
+            Assert.IsFalse(layout.TryPlace("gear", Left, BackSize, PackShape.Rect(5, 8),
+                                           new Vector2(M(0.09f), M(0.27f)), 90f));
+            Assert.IsFalse(layout.TryFindSpot(Left, BackSize, PackShape.Rect(5, 8), out _, out _));
+            Assert.IsFalse(layout.TryFindSpot(Right, BackSize, PackShape.Rect(5, 8), out _, out _));
 
-            Assert.IsTrue(layout.TryOccupancy("gear", out _, out Vector2Int origin,
-                                              out PackShape oriented));
-            Assert.AreEqual(new Vector2Int(0, 0), origin);
-            Assert.AreEqual(3, oriented.Width, "occupies the whole span it hangs past");
-            Assert.AreEqual(6, oriented.Height, "on BOTH axes, unlike the rack");
+            // One cell too long is still too long: 2 x 7 on a 2 x 6 panel.
+            Assert.IsFalse(layout.TryFindSpot(Left, BackSize, PackShape.Rect(2, 7), out _, out _));
 
-            Assert.AreEqual(M(0.135f), layout.Placements[0].Uv.x, 1e-4f);
-            Assert.AreEqual(M(0.27f), layout.Placements[0].Uv.y, 1e-4f);
-
-            // First-fit — the world-pickup path — reaches the same answer on its own.
-            var fresh = new PackLayout();
-            Assert.IsTrue(fresh.TryFindSpot(Left, BackSize, PackShape.Rect(5, 8), out _, out _));
-        }
-
-        [Test]
-        public void AVerticalOverhangOccupiesItsFullColumnButNotItsNeighbours()
-        {
-            var layout = new PackLayout();
-
-            // 2 x 8 on the 3 x 6 panel: only v clamps. The block centre of a 2-wide block at
-            // origin x = 1 is 0.09 + 0.18 / 2 = 0.18.
-            Assert.IsTrue(layout.TryPlace("rod", Left, BackSize, PackShape.Rect(2, 8),
-                                          new Vector2(M(0.18f), M(0.27f)), 0f));
-
-            Assert.IsTrue(layout.TryOccupancy("rod", out _, out Vector2Int origin,
-                                              out PackShape oriented));
-            Assert.AreEqual(new Vector2Int(1, 0), origin);
-            Assert.AreEqual(2, oriented.Width, "short enough along u to stay unclamped");
-            Assert.AreEqual(6, oriented.Height);
-            Assert.AreEqual(M(0.27f), layout.Placements[0].Uv.y, 1e-4f);
-
-            // The clamp fills the overhung item's own columns and nothing else: the column it
-            // does not cross is still usable.
-            Assert.IsTrue(layout.TryPlace("mug", Left, BackSize, PackShape.Rect(1, 1),
-                                          new Vector2(M(0.045f), M(0.045f)), 0f));
-        }
-
-        [Test]
-        public void AClickPastTheBackPanelEdgeFindsOnlyTheItemUnderIt()
-        {
-            var layout = new PackLayout();
-
-            // Columns 0-1, all six rows: 2 x 8 clamps to 2 x 6, block centre (0.09, 0.27).
-            Assert.IsTrue(layout.TryPlace("rod", Left, BackSize, PackShape.Rect(2, 8),
+            // And what does fit, fits exactly: 2 x 6 fills the panel edge to edge, block centre
+            // (0.09, 0.27), and nothing else can then land on it.
+            Assert.IsTrue(layout.TryPlace("bottle", Left, BackSize, PackShape.Rect(2, 6),
                                           new Vector2(M(0.09f), M(0.27f)), 0f));
+            Assert.AreEqual(M(0.09f), layout.Placements[0].Uv.x, 1e-4f);
+            Assert.AreEqual(M(0.27f), layout.Placements[0].Uv.y, 1e-4f);
+            Assert.IsFalse(layout.TryPlace("mug", Left, BackSize, PackShape.Rect(1, 1),
+                                           new Vector2(M(0.045f), M(0.045f)), 0f));
+        }
 
-            // Past the top edge, over the item: cell (0, 6) clamps to (0, 5), which is filled.
-            Assert.IsTrue(layout.TryFindAt(Left, BackSize, new Vector2(M(0.05f), M(0.60f)),
+        [Test]
+        public void AClickPastTheBackPanelEdgeFindsNothing()
+        {
+            var layout = new PackLayout();
+
+            // The panel's own column 0, all six rows.
+            Assert.IsTrue(layout.TryPlace("rod", Left, BackSize, PackShape.Rect(1, 6),
+                                          new Vector2(M(0.045f), M(0.27f)), 0f));
+
+            // Over the item: found.
+            Assert.IsTrue(layout.TryFindAt(Left, BackSize, new Vector2(M(0.05f), M(0.30f)),
                                            out PackPlacement found));
             Assert.AreEqual("rod", found.ItemId);
 
-            // Past the top edge but BESIDE the item: (2, 6) clamps to (2, 5), which nothing
-            // fills — the clamp resolves the click, the occupancy still decides.
-            Assert.IsFalse(layout.TryFindAt(Left, BackSize, new Vector2(M(0.25f), M(0.60f)), out _));
+            // Past the top edge and past the left edge: with no overhang there is nothing
+            // hanging there to click on, so off the panel is off the pack on every axis.
+            Assert.IsFalse(layout.TryFindAt(Left, BackSize, new Vector2(M(0.05f), M(0.60f)), out _));
+            Assert.IsFalse(layout.TryFindAt(Left, BackSize, new Vector2(-M(0.03f), M(0.27f)), out _));
+        }
 
-            // Past the left edge: u clamps too, and the left column is filled.
-            Assert.IsTrue(layout.TryFindAt(Left, BackSize, new Vector2(-M(0.03f), M(0.27f)), out _));
+        // ── Snapping with a held cell: the dead zone at a cell boundary ──────────
+
+        /// <summary>
+        /// The uv a cursor sits at when its block's exact, unrounded origin is
+        /// <paramref name="exact"/> cells — the inverse of <c>PackGrid.BlockOrigin</c> before its
+        /// rounding, on this suite's hem-free surface.
+        /// </summary>
+        private static Vector2 CursorAt(Vector2 exact, Vector2Int size) =>
+            new((exact.x + size.x * 0.5f) * PackGrid.Cell,
+                (exact.y + size.y * 0.5f) * PackGrid.Cell);
+
+        /// <summary>
+        /// A cursor resting on the seam between two cells re-rounds every frame — the camera's
+        /// cursor parallax alone moves the hit point by a hair — and the ghost flickered between
+        /// the two. Holding the cell the ghost is already on until the cursor is a dead zone PAST
+        /// the boundary is what stops it, and a fresh snap of the same uv shows what it stopped.
+        /// </summary>
+        [Test]
+        public void ASnapHoldsItsCellJustPastTheBoundary()
+        {
+            var held = new Vector2Int(3, 2);
+            Vector2 heldUv = PackGrid.BlockCentreUv(Surface, held, TwoByTwo.Size);
+
+            // 0.1 of a cell past the seam toward cell 4 on u, and the same past the seam toward
+            // cell 1 on v: a fresh snap rounds both across, a held snap stays put on both.
+            Vector2 cursor = CursorAt(new Vector2(3.6f, 1.4f), TwoByTwo.Size);
+
+            Vector2 fresh = PackLayout.Snap(Strict, Surface, TwoByTwo, cursor, 0f);
+            Assert.AreEqual(new Vector2Int(4, 1), PackGrid.BlockOrigin(Surface, fresh, TwoByTwo.Size),
+                            "the control: without a held cell this uv rounds across the seam");
+
+            Vector2 stuck = PackLayout.Snap(Strict, Surface, TwoByTwo, cursor, 0f, heldUv, Deadband);
+            Assert.AreEqual(heldUv.x, stuck.x, 1e-5f, "held on u");
+            Assert.AreEqual(heldUv.y, stuck.y, 1e-5f, "held on v");
+        }
+
+        [Test]
+        public void ASnapLetsGoOfItsCellPastTheDeadZone()
+        {
+            var held = new Vector2Int(3, 2);
+            Vector2 heldUv = PackGrid.BlockCentreUv(Surface, held, TwoByTwo.Size);
+
+            // 0.3 of a cell past the seam on u — beyond the 0.25 dead zone — and dead centre of
+            // the held cell on v: u moves over by exactly one cell, v stays.
+            Vector2 cursor = CursorAt(new Vector2(3.8f, 2.0f), TwoByTwo.Size);
+
+            Vector2 snapped = PackLayout.Snap(Strict, Surface, TwoByTwo, cursor, 0f, heldUv, Deadband);
+            Assert.AreEqual(new Vector2Int(4, 2), PackGrid.BlockOrigin(Surface, snapped, TwoByTwo.Size));
+
+            // Back inside the dead zone on the far side of the seam, the NEW cell is now the held
+            // one and holds in turn — the hysteresis works in both directions.
+            Vector2 back = CursorAt(new Vector2(3.4f, 2.0f), TwoByTwo.Size);
+            Vector2 stillNew = PackLayout.Snap(Strict, Surface, TwoByTwo, back, 0f, snapped, Deadband);
+            Assert.AreEqual(new Vector2Int(4, 2), PackGrid.BlockOrigin(Surface, stillNew, TwoByTwo.Size));
+        }
+
+        [Test]
+        public void ASnapWithAHeldCellFollowsAFlickAcrossTheFace()
+        {
+            var held = new Vector2Int(3, 2);
+            Vector2 heldUv = PackGrid.BlockCentreUv(Surface, held, TwoByTwo.Size);
+
+            // Four cells away in one frame: the hold is a dead zone, not a tether.
+            Vector2 cursor = CursorAt(new Vector2(7.1f, 5.9f), TwoByTwo.Size);
+
+            Vector2 snapped = PackLayout.Snap(Strict, Surface, TwoByTwo, cursor, 0f, heldUv, Deadband);
+            Vector2 fresh = PackLayout.Snap(Strict, Surface, TwoByTwo, cursor, 0f);
+
+            Assert.AreEqual(fresh.x, snapped.x, 1e-5f);
+            Assert.AreEqual(fresh.y, snapped.y, 1e-5f);
+            Assert.AreEqual(new Vector2Int(7, 6), PackGrid.BlockOrigin(Surface, snapped, TwoByTwo.Size));
+        }
+
+        /// <summary>
+        /// The held uv is a stored placement's uv, so the hold must recover the placement's own
+        /// block exactly — the same idempotence <c>PackGrid.Snap</c> promises — or an item lifted
+        /// off the mat would appear one cell over on the first frame it was carried, from a click
+        /// that landed a little off its centre.
+        /// </summary>
+        [Test]
+        public void ASnapHeldOnAPlacementStartsOnThatPlacementsCells()
+        {
+            var layout = new PackLayout();
+            Assert.IsTrue(layout.TryPlace("item", Strict, Surface, FourByFour,
+                                          new Vector2(M(0.41f), M(0.28f)), 0f));
+
+            PackPlacement placed = layout.Placements[0];
+
+            // The cursor is wherever the click landed: inside the item, 0.56 of a cell right of
+            // its centre — which a fresh snap would round across to the next column.
+            Vector2 cursor = placed.Uv + new Vector2(M(0.05f), -M(0.04f));
+            Vector2 fresh = PackLayout.Snap(Strict, Surface, FourByFour, cursor, placed.Yaw);
+            Assert.AreNotEqual(placed.Uv.x, fresh.x, "the control: a fresh snap does move it");
+
+            Vector2 snapped = PackLayout.Snap(Strict, Surface, FourByFour, cursor, placed.Yaw,
+                                              placed.Uv, Deadband);
+            Assert.AreEqual(placed.Uv.x, snapped.x, 1e-5f);
+            Assert.AreEqual(placed.Uv.y, snapped.y, 1e-5f);
         }
     }
 }

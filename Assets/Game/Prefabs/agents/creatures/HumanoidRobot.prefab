@@ -52,7 +52,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7063367642927654169}
   serializedVersion: 5
-  m_Mass: 1
+  m_Mass: 120
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -276,10 +276,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.Ragdoll.RagdollRig
   minBoneWeightFraction: 0.015
   maxBones: 20
+  minimumUsefulBones: 4
   limbAspect: 0.3
   minRadius: 0.04
   totalMass: 70
   minBoneMass: 0.6
+  angularDamping: 0.6
+  linearDamping: 0.05
+  solverIterations: 14
+  sleepWhenSettled: 1
+  selfCollision: 0
   swingLimit: 45
   twistLimit: 25
   settleLinearSpeed: 0.35

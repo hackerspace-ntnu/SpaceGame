@@ -43,6 +43,7 @@ using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Gameplay;
 using SpaceGame.Items;
+using SpaceGame.Presentation;
 using SpaceGame.Vehicles;
 using SpaceGame.World.Safety;
 using SpaceGame.World.Weather;
@@ -73,6 +74,17 @@ namespace SpaceGame.EditorTools
         // Built by OxygenGeneratorBuilder from oxygen_generator.fbx. Fourth fixture under the same
         // rule: placed here, never by hand, or it dies on the next rebuild.
         private const string OxygenGeneratorPrefabPath = OxygenGeneratorBuilder.PrefabPath;
+        private const string StandingTerminalPrefabPath = StandingTerminalBuilder.PrefabPath;
+
+        // The terminal stands in the COCKPIT, on the door's side: the main deck's ribs are full
+        // (gear wall to starboard; projector, station and plant to port) and its aft end is the
+        // bay doorway. The fore deck's starboard side between the aft passenger chairs (port)
+        // and the front pair is the one clear run on the ship for a 0.78 x 0.9 m unit with room
+        // to stand in front of it — SWEPT on the built ship on 2026-09-05, clear from z 2.4 to
+        // 5.8 at x 2.4-2.6, like the plant's window was. Inboard is from the fore deck's edge to
+        // the unit's origin; Fore is from the fore deck's aft edge.
+        private const float StandingTerminalInboard = 0.40f;
+        private const float StandingTerminalFore = 1.50f;
 
         // The library's fixtures are human-scale furniture (the pedestal is 0.88 m, the bench
         // 0.90 m to its top); the astronaut is ~1.7x human (see the worn-item hand-fit work), so
@@ -370,7 +382,7 @@ namespace SpaceGame.EditorTools
 
             GameObject model = (GameObject)PrefabUtility.InstantiatePrefab(source);
             // Reparenting meshes under hinge pivots is not possible on a prefab instance, so the
-            // link to the FBX is deliberately broken here (same as ShipRVBuilder).
+            // link to the FBX is deliberately broken here.
             PrefabUtility.UnpackPrefabInstance(model, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
             model.name = "Model";
             model.transform.SetParent(root.transform, false);
@@ -460,6 +472,7 @@ namespace SpaceGame.EditorTools
             BuildHoloProjector(root.transform, mainDeck, sideDoor);
             BuildRepairStation(root.transform, mainDeck, sideDoor);
             BuildOxygenGenerator(root.transform, mainDeck, sideDoor);
+            BuildStandingTerminal(root.transform, foreDeck, sideDoor);
             BuildInteriorVolume(root, mainDeck, foreDeck);
 
             MountModule mount = BuildRootComponents(root, seat, dismount, cameraPivot,
@@ -1732,7 +1745,7 @@ namespace SpaceGame.EditorTools
         // ─────────── Removable modules ───────────
 
         /// <summary>Prefix ship_parts.py stamps on every module mesh: <c>Part_&lt;Kind&gt;_&lt;Side&gt;</c>.</summary>
-        private const string PartPrefix = "Part_";
+        private const string PartPrefix = ShipPartNaming.Prefix;
 
         /// <summary>
         /// Mounts on this hull: one anti-gravity spine, one nose intake, one gun, and mirrored pairs
@@ -1765,9 +1778,9 @@ namespace SpaceGame.EditorTools
 
             foreach (MeshFilter filter in model.GetComponentsInChildren<MeshFilter>(true))
             {
-                if (!filter.name.StartsWith(PartPrefix)) continue;
+                if (!ShipPartNaming.IsPart(filter.name)) continue;
 
-                if (!TryParseKind(filter.name, out ShipPartKind kind))
+                if (!ShipPartNaming.TryParseKind(filter.name, out ShipPartKind kind))
                 {
                     unknown.Add(filter.name);
                     continue;
@@ -1837,18 +1850,6 @@ namespace SpaceGame.EditorTools
             Debug.Log($"[PlayerShipBuilder] {found.Count} part socket(s): " +
                       string.Join(", ", found.Select(s => s.name)));
             return true;
-        }
-
-        /// <summary>Reads the kind out of <c>Part_&lt;Kind&gt;_&lt;Side&gt;</c>.</summary>
-        private static bool TryParseKind(string meshName, out ShipPartKind kind)
-        {
-            kind = default;
-
-            int start = PartPrefix.Length;
-            int end = meshName.LastIndexOf('_');
-            if (end <= start) return false;
-
-            return System.Enum.TryParse(meshName.Substring(start, end - start), out kind);
         }
 
         /// <summary>
@@ -2342,13 +2343,18 @@ namespace SpaceGame.EditorTools
         /// </para>
         /// </remarks>
         /// <summary>
-        /// The scrap-fed repair station: on the main deck on the projector's side (opposite the
-        /// gear wall), aft of the projector, its back stood the same rib clearance off the deck
-        /// edge the wall keeps, its face turned into the room. A nested instance of the
-        /// RepairStation prefab, so RepairStationBuilder stays the one place its wiring lives;
-        /// nested under the ship it inherits the ship's NetworkObject — which is what makes the
-        /// workstation's NetworkVariable and RPCs replicate — and the ship's SaveableEntity, which
-        /// collects its RepairWorkstationSaveable (see <see cref="StripNestedSavers"/>).
+        /// The repair station: on the main deck on the projector's side (opposite the gear wall),
+        /// aft of the projector, its back stood the same rib clearance off the deck edge the wall
+        /// keeps, its face turned into the room. A nested instance of the RepairStation prefab, so
+        /// RepairStationBuilder stays the one place its build lives.
+        ///
+        /// <para>
+        /// Set dressing. It was the scrap-fed workstation until scrap was removed from the game;
+        /// the bench stayed because the deck is laid out around it, but it holds no state now, so
+        /// there is nothing here to replicate and nothing to save. <see cref="StripNestedSavers"/>
+        /// still runs over it — the wiring sweep gives every saveable prefab an entity, and one
+        /// arriving on a fixture would spawn a duplicate ship on load.
+        /// </para>
         /// </summary>
         private static void BuildRepairStation(Transform root, Bounds deck, Bounds door)
         {
@@ -2459,6 +2465,94 @@ namespace SpaceGame.EditorTools
             Debug.Log("[PlayerShipBuilder] Oxygen plant on the " +
                       (across.x > 0f ? "+X" : "-X") + " side at " +
                       instance.transform.localPosition.ToString("0.00") + ".");
+        }
+
+        /// <summary>
+        /// The standing terminal: a leaning CRT console in the cockpit, on the door's side, its
+        /// screen turned into the walkway. A nested instance of the StandingTerminal prefab, so
+        /// <see cref="StandingTerminalBuilder"/> stays the one place its wiring lives; nested
+        /// under the ship it inherits the ship's NetworkObject, which is what makes the console's
+        /// page and operator replicate. At scale 1, deliberately, not <see cref="CrewFixtureScale"/>:
+        /// the unit is authored to be used at the crew's own size — its screen leans back to face
+        /// an eye ABOVE it, and at 1.7x the glass would stand above the crew's 2.45 m eye with
+        /// the lean facing away from them.
+        /// </summary>
+        private static void BuildStandingTerminal(Transform root, Bounds foreDeck, Bounds door)
+        {
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(StandingTerminalPrefabPath);
+            if (source == null)
+            {
+                Debug.LogWarning("[PlayerShipBuilder] No terminal at " + StandingTerminalPrefabPath +
+                                 " — run Tools/SpaceGame/Build Standing Terminal Prefab. The ship is " +
+                                 "built without it.");
+                return;
+            }
+
+            if (foreDeck.size == Vector3.zero || door.size == Vector3.zero)
+            {
+                Debug.LogWarning("[PlayerShipBuilder] Could not measure the fore deck or the side " +
+                                 "door, so the terminal was not placed.");
+                return;
+            }
+
+            // The DOOR's side this time — the gear wall's side on the main deck, which is the
+            // side the cockpit keeps clear. Lateral component only; X is lateral by construction.
+            Vector3 toDoor = door.center - foreDeck.center;
+            var side = new Vector3(Mathf.Sign(toDoor.x), 0f, 0f);
+
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(source);
+            instance.name = "StandingTerminal";
+            instance.transform.SetParent(root, false);
+            instance.transform.localScale = Vector3.one;
+            StripNestedSavers(instance);
+
+            // Screen (+Z on the prefab, the Blender front) into the walkway.
+            instance.transform.localRotation = Quaternion.LookRotation(-side);
+
+            Vector3 footprint =
+                foreDeck.center
+                + side * (foreDeck.extents.x - StandingTerminalInboard)
+                + Vector3.forward * (StandingTerminalFore - foreDeck.extents.z);
+
+            // On the floor the crew STAND on, not the deck plate's drawn top. The cockpit's
+            // collision fill steps up 0.3 m over the fore deck's renderer, and a fixture stood
+            // on the renderer is buried in the step — the main-deck fixtures get away with
+            // `deck.max.y` because that deck is flat.
+            footprint.y = FloorUnder(root, footprint, foreDeck.max.y);
+            instance.transform.localPosition = footprint;
+
+            Debug.Log("[PlayerShipBuilder] Standing terminal on the " +
+                      (side.x > 0f ? "+X" : "-X") + " side of the cockpit at " +
+                      instance.transform.localPosition.ToString("0.00") + ".");
+        }
+
+        /// <summary>
+        /// The highest thing of the ship's own directly under a point, probed from above with the
+        /// hull's colliders already mounted. Falls back to <paramref name="fallbackY"/> when the
+        /// probe meets nothing — a ship with no collision yet — and says so.
+        /// </summary>
+        private static float FloorUnder(Transform root, Vector3 local, float fallbackY)
+        {
+            Physics.SyncTransforms();
+            Vector3 from = root.TransformPoint(new Vector3(local.x, fallbackY + 1.5f, local.z));
+            RaycastHit[] hits = Physics.RaycastAll(from, Vector3.down, 3f, ~0, QueryTriggerInteraction.Ignore);
+            float best = float.NegativeInfinity;
+            foreach (RaycastHit hit in hits)
+            {
+                if (!hit.collider.transform.IsChildOf(root)) continue;
+                float y = root.InverseTransformPoint(hit.point).y;
+                if (y > fallbackY + 0.6f) continue;
+                if (y > best) best = y;
+            }
+
+            if (float.IsNegativeInfinity(best))
+            {
+                Debug.LogWarning("[PlayerShipBuilder] No floor under " + local.ToString("0.00") +
+                                 " — standing the fixture on the deck plate's top instead.");
+                return fallbackY;
+            }
+
+            return best;
         }
 
         /// <summary>
@@ -3409,7 +3503,7 @@ namespace SpaceGame.EditorTools
         // ─────────── Scene placement ───────────
 
         /// <summary>
-        /// Drops one PlayerShip beside the ShipRV in the test world (skipped if the scene already
+        /// Drops one PlayerShip on the test world's spawn point (skipped if the scene already
         /// holds one). Placing AFTER the hash-stamping pass matters: the instance then inherits a
         /// real GlobalObjectIdHash instead of poisoning the scene with a 0.
         /// </summary>
@@ -3439,10 +3533,11 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
-            GameObject anchor = scene.GetRootGameObjects().FirstOrDefault(go => go.name == "ShipRV");
-            Vector3 position = anchor != null
-                ? anchor.transform.position + new Vector3(45f, 0f, 0f)
-                : Vector3.zero;
+            // The scene's spawn point if it has one, so the ship lands where a player starts;
+            // otherwise the origin. It used to anchor off the ShipRV, which no longer exists.
+            SpawnPoint anchor = Object.FindObjectsByType<SpawnPoint>(FindObjectsSortMode.None)
+                .FirstOrDefault(s => s.gameObject.scene == scene);
+            Vector3 position = anchor != null ? anchor.transform.position : Vector3.zero;
 
             GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
             instance.transform.position = position;
@@ -3497,6 +3592,17 @@ namespace SpaceGame.EditorTools
             if (prefab.GetComponentsInChildren<ArticulatedPartInteraction>(true).Length != expectedSwitches)
                 problems.Add($"expected {expectedSwitches} door switches (every sliding leaf, the "
                              + "back door and every bay-door panel)");
+
+            // The terminal fails silently in two ways: a missing session means the press does
+            // nothing at all, and a missing screen means a working console that draws nothing.
+            TerminalConsole[] consoles = prefab.GetComponentsInChildren<TerminalConsole>(true);
+            if (consoles.Length != 1)
+                problems.Add($"{consoles.Length} standing terminals, expected 1 — run Tools/SpaceGame/"
+                             + "Build Standing Terminal Prefab and rebuild");
+            else if (consoles[0].GetComponent<TerminalFocusSession>() == null
+                     || consoles[0].GetComponentInChildren<TerminalScreen>(true) == null)
+                problems.Add("the standing terminal is unwired: it needs a TerminalFocusSession on "
+                             + "its root and a TerminalScreen on its canvas");
             // One boarding point per chair, and every one of them a trigger ON the chair: the
             // front-left chair carries a MountStation into the hull's own module, the other three
             // carry passenger modules of their own.
@@ -3573,24 +3679,16 @@ namespace SpaceGame.EditorTools
                     problems.Add($"'{entity.name}' nests a second SaveableEntity under the hull, which " +
                                  "spawns a duplicate ship on every load");
 
-            // The repair station beside it. Same class of silent failure: no required item makes
-            // every deposit a rejection, no status light means no feedback, no saver puts the
-            // scrap count back at zero on the first reload.
-            RepairWorkstation[] stations = prefab.GetComponentsInChildren<RepairWorkstation>(true);
+            // The repair station beside it. Set dressing since scrap was removed, so there is no
+            // wiring left to check — only that it is there and solid: the deck is laid out around
+            // it, and a bench with no collider is one the crew walks straight through.
+            Transform[] stations = prefab.GetComponentsInChildren<Transform>(true)
+                .Where(t => t.name == "RepairStation").ToArray();
             if (stations.Length != 1)
                 problems.Add($"expected 1 repair station on the main deck, found {stations.Length}");
-            foreach (RepairWorkstation station in stations)
-            {
-                var wired = new SerializedObject(station);
-                if (wired.FindProperty("requiredItem").objectReferenceValue == null)
-                    problems.Add("the repair station accepts no item, so every deposit is refused");
-                if (wired.FindProperty("statusLight").objectReferenceValue == null)
-                    problems.Add("the repair station has no status light, so a deposit shows nothing");
-                if (station.GetComponent<RepairWorkstationSaveable>() == null)
-                    problems.Add("the repair station has no RepairWorkstationSaveable, so its scrap count resets on load");
-                if (station.GetComponentInChildren<Presentation.RepairProgressUI>(true) == null)
-                    problems.Add("the repair station has no gauge, so nobody can read how much scrap it still wants");
-            }
+            foreach (Transform station in stations)
+                if (station.GetComponent<Collider>() == null)
+                    problems.Add("the repair station has no collider, so the crew walks through the bench");
 
             // The oxygen plant forward of them. Its failures are silent in the same way, plus one
             // of its own: a dock whose aim volume is not a TRIGGER is answered for by the hull, so
@@ -3601,7 +3699,7 @@ namespace SpaceGame.EditorTools
             foreach (OxygenGenerator plant in plants)
             {
                 var wired = new SerializedObject(plant);
-                foreach (string field in new[] { "drainedTank", "chargedTank", "powerCell",
+                foreach (string field in new[] { "tankItem", "batteryItem",
                                                  "tankSeat", "cellSeat" })
                 {
                     if (wired.FindProperty(field).objectReferenceValue == null)
@@ -3609,10 +3707,10 @@ namespace SpaceGame.EditorTools
                 }
 
                 if (wired.FindProperty("lamps").arraySize == 0)
-                    problems.Add("the oxygen plant has no lamps, so a fitted cell shows nothing");
+                    problems.Add("the oxygen plant has no lamps, so a fitted battery shows nothing");
 
                 if (plant.GetComponent<OxygenGeneratorSaveable>() == null)
-                    problems.Add("the oxygen plant has no OxygenGeneratorSaveable, so a fitted cell is lost on load");
+                    problems.Add("the oxygen plant has no OxygenGeneratorSaveable, so a fitted battery is lost on load");
 
                 OxygenGeneratorDock[] docks = plant.GetComponentsInChildren<OxygenGeneratorDock>(true);
                 if (docks.Length != 2)

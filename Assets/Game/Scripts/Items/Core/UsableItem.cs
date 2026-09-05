@@ -3,6 +3,7 @@ using FMODUnity;
 using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Audio;
+using SpaceGame.Characters;
 using SpaceGame.Core;
 using SpaceGame.Presentation;
 
@@ -54,6 +55,23 @@ namespace SpaceGame.Items
         private int currentUses = 0;
 
         protected GameObject owner;
+
+        /// <summary>
+        /// Where the holder is pointing.
+        ///
+        /// Resolved on demand rather than cached in <see cref="Use"/>, so it is also available in
+        /// <see cref="OnRequestUse"/> — which is the only place an aim can honestly be read,
+        /// because it is the only one that runs on the machine holding the camera. A peer's copy of
+        /// a remote player has an <see cref="AimProvider"/> with no live camera behind it, so aimed
+        /// items must report their result rather than recompute it.
+        ///
+        /// Lives here rather than on <c>ToolItem</c> because <c>Weapon</c> is the other half of the
+        /// aimed items and derives straight from this class; it had its own <c>Camera.main</c>
+        /// lookup instead, which answers with the HOST's camera on a server and with nothing at all
+        /// while its holder is riding something.
+        /// </summary>
+        protected AimProvider aimProvider =>
+            owner != null ? owner.GetComponent<AimProvider>() : null;
 
         /// <summary>
         /// What the owner reported about this use — chiefly where they were aiming.

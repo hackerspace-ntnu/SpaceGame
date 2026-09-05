@@ -414,6 +414,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.PackSurface
   id: 7
   size: {x: 2.835, y: 2.079}
+  acceptsOnly: []
 --- !u!1 &6415374477180442121
 GameObject:
   m_ObjectHideFlags: 0
@@ -475,8 +476,8 @@ MonoBehaviour:
   displayScale: 1.8171431
   startingStrapItems: []
   startingMainItems:
-  - {fileID: 11400000, guid: a5e8fb73dbb66415f9232a516b5c5853, type: 2}
   - {fileID: 11400000, guid: fb57e6c272d0a473cb80019a5671f8e7, type: 2}
+  - {fileID: 11400000, guid: f78494893a7b54bd0a9d7c390fe6babe, type: 2}
 --- !u!114 &466146746142617743
 MonoBehaviour:
   m_ObjectHideFlags: 0

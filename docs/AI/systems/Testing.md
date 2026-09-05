@@ -17,8 +17,9 @@ symptoms:
   - "how do I actually prove this works on a client and not just the host"
   - "a test fails with Expected: (0.00, 0.00) But was: (0.00, 0.00) and nothing says what differed"
   - "a probe that excludes one part of a prefab measures that part anyway"
+  - "typecheck.py says a type I just added to an asmdef does not exist"
 reads_with: [Multiplayer, Persistence, EditorTooling]
-updated: 2026-09-01
+updated: 2026-09-05
 ---
 
 # Testing
@@ -91,28 +92,46 @@ grep '\[MPTEST\]' /tmp/mp_host.log /tmp/mp_client.log
 "<app>/Contents/MacOS/SpaceGameMP" -batchmode -nographics -sgmode persist -logFile /tmp/mp_persist.log
 ```
 
-Assert across **both** logs: `HOST_CLIENTS=2`, `CLIENT_SPAWNED > 0`, `CLIENT_PLAYER_OBJECT=True`, `CLIENT_SUPPRESSED == CLIENT_AUTHORITIES`, `CLIENT_HEALTH_SEEN == HOST_HEALTH_AFTER`, `HOST_RELAY_FROM_CLIENT=1`. `persist` mode runs alone and checks save/quit/load (`PERSIST_CHARGES_AFTER_LOAD`, …). Extend [`AutotestRunner.Client.cs`](Assets/Game/Scripts/Core/Multiplayer/Autotest/AutotestRunner.Client.cs) with a `Report(key, value)` rather than building a second harness. To *play* a build against the Editor: `open "<app>" --args -sgprofile client` (without it both sign in as the same anonymous PlayerId and the lobby 409s).
+Assert across **both** logs: `HOST_CLIENTS=2`, `CLIENT_SPAWNED > 0`, `CLIENT_PLAYER_OBJECT=True`, `CLIENT_SUPPRESSED == CLIENT_AUTHORITIES`, `CLIENT_HEALTH_SEEN == HOST_HEALTH_AFTER`, `HOST_RELAY_FROM_CLIENT=1`, and for the ship's terminal (`AutotestRunner.Terminal.cs`, see [Terminal.md](Terminal.md)) `CLIENT_TERMINAL_PAGE_SEEN == HOST_TERMINAL_PAGE == 2`, `HOST_TERMINAL_OCCUPIED=True` then `HOST_TERMINAL_RELEASED=True`. `persist` mode runs alone and checks save/quit/load (`PERSIST_CHARGES_AFTER_LOAD`, …). Extend [`AutotestRunner.Client.cs`](Assets/Game/Scripts/Core/Multiplayer/Autotest/AutotestRunner.Client.cs) with a `Report(key, value)` rather than building a second harness. To *play* a build against the Editor: `open "<app>" --args -sgprofile client` (without it both sign in as the same anonymous PlayerId and the lobby 409s).
 
 Adjacent validation menus that are cheaper than a test run: `Tools ▸ Save System ▸ Validate Save Wiring`, `Tools ▸ SpaceGame ▸ Multiplayer ▸ Sync Network Prefabs`, `Tools ▸ SpaceGame ▸ Items ▸ Audit Held Item Poses` / `Audit Item Scale Ladder`, `Tools ▸ SpaceGame ▸ Ragdoll ▸ Audit Skeletons`.
 
 ## Headless verification
 
-`python3 tools/typecheck.py` — **verified working on this machine**: prints `Unity 6000.3.11f1 | 765 sources | rsp <dag>` then `No errors.`, exit 0.
+`python3 tools/typecheck.py` — **verified working on this machine**: prints `Unity 6000.3.11f1` then
+`Assembly-CSharp: <n> sources | rsp <dag>` and `Assembly-CSharp: no errors.`, exit 0.
 
-How it works: it takes the newest `Library/Bee/artifacts/*/Assembly-CSharp.rsp` (Unity's own last compile — exact defines, ~400 references, langversion), strips `-out:`/`-refout:` and the stale source list, re-globs the sources, and runs Unity's bundled Roslyn (`<UnityRoot>/Unity.app/Contents/Resources/Scripting/NetCoreRuntime/dotnet` + `DotNetSdkRoslyn/csc.dll`).
+`python3 tools/typecheck.py --editor` additionally compiles **`Assembly-CSharp-Editor`** — every
+prefab builder and **every test file** — against the `Assembly-CSharp` the same run just built. Use
+it for any change to a runtime API. Added 2026-09-05, when a rename of `OxygenGenerator.RestoreDock`
+left seven test files and four builders uncompilable and the plain run reported `No errors.`
+
+How it works: it takes the newest `Library/Bee/artifacts/*/Assembly-CSharp.rsp` (Unity's own last
+compile — exact defines, ~400 references, langversion), strips `-out:`/`-refout:` and the stale
+source list, re-globs the sources, and runs Unity's bundled Roslyn
+(`<UnityRoot>/Unity.app/Contents/Resources/Scripting/NetCoreRuntime/dotnet` +
+`DotNetSdkRoslyn/csc.dll`). `--editor` then repeats that with `Assembly-CSharp-Editor.rsp`, **rewriting
+its `-r:` for `Assembly-CSharp.ref.dll` to point at the fresh dll**.
 
 Limits you must know before trusting a green result:
 
-- **It only compiles `Assembly-CSharp`.** Directories containing an `.asmdef` are excluded, and so is any path with an `Editor` segment. So it does **not** type-check the 15 `SpaceGame.*` modules, **nor any test file**. A test referencing a type that does not exist yet still prints `No errors.` — the failure only surfaces in the Editor.
-- It requires the Editor to have compiled at least once (no rsp → it exits with an explanatory message).
+- **It does not type-check the 15 `SpaceGame.*` module assemblies.** Directories containing an
+  `.asmdef` are excluded from both passes.
+- Without `--editor` it skips every path with an `Editor` segment, so **no test file is compiled** —
+  a test naming a type that no longer exists still prints `No errors.`
+- It requires the Editor to have compiled at least once (no rsp → it exits with an explanatory
+  message).
 - It deliberately skips `Library/VP` MPPM clone caches, because a clone can hold a stale domain.
 
 ## Gotchas
 
 - **`AddComponent` outside play mode raises no `Awake`, `Start` or `OnEnable`.** A component that initialises in `Awake` is a bag of nulls in a test. Initialise explicitly, or test the pure class behind the MonoBehaviour.
 - **A failing run and a run that never started look identical.** Always delete `Temp/headless_tests.txt` first (the runner does) and wait for `DONE`.
+- **Queue a headless run only from a CLEAN scene.** A `Unity_RunCommand` that instantiates a prefab and destroys it again (the ship placement probes do) leaves the open scene dirty, and the test framework's first step, `SaveCurrentModifiedScenesIfUserWantsTo`, then asks with a MODAL dialog — which blocks the editor loop, every bridge call after it (a `ReadConsole` sat for 30 minutes on 2026-09-05), and the run itself, until someone at the keyboard answers. Nothing is logged. Save or revert the scene in the same command before `RunEditModeDeferred`, or run the probes on a `PrefabUtility.LoadPrefabContents` copy that never touches the scene.
 - **A missing type is a compile error, not a red test.** The whole EditMode suite refuses to run — the Test Runner reports nothing at all. In TDD here, "compile error naming the type" *is* the failing state.
-- **`typecheck.py` green ≠ the project builds.** It skips tests, editor code and every module assembly (see above). It also cannot catch a player-build-only failure: `MultiplayerTestPlayerBuilder` warns that player builds compile scripts separately from the Editor.
+- **The `--editor` pass MUST link the freshly built `Assembly-CSharp`, not Bee's cached `Assembly-CSharp.ref.dll`.** Against the cache, every call a runtime change just broke still resolves and the check reports success over a project that cannot compile — which is exactly what it did on its first run. The reference is named `Assembly-CSharp.ref.dll`, not `.dll`; the script now **exits** rather than warns if it finds no reference to redirect.
+- **`typecheck.py` RED can also be a lie, and this one costs an hour.** It compiles Assembly-CSharp against Bee's *cached* module dlls, so a type you have just added inside an asmdef (`SpaceGame.Locomotion`, say) is reported `CS0246: could not be found` by every file that uses it until the Editor rebuilds that module — which it will not do while play mode blocks the asset refresh. The code is fine; the reference is stale. Confirm by comparing `Library/ScriptAssemblies/<module>.dll`'s mtime against the new source before believing it, or rebuild the module from its own `Library/Bee/artifacts/*/<module>.rsp` first.
+- **`typecheck.py` green ≠ the project builds.** Without `--editor` it skips tests and editor code, and it always skips every module assembly (see above). It also cannot catch a player-build-only failure: `MultiplayerTestPlayerBuilder` warns that player builds compile scripts separately from the Editor.
 - **MPPM clones can run a stale domain** and silently import nothing; check `Application.dataPath` before believing MCP results. `typecheck.py` excludes their rsp for the same reason.
 - **`SpaceGame.Tests.EditMode` cannot reach `Assembly-CSharp`.** If the type under test is not inside a `SpaceGame.*` asmdef, the test belongs in `Assets/Game/Editor/Tests/`, not `Assets/Game/Tests/EditMode/`.
 - **Host-only verification proves nothing.** The server instantiates prefabs directly and never consults the network prefab list — an unregistered prefab yields a perfect host and blank clients. `NetworkPrefabRegistrationTests` is the static guard; the two-process run is the real one.
@@ -128,4 +147,4 @@ Limits you must know before trusting a green result:
 3. Prefer testing a pure class. If the logic only exists inside a MonoBehaviour, extract the arithmetic into a plain class (as `Locomotion/Policy` did) instead of fighting `Awake`.
 4. Networked? Add assertions to `NetworkPrefabRegistrationTests` / `NetMessagingTests` if it introduces a prefab or a message id, then add a `Report(...)` line to `AutotestRunner.Client.cs` and run the two-process check.
 5. Holds runtime state? Add three lines to [`PrefabPersistenceTests.cs`](Assets/Game/Editor/Tests/PrefabPersistenceTests.cs) using `PersistenceProbe.For(path).Mutate(…).AssertSurvivesRoundTrip()`. `Mutate` must reach a state a *player* could reach or the test passes vacuously.
-6. Run `python3 tools/typecheck.py` (catches breakage in `Assembly-CSharp` only), then `Tools ▸ Tests ▸ Run EditMode Tests (headless)` and read `Temp/headless_tests.txt` for `FAILED=0`.
+6. Run `python3 tools/typecheck.py --editor` (catches breakage in `Assembly-CSharp` *and* in every builder and test; the bare form checks the runtime assembly only), then `Tools ▸ Tests ▸ Run EditMode Tests (headless)` and read `Temp/headless_tests.txt` for `FAILED=0`.

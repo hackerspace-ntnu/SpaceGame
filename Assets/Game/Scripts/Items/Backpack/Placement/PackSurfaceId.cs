@@ -90,8 +90,8 @@ namespace SpaceGame.Items
         /// It exists because that bottle was <b>geometry</b>, authored as "a fixed fitting, not an
         /// item", so nothing could ever take it off. It is gone (see
         /// <c>expedition_rig_BUILD.md</c>), and this is the face that gives the real bottle its
-        /// place: same plane, same rotation and the same 3 x 6 cells as its two neighbours, with
-        /// 15 mm of clearance to each of them.
+        /// place: same plane and same rotation as its two neighbours, and one column wider than
+        /// them since 2026-09-05 — 3 x 6 cells to their 2 x 6.
         /// </para>
         /// <para>
         /// <b>The only RESERVED face on any container.</b> A face normally takes anything that

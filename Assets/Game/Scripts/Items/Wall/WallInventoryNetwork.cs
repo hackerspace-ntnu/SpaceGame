@@ -156,6 +156,7 @@ namespace SpaceGame.Items
             U = placement.Uv.x,
             V = placement.Uv.y,
             Yaw = placement.Yaw,
+            Charge = SupplyCharge.ToByte(placement.Charge),
         };
 
         // ── Wire → every other machine ───────────────────────────────────────
@@ -207,8 +208,16 @@ namespace SpaceGame.Items
                 string itemId = wire.ItemId.Value;
                 if (string.IsNullOrEmpty(itemId)) continue;
 
+                // Only an item that CARRIES a charge gets one back. The byte is 0 both for an
+                // empty tank and for a rifle, and only the item can tell the two apart.
+                InventoryItem asset = bound != null ? bound.ItemFor(itemId) : null;
+                float charge = SupplyCharge.Carries(asset)
+                    ? SupplyCharge.FromByte(wire.Charge)
+                    : SupplyCharge.None;
+
                 yield return new PackPlacement(
-                    itemId, (PackSurfaceId)wire.Surface, new Vector2(wire.U, wire.V), wire.Yaw);
+                    itemId, (PackSurfaceId)wire.Surface, new Vector2(wire.U, wire.V), wire.Yaw,
+                    charge);
             }
         }
     }

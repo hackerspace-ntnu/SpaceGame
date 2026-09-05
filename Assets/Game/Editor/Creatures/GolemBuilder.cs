@@ -499,6 +499,10 @@ namespace SpaceGame.EditorTools
             // a save rather than reloading calm in the middle of a fight.
             root.AddComponent<AgentStateSaveable>();
 
+            // Every component this prefab needs must be added HERE. A rebuild overwrites the asset
+            // wholesale, so anything added by hand in the Inspector is silently gone.
+            AgentGroundConformWiring.Ensure(root);
+
             EnsureFolder("Assets/Game/Prefabs/Agents/Creatures");
             GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);

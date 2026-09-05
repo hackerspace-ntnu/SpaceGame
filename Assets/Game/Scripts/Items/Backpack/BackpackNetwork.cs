@@ -51,6 +51,13 @@ namespace SpaceGame.Items
         public float V;
         public float Yaw;
 
+        /// <summary>
+        /// How full the item is, quantised by <see cref="SupplyCharge.ToByte"/>. Zero for the great
+        /// majority of items, which hold nothing -- the receiving end knows from the item id whether
+        /// the number means anything.
+        /// </summary>
+        public byte Charge;
+
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref ItemId);
@@ -58,6 +65,7 @@ namespace SpaceGame.Items
             serializer.SerializeValue(ref U);
             serializer.SerializeValue(ref V);
             serializer.SerializeValue(ref Yaw);
+            serializer.SerializeValue(ref Charge);
         }
 
         /// <summary>
@@ -69,12 +77,13 @@ namespace SpaceGame.Items
             && Surface == other.Surface
             && U.Equals(other.U)
             && V.Equals(other.V)
-            && Yaw.Equals(other.Yaw);
+            && Yaw.Equals(other.Yaw)
+            && Charge == other.Charge;
 
         public override bool Equals(object obj) => obj is PackPlacementWire other && Equals(other);
 
         public override int GetHashCode() =>
-            HashCode.Combine(ItemId.GetHashCode(), Surface, U, V, Yaw);
+            HashCode.Combine(ItemId.GetHashCode(), Surface, U, V, Yaw, Charge);
     }
 
     /// <summary>
@@ -313,6 +322,7 @@ namespace SpaceGame.Items
             U = placement.Uv.x,
             V = placement.Uv.y,
             Yaw = placement.Yaw,
+            Charge = SupplyCharge.ToByte(placement.Charge),
         };
 
         // ── Wire → every other machine ───────────────────────────────────────────
@@ -364,8 +374,18 @@ namespace SpaceGame.Items
                 string itemId = wire.ItemId.Value;
                 if (string.IsNullOrEmpty(itemId)) continue;
 
+                // A charge is only meaningful for an item that carries one. Reconstructed as
+                // SupplyCharge.None otherwise, so a rifle off the wire does not come back claiming
+                // to be an empty tank -- the byte is 0 for both, and only the item can tell them
+                // apart.
+                InventoryItem asset = bound != null ? bound.ItemFor(itemId) : null;
+                float charge = SupplyCharge.Carries(asset)
+                    ? SupplyCharge.FromByte(wire.Charge)
+                    : SupplyCharge.None;
+
                 yield return new PackPlacement(
-                    itemId, (PackSurfaceId)wire.Surface, new Vector2(wire.U, wire.V), wire.Yaw);
+                    itemId, (PackSurfaceId)wire.Surface, new Vector2(wire.U, wire.V), wire.Yaw,
+                    charge);
             }
         }
     }

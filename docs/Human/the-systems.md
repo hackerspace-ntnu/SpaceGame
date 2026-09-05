@@ -146,6 +146,12 @@ A physical inventory rather than a list: a deployable expedition rig whose seven
 
 **Worth knowing:** there is no snapping and no refusal message — the red ghost cells *are* the refusal, and clicking on red turns the item a quarter turn, which is usually the fix.
 
+### Roping an animal *(Lasso)*
+
+Hold the button and a loop starts turning over your head, opening wider the longer you wind it — which is both how far the throw will reach and how big a mouth it will have when it gets there. While you are winding, a faint arc runs out from your hand to a ring on the ground showing exactly where the loop will land; let go and it flies that arc. Catch something and the loop cinches shut, the rope cracks tight, and the animal starts fighting you — pulling away, throwing its weight across the rope, taking line off you while it has the strength. Right-click reels line back in. Which end of the rope actually moves depends on which end is heavier: a small creature comes to you, a big one plants its feet and takes you with it. Give it slack and it gets its wind back; hold it hard and the rope wears through and parts. When you have walked it somewhere you want it, point at a post or a rock and click — the rope becomes an ordinary tied rope, and your lasso comes back to your hand.
+
+**Worth knowing:** the loop spinning over your head is what everyone *else* sees you doing, and it is deliberately not what you read the throw off — you are looking along the arc instead, because the loop is above your own eyeline.
+
 ### Ropes tied between things *(LeashSystem)*
 
 One button ties a rope between any two things in the world: creature to post, player to crate, anything to a moving vehicle. The rope is a fixed-length limit rather than a spring, so below its length it does nothing at all, and each machine draws its own copy and only ever pulls the end it owns. Rope length is set once when you tie it, and it sags and lies over the ground it crosses.
@@ -154,15 +160,40 @@ One button ties a rope between any two things in the world: creature to post, pl
 
 ### Looking at things and right-clicking *(InteractionSystem)*
 
-Doors, levers, ship consoles, repair workstations, seats and helms, pickups, cave exits and dialogue all work the same way: look at a collider, right-click (it was E until the right gauntlet took that key, then I until interact took right mouse outright). One ray picks the target, one resolver turns it into the label and prompt you read, and the thing itself owns whatever it takes to get its effect onto other machines. Prompts are on by default — anything interactable gets a readable name derived from what it is unless it is given a better one.
+Doors, levers, ship consoles, seats and helms, pickups, cave exits and dialogue all work the same way: look at a collider, right-click (it was E until the right gauntlet took that key, then I until interact took right mouse outright). One ray picks the target, one resolver turns it into the label and prompt you read, and the thing itself owns whatever it takes to get its effect onto other machines. Prompts are on by default — anything interactable gets a readable name derived from what it is unless it is given a better one.
 
 **Worth knowing:** trading is fully written but completely unauthored — no trader profile asset exists and nothing in any prefab or scene references it, so barter has never actually run in the game.
 
+### Air, and running out of it *(Oxygen)*
+
+Your suit holds one minute of air. That is not the supply — it is the alarm. The real supply is the tank clipped into the socket on the back of your pack, which holds thirty minutes, and while it has anything left in it your suit stays full and the tank is what empties. When the tank runs dry the suit's minute starts, the visor says so, and when that minute is gone you begin to suffocate. Indoors — the lander, and anywhere else sealed — nothing drains at all and the suit tops itself back up for free.
+
+You can carry as many tanks as fit on the pack, but only the one in the socket is plugged into you: a tank in your hand or lying on the mat is luggage. Swapping means opening the pack and dragging a fresh one into the socket, which is exactly what the suit's last minute is for.
+
+**Worth knowing:** the tank is where the number lives, so two tanks on your mat can read 12% and 87% and you pick. There is no way to breathe a tank without the pack — set out without one and you have sixty seconds, full stop.
+
 ### The oxygen plant *(Oxygen)*
 
-A wall-mounted machine on the lander's main deck with two receptacles that can only take one thing each: a rectangular slot for a slab power cell, and a round collar above it that an oxygen bottle plugs into base-first. Fit a cell and the machine's amber lamp and green readout come on and it starts casting light on the bulkhead beside it; plug in an empty bottle and it hisses for five seconds, the bottle's own gauge climbing from dark to green, and hands you back a full one. Either receptacle can be emptied again by right-clicking it, and both keep what is in them across a save. There is one empty bottle and one power cell waiting on the ship's gear wall, a few metres from the machine that wants them.
+A wall-mounted machine on the lander's main deck with two receptacles that can only take one thing each: a rectangular slot for a slab battery, and a round collar above it that an oxygen tank plugs into base-first. Fit a battery and the machine's amber lamp and green readout come on; plug in a tank and it hisses while the tank's own gauge climbs, and you take it back fuller than you left it. Filling costs both time and power in proportion to how much you actually take, so topping up a nearly full tank is quick and nearly free. Either receptacle can be emptied again by right-clicking it, and both keep what is in them — and how full they are — across a save.
 
-**Worth knowing:** nothing in the game breathes yet, so a full bottle is something you own rather than something you spend — the plant's supply is unlimited and the cell never runs down. The two receptacles differ in *shape* before they differ in colour on purpose: a cell physically cannot enter the bottle collar, so you can see which is which before any words appear, and the same is true for a player who cannot tell green from orange.
+**Worth knowing:** nothing recharges a battery yet. One is worth about twenty-five full tanks, and when the last one in the world is flat there is no more oxygen; a charger is the next thing this system needs. The two receptacles differ in *shape* before they differ in colour on purpose: a battery physically cannot enter the tank collar, so you can see which is which before any words appear, and the same is true for a player who cannot tell green from orange.
+
+### The ship's terminal *(Terminal)*
+
+A leaning, cream-cased CRT console standing on the starboard side of the cockpit. Right-click it and the camera glides from your eyes to a seat in front of the glass, the cursor comes free, and the screen shows one of three pages: the lander itself in 3D with its missing parts glowing red (see below), a status readout in words plus who is aboard and the ship's clock, and a GPS page with the ship's position and heading and a radar of where the crew are standing. Click the tabs or press 1, 2, 3 to flip pages; Esc, right-click again, or simply walking off puts the camera back in your head.
+
+**Worth knowing:** the page you pick is the page everyone sees — it is a real screen in the world, so a crewmate looking over your shoulder reads what you read — and while you are at it the terminal says "In use" to anyone else. Nothing it shows is stored anywhere; every line is read off systems that already save and replicate themselves. It stands at its author's own size rather than the 1.7x the other fixtures use, because its screen leans back to face an eye above it.
+### The ship's schematic *(ShipSchematic)*
+
+The terminal's first page: your own lander drawn as a green wireframe, turning slowly behind the glass — edges inked like a draughtsman's drawing, with the near side hiding the far one so you can tell which way round it is. Everything the ship is missing — its engines, its reactor cores, its turbines, its intake, its gun — glows red and pulses where it ought to be. Drag to turn the hull, roll the wheel to zoom, and hover a part to read its name, whether it is fitted, how many of that kind you have, and what the ship cannot do without it. Click a part to select it — it turns pale and stays that way while you read; click it again, or click empty space, to let it go, and clicking a different part simply moves the selection across. You do not have to hit it exactly: some of these parts are barely bigger than the cursor, so clicking near one picks it. The view never moves itself either, so a part you can see is a part you can click.
+
+**Worth knowing:** the little ship is cut from the same model as the real one, so it can never show you a lander that does not exist. What it says about missing parts is the same thing every other player sees, because it reads the ship's own state — but the turning and zooming are yours alone, and someone watching over your shoulder just sees the hull rotating gently.
+
+### How full a thing is *(SupplyCharge)*
+
+Oxygen tanks and batteries are not full-or-empty — each one carries its own percentage, and it follows that particular object everywhere: into your hand, onto the pack, into a machine, onto the ground if you drop it, and into the save file. Two tanks of the same kind are two separate things with two separate readings.
+
+**Worth knowing:** this is why the pack can hold two of something at all. Until this existed, a container identified everything it carried by *what kind of thing it was*, so it could never hold two of one kind — a limit nobody had noticed, because the only thing anyone wanted two of was an oxygen tank, and a full one and an empty one used to count as different kinds.
 
 ### The torch *(Flashlight)*
 
@@ -197,6 +228,16 @@ A membrane worn on your back that runs from your arms down to your hips. Tap Spa
 It takes the same single slot as the wing pack, so you carry one or the other. The wings are cut from the same colour as your suit, so you can tell each other apart in the air.
 
 **Worth knowing:** It uses the ornithopter's crash rule, so flying it onto sand properly costs nothing while a held dive into a rock face is still fatal — the wingsuit is a way down, not a way out of falling.
+
+### The Crucible *(CruciblePuzzle)*
+
+A pit of lava with a maze of rock standing out of it, and a power cell you have to get across. Neither of you goes in. You work the rim, and you each tie a leash to the cell and thread your rope through a slot cut in the rim wall — a long one, so the rope slides along it while you walk. Two ropes pulled tight are the only thing holding the cell up, which means two taut ropes and gravity decide exactly where it hangs, and neither of you can put it anywhere on your own.
+
+Walking along your slot swings the cell sideways. Backing away from your slot spends rope on the outside, so there is less of it on the inside and the cell climbs toward you. That is the whole control scheme, and it is all done with your legs. Walk past the end of a slot and your rope hands itself to the next one, so changing slots means one of you letting go of the steering and running, while the other holds the cell alone.
+
+The rope bends at the slot and the cell hangs below it, so the cell can never get higher than your slot. Anything built taller than that has to be threaded, not lifted over — and the odd wall built lower is a shortcut, if you are good enough to take it. Drop the cell in the lava and it is gone; another one rolls into the cradle and you start again. Get it into the socket at the far end and the vault opens.
+
+**Worth knowing:** on your own, the lava is just a floor. You can set the cell down, walk round, re-rig and pull again — so it stops being a test of nerve and becomes a test of planning. If a second person joins while you are halfway across, the lava comes back with the cell still in the air.
 
 ## What you see and hear
 

@@ -31,8 +31,10 @@ symptoms:
   - "a small fitting swells and starts clashing with neighbours after the bevel width was raised"
   - "_zverify reports dozens of clashes in a component file that holds several variations"
   - "a mesh renders inside-out in Unity and looks correct in Blender"
+  - "_zverify reports a clash in the assembled model that the component file it came from never showed"
+  - "a bevelled bezel has a chamfer groove running across its face at every corner"
 reads_with: [Vehicles, PlayerShip, AgentSystem, Backpack]
-updated: 2026-09-04
+updated: 2026-09-05
 ---
 
 # Art Pipeline
@@ -45,26 +47,15 @@ How a 3D asset gets from a hand-authored/scripted `.blend` in the Unity-invisibl
 ## Model
 
 - **Author** in [`Assets/Game/Art/Models/_Source~/`](Assets/Game/Art/Models/_Source~): `components/<cat>/x.blend` for reusable parts, `models/<cat>/y.blend` for assembled deliverables. Each `.blend` sits next to its generator `.py` and usually a `<name>_BUILD.md` record.
-- **Geometry helpers** come from [`_buildlib.py`](Assets/Game/Art/Models/_Source~/_buildlib.py) (bevelled boxes, tubes, lofts, rivets, palette linking). `_buildlib.start()` **refuses to overwrite an existing `.blend`** — the file, not the script, is the source of truth.
+- **Geometry helpers** come from [`_buildlib.py`](Assets/Game/Art/Models/_Source~/_buildlib.py) (bevelled boxes, tubes, lofts, rivets, palette linking, `append_objects` for pulling component parts into a model). `_buildlib.start()` **refuses to overwrite an existing `.blend`** — the file, not the script, is the source of truth.
+- **Family kits sit beside their components.** Where several components share a look and a material table, the shared builders live in an underscore module next to them and are imported, not copied: [`panel_control.py`](Assets/Game/Art/Models/_Source~/components/mechanical/panel_control.py) (rockers, knobs, `tube_path`), [`_console_kit.py`](Assets/Game/Art/Models/_Source~/components/props/_console_kit.py) (the console family's sixteen-slot material table, rounded-rectangle slabs and rings, keycaps, slots, vents), [`models/gear/_gauntlet.py`](Assets/Game/Art/Models/_Source~/models/gear/_gauntlet.py) (the gauntlet seating). The console family — `crt_monitor`, `keyboard_deck`, `console_pedestal` and the assembled `models/props/standing_terminal` — is the worked example: a display plate is always its own object with a 0..1 UV rectangle (`handheld_terminal.screen_plate`), so a render texture or a procedural screen shader maps onto it 1:1.
 - **Materials** are *linked* from [`palette.blend`](Assets/Game/Art/Models/_Source~/palette.blend); nothing defines a local material.
 - **Export** via `<model>_export.py` → [`_exportlib.export()`](Assets/Game/Art/Models/_Source~/_exportlib.py), which localises linked palette materials, optionally drops armatures, and writes to `unity_path(...)` = `Assets/Game/Art/Models/<Category>/name.fbx`. Exports **are** meant to be re-run; they never write back to the `.blend`.
 - **Import** into Unity is automatic; [`MeshReadablePostprocessor`](Assets/Game/Editor/AssetPipeline/MeshReadablePostprocessor.cs) forces Read/Write on every mesh (runtime NavMesh baking) and [`RootMotionCurveStripper`](Assets/Game/Editor/AssetPipeline/RootMotionCurveStripper.cs) deletes root-bound curves from imported clips.
 - **Prefab** is generated, not hand-wired, by a `*Builder.cs` under [`Assets/Game/Editor/`](Assets/Game/Editor) (39 of them; menu `Tools > …`). Re-running a builder after a re-export rebuilds import settings, clips, controllers and the prefab in place.
-- **A family shares a component, not a convention.** Where several models are the same thing with
-  a different device on it, the shared part is one component `.blend` with the mounting surface
-  documented in its docstring, and each model is authored against it. The gauntlets are the worked
-  example: `components/props/gauntlet_base.blend` is an armoured bracer with a flat dorsal deck at
-  a stated plane, and the seven `models/gear/gauntlet_*.blend` bolt their machinery onto that
-  plane. `models/gear/_gauntlet.py` holds the frame and the deck's numbers so a device script can
-  be read on its own. **Shared does not have to mean COPIED:** until 2026-09-04 every gauntlet
-  appended the bracer and shipped its own copy inside its FBX, which meant seven copies of one
-  armour and a bare sleeve whenever a gauntlet came off. The bracer is worn permanently now and
-  the devices contain none of it — they still assume its deck, which is the part that has to be
-  shared, and nothing else.
-- **Anything worn is modelled at the wearer's true size**, measured off the skinned character rather than
-  guessed — bake the mesh, keep the vertices bound to the bone in question, and bin them along and around
-  the limb. The gauntlet base was cut that way; an earlier one built to a remembered forearm radius vanished
-  inside the suit sleeve.
+- **A family shares a component, not a convention.** Where several models are the same thing with a different device on it, the shared part is one component `.blend` with the mounting surface documented in its docstring, and each model is authored against it. The gauntlets are the worked example: `components/props/gauntlet_base.blend` is an armoured bracer with a flat dorsal deck at a stated plane, and the seven `models/gear/gauntlet_*.blend` bolt their machinery onto that plane. `models/gear/_gauntlet.py` holds the frame and the deck's numbers so a device script can be read on its own. **Shared does not have to mean COPIED:** until 2026-09-04 every gauntlet appended the bracer and shipped its own copy inside its FBX, which meant seven copies of one armour and a bare sleeve whenever a gauntlet came off. The bracer is worn permanently now and the devices contain none of it — they still assume its deck, which is the part that has to be shared, and nothing else.
+- **A hand-built variation can ship straight out of its component file.** The standing terminal is the user's reworked `Coll_CrtMonitor_Kiosk` inside `components/props/crt_monitor.blend`; `standing_terminal_export.py` ships that one collection with `_exportlib.export(..., keep_collection=...)`, so whatever the author adds to it ships and no object is named in the script. The generated pedestal-and-deck assembly it replaced (`models/props/standing_terminal.blend`) was deleted the same day; the FBX kept its name so the prefab's GUID survived. When a `.blend` has no markers, the Unity builder measures instead — `ScreenPlane` over the plate's triangles for a display, the vertices' lowest point for the floor line ([Terminal](Terminal.md)) — and it measures **vertices, never `Renderer.bounds`**: for a part that arrives rotated, Unity's world AABB is the box round the rotated LOCAL box, and on a cabinet leaning 24° it came out 0.9 m too deep and 0.2 m too tall. A submesh that left Blender with no material wears the pipeline's default (`Lit` under URP), which is a material not imported with the FBX — test that, not the name.
+- **Anything worn is modelled at the wearer's true size**, measured off the skinned character rather than guessed — bake the mesh, keep the vertices bound to the bone in question, and bin them along and around the limb. The gauntlet base was cut that way; an earlier one built to a remembered forearm radius vanished inside the suit sleeve.
 - **Walkable interiors** additionally get a baked convex decomposition from [`_collisionlib.py`](Assets/Game/Art/Models/_Source~/_collisionlib.py) — Unity refuses a concave MeshCollider on a Rigidbody.
 
 ## Layout
@@ -72,32 +63,27 @@ How a 3D asset gets from a hand-authored/scripted `.blend` in the Unity-invisibl
 | Directory | Contains | Visible to Unity? |
 |---|---|---|
 | [`Assets/Game/Art/Models/_Source~/`](Assets/Game/Art/Models/_Source~) | `.blend` masters, generator/export `.py`, `PALETTE.md`, `LIBRARY.md`, `library_index.json`, `palette.blend` | **No** — trailing `~`; no `.meta` files, no Blender install needed to open the project |
-| [`_Source~/components/{structural,props,mechanical,organic}/`](Assets/Game/Art/Models/_Source~/components) | 94 reusable component `.blend`s, variations as `Coll_*` collections | No |
-| [`_Source~/models/{buildings,characters,creatures,gear,vehicles}/`](Assets/Game/Art/Models/_Source~/models) | 44 assembled model `.blend`s | No |
+| [`_Source~/components/{structural,props,mechanical,organic}/`](Assets/Game/Art/Models/_Source~/components) | 106 reusable component `.blend`s, variations as `Coll_*` collections | No |
+| [`_Source~/models/{buildings,characters,creatures,gear,props,vehicles}/`](Assets/Game/Art/Models/_Source~/models) | 64 assembled model `.blend`s | No |
 | [`Assets/Game/Art/Models/_backups~/`](Assets/Game/Art/Models/_backups~) | pre-surgery snapshots (`vrescal_before_legs.blend`, …) | No |
-| [`Assets/Game/Art/Models/<Category>/`](Assets/Game/Art/Models) | 126 exported/imported `.fbx` + `.meta` | Yes |
-| [`_Source~/components/{structural,props,mechanical,organic}/`](Assets/Game/Art/Models/_Source~/components) | 97 reusable component `.blend`s, variations as `Coll_*` collections | No |
-| [`_Source~/models/{buildings,characters,creatures,gear,props,vehicles}/`](Assets/Game/Art/Models/_Source~/models) | 44 assembled model `.blend`s | No |
-| [`Assets/Game/Art/Models/_backups~/`](Assets/Game/Art/Models/_backups~) | pre-surgery snapshots (`vrescal_before_legs.blend`, …) | No |
-| [`Assets/Game/Art/Models/<Category>/`](Assets/Game/Art/Models) | 128 exported/imported `.fbx` + `.meta` | Yes |
-| [`Assets/Game/Art/Materials/`](Assets/Game/Art/Materials) | 121 `.mat` in 13 domain folders | Yes |
+| [`Assets/Game/Art/Models/<Category>/`](Assets/Game/Art/Models) | 155 exported/imported `.fbx` + `.meta` | Yes |
+| [`Assets/Game/Art/Materials/`](Assets/Game/Art/Materials) | 127 `.mat` in 13 domain folders | Yes |
 | [`Assets/Game/Art/Animations/{Player,Creatures,UI}/`](Assets/Game/Art/Animations) | mocap FBX, `.anim`, `.controller`, `UpperBody.mask` | Yes |
 | [`Assets/Game/Art/{Shaders,Textures,Sprites,VisualEffects,Brushes}/`](Assets/Game/Art) | shader graphs/HLSL, textures (own `Textures/Items/_Source~`), icons, VFX | Yes |
 | [`Assets/ThirdParty/`](Assets/ThirdParty) | bought/free packs (Sci-Fi RTS, Cosmic Retro Blasters, Kevin Iglesias anims, TMP) — outside this pipeline | Yes |
 
 ## Model library
 
-126 FBX under `Assets/Game/Art/Models/`. Generated assets are `snake_case`; older/imported ones are `camelCase` or `PascalCase`.
-129 FBX under `Assets/Game/Art/Models/`. Generated assets are `snake_case`; older/imported ones are `camelCase` or `PascalCase`.
+155 FBX under `Assets/Game/Art/Models/`. Generated assets are `snake_case`; older/imported ones are `camelCase` or `PascalCase`.
 
 | Category | Example files | Count |
 |---|---|---|
 | [Environment](Assets/Game/Art/Models/Environment) | `Caves/Stalagmites/*`, `Structures/Outpost/*`, `Blockouts/tower.fbx`, `Ruins/SpaceRuin.fbx` | 35 |
-| [Vehicles](Assets/Game/Art/Models/Vehicles) | `Crawler/desert_crawler.fbx`, `Ornithopter/dune_ornithopter.fbx`, `PlayerShip/*`, `RV/*`, `DuneFoil/*` | 34 |
-| [Items](Assets/Game/Art/Models/Items) | `portal_gun.fbx`, `net_gun.fbx`, `item_scanner.fbx`, `jumping_rod.fbx`, `ShipParts/*` | 26 |
-| [Creatures](Assets/Game/Art/Models/Creatures) | `Organic/DuneRat/dune_rat.fbx`, `Organic/Appa/appa.fbx`, `Constructs/Golem/golem.fbx`, `Organic/OrkhenRhot/*`, `Robotic/*` | 14 |
+| [Vehicles](Assets/Game/Art/Models/Vehicles) | `Crawler/desert_crawler.fbx`, `Ornithopter/dune_ornithopter.fbx`, `PlayerShip/*`, `RV/*`, `DuneFoil/*` | 36 |
+| [Items](Assets/Game/Art/Models/Items) | `portal_gun.fbx`, `net_gun.fbx`, `item_scanner.fbx`, `jumping_rod.fbx`, `ShipParts/*` | 43 |
+| [Creatures](Assets/Game/Art/Models/Creatures) | `Organic/DuneRat/dune_rat.fbx`, `Organic/Appa/appa.fbx`, `Constructs/Golem/golem.fbx`, `Organic/OrkhenRhot/*`, `Robotic/*` | 15 |
 | [Weapons](Assets/Game/Art/Models/Weapons) | `GravelBlaster/gravel_blaster.fbx`, `LaserStaff/*`, `CixinGun/*` | 7 |
-| [Props](Assets/Game/Art/Models/Props) | `expedition_rig.fbx`, `holo_base_puck.fbx`, `holo_base_table.fbx`, `repair_station.fbx` | 9 |
+| [Props](Assets/Game/Art/Models/Props) | `expedition_rig.fbx`, `holo_base_puck.fbx`, `holo_base_table.fbx`, `repair_station.fbx`, `standing_terminal.fbx` | 15 |
 | [Characters](Assets/Game/Art/Models/Characters) | `Astronaut/astronaut.fbx`, `Astronaut/AstronautArmature.fbx`, `Nomad/nomad.fbx` | 4 |
 
 ## Materials
@@ -112,9 +98,8 @@ How a 3D asset gets from a hand-authored/scripted `.blend` in the Unity-invisibl
 
 | | Setting |
 |---|---|
-| Humanoid | 4 model FBX + 24 clip FBX (`animationType: 3`) |
-| Generic | 118 of 126 model FBX (`animationType: 2`) — creatures, vehicles, rigid-part rigs |
-| Generic | 117 of the older 124 model FBX (new static exports default the same) (`animationType: 2`) — creatures, vehicles, rigid-part rigs |
+| Humanoid | 4 model FBX + 32 clip FBX (`animationType: 3`) |
+| Generic | 148 of 155 model FBX (new static exports default the same) (`animationType: 2`) — creatures, vehicles, rigid-part rigs |
 | Avatar source | [`Characters/Astronaut/AstronautArmature.fbx`](Assets/Game/Art/Models/Characters/Astronaut/AstronautArmature.fbx) is `avatarSetup: 1` (Create From This Model); every clip in [`Animations/Player/`](Assets/Game/Art/Animations/Player) is `avatarSetup: 2` (Copy From Other Avatar) pointing at it |
 
 - Player clips are retargeted mocap FBX driving [`AstronautArmature.controller`](Assets/Game/Art/Animations/Player); `UpperBody.mask` gates hold-pose layers.
@@ -174,6 +159,8 @@ N/A for the art assets themselves. Builders that emit spawnable prefabs must sta
 - **`Matrix.Rotation(a, 4, 'Z')` carries local +X radially outward, not +Y.** Placing a rib, plate or boss around a barrel with the sizes in the wrong order gives a rib thin in the tangential direction instead of the radial one — which still looks like a rib, just wrong, and the origin and angle are both correct so nothing points at the bug. Assert the mapping (`rot @ (1,0,0) == out`) rather than reading it off the call.
 - **A negative scale renders inside-out in Unity and looks right in Blender.** Dragging a scale gizmo past zero leaves the object on a negative-determinant transform. Blender's viewport respects the flip; the FBX carries the negative scale straight through and Unity shows the back faces — you see through the front of the mesh. Nothing errors. Detect it by the **determinant of `matrix_world.to_3x3()`**, confirm with the mesh's world-space signed volume going negative, and never by eye. [`_exportlib.export(fix_inverted=True)`](Assets/Game/Art/Models/_Source~/_exportlib.py) bakes the transform and recalculates normals **in memory at export time**, so a hand-edited `.blend` is never written to; it is opt-in so no model already shipping changes. Verify by re-importing the FBX and re-measuring, not by trusting the log line.
 - **Scaling one part of an assembly moves its faces onto planes other parts were clear of.** Widening the oxygen generator's tower put the straps' side segments exactly on the tower's new side plane — four fresh 0.000 mm clashes from a change that touched neither part's geometry. Re-run `_zverify.py` after any transform edit, not only after a geometry edit.
+- **A stand-off under 3 mm is a clash, and 2.000 mm is a coin toss.** `_zverify` treats parallel faces within `SEP` = 2 mm as coplanar, so the handheld family's 1.5 mm-proud slots and 2 mm-proud plates — which read as recesses on a 0.1 m instrument — are reported as clashes at any scale, and a part planted exactly 2.000 mm off a plane passes or fails on floating point: the keyboard deck's keys were clean in `keyboard_deck.blend` and flagged in `standing_terminal.blend`, where the same geometry sits under a 12° rotation and the world-space distance rounded the other way. Stand everything off by ≥ 3 mm (`_console_kit.EMBED`) and plant a fitting that passes through a proud plate twice that deep (`PLANT`), or its base ends on the plate's own back plane.
+- **A rounded bezel built from four bevelled slabs has a chamfer groove across its face at every joint.** The bevel rounds each slab's own edges, joints included. Build a frame as one ring (`_console_kit.rounded_frame`) and a tray as one rounded prism (`rounded_slab`), and give extruded rounded outlines flat shading on their straight walls — smoothing them the way `_buildlib` smooths cylinder barrels pillows a 0.6 m wall from the arcs' tilted normals.
 - Auto-suffixed names (`Cube.003`, `Material.001`) are rejected at save time by `_buildlib.save()`; keep every object, mesh, collection and bone deliberately named. A **hand-added** object can still arrive named `Cylinder` — `save()` only guards the generator path — and it ships into the FBX under that name.
 
 ## Extending

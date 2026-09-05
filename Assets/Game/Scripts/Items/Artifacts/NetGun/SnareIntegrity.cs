@@ -15,8 +15,10 @@ namespace SpaceGame.Items
     /// <para>
     /// Expressed as seconds-of-hold remaining rather than as an abstract hit-point count, so the
     /// authored number means what it says: a net rated thirty seconds holds one ordinary captive
-    /// for thirty seconds. Keeping that promise is why <see cref="Drain"/> takes the GREATER of its
-    /// two rates rather than their sum — see there.
+    /// who lies still for thirty seconds. Keeping that promise is why <see cref="Drain"/> takes the
+    /// GREATER of its two rates rather than their sum — see there. A captive who fights arrives as
+    /// more mass and gets out sooner; nothing here needs to know that, which is the point of taking
+    /// a mass rather than a struggle.
     /// </para>
     /// </summary>
     public class SnareIntegrity

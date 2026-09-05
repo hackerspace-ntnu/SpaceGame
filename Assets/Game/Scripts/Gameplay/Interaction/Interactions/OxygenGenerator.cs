@@ -10,9 +10,9 @@ using SpaceGame.Presentation;
 namespace SpaceGame.Gameplay
 {
     /// <summary>
-    /// The ship's oxygen plant: a wall-mounted machine with two receptacles. Plug a power cell into
-    /// the rectangular slot and the machine wakes up; plug a bottle into the round collar above it
-    /// and the machine spends <see cref="fillSeconds"/> filling it.
+    /// The ship's oxygen plant: a wall-mounted machine with two receptacles. Fit a battery into the
+    /// rectangular slot and the machine wakes up; plug a tank into the round collar above it and
+    /// the machine spends watt-hours filling the tank.
     ///
     /// <para>
     /// <b>Two docks, two colliders, one state.</b> Each receptacle is aimed at and pressed
@@ -22,24 +22,32 @@ namespace SpaceGame.Gameplay
     /// disagree about whether the machine has power.
     /// </para>
     /// <para>
-    /// <b>Oxygen is unlimited and the cell never drains.</b> There is no consumption of either, by
-    /// design: the plant is a station the player comes back to, not a resource to ration. What the
-    /// fill produces is a CHARGED BOTTLE, and nothing in the game spends one yet — the loop this
-    /// closes is find a bottle, power the plant, fill the bottle.
+    /// <b>Both reservoirs are real, and the fill is PROPORTIONAL.</b> Filling a tank from <i>f</i>
+    /// to full takes <c>fillSeconds x (1 - f)</c> and costs <c>fillCostPerTank x (1 - f)</c> of the
+    /// battery — so topping up a nearly full tank is quick and nearly free, and a full battery is
+    /// worth a fixed number of tanks however the player chooses to take them. A flat cost per press
+    /// would teach players to run every tank to zero before coming back, which is the opposite of
+    /// the behaviour the plant exists to encourage (<c>GDC-L1-SYS-0006</c>: the rule has to be
+    /// legible, and "you pay for what you take" is the only one that is).
     /// </para>
     /// <para>
-    /// <b>A bottle's charge is its identity.</b> <see cref="drainedTank"/> and
-    /// <see cref="chargedTank"/> are two <see cref="InventoryItem"/> assets rather than one item
-    /// with a number on it, because the hotbar replicates item IDs and <c>ItemState</c> does not
-    /// replicate at all — a charge kept in a bag would be a value only the server could see (see
-    /// Inventory.md). Filling therefore hands back a different item from the one that went in.
+    /// <b>Nothing recharges a battery.</b> Power is a terminal resource in this build: batteries are
+    /// found, spent, and gone. That is a deliberate, temporary state — the charger is the next piece
+    /// of work — and it is recorded here rather than in a comment somewhere else because a sink with
+    /// no source is a flow problem that will not announce itself (<c>GDC-L1-SYS-0008</c>).
+    /// </para>
+    /// <para>
+    /// <b>A tank's charge is a number on the instance</b>, not an item identity. It used to be an
+    /// identity — a drained tank and a full one were two assets — and <see cref="SupplyCharge"/>
+    /// records both why that was right and why a tank the player reads to a percent cannot work
+    /// that way. So the collar hands back the SAME item it took, holding more.
     /// </para>
     /// <para>
     /// Nested under <c>PlayerShip.prefab</c> this has no <c>NetworkObject</c> of its own and
     /// inherits the hull's, which is what makes the <c>NetworkVariable</c> below replicate — the
-    /// same arrangement as the repair station. <see cref="IPersistentEntity"/> because a docked cell
-    /// is world state and this component has none of the things <c>SaveablePolicy</c> otherwise
-    /// infers saving from.
+    /// same arrangement as the repair station. <see cref="IPersistentEntity"/> because a fitted
+    /// battery is world state and this component has none of the things <c>SaveablePolicy</c>
+    /// otherwise infers saving from.
     /// </para>
     /// </summary>
     [DisallowMultipleComponent]
@@ -48,16 +56,22 @@ namespace SpaceGame.Gameplay
         /// <summary>Which receptacle a press came from.</summary>
         public enum DockKind
         {
-            /// <summary>The round collar. Takes an oxygen bottle, base first.</summary>
+            /// <summary>The round collar. Takes an oxygen tank, base first.</summary>
             Tank,
 
-            /// <summary>The rectangular slot. Takes a slab power cell, lying on its back.</summary>
+            /// <summary>The rectangular slot. Takes a slab battery, lying on its back.</summary>
             Cell,
         }
 
         /// <summary>
-        /// What is standing in the bottle dock. The numbers are written into save files — never
-        /// renumber, never reuse.
+        /// What used to stand in the bottle dock, in the days when a tank's charge was its identity.
+        ///
+        /// <para>
+        /// <b>Legacy save format only.</b> Nothing in the running machine uses it any more — the
+        /// dock holds a fraction now — and it survives solely so
+        /// <c>OxygenGeneratorSaveable</c> can read a world written before 2026-09-04. The numbers
+        /// are in save files: never renumber, never reuse.
+        /// </para>
         /// </summary>
         public enum DockedTank
         {
@@ -70,38 +84,54 @@ namespace SpaceGame.Gameplay
         /// Everything the machine is, in one replicated value.
         ///
         /// <para>
-        /// One <c>NetworkVariable</c> rather than three because the three are read together and
-        /// only ever change together: a client that had the cell but not yet the fill deadline
-        /// would light the lamp and stand silent. One value means one callback and one write path.
+        /// One <c>NetworkVariable</c> rather than four because they are read together and only ever
+        /// change together: a client that had the battery but not yet the fill deadline would light
+        /// the lamp and stand silent. One value means one callback and one write path.
+        /// </para>
+        /// <para>
+        /// <b>Both charges are frozen at the moment a fill starts, and neither is written again
+        /// until it ends.</b> What each one reads RIGHT NOW is derived from the clock
+        /// (<see cref="TankCharge"/>, <see cref="BatteryCharge"/>), exactly as the fill's own
+        /// progress always was. That is what keeps a fill at two network writes rather than one a
+        /// frame, and it is what lets a player who joins mid-fill see the rest of it.
         /// </para>
         /// </summary>
         private struct Plant : INetworkSerializable, System.IEquatable<Plant>
         {
-            /// <summary>Is a power cell plugged in?</summary>
-            public bool Cell;
+            /// <summary>Battery charge 0..1, or <see cref="Empty"/> for an empty slot.</summary>
+            public float Battery;
 
-            /// <summary>A <see cref="DockedTank"/>, as an int so the struct stays blittable.</summary>
-            public int Tank;
+            /// <summary>Tank charge 0..1 as it was at <see cref="FillStartedAt"/>, or <see cref="Empty"/>.</summary>
+            public float Tank;
+
+            /// <summary>When the running fill began, on the SERVER's clock.</summary>
+            public double FillStartedAt;
 
             /// <summary>
-            /// When the fill lands, on the SERVER's clock, or 0 when nothing is filling.
+            /// When the running fill lands, on the SERVER's clock, or 0 when nothing is filling.
             ///
             /// A deadline rather than a progress float: a progress value would have to be written
-            /// every frame — a network write a frame, for five seconds, per machine — while a
-            /// deadline is written twice and every machine reads its own clock against it. It is
-            /// also what lets a player who joins mid-fill see the rest of it.
+            /// every frame — a network write a frame, per machine — while a deadline is written
+            /// twice and every machine reads its own clock against it.
             /// </summary>
             public double FillEndsAt;
 
+            /// <summary>No receptacle. Negative, because a fraction never legitimately is.</summary>
+            public const float Empty = -1f;
+
             public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
             {
-                serializer.SerializeValue(ref Cell);
+                serializer.SerializeValue(ref Battery);
                 serializer.SerializeValue(ref Tank);
+                serializer.SerializeValue(ref FillStartedAt);
                 serializer.SerializeValue(ref FillEndsAt);
             }
 
             public bool Equals(Plant other) =>
-                Cell == other.Cell && Tank == other.Tank && FillEndsAt.Equals(other.FillEndsAt);
+                Battery.Equals(other.Battery)
+                && Tank.Equals(other.Tank)
+                && FillStartedAt.Equals(other.FillStartedAt)
+                && FillEndsAt.Equals(other.FillEndsAt);
         }
 
         /// <summary>One emissive submesh that says whether the machine has power.</summary>
@@ -118,28 +148,31 @@ namespace SpaceGame.Gameplay
         }
 
         [Header("Items")]
-        [Tooltip("The empty bottle. What the machine accepts, and what taking one back mid-fill returns.")]
-        [SerializeField] private InventoryItem drainedTank;
-
-        [Tooltip("The full bottle. What a completed fill turns the docked one into.")]
-        [SerializeField] private InventoryItem chargedTank;
+        [Tooltip("The oxygen tank. One item at every fill level — its charge is a number on the " +
+                 "instance, not a second asset.")]
+        [SerializeField] private InventoryItem tankItem;
 
         [Tooltip("The battery the machine runs on. Accepted by the rectangular slot only.")]
-        [SerializeField] private InventoryItem powerCell;
+        [SerializeField] private InventoryItem batteryItem;
 
         [Header("Docks")]
-        [Tooltip("Where a docked bottle is drawn. Its pose IS the docked pose — see the builder.")]
+        [Tooltip("Where a docked tank is drawn. Its pose IS the docked pose — see the builder.")]
         [SerializeField] private Transform tankSeat;
 
-        [Tooltip("Where a docked power cell is drawn.")]
+        [Tooltip("Where a docked battery is drawn.")]
         [SerializeField] private Transform cellSeat;
 
         [Header("Filling")]
-        [Tooltip("Seconds one bottle takes. Long enough to be an event, short enough to wait out.")]
+        [Tooltip("Seconds a WHOLE tank takes, from empty. A partial fill is proportionally " +
+                 "quicker. Long enough to be an event, short enough to wait out.")]
         [SerializeField, Min(0.1f)] private float fillSeconds = 5f;
 
+        [Tooltip("Fraction of a battery one WHOLE tank costs. At the default a battery is worth " +
+                 "twenty-five tanks; a partial fill costs proportionally less.")]
+        [SerializeField, Range(0.001f, 1f)] private float fillCostPerTank = 0.04f;
+
         [Header("Power")]
-        [Tooltip("Lamps and readouts lit only while a power cell is in.")]
+        [Tooltip("Lamps and readouts lit only while a battery with charge left is in.")]
         [SerializeField] private Lamp[] lamps = new Lamp[0];
 
         [Tooltip("The real light the machine casts on the bulkhead. SWITCHED, never dimmed to zero " +
@@ -153,7 +186,7 @@ namespace SpaceGame.Gameplay
         [SerializeField] private Color darkColour = new Color(0.10f, 0.08f, 0.06f);
 
         [Header("Audio")]
-        [Tooltip("Sustained while a bottle fills. A loop, so it is owned by an emitter and stopped " +
+        [Tooltip("Sustained while a tank fills. A loop, so it is owned by an emitter and stopped " +
                  "on both teardown paths.")]
         [SerializeField] private SfxId fillLoopId = SfxId.InteractOxygenFillLoop;
         [SerializeField] private EventReference fillLoopSound;
@@ -168,11 +201,11 @@ namespace SpaceGame.Gameplay
         private readonly LoopingEmitter fillLoop = new();
 
         // Mirrors networkPlant, and is the sole truth when there is no session.
-        private Plant plant;
+        private Plant plant = new() { Battery = Plant.Empty, Tank = Plant.Empty };
         private bool spawned;
 
-        // The inert copies standing in the two docks, and what is needed to drive the bottle's
-        // gauge while it fills — resolved when a copy is built, because DisplayCopy.Strip takes the
+        // The inert copies standing in the two docks, and what is needed to drive the tank's gauge
+        // while it fills — resolved when a copy is built, because DisplayCopy.Strip takes the
         // item's own DockableSupply off the copy along with every other script.
         private GameObject tankCopy;
         private GameObject cellCopy;
@@ -181,23 +214,93 @@ namespace SpaceGame.Gameplay
         private Color tankGaugeEmpty;
         private Color tankGaugeFull;
 
-        /// <summary>Is a power cell in? Nothing else about the machine works without one.</summary>
-        public bool Powered => plant.Cell;
+        /// <summary>Is a battery fitted at all? A FLAT one still counts as fitted.</summary>
+        public bool HasBattery => plant.Battery >= 0f;
 
-        /// <summary>What is standing in the bottle dock.</summary>
-        public DockedTank Tank => (DockedTank)plant.Tank;
+        /// <summary>Is a tank standing in the collar at all? An EMPTY one still counts.</summary>
+        public bool HasTank => plant.Tank >= 0f;
 
-        /// <summary>Is a bottle filling right now?</summary>
+        /// <summary>
+        /// Can the machine do anything? A fitted battery with charge left in it.
+        ///
+        /// <para>
+        /// This, not merely "a battery is in", is what lights the lamps: a machine that looked
+        /// powered and refused to fill would be the least explainable state it could be in.
+        /// </para>
+        /// </summary>
+        public bool Powered => BatteryCharge > 0f;
+
+        /// <summary>How full the fitted battery is right now, 0..1. Negative with no battery.</summary>
+        public float BatteryCharge =>
+            plant.Battery < 0f ? Plant.Empty : Mathf.Clamp01(plant.Battery - (Transferable * fillCostPerTank * FillProgress01));
+
+        /// <summary>How full the docked tank is right now, 0..1. Negative with no tank.</summary>
+        public float TankCharge =>
+            plant.Tank < 0f ? Plant.Empty : Mathf.Clamp01(plant.Tank + (Transferable * FillProgress01));
+
+        /// <summary>Is a tank filling right now?</summary>
         public bool IsFilling => plant.FillEndsAt > 0d && Now < plant.FillEndsAt;
 
         /// <summary>How far through the current fill, 0..1. Zero when nothing is filling.</summary>
-        public float FillProgress01 =>
-            plant.FillEndsAt <= 0d
-                ? 0f
-                : Mathf.Clamp01(1f - (float)((plant.FillEndsAt - Now) / Mathf.Max(0.1f, fillSeconds)));
+        public float FillProgress01
+        {
+            get
+            {
+                if (plant.FillEndsAt <= 0d) return 0f;
 
-        /// <summary>Seconds one bottle takes. Read by the tests that pin the timing.</summary>
+                double span = plant.FillEndsAt - plant.FillStartedAt;
+                if (span <= 0d) return 1f;
+
+                return Mathf.Clamp01((float)((Now - plant.FillStartedAt) / span));
+            }
+        }
+
+        /// <summary>
+        /// How much of a tank the CURRENT fill can actually move, as a fraction of a whole tank.
+        ///
+        /// <para>
+        /// Bounded by both ends: the room left in the tank, and what the battery can pay for. A
+        /// battery with 2% left fills half a tank's worth of the 4% a whole one costs and then
+        /// stops — the machine going quiet with a part-filled tank in it is the honest outcome, and
+        /// the lamps going dark at the same moment is what says why.
+        /// </para>
+        /// <para>
+        /// Derived, never stored. It depends only on values that are frozen for the whole of a
+        /// fill, so every machine computes the same answer from the same replicated struct — and a
+        /// stored copy is one more thing that can disagree.
+        /// </para>
+        /// </summary>
+        private float Transferable
+        {
+            get
+            {
+                if (plant.Tank < 0f || plant.Battery < 0f) return 0f;
+
+                float room = Mathf.Clamp01(1f - plant.Tank);
+                float affordable = fillCostPerTank > 0f ? plant.Battery / fillCostPerTank : room;
+
+                return Mathf.Max(0f, Mathf.Min(room, affordable));
+            }
+        }
+
+        /// <summary>Seconds a whole tank takes. Read by the tests that pin the timing.</summary>
         public float FillSeconds => fillSeconds;
+
+        /// <summary>
+        /// How long the running fill still has to go, in seconds, or 0 when nothing is filling.
+        ///
+        /// <para>
+        /// The whole span rather than what is left when the fill has not started ticking yet, which
+        /// is what makes it testable: the deadline is set from a clock a test cannot advance, so
+        /// asserting the SPAN is the only way to pin "a quarter-tank top-up takes a quarter of the
+        /// time" without waiting five seconds of real time to find out.
+        /// </para>
+        /// </summary>
+        public float SecondsUntilFilled =>
+            plant.FillEndsAt <= 0d ? 0f : Mathf.Max(0f, (float)(plant.FillEndsAt - Now));
+
+        /// <summary>Fraction of a battery a whole tank costs. Read by the tests that pin the economy.</summary>
+        public float FillCostPerTank => fillCostPerTank;
 
         /// <summary>
         /// The clock both halves of the fill are measured on.
@@ -218,15 +321,17 @@ namespace SpaceGame.Gameplay
         /// </summary>
         private static bool Authoritative => !Network.IsNetworked || Network.Server;
 
+        /// <summary>Everything this machine cannot work without. Reported once, in Awake.</summary>
+        private bool IsWired => tankItem != null && batteryItem != null;
+
         private void Awake()
         {
             // Said once, loudly, at the earliest moment it can be known. A fixture whose item
             // references were dropped by a rebuild refuses every press in silence otherwise, which
             // reads as a broken interaction rather than as a broken prefab.
             if (!IsWired)
-                Debug.LogError(name + ": OxygenGenerator has no drained tank, charged tank or " +
-                               "power cell item assigned — rebuild it with " +
-                               "Tools/SpaceGame/Build Oxygen System.", this);
+                Debug.LogError(name + ": OxygenGenerator has no tank or battery item assigned — " +
+                               "rebuild it with Tools/SpaceGame/Build Oxygen System.", this);
 
             // Offline and pre-spawn, the mirror is the whole truth, so the machine has to look like
             // whatever it holds before anything replicates.
@@ -278,48 +383,44 @@ namespace SpaceGame.Gameplay
 
         /// <summary>What this receptacle is, for the HUD.</summary>
         public string LabelFor(DockKind kind) =>
-            kind == DockKind.Cell ? "Power cell dock" : "Oxygen filler";
+            kind == DockKind.Cell ? "Battery dock" : "Oxygen filler";
 
         /// <summary>What pressing here would do, and why it might not.</summary>
         public string PromptFor(DockKind kind)
         {
             if (kind == DockKind.Cell)
-                return plant.Cell ? "RMB: take the power cell" : "RMB: fit a power cell";
-
-            switch (Tank)
             {
-                case DockedTank.Charged: return "RMB: take the filled tank";
-                case DockedTank.Drained:
-                    return IsFilling ? "filling…   RMB: take the tank" : "RMB: take the tank — no power";
-                default:
-                    return plant.Cell ? "RMB: dock an oxygen tank" : "RMB: dock a tank — no power";
+                if (!HasBattery) return "RMB: fit a battery";
+                return Powered ? "RMB: take the battery" : "RMB: take the flat battery";
             }
+
+            if (!HasTank) return Powered ? "RMB: dock an oxygen tank" : "RMB: dock a tank — no power";
+
+            if (IsFilling) return "filling…   RMB: take the tank";
+            if (TankCharge >= 1f) return "RMB: take the full tank";
+
+            // A tank that is neither full nor filling: either the machine is flat, or it has just
+            // spent the last of the battery part way through. Both are the same sentence.
+            return Powered ? "RMB: take the tank" : "RMB: take the tank — no power";
         }
 
         /// <summary>Where this receptacle sits, 0..1, or null for one with nothing to show.</summary>
         public float? Value01(DockKind kind)
         {
-            if (kind == DockKind.Cell) return plant.Cell ? 1f : (float?)null;
+            float charge = kind == DockKind.Cell ? BatteryCharge : TankCharge;
 
-            switch (Tank)
-            {
-                case DockedTank.Charged: return 1f;
-                case DockedTank.Drained: return IsFilling ? FillProgress01 : 0f;
-                default: return null;
-            }
+            return charge < 0f ? null : charge;
         }
 
-        /// <summary>The same value in words.</summary>
+        /// <summary>
+        /// The same value in words — a whole percent for both receptacles, which is the number the
+        /// item's own gauge and the visor show too (see <see cref="SupplyCharge.Describe"/>).
+        /// </summary>
         public string ValueText(DockKind kind)
         {
-            if (kind == DockKind.Cell) return plant.Cell ? "charged" : string.Empty;
+            float charge = kind == DockKind.Cell ? BatteryCharge : TankCharge;
 
-            switch (Tank)
-            {
-                case DockedTank.Charged: return "full";
-                case DockedTank.Drained: return Mathf.RoundToInt(FillProgress01 * 100f) + "%";
-                default: return string.Empty;
-            }
+            return charge < 0f ? string.Empty : SupplyCharge.Describe(charge);
         }
 
         // ── Pressing ───────────────────────────────────────────────────────────
@@ -365,12 +466,9 @@ namespace SpaceGame.Gameplay
         /// </summary>
         private bool WouldAct(DockKind kind, Interactor interactor)
         {
-            if (kind == DockKind.Cell)
-                return plant.Cell || Holds(interactor, powerCell);
+            if (kind == DockKind.Cell) return HasBattery || Holds(interactor, batteryItem);
 
-            if (Tank != DockedTank.None) return true;
-
-            return Holds(interactor, drainedTank) || Holds(interactor, chargedTank);
+            return HasTank || Holds(interactor, tankItem);
         }
 
         /// <summary>Server-side (or offline) authority.</summary>
@@ -383,63 +481,119 @@ namespace SpaceGame.Gameplay
 
             if (!IsWired) return;
 
-            if (kind == DockKind.Cell)
-            {
-                if (plant.Cell) TakeFromDock(inventory, interactor, powerCell, cell: true);
-                else FitIntoDock(inventory, powerCell, cell: true);
-            }
-            else if (Tank != DockedTank.None)
-            {
-                TakeFromDock(inventory, interactor,
-                             Tank == DockedTank.Charged ? chargedTank : drainedTank, cell: false);
-            }
-            else
-            {
-                // A charged bottle is allowed in as well: the collar is a shelf as much as a filler,
-                // and refusing a full one would be a rule the player has to learn for no gain.
-                if (Holds(interactor, chargedTank)) FitIntoDock(inventory, chargedTank, cell: false);
-                else FitIntoDock(inventory, drainedTank, cell: false);
-            }
+            bool cell = kind == DockKind.Cell;
+            bool occupied = cell ? HasBattery : HasTank;
+
+            if (occupied) TakeFromDock(inventory, interactor, cell);
+            else FitIntoDock(inventory, cell);
         }
 
-        private void FitIntoDock(IPlayerInventory inventory, InventoryItem wanted, bool cell)
+        /// <summary>
+        /// Put the selected item into a receptacle, carrying its charge in with it.
+        ///
+        /// <para>
+        /// A running fill is settled FIRST (<see cref="SettleFill"/>). Fitting a battery while one
+        /// is running cannot happen — the slot is occupied — but fitting a TANK while the machine
+        /// is mid-anything can, and committing a new dock state without first banking what the
+        /// clock had already transferred would rewrite the frozen start values under a live
+        /// deadline.
+        /// </para>
+        /// </summary>
+        private void FitIntoDock(IPlayerInventory inventory, bool cell)
         {
+            InventoryItem wanted = cell ? batteryItem : tankItem;
+
             InventorySlot slot = inventory.GetSelectedSlot();
             if (slot == null || slot.IsEmpty || !Same(slot.Item, wanted)) return;
 
+            // Read before the removal, which takes the bag with the item.
+            float charge = SupplyCharge.Read(slot.State);
+            if (charge < 0f) charge = SupplyCharge.StartingChargeOf(wanted);
+
             if (!inventory.TryRemoveItem(inventory.SelectedSlotIndex)) return;
 
-            Plant next = plant;
-            if (cell) next.Cell = true;
-            else next.Tank = (int)(wanted == chargedTank ? DockedTank.Charged : DockedTank.Drained);
+            Plant next = SettleFill();
+            if (cell) next.Battery = Mathf.Clamp01(charge);
+            else next.Tank = Mathf.Clamp01(charge);
 
             Commit(next);
             RefreshFill();
         }
 
-        private void TakeFromDock(IPlayerInventory inventory, Interactor interactor,
-                                  InventoryItem given, bool cell)
+        /// <summary>Hand a receptacle's contents back, holding exactly what the clock says.</summary>
+        private void TakeFromDock(IPlayerInventory inventory, Interactor interactor, bool cell)
         {
+            InventoryItem given = cell ? batteryItem : tankItem;
+
+            // Read against the LIVE clock, before the fill is settled, so a tank pulled half way
+            // through leaves with the half it was given and the battery keeps the rest. There is no
+            // partial-charge penalty and no rounding to a whole press: the player paid for the
+            // seconds that elapsed and got the oxygen those seconds bought.
+            float charge = cell ? BatteryCharge : TankCharge;
+
+            if (!Give(inventory, interactor, given, charge)) return;
+
+            Plant next = SettleFill();
+            if (cell) next.Battery = Plant.Empty;
+            else next.Tank = Plant.Empty;
+
+            Commit(next);
+            RefreshFill();
+        }
+
+        /// <summary>
+        /// The plant with any running fill banked into its two frozen charges and the clock
+        /// cleared — what the state WOULD be if the fill stopped this instant.
+        ///
+        /// <para>
+        /// Every change to what is docked goes through this. Without it the frozen start values and
+        /// the running deadline describe two different machines, and the next
+        /// <see cref="TankCharge"/> read would add a second fill's worth of progress on top of a
+        /// charge that had already been banked.
+        /// </para>
+        /// </summary>
+        private Plant SettleFill()
+        {
+            Plant next = plant;
+
+            if (plant.FillEndsAt > 0d)
+            {
+                next.Tank = TankCharge;
+                next.Battery = BatteryCharge;
+            }
+
+            next.FillStartedAt = 0d;
+            next.FillEndsAt = 0d;
+
+            return next;
+        }
+
+        private bool Give(IPlayerInventory inventory, Interactor interactor, InventoryItem item,
+                          float charge)
+        {
+            if (item == null) return false;
+
             // Hotbar first, then the pack — the same overflow a world pickup takes, and for the
             // same reason: a three-slot hotbar would otherwise make a full hand mean "this is
             // yours forever".
-            if (!Give(inventory, interactor, given)) return;
+            if (inventory.TryAddItem(item, out int landed))
+            {
+                if (landed >= 0 && charge >= 0f)
+                {
+                    InventorySlot slot = inventory.GetSlot(landed);
+                    if (slot != null && !slot.IsEmpty)
+                    {
+                        slot.State ??= new ItemState();
+                        SupplyCharge.Write(slot.State, charge);
+                        inventory.PublishSlotCharges();
+                    }
+                }
 
-            Plant next = plant;
-            if (cell) next.Cell = false;
-            else next.Tank = (int)DockedTank.None;
-
-            Commit(next);
-            RefreshFill();
-        }
-
-        private bool Give(IPlayerInventory inventory, Interactor interactor, InventoryItem item)
-        {
-            if (item == null) return false;
-            if (inventory.TryAddItem(item)) return true;
+                return true;
+            }
 
             BackpackController backpack = interactor.GetComponentInParent<BackpackController>();
-            return backpack != null && backpack.Pack != null && backpack.Pack.TryStow(item);
+            return backpack != null && backpack.Pack != null && backpack.Pack.TryStow(item, charge);
         }
 
         /// <summary>
@@ -462,38 +616,63 @@ namespace SpaceGame.Gameplay
             return slot != null && !slot.IsEmpty && Same(slot.Item, wanted);
         }
 
-        /// <summary>Everything this machine cannot work without. Reported once, in Awake.</summary>
-        private bool IsWired => drainedTank != null && chargedTank != null && powerCell != null;
-
         // ── Filling ────────────────────────────────────────────────────────────
 
         /// <summary>
         /// Start, stop or leave the fill alone, from whatever is docked right now.
         ///
         /// Server only, and called after every change — including a restore — so the machine needs
-        /// no separate "start filling" verb: pulling the cell out stops the fill, putting it back
-        /// starts one, and a save reloaded with a drained bottle in a powered machine resumes.
+        /// no separate "start filling" verb: pulling the battery out stops the fill, putting one
+        /// back starts one, and a save reloaded with a part-filled tank in a powered machine
+        /// resumes from where it stood.
         /// </summary>
         private void RefreshFill()
         {
             if (!Authoritative) return;
 
-            bool wanted = plant.Cell && Tank == DockedTank.Drained;
             bool running = plant.FillEndsAt > 0d;
 
-            if (wanted == running) return;
+            // Asked of the SETTLED state, because "is there anything left to do" has to be answered
+            // about the charges as they will be once the running fill is banked — otherwise a fill
+            // that has just finished its own work looks like one that still has work to do.
+            Plant settled = SettleFill();
+            float moves = TransferableOf(settled);
 
-            Plant next = plant;
-            next.FillEndsAt = wanted ? Now + fillSeconds : 0d;
-            Commit(next);
+            if (moves > 0f == running) return;
+
+            if (moves <= 0f)
+            {
+                Commit(settled);
+                return;
+            }
+
+            settled.FillStartedAt = Now;
+            settled.FillEndsAt = Now + (fillSeconds * moves);
+            Commit(settled);
+        }
+
+        /// <summary>
+        /// <see cref="Transferable"/> for an arbitrary state rather than the live one, so
+        /// <see cref="RefreshFill"/> can ask the question of a settled plant it has not committed
+        /// yet.
+        /// </summary>
+        private float TransferableOf(Plant state)
+        {
+            if (state.Tank < 0f || state.Battery < 0f) return 0f;
+
+            float room = Mathf.Clamp01(1f - state.Tank);
+            float affordable = fillCostPerTank > 0f ? state.Battery / fillCostPerTank : room;
+
+            return Mathf.Max(0f, Mathf.Min(room, affordable));
         }
 
         private void FinishFill()
         {
-            Plant next = plant;
-            next.Tank = (int)DockedTank.Charged;
-            next.FillEndsAt = 0d;
-            Commit(next);
+            // Committed from the same derivation every machine has been drawing all along, at a
+            // moment when FillProgress01 has reached exactly 1 — so the number that lands is the
+            // number the gauge was already showing.
+            Commit(SettleFill());
+            RefreshFill();
         }
 
         private void Update()
@@ -504,7 +683,7 @@ namespace SpaceGame.Gameplay
             if (plant.FillEndsAt > 0d && Now >= plant.FillEndsAt) FinishFill();
         }
 
-        /// <summary>Per machine, per frame: the loop and the bottle's own gauge climbing.</summary>
+        /// <summary>Per machine, per frame: the loop and the tank's own gauge climbing.</summary>
         private void DrawFill()
         {
             bool filling = IsFilling;
@@ -515,7 +694,7 @@ namespace SpaceGame.Gameplay
             if (!filling || tankGauge == null) return;
 
             EmissiveLamp.Paint(tankGauge, tankGaugeIndex,
-                               Color.Lerp(tankGaugeEmpty, tankGaugeFull, FillProgress01));
+                               Color.Lerp(tankGaugeEmpty, tankGaugeFull, TankCharge));
         }
 
         // ── State ──────────────────────────────────────────────────────────────
@@ -539,32 +718,38 @@ namespace SpaceGame.Gameplay
         {
             if (current.Equals(plant)) return;
 
+            bool hadBattery = previous.Battery >= 0f;
+            bool hasBattery = current.Battery >= 0f;
+            bool hadTank = previous.Tank >= 0f;
+            bool hasTank = current.Tank >= 0f;
+
+            // Whether the machine can WORK, which is what the lamps say — a battery going flat
+            // darkens them exactly as pulling it out does.
+            bool wasPowered = previous.Battery > 0f;
+
             plant = current;
 
             // Each dock redraws on its OWN change, on the frame the press lands
             // (`GDC-L1-FEEL-0002`). One method rebuilding both, reached only from the tank's line,
-            // is what made a fitted cell light the lamps and draw nothing — and then put the cell
-            // in the slot at the unrelated moment a bottle was docked or a fill landed.
-            if (previous.Cell != current.Cell)
-            {
-                ApplyPower();
-                RefreshCellVisual();
-            }
+            // is what made a fitted battery light the lamps and draw nothing — and then put the
+            // battery in the slot at the unrelated moment a tank was docked or a fill landed.
+            if (hadBattery != hasBattery) RefreshCellVisual();
 
-            if (previous.Tank != current.Tank) RefreshTankVisual();
+            // Separate from the copy, because a battery that merely EMPTIED is the same object in
+            // the same slot with different lamps.
+            if (wasPowered != Powered) ApplyPower();
+
+            if (hadTank != hasTank) RefreshTankVisual();
+            else if (hasTank && tankGauge != null && !IsFilling)
+                EmissiveLamp.Paint(tankGauge, tankGaugeIndex,
+                                   Color.Lerp(tankGaugeEmpty, tankGaugeFull, TankCharge));
 
             if (silent) return;
 
-            if (previous.Cell != current.Cell)
-                Play(current.Cell ? dockedId : undockedId);
+            if (hadBattery != hasBattery) Play(hasBattery ? dockedId : undockedId);
 
-            if (previous.Tank == (int)DockedTank.None && current.Tank != (int)DockedTank.None)
-                Play(dockedId);
-            else if (previous.Tank != (int)DockedTank.None && current.Tank == (int)DockedTank.None)
-                Play(undockedId);
-            else if (previous.Tank == (int)DockedTank.Drained &&
-                     current.Tank == (int)DockedTank.Charged)
-                Play(filledId);
+            if (hadTank != hasTank) Play(hasTank ? dockedId : undockedId);
+            else if (hasTank && previous.Tank < 1f && current.Tank >= 1f) Play(filledId);
         }
 
         private void Play(SfxId id) => Sfx.Play(id, transform.position, default, GetInstanceID());
@@ -573,13 +758,13 @@ namespace SpaceGame.Gameplay
 
         private void ApplyPower()
         {
-            Color colour = plant.Cell ? litColour : darkColour;
+            Color colour = Powered ? litColour : darkColour;
 
             foreach (Lamp lamp in lamps)
                 EmissiveLamp.Paint(lamp.Part, lamp.MaterialIndex, colour);
 
             // Switched, not dimmed: a light at zero intensity still costs the renderer a light.
-            if (powerLight != null) powerLight.enabled = plant.Cell;
+            if (powerLight != null) powerLight.enabled = Powered;
         }
 
         /// <summary>
@@ -599,24 +784,30 @@ namespace SpaceGame.Gameplay
         }
 
         private void RefreshCellVisual() =>
-            Rebuild(ref cellCopy, cellSeat, plant.Cell ? powerCell : null);
+            Rebuild(ref cellCopy, cellSeat, HasBattery ? batteryItem : null);
 
         /// <summary>
         /// Redraw the collar, and re-bind the gauge the fill paints to the copy now standing in it.
         ///
-        /// Separate from the cell's half so a cell press leaves this one alone: fitting the cell is
-        /// the press that STARTS a fill, and rebuilding the bottle would throw away the renderer
-        /// <see cref="DrawFill"/> is about to paint.
+        /// Separate from the battery's half so a battery press leaves this one alone: fitting the
+        /// battery is the press that STARTS a fill, and rebuilding the tank would throw away the
+        /// renderer <see cref="DrawFill"/> is about to paint.
         /// </summary>
         private void RefreshTankVisual()
         {
-            InventoryItem tankItem = Tank == DockedTank.Charged ? chargedTank
-                                   : Tank == DockedTank.Drained ? drainedTank
-                                   : null;
-
             tankGauge = null;
-            Rebuild(ref tankCopy, tankSeat, tankItem);
-            if (tankCopy != null) BindTankGauge(tankItem);
+            Rebuild(ref tankCopy, tankSeat, HasTank ? tankItem : null);
+
+            if (tankCopy == null) return;
+
+            BindTankGauge(tankItem);
+
+            // The copy is built from the prefab, so it is painted at the prefab's starting charge
+            // until something says otherwise. A tank docked at 40% would show full for as long as
+            // nothing was filling.
+            if (tankGauge != null)
+                EmissiveLamp.Paint(tankGauge, tankGaugeIndex,
+                                   Color.Lerp(tankGaugeEmpty, tankGaugeFull, TankCharge));
         }
 
         private static void Rebuild(ref GameObject copy, Transform seat, InventoryItem item)
@@ -677,14 +868,24 @@ namespace SpaceGame.Gameplay
         /// reloaded world from clunking and hissing its way through work that was already done.
         /// </para>
         /// <para>
-        /// The fill deadline is deliberately not restored. It is an instant on a clock that no
-        /// longer exists; <see cref="RefreshFill"/> starts a fresh one, so a world saved with a
-        /// half-filled bottle in a powered machine reloads and fills it again.
+        /// The fill CLOCK is deliberately not restored — it is an instant on a clock that no longer
+        /// exists — but the two charges are, so <see cref="RefreshFill"/> resumes from exactly
+        /// where the machine stood rather than starting the tank again from where it was docked.
+        /// That is the one behaviour this rework changed here: a partial charge is now expressible,
+        /// so throwing it away on a reload would be a real loss rather than a rounding.
         /// </para>
         /// </summary>
-        public void RestoreDock(bool cellIn, DockedTank tank)
+        /// <param name="battery">Battery charge 0..1, or negative for an empty slot.</param>
+        /// <param name="tank">Tank charge 0..1, or negative for an empty collar.</param>
+        public void RestoreDock(float battery, float tank)
         {
-            var next = new Plant { Cell = cellIn, Tank = (int)tank, FillEndsAt = 0d };
+            var next = new Plant
+            {
+                Battery = battery < 0f ? Plant.Empty : Mathf.Clamp01(battery),
+                Tank = tank < 0f ? Plant.Empty : Mathf.Clamp01(tank),
+                FillStartedAt = 0d,
+                FillEndsAt = 0d,
+            };
 
             Adopt(plant, next, silent: true);
 

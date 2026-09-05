@@ -201,7 +201,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4516265153368369930}
   serializedVersion: 5
-  m_Mass: 1
+  m_Mass: 80
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -471,6 +471,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AimProvider
   playerCamera: {fileID: 4586483584228166958}
+  focusRange: 500
+  focusLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!114 &3989894493323827061
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -960,6 +964,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.ForearmBracers
   bracerPrefab: {fileID: 8788718318021149366, guid: 94ef24b33e4c1490685eb8276469cdf3, type: 3}
+  resolveTimeoutSeconds: 5
 --- !u!1001 &5142600832843963879
 PrefabInstance:
   m_ObjectHideFlags: 0

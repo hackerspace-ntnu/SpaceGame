@@ -429,32 +429,26 @@ namespace SpaceGame.Items
 
             if (aimProvider == null) return;
 
-            RaycastHit? hit = aimProvider.GetRayCast(maxRange);
-            if (hit == null) return;
+            // Filtered on the way out: the aim skips the player's own body and the machine they are
+            // strapped into, so a hook thrown from the ornithopter's cradle reaches past the craft
+            // instead of burying itself in its nose a metre from the pilot's head.
+            if (!aimProvider.TryGetAimHit(maxRange, out RaycastHit hit)) return;
 
             // Respect hookable layer mask
-            if ((hookableLayers.value & (1 << hit.Value.collider.gameObject.layer)) == 0)
-                return;
-
-            // Not the machine you are sitting in. MountModule tells the physics solver to ignore
-            // collisions between rider and mount, but a raycast is a query and queries do not care
-            // — so from an ornithopter's cradle the aim ray leaves the pilot's head and lands on
-            // the craft's own nose about a metre later, every single time.
-            Transform ridden = RiddenRoot();
-            if (ridden != null && hit.Value.collider.transform.IsChildOf(ridden))
+            if ((hookableLayers.value & (1 << hit.collider.gameObject.layer)) == 0)
                 return;
 
             arg.B = Attach;
-            arg.P = hit.Value.point;
+            arg.P = hit.point;
 
             // The surface normal, so every machine can bury the dart into the wall at the same
             // angle instead of leaving it pointing wherever it happened to be flying.
-            arg.R = Quaternion.LookRotation(hit.Value.normal);
+            arg.R = Quaternion.LookRotation(hit.normal);
 
             // What it went into. Resolves to the same object on a peer when that object is
             // networked, and to nothing when it is scenery — which is the correct answer, because
             // scenery does not move and the world point already describes it completely.
-            arg = arg.With(hit.Value.collider.gameObject);
+            arg = arg.With(hit.collider.gameObject);
         }
 
         /// <summary>
@@ -678,9 +672,9 @@ namespace SpaceGame.Items
         /// distinguishes a wall 40 m away that will hold a dart from sky that will not.
         /// </para>
         /// <para>
-        /// The ray is cast here rather than through <see cref="AimProvider.GetRayCast"/> on
-        /// purpose — that one logs a warning on every miss, which at frame rate is a console full
-        /// of them for the entirely ordinary act of pointing at the horizon.
+        /// Asked through <see cref="AimProvider.TryGetAimHit"/>, exactly as the press is, so the
+        /// hint and the shot cannot disagree — a lit crosshair that then throws nothing is worse
+        /// than no hint at all.
         /// </para>
         /// </summary>
         private void TickAimHint()
@@ -698,9 +692,7 @@ namespace SpaceGame.Items
         {
             if (aimProvider == null || aimProvider.AimTransform == null) return false;
 
-            if (!Physics.Raycast(aimProvider.GetAimRay(), out RaycastHit hit, maxRange,
-                                 ~0, QueryTriggerInteraction.Ignore))
-                return false;
+            if (!aimProvider.TryGetAimHit(maxRange, out RaycastHit hit)) return false;
 
             return (hookableLayers.value & (1 << hit.collider.gameObject.layer)) != 0;
         }
@@ -904,18 +896,6 @@ namespace SpaceGame.Items
             _ropeLength = Mathf.Max(minRopeLength, Vector3.Distance(_body.position, CurrentAnchor()));
             _lastDistance = _ropeLength;
             _stallTime = 0f;
-        }
-
-        /// <summary>
-        /// The root of the machine the player is strapped into, or null when they are on their own
-        /// feet. Mounting parents the rider under the seat, so the mount is simply up the hierarchy.
-        /// </summary>
-        private Transform RiddenRoot()
-        {
-            if (owner == null) return null;
-
-            var mount = owner.GetComponentInParent<MountModule>();
-            return mount != null ? mount.transform : null;
         }
 
         /// <summary>

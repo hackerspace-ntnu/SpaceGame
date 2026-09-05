@@ -17,6 +17,8 @@ symptoms:
   - "loot drops all over again every time I load the world"
   - "remote copies of the creature slide along with their feet still"
   - "my hand-added component disappeared after someone rebuilt the prefab"
+  - "every creature and NPC hovers a hand's width above the sand"
+  - "an NPC stands bolt upright on a dune instead of leaning into it"
   - "a peaceful creature stands still and lets itself be shot instead of running"
   - "firing a gun near wildlife does nothing at all"
   - "the creature charges without ever telegraphing it"
@@ -31,7 +33,7 @@ symptoms:
   - "the pet prompt never appears no matter where I aim at the creature"
   - "a creature keeps taking damage and there is no attacker anywhere"
 reads_with: [EntitySystem, Vehicles, Combat, NavMeshSystem]
-updated: 2026-09-04
+updated: 2026-09-05
 ---
 
 # Agent / AI System
@@ -49,7 +51,7 @@ Creatures, NPCs, enemies and turrets are a prefab plus a stack of `IBehaviourMod
 - Facing is a **second channel**: `IFacingModule` overwrites the winning intent's face target after arbitration.
 - `AgentTargeting` + `AgentGoal` are auto-added in `AgentController.Awake`. Modules are discovered via `GetComponentsInChildren<MonoBehaviour>(true)`; runtime additions need `RefreshModules()`.
 - Legacy `IAgentBrain` ([EnemyBrain.cs](Assets/Game/Scripts/agents/AI/Brains/EnemyBrain.cs), [NpcBrain.cs](Assets/Game/Scripts/agents/AI/Brains/NpcBrain.cs)) is a fallback for old prefabs only — obsolete, do not extend.
-- Riding (`MountModule` / `SteerModule` in [Modules/Riding/](Assets/Game/Scripts/agents/Modules/Riding/)) rides on this stack but is documented in [MountSystem.md](MountSystem.md).
+- Riding (`MountModule` / `SteerModule` in [Modules/Riding/](Assets/Game/Scripts/agents/Modules/Riding/)) rides on this stack but is documented in [MountSystem.md](MountSystem.md). An animal is made rideable and packable by **fitting a saddle** ([Saddles.md](Saddles.md)); the agent-side piece is [`SaddleSocket`](Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs), which holds that state and enables the `MountModule` `AppaBuilder` adds **disabled**.
 
 ## Key types
 
@@ -94,6 +96,7 @@ Creatures, NPCs, enemies and turrets are a prefab plus a stack of `IBehaviourMod
 | `NpcTask` · `NpcTaskPlanner` (static, pure) · `NpcTaskModule` 0 · `NpcSpeechTokens` | [Tasks/](Assets/Game/Scripts/agents/Tasks/NpcTask.cs) | A task names a *kind of place* + a dwell time, never a position. Planner is shared by live NPCs and virtual groups so both decide identically |
 | `NpcWorldSim` / `NpcGroup` | [World/](Assets/Game/Scripts/agents/World/NpcWorldSim.cs) | Server-only. Groups are VIRTUAL records that lerp along a straight line, becoming SPAWNED prefabs inside `spawnRadius` and unwinding at `despawnRadius` (hysteresis) |
 | `AgentAnimatorDriver` | [Animation/AgentAnimatorDriver.cs](Assets/Game/Scripts/agents/Animation/AgentAnimatorDriver.cs) | Writes `SpeedX` `SpeedY` `FallSpeed` `IsGrounded` `IsImmobalized` *(sic)* `IsAiming`; triggers `Hurt` `Die` `ShootRifle` `SpearAttack` |
+| `AgentGroundConform` | [Animation/AgentGroundConform.cs](Assets/Game/Scripts/agents/Animation/AgentGroundConform.cs) | Probes the real ground each `LateUpdate` and produces two outputs from one probe: a height correction into `NavMeshAgentMotor.GroundOffset` (authority only), and a slope lean on the body's visual root (every machine) |
 | `EntityProfile_{BaseAgent,GenericEnemy,NPC,Vehicle}` | [Profiles/](Assets/Game/Scripts/agents/Profiles/EntityProfile_BaseAgent.cs) | Authoring components with a **Generate** button ([EntityProfileEditors.cs](Assets/Game/Editor/Agents/EntityProfileEditors.cs)). Only these four exist. [DuneRiderController.cs](Assets/Game/Scripts/agents/Controller/DuneRiderController.cs) is a direct-drive rider vehicle that bypasses the module stack |
 
 ## Flows
@@ -125,12 +128,12 @@ Creatures, NPCs, enemies and turrets are a prefab plus a stack of `IBehaviourMod
 
 `AgentController` implements `IPersistentEntity`, so **every agent is save-eligible with no opt-in**. Savers live outside this tree in [Core/Persistence/Adapters/](Assets/Game/Scripts/Core/Persistence/Adapters/AgentStateSaveable.cs): `AgentStateSaveable` (key `"agent"` — target/lastAttacker as `SaveRef`, last-known position, `timeSinceSeen`, `profileId`, patrol index/direction), plus `PatrolSaveable`, `SearchSaveable`, `AlertResponseSaveable`, `NoiseInvestigationSaveable`; and the generic `TransformSaveable` + `HealthSaveable`. Add them inside the prefab's builder, then run `Tools/Save System/Wire Saveable Prefabs`. Details: [Persistence.md](Persistence.md).
 
-## Saddling
-
-An animal is made rideable and packable by fitting a saddle — see **[Saddles.md](Saddles.md)**. The agent-side piece is [`SaddleSocket`](Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs), which holds the state and enables the `MountModule` that `AppaBuilder` adds **disabled**.
-
 ## Gotchas
 
+- **Agents stand on the NavMesh, and the NavMesh is not the ground.** The world bake floats a median of 0.257 m above the terrain (max 0.600) — see [NavMeshSystem.md](NavMeshSystem.md). `AgentGroundConform` corrects it per frame. A constant `baseOffset` cannot: the error is terrain-dependent, so a single number leaves the body buried at one end of the range and floating at the other. Every agent prefab's `baseOffset` is 0 and should stay that way.
+- **`baseOffset` has three authors now** — the prefab's own value, the ground correction and the mounted-jump arc — summed in `NavMeshAgentMotor.ApplyBaseOffset`. Assign `agent.baseOffset` directly from anywhere else and whichever writer runs later in the frame silently erases the rest.
+- **Nine of the ten agents are bipeds, so the slope lean defaults low** — `slopeFollow` 0.35 (`AgentGroundConformWiring.BipedSlopeFollow`); a biped spends the slope in its legs and leaning it like a many-legged body reads as falling over. The Golem is a biped (`Bone_Thigh/Shin/Foot_L/R`, nothing else), and so is the DuneRat despite quadruped bone names — 0.29 m forelimbs clear of the ground against a 0.99 m hind chain. Only the Vrescal hexapod gets `ManyLeggedSlopeFollow` (0.8). Applied **only when the component is added**, so tuning survives.
+- **The node the slope lean is written to is animated on the Golem and the DuneRat and on nothing else.** `AgentGrounding.Baseline` works out which case it is by reading the transform back rather than from a per-prefab flag. Replace it with a flag and you get one of two silent failures: the lean erases the root-bone animation, or it multiplies into itself every frame and the body spins.
 - **No `EntityFaction` → invisible to every targeting module, silently.** Needs both a `FactionDefinition` and `GlobalRelationships.asset`. `EntityFaction.Ensure(go, faction, table)` on spawn paths.
 - **Peaceful = zero relationship rows** + `ProvocationModule` (`leashRange` ≤ `AgentTargeting.loseRange`). Adding a row "for completeness" makes the whole faction attack on sight. `FaunaFaction.asset` appears in zero rows; `WildlifeFaction` is already Hostile to the player.
 - **A module returning `MoveIntent.Idle()` while merely waiting starves everything below it.** Return `null`.

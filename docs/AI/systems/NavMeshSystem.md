@@ -15,8 +15,9 @@ symptoms:
   - "a MeshCollider I added is missing from the bake and nothing errors"
   - "a save-restored creature is on the NavMesh but never moves"
   - "arena spawns are not filtered for reachability"
+  - "every agent hovers a few centimetres to half a metre above the ground"
 reads_with: [WorldStreaming, AgentSystem, Locomotion]
-updated: 2026-09-01
+updated: 2026-09-05
 ---
 
 # NavMesh
@@ -105,6 +106,12 @@ The mesh itself is authored data, not save state: [Assets/Game/Settings/WorldNav
 
 ## Gotchas
 
+- **The baked mesh sits above the ground, and by a varying amount.** Measured over 1384 samples on
+  six terrains: mean +0.264 m, median +0.257, p25 +0.199, p75 +0.321, p95 +0.480, max +0.600, min
+  −0.262. Recast places each polygon at the top of the voxel column it came from, so the error
+  scales with `voxelSize` (0.3333 here) and is inherent to the bake, not a fault in it. Halving
+  `voxelSize` roughly halves it while quadrupling bake time and asset size — not worth it.
+  `AgentGroundConform` corrects it at runtime instead; see [AgentSystem.md](AgentSystem.md).
 - **No chunk seams to handle.** The mesh is one build over the union bounds; there are no per-chunk tiles to stitch. The corollary is that a chunk edit invalidates the *whole* bake — re-bake all 48, there is no per-chunk path.
 - **The bake can be silently wrong.** Nothing at runtime checks freshness; only `World/Streaming/Check World NavMesh Is Current` and the build preprocessor do. In the Editor a stale bake just means NPCs navigate a world that no longer exists.
 - **No off-mesh links exist.** Zero `NavMeshLink` / `OffMeshLink` components in any scene or prefab; the baker never sets `GenerateLinks`. The `m_AutoTraverseOffMeshLink` fields on agent prefabs are inert. Agents cannot cross a gap — jumps and leaps are `NavMeshAgentMotor`'s `baseOffset`/arc simulation, not navigation.

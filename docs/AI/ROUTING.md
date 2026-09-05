@@ -20,13 +20,18 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | --- | --- |
 | [Save] Dropped N runtime record(s) that named no prefab at all | [Persistence](systems/Persistence.md) |
 | [Save] No prefab registered for id …' and the object never comes back | [Persistence](systems/Persistence.md) |
+| _zverify reports a clash in the assembled model that the component file it came from never showed | [ArtPipeline](systems/ArtPipeline.md) |
 | _zverify reports dozens of clashes in a component file that holds several variations | [ArtPipeline](systems/ArtPipeline.md) |
 | a .asset or .unity file fails with 'Unknown error occurred while loading | [ProjectConfig](systems/ProjectConfig.md) |
+| a bevelled bezel has a chamfer groove running across its face at every corner | [ArtPipeline](systems/ArtPipeline.md) |
 | a blast bills a creature once per limb inside its radius, so a body dies instantly | [Combat](systems/Combat.md) |
 | a bottle fills on the host and stays empty for everyone else | [Oxygen](systems/Oxygen.md) |
 | a bottle sits in the plant forever and never fills | [Oxygen](systems/Oxygen.md) |
 | a builder logs success but nothing actually changed on disk | [EditorTooling](systems/EditorTooling.md) |
+| a caught creature can never be let out again once it has been reeled in | [Lasso](systems/Lasso.md) |
 | a cave regenerates on Start and stalls play mode for seconds | [TerrainGeneration](systems/TerrainGeneration.md) |
+| a charge is right on the host and wrong on every client | [SupplyCharge](systems/SupplyCharge.md) |
+| a charge written into a slot never reaches the owning client | [SupplyCharge](systems/SupplyCharge.md) |
 | a chest item ends up on the small of the back instead of the sternum | [BodyEquipment](systems/BodyEquipment.md) |
 | a chunk never loads and the player falls through the world | [WorldStreaming](systems/WorldStreaming.md) |
 | a client fails to join with 'Scene Hash N does not exist in the HashToBuildIndex table | [Scenes](systems/Scenes.md) |
@@ -46,14 +51,16 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a deployed pack casts a shadow on the sand but I cannot see the pack itself | [Backpack](systems/Backpack.md) |
 | a disabled menu row stays stuck in its hover colour and never resets | [UI](systems/UI.md) |
 | a docked item pops in or out much later, at the unrelated moment something else changes | [Oxygen](systems/Oxygen.md) |
-| a door, lever or workstation is back in its authored state after loading a save | [InteractionSystem](systems/InteractionSystem.md) |
+| a door or lever is back in its authored state after loading a save | [InteractionSystem](systems/InteractionSystem.md) |
 | a double tap of Space does not deploy the wings | [BodyEquipment](systems/BodyEquipment.md) |
 | a double tap of Space does nothing while I am standing on the ground | [Wingsuit](systems/Wingsuit.md) |
 | a dropped item cannot be shoved out of the way, and a rope tied to it drags it without turning it | [Inventory](systems/Inventory.md) |
 | a dropped item is buried up to its middle in the ground | [Inventory](systems/Inventory.md) |
 | a dropped item is far smaller than the same item was on the ship's gear wall | [Inventory](systems/Inventory.md) |
 | a dropped rifle rolls across the sand like a marble, or spins on the deck and never settles | [Inventory](systems/Inventory.md) |
+| a dropped tank is full again when I pick it up | [SupplyCharge](systems/SupplyCharge.md) |
 | a failed join throws a bare NullReferenceException instead of a readable service error | [Lobby](systems/Lobby.md) |
+| a fast or lightly-charged throw passes straight through a thin target and reports a miss | [Lasso](systems/Lasso.md) |
 | a filled bottle is refused by the backpack that took the empty one | [Oxygen](systems/Oxygen.md) |
 | a flat ground apron appears around a generated rock | [TerrainGeneration](systems/TerrainGeneration.md) |
 | a fleeing creature walks toward the thing it is running from | [AgentSystem](systems/AgentSystem.md) |
@@ -62,20 +69,25 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a gauge draws a full bar before the player has finished spawning | [Visor](systems/Visor.md) |
 | a gauge flickers between two colours while the value sits on a threshold | [Visor](systems/Visor.md) |
 | a gauntlet floats over my arm with nothing underneath it | [BodyEquipment](systems/BodyEquipment.md) |
+| a gauntlet sitting correctly on the gear screen's rail is badged as misplaced | [BodyEquipment](systems/BodyEquipment.md) |
 | a generated prefab has an empty motor slot and no error was logged | [EntitySystem](systems/EntitySystem.md) |
 | a geometric test is documented as failing on purpose, and the thing it measures really is too big | [Backpack](systems/Backpack.md) |
+| a ghostly second lander floats inside the cockpit where the terminal stands | [ShipSchematic](systems/ShipSchematic.md) |
 | a grapple swing's speed vanishes the moment the wings deploy | [Ornithopter](systems/Ornithopter.md) |
 | a grazing animal never puts its head down | [AgentSystem](systems/AgentSystem.md) |
 | a grounded pack gives one generic prompt whether the press opens it or picks it up | [Backpack](systems/Backpack.md) |
 | a hard dive into a cliff does almost no damage while a gentle landing hurts | [Ornithopter](systems/Ornithopter.md) |
 | a hint or seat prompt stopped appearing during the crash landing | [Visor](systems/Visor.md) |
+| a hose I modelled on the rig in Blender is simply not in Unity after the re-export | [Backpack](systems/Backpack.md) |
 | a hosted lobby stays listed after the host has left | [Lobby](systems/Lobby.md) |
 | a hotbar slot comes back empty after loading a save, but the others kept their positions | [Inventory](systems/Inventory.md) |
 | a HUD element stays blank until something happens to it | [UI](systems/UI.md) |
 | a huge black shape sticks out of the pack once a bottle is in its socket, far bigger than the pack itself | [Backpack](systems/Backpack.md) |
 | a huge black shape sticks out of the pack once a bottle is in its socket, far bigger than the pack itself | [Oxygen](systems/Oxygen.md) |
 | a joining client fails with 'Scene Hash N does not exist in the HashToBuildIndex table | [Multiplayer](systems/Multiplayer.md) |
+| a lasso throw goes where I point only if I aim at the creature's feet | [Lasso](systems/Lasso.md) |
 | a last-standing match never ends even though everyone is dead | [GameModes](systems/GameModes.md) |
+| a launcher longer than the whole back panel lies across the strip beside the oxygen bottle, hanging off both ends — the side panels hold far more than they look like they should | [Backpack](systems/Backpack.md) |
 | a leashed creature teleports or jitters instead of straining at the rope | [LeashSystem](systems/LeashSystem.md) |
 | a lit shaft hangs in the air with the lamp switched off | [Flashlight](systems/Flashlight.md) |
 | a lobby control looks enabled but does nothing while a request is in flight | [Lobby](systems/Lobby.md) |
@@ -108,14 +120,24 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a raycast right after moving something reads the collider's old position | [ProjectConfig](systems/ProjectConfig.md) |
 | a re-exported character stops animating and the console is clean | [ArtPipeline](systems/ArtPipeline.md) |
 | a readout writes a ValueText and the number never appears on screen | [Visor](systems/Visor.md) |
+| a refused click beeps on the body but is silent on the rail | [BodyEquipment](systems/BodyEquipment.md) |
 | a renamed [SerializeField] and the builder quietly stopped setting it | [EditorTooling](systems/EditorTooling.md) |
 | a render feature is in the renderer asset but never runs | [Environment](systems/Environment.md) |
 | a renderer feature is null even though its sub-asset and script both exist | [Environment](systems/Environment.md) |
 | a rider arrives twice the aperture separation past the exit | [Portals](systems/Portals.md) |
 | a rider is left behind, or arrives twice as far, when its mount teleports | [SceneTransitions](systems/SceneTransitions.md) |
+| a rifle shows a gauge reading 0% | [SupplyCharge](systems/SupplyCharge.md) |
 | a ring, band or collar on a model flickers where two parts meet and the generator's numbers look right | [ArtPipeline](systems/ArtPipeline.md) |
 | a rival team's ship falls past me stone cold while mine is on fire | [Cutscenes](systems/Cutscenes.md) |
+| a rope fills up with bends and its measured length collapses | [LeashSystem](systems/LeashSystem.md) |
+| a rope goes onto a slot and can never come off it | [CruciblePuzzle](systems/CruciblePuzzle.md) |
+| a rope goes onto a slot and can never come off it | [LeashSystem](systems/LeashSystem.md) |
+| a rope is a different shape on the host and on the client | [LeashSystem](systems/LeashSystem.md) |
+| a rope pulls straight through a wall, a pillar or a hillside | [LeashSystem](systems/LeashSystem.md) |
 | a rope tied to a dropped item slides it along without ever turning it, or moves it only for the host | [LeashSystem](systems/LeashSystem.md) |
+| a rope tied to a vehicle or a mounted player does nothing at all | [LeashSystem](systems/LeashSystem.md) |
+| a rope tied to a walking animal moves it not at all, as if it were bolted down | [LeashSystem](systems/LeashSystem.md) |
+| a roped creature stops struggling after a few seconds and never fights again | [Lasso](systems/Lasso.md) |
 | a row silently inflates and blows out the layout | [UI](systems/UI.md) |
 | a runtime-spawned entity is captured in the save but never comes back | [EntitySystem](systems/EntitySystem.md) |
 | a runtime-spawned object was in the world all session and is simply absent after a reload, with nothing on the console at load time | [Persistence](systems/Persistence.md) |
@@ -125,6 +147,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | a save-restored creature is on the NavMesh but never moves | [NavMeshSystem](systems/NavMeshSystem.md) |
 | a seated crewmate sits rigidly staring ahead while their view is clearly sweeping the cabin | [Cutscenes](systems/Cutscenes.md) |
 | a seated player's head stays turned after they stand up | [PlayerCharacter](systems/PlayerCharacter.md) |
+| a second cell appears every time the world is loaded | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | a second copy of the ship stands inside the first after every load, and the count doubles each time | [Persistence](systems/Persistence.md) |
 | a second ship appears inside the wreck after every load, and there are twice as many each time | [PlayerShip](systems/PlayerShip.md) |
 | a site on the body screen stays lit amber and then shakes, but the gear did move | [BodyEquipment](systems/BodyEquipment.md) |
@@ -146,7 +169,6 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an authored interior fog volume fades out as soon as I step into the room it is in | [Environment](systems/Environment.md) |
 | an entity duplicates every time I reload the world | [Persistence](systems/Persistence.md) |
 | an impact effect spawns dozens of GameObjects and spikes the frame | [Cutscenes](systems/Cutscenes.md) |
-| an item far bigger than a back panel still drops onto it, shrunk to the panel's own few cells | [Backpack](systems/Backpack.md) |
 | an item I dropped is gone after save and reload, or shoves me around while held | [Inventory](systems/Inventory.md) |
 | an item I picked up on the body screen stayed invisible after I closed it | [BodyEquipment](systems/BodyEquipment.md) |
 | an item is the right size in my hand and the wrong size lying on the backpack | [Inventory](systems/Inventory.md) |
@@ -158,10 +180,12 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | an item that moves the player does nothing at all while I am riding something | [Artifacts](systems/Artifacts.md) |
 | an item transferred from the backpack to a hotbar slot disappears instead of appearing in the bar | [Inventory](systems/Inventory.md) |
 | an item was placed but cannot be picked up again | [Placeables](systems/Placeables.md) |
+| an item's charge resets when I scroll one hotbar slot and back | [SupplyCharge](systems/SupplyCharge.md) |
 | an item, faction or targeting asset never turns up in Registry<T>.Get | [CoreServices](systems/CoreServices.md) |
 | an NPC is completely invisible to AI targeting | [EntitySystem](systems/EntitySystem.md) |
 | an NPC or legged machine touches a portal but never goes through | [Portals](systems/Portals.md) |
 | an NPC spawns and then stands still forever with a clean console | [NavMeshSystem](systems/NavMeshSystem.md) |
+| an NPC stands bolt upright on a dune instead of leaning into it | [AgentSystem](systems/AgentSystem.md) |
 | an NPC vanishes for clients when its old chunk unloads but the host still has it | [WorldStreaming](systems/WorldStreaming.md) |
 | an NPC walking into the parked ship pushes it around, but the player cannot move it at all | [PlayerShip](systems/PlayerShip.md) |
 | an NPC's chatter mutes every other NPC of the same kind | [audio](systems/audio.md) |
@@ -174,12 +198,14 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | anything at all can be dropped into the bottle's socket on the back of the pack | [Oxygen](systems/Oxygen.md) |
 | arena spawns are not filtered for reachability | [NavMeshSystem](systems/NavMeshSystem.md) |
 | astronauts in the lobby float above the sand or stand sunk into it | [Lobby](systems/Lobby.md) |
+| both status lamps on the pack are lit at once and flicker against each other | [Backpack](systems/Backpack.md) |
 | bots on opposite teams refuse to fight each other | [GameModes](systems/GameModes.md) |
 | camera shake does nothing anywhere in the game | [Cutscenes](systems/Cutscenes.md) |
 | chairs are boardable from outside again after a hull mesh was deleted in the .blend | [PlayerShip](systems/PlayerShip.md) |
 | changing beam length or spot angle in the Inspector does nothing at runtime | [Flashlight](systems/Flashlight.md) |
 | chunks never unload, or a caravan drags loaded chunks around with it | [WorldStreaming](systems/WorldStreaming.md) |
 | clicking a gauntlet on the gear screen lights up my back and beeps instead | [BodyEquipment](systems/BodyEquipment.md) |
+| clicking a module on the schematic selects nothing and nudges the hull round instead | [ShipSchematic](systems/ShipSchematic.md) |
 | clicking an item lying on the ship's gear wall fires the weapon I am holding | [Backpack](systems/Backpack.md) |
 | client join fails with Scene Hash N does not exist in the HashToBuildIndex table | [WorldStreaming](systems/WorldStreaming.md) |
 | closing focus mode leaves a black screen with only the HUD, and no sound | [Backpack](systems/Backpack.md) |
@@ -198,7 +224,13 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | EntityProfile_RobotPhil / _DesertRat is referenced but does not exist | [EntitySystem](systems/EntitySystem.md) |
 | equipping or unequipping a gauntlet keeps selecting the chest or back item | [BodyEquipment](systems/BodyEquipment.md) |
 | Esc right after pressing B leaves no camera enabled at all | [Backpack](systems/Backpack.md) |
+| Esc will not leave the terminal while a schematic module is selected | [ShipSchematic](systems/ShipSchematic.md) |
+| every agent hovers a few centimetres to half a metre above the ground | [NavMeshSystem](systems/NavMeshSystem.md) |
 | every client's shot follows the host's crosshair instead of their own aim | [Artifacts](systems/Artifacts.md) |
+| every creature and NPC hovers a hand's width above the sand | [AgentSystem](systems/AgentSystem.md) |
+| every item aims straight down, or at the vehicle itself, while I am riding | [Vehicles](systems/Vehicles.md) |
+| every item fires straight down while I am riding something, whatever I am pointing at | [PlayerCharacter](systems/PlayerCharacter.md) |
+| every module on the schematic reads MISSING on a ship that is clearly whole | [ShipSchematic](systems/ShipSchematic.md) |
 | every NPC swings its barrel to follow the host's head | [AgentSystem](systems/AgentSystem.md) |
 | everything is blurry for a few seconds after the crash landing | [Cutscenes](systems/Cutscenes.md) |
 | everything not on the rack disappears when the pack is reshouldered or restored | [Backpack](systems/Backpack.md) |
@@ -209,6 +241,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | firing the grappling hook from the cradle hooks the aircraft I am sitting in | [Ornithopter](systems/Ornithopter.md) |
 | fog and clouds do not render at all and the renderer logs that it is missing RendererFeatures | [Environment](systems/Environment.md) |
 | fog draws over every particle and pane of glass | [Environment](systems/Environment.md) |
+| folding the worn wings in the .blend leaves them exactly the size they were | [Ornithopter](systems/Ornithopter.md) |
 | GameServices.World is null and every spawn or despawn NREs | [CoreServices](systems/CoreServices.md) |
 | gear clanks and both arms fly up every time I load a save | [BodyEquipment](systems/BodyEquipment.md) |
 | gear on the mat jumped to different cells after loading an old save | [Backpack](systems/Backpack.md) |
@@ -225,11 +258,14 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | I am stopped by nothing walking past the ship's gear wall, or wedged in a doorway I used to fit through | [Backpack](systems/Backpack.md) |
 | I board the ship from outside by looking at its cockpit through the glass | [Vehicles](systems/Vehicles.md) |
 | I board the ship from outside by looking at the cockpit through the canopy | [PlayerShip](systems/PlayerShip.md) |
+| I can only ever carry one of any item on the pack | [SupplyCharge](systems/SupplyCharge.md) |
+| I can pick gear off the mat straight through the closed board, or off the rack while the mat is lying on top of it | [Backpack](systems/Backpack.md) |
 | I can see the ship hit the ground before the screen goes black | [PlayerShip](systems/PlayerShip.md) |
 | I can use a control through a window, a windscreen or a canopy from outside | [InteractionSystem](systems/InteractionSystem.md) |
 | I cannot get the crosshair onto a small item lying on the ship's floor | [Inventory](systems/Inventory.md) |
 | I cannot look around the cabin after the ship has landed | [PlayerShip](systems/PlayerShip.md) |
 | I cannot move after landing from a glide | [Wingsuit](systems/Wingsuit.md) |
+| I cannot tell how far a wind-up will reach until after I let go | [Lasso](systems/Lasso.md) |
 | I click the lash rail and a gauntlet gets the click instead | [BodyEquipment](systems/BodyEquipment.md) |
 | I died in versus and respawned in the enemy team's ship | [GameModes](systems/GameModes.md) |
 | I edited the .inputactions asset and the new key binding does nothing | [CoreServices](systems/CoreServices.md) |
@@ -259,6 +295,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | loot drops or the enrage fires again every time I load the world | [Combat](systems/Combat.md) |
 | menu buttons do not click when MainMenu is entered directly | [audio](systems/audio.md) |
 | moving a half-used item through the gear screen refilled it | [BodyEquipment](systems/BodyEquipment.md) |
+| moving a tank across the pack mat emptied it | [SupplyCharge](systems/SupplyCharge.md) |
 | my [Rpc] method never runs on the other machine | [Multiplayer](systems/Multiplayer.md) |
 | my air never runs out anywhere in the world | [Visor](systems/Visor.md) |
 | my arrow or spinner glyph renders as nothing | [UI](systems/UI.md) |
@@ -273,11 +310,14 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | my own backpack bounces into view in front of the first-person camera | [PlayerCharacter](systems/PlayerCharacter.md) |
 | my player cannot move at all after loading a saved world | [PlayerCharacter](systems/PlayerCharacter.md) |
 | my saver's key is nowhere in the save JSON | [Persistence](systems/Persistence.md) |
+| my tank reads full in my hand but the server is draining it | [SupplyCharge](systems/SupplyCharge.md) |
 | Newtonsoft stack-overflows saving a storm | [Environment](systems/Environment.md) |
 | no flames at all during the descent — nothing appears, and the console is clean | [PlayerShip](systems/PlayerShip.md) |
 | no hint ever appears telling me how to get out of the crashed ship | [Cutscenes](systems/Cutscenes.md) |
+| no item works while I am flying, or every item fires at the sand under the craft | [Ornithopter](systems/Ornithopter.md) |
 | no prompt appears on the control I am looking at | [InteractionSystem](systems/InteractionSystem.md) |
 | no sound plays for the client but the host hears it | [audio](systems/audio.md) |
+| nothing on screen says which key opens the pack once it is on the ground | [Backpack](systems/Backpack.md) |
 | nothing on the pack says where the oxygen bottle is supposed to go | [Backpack](systems/Backpack.md) |
 | nothing on the pack says where the oxygen bottle is supposed to go | [Oxygen](systems/Oxygen.md) |
 | NPCs cannot walk on a rock or mesa I just generated | [TerrainGeneration](systems/TerrainGeneration.md) |
@@ -291,10 +331,12 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | other players do not see the items lying on my pack | [Backpack](systems/Backpack.md) |
 | picking a placed thing up gave back a different item, or nothing | [Placeables](systems/Placeables.md) |
 | picking an item up works for the host and does nothing for a client | [Inventory](systems/Inventory.md) |
+| picking one module on the schematic makes the others impossible to click | [ShipSchematic](systems/ShipSchematic.md) |
 | placing an item did not consume it, or consumed it without placing anything | [Placeables](systems/Placeables.md) |
 | players land inside the wrong team's ship or on top of each other | [GameModes](systems/GameModes.md) |
 | playing straight from a world scene has no items, no audio, no registries | [CoreServices](systems/CoreServices.md) |
 | pointing an empty hand at a receptacle does nothing and says nothing | [Oxygen](systems/Oxygen.md) |
+| pointing at a worn tile on the gear screen lights nothing on the character | [BodyEquipment](systems/BodyEquipment.md) |
 | pressing B or F again during the fly-out kills my own camera for the rest of the session | [Backpack](systems/Backpack.md) |
 | pressing H does nothing at all — no gauges, no bracket, no message-stack change | [Visor](systems/Visor.md) |
 | pressing Play in my own scene bounces through Bootstrap and lands somewhere else | [Scenes](systems/Scenes.md) |
@@ -303,6 +345,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | Q or E does nothing even though a gauntlet is worn | [BodyEquipment](systems/BodyEquipment.md) |
 | re-running a generator script destroyed hand edits that existed only in the .blend | [ArtPipeline](systems/ArtPipeline.md) |
 | rebuilding the wing pack item makes it invisible to clients and stops it surviving a reload | [Ornithopter](systems/Ornithopter.md) |
+| rebuilding the wing pack makes the folded craft stowable on the back panels | [Ornithopter](systems/Ornithopter.md) |
 | remote copies of the creature slide along with their feet still | [AgentSystem](systems/AgentSystem.md) |
 | respawning put me on open sand at the world's starting coordinates instead of back in my ship | [GameModes](systems/GameModes.md) |
 | right mouse no longer brings the held item up to the eye | [PlayerCharacter](systems/PlayerCharacter.md) |
@@ -310,6 +353,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | right-clicking anywhere on the hull puts me in the pilot's chair | [PlayerShip](systems/PlayerShip.md) |
 | right-clicking anywhere on the hull puts me in the pilot's chair | [Vehicles](systems/Vehicles.md) |
 | right-clicking opens the wrong door on the other machine | [InteractionSystem](systems/InteractionSystem.md) |
+| right-clicking the terminal does nothing and the crosshair says Terminal | [Terminal](systems/Terminal.md) |
 | ropes from the previous world are still hanging in the newly loaded one | [LeashSystem](systems/LeashSystem.md) |
 | scenes are full of missing prefab instances a GUID grep cannot find | [EditorTooling](systems/EditorTooling.md) |
 | selecting the grappling hook on the hotbar leaves my hands empty | [BodyEquipment](systems/BodyEquipment.md) |
@@ -354,9 +398,13 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the cabin shakes or the screen comes apart during the descent | [PlayerShip](systems/PlayerShip.md) |
 | the camera cuts instantly to my back instead of swinging | [BodyEquipment](systems/BodyEquipment.md) |
 | the camera does not turn round when I pick up the wing pack | [BodyEquipment](systems/BodyEquipment.md) |
+| the camera flies to the terminal but the screen is blank green | [Terminal](systems/Terminal.md) |
 | the camera freezes during a cutscene and look input does nothing | [Cutscenes](systems/Cutscenes.md) |
 | the camera shake accessibility slider has no effect | [Cutscenes](systems/Cutscenes.md) |
+| the cell can be lifted straight over the maze | [CruciblePuzzle](systems/CruciblePuzzle.md) |
+| the cell sits at a different height on the host and on the client | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the character stands in the idle pose instead of the hold pose, or glides while walking | [Artifacts](systems/Artifacts.md) |
+| the collar is drawn in one place and the rope goes taut against another | [Lasso](systems/Lasso.md) |
 | the compiler cannot resolve Unity's Lobby type inside this folder | [Lobby](systems/Lobby.md) |
 | the console warns that HoloProjector or RepairStation carries a SaveableEntity nested inside PlayerShip | [PlayerShip](systems/PlayerShip.md) |
 | the corpse stays suspended in the air with its brain switched off | [Combat](systems/Combat.md) |
@@ -397,7 +445,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the flashlight or thing I attached to the player is invisible to other players | [PlayerCharacter](systems/PlayerCharacter.md) |
 | the fog or cloud pass looks stippled or dithered | [Environment](systems/Environment.md) |
 | the folded ornithopter can be put inside the backpack on a back panel instead of only on the rack | [Ornithopter](systems/Ornithopter.md) |
-| the folded ornithopter can be strapped inside the pack, on the back panel, instead of only on the rack you flip the leaf up to reach | [Backpack](systems/Backpack.md) |
+| the folded wing is a bedsheet draped over a folded frame | [Ornithopter](systems/Ornithopter.md) |
+| the folded worn wing lies flat across the back instead of standing on edge | [Ornithopter](systems/Ornithopter.md) |
 | the fourth item of an old save is gone after loading | [BodyEquipment](systems/BodyEquipment.md) |
 | the gadget works for the host but does nothing for a client | [Artifacts](systems/Artifacts.md) |
 | the game is laggy with five or six players but fine with two | [Multiplayer](systems/Multiplayer.md) |
@@ -409,13 +458,16 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the gear screen rings a slot red and shakes it when I click | [BodyEquipment](systems/BodyEquipment.md) |
 | the gear screen shows my character but no ghost device on the empty arm | [BodyEquipment](systems/BodyEquipment.md) |
 | the gear screen will not open | [BodyEquipment](systems/BodyEquipment.md) |
+| the gear screen's wings are a third of the size they should be | [BodyEquipment](systems/BodyEquipment.md) |
 | the gear wall clips the arch rib and the test that says so is documented as failing on purpose | [PlayerShip](systems/PlayerShip.md) |
 | the gear wall's headroom check names the gear wall itself as the thing overhead | [PlayerShip](systems/PlayerShip.md) |
 | the gear wall's readout vanishes when a deployed rig or my own worn gear is in front of it | [Backpack](systems/Backpack.md) |
 | the ghost cells stay red and the item refuses to drop anywhere on the pack | [Backpack](systems/Backpack.md) |
 | the ghost on my arm is a flat solid colour with no see-through edge | [BodyEquipment](systems/BodyEquipment.md) |
 | the grappling hook draws its rope but pulls nothing while I am flying | [Ornithopter](systems/Ornithopter.md) |
+| the grappling hook hooks straight down instead of where I am pointing while flying | [Ornithopter](systems/Ornithopter.md) |
 | the ground does not appear when I look at it from far away, even though the chunks are loaded | [Environment](systems/Environment.md) |
+| the gun fires at the ground, or at the vehicle, while its holder is mounted | [Combat](systems/Combat.md) |
 | the gun fires but no bullet appears and the ammo never goes down | [Combat](systems/Combat.md) |
 | the hair shreds into floating shards once the animation plays, but is fine in the rest pose | [ArtPipeline](systems/ArtPipeline.md) |
 | the health bar is gone after I pressed H | [Visor](systems/Visor.md) |
@@ -425,14 +477,22 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the host is the last player to spawn and misses the crew gather | [WorldStreaming](systems/WorldStreaming.md) |
 | the imported mesh arrives untextured, or a handful of faces wear a neighbouring part's colour | [ArtPipeline](systems/ArtPipeline.md) |
 | the info box is cut off by the top of the screen | [Visor](systems/Visor.md) |
+| the item fires straight down, or at the vehicle I am sitting in, while I am mounted | [Artifacts](systems/Artifacts.md) |
 | the item floats beside the hand instead of in it, or comes out comically large | [Inventory](systems/Inventory.md) |
+| the item hits somewhere other than where the crosshair is while I am in a third-person view | [PlayerCharacter](systems/PlayerCharacter.md) |
 | the item is removed from the inventory the first time it runs out of charges | [Artifacts](systems/Artifacts.md) |
 | the item loses its charges or its state when I switch slots or re-equip it | [Inventory](systems/Inventory.md) |
+| the key strip on the terminal renders pink | [Terminal](systems/Terminal.md) |
+| the lamp on my pack stays green even though the tank on it is empty | [Backpack](systems/Backpack.md) |
+| the lasso makes a generic hit sound when I press the button and is silent when it catches | [Lasso](systems/Lasso.md) |
+| the lava is there in single player and the room cannot be finished | [CruciblePuzzle](systems/CruciblePuzzle.md) |
+| the lava never appears no matter how many people are in the room | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the leaderboard counts a kill twice on the host | [GameModes](systems/GameModes.md) |
 | the leash applies no force to the player at all | [LeashSystem](systems/LeashSystem.md) |
 | the legs hop, sync up or stutter instead of walking | [Locomotion](systems/Locomotion.md) |
 | the lens rolls or snaps half way through swinging round to my back | [BodyEquipment](systems/BodyEquipment.md) |
 | the letterbox bars are stuck on screen after respawning | [Cutscenes](systems/Cutscenes.md) |
+| the little ship swings round every time the lander changes heading | [ShipSchematic](systems/ShipSchematic.md) |
 | the loaded player cannot walk, or an object snaps back after I restore its position | [Persistence](systems/Persistence.md) |
 | the loading screen says still waiting on player spawn after 30s while chunks keep loading | [WorldStreaming](systems/WorldStreaming.md) |
 | the lobby browser stops refreshing, or hammers the service past its rate limit | [Lobby](systems/Lobby.md) |
@@ -440,27 +500,38 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the lobby rank is tiny, clipped or badly framed on a small or narrow window | [Lobby](systems/Lobby.md) |
 | the machine climbs into the sky when a player stands on its deck | [Locomotion](systems/Locomotion.md) |
 | the map hologram in the ship shows the world with me off in a corner of it | [UI](systems/UI.md) |
-| the map projector's switch or the repair station's scrap count is back at zero after loading the world | [PlayerShip](systems/PlayerShip.md) |
+| the map projector's switch is back at zero after loading the world | [PlayerShip](systems/PlayerShip.md) |
 | the membrane is stiff as plywood and never billows | [Wingsuit](systems/Wingsuit.md) |
 | the menu's decorative astronauts stand in front of the roster once the lobby has several teams | [Lobby](systems/Lobby.md) |
 | the model comes out 100x too big when parented to a socket | [ArtPipeline](systems/ArtPipeline.md) |
+| the module the schematic had lit goes dark the moment the mouse button goes down | [ShipSchematic](systems/ShipSchematic.md) |
+| the modules on the schematic are almost impossible to click | [ShipSchematic](systems/ShipSchematic.md) |
 | the mouse turns my body while the wings are out, and the flight fights it | [Wingsuit](systems/Wingsuit.md) |
 | the NavMesh baker silently skips every chunk / LoadAssetAtPath returns null for a chunk | [Scenes](systems/Scenes.md) |
+| the near edge of the board is cut off the bottom of the frame after I raised the focus camera | [Backpack](systems/Backpack.md) |
 | the new asset is rotated relative to every existing one | [ArtPipeline](systems/ArtPipeline.md) |
 | the object I put in Bootstrap is gone the moment the game starts | [Scenes](systems/Scenes.md) |
 | the orb discharges on the host and on a client at slightly different moments | [Combat](systems/Combat.md) |
 | the orientation fix logs 'saved' for a prefab and then FAILED verification on the same run | [Backpack](systems/Backpack.md) |
 | the oxygen bottle's socket paints red when the bottle is dragged out of the hotbar, and the click turns it instead of placing it | [Backpack](systems/Backpack.md) |
 | the oxygen gauge is missing but health shows fine | [Visor](systems/Visor.md) |
+| the oxygen gauge says RESERVE when I am carrying a full tank | [Visor](systems/Visor.md) |
+| the oxygen gauge shows a percentage of the wrong reservoir | [Visor](systems/Visor.md) |
 | the oxygen plant is missing from the deck after a rebuild, with one warning in the console | [PlayerShip](systems/PlayerShip.md) |
 | the pack and everything on it is suddenly enormous, or the webbing no longer lines up with the grid | [Backpack](systems/Backpack.md) |
+| the pack came back grey after a re-export, or a part lost the material it had | [Backpack](systems/Backpack.md) |
 | the pack carries a bottle with no visible connection to it | [Oxygen](systems/Oxygen.md) |
 | the pack I am wearing swings into view in front of my own first-person camera | [Backpack](systems/Backpack.md) |
 | the pack looks exactly the same size in focus mode after I changed PackScale.Factor | [Backpack](systems/Backpack.md) |
+| the pack refuses to take a second oxygen tank | [SupplyCharge](systems/SupplyCharge.md) |
+| the pack unfolds itself flat the moment I put it down, and I wanted it to arrive shut | [Backpack](systems/Backpack.md) |
+| the pack's status lamp is right for me and wrong on the other player's screen | [Backpack](systems/Backpack.md) |
 | the panel draws fine but no button responds to clicks | [UI](systems/UI.md) |
 | the parked ship stands half a metre off its own skirts with nothing under it | [PlayerShip](systems/PlayerShip.md) |
 | the pet prompt appears everywhere on the animal instead of only on its head | [AgentSystem](systems/AgentSystem.md) |
 | the pet prompt never appears no matter where I aim at the creature | [AgentSystem](systems/AgentSystem.md) |
+| the placement ghost flickers between two cells while the cursor rests on a cell border | [Backpack](systems/Backpack.md) |
+| the placement ghost paints green on a face on the other side of the fold and the drop is refused anyway | [Backpack](systems/Backpack.md) |
 | the plant clunks and hisses its way through a reload | [Oxygen](systems/Oxygen.md) |
 | the plant is missing from the ship after a rebuild, with one warning in the console | [Oxygen](systems/Oxygen.md) |
 | the plant's lamp is dark with a power cell fitted, or lit with none | [Oxygen](systems/Oxygen.md) |
@@ -488,9 +559,14 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the respawn button is unclickable after dismounting a dead rider | [Vehicles](systems/Vehicles.md) |
 | the rider floats above the saddle on every machine but the host's | [Vehicles](systems/Vehicles.md) |
 | the rider is sunk into the animal up to the chest, or stands on top of the saddle | [Saddles](systems/Saddles.md) |
+| the room is solved by flinging the cell past the socket | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the rope holds a host-ridden animal but is inert against a client-ridden one | [LeashSystem](systems/LeashSystem.md) |
 | the rope hums, or the two ends accelerate together and collide | [LeashSystem](systems/LeashSystem.md) |
+| the rope is drawn in a wood texture, smeared once along its whole length | [Lasso](systems/Lasso.md) |
+| the rope is drawn to a point above a small creature, or around a big one's ankle | [Lasso](systems/Lasso.md) |
 | the rope sinks into a hillside, or clicking it to untie never registers | [LeashSystem](systems/LeashSystem.md) |
+| the rope snaps every time I try to drag something heavy | [LeashSystem](systems/LeashSystem.md) |
+| the rope snaps the instant I try to haul a crate or a dropped item anywhere | [LeashSystem](systems/LeashSystem.md) |
 | the rope tows the player like a grappling hook and launches them | [LeashSystem](systems/LeashSystem.md) |
 | the roster shows the wrong team, team colour or suit for a player | [Lobby](systems/Lobby.md) |
 | the saddle arrives a hundred times too big, or floating beside the animal | [Saddles](systems/Saddles.md) |
@@ -502,6 +578,12 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the same item cannot be put in the pack twice | [Backpack](systems/Backpack.md) |
 | the same item is drawn much bigger on the ship's gear wall than on the backpack mat | [Inventory](systems/Inventory.md) |
 | the sandstorm is in a different place on the host than on the client | [Environment](systems/Environment.md) |
+| the schematic draws the cockpit around it instead of the little ship | [ShipSchematic](systems/ShipSchematic.md) |
+| the schematic is a hairball of triangles with a ship somewhere inside it | [ShipSchematic](systems/ShipSchematic.md) |
+| the schematic is flat and unreadable with no near and no far | [ShipSchematic](systems/ShipSchematic.md) |
+| the schematic keeps drawing the old hull after a ship re-export | [ShipSchematic](systems/ShipSchematic.md) |
+| the schematic picks a small module when the cursor is just off a big one | [ShipSchematic](systems/ShipSchematic.md) |
+| the schematic turns but hovering a module never names it | [ShipSchematic](systems/ShipSchematic.md) |
 | the screen goes black wherever the ray misses the volume | [Environment](systems/Environment.md) |
 | the screen has a round bright middle, or gradients band into rings | [Environment](systems/Environment.md) |
 | the screen only goes black after the ship has finished crashing, so I watch the impact | [Cutscenes](systems/Cutscenes.md) |
@@ -520,6 +602,8 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the ship levels out just before it lands instead of crashing into the ground | [PlayerShip](systems/PlayerShip.md) |
 | the ship's gear wall got smaller when I resized the backpack | [Backpack](systems/Backpack.md) |
 | the ship's gear wall punches through the roof of the aft room, or hangs out through the hull | [Backpack](systems/Backpack.md) |
+| the spinning loop clips through the camera or flickers at the top of the screen in first person | [Lasso](systems/Lasso.md) |
+| the spread worn wings have their sail dragged onto the spars | [Ornithopter](systems/Ornithopter.md) |
 | the stall never ends and the nose stays up | [Ornithopter](systems/Ornithopter.md) |
 | the storm interior renders almost black | [Environment](systems/Environment.md) |
 | the storm vanishes completely from the window of a ship I am sheltering in | [Environment](systems/Environment.md) |
@@ -528,16 +612,23 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the sun jumps to a different time of day after loading a save | [Environment](systems/Environment.md) |
 | the target bracket and its name sit beside what I am pointing at, not on it | [Visor](systems/Visor.md) |
 | the team ship spawns for the host and nobody else can see it | [GameModes](systems/GameModes.md) |
+| the terminal says In use after the player using it disconnected | [Terminal](systems/Terminal.md) |
+| the terminal stands on the deck but pressing a tab does nothing | [Terminal](systems/Terminal.md) |
+| the terminal's page changes for me but not for the other player | [Terminal](systems/Terminal.md) |
+| the terminal's SHIP page is a flat white rectangle | [ShipSchematic](systems/ShipSchematic.md) |
 | the Test Runner reports nothing at all instead of a failing test | [Testing](systems/Testing.md) |
 | the third-person camera on the mount jitters or doubles the vehicle's motion | [Vehicles](systems/Vehicles.md) |
+| the thrown loop passes over the animal I aimed at and lands well behind it | [Lasso](systems/Lasso.md) |
 | the tint I set to mark the selected entry disappears after one frame | [UI](systems/UI.md) |
 | the torch arm hangs at my side and lights my boots | [Flashlight](systems/Flashlight.md) |
 | the torch came back on after a reload but the world is still dark for everyone else | [Flashlight](systems/Flashlight.md) |
 | the torch dies at about 40 m and distant terrain stays black | [Flashlight](systems/Flashlight.md) |
 | the torch is off after a load, or a remote player's torch state is wrong | [Flashlight](systems/Flashlight.md) |
+| the torso tile on the gear screen lights up whenever hotbar slot 1 is in my hand | [BodyEquipment](systems/BodyEquipment.md) |
 | the turret or NPC aims its weapon at the host's camera | [Combat](systems/Combat.md) |
 | the two rows of team plates land in the same band of screen and smear together | [Lobby](systems/Lobby.md) |
 | the UI is a different size on different screens, or the versus lobby's names are too small on an ultrawide | [UI](systems/UI.md) |
+| the vault is shut again after reloading a save | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | the vehicle drives fine for the host but a client steers a body that snaps back | [Vehicles](systems/Vehicles.md) |
 | the versus lobby's player names come out too small on an ultrawide and too large on a narrow window | [Lobby](systems/Lobby.md) |
 | the visor cannot tell me which of two identical canisters on the wall I am pointing at | [Backpack](systems/Backpack.md) |
@@ -556,16 +647,19 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the wing pack is worn as a folded bundle instead of as wings | [BodyEquipment](systems/BodyEquipment.md) |
 | the wing pack is worn as a folded bundle rather than as wings | [Ornithopter](systems/Ornithopter.md) |
 | the wing pack looks like a toy lying on the backpack, far smaller than the rack it is strapped to | [Ornithopter](systems/Ornithopter.md) |
+| the wing pack looks the same on the gear screen as it does in the world | [BodyEquipment](systems/BodyEquipment.md) |
+| the wing pack looks the same on the gear screen as it does in the world | [Ornithopter](systems/Ornithopter.md) |
 | the wing pack refuses to launch and logs that there is no room | [Ornithopter](systems/Ornithopter.md) |
 | the wings are the wrong colour, or they stay beige when I change my suit | [Wingsuit](systems/Wingsuit.md) |
 | the wings come out and I drop like a brick anyway | [Wingsuit](systems/Wingsuit.md) |
 | the wings stay on the pack instead of going onto my arms | [Wingsuit](systems/Wingsuit.md) |
 | the wingsuit and the wing pack cannot both be carried | [Wingsuit](systems/Wingsuit.md) |
+| the wireframe draws every edge of every triangle | [ShipSchematic](systems/ShipSchematic.md) |
 | the world list only shows two saves before it has to be scrolled | [UI](systems/UI.md) |
 | the worn wing has a yoke and spars but no cloth between them | [Wingsuit](systems/Wingsuit.md) |
-| the worn wing is edge-on to the gear screen and reads as a sliver | [Ornithopter](systems/Ornithopter.md) |
-| the worn wing is five bare spars with the cloth scalloped between them | [Ornithopter](systems/Ornithopter.md) |
 | the worn wing's cloth pokes through the waist | [Wingsuit](systems/Wingsuit.md) |
+| the worn wings are a five-metre wingspan on a walking character | [Ornithopter](systems/Ornithopter.md) |
+| the worn wings are scaled back up to the size they were folded out of | [Ornithopter](systems/Ornithopter.md) |
 | the worn wings float off the arms instead of following them | [Wingsuit](systems/Wingsuit.md) |
 | the worn wings hang beside the pack touching nothing | [Ornithopter](systems/Ornithopter.md) |
 | the worn wings sit at the waist pointing backwards | [Wingsuit](systems/Wingsuit.md) |
@@ -576,18 +670,22 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | the worn wingsuit reads as a sleeve rather than as a wing | [Wingsuit](systems/Wingsuit.md) |
 | the wreck ended up resting on one wing after I added motion to the descent | [PlayerShip](systems/PlayerShip.md) |
 | the wreck is left standing on its nose, or the camera is inside the terrain at the impact | [PlayerShip](systems/PlayerShip.md) |
+| the zoom camera parks inside the cabinet or looks at the ceiling | [Terminal](systems/Terminal.md) |
 | there are two bracers on my arm, one inside the other | [BodyEquipment](systems/BodyEquipment.md) |
 | there are two health bars on screen, one warm and one blue | [Visor](systems/Visor.md) |
 | there is a hard oval seam in the air around the burning ship where the effect stops | [PlayerShip](systems/PlayerShip.md) |
 | there is an oxygen tank on the expedition rig that nothing can take off | [Oxygen](systems/Oxygen.md) |
 | there is an oxygen tank on the pack that nothing can take off | [Backpack](systems/Backpack.md) |
 | there is no ground under the ship for most of the descent, only sky | [PlayerShip](systems/PlayerShip.md) |
+| there is nothing to do with a roped animal except drag it around | [Lasso](systems/Lasso.md) |
 | throwing the pack down shoves me through the floor I am standing on | [Backpack](systems/Backpack.md) |
 | two doors log a duplicate TransitionId and one loses its effects | [SceneTransitions](systems/SceneTransitions.md) |
 | two focus overlays outline things at each other's line thickness | [Backpack](systems/Backpack.md) |
 | two players' visors both announce OXYGEN CRITICAL when only one is low | [Visor](systems/Visor.md) |
+| two ropes on one object hold it far more firmly than one does | [LeashSystem](systems/LeashSystem.md) |
 | two sites on the body screen light up at each other's outline thickness | [BodyEquipment](systems/BodyEquipment.md) |
 | typecheck.py prints 'No errors.' but the Editor still shows compile errors | [Testing](systems/Testing.md) |
+| typecheck.py says a type I just added to an asmdef does not exist | [Testing](systems/Testing.md) |
 | using the saddle saddles whatever the host is looking at | [Saddles](systems/Saddles.md) |
 | walking into a portal does nothing and no trigger ever fires | [Portals](systems/Portals.md) |
 | walking through a door bounces the player straight back in | [SceneTransitions](systems/SceneTransitions.md) |
@@ -595,6 +693,7 @@ the symptom once you have the answer — see [CONTRIBUTING.md](CONTRIBUTING.md).
 | which scene is build index 0 or 1, and where does the world scene live | [Scenes](systems/Scenes.md) |
 | which Unity, URP or Netcode version is this project on, and what packages are installed | [ProjectConfig](systems/ProjectConfig.md) |
 | with several players the intro takes a minute or two to load and chunks stream in far from the landing site | [PlayerShip](systems/PlayerShip.md) |
+| worn gear is invisible for good after opening and closing the gear screen | [BodyEquipment](systems/BodyEquipment.md) |
 | worn gear sits half a metre below the shoulders and behind the body | [BodyEquipment](systems/BodyEquipment.md) |
 
 ## Path → doc
@@ -603,13 +702,20 @@ Longest match wins.
 
 | Path | Read |
 | --- | --- |
+| `Assets/Game/Prefabs/Environment/Structures/Facilities/StandingTerminal.prefab` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Prefabs/Environment/Structures/Facilities/OxygenGenerator.prefab` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGeneratorDock.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Prefabs/Environment/Structures/Facilities/RepairStation.prefab` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Gadgets/FlashlightGauntletArtifact.cs` | [Flashlight](systems/Flashlight.md) |
+| `Assets/Game/Art/Models/_Source~/models/props/standing_terminal_export.py` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/OxygenGeneratorSaveable.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGenerator.cs` | [Oxygen](systems/Oxygen.md) |
+| `Assets/Game/Scripts/Items/Inventory/Components/PlayerInventoryNetwork.cs` | [SupplyCharge](systems/SupplyCharge.md) |
+| `Assets/Game/Scripts/Presentation/UI/World/Terminal/ShipSchematicModel.cs` | [ShipSchematic](systems/ShipSchematic.md) |
+| `Assets/Game/Scripts/Presentation/UI/World/Terminal/ShipSchematicStage.cs` | [ShipSchematic](systems/ShipSchematic.md) |
+| `Assets/Game/Scripts/Presentation/UI/World/Terminal/ShipSchematicView.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Art/Models/_Source~/models/props/oxygen_generator_BUILD.md` | [Oxygen](systems/Oxygen.md) |
+| `Assets/Game/Scripts/Core/Multiplayer/Messaging/Vocabulary/LassoVerb.cs` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/BodyEquipmentSaveable.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Art/Models/_Source~/components/props/expedition_rig.blend` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/FlashlightGauntlet.prefab` | [Flashlight](systems/Flashlight.md) |
@@ -622,6 +728,7 @@ Longest match wins.
 | `Assets/Game/Art/Models/_Source~/models/vehicles/ornithopter_worn.py` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Prefabs/agents/Vehicles/Aircraft/DuneOrnithopter.prefab` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/Core/Multiplayer/Authority/NetworkedTeleport.cs` | [SceneTransitions](systems/SceneTransitions.md) |
+| `Assets/Game/Art/Models/_Source~/components/props/crt_monitor.blend` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/gauntlet_flashlight.py` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Core/Persistence/Adapters/SandstormSaveable.cs` | [Environment](systems/Environment.md) |
 | `Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab` | [PlayerShip](systems/PlayerShip.md) |
@@ -637,6 +744,7 @@ Longest match wins.
 | `Assets/Game/Editor/AssetPipeline/FlashlightGauntletBuilder.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Characters/Player/Equipment/Flashlight.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Gameplay/Interaction/Core/IRetrievable.cs` | [Placeables](systems/Placeables.md) |
+| `Assets/Game/Scripts/Items/Backpack/Placement/PackPlacement.cs` | [SupplyCharge](systems/SupplyCharge.md) |
 | `Assets/Game/Scripts/Items/Placeables/Rules/SaddlePlacement.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Art/Animations/UI/Buttons/Menu Button.controller` | [UI](systems/UI.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/wingsuit_worn.py` | [Wingsuit](systems/Wingsuit.md) |
@@ -644,45 +752,63 @@ Longest match wins.
 | `Assets/Game/Scripts/Characters/Player/Combat/PlayerAimRig.cs` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Core/Persistence/Runtime/SaveTeleport.cs` | [SceneTransitions](systems/SceneTransitions.md) |
 | `Assets/Game/Scripts/Core/Persistence/Runtime/WorldSession.cs` | [WorldStreaming](systems/WorldStreaming.md) |
+| `Assets/Game/Scripts/Items/Inventory/Core/IPlayerInventory.cs` | [SupplyCharge](systems/SupplyCharge.md) |
 | `Assets/Game/Scripts/Presentation/UI/Pages/BodyInventoryUI.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/ghost_device.py` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/strip_bracer.py` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicOrbit.cs` | [ShipSchematic](systems/ShipSchematic.md) |
+| `Assets/Game/Scripts/Items/Backpack/Placement/PackItemKey.cs` | [SupplyCharge](systems/SupplyCharge.md) |
+| `Assets/Game/Scripts/Presentation/UI/Pages/GearRailLayout.cs` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Scripts/Gameplay/Terminal/ShipSchematicPick.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleRemover.cs` | [Saddles](systems/Saddles.md) |
+| `Assets/Game/Editor/Environment/StandingTerminalBuilder.cs` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs` | [Saddles](systems/Saddles.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/_wingsuit.py` | [Wingsuit](systems/Wingsuit.md) |
+| `Assets/Game/Art/Shaders/UI/Terminal/SchematicHull.shader` | [ShipSchematic](systems/ShipSchematic.md) |
+| `Assets/Game/Art/Shaders/UI/Terminal/SchematicWire.shader` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Editor/Environment/OxygenGeneratorBuilder.cs` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Editor/Environment/OxygenGeneratorBuilder.cs` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Editor/Multiplayer/NetworkPrefabRegistrar.cs` | [Multiplayer](systems/Multiplayer.md) |
+| `Assets/Game/Prefabs/Items/Artifacts/Gadgets/Lasso.prefab` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Prefabs/Items/Artifacts/Gadgets/Leash.prefab` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Prefabs/Items/Equipment/ExpeditionRig.prefab` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs` | [EntitySystem](systems/EntitySystem.md) |
 | `Assets/Game/Art/Models/_Source~/models/gear/wingsuit.py` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Presentation/UI/Theme/VisorStyle.cs` | [Visor](systems/Visor.md) |
 | `Assets/Game/Editor/Environment/RepairStationBuilder.cs` | [PlayerShip](systems/PlayerShip.md) |
+| `Assets/Game/Editor/Environment/ShipSchematicBuilder.cs` | [ShipSchematic](systems/ShipSchematic.md) |
+| `Assets/Game/Scripts/Items/Artifacts/Leash/LeashRail.cs` | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | `Assets/Game/Scripts/Items/Inventory/Core/UseChannel.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Art/Shaders/Effects/FlashlightBeam.shader` | [Flashlight](systems/Flashlight.md) |
 | `Assets/Game/Scripts/Gameplay/Ragdoll/PlayerRagdoll.cs` | [PlayerCharacter](systems/PlayerCharacter.md) |
+| `Assets/Game/Scripts/Gameplay/Terminal/ShipPartInfo.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/Items/Body/Focus/InspectStance.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/Items/Equipped/WingsuitRecolor.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Items/Inventory/Core/DoubleTap.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/ScriptableObjects/Items/PackShapes.asset` | [Backpack](systems/Backpack.md) |
+| `Assets/Game/Scripts/Gameplay/Terminal/DragGesture.cs` | [ShipSchematic](systems/ShipSchematic.md) |
+| `Assets/Game/Scripts/Vehicles/Parts/ShipPartNaming.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/LeggedDriver.cs` | [Locomotion](systems/Locomotion.md) |
 | `Assets/Game/Prefabs/Items/Equipment/Wingsuit.prefab` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Items/Equipped/TintMaterials.cs` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/Items/Equipped/WingsuitWings.cs` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/Presentation/UI/HUD/GearTile.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/World/Streaming/NavMesh/Editor/` | [EditorTooling](systems/EditorTooling.md) |
+| `Assets/Game/Art/Models/Props/standing_terminal.fbx` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Art/Shaders/Effects/EntryPlasma.shader` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Scripts/Items/Equipped/BoneResolver.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/Items/Equipped/OutlineShell.cs` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/Items/Equipped/WingPackItem.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Scripts/Items/Equipped/WingsuitItem.cs` | [Wingsuit](systems/Wingsuit.md) |
+| `Assets/Game/Scripts/Presentation/UI/World/Terminal` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Prefabs/Systems/NetworkManager.prefab` | [Multiplayer](systems/Multiplayer.md) |
+| `Assets/Game/Resources/Items/Artifacts/Lasso.asset` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Core/Settings/GameSettings.cs` | [UI](systems/UI.md) |
 | `Assets/Game/Scripts/Items/Equipped/DisplayCopy.cs` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/Items/Equipped/ForearmSeat.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Scripts/Items/Equipped/GauntletFit.cs` | [BodyEquipment](systems/BodyEquipment.md) |
 | `Assets/Game/Editor/Items/ForearmBracerBuilder.cs` | [BodyEquipment](systems/BodyEquipment.md) |
+| `Assets/Game/Editor/Support/WorldCanvasBuilder.cs` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Editor/Tests/LeashConstraintTests.cs` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Editor/Vehicles/PlayerShipBuilder.cs` | [PlayerShip](systems/PlayerShip.md) |
 | `Assets/Game/Scripts/Gameplay/Health/NetDamage.cs` | [Multiplayer](systems/Multiplayer.md) |
@@ -693,6 +819,7 @@ Longest match wins.
 | `Assets/Game/Scripts/World/ProceduralGeneration/` | [TerrainGeneration](systems/TerrainGeneration.md) |
 | `Assets/Game/Settings/WorldStreamingConfig.asset` | [Scenes](systems/Scenes.md) |
 | `Assets/Game/Settings/WorldStreamingConfig.asset` | [WorldStreaming](systems/WorldStreaming.md) |
+| `Assets/Game/Editor/Environment/FeatureEdges.cs` | [ShipSchematic](systems/ShipSchematic.md) |
 | `Assets/Game/Editor/Support/SerializedFields.cs` | [EditorTooling](systems/EditorTooling.md) |
 | `Assets/Game/Editor/Vehicles/WingPackBuilder.cs` | [Ornithopter](systems/Ornithopter.md) |
 | `Assets/Game/Editor/World/WorldChunkerEditor.cs` | [WorldStreaming](systems/WorldStreaming.md) |
@@ -728,7 +855,9 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/UI/Lobby/` | [Lobby](systems/Lobby.md) |
 | `Assets/Game/Scripts/Presentation/UI/World/` | [Combat](systems/Combat.md) |
 | `Assets/Game/Scripts/agents/Modules/Riding/` | [Vehicles](systems/Vehicles.md) |
+| `Assets/Game/Editor/Tests/CrucibleTests.cs` | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | `Assets/Game/Scripts/Core/SceneManagement/` | [SceneTransitions](systems/SceneTransitions.md) |
+| `Assets/Game/Scripts/Items/Artifacts/Lasso` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Scripts/Items/Artifacts/Leash` | [LeashSystem](systems/LeashSystem.md) |
 | `Assets/Game/Scripts/Vehicles/Ornithopter/` | [Ornithopter](systems/Ornithopter.md) |
 | `ProjectSettings/EditorBuildSettings.asset` | [Scenes](systems/Scenes.md) |
@@ -741,6 +870,7 @@ Longest match wins.
 | `Assets/Game/Scripts/Presentation/Cloth/` | [Cutscenes](systems/Cutscenes.md) |
 | `Assets/Game/Scripts/Presentation/UI/HUD` | [InteractionSystem](systems/InteractionSystem.md) |
 | `Assets/Game/Settings/WorldNavMesh.asset` | [NavMeshSystem](systems/NavMeshSystem.md) |
+| `Assets/Game/Editor/Tests/LassoTests.cs` | [Lasso](systems/Lasso.md) |
 | `Assets/Game/Prefabs/Characters/Player/` | [PlayerCharacter](systems/PlayerCharacter.md) |
 | `Assets/Game/Scripts/Characters/Player/` | [PlayerCharacter](systems/PlayerCharacter.md) |
 | `Assets/Game/Scripts/Core/GameServices/` | [CoreServices](systems/CoreServices.md) |
@@ -751,7 +881,9 @@ Longest match wins.
 | `Assets/Game/Scripts/Core/Teleporting/` | [SceneTransitions](systems/SceneTransitions.md) |
 | `Assets/Game/Scripts/Gameplay/Arrival/` | [GameModes](systems/GameModes.md) |
 | `Assets/Game/Scripts/Gameplay/Arrival/` | [PlayerShip](systems/PlayerShip.md) |
+| `Assets/Game/Scripts/Gameplay/Crucible` | [CruciblePuzzle](systems/CruciblePuzzle.md) |
 | `Assets/Game/Scripts/Gameplay/Ragdoll/` | [Combat](systems/Combat.md) |
+| `Assets/Game/Scripts/Gameplay/Terminal` | [Terminal](systems/Terminal.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/` | [NavMeshSystem](systems/NavMeshSystem.md) |
 | `Assets/Game/Scripts/agents/AI/Motors/` | [Vehicles](systems/Vehicles.md) |
 | `Assets/Game/Settings/PC_RPAsset.asset` | [ProjectConfig](systems/ProjectConfig.md) |
@@ -778,12 +910,13 @@ Longest match wins.
 | `Assets/Game/Scripts/Gameplay/Game/` | [GameModes](systems/GameModes.md) |
 | `Assets/Game/Scripts/Items/Backpack` | [Backpack](systems/Backpack.md) |
 | `Assets/Game/Scripts/Items/Equipped` | [Inventory](systems/Inventory.md) |
+| `Assets/Game/Scripts/Items/Supplies` | [Oxygen](systems/Oxygen.md) |
+| `Assets/Game/Scripts/Items/Supplies` | [SupplyCharge](systems/SupplyCharge.md) |
 | `Assets/Game/Scripts/agents/Entity/` | [EntitySystem](systems/EntitySystem.md) |
 | `ProjectSettings/NavMeshAreas.asset` | [NavMeshSystem](systems/NavMeshSystem.md) |
 | `Assets/Game/Scripts/Gear/Wingsuit` | [Wingsuit](systems/Wingsuit.md) |
 | `Assets/Game/Scripts/World/Safety/` | [WorldStreaming](systems/WorldStreaming.md) |
 | `Assets/Game/Scripts/agents/Audio/` | [audio](systems/audio.md) |
-| `Assets/Game/Scripts/Items/Oxygen` | [Oxygen](systems/Oxygen.md) |
 | `Assets/Game/Scripts/World/Caves/` | [TerrainGeneration](systems/TerrainGeneration.md) |
 | `Assets/Game/Scripts/World/Sites/` | [TerrainGeneration](systems/TerrainGeneration.md) |
 | `Assets/Game/Art/Models/_Source~` | [ArtPipeline](systems/ArtPipeline.md) |
@@ -826,4 +959,4 @@ Longest match wins.
 | `.gitattributes` | [ProjectConfig](systems/ProjectConfig.md) |
 | `.gitignore` | [ProjectConfig](systems/ProjectConfig.md) |
 
-<!-- 578 symptoms, 222 paths, 39 docs -->
+<!-- 677 symptoms, 256 paths, 44 docs -->

@@ -19,7 +19,7 @@ symptoms:
   - "I have an mp3 or wav and need it played by a creature or a prop"
   - "an NPC's chatter mutes every other NPC of the same kind"
 reads_with: [Multiplayer, AgentSystem, Combat, Cutscenes]
-updated: 2026-09-03
+updated: 2026-09-05
 ---
 
 # Audio
@@ -88,7 +88,7 @@ FMOD is the only playback backend; every gameplay sound is asked for by *meaning
 Sound is **never replicated**. There is no audio message in `NetMsg`/`NetRelay`; each machine plays locally off state or events it already has.
 
 - **The rule:** put the `Sfx.Play` call on a code path that runs on *every* machine. Server-only code makes no sound for anyone else.
-- **Replicated-event route (preferred):** `HealthComponent.OnRevive` / `OnDamage`, `RepairWorkstation.PlayFeedback` — health and feedback already fan out, so the sound fires everywhere and only on genuine success.
+- **Replicated-event route (preferred):** `HealthComponent.OnRevive` / `OnDamage` — health already fans out, so the sound fires everywhere and only on genuine success.
 - **Present route:** `UsableItem.PlayUse` plays the use sound then calls `Present()`. `Use()` (server) must not play sound; `Present()` (all machines) must.
 - **Local-immediate route:** [`PickupableItem`](Assets/Game/Scripts/Items/Core/PickupableItem.cs) plays the click *before* `Network.Execute`, accepting that a refused pickup still clicks, because a server round trip would lag the feedback.
 - [`Projectile.OnImpact`](Assets/Game/Scripts/Weapons/Projectiles/Projectile.cs) is deliberately **not** gated on cosmetic/authority: every peer holds a copy of the shot, only one bills damage, but all should hear it land.
@@ -109,7 +109,6 @@ Volumes only, and not via the save system: [`GameSettings`](Assets/Game/Scripts/
 - **Loops leak on the untested teardown path.** `OnDisable` (scene unload) and `OnDestroy` (despawn) are different exits; `AudioLoop` handles both — copy that shape.
 - **Duplicate ids in the catalog** are a warning, not an error: first entry wins. `OnValidate` clamps and invalidates the lookup.
 - **[`SandstormAudio`](Assets/Game/Scripts/World/Environment/Sandstorm/Effects/SandstormAudio.cs) is a plain Unity `AudioSource` + `AudioLowPassFilter`, on purpose** — a 2D continuous loop driven by one number, which would need an FMOD project to author properly. It is the documented exception, not a pattern to copy.
-- **[`AudioTestThingy`](Assets/Game/Scripts/Presentation/Audio/AudioTestThingy.cs) is dead** (empty `Start`/`Update`).
 
 ## Extending — add a new sound
 

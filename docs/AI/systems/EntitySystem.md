@@ -18,7 +18,7 @@ symptoms:
   - "EntityProfile_RobotPhil / _DesertRat is referenced but does not exist"
   - "a moving NPC keeps nine chunks loaded around itself"
 reads_with: [AgentSystem, Persistence, WorldStreaming, Vehicles]
-updated: 2026-09-01
+updated: 2026-09-05
 ---
 
 # Entity System
@@ -31,7 +31,7 @@ How a GameObject becomes a first-class **entity** in SpaceGame: how it is author
 ## Model
 
 - There is **no `Entity` base class and no central entity manager**. "Entity" is a claim made by attaching components; three independent axes, each with its own marker.
-- **Is it part of the mutable world?** → implements [`IPersistentEntity`](Assets/Game/Scripts/Core/Persistence/Format/IPersistentEntity.cs) (empty marker interface, assembly `SpaceGame.Persistence`, zero refs). Implemented by `AgentController`, `MountModule`, `LeggedLocomotion`, `DuneFoilLocomotion`, `SceneTracked`, `DoorInteraction`, `LeverInteraction`, `RepairWorkstation`, `ShipPartRack`, `Ship`, `SpaceshipManager`, `VolumeTrigger`, `CutsceneAction`, `ScanBeacon`, `RuinSecret`.
+- **Is it part of the mutable world?** → implements [`IPersistentEntity`](Assets/Game/Scripts/Core/Persistence/Format/IPersistentEntity.cs) (empty marker interface, assembly `SpaceGame.Persistence`, zero refs). Implemented by `AgentController`, `MountModule`, `LeggedLocomotion`, `DuneFoilLocomotion`, `SceneTracked`, `DoorInteraction`, `LeverInteraction`, `ShipPartRack`, `SpaceshipManager`, `VolumeTrigger`, `CutsceneAction`, `ScanBeacon`, `RuinSecret`.
 - **Does it move between chunks?** → [`SceneTracked`](Assets/Game/Scripts/World/Streaming/Core/SceneTracked.cs), which *also* implements `IPersistentEntity` — the two claims are deliberately one.
 - **Does it have a save record?** → [`SaveableEntity`](Assets/Game/Scripts/Core/Persistence/Runtime/SaveableEntity.cs), auto-attached by [`SaveablePolicy`](Assets/Game/Scripts/Core/Persistence/Runtime/SaveablePolicy.cs); you rarely add it by hand.
 - **Is it targetable by AI?** → [`EntityFaction`](Assets/Game/Scripts/agents/Faction/EntityFaction.cs), which self-registers into [`EntityTargetRegistry`](Assets/Game/Scripts/agents/Core/EntityTargetRegistry.cs) on enable. Factionless ⇒ invisible to all targeting. Details in [AgentSystem.md](AgentSystem.md).

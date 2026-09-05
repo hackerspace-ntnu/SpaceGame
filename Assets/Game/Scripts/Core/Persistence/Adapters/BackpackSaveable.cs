@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
+using SpaceGame.Gameplay;
 using SpaceGame.Items;
 using SpaceGame.Persistence;
 
@@ -44,6 +45,12 @@ namespace SpaceGame.Core.Persistence
         {
             BackpackObject pack = Pack;
             if (pack == null) return null;
+
+            // The tank plugged into the pack's socket has been draining on SuitOxygen's own float
+            // and is written back to the layout only on a whole-percent step — so without this the
+            // file records it as it was up to a percent ago. Cheap, idempotent, and the same
+            // write-back-before-capture the hotbar does for the item in the player's hand.
+            GetComponentInParent<SuitOxygen>()?.FlushTank();
 
             PackSaveCodec.State state = PackSaveCodec.Capture(pack.Layout);
 
@@ -152,6 +159,23 @@ namespace SpaceGame.Core.Persistence
             public float u;
             public float v;
             public float yaw;
+
+            /// <summary>
+            /// How full the item was, 0..1, or absent for the great majority of items, which hold
+            /// nothing.
+            ///
+            /// <para>
+            /// A FRACTION and never a quantity, for the reason <see cref="SupplyCharge"/> gives:
+            /// capacity is authored on the prefab, so a saved 0.43 still means "43% of a tank"
+            /// after the tank is retuned, and a saved 780 would not.
+            /// </para>
+            /// <para>
+            /// Nullable so that "written before charges existed" and "written empty" stay
+            /// different questions. A missing entry restores the item's AUTHORED starting charge;
+            /// reading it as 0 would empty every tank in every existing save on first load.
+            /// </para>
+            /// </summary>
+            public float? charge;
         }
 
         /// <summary>
@@ -260,6 +284,11 @@ namespace SpaceGame.Core.Persistence
                         u = placement.Uv.x,
                         v = placement.Uv.y,
                         yaw = placement.Yaw,
+
+                        // Null rather than -1 for an item that holds nothing, so the key is simply
+                        // absent from the record instead of every rifle in the game carrying a
+                        // number meaning "not applicable".
+                        charge = placement.Charge >= 0f ? placement.Charge : null,
                     });
                 }
             }
@@ -325,6 +354,10 @@ namespace SpaceGame.Core.Persistence
             InventoryItem item = Resolve(record.itemId, context);
             if (item == null) return;
 
+            // Absent means "this save predates charges", which restores the item's authored
+            // starting charge rather than an empty one -- see PackPlacementRecord.charge.
+            float charge = record.charge ?? SupplyCharge.StartingChargeOf(item);
+
             var surfaceId = (PackSurfaceId)record.surface;
             PackSurface surface = Find(surfaces, surfaceId);
 
@@ -339,13 +372,18 @@ namespace SpaceGame.Core.Persistence
             // save become a grid-placed one with no second migration and no new file version. A
             // yaw of 24 or 45 degrees from the old wheel becomes the nearest quarter turn the same
             // way; the item moves by a few centimetres and stays on the face it was left on.
+            // The record's OWN key, never a freshly minted one: it is what ties this charge to
+            // this copy, and re-minting would hand the wrong tank the wrong contents. A record
+            // written before instance keys existed carries a bare asset id, which IS the key of
+            // the first copy -- so old saves read unchanged.
             if (surface != null
-                && layout.TryPlace(item.ID, surfaceId, surface.Size, PackShapes.For(item, shapes),
+                && layout.TryPlace(record.itemId, surfaceId, surface.Size,
+                                   PackShapes.For(item, shapes),
                                    new Vector2(record.u, record.v) * uvScale,
-                                   PackShapes.SnapYaw(item, shapes, record.yaw)))
+                                   PackShapes.SnapYaw(item, shapes, record.yaw), charge))
                 return;
 
-            if (!PackContainer.TryArrange(layout, surfaces, item, shapes))
+            if (!PackContainer.TryArrange(layout, surfaces, item, shapes, record.itemId, charge))
             {
                 Debug.LogWarning($"[Save] Stored item '{item.itemName}' no longer fits anywhere on " +
                                  "the pack and was dropped from the restore. Did a surface shrink, " +
@@ -375,6 +413,9 @@ namespace SpaceGame.Core.Persistence
                 InventoryItem item = Resolve(token.Value<string>(), context);
                 if (item == null) continue;
 
+                // No key and no charge: a v1 record is an item id and a slot number, so the
+                // first copy's bare id and the item's authored starting charge are exactly what it
+                // meant.
                 if (!PackContainer.TryArrange(layout, surfaces, item, shapes))
                 {
                     Debug.LogWarning($"[Save] Backpack item '{item.itemName}' from an older save had " +

@@ -18,7 +18,7 @@ symptoms:
   - "the creature stopped walking after I added a LateUpdate to its subclass"
   - "the feet trail behind the body, or a planted foot slips along the ground"
 reads_with: [AgentSystem, Vehicles, Persistence]
-updated: 2026-09-01
+updated: 2026-09-05
 ---
 
 # Locomotion
@@ -65,6 +65,7 @@ Procedural legged walking: one kinematic base class ([`LeggedLocomotion`](Assets
 | `WalkerGround` | [Ground/WalkerGround.cs](Assets/Game/Scripts/Locomotion/Ground/WalkerGround.cs) | All raycasting; rejects own colliders, loose Rigidbodies and excluded surfaces; grows its buffer |
 | `WalkerSurface` / `WalkerSupportPlane` | [Ground/](Assets/Game/Scripts/Locomotion/Ground) | Supporting plane under one sole / least-squares plane under the whole body |
 | `WalkerFoothold` | [Ground/WalkerFoothold.cs](Assets/Game/Scripts/Locomotion/Ground/WalkerFoothold.cs) | The one correct foothold clamp: **horizontal**, against the hip **at touchdown** |
+| `AgentGrounding` / `AgentGroundingSettings` | [Ground/AgentGrounding.cs](Assets/Game/Scripts/Locomotion/Ground/AgentGrounding.cs) | Pure per-frame solve for a NavMesh agent's height correction and slope lean. No physics; reuses `WalkerSupportPlane.Tilt` for the lean |
 | `WalkerClimb` | [Ground/WalkerClimb.cs](Assets/Game/Scripts/Locomotion/Ground/WalkerClimb.cs) | Sustained-grade + wall test over a sampled profile; pure arithmetic, no rays |
 | `BodyFeet` | [Ground/BodyFeet.cs](Assets/Game/Scripts/Locomotion/Ground/BodyFeet.cs) | How far *any* body's pivot sits above its soles (the player's is ~1 m off) |
 | `WalkerPath` / `WalkerSteering` | [Steering/](Assets/Game/Scripts/Locomotion/Steering) | Forward-only polyline cursor (flat arrival test); heading error → twist |
@@ -120,7 +121,9 @@ Purely **cosmetic**: it removes one stumble per creature per load. Phase is assi
 ## Gotchas
 
 - **Bind the gait pattern before deriving speeds.** An unbound pattern can report duty 0 → `MaxSpeed` 0 → `SetTwist` clamps everything to 0 → the distance-driven clock stops → no slice reopens. Dead machine, no error. (Invariant I1; cost a session on the crawler.)
-- **You cannot move a walker by writing its transform.** `pathPos` overwrites it next frame — silently. Teleports, respawns, save restores and portals must go through `ITeleportAware.OnTeleported`, which rebases path, footholds, normals, swing arcs and arm targets by the same rigid transfer.
+- **You cannot move a walker by writing its transform.** `pathPos` overwrites it next frame — silently. Teleports, respawns, save restores and portals must go through `ITeleportAware.OnTeleported`, which rebases path, footholds, normals, swing arcs and arm targets by the same rigid transfer. A **rope** goes through `Drag` instead (below); a leash writing `Rigidbody.MovePosition` moved a towed ostrich not at all.
+- **`Drag` moves the path and deliberately NOT the footholds** — that is the whole difference from `OnTeleported`. A transfer carries the feet so the machine arrives in the stance it left; a tow leaves them, because they are still on the ground it is being hauled across, and the over-reach is what makes the legs step rather than skate. `BodyPosition` reads `pathPos`, not the transform, because the transform is only this class's last output.
+- **`ITowable` cannot be implemented here.** It lives in the default assembly and no asmdef may reference it — the same rule that put `LeggedDriver` outside `SpaceGame.Locomotion`. The driver implements it and calls `Drag`, capped at `MaxSpeed` so a rope drags an animal no faster than it could walk. See [LeashSystem.md](LeashSystem.md).
 - **Ground probes ignore non-kinematic Rigidbodies** (`WalkerGround.IsLooseBody`). A player standing on the crawler deck was read as ground: deck rises → carrier lifts the rider → probe finds them higher → the machine climbs into the sky. Only ever in the middle of the deck, where the single central ray is.
 - **`Physics.IgnoreCollision` does nothing to a raycast.** Portals must call `IGroundProbeExclusions.ExcludeFromGroundProbes` (idempotent, safe before the rig exists) or a walker stops dead at the rim of a hole it may legally walk through.
 - **Nothing at stride frequency may go through a filter.** `heightSmooth` is for terrain noise only; bob/lean/arm-swing are added on top, unfiltered and in phase. Springs (`HorseRideSpring`, `OstrichNeckSpring`) are second-order and are allowed to lag — that lag *is* the effect.

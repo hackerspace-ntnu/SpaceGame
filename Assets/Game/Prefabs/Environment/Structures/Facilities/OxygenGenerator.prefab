@@ -12,8 +12,8 @@ GameObject:
   - component: {fileID: 8171805232277678495}
   - component: {fileID: 7329022089256714700}
   - component: {fileID: 6113104802582945145}
-  - component: {fileID: -6934948693973106419}
-  - component: {fileID: -748133657321168837}
+  - component: {fileID: 3089137855762987593}
+  - component: {fileID: 5755037348419627317}
   m_Layer: 0
   m_Name: OxygenGenerator
   m_TagString: Untagged
@@ -74,12 +74,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Gameplay.OxygenGenerator
   ShowTopMostFoldoutHeaderGroup: 1
-  drainedTank: {fileID: 11400000, guid: a5e8fb73dbb66415f9232a516b5c5853, type: 2}
-  chargedTank: {fileID: 11400000, guid: f78494893a7b54bd0a9d7c390fe6babe, type: 2}
-  powerCell: {fileID: 11400000, guid: fb57e6c272d0a473cb80019a5671f8e7, type: 2}
+  tankItem: {fileID: 11400000, guid: f78494893a7b54bd0a9d7c390fe6babe, type: 2}
+  batteryItem: {fileID: 11400000, guid: fb57e6c272d0a473cb80019a5671f8e7, type: 2}
   tankSeat: {fileID: 5273202243863794232}
-  cellSeat: {fileID: 1514138645299629255}
+  cellSeat: {fileID: 4540337027338813449}
   fillSeconds: 5
+  fillCostPerTank: 0.04
   lamps:
   - part: {fileID: 6646129206952838958}
     materialIndex: 3
@@ -112,7 +112,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2063f364467fa45359a179e6474ffbf0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.OxygenGeneratorSaveable
---- !u!114 &-6934948693973106419
+--- !u!114 &3089137855762987593
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -128,7 +128,7 @@ MonoBehaviour:
   instanceId: 
   authored: 0
   scope: 0
---- !u!114 &-748133657321168837
+--- !u!114 &5755037348419627317
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -268,7 +268,7 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
---- !u!1 &2377581170655600577
+--- !u!1 &4398723401186423773
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -276,7 +276,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1514138645299629255}
+  - component: {fileID: 4540337027338813449}
   m_Layer: 0
   m_Name: Seat
   m_TagString: Untagged
@@ -284,13 +284,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1514138645299629255
+--- !u!4 &4540337027338813449
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2377581170655600577}
+  m_GameObject: {fileID: 4398723401186423773}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -330,7 +330,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1514138645299629255}
+  - {fileID: 4540337027338813449}
   m_Father: {fileID: 6644585577513122185}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &5405930223333830692

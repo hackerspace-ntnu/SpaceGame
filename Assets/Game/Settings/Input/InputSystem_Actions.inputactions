@@ -140,6 +140,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Retrieve",
+                    "type": "Button",
+                    "id": "0554ff0c-7b28-42bb-ab93-935d0029059c",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -734,6 +743,28 @@
                     "processors": "",
                     "groups": "Gamepad",
                     "action": "GauntletRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e4c2555a-1189-4db9-8240-b29afd0523fa",
+                    "path": "<Keyboard>/q",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Retrieve",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f056882e-bc1e-4c78-931b-26f94ee892ab",
+                    "path": "<Gamepad>/buttonWest",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "Retrieve",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

@@ -13,9 +13,10 @@ symptoms:
   - "a client fails to join with 'Scene Hash N does not exist in the HashToBuildIndex table'"
   - "the NavMesh baker silently skips every chunk / LoadAssetAtPath returns null for a chunk"
   - "I added a chunk or interior scene and nothing ever loads it"
+  - "the object I put in Bootstrap is gone the moment the game starts"
   - "which scene is build index 0 or 1, and where does the world scene live"
 reads_with: [WorldStreaming, Multiplayer, SceneTransitions]
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # Scenes
@@ -28,7 +29,7 @@ Map of every `.unity` scene in the project, its role, and the build-settings ord
 
 - **75 scenes on disk**, 68 in build settings, all enabled, none disabled.
 - **Build index 0 is [Bootstrap.unity](Assets/Game/Scenes/Core/Bootstrap.unity)** and index 1 must be MainMenu. [Bootstrapper.cs](Assets/Game/Scripts/Core/SceneManagement/Core/Bootstrapper.cs) force-loads index `0` `Single`, then loads back the scene you pressed Play in — falling back to hardcoded **index 1** when there is none. Reordering build settings so MainMenu is not index 1 silently changes the Play-from-Bootstrap destination.
-- **[persistentScene](Assets/Game/Scenes/world/persistentScene.unity) is the root gameplay scene**, loaded `Single`. It holds `Managers`, `WorldStreamer`, `[SaveSystem]`, `InteriorManager`, `NpcWorldSim`, `Weather`, `SpawnPoint`, `ArrivalDirector`. Everything else in-game is **additive** on top of it.
+- **[persistentScene](Assets/Game/Scenes/world/persistentScene.unity) is the root gameplay scene**, loaded `Single`. It holds `Managers`, `WorldStreamer`, `[SaveSystem]`, `InteriorManager`, `NpcWorldSim`, `Weather`, `SpawnPoint`, `ArrivalDirector`, and `Appa` (an animated set-dressing creature near the spawn). Everything else in-game is **additive** on top of it.
 - Three additive layers stack onto the root: **world chunks** (`WorldStreamer`, by scene *name*), **interiors** (`InteriorManager`, by scene *name* from `InteriorScene` assets), and the **minigame arena** (`MainMenuUI`, additive after the root finishes loading).
 - Networked sessions load through `NetworkManager.Singleton.SceneManager.LoadScene`, not `SceneManager`. Both the streamer and `InteriorManager` branch on `Network.IsNetworked` and pick the right one.
 - Scene names are indirected through `SceneReference` ScriptableObjects in [Assets/Game/Scenes/References/](Assets/Game/Scenes/References) so the menu and the lobby cannot disagree; `MainMenuUI.GameSceneName` is the single source for "the world scene".
@@ -38,9 +39,9 @@ Map of every `.unity` scene in the project, its role, and the build-settings ord
 
 | Scene | Path | Role | In build? |
 | --- | --- | --- | --- |
-| Bootstrap | [Core/Bootstrap.unity](Assets/Game/Scenes/Core/Bootstrap.unity) | Index 0. One `Bootstrapper` object; entry gate for every Play mode | 0 |
+| Bootstrap | [Core/Bootstrap.unity](Assets/Game/Scenes/Core/Bootstrap.unity) | Index 0. `NetworkManager`, `AudioManager`, `Bootstrapper`; entry gate for every Play mode. **Nothing placed here survives** — see Gotchas | 0 |
 | MainMenu | [Core/MainMenu.unity](Assets/Game/Scenes/Core/MainMenu.unity) | Front end: `MainMenuUI`, lobby preview camera, world select | 1 |
-| persistentScene | [world/persistentScene.unity](Assets/Game/Scenes/world/persistentScene.unity) | **Root gameplay scene.** Managers, streamer, save system, spawn point, arrival cutscene | 7 |
+| persistentScene | [world/persistentScene.unity](Assets/Game/Scenes/world/persistentScene.unity) | **Root gameplay scene.** Managers, streamer, save system, spawn point, arrival cutscene, Appa | 7 |
 | AlgeaCave | [Interiors/AlgeaCave.unity](Assets/Game/Scenes/Interiors/AlgeaCave.unity) | Additive interior; target of `Interior_AlgeaCave` (note the `Algea` spelling) | 8 |
 | SandstoneCaveInterior | [Interiors/SandstoneCaveInterior.unity](Assets/Game/Scenes/Interiors/SandstoneCaveInterior.unity) | Additive interior, ~3.5 MB, 20+ `AlgaeLight_*`; target of `Interior_SandstoneCave` | 9 |
 | MinigameArena | [Minigames/MinigameArena.unity](Assets/Game/Scenes/Minigames/MinigameArena.unity) | Deathmatch arena, loaded **additively** over persistentScene. **Currently empty — see Gotchas** | 58 |
@@ -106,6 +107,7 @@ No scene is loaded by a string that is missing from build settings. [InteriorSce
 6. **Adding a chunk scene means three edits, not one**: the `.unity` file, the config's `chunks[]` entry, and build settings. A chunk missing from build settings fails only over the network, and only for the client.
 7. `Assets/_Recovery/0.unity` is a duplicate Bootstrap that Unity's crash recovery left behind; it is not in the build and should be deleted.
 8. Five personal test scenes are in build settings. They are shipped content today.
+9. **Nothing you place in Bootstrap survives.** It holds `NetworkManager`, `AudioManager` and `Bootstrapper` and nothing else, because `Bootstrapper` immediately loads the real scene `Single` and everything in Bootstrap is destroyed with it. Set dressing, test props and creatures belong in `persistentScene` (or a chunk), never here. The mistake is easy to make because Bootstrap is the scene Play mode always starts from, so it is the one that happens to be open.
 
 ## Extending
 

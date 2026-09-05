@@ -20,6 +20,12 @@ namespace SpaceGame.Agents
         [Header("Damage")]
         public int damagePerHit = 15;
 
+        [Header("Noise")]
+        [Tooltip("Metres a shot from this weapon is heard over by NoiseReceiverModules — guards " +
+                 "investigate it, wildlife bolts from it. Nothing to do with how loud it sounds; " +
+                 "that is fireId below. 0 = silent to AI.")]
+        public float gunshotNoiseRadius = 40f;
+
         [Header("Audio")]
         [Tooltip("Which catalog slot this weapon fires with. fireSound below overrides it outright.")]
         public SfxId fireId = SfxId.WeaponGunFire;

@@ -41,6 +41,9 @@ namespace SpaceGame.Core
         public event Action OnDropPressed;
     
         public event Action OnInteractPressed;
+
+        /// <summary>Q: take back whatever the crosshair is on. See IRetrievable.</summary>
+        public event Action OnRetrievePressed;
     
         public event Action OnUsePressed;
 
@@ -366,6 +369,7 @@ namespace SpaceGame.Core
 
             // World interaction
             inputs.Player.Interact.performed += _ => OnInteractPressed?.Invoke();
+            inputs.Player.Retrieve.performed += _ => OnRetrievePressed?.Invoke();
             inputs.Player.Jump.performed     += _ => HandleJump();
             inputs.Player.GauntletLeft.performed  += _ => OnGauntletPressed?.Invoke(Items.ItemGrip.Hand.Left);
             inputs.Player.GauntletLeft.canceled   += _ => OnGauntletReleased?.Invoke(Items.ItemGrip.Hand.Left);

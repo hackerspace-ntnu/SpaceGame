@@ -51,6 +51,9 @@ namespace SpaceGame.Gameplay
         /// <summary>Appended when the interactable also takes a Use action.</summary>
         public const string SecondarySuffix = "   LMB: use";
 
+        /// <summary>Appended when the interactable can also be picked up.</summary>
+        public const string RetrieveSuffix = "   Q: pick up";
+
         // Trailing words that describe the plumbing rather than the thing. "DoorInteraction" is a
         // door; "MountModule" is a mount. Order matters only in that longer suffixes are listed
         // first so "Interactable" is not half-eaten by "Interact".
@@ -154,9 +157,10 @@ namespace SpaceGame.Gameplay
         /// <summary>"RMB: interact", plus the Use line when the component takes one.</summary>
         public static string DerivePrompt(IInteractable interactable)
         {
-            return interactable is ISecondaryInteractable
-                ? DefaultPrompt + SecondarySuffix
-                : DefaultPrompt;
+            string prompt = DefaultPrompt;
+            if (interactable is ISecondaryInteractable) prompt += SecondarySuffix;
+            if (interactable is IRetrievable) prompt += RetrieveSuffix;
+            return prompt;
         }
 
         /// <summary>Split a PascalCase identifier into words. "RepairWorkstation" -> "Repair Workstation".</summary>

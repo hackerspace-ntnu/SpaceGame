@@ -66,6 +66,8 @@ grep -i 'client' docs/AI/ROUTING.md
 | [Inventory](systems/Inventory.md) | Hotbar slots, InventoryItem assets, the hand socket that seats each equip, and the pickup/drop round trip | [Artifacts](systems/Artifacts.md), [Backpack](systems/Backpack.md), [BodyEquipment](systems/BodyEquipment.md), [Persistence](systems/Persistence.md), [Combat](systems/Combat.md), [Oxygen](systems/Oxygen.md) |
 | [LeashSystem](systems/LeashSystem.md) | A rope tied between any two things; every machine draws its own copy and resolves only the ends it owns | [Artifacts](systems/Artifacts.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [PlayerCharacter](systems/PlayerCharacter.md) |
 | [Oxygen](systems/Oxygen.md) | The ship's oxygen plant: two receptacles, a power cell that wakes it and a bottle it fills in five seconds | [Inventory](systems/Inventory.md), [Backpack](systems/Backpack.md), [PlayerShip](systems/PlayerShip.md), [InteractionSystem](systems/InteractionSystem.md), [Persistence](systems/Persistence.md), [Multiplayer](systems/Multiplayer.md) |
+| [Placeables](systems/Placeables.md) | Items put into the world under a placement rule, and picked back up with Q | [Artifacts](systems/Artifacts.md), [InteractionSystem](systems/InteractionSystem.md), [Backpack](systems/Backpack.md), [Saddles](systems/Saddles.md) |
+| [Saddles](systems/Saddles.md) | Fitting a saddle to an animal: what makes it rideable, what it carries, and what happens when it comes off | [AgentSystem](systems/AgentSystem.md), [Backpack](systems/Backpack.md), [Artifacts](systems/Artifacts.md), [Vehicles](systems/Vehicles.md) |
 | [Wingsuit](systems/Wingsuit.md) | A worn membrane that flies the player's own body on the ornithopter's model with the thrust set to zero | [Ornithopter](systems/Ornithopter.md), [BodyEquipment](systems/BodyEquipment.md), [PlayerCharacter](systems/PlayerCharacter.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md) |
 
 ### Vehicles — mounts, ships, aircraft
@@ -120,4 +122,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 37 system docs, 6 redirects -->
+<!-- 39 system docs, 6 redirects -->

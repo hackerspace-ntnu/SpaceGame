@@ -252,6 +252,20 @@ Roughly fifty menu commands sit behind the editor's Tools menu and cover almost 
 
 **Worth knowing:** In some sessions the asset database quietly goes read-only and throws away what a builder writes without raising anything at all, so a build can report complete success having changed nothing — the only defence is reading every written file back off disk afterwards and checking it.
 
+### Putting things down *(Placeables)*
+
+Some items are meant to be set down rather than carried: you point at a patch of ground, place it, and the item leaves your pack because it is now standing over there. Looking at it and pressing Q picks it back up again. The loop is deliberately tight — a placed thing is never also in your inventory, and picking it up hands back exactly the item that placed it, so nothing multiplies by being set down and collected a few times.
+
+The first one is a camp lantern: set it down and it lights the ground around it, pick it up and it is a lantern in your pack again.
+
+**Worth knowing:** Q is the "take that back" key everywhere, which is why it also strips a saddle off an animal. It is kept separate from E on purpose: a placed thing that *does* something keeps E for doing it, so a lamp lights with E and goes back in your pack with Q, and you never have to guess which one a single key meant this time. Placing refuses steep ground, and nothing is taken from your pack unless something actually appeared where you aimed.
+
+### Saddling an animal *(Saddles)*
+
+Use a saddle on a creature and it becomes something you can ride and something that carries your gear — three faces of it, laid out cell by cell the same way the expedition pack is. Nothing wears a saddle by default, and nothing can be ridden without one: a bare animal simply offers you nothing when you look at it. Taking the saddle back off is a separate action on the saddle itself rather than on the animal, so you never need to be holding one to remove one — either by looking at one of its straps, or by standing beside the animal and pressing Q.
+
+**Worth knowing:** Everything stowed on a saddle falls to the ground around the animal when the saddle comes off, rather than disappearing with it. Gear on an animal is gear on something that wanders away, so it always ends up somewhere you can pick it up again — and a saddle with a rider still on it refuses to come off at all.
+
 ## If you want more
 
 - Read the themed chapters instead: start at [01-the-game.md](01-the-game.md), or see the

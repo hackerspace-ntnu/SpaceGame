@@ -130,24 +130,23 @@ namespace SpaceGame.EditorTools
             Transform flame = Find(root.transform, "LIGHT_Flame");
             if (flame != null) Object.DestroyImmediate(flame.gameObject);
 
-            var box = root.AddComponent<BoxCollider>();
-            box.center = new Vector3(0f, 0.16f, 0f);
-            box.size = new Vector3(0.26f, 0.32f, 0.26f);
-
-            var body = root.AddComponent<Rigidbody>();
-            body.isKinematic = true;
-            body.useGravity = true;
-
             // PickupableItem is internal to Assembly-CSharp, so an editor assembly cannot name it.
             Component pickup = AddInternal(root, "SpaceGame.Items.PickupableItem");
             if (pickup != null) SetObject(pickup, "item", asset);
 
-            var physics = root.AddComponent<DropItemPhysics>();
-            SetObject(physics, "rb", body);
-            SetInt(physics, "groundLayer", 128);
-
+            // Body, a collider fitted to the mesh, and the netcode an item needs to be seen
+            // moving. Replaces the hand-rolled Rigidbody + BoxCollider + DropItemPhysics that used
+            // to be here: main deleted DropItemPhysics, and Apply strips it by name from anything
+            // still carrying one.
+            // NetworkObject FIRST: ItemWorldPresence.EnsureNetworking early-returns without
+            // one -- it enriches an existing NetworkObject with NetworkTransform and
+            // NetAuthority, it does not create it. Dropping this line is how both items
+            // silently lost theirs and fell out of the network prefab list.
             root.AddComponent<NetworkObject>();
             root.AddComponent<NetRelay>();
+
+            ItemWorldPresence.Apply(root);
+
             root.AddComponent<SaveableEntity>();
             root.AddComponent<TransformSaveable>();
             root.AddComponent<ItemGrip>();

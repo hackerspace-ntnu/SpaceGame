@@ -134,8 +134,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c96a70975f8f4b3592d56c202d03287, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.PackSurface
-  id: 12
+  id: 13
   size: {x: 0.189, y: 0.2835}
+  acceptsOnly: []
 --- !u!1 &800051937174562022
 GameObject:
   m_ObjectHideFlags: 0
@@ -493,8 +494,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c96a70975f8f4b3592d56c202d03287, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.PackSurface
-  id: 13
+  id: 14
   size: {x: 0.2835, y: 0.189}
+  acceptsOnly: []
 --- !u!1 &4825314461924491862
 GameObject:
   m_ObjectHideFlags: 0
@@ -1092,8 +1094,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c96a70975f8f4b3592d56c202d03287, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Items.PackSurface
-  id: 11
+  id: 12
   size: {x: 0.189, y: 0.2835}
+  acceptsOnly: []
 --- !u!1 &8395621413531950915
 GameObject:
   m_ObjectHideFlags: 0

@@ -231,6 +231,18 @@ namespace SpaceGame.Agents
             if (!cameraObject.GetComponent<AudioListener>())
                 cameraObject.AddComponent<AudioListener>();
 
+            // This object is RUNTIME state and must never reach a scene file.
+            //
+            // It is spawned unparented (see above) into whatever scene is currently open, so in the
+            // editor it is an ordinary root object that Ctrl+S writes to disk like any other. Four
+            // of them once shipped inside persistentScene that way: enabled, depth -1, display 0,
+            // tying with the real Main Camera, so which camera the game rendered through was
+            // arbitrary -- and each carried an AudioListener and a StudioListener besides.
+            //
+            // DontSaveInEditor rather than DontSave: the latter also means "do not destroy on
+            // scene load", which for a camera would trade a save-file leak for a cross-scene one.
+            cameraObject.hideFlags = HideFlags.DontSaveInEditor;
+
             // Without the parent to start it in the right place, the first frame must snap rather
             // than lerp — otherwise the camera swoops in from wherever the prefab was authored.
             thirdPersonCameraNeedsSnap = true;

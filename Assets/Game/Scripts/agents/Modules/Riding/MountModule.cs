@@ -332,6 +332,20 @@ namespace SpaceGame.Agents
                 lookAction.Disable();
                 forcedLookActionEnabled = false;
             }
+
+            // Unconditionally, and NOT only in the IsMounted branch above. The third-person camera
+            // is created by SetThirdPersonCameraEnabled, which runs off the perspective rather than
+            // off the rider, so it can exist while nothing is mounted -- and then nothing above
+            // would take it down. It is unparented, so no hierarchy takes it down either.
+            ReleaseRuntimeThirdPersonCamera();
+        }
+
+        // OnDisable already covers the ordinary teardown, and Unity raises it before OnDestroy for
+        // an active object. This is for the object that was ALREADY disabled when it was destroyed:
+        // OnDisable does not fire a second time, and the camera would outlive its mount.
+        private void OnDestroy()
+        {
+            ReleaseRuntimeThirdPersonCamera();
         }
 
         private void Update()

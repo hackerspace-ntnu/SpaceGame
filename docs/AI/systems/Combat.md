@@ -21,8 +21,9 @@ symptoms:
   - "a blast bills a creature once per limb inside its radius, so a body dies instantly"
   - "the ball lightning orb drifts through creatures without ever hurting them"
   - "the orb discharges on the host and on a client at slightly different moments"
+  - "firing a gun near wildlife or a guard provokes no reaction at all"
 reads_with: [Artifacts, AgentSystem, Inventory, Persistence]
-updated: 2026-09-02
+updated: 2026-09-03
 ---
 
 # Combat
@@ -127,6 +128,7 @@ Ordering on load: the record lands → `RestoreHealth` clamps to the prefab's `m
 ## Gotchas
 
 - **Both overlays invisible for everyone, no errors → the `WorldOverlay` Canvas itself is disabled.** The components run, labels are created and positioned, nothing renders. Historic cause: menu screens hid every canvas in the game and the launch path never restored the `DontDestroyOnLoad` ones — see the [UI](UI.md) gotcha on canvas scoping. Diagnose by reading `Canvas.enabled` on the WorldOverlay object at runtime before suspecting the damage signals.
+- **A shot is a gameplay event, not just a sound — and it reaches AI through `Noise`, not the damage pipeline.** A miss damages nothing, so `HealthComponent` never fires and no listener would ever learn a gun went off. `Weapon.ReportGunshot` emits `NoiseType.Gunshot` from `TryFire`, **after** a round has actually left: not when a charge *starts* (nothing is in the air yet), and not from `Present()`. That placement is what keeps it authority-only without a check of its own — `TryFire` is reached from `Use()` and nowhere else, while `Present()` calls `Fire()` directly. It has to stay that way: a creature only ticks on the machine that owns it, so a noise emitted on a peer is heard by a copy that cannot act on it while the copy that can hears nothing. The agent-side guns do the same behind `authority.SimulatedHere` (`AgentRangedCombatModule.FireOne`, `TurretModule.Fire`, `RocketLauncherTurret.Fire`). Tune with `Weapon.gunshotNoiseRadius` / `AgentWeaponDefinition.gunshotNoiseRadius`; 0 is silent to AI and still audible to players. Who listens is [AgentSystem](AgentSystem.md).
 - **Damage multiplied by player count.** The classic symptom of a missing `Cosmetic`/`ShotDealsDamage` gate, or a scene prop that damages from every machine's copy. Gate on the **victim's** authority (`Network.Simulates(health)`), not the prop's — scenery has no `NetworkObject`.
 - **Projectiles must NOT be in the network prefab list.** Verified: `CixinGunEquipped.prefab` and `BallLightningWeapon_Pickup.prefab` are registered in [DefaultNetworkPrefabs.asset](Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset); `BallLightningProjectile.prefab` and `CixinGunFinal.prefab` are not, and must not be. Only what `GameServices.World.Spawn` is handed belongs there. The root-level `Assets/DefaultNetworkPrefabs.asset` regenerates itself and is **not** the list used.
 - **Missing registration fails on clients only** — the host instantiates its own copy and never consults the list, so solo playtesting cannot find it.

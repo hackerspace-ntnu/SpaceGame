@@ -46,10 +46,29 @@ namespace SpaceGame.Agents
         private Vector3 previousLocalPosition;
         private bool hasPreviousPosition;
 
+        // Signed yaw rate in degrees/second, positive turning right. Measured from the transform
+        // for the same reason the velocity is: a NavMeshAgent turning on the spot reports no
+        // velocity at all, so a creature changing its mind about where to go stood frozen and
+        // pivoted like a turret. Nothing tells the animator the agent is turning; this does.
+        private float previousYaw;
+        private bool hasPreviousYaw;
+        private float turnRate;
+
         // Above this, the body did not move — it was moved. A NetworkTransform teleport, a chunk
         // streaming in under the agent, a respawn. Nothing this game drives goes this fast, and
         // feeding the jump in as a velocity would flash a full-speed run for a frame every time.
         private const float TeleportSpeed = 60f;
+
+        // The rotational twin of TeleportSpeed: four full turns a second. Nothing steers this
+        // fast, so anything above it was the transform being placed rather than turned.
+        private const float TeleportYawRate = 1440f;
+
+        // Optional parameters -- TurnSpeed, and whatever dwell flags a creature's tasks name.
+        // Writing a parameter a controller does not have logs a warning every frame per agent in
+        // the Editor, so the controller is asked once and the answer cached.
+        private static readonly int TurnSpeedHash = Animator.StringToHash("TurnSpeed");
+        private readonly System.Collections.Generic.Dictionary<int, bool> parameterCache
+            = new System.Collections.Generic.Dictionary<int, bool>();
 
         private void Awake()
         {
@@ -75,12 +94,21 @@ namespace SpaceGame.Agents
                 animator.speed = animatorSpeedScale;
         }
 
-        private void OnEnable() => hasPreviousPosition = false;
+        private void OnEnable()
+        {
+            hasPreviousPosition = false;
+            hasPreviousYaw = false;
+            parameterCache.Clear();   // the controller may have been swapped
+        }
 
         // A reparent moves the frame the sample is taken in, so the delta across that one frame is
         // the distance between two different origins rather than any motion. Mounting a creature
         // would otherwise flash a sprint on the frame it is seated.
-        private void OnTransformParentChanged() => hasPreviousPosition = false;
+        private void OnTransformParentChanged()
+        {
+            hasPreviousPosition = false;
+            hasPreviousYaw = false;
+        }
 
         /// <summary>
         /// Fill in for whoever is not driving this animation.
@@ -104,6 +132,11 @@ namespace SpaceGame.Agents
 
             previousLocalPosition = sample;
             hasPreviousPosition = true;
+
+            float yaw = SampleYaw();
+            turnRate = hasPreviousYaw ? MeasureTurnRate(previousYaw, yaw, deltaTime) : 0f;
+            previousYaw = yaw;
+            hasPreviousYaw = true;
 
             if (lastDrivenFrame == Time.frameCount)
                 return;
@@ -131,6 +164,36 @@ namespace SpaceGame.Agents
             Vector3 velocity = worldDelta / deltaTime;
 
             return velocity.sqrMagnitude > TeleportSpeed * TeleportSpeed ? Vector3.zero : velocity;
+        }
+
+        /// <summary>
+        /// One frame of turning as a signed rate in degrees/second, positive to the right.
+        ///
+        /// <para>
+        /// Static and free of the transform so the rule is testable without a frame, and shaped
+        /// like <see cref="MeasureVelocity"/> for the same reasons: a non-positive delta measures
+        /// nothing, and anything past <see cref="TeleportYawRate"/> was a placement — a respawn or
+        /// a replicated snap — rather than a turn, and feeding it in would flash a full turn clip
+        /// for one frame.
+        /// </para>
+        /// </summary>
+        public static float MeasureTurnRate(float previousDegrees, float currentDegrees, float deltaTime)
+        {
+            if (deltaTime <= 0f) return 0f;
+
+            float rate = Mathf.DeltaAngle(previousDegrees, currentDegrees) / deltaTime;
+
+            return Mathf.Abs(rate) > TeleportYawRate ? 0f : rate;
+        }
+
+        // Measured in the parent's frame for the same reason the position is: a creature standing
+        // still on a turning deck is not turning itself.
+        private float SampleYaw()
+        {
+            Transform parent = transform.parent;
+            return parent != null
+                ? (Quaternion.Inverse(parent.rotation) * transform.rotation).eulerAngles.y
+                : transform.eulerAngles.y;
         }
 
         private Vector3 SampleLocalPosition()
@@ -168,6 +231,49 @@ namespace SpaceGame.Agents
             animator.SetFloat("FallSpeed", worldVelocity.y, 0.1f, Time.deltaTime);
             animator.SetBool("IsGrounded", true);
             animator.SetBool("IsImmobalized", isImmobile);
+
+            // Not scaled by speedScale: this is a real rate in degrees/second, and the controller
+            // thresholds it against one. Damped harder than the speeds because a NavMeshAgent's
+            // yaw is noisy frame to frame and an undamped value flickers the turn state on and off.
+            if (HasParameter(TurnSpeedHash, AnimatorControllerParameterType.Float))
+                animator.SetFloat(TurnSpeedHash, turnRate, 0.15f, Time.deltaTime);
+        }
+
+        /// <summary>
+        /// Hold an animator bool by name, if this controller has one.
+        ///
+        /// For state that lasts — NpcTaskModule holds "IsGrazing" for as long as the animal is
+        /// working a feeding site. A trigger would fire once and leave it standing to attention
+        /// for the rest of a forty-second meal.
+        /// </summary>
+        public void SetBoolByName(string parameterName, bool value)
+        {
+            if (string.IsNullOrEmpty(parameterName)) return;
+            if (!animator || animator.runtimeAnimatorController == null) return;
+
+            int hash = Animator.StringToHash(parameterName);
+            if (HasParameter(hash, AnimatorControllerParameterType.Bool))
+                animator.SetBool(hash, value);
+        }
+
+        private bool HasParameter(int hash, AnimatorControllerParameterType type)
+        {
+            if (parameterCache.TryGetValue(hash, out bool known))
+                return known;
+
+            bool found = false;
+            AnimatorControllerParameter[] parameters = animator.parameters;
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                if (parameters[i].nameHash == hash && parameters[i].type == type)
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            parameterCache[hash] = found;
+            return found;
         }
 
         public void TriggerHurt() => SetTriggerSafe("Hurt");

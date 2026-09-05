@@ -336,6 +336,7 @@ MonoBehaviour:
       chatter:
       - Three days to the next post, if the birds hold.
       - Salt sells better east.
+      dwellFlag: 
       weight: 1.5
       arriveRadius: 10
       travelSpeedMultiplier: 1
@@ -349,6 +350,7 @@ MonoBehaviour:
       chatter:
       - They drink more than we do.
       - Should be water in the low ground.
+      dwellFlag: 
       weight: 1
       arriveRadius: 10
       travelSpeedMultiplier: 1
@@ -362,6 +364,7 @@ MonoBehaviour:
       chatter:
       - Something came down here, long back.
       - Anything not buried is already taken.
+      dwellFlag: 
       weight: 0.8
       arriveRadius: 10
       travelSpeedMultiplier: 1
@@ -393,6 +396,62 @@ MonoBehaviour:
     useStartPosition: 1
     startPosition: {x: 3480, y: 100, z: 1740}
     bountyHunters: 1
+    formation:
+      Lanes: 2
+      RowSpacing: 3
+      LaneSpacing: 2.2
+      LateralJitter: 0.5
+      LongitudinalJitter: 0.6
+      DriftAmplitude: 0.35
+      DriftRate: 0.1
+  - id: wild-appa
+    displayName: Appa
+    members:
+    - prefab: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      isLeader: 1
+      count: 1
+    tasks:
+    - label: grazing the open ground
+      targetSite: 6
+      searchRadius: 1800
+      searchFromHome: 0
+      dwellSeconds: {x: 120, y: 300}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: 
+      weight: 2
+      arriveRadius: 25
+      travelSpeedMultiplier: 1
+    - label: drinking
+      targetSite: 4
+      searchRadius: 1500
+      searchFromHome: 0
+      dwellSeconds: {x: 60, y: 150}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: 
+      weight: 1
+      arriveRadius: 18
+      travelSpeedMultiplier: 1
+    - label: drifting across country
+      targetSite: 7
+      searchRadius: 2200
+      searchFromHome: 0
+      dwellSeconds: {x: 40, y: 120}
+      yields: {fileID: 0}
+      yieldChance: 1
+      chatter: []
+      dwellFlag: 
+      weight: 0.6
+      arriveRadius: 30
+      travelSpeedMultiplier: 1
+    travelSpeed: 1.4
+    startNearSite: 6
+    useStartPosition: 0
+    startPosition: {x: 3480, y: 100, z: 1740}
+    bountyHunters: 0
     formation:
       Lanes: 2
       RowSpacing: 3
@@ -2225,6 +2284,83 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5112580885519179244, guid: ec4e691b1839d6341982bcd940dd429c, type: 3}
   m_PrefabInstance: {fileID: 1605608358}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1612428264
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1726653327679310345, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: GlobalObjectIdHash
+      value: 90319452
+      objectReference: {fileID: 0}
+    - target: {fileID: 1726653327679310345, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1726653327679310345, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 3005823273
+      objectReference: {fileID: 0}
+    - target: {fileID: 2800565397213539013, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: authored
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2800565397213539013, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: instanceId
+      value: 8572935abf6347ef9a195f442114e1da
+      objectReference: {fileID: 0}
+    - target: {fileID: 3092591699166706021, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: m_Name
+      value: Appa
+      objectReference: {fileID: 0}
+    - target: {fileID: 3793169517820180508, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3790
+      objectReference: {fileID: 0}
+    - target: {fileID: 3793169517820180508, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 3793169517820180508, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1588
+      objectReference: {fileID: 0}
+    - target: {fileID: 3793169517820180508, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.39073122
+      objectReference: {fileID: 0}
+    - target: {fileID: 3793169517820180508, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3793169517820180508, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.92050487
+      objectReference: {fileID: 0}
+    - target: {fileID: 3793169517820180508, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3793169517820180508, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3793169517820180508, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3793169517820180508, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: a4e3d48f159080440abdf6b5bcb2bbec, type: 3}
 --- !u!1001 &1680016979
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2887,3 +3023,4 @@ SceneRoots:
   - {fileID: 114649345}
   - {fileID: 1845903061}
   - {fileID: 1900100002}
+  - {fileID: 1612428264}

@@ -27,6 +27,16 @@ namespace SpaceGame.Characters
         /// <summary>Name of the masked layer this component owns outright.</summary>
         private const string UpperBodyLayer = "Upper Body";
 
+        /// <summary>
+        /// Bool held true while a one-shot gesture is playing on the Upper Body layer.
+        ///
+        /// The layer's Any State transitions are driven by <see cref="HoldStyleParameter"/> and are
+        /// continuously true — with empty hands "HoldStyle Equals 0" sends it to Empty on every
+        /// frame — so a gesture entered by a trigger is thrown straight back out again. Every one
+        /// of those transitions also requires this to be false.
+        /// </summary>
+        private const string GesturingParameter = "Gesturing";
+
         [Header("References")]
         [SerializeField] private Animator animator;
 
@@ -34,6 +44,11 @@ namespace SpaceGame.Characters
         [Tooltip("Seconds for the upper-body pose to fade in when an item is equipped and out " +
                  "when it is put away. 0 snaps.")]
         [SerializeField] private float holdBlendTime = 0.18f;
+
+        [Header("Gesture")]
+        [Tooltip("Seconds a one-shot gesture keeps the Upper Body layer up after it starts. " +
+                 "Set from the clip length by whoever plays it; this is only the fallback.")]
+        [SerializeField] private float defaultGestureSeconds = 2.5f;
 
         [Header("Aim")]
         [Tooltip("Seconds to bring the item all the way to the eye and back down.")]
@@ -57,6 +72,12 @@ namespace SpaceGame.Characters
         private int upperBodyLayerIndex = -1;
         private int holdStyleHash;
         private int aimingHash;
+        private int gesturingHash;
+
+        // Counts down while a gesture plays. Holds the masked layer up so the gesture is visible
+        // with empty hands, which is the whole point: you pet an animal with a free hand, and the
+        // layer is otherwise only raised by holding an item.
+        private float gestureTimer;
 
         private ItemGrip.HoldStyle heldStyle = ItemGrip.HoldStyle.None;
         private float holdT;
@@ -87,6 +108,7 @@ namespace SpaceGame.Characters
 
             holdStyleHash = Animator.StringToHash(HoldStyleParameter);
             aimingHash = Animator.StringToHash(AimingParameter);
+            gesturingHash = Animator.StringToHash(GesturingParameter);
 
             if (animator == null) return;
 
@@ -115,8 +137,30 @@ namespace SpaceGame.Characters
             heldStyle = style;
         }
 
+        /// <summary>
+        /// Play a one-shot on the masked Upper Body layer, and hold the layer up while it runs.
+        ///
+        /// <para>
+        /// Routed through this component rather than set on the Animator directly because this
+        /// component owns the layer weight — it writes it every frame from <c>holdT</c>, so a
+        /// trigger fired from outside plays a clip on a layer weighted 0 and nothing appears.
+        /// </para>
+        /// </summary>
+        public void PlayGesture(string trigger, float seconds = 0f)
+        {
+            if (animator == null || animator.runtimeAnimatorController == null) return;
+            if (string.IsNullOrEmpty(trigger)) return;
+
+            gestureTimer = Mathf.Max(gestureTimer, seconds > 0f ? seconds : defaultGestureSeconds);
+            animator.SetBool(gesturingHash, true);
+            animator.SetTrigger(trigger);
+        }
+
         private void Update()
         {
+            if (gestureTimer > 0f)
+                gestureTimer -= Time.deltaTime;
+
             DecideAiming();
             Blend(Time.deltaTime);
             WriteAnimator();
@@ -154,7 +198,7 @@ namespace SpaceGame.Characters
             // The pose comes off entirely while dead, whatever is in the hand. The death clip runs
             // on the Base Layer, and an Upper Body layer left at weight 1 would override its arms
             // and leave the corpse holding its rifle out in front of it.
-            bool posed = heldStyle != ItemGrip.HoldStyle.None
+            bool posed = (heldStyle != ItemGrip.HoldStyle.None || gestureTimer > 0f)
                          && (controller == null || !controller.IsDead);
 
             holdT = AimPose.Ease(holdT, posed ? 1f : 0f, holdBlendTime, deltaTime);
@@ -173,6 +217,7 @@ namespace SpaceGame.Characters
             animator.SetLayerWeight(upperBodyLayerIndex, holdT);
             animator.SetInteger(holdStyleHash, (int)heldStyle);
             animator.SetBool(aimingHash, aiming);
+            animator.SetBool(gesturingHash, gestureTimer > 0f);
         }
 
         /// <summary>

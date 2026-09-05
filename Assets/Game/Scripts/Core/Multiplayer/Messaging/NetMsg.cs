@@ -483,5 +483,16 @@ namespace SpaceGame.Core
         //
         //   Target  the ship that launched, so a versus formation's other hulls are ignored.
         public const ushort ArrivalLaunched = 97; // server → everyone, on the SHIP's relay
+
+        // ── Petting ──
+        // A creature's reaction to being petted is world state, not a local flourish: the other
+        // players are standing there watching it happen. So the press asks, the server decides
+        // (it re-checks the mood — the presser's copy may not have started charging yet), and the
+        // answer goes to everyone including the presser, who has played nothing yet.
+        //
+        // No payload. Which creature it is, is already carried by the relay the message is sent
+        // on, and there is only ever one thing to do to it.
+        public const ushort PetRequest = 98; // player -> server, on the ANIMAL's relay
+        public const ushort Petted     = 99; // server -> everyone, on the ANIMAL's relay
     }
 }

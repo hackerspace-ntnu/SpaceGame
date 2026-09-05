@@ -26,9 +26,21 @@ Measured on this rig, +25 deg about each world axis moves the tip:
     RightForeArm  X (0.00 +0.10 -0.07)   Y (+0.12 -0.12 0.00)   Z (+0.11 0.00 -0.12)
     Spine1        X (0.00 -0.10 -0.02)   Y (0.00 0.00 0.00)     Z (-0.10 0.00 -0.02)
 
-so for this rig **-X reaches the arm forward, -Z lifts it**, and +X leans the
-spine forward. Note Spine1 barely responds to Y at all -- that is its own length
-axis, and keying it would have been the invisible-twist bug all over again.
+so +X leans the spine forward, and Spine1 barely responds to Y at all -- that is
+its own length axis, and keying it would have been the invisible-twist bug again.
+
+**Those single-axis readings do not survive being extrapolated.** The first
+version reached with `RightArm` x=-64 z=-46, reading -X as "forward" and -Z as
+"up" off the table above, and the hand ended up **1.09 m to the character's RIGHT
+and 0.17 m forward** -- an arm held straight out sideways, which read as waving.
+At 60 deg the rotations compose nowhere near the small-angle prediction. So the
+pose below was found by searching the space and measuring the HAND against the
+chest instead:
+
+    RightArm y=+60, z=-30, RightForeArm x=-70
+        -> 0.80 m forward, 0.29 m up, 0.28 m right of the chest
+
++Y on the upper arm is the forward swing. Re-measure, never extrapolate.
 """
 
 import math
@@ -131,26 +143,33 @@ def main():
     for f in range(FRAMES + 1):
         u = f / float(FRAMES)
 
-        # reach out, two strokes, withdraw
-        reach = ramp(u, 0.00, 0.30) * (1.0 - ramp(u, 0.80, 1.00))
-        stroke = math.sin(u * 2.0 * math.pi * 2.0) * ramp(u, 0.28, 0.38) \
-            * (1.0 - ramp(u, 0.74, 0.86))
+        # Reach up, stroke three times, withdraw. The stroking phase deliberately
+        # takes most of the clip: the reach is travel, the strokes are the read.
+        reach = ramp(u, 0.00, 0.22) * (1.0 - ramp(u, 0.82, 1.00))
+        stroke = math.sin(u * 2.0 * math.pi * 3.0)             * ramp(u, 0.20, 0.30) * (1.0 - ramp(u, 0.78, 0.88))
 
-        pose(arm.pose.bones[B + "Spine"], x=reach * d(4.0))
-        pose(arm.pose.bones[B + "Spine1"], x=reach * d(5.0))
-        pose(arm.pose.bones[B + "Spine2"], x=reach * d(4.0))
-        # Looks up at the animal's head rather than at its own hand.
-        pose(arm.pose.bones[B + "Neck"], x=-reach * d(7.0))
-        pose(arm.pose.bones[B + "Head"], x=-reach * d(9.0))
+        # Lean in and look up at him. He is head-height on a standing player, so
+        # this is petting a horse's cheek, not patting a dog.
+        pose(arm.pose.bones[B + "Spine"], x=reach * d(7.0))
+        pose(arm.pose.bones[B + "Spine1"], x=reach * d(8.0) + stroke * d(2.0))
+        pose(arm.pose.bones[B + "Spine2"], x=reach * d(7.0) + stroke * d(2.5))
+        pose(arm.pose.bones[B + "Neck"], x=-reach * d(10.0))
+        pose(arm.pose.bones[B + "Head"], x=-reach * d(13.0))
 
-        pose(arm.pose.bones[B + "RightShoulder"], z=-reach * d(10.0))
-        # -X forward, -Z up. The stroke rides on the lift, so the hand travels
-        # up and down the animal's cheek rather than waving side to side.
+        # The shoulder comes with the arm, or it looks socketed on.
+        pose(arm.pose.bones[B + "RightShoulder"], z=-reach * d(9.0))
+
+        # +Y swings the upper arm FORWARD -- see the docstring; -Z is the lift the
+        # stroke rides on, so the hand travels up and down his cheek rather than
+        # waving side to side. The elbow stays well bent so the hand is ON him
+        # rather than at arm's length.
         pose(arm.pose.bones[B + "RightArm"],
-             x=-reach * d(58.0), z=-reach * d(28.0) - stroke * d(9.0))
+             y=reach * d(60.0), z=-reach * d(30.0) - stroke * d(15.0))
         pose(arm.pose.bones[B + "RightForeArm"],
-             x=-reach * d(34.0) - stroke * d(6.0))
-        pose(arm.pose.bones[B + "RightHand"], x=-reach * d(12.0) + stroke * d(5.0))
+             x=-reach * d(70.0) - stroke * d(10.0))
+        # Wrist lags, so the palm stays flat on him through the stroke.
+        pose(arm.pose.bones[B + "RightHand"],
+             x=-reach * d(10.0) + stroke * d(9.0))
 
         for name in keyed:
             arm.pose.bones[name].keyframe_insert("rotation_euler", frame=f)

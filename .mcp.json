@@ -3,6 +3,15 @@
     "unityMCP": {
       "type": "http",
       "url": "http://localhost:8080/mcp"
+    },
+    "blender": {
+      "command": "uvx",
+      "args": [
+        "blender-mcp"
+      ],
+      "env": {
+        "DISABLE_TELEMETRY": "false"
+      }
     }
   }
 }

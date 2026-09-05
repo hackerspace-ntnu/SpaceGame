@@ -55,6 +55,11 @@ namespace SpaceGame.Agents
 
         private void OnEnable()
         {
+            // Self-registration is what makes this hearable. Noise.Emit walks the registry
+            // rather than the physics scene, so a receiver that never registers is deaf no
+            // matter where it stands or what layer it is on.
+            Noise.Register(this);
+
             // The guard walking toward a gunshot has to still be walking toward it after a reload.
             if (restoredInvestigation)
             {
@@ -64,6 +69,11 @@ namespace SpaceGame.Agents
 
             isInvestigating = false;
             investigateTimer = 0f;
+        }
+
+        private void OnDisable()
+        {
+            Noise.Unregister(this);
         }
 
         /// <summary>
@@ -95,7 +105,11 @@ namespace SpaceGame.Agents
 
             OnHearNoise?.Invoke(origin);
 
-            if ((aggroOn & typeMask) != 0 && instigator)
+            // Never aggro onto yourself. AgentTargeting.ForceTarget has no self-check of its own,
+            // and a creature handed its own transform chases a target it can never lose and melees
+            // a target it can never miss — it beats itself to death with no attacker anywhere.
+            if ((aggroOn & typeMask) != 0 && instigator
+                && !transform.IsChildOf(instigator) && !instigator.IsChildOf(transform))
             {
                 Targeting.ForceTarget(instigator);
                 isInvestigating = false;

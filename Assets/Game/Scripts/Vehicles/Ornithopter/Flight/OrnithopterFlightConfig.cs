@@ -74,6 +74,19 @@ namespace SpaceGame.Vehicles.Ornithopter
                  "a fade the pilot can feel rather than a cutoff.")]
         [Range(0.01f, 1f)] public float StaminaFadeBand = 0.25f;
 
+        [Header("Tow")]
+        [Tooltip("Pull a taut rope puts on the craft, m/s². Compare FlapThrust: a rope should out-pull " +
+                 "the wings or there is no reason to throw one, but a tow that dwarfs them makes the " +
+                 "beat pointless. The pull is resolved along the flight path, so a hook set ahead " +
+                 "adds speed and one set behind takes it away.")]
+        [Min(0f)] public float TowAcceleration = 14f;
+
+        [Tooltip("Stamina spent per second of tow. This is the price that stops a rope being free " +
+                 "speed: 1/this is how many seconds of tow a full pilot gets, and it comes out of " +
+                 "the same reserve the climb needs afterwards. Zero makes the tow free — which " +
+                 "flies, but hooking and holding then beats flying the aircraft.")]
+        [Min(0f)] public float TowStaminaDrainPerSecond = 0.22f;
+
         [Header("Control")]
         [Tooltip("Pitch rate at full stick and full authority, deg/s.")]
         [Min(1f)] public float PitchRate = 45f;

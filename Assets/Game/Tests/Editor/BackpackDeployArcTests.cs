@@ -110,6 +110,15 @@ namespace SpaceGame.Tests
         // player and drops at their feet. The claim worth pinning is the reason it was changed —
         // no sample of the flight is ever behind the player, or inside them.
 
+        /// <summary>
+        /// <b>This is a claim about the pack's ORIGIN, and it does not extend to the pack.</b> The
+        /// rig's own body collider is 1.81 x 0.87 x 2.19 m and reaches 1.58 m along the axis the
+        /// landing points at the player, so while this point stays a comfortable 0.15 m clear of a
+        /// 0.30 m body radius, the box around it engulfs the wearer for the first half of the
+        /// flight. That is why the pack is not solid while it flies —
+        /// <c>BackpackSolidityTests</c>, and <c>BackpackObject.RefreshBody</c> for what it cost.
+        /// A clearance test on a transform is not a clearance test on a collider.
+        /// </summary>
         [Test]
         public void TheToss_StaysInFrontOfThePlayerForTheWholeFlight()
         {

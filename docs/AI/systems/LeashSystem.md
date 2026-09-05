@@ -15,8 +15,9 @@ symptoms:
   - "the rope hums, or the two ends accelerate together and collide"
   - "the rope sinks into a hillside, or clicking it to untie never registers"
   - "ropes from the previous world are still hanging in the newly loaded one"
+  - "a rope tied to a dropped item slides it along without ever turning it, or moves it only for the host"
 reads_with: [Artifacts, Multiplayer, Persistence, PlayerCharacter]
-updated: 2026-09-01
+updated: 2026-09-03
 ---
 
 # Leash System
@@ -27,6 +28,7 @@ A rope tied between any two things in the world — creature to post, player to 
 
 ## Model
 
+- **A dropped item is a legitimate far end.** Its `LeashEnd.Kind` is `Object` with a live, dynamic body, so it takes the `AddForceAtPosition` branch and a crate roped by one corner turns to face the pull. That only became true on 2026-09-03: item prefabs used to freeze themselves kinematic on landing, which put them on the `MovePosition` branch — dragged flat, with no tumble and no resistance — and they carried no `NetworkTransform`, so the pull moved them on the simulating machine and nowhere else. See [Inventory.md](Inventory.md).
 - **Hook, then hook.** One button (Use). Empty hands + a thing → rope runs from it to your hand. Holding a rope + anything solid → tied, and the rope is now a world object. Click nothing → let go. Empty hands + **a rope** → untie. One held rope at a time; unequip drops it, tied ropes stay.
 - **No second key.** `dropAction` was deleted: an `InputActionReference` read in `Update` runs on *every* copy of the artifact on this machine (including remote players' hands) and bypasses `Use`/`Present`.
 - A [`Leash`](Assets/Game/Scripts/Items/Artifacts/Leash/Leash.cs) is a bare runtime `GameObject` — no prefab, no `NetworkObject`, `DontDestroyOnLoad` (it outlives the chunk either end streamed in from). Every machine builds and draws its own copy because `Present` runs everywhere.

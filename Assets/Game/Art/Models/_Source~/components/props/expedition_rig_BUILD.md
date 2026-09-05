@@ -367,6 +367,44 @@ Triangles: 20,972 -> 25,184 (+4,212, the pouch lofts and roll). 33 meshes.
 
 ## Hand edits after generation
 
+**2026-09-03 — the modelled oxygen bottle was DELETED.** `Mesh_Rig_OxygenTank` (216 verts) and
+`Mesh_Rig_OxygenTank_Bands` (432 verts) are gone from the `.blend` and from
+`expedition_rig.py`. They were authored as *"a fixed fitting, not an item — the composition's
+landmark"*, and that is exactly what became wrong: an oxygen bottle is a real, carryable item
+now (`Assets/Game/Resources/Items/Supplies/OxygenTank.asset`, see `docs/AI/systems/Oxygen.md`),
+so the pack showed a second bottle the player could see and could never take off. The rig now
+carries a real one as a starting item, which lifts off the mat and goes back like any other gear.
+
+`Mesh_Rig_OxygenTank_Manifold` **stays**: it is the brass valve block bolted to the PANEL, not
+to the bottle, and it carries the one amber lamp that is the rig's only emissive and its warm
+focal point. It reads as the fitting a bottle belongs to, which is the right thing to leave
+behind.
+
+Deleted by name in the shipped `.blend` (never a regenerate — this file carries the stake
+reparenting below, which the generator cannot reproduce), with a before/after fingerprint over
+every object's vertex hash, world matrix, parent and modifier list proving the other 45 objects
+were untouched. Re-export and re-run `Tools/SpaceGame/Items/Build Expedition Rig Prefab`
+afterwards; the surviving parts' fileIDs move.
+
+**Where a real bottle goes: `SURF_Back_C`, the socket the deleted one left behind.** Added the
+same day, and it is the two back panels' own row with x zeroed — same plane, same rotation
+(`ROT_PANEL`), the same 3 x 6 cells, on the pack's centre line, with 15 mm of clearance to each
+neighbour. It is the one RESERVED face in the game: `ExpeditionRigWiring` wires it to accept the
+two oxygen bottles and nothing else, because it is a socket rather than a shelf.
+
+A bottle only lies flat on it because the ITEM was turned a quarter about X inside its own prefab
+(`OxygenGearBuilder.BottleLiesDown`): `BackpackItemVisual` seats an item with its own up along the
+surface NORMAL, so a bottle modelled standing on its skirt would stand 0.76 m straight out of the
+wearer's back. That turn is why the socket works at all, and why it was not simply a matter of
+adding a rectangle.
+
+**`Marker_Rig_HoseOutlet`** was added beside it, on the front face of the brass valve block at its
+right-hand port. The breathing hose is NOT modelled: `PackHose` draws one segment from this marker
+to whichever end of the docked bottle is nearer, and only while a bottle is actually in the socket
+— a modelled hose would run to thin air every time the bottle came out, which is the whole point
+of the socket.
+
+
 **2026-08-24 — the stakes ride `PIVOT_Leaf`.** `Mesh_Rig_Stake_L/R` were authored static
 ("a stake driven into the sand does not ride a hinge"), but each stake's CORD runs to the
 leaf's corner grommet in the same rigid mesh — so the moment `PIVOT_Leaf` turned up into the

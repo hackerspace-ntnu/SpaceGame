@@ -14,6 +14,21 @@ namespace SpaceGame.Items
     public static class ItemBounds
     {
         /// <summary>
+        /// Longest-axis size in metres assumed for an item nobody ever sized — no
+        /// <see cref="ItemGrip"/>, or one that leaves both of its sizes at zero.
+        ///
+        /// <para>
+        /// One number because it is one question. <see cref="EquipItemSocket"/>, the pack's
+        /// <see cref="ItemFootprint"/> and the world's <see cref="ItemWorldScale"/> each have to
+        /// answer "how big is an item nobody sized?", and an item that comes out 0.30 m in the hand
+        /// and 11 m on the mat is a bug in whichever of them disagrees. It lived as three
+        /// separately-documented copies of <c>0.30f</c>, each with a comment telling the next
+        /// reader to keep it equal to the others; this is that comment, enforced.
+        /// </para>
+        /// </summary>
+        public const float DefaultSize = 0.30f;
+
+        /// <summary>
         /// The item's own extents, in the item root's local space, before any scaling the caller
         /// applies. <paramref name="subtree"/> narrows the measurement to part of the prefab.
         ///
@@ -31,9 +46,10 @@ namespace SpaceGame.Items
         /// </para>
         /// <para>
         /// "Switched off" is judged relative to <paramref name="item"/>, not by
-        /// <c>activeInHierarchy</c>. The backpack measures a display copy while it is still
-        /// parented to a deactivated staging object — nothing under it is active in the hierarchy,
-        /// and an <c>activeInHierarchy</c> test would measure every stowed item as nothing at all.
+        /// <c>activeInHierarchy</c>. Most callers measure a PREFAB ASSET, which is never active in
+        /// any hierarchy — so an <c>activeInHierarchy</c> test would measure every one of them as
+        /// nothing at all. (<c>HolderBuilder</c> also measures under a deactivated staging object,
+        /// and until 2026-09-03 the backpack did too, which is what this paragraph used to name.)
         /// Walking <c>activeSelf</c> up to the item root asks the question that was actually meant:
         /// is this part disabled <i>within the item</i>.
         /// </para>

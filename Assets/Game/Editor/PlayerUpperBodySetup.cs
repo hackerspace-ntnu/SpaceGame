@@ -25,6 +25,11 @@ namespace SpaceGame.EditorTools
         private const string MaskPath = "Assets/Game/Art/Animations/Player/UpperBody.mask";
         private const string LayerName = "Upper Body";
         private const string MaskName = "UpperBody";
+        /// <summary>
+        /// The pose parameter. Written by <c>PlayerAimRig</c> from what is in the hand — or, with
+        /// empty hands, from a lit Flashlight Gauntlet, which borrows this same pose rather than
+        /// carrying one of its own. One parameter, so the two can never both be on.
+        /// </summary>
         private const string HoldStyleParameter = "HoldStyle";
 
         private const string RelaxedClip = "Assets/ThirdParty/Kevin Iglesias/Human Animations/Animations/Male/Combat/Gun/HumanM@Gun_Aim02.fbx";
@@ -44,6 +49,8 @@ namespace SpaceGame.EditorTools
             }
 
             EnsureIntParameter(controller, HoldStyleParameter);
+            EnsureIntParameter(controller, ArmRaiseParameter);
+            EnsureFloatParameter(controller, AimPitchParameter);
 
             int index = FindLayer(controller, LayerName);
             if (index >= 0)
@@ -52,15 +59,18 @@ namespace SpaceGame.EditorTools
                 layers[index].avatarMask = mask;
                 controller.layers = layers;
 
+                EnsureRaiseStates(controller, layers[index].stateMachine);
+
                 EditorUtility.SetDirty(controller);
                 AssetDatabase.SaveAssets();
 
                 Debug.Log($"PlayerUpperBodySetup: layer '{LayerName}' already exists at index " +
-                          $"{index}. Mask refreshed; states left alone.");
+                          $"{index}. Mask refreshed; hold states left alone; raise states ensured.");
                 return;
             }
 
             BuildLayer(controller, mask);
+            EnsureRaiseStates(controller, controller.layers[controller.layers.Length - 1].stateMachine);
 
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();
@@ -97,14 +107,11 @@ namespace SpaceGame.EditorTools
             mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftFootIK, false);
             mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightFootIK, false);
 
-            // Hand IK goals ON, and this is not a detail.
-            //
-            // These flags govern whether the layer carries IK goal data, and PlayerAimRig's whole
-            // aim is a scripted right-hand goal written in OnAnimatorIK. Switching them off to
-            // match the feet was the tidy-looking choice and risks the layer discarding the one
-            // thing the layer exists to do — a failure that produces no error and no warning, just
-            // an arm that never comes up. The clips carry no IK curves of their own, so leaving
-            // these on costs nothing.
+            // Hand IK goals ON. Nothing writes a hand goal on this layer today — the scripted
+            // right-hand aim that did was deleted with the ADS in Sep 2026 — but these flags govern
+            // whether the layer carries IK goal data at all, so switching them off to match the
+            // feet would silently rule out ever adding one back. The clips carry no IK curves of
+            // their own, so leaving them on costs nothing.
             mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftHandIK, true);
             mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightHandIK, true);
 
@@ -216,6 +223,98 @@ namespace SpaceGame.EditorTools
             Debug.LogError($"PlayerUpperBodySetup: no AnimationClip inside '{path}'. " +
                            "The state will be created empty and the pose will not play.");
             return null;
+        }
+
+        // ── The gauntlet raise ────────────────────────────────────────────────
+        //
+        // Three more states on the same layer: the arm a gauntlet is on, extended at what the
+        // player is looking at. Each is a 1D blend tree over the look pitch, so the forearm follows
+        // the crosshair up and down without a scripted IK goal — which the layer cannot apply
+        // while it sits in Empty, i.e. whenever the hands are empty, the ordinary case for a
+        // player wearing gauntlets. The left arm plays the right arm's clips MIRRORED; there is
+        // no Left set to drift from the Right one. Clips: gauntlet_point.py in the astronaut's
+        // source folder.
+
+        private const string ArmRaiseParameter = "ArmRaise";
+        private const string AimPitchParameter = "AimPitch";
+        private const string ClipDir = "Assets/Game/Art/Animations/Player/";
+
+        /// <summary>The look pitch each of the three clips stands for; the tree blends between them.</summary>
+        private static readonly (string suffix, float pitch)[] PitchClips =
+        {
+            ("Down", -45f),
+            ("Level", 0f),
+            ("Up", 45f),
+        };
+
+        /// <summary>Idempotent: adds the raise states once, and never touches them again.</summary>
+        private static void EnsureRaiseStates(AnimatorController controller, AnimatorStateMachine sm)
+        {
+            if (FindState(sm, "Raise Right") != null) return;
+
+            // The hold styles only apply while no arm is raised. With two parameters on Any State
+            // and no such guard, a hold transition and a raise transition would both be true on
+            // every frame of a raise, and the arm would flicker between the two states.
+            foreach (AnimatorStateTransition t in sm.anyStateTransitions)
+            {
+                if (!Mentions(t, HoldStyleParameter) || Mentions(t, ArmRaiseParameter)) continue;
+                t.AddCondition(AnimatorConditionMode.Equals, 0, ArmRaiseParameter);
+            }
+
+            AddRaiseState(controller, sm, "Raise Left", "Right", mirror: true, value: 1);
+            AddRaiseState(controller, sm, "Raise Right", "Right", mirror: false, value: 2);
+            AddRaiseState(controller, sm, "Raise Both", "Both", mirror: false, value: 3);
+        }
+
+        private static void AddRaiseState(AnimatorController controller, AnimatorStateMachine sm,
+                                          string name, string arm, bool mirror, int value)
+        {
+            var tree = new BlendTree
+            {
+                name = name + " Tree",
+                blendType = BlendTreeType.Simple1D,
+                blendParameter = AimPitchParameter,
+                useAutomaticThresholds = false,
+                hideFlags = HideFlags.HideInHierarchy,
+            };
+            AssetDatabase.AddObjectToAsset(tree, controller);
+
+            foreach ((string suffix, float pitch) in PitchClips)
+                tree.AddChild(LoadClip($"{ClipDir}Point {arm} {suffix}.fbx"), pitch);
+
+            AnimatorState state = sm.AddState(name);
+            state.motion = tree;
+            state.mirror = mirror;
+            state.writeDefaultValues = true;
+
+            AnimatorStateTransition t = sm.AddAnyStateTransition(state);
+            t.AddCondition(AnimatorConditionMode.Equals, value, ArmRaiseParameter);
+            t.duration = 0.12f;
+            t.hasExitTime = false;
+            t.hasFixedDuration = true;
+            t.canTransitionToSelf = false;
+        }
+
+        private static bool Mentions(AnimatorStateTransition t, string parameter)
+        {
+            foreach (AnimatorCondition c in t.conditions)
+                if (c.parameter == parameter) return true;
+            return false;
+        }
+
+        private static AnimatorState FindState(AnimatorStateMachine sm, string name)
+        {
+            foreach (ChildAnimatorState child in sm.states)
+                if (child.state != null && child.state.name == name) return child.state;
+            return null;
+        }
+
+        private static void EnsureFloatParameter(AnimatorController controller, string name)
+        {
+            AnimatorControllerParameter[] ps = controller.parameters;
+            for (int i = 0; i < ps.Length; i++)
+                if (ps[i].name == name) return;
+            controller.AddParameter(name, AnimatorControllerParameterType.Float);
         }
 
         private static void EnsureIntParameter(AnimatorController controller, string name)

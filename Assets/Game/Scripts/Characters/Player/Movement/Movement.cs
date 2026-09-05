@@ -23,9 +23,6 @@ namespace SpaceGame.Characters
         [Tooltip("Speed while crouched.")]
         [SerializeField] private float crouchSpeed = 2.6f;
 
-        [Tooltip("Speed while aiming. Below crouch speed reads as sluggish; above walk speed " +
-                 "makes aiming free.")]
-        [SerializeField] private float aimSpeed = 3.5f;
 
         [SerializeField, Range(0f, 1f)] private float airControl = 0.3f;
 
@@ -53,6 +50,19 @@ namespace SpaceGame.Characters
         [Tooltip("The same figure for the Crouch tree's walk clip.")]
         [SerializeField] private float crouchClipSpeed = 1.6f;
 
+        [Tooltip("How quickly the replicated animator floats (SpeedX, SpeedY, FallSpeed) follow " +
+                 "the body, in seconds. Damped here rather than by the Animator so the value can " +
+                 "come to rest — see DampedAnimatorFloat.")]
+        [SerializeField] private float animatorDampTime = 0.1f;
+
+        [Tooltip("Step size the replicated animator floats are written in. Below this a change is " +
+                 "not worth a network message; 0.05 m/s is invisible in the blend trees.")]
+        [SerializeField] private float animatorFloatQuantum = 0.05f;
+
+        private DampedAnimatorFloat speedX;
+        private DampedAnimatorFloat speedY;
+        private DampedAnimatorFloat fallSpeed;
+
         [Header("Dash")]
         [SerializeField] private float dashSpeed = 10f;
         [SerializeField] private GameObject playerCamera;
@@ -61,7 +71,6 @@ namespace SpaceGame.Characters
         [SerializeField] private Animator animator;
         [SerializeField] private CapsuleCollider playerCollider;
         private PlayerStance stance;
-        private PlayerAimRig aimRig;
         private Vector2 moveInput;
         private float jumpCooldownTimer;
         private bool jumpOnCooldown;
@@ -176,11 +185,7 @@ namespace SpaceGame.Characters
         {
             get
             {
-                // Crouching outranks aiming: a crouched player is already slow, and testing it
-                // first means the order of these branches stops being something anyone has to
-                // think about.
                 if (stance != null && stance.IsCrouching) return crouchSpeed;
-                if (aimRig != null && aimRig.IsAiming) return Mathf.Min(aimSpeed, moveSpeed);
                 if (stance == null) return moveSpeed;
                 return stance.IsSprinting ? sprintSpeed : moveSpeed;
             }
@@ -189,7 +194,6 @@ namespace SpaceGame.Characters
         private void Awake()
         {
             stance = GetComponent<PlayerStance>();
-            aimRig = GetComponent<PlayerAimRig>();
         }
 
         private void Start()
@@ -228,7 +232,25 @@ namespace SpaceGame.Characters
             // would bill them for the swing that saved them. The edge is still consumed: wasGrounded
             // is written below either way, so releasing over ground does not then fire a phantom
             // landing for a fall that already finished.
-            if (!tethered) HandleFallDamage(grounded);
+            // Skipped under a wing for the same reason, and one more: a glide's arrival is priced
+            // on CLOSING speed by the suit itself, so letting the fall table charge for it too
+            // would bill one landing twice. See WingsuitFlight.CheckForLanding for why the edge is
+            // still consumed correctly on the frame the glide ends.
+            if (!tethered && !gliding) HandleFallDamage(grounded);
+
+            // Under a wing this component is a passenger. Everything above still runs — the probe,
+            // the grounded edge, the animator below — and only the two things the wing owns are
+            // skipped: the horizontal write, and the fall damage above. This is deliberately not
+            // an early return at the top of FixedUpdate: that is what DisableGroundSnap does, and
+            // a player with no grounded state and no animator updates for the whole flight is the
+            // bug the tether was written to stop repeating.
+            if (gliding)
+            {
+                lastYVelocity = rb.linearVelocity.y;
+                wasGrounded = grounded;
+                UpdateAnimatorParameters(rb.linearVelocity, grounded);
+                return;
+            }
 
             Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
             move = Vector3.ClampMagnitude(move, 1f);
@@ -310,6 +332,44 @@ namespace SpaceGame.Characters
 
         /// <summary>Whether a rope currently owns this body's horizontal motion.</summary>
         public bool IsTethered => tethered;
+
+        /// <summary>
+        /// True while a wing owns this body's motion entirely — today the wingsuit.
+        ///
+        /// <para>
+        /// Wider than <see cref="tethered"/>, which only changes how the move input is applied: a
+        /// wing writes all three axes and its own gravity, so this component must write none of
+        /// them. Narrower than <see cref="DisableGroundSnap"/>, which stops the probe and the
+        /// animator too — those are still wanted, because the wing asks this component where the
+        /// ground is and the body still has to be animated while it flies.
+        /// </para>
+        /// <para>
+        /// Like the tether it never expires on its own. The wing is the only thing that knows when
+        /// it folded, and <c>WingsuitFlight.End</c> is reached from the fold, the landing and the
+        /// teardown alike.
+        /// </para>
+        /// </summary>
+        public void SetGliding(bool value) => gliding = value;
+
+        /// <summary>Whether a wing currently owns this body.</summary>
+        public bool IsGliding => gliding;
+
+        /// <summary>See <see cref="SetGliding"/>. Owner-side only; nothing replicates it.</summary>
+        private bool gliding;
+
+        /// <summary>
+        /// Outward normal of whatever the ground probe last found, or up when it found nothing.
+        ///
+        /// <para>
+        /// Exposed because a landing has to be priced against the surface it happened on: gliding
+        /// down a dune face at the angle of the dune is an arrival at almost no closing speed,
+        /// and assuming a level normal would charge for the whole descent. Read from the same
+        /// sphere cast <see cref="IsOnGround"/> answers from, so the two can never disagree.
+        /// </para>
+        /// </summary>
+        public Vector3 GroundNormal => groundNormal;
+
+        private Vector3 groundNormal = Vector3.up;
 
         /// <summary>
         /// True while the player is riding something sprung — today the jumping rod.
@@ -479,10 +539,18 @@ namespace SpaceGame.Characters
             // what pins the crouch blend to full stride the instant the player nudges the stick.
             float blendScale = crouching ? 1f / Mathf.Max(0.01f, crouchSpeed) : 1f;
 
-            animator.SetFloat("SpeedX", localVelocity.x * blendScale, .1f, Time.deltaTime);
-            animator.SetFloat("SpeedY", localVelocity.z * blendScale, .1f, Time.deltaTime);
-            animator.SetFloat("FallSpeed", velocity.y, .1f, Time.deltaTime);
-            animator.SetFloat("MoveAnimSpeed", StrideRate(localVelocity, crouching));
+            // Damped and quantised on this side rather than by SetFloat's own damping, because
+            // ClientNetworkAnimator sends any float that differs from last frame's, reliably, and
+            // the Animator's damping never quite stops moving. These four are what a standing
+            // player used to replicate every frame.
+            animator.SetFloat("SpeedX", speedX.Step(localVelocity.x * blendScale, animatorDampTime,
+                                                    Time.deltaTime, animatorFloatQuantum));
+            animator.SetFloat("SpeedY", speedY.Step(localVelocity.z * blendScale, animatorDampTime,
+                                                    Time.deltaTime, animatorFloatQuantum));
+            animator.SetFloat("FallSpeed", fallSpeed.Step(velocity.y, animatorDampTime,
+                                                          Time.deltaTime, animatorFloatQuantum));
+            animator.SetFloat("MoveAnimSpeed", DampedAnimatorFloat.Quantise(
+                StrideRate(localVelocity, crouching), animatorFloatQuantum));
             animator.SetBool("IsGrounded", grounded);
             animator.SetBool("IsImmobalized", !groundSnapEnabled);
         }
@@ -524,6 +592,10 @@ namespace SpaceGame.Characters
             {
                 return;
             }
+
+            speedX.Reset(0f);
+            speedY.Reset(0f);
+            fallSpeed.Reset(0f);
 
             animator.SetFloat("SpeedX", 0f);
             animator.SetFloat("SpeedY", 0f);
@@ -593,7 +665,11 @@ namespace SpaceGame.Characters
             if (colliderToUse == null)
             {
                 Vector3 rayOrigin = transform.position;
-                return Physics.Raycast(rayOrigin, Vector3.down, groundCheckDistance, groundMask, QueryTriggerInteraction.Ignore);
+                bool rayHit = Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit flat,
+                                              groundCheckDistance, groundMask,
+                                              QueryTriggerInteraction.Ignore);
+                groundNormal = rayHit ? flat.normal : Vector3.up;
+                return rayHit;
             }
 
             Bounds bounds = colliderToUse.bounds;
@@ -601,7 +677,13 @@ namespace SpaceGame.Characters
             Vector3 origin = bounds.center + Vector3.up * 0.05f;
             float distance = bounds.extents.y + groundCheckDistance;
 
-            return Physics.SphereCast(origin, radius, Vector3.down, out _, distance, groundMask, QueryTriggerInteraction.Ignore);
+            bool hit = Physics.SphereCast(origin, radius, Vector3.down, out RaycastHit ground,
+                                          distance, groundMask, QueryTriggerInteraction.Ignore);
+
+            // Up when nothing was found, rather than a stale normal from the last surface: a body
+            // in the air is not standing on the slope it left.
+            groundNormal = hit ? ground.normal : Vector3.up;
+            return hit;
         }
 
         private void HandleJumpCooldown()

@@ -262,6 +262,85 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
+        /// Asserts that no world-entity prefab carries a second <see cref="SaveableEntity"/> below
+        /// its root.
+        ///
+        /// <para>
+        /// A nested prefab that is itself saveable (the map projector inside the PlayerShip) keeps
+        /// the entity its own asset carries — and <c>SaveableEntity.OnValidate</c>, running on the
+        /// outer asset, stamps that nested entity's <c>prefabId</c> with the OUTER prefab's GUID.
+        /// Saver collection stops at the nested entity, so the outer record never sees its savers;
+        /// and the nested record names the outer prefab, so every load instantiates a whole second
+        /// copy of it — two overlapping hulls, doubling per reload.
+        /// </para>
+        /// </summary>
+        public static void AssertNoWorldEntityPrefabNestsASecondSaveableEntity()
+        {
+            var nested = new List<string>();
+
+            foreach ((GameObject asset, string assetPath) in WorldEntityPrefabs())
+            {
+                foreach (SaveableEntity entity in asset.GetComponentsInChildren<SaveableEntity>(true))
+                {
+                    if (entity.gameObject == asset) continue;
+                    nested.Add($"{assetPath} — '{entity.name}' (prefabId '{entity.PrefabId}')");
+                }
+            }
+
+            if (nested.Count == 0) return;
+
+            Assert.Fail(
+                $"{nested.Count} world-entity prefab(s) nest a second SaveableEntity below their root, " +
+                "which OnValidate stamps with the OUTER prefab's id — so every load instantiates a " +
+                "whole second copy of the outer prefab from it:\n  " + string.Join("\n  ", nested) +
+                "\n\nFix: remove the nested SaveableEntity in the builder that nests the prefab (the " +
+                "outer entity collects the child's savers once it is gone), then rebuild the prefab.");
+        }
+
+        /// <summary>
+        /// Asserts that no world-entity prefab collects two savers under one key.
+        ///
+        /// <para>
+        /// A <c>StateBag</c> holds one payload per key and a capture writes savers in collection
+        /// order — root first, then children — so a second saver on the same key silently replaces
+        /// the first. The way it happens: a nested prefab keeps its own <c>TransformSaveable</c>
+        /// after its entity is stripped, and the outer object's pose record becomes the child's.
+        /// The PlayerShip's would have been restored at its map projector's pose.
+        /// </para>
+        /// </summary>
+        public static void AssertOneSaverPerKeyOnEveryWorldEntityPrefab()
+        {
+            var clashes = new List<string>();
+
+            foreach ((GameObject asset, string assetPath) in WorldEntityPrefabs())
+            {
+                var savers = new List<SpaceGame.Persistence.ISaveable>();
+                SaveableEntity.CollectSavers(asset.transform, savers);
+
+                var owners = new Dictionary<string, string>();
+
+                foreach (SpaceGame.Persistence.ISaveable saver in savers)
+                {
+                    if (saver is not Component component || string.IsNullOrEmpty(saver.SaveKey)) continue;
+
+                    if (owners.TryGetValue(saver.SaveKey, out string first))
+                        clashes.Add($"{assetPath} — key '{saver.SaveKey}' on '{first}' and on '{component.gameObject.name}'");
+                    else
+                        owners[saver.SaveKey] = component.gameObject.name;
+                }
+            }
+
+            if (clashes.Count == 0) return;
+
+            Assert.Fail(
+                $"{clashes.Count} saver key clash(es): the later saver overwrites the earlier one's " +
+                "payload on every capture, so the record holds the wrong object's state:\n  " +
+                string.Join("\n  ", clashes) +
+                "\n\nFix: Tools ▸ Save System ▸ Wire Saveable Prefabs — it removes the nested copy " +
+                "(the root's saver wins). Pose and body savers belong on an entity's root only.");
+        }
+
+        /// <summary>
         /// Asserts that every already-wired world-entity prefab carries the savers its own components
         /// imply — so a prefab that gained a MountModule after it was wired does not quietly stop
         /// saving its rider.

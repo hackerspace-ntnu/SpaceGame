@@ -2,19 +2,30 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.Rendering.RenderGraphModule;
-using UnityEngine.Rendering.RenderGraphModule.Util;
 
 namespace SpaceGame.World.Environment
 {
     /// <summary>
-    /// Posterises the finished frame: every pixel snaps to its nearest neighbour in a
-    /// small pastel palette, giving flat colour fields with clean edges. Runs after
-    /// post-processing so it matches against tonemapped LDR colour, and matches in
-    /// Oklab so "nearest" follows perceived colour rather than RGB distance.
+    /// Posterises the finished frame: every pixel snaps to its nearest neighbour in the
+    /// pastel palette, giving flat colour fields. Runs after post-processing so it
+    /// matches against tonemapped LDR colour, and matches in Oklab so "nearest" follows
+    /// perceived colour rather than RGB distance.
+    ///
+    /// <para>
+    /// Colour is the whole effect — there are no contours, no grain and no grade. The
+    /// palette comes from <see cref="PastelPalette"/> rather than a serialized array so
+    /// the PC and mobile renderers cannot drift into showing different looks.
+    /// </para>
     /// </summary>
     public class PastelQuantizeRenderFeature : ScriptableRendererFeature
     {
-        private const int MaxPaletteSize = 128;
+        /// <summary>
+        /// Must equal MAX_PALETTE in PastelQuantize.shader. A material's vector-array
+        /// size freezes the first time it is set, so the upload is always padded to the
+        /// full length and <c>_PaletteCount</c> carries the real count; upload fewer and
+        /// the size is locked short for the material's lifetime.
+        /// </summary>
+        private const int MaxPaletteSize = 256;
 
         [System.Serializable]
         public class Settings
@@ -24,12 +35,6 @@ namespace SpaceGame.World.Environment
 
             [Tooltip("0 = untouched frame, 1 = fully quantized.")]
             [Range(0f, 1f)] public float blend = 1f;
-
-            [Tooltip("Ordered dither on lightness before matching; hides banding in slow gradients at the cost of flatness.")]
-            [Range(0f, 0.2f)] public float ditherStrength = 0f;
-
-            [Tooltip("Every pixel snaps to the nearest of these (sRGB). 128 max; extras are ignored.")]
-            public Color[] palette = PastelPalette.Default();
         }
 
         public Settings settings = new Settings();
@@ -48,7 +53,7 @@ namespace SpaceGame.World.Environment
                 return;
             }
 
-            if (settings.material == null || settings.palette == null || settings.palette.Length == 0)
+            if (settings.material == null || settings.blend <= 0f)
             {
                 return;
             }
@@ -59,16 +64,37 @@ namespace SpaceGame.World.Environment
         private class PastelQuantizePass : ScriptableRenderPass
         {
             private const string k_PassName = "PastelQuantize";
+            private static readonly Vector4 ScaleBias = new Vector4(1f, 1f, 0f, 0f);
+            private static readonly int PaletteLinearId = Shader.PropertyToID("_PaletteLinear");
+            private static readonly int PaletteOklabId = Shader.PropertyToID("_PaletteOklab");
+            private static readonly int PaletteCountId = Shader.PropertyToID("_PaletteCount");
+            private static readonly int BlendId = Shader.PropertyToID("_Blend");
 
             private readonly Settings settings;
             private readonly Vector4[] paletteLinear = new Vector4[MaxPaletteSize];
             private readonly Vector4[] paletteOklab = new Vector4[MaxPaletteSize];
-            private Color[] uploadedPalette;
+            private readonly int paletteCount;
 
             public PastelQuantizePass(Settings settings)
             {
                 this.settings = settings;
                 renderPassEvent = settings.renderPassEvent;
+
+                Color[] palette = PastelPalette.Default();
+                if (palette.Length > MaxPaletteSize)
+                {
+                    Debug.LogError($"[PastelQuantize] PastelPalette has {palette.Length} colours but the " +
+                                   $"shader holds {MaxPaletteSize}; the rest are ignored. Raise MAX_PALETTE " +
+                                   "in PastelQuantize.shader and MaxPaletteSize here together.");
+                }
+
+                paletteCount = Mathf.Min(palette.Length, MaxPaletteSize);
+                for (int i = 0; i < paletteCount; i++)
+                {
+                    Color linear = palette[i].linear;
+                    paletteLinear[i] = linear;
+                    paletteOklab[i] = PastelPalette.LinearToOklab(linear);
+                }
             }
 
             public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
@@ -81,13 +107,10 @@ namespace SpaceGame.World.Environment
                 }
 
                 Material material = settings.material;
-                RebuildPaletteIfChanged();
-
-                material.SetVectorArray("_PaletteLinear", paletteLinear);
-                material.SetVectorArray("_PaletteOklab", paletteOklab);
-                material.SetInteger("_PaletteCount", Mathf.Min(settings.palette.Length, MaxPaletteSize));
-                material.SetFloat("_Blend", settings.blend);
-                material.SetFloat("_DitherStrength", settings.ditherStrength);
+                material.SetVectorArray(PaletteLinearId, paletteLinear);
+                material.SetVectorArray(PaletteOklabId, paletteOklab);
+                material.SetInteger(PaletteCountId, paletteCount);
+                material.SetFloat(BlendId, settings.blend);
 
                 var destDesc = renderGraph.GetTextureDesc(source);
                 destDesc.name = "_PastelQuantizeTemp";
@@ -95,30 +118,24 @@ namespace SpaceGame.World.Environment
                 destDesc.depthBufferBits = 0;
                 TextureHandle destination = renderGraph.CreateTexture(destDesc);
 
-                var blitParams = new RenderGraphUtils.BlitMaterialParameters(source, destination, material, 0);
-                renderGraph.AddBlitPass(blitParams, passName: k_PassName);
+                using (var builder = renderGraph.AddRasterRenderPass<PassData>(k_PassName, out PassData passData))
+                {
+                    passData.material = material;
+                    passData.source = source;
+
+                    builder.UseTexture(source);
+                    builder.SetRenderAttachment(destination, 0);
+                    builder.SetRenderFunc((PassData data, RasterGraphContext context) =>
+                        Blitter.BlitTexture(context.cmd, data.source, ScaleBias, data.material, 0));
+                }
 
                 resourceData.cameraColor = destination;
             }
 
-            // Inspector edits reach here because URP calls Create() on validate, which
-            // builds a fresh pass; the reference check only skips the per-frame rebuild.
-            private void RebuildPaletteIfChanged()
+            private class PassData
             {
-                if (ReferenceEquals(uploadedPalette, settings.palette))
-                {
-                    return;
-                }
-
-                int count = Mathf.Min(settings.palette.Length, MaxPaletteSize);
-                for (int i = 0; i < count; i++)
-                {
-                    Color linear = settings.palette[i].linear;
-                    paletteLinear[i] = linear;
-                    paletteOklab[i] = PastelPalette.LinearToOklab(linear);
-                }
-
-                uploadedPalette = settings.palette;
+                public Material material;
+                public TextureHandle source;
             }
         }
     }

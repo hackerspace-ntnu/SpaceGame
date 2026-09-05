@@ -10,8 +10,8 @@ namespace SpaceGame.Presentation
     /// <para>
     /// <b>Hover</b> — <see cref="playerInteractor"/> brightening it over something usable. Note
     /// that this half has never actually run: the reference is unassigned on PlayerHUD.prefab and
-    /// nothing fills it in, so <see cref="Update"/> returned on its first line every frame. Its
-    /// sibling <c>InteractionPromptUI</c> solves the same problem with a
+    /// nothing fills it in, so <see cref="Update"/> returned on its first line every frame. The
+    /// visor's <c>VisorReticle</c> solves the same problem with a
     /// <c>FindFirstObjectByType&lt;Interactor&gt;</c> fallback and would fix this in one line —
     /// deliberately not done here, because switching on idle dimming the game has never shipped
     /// with is a look change, not a bug fix, and belongs to whoever owns the HUD.
@@ -35,7 +35,9 @@ namespace SpaceGame.Presentation
         [Header("Aim hint")]
         [Tooltip("Colour the crosshair takes while a held item reports that its aim would land. " +
                  "Safety orange, matching the grapple dart's own high-vis band.")]
-        [SerializeField] private Color hintColor = new Color(1f, 0.45f, 0.15f, 1f);
+        // Ink, not orange: warm on the visor means danger, and "you can interact with this" is
+        // the opposite of a warning.
+        [SerializeField] private Color hintColor = new Color(0.478f, 0.831f, 1f, 1f);
 
         [Tooltip("How much larger the crosshair grows while hinting. 1 disables the growth.")]
         [SerializeField] private float hintScale = 1.3f;

@@ -29,9 +29,6 @@ namespace SpaceGame.Characters
         public float sensitivity = 1f;
         public float verticalClamp = 80f;
 
-        [Tooltip("Mouse sensitivity is multiplied by this while aiming, eased over the aim blend. " +
-                 "Below 1 makes fine aim possible; 1 disables the effect.")]
-        [SerializeField, Range(0.1f, 1f)] private float aimSensitivity = 0.5f;
 
         private float pitch = 0f;
 
@@ -42,12 +39,9 @@ namespace SpaceGame.Characters
 
         private Camera lookCamera;
 
-        private PlayerAimRig aimRig;
-
         private void Start()
         {
             inputs = GetComponent<PlayerController>().Input;
-            aimRig = GetComponent<PlayerAimRig>();
             playerRigidbody = playerBody.GetComponent<Rigidbody>();
 
             // Start/OnDestroy, deliberately not OnEnable/OnDisable: mounting disables this
@@ -415,8 +409,7 @@ namespace SpaceGame.Characters
             pitch = Mathf.Clamp(-Mathf.Asin(Mathf.Clamp(worldDirection.y, -1f, 1f)) * Mathf.Rad2Deg,
                                 -verticalClamp, verticalClamp);
 
-            if (playerCamera != null)
-                playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+            ApplyLensRotation();
 
             pendingYaw = 0f;
         }
@@ -445,9 +438,76 @@ namespace SpaceGame.Characters
         public void RestorePitch(float degrees)
         {
             pitch = Mathf.Clamp(degrees, -verticalClamp, verticalClamp);
+            ApplyLensRotation();
+        }
 
-            if (playerCamera != null)
-                playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+        // ── Flying ─────────────────────────────────────────────────────────────
+        //
+        // A wing owns both halves of the view while it is out: the pitch IS the nose, and the roll
+        // is the bank. Handing them over rather than letting the flight write the camera itself
+        // keeps one owner for the lens's local rotation — the same rule the crouch and the
+        // look-down slide already follow, and for the same reason: a second writer that assembles
+        // the whole rotation silently deletes whatever the first one put there.
+
+        /// <summary>
+        /// Degrees of view movement per unit of mouse input per second — the rig's own sensitivity
+        /// with the player's setting already folded in.
+        ///
+        /// <para>
+        /// Exposed so anything that takes the mouse over can move at the speed the player is used
+        /// to instead of inventing its own number. The wingsuit did invent one, and being 40% of
+        /// this read as input lag rather than as a design choice: a control that IS the look has to
+        /// move like the look.
+        /// </para>
+        /// </summary>
+        public float LookDegreesPerUnit => sensitivity * GameSettings.MouseSensitivity;
+
+        /// <summary>Is a wing driving the view? See <see cref="SetFlying"/>.</summary>
+        private bool flying;
+
+        /// <summary>How far the lens is banked, degrees. Owned by the flight while it lasts.</summary>
+        private float viewRoll;
+
+        /// <summary>
+        /// Hand the view to a wing, or take it back.
+        ///
+        /// <para>
+        /// Taking it back levels the roll but leaves the pitch exactly where the flight left it, so
+        /// a landing does not snap the horizon: the player carries on looking where they were
+        /// flying. The caller MUST clear it — <c>WingsuitFlight.End</c> is reached from the fold,
+        /// the landing and the teardown alike.
+        /// </para>
+        /// </summary>
+        public void SetFlying(bool value)
+        {
+            flying = value;
+            if (!value) viewRoll = 0f;
+
+            ApplyLensRotation();
+        }
+
+        /// <summary>
+        /// Where the wing is pointing, each frame it is out. Pitch is in this component's own
+        /// convention — positive looks DOWN — so a nose-up flight state arrives negative.
+        /// </summary>
+        public void SetFlightAttitude(float pitchDegrees, float rollDegrees)
+        {
+            if (!flying) return;
+
+            pitch = Mathf.Clamp(pitchDegrees, -verticalClamp, verticalClamp);
+            viewRoll = rollDegrees;
+        }
+
+        /// <summary>
+        /// The one place the lens's local rotation is written, from the two angles this component
+        /// owns. Extracted because there were three copies of the same assignment and the roll had
+        /// to appear in all of them or it would blink out on any frame the other two ran.
+        /// </summary>
+        private void ApplyLensRotation()
+        {
+            if (playerCamera == null) return;
+
+            playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, viewRoll);
         }
 
         private void OnEnable()
@@ -493,16 +553,21 @@ namespace SpaceGame.Characters
 
             lookInput = inputs.LookInput;
 
+            // Under a wing the mouse is the stick, not the look: WingsuitFlight reads the same
+            // LookInput, turns it into a commanded nose angle and a rudder, and hands the resulting
+            // attitude back through SetFlightAttitude. Neither channel may also be spent here — the
+            // pitch would be written twice per frame from two different rules, and the yaw would
+            // turn the body out from under a heading the flight model owns.
+            if (flying)
+            {
+                ApplyLensRotation();
+                TickLookDownOffset();
+                return;
+            }
+
             // The serialized sensitivity is the rig's own scale; the setting is a multiplier on top
             // of it, so tuning the prefab and the player's preference stay independent.
-            // Eased on the aim blend rather than switched on the button, so the sensitivity change
-            // arrives with the weapon rather than a fifth of a second before it. Never written back
-            // to GameSettings — that is the player's own preference and must survive aiming.
-            float aimScale = aimRig != null
-                ? Mathf.Lerp(1f, aimSensitivity, aimRig.AimBlend)
-                : 1f;
-
-            float scaled = sensitivity * GameSettings.MouseSensitivity * aimScale;
+            float scaled = LookDegreesPerUnit;
 
             // Yaw is banked here and spent in FixedUpdate, because it turns a Rigidbody and a
             // Rigidbody may only be posed on the physics clock. Calling MoveRotation from here span
@@ -520,7 +585,7 @@ namespace SpaceGame.Characters
             float pitchInput = GameSettings.InvertLookY ? -lookInput.y : lookInput.y;
             pitch -= pitchInput * scaled * Time.deltaTime;
             pitch = Mathf.Clamp(pitch, -verticalClamp, verticalClamp);
-            playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+            ApplyLensRotation();
 
             // After the pitch is final, so the eye slides to the angle the player is looking at
             // this frame rather than the one they were looking at last.

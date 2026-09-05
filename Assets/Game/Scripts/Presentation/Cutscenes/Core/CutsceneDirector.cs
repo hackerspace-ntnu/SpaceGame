@@ -101,14 +101,26 @@ namespace SpaceGame.Presentation
             OnCutsceneEnded?.Invoke(cutscene);
         }
 
-        private static PlayerController ResolvePlayer(GameObject subject)
+        /// <summary>
+        /// The player a cutscene about <paramref name="subject"/> locks: the one the subject sits
+        /// under, else the one this machine drives.
+        ///
+        /// <para>
+        /// Never a scene search. Every peer holds a PlayerController per player in the session, and
+        /// FindFirstObjectByType answered with whichever spawned first — in a six-player arrival
+        /// that locked, blacked out and rigged a crewmate's (inactive) camera on most machines,
+        /// so the local player kept their HUD and got no shake, no blur and no seated look, while
+        /// the one machine whose own body happened to come first got all of it.
+        /// </para>
+        /// </summary>
+        public static PlayerController ResolvePlayer(GameObject subject)
         {
             if (subject != null)
             {
                 var p = subject.GetComponentInParent<PlayerController>();
                 if (p != null) return p;
             }
-            return FindFirstObjectByType<PlayerController>();
+            return GameplayMenuScope.FindLocalPlayer();
         }
     }
 }

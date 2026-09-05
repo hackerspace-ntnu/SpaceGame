@@ -1,15 +1,27 @@
+using System;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using SpaceGame.Core;
-using SpaceGame.Presentation;
 
 namespace SpaceGame.Characters
 {
+    /// <summary>
+    /// The torch, in three layers: a URP spot light, a long-throw contribution for shaders that
+    /// opt in, and a screen-space beam volume.
+    ///
+    /// <para>
+    /// <b>It has no key of its own.</b> Until 2026-09-03 this component read L off the keyboard
+    /// directly and lit a lamp nested under the player's Main Camera. The lamp is now the head of
+    /// a worn gauntlet (<see cref="SpaceGame.Items.FlashlightGauntletArtifact"/>), so it is
+    /// switched by that gauntlet's own key, mirrored onto peers by
+    /// <see cref="PlayerViewNetwork"/>, and there is no torch at all on a player not wearing one.
+    /// Everything below this line — the reach, the falloff, the beam probing, the single-writer
+    /// rule for the shader globals — is unchanged and still assumes exactly one lamp per machine
+    /// drives the effects there is only one of.
+    /// </para>
+    /// </summary>
     [RequireComponent(typeof(Light))]
     public class Flashlight : MonoBehaviour
     {
-        [SerializeField] private Key toggleKey = Key.L;
-
         [Header("Long-Throw (custom shader contribution)")]
         [Tooltip("How far the flashlight actually reaches on shaders that include Flashlight.hlsl, and how far the visible beam can extend. Decoupled from Light.range so URP can keep a tight near-field while the long-throw layer goes further.")]
         [SerializeField] private float flashlightReach = 120f;
@@ -70,34 +82,9 @@ namespace SpaceGame.Characters
 
         private void Update()
         {
-            // Asked once and reused, because it walks the hierarchy looking for a NetworkObject and
-            // both gates below want the same answer in the same frame.
-            bool mine = OwnsSingleSlotEffects;
-
-            // Gated twice, because this component reads the keyboard directly rather than through
-            // an action map that gets switched off with the player.
-            //
-            // By SCOPE: the same Main Camera prefab that carries this light is dropped into
-            // MainMenu.unity for the backdrop, so an ungated read had L switching a flashlight on
-            // behind the main menu — and behind the pause menu, and on a corpse.
-            //
-            // By OWNERSHIP: every machine in a session holds a copy of every other player's lamp,
-            // and a keyboard is not per-player. Without this, one press of L toggled the torch on
-            // every player in the game at once — on this machine's copy of them. The owner's press
-            // is the only one that counts, and PlayerViewNetwork carries the result to everyone
-            // else. Network.Owns walks up to the player above this light, and answers true offline
-            // and for anything unnetworked, so a torch on a prop or in a test scene still works.
-            var kb = Keyboard.current;
-            if (kb != null && kb[toggleKey].wasPressedThisFrame
-                && GameplayMenuScope.AcceptsGameplayInput
-                && mine)
-            {
-                SetEnabled(!flashlight.enabled);
-            }
-
             // Both of these drive SINGLE-SLOT effects, so only one lamp in the session may run
             // them — see OwnsSingleSlotEffects.
-            if (!mine) return;
+            if (!OwnsSingleSlotEffects) return;
 
             if (flashlight.enabled)
             {
@@ -157,20 +144,32 @@ namespace SpaceGame.Characters
         public bool IsOn => flashlight != null && flashlight.enabled;
 
         /// <summary>
-        /// Someone outside this lamp stating what it should be. Called by the save system and by
-        /// <see cref="PlayerViewNetwork"/> mirroring the owner's torch onto a remote copy; do not
-        /// call it from gameplay, which should go through the key.
+        /// Raised on this machine whenever the lamp changes state, however it changed — the owner
+        /// switching it, a peer being told by <c>netTorch</c>, or a save restore.
         ///
         /// <para>
-        /// Both callers are the same shape — an authority declaring the truth rather than asking
-        /// for a toggle — which is why it takes the state and not a flip.
-        /// </para>
-        /// <para>
-        /// Goes through the same <see cref="SetEnabled"/> the L key does, so the beam mesh is
-        /// switched with the light instead of being left behind as a lit cone with no lamp.
+        /// It exists because the lamp is now the head of a device with a visible bulb, and the bulb
+        /// has to agree with the light on every machine that can see the arm — not only on the one
+        /// where somebody pressed a key.
         /// </para>
         /// </summary>
-        public void RestoreOn(bool on)
+        public event Action<bool> Switched;
+
+        /// <summary>
+        /// Say what this lamp should be. The one public way in.
+        ///
+        /// <para>
+        /// Takes the state, never a flip: every caller is an authority declaring the truth — the
+        /// gauntlet that owns it, <see cref="PlayerViewNetwork"/> mirroring the owner's torch onto
+        /// a remote copy, a restored item bag — and a flip sent to three machines diverges the
+        /// moment one of them misses it.
+        /// </para>
+        /// <para>
+        /// Goes through <see cref="SetEnabled"/>, so the beam mesh is switched with the light
+        /// instead of being left behind as a lit cone with no lamp.
+        /// </para>
+        /// </summary>
+        public void Switch(bool on)
         {
             if (flashlight == null) flashlight = GetComponent<Light>();
             SetEnabled(on);
@@ -184,6 +183,8 @@ namespace SpaceGame.Characters
             // the shader slot shaping it. A remote lamp with the mesh on would draw a shaft cut to
             // the LOCAL player's beam length — a cone of light stopping at nothing.
             if (beamRenderer != null) beamRenderer.enabled = on && OwnsSingleSlotEffects;
+
+            Switched?.Invoke(on);
         }
 
         // Probe the scene for the shortest opaque hit inside the cone, then rebuild the

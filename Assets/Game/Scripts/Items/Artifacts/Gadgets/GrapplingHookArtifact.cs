@@ -1,6 +1,7 @@
 using FMODUnity;
 using Unity.Netcode;
 using UnityEngine;
+using SpaceGame.Agents;
 using SpaceGame.Audio;
 using SpaceGame.Characters;
 using SpaceGame.Core;
@@ -218,6 +219,11 @@ namespace SpaceGame.Items
         /// </summary>
         private float _lastHoldTime;
 
+        // What the rope is pulling while the player is riding something. Resolved once when the tow
+        // starts rather than per physics step, and dropped the moment the player is back on their
+        // own body — see ReclaimRopeFromTow.
+        private ITowable _tow;
+
         private Vector3 _hookPoint;
         private Vector3 _hitNormal = Vector3.up;
         private Vector3 _flightDirection = Vector3.forward;
@@ -430,6 +436,14 @@ namespace SpaceGame.Items
             if ((hookableLayers.value & (1 << hit.Value.collider.gameObject.layer)) == 0)
                 return;
 
+            // Not the machine you are sitting in. MountModule tells the physics solver to ignore
+            // collisions between rider and mount, but a raycast is a query and queries do not care
+            // — so from an ornithopter's cradle the aim ray leaves the pilot's head and lands on
+            // the craft's own nose about a metre later, every single time.
+            Transform ridden = RiddenRoot();
+            if (ridden != null && hit.Value.collider.transform.IsChildOf(ridden))
+                return;
+
             arg.B = Attach;
             arg.P = hit.Value.point;
 
@@ -623,7 +637,16 @@ namespace SpaceGame.Items
             //
             // Only where a stream is expected to be running: a rope let go deliberately has no
             // ticks left to miss.
-            if ((_isShooting || _isGrappling) && Time.time - _lastHoldTime > holdTimeout)
+            //
+            // A tow is exempt, and has to be. This item does not override WantsHold, so its hold
+            // stream ends the moment the trigger comes up — which means the clock below starts
+            // running on a rope that is still doing its job. A tow's ending is the VEHICLE's to
+            // decide (arrived, spent, landed, off the end of the line: see ITowable.RequestTow),
+            // and cutting it here would drop the rope mid-pull about a second and a half after the
+            // pilot stopped pressing, for no reason they could see. Only the owner ever holds a
+            // tow, so every other machine keeps the full safety net.
+            if ((_isShooting || _isGrappling) && _tow == null
+                && Time.time - _lastHoldTime > holdTimeout)
             {
                 StopGrapple();
                 return;
@@ -773,7 +796,18 @@ namespace SpaceGame.Items
         private void FixedUpdate()
         {
             if (!_isGrappling || !OwnsMovement()) return;
-            if (_body == null || _body.isKinematic) return;
+
+            // A kinematic body means the player is not the thing that is moving — they are strapped
+            // into something that is. Pulling on their capsule there does nothing at all, which is
+            // what a hook fired from an ornithopter used to do: rope drawn, dart set, no force
+            // anywhere. Hand the rope to the machine instead.
+            if (_body == null || _body.isKinematic)
+            {
+                TickTow();
+                return;
+            }
+
+            ReclaimRopeFromTow();
 
             float dt = Time.fixedDeltaTime;
 
@@ -804,6 +838,84 @@ namespace SpaceGame.Items
             }
 
             if (IsStalled(dist, dt)) ReleaseInto(radial, arrived: false);
+        }
+
+        // ── The tow, owner only, when the rope is pulling a vehicle ────────────
+
+        /// <summary>
+        /// Hand the rope to whatever the pilot is riding.
+        ///
+        /// <para>
+        /// The craft is towed rather than tethered: the rope pulls, it does not refuse to let go.
+        /// A pendulum is a velocity constraint, and an aircraft that carries its flight path as
+        /// STATE rather than deriving it from its Rigidbody would be fighting a second authority
+        /// every step — the machine would jerk between what the model flew and what the rope
+        /// insisted on. So the pull is handed to the flight model as an acceleration and resolved
+        /// against the flight path there, along with lift and weight.
+        /// </para>
+        /// <para>
+        /// Unlike the swing, the trigger is not consulted. On foot the button chooses between a
+        /// winch and a pendulum; a craft has no pendulum to choose, so the rope simply tows for as
+        /// long as it is out and a second press lets go — which is what the button already does.
+        /// </para>
+        /// </summary>
+        private void TickTow()
+        {
+            _tow ??= owner != null ? owner.GetComponentInParent<ITowable>() : null;
+
+            // Riding something that cannot be towed — a horse, a chair, a gunner's seat. The rope
+            // hangs there and draws, which is the truthful picture of a hook set in a rock by
+            // somebody sitting in a saddle.
+            if (_tow == null) return;
+
+            Vector3 anchor = CurrentAnchor();
+
+            // Past the length of line this hook ever had. Nothing pays rope out mid-flight, so a
+            // craft further from the anchor than the hook could have reached has flown off the end
+            // of its own cable.
+            if (Vector3.Distance(_tow.TowAttachPoint, anchor) > maxRange || !_tow.RequestTow(anchor))
+                ReleaseTow();
+        }
+
+        /// <summary>
+        /// The tow is over. Nothing is handed back the way <see cref="ReleaseInto"/> hands a swing
+        /// back its momentum: the craft's speed lives in its flight state and was being added to
+        /// all along, so letting go of the rope simply stops adding to it.
+        /// </summary>
+        private void ReleaseTow()
+        {
+            AnnounceRelease();
+            StopGrapple();
+        }
+
+        /// <summary>
+        /// Dismounted with the rope still out: take the far end back onto the player's own body.
+        ///
+        /// The rope's length was measured when the dart bit, from wherever the player was standing
+        /// — and a tow has since carried the other end of it hundreds of metres. Resuming the
+        /// constraint on that stale length would find the player enormously outside their own rope
+        /// and haul them back onto a sphere they left a flight ago.
+        /// </summary>
+        private void ReclaimRopeFromTow()
+        {
+            if (_tow == null) return;
+
+            _tow = null;
+            _ropeLength = Mathf.Max(minRopeLength, Vector3.Distance(_body.position, CurrentAnchor()));
+            _lastDistance = _ropeLength;
+            _stallTime = 0f;
+        }
+
+        /// <summary>
+        /// The root of the machine the player is strapped into, or null when they are on their own
+        /// feet. Mounting parents the rider under the seat, so the mount is simply up the hierarchy.
+        /// </summary>
+        private Transform RiddenRoot()
+        {
+            if (owner == null) return null;
+
+            var mount = owner.GetComponentInParent<MountModule>();
+            return mount != null ? mount.transform : null;
         }
 
         /// <summary>
@@ -1147,6 +1259,7 @@ namespace SpaceGame.Items
             _attachOffset = Vector3.zero;
             _pendingRestore = false;
             _stallTime = 0f;
+            _tow = null;
 
             rope.Hide();
             DestroyHead();

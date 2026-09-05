@@ -77,8 +77,10 @@ namespace SpaceGame.Core
 
             yield return FireNetGunAtQuarry();
 
-            // The client reads its own net count after the host has fired, and cannot do that
-            // once the host has taken the session down with it.
+            yield return WearGrappleOnRightArm();
+
+            // The client reads its own net count and the host's worn gear after the host has
+            // fired, and cannot do that once the host has taken the session down with it.
             yield return new WaitForSeconds(12f);
 
             Report("HOST_DONE", true);

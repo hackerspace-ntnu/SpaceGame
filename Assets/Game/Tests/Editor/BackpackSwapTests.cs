@@ -99,6 +99,13 @@ namespace SpaceGame.Tests
             item.itemName = name;
             item.ID = name;
             item.itemPrefab = prefab;
+
+            // Registered like a shipped item, because the take path refuses an item whose ID a
+            // populated registry cannot resolve (PackContainer.HotbarCanResolve) — and whether
+            // this domain's registry is populated depends on whether play mode has run since the
+            // last reload, which no test may depend on.
+            SpaceGame.Core.Registry<InventoryItem>.Register(item);
+
             created.Add(item);
             return item;
         }
@@ -194,6 +201,12 @@ namespace SpaceGame.Tests
             public bool TryAddItem(InventoryItem item) => inner.TryAddItem(item);
             public bool TryRemoveItem(int index) => inner.TryRemoveItem(index);
             public void SelectSlot(int slotIndex) => inner.SelectSlot(slotIndex);
+
+            public bool TrySetSlot(int index, InventoryItem item)
+            {
+                inner.SetSlot(index, item);
+                return true;
+            }
 
             public void RestoreSlots(IReadOnlyList<InventoryItem> items, int selectedSlot) =>
                 inner.RestoreSlots(items, selectedSlot);

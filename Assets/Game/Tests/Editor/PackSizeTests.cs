@@ -57,6 +57,52 @@ namespace SpaceGame.Tests
         private const string Portals = "Assets/Game/Prefabs/Items/Artifacts/Portals/";
         private const string ShipParts = "Assets/Game/Prefabs/Items/ShipParts/";
         private const string Equipment = "Assets/Game/Prefabs/Items/Equipment/";
+        private const string Supplies = "Assets/Game/Prefabs/Items/Supplies/";
+
+        /// <summary>
+        /// Why the oxygen bottle diverges, why it is the one row NOT derived from the roster's
+        /// usual rule, and why its two variants must agree.
+        ///
+        /// <para>
+        /// Every other mat-tuned item is "true size rounded up to the next 0.09 m webbing pitch,
+        /// plus a cell". That rule assumes an item STANDS on the face, so its height costs nothing.
+        /// This one lies down — a bottle standing on a vertical back panel points straight out of
+        /// the wearer's back — so its whole length is in the footprint and the rule's 0.72 would
+        /// cost 4 x 8 = 32 cells, more than either back panel holds. 0.50 draws it 0.525 m, which
+        /// is life size to within 3%, for <b>3 x 6 = 18 cells</b>: exactly a back panel, and inside
+        /// the leaf, the rack and both wings with room.
+        /// </para>
+        /// <para>
+        /// Carried at the hand's own 0.90 m it would be 0.945 m on the mat — 4 x 10 cells, which
+        /// fits no face on the rig at all.
+        /// </para>
+        /// <para>
+        /// The drained and the charged bottle are one model and must carry the SAME number:
+        /// filling a bottle must not make it unstowable.
+        /// </para>
+        /// </summary>
+        private const string BottleWhy =
+            "a 0.5414 m pressure bottle carried at the BigTool bracket's 0.90 m, which is 1.66x " +
+            "life size. It LIES DOWN on the mat (OxygenGearBuilder.BottleLiesDown), so its length " +
+            "is part of its footprint rather than standing up out of it, and the roster's usual " +
+            "'+ a cell' rule would cost 4 x 8 = 32 cells; 0.50 draws it 0.525 m, life size to " +
+            "within 3%, for 3 x 6 = 18 — exactly a back panel. Both variants share it";
+
+        /// <summary>
+        /// Why the power cell's extra cell of margin is deliberately NOT taken.
+        ///
+        /// <para>
+        /// At 0.72 the slab measures exactly the leaf's eight cells across — and eight cells is a
+        /// float division landing precisely on an integer, which rounds either way and so decides
+        /// at random whether the item fits the leaf at all. 0.63 is 7 x 3 = 21 cells with a column
+        /// to spare. The formula is a rule of thumb; a cell boundary is not.
+        /// </para>
+        /// </summary>
+        private const string CellWhy =
+            "a 0.55 m battery carried at the BigTool bracket's 0.90 m; 0.63 is its true size " +
+            "rounded up to the next webbing pitch and the usual extra cell deliberately left off, " +
+            "because at 0.72 it measures EXACTLY the leaf's eight cells and a float rounding " +
+            "either way then decides whether it fits at all. 7 x 3 = 21 cells";
 
         /// <summary>
         /// Why every hull module diverges, in one place rather than seven near-identical
@@ -68,6 +114,25 @@ namespace SpaceGame.Tests
             "a hull module is authored at true ship scale, so neither its world size nor its " +
             "hand size is a number the pack could use; 0.80 m is the rack it goes on, measured " +
             "in the frame packSize is authored in";
+
+        /// <summary>
+        /// <b>The seven gauntlets used to be listed here and deliberately are not any more.</b>
+        ///
+        /// <para>
+        /// Until 2026-09-04 a gauntlet was a device wrapped in a bracer, and in true metres the
+        /// pair was a 0.6-0.8 m object that would have eaten 8 x 7 of the rig's cells — so it
+        /// declared `holdSize` 0 ("keep the size the artist built", right on an arm) and a chosen
+        /// `packSize` of 0.54, and that divergence was recorded here. The bracer is now worn
+        /// permanently and is not part of the item: what goes on the mat is the device alone,
+        /// 0.39 m for the flashlight up to 0.60 for the grappling hook. Those are gadget-sized,
+        /// so `GauntletPrefab.PackSize` went to 0 and the family stopped diverging at all.
+        /// </para>
+        /// <para>
+        /// It is written down because the absence is the interesting part: a gauntlet reappearing
+        /// in this list means someone gave the family a pack size again, and the question to ask
+        /// is whether a bracer has crept back into the models.
+        /// </para>
+        /// </summary>
 
         /// <summary>Metres of slop when matching an authored value.</summary>
         private const float Slack = 1e-3f;
@@ -91,16 +156,13 @@ namespace SpaceGame.Tests
 
         private static readonly Divergence[] Asymmetric =
         {
-            new(Gadgets + "GrapplingHook.prefab", 1.00f, 0.54f,
-                "at its hand size it is 12 cells long against a widest face of 8, so it fit on no " +
-                "surface but the rack"),
-
             new(Gadgets + "Lasso.prefab", 0.60f, 0.36f,
                 "a coil of rope, and at hand size it lay on the mat as long as a sidearm"),
 
-            new(Gadgets + "Leash.prefab", 0.55f, 0.27f,
-                "the smallest thing the player owns; its hand size exists only because this rig's " +
-                "hand is 1.7x a human's, and none of that reason survives it being put down"),
+            // ── The oxygen plant's three supplies ─────────────────────────────────────────
+            new(Supplies + "OxygenTank.prefab", 0.90f, 0.50f, BottleWhy),
+            new(Supplies + "OxygenTankEmpty.prefab", 0.90f, 0.50f, BottleWhy),
+            new(Supplies + "PowerCell.prefab", 0.90f, 0.63f, CellWhy),
 
             new(Portals + "PortalGun.prefab", 1.25f, 0.54f,
                 "a 0.4445 m fire extinguisher carried at the ladder's 1.25 m Anchor bracket, " +

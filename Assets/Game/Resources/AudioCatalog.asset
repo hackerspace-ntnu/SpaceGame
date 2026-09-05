@@ -601,6 +601,30 @@ MonoBehaviour:
     maxDistance: 0
     volume: 0.4
     note: 'stand-in: wants a soft prompt tick'
+  - id: 510
+    eventRef:
+      Guid:
+        Data1: -1680716055
+        Data2: 1212484651
+        Data3: -328738423
+        Data4: -1838393582
+      Path: event:/SFX/ShipHumLoop
+    cooldown: 0.0
+    maxDistance: 25
+    volume: 0.6
+    note: 'stand-in: the oxygen plant filling a bottle. Shares ShipHumLoop until a gas hiss exists.'
+  - id: 511
+    eventRef:
+      Guid:
+        Data1: 1785186576
+        Data2: 1245510835
+        Data3: -1836278379
+        Data4: 1511765510
+      Path: event:/SFX/MetalPickup
+    cooldown: 0.0
+    maxDistance: 25
+    volume: 1.0
+    note: 'stand-in: a filled bottle latching off. Shares MetalPickup.'
   - id: 600
     eventRef:
       Guid:

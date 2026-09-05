@@ -8,12 +8,9 @@
 //
 // These are ordinary items with two deliberate departures from every other artifact:
 //
-//   * NO DropItemPhysics. That component exists to freeze a dropped gadget where it lands so a
-//     passing creature cannot nudge it across the desert. A hull module is the opposite case —
-//     it is meant to be shoved, roped and hauled — and every verb that would haul it (the lasso,
-//     the leash, the grapple winch, walking into it) moves a Rigidbody and nothing else. Leaving
-//     the body live IS the drag feature; there is no drag system here to write. NetAuthority
-//     freezes it on machines that do not simulate it, so the copies cannot fight.
+//   * ItemWorldSizing.Authored. Every other item is drawn in the world at the size the gear wall
+//     draws it (ItemWorldScale); a hull module is not, because its real size IS the point — see
+//     the note on true ship scale below.
 //
 //   * A drawn 9x9 pack shape. The rack is the only face on the expedition rig that is nine cells
 //     square, so a module authored at nine-by-nine fits the rack, fits it only when it is clear,
@@ -23,6 +20,12 @@
 // True ship scale is kept: the eleven-metre motor lying in the sand is the same mesh, at the same
 // size, as the one that ends up bolted to the roof. ItemGrip.holdSize shrinks it for the hand and
 // packSize for the mat; neither touches the object in the world.
+//
+// A module is meant to be shoved, roped and hauled, and every verb that would haul it (the lasso,
+// the leash, the grapple winch, walking into it) moves a Rigidbody and nothing else. Leaving the
+// body live IS the drag feature; there is no drag system here to write. That used to be a
+// departure too, written out by hand here because every other item prefab froze itself on landing.
+// It is now what WorldItem does for all of them.
 //
 // Re-runnable, and re-running REPLACES every prefab wholesale. Tunables belong in Modules below.
 //
@@ -74,12 +77,6 @@ namespace SpaceGame.EditorTools
 
         /// <summary>The rack is 9 x 9 cells at <c>PackGrid.Cell</c>. A module fills it exactly.</summary>
         private const int RackCells = 9;
-
-        /// <summary>Sand, not ice: a shoved module coasts a little and stops.</summary>
-        private const float LinearDamping = 1.5f;
-
-        /// <summary>High, so a long module settles onto a flank rather than rolling off down a dune.</summary>
-        private const float AngularDamping = 4f;
 
         /// <summary>
         /// One carryable module.
@@ -215,29 +212,19 @@ namespace SpaceGame.EditorTools
             NetworkObject netObject = root.AddComponent<NetworkObject>();
             netObject.SynchronizeTransform = true;
 
-            Bounds bounds = ItemBounds.Measure(root, modelInstance.transform);
-            BoxCollider box = root.AddComponent<BoxCollider>();
-            box.center = bounds.center;
-            box.size = bounds.size;
-
-            Rigidbody body = root.AddComponent<Rigidbody>();
-
-            // NOT kinematic, unlike every other item prefab. This is the whole of the "modules can
-            // be dragged around" feature: the drop path un-kinematics a body and DropItemPhysics
-            // would put it straight back: this prefab simply does not have that component.
-            body.isKinematic = false;
-            body.useGravity = true;
-            body.mass = module.Mass;
-            body.linearDamping = LinearDamping;
-            body.angularDamping = AngularDamping;
-
             AddByName(root, "SpaceGame.Items.PickupableItem");
 
             root.AddComponent<NetRelay>();
 
-            // Freezes the body on machines that do not simulate it, so seven live bodies do not
-            // fight their own replicas. Defaults suit an unowned, server-simulated prop.
-            root.AddComponent<NetAuthority>();
+            // The body, the collider fitted to this module's own mesh, and the netcode that lets
+            // another machine watch it be hauled. Authored sizing, unlike every other item: the
+            // eleven-metre motor lying in the sand has to be the motor that bolts to the roof, so
+            // it is the one family ItemWorldScale does not resize. The mass is named because a hull
+            // module IS a known weight; everything else lets WorldItem derive one.
+            //
+            // What this used to be was written out by hand here, and was the only prefab family in
+            // the project that got it right - which is exactly why it is shared now.
+            ItemWorldPresence.Apply(root, ItemWorldSizing.Authored, module.Mass);
 
             root.AddComponent<SaveableEntity>();
             root.AddComponent<TransformSaveable>();
@@ -513,8 +500,13 @@ namespace SpaceGame.EditorTools
                 else if (body.isKinematic)
                     problems.Add($"{module.Name}: the body is kinematic, so it cannot be dragged");
 
-                if (prefab.GetComponent<DropItemPhysics>() != null)
-                    problems.Add($"{module.Name}: has DropItemPhysics, which would freeze it on landing");
+                foreach (string problem in ItemWorldPresence.ProblemsWith(prefab))
+                    problems.Add($"{module.Name}: {problem}");
+
+                var world = prefab.GetComponent<WorldItem>();
+                if (world != null && !world.KeepsAuthoredSize)
+                    problems.Add($"{module.Name}: sized from its grip, so the module in the sand is " +
+                                 "not the module that bolts to the roof");
 
                 if (item.itemPrefab != prefab)
                     problems.Add($"{module.Name}: the item asset does not point at the prefab");

@@ -58,6 +58,13 @@ namespace SpaceGame.Items
         }
 
         public bool TryAddItem(InventoryItem item) => playerInventory.TryAddItem(item);
+
+        public bool TrySetSlot(int index, InventoryItem item)
+        {
+            if (index < 0 || index >= GetInventorySize()) return false;
+            playerInventory.SetSlot(index, item);
+            return true;
+        }
         public bool TryRemoveItem(int index) => playerInventory.TryRemoveItem(index);
  
         private void DropItem()

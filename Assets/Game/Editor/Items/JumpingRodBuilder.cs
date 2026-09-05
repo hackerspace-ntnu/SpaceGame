@@ -37,9 +37,6 @@ namespace SpaceGame.EditorTools
         private const string NetworkPrefabsPath =
             "Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset";
 
-        /// <summary>The ground layer DropItemPhysics settles against, shared by every artifact.</summary>
-        private const int GroundLayerMask = 128;
-
         /// <summary>
         /// Hand size for the carried rod, metres along its longest axis.
         ///
@@ -141,7 +138,7 @@ namespace SpaceGame.EditorTools
             instance.transform.localRotation = Quaternion.Euler(LieDown);
 
             Bounds whole = MeasuredBounds(root.transform, root);
-            WirePickup(root, whole);
+            WirePickup(root);
             WireGrip(root, instance, whole);
 
             JumpingRodItem item = root.AddComponent<JumpingRodItem>();
@@ -174,31 +171,19 @@ namespace SpaceGame.EditorTools
         }
 
         /// <summary>
-        /// What every artifact needs to be dropped, thrown, landed and picked back up. A kinematic
-        /// body keeps it still on the ground until DropItemPhysics takes over.
+        /// What every artifact needs to be dropped, thrown, landed and picked back up.
         /// </summary>
-        private static void WirePickup(GameObject root, Bounds whole)
+        private static void WirePickup(GameObject root)
         {
             var netObject = root.AddComponent<NetworkObject>();
             netObject.SynchronizeTransform = true;
 
-            Rigidbody body = root.AddComponent<Rigidbody>();
-            body.isKinematic = true;
-            body.useGravity = true;
-
-            CapsuleCollider capsule = root.AddComponent<CapsuleCollider>();
-            capsule.direction = 2;                        // Z — the carried rod lies down
-            capsule.radius = 0.08f;
-            capsule.height = whole.size.z;
-            capsule.center = new Vector3(0f, 0f, whole.center.z);
-
             AddByName(root, "SpaceGame.Items.PickupableItem");
 
-            var drop = root.AddComponent<DropItemPhysics>();
-            var so = new SerializedObject(drop);
-            SerializedFields.Set(so, "rb", body);
-            SerializedFields.SetInt(so, "groundLayer", GroundLayerMask);
-            so.ApplyModifiedPropertiesWithoutUndo();
+            // The body, a collider the shape of the item, the sizing and the netcode that lets
+            // another machine watch it be shoved about. One shared block - see ItemWorldPresence
+            // for what nine hand-written copies of it cost.
+            ItemWorldPresence.Apply(root);
 
             root.AddComponent<NetRelay>();
             root.AddComponent<SaveableEntity>();

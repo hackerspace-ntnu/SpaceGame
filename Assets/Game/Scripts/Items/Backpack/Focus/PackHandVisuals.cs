@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Items
 {
@@ -28,8 +29,6 @@ namespace SpaceGame.Items
     /// </summary>
     public sealed class PackHandVisuals
     {
-        private const string ShaderName = "SpaceGame/PackDragTint";
-
         /// <summary>
         /// Metres the carried copy floats above the surface it is over. Low on purpose: the copy
         /// is depth-tested against the verdict cells lying on the face (see
@@ -50,38 +49,10 @@ namespace SpaceGame.Items
 
         private static readonly Color HoverRim = new(1f, 0.92f, 0.6f, 1f);
 
-        /// <summary>
-        /// Outline width as a fraction of the item's own longest side, and the metres it is
-        /// allowed to land between.
-        ///
-        /// <para>
-        /// The width is now world metres (see <c>PackDragTint.shader</c>), so it has to be chosen
-        /// per item or it is either a hairline on a 1.35 m staff or a 5% border round a 0.16 m
-        /// leash. A fraction with a floor and a ceiling gives a line that reads the same on both
-        /// and can never swamp the silhouette it is drawn around, which is the failure this
-        /// replaces: the old object-space width came out at 1.2 m on the item scanner.
-        /// </para>
-        /// </summary>
-        private const float OutlineFraction = 0.020f;
-        private static readonly float MinOutlineWidth = PackScale.Apply(0.0015f);
-        private static readonly float MaxOutlineWidth = PackScale.Apply(0.010f);
-
         /// Relative weights, keeping the denied flash the wider of the two and the hover rim the
         /// finer — the proportions both roles were originally authored with.
         private const float HoverWeight = 1f;
         private const float DeniedWeight = 1.2f;
-
-        /// <summary>Marks the shell objects this class adds, so it never re-shells its own work.</summary>
-        private const string ShellName = "PackOutlineShell";
-
-        private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
-        private static readonly int OutlineWidthId = Shader.PropertyToID("_OutlineWidth");
-        private static readonly int BodyOnId = Shader.PropertyToID("_BodyOn");
-        private static readonly int OutlineOnId = Shader.PropertyToID("_OutlineOn");
-        private static readonly int ZTestId = Shader.PropertyToID("_ZTest");
-        private static readonly int SrcBlendId = Shader.PropertyToID("_SrcBlend");
-        private static readonly int DstBlendId = Shader.PropertyToID("_DstBlend");
-        private static readonly int ZWriteId = Shader.PropertyToID("_ZWrite");
 
         private readonly Material deniedMaterial;
         private readonly Material hoverMaterial;
@@ -112,45 +83,12 @@ namespace SpaceGame.Items
 
         public PackHandVisuals()
         {
-            Shader shader = Shader.Find(ShaderName);
-
-            // Same fallback shape HelmetDangerVignette uses, so a missing project shader keeps
-            // the session alive rather than null-reffing it. It is a keep-running fallback, not a
-            // visual one: URP/Unlit knows nothing of the outline pass, so the three rim shells
-            // would render as plain colour instead of a rim. The carried copy itself is immune —
-            // it wears the item's own materials, never one of these.
-            if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
-
-            deniedMaterial = Build(shader, "PackDeniedRim");
-            hoverMaterial = Build(shader, "PackHover");
-
             // No carry material at all: the carried copy keeps the ITEM'S OWN materials, so what
             // the player holds looks exactly like the thing they are placing. The verdict is not
             // painted onto it — it is the green/red cells on the face beneath it — and the
             // refusal flash below is an outline shell round it, never a repaint.
-            //
-            // The hover rim and the denied flash: the outline pass only, depth-tested normally,
-            // drawn on a shell that traces the real item so the ITEM lights up — no floating UI
-            // box. The widths here are placeholders — every Apply sets a real one from the item's
-            // own size.
-            ConfigureRim(hoverMaterial, HoverRim, MinOutlineWidth);
-            ConfigureRim(deniedMaterial, DeniedRim, MinOutlineWidth);
-        }
-
-        private static Material Build(Shader shader, string name) =>
-            new(shader) { name = name, hideFlags = HideFlags.HideAndDontSave };
-
-        private static void ConfigureRim(Material material, Color colour, float width)
-        {
-            material.SetFloat(BodyOnId, 0f);
-            material.SetFloat(OutlineOnId, 1f);
-            material.SetColor(OutlineColorId, colour);
-            material.SetFloat(OutlineWidthId, width);
-            material.SetFloat(ZTestId, (float)UnityEngine.Rendering.CompareFunction.LessEqual);
-            material.SetFloat(SrcBlendId, (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            material.SetFloat(DstBlendId, (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            material.SetFloat(ZWriteId, 0f);
-            material.renderQueue = 2001;
+            deniedMaterial = TintMaterials.Rim("PackDeniedRim", DeniedRim, OutlineShell.MinOutlineWidth);
+            hoverMaterial = TintMaterials.Rim("PackHover", HoverRim, OutlineShell.MinOutlineWidth);
         }
 
         // ── Hover ────────────────────────────────────────────────────────────
@@ -163,7 +101,7 @@ namespace SpaceGame.Items
             if (visual != null && rimmed == visual) return;
 
             rimmed = visual;
-            BuildShell(rimmed, hoverMaterial, HoverWeight, rimShell);
+            OutlineShell.Build(rimmed, hoverMaterial, HoverWeight, rimShell);
         }
 
         // ── The carried copy ─────────────────────────────────────────────────
@@ -269,15 +207,15 @@ namespace SpaceGame.Items
         /// </summary>
         public void SetCarryDenied(bool denied)
         {
-            if (denied && proxy != null) BuildShell(proxy, deniedMaterial, DeniedWeight, deniedShell);
-            else ClearShell(deniedShell);
+            if (denied && proxy != null) OutlineShell.Build(proxy, deniedMaterial, DeniedWeight, deniedShell);
+            else OutlineShell.Clear(deniedShell);
         }
 
         public void EndCarry()
         {
             // The shell parts die with the proxy either way; clearing the list here is what stops
             // it accumulating dead references across carries.
-            ClearShell(deniedShell);
+            OutlineShell.Clear(deniedShell);
 
             if (proxy != null) Object.Destroy(proxy);
 
@@ -291,7 +229,7 @@ namespace SpaceGame.Items
             // mid-air ends here rather than dangling on destroyed objects. (The controller's
             // timer clears its own half of the state on its own schedule — SetCarryDenied(false)
             // on an already-clear shell is a no-op.)
-            ClearShell(deniedShell);
+            OutlineShell.Clear(deniedShell);
 
             if (proxy != null) Object.Destroy(proxy);
 
@@ -356,6 +294,12 @@ namespace SpaceGame.Items
             // are carried onto it.
             labelCanvas.sortingOrder = 500;
 
+            // Without a scaler this canvas is ConstantPixelSize, so the caption below is 15
+            // PHYSICAL pixels — legible at 1080p and unreadable on a 4K panel. The label is still
+            // placed by screen point, which an overlay canvas takes in screen pixels whatever its
+            // scale factor, so only the type size changes.
+            UIScale.Apply(go);
+
             var textGo = new GameObject("Text");
             textGo.transform.SetParent(go.transform, false);
 
@@ -368,130 +312,7 @@ namespace SpaceGame.Items
             label.rectTransform.sizeDelta = new Vector2(320f, 26f);
         }
 
-        // ── Outline shells ───────────────────────────────────────────────────
-
-        /// <summary>
-        /// Trace <paramref name="visual"/> with a set of throwaway renderers carrying only
-        /// <paramref name="outline"/>, replacing whatever was traced before.
-        ///
-        /// <para>
-        /// This used to <em>append</em> the outline material to the item's own renderers, which is
-        /// half a technique: Unity draws a renderer's Nth material against submesh N and against
-        /// the LAST submesh once it runs out, so an appended material outlines one submesh and no
-        /// others. On this roster that is not an edge case — the item scanner's case has 10
-        /// submeshes, the portal gun 12, the leash spool and the weather-station emitter 8 each —
-        /// so the rim traced one arbitrary fragment of the prop and the player saw an outline that
-        /// did not match the item.
-        /// </para>
-        /// <para>
-        /// A shell has no such limit: it is a renderer of its own, so it gets one outline material
-        /// per submesh and covers the whole silhouette. It is also safer than borrowing. Each part
-        /// is parented to the renderer it traces, inheriting that renderer's exact object-to-world
-        /// matrix and dying with it, so a display copy destroyed mid-hover — which
-        /// <c>BackpackObject</c> does on every layout change — cannot leave this class holding a
-        /// material array it can no longer put back.
-        /// </para>
-        /// </summary>
-        private static void BuildShell(GameObject visual, Material outline, float weight,
-                                       List<GameObject> parts)
-        {
-            ClearShell(parts);
-            if (visual == null) return;
-
-            outline.SetFloat(OutlineWidthId, OutlineWidthFor(visual, weight));
-
-            foreach (Renderer source in visual.GetComponentsInChildren<Renderer>(true))
-            {
-                // Never shell our own shells: Unity's Destroy is deferred, so the parts cleared a
-                // moment ago are still hanging on these renderers for the rest of the frame.
-                if (source == null || source.gameObject.name == ShellName) continue;
-
-                Mesh mesh = MeshOf(source);
-                if (mesh == null || mesh.subMeshCount <= 0) continue;
-
-                var part = new GameObject(ShellName) { hideFlags = HideFlags.HideAndDontSave };
-                part.transform.SetParent(source.transform, false);
-                part.layer = source.gameObject.layer;
-
-                var materials = new Material[mesh.subMeshCount];
-                for (int i = 0; i < materials.Length; i++) materials[i] = outline;
-
-                Renderer shell;
-
-                if (source is SkinnedMeshRenderer skinned)
-                {
-                    // A skinned mesh's vertices mean nothing without its bones, so the shell has
-                    // to be skinned too and share them. Nothing on a display copy animates — Strip
-                    // takes the Animator off — but the bind pose still has to be evaluated.
-                    var copy = part.AddComponent<SkinnedMeshRenderer>();
-                    copy.sharedMesh = mesh;
-                    copy.bones = skinned.bones;
-                    copy.rootBone = skinned.rootBone;
-                    copy.localBounds = skinned.localBounds;
-                    shell = copy;
-                }
-                else
-                {
-                    part.AddComponent<MeshFilter>().sharedMesh = mesh;
-                    shell = part.AddComponent<MeshRenderer>();
-                }
-
-                shell.sharedMaterials = materials;
-                shell.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                shell.receiveShadows = false;
-
-                parts.Add(part);
-            }
-        }
-
-        private static void ClearShell(List<GameObject> parts)
-        {
-            foreach (GameObject part in parts)
-                if (part != null) Object.Destroy(part);
-
-            parts.Clear();
-        }
-
-        private static Mesh MeshOf(Renderer renderer)
-        {
-            if (renderer is SkinnedMeshRenderer skinned) return skinned.sharedMesh;
-
-            var filter = renderer.GetComponent<MeshFilter>();
-            return filter != null ? filter.sharedMesh : null;
-        }
-
-        /// <summary>
-        /// How thick a line to draw round this particular item, in world metres.
-        ///
-        /// <para>
-        /// A fraction of the item's own longest side, floored and capped. The shader inflates in
-        /// world space now, so one constant cannot serve a 0.16 m leash and a 1.35 m staff at
-        /// once — and the bug this replaces was exactly a constant that meant something different
-        /// on every prop.
-        /// </para>
-        /// </summary>
-        private static float OutlineWidthFor(GameObject visual, float weight)
-        {
-            float span = 0f;
-            bool any = false;
-            Bounds bounds = default;
-
-            foreach (Renderer renderer in visual.GetComponentsInChildren<Renderer>(true))
-            {
-                if (renderer == null || renderer.gameObject.name == ShellName) continue;
-
-                if (!any) { bounds = renderer.bounds; any = true; }
-                else bounds.Encapsulate(renderer.bounds);
-            }
-
-            if (any)
-            {
-                Vector3 size = bounds.size;
-                span = Mathf.Max(size.x, Mathf.Max(size.y, size.z));
-            }
-
-            return Mathf.Clamp(span * OutlineFraction * weight, MinOutlineWidth, MaxOutlineWidth);
-        }
+        // ── Teardown ─────────────────────────────────────────────────────────
 
         /// <summary>Destroys everything this owns: the outline shells, the label and
         /// the two materials.</summary>
@@ -502,8 +323,8 @@ namespace SpaceGame.Items
 
             // SetHovered(null) and EndCarry above already cleared these unless nothing was lit, in
             // which case the early-out skipped them. Cheap and idempotent either way.
-            ClearShell(rimShell);
-            ClearShell(deniedShell);
+            OutlineShell.Clear(rimShell);
+            OutlineShell.Clear(deniedShell);
 
             if (labelCanvas != null) Object.Destroy(labelCanvas.gameObject);
             labelCanvas = null;

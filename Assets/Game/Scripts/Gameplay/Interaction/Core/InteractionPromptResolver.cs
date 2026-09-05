@@ -46,7 +46,7 @@ namespace SpaceGame.Gameplay
     public static class InteractionPromptResolver
     {
         /// <summary>Shown when nothing more specific is known.</summary>
-        public const string DefaultPrompt = "E: interact";
+        public const string DefaultPrompt = "RMB: interact";
 
         /// <summary>Appended when the interactable also takes a Use action.</summary>
         public const string SecondarySuffix = "   LMB: use";
@@ -154,7 +154,7 @@ namespace SpaceGame.Gameplay
             return false;
         }
 
-        /// <summary>"E: interact", plus the Use line when the component takes one.</summary>
+        /// <summary>"RMB: interact", plus the Use line when the component takes one.</summary>
         public static string DerivePrompt(IInteractable interactable)
         {
             string prompt = DefaultPrompt;

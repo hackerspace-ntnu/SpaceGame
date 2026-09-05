@@ -61,14 +61,13 @@ namespace SpaceGame.Items
         /// <summary>
         /// The size assumed for a prefab with no <see cref="ItemGrip"/> on it at all.
         /// <para>
-        /// Must stay equal to <c>EquipItemSocket.DefaultHoldSize</c>. The two are the same question
-        /// asked in two places — how big is an item nobody sized? — and an item that answers 0.30 m
-        /// in the hand and 11 m on the mat is a bug in whichever one disagrees. The pack's answer
-        /// is then multiplied by <see cref="PackScale.Factor"/> like every other length on the mat,
-        /// which is not a disagreement: it is the same item, drawn in a world that is 1.5x.
+        /// One shared constant rather than a copy per frame — see
+        /// <see cref="ItemBounds.DefaultSize"/> for why. The pack's answer is then multiplied by
+        /// <see cref="PackScale.Factor"/> like every other length on the mat, which is not a
+        /// disagreement: it is the same item, drawn in a world that is 1.5x.
         /// </para>
         /// </summary>
-        private const float DefaultHoldSize = 0.30f;
+        private const float DefaultHoldSize = ItemBounds.DefaultSize;
 
         /// Footprint given to an item with nothing to measure. A clip-sized square — small enough
         /// that it never crowds a surface, big enough to be picked up with a cursor. Scaled with

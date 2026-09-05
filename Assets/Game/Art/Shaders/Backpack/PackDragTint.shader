@@ -29,9 +29,10 @@ Shader "SpaceGame/PackDragTint"
         // 12 mm that was meant and the Cixin gun's child scales (up to 82,000) got tens of metres.
         // Four orders of magnitude of spread from one number, none of it authored.
         //
-        // In world space the number means what it says. PackHandVisuals still scales it per item —
-        // see OutlineWidthFor — so the line stays proportional to the thing it surrounds instead
-        // of swallowing the small ones.
+        // In world space the number means what it says. OutlineShell.WidthFor still scales it per
+        // traced visual, so the line stays proportional to the thing it surrounds instead of
+        // swallowing the small ones — and because it writes the width onto the material it is
+        // handed, no two shells may share one.
         _OutlineWidth ("Outline Width", Range(0, 0.2)) = 0.006
 
         [Toggle] _BodyOn ("Draw Body", Float) = 1

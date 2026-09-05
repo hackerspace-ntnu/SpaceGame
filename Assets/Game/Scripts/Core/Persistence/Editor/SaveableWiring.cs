@@ -140,14 +140,20 @@ namespace SpaceGame.Core.Persistence.EditorTools
                     continue;
                 }
 
+                // Before wiring, because a nested entity is exactly what Wire must not see as "this
+                // prefab is already wired", and a stripped file has to be reloaded to be edited.
+                bool stripped = StripNestedSavers(path, out string removed);
+                if (stripped) prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+
                 bool wired = Wire(prefab, out string added);
                 bool stamped = StampPrefabId(prefab, guid);
 
-                if (wired || stamped)
+                if (wired || stamped || stripped)
                 {
                     changed++;
                     report.Append("  + ").Append(System.IO.Path.GetFileNameWithoutExtension(path))
                           .Append("  [").Append(why).Append(']');
+                    if (stripped) report.Append("  removed: ").Append(removed);
                     if (wired) report.Append("  added: ").Append(added);
                     if (stamped) report.Append("  stamped prefabId");
                     report.Append('\n');
@@ -161,6 +167,90 @@ namespace SpaceGame.Core.Persistence.EditorTools
             report.Append($"  {changed} prefab(s) wired, {skipped} skipped (no state worth saving).");
             Debug.Log(report.ToString());
             return true;
+        }
+
+        /// <summary>
+        /// Enforces "one entity per prefab, one saver per key" on a prefab FILE, and reports what
+        /// it removed.
+        ///
+        /// <para>
+        /// A nested prefab that is saveable on its own — the map projector inside the PlayerShip,
+        /// the repair workstation inside the ShipRV, the gun model inside every gun pickup — keeps
+        /// the <see cref="SaveableEntity"/> its own asset carries, and two things go wrong at once.
+        /// <c>SaveableEntity.OnValidate</c> stamps that nested entity's <c>prefabId</c> from the
+        /// asset it is saved INSIDE, i.e. the outer prefab's GUID, so its record instantiates a
+        /// whole second copy of the outer prefab on every load. And once the nested entity is gone,
+        /// the nested object's own <c>TransformSaveable</c>/<c>RigidbodySaveable</c> are collected
+        /// by the outer entity under the SAME keys as the root's — and in capture order the later
+        /// one wins, so the ship's pose record became the projector's. Pose and body savers describe
+        /// an entity's own root; below it they are only ever residue of a nesting.
+        /// </para>
+        /// <para>
+        /// Through <c>LoadPrefabContents</c> rather than the loaded asset: removing a component from
+        /// a nested prefab instance is a removed-component override, and only the contents path
+        /// records one. The root's saver always wins a key clash, because the root is the object
+        /// the record is about.
+        /// </para>
+        /// </summary>
+        private static bool StripNestedSavers(string path, out string removed)
+        {
+            removed = string.Empty;
+
+            GameObject probe = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (probe == null || probe.GetComponent<SaveableEntity>() == null) return false;
+            if (probe.GetComponentsInChildren<SaveableEntity>(true).Length == 1 && !HasKeyClash(probe))
+                return false;
+
+            var parts = new System.Collections.Generic.List<string>();
+            GameObject contents = PrefabUtility.LoadPrefabContents(path);
+
+            try
+            {
+                foreach (SaveableEntity nested in contents.GetComponentsInChildren<SaveableEntity>(true))
+                {
+                    if (nested.gameObject == contents) continue;
+                    parts.Add(nested.name + ":" + nameof(SaveableEntity));
+                    Object.DestroyImmediate(nested);
+                }
+
+                foreach (Component clash in KeyClashes(contents))
+                {
+                    parts.Add(clash.gameObject.name + ":" + clash.GetType().Name);
+                    Object.DestroyImmediate(clash);
+                }
+
+                if (parts.Count > 0) PrefabUtility.SaveAsPrefabAsset(contents, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+            }
+
+            removed = string.Join(", ", parts);
+            return parts.Count > 0;
+        }
+
+        private static bool HasKeyClash(GameObject root) => KeyClashes(root).Count > 0;
+
+        /// <summary>
+        /// Every saver the root entity would collect whose key an earlier saver already owns — the
+        /// ones a capture would silently overwrite the earlier with.
+        /// </summary>
+        private static System.Collections.Generic.List<Component> KeyClashes(GameObject root)
+        {
+            var savers = new System.Collections.Generic.List<SpaceGame.Persistence.ISaveable>();
+            SaveableEntity.CollectSavers(root.transform, savers);
+
+            var seen = new System.Collections.Generic.HashSet<string>();
+            var clashes = new System.Collections.Generic.List<Component>();
+
+            foreach (SpaceGame.Persistence.ISaveable saver in savers)
+            {
+                if (saver is not Component component || string.IsNullOrEmpty(saver.SaveKey)) continue;
+                if (!seen.Add(saver.SaveKey)) clashes.Add(component);
+            }
+
+            return clashes;
         }
 
         /// <summary>

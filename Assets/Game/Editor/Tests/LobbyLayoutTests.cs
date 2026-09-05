@@ -73,8 +73,12 @@ namespace SpaceGame.Tests
         /// </summary>
         private static float ListBandHeight()
         {
-            // ContentTop is negative, measured down from the top of the canvas.
-            float topFromBottom = 1080f - (-MenuEntry.ContentTop - LobbyJoinLayout.ListTopDrop);
+            // ContentTop is negative, measured down from the top of the canvas. Asked for the
+            // reference height explicitly rather than read off the live one: MenuEntry.ContentTop
+            // now resolves against whatever canvas the game is running on, and a test that took it
+            // would be asserting against the editor's game-view size.
+            float reference = UIScale.ReferenceResolution.y;
+            float topFromBottom = reference - (-MenuEntry.ContentTopFor(reference) - LobbyJoinLayout.ListTopDrop);
             float bottomFromBottom = MenuEntry.MessageBottom + LobbyJoinLayout.ListBottomGap;
 
             return topFromBottom - bottomFromBottom;

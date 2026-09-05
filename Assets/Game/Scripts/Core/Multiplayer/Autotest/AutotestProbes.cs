@@ -11,7 +11,7 @@ using SpaceGame.Items;
 
 namespace SpaceGame.Core
 {
-    internal static class AutotestProbes
+    internal static partial class AutotestProbes
     {
         /// <summary>
         /// How many portal apertures stand on this machine.

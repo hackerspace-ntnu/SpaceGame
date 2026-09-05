@@ -1,29 +1,65 @@
-"""Item Scanner — the forearm-mounted salvage finder.
+"""Item Scanner — the forearm-worn salvage finder.
 
 Assembly only. Every surface on this model comes from a component; what is
-authored here is the bracket that marries them and the placement that makes the
-two read as one device rather than a box balanced on a boot.
+authored here is the bracket that marries the terminal to the family's webbing
+cuff, and the placement that puts the screen face-up on the top of the forearm
+where the wearer can glance at it.
+
+The first build of this model carried the terminal on `arm_cuff`'s `Grip`
+variation as a hand-held instrument. It is now a gauntlet — see
+`docs/superpowers/specs/2026-09-02-body-equipment-design.md` §7 — on the same
+cuff, at the same seating, as `grapple_bracer` and `leash_gauntlet`.
 
 Objects shipped, and why each is separate:
 
 | Object | Separate because |
 |---|---|
+| `Mesh_ArmCuff_Webbing`          | reused component, seated by `_gauntlet` |
 | `Mesh_Terminal_Scanner_Case`    | the static body |
 | `Mesh_Terminal_Scanner_Screen`  | Unity paints the radar shader on this alone |
 | `Mesh_Terminal_Scanner_Dial`    | the game spins it while scanning; origin on its axis |
 | `Mesh_Terminal_Scanner_Antenna` | the game whips it; origin at its root |
-| `Mesh_ArmCuff_Grip`             | reused component, no scanner-specific edit |
 | `Mesh_ItemScanner_Bracket`      | the only geometry unique to this model |
 
 Component names are kept rather than renamed to `Mesh_ItemScanner_*`, so the
-provenance of each piece is readable straight off the outliner. Nothing in Unity
-binds by name — the prefab wires serialized Transform references.
+provenance of each piece is readable straight off the outliner, and so the
+prefab's serialized references to the screen, dial and antenna survive the
+re-export — FBX sub-object ids are derived from object names.
 
-**No armature.** The skill's default is to add one wherever anything could move,
-and two things here do: the dial and the antenna. Both are rigid, neither
-deforms, and both are already separate objects with their origins on their axis
-of motion — which is the cleaner form of exactly the same capability, and skips
-a bone hierarchy Unity would have to unpick on import.
+
+## Orientation — three constraints the code imposes
+
+`ItemScannerArtifact` and `ItemScannerScreen` are not touched by this rework,
+so the meshes have to satisfy what they already assume. The export maps
+Blender `(x, y, z)` onto Unity `(−x, z, −y)`.
+
+1. **The screen faces +Z (up), with its UV `v` toward the wrist.** The radar
+   is a 180-degree forward arc with `v` up meaning "ahead", and ahead is where
+   the arm points. `R_z(180) @ R_x(−90)` sends the plate's normal (local −Y)
+   to +Z, its `v` (local +Z) to −Y, and its `u` (local +X) to −X — which is
+   Unity +X, the viewer's right when looking down the arm. That is the same
+   handedness the hand-held build shipped with, so `_FlipX` stays 0.
+2. **The dial's axis is Blender Y.** The code spins it with `Euler(0, 0, a)`,
+   Unity local Z, which is Blender −Y. The knob was authored protruding from
+   the deck along −Y; the deck now faces up, so the knob cannot stay on it.
+   It moves to the case's elbow-end face (the terminal's base, local z = 0),
+   turned by `R_z(180)` so it protrudes toward +Y, the elbow. A knob is
+   rotationally symmetric, so that roll changes nothing else.
+3. **The antenna stands up +Z.** The code sways it with `Euler(x, 0, z)`,
+   Unity X and Z, both transverse to a mast along Unity Y = Blender Z. So the
+   mast is placed with no rotation but a roll, `R_z(−90)`, which sends its
+   authored lean (+X, −Y) to (−X, −Y): outboard toward the little-finger side
+   and forward, away from the wearer's face. It stands on its own boss on the
+   bracket plate, outboard of the case, because the only flat upward surface
+   left on the case is the screen.
+
+The terminal is worn at `TERMINAL_K` = 0.8 of its hand-held size. Authored at
+0.174 x 0.185 m it is wider than the forearm it lies on; at 0.8 the screen is
+still 0.090 x 0.074 m, which at the rig's 2.1x wear is a tablet on the arm.
+
+**No armature.** The dial and antenna are rigid and are already separate
+objects with their origins on their own axis of motion — the cleaner form of
+the same capability, and it skips a bone hierarchy Unity would have to unpick.
 
 Generation script — historical record. The .blend is the source of truth; never
 re-run this over the file it produced.
@@ -36,107 +72,102 @@ import sys
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _LIB = os.path.dirname(os.path.dirname(_HERE))
 sys.path.insert(0, _LIB)
-sys.path.insert(0, os.path.join(_LIB, "components", "mechanical"))
+sys.path.insert(0, _HERE)
 
-import bpy  # noqa: E402
 from _buildlib import *  # noqa: E402,F403
-from panel_control import tube_path  # noqa: E402
+from _gauntlet import (  # noqa: E402
+    BEVEL_W, CHROME, DARK, MATS, PROPS, STEEL, append_cuff, append_objects,
+    clamp_bands, place, seat, spine)
+from _tracked import TrackedPart  # noqa: E402
 
 from mathutils import Matrix, Vector  # noqa: E402
 
-TERMINAL = os.path.join(_LIB, "components", "props", "handheld_terminal.blend")
-CUFF = os.path.join(_LIB, "components", "props", "arm_cuff.blend")
+TERMINAL = os.path.join(PROPS, "handheld_terminal.blend")
 
-STEEL, DARK, RUBBER, CHROME, LEATHER, PALE, CANVAS, BRASS, BLACK = range(9)
-MATS = ["Mat_Metal_Steel_Worn", "Mat_Metal_Steel_Dark",
-        "Mat_Plastic_Rubber_Black", "Mat_Metal_Chrome_Scuffed",
-        "Mat_Fabric_Seat_Ochre", "Mat_Paint_Hull_Bleached",
-        "Mat_Fabric_Canvas_Faded", "Mat_Metal_Brass_Tarnished",
-        "Mat_Neutral_Black_Matte"]
+TERMINAL_K = 0.80
 
-# Where the terminal sits on the grip: leaned back 14 degrees so the screen
-# faces the holder's eye when the unit is raised, and yawed 5 so it is not
-# square to the haft. The grip's collar tops out at z = 0.184.
-DECK_Z = 0.181
-PLACE = (Matrix.Translation(Vector((0.002, -0.004, DECK_Z)))
-         @ Matrix.Rotation(math.radians(-14), 4, 'X')
-         @ Matrix.Rotation(math.radians(5), 4, 'Z'))
+# The spine floor is sunk 0.5 mm into the cuff's mounting boss (outer face at
+# z = 0.056). Its rails stop at 0.068 — lower than the bracer's 0.076 — because
+# the bracket plate sits on them and the case on the plate, and every
+# millimetre here is 2.1 on the arm.
+SPINE_FLOOR, SPINE_RAIL = 0.0555, 0.0680
+SPINE_Y0, SPINE_Y1 = 0.0200, 0.1700
+
+# The plate: on the rail tops, embedded 0.5 mm. It starts at y = 0.062 rather
+# than at the case's wrist end (0.022) because the terminal's bail handle and
+# its chrome mounts hang down to z = 0.064 at y = 0.027..0.060, and a plate
+# under them would be a plate through them.
+PLATE_LO = (-0.0780, 0.0620, 0.0675)
+PLATE_HI = (0.0800, 0.1740, 0.0715)
+
+# Where the case's back housing lands: local y = 0.052 is its underside, so
+# CASE_AT.z - 0.052 * K = 0.070, 1.5 mm inside the plate. CASE_AT.y centres the
+# 0.185 m case on the cuff; the controls end (local z = 0) is at the elbow.
+CASE_AT = (0.0, 0.1700, 0.1116)
+
+# The front block's underside (local y = 0.006) is at z = 0.1068 and only the
+# back housing reaches the plate, so the −X half of the case would float.
+# This block fills that void; its top is 0.5 mm inside the case, its +X face
+# 1 mm inside the housing's flank at x = −0.024, its bottom 0.5 mm in the plate.
+CRADLE_LO = (-0.0560, 0.0640, 0.0710)
+CRADLE_HI = (-0.0230, 0.1660, 0.1073)
+
+# Knob on the elbow-end face, 1 mm inside it so the base never shares its
+# plane. The face spans x −0.058..0.053, z 0.107..0.152; the hazard stencil is
+# at x −0.040..−0.005 and the lamps at x 0.022..0.042, z 0.154, so this spot is
+# clear of both.
+DIAL_AT = (0.0300, 0.1690, 0.1300)
+
+# Mast boss on the plate, outboard of the case's −X flank (x = −0.058) and
+# aft of the fire button at y = 0.104. The antenna's rubber base extends
+# 1.6 mm below its origin at this scale, so 0.0710 buries it 2 mm in the plate
+# — deeper than the boss's own 0.3 mm, so the two undersides never share a plane.
+ANTENNA_AT = (-0.0670, 0.1500, 0.0710)
+BOSS_Z0, BOSS_Z1 = 0.0712, 0.0792
 
 
-def append_objects(blend, names, into):
-    """Append named objects from a component file into `into`.
-
-    Appended, not linked: an export has to carry real mesh data, and a linked
-    object arrives as a proxy the FBX writer skips silently.
-    """
-    with bpy.data.libraries.load(blend, link=False) as (src, dst):
-        missing = [n for n in names if n not in set(src.objects)]
-        if missing:
-            raise SystemExit("Not in %s: %s" % (blend, ", ".join(missing)))
-        dst.objects = list(names)
-    out = []
-    for name in names:
-        obj = bpy.data.objects[name]
-        into.objects.link(obj)
-        out.append(obj)
-    return out
-
-
-def place(obj, matrix):
-    """Apply `matrix` into the mesh data and the object's origin, leaving the
-    object at rotation 0 and scale 1.
-
-    The library's convention is that transforms are applied, and it is not
-    cosmetic here: a rotated object exports with that rotation baked into the
-    FBX node, and Unity then hands the game a Transform whose local axes are not
-    the ones the code reasons about. The origin still carries the meaning —
-    it moves with the matrix, the mesh rotates about it.
-    """
-    obj.data.transform(matrix.to_3x3().to_4x4())
-    obj.location = matrix @ obj.location
-    return obj
+def case_matrix():
+    """Terminal local (face −Y, top +Z) onto the forearm, face up, top to the
+    wrist. Local (x, y, z) → (−x·K, −z·K, −y·K) + CASE_AT."""
+    return (Matrix.Translation(Vector(CASE_AT))
+            @ Matrix.Rotation(math.radians(180), 4, 'Z')
+            @ Matrix.Rotation(math.radians(-90), 4, 'X')
+            @ Matrix.Diagonal(Vector((TERMINAL_K,) * 3)).to_4x4())
 
 
 def bracket(coll, mats):
-    """The yoke that clamps the terminal to the grip — unique to this model.
-
-    A plate across the grip's collar, seating lugs, and a strap over the top.
-    Without it the case floats, and the piece exists to show the load path from
-    a 0.146 m instrument down onto a 0.074 m haft — the wider the head got
-    relative to the grip, the more work this had to do.
-    """
-    p = Part(mats)
+    """Spine, clamps, plate, cradle, hold-down clips and the mast boss."""
+    p = TrackedPart(mats)
     hard = []
 
-    top_w, top_d = 0.078, 0.068
-    hard += p.slab((-top_w / 2, -top_d / 2, 0.170), (top_w / 2, top_d / 2, 0.179),
+    hard += spine(p, SPINE_Y0, SPINE_Y1, z0=SPINE_FLOOR, z1=SPINE_RAIL)
+    hard += clamp_bands(p, pad_top=SPINE_FLOOR + 0.0005)
+
+    hard += p.slab(PLATE_LO, PLATE_HI, STEEL)
+    hard += p.slab(CRADLE_LO, CRADLE_HI, DARK)
+
+    # Hold-down clips: steel blocks 2 mm into the case's flanks, 1.5 mm into
+    # the plate. The +X pair straddle the coil and connectors on that flank
+    # (y 0.079..0.125); the −X pair sit clear of the fire button (y 0.104) and
+    # of the mast boss (y 0.138..0.162).
+    for y in (0.0680, 0.1600):
+        hard += p.box((0.0708, y, 0.0780), (0.0080, 0.0160, 0.0160), STEEL)
+    for y in (0.0680, 0.1300):
+        hard += p.box((-0.0596, y, 0.0925), (0.0080, 0.0160, 0.0450), STEEL)
+
+    # Mast boss, bottom 0.3 mm in the plate. The antenna's own rubber base
+    # passes up through it.
+    hard += p.slab((ANTENNA_AT[0] - 0.0120, ANTENNA_AT[1] - 0.0120, BOSS_Z0),
+                   (ANTENNA_AT[0] + 0.0120, ANTENNA_AT[1] + 0.0120, BOSS_Z1),
                    STEEL)
-    hard += p.slab((-top_w / 2 - 0.004, -top_d / 2 - 0.004, 0.162),
-                   (top_w / 2 + 0.004, top_d / 2 + 0.004, 0.171), DARK)
 
-    # Shoulders reaching out past the collar to meet a case half again as wide.
-    for sx in (-1, 1):
-        hard += p.box((sx * 0.048, 0.0, 0.1745), (0.026, 0.040, 0.008), STEEL)
-        p.cyl((sx * 0.048, 0.0, 0.1795), 0.0072, 0.004, 'Z', 8, CHROME)
+    p.rivets((-0.0700, 0.0720, PLATE_HI[2]), (-0.0700, 0.1240, PLATE_HI[2]),
+             3, radius=0.0022, height=0.0022, axis='Z', mat=CHROME)
+    p.rivets((0.0775, 0.0850, PLATE_HI[2]), (0.0775, 0.1450, PLATE_HI[2]),
+             3, radius=0.0022, height=0.0022, axis='Z', mat=CHROME)
 
-    # Seating lugs. Kept to the few millimetres of daylight between the bracket
-    # plate and the leaned-back case: anything taller is geometry buried inside
-    # the terminal, which costs triangles and shows up as interior faces.
-    for sx in (-1, 1):
-        hard += p.box((sx * 0.030, -0.024, 0.1805), (0.014, 0.014, 0.006),
-                      STEEL)
-        hard += p.box((sx * 0.030, 0.024, 0.1820), (0.014, 0.014, 0.009), STEEL)
-
-    # Strap over the deck, and a coiled lead disappearing into the grip.
-    hard += p.box((0.0, 0.002, 0.175), (0.104, 0.018, 0.006), CANVAS)
-    hard += p.box((0.044, 0.002, 0.176), (0.014, 0.024, 0.010), BRASS)
-    tube_path(p, [(-0.040, 0.026, 0.170), (-0.048, 0.020, 0.152),
-                  (-0.044, 0.008, 0.130)], 0.0038, RUBBER, seg=6)
-
-    p.rivets((-0.032, 0.0, 0.1795), (0.032, 0.0, 0.1795), 4, radius=0.0022,
-             height=0.0028, axis='Z', mat=CHROME)
-
-    p.bevel(hard, width=0.0016, segments=2)
+    print("  Mesh_ItemScanner_Bracket: %d face(s) re-stamped" % p.restamp())
+    p.bevel(hard, width=BEVEL_W, segments=2)
     return p.finish("Mesh_ItemScanner_Bracket", coll)
 
 
@@ -146,12 +177,15 @@ def main():
     mats = link_materials(MATS)
     coll = collection("Coll_ItemScanner")
 
-    append_objects(CUFF, ["Mesh_ArmCuff_Grip"], coll)
-    for obj in append_objects(TERMINAL, [
-            "Mesh_Terminal_Scanner_Case", "Mesh_Terminal_Scanner_Screen",
-            "Mesh_Terminal_Scanner_Dial", "Mesh_Terminal_Scanner_Antenna"],
-            coll):
-        place(obj, PLACE)
+    append_cuff(coll)
+    case, screen, dial, antenna = append_objects(TERMINAL, [
+        "Mesh_Terminal_Scanner_Case", "Mesh_Terminal_Scanner_Screen",
+        "Mesh_Terminal_Scanner_Dial", "Mesh_Terminal_Scanner_Antenna"], coll)
+    place(case, case_matrix())
+    place(screen, case_matrix())
+    seat(dial, DIAL_AT, Matrix.Rotation(math.radians(180), 4, 'Z'), TERMINAL_K)
+    seat(antenna, ANTENNA_AT, Matrix.Rotation(math.radians(-90), 4, 'Z'),
+         TERMINAL_K)
 
     bracket(coll, mats)
     save(out)

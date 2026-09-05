@@ -51,6 +51,22 @@ namespace SpaceGame.Gameplay
         /// </summary>
         public IInteractable HoveredInteractable { get; private set; }
 
+        /// <summary>
+        /// The collider the ray actually met to reach <see cref="HoveredInteractable"/>, or null.
+        ///
+        /// <para>
+        /// Published because the interactable alone does not say WHERE the player is pointing, and
+        /// a HUD that re-derives that from the component's own hierarchy gets a different answer:
+        /// an interactable resolved off a parent names the whole hull, and one whose collider is a
+        /// trigger standing proud of a fixture names air. This is the hit that was arbitrated, so
+        /// anything drawing on the target draws on the same place the press will act.
+        /// </para>
+        /// </summary>
+        public Collider HoveredCollider { get; private set; }
+
+        /// <summary>Where the look ray met <see cref="HoveredCollider"/>. Meaningless with no hover.</summary>
+        public Vector3 HoveredPoint { get; private set; }
+
         [Header("Debug")]
         [SerializeField] private bool _debugRay = true;
         private Color hitNormalColor = Color.blue;
@@ -100,21 +116,20 @@ namespace SpaceGame.Gameplay
         {
             IsHoveringInteractable = false;
             HoveredInteractable = null;
+            HoveredCollider = null;
         }
 
         private void Update()
         {
             if (!DoInteractionTest(out IInteractable interactable))
             {
-                IsHoveringInteractable = false;
-                HoveredInteractable = null;
+                ClearHoverState();
                 return;
             }
 
             if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled)
             {
-                IsHoveringInteractable = false;
-                HoveredInteractable = null;
+                ClearHoverState();
                 return;
             }
 
@@ -123,6 +138,11 @@ namespace SpaceGame.Gameplay
             // e.g. a whole vehicle hull whose root MountModule is the nearest IInteractable.
             IsHoveringInteractable = IsActionable(interactable);
             HoveredInteractable = IsHoveringInteractable ? interactable : null;
+
+            // The arbitrated hit, kept beside the interactable it answered with. Cleared with it,
+            // so a reader can never pair a live hover with a stale point.
+            HoveredCollider = IsHoveringInteractable ? hitInfo.collider : null;
+            HoveredPoint = hitInfo.point;
         }
 
         private void Interact()

@@ -230,7 +230,7 @@ and everything you left standing outside stays alive and simulated.
 A doorway is assembled from three independent parts, which is why adding a new kind of transition is
 usually one new file:
 
-- a **trigger** — press E on something, or walk into a volume;
+- a **trigger** — right-click something, or walk into a volume;
 - a **destination** — enter this interior, exit back out, or teleport to an anchor in the same scene;
 - and a list of **effects** — fade to black, or a scripted walk-through camera move.
 

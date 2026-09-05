@@ -1,17 +1,15 @@
 // What the upper body is doing because of the thing in the player's hand.
 //
-// Two jobs, and they are one concern rather than two: keeping the held item up where it can be
-// seen, and bringing it to the eye when the player aims. Both are expressed through the same
-// masked Upper Body layer, and separating them would mean two components writing one layer weight.
+// Two jobs, and they are one concern rather than two: keeping a held item up where it can be seen,
+// and bringing a gauntlet arm up in front of the eye while it fires. Both are expressed through the
+// same masked Upper Body layer, and separating them would mean two components writing one weight.
 //
 // Runs on EVERY machine, like PlayerStance and for the same reason: PlayerController.DisablePlayer
 // switches the movement and input components off on remote copies, so a rig that only ran for the
-// owner would leave every other player's arms hanging at their sides. On the owner the decision
-// comes from input; everywhere else it is read back out of PlayerViewNetwork.
+// owner would leave every other player's arms hanging at their sides. Both of its inputs — the held
+// style and the gauntlet raise — are pushed in from components that already run everywhere.
 using UnityEngine;
-using SpaceGame.Core;
 using SpaceGame.Items;
-using PlayerInputManager = SpaceGame.Core.PlayerInputManager;
 
 namespace SpaceGame.Characters
 {
@@ -21,21 +19,8 @@ namespace SpaceGame.Characters
         /// <summary>Int parameter the Upper Body layer's Any State transitions compare against.</summary>
         private const string HoldStyleParameter = "HoldStyle";
 
-        /// <summary>Bool the aim states are entered on. Already existed for NPCs.</summary>
-        private const string AimingParameter = "IsAiming";
-
         /// <summary>Name of the masked layer this component owns outright.</summary>
         private const string UpperBodyLayer = "Upper Body";
-
-        /// <summary>
-        /// Bool held true while a one-shot gesture is playing on the Upper Body layer.
-        ///
-        /// The layer's Any State transitions are driven by <see cref="HoldStyleParameter"/> and are
-        /// continuously true — with empty hands "HoldStyle Equals 0" sends it to Empty on every
-        /// frame — so a gesture entered by a trigger is thrown straight back out again. Every one
-        /// of those transitions also requires this to be false.
-        /// </summary>
-        private const string GesturingParameter = "Gesturing";
 
         [Header("References")]
         [SerializeField] private Animator animator;
@@ -45,50 +30,52 @@ namespace SpaceGame.Characters
                  "when it is put away. 0 snaps.")]
         [SerializeField] private float holdBlendTime = 0.18f;
 
-        [Header("Gesture")]
-        [Tooltip("Seconds a one-shot gesture keeps the Upper Body layer up after it starts. " +
-                 "Set from the clip length by whoever plays it; this is only the fallback.")]
+        [Header("Gauntlet raise")]
+        [Tooltip("Seconds a one-shot gesture keeps the Upper Body layer up after it starts. Set from the clip length by whoever plays it; this is only the fallback.")]
         [SerializeField] private float defaultGestureSeconds = 2.5f;
 
-        [Header("Aim")]
-        [Tooltip("Seconds to bring the item all the way to the eye and back down.")]
-        [SerializeField] private float aimBlendTime = 0.15f;
+        [Tooltip("Seconds for a gauntlet arm to come up when its item fires, and to drop after.")]
+        [SerializeField] private float raiseBlendTime = 0.12f;
 
-        [Tooltip("Where the hand is pulled to while aiming, in the EYE's frame, in metres. " +
-                 "+Z is where you are looking, +X is right, +Y is up. Roughly a third of a metre " +
-                 "forward and a little right and down puts the item under the crosshair without " +
-                 "the fist covering it.")]
-        [SerializeField] private Vector3 aimHandOffset = new Vector3(0.06f, -0.05f, 0.34f);
-
-        [Tooltip("Where the elbow is pushed, in the BODY's frame, in metres. Out and down, or " +
-                 "the solver is free to fold the arm the wrong way when you look up.")]
-        [SerializeField] private Vector3 elbowPush = new Vector3(0.30f, -0.28f, -0.05f);
+        [Tooltip("Look pitch, in degrees, at which the raised arm reaches the Up and Down clips " +
+                 "of its blend tree. The clips are authored at roughly +49 and -27 degrees of " +
+                 "forearm elevation; this is the look pitch that maps onto them.")]
+        [SerializeField, Min(1f)] private float raisePitchRange = 45f;
 
         private PlayerController controller;
         private PlayerViewNetwork view;
-        private PlayerInputManager inputs;
-        private EquipmentController equipment;
+
+        /// <summary>Int the Upper Body layer's raise states are entered on: 0 none, 1 left, 2 right, 3 both.</summary>
+        // Held true while a one-shot gesture plays, so the Upper Body layer's states can gate on
+        // it and an AnyState transition cannot evict the gesture mid-play.
+        private const string GesturingParameter = "Gesturing";
+
+        private const string ArmRaiseParameter = "ArmRaise";
+
+        /// <summary>Float the raise states blend on: the look pitch in degrees, up positive.</summary>
+        private const string AimPitchParameter = "AimPitch";
 
         private int upperBodyLayerIndex = -1;
         private int holdStyleHash;
-        private int aimingHash;
+        private int armRaiseHash;
+        private int aimPitchHash;
+
+        private ItemGrip.HoldStyle heldStyle = ItemGrip.HoldStyle.None;
+        private ItemGrip.HoldStyle torchStyle = ItemGrip.HoldStyle.None;
+        private float holdT;
+
+        // One raise per arm: the decision, and its blend.
+        private bool raiseLeft;
+        private bool raiseRight;
         private int gesturingHash;
 
         // Counts down while a gesture plays. Holds the masked layer up so the gesture is visible
-        // with empty hands, which is the whole point: you pet an animal with a free hand, and the
-        // layer is otherwise only raised by holding an item.
+        // with EMPTY hands, which is the whole point: you pet an animal with a free hand, and the
+        // layer is otherwise only raised by holding an item or by a gauntlet firing.
         private float gestureTimer;
 
-        private ItemGrip.HoldStyle heldStyle = ItemGrip.HoldStyle.None;
-        private float holdT;
-        private float aimT;
-        private bool aiming;
-
-        /// <summary>Aiming right now, on any machine — the owner's decision or their replica of it.</summary>
-        public bool IsAiming => aiming;
-
-        /// <summary>How far into the aim, 0 to 1. Read by movement and look sensitivity.</summary>
-        public float AimBlend => aimT;
+        private float raiseLeftT;
+        private float raiseRightT;
 
         /// <summary>
         /// What is in the hand right now, or <see cref="ItemGrip.HoldStyle.None"/> for empty.
@@ -96,36 +83,42 @@ namespace SpaceGame.Characters
         /// </summary>
         public ItemGrip.HoldStyle HeldStyle => heldStyle;
 
+        /// <summary>
+        /// The pose the body is actually in: what is in the hand, or — with empty hands — whatever
+        /// a lit torch asked for.
+        ///
+        /// <para>
+        /// A held item wins, and it wins for free rather than through a rule: something in the
+        /// hand is a better answer to "what are the arms doing" than a lamp on the wrist, and both
+        /// hands are on it anyway.
+        /// </para>
+        /// </summary>
+        private ItemGrip.HoldStyle EffectiveStyle =>
+            heldStyle != ItemGrip.HoldStyle.None ? heldStyle : torchStyle;
+
         private void Awake()
         {
             controller = GetComponent<PlayerController>();
             view = GetComponent<PlayerViewNetwork>();
-            equipment = GetComponent<EquipmentController>();
 
             // Included-inactive: on a remote copy PlayerController.Awake has already switched
             // parts of this character off, and the Animator is still the one we must drive.
             if (animator == null) animator = GetComponentInChildren<Animator>(true);
 
             holdStyleHash = Animator.StringToHash(HoldStyleParameter);
-            aimingHash = Animator.StringToHash(AimingParameter);
             gesturingHash = Animator.StringToHash(GesturingParameter);
+            armRaiseHash = Animator.StringToHash(ArmRaiseParameter);
+            aimPitchHash = Animator.StringToHash(AimPitchParameter);
 
             if (animator == null) return;
 
             upperBodyLayerIndex = animator.GetLayerIndex(UpperBodyLayer);
 
+            // Loud, because everything else about this component will look like it is working:
+            // the blend runs, the parameters are written, and nothing appears on screen.
             if (upperBodyLayerIndex < 0)
-            {
-                // Loud, because everything else about this component will look like it is working:
-                // the blend runs, the parameters are written, and nothing appears on screen.
                 Debug.LogError($"PlayerAimRig on '{name}': the Animator has no '{UpperBodyLayer}' " +
                                "layer. Run Tools/SpaceGame/Player/Build Upper Body Layer.", this);
-                return;
-            }
-
-            var relay = animator.gameObject.GetComponent<AimIkRelay>();
-            if (relay == null) relay = animator.gameObject.AddComponent<AimIkRelay>();
-            relay.Bind(this);
         }
 
         /// <summary>
@@ -138,12 +131,18 @@ namespace SpaceGame.Characters
         }
 
         /// <summary>
+        /// Bring one forearm up in front of the eye, or let it drop. Called by
+        /// <c>BodyEquipmentController</c> while the gauntlet on that arm is firing — on every
+        /// machine, since the use is presented on every machine — so a peer sees the same arm come
+        /// up that the wearer does.
+        /// </summary>
+        /// <summary>
         /// Play a one-shot on the masked Upper Body layer, and hold the layer up while it runs.
         ///
         /// <para>
         /// Routed through this component rather than set on the Animator directly because this
-        /// component owns the layer weight — it writes it every frame from <c>holdT</c>, so a
-        /// trigger fired from outside plays a clip on a layer weighted 0 and nothing appears.
+        /// component owns the layer weight - it writes it every frame from holdT, so a trigger
+        /// fired from outside plays a clip on a layer weighted 0 and nothing appears.
         /// </para>
         /// </summary>
         public void PlayGesture(string trigger, float seconds = 0f)
@@ -156,57 +155,77 @@ namespace SpaceGame.Characters
             animator.SetTrigger(trigger);
         }
 
+        public void RaiseArm(ItemGrip.Hand hand, bool raised)
+        {
+            if (hand == ItemGrip.Hand.Left) raiseLeft = raised;
+            else raiseRight = raised;
+        }
+
+        /// <summary>
+        /// Bring the body into a hold pose because a lit torch wants the arm up, or let it drop.
+        ///
+        /// <para>
+        /// <see cref="ItemGrip.HoldStyle.None"/> releases it. Called by
+        /// <see cref="SpaceGame.Items.FlashlightGauntletArtifact"/> off <c>Flashlight.Switched</c>,
+        /// so it follows the lamp on every machine — the wearer switching it, a peer being told by
+        /// <c>netTorch</c>, or a save restore — and a peer sees the same posture with nothing extra
+        /// on the wire.
+        /// </para>
+        /// <para>
+        /// This reuses the pose the body already takes for a HELD item rather than a pose of its
+        /// own. The gauntlet is on the forearm and the beam leaves along it, so what the torch
+        /// needs is exactly what holding something needs: the forearm up and forward, pitching
+        /// with the look. A bespoke set of clips was built for it first and thrown away — this is
+        /// the same shape for none of the assets.
+        /// </para>
+        /// </summary>
+        public void SetTorchStyle(ItemGrip.HoldStyle style)
+        {
+            torchStyle = style;
+        }
+
         private void Update()
         {
-            if (gestureTimer > 0f)
-                gestureTimer -= Time.deltaTime;
-
-            DecideAiming();
             Blend(Time.deltaTime);
             WriteAnimator();
         }
 
         /// <summary>
-        /// Owner decides, everyone else copies.
+        /// Stand the body down to a plain idle, whatever it is holding.
         ///
         /// <para>
-        /// The owner's test is the same "is this player actually driving their own body" question
-        /// PlayerStance.DecideStance asks, so death, mounts, cutscenes and menus all lower the
-        /// weapon without any of them having to know this component exists.
+        /// Set while the gear screen is open. That screen is a camera flown round to look AT the
+        /// character, so what it shows has to be the character rather than a pose left over from
+        /// what they happened to be doing when they pressed I — arms out around a rifle, an arm up
+        /// mid-gauntlet, a torch held forward. The gear is the subject; the astronaut is the stand
+        /// it sits on, and it should be still.
+        /// </para>
+        /// <para>
+        /// Blends off through the same ease as everything else here rather than snapping, and is
+        /// deliberately NOT the same thing as the death rule below: a corpse must never come back
+        /// to a pose, whereas this hands it straight back on exit.
         /// </para>
         /// </summary>
-        private void DecideAiming()
-        {
-            if (!Network.Owns(this))
-            {
-                aiming = view != null && view.Aiming;
-                return;
-            }
-
-            if (inputs == null && controller != null) inputs = controller.Input;
-
-            bool driving = inputs != null && inputs.enabled
-                           && controller != null && !controller.IsDead && !controller.InCutsceneMode;
-
-            aiming = driving && inputs.AimHeld && heldStyle != ItemGrip.HoldStyle.None;
-
-            if (view != null) view.PublishAiming(aiming);
-        }
+        public bool Relaxed { get; set; }
 
         private void Blend(float deltaTime)
         {
+            if (gestureTimer > 0f)
+                gestureTimer -= deltaTime;
+
             // The pose comes off entirely while dead, whatever is in the hand. The death clip runs
             // on the Base Layer, and an Upper Body layer left at weight 1 would override its arms
             // and leave the corpse holding its rifle out in front of it.
             bool posed = (heldStyle != ItemGrip.HoldStyle.None || gestureTimer > 0f)
+                         && !Relaxed
                          && (controller == null || !controller.IsDead);
 
-            holdT = AimPose.Ease(holdT, posed ? 1f : 0f, holdBlendTime, deltaTime);
-            aimT = AimPose.Ease(aimT, aiming ? 1f : 0f, aimBlendTime, deltaTime);
+            holdT = PoseBlend.Ease(holdT, posed ? 1f : 0f, holdBlendTime, deltaTime);
 
-            // Aim can never exceed the pose it is layered on. Without this an item equipped while
-            // the aim button is already down snaps the hand to the eye before the arm has come up.
-            aimT = Mathf.Min(aimT, holdT);
+            // A raised gauntlet arm, dead or not: the corpse rule above applies to it too.
+            bool alive = !Relaxed && (controller == null || !controller.IsDead);
+            raiseLeftT = PoseBlend.Ease(raiseLeftT, raiseLeft && alive ? 1f : 0f, raiseBlendTime, deltaTime);
+            raiseRightT = PoseBlend.Ease(raiseRightT, raiseRight && alive ? 1f : 0f, raiseBlendTime, deltaTime);
         }
 
         private void WriteAnimator()
@@ -214,64 +233,47 @@ namespace SpaceGame.Characters
             if (animator == null || animator.runtimeAnimatorController == null) return;
             if (upperBodyLayerIndex < 0) return;
 
-            animator.SetLayerWeight(upperBodyLayerIndex, holdT);
-            animator.SetInteger(holdStyleHash, (int)heldStyle);
-            animator.SetBool(aimingHash, aiming);
+            // A raised arm needs the layer up even when nothing is held and the hold pose is off.
+            animator.SetLayerWeight(upperBodyLayerIndex, Mathf.Max(holdT, Mathf.Max(raiseLeftT, raiseRightT)));
+
+            // The lit torch's style is written into the same parameter the hand uses, so a torch
+            // pose and a held item cannot both be on: there is one pose and one state machine.
+            animator.SetInteger(holdStyleHash, (int)EffectiveStyle);
             animator.SetBool(gesturingHash, gestureTimer > 0f);
+
+            // The raise is a state on the same layer — three pointing clips blended on the look
+            // pitch — not an IK goal: the layer sits in Empty whenever the hands are empty, which
+            // is the ordinary case for a player wearing gauntlets, and IK set on an empty layer
+            // moves nothing. The clips give it something to play. Pitch comes off AimPivot, which
+            // is the owner's live pitch here and their replicated pitch on every other machine.
+            animator.SetInteger(armRaiseHash, (raiseLeft ? 1 : 0) | (raiseRight ? 2 : 0));
+            animator.SetFloat(aimPitchHash, LookPitch());
         }
 
-        /// <summary>
-        /// The IK pass, forwarded from <see cref="AimIkRelay"/>.
-        ///
-        /// <para>
-        /// The target is anchored on <see cref="PlayerViewNetwork.AimPivot"/> rather than on the
-        /// camera, and that is the whole reason remote players aim correctly: the pivot carries the
-        /// owner's live pitch on their own machine and their replicated pitch on everybody else's,
-        /// while the camera exists only for the local player and is switched off on every remote
-        /// copy. Reading the camera here would have aimed every other player's weapon at whatever
-        /// the local player happened to be looking at.
-        /// </para>
-        /// </summary>
-        public void ApplyIk(int layerIndex)
+        /// <summary>The look pitch in degrees, up positive, clamped to the blend tree's range.</summary>
+        private float LookPitch()
         {
-            if (layerIndex != upperBodyLayerIndex) return;
-            if (animator == null || aimT <= 0.001f) return;
-
             Transform eye = view != null ? view.AimPivot : null;
-            if (eye == null) return;
+            if (eye == null) return 0f;
 
-            Vector3 goal = AimPose.HandGoal(eye.position, eye.rotation, aimHandOffset);
-
-            Quaternion grip = equipment != null
-                ? equipment.MainHandGripLocalRotation
-                : Quaternion.identity;
-
-            Quaternion goalRotation = AimPose.HandRotationForItem(eye.rotation, grip);
-
-            animator.SetIKPositionWeight(AvatarIKGoal.RightHand, aimT);
-            animator.SetIKRotationWeight(AvatarIKGoal.RightHand, aimT);
-            animator.SetIKPosition(AvatarIKGoal.RightHand, goal);
-            animator.SetIKRotation(AvatarIKGoal.RightHand, goalRotation);
-
-            Transform shoulder = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
-            if (shoulder == null) return;
-
-            animator.SetIKHintPosition(AvatarIKHint.RightElbow,
-                AimPose.ElbowHint(shoulder.position, goal, transform.rotation, elbowPush));
-            animator.SetIKHintPositionWeight(AvatarIKHint.RightElbow, aimT);
+            float pitch = Mathf.Asin(Mathf.Clamp(eye.forward.y, -1f, 1f)) * Mathf.Rad2Deg;
+            return Mathf.Clamp(pitch, -raisePitchRange, raisePitchRange);
         }
 
         /// <summary>
         /// Put the arm down on the way out.
         ///
-        /// Mirrors PlayerStance.OnDisable: a component switched off mid-aim leaves a layer weight
-        /// and an IK goal on a rig with nothing still running to clear them.
+        /// Mirrors PlayerStance.OnDisable: a component switched off mid-pose leaves a layer weight
+        /// on a rig with nothing still running to clear it.
         /// </summary>
         private void OnDisable()
         {
-            aiming = false;
             holdT = 0f;
-            aimT = 0f;
+            raiseLeft = false;
+            raiseRight = false;
+            raiseLeftT = 0f;
+            raiseRightT = 0f;
+            torchStyle = ItemGrip.HoldStyle.None;
             heldStyle = ItemGrip.HoldStyle.None;
             WriteAnimator();
         }

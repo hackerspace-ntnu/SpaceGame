@@ -1,5 +1,9 @@
 {
   "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["chrome-devtools-mcp@latest"]
+    },
     "unityMCP": {
       "type": "http",
       "url": "http://localhost:8082/mcp"

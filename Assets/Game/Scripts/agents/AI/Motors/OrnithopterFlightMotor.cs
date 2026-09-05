@@ -18,7 +18,7 @@ namespace SpaceGame.Agents
     [RequireComponent(typeof(Rigidbody))]
     public partial class OrnithopterFlightMotor : MonoBehaviour, IMovementMotor, IRiderControllable,
                                                   IOrnithopterFlightState, IExternallyPosed,
-                                                  ITeleportAware
+                                                  ITeleportAware, ITowable
     {
         [Header("References")]
         [SerializeField] private Rigidbody body;
@@ -33,6 +33,23 @@ namespace SpaceGame.Agents
         [Tooltip("Floor on the airspeed the craft is launched with, m/s. A running jump carries its " +
                  "own speed in and keeps it if it is faster.")]
         [SerializeField, Min(0f)] private float launchAirspeed = 12f;
+
+        [Tooltip("Steepest climb the craft will accept at launch, degrees. A pilot slung upward off " +
+                 "a grapple swing enters the flight already going up, and trades that height back " +
+                 "for speed on the way over the top.")]
+        [SerializeField, Range(0f, 80f)] private float maxLaunchClimb = 45f;
+
+        [Tooltip("Steepest dive the craft will accept at launch, degrees. Kept far tighter than the " +
+                 "climb on purpose: the ordinary launch is a step off a ledge, and the pilot is " +
+                 "already falling when the wings open. Taking that plunge literally would deploy " +
+                 "the craft pointing at the ground it just left.")]
+        [SerializeField, Range(0f, 80f)] private float maxLaunchDive = 12f;
+
+        [Header("Tow")]
+        [Tooltip("How close to the anchor the tow lets go, metres. The craft is 10 m across and " +
+                 "arriving at a rock face at flying speed is a crash, so this is deliberately far " +
+                 "wider than the hook's own arrival distance on foot.")]
+        [SerializeField, Min(1f)] private float towReleaseDistance = 12f;
 
         [Header("Ground")]
         [Tooltip("How far below the craft to look for ground. Landing ends the flight.")]
@@ -58,6 +75,12 @@ namespace SpaceGame.Agents
         private OrnithopterFlightState state;
         private OrnithopterFlightInput pendingInput;
         private bool hasPendingInput;
+
+        // Latched by RequestTow, consumed by one FixedUpdate and then cleared. Consuming it is what
+        // makes the tow stop on its own when the rope stops asking, and it is why nothing has to
+        // tell this motor that a hook was dropped, an item unequipped or a pilot killed.
+        private Vector3 towAcceleration;
+        private bool towActive;
         private int riderDriveFrame = -1;
         private float launchTime = -999f;
         private bool flying;
@@ -119,8 +142,16 @@ namespace SpaceGame.Agents
         /// <summary>
         /// Put the craft into the air. Called by the wing pack the moment the player uses it.
         /// The wings start folded and spread over <see cref="spreadDuration"/>.
+        ///
+        /// <para>
+        /// <paramref name="climbDegrees"/> is the flight path the pilot arrives on, measured off
+        /// the speed they were already carrying. It is clamped HERE rather than where it is
+        /// measured, and asymmetrically: the pack reports what the pilot was doing, the airframe
+        /// decides what it will accept. A slingshot off a grapple swing enters climbing; a plunge
+        /// off a cliff is levelled out to something the wings can fly out of.
+        /// </para>
         /// </summary>
-        public void Launch(Vector3 headingForward, float initialSpeed)
+        public void Launch(Vector3 headingForward, float initialSpeed, float climbDegrees = 0f)
         {
             Vector3 flat = headingForward;
             flat.y = 0f;
@@ -128,7 +159,9 @@ namespace SpaceGame.Agents
                 ? Quaternion.LookRotation(flat.normalized).eulerAngles.y
                 : transform.eulerAngles.y;
 
-            state = OrnithopterFlightState.Launch(Mathf.Max(initialSpeed, launchAirspeed), heading);
+            float climb = Mathf.Clamp(climbDegrees, -maxLaunchDive, maxLaunchClimb);
+
+            state = OrnithopterFlightState.Launch(Mathf.Max(initialSpeed, launchAirspeed), heading, climb);
             pendingInput = OrnithopterFlightInput.Neutral;
             hasPendingInput = false;
             launchTime = Time.time;
@@ -149,6 +182,7 @@ namespace SpaceGame.Agents
         {
             flying = false;
             hasPendingInput = false;
+            towActive = false;
 
             // Kinematic is the ordinary state here, not an exceptional one: NetAuthority freezes
             // the body on every machine that does not own the craft, and PhysX refuses velocity
@@ -210,7 +244,14 @@ namespace SpaceGame.Agents
             state.Deployment = Mathf.MoveTowards(state.Deployment, 1f, dt / spreadDuration);
 
             OrnithopterFlightInput input = hasPendingInput ? pendingInput : OrnithopterFlightInput.Neutral;
-            state = OrnithopterFlightModel.Step(state, input, flight, dt);
+
+            // One step per request. The rope has to ask again for the next one, which is what makes
+            // a tow that is no longer being driven end by itself instead of hauling the craft
+            // across the desert after whatever was holding it has gone.
+            Vector3 tow = towActive ? towAcceleration : Vector3.zero;
+            towActive = false;
+
+            state = OrnithopterFlightModel.Step(state, input, flight, dt, tow);
 
             ApplyPose();
             CheckForLanding();
@@ -397,6 +438,57 @@ namespace SpaceGame.Agents
             return found;
         }
 
+        // ─────────── ITowable ───────────
+
+        /// <summary>
+        /// The cradle, which is where the prefab's origin sits and where the pilot is slung. Close
+        /// enough to the rope's real eye that no one can tell, and it moves with the craft for free.
+        /// </summary>
+        public Vector3 TowAttachPoint => transform.position;
+
+        /// <summary>
+        /// A rope wants to pull the craft towards <paramref name="anchor"/> this step.
+        ///
+        /// <para>
+        /// Answered here rather than by the hook because every reason a tow ends is the craft's
+        /// business, not the rope's: how close is too close depends on a 10 m wingspan, and how
+        /// long the pull can last depends on a stamina reserve the hook has never heard of. The
+        /// hook supplies one thing nothing else knows — where the far end is tied.
+        /// </para>
+        /// <para>
+        /// The pull itself is only latched. It is resolved against the flight path inside the model
+        /// on the next step, so a rope adds speed, climb and turn in the same proportions lift and
+        /// weight already do.
+        /// </para>
+        /// </summary>
+        public bool RequestTow(Vector3 anchor)
+        {
+            towActive = false;
+
+            // Nothing to tow: on the ground, wrecked, or being flown by somebody else's machine.
+            // Refusing on ExternallyPosed matters — a peer that towed its own copy would be a
+            // second authority on a craft whose pose arrives over the wire.
+            if (!flying || ExternallyPosed)
+                return false;
+
+            Vector3 toAnchor = anchor - TowAttachPoint;
+            float distance = toAnchor.magnitude;
+
+            // Arrived. On foot the hook reels you into the anchor and pops you over the lip; a
+            // craft this size doing 25 m/s does not arrive at a rock face, it hits it.
+            if (distance <= towReleaseDistance)
+                return false;
+
+            // Spent. The rope drains the same reserve the wings do, so a tow that has run the
+            // pilot dry has to let go rather than fade to a pull too weak to feel.
+            if (state.Stamina <= 0f)
+                return false;
+
+            towAcceleration = toAnchor / distance * flight.TowAcceleration;
+            towActive = true;
+            return true;
+        }
+
         /// <summary>
         /// The AI channel's "stop what you are doing". For a ground motor that means dropping the
         /// nav destination; for this one it must mean nothing at all while the craft is airborne.
@@ -418,6 +510,7 @@ namespace SpaceGame.Agents
             if (flight == null) flight = new OrnithopterFlightConfig();
             if (crash == null) crash = new OrnithopterCrashConfig();
             spreadDuration = Mathf.Max(0.05f, spreadDuration);
+            towReleaseDistance = Mathf.Max(1f, towReleaseDistance);
         }
     }
 }

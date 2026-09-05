@@ -53,6 +53,7 @@ namespace SpaceGame.Items
         private static readonly int ContactsId = Shader.PropertyToID("_Contacts");
         private static readonly int RangeId = Shader.PropertyToID("_RangeM");
         private static readonly int AspectId = Shader.PropertyToID("_Aspect");
+        private static readonly int FlipXId = Shader.PropertyToID("_FlipX");
 
         private readonly Vector4[] blips = new Vector4[MaxBlips];
         private readonly float[] seenAt = new float[MaxBlips];
@@ -63,7 +64,7 @@ namespace SpaceGame.Items
         private int liveBlips;
         private int totalContacts;
         private float nearest;
-        private float range = 100f;
+        private float range = 50f;
         private bool on;
 
         /// <summary>Sweep phase 0..1, so the artifact can time its ping to the beam.</summary>
@@ -153,6 +154,8 @@ namespace SpaceGame.Items
         {
             if (screenRenderer == null || block == null) return;
 
+            ScreenFrame frame = FrameOf(screenRenderer);
+
             screenRenderer.GetPropertyBlock(block, materialIndex);
             block.SetVectorArray(BlipsId, blips);
             block.SetFloat(BlipCountId, liveBlips);
@@ -161,21 +164,164 @@ namespace SpaceGame.Items
             block.SetFloat(NearestId, Mathf.Round(Mathf.Min(nearest, 999f)));
             block.SetFloat(ContactsId, Mathf.Min(totalContacts, 99));
             block.SetFloat(RangeId, Mathf.Round(Mathf.Min(range, 999f)));
-            block.SetFloat(AspectId, AspectOf(screenRenderer));
+            block.SetFloat(AspectId, frame.Aspect);
+
+            // Only when the plate's own UVs answered it. A plate without usable UVs leaves the
+            // material's authored _FlipX alone rather than overriding it with a guess.
+            if (frame.Measured) block.SetFloat(FlipXId, frame.Mirrored ? 1f : 0f);
+
             screenRenderer.SetPropertyBlock(block, materialIndex);
         }
 
-        /// <summary>
-        /// Width over height of the plate, measured from its own mesh.
-        ///
-        /// Measured rather than serialised because the shader draws circles: an aspect that
-        /// disagrees with the mesh turns every range ring into an ellipse, and that is exactly the
-        /// kind of wrongness nobody notices in the inspector and everybody notices on the screen.
-        /// </summary>
-        private static float AspectOf(Renderer r)
+        /// <summary>What the shader needs to know about the plate it is drawing on.</summary>
+        private readonly struct ScreenFrame
         {
-            Bounds b = r.localBounds;
-            Vector3 e = b.size;
+            public readonly float Aspect;
+            public readonly bool Mirrored;
+            public readonly bool Measured;
+
+            public ScreenFrame(float aspect, bool mirrored, bool measured)
+            {
+                Aspect = aspect;
+                Mirrored = mirrored;
+                Measured = measured;
+            }
+        }
+
+        /// <summary>
+        /// The plate's shape and handedness, resolved through the renderer's own transform.
+        ///
+        /// <para>
+        /// <b>Aspect.</b> The shader draws circles, so an aspect that disagrees with the plate
+        /// turns every range ring into an ellipse — the kind of wrongness nobody notices in the
+        /// inspector and everybody notices on the screen. It is measured through the UVs rather
+        /// than off the bounding box, because the box only answers the question for a plate lying
+        /// square to its own axes, and the screen is raked back toward the wearer with that rake
+        /// baked into the mesh. The honest measurement is how far the surface travels per unit of
+        /// u against per unit of v, which no orientation can disturb.
+        /// </para>
+        /// <para>
+        /// <b>Handedness.</b> A viewer facing the plate reads u as right and v as up, so the cross
+        /// product of the two must point back out at them along the surface normal. Where it does
+        /// not, the plate is mirrored and every contact draws on the wrong side — which is what the
+        /// material's <c>_FlipX</c> exists to undo, and which was until now a value somebody had to
+        /// guess from the model's handedness and then confirm in play.
+        /// </para>
+        /// <para>
+        /// Both are taken in world space, through <see cref="Transform.localToWorldMatrix"/>. The
+        /// model library ships object transforms unbaked, so the screen plate carries its seating
+        /// on the arm as node rotation and node scale — and a non-uniform scale there is invisible
+        /// to the mesh while stretching every ring on the display by however much it happens to be.
+        /// </para>
+        /// </summary>
+        private static ScreenFrame FrameOf(Renderer r)
+        {
+            var filter = r.GetComponent<MeshFilter>();
+            Mesh mesh = filter != null ? filter.sharedMesh : null;
+            if (mesh == null) return new ScreenFrame(BoxAspectOf(r), false, false);
+
+            if (!frames.TryGetValue(mesh, out UvFrame uv))
+            {
+                uv = MeasureUvFrame(mesh);
+                frames[mesh] = uv;
+            }
+
+            if (!uv.Valid) return new ScreenFrame(BoxAspectOf(r), false, false);
+
+            Matrix4x4 m = r.transform.localToWorldMatrix;
+            Vector3 gradU = m.MultiplyVector(uv.GradU);
+            Vector3 gradV = m.MultiplyVector(uv.GradV);
+            Vector3 normal = m.MultiplyVector(uv.Normal);
+
+            float height = gradV.magnitude;
+            float aspect = height > 1e-5f
+                ? Mathf.Clamp(gradU.magnitude / height, 0.25f, 4f)
+                : 1f;
+
+            bool mirrored = Vector3.Dot(Vector3.Cross(gradU, gradV), normal) < 0f;
+            return new ScreenFrame(aspect, mirrored, true);
+        }
+
+        /// <summary>The plate's UV frame, in its mesh's own space.</summary>
+        private readonly struct UvFrame
+        {
+            public readonly Vector3 GradU;
+            public readonly Vector3 GradV;
+            public readonly Vector3 Normal;
+            public readonly bool Valid;
+
+            public UvFrame(Vector3 gradU, Vector3 gradV, Vector3 normal)
+            {
+                GradU = gradU;
+                GradV = gradV;
+                Normal = normal;
+                Valid = true;
+            }
+        }
+
+        /// <summary>
+        /// One entry per screen MESH, not per screen: two scanners share the plate they were built
+        /// from, and the gradients are a property of that plate. The transform is applied per call
+        /// instead, because that part is not shared — it is where the seating and the scale live.
+        /// </summary>
+        private static readonly Dictionary<Mesh, UvFrame> frames = new();
+
+        private static UvFrame MeasureUvFrame(Mesh mesh)
+        {
+            Vector2[] uv = mesh.uv;
+            Vector3[] verts = mesh.vertices;
+            Vector3[] normals = mesh.normals;
+            int[] tris = mesh.triangles;
+            if (uv == null || uv.Length != verts.Length || tris.Length < 3) return default;
+
+            // The largest triangle in UV space: the display face, and the one least distorted by
+            // the arithmetic below. A bezel or a back face is smaller in u,v than the screen is.
+            int best = -1;
+            float bestArea = 0f;
+            for (int i = 0; i + 2 < tris.Length; i += 3)
+            {
+                Vector2 a = uv[tris[i]], b = uv[tris[i + 1]], c = uv[tris[i + 2]];
+                float area = Mathf.Abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y));
+                if (area <= bestArea) continue;
+                bestArea = area;
+                best = i;
+            }
+
+            if (best < 0 || bestArea < 1e-8f) return default;
+
+            Vector2 uvA = uv[tris[best]], uvB = uv[tris[best + 1]], uvC = uv[tris[best + 2]];
+            Vector3 pA = verts[tris[best]], pB = verts[tris[best + 1]], pC = verts[tris[best + 2]];
+
+            // Solve p = pA + u * U + v * V for the two gradients: the metres the surface covers per
+            // unit of u against per unit of v.
+            Vector2 dUv1 = uvB - uvA, dUv2 = uvC - uvA;
+            Vector3 dP1 = pB - pA, dP2 = pC - pA;
+            float det = dUv1.x * dUv2.y - dUv2.x * dUv1.y;
+            if (Mathf.Abs(det) < 1e-8f) return default;
+
+            Vector3 gradU = (dP1 * dUv2.y - dP2 * dUv1.y) / det;
+            Vector3 gradV = (dP2 * dUv1.x - dP1 * dUv2.x) / det;
+
+            // Handedness comes from the shaded normals rather than the winding: the winding only
+            // says which way the triangle faces once the renderer's cull mode is also known, and
+            // the plate's authored normals are what the lighting already agrees with.
+            Vector3 normal = normals != null && normals.Length == verts.Length
+                ? normals[tris[best]] + normals[tris[best + 1]] + normals[tris[best + 2]]
+                : Vector3.Cross(pB - pA, pC - pA);
+
+            if (normal.sqrMagnitude < 1e-10f) return default;
+
+            return new UvFrame(gradU, gradV, normal.normalized);
+        }
+
+        /// <summary>The old bounding-box guess, for a plate that ships without usable UVs.</summary>
+        private static float BoxAspectOf(Renderer r)
+        {
+            // Scaled, because localBounds is the mesh's own box while the plate wears its seating
+            // on the arm as node scale.
+            Vector3 e = Vector3.Scale(r.localBounds.size, r.transform.lossyScale);
+            e = new Vector3(Mathf.Abs(e.x), Mathf.Abs(e.y), Mathf.Abs(e.z));
+
             // The plate is thin on one axis; the other two are the display.
             float min = Mathf.Min(e.x, Mathf.Min(e.y, e.z));
             float w, h;

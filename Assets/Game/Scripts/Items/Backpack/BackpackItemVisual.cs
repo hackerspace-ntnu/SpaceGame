@@ -5,9 +5,9 @@ namespace SpaceGame.Items
     // Turns an item prefab into an inert display copy lying at true size on one of the pack's
     // surfaces.
     //
-    // A display copy is not an item: it holds no state and must never run gameplay code. All it
-    // does is get looked at and hit by the interaction ray, so everything that could tick,
-    // collide, animate or make noise is taken off it before it gets a chance to run.
+    // Being inert is DisplayCopy's half — see there for why nothing on a copy may run. What this
+    // class adds is the pack's half: true size, a seat on the surface, and the one BoxCollider
+    // the interaction ray needs, since a stripped copy has none of its own left.
     //
     // BackpackSeat is gone with the sockets. It offered a choice — stand on a shelf, or lie flat
     // with the thinnest axis into the panel — and free placement removes the choice rather than
@@ -75,24 +75,8 @@ namespace SpaceGame.Items
             var grip = itemPrefab.GetComponentInChildren<ItemGrip>(true);
             Bounds reference = ItemBounds.Measure(itemPrefab, grip != null ? grip.SizeReference : null);
 
-            // Instantiate runs Awake synchronously, so stripping afterwards is already too late —
-            // a weapon script would have registered itself, an artifact spawned its effect. A copy
-            // born under a DEACTIVATED parent is never activeInHierarchy, so no Awake runs at all
-            // and DestroyImmediate takes the components off clean.
-            var stage = new GameObject("BackpackItemStage");
-            stage.SetActive(false);
-
-            GameObject copy = Object.Instantiate(itemPrefab, stage.transform);
-            Strip(copy);
-
+            GameObject copy = DisplayCopy.Make(itemPrefab, surface.transform);
             Transform t = copy.transform;
-
-            // Normalise before measuring: the prefab's own root scale is about to be replaced by
-            // the fit scale anyway, and a zero on one of its axes would make the inverse transform
-            // inside ItemBounds.Measure non-finite.
-            t.localPosition = Vector3.zero;
-            t.localRotation = Quaternion.identity;
-            t.localScale = Vector3.one;
 
             // The whole copy, for seating and for the collider: everything visible has to clear
             // the surface and be hittable, sizeReference or not.
@@ -131,7 +115,6 @@ namespace SpaceGame.Items
             // float every item off the board by 6% of its own height.
             float drawnScale = worldScale * surface.DisplayScale;
 
-            t.SetParent(anchor, false);
             t.localScale = Vector3.one * (drawnScale / surfaceScale);
 
             // Only about the surface normal. The item keeps its own up — see the note above the
@@ -153,84 +136,26 @@ namespace SpaceGame.Items
             box.size = local.size;
             box.isTrigger = false;
 
+            // For the ray and NOTHING else. DisplayCopy strips the Rigidbody off a copy, so this
+            // collider joins the nearest body ABOVE it: on a worn pack that is the player, and on
+            // the ship's gear wall it is the ship. Left in the simulation it is exactly the fault
+            // BackpackObject switches its own body collider off to avoid — a box bolted onto the
+            // player's capsule that wedges them in doorways they used to fit through — once per
+            // stowed item, and at the DRAWN size, so on the wall a shade larger still.
+            //
+            // excludeLayers rather than a trigger or a layer-matrix row: a trigger still reports
+            // contacts and still belongs to that compound body, the project's matrix is fully open
+            // and closing one row would miss the copies that fall back to the rig's own layer when
+            // there is no PackItem layer, and switching the collider off would take the cursor ray
+            // with it. Queries do not consult it — verified 2026-09-03 by raycasting a built copy.
+            box.excludeLayers = Physics.AllLayers;
+
             // The dedicated layer where the project has one, the rig's own where it does not. A
             // copy left on the rig's layer still displays correctly — it just costs focus mode a
             // broad-phase raycast against the world instead of a one-layer one.
             SetLayer(t, ItemLayer >= 0 ? ItemLayer : anchor.gameObject.layer);
 
-            Object.DestroyImmediate(stage);
             return copy;
-        }
-
-        /// <summary>
-        /// Take everything that could tick, collide, animate, make noise or own a network identity
-        /// off a copy, leaving pure scenery.
-        ///
-        /// <para>
-        /// Public because <see cref="HolderBuilder"/> needs exactly this and a second stripper is
-        /// the wrong answer: this one is hard-won, and the ways it can be got wrong are all silent.
-        /// Order matters. MonoBehaviours go first because a <c>[RequireComponent]</c> on a script
-        /// blocks removal of the Rigidbody or Collider it names. ParticleSystemRenderer goes with
-        /// its ParticleSystem for the same reason — the renderer requires the system, and a
-        /// particle renderer with nothing feeding it draws nothing anyway.
-        /// </para>
-        /// <para>
-        /// Only ever call it on a copy under a <b>deactivated</b> parent. Instantiate runs Awake
-        /// synchronously, so a copy born active has already registered itself before the first
-        /// component comes off.
-        /// </para>
-        /// </summary>
-        public static void Strip(GameObject copy)
-        {
-            if (copy == null) return;
-
-            // NetworkBehaviours before the plain pass, because NetworkObject is itself a
-            // MonoBehaviour and every NetworkBehaviour on the item requires it. The retry loop
-            // below does get there eventually, but only after Unity has logged a refusal for each
-            // one — ten warnings per pack refresh, which buries anything real. A stowed copy is
-            // scenery; it has no business owning a network identity either way.
-            DestroyAll<Unity.Netcode.NetworkBehaviour>(copy);
-
-            DestroyAll<MonoBehaviour>(copy);
-            DestroyAll<ParticleSystemRenderer>(copy);
-            DestroyAll<ParticleSystem>(copy);
-
-            // Line and trail renderers usually run in WORLD space, which means they ignore their
-            // own transform: the copy gets scaled and seated and the rope stays exactly where the
-            // original prefab drew it. On the grappling hook and the lasso that measured as a
-            // 1 x 1 x 2 m item stuck at the pack's origin. They are also meaningless on a stowed
-            // copy — a coil of rope in a pack is not mid-throw.
-            DestroyAll<LineRenderer>(copy);
-            DestroyAll<TrailRenderer>(copy);
-
-            DestroyAll<Rigidbody>(copy);
-            DestroyAll<Collider>(copy);
-            DestroyAll<Animator>(copy);
-            DestroyAll<AudioSource>(copy);
-        }
-
-        // Unity refuses to remove a component while another one on the same object declares it as
-        // a requirement, and only logs rather than throwing — so a single pass silently leaves
-        // whichever half of a [RequireComponent] pair it happened to reach first. Repeating until
-        // the count stops falling clears the dependents and then what they were holding.
-        private static void DestroyAll<T>(GameObject root) where T : Component
-        {
-            int previous = int.MaxValue;
-
-            for (int pass = 0; pass < 8; pass++)
-            {
-                T[] found = root.GetComponentsInChildren<T>(true);
-
-                int alive = 0;
-                foreach (T component in found)
-                    if (component != null) alive++;   // missing scripts come back as null entries
-
-                if (alive == 0 || alive >= previous) return;
-                previous = alive;
-
-                foreach (T component in found)
-                    if (component != null) Object.DestroyImmediate(component);
-            }
         }
 
         // The whole hierarchy, not just the root: a child left behind on another layer would still

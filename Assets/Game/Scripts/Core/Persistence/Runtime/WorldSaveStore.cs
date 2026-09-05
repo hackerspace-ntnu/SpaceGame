@@ -60,6 +60,23 @@ namespace SpaceGame.Core.Persistence
         /// <summary>How many records are being held back because their prefab could not be found.</summary>
         public int UnresolvedCount => unresolved.Count;
 
+        /// <summary>
+        /// Whether the records are final. Set by <see cref="Seal"/> once the session's teardown
+        /// has begun; every capture after that is a no-op.
+        ///
+        /// Netcode's shutdown destroys every dynamically spawned NetworkObject, and a capture that
+        /// runs after it — the quit-save does — finds those objects gone from their scenes and
+        /// absent from <see cref="SaveableEntity.LiveEntities"/>, which is exactly what
+        /// <see cref="DropVanishedRuntime"/> reads as "destroyed by the player". The runtime-spawned
+        /// player ship was erased from the file that way on every editor Stop, with nothing logged.
+        /// Sealing after one last capture makes the file the world as it was before the teardown
+        /// rather than after it.
+        /// </summary>
+        public bool IsSealed { get; private set; }
+
+        /// <summary>Marks the records final. Call after the last capture, before the world is torn down.</summary>
+        public void Seal() => IsSealed = true;
+
         public WorldSaveStore() : this(new WorldRecord()) { }
 
         public WorldSaveStore(WorldRecord existing)
@@ -115,6 +132,9 @@ namespace SpaceGame.Core.Persistence
         public void Dehydrate(string sceneKey, Scene scene)
         {
             if (string.IsNullOrEmpty(sceneKey) || !scene.IsValid() || !scene.isLoaded) return;
+
+            // The world is being torn down; what the scene holds now is its wreckage, not its state.
+            if (IsSealed) return;
 
             // No EnsureScene here on purpose. Authored objects only arrive when their scene loads,
             // which Hydrate already covers, and runtime spawns get their identity from
@@ -257,6 +277,8 @@ namespace SpaceGame.Core.Persistence
         /// <summary>Refreshes every loaded scene's records. The first half of writing a save.</summary>
         public void DehydrateLoaded()
         {
+            if (IsSealed) return;
+
             // Copied, because Dehydrate can drop a scene that has since been unloaded without the
             // store hearing about it, which mutates the dictionary being walked.
             foreach (KeyValuePair<string, Scene> entry in new List<KeyValuePair<string, Scene>>(loadedScenes))

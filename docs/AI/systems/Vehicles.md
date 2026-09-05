@@ -8,10 +8,10 @@ paths:
   - Assets/Game/Scripts/agents/AI/Motors/
   - Assets/Game/Prefabs/agents/Vehicles/
 symptoms:
-  - "I press E on the vehicle and nothing happens, or every hull collider mounts me"
+  - "I right-click the vehicle and nothing happens, or every hull collider mounts me"
   - "the rider floats above the saddle on every machine but the host's"
   - "one press seated the player in all four ship chairs at once"
-  - "pressing E anywhere on the hull puts me in the pilot's chair"
+  - "right-clicking anywhere on the hull puts me in the pilot's chair"
   - "I board the ship from outside by looking at its cockpit through the glass"
   - "the vehicle drives fine for the host but a client steers a body that snaps back"
   - "the third-person camera on the mount jitters or doubles the vehicle's motion"
@@ -20,7 +20,7 @@ symptoms:
   - "the respawn button is unclickable after dismounting a dead rider"
   - "a player who has been carried walks and steers but never falls again"
 reads_with: [Ornithopter, PlayerShip, AgentSystem, Persistence]
-updated: 2026-09-02
+updated: 2026-09-03
 ---
 
 # Vehicles & Mounts
@@ -55,8 +55,8 @@ Two ways to operate a machine: **mounting** (you take the vehicle over — seat,
 | `RiderTeardownBeacon` | [RiderTeardownBeacon.cs](Assets/Game/Scripts/agents/Modules/Riding/RiderTeardownBeacon.cs) | The only way to know a rider is mid-destruction (`rider == null` is still false in `OnDestroy`). |
 | `MountLookMath` | [MountLookMath.cs](Assets/Game/Scripts/agents/Modules/Riding/MountLookMath.cs) | `WrapAngle` / `ClampYaw` / `StepRecentre` — pure, tested. |
 | `MountStation` | [MountStation.cs](Assets/Game/Scripts/Vehicles/Stations/MountStation.cs) | Cockpit control that calls `RequestMount` directly, so `mountableByDirectInteraction = false` can close the hull. |
-| `VehicleStation` | [VehicleStation.cs](Assets/Game/Scripts/Vehicles/Stations/VehicleStation.cs) | Claim protocol (`NetMsg.StationClaim` 65 / `StationState` 66, addressed to the *vehicle*): server owns the claim table and the control's absolute value; the occupant drives locally and ignores its own echo. |
-| `DeckBoarding` | [DeckBoarding.cs](Assets/Game/Scripts/Vehicles/Stations/DeckBoarding.cs) | Look at the hull, press E, get placed on the deck. Deliberately *not* a mount. |
+| `VehicleStation` | [VehicleStation.cs](Assets/Game/Scripts/Vehicles/Stations/VehicleStation.cs) | Claim protocol (`NetMsg.StationClaim` 65 / `StationState` 66, addressed to the *vehicle*): server owns the claim table and the control's absolute value; the occupant drives locally and ignores its own echo. Both directions are change-gated: a request or announcement goes out at `PublishInterval` (0.1 s) only when it moved past `ValueDeadband`, and otherwise every `KeepAliveInterval` (1 s). |
+| `DeckBoarding` | [DeckBoarding.cs](Assets/Game/Scripts/Vehicles/Stations/DeckBoarding.cs) | Look at the hull, right-click, get placed on the deck. Deliberately *not* a mount. |
 | `WalkerPlatformCarrier` | [WalkerPlatformCarrier.cs](Assets/Game/Scripts/Vehicles/Systems/WalkerPlatformCarrier.cs) | Transform-driven hulls impart no friction; this re-applies the hull's per-frame delta (incl. rotation about the pivot) to bodies in the carry volume. Exec order 200, `ITeleportAware`. |
 | Moving parts | [ArticulatedPart.cs](Assets/Game/Scripts/Vehicles/Parts/ArticulatedPart.cs) · [ArticulatedPartInteraction.cs](Assets/Game/Scripts/Vehicles/Parts/ArticulatedPartInteraction.cs) · [ShellVariantSwitcher.cs](Assets/Game/Scripts/Vehicles/Parts/ShellVariantSwitcher.cs) · [VehicleDeploymentController.cs](Assets/Game/Scripts/Vehicles/Systems/VehicleDeploymentController.cs) | Rotate/slide about own origin (put it on the hinge pivot); a switch that toggles several; hull mesh swap while any panel is off closed; deploy/stow off `Mounted`/`Dismounted`. |
 | `MountSaveable` | [MountSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/MountSaveable.cs) | Stores *only* the rider `SaveRef`; deferred, `LoadOrder = Early`. |
@@ -126,7 +126,7 @@ Two ways to operate a machine: **mounting** (you take the vehicle over — seat,
 - **The TP camera is spawned unparented** — parenting applies the vehicle's motion twice (measured 48% vs 2.6% frame-to-frame variance). Its lifetime is explicit; `AbandonRider` destroys it or you leak a camera + a second `AudioListener` for the session.
 - `ReleaseRuntimeThirdPersonCamera` uses `DestroyImmediate` outside play mode — plain `Destroy` is an editor error and fails EditMode tests that mount anything.
 - **Transform-driven hulls need `WalkerPlatformCarrier`**, and it must poll the carry volume rather than use `OnTrigger*` (messages only reach the collider's own GameObject and its `attachedRigidbody`).
-- **On a big hull, `mountableByDirectInteraction` must be off.** `Interactor` resolves a solid collider by walking UP the hierarchy, so a root `MountModule` left directly interactable turns every wall, floor and hull slab into a mount point — pressing E anywhere on a PlayerShip put the presser in the pilot's chair. Boarding then comes from a `MountStation` on a **trigger** collider (the one thing `Interactor` will not resolve upward), which calls `TryMount`/`RequestMount` directly and so keeps working with the flag off. Do **not** answer this by moving the `MountModule` onto the seat: on a vehicle the module is the vehicle, and `GetComponent<IMovementMotor>`, `GetComponent<Rigidbody>`, `RiderCollisionIgnore` over its own colliders, the chase camera's yaw, `VehicleDeploymentController`, `ArticulatedPartInteraction`'s `GetComponentInParent` mount lock and `SaveablePolicy`'s `MountSaveable` all silently stop finding it.
+- **On a big hull, `mountableByDirectInteraction` must be off.** `Interactor` resolves a solid collider by walking UP the hierarchy, so a root `MountModule` left directly interactable turns every wall, floor and hull slab into a mount point — right-clicking anywhere on a PlayerShip put the presser in the pilot's chair. Boarding then comes from a `MountStation` on a **trigger** collider (the one thing `Interactor` will not resolve upward), which calls `TryMount`/`RequestMount` directly and so keeps working with the flag off. Do **not** answer this by moving the `MountModule` onto the seat: on a vehicle the module is the vehicle, and `GetComponent<IMovementMotor>`, `GetComponent<Rigidbody>`, `RiderCollisionIgnore` over its own colliders, the chase camera's yaw, `VehicleDeploymentController`, `ArticulatedPartInteraction`'s `GetComponentInParent` mount lock and `SaveablePolicy`'s `MountSaveable` all silently stop finding it.
 - **A boarding volume behind a hole in the collision is boarded from outside.** The complement of the rule above, and the half it does not cover: `Interactor` stops at *solid* colliders and passes through everything else, so a boarding trigger is exposed wherever the hull is drawn without collision. The PlayerShip's canopy dome deliberately carries none (a convex hull of the glass fills the cockpit and brains a three-metre pilot), and its four chairs' volumes were therefore the first thing an outside ray met — 282 approaches in `PlayerShip_NoChairIsBoardedFromOutsideTheHull` boarded a chair through the glass, out to the player's whole 20 m reach. The fix is an [`InteractionBlocker`](Assets/Game/Scripts/Gameplay/Interaction/Core/InteractionBlocker.cs) over the canopy: a **trigger box** that stops the ray and nothing else. It must **enclose** what it protects rather than merely stand in front of it — a ray starting inside a collider is not reported as hitting it, which is what still lets the pilot standing under the canopy reach their chair (`PlayerShip_EveryChairIsBoardedFromWhereItPutsYouDown`), and a shape that hugged the glass instead left the cockpit open over the dome's aft rim. See [InteractionSystem](InteractionSystem.md).
 - **Station/mount/part indices are positional** and do not survive reordering a prefab's children between builds.
 - Mounted look reads `GameSettings.MouseSensitivity` and `InvertLookY`; `lookSensitivity` defaults to 20 to match `PlayerLook`.

@@ -28,6 +28,15 @@ namespace SpaceGame.Items
         /// that slot. Entries past the inventory's size are dropped.
         /// </summary>
         void RestoreSlots(IReadOnlyList<InventoryItem> items, int selectedSlot);
+
+        /// <summary>
+        /// Server only: put <paramref name="item"/> (or null) into one named slot, replacing whatever
+        /// is there. The seam a move between the hotbar and the body slots writes the hotbar half
+        /// through — TryAddItem picks its own slot and TryRemoveItem cannot fill one, and a swap
+        /// needs both halves to land where the player pointed. Refused, with a warning, off the
+        /// server; on a networked client the answer arrives as a slot-change event.
+        /// </summary>
+        bool TrySetSlot(int index, InventoryItem item);
         int GetInventorySize();
         InventorySlot GetSlot(int index);
         InventorySlot GetSelectedSlot();

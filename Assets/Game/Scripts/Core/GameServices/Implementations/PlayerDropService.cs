@@ -23,11 +23,16 @@ namespace SpaceGame.Core
     /// </summary>
     public class PlayerDropService : IItemDropService
     {
+        /// <summary>How fast the item leaves the hand, in metres per second.</summary>
+        private const float TossForward = 1.5f;
+        private const float TossUp = 1f;
+
         public void DropItem(Transform origin, InventoryItem item)
         {
             if (origin == null || item == null || item.itemPrefab == null) return;
 
-            GameObject obj = GameServices.World.Spawn(item.itemPrefab, origin.position, Quaternion.identity);
+            GameObject obj = GameServices.World.Spawn(item.itemPrefab, SpawnPoint(origin, item),
+                                                     Quaternion.identity);
             if (obj == null) return;
 
             // Stamped with the ITEM's registry id rather than the prefab's own, because that is the
@@ -35,23 +40,45 @@ namespace SpaceGame.Core
             // without its prefab having been touched in the editor at all.
             SaveableEntity.EnsureRuntime(obj, item.ID);
 
-            ApplyForce(origin.forward, obj);
+            Toss(origin.forward, obj);
         }
 
-        private void ApplyForce(Vector3 direction, GameObject droppedItem)
+        /// <summary>
+        /// Where the item is born: ahead of the hand by its own reach, so it does not start the
+        /// frame inside the person dropping it.
+        ///
+        /// <para>
+        /// It used to be the hand socket exactly, which was survivable while a dropped item came out
+        /// at whatever scale its prefab happened to carry — usually something small. Now that
+        /// <see cref="ItemWorldScale"/> sizes one to the metre it is drawn at everywhere else, a
+        /// rifle born at the palm is a rifle born half inside the dropper's chest, and the physics
+        /// step that untangles it is a shove, not a drop.
+        /// </para>
+        /// </summary>
+        private static Vector3 SpawnPoint(Transform origin, InventoryItem item)
         {
-            Rigidbody rb = droppedItem.GetComponent<Rigidbody>();
+            float reach = 0.5f * ItemWorldScale.SizeOf(item.itemPrefab);
 
-            if (rb == null)
-                return;
+            return origin.position + origin.forward * reach;
+        }
 
-            rb.isKinematic = false;
+        /// <summary>
+        /// Give the item the speed of having been tossed, rather than a force of having been pushed.
+        ///
+        /// <para>
+        /// <see cref="ForceMode.VelocityChange"/>, not <see cref="ForceMode.Impulse"/>. An impulse
+        /// is divided by the body's mass, and until <see cref="WorldItem"/> started deriving one
+        /// every item weighed the Rigidbody default of 1 kg, so the two read the same. They do not
+        /// any more: the same impulse that tossed a scanner would drop a hull module straight down
+        /// its own side. How far a dropped thing is lobbed is a decision about the drop, not about
+        /// how heavy the thing is.
+        /// </para>
+        /// </summary>
+        private static void Toss(Vector3 forward, GameObject droppedItem)
+        {
+            if (!droppedItem.TryGetComponent(out Rigidbody body)) return;
 
-            Vector3 force =
-                direction * 1.5f +
-                Vector3.up * 1.0f;
-
-            rb.AddForce(force, ForceMode.Impulse);
+            body.AddForce(forward * TossForward + Vector3.up * TossUp, ForceMode.VelocityChange);
         }
     }
 }

@@ -4,6 +4,7 @@ using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using SpaceGame.Characters;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Core
 {
@@ -224,10 +225,45 @@ namespace SpaceGame.Core
             if (suitColor.Value < 0) return;
 
             if (recolor == null) recolor = GetComponentInChildren<SuitRecolor>(true);
-            if (recolor == null) return;
+            if (recolor != null) recolor.Apply(suitColor.Value);
 
-            recolor.Apply(suitColor.Value);
+            PaintWornGear();
         }
+
+        /// <summary>
+        /// Paint anything worn on the body in the same colour as the body.
+        ///
+        /// <para>
+        /// Separate from the astronaut's own <see cref="recolor"/>, which is a serialized reference
+        /// to the model and is worth keeping cached. Worn gear arrives long after that: it is
+        /// instantiated onto a bone whenever a slot changes, so the only way to find it is to look
+        /// again — which is cheap, because a suit colour changes about once a session.
+        /// </para>
+        /// </summary>
+        private void PaintWornGear()
+        {
+            // PaletteRecolor rather than SuitRecolor: gear brings its own table — the wingsuit's
+            // membrane is not one of the astronaut's materials and cannot be on the astronaut's
+            // list — so what they share is the base class and the swatch index, not the table.
+            var worn = GetComponentsInChildren<PaletteRecolor>(true);
+
+            for (int i = 0; i < worn.Length; i++)
+                if (worn[i] != null && worn[i] != recolor) worn[i].Apply(suitColor.Value);
+        }
+
+        /// <summary>
+        /// Re-apply the current suit colour to everything on this body, including gear that has
+        /// just been put on.
+        ///
+        /// <para>
+        /// The colour arrives as a NetworkVariable change, and a piece of gear worn later than that
+        /// change has simply missed it — there is no second event to wait for. So the wearer asks
+        /// for a repaint when it seats itself. Safe to call at any time and on any machine: it
+        /// reads the same replicated value the change handler does, and does nothing before one has
+        /// been published.
+        /// </para>
+        /// </summary>
+        public void Repaint() => ApplySuitColor();
 
         /// <summary>
         /// Assigning a string longer than the FixedString's capacity throws, so the byte length —

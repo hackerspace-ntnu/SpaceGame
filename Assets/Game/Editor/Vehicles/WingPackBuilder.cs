@@ -61,12 +61,14 @@ namespace SpaceGame.EditorTools
         /// (`ornithopter_worn_export.py` prints "pin WornFit.size to ...").
         /// </para>
         /// <para>
-        /// <b>5.51 → 1.97 → 1.86 on 2026-09-05</b>, because the wings are now STOWED rather than spread:
+        /// <b>5.51 → 1.97 → 1.86 → 2.55 on 2026-09-05</b>, because the wings are now STOWED rather than spread:
         /// folded shut against their own mounts and hung behind the pack. The change is entirely
         /// in the .blend and this number only follows it — the wings are the same size, the same
-        /// twelve parts and the same 8,736 triangles at the same scale, folded. The last step to
-        /// 1.86 is a hand edit to the .blend that tucked the wings in further; at that span the
-        /// widest thing on the pack is the lash rail itself, which is what "compact" means here.
+        /// twelve parts and the same 8,736 triangles at the same scale, folded. The steps after
+        /// 1.97 are hand edits to the .blend, re-opening the fold rather than tightening it: at
+        /// 2.55 m the wings set the silhouette's width again, and their pivots have been moved out
+        /// to x = ±1.12…1.23 — OFF the lash rail's bar tips at ±0.885 that the mount is measured
+        /// onto. See the Ornithopter.md gotcha; this constant only follows the exporter.
         /// </para>
         /// <para>
         /// <b>Never fold or grow the wings by moving this number.</b> It is a uniform scale about
@@ -77,7 +79,7 @@ namespace SpaceGame.EditorTools
         /// copied from what the exporter prints.
         /// </para>
         /// </summary>
-        private const float WornSize = 1.86f;
+        private const float WornSize = 2.55f;
 
         /// <summary>
         /// The same measurement for the gear screen's spread wings, whose span is a different

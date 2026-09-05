@@ -1,0 +1,418 @@
+"""Build models/gear/saddle.blend -- riding saddles for large creatures.
+
+    blender --background --python saddle.py -- --out models/gear/saddle.blend
+
+Two variations, in their own collections:
+
+    Coll_Saddle_Appa   fitted to appa.blend, six-legged bison, the one needed now
+    Coll_Saddle_Pack   a smaller cargo-only pad, built ahead for the next animal
+
+## Fitted, not eyeballed
+
+The Appa panel's underside is a loft through his ACTUAL back, sampled by
+raycasting straight down onto every visible mesh of `appa.blend` -- the fur
+(`Cube.015`) sits proud of the body over the shoulders, so fitting to the body
+alone would have buried the saddle in it. `BACK` below is that measurement, in
+his file's frame (head at -X, +Z up, +Y his left).
+
+The saddle is authored in the LIBRARY frame (-Y forward, +Z up), so his X maps
+to the saddle's Y and his Y to the saddle's X. `ORIGIN_X`/`ORIGIN_Z` put the
+saddle's origin on his spine at the seat's centre, which is the point Unity
+parents to the bone.
+
+## Materials
+
+`_buildlib.link_materials` could not be used: `palette.blend` in this repo
+cannot be opened by Blender 4.2 -- `bpy.ops.wm.open_mainfile` and
+`bpy.data.libraries.load` both refuse it with "not a blend file", and 4.2 is the
+only Blender installed. The materials below are therefore created locally with
+the exact values `PALETTE.md` documents, under the palette's own names, so that
+one call to `link_materials(MATERIALS)` replaces the whole block once the
+palette is readable again.
+
+`Mat_Hide_Leather_Saddle` is new. The Hide family has keratin (`Claw_Horn`,
+`Plate_Tan`, `Ivory_Spine`) and creature skin (`Sand_Pale`, `Dune_Tan`,
+`Slate_Teal`) but no tanned leather, and the nearest candidates are wrong by
+kind rather than by colour: `Mat_Fabric_Seat_Ochre` is cracked vinyl
+upholstery and `Mat_Wood_Ply_Worn` is scavenged plywood.
+"""
+
+import math
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
+import bpy
+import _buildlib as B
+
+
+# ── Appa's back, measured ──────────────────────────────────────────────────
+# Top surface z of every visible mesh, cast down at (x, |y|) in appa.blend.
+BACK_X = [1.30, 1.45, 1.60, 1.75, 1.90, 2.05, 2.20, 2.35]
+BACK_Y = [0.00, 0.15, 0.30, 0.45, 0.60, 0.75, 0.90]
+BACK = [
+    [0.439, 0.471, 0.441, 0.411, 0.378, 0.306, 0.243],
+    [0.406, 0.429, 0.401, 0.384, 0.364, 0.276, 0.135],
+    [0.336, 0.369, 0.364, 0.351, 0.305, 0.182, 0.100],
+    [0.282, 0.310, 0.325, 0.239, 0.202, 0.148, 0.063],
+    [0.239, 0.234, 0.220, 0.196, 0.157, 0.099, 0.008],
+    [0.188, 0.182, 0.167, 0.140, 0.099, 0.036, -0.065],
+    [0.123, 0.117, 0.102, 0.073, 0.029, -0.041, -0.155],
+    [0.042, 0.036, 0.020, -0.010, -0.055, -0.129, -0.272],
+]
+
+# Centred at x = 1.62. Tried at 1.60 first, which straddles the shoulder hump and
+# left it sitting ON the mane (Cube.015 is the top surface as far back as x=1.50),
+# then at 1.82 which reads seated but sat too far back to look ridden. 1.62 is the
+# front of the clean back, just behind the hump.
+ORIGIN_X = 1.62
+ORIGIN_Z = 0.329        # his back height there, interpolated from the table above
+CLEARANCE = 0.012       # panel floats this far off the hide, so it never z-fights
+
+SEAT_HALF = 0.44         # saddle reaches this far fore and aft of its origin
+
+# How much taller the seat block is than the shape first built. A saddle sunk
+# level with the panel reads as a pad; the rider wants to sit ON him, above the
+# spine, with the pommel and cantle standing proud enough to frame them. The
+# pommel, cantle and SEAT_Rider all rise with it, so the seat keeps its shape.
+SEAT_LIFT = 0.09
+PANEL_HALF = 0.60        # and this far out to each side
+
+
+def _lerp(a, b, t):
+    return a + (b - a) * t
+
+
+def _sample(axis, values, q):
+    """Linear interpolation along `axis`, holding the end values outside it."""
+    if q <= axis[0]:
+        return values[0]
+    if q >= axis[-1]:
+        return values[-1]
+    for i in range(len(axis) - 1):
+        if axis[i] <= q <= axis[i + 1]:
+            t = (q - axis[i]) / (axis[i + 1] - axis[i])
+            return _lerp(values[i], values[i + 1], t)
+    return values[-1]
+
+
+def back_height(sx, sy):
+    """Height of Appa's back under the saddle point (sx, sy), in saddle space."""
+    rows = [_sample(BACK_Y, row, abs(sx)) for row in BACK]
+    return _sample(BACK_X, rows, ORIGIN_X + sy) - ORIGIN_Z
+
+
+# ── Appa's FLANK, measured ──────────────────────────────────────────────────
+# `BACK` above is a cast straight DOWN, so it knows only his top surface. The
+# panel and seat are fitted with it correctly; everything that hangs off his
+# sides is not, because he swells from 0.66 m half-width at the spine to 1.12 m
+# half a metre lower. Parts placed a fixed distance below the panel's edge ended
+# up inside him, and parts pushed out to clear his widest point stood off him
+# like shelves. Neither is a saddle: leather lies ON an animal.
+#
+# `appa_surface` is a 35 x 27 grid of his half-width, generated by
+# measure_appa_flank.py. `wrap` pulls a part's vertices onto it.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # noqa: E402
+from appa_surface import HALF_WIDTH as _HW, Y as _HWY, Z as _HWZ   # noqa: E402
+
+# How far clear of his hide wrapped leather sits. Small: it is strapped on.
+FLANK_GAP = 0.02
+
+def half_width(sy, sz):
+    """Appa's half-width at (fore/aft, height) in saddle space, or 0 off him."""
+    rows = [_sample(_HWZ, row, sz) for row in _HW]
+    return _sample(_HWY, rows, sy)
+
+
+def on_flank(sy, sz, gap=FLANK_GAP):
+    """Where a point at this station sits to lie on him, or None off his body.
+
+    A 0 in the grid is a miss -- past his silhouette -- and interpolating
+    through one would drag the leather in through his hide, so a station with
+    any miss around it is reported as "no body here" and left alone.
+    """
+    w = half_width(sy, sz)
+    return None if w <= 0.01 else w + gap
+
+
+def hanging_end(part, at_y, span=0.12):
+    """Where a part's lowest edge ACTUALLY ended up, near station `at_y`.
+
+    Read off the built geometry instead of recomputed, and that is the point:
+    once leather has been wrapped onto him it is no longer where the arithmetic
+    that placed it said it would be, so a buckle or an iron positioned from a
+    second, independent lookup ends up floating off on its own. Every fitting
+    hangs off the strap it is actually attached to.
+    """
+    near = [v.co.copy() for v in part.bm.verts if abs(v.co.y - at_y) <= span]
+    if not near:
+        return None
+    z_low = min(c.z for c in near)
+    low = [c for c in near if c.z <= z_low + 0.02]
+    n = float(len(low))
+    return (sum(c.x for c in low) / n,
+            sum(c.y for c in low) / n,
+            sum(c.z for c in low) / n)
+
+
+def wrap(part, gap=FLANK_GAP, blend=1.0, keep_above=None):
+    """Pull a part's vertices sideways onto Appa's surface.
+
+    This is the whole difference between a saddle that fits and one that hovers.
+    Each vertex keeps its fore/aft and its height and moves only in x, onto his
+    hide plus `gap` -- so a flat strip of leather becomes a strip that follows
+    his barrel, and the part's own shape is preserved.
+
+    `blend` under 1 wraps only partway, for pieces that should suggest the body
+    without gripping it. `keep_above` leaves vertices above that height alone,
+    which is how a skirt stays attached to the rigid panel it hangs from.
+    """
+    for v in part.bm.verts:
+        if keep_above is not None and v.co.z >= keep_above:
+            continue
+        target = on_flank(v.co.y, v.co.z, gap)
+        if target is None:
+            continue
+        side = 1.0 if v.co.x >= 0.0 else -1.0
+        want = side * target
+        v.co.x = v.co.x + (want - v.co.x) * blend
+
+
+# ── Materials ──────────────────────────────────────────────────────────────
+# name -> (hex, roughness, metallic). Values copied from PALETTE.md.
+MATERIALS = [
+    ("Mat_Hide_Leather_Saddle", "6B4A2E", 0.60, 0.0),
+    ("Mat_Fabric_Canvas_Faded", "6E6A5A", 0.92, 0.0),
+    ("Mat_Metal_Brass_Tarnished", "9C7B3F", 0.45, 1.0),
+    ("Mat_Fabric_Canvas_Sand", "F4BD62", 0.88, 0.0),
+    ("Mat_Wood_Ply_Worn", "8C6A44", 0.75, 0.0),
+]
+LEATHER, WEBBING, BRASS, BOARD, TIMBER = range(5)
+
+
+def _srgb_to_linear(c):
+    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+
+def materials():
+    out = []
+    for name, hexcode, rough, metal in MATERIALS:
+        mat = bpy.data.materials.get(name)
+        if mat is None:
+            mat = bpy.data.materials.new(name)
+            mat.use_nodes = True
+            bsdf = mat.node_tree.nodes["Principled BSDF"]
+            rgb = [int(hexcode[i:i + 2], 16) / 255.0 for i in (0, 2, 4)]
+            lin = [_srgb_to_linear(c) for c in rgb]
+            bsdf.inputs["Base Color"].default_value = (lin[0], lin[1], lin[2], 1.0)
+            bsdf.inputs["Roughness"].default_value = rough
+            bsdf.inputs["Metallic"].default_value = metal
+        out.append(mat)
+    return out
+
+
+# ── The fitted saddle ──────────────────────────────────────────────────────
+
+def build_appa(coll, mats):
+    """The panel, seat, skirts, panniers and furniture, fitted to his back."""
+    stations = [(-8 + i) * SEAT_HALF / 8.0 for i in range(17)]
+
+    # -- panel: the part that touches him -----------------------------------
+    panel = B.Part(mats)
+    thickness = 0.045
+    sections = []
+    for sy in stations:
+        # A closed loop: out across the top, back along the underside.
+        span = PANEL_HALF * (1.0 - 0.35 * (abs(sy) / SEAT_HALF) ** 2)
+        xs = [(-8 + i) * span / 8.0 for i in range(17)]
+        top = [(x, back_height(x, sy) + CLEARANCE + thickness) for x in xs]
+        bottom = [(x, back_height(x, sy) + CLEARANCE) for x in reversed(xs)]
+        sections.append((sy, top + bottom))
+    panel.loft(sections, axis='Y', mat=LEATHER)
+    panel.bevel(width=0.008, segments=1)
+    panel.finish("Mesh_SaddlePanel_Appa", coll)
+
+    # -- seat: dished, with a pommel forward and a cantle aft ---------------
+    seat = B.Part(mats)
+    seat_half_x = 0.30
+    sections = []
+    for sy in stations:
+        t = abs(sy) / SEAT_HALF
+        # Rises at both ends -- the dish is what stops a rider sliding off a
+        # back that is itself sloping downhill toward the tail.
+        rise = 0.16 * t ** 2.0
+        xs = [(-6 + i) * seat_half_x / 6.0 for i in range(13)]
+        base = back_height(0.0, sy) + CLEARANCE + thickness
+        top = [(x, base + rise + 0.075 + SEAT_LIFT - 0.085 * (abs(x) / seat_half_x) ** 2)
+               for x in xs]
+        low = [(x, base) for x in reversed(xs)]
+        sections.append((sy, top + low))
+    seat.loft(sections, axis='Y', mat=LEATHER)
+    seat.bevel(width=0.010, segments=2)
+    seat.finish("Mesh_SaddleSeat_Appa", coll)
+
+    # -- pommel and cantle: the two humps that frame the rider --------------
+    ends = B.Part(mats)
+    front_z = back_height(0.0, -SEAT_HALF) + CLEARANCE + thickness
+    rear_z = back_height(0.0, SEAT_HALF) + CLEARANCE + thickness
+    ends.box((0.0, -SEAT_HALF + 0.03, front_z + 0.17 + SEAT_LIFT), (0.24, 0.09, 0.30), mat=LEATHER)
+    ends.cyl((0.0, -SEAT_HALF + 0.03, front_z + 0.32 + SEAT_LIFT), 0.055, 0.11, axis="Y", seg=12, mat=LEATHER)
+    ends.box((0.0, SEAT_HALF - 0.04, rear_z + 0.20 + SEAT_LIFT), (0.40, 0.10, 0.38), mat=LEATHER)
+    ends.bevel(width=0.014, segments=2)
+    ends.finish("Mesh_SaddleEnds_Appa", coll)
+
+    # Where each pannier board ended up, so the PackSurface empty can sit on the
+    # board rather than at a second guess at the same place. They disagreed the
+    # moment the boards moved, which put both faces inside him.
+    board_anchor = {}
+
+    # -- skirts, panniers, girth and furniture, both sides ------------------
+    # Each of these is built as a simple flat strip at a nominal width and then
+    # WRAPPED onto him. Building the curve into the numbers was tried twice --
+    # once at a fixed offset from the panel (buried) and once outboard of his
+    # widest point (standing off him like shelves) -- and neither is what a
+    # strap on an animal does.
+    for side, tag in ((1.0, "L"), (-1.0, "R")):
+        skirt = B.Part(mats)
+        sections = []
+        for sy in stations[2:-2]:
+            span = PANEL_HALF * (1.0 - 0.35 * (abs(sy) / SEAT_HALF) ** 2)
+            hang = back_height(side * span, sy) + CLEARANCE
+            drop = hang - 0.34
+            x_in, x_out = side * (span - 0.03), side * (span + 0.01)
+            sections.append((sy, [
+                (x_in, hang + 0.02), (x_out, hang + 0.01),
+                (x_out, drop), (x_in, drop + 0.01),
+            ]))
+        skirt.loft(sections, axis='Y', mat=LEATHER)
+        # The top edge stays welded to the panel it hangs off; everything below
+        # it follows his barrel.
+        wrap(skirt, gap=0.022, keep_above=back_height(0.0, 0.0) + CLEARANCE - 0.04)
+        skirt.bevel(width=0.006, segments=1)
+        skirt.finish("Mesh_SaddleSkirt_Appa_%s" % tag, coll)
+
+        # Girth strap down the flank, and the D-rings gear lashes to. Wrapped
+        # hard: a girth is pulled tight, so it takes his shape exactly.
+        gear = B.Part(mats)
+        STRAPS = (-0.24, 0.22)
+        for sy in STRAPS:
+            top_z = back_height(side * 0.52, sy) + CLEARANCE
+            gear.slab((side * 0.50, sy - 0.06, top_z - 0.52),
+                      (side * 0.56, sy + 0.06, top_z + 0.02), mat=WEBBING)
+        wrap(gear, gap=0.030)
+
+        # A ring per strap, on the strap's own outer face -- placed from where
+        # the wrapped leather ended up, so the two cannot drift apart.
+        rings = B.Part(mats)
+        for sy in STRAPS:
+            end = hanging_end(gear, sy, span=0.07)
+            if end is None:
+                continue
+            rings.torus((end[0] + side * 0.035, sy, end[2] + 0.06), 0.038, 0.011,
+                        axis='X', maj_seg=14, min_seg=6, mat=BRASS)
+        gear._absorb(rings.bm, BRASS)
+        gear.finish("Mesh_SaddleGear_Appa_%s" % tag, coll)
+
+        # Pannier board: the flat face gear is laid on, and the ONE thing here
+        # that must not be wrapped -- PackSurface maps a uv onto a plane, so a
+        # board following the flank would put every stowed item on a slope. It
+        # is instead kept small and tucked against him at its own height, rather
+        # than standing clear of his widest point somewhere lower down.
+        board = B.Part(mats)
+        board_z = back_height(side * 0.50, 0.10) + CLEARANCE - 0.14
+        inner_x = min(on_flank(sy, board_z, gap=0.0) or 9.9
+                      for sy in (-0.20, 0.04, 0.28))
+        inner = side * inner_x
+        outer = side * (inner_x + 0.26)
+        board.slab((inner, -0.20, board_z), (outer, 0.28, board_z + 0.03), mat=BOARD)
+        board.slab((inner, -0.22, board_z), (outer, -0.20, board_z + 0.05), mat=TIMBER)
+        board.slab((inner, 0.28, board_z), (outer, 0.30, board_z + 0.05), mat=TIMBER)
+        board.bevel(width=0.006, segments=1)
+        board.finish("Mesh_SaddlePannier_Appa_%s" % tag, coll)
+        board_anchor[tag] = (side * (inner_x + 0.13), 0.04, board_z + 0.03)
+
+    # -- stirrups, so a rider has somewhere to put their feet ---------------
+    for side, tag in ((1.0, "L"), (-1.0, "R")):
+        st = B.Part(mats)
+        top_z = back_height(side * 0.48, -0.02) + CLEARANCE
+        st.slab((side * 0.46, -0.08, top_z - 0.62), (side * 0.54, 0.04, top_z),
+                mat=WEBBING)
+        # The leather lies along his side. Only the iron swings free, and it
+        # hangs off wherever the wrapped leather actually ends -- not off a
+        # second guess at the same place, which is what left it floating on his
+        # flank with nothing joining the two.
+        wrap(st, gap=0.035, keep_above=top_z - 0.04)
+        end = hanging_end(st, -0.02, span=0.10)
+        if end is not None:
+            st.torus((end[0], end[1], end[2] - 0.075), 0.075, 0.016,
+                     axis='Y', maj_seg=14, min_seg=6, mat=BRASS)
+        st.finish("Mesh_SaddleStirrup_Appa_%s" % tag, coll)
+
+    # -- the empties Unity reads -------------------------------------------
+    _empty("SEAT_Rider", (0.0, 0.02, back_height(0.0, 0.0) + CLEARANCE + 0.14 + SEAT_LIFT), coll)
+    _empty("SURF_SaddleLeft", board_anchor["L"], coll)
+    _empty("SURF_SaddleRight", board_anchor["R"], coll)
+    _empty("SURF_SaddleRear",
+           (0.0, SEAT_HALF + 0.10, back_height(0.0, SEAT_HALF) + CLEARANCE + 0.03), coll)
+
+
+def _empty(name, location, coll):
+    obj = bpy.data.objects.new(name, None)
+    obj.empty_display_type = 'PLAIN_AXES'
+    obj.empty_display_size = 0.12
+    obj.location = location
+    coll.objects.link(obj)
+    return obj
+
+
+# ── A smaller cargo pad, built ahead ───────────────────────────────────────
+
+def build_pack(coll, mats):
+    """No seat and no stirrups: a load pad for an animal nobody rides."""
+    pad = B.Part(mats)
+    sections = []
+    for i in range(13):
+        sy = (-6 + i) * 0.30 / 6.0
+        t = abs(sy) / 0.30
+        span = 0.34 * (1.0 - 0.25 * t ** 2)
+        xs = [(-6 + j) * span / 6.0 for j in range(13)]
+        dip = [-0.10 * (abs(x) / span) ** 2 for x in xs]
+        top = [(x, dip[j] + 0.05) for j, x in enumerate(xs)]
+        low = [(x, dip[j]) for j, x in reversed(list(enumerate(xs)))]
+        sections.append((sy, top + low))
+    pad.loft(sections, axis='Y', mat=LEATHER)
+    pad.bevel(width=0.008, segments=1)
+    pad.finish("Mesh_PackPad_Body", coll)
+
+    for side, tag in ((1.0, "L"), (-1.0, "R")):
+        crate = B.Part(mats)
+        crate.slab((side * 0.20, -0.20, -0.34), (side * 0.42, 0.20, -0.02), mat=BOARD)
+        crate.slab((side * 0.20, -0.22, -0.34), (side * 0.42, -0.20, 0.01), mat=TIMBER)
+        crate.slab((side * 0.20, 0.20, -0.34), (side * 0.42, 0.22, 0.01), mat=TIMBER)
+        crate.bevel(width=0.006, segments=1)
+        crate.finish("Mesh_PackPannier_%s" % tag, coll)
+
+        strap = B.Part(mats)
+        strap.slab((side * 0.16, -0.08, -0.36), (side * 0.30, 0.00, 0.06), mat=WEBBING)
+        strap.finish("Mesh_PackStrap_%s" % tag, coll)
+
+    _empty("SURF_PackLeft", (0.31, 0.0, -0.02), coll)
+    _empty("SURF_PackRight", (-0.31, 0.0, -0.02), coll)
+
+
+def main():
+    out = B.parse_out()
+    B.start(out)
+    mats = materials()
+
+    appa = B.collection("Coll_Saddle_Appa")
+    pack = B.collection("Coll_Saddle_Pack")
+    build_appa(appa, mats)
+    build_pack(pack, mats)
+
+    B.save(out)
+    B.report()
+
+
+main()

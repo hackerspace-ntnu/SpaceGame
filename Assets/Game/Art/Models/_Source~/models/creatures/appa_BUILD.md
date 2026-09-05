@@ -6,6 +6,28 @@ The Last Airbender*. The mesh and its sixteen materials were **hand-modelled by
 Tobias Fremming**; this record covers the rig, the eleven clips, the Unity side
 built around them and the behaviour he was given.
 
+## Scale
+
+The sculpt is 5.75 m long, which is a believable bison. `AppaBuilder.Scale`
+multiplies the prefab root by **1.5**, so in game he is 8.4 m long and 3.7 m to
+the top of the back -- a mount you look up at.
+
+The gait speeds scale with him and the playback rate does not, which is not a
+fudge: a 1.5x leg sweeping the same arc covers 1.5x the ground per cycle, so the
+feet still match the floor. Turn rates are angles and stay where they are.
+
+## Appa_Jump
+
+An in-place hop for a rider pressing Space. 26 frames = 1.08 s, which is
+`NavMeshAgentMotor.mountedJumpDuration` (0.55 s) at the 2.0 playback rate every
+Appa clip runs at -- so the pose finishes landing exactly as the motor puts him
+down.
+
+The height is deliberately **not** in the clip. The motor supplies it by
+animating the agent's `baseOffset`; keying a rise here as well would double it.
+The front legs reach for the ground before the back ones, so he lands nose-first
+the way a heavy quadruped does instead of dropping flat.
+
 ## What arrived
 
 The `.blend` was at `C:\Users\tobia\Documents\Blender\appa.blend`, outside the

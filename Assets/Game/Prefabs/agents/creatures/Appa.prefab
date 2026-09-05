@@ -636,7 +636,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.0100000035, y: 0.0100000035, z: 0.0100000035}
+  m_LocalScale: {x: 0.0066666687, y: 0.0066666687, z: 0.0066666687}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1051947269724024588}
@@ -660,7 +660,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 1
+  m_Radius: 1.5
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &1738192457720176948
 MonoBehaviour:
@@ -681,6 +681,7 @@ MonoBehaviour:
   cooldown: 3
   mood: {fileID: 3442566600463821447}
   petterTrigger: Pet
+  petGestureSeconds: 2.5
   label: Appa
 --- !u!1 &1814779097349124444
 GameObject:
@@ -1170,15 +1171,21 @@ GameObject:
   - component: {fileID: 8490098452525265811}
   - component: {fileID: 6546794771811729605}
   - component: {fileID: 8472756573139251772}
-  - component: {fileID: 7733036781572824779}
-  - component: {fileID: -737949224639774468}
-  - component: {fileID: -129037450698806265}
-  - component: {fileID: -6358817891288424313}
-  - component: {fileID: 7413199360594520778}
-  - component: {fileID: 3202335907628254218}
-  - component: {fileID: -6824801756961926972}
-  - component: {fileID: -8715087705509851653}
-  - component: {fileID: 8026908832052921206}
+  - component: {fileID: 4545997679955702114}
+  - component: {fileID: 3245711223083769241}
+  - component: {fileID: 7698111885678509690}
+  - component: {fileID: 1844863025042257573}
+  - component: {fileID: 5300365251127795503}
+  - component: {fileID: 3834802116797483765}
+  - component: {fileID: 6160135105705492988}
+  - component: {fileID: -8830198367367110880}
+  - component: {fileID: -448511129893331013}
+  - component: {fileID: 2358839458320213569}
+  - component: {fileID: 5896638845687024880}
+  - component: {fileID: -2718894160360572891}
+  - component: {fileID: -1089749879451257226}
+  - component: {fileID: 3230713858325164582}
+  - component: {fileID: 7739079179413206505}
   m_Layer: 0
   m_Name: Appa
   m_TagString: Untagged
@@ -1196,7 +1203,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.5, y: 1.5, z: 1.5}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6047667671799331045}
@@ -1286,16 +1293,16 @@ NavMeshAgent:
   m_GameObject: {fileID: 3092591699166706021}
   m_Enabled: 1
   m_AgentTypeID: 0
-  m_Radius: 1.5
-  m_Speed: 3.15
-  m_Acceleration: 6
+  m_Radius: 2.25
+  m_Speed: 4.7250004
+  m_Acceleration: 9
   avoidancePriority: 50
   m_AngularSpeed: 45
-  m_StoppingDistance: 2
+  m_StoppingDistance: 3
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
   m_AutoRepath: 1
-  m_Height: 2.6
+  m_Height: 3.8999999
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
@@ -1313,12 +1320,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.NavMeshAgentMotor
   agent: {fileID: 7084194288932562823}
   navMeshSnapDistance: 6
-  walkSpeedMultiplier: 0.44444442
+  walkSpeedMultiplier: 0.4444444
   stuckVelocityThreshold: 0.05
   stuckTime: 1.5
   faceRotateSpeed: 2.6
   enableMountedJump: 1
-  mountedJumpHeight: 1.25
+  mountedJumpHeight: 1.875
   mountedJumpDuration: 0.55
   mountedJumpCooldown: 0.45
   enableMountedLeap: 1
@@ -1438,7 +1445,7 @@ MonoBehaviour:
   occlusionLayers:
     serializedVersion: 2
     m_Bits: 641
-  eyeHeight: 2.3
+  eyeHeight: 3.4499998
   memoryDuration: 8
   emitNoiseOnSpot: 1
   spotNoiseRadius: 12
@@ -1496,7 +1503,7 @@ MonoBehaviour:
   minWaitTime: 5
   maxWaitTime: 16
   stopDistance: 0.2
-  speedMultiplier: 0.44444442
+  speedMultiplier: 0.4444444
 --- !u!114 &1112884048203510864
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1511,7 +1518,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.ChaseModule
   priority: 20
   active: 1
-  chaseStopDistance: 3.2
+  chaseStopDistance: 4.8
   chaseSpeedMultiplier: 1
 --- !u!114 &1617527124904327157
 MonoBehaviour:
@@ -1527,7 +1534,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.CloseCombatModule
   priority: 23
   active: 1
-  attackRange: 4.5
+  attackRange: 6.75
   rangeExitFactor: 1.15
   attackCooldown: 3
   attackDamage: 35
@@ -1588,7 +1595,7 @@ MonoBehaviour:
   priority: 31
   active: 1
   enrageDamage: 60
-  corneredDistance: 9
+  corneredDistance: 13.5
   rageDuration: 14
   roarTrigger: Roar
   roarDuration: 1.4
@@ -1679,7 +1686,7 @@ MonoBehaviour:
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 0
+  SceneMigrationSynchronization: 1
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
@@ -1789,7 +1796,142 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6498d0fe3110a413a8dc956386c62373, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.FleeSaveable
---- !u!114 &7733036781572824779
+--- !u!114 &4545997679955702114
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3092591699166706021}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5143ff601f504c72995e51afbceb9fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.MountModule
+  priority: 0
+  active: 1
+  seatPoint: {fileID: 0}
+  seatOffset: {x: 0, y: 2.331, z: -0.18}
+  dismountPoint: {fileID: 0}
+  mountableByDirectInteraction: 1
+  disablePlayerMovement: 1
+  disablePlayerLook: 1
+  disablePlayerInteractor: 1
+  mountCooldown: 0.25
+  fallbackDismountDistance: 1.6
+  defaultPerspective: 1
+  thirdPersonCameraPrefab: {fileID: 0}
+  thirdPersonPivot: {fileID: 0}
+  thirdPersonOffset: {x: 0.35, y: 1.7, z: -1}
+  thirdPersonDistance: 4.5
+  thirdPersonFollowLerp: 14
+  thirdPersonAimLerp: 18
+  thirdPersonYawLerp: 16
+  thirdPersonLookAhead: 7
+  followMountPitch: 0
+  lookActionName: Look
+  lookSensitivity: 20
+  lookPitchClamp: 75
+  firstPersonYawClamp: 180
+  defaultMountedPitch: -15
+  orbitPitchMin: -25
+  orbitPitchMax: 60
+  cameraAutoAlignSpeed: 8
+  cameraAutoAlignDelay: 3
+  allowAISelfMovementWhenMounted: 0
+--- !u!114 &3245711223083769241
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3092591699166706021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7c257d806b8c467abd0f18840dfdfe5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.SteerModule
+  priority: 100
+  active: 1
+  mountModule: {fileID: 4545997679955702114}
+  moveActionName: Move
+  jumpActionName: Jump
+  verticalActionName: 
+  turnActionName: 
+  steeringOverrideThreshold: 0.1
+  turnSmoothTime: 0.12
+  riderCanRun: 1
+  runActionName: Sprint
+  jumpEnabled: 1
+  leapEnabled: 0
+  leapHoldTime: 0.4
+  leapHorizontal: 8
+  leapVertical: 3
+  leapDuration: 0.9
+  visualTiltRoot: {fileID: 0}
+  leanAmount: 10
+  leanSmoothTime: 0.18
+--- !u!114 &7698111885678509690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3092591699166706021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c12f9bcee676cb4a89e1c1c4f8493b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.SaddleSocket
+  saddlePrefab: {fileID: 1477037392384239047, guid: c94acd8a4ae968148a0a5e6e94cab715, type: 3}
+  mountBone: {fileID: 0}
+  rootPosition: {x: 0, y: 2.089, z: -0.18}
+  rootEuler: {x: 0, y: 0, z: 0}
+  compensateBoneScale: 1
+  mount: {fileID: 4545997679955702114}
+  saddleItem: {fileID: 11400000, guid: 3ca09569478b425428c436405fe3b2eb, type: 2}
+  dropRadius: 2.4
+  dropHeight: 1.8000001
+--- !u!114 &1844863025042257573
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3092591699166706021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae553c47986a2a142993004e8c914fcb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.SaddleQuickRelease
+  socket: {fileID: 7698111885678509690}
+  reach: 6.75
+  actionName: Retrieve
+--- !u!114 &5300365251127795503
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3092591699166706021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a1694cb6c1530645a9b1f763ca49404, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.SaddleSaveable
+--- !u!114 &3834802116797483765
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3092591699166706021}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29154b1ccc6444e649bf651e558f5b84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.MountSaveable
+--- !u!114 &6160135105705492988
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1801,7 +1943,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0db239a6f997640fea2e58936f0ebf6a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.NoiseInvestigationSaveable
---- !u!114 &-737949224639774468
+--- !u!114 &-8830198367367110880
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1813,7 +1955,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e43b0c557f13f4220884e513b4eff4fc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.WanderSaveable
---- !u!114 &-129037450698806265
+--- !u!114 &-448511129893331013
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1826,7 +1968,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGoal
   drawGizmos: 1
---- !u!114 &-6358817891288424313
+--- !u!114 &2358839458320213569
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1838,7 +1980,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb3670eb35fef414cb27ee61624f06c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentGoalSaveable
---- !u!114 &7413199360594520778
+--- !u!114 &5896638845687024880
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1850,7 +1992,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1eacc570714474389995d97c3e804006, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.AgentPacingSaveable
---- !u!114 &3202335907628254218
+--- !u!114 &-2718894160360572891
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1862,7 +2004,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fdac19e9c311046d182417d2e82bc89b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.CombatCadenceSaveable
---- !u!114 &-6824801756961926972
+--- !u!114 &-1089749879451257226
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1874,7 +2016,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a5dbfba6cb9b4df3b073365f156f0af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.EntityFactionSaveable
---- !u!114 &-8715087705509851653
+--- !u!114 &3230713858325164582
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1886,7 +2028,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a57eeae665b53463c809438f31f5208b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.HealthReactionSaveable
---- !u!114 &8026908832052921206
+--- !u!114 &7739079179413206505
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

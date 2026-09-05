@@ -123,6 +123,11 @@ N/A for the art assets themselves. Builders that emit spawnable prefabs must sta
 
 ## Gotchas
 
+- **Some library `.blend` files cannot be opened by Blender 4.2**, the only Blender installed:
+  `palette.blend` and `components/props/supply_crate.blend` both fail with *"not a blend file"*
+  though both are valid Zstandard data — they were written by a newer Blender. Assume there are
+  more. **Never "fix" one by re-running its generator**: that overwrites hand-made work
+  irrecoverably. Build a new component under a new name and say why, as `camp_lantern.py` does.
 - **Never re-run a generator over an existing `.blend`.** The `.blend` is the source of truth and carries hand edits that exist nowhere else; `_buildlib.start()` hard-fails on this, but a script that bypasses it will destroy the file. Compare object *scales*, not names, to detect a hand-edited file. Notably hand-built: `models/vehicles/ship_lander_blockout.blend` (the user's interior), the `nomad.blend` family (which is why `nomad_before_*.blend` snapshots exist), `models/creatures/vrescal.blend`.
 - **Blender FBX import at `lossyScale = 100`** on every transform (FBX centimetre convention): mesh data 100× small under transforms 100× large. It cancels for the model, but anything sized *against* a socket must divide by `socket.lossyScale` or it comes out 100× too big. `globalScale: 1` / `useFileScale: 1` on all 126 metas; export uses `FBX_SCALE_NONE`, 1 Blender unit = 1 m.
 - **Axis conversion is fixed at `-Z` forward / `Y` up.** Blender's −Y forward lands on Unity's +Z. Changing it silently rotates new assets relative to every existing one.

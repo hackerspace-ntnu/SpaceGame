@@ -17,6 +17,7 @@ symptoms:
   - "a mesh built under a pack surface lands tens of metres away"
   - "everything not on the rack disappears when the pack is reshouldered or restored"
   - "the same item cannot be put in the pack twice"
+  - "a saddle on an animal holds nothing, or its faces are on a slope"
   - "gear on the mat jumped to different cells after loading an old save"
   - "the pack and everything on it is suddenly enormous, or the webbing no longer lines up with the grid"
   - "the ship's gear wall punches through the roof of the aft room, or hangs out through the hull"
@@ -64,7 +65,7 @@ The physical inventory: a deployable expedition rig whose seven flat faces are c
 | `BackpackObject` | [BackpackObject.cs](Assets/Game/Scripts/Items/Backpack/BackpackObject.cs) | The rig. Unfold choreography, `Reaches`, item↔hotbar transfers, and rebuilding all display copies. `IInteractable`. |
 | `PackLayout` | [Placement/PackLayout.cs](Assets/Game/Scripts/Items/Backpack/Placement/PackLayout.cs) | What is where. `CanPlace`/`TryPlace`/`TryMove`/`TryFindSpot`. Raises one coarse `OnChanged`. |
 | `PackGrid` / `PackShape` / `PackShapes` | [Placement/](Assets/Game/Scripts/Items/Backpack/Placement) | Cell arithmetic (idempotent `Snap`), footprint masks + rotation, and the single item→shape resolver. |
-| `PackSurface` / `PackSurfaceId` | [Placement/PackSurface.cs](Assets/Game/Scripts/Items/Backpack/Placement/PackSurface.cs) | One `SURF_` empty: id + size in metres, uv↔world, gizmo grid. Ids are persisted bytes and travel on the wire — append only, never renumber. |
+| `PackSurface` / `PackSurfaceId` | [Placement/PackSurface.cs](Assets/Game/Scripts/Items/Backpack/Placement/PackSurface.cs) | One `SURF_` empty: id + size in metres, uv↔world, gizmo grid. Ids are persisted bytes and travel on the wire — append only, never renumber. 8–10 are the saddle's ([Saddles.md](Saddles.md), which reuses `WallInventory` verbatim). |
 | `PackOverhang` | [Placement/PackOverhang.cs](Assets/Game/Scripts/Items/Backpack/Placement/PackOverhang.cs) | The only rule letting an item exceed its face: Rack overhangs on u, back panels on both, everything else strict. Rectangles only. |
 | `ItemFootprint` | [Placement/ItemFootprint.cs](Assets/Game/Scripts/Items/Backpack/Placement/ItemFootprint.cs) | Measures a prefab once, cached by `GameObject`. Size = [`ItemGrip.PackSize`](Assets/Game/Scripts/Items/Equipped/ItemGrip.cs) **x `PackScale.Factor`** — the one place the rig's size reaches gear; footprint = `(size.x, size.z)`; also classifies `HolderKind`. |
 | `PackScale` | [Placement/PackScale.cs](Assets/Game/Scripts/Items/Backpack/Placement/PackScale.cs) | The rig's size factor, the two older cells saves are migrated from (`LegacyCell` 0.09, `EnlargedCell` 0.135), `Apply`, and the gear wall's trio: **`WallModel`** (1.59, baked into the `.blend`), **`WallDrawn`** (`WallModel * 1.2`, the decided on-screen size) and **`WallDisplay`** (`WallDrawn / Factor`, derived). Read through `PackContainer.DisplayScale`, one serialized number the faces walk up to. No UnityEngine beyond `Vector2`. |

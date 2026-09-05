@@ -38,6 +38,8 @@ namespace SpaceGame.Agents
 
         // The frame something else called Tick. Anything else means nobody is driving this agent's
         // animation on this machine, which is the watching case.
+        private IMountJumpMotor jumpMotor;
+
         private int lastDrivenFrame = -1;
 
         // Sampled in the parent's space, not the world's: a creature standing still on a walker's
@@ -87,6 +89,10 @@ namespace SpaceGame.Agents
                 Debug.LogWarning($"{name}: AgentAnimatorDriver could not find an Animator on this object or children.", this);
                 return;
             }
+
+            // Optional: only mounts that can be jumped have one, and an agent without it is
+            // permanently grounded, which is what it was before this existed.
+            jumpMotor = GetComponentInParent<IMountJumpMotor>();
 
             // Applied once rather than every frame: nothing else on the agent writes Animator.speed,
             // and re-asserting it per tick would stamp on a hit-stop or slow-motion effect that did.
@@ -229,7 +235,10 @@ namespace SpaceGame.Agents
             animator.SetFloat("SpeedX", localVelocity.x, 0.1f, Time.deltaTime);
             animator.SetFloat("SpeedY", localVelocity.z, 0.1f, Time.deltaTime);
             animator.SetFloat("FallSpeed", worldVelocity.y, 0.1f, Time.deltaTime);
-            animator.SetBool("IsGrounded", true);
+            // Not a constant any more. A jump on a NavMeshAgent moves baseOffset, which never
+            // reaches the velocity this method is handed, so the motor is the only thing that
+            // knows the animal is in the air.
+            animator.SetBool("IsGrounded", jumpMotor == null || !jumpMotor.IsAirborne);
             animator.SetBool("IsImmobalized", isImmobile);
 
             // Not scaled by speedScale: this is a real rate in degrees/second, and the controller

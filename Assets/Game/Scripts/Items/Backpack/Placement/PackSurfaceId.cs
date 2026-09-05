@@ -80,6 +80,20 @@ namespace SpaceGame.Items
         /// cut. The bays are decoration on a continuous grid.
         /// </para>
         /// </summary>
-        WallGrid = 7
+        WallGrid = 7,
+
+        /// <summary>
+        /// The three faces of a riding saddle: a pannier board hanging either side of the seat, and
+        /// the deck behind the cantle.
+        ///
+        /// <para>
+        /// The boards are modelled HORIZONTAL rather than flush to the animal's flank. A surface
+        /// maps a uv onto a plane, so a board that followed the barrel would put every item on a
+        /// slope and leave the lashing bands pointing at the sky.
+        /// </para>
+        /// </summary>
+        SaddleLeft = 8,
+        SaddleRight = 9,
+        SaddleRear = 10
     }
 }

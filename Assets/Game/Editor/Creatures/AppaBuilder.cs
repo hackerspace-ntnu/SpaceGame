@@ -39,6 +39,7 @@ using SpaceGame.Core;
 using SpaceGame.Core.Persistence;
 using SpaceGame.Core.Persistence.EditorTools;
 using SpaceGame.Gameplay;
+using SpaceGame.Items;
 using SpaceGame.World;
 using UnityEditor;
 using UnityEditor.Animations;
@@ -55,6 +56,9 @@ namespace SpaceGame.EditorTools
         private const string ControllerPath = ControllerDir + "/Appa.controller";
         private const string PrefabDir = "Assets/Game/Prefabs/Agents/creatures";
         private const string PrefabPath = PrefabDir + "/Appa.prefab";
+
+        private const string SaddlePrefabPath = "Assets/Game/Prefabs/Items/Saddles/AppaSaddle.prefab";
+        private const string SaddleItemPath = "Assets/Game/Resources/Items/Artifacts/Saddle.asset";
 
         private const string FactionDir = "Assets/Game/ScriptableObjects/Factions/Core";
         private const string FaunaPath = FactionDir + "/FaunaFaction.asset";
@@ -91,8 +95,24 @@ namespace SpaceGame.EditorTools
         // These make the feet match the ground; they do not claim to be the right
         // *feel*. That is a play-test question, not a derivation (GDC-L1-BAL-0005).
         private const float AnimatorSpeedScale = 2.0f;
-        private const float WalkSpeed = 1.4f;
-        private const float RunSpeed = 3.15f;
+        private const float WalkSpeed = 1.4f * Scale;
+        private const float RunSpeed = 3.15f * Scale;
+
+        // How much bigger than the sculpt he is built. He is meant to read as a
+        // large animal, and the model is authored at a believable-bison 5.75 m
+        // rather than the beast the game wants.
+        //
+        // Applied to the prefab ROOT, which is what makes one number enough:
+        // colliders, bones, the saddle and both mount offsets are all authored in
+        // his own space and scale with him for free. What does NOT is anything in
+        // world units held outside a transform -- the NavMeshAgent's radius,
+        // height and speeds, and the pet volume -- so those are multiplied here
+        // and nowhere else. Angles are scale-free and stay as they are.
+        //
+        // The gait speeds scale exactly because the stride does: a 1.5x leg
+        // sweeping the same arc covers 1.5x the ground per cycle, so the feet
+        // still match the floor at the same playback rate.
+        private const float Scale = 1.5f;
 
         // Turning on the spot, derived the same way. Appa_TurnL/R are 36 frames at
         // 24 fps, so 0.75 s per cycle at playback rate 2.0, and appa_anim.py's
@@ -109,7 +129,7 @@ namespace SpaceGame.EditorTools
         private const float TurnExitRate = 9f;      // and the slower rate that ends it
         // World-space radius of the "pet me" volume on his head. He is 3.06 m across the horns,
         // so a metre reads as "his head" and not as "his neck" or "anywhere near him".
-        private const float PetTargetRadius = 1.0f;
+        private const float PetTargetRadius = 1.0f * Scale;
 
         private const float TurnEnterSpeed = 0.35f; // only turn in place while near stationary
         private const float TurnExitSpeed = 0.60f;  // ... and hand back to the gait once walking
@@ -140,6 +160,7 @@ namespace SpaceGame.EditorTools
             new Clip { Name = "Appa_Roar",  Take = "Arm_Appa|Appa_Roar",  First = 0, Last = 48, Loop = false },
             new Clip { Name = "Appa_Ram",   Take = "Arm_Appa|Appa_Ram",   First = 0, Last = 36, Loop = false },
             new Clip { Name = "Appa_Hurt",  Take = "Arm_Appa|Appa_Hurt",  First = 0, Last = 18, Loop = false },
+            new Clip { Name = "Appa_Jump",  Take = "Arm_Appa|Appa_Jump",  First = 0, Last = 26, Loop = false },
             new Clip { Name = "Appa_Death", Take = "Arm_Appa|Appa_Death", First = 0, Last = 72, Loop = false },
         };
 
@@ -455,6 +476,23 @@ namespace SpaceGame.EditorTools
             grazeWalked.hasExitTime = false;
             grazeWalked.duration = 0.30f;
 
+            // The hop a rider asks for with Jump. Driven by a BOOL, not a trigger like the other
+            // one-shots: the motor decides how long he is off the ground, and a trigger would fire
+            // a fixed-length clip that finished before or after he actually landed.
+            AnimatorState jump = root.AddState("Jump");
+            jump.motion = FindClip("Appa_Jump");
+
+            AnimatorStateTransition intoJump = root.AddAnyStateTransition(jump);
+            intoJump.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsGrounded");
+            intoJump.hasExitTime = false;
+            intoJump.duration = 0.08f;         // he leaves the ground now, not in a fifth of a second
+            intoJump.canTransitionToSelf = false;
+
+            AnimatorStateTransition outOfJump = jump.AddTransition(locomotion);
+            outOfJump.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
+            outOfJump.hasExitTime = false;
+            outOfJump.duration = 0.16f;        // and absorbs the landing on the way back
+
             // Death has no way back: the clip ends on the collapsed pose and the
             // importer clamps it, so there is no exit transition and no separate
             // corpse state.
@@ -562,6 +600,9 @@ namespace SpaceGame.EditorTools
             GameObject source = AssetDatabase.LoadAssetAtPath<GameObject>(Fbx);
             GameObject root = (GameObject)PrefabUtility.InstantiatePrefab(source);
             root.name = "Appa";
+            // One scale on the root is the whole of "make him bigger": his colliders, his bones,
+            // the saddle hanging off one, and both mount offsets are authored in his own space.
+            root.transform.localScale = Vector3.one * Scale;
             root.transform.position = Vector3.zero;
 
             // Unpacked so everything below is stored in this prefab rather than
@@ -618,10 +659,10 @@ namespace SpaceGame.EditorTools
             // was 130, which no clip could have kept up with; the feet would have
             // skated round three times faster than they were placed.
             agent.angularSpeed = TurnSpeed;
-            agent.acceleration = 6f;
-            agent.radius = 1.5f;         // 3.06 m across the horns
-            agent.height = 2.6f;
-            agent.stoppingDistance = 2.0f;
+            agent.acceleration = 6f * Scale;
+            agent.radius = 1.5f * Scale;      // half his width across the horns
+            agent.height = 2.6f * Scale;
+            agent.stoppingDistance = 2.0f * Scale;
             agent.autoBraking = true;
 
             // -- motor and controller ----------------------------------------
@@ -629,6 +670,11 @@ namespace SpaceGame.EditorTools
             SetField(motor, "agent", agent);
             SetFloat(motor, "walkSpeedMultiplier", WalkSpeed / RunSpeed);
             SetFloat(motor, "faceRotateSpeed", 2.6f);
+
+            // The hop Space asks for. Height scales with him -- a 1.25 m default is a stumble on an
+            // animal whose back is above head height. The duration does NOT: Appa_Jump is cut to
+            // the motor's 0.55 s, and stretching one without the other lands him on straight legs.
+            SetFloat(motor, "mountedJumpHeight", 1.25f * Scale);
 
             var animDriver = root.AddComponent<AgentAnimatorDriver>();
             SetField(animDriver, "animator", animator);
@@ -656,7 +702,7 @@ namespace SpaceGame.EditorTools
             // -- senses --------------------------------------------------------
             var perception = root.AddComponent<PerceptionModule>();
             SetFloat(perception, "fieldOfViewAngle", 220f);   // prey animal, eyes wide apart
-            SetFloat(perception, "eyeHeight", 2.3f);
+            SetFloat(perception, "eyeHeight", 2.3f * Scale);
             SetFloat(perception, "memoryDuration", 8f);
             // Left unset this is Nothing, which makes every line-of-sight test
             // succeed through walls; PerceptionModule falls back to these three
@@ -687,14 +733,14 @@ namespace SpaceGame.EditorTools
             SetInt(wander, "priority", ModulePriority.Fallback);
 
             var chase = root.AddComponent<ChaseModule>();
-            SetFloat(chase, "chaseStopDistance", 3.2f);
+            SetFloat(chase, "chaseStopDistance", 3.2f * Scale);
             SetFloat(chase, "chaseSpeedMultiplier", 1f);   // the agent speed is already the bound
             SetInt(chase, "priority", ModulePriority.Reactive);
 
             // The ram. attackRange is generous because the reach is a head on the
             // end of a neck on the end of 5.75 m of animal.
             var melee = root.AddComponent<CloseCombatModule>();
-            SetFloat(melee, "attackRange", 4.5f);
+            SetFloat(melee, "attackRange", 4.5f * Scale);
             SetFloat(melee, "attackCooldown", 3.0f);
             SetInt(melee, "attackDamage", 35);
             // The head lands on frame 18 of 36 at 24 fps; the commit holds him
@@ -727,9 +773,9 @@ namespace SpaceGame.EditorTools
             SetField(temperament, "fleeModule", flee);
             SetField(temperament, "animatorDriver", animDriver);
             SetInt(temperament, "enrageDamage", 60);
-            // Comfortably outside CloseCombatModule.attackRange (4.5), or he
-            // turns to fight from a range he cannot reach and stands there.
-            SetFloat(temperament, "corneredDistance", 9f);
+            // Comfortably outside CloseCombatModule.attackRange, or he turns to fight from a
+            // range he cannot reach and stands there. Scales with him for the same reason it does.
+            SetFloat(temperament, "corneredDistance", 9f * Scale);
             SetFloat(temperament, "rageDuration", 14f);
             // The roar clip runs 2.0 s and its last third is the settle.
             SetFloat(temperament, "roarDuration", 1.4f);
@@ -791,6 +837,9 @@ namespace SpaceGame.EditorTools
             root.AddComponent<FleeSaveable>();
 
 
+            // -- saddling -----------------------------------------------------------
+            AttachSaddleSocket(root);
+
             // -- petting ------------------------------------------------------------
             AttachPetTarget(root);
 
@@ -799,6 +848,89 @@ namespace SpaceGame.EditorTools
             return prefab;
         }
 
+
+
+        // Where the saddle's own origin lands on him, in his root's space. Derived, not guessed:
+        // the model is authored at appa.blend (1.62, 0, 0.329), and appa_export.py maps his file
+        // to Unity as  (x, y, z) -> (-y, z + 1.76, -(x - 1.44)).
+        private static readonly Vector3 SaddleSeat = new Vector3(0f, 2.089f, -0.180f);
+
+        // How far the rider's origin sits BELOW the seat's surface.
+        //
+        // The chair convention -- drop the rider a whole leg (0.85 m) so a standing pose lines its
+        // pelvis up with the cushion -- is for a seat with nothing under it. Appa is a metre of
+        // barrel wide, so a leg's drop buries the rider in him to the chest. Nothing here plays a
+        // straddle pose, so the choice is between a rider inside the animal and one sitting high on
+        // him, and high is the one that reads. Zero puts the rider's origin on the seat's own
+        // surface; 0.10 sat him in the dish and still read as too low on an animal this size.
+        private const float RiderSink = 0.0f;
+        private const float SeatRise = 0.242f;   // SEAT_Rider's height above the saddle's origin
+
+        /// <summary>
+        /// Give him somewhere to put a saddle, and the ability to be ridden once one is on.
+        ///
+        /// <para>
+        /// The MountModule is added **disabled**. A disabled Behaviour is one the Interactor skips
+        /// outright, so a bare Appa offers no "ride" verb at all; <see cref="SaddleSocket"/> turns
+        /// it on and off with the saddle. That is the whole of "you cannot ride him bareback".
+        /// </para>
+        /// </summary>
+        private static void AttachSaddleSocket(GameObject root)
+        {
+            var mount = root.AddComponent<MountModule>();
+            SetVector3(mount, "seatOffset",
+                       SaddleSeat + Vector3.up * (SeatRise - RiderSink));
+            mount.enabled = false;
+
+            // Steering. NavMeshAgentMotor is an IRiderControllable, so this is the whole of it: the
+            // module reads Move on the rider's machine and hands it to the motor, and self-gates on
+            // IsMounted so it costs a bare Appa nothing. Left enabled -- the saddle gates riding by
+            // disabling the MountModule, and there is nothing to steer until someone is aboard.
+            var steer = root.AddComponent<SteerModule>();
+            SetField(steer, "mountModule", mount);
+            SetBool(steer, "riderCanRun", true);          // he has a run gait; a rider should reach it
+
+            // Jump on Space, and Appa_Jump plays because NavMeshAgentMotor now reports IsAirborne
+            // and AgentAnimatorDriver hands that to IsGrounded. Run is Sprint, already bound to
+            // Shift, and RunSpeed is what the agent is set to.
+            SetBool(steer, "jumpEnabled", true);
+
+            // Leap stays off. It is the hold-jump dash, and it throws him 8 m along the ground --
+            // a thing to give a mount that has an animation for it, which this one does not.
+            SetBool(steer, "leapEnabled", false);
+
+            var socket = root.AddComponent<SaddleSocket>();
+            SetField(socket, "saddlePrefab",
+                     AssetDatabase.LoadAssetAtPath<GameObject>(SaddlePrefabPath));
+            SetField(socket, "saddleItem",
+                     AssetDatabase.LoadAssetAtPath<InventoryItem>(SaddleItemPath));
+            SetField(socket, "mount", mount);
+            SetVector3(socket, "rootPosition", SaddleSeat);
+            // Spilled gear clears a bigger animal. These are world metres from his origin, so
+            // unlike the offsets above they do not scale themselves.
+            SetFloat(socket, "dropRadius", 1.6f * Scale);
+            SetFloat(socket, "dropHeight", 1.2f * Scale);
+
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(SaddlePrefabPath) == null)
+                Debug.LogError($"No saddle at {SaddlePrefabPath}. Run Tools > Creatures > Build " +
+                               "Saddle first, or he will have a socket that can never be filled.");
+
+            // Q while standing beside him, as well as E aimed at the saddle's own grips. His
+            // barrel is 4.4 m across, so "next to him" is a wider circle than on a normal animal.
+            var quick = root.AddComponent<SaddleQuickRelease>();
+            SetField(quick, "socket", socket);
+            SetFloat(quick, "reach", 4.5f * Scale);
+
+            root.AddComponent<SaddleSaveable>();
+        }
+
+        private static void SetVector3(Object target, string field, Vector3 value)
+        {
+            SerializedProperty p = Find(target, field);
+            if (p == null) return;
+            p.vector3Value = value;
+            Apply(p);
+        }
 
         /// <summary>
         /// A trigger on the head bone that offers "pet me", and nothing anywhere else that does.

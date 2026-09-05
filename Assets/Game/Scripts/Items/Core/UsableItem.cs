@@ -235,6 +235,27 @@ namespace SpaceGame.Items
         /// </summary>
         protected virtual void OnMaxUsesReached()
         {
+            Deplete();
+        }
+
+        /// <summary>
+        /// Take this item out of the holder's inventory now, whatever the use counter says.
+        ///
+        /// <para>
+        /// For items that are spent by SUCCEEDING rather than by being used a fixed number of
+        /// times. A placeable is the case: `maxUses = 1` would consume it on the click that missed
+        /// the ground as readily as on the one that put it down, and <see cref="RefundUse"/> cannot
+        /// undo that because <see cref="TryUse"/> increments the counter *after* Use() returns.
+        /// Calling this from Use(), only on the path that actually did something, is the honest
+        /// version: nothing is spent until the world has changed.
+        /// </para>
+        /// <para>
+        /// Authority-side only, like Use() itself — <c>EquipmentController.ItemDepleted</c> answers
+        /// it by removing the item from the inventory, which is server state.
+        /// </para>
+        /// </summary>
+        protected void Deplete()
+        {
             OnItemDepleted?.Invoke(this);
         }
 

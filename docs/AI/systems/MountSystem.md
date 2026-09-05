@@ -7,10 +7,11 @@ paths:
 symptoms:
   - "looking for the mount system doc"
   - "which motor supports jump, leap or a vertical axis"
+  - "the mount jumps but keeps playing its walk cycle in mid-air"
   - "what does seatOffset, followMountPitch or leapHoldTime do"
 reads_with: [Vehicles, Ornithopter, PlayerShip]
 redirect_to: Vehicles
-updated: 2026-09-01
+updated: 2026-09-05
 ---
 
 # Mount system
@@ -30,11 +31,20 @@ Files moved: the mount code is `Assets/Game/Scripts/agents/Modules/Riding/`, **n
 | `OrnithopterFlightMotor` | `Move.y` = pitch, `Move.x` = roll | ❌ | `Vertical` = flap (beat / tuck) | see [Ornithopter.md](Ornithopter.md) |
 | `LeggedDriver` (+ `OstrichDriver`, `DesertCrawlerDriver`, `HorseDriver`, `CrabDriver`, `HumanoidDriver`) | gait-bound | ❌ | ❌ | a `LeggedLocomotion` |
 
+**Jump and the animator.** A motor's jump is invisible to animation unless you ask: `NavMeshAgentMotor`
+hops by animating the agent's `baseOffset` and `RigidbodyMotor` by a kinematic arc, and neither
+appears in the velocity `AgentAnimatorDriver.Tick` receives. `IMountJumpMotor.IsAirborne` is the
+bridge — the driver sets `IsGrounded` from it, so a controller wanting an airborne pose transitions
+on that bool. Drive the state from the **bool, not a trigger**: the motor decides how long the mount
+is off the ground, and a triggered one-shot finishes on its own schedule instead.
+
 ## Fields worth knowing
 
 | Field | Where | Note |
 |---|---|---|
-| `seatOffset` | `MountModule` | Player origin is at the FEET — push down ~leg length or the rider stands on the saddle. |
+| `seatOffset` | `MountModule` | Player origin is at the FEET. On a **seat** push down ~a leg length (the pelvis then meets the cushion); on an **animal** do not — there is a body under the saddle and a leg's drop buries the rider in it. See [Saddles.md](Saddles.md). |
+| `IsAirborne` | `IMountJumpMotor` | What the animator learns a jump from. `AgentAnimatorDriver` feeds it to `IsGrounded`; a jump never shows up in the velocity the driver is handed. |
+| `mountedJumpHeight` | `NavMeshAgentMotor` | World metres, so it does **not** follow a scaled-up mount. Scale it in the creature's builder. |
 | `mountableByDirectInteraction` | `MountModule` | `false` + a `MountStation` = cockpit-only boarding. |
 | `allowAISelfMovementWhenMounted` | `MountModule` | `false` also suppresses root motion and `ForceStop`s the motor. |
 | `followMountPitch` | `MountModule` | On for anything that pitches in flight; the camera never follows roll either way. |

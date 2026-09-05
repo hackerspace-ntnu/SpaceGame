@@ -26,6 +26,8 @@ symptoms:
   - "a grazing animal never puts its head down"
   - "the creature hears the gunshot and targets me but never actually runs"
   - "the player's gesture animation plays but nothing visibly happens"
+  - "the animal cannot be ridden, or can be ridden with no saddle on it"
+  - "gear stowed on an animal vanished when the saddle came off"
   - "the pet prompt never appears no matter where I aim at the creature"
   - "a creature keeps taking damage and there is no attacker anywhere"
 reads_with: [EntitySystem, Vehicles, Combat, NavMeshSystem]
@@ -122,6 +124,10 @@ Creatures, NPCs, enemies and turrets are a prefab plus a stack of `IBehaviourMod
 ## Persistence
 
 `AgentController` implements `IPersistentEntity`, so **every agent is save-eligible with no opt-in**. Savers live outside this tree in [Core/Persistence/Adapters/](Assets/Game/Scripts/Core/Persistence/Adapters/AgentStateSaveable.cs): `AgentStateSaveable` (key `"agent"` — target/lastAttacker as `SaveRef`, last-known position, `timeSinceSeen`, `profileId`, patrol index/direction), plus `PatrolSaveable`, `SearchSaveable`, `AlertResponseSaveable`, `NoiseInvestigationSaveable`; and the generic `TransformSaveable` + `HealthSaveable`. Add them inside the prefab's builder, then run `Tools/Save System/Wire Saveable Prefabs`. Details: [Persistence.md](Persistence.md).
+
+## Saddling
+
+An animal is made rideable and packable by fitting a saddle — see **[Saddles.md](Saddles.md)**. The agent-side piece is [`SaddleSocket`](Assets/Game/Scripts/agents/Modules/Riding/SaddleSocket.cs), which holds the state and enables the `MountModule` that `AppaBuilder` adds **disabled**.
 
 ## Gotchas
 

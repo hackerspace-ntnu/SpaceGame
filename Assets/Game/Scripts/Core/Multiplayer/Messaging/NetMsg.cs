@@ -494,5 +494,21 @@ namespace SpaceGame.Core
         // on, and there is only ever one thing to do to it.
         public const ushort PetRequest = 98; // player -> server, on the ANIMAL's relay
         public const ushort Petted     = 99; // server -> everyone, on the ANIMAL's relay
+
+        // ── Saddling ──
+        // Whether an animal is wearing a saddle is one bool of world state, and the saddle itself
+        // is a plain Instantiate on every machine rather than a spawned NetworkObject -- the same
+        // shape as the backpack. So the wire carries the decision, not the object.
+        //
+        // A = 1 to fit, 0 to remove. Target = the player who asked, for the fit; unused coming back.
+        public const ushort SaddleFit = 100; // player -> server, on the ANIMAL's relay
+        public const ushort SaddleSet = 101; // server -> everyone, on the ANIMAL's relay
+
+        /// <summary>
+        /// Player -> server, on the PLACED OBJECT's relay: "I pressed Q on this, give it to me".
+        /// There is no reply id. The server answers by adding the item and despawning the object,
+        /// and the despawn is what every other machine sees.
+        /// </summary>
+        public const ushort RetrieveRequest = 102;
     }
 }

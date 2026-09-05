@@ -64,6 +64,8 @@ grep -i 'client' docs/AI/ROUTING.md
 | [InteractionSystem](systems/InteractionSystem.md) | Look at a collider, press E: one raycast picks the target, one resolver labels it, the target replicates | [Vehicles](systems/Vehicles.md), [Inventory](systems/Inventory.md), [Persistence](systems/Persistence.md) |
 | [Inventory](systems/Inventory.md) | Hotbar slots, InventoryItem assets, the hand socket that seats each equip, and the pickup/drop round trip | [Artifacts](systems/Artifacts.md), [Backpack](systems/Backpack.md), [Persistence](systems/Persistence.md), [Combat](systems/Combat.md) |
 | [LeashSystem](systems/LeashSystem.md) | A rope tied between any two things; every machine draws its own copy and resolves only the ends it owns | [Artifacts](systems/Artifacts.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [PlayerCharacter](systems/PlayerCharacter.md) |
+| [Placeables](systems/Placeables.md) | Items you put down in the world and pick back up again with Q | [Artifacts](systems/Artifacts.md), [InteractionSystem](systems/InteractionSystem.md), [Backpack](systems/Backpack.md), [Saddles](systems/Saddles.md) |
+| [Saddles](systems/Saddles.md) | Fitting a saddle to an animal: what makes it rideable, what it carries, and what happens when it comes off | [AgentSystem](systems/AgentSystem.md), [Backpack](systems/Backpack.md), [Artifacts](systems/Artifacts.md), [Vehicles](systems/Vehicles.md) |
 
 ### Vehicles — mounts, ships, aircraft
 
@@ -116,4 +118,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 33 system docs, 6 redirects -->
+<!-- 35 system docs, 6 redirects -->

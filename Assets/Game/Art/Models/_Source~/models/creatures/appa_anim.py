@@ -88,6 +88,10 @@ RAM_FRAMES = 36           # 1.5 s
 HURT_FRAMES = 18          # 0.75 s
 DEATH_FRAMES = 72         # 3.0 s
 HAPPY_FRAMES = 60         # 2.5 s -- one pet
+JUMP_FRAMES = 26          # 1.1 s, which is NavMeshAgentMotor's 0.55 s hop at the
+                          # 2.0 playback rate every Appa clip is played at. The
+                          # pose has to finish landing exactly as the motor puts
+                          # him back down, or he settles onto legs already straight.
 
 # Turn-on-the-spot geometry. The centre is PIVOT.x from appa_export.py -- midway
 # between the front and back feet -- and the length is hip (z -0.45) to sole
@@ -740,6 +744,61 @@ def build_hurt(arm):
     return HURT_FRAMES
 
 
+def build_jump(arm):
+    """A mounted hop: gather, push off, tuck, reach, absorb. Strictly in place.
+
+    The height is not here. `NavMeshAgentMotor` lifts him by animating the
+    agent's `baseOffset`, so this clip supplies only the *pose* that makes the
+    lift read as his own effort -- exactly the in-place/root-motion split in
+    GDC-L1-ANIM-0004. Keying a rise in here as well would double it.
+
+    Six legs make the timing legible on their own: the front pairs reach for
+    the ground before the back ones do, so he lands nose-first the way a heavy
+    quadruped does rather than dropping flat like a lift.
+    """
+    _action(arm, "Appa_Jump")
+    _rest(arm)
+
+    # Front to back, so the gather rolls down him and the landing rolls back up.
+    ORDER = {"F.L": 0.0, "F.R": 0.0, "M.L": 0.5, "M.R": 0.5, "B.L": 1.0, "B.R": 1.0}
+
+    for f in range(JUMP_FRAMES + 1):
+        u = f / float(JUMP_FRAMES)
+        gather = _pulse(u, 0.0, 0.14, 0.34)     # crouch before the push
+        tuck = _pulse(u, 0.20, 0.52, 0.94)      # legs folded under him
+        land = _pulse(u, 0.78, 0.92, 1.0)       # knees absorbing the drop
+
+        # He rounds his back to gather and arches over the apex.
+        pose(arm.pose.bones["spine1"], pitch=gather * d(7.0) - tuck * d(5.0))
+        pose(arm.pose.bones["spine2"], pitch=gather * d(5.0) - tuck * d(4.0))
+        pose(arm.pose.bones["spine3"], pitch=gather * d(4.0) - tuck * d(3.0))
+        # The head leads: down into the crouch, up and out over the top.
+        pose(arm.pose.bones["neck"], pitch=gather * d(12.0) - tuck * d(16.0) + land * d(8.0))
+        pose(arm.pose.bones["head"], pitch=gather * d(6.0) - tuck * d(10.0) + land * d(6.0))
+        set_jaw(arm, tuck * d(22.0))            # a grunt of effort, not a roar
+
+        for leg in LEGS:
+            lag = ORDER[leg] * 0.10
+            reach = _pulse(u, 0.62 + lag, 0.80 + lag, 0.98)
+            # Crouch folds the knee, the tuck pulls the whole leg up and under,
+            # and the reach straightens it again to meet the ground.
+            pose(arm.pose.bones["femur_%s" % leg],
+                 pitch=-gather * d(8.0) + tuck * d(34.0) - reach * d(20.0))
+            pose(arm.pose.bones["tibia_%s" % leg],
+                 pitch=-gather * d(22.0) - tuck * d(46.0) + reach * d(30.0) - land * d(16.0))
+            pose(arm.pose.bones["hoof_%s" % leg],
+                 pitch=tuck * d(24.0) - reach * d(14.0))
+
+        # The tail streams behind whatever the body just did.
+        pose(arm.pose.bones["tail1"], pitch=-gather * d(10.0) + tuck * d(16.0))
+        pose(arm.pose.bones["tail2"], pitch=-gather * d(8.0) + tuck * d(20.0))
+        pose(arm.pose.bones["tail3"], pitch=-gather * d(6.0) + tuck * d(22.0))
+
+        _key(arm, ALL_BONES, f)
+
+    return JUMP_FRAMES
+
+
 def build_death(arm):
     """Collapse onto the left side, and stay there.
 
@@ -802,6 +861,7 @@ BUILDERS = [
     ("Appa_Roar", build_roar),
     ("Appa_Ram", build_ram),
     ("Appa_Hurt", build_hurt),
+    ("Appa_Jump", build_jump),
     ("Appa_Death", build_death),
 ]
 

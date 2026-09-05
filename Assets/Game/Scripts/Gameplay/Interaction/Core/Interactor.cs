@@ -77,6 +77,7 @@ namespace SpaceGame.Gameplay
             PlayerInputManager input = GetComponent<PlayerController>().Input;
             input.OnInteractPressed += Interact;
             input.OnUsePressed += SecondaryInteract;
+            input.OnRetrievePressed += RetrieveTarget;
         }
 
         /// <summary>
@@ -165,6 +166,21 @@ namespace SpaceGame.Gameplay
                 return;
             if (!secondary.CanSecondaryInteract()) return;
             secondary.SecondaryInteract(this);
+        }
+
+        /// <summary>
+        /// Pick up, on whatever the crosshair is on. Only reaches things that opt in by
+        /// implementing <see cref="IRetrievable"/>, so Q over an ordinary interactable does
+        /// nothing rather than something surprising.
+        /// </summary>
+        private void RetrieveTarget()
+        {
+            if (!DoInteractionTest(out IInteractable interactable)) return;
+            if (interactable is not IRetrievable retrievable) return;
+
+            if (interactable is Behaviour behaviour && !behaviour.isActiveAndEnabled) return;
+            if (!retrievable.CanRetrieve()) return;
+            retrievable.Retrieve(this);
         }
 
         private bool DoInteractionTest(out IInteractable interactable)

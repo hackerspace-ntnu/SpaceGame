@@ -49,11 +49,11 @@ namespace SpaceGame.Items
         /// </summary>
         public override void OnRequestUse(ref NetArg arg)
         {
-            RaycastHit? hit = aimProvider != null ? aimProvider.GetRayCast(range) : null;
-            if (!hit.HasValue || Rule == null) return;
+            if (aimProvider == null || Rule == null) return;
+            if (!aimProvider.TryGetAimHit(range, out RaycastHit hit)) return;
 
-            var aim = new PlacementAim(hit.Value.point, hit.Value.normal,
-                                       hit.Value.collider != null ? hit.Value.collider.gameObject : null,
+            var aim = new PlacementAim(hit.point, hit.normal,
+                                       hit.collider != null ? hit.collider.gameObject : null,
                                        PlacerYaw());
 
             // Refused here costs no round trip and, more importantly, no item.

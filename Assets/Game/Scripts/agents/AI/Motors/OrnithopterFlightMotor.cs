@@ -119,6 +119,10 @@ namespace SpaceGame.Agents
 
         // ─────────── IMovementMotor ───────────
         public Vector3 Velocity => body ? body.linearVelocity : Vector3.zero;
+
+        /// <summary>See <see cref="IMovementMotor.TopSpeed"/>. Scales tow strength only; it does
+        /// not affect flight.</summary>
+        public float TopSpeed => flight != null ? flight.FullAuthoritySpeed : 0f;
         public bool IsImmobile => !flying;
         public bool HasReachedDestination => true;
         public Vector3? CurrentDestination => null;

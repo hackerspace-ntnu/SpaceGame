@@ -79,10 +79,9 @@ namespace SpaceGame.Items
         {
             if (!highlighting) return;
 
-            Transform aim = aimProvider != null ? aimProvider.AimTransform : null;
-            if (aim == null) return;
+            if (aimProvider == null || aimProvider.AimTransform == null) return;
 
-            highlighter.Refresh(kind, new Ray(aim.position, aim.forward),
+            highlighter.Refresh(kind, aimProvider.GetAimRay(),
                                 ghostRange, installRange, aimMargin);
         }
 

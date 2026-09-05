@@ -12,7 +12,7 @@ namespace SpaceGame.EditorTools
 {
     /// <summary>
     /// Builds the Nomad NPC prefab from the imported FBX and drops one into the persistent
-    /// scene beside the ShipRV.
+    /// scene, on the flat below the settlement.
     ///
     /// This is authored as an editor command rather than hand-written prefab YAML because the
     /// nomad rig carries 65 mixamorig bones. Writing that hierarchy by hand means inventing 65
@@ -68,10 +68,12 @@ namespace SpaceGame.EditorTools
         // stripped), which makes averageSpeed useless. An ordinary human walk.
         private const float FallbackClipSpeed = 1.35f;
 
-        // The ShipRV sits here in persistentScene, unrotated, at scale 2.
-        private static readonly Vector3 ShipRvPosition = new Vector3(3789.8f, 99.7f, 1563.0f);
+        // Where he stands in persistentScene. This was the ShipRV's spot, chosen when that
+        // vehicle was still the landing site; the RV is gone but the ground is the same open flat,
+        // so the coordinate outlived the thing that picked it.
+        private static readonly Vector3 AnchorPosition = new Vector3(3789.8f, 99.7f, 1563.0f);
 
-        // Placed off the ship's flank, far enough out to clear the doubled-scale hull.
+        // Stepped off the anchor so he does not stand exactly on it.
         private static readonly Vector3 NomadOffset = new Vector3(6.5f, 0f, -3.0f);
 
         // How tall the Nomad should stand, sole to crown.
@@ -191,6 +193,10 @@ namespace SpaceGame.EditorTools
                 ConfigureProvocation(root);
                 ConfigureGait(root);
                 AddClothWind(root);
+
+                // Every component this prefab needs must be added HERE. A rebuild overwrites the
+                // asset wholesale, so anything added by hand in the Inspector is silently gone.
+                AgentGroundConformWiring.Ensure(root);
 
                 saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out ok);
             }
@@ -1408,13 +1414,13 @@ namespace SpaceGame.EditorTools
                 instance.name = "Nomad";
             }
 
-            Vector3 target = ShipRvPosition + NomadOffset;
+            Vector3 target = AnchorPosition + NomadOffset;
 
-            // Drop onto whatever ground is actually under that spot; the ShipRV's own Y is the
-            // hull, not the terrain, so using it directly would bury or float the nomad. The
-            // terrain for this chunk may not be streamed in at edit time, in which case the
-            // raycast finds nothing and the ship's own Y is the best estimate we have — the
-            // NavMeshAgent and UnderTerrainGuard settle him on first play either way.
+            // Drop onto whatever ground is actually under that spot; the anchor's own Y is a
+            // rough reading, so using it directly would bury or float the nomad. The terrain for
+            // this chunk may not be streamed in at edit time, in which case the raycast finds
+            // nothing and the anchor's Y is the best estimate we have — the NavMeshAgent and
+            // UnderTerrainGuard settle him on first play either way.
             if (Physics.Raycast(target + Vector3.up * 200f, Vector3.down,
                                 out RaycastHit hit, 500f))
             {
@@ -1423,17 +1429,17 @@ namespace SpaceGame.EditorTools
             else
             {
                 Debug.LogWarning("[NomadPrefabBuilder] No ground under the spawn point — the " +
-                                 "terrain chunk is probably not loaded. Placing at the ShipRV's " +
+                                 "terrain chunk is probably not loaded. Placing at the anchor's " +
                                  "height; check him in play mode.");
             }
 
             instance.transform.position = target;
-            // Face back toward the ship, so he reads as standing beside it rather than
-            // wandering off.
-            Vector3 toShip = ShipRvPosition - target;
-            toShip.y = 0f;
-            if (toShip.sqrMagnitude > 1e-4f)
-                instance.transform.rotation = Quaternion.LookRotation(toShip.normalized, Vector3.up);
+            // Face back toward the anchor, so he reads as standing at the spot rather than
+            // wandering off it.
+            Vector3 inward = AnchorPosition - target;
+            inward.y = 0f;
+            if (inward.sqrMagnitude > 1e-4f)
+                instance.transform.rotation = Quaternion.LookRotation(inward.normalized, Vector3.up);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);

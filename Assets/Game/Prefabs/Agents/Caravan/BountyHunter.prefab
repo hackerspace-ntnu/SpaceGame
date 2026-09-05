@@ -102,6 +102,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
       insertIndex: -1
       addedObject: {fileID: 848998252157302659}
+    - targetCorrespondingSourceObject: {fileID: 2578966956616729156, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4646163596536689625}
   m_SourcePrefab: {fileID: 100100000, guid: 9f0a9dc7450a1497fa608ec3eaf10057, type: 3}
 --- !u!1 &6521133302145211711 stripped
 GameObject:
@@ -269,3 +272,31 @@ MonoBehaviour:
   deathImpulse: 2.5
   deathImpulseLift: 0.35
   downedSeconds: 1.2
+--- !u!114 &4646163596536689625
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6521133302145211711}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4103cc1ba38fb404ebbe3fb0ab56f9c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Agents.AgentGroundConform
+  agent: {fileID: 0}
+  motor: {fileID: 0}
+  bodyRoot: {fileID: 0}
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  probeStartHeight: 0.6
+  probeDistance: 8
+  footprintRadius: 0
+  soleOffset: 0
+  maxCorrection: 1
+  heightFollowSpeed: 12
+  alignToSlope: 1
+  slopeFollow: 0.35
+  maxTiltDegrees: 30
+  tiltFollowSpeed: 8

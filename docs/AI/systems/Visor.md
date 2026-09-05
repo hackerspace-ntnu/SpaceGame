@@ -17,6 +17,8 @@ symptoms:
   - "a new gauge I added is invisible and never draws anything"
   - "the oxygen gauge is missing but health shows fine"
   - "my air never runs out anywhere in the world"
+  - "the oxygen gauge says RESERVE when I am carrying a full tank"
+  - "the oxygen gauge shows a percentage of the wrong reservoir"
   - "I keep the shelter of a building after walking out of it, or after the chunk unloads"
   - "a hint or seat prompt stopped appearing during the crash landing"
   - "the damage arc always lights both sides and never points at anything"
@@ -31,7 +33,7 @@ symptoms:
   - "the visor describes what another player is looking at"
   - "the info box is cut off by the top of the screen"
 reads_with: [UI, Combat, PlayerCharacter, Multiplayer, InteractionSystem]
-updated: 2026-09-04
+updated: 2026-09-05
 ---
 
 # Visor
@@ -70,8 +72,9 @@ annotations that describe the world. One design language, built entirely in code
 | `SystemMessages` | [HelmetHUD/SystemMessages.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/SystemMessages.cs) | The game's one system-voice channel. Static, id-addressed, four severities. |
 | `VisorMessageStack` | [HelmetHUD/VisorMessageStack.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorMessageStack.cs) | Draws `Info` / `Notice`, upper left. `DontDestroyOnLoad`, NOT under the visor canvas. |
 | `VisorWarningBanner` | [HelmetHUD/VisorWarningBanner.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/VisorWarningBanner.cs) | Draws the single highest `Warning` / `Alarm`, top centre. |
-| `OxygenGaugeSource` | [HelmetHUD/OxygenGaugeSource.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/OxygenGaugeSource.cs) | Adapts `SuitOxygen`; thresholds come from the suit, not the gauge. |
-| `SuitOxygen` | [Gameplay/Oxygen/SuitOxygen.cs](Assets/Game/Scripts/Gameplay/Oxygen/SuitOxygen.cs) | The air in the suit: drain, refill, suffocation, warnings. Server decides. |
+| `OxygenGaugeSource` | [HelmetHUD/OxygenGaugeSource.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/OxygenGaugeSource.cs) | Adapts `SuitOxygen`. Picks tank-or-reserve, relabels, and reports both as a percentage. |
+| `SuitOxygen` | [Gameplay/Oxygen/SuitOxygen.cs](Assets/Game/Scripts/Gameplay/Oxygen/SuitOxygen.cs) | The two reservoirs: drain order, refill, suffocation, warnings. Server decides. `SuitAfter` is static and pure. |
+| `OxygenSocket` | [Gameplay/Oxygen/OxygenSocket.cs](Assets/Game/Scripts/Gameplay/Oxygen/OxygenSocket.cs) | The tank in the pack's reserved face. Plain class, not a MonoBehaviour. |
 | `BreathableVolume` | [Gameplay/Oxygen/BreathableVolume.cs](Assets/Game/Scripts/Gameplay/Oxygen/BreathableVolume.cs) | A trigger marking air you can breathe. Shelter is a property of space, not of an object. |
 
 ## Flows
@@ -103,14 +106,23 @@ One static bus, [SystemMessages](Assets/Game/Scripts/Presentation/UI/HelmetHUD/S
 
 ## Suit oxygen
 
-[SuitOxygen](Assets/Game/Scripts/Gameplay/Oxygen/SuitOxygen.cs) is the consumer the oxygen plant never had — see [Oxygen.md](Oxygen.md) for the plant that fills the bottles.
+[SuitOxygen](Assets/Game/Scripts/Gameplay/Oxygen/SuitOxygen.cs) owns two reservoirs — see
+[Oxygen.md](Oxygen.md) for the rules in full and for the plant that fills tanks.
 
-- **Drains** whenever the wearer is not inside a `BreathableVolume`. Shelter is a property of *space*: an interior, a tent and a cave all become breathable by containing one, with no code knowing what any of them are.
-- **Refilled** by *using* a charged bottle. `DockableSupply.Use` tops the suit up and swaps the item for its drained twin in the selected slot — the bottle stays the unit air is spent in, which is what keeps its charge an item identity.
-- **Suffocates** at zero: `suffocationDamage` every `suffocationInterval`, server-side, never instant death.
-- **Warns** through `SystemMessages` at `warnFraction` / `alarmFraction`, raised by each machine for its *own* player only.
+- **The gauge draws ONE of them and relabels itself.** `O2 TANK` while a tank in the pack's socket
+  has charge; `O2 RESERVE` when there is none, or it is dry. Two permanent bars was the alternative
+  and is worse: the reserve is not a number the player manages, it is a deadline, and a second bar
+  sitting at 100% for a whole session teaches them to stop looking at exactly the readout that
+  matters when it finally moves.
+- **Both read as a PERCENTAGE**, which is why `OxygenGaugeSource.Max` is a flat 100 rather than the
+  reservoir's own capacity — one number in the player's head across a 30-minute tank, a 60-second
+  reserve and every future tank type. Same decision as `SupplyCharge.Describe` for the item's own
+  gauge and the plant's readout.
+- **Warns** at 10% of the *connected tank* (three minutes' notice), **alarms** for the whole of the
+  reserve, and alarms again at zero. Raised by each machine for its *own* player only.
+- **Suffocates** at zero suit: 5 damage a second, server-side, never instant death.
 
-## Multiplayer
+## Multiplayer## Multiplayer
 
 - **The visor is pure local presentation.** It draws only the local player's state and adds nothing to the wire.
 - **Whose health it shows is resolved by `GameplayMenuScope.FindLocalPlayer(this)`, never by a `"Player"` tag search.** Every player object carries that tag, so a tag search returns an arbitrary one — which is how two of three players once watched a stranger's health bar.
@@ -123,7 +135,7 @@ One static bus, [SystemMessages](Assets/Game/Scripts/Presentation/UI/HelmetHUD/S
 
 | Value | How |
 | --- | --- |
-| Suit oxygen | [SuitOxygenSaveable](Assets/Game/Scripts/Core/Persistence/Adapters/SuitOxygenSaveable.cs), attached automatically by `SaveablePolicy.Ensure` alongside `HealthSaveable`. |
+| Suit oxygen | [SuitOxygenSaveable](Assets/Game/Scripts/Core/Persistence/Adapters/SuitOxygenSaveable.cs), attached automatically by `SaveablePolicy.Ensure` alongside `HealthSaveable`. **The reserve only** — a tank's charge travels in the pack's own record. |
 | Visor detail level (**H**) | `GameSettings.VisorDetail`, PlayerPrefs. `SchemaVersion` is 2. |
 | Motion reduction | `GameSettings.ReduceVisorMotion`, PlayerPrefs. |
 | Everything else | **Nothing.** Gauge readings are views onto live components; markers and arcs are session-only, deliberately. |
@@ -131,6 +143,7 @@ One static bus, [SystemMessages](Assets/Game/Scripts/Presentation/UI/HelmetHUD/S
 ## Gotchas
 
 - **A source with `Max == 0` reports unavailable, and the gauge hides.** It must never draw a bar: full means "you are fine" and empty means "you are dying", and both are lies about a component that simply has not spawned yet. This is the visor's version of the "a HUD element stays blank" symptom in [UI.md](UI.md).
+- **`OxygenGaugeSource` pins the reserve to critical with a threshold of 2, and the tank's alarm to 0.** A fraction can never reach either, which is the point: being on the reserve at ALL is the critical state, at 100% of it just as much as at 5%, and a tank at 0% is not a tank any more — the source has already relabelled itself to RESERVE by then. A literal `1f` would not do it, because `StateOf` compares strictly below.
 - **A threshold boundary belongs to the calmer state.** `StateOf` compares strictly below, never at. Comparing `<=` makes a value resting exactly on 35% flicker between blue and amber every frame.
 - **`VisorStyle` sprites are cached per parameter**, for the reason `UITheme.Rounded(radius)` is: a generator called from a draw path allocates a texture per call, and a 9-sliced sprite whose border exceeds its rect draws its corners over each other.
 - **The visor root must stay active at every detail level.** It owns the sublayers, so a controller that deactivated itself could not switch them back on. `HelmetOverlayVisibility` switches the two children and never the root — the same reason it lives on the canvas root rather than on what it toggles.

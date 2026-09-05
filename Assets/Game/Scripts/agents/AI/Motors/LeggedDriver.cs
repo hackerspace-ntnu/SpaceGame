@@ -36,7 +36,7 @@ using SpaceGame.World;
 namespace SpaceGame.Agents
 {
     [DefaultExecutionOrder(50)]
-    public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovementMotor
+    public abstract class LeggedDriver : MonoBehaviour, IRiderControllable, IMovementMotor, ITowable
     {
         [Header("Speeds")]
         [Tooltip("Top speed asked for at full throttle. Clamped to what the legs can carry, so raising " +
@@ -187,8 +187,55 @@ namespace SpaceGame.Agents
         // riderMotor as (AgentController.Motor as IRiderControllable) and returns early, so a driver
         // that is not the motor would never be reached.
         public Vector3 Velocity => locomotion != null ? locomotion.MeasuredVelocity : Vector3.zero;
+
+        /// <summary>See <see cref="IMovementMotor.TopSpeed"/>. The locomotion owns the figure —
+        /// the driver's own speed knob is clamped by it.</summary>
+        public float TopSpeed => locomotion != null ? locomotion.MaxSpeed : 0f;
         public bool IsImmobile => false;
         public Vector3? CurrentDestination => destination;
+
+        // ─────────── ITowable ───────────
+        //
+        // A legged machine has to be ASKED, exactly as a mounted rider does, and for the same
+        // reason at one remove: LeggedLocomotion is the single author of the body transform
+        // (Invariant I4), so the rope's MovePosition on the Rigidbody is overwritten from pathPos
+        // on the next LateUpdate. A towed ostrich read as completely static — no resistance, no
+        // drift, nothing in the console.
+        //
+        // This lives on the driver rather than on the locomotion because ITowable is in the default
+        // assembly and no asmdef may reference it — the same constraint that put the driver out
+        // here in the first place.
+
+        /// <summary>The body itself: where a rope tied to a walking animal pulls from.</summary>
+        public Vector3 TowAttachPoint => locomotion != null && locomotion.IsReady
+            ? locomotion.BodyPosition
+            : transform.position;
+
+        /// <summary>
+        /// A rope wants this machine at <paramref name="anchor"/> this step.
+        ///
+        /// <para>
+        /// Capped at the machine's own top speed, so a rope can drag an animal about as fast as it
+        /// could walk and no faster. Without the cap the rope becomes a winch: the correction is a
+        /// position, and a position written every physics step is a teleport with extra steps.
+        /// </para>
+        /// </summary>
+        public bool RequestTow(Vector3 anchor)
+        {
+            // Nothing to drag yet, or somebody else's copy to drag: a peer towing a machine whose
+            // pose arrives over the wire would be a second authority on it.
+            if (locomotion == null || !locomotion.IsReady || locomotion.ExternallyPosed) return false;
+
+            Vector3 delta = anchor - TowAttachPoint;
+
+            float ceiling = Mathf.Max(0f, TopSpeed) * Time.fixedDeltaTime;
+            if (ceiling <= 0f) return false;
+
+            if (delta.magnitude > ceiling) delta = delta.normalized * ceiling;
+
+            locomotion.Drag(delta);
+            return true;
+        }
 
         public bool HasReachedDestination =>
             !destination.HasValue || FlatDistanceTo(destination.Value) <= EffectiveStopDistance;

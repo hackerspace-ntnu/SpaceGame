@@ -17,10 +17,11 @@ symptoms:
   - "the character stands in the idle pose instead of the hold pose, or glides while walking"
   - "the effect applies on the server and is silently overwritten a tick later"
   - "an item that moves the player does nothing at all while I am riding something"
+  - "the item fires straight down, or at the vehicle I am sitting in, while I am mounted"
   - "a moving part of a held item snaps out of place the moment the item is switched on"
   - "the range rings on the scanner display are ellipses instead of circles"
-reads_with: [Inventory, LeashSystem, Portals, Persistence]
-updated: 2026-09-03
+reads_with: [Inventory, Lasso, LeashSystem, Portals, Persistence]
+updated: 2026-09-06
 ---
 
 # Artifacts
@@ -28,13 +29,14 @@ updated: 2026-09-03
 Player-held usable items — every gadget, spell, scanner, throwable and hand tool that occupies a hotbar slot and fires on the shared `Player/Use` action, or is worn on the body and fires on its own key ([BodyEquipment.md](BodyEquipment.md)).
 
 **Scope:** [Assets/Game/Scripts/Items/Core/](Assets/Game/Scripts/Items/Core/), [Assets/Game/Scripts/Items/Artifacts/](Assets/Game/Scripts/Items/Artifacts/), [Assets/Game/Scripts/Gear/JumpingRod/](Assets/Game/Scripts/Gear/JumpingRod/), [EquipmentController.cs](Assets/Game/Scripts/Items/Inventory/Components/EquipmentController.cs)
-**Related:** [Inventory.md](Inventory.md) · [LeashSystem.md](LeashSystem.md) · [Portals.md](Portals.md) · [WeaponSystem.md](WeaponSystem.md) · [Persistence.md](Persistence.md) · skill [.claude/skills/spacegame-artifact/SKILL.md](.claude/skills/spacegame-artifact/SKILL.md)
+**Related:** [Inventory.md](Inventory.md) · [Lasso.md](Lasso.md) · [LeashSystem.md](LeashSystem.md) · [Portals.md](Portals.md) · [WeaponSystem.md](WeaponSystem.md) · [Persistence.md](Persistence.md) · skill [.claude/skills/spacegame-artifact/SKILL.md](.claude/skills/spacegame-artifact/SKILL.md)
 
 ## Model
 
 - **One use splits in two.** `Use()` runs only where the item has authority; `Present()` runs on **every** machine, and on the owner's immediately so nothing waits for a round trip. Both live on [`UsableItem`](Assets/Game/Scripts/Items/Core/UsableItem.cs), so every artifact is networked by default and none carries a sync component.
 - **`UseAuthority`** picks the machine for `Use()`: `Server` (default — spawns, damage, contested resources) or `Owner` (the effect *is* the holder's own body; their transform is already owner-authoritative).
 - **Aim never travels as a recomputation.** `OnRequestUse(ref NetArg)` runs owner-side only — the one machine with a live camera — and the payload comes back to every machine as `UseArg`. Fields: `A` = hotbar slot (**reserved**, the server's stale-slot guard), `B` = int/seed/flags, `P` = Vector3, `R` = Quaternion.
+- **Every aimed item asks [`AimProvider`](Assets/Game/Scripts/Characters/Player/Combat/AimProvider.cs), and asks it for a *ray*.** `GetAimRay()` leaves the holder's eye and points at whatever the crosshair of the view they are actually looking through covers; `TryGetAimHit(range, out hit)` is the same ray already filtered of the holder's own body, the machine they are riding, and triggers. Reading `AimTransform.forward` instead is the ornithopter defect: mounted, the eye is pitched with the seat and the view is somewhere else entirely. `aimProvider` lives on `UsableItem`, so `Weapon` shares it with every `ToolItem`.
 - **Hold streams.** `IsContinuous => true` adds `OnRequestHold` / `Hold` / `PresentHold` on the same three machines, streamed at **15 Hz** (`EquipmentController.HoldSendInterval`). A continuous item still gets the ordinary press first — that press plays the sound and bills `maxUses`.
 - **`WantsHold`** keeps the stream running after the button is up, for self-timed bursts (laser staff burns 3 s regardless). `EquipmentController` tracks `useButtonDown` and `useHeld` separately for exactly this.
 - **Charges** are `maxUses` on `UsableItem`; depletion raises `OnItemDepleted` → `EquipmentController.ItemDepleted` removes the slot. `RefundUse()` gives one back (net gun); a refilling item **must** also override `OnMaxUsesReached()` to stay silent.
@@ -46,9 +48,9 @@ Player-held usable items — every gadget, spell, scanner, throwable and hand to
 
 | Type | File | Role |
 | --- | --- | --- |
-| `UsableItem` | [Items/Core/UsableItem.cs](Assets/Game/Scripts/Items/Core/UsableItem.cs) | Base. `Use`/`Present`, `Hold`/`PresentHold`, `Authority`, `maxUses`, `useSoundId`, equip hooks, `OwnerIsLocal()` |
+| `UsableItem` | [Items/Core/UsableItem.cs](Assets/Game/Scripts/Items/Core/UsableItem.cs) | Base. `Use`/`Present`, `Hold`/`PresentHold`, `Authority`, `maxUses`, `useSoundId`, equip hooks, `OwnerIsLocal()`, `aimProvider` (resolved on demand so it works inside `OnRequestUse`) |
 | `UseAuthority` | same file | `Server` \| `Owner` |
-| `ToolItem` | [Items/Core/ToolItem.cs](Assets/Game/Scripts/Items/Core/ToolItem.cs) | Aimed/instant/world-changing. Adds `aimProvider` (resolved on demand so it works inside `OnRequestUse`) |
+| `ToolItem` | [Items/Core/ToolItem.cs](Assets/Game/Scripts/Items/Core/ToolItem.cs) | Aimed/instant/world-changing. `Use()` defaults to empty; nothing else |
 | `EffectItem` | [Items/Core/EffectItem.cs](Assets/Game/Scripts/Items/Core/EffectItem.cs) | Timed change to the holder's own body. `Use()` is **sealed empty**; override `ApplyEffect()` (owner-gated) and `PresentEffect()` |
 | `EquipmentController` | [Inventory/Components/EquipmentController.cs](Assets/Game/Scripts/Items/Inventory/Components/EquipmentController.cs) | Triggers the hand's artifact. Hand sockets, grip frame, and the hand's `UseChannel` — the request/present/authority/broadcast pipeline plus hold stream, shared with `BodyEquipmentController`'s three worn channels |
 | `NetArg` | [Core/Multiplayer/Messaging/NetArg.cs](Assets/Game/Scripts/Core/Multiplayer/Messaging/NetArg.cs) | `A`, `B`, `P`, `R`, `.With(go)` |
@@ -69,7 +71,7 @@ Player-held usable items — every gadget, spell, scanner, throwable and hand to
 | Sucker puncher | [Gadgets/SuckerPuncherArtifact.cs](Assets/Game/Scripts/Items/Artifacts/Gadgets/SuckerPuncherArtifact.cs) | Server. Steam ram: heavy damage + launch on the thing hit, shockwave shove within `shockRadius` |
 | Laser staff | [Gadgets/LaserStaffArtifact.cs](Assets/Game/Scripts/Items/Artifacts/Gadgets/LaserStaffArtifact.cs) | Server, `IsContinuous`, `WantsHold => _lit`. 3 s arc, 10 s recharge; `holdTimeout` kills a stranded beam. The reference continuous item |
 | Grappling hook | [Gadgets/GrapplingHookArtifact.cs](Assets/Game/Scripts/Items/Artifacts/Gadgets/GrapplingHookArtifact.cs) | **Owner**, `IsContinuous`, `IItemDeferredRestore`. Dart → taut rope → swing/winch ([GrappleRope.cs](Assets/Game/Scripts/Items/Artifacts/Gadgets/GrappleRope.cs) is drawing only). Fired while riding, it **tows the vehicle** instead — see [Ornithopter.md](Ornithopter.md) |
-| Lasso | [Gadgets/LassoArtifact.cs](Assets/Game/Scripts/Items/Artifacts/Gadgets/LassoArtifact.cs) | **Owner**, `IsContinuous`, `IItemDeferredRestore`. Hold to twirl, release to throw; Verlet rope. Support: [LassoLoop](Assets/Game/Scripts/Items/Artifacts/Gadgets/LassoLoop.cs), [LassoRope](Assets/Game/Scripts/Items/Artifacts/Gadgets/LassoRope.cs), [LassoTether](Assets/Game/Scripts/Items/Artifacts/Gadgets/LassoTether.cs), [LassoStruggle](Assets/Game/Scripts/Items/Artifacts/Gadgets/LassoStruggle.cs), [LassoedBody](Assets/Game/Scripts/Items/Artifacts/Gadgets/LassoedBody.cs) |
+| Lasso | [Lasso/LassoArtifact.cs](Assets/Game/Scripts/Items/Artifacts/Lasso/LassoArtifact.cs) | **Owner**, `IsContinuous`, `IItemDeferredRestore`. Hold to twirl, release to throw a solved arc; catch, fight, tie off to a leash — see [Lasso.md](Lasso.md) |
 | Leash | [Leash/LeashArtifact.cs](Assets/Game/Scripts/Items/Artifacts/Leash/LeashArtifact.cs) | **Owner**. Tie a rope between any two things — see [LeashSystem.md](LeashSystem.md) |
 | Net gun | [NetGun/NetGunArtifact.cs](Assets/Game/Scripts/Items/Artifacts/NetGun/NetGunArtifact.cs) | Muzzle in `P`, aim in `R`, seed in `B`; every machine draws the same closed-form flight. Recharges via `RefundUse()` + silenced `OnMaxUsesReached`. Support: [SnareCatch](Assets/Game/Scripts/Items/Artifacts/NetGun/SnareCatch.cs), [SnareLattice](Assets/Game/Scripts/Items/Artifacts/NetGun/SnareLattice.cs), [SnareMesh](Assets/Game/Scripts/Items/Artifacts/NetGun/SnareMesh.cs), [SnareTether](Assets/Game/Scripts/Items/Artifacts/NetGun/SnareTether.cs), [SnaredBody](Assets/Game/Scripts/Items/Artifacts/NetGun/SnaredBody.cs), [SnareReceiver](Assets/Game/Scripts/Items/Artifacts/NetGun/SnareReceiver.cs), [SnareIntegrity](Assets/Game/Scripts/Items/Artifacts/NetGun/SnareIntegrity.cs), [SnareDrape](Assets/Game/Scripts/Items/Artifacts/NetGun/SnareDrape.cs), [SnareStruggle](Assets/Game/Scripts/Items/Artifacts/NetGun/SnareStruggle.cs), [NetGunFlight](Assets/Game/Scripts/Items/Artifacts/NetGun/NetGunFlight.cs) |
 | Rocket turret | [Gadgets/RocketTurretArtifact.cs](Assets/Game/Scripts/Items/Artifacts/Gadgets/RocketTurretArtifact.cs) | Server. Spawns a rocket-launcher turret in front of the player, ground-snapped. Deployable → **must** be a registered network prefab |
@@ -105,7 +107,7 @@ Player-held usable items — every gadget, spell, scanner, throwable and hand to
 ## Multiplayer
 
 - **Authority split:** `Server` for shared world state (spawn, damage, consumption); `Owner` when the whole effect is the holder's own body — their transform is owner-authoritative, so a server-applied force is overwritten within a tick, silently.
-- **Messages:** `NetMsg.UseItem` / `ItemUsed` / `UseItemHold` / `ItemUseHeld`, all handled in `EquipmentController`. Artifacts add none of their own except where a subsystem needs a second channel (net gun's `SnareReceiver`).
+- **Messages:** `NetMsg.UseItem` / `ItemUsed` / `UseItemHold` / `ItemUseHeld`, all handled in `EquipmentController`. Artifacts add none of their own except where a subsystem needs a second channel (net gun's `SnareReceiver`, which owns `Snared` / `SnareFreed` / `SnareStruggled` — **all three on the SHOOTER's relay**, including the one the captive sends).
 - **Network prefab list is [Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset](Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset)** — the copy at `Assets/DefaultNetworkPrefabs.asset` is stale and unused. Register: **item prefabs** (dropping routes through `PlayerDropService` → `GameServices.World.Spawn`) and **deployables**. Never register: projectiles, flying arcs, equipped visuals, ropes, nets — those are plain local `Instantiate` from `Present()`.
 - **Seeded determinism** is the standard pattern for anything erratic that every machine must draw identically: the owner rolls one seed into `NetArg.B`, and pure static math derives the rest (`GravelBlastMath`, `DragonRocketFlight`, `NetGunFlight`). The authority bills the same trace the peers draw.
 - **`Network.Simulates(this)` is true everywhere for a held item** — its NetworkObject is dormant (never spawned). Ask the *owner*: `OwnerIsLocal()` on `UsableItem`, `Network.Owns(owner.transform)` in `EffectItem`.
@@ -123,14 +125,15 @@ Player-held usable items — every gadget, spell, scanner, throwable and hand to
 ## Gotchas
 
 - **`NetArg.A` is reserved** for the slot code (`UseSlotCode`: bare hotbar index, or `256 + BodySlot` for worn gear) on presses *and* hold ticks; the server reads it as its stale-slot guard. An item that stores its own flags there is silently refused on the server for every slot but the matching one. Pack item flags into the **upper bits of `B`** (`EquipmentController` owns `B`'s low bit on hold ticks as the active flag).
-- **An item that moves the player by writing their Rigidbody does nothing while they are riding.** Mounting makes the rider's body kinematic and parents it into the seat, so it is no longer the thing that moves — velocity written there is discarded in silence. An item that must work in a saddle asks the *vehicle* instead, through `ITowable` (the grappling hook is the worked example). And an item that **aims** from a seat must reject hits on the machine it is fired from: `MountModule` waives rider↔mount *collisions*, but raycasts are queries and ignore that entirely.
+- **An item that moves the player by writing their Rigidbody does nothing while they are riding.** Mounting makes the rider's body kinematic and parents it into the seat, so it is no longer the thing that moves — velocity written there is discarded in silence. An item that must work in a saddle asks the *vehicle* instead, through `ITowable` (the grappling hook is the worked example). **Aiming** from a seat needs no such care any more: `AimProvider` follows the mount's view and looks past the mount's own hull, so an item that reads it is correct in a saddle for free — and an item that hand-rolls a `Physics.Raycast` off `AimTransform` opts back out of both.
 - **Effect on the holder's body written in `Use()`** → applied to the server's kinematic replica and overwritten within a tick. Use `UseAuthority.Owner`, or `EffectItem` (whose `Use()` is `sealed` for this reason).
 - **Recomputing aim on the receiving machine** → `Camera.main` on the server is the *host's* camera, so every client's shot follows the host's crosshair. Aim only ever travels in `NetArg`.
 - **For a continuous item, send the ray (origin `P` + rotation `R`), not the hit point** — let each machine trace it.
 - **No `holdTimeout` on a held item** → a release is one message and a disconnect sends none, so the beam burns forever. Also record the aim on the `Hold` path: a dedicated server never receives `PresentHold`.
+- **A message is delivered to the channel of the entity whose relay carried it**, so a listener has to sit under that entity. `SnareReceiver` lives on the shooter, so a netted player reporting a struggle sends on the *shooter's* relay, not their own — the same crossing an attacker makes for `NetMsg.Damage`. Sent on the sender's own relay it lands on a channel nobody subscribed to and is dropped with no error, on every machine. `NetRelay`'s server RPC is `InvokePermission.Everyone` precisely so a non-owner may make that crossing.
 - **Missing network prefab entry fails on clients only.** The host instantiates its own copy and never consults the list.
 - **Item asset outside `Assets/Game/Resources/Items/`** never registers (`RegistryLoader` does `Resources.LoadAll<InventoryItem>("Items")`), never shows in the dev browser (`O` in dev mode), and every save slot holding it loads empty. `Assets/Game/ScriptableObjects/Items/` holds unreachable duplicates.
-- **`owner` is null exactly once per equip** if you read it before `OnEquipped` — which is why `OnEquipped` sets it, and why `ToolItem.aimProvider` resolves on demand rather than caching.
+- **`owner` is null exactly once per equip** if you read it before `OnEquipped` — which is why `OnEquipped` sets it, and why `UsableItem.aimProvider` resolves on demand rather than caching.
 - **A refilling item that forgets `OnMaxUsesReached() { }`** is removed from the inventory the first time it empties.
 - **Hand-editing a prefab owned by a builder script** (`LaserStaffBuilder` and siblings, `Assets/Game/Editor/Items/`) is wiped on the next run — tune in the script.
 - **`HoldAnimator.requireStationary = false`** makes the unmasked hold layer animate the legs; the character glides while walking.

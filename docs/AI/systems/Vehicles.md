@@ -15,12 +15,13 @@ symptoms:
   - "I board the ship from outside by looking at its cockpit through the glass"
   - "the vehicle drives fine for the host but a client steers a body that snaps back"
   - "the third-person camera on the mount jitters or doubles the vehicle's motion"
+  - "every item aims straight down, or at the vehicle itself, while I am riding"
   - "the player standing on the deck is read as ground and the walker climbs into the sky"
   - "after loading a save the rider is standing next to the mount instead of in the seat"
   - "the respawn button is unclickable after dismounting a dead rider"
   - "a player who has been carried walks and steers but never falls again"
 reads_with: [Ornithopter, PlayerShip, AgentSystem, Persistence]
-updated: 2026-09-03
+updated: 2026-09-05
 ---
 
 # Vehicles & Mounts
@@ -70,7 +71,6 @@ Two ways to operate a machine: **mounting** (you take the vehicle over — seat,
 | DesertCrawler | [DesertCrawler.prefab](Assets/Game/Prefabs/agents/Vehicles/Ground/DesertCrawler.prefab), [Tools/](Assets/Game/Scripts/Vehicles/Tools/) | Same legs, **no mount** — AI-driven walking station with dig/claw/collector rig (`CrawlerToolModule` is a side-effect module, `ClaimsMovement = false`). |
 | DuneFoil (sand sailer) | [DuneFoil.prefab](Assets/Game/Prefabs/agents/Vehicles/Ground/DuneFoil.prefab), [DuneFoil/](Assets/Game/Scripts/Vehicles/DuneFoil/), [Stations/DuneFoil*.cs](Assets/Game/Scripts/Vehicles/Stations/) | **No mount at all.** `DeckBoarding` + `DuneFoilHelm` + 4 × `DuneFoilRiggingStation` + `DuneFoilMooring` (holds station while the deck is empty) + `BoardingRamp` + HUD. Transform-driven, so `IPersistentEntity` + `ITeleportAware` + carrier. |
 | DuneOrnithopter | [DuneOrnithopter.prefab](Assets/Game/Prefabs/agents/Vehicles/Aircraft/DuneOrnithopter.prefab), [Ornithopter/](Assets/Game/Scripts/Vehicles/Ornithopter/) | See [Ornithopter.md](Ornithopter.md). Mounted; spawned by [`WingPackItem`](Assets/Game/Scripts/Items/Equipped/WingPackItem.cs); wants `followMountPitch = true`. |
-| ShipRV | [ShipRV.prefab](Assets/Game/Prefabs/agents/Vehicles/Spacecraft/ShipRV.prefab), [ShipRVBuilder.cs](Assets/Game/Editor/Vehicles/ShipRVBuilder.cs) | `HoverRigidbodyMotor`, `MountStation`, 8 `ArticulatedPart`s, `ShellVariantSwitcher`, `VehicleDeploymentController`. Rebuilt wholesale by the builder. |
 | PlayerShip (lander) | [PlayerShip.prefab](Assets/Game/Prefabs/agents/Vehicles/Spacecraft/PlayerShip.prefab), [PlayerShipBuilder.cs](Assets/Game/Editor/Vehicles/PlayerShipBuilder.cs) | See [PlayerShip.md](PlayerShip.md). **4 `MountModule`s** (helm on the root + 3 `ChairPose` chairs), one `SteerModule`, `ShipPartRack`/`ShipPartSocket`, `ShipTeamAccent`, `CabinAlert`. Root `mountableByDirectInteraction = false`; the helm is boarded from a `MountStation` on a trigger volume at the pilot's chair, the passengers from trigger volumes of their own. |
 | Rover | [Rover.prefab](Assets/Game/Prefabs/Vehicles/Rover.prefab), [Rover/](Assets/Game/Scripts/Vehicles/Rover/) | Not rideable — autonomous explorer with bogie IK. Test scene only; decisions gated on `Network.Simulates`. |
 | DuneRider | [DuneRiderController.cs](Assets/Game/Scripts/agents/Controller/DuneRiderController.cs) | Self-contained rigidbody mount driver (its own input, no `SteerModule`). **On no prefab today.** |
@@ -81,7 +81,7 @@ Two ways to operate a machine: **mounting** (you take the vehicle over — seat,
 1. `MountNetworkSync.RequestMount` → `NetMsg.Mount` to server (`NetArg.A = MountIndex`, Target = rider).
 2. Server `SeatOnServer`: `CanMount` → `TryMount` → `mountObject.ChangeOwnership(riderOwner)` → `NetToOthers(NetMsg.Mounted)`.
 3. `TryMount` (runs on **every** peer): `VacateSeatForPlayer` (`ISeatOccupant`) → cache rider refs → `RiderTeardownBeacon.Arm` → subscribe rider death → disable rider movement/look/interactor (*recording* prior state) → rider Rigidbody kinematic, no gravity, no interpolation → parent → suppress modules + motor `ForceStop` + freeze own rotation + root motion off → `RiderCollisionIgnore.Apply` → init view → `ApplyPerspective`.
-4. Local rider only: FP camera off / TP camera spawned **unparented** from `thirdPersonCameraPrefab` → `Resources/Cameras/Mount Third Person Camera` → clone of `Camera.main` → bare `Camera`; visor render feature toggled with perspective.
+4. Local rider only: FP camera off / TP camera spawned **unparented** from `thirdPersonCameraPrefab` → `Resources/Cameras/Mount Third Person Camera` → clone of `Camera.main` → bare `Camera`; visor render feature toggled with perspective. Then `PublishRiderAimView` hands the rider's [`AimProvider`](Assets/Game/Scripts/Characters/Player/Combat/AimProvider.cs) the camera they are now looking through (`null` in first person, where the eye already is the view) and this machine's transform as the hull to look past — see [PlayerCharacter.md](PlayerCharacter.md). `RestoreLocalViewAfterDismount` clears it.
 
 **Drive** (per frame, local rider only)
 1. `SteerModule.Update` → read + `SmoothDamp` Move/Vertical/Turn; `hasSteeringOverride` = max axis ≥ `steeringOverrideThreshold`.
@@ -123,6 +123,8 @@ Two ways to operate a machine: **mounting** (you take the vehicle over — seat,
 - **Rider is kinematic with interpolation off** while seated; `ApplyDismountPose` writes the Rigidbody as well as the transform because `Physics.autoSyncTransforms` is off project-wide, so a transform-only write leaves the mount's tilt on the player for a frame.
 - **Never disable the rider's colliders** to stop it shoving the mount — that removes it from every raycast/overlap/interaction probe. Use `RiderCollisionIgnore` (pairwise), and skip pairs where the mount collider is a child of the rider.
 - **Ground probes must reject non-kinematic bodies.** [`WalkerGround.IsLooseBody`](Assets/Game/Scripts/Locomotion/Ground/WalkerGround.cs) and `FoilLift`'s probe both do: otherwise a player standing mid-deck is read as ground and the machine climbs into the sky. A mounted rider is kinematic *and* parented, so it is already excluded.
+- **A rider's aim does not follow their own eye.** Mounting parents them under the seat marker **wearing the seat's rotation** and switches their camera off; the ornithopter's `SEAT_Cradle` is rotated +90° about X because a prone pilot faces the floor, so an unattended aim points at the sand under the craft while the pilot watches the horizon through the orbit camera. `ApplyPerspective` therefore tells `AimProvider` which camera has replaced the eye, and which hull is around it — and nothing throws when that stops happening: every aimed item quietly fires straight down. Pinned by [`MountedAimWiringTests`](Assets/Game/Editor/Tests/MountedAimWiringTests.cs).
+- **There is no perspective toggle.** `ApplyPerspective` is called once per mount, with `defaultPerspective`, and never again — so a `ThirdPerson` vehicle (ornithopter, ostrich, RigWalker) is third person for the whole ride and `mountedFirstPersonCamera` stays off the entire time. The `CameraPerspective` machinery is built for a toggle that does not exist yet.
 - **The TP camera is spawned unparented** — parenting applies the vehicle's motion twice (measured 48% vs 2.6% frame-to-frame variance). Its lifetime is explicit; `AbandonRider` destroys it or you leak a camera + a second `AudioListener` for the session.
 - `ReleaseRuntimeThirdPersonCamera` uses `DestroyImmediate` outside play mode — plain `Destroy` is an editor error and fails EditMode tests that mount anything.
 - **Transform-driven hulls need `WalkerPlatformCarrier`**, and it must poll the carry volume rather than use `OnTrigger*` (messages only reach the collider's own GameObject and its `attachedRigidbody`).

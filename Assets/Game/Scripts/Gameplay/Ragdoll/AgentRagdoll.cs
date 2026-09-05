@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SpaceGame.Agents;
 using SpaceGame.Core;
 using SpaceGame.Locomotion;
@@ -82,6 +83,22 @@ namespace SpaceGame.Gameplay.Ragdoll
         private float downUntil;
 
         /// <summary>
+        /// Everything currently holding this creature down with no end time — a net, a tie, both at
+        /// once. See <see cref="HoldDown"/>.
+        ///
+        /// <para>
+        /// A set of holders rather than a flag, the same shape <see cref="CarriedBody"/> uses and
+        /// for the same reason: two systems can want one body down, and the one that lets go first
+        /// must not stand it up. A captor hands back the token it claimed with, so forgetting is a
+        /// compile error rather than a captive that gets up on its own.
+        /// </para>
+        /// </summary>
+        private readonly HashSet<object> holders = new HashSet<object>();
+
+        /// <summary>Is something holding this creature down right now?</summary>
+        public bool IsHeld => holders.Count > 0;
+
+        /// <summary>
         /// The motor, asked for at the moment it is needed rather than cached in Awake.
         ///
         /// <para>
@@ -135,6 +152,13 @@ namespace SpaceGame.Gameplay.Ragdoll
         {
             dead = true;
 
+            // Death drops every hold's claim — see PlayerRagdoll.OnDeath for why this empties the
+            // set directly rather than calling ReleaseHold, which gives up one claim and would
+            // leave the others standing. The corpse stays limp; it simply stops being a captive
+            // RagdollBudget is forbidden to reclaim.
+            holders.Clear();
+            rig.BudgetExempt = false;
+
             // A save being loaded, not a kill — the same rule HealthReactionModule.HandleDeath
             // follows and for the same reason. The corpse's resting POSITION is already in the save
             // (the rig follows the hips into the transform, so the transform is where the body
@@ -184,6 +208,11 @@ namespace SpaceGame.Gameplay.Ragdoll
         private void OnRevive()
         {
             dead = false;
+
+            // See PlayerRagdoll.OnRevive: unreachable today, permanent and silent if it ever is.
+            holders.Clear();
+            rig.BudgetExempt = false;
+
             if (rig.IsLimp) Restore();
         }
 
@@ -235,11 +264,97 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// <summary>Can the shock wave knock this creature down, or must it be leapt instead?</summary>
         public bool CanBeKnockedDown => isActiveAndEnabled && !HasRider;
 
+        /// <summary>
+        /// Go limp and stay limp. The creature counterpart of <c>PlayerRagdoll.HoldDown</c>, and
+        /// like it, released by the caller rather than by a timer.
+        ///
+        /// <para>
+        /// Refuses a creature that is carrying somebody, and that refusal has to be visible to the
+        /// caller rather than silent: <see cref="CanBeKnockedDown"/> is false while a rider is
+        /// aboard for the reason <see cref="HasRider"/> gives, so a net on a ridden mount would
+        /// otherwise be a no-op with a clean console. The captor is expected to fall back to
+        /// whatever restraint it has instead — <c>SnareTether.Bind</c> caps a NavMeshAgent's speed
+        /// when, and only when, this answers false, and has nothing to fall back on for a creature
+        /// with no NavMeshAgent, a legged rig among them. This only says whether the body itself
+        /// went down.
+        /// </para>
+        /// <para>
+        /// Called by <c>SnareTether.Bind</c>, on every machine — see <c>PlayerRagdoll.HoldDown</c>
+        /// for why a capture reaches all of them.
+        /// </para>
+        /// </summary>
+        /// <returns>
+        /// True once the creature is actually limp and held. FALSE means the hold did not take and
+        /// the caller must not treat this body as held — it is dead, it is carrying somebody, or the
+        /// rig declined to go limp at all. See <c>PlayerRagdoll.HoldDown</c> for what that last one
+        /// costs a body that is left believing it was held.
+        /// </returns>
+        public bool HoldDown(object holder)
+        {
+            if (holder == null) return false;
+
+            // A corpse is already down and is not getting up — the same refusal OnKnockdown opens
+            // with. It matters more here than there: a hold that took a corpse would set
+            // BudgetExempt on a body nothing will ever release, which is the leak OnDeath exists to
+            // close arriving through a second door.
+            if (dead) return false;
+
+            // Somebody else already has it down. Take a claim and say so, rather than repeating
+            // work that would record the suspended state as this creature's normal one.
+            if (IsHeld)
+            {
+                holders.Add(holder);
+                return true;
+            }
+
+            if (!CanBeKnockedDown) return false;
+
+            holders.Add(holder);
+
+            // Off the motor and read before Suspend, which switches that motor off underneath it
+            // — the ordering OnKnockdown uses and for the same reason.
+            Vector3 carried = CarriedVelocity;
+
+            Suspend();
+            rig.BudgetExempt = true;
+            rig.GoLimp(carried, settled: false, drives: Drives);
+
+            // Asked of the rig rather than pre-checked, and everything undone on a refusal — see
+            // PlayerRagdoll.HoldDown, which states the case in full.
+            if (rig.IsLimp) return true;
+
+            holders.Remove(holder);
+            rig.BudgetExempt = false;
+            Restore();
+            return false;
+        }
+
+        /// <summary>
+        /// Give up one claim. The creature gets up only once the LAST one is given up — the rule
+        /// <see cref="CarriedBody.Release"/> follows, so a net rotting off a hogtied animal does
+        /// not untie it.
+        ///
+        /// Safe to call with a token that was never claimed, or after death has cleared the set.
+        /// </summary>
+        public void ReleaseHold(object holder)
+        {
+            if (holder == null || !holders.Remove(holder)) return;
+            if (IsHeld) return;
+
+            rig.BudgetExempt = false;
+            downUntil = 0f;
+        }
+
         // ── Getting back up ───────────────────────────────────────────────────
 
         private void Update()
         {
             if (dead || !suspended) return;
+
+            // A hold has no timer and no settle condition to wait for, so every reason to stand up
+            // below is the wrong one — including the budget rescue underneath, which is the path
+            // BudgetExempt exists to keep a captive off.
+            if (IsHeld) return;
 
             // The budget froze this body out from under us (RagdollBudget evicts the oldest limp
             // rig past the cap). Nothing is going to come to rest and nothing is going to tell us

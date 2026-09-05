@@ -28,10 +28,12 @@ namespace SpaceGame.Tests
             "Assets/Game/Prefabs/Environment/Structures/Facilities/OxygenGenerator.prefab";
 
         private const string TankPrefab = "Assets/Game/Prefabs/Items/Supplies/OxygenTank.prefab";
-        private const string DrainedPrefab = "Assets/Game/Prefabs/Items/Supplies/OxygenTankEmpty.prefab";
-        private const string CellPrefab = "Assets/Game/Prefabs/Items/Supplies/PowerCell.prefab";
+        private const string CellPrefab = "Assets/Game/Prefabs/Items/Supplies/Battery.prefab";
 
         private const string RigPrefab = "Assets/Game/Prefabs/Items/Equipment/ExpeditionRig.prefab";
+
+        private const string PlayerPrefab =
+            "Assets/Game/Prefabs/Characters/Player/PlayerCharacterNetworked.prefab";
 
         // The rig's two square faces, in cells. Anything wider than these fits neither, which for
         // a supply the player is meant to carry is the same as not fitting the pack at all.
@@ -59,56 +61,172 @@ namespace SpaceGame.Tests
         }
 
         /// <summary>
-        /// The request's own rule: the machine only works with the battery in. A bottle sitting in
-        /// an unpowered plant must stay drained forever, and the same bottle in a powered one must
+        /// The request's own rule: the machine only works with the battery in. A tank sitting in an
+        /// unpowered plant must stay where it is forever, and the same tank in a powered one must
         /// start filling with no second press.
         /// </summary>
         [Test]
-        public void ThePlantOnlyFillsWithAPowerCellIn()
+        public void ThePlantOnlyFillsWithABatteryIn()
         {
             OxygenGenerator plant = Plant();
 
-            plant.RestoreDock(false, OxygenGenerator.DockedTank.Drained);
-            Assert.IsFalse(plant.Powered, "A plant with no cell reports itself powered.");
+            plant.RestoreDock(-1f, 0f);
+            Assert.IsFalse(plant.Powered, "A plant with no battery reports itself powered.");
             Assert.IsFalse(plant.IsFilling,
-                           "An unpowered plant is filling a bottle — the cell is not gating it.");
+                           "An unpowered plant is filling a tank — the battery is not gating it.");
 
-            plant.RestoreDock(true, OxygenGenerator.DockedTank.Drained);
-            Assert.IsTrue(plant.Powered, "A fitted cell does not power the plant.");
+            plant.RestoreDock(1f, 0f);
+            Assert.IsTrue(plant.Powered, "A fitted battery does not power the plant.");
             Assert.IsTrue(plant.IsFilling,
-                          "A drained bottle in a powered plant is not filling. RefreshFill is the " +
+                          "An empty tank in a powered plant is not filling. RefreshFill is the " +
                           "only thing that starts one, and it runs after every change.");
 
-            // Taking the cell out again must stop it rather than leave a deadline nobody watches.
-            plant.RestoreDock(false, OxygenGenerator.DockedTank.Drained);
-            Assert.IsFalse(plant.IsFilling, "Pulling the cell left the fill running.");
+            // Taking the battery out again must stop it rather than leave a deadline nobody watches.
+            plant.RestoreDock(-1f, 0f);
+            Assert.IsFalse(plant.IsFilling, "Pulling the battery left the fill running.");
         }
 
         /// <summary>
-        /// A full bottle is a full bottle by IDENTITY. If the two ever collapse into one asset the
-        /// charge has to live in an <c>ItemState</c> bag instead — which does not replicate, so only
-        /// the server would ever know a bottle was full. See DockableSupply.
+        /// A FLAT battery is not a missing one, and it is not a working one either.
+        ///
+        /// <para>
+        /// The three states have to stay distinct: no battery (nothing to take back), a flat
+        /// battery (an item the player can still retrieve, machine dark), and a charged one. A
+        /// machine that looked powered and refused to fill would be the least explainable state it
+        /// could be in, so <c>Powered</c> asks about the CHARGE and not about the slot.
+        /// </para>
         /// </summary>
         [Test]
-        public void AFilledBottleIsADifferentItemFromADrainedOne()
+        public void AFlatBatteryIsFittedButNotPowered()
         {
-            var charged = AssetDatabase.LoadAssetAtPath<GameObject>(TankPrefab);
-            var drained = AssetDatabase.LoadAssetAtPath<GameObject>(DrainedPrefab);
+            OxygenGenerator plant = Plant();
 
-            Assert.IsNotNull(charged, "No prefab at " + TankPrefab);
-            Assert.IsNotNull(drained, "No prefab at " + DrainedPrefab);
-            Assert.AreNotSame(charged, drained, "The two bottles are one prefab.");
+            plant.RestoreDock(0f, 0f);
 
-            Assert.IsTrue(charged.GetComponent<DockableSupply>().Charged,
-                          "The filled bottle is not authored charged, so its gauge reads empty.");
-            Assert.IsFalse(drained.GetComponent<DockableSupply>().Charged,
-                           "The drained bottle is authored charged, so a fill shows nothing.");
+            Assert.IsTrue(plant.HasBattery, "A flat battery is not reported as fitted, so the " +
+                                            "player cannot take back the item they put in.");
+            Assert.IsFalse(plant.Powered, "A flat battery powers the plant.");
+            Assert.IsFalse(plant.IsFilling, "A flat battery is filling a tank out of nothing.");
+        }
 
-            // Same model, so they must cost the same cells: a player who fills a bottle must not
-            // find the pack refuses to take it back.
-            Assert.AreEqual(ItemFootprint.SizeOf(charged), ItemFootprint.SizeOf(drained),
-                            "The two bottles are different sizes on the mat, so filling one can " +
-                            "make it unstowable.");
+        /// <summary>
+        /// The fill is PROPORTIONAL in both time and cost, which is the rule the whole economy
+        /// rests on: a battery is worth a fixed number of tanks however the player chooses to take
+        /// them, and topping up is never punished.
+        ///
+        /// <para>
+        /// A flat cost per press would teach players to run every tank to zero before coming back,
+        /// which is the opposite of the behaviour the plant exists to encourage.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void APartialFillCostsAndTakesItsOwnFraction()
+        {
+            OxygenGenerator plant = Plant();
+
+            // Three quarters full: a quarter of a tank to move.
+            plant.RestoreDock(1f, 0.75f);
+
+            Assert.IsTrue(plant.IsFilling, "A part-full tank in a powered plant is not topping up.");
+
+            // The deadline is on the machine's own clock, so the elapsed span is what is asserted
+            // rather than a wall-clock wait: a quarter of a tank is a quarter of the fill time.
+            Assert.AreEqual(plant.FillSeconds * 0.25f, plant.SecondsUntilFilled, 0.05f,
+                            "A quarter-tank top-up is not taking a quarter of the fill time.");
+        }
+
+        /// <summary>
+        /// A battery with less charge than the tank has room fills what it can and stops, rather
+        /// than filling the whole tank for free or refusing outright.
+        /// </summary>
+        [Test]
+        public void AFillIsBoundedByWhatTheBatteryCanPayFor()
+        {
+            OxygenGenerator plant = Plant();
+
+            // Half of one tank's cost left in the battery, against a completely empty tank.
+            plant.RestoreDock(plant.FillCostPerTank * 0.5f, 0f);
+
+            Assert.IsTrue(plant.IsFilling, "A battery with some charge left is not filling at all.");
+            Assert.AreEqual(plant.FillSeconds * 0.5f, plant.SecondsUntilFilled, 0.05f,
+                            "The fill is not bounded by what the battery can pay for — it is " +
+                            "either running to a full tank on half the power, or refusing.");
+        }
+
+        /// <summary>
+        /// There is exactly ONE tank item, at every fill level.
+        ///
+        /// <para>
+        /// It used to be two — <c>OxygenTank</c> and <c>OxygenTankEmpty</c> — because a charge that
+        /// lived in an <c>ItemState</c> bag would have been a value only the server could see. That
+        /// cannot express a tank read to a percent, so the charge is a fraction carried by
+        /// <see cref="SupplyCharge"/> through every container instead. If a second tank asset ever
+        /// reappears, the two can diverge in <c>packSize</c> and filling a tank becomes a way to
+        /// make it unstowable in the pack that took it.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void ThereIsExactlyOneTankItem()
+        {
+            var tank = AssetDatabase.LoadAssetAtPath<GameObject>(TankPrefab);
+            Assert.IsNotNull(tank, "No prefab at " + TankPrefab);
+
+            Assert.IsNull(AssetDatabase.LoadAssetAtPath<GameObject>(
+                              "Assets/Game/Prefabs/Items/Supplies/OxygenTankEmpty.prefab"),
+                          "OxygenTankEmpty.prefab is back. A tank's charge is a number on the " +
+                          "instance now; a second asset is a second way for a tank to exist.");
+
+            var supply = tank.GetComponent<DockableSupply>();
+            Assert.IsNotNull(supply, "The tank has no DockableSupply, so it holds nothing.");
+            Assert.AreEqual(SupplyKind.Oxygen, supply.Kind, "The tank does not hold oxygen.");
+            Assert.Greater(supply.Capacity, 0f, "The tank has no capacity, so it can never fill.");
+        }
+
+        /// <summary>
+        /// Thirty minutes of air, one minute of reserve, and one second spent per second — read off
+        /// the assets the game actually ships, never off the C# defaults.
+        ///
+        /// <para>
+        /// <b>The distinction is the whole point of this test.</b> An <c>AddComponent</c> in an
+        /// EditMode test constructs the class, so it reads the field initialisers — which were
+        /// correct all along. The PREFAB is a separate copy of those numbers, and a field whose
+        /// NAME survives a rework keeps whatever it serialised years ago: <c>drainPerSecond</c> came
+        /// through this rework still holding <c>0.167</c> from the old arbitrary-units model, which
+        /// would have made a "thirty minute" tank last three hours and the "sixty second" reserve
+        /// last six minutes. Nothing failed, nothing logged, and a test against the defaults would
+        /// have passed.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void TheSurvivalBudgetIsWhatTheShippedAssetsSay()
+        {
+            var tank = AssetDatabase.LoadAssetAtPath<GameObject>(TankPrefab);
+            Assert.IsNotNull(tank, "No prefab at " + TankPrefab);
+
+            Assert.AreEqual(30f * 60f, tank.GetComponent<DockableSupply>().Capacity, 0.5f,
+                            "A full tank is no longer thirty minutes of air.");
+
+            var player = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefab);
+            Assert.IsNotNull(player, "No prefab at " + PlayerPrefab);
+
+            SuitOxygen suit = player.GetComponentInChildren<SuitOxygen>(true);
+            Assert.IsNotNull(suit, "The player prefab carries no SuitOxygen, so nobody breathes.");
+
+            var so = new SerializedObject(suit);
+
+            Assert.AreEqual(60f, so.FindProperty("suitSeconds").floatValue, 0.5f,
+                            "The suit's last-resort reserve is no longer sixty seconds.");
+
+            Assert.AreEqual(1f, so.FindProperty("drainPerSecond").floatValue, 0.001f,
+                            "The drain is not one second of air per second, so a tank's CAPACITY " +
+                            "is no longer its duration and every number in Oxygen.md is a lie.");
+
+            Assert.AreEqual(5, so.FindProperty("suffocationDamage").intValue,
+                            "Suffocation is not 5 damage a tick.");
+            Assert.AreEqual(1f, so.FindProperty("suffocationInterval").floatValue, 0.001f,
+                            "Suffocation does not tick once a second.");
+            Assert.AreEqual(0.10f, so.FindProperty("warnFraction").floatValue, 0.001f,
+                            "The visor no longer warns at 10% of the connected tank.");
         }
 
         /// <summary>
@@ -119,7 +237,7 @@ namespace SpaceGame.Tests
         [Test]
         public void TheSupplyItemsFitTheBackpacksFaces()
         {
-            foreach (string path in new[] { TankPrefab, DrainedPrefab, CellPrefab })
+            foreach (string path in new[] { TankPrefab, CellPrefab })
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 Assert.IsNotNull(prefab, "No prefab at " + path);
@@ -159,7 +277,7 @@ namespace SpaceGame.Tests
         [Test]
         public void TheBottleLiesDownWithItsGaugeOutward()
         {
-            foreach (string path in new[] { TankPrefab, DrainedPrefab })
+            foreach (string path in new[] { TankPrefab })
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 Assert.IsNotNull(prefab, "No prefab at " + path);
@@ -230,20 +348,21 @@ namespace SpaceGame.Tests
                             "The socket is " + socket.Size.ToString("F3") + " m, which is not the " +
                             "3 x 6 cells a bottle lying down occupies.");
 
-            var charged = AssetDatabase.LoadAssetAtPath<InventoryItem>(
+            var tank = AssetDatabase.LoadAssetAtPath<InventoryItem>(
                 "Assets/Game/Resources/Items/Supplies/OxygenTank.asset");
-            var drained = AssetDatabase.LoadAssetAtPath<InventoryItem>(
-                "Assets/Game/Resources/Items/Supplies/OxygenTankEmpty.asset");
-            Assert.IsNotNull(charged);
-            Assert.IsNotNull(drained);
+            Assert.IsNotNull(tank);
 
-            // Both bottles, because a player takes a full one out and puts a drained one back.
-            Assert.IsTrue(socket.AcceptsItem(charged), "The socket refuses the filled bottle.");
-            Assert.IsTrue(socket.AcceptsItem(drained), "The socket refuses the drained bottle.");
+            // ONE tank, at every fill level. There used to be two entries here because a charge was
+            // an item identity; the socket reserving two assets was the only way a player could
+            // take a full one out and put an empty one back.
+            Assert.IsTrue(socket.AcceptsItem(tank), "The socket refuses the oxygen tank.");
+            Assert.AreEqual(1, socket.AcceptsOnly.Count,
+                            "The socket reserves more than one asset. A tank's charge is a number " +
+                            "now, so a second reserved asset is a second way for a tank to exist.");
 
             // And nothing else. Any other item on the roster will do as the witness.
             var other = AssetDatabase.LoadAssetAtPath<InventoryItem>(
-                "Assets/Game/Resources/Items/Supplies/PowerCell.asset");
+                "Assets/Game/Resources/Items/Supplies/Battery.asset");
             Assert.IsNotNull(other);
             Assert.IsFalse(socket.AcceptsItem(other),
                            "The socket takes the power cell, so it is a shelf rather than the " +
@@ -255,10 +374,11 @@ namespace SpaceGame.Tests
             // and a pack is WORN from its Awake — worn, the only face that exists is the rack, so
             // TryStow can only ever answer "rack" and would say nothing about the ordering this is
             // testing. `TryArrange` over every surface is exactly what `StowAuthored` calls.
-            Assert.IsTrue(PackContainer.TryArrange(pack.Layout, pack.Surfaces, charged, pack.Shapes),
-                          "The rig would not take a bottle at all.");
+            Assert.IsTrue(PackContainer.TryArrange(pack.Layout, pack.Surfaces, tank, pack.Shapes),
+                          "The rig would not take a tank at all.");
             Assert.IsTrue(pack.Layout.Placements.Any(
-                              p => p.Surface == PackSurfaceId.BackPanelCentre && p.ItemId == charged.ID),
+                              p => p.Surface == PackSurfaceId.BackPanelCentre
+                                   && PackItemKey.NamesAsset(p.ItemId, tank.ID)),
                           "A stowed bottle did not land in its socket — first-fit put it on " +
                           string.Join(", ", pack.Layout.Placements.Select(p => p.Surface.ToString())) +
                           ". TryArrange offers RESERVED faces in a pass of their own, before the " +
@@ -297,26 +417,26 @@ namespace SpaceGame.Tests
             Assert.IsNotNull(tankSeat, "No TankDock/Seat on the plant — rebuild it with " +
                                        "Tools/SpaceGame/Build Oxygen System.");
 
-            plant.RestoreDock(true, OxygenGenerator.DockedTank.None);
+            plant.RestoreDock(1f, -1f);
             Assert.AreEqual(1, cellSeat.childCount,
-                            "Fitting a cell lit the machine but drew no cell in the slot.");
-            Assert.AreEqual(0, tankSeat.childCount, "A bottle appeared in an empty collar.");
+                            "Fitting a battery lit the machine but drew no battery in the slot.");
+            Assert.AreEqual(0, tankSeat.childCount, "A tank appeared in an empty collar.");
 
-            plant.RestoreDock(false, OxygenGenerator.DockedTank.None);
+            plant.RestoreDock(-1f, -1f);
             Assert.AreEqual(0, cellSeat.childCount,
-                            "Taking the cell out left its copy standing in the slot.");
+                            "Taking the battery out left its copy standing in the slot.");
 
-            plant.RestoreDock(false, OxygenGenerator.DockedTank.Drained);
-            Assert.AreEqual(1, tankSeat.childCount, "A docked bottle is not drawn in the collar.");
-            Assert.AreEqual(0, cellSeat.childCount, "A cell appeared in an empty slot.");
+            plant.RestoreDock(-1f, 0f);
+            Assert.AreEqual(1, tankSeat.childCount, "A docked tank is not drawn in the collar.");
+            Assert.AreEqual(0, cellSeat.childCount, "A battery appeared in an empty slot.");
 
-            // Powering up must leave the bottle alone: it is about to start filling, and the fill
+            // Powering up must leave the tank alone: it is about to start filling, and the fill
             // paints a gauge bound to the copy standing there now.
             Transform bottle = tankSeat.GetChild(0);
-            plant.RestoreDock(true, OxygenGenerator.DockedTank.Drained);
-            Assert.AreEqual(1, cellSeat.childCount, "Fitting a cell over a docked bottle drew no cell.");
+            plant.RestoreDock(1f, 0f);
+            Assert.AreEqual(1, cellSeat.childCount, "Fitting a battery over a docked tank drew none.");
             Assert.AreSame(bottle, tankSeat.GetChild(0),
-                           "Fitting the cell rebuilt the docked bottle, which drops the gauge the " +
+                           "Fitting the battery rebuilt the docked tank, which drops the gauge the " +
                            "fill it just started is painting.");
         }
 
@@ -334,7 +454,9 @@ namespace SpaceGame.Tests
             Assert.IsNotNull(saver, "The plant has no OxygenGeneratorSaveable baked in, so a " +
                                     "fitted cell is gone after every load.");
 
-            plant.RestoreDock(true, OxygenGenerator.DockedTank.Charged);
+            // A PART-charged pair, which is the whole reason both are floats now: the old
+            // format had three enum values and nothing partial to lose.
+            plant.RestoreDock(0.6f, 1f);
 
             object captured = saver.CaptureState();
             Assert.IsNotNull(captured, "A loaded plant captured nothing.");
@@ -342,19 +464,22 @@ namespace SpaceGame.Tests
             // Through a real string, because that is what a save file is.
             JObject payload = JObject.Parse(JObject.FromObject(captured, SaveSerializer.Serializer).ToString());
 
-            plant.RestoreDock(false, OxygenGenerator.DockedTank.None);
+            plant.RestoreDock(-1f, -1f);
             Assert.IsFalse(plant.Powered, "precondition: the plant was not emptied");
 
             saver.RestoreState(payload);
-            Assert.IsTrue(plant.Powered, "The restored plant lost its power cell.");
-            Assert.AreEqual(OxygenGenerator.DockedTank.Charged, plant.Tank,
-                            "The restored plant lost the bottle standing in it.");
+            Assert.IsTrue(plant.Powered, "The restored plant lost its battery.");
+            Assert.AreEqual(0.6f, plant.BatteryCharge, 0.01f,
+                            "The restored battery came back at a different charge — a partial " +
+                            "charge is expressible now, so rounding it is a real loss.");
+            Assert.AreEqual(1f, plant.TankCharge, 0.01f,
+                            "The restored plant lost the tank standing in it.");
             Assert.IsFalse(plant.IsFilling,
-                           "A restored plant with a FULL bottle is filling it again.");
+                           "A restored plant with a FULL tank is filling it again.");
 
             // And an untouched machine writes no record at all, so every ship that never used it
             // does not carry one.
-            plant.RestoreDock(false, OxygenGenerator.DockedTank.None);
+            plant.RestoreDock(-1f, -1f);
             Assert.IsNull(saver.CaptureState(),
                           "An empty plant writes a record, which puts one on every unused ship.");
         }

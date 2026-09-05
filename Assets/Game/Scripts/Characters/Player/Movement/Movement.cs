@@ -108,6 +108,26 @@ namespace SpaceGame.Characters
             }
         }
 
+        /// <summary>
+        /// Top speed under the player's own power, in m/s. Read by the leash as the "how hard can
+        /// it haul" half of a pull strength — so it is the authored ceiling, not the current speed.
+        /// </summary>
+        public float SprintSpeed => sprintSpeed;
+
+        /// <summary>
+        /// Where the player is asking to go, in world space, normalised — zero when they are not
+        /// asking. The same vector the move solve builds; exposed so the leash can tell a struggle
+        /// against the rope from a stroll along it.
+        /// </summary>
+        public Vector3 WishDirection
+        {
+            get
+            {
+                Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
+                return move.sqrMagnitude > 1e-4f ? move.normalized : Vector3.zero;
+            }
+        }
+
         /// <summary>Whether the player was on the ground as of the last physics step.</summary>
         public bool IsOnGround => wasGrounded;
 

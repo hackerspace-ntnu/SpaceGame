@@ -11,7 +11,7 @@
 // prefabs instead and are refreshed from their source on every build, so re-running a builder
 // after a re-texture still picks up the new look.
 //
-// Extracted from ShipRVBuilder when PlayerShipBuilder became its second user.
+// Extracted from a vehicle builder once a second one wanted the same trick.
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;

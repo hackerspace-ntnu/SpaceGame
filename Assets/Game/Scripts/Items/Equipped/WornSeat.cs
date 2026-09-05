@@ -39,7 +39,14 @@ namespace SpaceGame.Items
         /// <param name="mount">The fixture the item clips to — the pack's lash rail for back gear —
         /// or null when there is none. Given one, the item's POSITION is taken from it and the fit's
         /// own offset is not used; the rotation and the size are the fit's either way.</param>
-        public static void Apply(GameObject instance, Transform bone, WornFit fit, Transform mount = null)
+        /// <param name="form">Which of the item's worn models to show and size to. The world wears
+        /// <see cref="WornVisual.Form.Worn"/>; the gear screen wears
+        /// <see cref="WornVisual.Form.Inspected"/>, which is the wing pack's spread wings and, for
+        /// every other item, the same model again. Re-seating with a different form is all that
+        /// swapping between them takes — both models are authored on the same mount, so only the
+        /// measured size below actually changes.</param>
+        public static void Apply(GameObject instance, Transform bone, WornFit fit, Transform mount = null,
+                                 WornVisual.Form form = WornVisual.Form.Worn)
         {
             Transform t = instance.transform;
 
@@ -57,13 +64,15 @@ namespace SpaceGame.Items
             if (t.parent != bone) t.SetParent(bone, false);
 
             // Before the measurement below, and that order is the whole reason this call is here
-            // rather than in the controller. An item with a WornVisual is a different shape worn
-            // than carried — the wing pack is a folded aircraft in the hand and a 3.5 m pair of
-            // wings on the back — and ItemBounds reads only what is switched on. Swapped after
-            // the measure, the wings would be scaled to the folded bundle's size.
-            WornVisual.SetWorn(instance, true);
+            // rather than in the controller. An item with a WornVisual is a different shape in
+            // each form — the wing pack is a folded bundle in the hand, a pair of stowed wings on
+            // the back, and a pair of spread ones on the gear screen — and ItemBounds reads only
+            // what is switched on. Swapped after the measure, each model would be scaled to the
+            // size of whichever one happened to be showing when the measure ran.
+            WornVisual.SetForm(instance, form);
 
-            if (fit != null && fit.Size > 0f)
+            float target = fit != null ? fit.SizeFor(form) : 0f;
+            if (target > 0f)
             {
                 // Measured, not authored: the fit names the size the item is DRAWN at, so the scale
                 // that gets there depends on how big the model happens to be. Divided by the bone's
@@ -72,7 +81,7 @@ namespace SpaceGame.Items
                 Bounds bounds = ItemBounds.Measure(instance, null);
                 float longest = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);
                 float boneScale = Mathf.Max(0.0001f, bone.lossyScale.x);
-                if (longest > 0f) t.localScale = Vector3.one * (fit.Size / (longest * boneScale));
+                if (longest > 0f) t.localScale = Vector3.one * (target / (longest * boneScale));
             }
 
             t.localRotation = fit != null ? fit.LocalRotation : Quaternion.identity;

@@ -352,15 +352,42 @@ namespace SpaceGame.Items
 
         // ------------------------------------------------------------------ contents
 
-        /// <summary>The asset an item id names, or null if nothing here or in the registry knows it.</summary>
+        /// <summary>
+        /// The asset a placement's key names, or null if nothing here or in the registry knows it.
+        ///
+        /// <para>
+        /// Takes a <see cref="PackItemKey"/>, not an asset id — a container can hold two of the
+        /// same thing, so a placement is keyed by instance and the asset is its PREFIX. Passing a
+        /// bare asset id still works, because the first copy of anything IS its bare asset id.
+        /// </para>
+        /// </summary>
         public InventoryItem ItemFor(string itemId)
         {
             if (string.IsNullOrEmpty(itemId)) return null;
 
-            return known.TryGetValue(itemId, out InventoryItem item) && item != null
+            string assetId = PackItemKey.AssetOf(itemId);
+
+            return known.TryGetValue(assetId, out InventoryItem item) && item != null
                 ? item
-                : Registry<InventoryItem>.Get(itemId);
+                : Registry<InventoryItem>.Get(assetId);
         }
+
+        /// <summary>
+        /// How full the copy under a key is, or <see cref="SupplyCharge.None"/> when it is not here
+        /// or holds nothing.
+        /// </summary>
+        public float ChargeOf(string itemId) =>
+            TryFindPlacement(itemId, out PackPlacement placement) ? placement.Charge : SupplyCharge.None;
+
+        /// <summary>
+        /// Change how full a placed item is. False means the key is not here.
+        ///
+        /// <para>
+        /// Republishes the whole layout, so it is not a per-frame drain -- see
+        /// <see cref="PackLayout.SetCharge"/>.
+        /// </para>
+        /// </summary>
+        public bool SetCharge(string itemId, float charge) => Layout.SetCharge(itemId, charge);
 
         /// <summary>
         /// The placement whose cells cover a point on a surface, which is how a take names the
@@ -404,9 +431,26 @@ namespace SpaceGame.Items
         /// Refusing it because a leaf happens to be the other way up would either lose the item or
         /// shuffle it somewhere nobody asked for. The gate lives on the player-facing paths.
         /// </summary>
-        public bool TryPlace(InventoryItem item, PackSurfaceId surfaceId, Vector2 uv, float yaw)
+        public bool TryPlace(InventoryItem item, PackSurfaceId surfaceId, Vector2 uv, float yaw,
+                             float charge = SupplyCharge.None) =>
+            item != null
+            && TryPlaceKeyed(PackItemKey.Mint(item.ID, Layout.Placements), item, surfaceId, uv, yaw,
+                             DefaultedCharge(item, charge));
+
+        /// <summary>
+        /// <see cref="TryPlace"/> under a key that already exists -- the shape every RESTORE needs.
+        ///
+        /// <para>
+        /// A restore may not mint. The key is what ties a saved charge, a replicated charge and a
+        /// display object to one particular copy, so re-minting on the way in would renumber the
+        /// copies and hand the wrong tank the wrong contents -- invisibly, because both are tanks.
+        /// </para>
+        /// </summary>
+        protected bool TryPlaceKeyed(string key, InventoryItem item, PackSurfaceId surfaceId,
+                                     Vector2 uv, float yaw, float charge)
         {
-            if (item == null || string.IsNullOrEmpty(item.ID)) return false;
+            if (item == null || string.IsNullOrEmpty(item.ID) || string.IsNullOrEmpty(key))
+                return false;
 
             PackSurface surface = SurfaceFor(surfaceId);
             if (surface == null) return false;
@@ -426,9 +470,19 @@ namespace SpaceGame.Items
 
             // Snapped here rather than inside the layout, because whether an item may turn at all
             // is a property of the ITEM's authored row and the layout has no library to ask.
-            return Layout.TryPlace(item.ID, surfaceId, surface.Size, PackShapes.For(item, shapes),
-                                   uv, PackShapes.SnapYaw(item, shapes, yaw));
+            return Layout.TryPlace(key, surfaceId, surface.Size, PackShapes.For(item, shapes),
+                                   uv, PackShapes.SnapYaw(item, shapes, yaw), charge);
         }
+
+        /// <summary>
+        /// The charge to store for an item nobody named one for: its authored starting charge if it
+        /// is a supply, and <see cref="SupplyCharge.None"/> otherwise.
+        ///
+        /// A fresh tank has to arrive at the charge its prefab says, not at zero -- an item that
+        /// silently lands empty is indistinguishable from one the player drained.
+        /// </summary>
+        private static float DefaultedCharge(InventoryItem item, float charge) =>
+            charge >= 0f ? charge : SupplyCharge.StartingChargeOf(item);
 
         /// <summary>Slide something already held somewhere else, possibly onto another face.</summary>
         public bool TryMove(string itemId, PackSurfaceId surfaceId, Vector2 uv, float yaw)
@@ -453,7 +507,7 @@ namespace SpaceGame.Items
         /// Overflow target for world pickups, which arrive with no opinion about where they go.
         /// First-fit across the faces in order; false means there is genuinely no room for it.
         /// </summary>
-        public bool TryStow(InventoryItem item)
+        public bool TryStow(InventoryItem item, float charge = SupplyCharge.None)
         {
             if (item == null || string.IsNullOrEmpty(item.ID)) return false;
 
@@ -462,7 +516,9 @@ namespace SpaceGame.Items
 
             // Reachable faces only. First-fit is the one path with no player pointing at anything,
             // so it is the one that would otherwise put gear under the mat and never mention it.
-            return TryArrange(Layout, ReachableSurfaces(), item, shapes);
+            return TryArrange(Layout, ReachableSurfaces(), item, shapes,
+                              PackItemKey.Mint(item.ID, Layout.Placements),
+                              DefaultedCharge(item, charge));
         }
 
         /// <summary>
@@ -473,14 +529,17 @@ namespace SpaceGame.Items
         /// spot no longer fits, is a record of where the gear already is rather than a player
         /// choosing a face.
         /// </summary>
-        protected bool StowAuthored(InventoryItem item)
+        protected bool StowAuthored(InventoryItem item, float charge = SupplyCharge.None,
+                                    string key = null)
         {
             if (item == null || string.IsNullOrEmpty(item.ID)) return false;
 
             // Before, not after — see the note in TryPlace.
             known[item.ID] = item;
 
-            return TryArrange(Layout, ResolvedSurfaces(), item, shapes);
+            return TryArrange(Layout, ResolvedSurfaces(), item, shapes,
+                              key ?? PackItemKey.Mint(item.ID, Layout.Placements),
+                              DefaultedCharge(item, charge));
         }
 
         /// <summary>
@@ -510,32 +569,93 @@ namespace SpaceGame.Items
             InventoryItem item = slot != null && !slot.IsEmpty ? slot.Item : null;
             if (item == null || string.IsNullOrEmpty(item.ID)) return false;
 
-            // The layout is keyed by id, so an item already held cannot be placed a second time —
-            // TryPlace answers false for it. Caught here instead, because reaching the hotbar
-            // removal below on a refused placement is exactly the item-deleting path this method is
-            // ordered to avoid, and because the same asset really can be in both places at once:
-            // the hotbar holds items by reference, not by instance.
-            if (TryFindPlacement(item.ID, out _)) return false;
+            // The copy's own charge travels with it. Read BEFORE the slot is emptied, because
+            // TryRemoveItem takes the bag with the item.
+            float charge = SupplyCharge.Read(slot.State);
 
-            if (!Reaches(surfaceId) || !TryPlace(item, surfaceId, uv, yaw)) return false;
+            // Minted here rather than inside TryPlace, because the undo below has to name the very
+            // placement this made — and a second stow of the same asset now legitimately exists, so
+            // "remove the one under item.ID" would take the wrong one off the pack.
+            string key = PackItemKey.Mint(item.ID, Layout.Placements);
+
+            if (!Reaches(surfaceId)
+                || !TryPlaceKeyed(key, item, surfaceId, uv, yaw, DefaultedCharge(item, charge)))
+                return false;
 
             // Cannot fail: the index was bounds-checked against this very hotbar and the slot was
             // read out of it. Undone rather than trusted anyway, because the failure would be one
             // item in two places, which nothing downstream would ever notice.
             if (!hotbar.TryRemoveItem(slotIndex))
             {
-                Layout.Remove(item.ID);
+                Layout.Remove(key);
                 return false;
             }
 
             return true;
         }
 
-        /// <summary>Is this asset already lying here? The layout is keyed by id, so a second copy
-        /// of one can never be placed — see <see cref="TryStowFromHotbar"/>.</summary>
-        public bool Holds(string itemId) => TryFindPlacement(itemId, out _);
+        /// <summary>
+        /// Is at least one copy of this ASSET lying here? Takes an asset id or any
+        /// <see cref="PackItemKey"/> naming one; both answer the same question.
+        /// </summary>
+        public bool Holds(string itemId)
+        {
+            string assetId = PackItemKey.AssetOf(itemId);
+            IReadOnlyList<PackPlacement> all = Layout.Placements;
 
-        /// <summary>Where an id currently sits, if it is here at all.</summary>
+            for (int i = 0; i < all.Count; i++)
+                if (PackItemKey.NamesAsset(all[i].ItemId, assetId)) return true;
+
+            return false;
+        }
+
+        /// <summary>
+        /// What is standing in this container's reserved socket for <paramref name="kind"/> — the
+        /// one place a supply is actually PLUGGED IN rather than merely carried.
+        ///
+        /// <para>
+        /// A socket is a face with an <see cref="PackSurface.AcceptsOnly"/> list naming a supply of
+        /// that kind; it holds at most one thing, because that is what reserving it for one item
+        /// means. Asked by kind rather than by <see cref="PackSurfaceId"/> so that a second socket
+        /// — a battery bay on the rig — needs no change here.
+        /// </para>
+        /// </summary>
+        public bool TryFindSocketed(SupplyKind kind, out PackPlacement placement)
+        {
+            placement = default;
+
+            IReadOnlyList<PackSurface> all = ResolvedSurfaces();
+
+            for (int i = 0; i < all.Count; i++)
+            {
+                PackSurface surface = all[i];
+                if (surface?.AcceptsOnly == null || surface.AcceptsOnly.Count == 0) continue;
+
+                if (!AcceptsKind(surface, kind)) continue;
+
+                IReadOnlyList<PackPlacement> placements = Layout.Placements;
+
+                for (int j = 0; j < placements.Count; j++)
+                {
+                    if (placements[j].Surface != surface.Id) continue;
+
+                    placement = placements[j];
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool AcceptsKind(PackSurface surface, SupplyKind kind)
+        {
+            for (int i = 0; i < surface.AcceptsOnly.Count; i++)
+                if (SupplyCharge.Holds(surface.AcceptsOnly[i], kind)) return true;
+
+            return false;
+        }
+
+        /// <summary>Where one particular COPY currently sits, if it is here at all.</summary>
         protected bool TryFindPlacement(string itemId, out PackPlacement placement)
         {
             IReadOnlyList<PackPlacement> placements = Layout.Placements;
@@ -596,10 +716,12 @@ namespace SpaceGame.Items
                     InventoryItem item = ItemFor(placement.ItemId);
                     if (item == null) continue;
 
-                    // StowAuthored, not TryStow: the fallback is still part of a restore, so it may
-                    // not be confined to the faces a player could reach right now.
-                    if (!TryPlace(item, placement.Surface, placement.Uv, placement.Yaw))
-                        StowAuthored(item);
+                    // The record's OWN key and charge, never a freshly minted pair -- see
+                    // TryPlaceKeyed. StowAuthored, not TryStow: the fallback is still part of a
+                    // restore, so it may not be confined to the faces a player could reach now.
+                    if (!TryPlaceKeyed(placement.ItemId, item, placement.Surface, placement.Uv,
+                                       placement.Yaw, placement.Charge))
+                        StowAuthored(item, placement.Charge, placement.ItemId);
                 }
             }
             finally
@@ -615,10 +737,16 @@ namespace SpaceGame.Items
         /// exist when it was written, and a placement off the wire whose spot no longer fits.
         /// </summary>
         public static bool TryArrange(PackLayout layout, IReadOnlyList<PackSurface> surfaces,
-                                      InventoryItem item, PackShapeLibrary shapes)
+                                      InventoryItem item, PackShapeLibrary shapes,
+                                      string key = null, float charge = SupplyCharge.None)
         {
             if (layout == null || surfaces == null || item == null || string.IsNullOrEmpty(item.ID))
                 return false;
+
+            // A caller that named no key is placing the first copy of something, which IS the bare
+            // asset id. Minted here rather than demanded of every caller so the three existing ones
+            // -- a world pickup, a v1 save, a placement off the wire -- read as they did.
+            key ??= PackItemKey.Mint(item.ID, layout.Placements);
 
             PackShape shape = PackShapes.For(item, shapes);
 
@@ -651,7 +779,7 @@ namespace SpaceGame.Items
 
                     if (layout.TryFindSpot(surface.Id, surface.Size, shape, out Vector2 uv,
                                            out float yaw, ignoreItemId: null, allowTurns: mayTurn)
-                        && layout.TryPlace(item.ID, surface.Id, surface.Size, shape, uv, yaw))
+                        && layout.TryPlace(key, surface.Id, surface.Size, shape, uv, yaw, charge))
                         return true;
                 }
             }
@@ -692,8 +820,9 @@ namespace SpaceGame.Items
 
             // Tested BEFORE the item leaves, because a take-then-put-back whose add failed in
             // between would have already fired a change and destroyed the display object.
-            if (hotbar.TryAddItem(heldItem))
+            if (hotbar.TryAddItem(heldItem, out int landed))
             {
+                GiveCharge(hotbar, landed, placement.Charge);
                 TakeOut(placement.ItemId);
                 return true;
             }
@@ -747,14 +876,10 @@ namespace SpaceGame.Items
                 // when every OTHER slot on the bar is full.
                 if (held == null) return true;
 
-                // The same asset already sitting where it would land: refused outright, ahead of
-                // any room test, because the layout is keyed by id and no spot would ever be
-                // approved for it.
-                if (held.ID == packItem.ID)
-                {
-                    refused = true;
-                    return false;
-                }
+                // The same asset in both places used to be refused outright here, because the
+                // layout was keyed by asset id and no spot would ever be approved for the one
+                // coming back. It is keyed by PackItemKey now — two tanks are two placements —
+                // so the swap is legitimate and the ordinary room test below decides it.
             }
             else
             {
@@ -862,6 +987,29 @@ namespace SpaceGame.Items
             return false;
         }
 
+        /// <summary>
+        /// Hand a hotbar slot the charge the copy leaving this container was holding, and tell the
+        /// hotbar to publish it.
+        ///
+        /// <para>
+        /// Silent for anything that holds nothing (<paramref name="charge"/> below zero) and for a
+        /// slot index of -1, which is what a CLIENT's optimistic add reports — a client must not
+        /// write per-instance state into an index the server has not agreed to yet.
+        /// </para>
+        /// </summary>
+        private static void GiveCharge(IPlayerInventory hotbar, int slotIndex, float charge)
+        {
+            if (hotbar == null || slotIndex < 0 || charge < 0f) return;
+
+            InventorySlot slot = hotbar.GetSlot(slotIndex);
+            if (slot == null || slot.IsEmpty) return;
+
+            slot.State ??= new ItemState();
+            SupplyCharge.Write(slot.State, charge);
+
+            hotbar.PublishSlotCharges();
+        }
+
         private static bool HasEmptySlot(IPlayerInventory hotbar)
         {
             for (int i = 0; i < hotbar.GetInventorySize(); i++)
@@ -926,18 +1074,25 @@ namespace SpaceGame.Items
                                                     PackShapes.AllowsRotation(held, shapes))))
                 return false;
 
+            // Read before the slot is cleared: TryRemoveItem takes the bag with the item, and this
+            // is the charge that is about to go the other way, onto the pack.
+            float heldCharge = SupplyCharge.Read(heldSlot.State);
+
             // Clears the slot. It does NOT spawn a world pickup — that is PlayerInventory.DropItem,
             // a different method — so nothing can leak onto the ground mid-swap.
             if (!hotbar.TryRemoveItem(target)) return false;
 
-            if (!hotbar.TryAddItem(packItem))
+            if (!hotbar.TryAddItem(packItem, out int landed))
             {
                 // Cannot happen once a slot has been cleared, but leaving the hotbar a slot short
                 // would be a silent item loss, so put the held item back and abandon the swap.
-                hotbar.TryAddItem(held);
+                hotbar.TryAddItem(held, out int restored);
+                GiveCharge(hotbar, restored, heldCharge);
                 if (hotbar.SelectedSlotIndex != target) hotbar.SelectSlot(target);
                 return false;
             }
+
+            GiveCharge(hotbar, landed, placement.Charge);
 
             TakeOut(placement.ItemId);
 
@@ -945,7 +1100,7 @@ namespace SpaceGame.Items
             // item is what has just left. Reported rather than assumed anyway, because the failure
             // would be a silently destroyed item — the one outcome this whole method is written to
             // avoid, and one that no assertion downstream would catch.
-            if (!TryPlace(held, placement.Surface, uv, yaw))
+            if (!TryPlace(held, placement.Surface, uv, yaw, heldCharge))
             {
                 Debug.LogError($"{GetType().Name}: the swap proved '{held.itemName}' fits at {uv} " +
                                $"on {placement.Surface} and then could not place it. The item is lost.",

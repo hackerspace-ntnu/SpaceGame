@@ -331,9 +331,60 @@ namespace SpaceGame.Items
 
             GameObject instance = Instantiate(prefab, bone);
             EquipItemSocket.Sanitize(instance);
-            WornSeat.Apply(instance, bone, instance.GetComponent<WornFit>(), TorsoMount(kind));
+
+            // torsoForm, not Worn: the gear screen is WHERE gear is put on, so an item can perfectly
+            // well arrive while the screen is open, and one seated in the world's form then would
+            // be the only thing on that screen wearing the wrong shape until it closed.
+            WornSeat.Apply(instance, bone, instance.GetComponent<WornFit>(), TorsoMount(kind), torsoForm);
 
             return instance;
+        }
+
+        /// <summary>
+        /// Which of its models torso gear is wearing. The world's, except while the gear screen is
+        /// open — see <see cref="WornVisual.Form"/>.
+        ///
+        /// <para>
+        /// Held here rather than asked of the screen because this controller owns the instances and
+        /// outlives any session over them: a screen that is torn down without an Exit would
+        /// otherwise leave its gear spread, and a screen that opens after an item is worn would
+        /// have to find that item to fix it. One field, set from both ends of the session.
+        /// </para>
+        /// </summary>
+        private WornVisual.Form torsoForm = WornVisual.Form.Worn;
+
+        /// <summary>
+        /// Re-seat whatever torso gear is worn into <paramref name="form"/>, and remember it for
+        /// anything worn later. Called by <c>BodyFocusSession</c> at both ends of the gear screen.
+        ///
+        /// <para>
+        /// A re-seat rather than a bare model swap, because the two models have different spans and
+        /// <see cref="WornSeat.Apply"/> is what turns a span into a scale. Swapping the child alone
+        /// would leave the gear screen's 5.51 m wings wearing the scale that was computed for the
+        /// 1.97 m stowed bundle, which is the same wing shrunk to a third — a change that looks
+        /// deliberate and is not.
+        /// </para>
+        /// <para>
+        /// Idempotent, and safe with nothing worn. It must be, because Exit runs on teardown paths
+        /// that may never have reached Enter.
+        /// </para>
+        /// </summary>
+        public void SetTorsoForm(WornVisual.Form form)
+        {
+            torsoForm = form;
+
+            Worn entry = worn[(int)BodySlot.Torso];
+            if (entry?.Instance == null || entry.Item == null) return;
+
+            // The item's own kind, exactly as WearOnTorso reads it: the one torso slot holds back
+            // gear or chest gear, and which one decides both the bone and whether there is a rail.
+            EquipKind kind = entry.Item.equipKind;
+
+            Transform bone = WornSeat.BoneFor(kind, entry.Bone, chest);
+            if (bone == null) return;
+
+            WornSeat.Apply(entry.Instance, bone, entry.Instance.GetComponent<WornFit>(),
+                           TorsoMount(kind), form);
         }
 
         /// <summary>

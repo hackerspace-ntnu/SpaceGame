@@ -158,7 +158,7 @@ def _unmirror():
 
 
 def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
-           fix_inverted=False):
+           fix_inverted=False, keep_collection=None):
     """Open `src`, export it to `dst`, and never write back to `src`.
 
     `keep_armature` is the one real decision per model. Keep the rig when
@@ -169,7 +169,10 @@ def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
 
     `keep` names the objects to ship when the source is a COMPONENT file rather
     than a model — see `_keep_only`. Omit it for a model file, whose objects are
-    already exactly the model.
+    already exactly the model. `keep_collection` is the same filter by
+    COLLECTION name, resolved after the file is open: for a variation the user
+    keeps hand-editing, whatever they add to that collection ships, and nothing
+    has to be retyped here (`standing_terminal_export.py`).
 
     `keep_empties` ships the file's empties as well. Off by default because an
     empty in a model file is usually a build helper, not a socket; turn it on
@@ -184,6 +187,13 @@ def export(src, dst, keep_armature=False, keep=None, keep_empties=False,
         raise SystemExit("No model at %s" % src)
 
     bpy.ops.wm.open_mainfile(filepath=src)
+
+    if keep_collection is not None:
+        coll = bpy.data.collections.get(keep_collection)
+        if coll is None:
+            raise SystemExit("No collection %r in %s" % (keep_collection, src))
+        keep = sorted(o.name for o in coll.all_objects) + list(keep or [])
+        print("  collection %s: %s" % (keep_collection, ", ".join(keep)))
 
     if keep is not None:
         print("  keeping %d object(s), dropped %d other variation object(s)"

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using SpaceGame.Agents;
 using SpaceGame.Characters;
 using SpaceGame.Core;
 using UnityEngine;
@@ -76,6 +78,26 @@ namespace SpaceGame.Gameplay.Ragdoll
         private bool dead;
         private float downUntil;
 
+        /// <summary>
+        /// Everything currently holding this player down with no end time — a net, a tie, both at
+        /// once. See <see cref="HoldDown"/>.
+        ///
+        /// <para>
+        /// A set of holders rather than a flag, and it is the same shape <see cref="CarriedBody"/>
+        /// uses for the same reason: two systems can want one body down, and the one that lets go
+        /// first must not stand it up. A captor hands back the token it claimed with, so forgetting
+        /// is a compile error rather than a captive who gets up on their own.
+        /// </para>
+        /// <para>
+        /// Identity only — nothing is ever read off a holder. <see cref="object"/> rather than an
+        /// interface so a captor needs to implement nothing at all to take part.
+        /// </para>
+        /// </summary>
+        private readonly HashSet<object> holders = new HashSet<object>();
+
+        /// <summary>Is anything holding this player down right now?</summary>
+        private bool IsHeld => holders.Count > 0;
+
         private Transform cameraTransform;
         private Transform cameraParent;
         private Vector3 cameraLocalPosition;
@@ -121,6 +143,33 @@ namespace SpaceGame.Gameplay.Ragdoll
         private bool Drives => Network.Owns(this);
 
         /// <summary>
+        /// Is this player's body already somebody else's to move?
+        ///
+        /// <para>
+        /// Asked of <see cref="CarriedBody"/> rather than of a mount, and that is the whole reason
+        /// this answer is trustworthy. There is no single "am I mounted" flag on a player: a rider
+        /// is normally parented into the saddle, so <c>GetComponentInParent&lt;MountModule&gt;()</c>
+        /// would usually find it — but <c>MountModule.ParentRiderToMount</c> has a documented
+        /// fallback that seats a rider WITHOUT parenting when netcode refuses the reparent, and a
+        /// hierarchy check misses exactly that case. Both riding systems in this project register
+        /// their claim here instead (<c>MountModule</c> for the saddle,
+        /// <c>SeatedRider</c> for a ship's chair), on every path, parented or not.
+        /// </para>
+        /// <para>
+        /// <b>Rigidly, not merely held, and the difference is a desync.</b>
+        /// <c>UnderTerrainGuard</c> claims bodies through the same record while the ground under
+        /// them loads — but the guard runs OWNER-ONLY, so that claim exists on the victim's machine
+        /// and nowhere else. Refusing on it would have the server accept a capture and announce it,
+        /// every peer put the body limp, and the victim's own machine alone refuse — and a player's
+        /// transform is owner-authoritative, so the victim's answer is the one that wins. Limp on
+        /// every other screen, walking around on their own, during ordinary chunk streaming. The
+        /// seat and the saddle are replicated and produce the same answer everywhere, which is what
+        /// makes them safe to refuse on; see <see cref="CarriedBody.IsCarriedRigidly"/>.
+        /// </para>
+        /// </summary>
+        private bool IsCarried => CarriedBody.IsCarriedRigidly(gameObject);
+
+        /// <summary>
         /// How fast this player was already moving. Unlike a creature's, this one really is on the
         /// rigidbody — but only until <see cref="Suspend"/> makes it kinematic, so every caller
         /// reads it first.
@@ -133,6 +182,20 @@ namespace SpaceGame.Gameplay.Ragdoll
         private void OnDeath()
         {
             dead = true;
+
+            // Death outranks the hold, the way this file's header says it outranks every other
+            // control owner. What is dropped is the hold's CLAIM, not the limpness: the corpse
+            // stays down, it just stops being a captive the budget may not reclaim. Without this a
+            // player netted at the moment they die keeps their place in RagdollBudget for the rest
+            // of the session, and enough of them stop the budget bounding anything.
+            //
+            // Cleared directly rather than through ReleaseHold, and the difference is not cosmetic.
+            // ReleaseHold releases ONE claim and would leave every other captor's standing; death
+            // ends all of them at once. It is also the only writer that may empty the set without
+            // being asked, which is why it does it here rather than by calling a method whose job
+            // is to let somebody stand up.
+            holders.Clear();
+            rig.BudgetExempt = false;
 
             // On a peer's machine a networked death arrives through RestoreHealth, which sets
             // IsRestoring — so this is true both for a save being loaded and for a remote player's
@@ -151,6 +214,16 @@ namespace SpaceGame.Gameplay.Ragdoll
         private void OnRevive()
         {
             dead = false;
+
+            // Belt to OnDeath's braces. Unreachable today — death always clears the claims first,
+            // and HealthComponent only raises this on a dead-to-alive transition — but the failure
+            // if it ever were reachable is permanent and silent: Restore below calls rig.Recover,
+            // which unregisters from the budget while leaving the claim set standing, and HoldDown
+            // answers a stale claim rather than taking a fresh one. That body would be limp to
+            // everything that asks and never netted again, for the rest of its life.
+            holders.Clear();
+            rig.BudgetExempt = false;
+
             if (rig.IsLimp) Restore();
         }
 
@@ -168,6 +241,107 @@ namespace SpaceGame.Gameplay.Ragdoll
             downUntil = Time.time + down;
         }
 
+        /// <summary>
+        /// Go limp and STAY limp until told otherwise.
+        ///
+        /// <para>
+        /// Distinct from <see cref="OnKnockdown"/>, which recovers on its own timer, because the
+        /// end of this one is not known when it starts: a captive is up when they have struggled
+        /// out, and how long that takes is decided on the server against a pool being drained by
+        /// their own inputs. Nothing about the duration can travel, so nothing tries to.
+        /// </para>
+        /// <para>
+        /// The caller is <c>SnaredBody.Bind</c>, which every machine reaches: the deciding machine
+        /// captures directly in <c>SnareReceiver.ResolveLandedNets</c> and the peers on hearing
+        /// <c>NetMsg.Snared</c>. So this runs everywhere, and the Drives split then decides which
+        /// half of the ragdoll plumbing this machine gets, exactly as for a knockdown.
+        /// </para>
+        /// <para>
+        /// The caller owns the release. Until <see cref="ReleaseHold"/> runs, the rig is exempt
+        /// from <c>RagdollBudget</c> and this component ignores every other reason to stand up.
+        /// </para>
+        /// </summary>
+        /// <returns>
+        /// True once the player is actually limp and held. FALSE means the hold did not take and
+        /// the caller must not treat this body as held — it is dead, something else is already
+        /// carrying it (see <see cref="IsCarried"/>), or the rig declined to go limp at all.
+        /// <c>RagdollRig.GoLimp</c> returns without a word when the skeleton build kept no bones,
+        /// and a caller that assumed otherwise would leave a player suspended with their input
+        /// switched off and nothing in the console: the <c>!rig.IsLimp</c> rescue in
+        /// <see cref="Update"/> is skipped while any claim is still standing, so nothing else would
+        /// ever pick them back up.
+        /// </returns>
+        public bool HoldDown(object holder)
+        {
+            if (holder == null || dead) return false;
+
+            // Somebody else already has this body down. Take a claim on it and say so: the work
+            // below has been done, and doing it twice would record the suspended state as this
+            // body's normal one.
+            if (IsHeld)
+            {
+                holders.Add(holder);
+                return true;
+            }
+
+            // The player counterpart of AgentRagdoll's rider refusal, and it is the same hazard
+            // seen from the other end: a rider is PARENTED into the saddle, so one that goes limp
+            // in it is dragged wherever the animal walks, through the ground included — and on a
+            // client that is a body the server does not own and cannot put back.
+            if (IsCarried) return false;
+
+            holders.Add(holder);
+
+            // Read before Suspend, which switches the body kinematic underneath it — the same
+            // ordering OnDeath and OnKnockdown spell out. Taken after, CarriedVelocity is a
+            // confident zero and a captive netted mid-sprint drops as if switched off.
+            Vector3 carried = CarriedVelocity;
+
+            Suspend();
+            rig.BudgetExempt = true;
+            rig.GoLimp(carried, settled: false, drives: Drives);
+
+            // Asked of the rig afterwards rather than pre-checked against HasSkeleton, so the
+            // refusal covers every reason GoLimp can decline rather than only the one we thought
+            // of. Everything this method did is undone, suspend included, or the refusal is worse
+            // than the failure it is reporting.
+            if (rig.IsLimp) return true;
+
+            holders.Remove(holder);
+            rig.BudgetExempt = false;
+            Restore();
+            return false;
+        }
+
+        /// <summary>
+        /// Give up one claim. The player stands up only once the LAST one is given up — the same
+        /// rule <see cref="CarriedBody.Release"/> follows, and for the same reason: a net that rots
+        /// off a hogtied captive must not untie them.
+        ///
+        /// Safe to call with a token that was never claimed, or after death has cleared the set.
+        /// </summary>
+        public void ReleaseHold(object holder)
+        {
+            if (holder == null || !holders.Remove(holder)) return;
+            if (IsHeld) return;
+
+            rig.BudgetExempt = false;
+
+            // Not Restore() directly: Update owns the recovery, and it has to check IsSettled first
+            // or a player released mid-tumble snaps upright out of a roll. Clearing downUntil is
+            // what lets that check run on the very next frame.
+            downUntil = 0f;
+        }
+
+        /// <summary>
+        /// Is this player on the ground right now, by any route — a net, a tie, or a blast?
+        ///
+        /// Deliberately broader than the claim set: a player knocked flat by a repulsor blast is
+        /// just as tieable as a netted one, and refusing that would make the two feel like
+        /// unrelated systems.
+        /// </summary>
+        public bool IsHeldOrDown => IsHeld || (rig != null && rig.IsLimp);
+
         // ── Getting back up ───────────────────────────────────────────────────
 
         private void Update()
@@ -178,6 +352,14 @@ namespace SpaceGame.Gameplay.Ragdoll
             // has control, and a knockdown that landed on the same frame as the killing blow must
             // not stand the corpse back up.
             if (dead || (controller != null && controller.IsDead)) return;
+
+            // A hold has no timer and no settle condition to wait for, so every reason to stand up
+            // below is the wrong one. It has to sit ABOVE the budget rescue too, not just above the
+            // timer: that branch restores the moment the rig stops being limp, and standing a
+            // captive up because a corpse elsewhere took their place in the budget is the exact
+            // defect BudgetExempt exists to close. Belt and braces — an exempt rig should never
+            // reach it.
+            if (IsHeld) return;
 
             // Frozen out from under us by RagdollBudget — see AgentRagdoll for the same guard. On a
             // player this one is not cosmetic: leaving it suspended is leaving them unable to move.

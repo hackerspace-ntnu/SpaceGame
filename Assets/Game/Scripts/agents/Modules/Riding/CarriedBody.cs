@@ -52,6 +52,20 @@ namespace SpaceGame.Agents
             public bool HadGravity;
             public RigidbodyInterpolation Interpolation;
             public readonly HashSet<object> Holders = new();
+
+            /// <summary>
+            /// The subset of <see cref="Holders"/> that is PLACING the body rather than parking it —
+            /// a seat or a saddle, not <see cref="SuspendGravity"/>. See
+            /// <see cref="IsCarriedRigidly"/>.
+            ///
+            /// <para>
+            /// A set rather than a bool on the record, because a bool goes stale: a player seated in
+            /// a ship (<see cref="Hold"/>) while the terrain guard also has them parked
+            /// (<see cref="SuspendGravity"/>) leaves two claims, and when the seat lets go first a
+            /// bool would still be reporting a body somebody is placing.
+            /// </para>
+            /// </summary>
+            public readonly HashSet<object> Placers = new();
         }
 
         private static readonly Dictionary<Rigidbody, Record> s_held = new();
@@ -76,7 +90,7 @@ namespace SpaceGame.Agents
         /// </summary>
         public static void Hold(GameObject body, object holder)
         {
-            Rigidbody rb = Claim(body, holder);
+            Rigidbody rb = Claim(body, holder, placing: true);
             if (rb == null) return;
 
             // Velocity first: writing it to a body that is already kinematic is a Unity warning and
@@ -117,7 +131,7 @@ namespace SpaceGame.Agents
         /// </summary>
         public static void SuspendGravity(GameObject body, object holder)
         {
-            Rigidbody rb = Claim(body, holder);
+            Rigidbody rb = Claim(body, holder, placing: false);
             if (rb == null) return;
 
             rb.useGravity = false;
@@ -128,7 +142,12 @@ namespace SpaceGame.Agents
         /// body was if nobody else already has. Returns the body to write, or null when there is
         /// nothing to claim.
         /// </summary>
-        private static Rigidbody Claim(GameObject body, object holder)
+        /// <param name="placing">
+        /// True when this holder decides where the body IS — a seat, a saddle — rather than merely
+        /// taking its weight. Recorded separately so <see cref="IsCarriedRigidly"/> can tell the two
+        /// apart; see there for why anybody needs to.
+        /// </param>
+        private static Rigidbody Claim(GameObject body, object holder, bool placing)
         {
             Rigidbody rb = Resolve(body);
             if (rb == null || holder == null) return null;
@@ -145,6 +164,8 @@ namespace SpaceGame.Agents
             }
 
             hold.Holders.Add(holder);
+            if (placing) hold.Placers.Add(holder);
+
             return rb;
         }
 
@@ -158,6 +179,7 @@ namespace SpaceGame.Agents
             if (rb == null || holder == null) return;
             if (!s_held.TryGetValue(rb, out Record hold)) return;
 
+            hold.Placers.Remove(holder);
             hold.Holders.Remove(holder);
             if (hold.Holders.Count > 0) return;
 
@@ -193,6 +215,7 @@ namespace SpaceGame.Agents
 
             foreach (KeyValuePair<Rigidbody, Record> entry in s_held)
             {
+                entry.Value.Placers.Remove(holder);
                 if (!entry.Value.Holders.Remove(holder)) continue;
                 if (entry.Value.Holders.Count == 0) emptied.Add(entry.Key);
             }
@@ -211,6 +234,30 @@ namespace SpaceGame.Agents
         {
             Rigidbody rb = Resolve(body);
             return rb != null && s_held.ContainsKey(rb);
+        }
+
+        /// <summary>
+        /// Is something PLACING this body — putting it where it is, rather than only holding its
+        /// weight off it?
+        ///
+        /// <para>
+        /// The narrower question <see cref="IsHeld"/> cannot answer, and the one anything that wants
+        /// to take a body over has to ask. A seat and a saddle decide where a body is, so a second
+        /// system moving it fights them; <see cref="SuspendGravity"/>'s park does not, and treating
+        /// it as if it did means standing aside for a claim that is not in the way.
+        /// </para>
+        /// <para>
+        /// <b>The distinction is a multiplayer one as much as a physical one.</b> The seat and the
+        /// saddle are replicated, so every machine agrees a body is in one. <c>UnderTerrainGuard</c>
+        /// runs owner-only, so its park exists on the victim's machine alone — and a decision taken
+        /// against <see cref="IsHeld"/> comes out differently there from everywhere else, which for
+        /// an owner-authoritative body means the peers act on an answer the owner never gave.
+        /// </para>
+        /// </summary>
+        public static bool IsCarriedRigidly(GameObject body)
+        {
+            Rigidbody rb = Resolve(body);
+            return rb != null && s_held.TryGetValue(rb, out Record hold) && hold.Placers.Count > 0;
         }
 
         /// <summary>

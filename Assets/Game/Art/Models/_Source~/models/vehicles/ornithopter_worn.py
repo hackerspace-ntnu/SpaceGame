@@ -2,14 +2,44 @@
 
 The held item is `wing_pack_folded.blend`: the whole craft folded into a bundle.
 This is the other thing the same item has to be — what you see strapped to a
-player's back. A folded aircraft on somebody's shoulders reads as luggage, so
-the worn form throws the aircraft away and keeps the two things that say
-"flight": the webbed wings, and the spoked shoulder mechanics that beat them.
+player's back. The worn form throws the aircraft away and keeps the two things
+that say "flight": the webbed wings, and the spoked shoulder mechanics that beat
+them.
 
 Gone, deliberately: the fuselage, the nose, the tail boom, the tail fan, the
 prone cradle, the shoulder pylons and the tie-rod struts. Everything that held
 the machine together around a rider it no longer has. What is left hangs off the
 expedition rig's own hardware instead — see the frame note below.
+
+## Two files, one machine, two poses (2026-09-05)
+
+This script writes **both** worn shapes, from the same rig at the same scale:
+
+| `--commit` | file | pose | worn |
+| --- | --- | --- | --- |
+| default | `ornithopter_worn.blend` | STOWED, 1.97 m | day to day, out in the world |
+| `--spread` | `ornithopter_worn_on_person.blend` | OPEN, 5.51 m | on the gear screen (I) |
+
+**Stowed** is folded shut against its own mounts — fan closed, wrist folded back
+along the arm, elbow folded back along the shoulder bar — hanging as a slim
+bundle behind the pack. A 5.5 m wingspan on a walking character is a wingspan,
+not something anybody wears through a desert.
+
+**Open** is the same wing spread, and it is not history. The gear screen is the
+one place a player ever looks *at* their own back, on purpose, with the camera
+flown round for it — so that is where the wings get to be wings.
+
+Nothing is culled and nothing is scaled between them. **The difference is a
+pose**: the same twelve parts, the same 8,736 triangles, the same `SPAR_SCALE`.
+Both mount on the same two rail tips, so neither moves when the other is swapped
+in. That is the whole point of doing it here rather than sizing the model in
+Unity — a smaller wing pack would be a smaller machine, and this is one machine
+put away and taken out again.
+
+(Note the file names read backwards: `ornithopter_worn` is the one worn in
+ordinary play, `ornithopter_worn_on_person` is the gear-screen one. The second
+name predates the split. Renaming it to `..._spread` would be an improvement;
+it is left alone because it is the name the file already ships under.)
 
 Derived from `dune_ornithopter.blend`, which carries hand edits and is NEVER
 written to. This script opens it, culls, poses the rig in memory, bakes, and
@@ -18,7 +48,7 @@ come from `dune_ornithopter_BUILD.md`.
 
 **Nothing is joined.** `wing_pack_folded.py` bakes to one mesh because the held
 bundle never articulates and never needs a part named; a worn wing does get
-looked at, so its ten parts stay ten named objects.
+looked at, so its twelve parts stay twelve named objects.
 
 ## The frame — this is the whole reason the numbers below are what they are
 
@@ -40,18 +70,21 @@ The rail is 1.79 m of bar across a 3 m astronaut's back and it does NOT fold
 with the pack, so its ends stick out well past each flank at almost exactly
 shoulder height. That is what the wings bolt to.
 
-    # iterate on the pose, renders and exits without saving anything:
+    # iterate on either pose, renders and exits without saving anything:
     blender --background dune_ornithopter.blend --python ornithopter_worn.py -- \
-        --preview /tmp/worn.png [--view front|side|iso]
+        --preview /tmp/worn.png [--spread] [--view front|side|iso]
 
-    # bake and write ornithopter_worn.blend (refuses to overwrite):
+    # bake and write the two shipped files (each refuses to overwrite):
     blender --background dune_ornithopter.blend --python ornithopter_worn.py -- --commit
+    blender --background dune_ornithopter.blend --python ornithopter_worn.py -- --commit --spread
 
     # CONTROL RUN — the same parameters into a scratch path. Fingerprint that
     # against the shipped .blend (per-object vertex and polygon hash) and only
     # rebuild if they match; a difference means the file carries hand edits this
-    # script would destroy. Done before the 2026-09-04 re-pose, and it is the
-    # step that makes deleting the shipped file safe rather than reckless:
+    # script would destroy. Done before the 2026-09-04 re-pose and again before
+    # the 2026-09-05 fold, and it is the step that makes deleting the shipped
+    # file safe rather than reckless. Run it with the OLD parameters, not the
+    # new ones — the point is to reproduce what shipped:
     blender --background dune_ornithopter.blend --python ornithopter_worn.py -- \
         --commit --out /tmp/control.blend
 """
@@ -68,8 +101,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 LIB = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, LIB)
 
-DST = os.path.join(HERE, "ornithopter_worn.blend")
-
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 
 
@@ -81,11 +112,16 @@ PREVIEW = arg("--preview")
 VIEW = arg("--view", "front")
 COMMIT = "--commit" in argv
 
+# Which of the item's two worn shapes to build. Both are the same machine at the
+# same scale and both mount on the same two rail tips; they differ only in pose.
+SPREAD = "--spread" in argv
+
 # Where --commit writes. Overridable so a CONTROL run — the same parameters into
 # a scratch path, diffed against the shipped file to prove this script still
 # reproduces it — can be done without going anywhere near the real one. Any
-# rebuild of the shipped file starts with that control run.
-DST = arg("--out", DST)
+# rebuild of a shipped file starts with that control run.
+DST = arg("--out", os.path.join(
+    HERE, "ornithopter_worn_on_person.blend" if SPREAD else "ornithopter_worn.blend"))
 
 R = math.radians
 N_DIGITS = 5
@@ -95,52 +131,117 @@ N_DIGITS = 5
 # metres. The shoulder pivot of each wing is placed exactly here.
 ROOT_HALF = 0.885
 
-# How far the wing reaches from that pivot to its furthest tip, in metres. Sized
-# against the WEARER rather than against the aircraft: the rail sits 0.63 m above
-# the spine bone and the soles about 1.45 m below it, so the ground is 2.08 m
-# under the rail and that is the whole budget a hanging wing has.
-#
-# 2.775 since 2026-09-04, half again the 1.85 this shipped at (user: the worn
-# wings read too small on the gear screen; "1.5 then, big wings go to the side,
-# and can lay a bit on the ground"). The extra length is spent OUTBOARD rather
-# than downward — see FLAP — because the gear screen looks at the wearer head
-# on, so span is what reads there and droop is what runs out of ground. It is
-# argable so a pose can be swept without editing the file.
-TARGET_REACH = float(arg("--reach", 2.775))
+# How far the wing reaches from that pivot to its furthest tip WHEN IT IS OPEN,
+# in metres. This is what sizes the wing against the WEARER rather than against
+# the aircraft: the rail sits 0.63 m above the spine bone and the soles about
+# 1.45 m below it, so the ground is 2.08 m under the rail and that is the whole
+# budget an unfolded wing has. 2.775 since 2026-09-04.
+EXTENDED_REACH = 2.775
 
-# ---------------------------------------------------------------- worn pose
+# What that same reach measures in the SOURCE RIG's own units — recorded once,
+# off the open pose, on 2026-09-04, and deliberately frozen.
+#
+# The scale used to be derived from the wing AS POSED (`EXTENDED_REACH / reach()`
+# after the pose was applied), which is exactly wrong for a folded model and is
+# the one trap in this whole rebuild: folding a wing shortens its reach, so
+# re-deriving would scale the folded stack straight back up to the size it was
+# folded out of. The fold would be invisible and every measurement would agree
+# with itself. Frozen, the fold is a pose and only a pose — the same spars, the
+# same cloth, the same metal, put away.
+EXTENDED_RIG_REACH = 5.1518
+SPAR_SCALE = EXTENDED_REACH / EXTENDED_RIG_REACH
+
+# ---------------------------------------------------------------- the two poses
 # Signs follow the rig's rule (dune_ornithopter_BUILD.md): a wing bone's local X
 # and Y are already mirrored between sides so flap and twist take no per-side
 # sign, while local Z is not and sweep and splay do.
-# Re-posed 2026-09-04 with the 1.5x reach, and every number moved for a reason
-# the render can be checked against — the poses were swept and looked at, not
-# reasoned about (`--preview /tmp/x.png --view front`).
-FLAP = float(arg("--flap", -52.0))    # shoulders: wings out to the SIDE, not down
-SWEEP = float(arg("--sweep", 16.0))   # rearward rake, so a wing is not a slab
-ROLL = float(arg("--roll", 38.0))     # turns each fan out of the fore-aft plane
-SPLAY = float(arg("--splay", -105.0))  # fan OPEN: the web is the wing, not the spars
-TWIST = float(arg("--twist", 14.0))   # web feathered, spars readable on the cloth
-
-# Why those four moved, since three of them are pure look and the fourth is not:
 #
-#   FLAP  -72 -> -52. At 1.5x the old droop put the tip 2.38 m under the rail and
-#         the ground is 2.08 m under it, so a third of a metre of wing swept
-#         through the sand. Raising the shoulder spends the extra length
-#         OUTBOARD instead: span 4.32 -> 5.51 m and the tip comes back to 1.61 m
-#         down, half a metre clear of the soles. The gear screen looks at the
-#         wearer head on, so span is the axis that reads there anyway.
-#   SPLAY -52 -> -105. |SPLAY| IS the fan's opening angle — the digits are graded
-#         across `SPLAY * (k - 0.30)`, so the total swing is exactly SPLAY. At 52
-#         the fan is half shut and the wing reads as five bare spars with cloth
-#         scalloped between them; at 105 the web closes into one continuous sail
-#         and the spar tips stop protruding past the trailing edge. This is the
-#         "make the fabric a larger part of the model" change (user, 2026-09-04)
-#         and it costs nothing: no geometry moved, the fan just opened.
-#   ROLL  35 -> 38, TWIST 18 -> 14. Both set how square the sail is to a head-on
-#         camera, and a wing seen edge-on is a line. Swept: at ROLL 26 / TWIST 8
-#         the panel turned nearly edge-on and the fabric collapsed to a sliver —
-#         the flattest, worst read of the five poses tried. These two are worth
-#         re-rendering rather than re-deriving if the pose is ever touched again.
+# STOWED closes the wing in the order it physically would, on the three hinges it
+# actually has, and the parameters are named for those hinges:
+#
+#   1. the fan shuts     five digit spars swing together onto one line   SPLAY
+#   2. the wrist folds   the shut fan lies back along the arm            WRIST
+#   3. the elbow folds   the arm lies back along the shoulder bar        SWEEP
+#
+# — and then the shoulder carries that flat bundle round behind the pack and
+# down (PLANE, FLAP, YAW).
+#
+# OPEN is the wing spread, which is what this file shipped as until 2026-09-05.
+# It is not history: it is the shape the GEAR SCREEN wears (see the module note),
+# so it is built and shipped alongside the stowed one, from the same rig, at the
+# same scale, out of the same script.
+#
+# Both were swept with `--preview /tmp/x.png --view front|side` and looked at,
+# not reasoned about; every entry is argable, so the next sweep needs no edit to
+# this file.
+STOWED = dict(plane=-105.0, flap=-100.0, yaw=0.0, sweep=175.0, roll=0.0,
+              wrist=-175.0, splay=-105.0, twist=12.0, furl=0.055, slack=0.06)
+OPEN = dict(plane=0.0, flap=-52.0, yaw=0.0, sweep=16.0, roll=38.0,
+            wrist=0.0, splay=-105.0, twist=14.0, furl=0.0, slack=0.0)
+
+POSE = OPEN if SPREAD else STOWED
+
+
+def pose(name):
+    """One pose value, overridable on the command line for a sweep."""
+    return float(arg("--" + name, POSE[name]))
+
+
+PLANE = pose("plane")   # rolls the fold plane about the mount bar
+FLAP = pose("flap")     # swings the wing down off the bar
+YAW = pose("yaw")       # swings it aft, clear of the wearer's flank
+SWEEP = pose("sweep")   # ELBOW: arm back along the shoulder bar
+ROLL = pose("roll")     # twists the fan about the arm
+WRIST = pose("wrist")   # WRIST: shut fan back along the arm
+SPLAY = pose("splay")   # residual fan opening; -105 lays the spars parallel
+TWIST = pose("twist")   # feathering across the five spars
+
+# Where the STOWED numbers came from, since half of them are pure look and half
+# are geometry, and the two want different treatment if this is ever re-swept:
+#
+#   SPLAY -105 is not a taste call and it is not "the fan opening angle", which
+#         is what this file used to claim. The five spars sit 104.7 degrees
+#         apart at rest and the grading spreads exactly SPLAY across them, so
+#         -105 is the value that lays them PARALLEL. It reads as an open sail in
+#         the spread pose and as a shut fan in this one for the same reason: it
+#         is the same stack of parallel spars either way, with the cloth taut
+#         across it or gathered onto it.
+#   SWEEP 175 / WRIST -175 fold the two hinges back on themselves, five degrees
+#         short of dead flat so the links do not stack into one another. This is
+#         the tightest the chain goes: reach from the mount 2.775 -> 1.09 m.
+#   FLAP -100 hangs the bundle from the rail tip, ten degrees past vertical so
+#         it leans INBOARD behind the pack rather than out past the wearer's
+#         flank. Swept: -80 through -135, and -100 is where the span bottoms out
+#         at 1.99 m — which is the rail itself, so the wings have stopped
+#         contributing to the silhouette's width altogether.
+#   PLANE -105 lies the folded wing back against the pack instead of standing it
+#         square across it. Worth 0.40 -> 0.22 m of protrusion behind the rail
+#         for nothing: span and height do not move.
+#   TWIST 12, ROLL 0. The spread pose spent both of these turning a sail toward
+#         a head-on camera; a furled wing has no sail to turn, so ROLL goes to
+#         zero and TWIST keeps only the feathering that stops the five spars
+#         reading as one fused blade.
+#
+# The unavoidable one: the folded arm ends 0.47 m ABOVE the rail, because it is
+# 0.95 m long and folds back over a 0.52 m shoulder bar. Every way of burying
+# that overshoot costs more than it saves — folding the arm less puts the wrist
+# 0.8 m out to the side, which is the width this whole change exists to remove.
+# So two spar tips stand above the wearer's shoulders, and that is the shape of
+# a folded wing rather than a defect.
+
+# How tightly the membrane gathers onto the folded spars, in metres, and how
+# much of its original slack survives that. See `furl`. Radius is a canvas
+# thickness against a spar stack about 0.04 m across; slack is what keeps the
+# furl tapered instead of shrink-wrapped, and it is the number to move if the
+# bundle reads as a sausage (lower) or as a sail that never got put away
+# (lower still, or the pose is wrong).
+#
+# **Zero switches it off, and the OPEN pose sets it to zero.** Furling belongs to
+# a wing that has been put away; run it on a spread one and it drags the taut
+# sail off its own spars and onto them, which is the sail destroyed rather than
+# gathered.
+FURL_RADIUS = pose("furl")
+FURL_SLACK = pose("slack")
 
 # Which parts survive. The wing panels and the shoulder mechanics, nothing else.
 KEEP = {
@@ -187,9 +288,9 @@ def cull():
     print("  culled %d part(s): %s" % (len(dropped), ", ".join(sorted(dropped))))
 
 
-def rot(armature, bone_name, x=0.0, y=0.0, z=0.0):
+def rot(armature, bone_name, x=0.0, y=0.0, z=0.0, mode='XYZ'):
     pb = armature.pose.bones[bone_name]
-    pb.rotation_mode = 'XYZ'
+    pb.rotation_mode = mode
     pb.rotation_euler = (R(x), R(y), R(z))
 
 
@@ -199,7 +300,15 @@ def apply_worn_pose():
     bpy.ops.object.mode_set(mode='POSE')
 
     for tag, s in (("R", 1), ("L", -1)):
-        rot(armature, "Bone_Shoulder_%s" % tag, x=FLAP)
+        # 'YXZ' on the shoulder, and the order is load-bearing rather than
+        # incidental. PLANE is a roll about the mount bar and it has to be
+        # applied to a wing that is still lying in its own plane; under the
+        # default 'XYZ' it lands on an already-flapped chain, where it stops
+        # rolling the fold plane and starts swinging the bundle fore and aft.
+        # The difference is a stack that stands on edge behind the pack versus
+        # one lying flat across the wearer's shoulder blades.
+        rot(armature, "Bone_Shoulder_%s" % tag,
+            x=FLAP, y=PLANE * s, z=YAW * s, mode='YXZ')
         # ROLL takes a per-side sign and DIGIT TWIST does not, even though both
         # are a rotation about a bone's local Y. Measured, not reasoned: with
         # the same sign on both arms the model's bounds came out asymmetric
@@ -209,11 +318,16 @@ def apply_worn_pose():
         # tell is to print the bounds.
         rot(armature, "Bone_Arm_%s" % tag, y=ROLL * s, z=SWEEP * s)
         for i in range(N_DIGITS):
-            # Graded so the fan half-closes rather than swinging rigidly: the
-            # trailing digit travels furthest, which is what a resting wing does.
+            # WRIST is the fold and SPLAY is what is left open across it. They
+            # share the digits' local Z because they are the same hinge — a
+            # folding fan shuts and swings back on one pivot — so the fan is
+            # ground down to a few degrees of residual opening and the whole
+            # shut stack is then carried back over the arm by WRIST. Graded, so
+            # the trailing spar still travels furthest and the five stay a stack
+            # of spars rather than collapsing into one line with no read.
             k = i / (N_DIGITS - 1)
             rot(armature, "Bone_Digit_%s_%d" % (tag, i + 1),
-                z=SPLAY * (k - 0.30) * s,
+                z=(WRIST + SPLAY * (k - 0.30)) * s,
                 y=TWIST * (0.35 + 0.65 * k))
 
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -228,6 +342,95 @@ def pivots(armature):
         pb = armature.pose.bones["Bone_Shoulder_%s" % tag]
         out[tag] = armature.matrix_world @ pb.head
     return out
+
+
+def spars(armature):
+    """The posed frame each wing's membrane hangs on, as world-space segments.
+
+    Read off the armature while it still exists, because the furl below needs
+    to know where the folded spars ENDED UP and there is nothing left to ask
+    once the pose is baked and the rig dropped.
+    """
+    out = {}
+    for tag in ("L", "R"):
+        segs = []
+        for name in (["Bone_Shoulder_%s" % tag, "Bone_Arm_%s" % tag]
+                     + ["Bone_Digit_%s_%d" % (tag, i + 1) for i in range(N_DIGITS)]):
+            pb = armature.pose.bones[name]
+            segs.append((armature.matrix_world @ pb.head,
+                         armature.matrix_world @ pb.tail))
+        out[tag] = segs
+    return out
+
+
+def furl(meshes, frames):
+    """Gather each wing's membrane onto its folded spars.
+
+    The one thing the rig cannot do. Closing the fan stacks the five spars into
+    a bundle, and that part is honest articulation — but the web is a single
+    skinned sheet, so linear blend skinning carries it across the closed fan as
+    one smooth 1.4 m sail rather than furling it. Posed alone, the wing reads as
+    a folded frame with a bedsheet draped over it: the metal is put away and the
+    cloth is not, which is precisely the read a stowed wing must not have.
+
+    So the cloth is gathered by hand, radially onto the frame it hangs from: for
+    every web vertex, find the nearest point on any posed spar and pull the
+    vertex in toward it. `FURL_SLACK` is what stops that being a shrink-wrap —
+    the cloth that had furthest to travel still ends up furthest out, so the
+    bundle keeps the tapered, bunched profile of canvas gathered against a spar
+    instead of the perfect sleeve a constant radius would give.
+
+    Vertices keep their bearing about the spar, which is what stops the sheet's
+    two faces from collapsing through each other: whatever was outboard of the
+    frame stays outboard of it, just closer.
+
+    Off entirely at radius zero, which is what the OPEN pose asks for. Furling
+    belongs to a wing that has been put away; run it on a spread one and it drags
+    the taut sail off its own spars and onto them — the sail destroyed rather
+    than gathered.
+    """
+    if FURL_RADIUS <= 0.0:
+        print("  furl off: the wing is spread, so its cloth is taut")
+        return
+
+    moved = 0
+    for obj in meshes:
+        tag = side_tag(obj.name)
+        if "_Web" not in obj.name or tag is None:
+            continue
+        segs = frames[tag]
+        mw = obj.matrix_world
+        inv = mw.inverted()
+        for v in obj.data.vertices:
+            p = mw @ v.co
+            c, d = nearest_on_frame(p, segs)
+            if d <= FURL_RADIUS:
+                continue
+            r = FURL_RADIUS + (d - FURL_RADIUS) * FURL_SLACK
+            v.co = inv @ (c + (p - c) * (r / d))
+            moved += 1
+        obj.data.update()
+    print("  furled %d membrane vertice(s) onto the folded spars" % moved)
+
+
+def nearest_on_frame(p, segs):
+    """Closest point on any of `segs` to `p`, and the distance to it."""
+    best, best_d = None, 1e9
+    for a, b in segs:
+        ab = b - a
+        t = (p - a).dot(ab) / ab.length_squared
+        c = a + ab * min(1.0, max(0.0, t))
+        d = (p - c).length
+        if d < best_d:
+            best, best_d = c, d
+    return best, best_d
+
+
+def side_tag(name):
+    for tag in ("L", "R"):
+        if name.endswith("_%s" % tag) or ("_%s_" % tag) in name:
+            return tag
+    return None
 
 
 def bake(armature):
@@ -443,15 +646,19 @@ def main():
     cull()
     armature = apply_worn_pose()
     piv = pivots(armature)
+    frames = spars(armature)
     meshes = bake(armature)
+    furl(meshes, frames)
 
     for tag in ("L", "R"):
-        side = [o for o in meshes if o.name.endswith("_%s" % tag)
-                or ("_%s_" % tag) in o.name]
-        k = TARGET_REACH / reach(side, piv[tag])
-        place(side, piv[tag], k, Vector((math.copysign(ROOT_HALF, piv[tag].x),
-                                         0.0, 0.0)))
-        print("  %s wing: scaled %.4f about its shoulder pivot" % (tag, k))
+        side = [o for o in meshes if side_tag(o.name) == tag]
+        place(side, piv[tag], SPAR_SCALE,
+              Vector((math.copysign(ROOT_HALF, piv[tag].x), 0.0, 0.0)))
+        print("  %s wing: scaled %.6f about its shoulder pivot, folded reach "
+              "%.3f m (%.3f m open)"
+              % (tag, SPAR_SCALE, reach(side, Vector(
+                  (math.copysign(ROOT_HALF, piv[tag].x), 0.0, 0.0))),
+                 EXTENDED_REACH))
 
     flatten(meshes)
 

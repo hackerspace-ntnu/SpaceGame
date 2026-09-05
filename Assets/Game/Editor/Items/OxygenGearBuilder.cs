@@ -1,17 +1,21 @@
-// Builds the three carried supply units the oxygen plant deals in:
+// Builds the two carried supply units the oxygen plant deals in:
 //
-//   Prefabs/Items/Supplies/OxygenTank.prefab       a filled bottle
-//   Prefabs/Items/Supplies/OxygenTankEmpty.prefab  the same bottle, gauge dark
-//   Prefabs/Items/Supplies/PowerCell.prefab        the slab battery the plant runs on
+//   Prefabs/Items/Supplies/OxygenTank.prefab  the tank, at any fill level
+//   Prefabs/Items/Supplies/Battery.prefab     the slab battery the plant runs on
 //
 // plus one InventoryItem each under Resources/Items/Supplies and their entries in the network
 // prefab list the NetworkManager actually reads.
 //
-// TWO bottle prefabs for one model, on purpose. A bottle's charge is its IDENTITY here rather than
-// a number in its ItemState bag: the hotbar replicates item IDs and ItemState does not replicate at
-// all, so a charge kept in a bag would be a value only the server could ever see. Two items means
-// the state reaches the wire, the save file, the hotbar, the pack mat and the icon for free — see
-// DockableSupply and Oxygen.md.
+// ONE tank prefab, not two. Until 2026-09-04 a tank's charge was its IDENTITY -- OxygenTank and
+// OxygenTankEmpty were separate assets -- because ItemState does not replicate and an id does.
+// A tank the player reads to a percent cannot work that way (a hundred assets for a hundred
+// readings, and a hundred more per tank type), so the charge is a fraction on the instance and
+// SupplyCharge carries it through every container. See DockableSupply and Oxygen.md.
+//
+// PowerCell was renamed to Battery in the same pass, by MoveAsset rather than by writing a new
+// file: a move PRESERVES the GUID, and an InventoryItem's ID is its GUID, so every existing save
+// file and every prefab reference keeps resolving. Creating Battery.asset fresh would have made a
+// second item and orphaned every cell already in a player's world.
 //
 // A script rather than hand-authored YAML because these prefabs nest an imported FBX, and the file
 // ids Unity assigns inside a model are decided at import time — a hand-written prefab referencing
@@ -42,31 +46,33 @@ namespace SpaceGame.EditorTools
         private const string PrefabFolder = "Assets/Game/Prefabs/Items/Supplies/";
         private const string AssetFolder = "Assets/Game/Resources/Items/Supplies/";
 
-        public const string ChargedTankAsset = AssetFolder + "OxygenTank.asset";
-        public const string DrainedTankAsset = AssetFolder + "OxygenTankEmpty.asset";
-        public const string PowerCellAsset = AssetFolder + "PowerCell.asset";
+        public const string TankAsset = AssetFolder + "OxygenTank.asset";
+        public const string BatteryAsset = AssetFolder + "Battery.asset";
+
+        /// <summary>
+        /// What the battery's item asset and prefab used to be called. Renamed rather than
+        /// replaced, so their GUIDs -- and therefore the item's ID in every save file -- survive.
+        /// </summary>
+        private const string LegacyCellAsset = AssetFolder + "PowerCell.asset";
+        private const string LegacyCellPrefab = PrefabFolder + "PowerCell.prefab";
+
+        /// <summary>
+        /// The drained tank, merged into <see cref="TankAsset"/> on 2026-09-04.
+        ///
+        /// <para>
+        /// DELETED rather than renamed, because unlike the cell it has no successor to be renamed
+        /// INTO: the surviving tank asset already exists with its own GUID. A world saved with an
+        /// empty tank in it therefore names an item this build cannot resolve, and the pack's own
+        /// restore drops it with a warning naming the id. That is a real, one-time loss of one item
+        /// per affected save, accepted because the alternative -- keeping a second tank asset alive
+        /// as an alias -- is a permanent second way for a tank to exist.
+        /// </para>
+        /// </summary>
+        private const string MergedEmptyTankAsset = AssetFolder + "OxygenTankEmpty.asset";
+        private const string MergedEmptyTankPrefab = PrefabFolder + "OxygenTankEmpty.prefab";
 
         private const string NetworkPrefabsPath =
             "Assets/Game/ScriptableObjects/Networking/DefaultNetworkPrefabs.asset";
-
-        /// <summary>
-        /// The drained bottle's gauge, as a MATERIAL rather than as a runtime tint.
-        ///
-        /// <para>
-        /// A <c>MaterialPropertyBlock</c> is not serialized and needs <c>Awake</c>, which never runs
-        /// on a prefab in the editor — so the empty bottle and the full one rendered the same icon,
-        /// and, worse, looked identical lying beside each other on the pack mat and on the ship's
-        /// gear wall, where <c>DisplayCopy.Strip</c> takes the component off entirely. Whatever
-        /// tells the two apart has to be on the prefab, not in a script.
-        /// </para>
-        /// <para>
-        /// Built as a COPY of the model's own gauge material, so it inherits that material's shader
-        /// and every property the palette gave it, and only the colours move. Rewritten on every
-        /// run: a <c>.mat</c> otherwise freezes the shader defaults it was born with.
-        /// </para>
-        /// </summary>
-        private const string DarkGaugePath =
-            "Assets/Game/Art/Materials/Items/Mat_OxygenTank_Gauge_Dark.mat";
 
         /// <summary>
         /// The two containers whose authored starting contents are where these items enter the
@@ -137,7 +143,15 @@ namespace SpaceGame.EditorTools
             public readonly string Prefab;
             public readonly string Asset;
             public readonly string Name;
-            public readonly bool Charged;
+
+            /// <summary>What this holds, which is what decides the receptacle that takes it.</summary>
+            public readonly SupplyKind Kind;
+
+            /// <summary>A full one, in the kind's own unit: SECONDS of air, or WATT-HOURS.</summary>
+            public readonly float Capacity;
+
+            /// <summary>How full one enters the world, 0..1.</summary>
+            public readonly float StartingCharge;
 
             /// <summary>The mesh carrying the emissive gauge, or null for one that never changes.</summary>
             public readonly string ReadoutPart;
@@ -163,15 +177,18 @@ namespace SpaceGame.EditorTools
             /// </summary>
             public readonly Vector3 Lay;
 
-            public Supply(string model, string file, string name, bool charged,
-                          string readoutPart, int readoutIndex, float packSize, Vector3 lay)
+            public Supply(string model, string file, string name, SupplyKind kind, float capacity,
+                          float startingCharge, string readoutPart, int readoutIndex,
+                          float packSize, Vector3 lay)
             {
                 Lay = lay;
                 Model = model;
                 Prefab = PrefabFolder + file + ".prefab";
                 Asset = AssetFolder + file + ".asset";
                 Name = name;
-                Charged = charged;
+                Kind = kind;
+                Capacity = capacity;
+                StartingCharge = startingCharge;
                 ReadoutPart = readoutPart;
                 ReadoutIndex = readoutIndex;
                 PackSize = packSize;
@@ -201,22 +218,46 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private static readonly Vector3 BottleLiesDown = new Vector3(-90f, 0f, 0f);
 
+        /// <summary>
+        /// Seconds of air a full tank holds: thirty minutes. The one number that decides whether
+        /// the open world reads as a journey or as a stopwatch, and the only one to move when it
+        /// reads wrong -- SuitOxygen's drain is fixed at one second per second so that a capacity
+        /// IS a duration.
+        /// </summary>
+        private const float TankSeconds = 30f * 60f;
+
+        /// <summary>Watt-hours a full battery holds. Twenty-five tank fills at the plant's 4%.</summary>
+        private const float BatteryWattHours = 1000f;
+
+        /// <summary>
+        /// Both enter the world FULL.
+        ///
+        /// <para>
+        /// A tank stocked empty was the obvious alternative -- an empty tank is what the plant is
+        /// for -- and it is wrong now that running out of air kills: the arrival is a crash landing,
+        /// and starting it with sixty seconds of suit reserve and nothing else makes the opening
+        /// minute a scramble against a system the player has not been taught yet.
+        /// </para>
+        /// </summary>
+        private const float StockedFull = 1f;
+
         private static readonly Supply[] Roster =
         {
-            new(TankModel, "OxygenTank", "Oxygen Tank", true, TankGauge, TankGaugeIndex,
-                TankPackSize, BottleLiesDown),
-            new(TankModel, "OxygenTankEmpty", "Oxygen Tank (Empty)", false,
+            new(TankModel, "OxygenTank", "Oxygen Tank", SupplyKind.Oxygen, TankSeconds, StockedFull,
                 TankGauge, TankGaugeIndex, TankPackSize, BottleLiesDown),
 
-            // No readout. The cell's charge ladder is five bars with three lit, authored in the
-            // model — and the cell never drains, so there is nothing for the game to drive. Wiring
-            // it would be a gauge that can only ever be repainted the colour it already is.
-            new(CellModel, "PowerCell", "Power Cell", true, null, 0, CellPackSize, Vector3.zero),
+            // No readout. The battery's charge ladder is five bars with three lit, authored into
+            // the model, and there is no separate emissive submesh to drive -- so its charge is
+            // read off the machine it is fitted to and off the reticle, not off the brick.
+            new(CellModel, "Battery", "Battery", SupplyKind.Power, BatteryWattHours, StockedFull,
+                null, 0, CellPackSize, Vector3.zero),
         };
 
         [MenuItem("Tools/SpaceGame/Items/Build Oxygen Gear")]
         public static void Build()
         {
+            MigrateLegacyAssets();
+
             var built = new List<GameObject>();
 
             foreach (Supply supply in Roster)
@@ -305,9 +346,6 @@ namespace SpaceGame.EditorTools
                     return null;
                 }
 
-                // The one difference between the two bottles that survives an icon render and a
-                // stripped display copy.
-                if (!supply.Charged) DarkenGauge(readout, supply.ReadoutIndex);
             }
 
             // ── Pickup / world presence ──
@@ -354,7 +392,9 @@ namespace SpaceGame.EditorTools
             // ── The item's own behaviour ──
             DockableSupply supplyItem = root.AddComponent<DockableSupply>();
             var supplySo = new SerializedObject(supplyItem);
-            Field.SetBool(supplySo, "charged", supply.Charged);
+            Field.SetEnum(supplySo, "kind", (int)supply.Kind);
+            Field.SetFloat(supplySo, "capacity", supply.Capacity);
+            Field.SetFloat(supplySo, "startingCharge", supply.StartingCharge);
             Field.Set(supplySo, "readout", readout);
             Field.SetInt(supplySo, "readoutMaterialIndex",
                          readout != null ? supply.ReadoutIndex : EmissiveLamp.WholeRenderer);
@@ -379,43 +419,6 @@ namespace SpaceGame.EditorTools
             point.SetParent(root.transform, false);
             point.localPosition = bounds.center;
             return point;
-        }
-
-        /// <summary>
-        /// Swap the drained bottle's gauge submesh onto a dark copy of the model's own gauge
-        /// material — see <see cref="DarkGaugePath"/> for why this cannot be a runtime tint.
-        ///
-        /// <para>
-        /// Only the submesh at <paramref name="index"/> moves. These meshes are one per PART and up
-        /// to five materials deep, so replacing the whole array would enamel the orange collar and
-        /// both metals along with the readout.
-        /// </para>
-        /// </summary>
-        private static void DarkenGauge(Renderer readout, int index)
-        {
-            Material[] materials = readout.sharedMaterials;
-            Material source = materials[index];
-
-            var dark = AssetDatabase.LoadAssetAtPath<Material>(DarkGaugePath);
-            if (dark == null)
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(DarkGaugePath) ?? ".");
-                dark = new Material(source);
-                AssetDatabase.CreateAsset(dark, DarkGaugePath);
-            }
-
-            // Restated every run rather than trusted: a .mat freezes the shader defaults it was
-            // born with, and this one is meant to be the model's gauge with the light off.
-            dark.shader = source.shader;
-            dark.CopyPropertiesFromMaterial(source);
-            dark.name = Path.GetFileNameWithoutExtension(DarkGaugePath);
-            dark.SetColor("_BaseColor", GaugeEmpty);
-            dark.SetColor("_Color", GaugeEmpty);
-            dark.SetColor("_EmissionColor", GaugeEmpty * EmissiveLamp.EmissionGain);
-            EditorUtility.SetDirty(dark);
-
-            materials[index] = dark;
-            readout.sharedMaterials = materials;
         }
 
         /// <summary>
@@ -545,13 +548,63 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private static void RouteIntoTheGame()
         {
-            var charged = AssetDatabase.LoadAssetAtPath<InventoryItem>(ChargedTankAsset);
-            var drained = AssetDatabase.LoadAssetAtPath<InventoryItem>(DrainedTankAsset);
-            var cell = AssetDatabase.LoadAssetAtPath<InventoryItem>(PowerCellAsset);
-            if (charged == null || drained == null || cell == null) return;
+            var tank = AssetDatabase.LoadAssetAtPath<InventoryItem>(TankAsset);
+            var battery = AssetDatabase.LoadAssetAtPath<InventoryItem>(BatteryAsset);
+            if (tank == null || battery == null) return;
 
-            Stock(GearWallPrefab, "the ship's gear wall", drained, cell);
-            Stock(ExpeditionRigPrefab, "the expedition rig", charged);
+            // A SPARE tank on the wall as well as the one on the rig, which the container can now
+            // actually hold: PackItemKey gives every placement its own instance handle, so two of
+            // one asset are two placements. Before it, a second tank was silently refused.
+            Stock(GearWallPrefab, "the ship's gear wall", tank, battery);
+            Stock(ExpeditionRigPrefab, "the expedition rig", tank);
+        }
+
+        /// <summary>
+        /// Rename what 2026-09-04 renamed, and delete what it merged.
+        ///
+        /// <para>
+        /// <see cref="AssetDatabase.MoveAsset"/> rather than a fresh <c>CreateAsset</c>, because a
+        /// move preserves the GUID and an <c>InventoryItem</c>'s <c>ID</c> IS its GUID. Every save
+        /// file naming a power cell, and every prefab holding a reference to one, keeps resolving
+        /// to the same item under its new name.
+        /// </para>
+        /// <para>
+        /// Idempotent: each step is skipped once its destination exists, so the ordinary run of
+        /// this builder on an already-migrated project does nothing at all.
+        /// </para>
+        /// </summary>
+        private static void MigrateLegacyAssets()
+        {
+            Rename(LegacyCellAsset, BatteryAsset);
+            Rename(LegacyCellPrefab, PrefabFolder + "Battery.prefab");
+
+            Delete(MergedEmptyTankAsset);
+            Delete(MergedEmptyTankPrefab);
+        }
+
+        private static void Rename(string from, string to)
+        {
+            if (AssetDatabase.LoadAssetAtPath<Object>(from) == null) return;
+            if (AssetDatabase.LoadAssetAtPath<Object>(to) != null) return;
+
+            string error = AssetDatabase.MoveAsset(from, to);
+            if (!string.IsNullOrEmpty(error))
+            {
+                Debug.LogError("[OxygenGear] Could not rename " + from + " to " + to + ": " + error);
+                return;
+            }
+
+            Debug.Log("[OxygenGear] Renamed " + from + " to " + to + " (GUID preserved).");
+        }
+
+        private static void Delete(string path)
+        {
+            if (AssetDatabase.LoadAssetAtPath<Object>(path) == null) return;
+
+            AssetDatabase.DeleteAsset(path);
+            Debug.LogWarning("[OxygenGear] Deleted " + path + " — a tank's charge is a number now, " +
+                             "not a second asset. Worlds saved with an empty tank in them will log " +
+                             "one unresolved item and lose it.");
         }
 
         /// <summary>
@@ -578,6 +631,19 @@ namespace SpaceGame.EditorTools
                 return;
             }
 
+            // Dangling entries first. Deleting an item asset does not remove references to it —
+            // it nulls them in place, silently — so merging the two tanks left a hole in this very
+            // list, and a hole here is an item the container tries to stow on every spawn and
+            // cannot resolve. Pruned before the adds so the count below is honest.
+            int pruned = 0;
+            for (int i = list.arraySize - 1; i >= 0; i--)
+            {
+                if (list.GetArrayElementAtIndex(i).objectReferenceValue != null) continue;
+
+                list.DeleteArrayElementAtIndex(i);
+                pruned++;
+            }
+
             var added = new List<string>();
             foreach (InventoryItem item in items)
             {
@@ -592,11 +658,14 @@ namespace SpaceGame.EditorTools
                 added.Add(item.itemName);
             }
 
-            if (added.Count == 0) return;
+            if (added.Count == 0 && pruned == 0) return;
 
             so.ApplyModifiedPropertiesWithoutUndo();
             PrefabUtility.SavePrefabAsset(prefab);
-            Debug.Log("[OxygenGear] Stocked " + string.Join(", ", added) + " on " + what + ".");
+
+            Debug.Log("[OxygenGear] " + what + ": stocked " +
+                      (added.Count > 0 ? string.Join(", ", added) : "nothing") +
+                      (pruned > 0 ? ", pruned " + pruned + " dangling entry/entries" : "") + ".");
         }
 
         // ─────────────────────────── Proof ───────────────────────────
@@ -645,21 +714,18 @@ namespace SpaceGame.EditorTools
 
                 var supplyItem = prefab.GetComponent<DockableSupply>();
                 if (supplyItem == null) problems.Add(supply.Name + " has no DockableSupply");
-                else if (supplyItem.Charged != supply.Charged)
-                    problems.Add(supply.Name + " has the wrong charged flag");
-                else if (supply.ReadoutPart != null && !supply.Charged)
+                else
                 {
-                    // The drained bottle has to be TOLD APART from the full one by something the
-                    // prefab carries, or the icon, the pack mat and the gear wall all draw the two
-                    // identically — a runtime tint reaches none of them.
-                    Renderer gauge = supplyItem.Readout;
-                    Material fitted = gauge != null && supply.ReadoutIndex < gauge.sharedMaterials.Length
-                        ? gauge.sharedMaterials[supply.ReadoutIndex]
-                        : null;
-
-                    if (fitted == null || AssetDatabase.GetAssetPath(fitted) != DarkGaugePath)
-                        problems.Add(supply.Name + "'s gauge is not on " + DarkGaugePath +
-                                     ", so it is drawn exactly like a full bottle");
+                    // The three numbers that make a reservoir what it is. Checked off the saved
+                    // asset rather than trusted, because a capacity that failed to serialise reads
+                    // as the component's own default -- a battery that silently became a
+                    // thirty-minute tank would still fill, still drain and still be wrong.
+                    if (supplyItem.Kind != supply.Kind)
+                        problems.Add(supply.Name + " is the wrong SupplyKind");
+                    if (!Mathf.Approximately(supplyItem.Capacity, supply.Capacity))
+                        problems.Add(supply.Name + " capacity reads " + supplyItem.Capacity);
+                    if (!Mathf.Approximately(supplyItem.StartingCharge, supply.StartingCharge))
+                        problems.Add(supply.Name + " startingCharge reads " + supplyItem.StartingCharge);
                 }
 
                 problems.AddRange(ItemWorldPresence.ProblemsWith(prefab)

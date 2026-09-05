@@ -5,7 +5,7 @@ summary: "The ship's oxygen plant: two receptacles, a power cell that wakes it a
 paths:
   - Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGenerator.cs
   - Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGeneratorDock.cs
-  - Assets/Game/Scripts/Items/Oxygen
+  - Assets/Game/Scripts/Items/Supplies
   - Assets/Game/Scripts/Presentation/EmissiveLamp.cs
   - Assets/Game/Scripts/Core/Persistence/Adapters/OxygenGeneratorSaveable.cs
   - Assets/Game/Editor/Environment/OxygenGeneratorBuilder.cs
@@ -33,7 +33,7 @@ symptoms:
   - "the power cell I fitted never appears in the slot, and the one I took out is still standing there"
   - "a docked item pops in or out much later, at the unrelated moment something else changes"
 reads_with: [Inventory, Backpack, PlayerShip, InteractionSystem, Persistence, Multiplayer]
-updated: 2026-09-04
+updated: 2026-09-05
 ---
 
 # Oxygen
@@ -41,12 +41,12 @@ updated: 2026-09-04
 A wall-mounted plant on the lander's main deck with two receptacles: a rectangular slot that takes a
 **power cell**, and a round collar that takes an **oxygen bottle** and fills it in five seconds.
 
-**Scope:** [OxygenGenerator.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGenerator.cs), [OxygenGeneratorDock.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGeneratorDock.cs), [Items/Oxygen/](Assets/Game/Scripts/Items/Oxygen), [OxygenGeneratorBuilder.cs](Assets/Game/Editor/Environment/OxygenGeneratorBuilder.cs), [OxygenGearBuilder.cs](Assets/Game/Editor/Items/OxygenGearBuilder.cs).
+**Scope:** [OxygenGenerator.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGenerator.cs), [OxygenGeneratorDock.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGeneratorDock.cs), [Items/Supplies/](Assets/Game/Scripts/Items/Supplies), [OxygenGeneratorBuilder.cs](Assets/Game/Editor/Environment/OxygenGeneratorBuilder.cs), [OxygenGearBuilder.cs](Assets/Game/Editor/Items/OxygenGearBuilder.cs).
 **Related:** [Inventory.md](Inventory.md) (item defs, the hotbar) · [Backpack.md](Backpack.md) (what a supply costs on the mat) · [PlayerShip.md](PlayerShip.md) (it is the hull's fourth fixture) · [InteractionSystem.md](InteractionSystem.md) · [Persistence.md](Persistence.md).
 
 ## Model
 
-- **Three items, one machine.** [`OxygenTank`](Assets/Game/Resources/Items/Supplies/OxygenTank.asset), `OxygenTankEmpty` and `PowerCell` are ordinary `InventoryItem`s carrying [`DockableSupply`](Assets/Game/Scripts/Items/Oxygen/DockableSupply.cs); the plant is a ship fixture carrying [`OxygenGenerator`](Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGenerator.cs) plus two `OxygenGeneratorDock`s.
+- **Three items, one machine.** [`OxygenTank`](Assets/Game/Resources/Items/Supplies/OxygenTank.asset), `OxygenTankEmpty` and `PowerCell` are ordinary `InventoryItem`s carrying [`DockableSupply`](Assets/Game/Scripts/Items/Supplies/DockableSupply.cs); the plant is a ship fixture carrying [`OxygenGenerator`](Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGenerator.cs) plus two `OxygenGeneratorDock`s.
 - **A bottle's charge is its IDENTITY, not a number.** Filling swaps `OxygenTankEmpty` for `OxygenTank`. The hotbar replicates item **IDs** and `ItemState` does not replicate at all ([Inventory.md](Inventory.md)), so a charge kept in a bag would be a value only the server could ever see — as two assets it reaches the wire, the save file, the hotbar, the mat and the icon for free.
 - **Oxygen has a consumer; the cell still does not.** [`SuitOxygen`](Assets/Game/Scripts/Gameplay/Oxygen/SuitOxygen.cs) on the player drains outside a [`BreathableVolume`](Assets/Game/Scripts/Gameplay/Oxygen/BreathableVolume.cs), and a charged bottle is spent by **using** it — `DockableSupply.Use` refills the suit and swaps the item for its drained twin in the same hotbar slot. The loop is now *find a bottle → power the plant → fill the bottle → breathe it*. There is still no battery meter: the plant's supply is unlimited by construction and the cell never drains. See [Visor.md](Visor.md) for the gauge and the warnings.
 - **Two docks because a receptacle is the signifier for its verb.** A round collar physically cannot take a slab cell and the slot cannot take a bottle, which the player reads before any text appears (`GDC-L1-UX-0004`); colour is only confirmation (`GDC-L1-UX-0003`). The model was built to that rule — see [oxygen_generator_BUILD.md](Assets/Game/Art/Models/_Source~/models/props/oxygen_generator_BUILD.md).
@@ -65,8 +65,8 @@ A wall-mounted plant on the lander's main deck with two receptacles: a rectangul
 | `OxygenGenerator` | [OxygenGenerator.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGenerator.cs) | The machine. One `NetworkVariable<Plant>` (cell / tank / fill deadline), both presses, the lamps, the docked copies, the fill clock. `IPersistentEntity`. |
 | `OxygenGenerator.Plant` | same | The replicated struct: `Cell`, `Tank` (a `DockedTank`), `FillEndsAt` on the **server's** clock. |
 | `OxygenGeneratorDock` | [OxygenGeneratorDock.cs](Assets/Game/Scripts/Gameplay/Interaction/Interactions/OxygenGeneratorDock.cs) | One receptacle: `IInteractable` + `IInteractionReadout` on a **trigger** volume. Owns no state. |
-| `DockableSupply` | [DockableSupply.cs](Assets/Game/Scripts/Items/Oxygen/DockableSupply.cs) | The carried item. No use verb; exists for the hold pose and to paint its own gauge. |
-| `EmissiveLamp` | [EmissiveLamp.cs](Assets/Game/Scripts/Presentation/EmissiveLamp.cs) | Paints one lamp or one **submesh** of one through a shared `MaterialPropertyBlock`. Also used by `RepairWorkstation`. |
+| `DockableSupply` | [DockableSupply.cs](Assets/Game/Scripts/Items/Supplies/DockableSupply.cs) | The carried item. No use verb; exists for the hold pose and to paint its own gauge. |
+| `EmissiveLamp` | [EmissiveLamp.cs](Assets/Game/Scripts/Presentation/EmissiveLamp.cs) | Paints one lamp or one **submesh** of one through a shared `MaterialPropertyBlock`. |
 | `OxygenGeneratorSaveable` | [Adapters/OxygenGeneratorSaveable.cs](Assets/Game/Scripts/Core/Persistence/Adapters/OxygenGeneratorSaveable.cs) | Save key `oxygen`. Both docks; never the fill deadline. |
 | `OxygenGearBuilder` | [OxygenGearBuilder.cs](Assets/Game/Editor/Items/OxygenGearBuilder.cs) | Builds the three item prefabs + assets, registers them for clients, stocks two of them on the ship's gear wall. |
 | `OxygenGeneratorBuilder` | [OxygenGeneratorBuilder.cs](Assets/Game/Editor/Environment/OxygenGeneratorBuilder.cs) | Builds the fixture: body collider, the two aim volumes, the lamps, the light, the saver. |
@@ -129,4 +129,4 @@ The plant has **no `NetworkObject` of its own** — nested on `PlayerShip.prefab
 
 **Change where the supplies start** — `OxygenGearBuilder.RouteIntoTheGame` stocks both containers: the ship's gear wall (drained bottle + cell) and the expedition rig (charged bottle). Both are authored `PackContainer` starting lists that each container's own builder reads forward, so a rebuild of either keeps them.
 
-**Put a plant somewhere other than the ship** — the prefab has no `NetworkObject`, so whatever places it must add one (as `ShipRV` does for the older workstation), and `SaveablePolicy` will then wire its saver itself.
+**Put a plant somewhere other than the ship** — the prefab has no `NetworkObject`, so whatever places it must add one, and `SaveablePolicy` will then wire its saver itself.

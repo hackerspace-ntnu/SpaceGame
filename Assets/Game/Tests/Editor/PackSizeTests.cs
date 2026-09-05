@@ -161,8 +161,7 @@ namespace SpaceGame.Tests
 
             // ── The oxygen plant's three supplies ─────────────────────────────────────────
             new(Supplies + "OxygenTank.prefab", 0.90f, 0.50f, BottleWhy),
-            new(Supplies + "OxygenTankEmpty.prefab", 0.90f, 0.50f, BottleWhy),
-            new(Supplies + "PowerCell.prefab", 0.90f, 0.63f, CellWhy),
+            new(Supplies + "Battery.prefab", 0.90f, 0.63f, CellWhy),
 
             new(Portals + "PortalGun.prefab", 1.25f, 0.54f,
                 "a 0.4445 m fire extinguisher carried at the ladder's 1.25 m Anchor bracket, " +

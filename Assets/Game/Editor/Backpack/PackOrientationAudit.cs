@@ -176,8 +176,8 @@ namespace SpaceGame.EditorTools
         /// <summary>
         /// Would this face take this shape anywhere, at either orientation? Asked through
         /// <see cref="PackOverhang"/>, because the rack takes a shape longer than itself
-        /// ski-fashion and the back panels take one on both axes — a bare rectangle test would
-        /// report the rack refusing exactly the gear it exists for.
+        /// ski-fashion — a bare rectangle test would report the rack refusing exactly the gear it
+        /// exists for.
         /// </summary>
         private static bool Accepts(PackSurface face, PackShape shape)
         {

@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using SpaceGame.Audio;
 using SpaceGame.Characters;
 using SpaceGame.Items;
 
@@ -11,7 +12,8 @@ namespace SpaceGame.Presentation
 {
     /// <summary>
     /// The body screen: your own character, seen from the front in the live world, with the three
-    /// worn-gear sites on the body and the hand hotbar's three tiles along the bottom. Opened with I.
+    /// worn-gear sites on the body and a pyramid of six tiles down the left edge — the torso on
+    /// top, the two gauntlets, then the hand hotbar's three. Opened with I.
     ///
     /// <para>
     /// <b>Click to carry.</b> Click a filled site or tile and its icon follows the cursor; click
@@ -21,6 +23,13 @@ namespace SpaceGame.Presentation
     /// tints it red; clicking there shakes it. Nothing moves locally: a legal click sends one
     /// request and the slot-change events that come back redraw everything. The same gesture the
     /// backpack's hand uses, on the same button, so the two screens are one language.
+    /// </para>
+    /// <para>
+    /// <b>Two routes to the same three worn slots.</b> Each site on the figure has a tile on the
+    /// rail, and a click on either does exactly the same thing. Pointing at one of those tiles
+    /// lights the site it names, so the rail is legible without hunting across the figure and the
+    /// figure still answers what the rail means. Only a REFUSAL differs, and only in where it is
+    /// shown: on whichever of the two was clicked.
     /// </para>
     /// <para>
     /// This class is the conductor. The world — the camera, the ghosts, what the cursor is over —
@@ -35,13 +44,14 @@ namespace SpaceGame.Presentation
     public class BodyInventoryUI : MonoBehaviour
     {
         private const float OpenSeconds = 0.14f;
-        private const float HotbarFromBottom = 96f;
-        private const float CaptionGap = 12f;
         private const float ChipGap = 26f;
         private const float ChipHeight = 30f;
         private const float KeyChipWidth = 44f;
         private const float BackChipWidth = 116f;
         private const float ChipFontSize = 18f;
+
+        /// <summary>The rail hangs off the left edge at half height; every rail y is signed from there.</summary>
+        private static readonly Vector2 RailAnchor = new(0f, 0.5f);
 
         private static BodyInventoryUI instance;
 
@@ -327,7 +337,16 @@ namespace SpaceGame.Presentation
 
         // ------------------------------------------------------------------- actions
 
-        private void OnTileClicked(Tile tile) => OnSlotClicked(tile.Slot, refused: tile.View.Shake);
+        /// <summary>
+        /// A refusal answers on the tile that was clicked, not on the site across the screen. The
+        /// beep is the site's own, because a worn slot is now reachable from either and a refusal
+        /// that sounds on the body and stays silent on the rail would read as two different rules.
+        /// </summary>
+        private void OnTileClicked(Tile tile) => OnSlotClicked(tile.Slot, refused: () =>
+        {
+            tile.View.Shake();
+            Sfx.Play2D(SfxId.UiError);
+        });
 
         private void OnSiteClicked(BodySlot slot) => OnSlotClicked(GearRef.Body(slot), refused: () => session.Refuse(slot));
 
@@ -388,9 +407,19 @@ namespace SpaceGame.Presentation
             Refresh();
         }
 
+        /// <summary>
+        /// The cursor came over a tile, or left it. A tile naming a worn slot also lights that site
+        /// on the figure — the ghost, the outline and the caption — so pointing at the rail answers
+        /// "which one of those is that on me?" without a second gesture. The session hands the hover
+        /// straight back out through <see cref="OnSiteHover"/>, so the caption needs nothing here.
+        /// </summary>
         private void OnTileHover(Tile tile, bool over)
         {
             hoveredTile = over ? tile.Slot : hoveredTile == tile.Slot ? GearRef.None : hoveredTile;
+
+            if (session != null)
+                session.SetExternalHover(hoveredTile.IsBody ? hoveredTile.Slot : (BodySlot?)null);
+
             Refresh();
         }
 
@@ -426,7 +455,10 @@ namespace SpaceGame.Presentation
                 InventoryItem item = ItemAt(tile.Slot);
                 bool isCarried = tile.Slot == carried;
                 bool isHovered = tile.Slot == hoveredTile;
-                bool selected = tile.Slot.Index == hotbar.SelectedSlotIndex;
+                // Only a HAND slot can be the selected one, and GearRef.Index is the index within
+                // its own list — Torso is 0 there, so an unguarded comparison lights the torso tile
+                // whenever hotbar slot 1 is in hand.
+                bool selected = tile.Slot.IsHotbar && tile.Slot.Index == hotbar.SelectedSlotIndex;
 
                 bool dropTarget = false, refused = false;
                 if (!carried.IsNone && isHovered && !isCarried)
@@ -436,7 +468,9 @@ namespace SpaceGame.Presentation
                     refused = !verdict.Allowed;
                 }
 
-                bool worn = item != null && !BodySlotRules.HandEquips(item.equipKind);
+                // The badge means "worn gear lying in a hand slot", so it belongs on hotbar tiles
+                // only: on a body tile the very same item is exactly where it should be.
+                bool worn = tile.Slot.IsHotbar && item != null && !BodySlotRules.HandEquips(item.equipKind);
 
                 tile.View.Refresh(item, selected, isHovered, dropTarget, refused, isReserved: isCarried, isWorn: worn);
             }
@@ -539,7 +573,7 @@ namespace SpaceGame.Presentation
             var root = (RectTransform)canvasGo.transform;
 
             BuildHeader(root);
-            BuildHotbar(root);
+            BuildRail(root);
             BuildCarry(root);
 
             visibility = 0f;
@@ -562,41 +596,58 @@ namespace SpaceGame.Presentation
                 UITheme.Faint, TextAlignmentOptions.Right);
         }
 
-        /// <summary>The three hand slots along the bottom — the HUD's own tiles, since the HUD is hidden.</summary>
-        private void BuildHotbar(RectTransform host)
+        /// <summary>
+        /// All six slots, as a pyramid down the LEFT edge — the HUD's own tiles, since the HUD is
+        /// hidden. A block and not the bar's row: the lens frames the WHOLE figure down the middle
+        /// of the screen, so a row along the bottom lies across the legs, and worn torso gear reaches
+        /// to the knees. The tiles keep their numbers, their look and their one gesture, so where
+        /// they hang is the only convention this departs from (user, 2026-09-04).
+        ///
+        /// <para>
+        /// The three worn slots join them here (user, 2026-09-06). They are still clickable on the
+        /// body itself, ghosts and all — this is a second route to the same three slots, not a
+        /// replacement, and one that is legible without hunting for a site on a figure. The rows
+        /// read top-down the way the body does: trunk, arms, hands. Geometry is
+        /// <see cref="GearRailLayout"/>.
+        /// </para>
+        /// </summary>
+        private void BuildRail(RectTransform host)
         {
-            const float slot = HotbarStyle.SlotWidth;
-            const float gap = HotbarStyle.SlotSpacing;
-
             int size = hotbar != null ? hotbar.GetInventorySize() : 3;
-            float row = -(slot + gap) * (size - 1) * 0.5f;
 
-            for (int i = 0; i < size; i++)
-                AddTile(host, GearRef.Hotbar(i), $"Slot {i + 1}", (i + 1).ToString(), new Vector2(row + i * (slot + gap), HotbarFromBottom));
+            foreach (GearRailLayout.Placement placement in GearRailLayout.Build(size))
+                AddTile(host, placement);
 
-            var captionRect = UIBuilder.Rect("Hands caption", host);
-            captionRect.anchorMin = new Vector2(0.5f, 0f);
-            captionRect.anchorMax = new Vector2(0.5f, 0f);
-            captionRect.pivot = new Vector2(0.5f, 1f);
-            captionRect.sizeDelta = new Vector2(HotbarStyle.SlotWidth * 2.2f, 24f);
-            captionRect.anchoredPosition = new Vector2(0f, HotbarFromBottom - HotbarStyle.SlotHeight * 0.5f - CaptionGap);
-            UIBuilder.Label(captionRect, "Hands  ·  1 – " + size, UITheme.CaptionSize, UITheme.Muted, TextAlignmentOptions.Center);
+            Caption(host, "Worn caption", "Worn", new Vector2(0.5f, 0f), GearRailLayout.CaptionAboveY);
+            Caption(host, "Hands caption", "Hands  ·  1 – " + size, new Vector2(0.5f, 1f), GearRailLayout.CaptionBelowY);
         }
 
-        private void AddTile(RectTransform host, GearRef slot, string name, string key, Vector2 at)
+        /// <summary>One of the two muted labels bracketing the pyramid, naming the band it sits against.</summary>
+        private static void Caption(RectTransform host, string name, string text, Vector2 pivot, float y)
         {
-            GearTile view = GearTile.Build(host, name, key);
+            var rect = UIBuilder.Rect(name, host);
+            rect.anchorMin = RailAnchor;
+            rect.anchorMax = RailAnchor;
+            rect.pivot = pivot;
+            rect.sizeDelta = new Vector2(HotbarStyle.SlotWidth * 3.2f, 24f);
+            rect.anchoredPosition = new Vector2(GearRailLayout.CentreFromLeft, y);
+            UIBuilder.Label(rect, text, UITheme.CaptionSize, UITheme.Muted, TextAlignmentOptions.Center);
+        }
+
+        private void AddTile(RectTransform host, GearRailLayout.Placement placement)
+        {
+            GearTile view = GearTile.Build(host, placement.Name, placement.Key);
 
             RectTransform rect = view.Rect;
-            rect.anchorMin = new Vector2(0.5f, 0f);
-            rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.anchorMin = RailAnchor;
+            rect.anchorMax = RailAnchor;
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = at;
+            rect.anchoredPosition = placement.At;
 
             var element = view.GetComponent<LayoutElement>();
             if (element != null) element.ignoreLayout = true;
 
-            var tile = new Tile { Slot = slot, View = view };
+            var tile = new Tile { Slot = placement.Slot, View = view };
             view.Clicked += _ => OnTileClicked(tile);
             view.HoverChanged += (_, over) => OnTileHover(tile, over);
             tiles.Add(tile);

@@ -35,7 +35,8 @@ namespace SpaceGame.EditorTools
         /// </summary>
         private static (float gap, float swing) Settle(
             float massA, float massB, float length, float startGap,
-            float driveA = 0f, int steps = 600)
+            float driveA = 0f, int steps = 600,
+            float pullA = 0f, float pullB = 0f)
         {
             float posA = 0f, posB = startGap, velA = 0f, velB = 0f;
             float low = float.MaxValue, high = float.MinValue;
@@ -53,11 +54,16 @@ namespace SpaceGame.EditorTools
                     float shareA = Leash.ShareOf(massA, massB);
                     float shareB = Leash.ShareOf(massB, massA);
 
+                    float capA = Leash.TowCap(pullB - pullA, massA);
+                    float capB = Leash.TowCap(pullA - pullB, massB);
+
                     velA += Leash.ArrestSpeed(separation, shareA, MaxSpeed);
-                    posA += Leash.CorrectionDistance(stretch, shareA, Correction, MaxStep);
+                    posA += Mathf.Min(Leash.CorrectionDistance(stretch, shareA, Correction, MaxStep),
+                                      capA * Dt);
 
                     velB -= Leash.ArrestSpeed(separation, shareB, MaxSpeed);
-                    posB -= Leash.CorrectionDistance(stretch, shareB, Correction, MaxStep);
+                    posB -= Mathf.Min(Leash.CorrectionDistance(stretch, shareB, Correction, MaxStep),
+                                      capB * Dt);
                 }
 
                 posA += velA * Dt;
@@ -147,40 +153,246 @@ namespace SpaceGame.EditorTools
                         "Closing motion is never resisted: a rope pulls, it does not push.");
         }
 
+        // ── The contest ────────────────────────────────────────────────────────
+        //
+        // What replaced Restrain, the clamp that capped every pull at the speed the body already
+        // had. It made a rope unable to move anything standing still, which is most of what a
+        // leash is for. The tow it forbade is now bounded by force over mass instead.
+
         [Test]
-        public void ALeashCanNeverMakeAPlayerFaster()
+        public void PullIsMassTimesTopSpeedAndAStaticAnchorHasNone()
         {
-            // The leash is not a grappling hook and must not become one by accident. The dangerous
-            // case is not the player running into the rope — it is the rope's far end LEAVING, which
-            // opens the gap just as fast and turns the arrest term into a tow.
-            Vector3 standingStill = Vector3.zero;
-            Vector3 toward = Vector3.forward;
+            // A heavy slow thing and a light fast thing can be evenly matched. That is the whole
+            // point of multiplying rather than picking one of them.
+            Assert.That(Leash.PullOf(80f, 6f), Is.EqualTo(480f).Within(1e-3f));
+            Assert.That(Leash.PullOf(120f, 9f), Is.EqualTo(1080f).Within(1e-3f));
 
-            // A vehicle tears away at 40 m/s. Without the clamp this hands the player 25 m/s of free
-            // speed along the rope, which is a launch.
-            Vector3 launched = LeashEnd.Restrain(standingStill, toward, arrestSpeed: 25f);
-            Assert.That(launched.magnitude, Is.EqualTo(0f).Within(1e-4f),
-                "A rope may drag a standing player, but it must not give them speed.");
+            // A wall resists infinitely but tows NOTHING. Returning zero here rather than
+            // evaluating Infinity * 0 is what keeps a NaN out of the clamp downstream.
+            Assert.That(Leash.PullOf(Mathf.Infinity, 6f), Is.Zero);
 
-            // Mid-swing: moving fast sideways, rope pulling at right angles. Adding along the rope
-            // would lengthen the vector — that is exactly how a pendulum is pumped.
-            Vector3 across = new Vector3(12f, 0f, 0f);
-            Vector3 swung = LeashEnd.Restrain(across, toward, arrestSpeed: 9f);
-            Assert.That(swung.magnitude, Is.LessThanOrEqualTo(across.magnitude + 1e-3f));
+            // A crate has no engine and no legs.
+            Assert.That(Leash.PullOf(400f, 0f), Is.Zero);
         }
 
         [Test]
-        public void ALeashStillTakesSpeedAwayFromAPlayerRunningIntoIt()
+        public void TowCapOnlyClampsTheEndThatIsLosing()
         {
-            // The clamp must not have cost the leash its actual job. Running at the end of the rope
-            // has to stop, or nothing restrains anyone.
-            Vector3 runningOut = new Vector3(0f, 0f, -6f);       // away from the anchor
-            Vector3 toward = Vector3.forward;                    // rope pulls back toward it
+            // Out-pulled by 600 with 80 kg to shift: dragged, but at a finite speed.
+            Assert.That(Leash.TowCap(600f, 80f), Is.EqualTo(7.5f).Within(1e-3f));
 
-            Vector3 held = LeashEnd.Restrain(runningOut, toward, arrestSpeed: 6f);
+            // Twice the mass, half the speed. This is "heavy stuff is moved slowly".
+            Assert.That(Leash.TowCap(600f, 160f), Is.EqualTo(3.75f).Within(1e-3f));
 
-            Assert.That(held.z, Is.EqualTo(0f).Within(1e-3f), "The outward run should be arrested.");
-            Assert.That(held.magnitude, Is.LessThan(runningOut.magnitude));
+            // Winning, or evenly matched: NOT clamped. Two passive crates roped together both
+            // score zero, and a clamp of zero would freeze the rope instead of closing it.
+            Assert.That(Leash.TowCap(-600f, 80f), Is.EqualTo(Mathf.Infinity));
+            Assert.That(Leash.TowCap(0f, 80f), Is.EqualTo(Mathf.Infinity));
+
+            // An immovable end is never towed however hard it is pulled.
+            Assert.That(Leash.TowCap(600f, Mathf.Infinity), Is.Zero);
+        }
+
+        [Test]
+        public void ShareStillAnswersResistanceRatherThanStrength()
+        {
+            // Pull and mass answer different questions and must not be conflated. A wall has NO
+            // pull, so sharing by pull would hand a player roped to one a share of zero and the
+            // rope would stop restraining them. Sharing by mass keeps it at 1.
+            Assert.That(Leash.PullOf(Mathf.Infinity, 0f), Is.Zero);
+            Assert.That(Leash.ShareOf(80f, Mathf.Infinity), Is.EqualTo(1f).Within(1e-4f));
+        }
+
+        [Test]
+        public void AStrongerEndDragsAStandingPlayerAlong()
+        {
+            // The case Restrain forbade outright: a player standing still, roped to something that
+            // walks away. They contribute no separating velocity of their own, so the arrest term
+            // does nothing and the position correction is the only thing that can move them --
+            // which Restrain then clamped back to the speed they already had, i.e. zero.
+            (float gap, _) = Settle(massA: 80f, massB: 120f, length: 8f, startGap: 8f,
+                                    driveA: 0f, steps: 400,
+                                    pullA: Leash.PullOf(80f, 6f),      // player, 480
+                                    pullB: Leash.PullOf(120f, 9f));    // ostrich, 1080
+
+            // The rope stays taut, which it can only do if the player came along.
+            Assert.That(gap, Is.EqualTo(8f).Within(0.6f));
+        }
+
+        [Test]
+        public void AHeavierEndIsDraggedMoreSlowlyByTheSamePull()
+        {
+            // Same contest, twice the mass on the losing end. Force over mass, so half the speed.
+            float netPull = 600f;
+
+            Assert.That(Leash.TowCap(netPull, 80f),
+                        Is.EqualTo(2f * Leash.TowCap(netPull, 160f)).Within(1e-3f));
+        }
+
+        [Test]
+        public void TwoPassiveBodiesStillCloseTheirRope()
+        {
+            // Both score zero pull, so both caps must be uncapped rather than zero. A cap of zero
+            // here would freeze two roped crates apart forever.
+            (float gap, float swing) = Settle(massA: 400f, massB: 400f, length: 8f, startGap: 12f,
+                                              pullA: 0f, pullB: 0f);
+
+            Assert.That(gap, Is.EqualTo(8f).Within(0.02f));
+            Assert.That(swing, Is.LessThan(0.01f), "The rope must settle, not ring.");
+        }
+
+        // ── Resist ─────────────────────────────────────────────────────────────
+
+        [Test]
+        public void ResistBuildsWhilePullingAwayAndDecaysWhenYouStop()
+        {
+            const float Decay = 0.5f;
+
+            // Straight away from the knot, against an evenly-matched captor.
+            float strain = Leash.ResistStrain(0f, away: 1f, resistSeconds: 2f, dt: 1f, decay: Decay);
+            Assert.That(strain, Is.EqualTo(0.5f).Within(1e-3f));
+
+            // Sideways earns nothing: it is the component ALONG the rope that counts.
+            Assert.That(Leash.ResistStrain(0f, away: 0f, resistSeconds: 2f, dt: 1f, decay: Decay),
+                        Is.Zero);
+
+            // Standing still gives it back.
+            Assert.That(Leash.ResistStrain(0.5f, away: 0f, resistSeconds: 2f, dt: 1f, decay: Decay),
+                        Is.EqualTo(0f).Within(1e-3f));
+
+            // It never runs negative, so a long rest does not bank credit against the next rope.
+            Assert.That(Leash.ResistStrain(0.1f, away: 0f, resistSeconds: 2f, dt: 5f, decay: Decay),
+                        Is.Zero);
+
+            // And it is capped, so one very long step cannot overshoot past the snap point.
+            Assert.That(Leash.ResistStrain(0.9f, away: 1f, resistSeconds: 2f, dt: 10f, decay: Decay),
+                        Is.EqualTo(1f).Within(1e-3f));
+        }
+
+        [Test]
+        public void TearingFreeOfSomethingStrongerTakesLonger()
+        {
+            // resistSeconds scales with the captor's pull, so a ship holds you longer than a player
+            // does. Two seconds against an equal, proportionally more against a ship.
+            Assert.That(Leash.ResistSeconds(theirPull: 480f, myPull: 480f, baseSeconds: 2f),
+                        Is.EqualTo(2f).Within(1e-3f));
+
+            Assert.That(Leash.ResistSeconds(theirPull: 1920f, myPull: 480f, baseSeconds: 2f),
+                        Is.EqualTo(8f).Within(1e-3f));
+
+            // Tearing free of something weaker than you is quick, but never instant.
+            Assert.That(Leash.ResistSeconds(theirPull: 0f, myPull: 480f, baseSeconds: 2f),
+                        Is.GreaterThan(0f));
+        }
+
+        // ── Towing is not struggling ───────────────────────────────────────────
+        //
+        // Walking away from a taut rope is the ONLY input either action has, so before this the
+        // rope read every tow as an escape attempt. Every dropped item in the project scores zero
+        // pull (no motor, so TopSpeed is 0), which floors resistSeconds at 0.2 s -- so hauling any
+        // item tore the rope off in a fifth of a second, before the item had moved. What separates
+        // the two is not the input but the RESULT: a load that comes with you is not holding you.
+
+        [Test]
+        public void HaulingSomethingThatComesWithYouIsNotAStruggle()
+        {
+            // Walking away at 9 m/s and actually getting 9 m/s: the load is following.
+            Assert.That(Leash.HeldBackFraction(wishAway: 1f, actualAway: 9f, topSpeed: 9f),
+                        Is.EqualTo(0f).Within(1e-3f));
+        }
+
+        [Test]
+        public void APostThatWillNotBudgeHoldsYouCompletely()
+        {
+            // Leaning on the rope and going nowhere is what a struggle actually is.
+            Assert.That(Leash.HeldBackFraction(wishAway: 1f, actualAway: 0f, topSpeed: 9f),
+                        Is.EqualTo(1f).Within(1e-3f));
+        }
+
+        [Test]
+        public void BeingDraggedBackwardsCountsAsFullyHeld()
+        {
+            // Losing ground is not less of a struggle than standing still, and the clamp is what
+            // stops a negative velocity reading past 1 and snapping the rope early.
+            Assert.That(Leash.HeldBackFraction(wishAway: 1f, actualAway: -4f, topSpeed: 9f),
+                        Is.EqualTo(1f).Within(1e-3f));
+        }
+
+        [Test]
+        public void HalfSpeedIsHalfAStruggle()
+        {
+            Assert.That(Leash.HeldBackFraction(wishAway: 1f, actualAway: 4.5f, topSpeed: 9f),
+                        Is.EqualTo(0.5f).Within(1e-3f));
+        }
+
+        [Test]
+        public void StandingStillEarnsNothingHoweverTautTheRopeIs()
+        {
+            // No input away from the knot is no struggle, whatever the rope is doing.
+            Assert.That(Leash.HeldBackFraction(wishAway: 0f, actualAway: 0f, topSpeed: 9f),
+                        Is.EqualTo(0f).Within(1e-3f));
+        }
+
+        [Test]
+        public void AnEndWithNoSpeedOfItsOwnCannotStruggle()
+        {
+            // Guards the divide. TopSpeed is 0 on anything with no motor, and 0/0 would poison
+            // every clamp downstream.
+            Assert.That(Leash.HeldBackFraction(wishAway: 1f, actualAway: 0f, topSpeed: 0f),
+                        Is.EqualTo(0f).Within(1e-3f));
+        }
+
+        // ── Several ropes on one body ──────────────────────────────────────────
+
+        [Test]
+        public void PullsFromSeveralRopesAddUp()
+        {
+            // Three players hauling one ship out-pull one player hauling it the other way.
+            float player = Leash.PullOf(80f, 6f);
+
+            Assert.That(Leash.CombinedPull(new[] { player, player, player }),
+                        Is.EqualTo(3f * player).Within(1e-3f));
+
+            // And an empty rope set pulls nothing rather than throwing.
+            Assert.That(Leash.CombinedPull(new float[0]), Is.Zero);
+        }
+
+        [Test]
+        public void OpposingRopesOnOneBodyCancel()
+        {
+            // Two players roping one crate in opposite directions deadlock it. The signs come from
+            // the direction each rope pulls, so no rule is needed for "which side is the crate on".
+            float player = Leash.PullOf(80f, 6f);
+
+            Assert.That(Leash.CombinedPull(new[] { player, -player }), Is.Zero.Within(1e-3f));
+
+            // A third player joining one side breaks the deadlock.
+            Assert.That(Leash.CombinedPull(new[] { player, -player, player }),
+                        Is.EqualTo(player).Within(1e-3f));
+        }
+
+        [Test]
+        public void TerrainIsNotSomethingARopeCanBeTiedTo()
+        {
+            var go = new GameObject("terrain probe");
+            try
+            {
+                // A TerrainCollider is the exact thing chunk ground uses, so the type IS the test.
+                // A layer mask would have to be kept in step with the streaming config, which
+                // already has a documented casing drift defect.
+                Assert.That(LeashArtifact.IsTieable(go.AddComponent<TerrainCollider>()), Is.False);
+
+                var box = new GameObject("crate");
+                try
+                {
+                    Assert.That(LeashArtifact.IsTieable(box.AddComponent<BoxCollider>()), Is.True);
+                }
+                finally { Object.DestroyImmediate(box); }
+
+                // Nothing aimed at is not tieable either, and must not throw.
+                Assert.That(LeashArtifact.IsTieable(null), Is.False);
+            }
+            finally { Object.DestroyImmediate(go); }
         }
 
         [Test]
@@ -391,5 +603,111 @@ namespace SpaceGame.EditorTools
             Object.DestroyImmediate(runner);
         }
 
+        // ── Path geometry ──────────────────────────────────────────────────────
+        //
+        // A rope is a polyline now, not a chord. The arithmetic that follows from that is pure, so
+        // it is pinned here rather than judged by feel in play mode — same reasoning as everything
+        // above it.
+
+        [Test]
+        public void PolylineLength_WithNoWraps_IsTheStraightDistance()
+        {
+            var points = new[] { new Vector3(0f, 0f, 0f), new Vector3(3f, 4f, 0f) };
+
+            Assert.AreEqual(5f, LeashPath.PolylineLength(points), 0.0001f);
+        }
+
+        [Test]
+        public void PolylineLength_SumsEverySegment()
+        {
+            var points = new[]
+            {
+                new Vector3(0f, 0f, 0f),
+                new Vector3(3f, 0f, 0f),
+                new Vector3(3f, 4f, 0f),
+            };
+
+            Assert.AreEqual(7f, LeashPath.PolylineLength(points), 0.0001f);
+        }
+
+        /// <summary>
+        /// The winch. Rope spent going round a corner is rope the far end does not have, so a bend
+        /// makes the SAME two endpoints measure longer — which is what draws the far end in when
+        /// somebody walks away from the corner.
+        /// </summary>
+        [Test]
+        public void ABend_MakesTheSameEndpointsMeasureLonger()
+        {
+            var straight = new[] { new Vector3(0f, 0f, 0f), new Vector3(10f, 0f, 0f) };
+            var bent = new[] { new Vector3(0f, 0f, 0f), new Vector3(5f, 3f, 0f), new Vector3(10f, 0f, 0f) };
+
+            Assert.Greater(LeashPath.PolylineLength(bent), LeashPath.PolylineLength(straight));
+        }
+
+        [Test]
+        public void TryMake_OffsetsTheContactAlongTheNormal()
+        {
+            var tuning = new LeashPath.Tuning { clearance = 0.1f, maxWraps = 8 };
+
+            bool made = LeashPath.TryMake(
+                new Vector3(5f, 0f, 0f), Vector3.up, null,
+                Vector3.zero, new Vector3(10f, 0f, 0f), tuning, out LeashWrap wrap);
+
+            Assert.IsTrue(made);
+            Assert.AreEqual(0.1f, wrap.Position.y, 0.0001f);
+            Assert.AreEqual(5f, wrap.Position.x, 0.0001f);
+        }
+
+        /// <summary>
+        /// The degenerate case, and it is not rare: a rope lying along a flat wall contacts it
+        /// everywhere, and a contact that lands on top of a point it is meant to bend between makes
+        /// a zero-length segment. Without this refusal the list fills in a single step and the
+        /// rope's measured length collapses.
+        /// </summary>
+        [Test]
+        public void TryMake_RefusesAWrapSittingOnItsOwnNeighbour()
+        {
+            var tuning = new LeashPath.Tuning { clearance = 0.1f, maxWraps = 8 };
+
+            bool made = LeashPath.TryMake(
+                new Vector3(0.05f, 0f, 0f), Vector3.up, null,
+                Vector3.zero, new Vector3(10f, 0f, 0f), tuning, out _);
+
+            Assert.IsFalse(made);
+        }
+
+        [Test]
+        public void DirectionFrom_WithNoWraps_PointsAtTheFarEnd()
+        {
+            var path = new LeashPath();
+
+            Assert.That(path.DirectionFrom(true, Vector3.zero, new Vector3(0f, 0f, 10f)),
+                        Is.EqualTo(Vector3.forward).Using(Vec));
+        }
+
+        /// <summary>
+        /// The generalisation must be exactly that. With no bend, each end's own contribution to the
+        /// rope lengthening sums to the relative-velocity term it replaces — if this drifts, every
+        /// rope in the shipped game changes feel and nothing says so.
+        /// </summary>
+        [Test]
+        public void SeparationRate_WithNoWraps_MatchesRelativeVelocity()
+        {
+            var path = new LeashPath();
+
+            Vector3 endA = new(0f, 0f, 0f);
+            Vector3 endB = new(0f, 0f, 10f);
+
+            Vector3 velocityA = new(1f, 0f, -2f);
+            Vector3 velocityB = new(0f, 3f, 5f);
+
+            Vector3 towardA = path.DirectionFrom(true, endA, endB);
+            Vector3 towardB = path.DirectionFrom(false, endA, endB);
+
+            float split = Vector3.Dot(velocityA, -towardA) + Vector3.Dot(velocityB, -towardB);
+            float relative = Vector3.Dot(velocityA - velocityB, -towardA);
+
+            Assert.AreEqual(relative, split, 0.0001f);
+        }
     }
 }

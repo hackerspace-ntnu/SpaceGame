@@ -14,17 +14,17 @@ namespace SpaceGame.Items
     /// overhang — and the item is drawn at true size, centred, hanging evenly off both ends.
     /// </para>
     /// <para>
-    /// The two back panels take gear the way a bedroll rides under a rucksack lid: lashed to the
-    /// outside with open air past every edge, so they allow overhang on BOTH axes. They are the
-    /// smallest wired faces on the rig — a strict rule there would refuse most real gear
-    /// outright, which makes them decoration, not storage. The clamp works per axis exactly as
-    /// on the rack: each overhung axis occupies the panel's full span on that axis, so nothing
-    /// slides in under the hanging part.
-    /// </para>
-    /// <para>
     /// Every other face keeps the strict rule: the leaf is a mat things sit on, the lash line is
     /// one cell deep, and an overhang that any face allowed in any direction would stop meaning
     /// anything.
+    /// </para>
+    /// <para>
+    /// <b>The two side back panels used to allow overhang on BOTH axes</b>, bedroll-fashion, on
+    /// the argument that a strict rule on the smallest faces would refuse most gear. Reversed
+    /// 2026-09-05: with both axes clamped, EVERY rectangle in the game fitted a back panel — a
+    /// 1.3 m launcher lay across a 0.57 m strip hanging off both ends — so the strips beside the
+    /// bottle read as having more room than the whole mat. A strip beside a bottle now holds
+    /// what fits inside it, and the launcher goes on the rack, which is what the rack is for.
     /// </para>
     /// <para>
     /// Only RECTANGLES. A drawn mask is somebody's decision about exactly which cells an item
@@ -40,16 +40,14 @@ namespace SpaceGame.Items
         /// <para>
         /// Keyed on the face's IDENTITY, never its size: the rule is about what the straps of
         /// that particular face can hold onto, and a face that is resized keeps its nature. The
-        /// rack takes overhang along u only — its v span is what the lashing reaches around; the
-        /// back panels take it on both axes — see the class note; everything else is strict.
+        /// rack takes overhang along u only — its v span is what the lashing reaches around;
+        /// everything else is strict, the back panels included — see the class note.
         /// </para>
         /// </summary>
         public static (bool u, bool v) Axes(PackSurfaceId surface) => surface switch
         {
-            PackSurfaceId.Rack           => (true,  false),
-            PackSurfaceId.BackPanelLeft  => (true,  true),
-            PackSurfaceId.BackPanelRight => (true,  true),
-            _                            => (false, false),
+            PackSurfaceId.Rack => (true,  false),
+            _                  => (false, false),
         };
 
         /// <summary>

@@ -489,7 +489,7 @@ namespace SpaceGame.EditorTools
 
             public event Action<InventorySlot> OnSlotSelected;
             public event Action<int, InventorySlot> OnSlotChanged;
-            public event Action<InventoryItem> OnItemDropped;
+            public event Action<InventoryItem, float> OnItemDropped;
 
             public void Resize(int slots) => bag = new Inventory(slots);
 
@@ -537,7 +537,7 @@ namespace SpaceGame.EditorTools
                     bag.RestoreSlot(i, items != null && i < items.Count ? items[i] : null);
 
                 SelectedSlotIndex = selectedSlot;
-                OnItemDropped?.Invoke(null);
+                OnItemDropped?.Invoke(null, SupplyCharge.None);
             }
 
             public int GetInventorySize() => bag.GetSize();

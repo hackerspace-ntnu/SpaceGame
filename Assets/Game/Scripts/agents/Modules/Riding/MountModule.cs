@@ -198,6 +198,7 @@ namespace SpaceGame.Agents
         private Transform activeSeatPoint;
         private Camera mountedFirstPersonCamera;
         private Transform mountedFirstPersonCameraRoot;
+        private AimProvider mountedAimProvider;
 
         private MonoBehaviour[] suppressibleModules;
 

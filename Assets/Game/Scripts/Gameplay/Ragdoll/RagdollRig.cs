@@ -194,8 +194,52 @@ namespace SpaceGame.Gameplay.Ragdoll
         /// </summary>
         public bool Drives { get; set; } = true;
 
+        /// <summary>
+        /// Is this body limp because a gameplay system is HOLDING it there?
+        ///
+        /// <para>
+        /// A corpse and a captive are both limp and <see cref="RagdollBudget"/> cannot otherwise
+        /// tell them apart — so a firefight across the valley filling the budget would freeze a
+        /// netted player, and <c>PlayerRagdoll.Update</c> restores control on <c>!IsLimp</c>, which
+        /// stands them straight back up. The net is still drawn around them and still holding, and
+        /// nothing is logged. Set for the duration of the hold and cleared on release.
+        /// </para>
+        ///
+        /// <para>
+        /// It is the HOLDER's to clear, not this component's: nothing here knows when a net tears.
+        /// A holder that sets this and never clears it leaves a body the budget can never reclaim,
+        /// which is the cost this flag is deliberately buying.
+        /// </para>
+        ///
+        /// <para>
+        /// Two routes clear it, not one. The release is the ordinary one; DEATH is the other, and
+        /// both <c>PlayerRagdoll.OnDeath</c> and <c>AgentRagdoll.OnDeath</c> drop the claim on the
+        /// spot. A corpse is exactly the thing the budget exists to reclaim, and it can no longer
+        /// struggle out — so a captive who dies still netted must not take an un-evictable place in
+        /// the budget with them and keep it for the rest of the session.
+        /// </para>
+        /// </summary>
+        public bool BudgetExempt { get; set; }
+
         /// <summary>The bone the body hangs from. Null until the rig has been built.</summary>
         public Transform Hips { get; private set; }
+
+        /// <summary>
+        /// The simulated bones, for something that needs to ride the body without being part of it.
+        ///
+        /// <para>
+        /// A fresh array rather than the live list, and transforms rather than the <c>Bone</c>
+        /// records: a caller that could reach the Rigidbodies could add force to a ragdoll it does
+        /// not own, and the one caller this exists for — a net binding its cord to a captive — has
+        /// no business doing that.
+        /// </para>
+        /// </summary>
+        public Transform[] BoneTransforms()
+        {
+            var found = new Transform[bones.Count];
+            for (int i = 0; i < bones.Count; i++) found[i] = bones[i].Transform;
+            return found;
+        }
 
         /// <summary>Did the build find a skeleton worth simulating? False means this body cannot ragdoll.</summary>
         public bool HasSkeleton => built && bones.Count > 0;

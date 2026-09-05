@@ -48,7 +48,6 @@ An NPC riding a mount is a different model entirely and shares almost no code wi
 - **DesertCrawler** — the same legs with no seat at all: an AI-driven walking station carrying a dig, claw and collector rig. You ride along and work it.
 - **DuneFoil** — the sand sailer, and the flagship for stations. No mount anywhere on it. A boarding ramp, a helm, four rigging stations, and a mooring that holds it steady while nobody is aboard.
 - **DuneOrnithopter** — the flapping-wing aircraft. Its own section below.
-- **ShipRV** — a hovering spacecraft with a cockpit control, eight articulated moving panels and a swappable hull shell.
 - **PlayerShip** — the lander. Its own section below.
 - **Rover** — an autonomous explorer with suspension IK. Not rideable, and currently only in a test scene.
 - **DuneRider** — a self-contained rigidbody mount driver with its own input handling. It exists in code but is **on no prefab today**.
@@ -142,7 +141,7 @@ Taking the helm closes all seven moving parts; getting up reopens them.
 
 **Salvage sockets** track what has been pulled out, saved and replicated as a single bitmask.
 
-**A repair station.** On the deck opposite the gear wall, just aft of the map projector, stands a bench with a scrap hopper on it, a lamp on top and a gauge above the hopper. Walk up with ship scrap in your selected hotbar slot and right-click to feed it one piece; anything else in your hand is refused with a buzz. Five pieces bring it online — the lamp goes from red to green, the gauge reads ONLINE and the grinder on the bench starts turning. The count is saved with the ship and every crewmate sees the same gauge.
+**A repair station.** On the deck opposite the gear wall, just aft of the map projector, stands a bench with a hopper on it, a lamp on top and a grinder wheel. It is furniture — you cannot use it, and right-clicking it offers nothing. It was a machine you fed scrap into, five pieces to bring it online, until scrap was taken out of the game; the bench stayed because the deck is laid out around it and the room reads wrong without it. Something will be given to it eventually.
 
 One naming trap that catches people reading the code: there is an unrelated scenery rocket in the project with a launch button and a full idle/flight/crash state machine. That is not this ship. **The lander has no take-off.**
 

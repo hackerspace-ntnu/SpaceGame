@@ -76,6 +76,51 @@ namespace SpaceGame.Agents
         private float jumpElapsed = -1f;
         private float jumpCooldownTimer;
 
+        // baseOffset has more than one thing to say now, so nobody writes it directly any more.
+        //
+        // The jump arc was its only author until ground conforming arrived, and two components
+        // assigning the same field do not add up -- whichever ran later in the frame silently
+        // erased the other. So each contribution is kept separately and summed in one place.
+        //
+        // groundOffset is the NavMesh-to-real-ground correction, pushed in by AgentGroundConform.
+        // jumpArc is the mounted jump. defaultBaseOffset is whatever the prefab was authored with.
+        private float groundOffset;
+        private float jumpArc;
+
+        /// <summary>
+        /// Vertical correction between the NavMesh polygon this agent stands on and the ground
+        /// underneath it. Written by <c>AgentGroundConform</c>; 0 when nothing is conforming.
+        /// </summary>
+        public float GroundOffset
+        {
+            get => groundOffset;
+            set
+            {
+                groundOffset = value;
+                ApplyBaseOffset();
+            }
+        }
+
+        /// <summary>
+        /// World Y of the NavMesh polygon under this agent, with every offset stripped back off.
+        ///
+        /// <para>
+        /// This is the number a ground conform has to correct against, and it cannot be recovered
+        /// from <c>transform.position</c> alone: that already carries the prefab's own base offset
+        /// and, mid-jump, the arc as well, so subtracting only the ground term would leave the
+        /// conform fighting the jump. The fallback covers an agent that has been parked off the
+        /// mesh, where the transform is the only position there is.
+        /// </para>
+        /// </summary>
+        public float NavSurfaceY => Agent != null && Agent.isActiveAndEnabled && Agent.isOnNavMesh
+            ? Agent.nextPosition.y - Agent.baseOffset
+            : transform.position.y - groundOffset;
+
+        private void ApplyBaseOffset()
+        {
+            if (Agent) Agent.baseOffset = defaultBaseOffset + groundOffset + jumpArc;
+        }
+
         // Set to Time.frameCount inside ApplyRiderInput so the MoveIntent switch in Tick skips
         // that frame. Arc/cooldown updates still run.
         private int riderDriveFrame = -1;
@@ -93,6 +138,11 @@ namespace SpaceGame.Agents
         private Vector3 leapEnd;
 
         public Vector3 Velocity => IsAgentReady ? agent.velocity : Vector3.zero;
+
+        /// <summary>See <see cref="IMovementMotor.TopSpeed"/>. The fallback is load-bearing:
+        /// <c>defaultSpeed</c> is assigned in Awake, which does not run in EditMode.</summary>
+        public float TopSpeed => defaultSpeed > 0.01f ? defaultSpeed
+                               : agent != null ? agent.speed : 0f;
 
         public bool IsImmobile => !agent || !agent.isOnNavMesh || agent.isStopped;
 
@@ -120,6 +170,20 @@ namespace SpaceGame.Agents
         }
 
         private bool IsAgentReady => agent && agent.isActiveAndEnabled && agent.isOnNavMesh;
+
+        /// <summary>
+        /// The agent, resolved on first use rather than only in Awake.
+        ///
+        /// <para>
+        /// The serialized reference is not assigned on every prefab — the Nomad's is
+        /// <c>fileID: 0</c> — and Awake has always covered for that at runtime. The ground-conform
+        /// members below are the first on this component reachable BEFORE Awake, from an EditMode
+        /// test, and a null agent there does not throw: <c>ApplyBaseOffset</c> would simply do
+        /// nothing while <c>GroundOffset</c> kept accumulating, so the correction runs away to its
+        /// clamp with a clean console.
+        /// </para>
+        /// </summary>
+        private NavMeshAgent Agent => agent ? agent : agent = GetComponent<NavMeshAgent>();
 
         private void Awake()
         {
@@ -749,14 +813,15 @@ namespace SpaceGame.Agents
 
             jumpElapsed += deltaTime;
             float t = Mathf.Clamp01(jumpElapsed / Mathf.Max(0.01f, mountedJumpDuration));
-            float arc = Mathf.Sin(t * Mathf.PI);
-            agent.baseOffset = defaultBaseOffset + arc * Mathf.Max(0.01f, mountedJumpHeight);
+            jumpArc = Mathf.Sin(t * Mathf.PI) * Mathf.Max(0.01f, mountedJumpHeight);
 
             if (t >= 1f)
             {
                 jumpElapsed = -1f;
-                agent.baseOffset = defaultBaseOffset;
+                jumpArc = 0f;
             }
+
+            ApplyBaseOffset();
         }
 
         private void OnDisable()
@@ -765,6 +830,8 @@ namespace SpaceGame.Agents
 
             if (agent)
             {
+                groundOffset = 0f;
+                jumpArc = 0f;
                 agent.baseOffset = defaultBaseOffset;
                 agent.updateRotation = defaultUpdateRotation;
             }

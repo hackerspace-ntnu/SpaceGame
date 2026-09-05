@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 3639992378135062944}
   - component: {fileID: 5611010842139307600}
   - component: {fileID: 2928250347572000585}
+  - component: {fileID: -620610454818329256}
   m_Layer: 0
   m_Name: SuckerPuncher
   m_TagString: Untagged
@@ -316,6 +317,7 @@ MonoBehaviour:
   holdSize: 0
   packSize: 0
   sizeReference: {fileID: 6268700281005644149}
+  confinedToSurfaces: 
   keepColliders: 0
 --- !u!114 &5611010842139307600
 MonoBehaviour:
@@ -389,6 +391,18 @@ MonoBehaviour:
   shockId: 304
   fovKick: 5
   fovKickDuration: 0.18
+--- !u!114 &-620610454818329256
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6096933643893021070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16dfe72ec275b4bc280367342f044bd4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpaceGame.Core.Persistence.RigidbodySaveable
 --- !u!1 &7865690321402694380
 GameObject:
   m_ObjectHideFlags: 0

@@ -109,6 +109,36 @@ namespace SpaceGame.Agents
                 SetThirdPersonCameraEnabled(true);
                 SetMountedVisorEnabled(false);
             }
+
+            PublishRiderAimView(firstPerson);
+        }
+
+        /// <summary>
+        /// Tell the rider's aim which view they are looking through, and that this machine is
+        /// around them.
+        ///
+        /// <para>
+        /// Every aimed item in the game measures from <see cref="AimProvider"/>, and left alone it
+        /// measures from the rider's own eye — which mounting has just parented under the seat
+        /// marker wearing the seat's rotation. On the ornithopter that seat is rotated ninety
+        /// degrees, because a prone pilot faces the floor, so an unattended aim pointed straight
+        /// into the sand under the craft while the pilot watched the horizon through the orbit
+        /// camera. Third person hands the aim that orbit camera to converge through; first person
+        /// hands it nothing but the hull, because there the eye already is the view.
+        /// </para>
+        /// <para>
+        /// Both halves are named after the machine rather than the perspective: whichever camera
+        /// the rider is on, a raycast still crosses the fuselage they are strapped inside, and
+        /// <c>Physics.IgnoreCollision</c> does nothing to a query.
+        /// </para>
+        /// </summary>
+        private void PublishRiderAimView(bool firstPerson)
+        {
+            if (mountedAimProvider == null)
+                return;
+
+            mountedAimProvider.SetExternalView(firstPerson ? null : runtimeThirdPersonCamera,
+                                               transform);
         }
 
         /// <summary>
@@ -130,6 +160,9 @@ namespace SpaceGame.Agents
             SetThirdPersonCameraEnabled(false);
             SetFirstPersonCameraEnabled(true);
             SetMountedVisorEnabled(true);
+
+            if (mountedAimProvider != null)
+                mountedAimProvider.ClearExternalView();
         }
 
         private void InitializeMountedViewState()

@@ -122,6 +122,15 @@ namespace SpaceGame.Items
         private readonly BodySite[] sites = new BodySite[GearRef.BodySlotCount];
 
         private BodySlot? hovered;
+
+        /// <summary>
+        /// A site the UI says the cursor is over, when the cursor is over the UI and not the body.
+        /// The gear screen's rail has a tile for each of these three slots, and pointing at one has
+        /// to light the site it names — otherwise the rail and the figure are two screens that
+        /// happen to share a canvas.
+        /// </summary>
+        private BodySlot? externalHover;
+
         private GearRef carried = GearRef.None;
         private InventoryItem carriedItem;
 
@@ -187,6 +196,19 @@ namespace SpaceGame.Items
             // forward — is the wrong subject in frame. Handed straight back in Exit.
             SetRelaxed(true);
 
+            // And stand the GEAR up, which is the other half of the same idea. The wing pack is
+            // stowed out in the world — folded shut so a walking character is not wearing a
+            // wingspan — and this screen is the one place a player looks at their own back on
+            // purpose, with the camera flown round for it. So here the wings are wings. Every
+            // other item has no second model and is unmoved by this.
+            //
+            // BEFORE the sites are built, and that order is load bearing: a site hides the worn
+            // item by switching its renderers off and holding the list, and a swap afterwards
+            // would strand that list on the model that is no longer showing — leaving the item
+            // invisible for good on this machine, which is the exact failure Exit's comment below
+            // records the pack making once.
+            worn.SetTorsoForm(WornVisual.Form.Inspected);
+
             ReportUnwiredPlaceholders();
 
             // Every anchor comes from the controller's own seams rather than being re-derived
@@ -208,6 +230,7 @@ namespace SpaceGame.Items
             slots.OnBodySlotChanged += OnSlotChanged;
 
             hovered = null;
+            externalHover = null;
             carried = GearRef.None;
             carriedItem = null;
             committing = -1;
@@ -247,6 +270,13 @@ namespace SpaceGame.Items
             foreach (BodySite site in sites) site?.Dispose();
             Array.Clear(sites, 0, sites.Length);
 
+            // After the sites, for the mirror of the reason it goes before them in Enter: their
+            // Dispose puts back the renderers they switched off, and it has to find them on the
+            // model it switched them off on. Unconditional, and safe with nothing worn — this
+            // runs on teardown paths too, and gear left spread would wear a five-metre wingspan
+            // through the world.
+            worn.SetTorsoForm(WornVisual.Form.Worn);
+
             // Only ours, and only while it still is ours: something else may have claimed the
             // override since, and stamping our predecessor over that would leave a second screen
             // projecting through a lens it never asked for.
@@ -267,6 +297,7 @@ namespace SpaceGame.Items
             DestroyLookAnchor();
 
             hovered = null;
+            externalHover = null;
         }
 
         // ── What the UI tells us ─────────────────────────────────────────────
@@ -279,6 +310,18 @@ namespace SpaceGame.Items
             carried = from;
             carriedItem = item;
             ApplyAll();
+        }
+
+        /// <summary>
+        /// The cursor is over the rail tile naming <paramref name="slot"/>, or over no tile at all.
+        /// Only consulted while the cursor is over the UI, so it can never fight the body's own
+        /// hit-test — a cursor on the figure is answered by the figure.
+        /// </summary>
+        public void SetExternalHover(BodySlot? slot)
+        {
+            if (!IsOpen) return;
+
+            externalHover = slot;
         }
 
         /// <summary>A legal move to <paramref name="slot"/> was sent. The site stays lit until the answer or the timeout.</summary>
@@ -372,7 +415,7 @@ namespace SpaceGame.Items
 
         private void UpdateHover(bool overUi)
         {
-            BodySlot? now = null;
+            BodySlot? now = overUi ? externalHover : null;
 
             WorldOverlay overlay = WorldOverlay.Instance;
 

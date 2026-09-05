@@ -82,7 +82,7 @@ namespace SpaceGame.EditorTools
 
             public event Action<InventorySlot> OnSlotSelected;
             public event Action<int, InventorySlot> OnSlotChanged;
-            public event Action<InventoryItem> OnItemDropped;
+            public event Action<InventoryItem, float> OnItemDropped;
 
             public bool TryAddItem(InventoryItem item)
             {
@@ -135,7 +135,7 @@ namespace SpaceGame.EditorTools
             public InventorySlot GetSelectedSlot() => GetSlot(SelectedSlotIndex);
             public InventoryItem GetSelectedItem() => GetSelectedSlot()?.Item;
 
-            public void Drop(InventoryItem item) => OnItemDropped?.Invoke(item);
+            public void Drop(InventoryItem item) => OnItemDropped?.Invoke(item, SupplyCharge.None);
         }
 
         [Test]

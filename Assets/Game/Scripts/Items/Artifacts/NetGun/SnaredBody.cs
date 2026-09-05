@@ -1,52 +1,61 @@
-// The half of a net that only the netted PLAYER's machine can run.
+// A netted player: put on the floor, and given one thing left to do about it.
 //
-// SnareTether is the creature end: it hobbles an animal by writing its transform. A player is not
-// that. Their body is owner-authoritative — the server cannot push it, and anything it writes there
-// is overwritten within a tick, silently — so a net thrown at a player has to be applied by that
-// player, on their own machine.
+// This used to be the half of a net that ONLY the netted player's machine could run, because what
+// it did was write a position — and a player's body is owner-authoritative, so a write from
+// anywhere else is overwritten within a tick, silently. A net no longer writes a position at all.
+// It puts the body limp, which is presentation every machine performs off the capture it was
+// already told about, and RagdollRig's own Drives split then decides which machine is entitled to
+// drive the root and which merely watches it flail. So the hold runs everywhere.
 //
-// Nothing extra has to be sent for this to work. The catch is already broadcast to every machine,
-// and both ends are replicated transforms, so the victim's machine has everything it needs to
-// compute its own half. The same trick the two ends of a leash use.
+// The struggle INPUT is the one part that stays owner-only, because it is the one part only one
+// machine can know: the keys the captive is pressing. An accepted press becomes one
+// NetMsg.SnareStruggled on the shooter's relay and nothing else; the meter here exists to decide
+// which presses are worth sending, and the authority keeps a meter of its own to decide what they
+// cost the net.
 using UnityEngine;
 using SpaceGame.Core;
+using SpaceGame.Gameplay;
+using SpaceGame.Gameplay.Ragdoll;
+using SpaceGame.Presentation;
 
 namespace SpaceGame.Items
 {
     /// <summary>
-    /// Holds a netted player back, on that player's own machine.
+    /// One netted player: the hold that put them down, and the struggle that gets them up.
     ///
-    /// <para>
-    /// Skipping this is the exact failure the lasso had: the constraint landed on the server, wrote
-    /// a position fifty times a second that nobody ever saw, and the victim's machine was never told
-    /// anything at all. It looked like a working feature to whoever was hosting, because the server
-    /// does own the host's body, and did nothing whatsoever to a client.
-    /// </para>
-    /// <para>
-    /// <b>Why <see cref="Network.Owns"/> here and <see cref="Network.Simulates"/> in
-    /// <see cref="SnareTether"/>.</b> The two files sit side by side with opposite gates and that is
-    /// deliberate, not an inconsistency. A creature is an AI body the SERVER simulates, so the
-    /// server is the machine entitled to move it and <c>Simulates</c> is the question. A player is
-    /// owner-authoritative: the only machine whose writes survive is the one that owns the body, and
-    /// <c>Simulates</c> would answer true on the server for every remote player's replica — which is
-    /// precisely the case that produced fifty writes a second nobody saw.
-    /// </para>
     /// <para>
     /// Added on demand rather than authored on the prefab, because any player can be netted at any
     /// time. Same shape and reasoning as <see cref="LassoedBody.Ensure"/>.
     /// </para>
+    /// <para>
+    /// <b>Nothing here is gated on <see cref="Network.Owns"/> except the struggle input.</b> That
+    /// is a change from the constraint this replaced, which had to be owner-only — see the file
+    /// header. The two gates that remain are both on the input, in <see cref="Update"/> and in
+    /// <see cref="Step"/>; neither is in <see cref="Bind"/>, because a peer that skipped the hold
+    /// would be watching a captive stand up and walk about while every other machine sees them on
+    /// the floor.
+    /// </para>
     /// </summary>
     [DisallowMultipleComponent]
     [AddComponentMenu("")] // added in code, never by hand
-    [DefaultExecutionOrder(200)] // after PlayerMovement — see LeashedBody's file header
     public sealed class SnaredBody : MonoBehaviour
     {
-        private Rigidbody body;
-        private Transform anchor;
+        private PlayerRagdoll ragdoll;
+        private HealthComponent health;
         private SnareStruggle settings;
+        private Transform anchor;
+        private SnareStruggleMeter meter;
+        private InputControls struggleInput;
+
+        /// <summary>The last direction the captive actually pushed, to measure the next against.</summary>
+        private Vector2 heading;
+
         private bool bound;
 
         public bool IsBound => bound;
+
+        /// <summary>How hard this captive is fighting, 0-1. Zero when nothing has them.</summary>
+        public float StruggleLevel => meter?.Level ?? 0f;
 
         public static SnaredBody Ensure(GameObject player)
         {
@@ -57,85 +66,322 @@ namespace SpaceGame.Items
                 : player.AddComponent<SnaredBody>();
         }
 
-        private void Awake() => body = GetComponent<Rigidbody>();
+        /// <summary>
+        /// The ragdoll adapter that owns this body, resolved on demand.
+        ///
+        /// <para>
+        /// Not cached from <see cref="Awake"/>, and this component deliberately has no Awake at
+        /// all: it is added at runtime by <see cref="Ensure"/>, and Unity does not raise Awake for
+        /// an AddComponent outside play mode — so in an EditMode test, and in any editor tooling
+        /// that lands a net, the field would still be null when the hold is applied and the net
+        /// would silently hold nothing. The same trap <see cref="LassoedBody"/> documents for its
+        /// own Rigidbody, and the one this file used to carry a note about.
+        /// </para>
+        /// <para>
+        /// From the PARENT, not from this object alone. <c>SnareCatch.Capture</c> binds whatever
+        /// GameObject the capture query returned, which for a body with its collider on a child is
+        /// that child rather than the root the adapter sits on.
+        /// </para>
+        /// </summary>
+        private PlayerRagdoll Ragdoll =>
+            ragdoll != null ? ragdoll : ragdoll = GetComponentInParent<PlayerRagdoll>();
 
         /// <summary>
-        /// The body this holds back, resolved on demand.
-        ///
-        /// Not trusted from <see cref="Awake"/> alone: this component is added at runtime, and
-        /// Unity does not raise Awake for an AddComponent outside play mode — so in an EditMode
-        /// test the field is still null when the constraint first runs, and the net silently holds
-        /// nothing. The same trap <see cref="LassoedBody"/> documents.
+        /// This captive's health, resolved on demand for the reason <see cref="Ragdoll"/> is: there
+        /// is no Awake to cache it in. From the PARENT for the same reason too.
         /// </summary>
-        private Rigidbody Body => body != null ? body : body = GetComponent<Rigidbody>();
+        private HealthComponent Vitals =>
+            health != null ? health : health = GetComponentInParent<HealthComponent>();
 
-        /// <summary>Take hold. False when another net already has this player.</summary>
+        /// <summary>
+        /// Take hold: put the player on the floor and start counting their struggle.
+        /// </summary>
+        /// <returns>
+        /// False when the hold did not take, and the caller must then record no capture at all.
+        /// Another net already has this player is one reason; the body refusing to go down is the
+        /// other, and <c>PlayerRagdoll.HoldDown</c> lists what those are — a corpse, a body a seat
+        /// or a saddle is already placing, or a rig whose skeleton build kept no bones.
+        ///
+        /// <para>
+        /// A capture recorded over a body that never went down is worse than no capture: the net
+        /// spends its pool holding somebody who is walking around, and it is the shooter who is
+        /// punished for it. There is no half measure available here the way there is for a creature
+        /// — <see cref="SnareTether"/> can still hobble a NavMeshAgent it failed to fell, and a
+        /// player has no such dial to turn that would not be taking control away by another name.
+        /// Where the tether has nothing to fall back on either, it refuses the same way this does.
+        /// </para>
+        /// </returns>
         public bool Bind(Transform netAnchor, SnareStruggle struggleSettings)
         {
             if (bound && anchor != netAnchor) return false;
 
-            anchor = netAnchor;
+            // The same net binding again is not a re-catch. Answering true without rebuilding the
+            // meter is what stops it wiping the struggle the captive has already banked.
+            if (bound) return true;
+
+            PlayerRagdoll body = Ragdoll;
+            if (body == null || !body.HoldDown(this)) return false;
+
             settings = struggleSettings ?? new SnareStruggle();
+
+            // Subscribed here rather than in an Awake this component deliberately does not have,
+            // and unsubscribed in Release, so the subscription lasts exactly as long as the hold.
+            HealthComponent vitals = Vitals;
+            if (vitals != null) vitals.OnDeath += OnCaptiveDied;
+
+            anchor = netAnchor;
+            meter = new SnareStruggleMeter(settings.MaxUsefulStruggleRate,
+                                           settings.StruggleDecaySeconds);
+            heading = Vector2.zero;
             bound = true;
             return true;
         }
 
+        /// <summary>
+        /// Let go. Only the net that took hold may, so an unrelated net's expiry frees nobody.
+        ///
+        /// <para>
+        /// This gives back the claim this net took, and no more. The player stands up only once
+        /// every claim is given back — see <c>PlayerRagdoll.ReleaseHold</c> — so a net rotting off
+        /// a captive something else is also holding leaves them where they are.
+        /// </para>
+        /// </summary>
         public void Release(Transform netAnchor)
         {
             if (!bound || (netAnchor != null && netAnchor != anchor)) return;
 
             bound = false;
             anchor = null;
-        }
+            meter = null;
+            settings = null;
+            heading = Vector2.zero;
+            ReleaseStruggleInput();
 
-        private void OnDisable()
-        {
-            if (bound) Release(anchor);
+            HealthComponent vitals = Vitals;
+            if (vitals != null) vitals.OnDeath -= OnCaptiveDied;
+
+            PlayerRagdoll body = Ragdoll;
+            if (body != null) body.ReleaseHold(this);
         }
 
         /// <summary>
-        /// Advance one step without a physics frame. The seam the EditMode tests use.
+        /// The captive died under the net. Let go of them at that moment rather than at the net's.
         ///
         /// <para>
-        /// <b>The net may take speed away and it may drag; it may never give speed.</b> Otherwise a
-        /// well-timed catch is a launch, and the net becomes a way to get around — the finding the
-        /// leash rework paid for, and the rule <c>LeashEnd.Restrain</c> and
-        /// <see cref="LassoedBody.Step"/> both state. Every branch below holds to it: the only
-        /// write to velocity REMOVES a component of it, which cannot lengthen the vector, and the
-        /// positional correction is a teleport that does not touch velocity at all. That stays true
-        /// however the anchor itself is moving, because the anchor's motion only ever changes which
-        /// direction is radial — never the sign of the removal.
+        /// A corpse is not a captive. <c>PlayerRagdoll.OnDeath</c> drops the hold's claim on its
+        /// own — a corpse is already limp and stays that way — but nothing there knows about the
+        /// net, so without this the binding outlives the player: <see cref="Update"/> goes on
+        /// reading a dead player's keys (the menu gate is open for a corpse, there being no menu),
+        /// and the struggle they cannot have stopped goes on being reported and billed to the
+        /// shooter's net — which would read as a balance problem rather than the lifecycle one it
+        /// is.
+        /// </para>
+        /// <para>
+        /// The captive stays in <c>SnareCatch</c>'s own captive list until the net rots — this ends
+        /// the struggle, not the base load of a body lying in the net. The authority's own meter
+        /// for them is not cleared here and does not need to be: nothing pushes it once the reports
+        /// stop, so it decays back to a corpse's flat <c>ReferenceLoad</c> within a couple of
+        /// seconds of the death.
         /// </para>
         /// </summary>
-        public void Step()
+        private void OnCaptiveDied() => Release(anchor);
+
+        /// <summary>
+        /// Let go no matter which net asks. For teardown only — a chunk unloading under a net must
+        /// not leave a player limp forever with nothing left alive to stand them up.
+        ///
+        /// <para>
+        /// <see cref="SnareTether"/> repeats its restraint unconditionally underneath the same
+        /// line and this does not, because the two have different things to be unsure about: a
+        /// stranded hobble there writes a SERIALIZED field that a quit-time autosave would capture,
+        /// where everything here is runtime state that dies with the object. The one exception is
+        /// the input asset, which outlives this component if nobody disposes it — so that is the
+        /// line repeated here.
+        /// </para>
+        /// </summary>
+        private void OnDisable()
         {
-            Rigidbody rb = Body;
-            if (!bound || anchor == null || rb == null || rb.isKinematic) return;
+            if (bound) Release(anchor);
 
-            // Everyone in the session has one of these once a net has landed on this player; only
-            // the machine that owns the body may move it. Elsewhere this player is a replica whose
-            // position is somebody else's to publish.
-            if (!Network.Owns(this)) return;
-
-            Vector3 rope = rb.position - anchor.position;
-            rope.y = 0f;
-
-            float distance = rope.magnitude;
-            if (distance <= settings.ShuffleRadius || distance < 0.001f) return;
-
-            Vector3 radial = rope / distance;
-
-            // Velocity first, and only ever REMOVED. Removing the outward component is a projection,
-            // so the result can never be longer than what went in.
-            float outward = Vector3.Dot(rb.linearVelocity, radial);
-            if (outward > 0f) rb.linearVelocity -= radial * outward;
-
-            // The position error is given back as a POSITION, never folded into that velocity.
-            // Velocity added to close a gap is still there on the next step, which is how a solver
-            // gains energy and how a netted player ends up slingshotting.
-            rb.position -= radial * (distance - settings.ShuffleRadius);
+            ReleaseStruggleInput();
         }
 
-        private void FixedUpdate() => Step();
+        /// <summary>
+        /// Advance one step. The seam the EditMode tests use, and the reason the input arrives as
+        /// arguments rather than being read in here: a test can supply presses, and an
+        /// <c>InputControls</c> cannot be driven from one.
+        ///
+        /// <para>
+        /// The meter is advanced on every machine, so a peer's copy decays rather than latching at
+        /// whatever it last heard. Only the owner may ADD to it, because only the owner knows what
+        /// the captive is pressing.
+        /// </para>
+        /// </summary>
+        public void Step(float delta, bool jumpPressed, Vector2 move)
+        {
+            if (!bound || meter == null || settings == null) return;
+
+            meter.Advance(delta);
+
+            if (!Network.Owns(this)) return;
+
+            // Measured before the heading is updated, or every input compares against itself.
+            bool struggled = jumpPressed || IsReversal(move);
+            RememberHeading(move);
+
+            if (!struggled) return;
+
+            // Offered rather than added. Push answering false means this input landed inside the
+            // cooldown and was discarded, and that is the throttle on the WIRE as much as on the
+            // meter — a rejected input must not be reported either, or the cooldown throttles
+            // nothing and a held key becomes a message per frame.
+            if (meter.Push()) ReportStruggle();
+        }
+
+        /// <summary>
+        /// Tell the authority this captive fought, once.
+        ///
+        /// <para>
+        /// <b>On the SHOOTER's relay, not on this player's.</b> The only listener is
+        /// <see cref="SnareReceiver"/> and it lives on the shooter; <c>NetOn</c> registers against
+        /// the channel of the entity the listener sits under, and a relay delivers to the channel
+        /// of its own entity. Sent from this body's relay the message would arrive at this body's
+        /// channel, where nothing is subscribed, and be dropped without a word. The wire allows the
+        /// crossing: <c>NetRelay</c>'s server RPC is <c>InvokePermission.Everyone</c>, which is what
+        /// lets a captive send on the relay of the player who shot them — the same crossing an
+        /// attacker makes to send <c>NetMsg.Damage</c> on their victim's.
+        /// </para>
+        /// <para>
+        /// The level is not sent, only the fact of the input. The server keeps its own meter,
+        /// rate-limited by the same authored cap this one is, and works out the load from a run of
+        /// these — because a level computed here would be a number the client chooses, and the
+        /// escape is not the client's to decide (GDC-L1-MP-0004).
+        /// </para>
+        /// <para>
+        /// Silent when the anchor carries no net. An EditMode test binds a bare transform, and a
+        /// captive whose shooter has since despawned has nobody left to tell.
+        /// </para>
+        /// </summary>
+        private void ReportStruggle()
+        {
+            SnareCatch net = Net;
+            GameObject shooter = net != null ? net.Shooter : null;
+            if (shooter == null) return;
+
+            NetMessaging.NetSendTo(shooter, NetMsg.SnareStruggled,
+                                   new NetArg().With(gameObject), NetTo.Server);
+        }
+
+        /// <summary>
+        /// The net that has hold of this body, resolved from its anchor rather than kept beside it.
+        ///
+        /// One field for one relationship: a second reference would be a second thing for
+        /// <see cref="Release"/> to remember to clear, and this is read at most a couple of times a
+        /// second, on the owner's machine, only while a net has hold.
+        /// </summary>
+        private SnareCatch Net => anchor != null ? anchor.GetComponent<SnareCatch>() : null;
+
+        /// <summary>Has the captive thrown themselves the other way since last time?</summary>
+        private bool IsReversal(Vector2 move)
+        {
+            if (heading == Vector2.zero || !IsPushed(move)) return false;
+
+            return Vector2.Dot(move.normalized, heading) < settings.StruggleReversalDot;
+        }
+
+        /// <summary>
+        /// Remember which way they are pushing, ignoring a stick that is not being pushed at all.
+        ///
+        /// A released stick must not overwrite the heading, or letting go for one frame between two
+        /// opposite presses hides the reversal — and a menu closing over the captive does exactly
+        /// that, because <see cref="Update"/> passes a zero move while the gate is shut.
+        /// </summary>
+        private void RememberHeading(Vector2 move)
+        {
+            if (IsPushed(move)) heading = move.normalized;
+        }
+
+        /// <summary>Is this a direction the captive meant, or a stick at rest?</summary>
+        private bool IsPushed(Vector2 move)
+        {
+            float deadzone = settings.StruggleMoveDeadzone;
+            return move.sqrMagnitude >= deadzone * deadzone;
+        }
+
+        /// <summary>
+        /// Read the captive's keys and hand them to <see cref="Step"/>.
+        ///
+        /// <para>
+        /// <b>The menu check is <see cref="GameplayMenuScope.IsActive"/> and it CANNOT be
+        /// <c>AcceptsGameplayInput</c>,</b> which is the shared gate every other gameplay hotkey in
+        /// this project uses. That property asks whether the local player's own
+        /// <c>PlayerController.Input</c> is enabled — and going limp is precisely what disables it
+        /// (see <see cref="StruggleInput"/>). It is therefore false for every netted player, always,
+        /// and gating on it would leave the struggle silently unreadable for the entire feature
+        /// while looking like the careful thing to do.
+        /// </para>
+        /// <para>
+        /// <c>IsActive</c> asks the question that is actually meant here — is a menu holding the
+        /// controls — and stays answerable while the captive's own input is switched off. It is
+        /// needed: this component reads its own copy of the input asset, which a chat box or a pause
+        /// screen does not disable, so without it typing "s" into chat is a struggle.
+        /// </para>
+        /// </summary>
+        private void Update()
+        {
+            if (!bound) return;
+
+            bool jumpPressed = false;
+            Vector2 move = Vector2.zero;
+
+            if (Network.Owns(this) && !GameplayMenuScope.IsActive)
+            {
+                InputControls controls = StruggleInput;
+                jumpPressed = controls.Player.Jump.WasPressedThisFrame();
+                move = controls.Player.Move.ReadValue<Vector2>();
+            }
+
+            Step(Time.deltaTime, jumpPressed, move);
+        }
+
+        /// <summary>
+        /// This component's OWN copy of the input asset, and it has to be its own.
+        ///
+        /// <para>
+        /// The obvious source is <c>PlayerController.Input</c>, and it is switched off: going limp
+        /// runs <c>PlayerRagdoll.Suspend</c>, which disables the <c>PlayerInputManager</c> outright
+        /// — killed at the source, because jump and dash arrive as events a merely-disabled
+        /// PlayerMovement is still subscribed to — and that component zeroes <c>MoveInput</c> on
+        /// its way down. So the one thing that could report a struggle is disabled by the very act
+        /// that makes struggling necessary, and it reports a resting stick while it is.
+        /// </para>
+        /// <para>
+        /// Constructing one is the established pattern in this codebase rather than a special case
+        /// invented here — <c>HotbarController</c>, <c>ChatUI</c>, <c>PauseMenuUI</c>,
+        /// <c>BodyInventoryUI</c> and <c>DevInventoryUI</c> each build their own. Only the Player
+        /// map is enabled, only on the machine that owns this body, and only from the first frame a
+        /// net has hold of it.
+        /// </para>
+        /// </summary>
+        private InputControls StruggleInput
+        {
+            get
+            {
+                if (struggleInput != null) return struggleInput;
+
+                struggleInput = new InputControls();
+                struggleInput.Player.Enable();
+                return struggleInput;
+            }
+        }
+
+        private void ReleaseStruggleInput()
+        {
+            if (struggleInput == null) return;
+
+            struggleInput.Player.Disable();
+            struggleInput.Dispose();
+            struggleInput = null;
+        }
     }
 }

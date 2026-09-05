@@ -121,7 +121,26 @@ namespace SpaceGame.Items
 
           IPlayerInventory inventory = interactor.GetComponentInParent<IPlayerInventory>();
           if (inventory == null) return;
-          bool added = inventory.TryAddItem(item);
+
+          // What this particular object holds, if anything -- read off the world instance, not off
+          // the item asset, because two tanks lying side by side are the same asset at different
+          // fills. SupplyCharge.None for the great majority of items, which hold nothing.
+          float charge = TryGetComponent(out DockableSupply supply)
+             ? supply.Charge
+             : SupplyCharge.None;
+
+          bool added = inventory.TryAddItem(item, out int landed);
+
+          if (added && landed >= 0 && charge >= 0f)
+          {
+             InventorySlot slot = inventory.GetSlot(landed);
+             if (slot != null && !slot.IsEmpty)
+             {
+                slot.State ??= new ItemState();
+                SupplyCharge.Write(slot.State, charge);
+                inventory.PublishSlotCharges();
+             }
+          }
 
           // Hotbar first, then the pack. Without the overflow a four-slot hotbar means the backpack
           // never fills from the world, and the only way to put anything in it is the inspector.
@@ -133,7 +152,7 @@ namespace SpaceGame.Items
           {
              BackpackController backpack = interactor.GetComponentInParent<BackpackController>();
              if (backpack != null && backpack.Pack != null)
-                added = backpack.Pack.TryStow(item);
+                added = backpack.Pack.TryStow(item, charge);
           }
 
           if (added)

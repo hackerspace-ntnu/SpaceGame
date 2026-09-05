@@ -36,6 +36,7 @@ grep -i 'client' docs/AI/ROUTING.md
 
 | Doc | Covers | Read with |
 | --- | --- | --- |
+| [CruciblePuzzle](systems/CruciblePuzzle.md) | Two players leash one cell and fly it over lava through rim slots; neither can steer it alone | [LeashSystem](systems/LeashSystem.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Lasso](systems/Lasso.md) |
 | [Environment](systems/Environment.md) | Sandstorms, volumetric fog and clouds, sky time-of-day, and the URP render features that draw them | [Persistence](systems/Persistence.md), [AgentSystem](systems/AgentSystem.md), [ArtPipeline](systems/ArtPipeline.md) |
 | [NavMeshSystem](systems/NavMeshSystem.md) | One author-time bake of the whole world into a single asset, added at runtime; nothing bakes at runtime | [WorldStreaming](systems/WorldStreaming.md), [AgentSystem](systems/AgentSystem.md), [Locomotion](systems/Locomotion.md) |
 | [Portals](systems/Portals.md) | Sprayable one-way-pair apertures you walk through, replicated as messages rather than networked entities | [SceneTransitions](systems/SceneTransitions.md), [Artifacts](systems/Artifacts.md), [Combat](systems/Combat.md) |
@@ -59,15 +60,19 @@ grep -i 'client' docs/AI/ROUTING.md
 
 | Doc | Covers | Read with |
 | --- | --- | --- |
-| [Artifacts](systems/Artifacts.md) | Player-held usable items - gadgets, spells, scanners, tools - firing on Use, split Use() vs Present() | [Inventory](systems/Inventory.md), [LeashSystem](systems/LeashSystem.md), [Portals](systems/Portals.md), [Persistence](systems/Persistence.md) |
+| [Artifacts](systems/Artifacts.md) | Player-held usable items - gadgets, spells, scanners, tools - firing on Use, split Use() vs Present() | [Inventory](systems/Inventory.md), [Lasso](systems/Lasso.md), [LeashSystem](systems/LeashSystem.md), [Portals](systems/Portals.md), [Persistence](systems/Persistence.md) |
 | [Backpack](systems/Backpack.md) | Physical inventory: a deployable rig whose seven gridded faces hold real items, rummaged in focus mode | [Inventory](systems/Inventory.md), [BodyEquipment](systems/BodyEquipment.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Ornithopter](systems/Ornithopter.md), [Oxygen](systems/Oxygen.md) |
 | [BodyEquipment](systems/BodyEquipment.md) | Worn gear: gauntlets on Q/E, one torso slot (back or chest) on double-Space, and the gear screen (I) | [Inventory](systems/Inventory.md), [Artifacts](systems/Artifacts.md), [Backpack](systems/Backpack.md), [Persistence](systems/Persistence.md), [Multiplayer](systems/Multiplayer.md), [UI](systems/UI.md), [Ornithopter](systems/Ornithopter.md), [Wingsuit](systems/Wingsuit.md) |
-| [InteractionSystem](systems/InteractionSystem.md) | Look at a collider, right-click: one raycast picks the target, one resolver labels it, the target replicates | [Vehicles](systems/Vehicles.md), [Inventory](systems/Inventory.md), [Persistence](systems/Persistence.md), [Oxygen](systems/Oxygen.md), [Visor](systems/Visor.md) |
+| [InteractionSystem](systems/InteractionSystem.md) | Look at a collider, right-click: one raycast picks the target, one resolver labels it, the target replicates | [Vehicles](systems/Vehicles.md), [Inventory](systems/Inventory.md), [Persistence](systems/Persistence.md), [Oxygen](systems/Oxygen.md), [Visor](systems/Visor.md), [Terminal](systems/Terminal.md) |
 | [Inventory](systems/Inventory.md) | Hotbar slots, InventoryItem assets, the hand socket that seats each equip, and the pickup/drop round trip | [Artifacts](systems/Artifacts.md), [Backpack](systems/Backpack.md), [BodyEquipment](systems/BodyEquipment.md), [Persistence](systems/Persistence.md), [Combat](systems/Combat.md), [Oxygen](systems/Oxygen.md) |
-| [LeashSystem](systems/LeashSystem.md) | A rope tied between any two things; every machine draws its own copy and resolves only the ends it owns | [Artifacts](systems/Artifacts.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [PlayerCharacter](systems/PlayerCharacter.md) |
+| [Lasso](systems/Lasso.md) | Throwable loop: wind up to charge, release to throw a solved arc, catch, fight, tie off to a leash | [Artifacts](systems/Artifacts.md), [LeashSystem](systems/LeashSystem.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [AgentSystem](systems/AgentSystem.md) |
+| [LeashSystem](systems/LeashSystem.md) | A rope tied between any two things; every machine draws its own copy and resolves only the ends it owns | [Artifacts](systems/Artifacts.md), [Lasso](systems/Lasso.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [PlayerCharacter](systems/PlayerCharacter.md), [Locomotion](systems/Locomotion.md) |
 | [Oxygen](systems/Oxygen.md) | The ship's oxygen plant: two receptacles, a power cell that wakes it and a bottle it fills in five seconds | [Inventory](systems/Inventory.md), [Backpack](systems/Backpack.md), [PlayerShip](systems/PlayerShip.md), [InteractionSystem](systems/InteractionSystem.md), [Persistence](systems/Persistence.md), [Multiplayer](systems/Multiplayer.md) |
 | [Placeables](systems/Placeables.md) | Items put into the world under a placement rule, and picked back up with Q | [Artifacts](systems/Artifacts.md), [InteractionSystem](systems/InteractionSystem.md), [Backpack](systems/Backpack.md), [Saddles](systems/Saddles.md) |
 | [Saddles](systems/Saddles.md) | Fitting a saddle to an animal: what makes it rideable, what it carries, and what happens when it comes off | [AgentSystem](systems/AgentSystem.md), [Backpack](systems/Backpack.md), [Artifacts](systems/Artifacts.md), [Vehicles](systems/Vehicles.md) |
+| [ShipSchematic](systems/ShipSchematic.md) | The terminal's SHIP page: a live 3D lander whose missing modules glow and can be pointed at | [Terminal](systems/Terminal.md), [PlayerShip](systems/PlayerShip.md), [Multiplayer](systems/Multiplayer.md) |
+| [SupplyCharge](systems/SupplyCharge.md) | A fraction that rides one item instance through every container: hotbar, pack, gear, world, machine | [Inventory](systems/Inventory.md), [Backpack](systems/Backpack.md), [Oxygen](systems/Oxygen.md), [Persistence](systems/Persistence.md), [Multiplayer](systems/Multiplayer.md) |
+| [Terminal](systems/Terminal.md) | The lander's standing CRT console: right-click zooms onto its glass; three replicated pages | [ShipSchematic](systems/ShipSchematic.md), [InteractionSystem](systems/InteractionSystem.md), [PlayerShip](systems/PlayerShip.md), [Multiplayer](systems/Multiplayer.md), [Backpack](systems/Backpack.md), [Oxygen](systems/Oxygen.md) |
 | [Wingsuit](systems/Wingsuit.md) | A worn membrane that flies the player's own body on the ornithopter's model with the thrust set to zero | [Ornithopter](systems/Ornithopter.md), [BodyEquipment](systems/BodyEquipment.md), [PlayerCharacter](systems/PlayerCharacter.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md) |
 
 ### Vehicles — mounts, ships, aircraft
@@ -75,7 +80,7 @@ grep -i 'client' docs/AI/ROUTING.md
 | Doc | Covers | Read with |
 | --- | --- | --- |
 | [Ornithopter](systems/Ornithopter.md) | Folded wing pack deployed mid-air; point-mass energy flight model, stalls, crash damage. | [Vehicles](systems/Vehicles.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [audio](systems/audio.md), [Backpack](systems/Backpack.md), [Wingsuit](systems/Wingsuit.md) |
-| [PlayerShip](systems/PlayerShip.md) | The script-generated lander: walkable hover hull, 4 seats, the entry burn, and the crash-landing arrival. | [Vehicles](systems/Vehicles.md), [Cutscenes](systems/Cutscenes.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Oxygen](systems/Oxygen.md) |
+| [PlayerShip](systems/PlayerShip.md) | The script-generated lander: walkable hover hull, 4 seats, the entry burn, and the crash-landing arrival. | [Vehicles](systems/Vehicles.md), [Cutscenes](systems/Cutscenes.md), [Multiplayer](systems/Multiplayer.md), [Persistence](systems/Persistence.md), [Oxygen](systems/Oxygen.md), [Terminal](systems/Terminal.md) |
 | [Vehicles](systems/Vehicles.md) | Mounting (seat + camera takeover) and stations (walkable deck, claimed controls) for every machine. | [Ornithopter](systems/Ornithopter.md), [PlayerShip](systems/PlayerShip.md), [AgentSystem](systems/AgentSystem.md), [Persistence](systems/Persistence.md) |
 
 ### Presentation — UI, cutscenes, audio, modes
@@ -122,4 +127,4 @@ Old names kept so existing links resolve. Each points at the doc that absorbed i
 - [systems/audio-prefab-inventory.md](systems/audio-prefab-inventory.md) — generated audio slot inventory
 - [systems/CutsceneExamples.md](systems/CutsceneExamples.md) — example prefab list
 
-<!-- 39 system docs, 6 redirects -->
+<!-- 44 system docs, 6 redirects -->

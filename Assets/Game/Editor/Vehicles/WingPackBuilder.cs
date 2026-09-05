@@ -28,8 +28,24 @@ namespace SpaceGame.EditorTools
         private const string ItemPath = "Assets/Game/Resources/Items/Artifacts/WingPack.asset";
         private const string FoldedModelPath =
             "Assets/Game/Art/Models/Vehicles/Ornithopter/wing_pack_folded.fbx";
+        /// <summary>The STOWED wings — folded shut, 1.97 m — worn out in the world.</summary>
         private const string WornModelPath =
             "Assets/Game/Art/Models/Vehicles/Ornithopter/ornithopter_worn.fbx";
+
+        /// <summary>
+        /// The OPEN wings — spread, 5.51 m — worn on the gear screen, where the camera is flown
+        /// round to look at the player's own back and the wings get to be wings.
+        ///
+        /// <para>
+        /// The two file names read backwards — <c>ornithopter_worn</c> is the one worn in ordinary
+        /// play — because the second name predates the split. Both come out of the same generator
+        /// (<c>ornithopter_worn.py</c>, with and without <c>--spread</c>) at the same scale and on
+        /// the same two rail-tip origins, which is what lets one be swapped for the other with
+        /// nothing moving.
+        /// </para>
+        /// </summary>
+        private const string InspectModelPath =
+            "Assets/Game/Art/Models/Vehicles/Ornithopter/ornithopter_worn_on_person.fbx";
 
         /// <summary>
         /// How wide the worn wings are drawn across the wearer's back, in metres — and therefore
@@ -45,17 +61,68 @@ namespace SpaceGame.EditorTools
         /// (`ornithopter_worn_export.py` prints "pin WornFit.size to ...").
         /// </para>
         /// <para>
-        /// <b>3.47 → 5.51 on 2026-09-04</b>, and the enlargement is in the MODEL, not here. The
-        /// wings were re-posed at half again their reach and opened out to the side
-        /// (`ornithopter_worn.py`'s <c>TARGET_REACH</c> and <c>FLAP</c>), which is the only way to
-        /// grow them and keep their roots on the bar tips: this number is a uniform scale about
-        /// the rail, so raising IT moves the roots outboard and hangs the tips through the ground.
-        /// That was tried first, on 2026-09-04, and both failures were visible immediately. If the
-        /// wings need to be bigger again, the change belongs in the .blend.
+        /// <b>5.51 → 1.97 → 1.86 → 2.64 on 2026-09-05</b>, because the wings are now STOWED rather than spread:
+        /// folded shut against their own mounts and hung behind the pack. The change is entirely
+        /// in the .blend and this number only follows it — the wings are the same size, the same
+        /// twelve parts and the same 8,736 triangles at the same scale, folded. The steps after
+        /// 1.97 are hand edits to the .blend, re-opening the fold rather than tightening it: at
+        /// 2.64 m the wings set the silhouette's width again, and their pivots have been moved out
+        /// to x = ±0.72…1.39 — OFF the lash rail's bar tips at ±0.885 that the mount is measured
+        /// onto. See the Ornithopter.md gotcha; this constant only follows the exporter.
+        /// </para>
+        /// <para>
+        /// <b>Never fold or grow the wings by moving this number.</b> It is a uniform scale about
+        /// the rail, so changing it walks the two shoulder pivots off the bar tips they are
+        /// measured onto. Growing them that way was tried on 2026-09-04 and hung the tips through
+        /// the ground; shrinking them that way would have made a smaller MACHINE rather than a
+        /// folded one. Both belong in <c>ornithopter_worn.py</c>'s pose, and this value is then
+        /// copied from what the exporter prints.
         /// </para>
         /// </summary>
-        private const float WornSize = 5.51f;
+        private const float WornSize = 2.64f;
 
+        /// <summary>
+        /// The same measurement for the gear screen's spread wings, whose span is a different
+        /// number because they are a different model — not the same model drawn larger.
+        ///
+        /// <para>
+        /// Both are printed by <c>ornithopter_worn_export.py</c>, which ships the pair and refuses
+        /// to ship a pair that disagree on part count. Sizing both from <see cref="WornSize"/>
+        /// would squeeze 5.51 m of wing into 1.97 m and drag the shoulder pivots off the rail tips
+        /// they are authored onto — the same failure as scaling the worn wings by hand.
+        /// </para>
+        /// </summary>
+        private const float WornInspectSize = 5.51f;
+
+        /// <summary>
+        /// Rebuild <c>WingPack.prefab</c> from scratch.
+        ///
+        /// <para>
+        /// <b>STILL LOSSY — measured 2026-09-05, against the claim that it stopped being so.</b>
+        /// It builds a fresh <c>GameObject</c> and <c>SaveAsPrefabAsset</c>s over the path, so
+        /// anything not written below is stripped on every run. The four components a 2026-09-03
+        /// pass added are here; four *values* added since are not, and a re-run silently dropped
+        /// all four:
+        /// </para>
+        /// <list type="bullet">
+        /// <item><c>ItemGrip.confinedToSurfaces</c> = Rack (6) + WallGrid (7) → empty, so the folded
+        /// craft became stowable on the back panels and wings. Caught by
+        /// <c>WingPackStowTests.OnlyTheRackAndTheGearWallTakeTheFoldedCraft</c>.</item>
+        /// <item><c>SaveableEntity.prefabId</c> → blank. <c>OnValidate</c> stamps it in memory so the
+        /// Inspector looks right while the ASSET ships empty, and anything spawned from it can never
+        /// be restored. Caught by <c>SaveWiringOnDiskTests</c>; fixed by
+        /// <c>Tools ▸ Save System ▸ Wire Saveable Prefabs</c>.</item>
+        /// <item><c>NetworkObject.GlobalObjectIdHash</c> 1923410474 → 0, which is the hash a
+        /// script-built prefab ships with and which fails only on clients.</item>
+        /// <item>The <c>RigidbodySaveable</c> component → gone.</item>
+        /// </list>
+        /// <para>
+        /// So: <b>prefer a surgical patch through <c>PrefabUtility.LoadPrefabContents</c></b> over a
+        /// re-run, and if you do re-run this, run the save wiring afterwards and check those four
+        /// against git. Anything added to the prefab from now on belongs in this method — that rule
+        /// has been stated before and broken four times since.
+        /// </para>
+        /// </summary>
         [MenuItem("Tools/Vehicles/Build Wing Pack Item")]
         public static void Build()
         {
@@ -210,12 +277,21 @@ namespace SpaceGame.EditorTools
         /// folded bundle above, which is what it looks like in their hand.
         ///
         /// <para>
-        /// Switched off here, on the asset, and switched on by <see cref="WornSeat"/> through
+        /// <b>Two of them, and the player sees a different one in each place.</b> Out in the world
+        /// the wings are STOWED — folded shut, 1.97 m, so a walking character is not wearing a
+        /// wingspan. On the gear screen they are SPREAD, 5.51 m, because that screen is the one
+        /// place a player looks at their own back on purpose and the camera is flown round for it.
+        /// Both are the same machine at the same scale on the same two rail-tip origins, so
+        /// <see cref="WornSeat"/> swaps them by re-seating and nothing moves.
+        /// </para>
+        /// <para>
+        /// Both switched off here, on the asset, and switched on by <see cref="WornSeat"/> through
         /// <see cref="WornVisual"/>. That is not belt-and-braces: <c>ItemBounds</c> measures only
         /// what is switched on within the item, and <see cref="PackSizeForRack"/> below measures
-        /// this same root — a visible 3.5 m pair of wings would have the folded craft sized as if
-        /// it filled the rack five times over, and the hand size would shrink the bundle to a
-        /// splinter. The wingsuit shipped exactly that bug with its flight wings once.
+        /// this same root — a visible pair of wings would have the folded craft sized as if it
+        /// filled the rack several times over, and the hand size would shrink the bundle to a
+        /// splinter. The wingsuit shipped exactly that bug with its flight wings once, and a
+        /// second visible model here would be a second way to make it.
         /// </para>
         /// <para>
         /// <b>No rotation, unlike the bundle above, and that is the fix for a real bug.</b> An FBX
@@ -244,6 +320,25 @@ namespace SpaceGame.EditorTools
             visual.transform.SetParent(root.transform, false);
             visual.SetActive(false);
 
+            // The gear screen's model, nested the same way and switched off the same way. Absent is
+            // survivable — WornVisual falls back to the worn model — so this warns rather than
+            // failing the build: a pack with no spread wings still works, it just stops being
+            // interesting on the one screen built to look at it.
+            GameObject inspectModel = AssetDatabase.LoadAssetAtPath<GameObject>(InspectModelPath);
+            if (inspectModel == null)
+            {
+                Debug.LogWarning($"[WingPack] No spread model at {InspectModelPath}. Run " +
+                                 "_Source~/models/vehicles/ornithopter_worn_export.py. Without it " +
+                                 "the gear screen shows the stowed wings.");
+            }
+            else
+            {
+                var inspect = (GameObject)PrefabUtility.InstantiatePrefab(inspectModel);
+                inspect.name = WornVisual.InspectChildName;
+                inspect.transform.SetParent(root.transform, false);
+                inspect.SetActive(false);
+            }
+
             WornFit fit = root.AddComponent<WornFit>();
             var so = new SerializedObject(fit);
 
@@ -253,6 +348,7 @@ namespace SpaceGame.EditorTools
             SetVector(so, "localPosition", new Vector3(0f, 0.05f, -0.22f));
             SetVector(so, "localEuler", Vector3.zero);
             SetFloat(so, "size", WornSize);
+            SetFloat(so, "inspectSize", WornInspectSize);
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

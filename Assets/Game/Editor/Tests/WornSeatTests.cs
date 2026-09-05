@@ -32,13 +32,15 @@ namespace SpaceGame.EditorTools
             Object.DestroyImmediate(bone);
         }
 
-        private WornFit Fit(Vector3 position, Vector3 euler, float size, bool anchorToBone = false)
+        private WornFit Fit(Vector3 position, Vector3 euler, float size, bool anchorToBone = false,
+                            float inspectSize = 0f)
         {
             var fit = instance.AddComponent<WornFit>();
             var so = new SerializedObject(fit);
             so.FindProperty("localPosition").vector3Value = position;
             so.FindProperty("localEuler").vector3Value = euler;
             so.FindProperty("size").floatValue = size;
+            so.FindProperty("inspectSize").floatValue = inspectSize;
             so.FindProperty("anchorToBone").boolValue = anchorToBone;
             so.ApplyModifiedPropertiesWithoutUndo();
             return fit;
@@ -59,6 +61,23 @@ namespace SpaceGame.EditorTools
 
             worn.SetActive(false);
             return worn;
+        }
+
+        /// <summary>The gear screen's model, four cubes across — a different object with a
+        /// different span, the way the pack's spread wings are to its stowed ones.</summary>
+        private GameObject AddInspectModel()
+        {
+            var inspect = new GameObject(WornVisual.InspectChildName);
+            inspect.transform.SetParent(instance.transform, false);
+
+            var mesh = new GameObject("HugeCube");
+            mesh.transform.SetParent(inspect.transform, false);
+            mesh.transform.localScale = new Vector3(4f, 4f, 4f);
+            mesh.AddComponent<MeshFilter>().sharedMesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+            mesh.AddComponent<MeshRenderer>();
+
+            inspect.SetActive(false);
+            return inspect;
         }
 
         [Test]
@@ -182,7 +201,7 @@ namespace SpaceGame.EditorTools
         public void TheSizeMeasuresTheWORNModelNotTheCarriedOne()
         {
             // The order inside Apply is what this pins. Swap after the measurement and the wing
-            // pack's 3.5 m of wings would be scaled to the size of the bundle it is carried as.
+            // pack's worn wings would be scaled to the size of the bundle it is carried as.
             AddWornModel();
 
             WornSeat.Apply(instance, bone.transform, Fit(Vector3.zero, Vector3.zero, 4f));
@@ -212,6 +231,107 @@ namespace SpaceGame.EditorTools
             WornVisual.SetWorn(instance, true);
 
             Assert.IsTrue(marker.activeSelf);
+        }
+
+        // ── The gear screen's model ───────────────────────────────────────────
+        //
+        // The wing pack wears two different worn models: stowed out in the world, spread on the
+        // gear screen. They are two objects with two spans, so the form has to reach both the
+        // swap and the size — sizing the spread wings by the stowed bundle's number is the same
+        // failure as scaling the worn wings by hand, and it looks deliberate.
+
+        [Test]
+        public void InspectedShowsTheGearScreenModel()
+        {
+            GameObject worn = AddWornModel();
+            GameObject inspect = AddInspectModel();
+
+            WornSeat.Apply(instance, bone.transform, Fit(Vector3.zero, Vector3.zero, 0f),
+                           null, WornVisual.Form.Inspected);
+
+            Assert.IsTrue(inspect.activeSelf, "the gear screen's model is shown");
+            Assert.IsFalse(worn.activeSelf, "the world's worn model is hidden");
+            Assert.IsFalse(instance.transform.Find("Body").gameObject.activeSelf,
+                           "and so is the carried one");
+        }
+
+        [Test]
+        public void InspectedFallsBackToTheWornModel()
+        {
+            // Every item but the wing pack. Nothing else had to gain a second model for the gear
+            // screen to keep working.
+            GameObject worn = AddWornModel();
+
+            WornSeat.Apply(instance, bone.transform, Fit(Vector3.zero, Vector3.zero, 0f),
+                           null, WornVisual.Form.Inspected);
+
+            Assert.IsTrue(worn.activeSelf, "with no gear-screen model, the worn one stands in");
+        }
+
+        [Test]
+        public void InspectedIsDrawnAtItsOwnSizeNotTheWornOnes()
+        {
+            AddWornModel();
+            AddInspectModel();
+
+            WornSeat.Apply(instance, bone.transform,
+                           Fit(Vector3.zero, Vector3.zero, 4f, inspectSize: 8f),
+                           null, WornVisual.Form.Inspected);
+
+            Assert.AreEqual(2f, instance.transform.localScale.x, 1e-4f,
+                            "a 4 m gear-screen model drawn at 8 m — not squeezed into the worn size");
+        }
+
+        [Test]
+        public void InspectedFallsBackToTheWornSizeWhenItHasNoneOfItsOwn()
+        {
+            AddWornModel();
+
+            WornSeat.Apply(instance, bone.transform, Fit(Vector3.zero, Vector3.zero, 4f),
+                           null, WornVisual.Form.Inspected);
+
+            Assert.AreEqual(2f, instance.transform.localScale.x, 1e-4f,
+                            "one size still serves an item with one worn shape");
+        }
+
+        [Test]
+        public void CarriedHidesBothWornModels()
+        {
+            // The gear screen's model is new, and the swap back to the hand has to know about it:
+            // left on, it would hang off the item in the player's fist and be measured with it.
+            GameObject worn = AddWornModel();
+            GameObject inspect = AddInspectModel();
+
+            WornVisual.SetForm(instance, WornVisual.Form.Carried);
+
+            Assert.IsFalse(worn.activeSelf);
+            Assert.IsFalse(inspect.activeSelf);
+            Assert.IsTrue(instance.transform.Find("Body").gameObject.activeSelf,
+                          "and the carried model comes back");
+        }
+
+        [Test]
+        public void ReSeatingSwapsBetweenTheTwoWornModelsBothWays()
+        {
+            // What opening and closing the gear screen does to gear already on the body. It must
+            // survive the round trip: a pack left spread walks a five-metre wingspan into the
+            // world, and one that never spreads makes the screen pointless.
+            GameObject worn = AddWornModel();
+            GameObject inspect = AddInspectModel();
+            WornFit fit = Fit(Vector3.zero, Vector3.zero, 4f, inspectSize: 8f);
+
+            WornSeat.Apply(instance, bone.transform, fit, null, WornVisual.Form.Worn);
+            WornSeat.Apply(instance, bone.transform, fit, null, WornVisual.Form.Inspected);
+
+            Assert.IsTrue(inspect.activeSelf);
+            Assert.AreEqual(2f, instance.transform.localScale.x, 1e-4f);
+
+            WornSeat.Apply(instance, bone.transform, fit, null, WornVisual.Form.Worn);
+
+            Assert.IsTrue(worn.activeSelf, "back to the stowed model");
+            Assert.IsFalse(inspect.activeSelf);
+            Assert.AreEqual(2f, instance.transform.localScale.x, 1e-4f,
+                            "and back to the stowed model's own scale");
         }
     }
 }

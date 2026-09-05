@@ -112,12 +112,12 @@ namespace SpaceGame.Items
         /// <para>
         /// Most gear is sized for a hand and fits wherever its footprint fits. A few items are
         /// sized against ONE specific face instead (<see cref="ItemGrip.PackSize"/>'s own note) —
-        /// the wing pack fills the rack edge to edge — and <see cref="PackOverhang"/>'s back-panel
-        /// rule, deliberately permissive on both axes for realistic gear like a bedroll, would
-        /// otherwise clamp that same oversized item down to a 3x6 panel and let it be stowed
-        /// somewhere it was never sized for. <see cref="ItemGrip.ConfinedToSurfaces"/> is empty for
-        /// every item but that one, so this is a cheap early-out for everything else — same shape
-        /// as the whitelist beside it, the other direction.
+        /// the wing pack fills the rack edge to edge — and an overhang rule (<see cref="PackOverhang"/>;
+        /// the back panels had one on both axes until 2026-09-05) could otherwise clamp that same
+        /// oversized item down to a small face and let it be stowed somewhere it was never sized
+        /// for. <see cref="ItemGrip.ConfinedToSurfaces"/> is empty for every item but that one, so
+        /// this is a cheap early-out for everything else — same shape as the whitelist beside it,
+        /// the other direction.
         /// </para>
         /// </summary>
         private bool AllowsPlacementOf(InventoryItem item)

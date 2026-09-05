@@ -25,7 +25,7 @@ symptoms:
   - "damage numbers and nameplates never appear for anyone, no errors — their Canvas is disabled"
   - "the map hologram in the ship shows the world with me off in a corner of it"
 reads_with: [Lobby, Inventory, Persistence, audio]
-updated: 2026-09-04
+updated: 2026-09-05
 ---
 
 # UI
@@ -102,7 +102,6 @@ Every screen in the game — the main-menu page stack, the in-game HUD, the full
 | `HelmetOverlayVisibility` | [HelmetHUD/HelmetOverlayVisibility.cs](Assets/Game/Scripts/Presentation/UI/HelmetHUD/HelmetOverlayVisibility.cs) | **H** cycles Full → Vitals only → Off. Three states because health is on the visor now and a plain toggle could hide it. Lives on the canvas root because it deactivates its own target. |
 | `DamageNumbers` | [World/DamageNumbers.cs](Assets/Game/Scripts/Presentation/UI/World/DamageNumbers.cs) | Floating `-25` for the local player's own hits, pooled and stacked; needs **both** sources (below). |
 | `PlayerNameplates` | [World/PlayerNameplates.cs](Assets/Game/Scripts/Presentation/UI/World/PlayerNameplates.cs) | Names over other players from `PlayerIdentity.All`; distance fade + occlusion ray with a near clearance. |
-| `RepairProgressUI` | [World/RepairProgressUI.cs](Assets/Game/Scripts/Presentation/UI/World/RepairProgressUI.cs) | World-space gauge reading `RepairWorkstation`'s replicated progress. |
 | `NpcDialogPopupUI` | [Dialog/NpcDialogPopupUI.cs](Assets/Game/Scripts/Presentation/UI/Dialog/NpcDialogPopupUI.cs) | Scene-authored singleton speech popup: typewriter, hold, optional yes/no choice. |
 | `MapHologramTerrain` | [Map/MapHologramTerrain.cs](Assets/Game/Scripts/Presentation/UI/Map/MapHologramTerrain.cs) | The 3D map: one mesh per revealed chunk from `Resources/MapMeshes/`. Two modes: `projectorAnchor` null = the personal map, camera-anchored, toggled by the Map key; `projectorAnchor` assigned = pinned upright over that transform (the `HoloProjector` prefab, switched by its own `HoloProjectorInteraction` — set `toggleActionName` empty there so the Map key does not also flip it). Both charts centre on the player (`centerOnPlayer`, Gotchas) and show `viewRadius` chunks either side of them, scaled to fit `footprint`. |
 | `MapService` / `MapPOI` / `MapMarkerType` | [Map/](Assets/Game/Scripts/Presentation/UI/Map) | Marker registry + revealed-chunk set; `MapPOI` self-registers a persistent static marker. Nothing currently reads it — the helmet visor's nav-marker layer was removed; there is no 2D map screen. |

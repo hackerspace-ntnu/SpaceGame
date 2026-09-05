@@ -27,6 +27,11 @@ namespace SpaceGame.Weapons
         [SerializeField] protected float spawnOffset = 0.5f;
         [SerializeField] protected LayerMask aimMask = ~0;
 
+        [Tooltip("How far the aim reaches for something to converge on, in metres. A shot at open " +
+                 "sky is aimed at this distance, which is also the far point the replicated " +
+                 "orientation is turned back into a target with.")]
+        [SerializeField] protected float aimRange = 500f;
+
         [Header("Ammo")]
         [SerializeField] private Magazine magazine;
         [SerializeField] protected int ammoPerShot = 1;
@@ -213,6 +218,14 @@ namespace SpaceGame.Weapons
                 return;
             }
 
+            // The aim ray, not a camera's forward: the two are the same thing on foot and are not
+            // while the holder is riding anything. See GetLocalAimPoint.
+            if (aimProvider != null && aimProvider.AimTransform != null)
+            {
+                transform.rotation = Quaternion.LookRotation(aimProvider.GetAimRay().direction);
+                return;
+            }
+
             if (aimCamera == null)
             {
                 aimCamera = Camera.main;
@@ -223,12 +236,10 @@ namespace SpaceGame.Weapons
                 return;
             }
 
-            // Get camera's forward direction
-            Vector3 cameraForward = aimCamera.transform.forward;
-
             // Create a rotation that points toward the camera's forward direction
             // This includes both pitch (up/down) and yaw (left/right)
-            transform.rotation = Quaternion.LookRotation(cameraForward, aimCamera.transform.up);
+            transform.rotation = Quaternion.LookRotation(aimCamera.transform.forward,
+                                                         aimCamera.transform.up);
         }
 
         /// <summary>
@@ -358,7 +369,7 @@ namespace SpaceGame.Weapons
             // host, so a client's shot used to travel along the host's crosshair.
             if (UseArg.HasOrientation)
             {
-                return GetSpawnPosition() + UseArg.R * Vector3.forward * 500f;
+                return GetSpawnPosition() + UseArg.R * Vector3.forward * aimRange;
             }
 
             return GetLocalAimPoint();
@@ -374,6 +385,22 @@ namespace SpaceGame.Weapons
         /// </summary>
         protected virtual Vector3 GetLocalAimPoint()
         {
+            // The holder's own aim, and only the holder's. It is the one thing that knows which
+            // camera this player is actually looking through — riding anything, that is NOT the eye
+            // on their head, and the mount's orbit camera is deliberately left Untagged so the
+            // Camera.main fallback below cannot find it either — and it looks past the player's own
+            // body and the machine they are strapped into on the way out.
+            if (aimProvider != null && aimProvider.AimTransform != null)
+            {
+                return aimProvider.TryGetAimHit(aimRange, aimMask, out RaycastHit aimed)
+                    ? aimed.point
+                    : aimProvider.GetAimRay().GetPoint(aimRange);
+            }
+
+            // Nothing holding it that has a view: a weapon on a rack, an NPC, a test rig. Only a
+            // player carries an AimProvider, so a holder without one keeps exactly the behaviour it
+            // had — which for an NPC is also the wrong camera, and is why the agent's own combat
+            // module points its barrel instead (see ExternallyAimed).
             if (aimCamera == null)
             {
                 aimCamera = Camera.main;
@@ -382,17 +409,14 @@ namespace SpaceGame.Weapons
             if (aimCamera != null)
             {
                 Ray ray = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-                Vector3 targetPoint = ray.origin + ray.direction * 500f; // Default far distance
 
-                if (Physics.Raycast(ray, out RaycastHit hit, 500f, aimMask, QueryTriggerInteraction.Ignore))
-                {
-                    targetPoint = hit.point;
-                }
-
-                return targetPoint;
+                return Physics.Raycast(ray, out RaycastHit hit, aimRange, aimMask,
+                                       QueryTriggerInteraction.Ignore)
+                    ? hit.point
+                    : ray.GetPoint(aimRange);
             }
 
-            return transform.position + transform.forward * 500f;
+            return transform.position + transform.forward * aimRange;
         }
 
         /// <summary>

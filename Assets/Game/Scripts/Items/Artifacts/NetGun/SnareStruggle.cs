@@ -55,6 +55,21 @@ namespace SpaceGame.Items
         [Tooltip("Seconds a struggle takes to fade once the captive stops fighting.")]
         [SerializeField, Min(0.05f)] private float struggleDecaySeconds = 1.2f;
 
+        [Tooltip("How far a captive has to push a direction before it counts as one at all.\n\n" +
+                 "Not a rest-drift filter: the Input System's own stick processor has already " +
+                 "removed drift by the time a value reaches this. It is a 'you meant it' " +
+                 "threshold — at 0.5 a gamepad pushed half way is steering rather than fighting. " +
+                 "Lower it toward 0.2 if half-deflection struggling should count too.")]
+        [SerializeField, Range(0.05f, 0.95f)] private float struggleMoveDeadzone = 0.5f;
+
+        [Tooltip("How far round a captive must throw themselves for it to read as a struggle " +
+                 "rather than a turn, in degrees.\n\n" +
+                 "120 counts mashing A against D (a 180 degree reversal) and refuses strafing " +
+                 "round a corner (90). Toward 90 and merely steering while netted drains the net; " +
+                 "toward 180 and nothing but a dead-straight reversal counts, which on a keyboard " +
+                 "means diagonals stop working.")]
+        [SerializeField, Range(90f, 179f)] private float struggleReversalAngle = 120f;
+
         [Tooltip("Extra load a captive struggling flat out puts on the net, as a multiple of one " +
                  "ordinary captive.\n\n" +
                  "At 2 a fully struggling captive presents three captives' worth, so a 30 s net " +
@@ -87,6 +102,21 @@ namespace SpaceGame.Items
 
         /// <summary>Also clamped by the meter itself. See <see cref="MaxUsefulStruggleRate"/>.</summary>
         public float StruggleDecaySeconds => struggleDecaySeconds;
+
+        /// <summary>
+        /// A magnitude, not a squared one — the reader squares it rather than square-rooting the
+        /// stick every frame.
+        /// </summary>
+        public float StruggleMoveDeadzone => struggleMoveDeadzone;
+
+        /// <summary>
+        /// The reversal angle as a dot product, which is the form the one reader can use.
+        ///
+        /// Authored in degrees and converted here rather than authored as a cosine: a designer
+        /// tuning "how far round is a struggle" should be typing 120, not -0.5. The sign works out
+        /// the way it reads — a wider angle is a MORE negative dot, so the test is `dot &lt; this`.
+        /// </summary>
+        public float StruggleReversalDot => Mathf.Cos(struggleReversalAngle * Mathf.Deg2Rad);
 
         /// <summary>
         /// Floored at zero here, because nothing downstream floors it. A negative multiplier would

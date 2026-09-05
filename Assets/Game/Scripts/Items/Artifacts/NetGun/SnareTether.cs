@@ -89,7 +89,8 @@ namespace SpaceGame.Items
             ragdoll != null ? ragdoll : ragdoll = GetComponentInParent<AgentRagdoll>();
 
         /// <summary>
-        /// Take hold. False when another net already has this creature.
+        /// Take hold. False when another net already has this creature, and false when this net can
+        /// do nothing to it at all.
         ///
         /// <para>
         /// <see cref="Ensure"/> returns whatever component is already here, so without that guard a
@@ -129,8 +130,21 @@ namespace SpaceGame.Items
             // Asked, not assumed. HoldDown refuses a corpse, a mount with somebody aboard, and a
             // rig that declined to go limp — and a caller that treated a refusal as a hold would
             // leave the net drawing over a creature walking about underneath it.
-            heldDown = body != null && body.HoldDown();
+            heldDown = body != null && body.HoldDown(this);
             if (!heldDown) CapSpeed();
+
+            // Felled, or at least hobbled. Neither means this net does NOTHING to the creature, and
+            // a capture recorded over one of those is the failure SnaredBody.Bind refuses for a
+            // player: the net spends its shared pool holding something that walks away, and the
+            // shooter pays for it. It is not a corner case — the ostrich, the desert crawler, the
+            // vrescal and the dune rat all move on LeggedDriver and have no NavMeshAgent to cap.
+            if (!heldDown && !cappedSpeed)
+            {
+                bound = false;
+                binder = null;
+                settings = null;
+                return false;
+            }
 
             bound = true;
             return true;
@@ -172,11 +186,11 @@ namespace SpaceGame.Items
         }
 
         /// <summary>
-        /// Let the creature up, if it was ever down and if nothing else is still holding it.
+        /// Give up this net's claim on the body, if it ever had one.
         ///
-        /// See <see cref="IHoldsBodyDown"/>: <c>AgentRagdoll.ReleaseHold</c> is a single flag with
-        /// no notion of how many claims are outstanding, so a net that let go unconditionally would
-        /// stand a tied creature up the moment it rotted.
+        /// The creature only gets up once every claim is given up — <c>AgentRagdoll.ReleaseHold</c>
+        /// counts them, so a net rotting off an animal something else is also holding does not let
+        /// that animal up.
         /// </summary>
         private void LetBodyUp()
         {
@@ -185,7 +199,7 @@ namespace SpaceGame.Items
             heldDown = false;
 
             AgentRagdoll body = Ragdoll;
-            if (body != null && !BodyHold.HeldByAnythingElse(body.gameObject)) body.ReleaseHold();
+            if (body != null) body.ReleaseHold(this);
         }
 
         public void Release(Transform netAnchor)
@@ -204,27 +218,22 @@ namespace SpaceGame.Items
         /// not leave a creature limp or hobbled forever with nothing left alive to release it.
         ///
         /// <para>
-        /// The first line matches <c>SnaredBody.OnDisable</c> — both address <see cref="Release"/>
-        /// with their own binder, so the "only the net that took hold may let go" rule cannot
-        /// refuse it. The two lines under it have no counterpart there, and should not: this
-        /// component can hold state that <c>bound</c> does not cover (a hobble applied by a Bind
-        /// whose hold was refused), where a <c>SnaredBody</c> that is not bound is not holding
-        /// anything at all — its Bind fails outright when the hold does.
+        /// The two lines under it are unreachable today — <see cref="CapSpeed"/> is only ever
+        /// reached from <see cref="Bind"/>, which either sets <c>bound</c> or undoes the cap on the
+        /// same pass — and they are kept anyway because of what the unreachable case would cost:
+        /// <c>NavMeshAgent.speed</c> is a SERIALIZED field, so a hobble stranded by any future path
+        /// that leaves this component capped-but-not-bound is captured by the quit-time autosave,
+        /// and the world reloads with a creature that cannot move and nothing in the log to say
+        /// why. That is the exact failure this design exists to avoid, so it is worth paying for
+        /// twice. <c>SnaredBody.OnDisable</c> has no counterpart because it has no such state:
+        /// its Bind fails outright when the hold does.
         /// </para>
         /// </summary>
         private void OnDisable()
         {
             if (bound) Release(binder);
 
-            // Belt and braces, and the belt is not enough on its own. Release refuses when the net
-            // addressing it is not the one that took hold, so any path that leaves this component
-            // capped-but-not-bound would strand the hobble — and NavMeshAgent.speed is a SERIALIZED
-            // field, so a quit-time autosave captures it and the world reloads with a creature that
-            // cannot move and nothing in the log to say why. That is the exact failure this whole
-            // design exists to avoid, so it is worth paying for twice.
-            //
-            // The hold gets the same treatment for the same reason: a body left limp with its brain
-            // suspended is a creature that never moves again, and there is nobody left to ask.
+            // See the remarks above: unreachable, kept for what it would cost if it ever were not.
             LetBodyUp();
             RestoreSpeed();
         }

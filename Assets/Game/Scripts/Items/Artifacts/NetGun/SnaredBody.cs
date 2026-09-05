@@ -12,63 +12,12 @@
 // message; until then it stops at the meter.
 using UnityEngine;
 using SpaceGame.Core;
+using SpaceGame.Gameplay;
 using SpaceGame.Gameplay.Ragdoll;
 using SpaceGame.Presentation;
 
 namespace SpaceGame.Items
 {
-    /// <summary>
-    /// Something other than a net that is keeping a body on the floor.
-    ///
-    /// <para>
-    /// A net lets go when it rots. A tie does not, and the two can overlap: a captive hogtied under
-    /// a net is still tied when the net gives out, and <c>PlayerRagdoll.ReleaseHold</c> is a single
-    /// flag with no notion of how many claims are outstanding — so whoever releases first stands
-    /// the body up out from under everyone else. Anything that holds a body down for longer than
-    /// one net implements this, and the net asks before letting go.
-    /// </para>
-    /// <para>
-    /// <b>Task 9's <c>Hogtie</c> is the first implementer and MUST implement it.</b> A tie that
-    /// does not is not a compile error and not a warning — it is a hogtied captive who stands up
-    /// the moment the net that caught them rots away.
-    /// </para>
-    /// <para>
-    /// Declared in this file rather than its own because the net is the thing that has to ask, and
-    /// <see cref="SnaredBody"/> and <see cref="SnareTether"/> are the two askers. It moves to its
-    /// own file the moment a third kind of hold exists — Task 9's tie included, which implements
-    /// this from wherever it lives.
-    /// </para>
-    /// </summary>
-    public interface IHoldsBodyDown
-    {
-        /// <summary>Is this component keeping the body on the floor right now?</summary>
-        bool IsHoldingBodyDown { get; }
-    }
-
-    /// <summary>The question a captor asks before it lets a body up. See <see cref="IHoldsBodyDown"/>.</summary>
-    public static class BodyHold
-    {
-        /// <summary>
-        /// Is anything OTHER than the caller still holding this body down?
-        ///
-        /// <para>
-        /// Asked of the object the ragdoll adapter is on rather than of the captor's own, because
-        /// that is the body being held and where a tie would be added. The captor asking is not
-        /// itself an <see cref="IHoldsBodyDown"/> — a net is a hold with an end, and one that
-        /// counted itself here could never let go.
-        /// </para>
-        /// </summary>
-        public static bool HeldByAnythingElse(GameObject body)
-        {
-            if (body == null) return false;
-
-            foreach (IHoldsBodyDown holder in body.GetComponents<IHoldsBodyDown>())
-                if (holder != null && holder.IsHoldingBodyDown) return true;
-
-            return false;
-        }
-    }
-
     /// <summary>
     /// One netted player: the hold that put them down, and the struggle that gets them up.
     ///
@@ -89,27 +38,9 @@ namespace SpaceGame.Items
     [AddComponentMenu("")] // added in code, never by hand
     public sealed class SnaredBody : MonoBehaviour
     {
-        /// <summary>
-        /// How far the stick has to be pushed before it is a direction at all.
-        ///
-        /// A const rather than a serialized field, unlike everything in <see cref="SnareStruggle"/>:
-        /// this component is added at runtime and can never be selected in the Inspector, which is
-        /// the reason that class exists in the first place. It is not a design knob either — it
-        /// separates a pushed stick from a resting one, and a resting stick that counted as a
-        /// direction would have every frame of drift read as a reversal.
-        /// </summary>
-        private const float MoveDeadzone = 0.5f;
-
-        /// <summary>
-        /// How far round the new heading has to be to count as a reversal rather than a turn.
-        ///
-        /// -0.5 is 120 degrees. Mashing A against D is 180 and lands well past it; strafing round
-        /// a corner is 90 and does not, which is the discrimination wanted — a captive who happens
-        /// to be steering is not struggling.
-        /// </summary>
-        private const float ReversalDot = -0.5f;
-
         private PlayerRagdoll ragdoll;
+        private HealthComponent health;
+        private SnareStruggle settings;
         private Transform anchor;
         private SnareStruggleMeter meter;
         private InputControls struggleInput;
@@ -154,13 +85,20 @@ namespace SpaceGame.Items
             ragdoll != null ? ragdoll : ragdoll = GetComponentInParent<PlayerRagdoll>();
 
         /// <summary>
+        /// This captive's health, resolved on demand for the reason <see cref="Ragdoll"/> is: there
+        /// is no Awake to cache it in. From the PARENT for the same reason too.
+        /// </summary>
+        private HealthComponent Vitals =>
+            health != null ? health : health = GetComponentInParent<HealthComponent>();
+
+        /// <summary>
         /// Take hold: put the player on the floor and start counting their struggle.
         /// </summary>
         /// <returns>
         /// False when the hold did not take, and the caller must then record no capture at all.
         /// Another net already has this player is one reason; the body refusing to go down is the
-        /// other, and <c>PlayerRagdoll.HoldDown</c> lists what those are — a corpse, or a rig whose
-        /// skeleton build kept no bones.
+        /// other, and <c>PlayerRagdoll.HoldDown</c> lists what those are — a corpse, a body a seat
+        /// or a saddle is already placing, or a rig whose skeleton build kept no bones.
         ///
         /// <para>
         /// A capture recorded over a body that never went down is worse than no capture: the net
@@ -168,6 +106,7 @@ namespace SpaceGame.Items
         /// punished for it. There is no half measure available here the way there is for a creature
         /// — <see cref="SnareTether"/> can still hobble a NavMeshAgent it failed to fell, and a
         /// player has no such dial to turn that would not be taking control away by another name.
+        /// Where the tether has nothing to fall back on either, it refuses the same way this does.
         /// </para>
         /// </returns>
         public bool Bind(Transform netAnchor, SnareStruggle struggleSettings)
@@ -179,9 +118,14 @@ namespace SpaceGame.Items
             if (bound) return true;
 
             PlayerRagdoll body = Ragdoll;
-            if (body == null || !body.HoldDown()) return false;
+            if (body == null || !body.HoldDown(this)) return false;
 
-            SnareStruggle settings = struggleSettings ?? new SnareStruggle();
+            settings = struggleSettings ?? new SnareStruggle();
+
+            // Subscribed here rather than in an Awake this component deliberately does not have,
+            // and unsubscribed in Release, so the subscription lasts exactly as long as the hold.
+            HealthComponent vitals = Vitals;
+            if (vitals != null) vitals.OnDeath += OnCaptiveDied;
 
             anchor = netAnchor;
             meter = new SnareStruggleMeter(settings.MaxUsefulStruggleRate,
@@ -195,8 +139,9 @@ namespace SpaceGame.Items
         /// Let go. Only the net that took hold may, so an unrelated net's expiry frees nobody.
         ///
         /// <para>
-        /// The player only stands up if nothing else is still holding them down — see
-        /// <see cref="BodyHold.HeldByAnythingElse"/>.
+        /// This gives back the claim this net took, and no more. The player stands up only once
+        /// every claim is given back — see <c>PlayerRagdoll.ReleaseHold</c> — so a net rotting off
+        /// a captive something else is also holding leaves them where they are.
         /// </para>
         /// </summary>
         public void Release(Transform netAnchor)
@@ -206,12 +151,35 @@ namespace SpaceGame.Items
             bound = false;
             anchor = null;
             meter = null;
+            settings = null;
             heading = Vector2.zero;
             ReleaseStruggleInput();
 
+            HealthComponent vitals = Vitals;
+            if (vitals != null) vitals.OnDeath -= OnCaptiveDied;
+
             PlayerRagdoll body = Ragdoll;
-            if (body != null && !BodyHold.HeldByAnythingElse(body.gameObject)) body.ReleaseHold();
+            if (body != null) body.ReleaseHold(this);
         }
+
+        /// <summary>
+        /// The captive died under the net. Let go of them at that moment rather than at the net's.
+        ///
+        /// <para>
+        /// A corpse is not a captive. <c>PlayerRagdoll.OnDeath</c> drops the hold's claim on its
+        /// own — a corpse is already limp and stays that way — but nothing there knows about the
+        /// net, so without this the binding outlives the player: <see cref="Update"/> goes on
+        /// reading a dead player's keys (the menu gate is open for a corpse, there being no menu),
+        /// and the struggle they cannot have stopped goes on being counted. Today the meter is
+        /// read by nothing; the moment Task 8 bills it, that is a corpse eating the shooter's net,
+        /// and it would read as a balance problem rather than a lifecycle one.
+        /// </para>
+        /// <para>
+        /// The captive stays in <c>SnareCatch</c>'s own captive list until the net rots — this ends
+        /// the struggle, not the base load of a body lying in the net.
+        /// </para>
+        /// </summary>
+        private void OnCaptiveDied() => Release(anchor);
 
         /// <summary>
         /// Let go no matter which net asks. For teardown only — a chunk unloading under a net must
@@ -219,11 +187,11 @@ namespace SpaceGame.Items
         ///
         /// <para>
         /// <see cref="SnareTether"/> repeats its restraint unconditionally underneath the same
-        /// line, and this deliberately does not. It has nothing to repeat: that component can be
-        /// holding a creature by a hobble its <c>bound</c> flag does not describe, whereas
-        /// <see cref="Bind"/> here fails outright when the hold is refused — so a SnaredBody that
-        /// is not bound is holding nothing. The input asset is the one thing that can outlive the
-        /// binding, and it is disposed either way.
+        /// line and this does not, because the two have different things to be unsure about: a
+        /// stranded hobble there writes a SERIALIZED field that a quit-time autosave would capture,
+        /// where everything here is runtime state that dies with the object. The one exception is
+        /// the input asset, which outlives this component if nobody disposes it — so that is the
+        /// line repeated here.
         /// </para>
         /// </summary>
         private void OnDisable()
@@ -246,7 +214,7 @@ namespace SpaceGame.Items
         /// </summary>
         public void Step(float delta, bool jumpPressed, Vector2 move)
         {
-            if (!bound || meter == null) return;
+            if (!bound || meter == null || settings == null) return;
 
             meter.Advance(delta);
 
@@ -267,10 +235,9 @@ namespace SpaceGame.Items
         /// <summary>Has the captive thrown themselves the other way since last time?</summary>
         private bool IsReversal(Vector2 move)
         {
-            if (heading == Vector2.zero || move.sqrMagnitude < MoveDeadzone * MoveDeadzone)
-                return false;
+            if (heading == Vector2.zero || !IsPushed(move)) return false;
 
-            return Vector2.Dot(move.normalized, heading) < ReversalDot;
+            return Vector2.Dot(move.normalized, heading) < settings.StruggleReversalDot;
         }
 
         /// <summary>
@@ -282,7 +249,14 @@ namespace SpaceGame.Items
         /// </summary>
         private void RememberHeading(Vector2 move)
         {
-            if (move.sqrMagnitude >= MoveDeadzone * MoveDeadzone) heading = move.normalized;
+            if (IsPushed(move)) heading = move.normalized;
+        }
+
+        /// <summary>Is this a direction the captive meant, or a stick at rest?</summary>
+        private bool IsPushed(Vector2 move)
+        {
+            float deadzone = settings.StruggleMoveDeadzone;
+            return move.sqrMagnitude >= deadzone * deadzone;
         }
 
         /// <summary>

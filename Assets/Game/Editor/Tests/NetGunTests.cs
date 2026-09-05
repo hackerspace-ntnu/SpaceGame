@@ -105,9 +105,20 @@ namespace SpaceGame.EditorTools
         private readonly System.Collections.Generic.List<GameObject> spawned =
             new System.Collections.Generic.List<GameObject>();
 
+        /// <summary>
+        /// Stands in for a seat, a saddle or the terrain guard — <c>CarriedBody</c> only needs
+        /// identity. A field rather than a local so <see cref="TearDown"/> can drop the claim: that
+        /// dictionary is static, its <c>RuntimeInitializeOnLoadMethod</c> reset never fires in
+        /// EditMode, and an assertion that throws mid-test would otherwise leave a body carried for
+        /// whatever NUnit runs next. Same reason <c>ParkedBodyCarryTests</c> does it.
+        /// </summary>
+        private readonly object carrier = new object();
+
         [TearDown]
         public void TearDown()
         {
+            SpaceGame.Agents.CarriedBody.Abandon(carrier);
+
             foreach (GameObject go in spawned)
                 if (go != null) Object.DestroyImmediate(go);
 
@@ -880,9 +891,9 @@ namespace SpaceGame.EditorTools
         [TestCase(false)]
         public void ANetLetsACreatureUpOnlyWhenNothingElseHoldsIt(bool tiedAsWell)
         {
-            // AgentRagdoll.ReleaseHold is one flag with no notion of how many claims are out, so
-            // the FIRST captor to let go stands the body up for everyone. Task 9's Hogtie outlives
-            // the net that caught the creature, and this is the guard that keeps it holding.
+            // The body stays down until the LAST claim is given back — the rule CarriedBody
+            // follows, now on the ragdoll too. Task 9's tie outlives the net that caught the
+            // creature, and a hold that was one flag would have the net stand it up on the way out.
             GameObject creature = NewRagdollBody("Creature");
             AgentRagdoll ragdoll = Woken<AgentRagdoll>(creature);
 
@@ -892,7 +903,11 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(tether.Bind(net.transform, new SnareStruggle()));
             Assert.IsTrue(ragdoll.IsHeld, "Nothing was holding the creature to begin with.");
 
-            if (tiedAsWell) creature.AddComponent<StandInHold>();
+            var tie = new object();
+            if (tiedAsWell)
+                Assert.IsTrue(ragdoll.HoldDown(tie),
+                    "The second claim was refused, so this test never had two holders and the " +
+                    "assertion below would pass on a body nothing else wanted.");
 
             tether.Release(net.transform);
 
@@ -900,6 +915,37 @@ namespace SpaceGame.EditorTools
                 tiedAsWell
                     ? "The net rotted and stood up a creature that is still tied."
                     : "The net let go and left the creature down with nothing holding it.");
+
+            if (!tiedAsWell) return;
+
+            // And the last one out really does end it, rather than the body being stuck down for
+            // good once a second claim was ever taken.
+            ragdoll.ReleaseHold(tie);
+
+            Assert.IsFalse(ragdoll.IsHeld,
+                "Every claim has been given back and the creature is still being held down.");
+        }
+
+        [Test]
+        public void ANetTakesNoCreatureItCanNeitherFellNorHobble()
+        {
+            // A capture the net does nothing to is worse than no capture: it drains the shared pool
+            // holding a creature that walks away, and the shooter pays for it — the same rule
+            // SnaredBody.Bind enforces for a player.
+            //
+            // Not a corner case. This creature has no AgentRagdoll to fell and no NavMeshAgent to
+            // slow, which is the shape of every legged machine in the project: the ostrich, the
+            // desert crawler, the vrescal and the dune rat all move on LeggedDriver.
+            GameObject creature = NewCreature("Creature");
+            GameObject net = NewObject("Net");
+
+            SnareTether tether = SnareTether.Ensure(creature);
+
+            Assert.IsFalse(tether.Bind(net.transform, new SnareStruggle()),
+                "The net reported a capture over a creature it neither felled nor hobbled.");
+            Assert.IsFalse(tether.IsBound,
+                "The net answered false and bound the creature anyway, which also blocks the next " +
+                "net from taking it.");
         }
 
         [Test]
@@ -907,7 +953,12 @@ namespace SpaceGame.EditorTools
         {
             // One net at a time, for the reason LassoTether.Bind documents: two nets sharing one
             // tether means whichever expires first frees the captive from both.
+            //
+            // The agent is what makes the first Bind take at all — see the test above — so without
+            // it this would be asserting bookkeeping about a creature no net ever held.
             GameObject creature = NewCreature("Creature");
+            AuthoredAgent(creature);
+
             GameObject first = NewObject("First");
             GameObject second = NewObject("Second");
 
@@ -921,17 +972,25 @@ namespace SpaceGame.EditorTools
         [Test]
         public void ReleasingByTheWrongNetDoesNothing()
         {
-            GameObject creature = NewCreature("Creature");
+            // Felled rather than hobbled, so the release has something visible to get wrong. With a
+            // creature the net does not touch, a Release that let the body up BEFORE checking which
+            // net was asking would pass this just as happily.
+            GameObject creature = NewRagdollBody("Creature");
+            AgentRagdoll ragdoll = Woken<AgentRagdoll>(creature);
+
             GameObject first = NewObject("First");
             GameObject second = NewObject("Second");
 
             SnareTether tether = SnareTether.Ensure(creature);
-            tether.Bind(first.transform, new SnareStruggle());
+            Assert.IsTrue(tether.Bind(first.transform, new SnareStruggle()));
 
             tether.Release(second.transform);
 
             Assert.IsTrue(tether.IsBound,
                 "An unrelated net's expiry freed a creature it never caught.");
+            Assert.IsTrue(ragdoll.IsHeld,
+                "An unrelated net's expiry stood the creature up, even though the tether still " +
+                "reports itself bound.");
         }
 
         [Test]
@@ -977,6 +1036,11 @@ namespace SpaceGame.EditorTools
             // This player's rig has no skeleton to build, which is one of the two ways HoldDown
             // says no — RagdollRig.GoLimp returns without a word when the build keeps no bones.
             GameObject player = NewObject("Player");
+
+            // Added BEFORE the adapter wakes, because Awake is where it caches this. Suspend
+            // switches it off on the way into a hold, and the refusal has to switch it back on.
+            var collider = player.AddComponent<CapsuleCollider>();
+
             PlayerRagdoll ragdoll = Woken<PlayerRagdoll>(player);
             RagdollRig rig = player.GetComponent<RagdollRig>();
 
@@ -993,6 +1057,15 @@ namespace SpaceGame.EditorTools
                 "This rig went limp after all, so the refusal under test was not the one intended " +
                 "and this test is measuring nothing.");
             Assert.IsFalse(ragdoll.IsHeldOrDown, "The player is down despite the refusal.");
+
+            // The refusal has to UNDO the suspend it already performed. HoldDown suspends first and
+            // asks the rig afterwards — deliberately, so the refusal covers every reason GoLimp can
+            // decline — so a version that simply returned false here would ship a player with their
+            // input off, their collider off and their camera detached, upright, unable to move, and
+            // with nothing in the console to say why.
+            Assert.IsTrue(collider.enabled,
+                "The refused hold left the player suspended: collider off, and with it the input " +
+                "and the camera that Suspend also took.");
         }
 
         [Test]
@@ -1031,10 +1104,9 @@ namespace SpaceGame.EditorTools
             GameObject anchor = NewObject("Anchor");
             SnaredBody snared = SnaredBody.Ensure(player);
 
-            var saddle = new object();
-            SpaceGame.Agents.CarriedBody.Hold(player, saddle);
+            SpaceGame.Agents.CarriedBody.Hold(player, carrier);
 
-            Assert.IsTrue(SpaceGame.Agents.CarriedBody.IsHeld(player),
+            Assert.IsTrue(SpaceGame.Agents.CarriedBody.IsCarriedRigidly(player),
                 "The carry did not take, so the refusal below would prove nothing.");
 
             Assert.IsFalse(snared.Bind(anchor.transform, new SnareStruggle()),
@@ -1043,11 +1115,43 @@ namespace SpaceGame.EditorTools
 
             // The control, on the same fixture: everything else about this player is unchanged, so
             // a Bind that succeeds now can only have been refused above because of the carry.
-            SpaceGame.Agents.CarriedBody.Release(player, saddle);
+            SpaceGame.Agents.CarriedBody.Release(player, carrier);
 
             Assert.IsTrue(snared.Bind(anchor.transform, new SnareStruggle()),
                 "The same player could not be netted after dismounting either, so the refusal " +
                 "above was not about being carried.");
+        }
+
+        [Test]
+        public void ANetStillTakesACaptiveWhoseBodyIsMerelyParked()
+        {
+            // The refusal above must be narrow, and this is why. UnderTerrainGuard parks a body
+            // while the chunk under it loads — a claim on the same record, through SuspendGravity
+            // rather than Hold — and the guard runs OWNER-ONLY. A refusal that could not tell the
+            // two apart would have the server accept the capture and announce it, every peer put
+            // the body limp, and the victim's own machine alone refuse. A player's transform is
+            // owner-authoritative, so the victim's answer wins: limp on every other screen, walking
+            // around on their own, during ordinary chunk streaming.
+            GameObject player = NewRagdollBody("Player");
+            player.AddComponent<Rigidbody>();
+            Woken<PlayerRagdoll>(player);
+            RagdollRig rig = player.GetComponent<RagdollRig>();
+
+            GameObject anchor = NewObject("Anchor");
+            SnaredBody snared = SnaredBody.Ensure(player);
+
+            SpaceGame.Agents.CarriedBody.SuspendGravity(player, carrier);
+
+            Assert.IsTrue(SpaceGame.Agents.CarriedBody.IsHeld(player),
+                "The park did not register at all, so this test is not measuring the distinction.");
+            Assert.IsFalse(SpaceGame.Agents.CarriedBody.IsCarriedRigidly(player),
+                "A gravity-only park is being reported as something placing the body. That is the " +
+                "distinction the refusal turns on, and without it the desync is back.");
+
+            Assert.IsTrue(snared.Bind(anchor.transform, new SnareStruggle()),
+                "The net refused a parked player. Every other machine in the session would have " +
+                "taken this capture and put them limp.");
+            Assert.IsTrue(rig.IsLimp, "The capture was recorded without the body going down.");
         }
 
         [Test]
@@ -1087,11 +1191,10 @@ namespace SpaceGame.EditorTools
         [TestCase(false)]
         public void ANetLetsAPlayerUpOnlyWhenNothingElseHoldsThem(bool tiedAsWell)
         {
-            // PlayerRagdoll.ReleaseHold is one flag with no notion of how many claims are out, so
-            // the first captor to let go stands the body up for everyone. Task 9's Hogtie outlives
-            // the net that caught the player; this is the guard that keeps it holding.
+            // The player's half of the same rule, measured through BudgetExempt because that is
+            // the mark of a hold visible from here. Task 9's tie outlives the net that caught them.
             GameObject player = NewRagdollBody("Player");
-            Woken<PlayerRagdoll>(player);
+            PlayerRagdoll ragdoll = Woken<PlayerRagdoll>(player);
             RagdollRig rig = player.GetComponent<RagdollRig>();
 
             GameObject anchor = NewObject("Anchor");
@@ -1100,7 +1203,10 @@ namespace SpaceGame.EditorTools
             Assert.IsTrue(snared.Bind(anchor.transform, new SnareStruggle()));
             Assert.IsTrue(rig.BudgetExempt, "Nothing was holding the player to begin with.");
 
-            if (tiedAsWell) player.AddComponent<StandInHold>();
+            var tie = new object();
+            if (tiedAsWell)
+                Assert.IsTrue(ragdoll.HoldDown(tie),
+                    "The second claim was refused, so this test never had two holders.");
 
             snared.Release(anchor.transform);
 
@@ -1108,6 +1214,13 @@ namespace SpaceGame.EditorTools
                 tiedAsWell
                     ? "The net rotted and let up a player who is still tied."
                     : "The net let go and left the player held with nothing holding them.");
+
+            if (!tiedAsWell) return;
+
+            ragdoll.ReleaseHold(tie);
+
+            Assert.IsFalse(rig.BudgetExempt,
+                "Every claim has been given back and the player is still being held down.");
         }
 
         // ── SnaredBody: the struggle ─────────────────────────────────────────
@@ -1126,8 +1239,16 @@ namespace SpaceGame.EditorTools
                 "The captive pressed jump and the net never noticed.");
         }
 
-        [TestCase(-1f, 0f, true, TestName = "ReversingCountsAsAStruggle")]
-        [TestCase(0f, 1f, false, TestName = "TurningDoesNotCountAsAStruggle")]
+        // The four either side of the authored 120 degrees, and one under the deadzone. Two cases
+        // alone did not pin this: ANY threshold in (-1, 0) passes a 180 and refuses a 90, including
+        // 0 — anything past a right angle, which is the bug the message below names — and -0.99,
+        // which is so close to a dead-straight reversal that a keyboard player's diagonals stop
+        // counting. The 110 and 130 pair is what makes the authored angle the thing under test.
+        [TestCase(-1f, 0f, true, TestName = "AOneEightyReversalCounts")]
+        [TestCase(0f, 1f, false, TestName = "ANinetyDegreeTurnDoesNot")]
+        [TestCase(-0.34f, 0.94f, false, TestName = "AHundredAndTenDegreesDoesNot")]
+        [TestCase(-0.64f, 0.77f, true, TestName = "AHundredAndThirtyDegreesCounts")]
+        [TestCase(-0.2f, 0f, false, TestName = "ASubDeadzoneReversalDoesNot")]
         public void OnlyAReversalOfTheMoveCountsAsAStruggle(float thenX, float thenY, bool counts)
         {
             // Throwing yourself the other way is the struggle; steering is not. Without the
@@ -1147,8 +1268,34 @@ namespace SpaceGame.EditorTools
                     "The captive threw themselves the opposite way and it counted for nothing.");
             else
                 Assert.That(snared.StruggleLevel, Is.EqualTo(0f).Within(1e-4f),
-                    "A ninety-degree turn was read as a reversal, so simply steering while netted " +
-                    "drains the net.");
+                    $"({thenX}, {thenY}) was read as a reversal. Either the authored angle has " +
+                    "opened up far enough that merely steering while netted drains the net, or a " +
+                    "push too small to be a direction is being counted as one.");
+        }
+
+        [Test]
+        public void LettingGoBetweenTwoOppositePushesStillCounts()
+        {
+            // A keyboard player releases D before pressing A, so the frame between them reads as a
+            // centred stick. If that frame overwrote the remembered heading, the reversal it sits
+            // in the middle of would vanish — and the struggle would only work for a gamepad played
+            // without ever crossing the centre.
+            //
+            // Update passes a zero move for the same reason whenever a menu is open, so this also
+            // pins that closing a menu does not eat the press after it.
+            SnaredBody snared = NewCaptive();
+
+            snared.Step(Substep, jumpPressed: false, move: Vector2.right);
+            snared.Step(Substep, jumpPressed: false, move: Vector2.zero);
+
+            Assert.That(snared.StruggleLevel, Is.EqualTo(0f).Within(1e-4f),
+                "Letting go of the stick was itself counted as a struggle.");
+
+            snared.Step(Substep, jumpPressed: false, move: Vector2.left);
+
+            Assert.That(snared.StruggleLevel, Is.GreaterThan(0f),
+                "The captive pushed one way, let go, and threw themselves the other way — and the " +
+                "released frame in the middle wiped the heading the reversal is measured against.");
         }
 
         [Test]
@@ -1171,6 +1318,41 @@ namespace SpaceGame.EditorTools
             Assert.That(snared.StruggleLevel, Is.LessThan(peak * 0.1f),
                 $"The captive stopped fighting {Idle * Substep:F1} s ago and the meter is still at " +
                 $"{snared.StruggleLevel:F3} against a peak of {peak:F3}.");
+        }
+
+        [Test]
+        public void ANetLetsGoOfACaptiveWhoDies()
+        {
+            // A corpse is not a captive. PlayerRagdoll.OnDeath drops the hold's own claim, but it
+            // knows nothing about the net — so without a death subscription here the binding
+            // outlives the player: Update goes on reading a dead player's keys (there is no menu
+            // open over a corpse, so the menu gate does not stop it) and the struggle keeps being
+            // counted. Task 8 bills that struggle to the shooter's net.
+            GameObject player = NewRagdollBody("Player");
+            var health = player.AddComponent<SpaceGame.Gameplay.HealthComponent>();
+            Woken<PlayerRagdoll>(player);
+
+            GameObject anchor = NewObject("Anchor");
+            SnaredBody snared = SnaredBody.Ensure(player);
+
+            Assert.IsTrue(snared.Bind(anchor.transform, new SnareStruggle()));
+
+            snared.Step(Substep, jumpPressed: true, move: Vector2.zero);
+            Assert.That(snared.StruggleLevel, Is.GreaterThan(0f),
+                "The captive was not struggling before they died, so the assertions below would " +
+                "pass on a meter that was never running.");
+
+            health.Damage(9999);
+
+            Assert.IsFalse(snared.IsBound,
+                "The captive died and the net is still holding them.");
+            Assert.That(snared.StruggleLevel, Is.EqualTo(0f).Within(1e-4f),
+                "A corpse is still registering a struggle.");
+
+            snared.Step(Substep, jumpPressed: true, move: Vector2.zero);
+
+            Assert.That(snared.StruggleLevel, Is.EqualTo(0f).Within(1e-4f),
+                "The net is still reading the keys of a player who is dead.");
         }
 
         [Test]
@@ -2752,7 +2934,7 @@ namespace SpaceGame.EditorTools
             int update = source.IndexOf("private void Update()", System.StringComparison.Ordinal);
             Assert.Greater(update, -1, path + " lost its Update.");
 
-            int guard = IndexAfter(source, "if (held) return;", update,
+            int guard = IndexAfter(source, "if (Held) return;", update,
                                    path + ".Update lost its held guard.");
             int budgetRescue = IndexAfter(source, "if (!rig.IsLimp)", update,
                                           path + ".Update lost its budget-eviction rescue.");
@@ -2784,14 +2966,21 @@ namespace SpaceGame.EditorTools
             // Four claims, one per lifecycle edge: taken by HoldDown, given back by ReleaseHold,
             // and dropped by BOTH ends of death — OnDeath, so a corpse stops being an un-evictable
             // captive, and OnRevive, so a body that somehow kept the claim is not barred from ever
-            // being netted again.
+            // being netted again. Death and revive empty the whole holder set rather than giving
+            // one claim back, because they end every hold at once.
             string source = RagdollSource(path);
 
-            int holdDown = source.IndexOf("public bool HoldDown()", System.StringComparison.Ordinal);
-            Assert.Greater(holdDown, -1, path + " lost HoldDown, or stopped reporting whether it took.");
+            int holdDown = source.IndexOf("public bool HoldDown(object holder)",
+                                          System.StringComparison.Ordinal);
+            Assert.Greater(holdDown, -1,
+                           path + " lost HoldDown, stopped reporting whether it took, or stopped " +
+                           "taking the holder's token — the claim set is what keeps a net from " +
+                           "standing up a body something else is also holding.");
 
-            int releaseHold = IndexAfter(source, "public void ReleaseHold()", holdDown,
-                                         path + " lost ReleaseHold.");
+            int releaseHold = IndexAfter(source, "public void ReleaseHold(object holder)", holdDown,
+                                         path + " lost ReleaseHold, or stopped taking the token " +
+                                         "back. A release that does not name its claim cannot " +
+                                         "know whether it was the last one.");
 
             int claimed = IndexAfter(source, "rig.BudgetExempt = true;", holdDown,
                                      path + ".HoldDown never claims the budget exemption. A held " +
@@ -2821,8 +3010,9 @@ namespace SpaceGame.EditorTools
 
             AssertClearsTheClaim(source, path, "OnRevive", "if (rig.IsLimp) Restore();",
                                  "Restore calls rig.Recover, which unregisters from the budget " +
-                                 "while leaving the claim set — and HoldDown returns early on " +
-                                 "`held`, so that body could never be netted again.");
+                                 "while leaving the claim set standing — and HoldDown answers a " +
+                                 "stale claim rather than taking a fresh one, so that body would " +
+                                 "be limp to everything that asks and never netted again.");
         }
 
         /// <summary>
@@ -2843,13 +3033,13 @@ namespace SpaceGame.EditorTools
                                  path + "." + method + " no longer contains `" + endsBefore + "`, " +
                                  "which this test uses to bound it. Re-read the method.");
 
-            int flag = IndexAfter(source, "held = false;", start,
-                                  path + "." + method + " does not clear `held`. Cost: " + cost);
+            int flag = IndexAfter(source, "holders.Clear();", start,
+                                  path + "." + method + " does not empty the claim set. Cost: " + cost);
             int exemption = IndexAfter(source, "rig.BudgetExempt = false;", start,
                                        path + "." + method + " does not clear the budget " +
                                        "exemption. Cost: " + cost);
 
-            Assert.Less(flag, end, path + ": the `held` clear has to be inside " + method + ".");
+            Assert.Less(flag, end, path + ": the claim-set clear has to be inside " + method + ".");
             Assert.Less(exemption, end,
                         path + ": the exemption clear has to be inside " + method + ".");
         }
@@ -3176,21 +3366,5 @@ namespace SpaceGame.EditorTools
             meter.Advance(0.5f);
             Assert.IsTrue(meter.Push(), "Past the cooldown it counts again.");
         }
-    }
-
-    /// <summary>
-    /// A stand-in for the tie that outlives a net — Task 9's <c>Hogtie</c>, which does not exist
-    /// yet.
-    ///
-    /// <para>
-    /// A real component rather than a mock, because what is under test is that the net ASKS the
-    /// object it is letting go of: <c>SnaredBody.Release</c> looks for
-    /// <see cref="SpaceGame.Items.IHoldsBodyDown"/> on the body itself, so nothing an interface
-    /// double could stand in for would exercise the same lookup.
-    /// </para>
-    /// </summary>
-    public sealed class StandInHold : MonoBehaviour, SpaceGame.Items.IHoldsBodyDown
-    {
-        public bool IsHoldingBodyDown => true;
     }
 }
